@@ -1,4 +1,3 @@
-using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Binding.Providers;
 

@@ -3,6 +3,9 @@ using CommunityToolkit.Diagnostics;
 
 namespace FlameCsv.Extensions;
 
+/// <summary>
+/// Extensions for manipulating and validating instances of <see cref="CsvParserOptions{T}"/>.
+/// </summary>
 public static partial class CsvParserOptionsExtensions
 {
     /// <summary>
@@ -12,7 +15,10 @@ public static partial class CsvParserOptionsExtensions
         in this CsvParserOptions<char> options,
         string? whitespace)
     {
-        return options with { Whitespace = whitespace.AsMemory() };
+        return options with
+        {
+            Whitespace = whitespace.AsMemory(),
+        };
     }
 
     /// <summary>
@@ -22,7 +28,10 @@ public static partial class CsvParserOptionsExtensions
         in this CsvParserOptions<byte> options,
         string? whitespace)
     {
-        return options with { Whitespace = Encoding.UTF8.GetBytes(whitespace ?? "").AsMemory() };
+        return options with
+        {
+            Whitespace = Encoding.UTF8.GetBytes(whitespace ?? "").AsMemory(),
+        };
     }
 
     /// <summary>
@@ -37,6 +46,21 @@ public static partial class CsvParserOptionsExtensions
             NewLine = ToBytes(options.NewLine),
             Whitespace = ToBytes(options.Whitespace),
         };
+
+        static byte ToSingleByte(char c)
+        {
+            return c <= 127
+                ? (byte)c
+                : ThrowHelper.ThrowInvalidOperationException<byte>($"Cannot convert char {c} to single UTF8 byte");
+        }
+
+        static ReadOnlyMemory<byte> ToBytes(ReadOnlyMemory<char> chars)
+        {
+            var len = Encoding.UTF8.GetByteCount(chars.Span);
+            var result = new byte[len];
+            _ = Encoding.UTF8.GetBytes(chars.Span, result.AsSpan());
+            return result;
+        }
     }
 
     /// <summary>
@@ -51,32 +75,17 @@ public static partial class CsvParserOptionsExtensions
             NewLine = ToChars(options.NewLine),
             Whitespace = ToChars(options.Whitespace),
         };
-    }
 
-    private static ReadOnlyMemory<char> ToChars(ReadOnlyMemory<byte> bytes)
-    {
-        return Encoding.UTF8.GetString(bytes.Span).AsMemory();
-    }
+        static char ToSingleChar(byte b)
+        {
+            return b <= 127
+                ? (char)b
+                : ThrowHelper.ThrowInvalidOperationException<char>($"Cannot convert UTF8 byte {b} to single char");
+        }
 
-    private static ReadOnlyMemory<byte> ToBytes(ReadOnlyMemory<char> chars)
-    {
-        var len = Encoding.UTF8.GetByteCount(chars.Span);
-        var result = new byte[len];
-        _ = Encoding.UTF8.GetBytes(chars.Span, result.AsSpan());
-        return result;
-    }
-
-    private static char ToSingleChar(byte b)
-    {
-        return b <= 127
-            ? (char)b
-            : ThrowHelper.ThrowInvalidOperationException<char>($"Cannot convert UTF8 byte {b} to single char");
-    }
-
-    private static byte ToSingleByte(char c)
-    {
-        return c <= 127
-            ? (byte)c
-            : ThrowHelper.ThrowInvalidOperationException<byte>($"Cannot convert char {c} to single UTF8 byte");
+        static ReadOnlyMemory<char> ToChars(ReadOnlyMemory<byte> bytes)
+        {
+            return Encoding.UTF8.GetString(bytes.Span).AsMemory();
+        }
     }
 }

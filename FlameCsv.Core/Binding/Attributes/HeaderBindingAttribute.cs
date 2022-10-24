@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using CommunityToolkit.Diagnostics;
 
-namespace FlameCsv.Binding;
+namespace FlameCsv.Binding.Attributes;
 
 /// <summary>
 /// Defines the value(s) for header name matching to use instead of member name in built-in header binding providers.
@@ -33,6 +33,7 @@ public sealed class HeaderBindingAttribute : Attribute
     public HeaderBindingAttribute(params string[] values)
     {
         Guard.IsNotNull(values);
+        Guard.IsNotEmpty(values);
         Values = ImmutableArray.Create(values);
     }
 }

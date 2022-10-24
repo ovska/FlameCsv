@@ -1,5 +1,4 @@
 using System.Buffers;
-using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Binding.Providers;
 using FlameCsv.Readers;

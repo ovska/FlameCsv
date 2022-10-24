@@ -1,5 +1,4 @@
 using FlameCsv.Extensions;
-using FlameCsv.Readers;
 using FlameCsv.Readers.Internal;
 
 namespace FlameCsv.Tests.Extensions;
