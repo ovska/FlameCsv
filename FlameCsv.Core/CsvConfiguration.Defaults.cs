@@ -32,7 +32,9 @@ public partial class CsvConfiguration<T>
     /// <exception cref="NotSupportedException"><typeparamref name="T"/> is not char or byte</exception>
     /// <seealso cref="CsvConfiguration.GetTextDefaultsBuilder"/>
     /// <seealso cref="CsvConfiguration.GetUtf8DefaultsBuilder"/>
-    public static CsvConfiguration<T> Default => DefaultBuilder.Build();
+    public static CsvConfiguration<T> Default => _default ??= DefaultBuilder.Build();
+
+    private static CsvConfiguration<T>? _default;
 }
 
 public static class CsvConfiguration
