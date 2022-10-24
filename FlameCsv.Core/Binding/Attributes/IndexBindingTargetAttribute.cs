@@ -1,5 +1,5 @@
-using System.Reflection;
 using CommunityToolkit.Diagnostics;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Binding.Attributes;
 
@@ -36,12 +36,6 @@ public sealed class IndexBindingTargetAttribute : Attribute
         if (targetType.IsInterface)
             ThrowHelper.ThrowNotSupportedException("Interface binding is not yet supported.");
 
-        var member = targetType.GetProperty(MemberName, CsvBindingConstants.MemberLookupFlags)
-            ?? (MemberInfo?)targetType.GetField(MemberName, CsvBindingConstants.MemberLookupFlags)
-            ?? throw new InvalidOperationException(
-                $"Invalid {nameof(IndexBindingTargetAttribute)} definition on type {targetType.Name}: "
-                + $"Property/field '{MemberName}' not found");
-
-        return new(Index, member);
+        return new(Index, targetType.GetPropertyOrField(MemberName));
     }
 }

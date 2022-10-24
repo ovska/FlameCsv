@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Reflection;
 using CommunityToolkit.Diagnostics;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Binding.Attributes;
 
@@ -47,12 +48,7 @@ public sealed class HeaderBindingTargetAttribute : Attribute
 
     internal IEnumerable<(string Value, MemberInfo Member, int Order)> GetMembers(Type targetType)
     {
-        var member = targetType.GetProperty(MemberName, CsvBindingConstants.MemberLookupFlags)
-            ?? (MemberInfo?)targetType.GetField(MemberName, CsvBindingConstants.MemberLookupFlags)
-            ?? throw new InvalidOperationException(
-                $"Invalid {nameof(HeaderBindingTargetAttribute)} definition on type {targetType.Name}: "
-                + $"Property/field '{MemberName}' not found");
-
+        var member = targetType.GetPropertyOrField(MemberName);
         return Values.Select(value => (value, member, Order));
     }
 }

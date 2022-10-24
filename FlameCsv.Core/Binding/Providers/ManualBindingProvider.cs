@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using CommunityToolkit.Diagnostics;
+using FlameCsv.Extensions;
 using FlameCsv.Runtime;
 
 namespace FlameCsv.Binding.Providers;
@@ -41,11 +42,7 @@ public class ManualBindingProvider<T, TResult> : ICsvBindingProvider<T>
         Guard.IsGreaterThanOrEqualTo(index, 0);
         Guard.IsNotNullOrWhiteSpace(memberName);
 
-        var member = typeof(TResult).GetProperty(memberName)
-            ?? (MemberInfo?)typeof(TResult).GetField(memberName)
-            ?? throw new InvalidOperationException($"Property/field \"{memberName}\" not found on type {typeof(T)}");
-
-        return Add(index, member);
+        return Add(index, typeof(TResult).GetPropertyOrField(memberName));
     }
 
     /// <summary>
