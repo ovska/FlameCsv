@@ -28,6 +28,8 @@ public static class NullableParserTests
     {
         var factory = new NullableParserFactory<char>("null".AsMemory());
 
+        Assert.Equal("null", factory.NullToken.ToString());
+
         Assert.True(factory.CanParse(typeof(int?)));
         Assert.False(factory.CanParse(typeof(int)));
 

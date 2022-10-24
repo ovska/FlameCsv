@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Exceptions;
@@ -63,21 +62,5 @@ internal abstract partial class CsvRowState
             {
                 Parser = parser,
             };
-    }
-
-    public static ICsvRowState<T, TResult> Create<T, TResult>((ICsvParser<T> parser, MemberInfo member)[] members)
-        where T : unmanaged, IEquatable<T>
-    {
-        var generics = new List<Type>(members.Length + 2) { typeof(T) };
-        generics.AddRange(members.Select(x => ReflectionUtil.MemberType(x.member)));
-        generics.Add(typeof(TResult));
-
-        var factoryGenerator = ReflectionUtil.InitializerFactories[members.Length]
-            .MakeGenericMethod(generics.Skip(1).ToArray());
-        var factory = factoryGenerator.Invoke(null, members.Select(x => (object)x.member).ToArray())!;
-        var ctor = GetConstructor<T, TResult>(members.Select(x => ReflectionUtil.MemberType(x.member)));
-        List<object> args = new(members.Length + 1) { factory };
-        args.AddRange(members.Select(x => x.parser));
-        return (ICsvRowState<T, TResult>)ctor.Invoke(args.ToArray());
     }
 }

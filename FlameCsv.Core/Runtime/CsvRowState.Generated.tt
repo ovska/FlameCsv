@@ -27,6 +27,7 @@ internal abstract partial class CsvRowState
     /// <param name="genericTypeParameters">Types of parsed columns in order</param>
     /// <typeparam name="T">CSV token type</typeparam>
     /// <typeparam name="TResult">Row parse return type</typeparam>
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     internal static ConstructorInfo GetConstructor<T, TResult>(IEnumerable<Type> genericTypeParameters)
         where T : unmanaged, IEquatable<T>
     {
@@ -62,6 +63,7 @@ internal abstract partial class CsvRowState
     {
         var generics = string.Join(", ", genericTypes.Take(current)) + ", TResult";
 #>
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal sealed class CsvRowState<T, <#= generics #>> :
     CsvRowState, ICsvRowState<T, TResult>
     where T : unmanaged, IEquatable<T>

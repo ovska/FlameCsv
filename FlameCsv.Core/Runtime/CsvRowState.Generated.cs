@@ -15,6 +15,7 @@ internal abstract partial class CsvRowState
     /// <param name="genericTypeParameters">Types of parsed columns in order</param>
     /// <typeparam name="T">CSV token type</typeparam>
     /// <typeparam name="TResult">Row parse return type</typeparam>
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     internal static ConstructorInfo GetConstructor<T, TResult>(IEnumerable<Type> genericTypeParameters)
         where T : unmanaged, IEquatable<T>
     {
@@ -46,6 +47,7 @@ internal abstract partial class CsvRowState
     }
 }
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal sealed class CsvRowState<T, T0, TResult> :
     CsvRowState, ICsvRowState<T, TResult>
     where T : unmanaged, IEquatable<T>
@@ -86,6 +88,7 @@ internal sealed class CsvRowState<T, T0, TResult> :
     void IDisposable.Dispose() => ResetValues();
 }
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal sealed class CsvRowState<T, T0, T1, TResult> :
     CsvRowState, ICsvRowState<T, TResult>
     where T : unmanaged, IEquatable<T>
@@ -132,6 +135,7 @@ internal sealed class CsvRowState<T, T0, T1, TResult> :
     void IDisposable.Dispose() => ResetValues();
 }
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal sealed class CsvRowState<T, T0, T1, T2, TResult> :
     CsvRowState, ICsvRowState<T, TResult>
     where T : unmanaged, IEquatable<T>
@@ -184,6 +188,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, TResult> :
     void IDisposable.Dispose() => ResetValues();
 }
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal sealed class CsvRowState<T, T0, T1, T2, T3, TResult> :
     CsvRowState, ICsvRowState<T, TResult>
     where T : unmanaged, IEquatable<T>
@@ -242,6 +247,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, TResult> :
     void IDisposable.Dispose() => ResetValues();
 }
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, TResult> :
     CsvRowState, ICsvRowState<T, TResult>
     where T : unmanaged, IEquatable<T>
@@ -306,6 +312,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, TResult> :
     void IDisposable.Dispose() => ResetValues();
 }
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, TResult> :
     CsvRowState, ICsvRowState<T, TResult>
     where T : unmanaged, IEquatable<T>
@@ -376,6 +383,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, TResult> :
     void IDisposable.Dispose() => ResetValues();
 }
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, TResult> :
     CsvRowState, ICsvRowState<T, TResult>
     where T : unmanaged, IEquatable<T>
@@ -452,6 +460,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, TResult> :
     void IDisposable.Dispose() => ResetValues();
 }
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult> :
     CsvRowState, ICsvRowState<T, TResult>
     where T : unmanaged, IEquatable<T>
@@ -534,6 +543,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult> :
     void IDisposable.Dispose() => ResetValues();
 }
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResult> :
     CsvRowState, ICsvRowState<T, TResult>
     where T : unmanaged, IEquatable<T>
@@ -622,6 +632,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResult
     void IDisposable.Dispose() => ResetValues();
 }
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TResult> :
     CsvRowState, ICsvRowState<T, TResult>
     where T : unmanaged, IEquatable<T>
@@ -716,6 +727,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TRe
     void IDisposable.Dispose() => ResetValues();
 }
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TResult> :
     CsvRowState, ICsvRowState<T, TResult>
     where T : unmanaged, IEquatable<T>
@@ -816,6 +828,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10
     void IDisposable.Dispose() => ResetValues();
 }
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TResult> :
     CsvRowState, ICsvRowState<T, TResult>
     where T : unmanaged, IEquatable<T>
@@ -922,6 +935,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10
     void IDisposable.Dispose() => ResetValues();
 }
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TResult> :
     CsvRowState, ICsvRowState<T, TResult>
     where T : unmanaged, IEquatable<T>
@@ -1034,6 +1048,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10
     void IDisposable.Dispose() => ResetValues();
 }
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TResult> :
     CsvRowState, ICsvRowState<T, TResult>
     where T : unmanaged, IEquatable<T>
@@ -1152,6 +1167,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10
     void IDisposable.Dispose() => ResetValues();
 }
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TResult> :
     CsvRowState, ICsvRowState<T, TResult>
     where T : unmanaged, IEquatable<T>
@@ -1276,6 +1292,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10
     void IDisposable.Dispose() => ResetValues();
 }
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TResult> :
     CsvRowState, ICsvRowState<T, TResult>
     where T : unmanaged, IEquatable<T>
