@@ -28,15 +28,32 @@ internal sealed class BufferOwner<T> : IDisposable where T : unmanaged, IEquatab
         ArrayPool<T> arrayPool)
     {
         _arrayPool = arrayPool;
-        _rented = Array.Empty<T>();
+        _rented = System.Array.Empty<T>();
         _clearBuffers = security.ClearBuffers();
     }
 
+    public T[] Array
+    {
+        get
+        {
+            if (_rented is null)
+                ThrowObjectDisposedException();
+            return _rented;
+        }
+    }
+
     /// <summary>
-    /// Returns a buffer that is of the specified size.
+    /// Returns a buffer that is at least of the specified size.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Span<T> GetSpan(int minimumSize)
+    {
+        EnsureCapacity(minimumSize);
+        return _rented.AsSpan();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void EnsureCapacity(int minimumSize)
     {
         if (_rented is null)
             ThrowObjectDisposedException();
@@ -50,8 +67,6 @@ internal sealed class BufferOwner<T> : IDisposable where T : unmanaged, IEquatab
 
             _rented = _arrayPool.Rent(minimumSize);
         }
-
-        return _rented.AsSpan();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
