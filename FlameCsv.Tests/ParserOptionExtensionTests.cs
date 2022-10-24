@@ -6,6 +6,18 @@ namespace FlameCsv.Tests;
 public static class ParserOptionExtensionTests
 {
     [Fact]
+    public static void Should_Set_Whitespace()
+    {
+        Assert.Equal(
+            "abc".ToCharArray(),
+            CsvParserOptions<char>.Environment.WithWhitespace("abc").Whitespace.ToArray());
+
+        Assert.Equal(
+            new[] { (byte)'a', (byte)'b', (byte)'c' },
+            CsvParserOptions<byte>.Environment.WithWhitespace("abc").Whitespace.ToArray());
+    }
+
+    [Fact]
     public static void Should_Convert_To_Utf()
     {
         var opts = new CsvParserOptions<char>

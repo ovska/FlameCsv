@@ -3,6 +3,11 @@ using FlameCsv.Exceptions;
 
 namespace FlameCsv.Binding.Providers;
 
+/// <summary>
+/// Provider that attempts to bind using multiple configured providers, and picks the first successful binding.
+/// The providers are processed LIFO i.e. the last provider added is the first to be checked.
+/// </summary>
+/// <typeparam name="T">Token type</typeparam>
 public class MultiBindingProvider<T> : ICsvBindingProvider<T> where T : unmanaged, IEquatable<T>
 {
     public IList<ICsvBindingProvider<T>> Providers => _providers;
@@ -31,9 +36,9 @@ public class MultiBindingProvider<T> : ICsvBindingProvider<T> where T : unmanage
         if (_providers.Count == 0)
             throw new CsvBindingException("No providers added to MultiBindingProvider");
 
-        foreach (var provider in _providers)
+        for (int i = _providers.Count - 1; i >= 0; i--)
         {
-            if (provider.TryGetBindings(out bindings))
+            if (_providers[i].TryGetBindings(out bindings))
                 return true;
         }
 

@@ -41,9 +41,9 @@ public static class HeaderBindingTests
     public static void Should_Parse_Bound_Object()
     {
         const string data =
-            "IsEnabled,Name,_targeted\n"
-            + "true,Bob,1\n"
-            + "false,Alice,2\n";
+            "IsEnabled,Name,_targeted\r\n"
+            + "true,Bob,1\r\n"
+            + "false,Alice,2\r\n";
 
         var provider = new HeaderTextBindingProvider<Shim>(stringComparison: StringComparison.Ordinal);
         var config = CsvConfiguration<char>.Default;

@@ -7,10 +7,10 @@ using FlameCsv.Runtime;
 namespace FlameCsv.Binding.Providers;
 
 /// <summary>
-/// Binds manually defined members and column indexes.
+/// Binds manually defined (via <c>Add()</c>) members and column indexes.
 /// </summary>
 /// <typeparam name="T">Parsed token type</typeparam>
-/// <typeparam name="TResult"></typeparam>
+/// <typeparam name="TResult">Result type</typeparam>
 public class ManualBindingProvider<T, TResult> : ICsvBindingProvider<T>
     where T : unmanaged, IEquatable<T>
 {
@@ -56,16 +56,13 @@ public class ManualBindingProvider<T, TResult> : ICsvBindingProvider<T>
     /// <returns>The same provider instance</returns>
     public virtual ManualBindingProvider<T, TResult> Add(int index, MemberInfo member)
     {
-        Guard.IsGreaterThanOrEqualTo(index, 0);
-        Guard.IsNotNull(member);
-
         Bindings.Add(new CsvBinding(index, member));
         return this;
     }
 
     public virtual bool TryGetBindings<TValue>([NotNullWhen(true)] out CsvBindingCollection<TValue>? bindings)
     {
-        if (typeof(TValue) != typeof(TResult) && !typeof(TResult).IsAssignableFrom(typeof(TValue)))
+        if (!typeof(TResult).IsAssignableFrom(typeof(TValue)))
         {
             ThrowHelper.ThrowInvalidOperationException(
                 $"{GetType().ToTypeString()} is not applicable for {typeof(TValue).ToTypeString()}");

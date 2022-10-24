@@ -41,8 +41,8 @@ public static class CsvConfiguration
     /// Returns a builder with default parsers optionally configured by the passed configuration object.
     /// </summary>
     /// <remarks>
-    /// Uses <see cref="CsvParserOptions{T}.Windows"/> with the following parsers/factories using values
-    /// from the configuration:
+    /// Uses <see cref="CsvParserOptions{T}.Windows"/> (RFC 4180 uses CRLF) with the following
+    /// parsers/factories using values from the configuration:
     /// <list type="bullet">
     /// <item><see cref="StringTextParser"/> or <see cref="PoolingStringTextParser"/></item>
     /// <item><see cref="IntegerTextParser"/></item>
@@ -99,8 +99,8 @@ public static class CsvConfiguration
     /// Returns a builder with default parsers optionally configured by the passed configuration object.
     /// </summary>
     /// <remarks>
-    /// Uses <see cref="CsvParserOptions{T}.Windows"/> with the following parsers/factories using values
-    /// from the configuration:
+    /// Uses <see cref="CsvParserOptions{T}.Windows"/> (RFC 4180 uses CRLF) with the following
+    /// parsers/factories using values from the configuration:
     /// <list type="bullet">
     /// <item><see cref="StringUtf8Parser"/></item>
     /// <item><see cref="IntegerUtf8Parser"/></item>

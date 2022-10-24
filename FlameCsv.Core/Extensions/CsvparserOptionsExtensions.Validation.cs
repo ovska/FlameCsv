@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.Diagnostics;
+using FlameCsv.Exceptions;
 
 namespace FlameCsv.Extensions;
 
@@ -19,6 +20,13 @@ public static partial class CsvParserOptionsExtensions
         where T : unmanaged, IEquatable<T>
     {
         List<string>? list = null;
+
+        if (options.Equals(default))
+        {
+            AddError("The options instance is uninitialized.");
+            errors = list!;
+            return true;
+        }
 
         if (options.Delimiter.Equals(options.StringDelimiter))
             AddError("Delimiter and StringDelimiter must not be equal.");
@@ -62,19 +70,14 @@ public static partial class CsvParserOptionsExtensions
     /// </summary>
     /// <param name="options">Options to validate</param>
     /// <returns>The options instance</returns>
-    /// <exception cref="ValidationException">Options are invalid</exception>
+    /// <exception cref="CsvConfigurationException">Options are invalid</exception>
     public static CsvParserOptions<T> ThrowIfInvalid<T>(in this CsvParserOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
         if (options.TryGetValidationErrors(out var errors))
         {
-            var msg = $"Invalid {typeof(CsvParserOptions<T>).ToTypeString()}: {string.Join(' ', errors)}";
-
-            // All properties have default values
-            if (options.Equals(default))
-                msg += " The options instance is most likely uninitialized.";
-
-            throw new ValidationException(msg);
+            throw new CsvConfigurationException(
+                $"Invalid {typeof(CsvParserOptions<T>).ToTypeString()}: {string.Join(' ', errors)}");
         }
 
         return options;

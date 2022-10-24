@@ -1,4 +1,6 @@
 using System.Text;
+using FlameCsv.Exceptions;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Tests;
 
@@ -7,6 +9,29 @@ public static class ParserOptionsTests
 #if !NET7_0_OR_GREATER
     private static byte[] U8(string s) => Encoding.UTF8.GetBytes(s);
 #endif
+
+    [Fact]
+    public static void Should_Validate()
+    {
+        AssertInvalid(default);
+
+        var o = CsvParserOptions<char>.Windows;
+        AssertInvalid(o with { StringDelimiter = ',' });
+        AssertInvalid(o with { Whitespace = ",".AsMemory() });
+        AssertInvalid(o with { Whitespace = "\n".AsMemory() });
+        AssertInvalid(o with { Whitespace = "\"".AsMemory() });
+        AssertInvalid(o with { NewLine = default });
+        AssertInvalid(o with { NewLine = ",".AsMemory() });
+        AssertInvalid(o with { NewLine = "\"".AsMemory() });
+        AssertInvalid(o with { Delimiter = '\n' });
+
+        Assert.Null(Record.Exception(() => CsvParserOptions<char>.Windows.ThrowIfInvalid()));
+
+        static void AssertInvalid(CsvParserOptions<char> options)
+        {
+            Assert.Throws<CsvConfigurationException>(() => options.ThrowIfInvalid());
+        }
+    }
 
     [Fact]
     public static void Should_Return_Default_Options()

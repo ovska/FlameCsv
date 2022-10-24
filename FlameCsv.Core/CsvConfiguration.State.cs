@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
@@ -11,6 +12,7 @@ public sealed partial class CsvConfiguration<T>
     /// <summary>
     /// Creates the state object using the bindings and <typeparamref name="TResult"/> type parameter.
     /// </summary>
+    [ExcludeFromCodeCoverage]
     internal ICsvRowState<T, TResult> CreateState<TResult>(CsvBindingCollection<TResult> bindingCollection)
     {
         var bindings = bindingCollection.Bindings;

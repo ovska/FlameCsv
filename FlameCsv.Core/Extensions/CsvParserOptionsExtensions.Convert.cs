@@ -26,22 +26,6 @@ public static partial class CsvParserOptionsExtensions
     }
 
     /// <summary>
-    /// Returns a copy of the options with space and tab set as whitespace tokens.
-    /// </summary>
-    public static CsvParserOptions<char> WithDefaultWhitespace(in this CsvParserOptions<char> options)
-    {
-        return options with { Whitespace = " \t".AsMemory() };
-    }
-
-    /// <summary>
-    /// Returns a copy of the options with space and tab set as whitespace tokens.
-    /// </summary>
-    public static CsvParserOptions<byte> WithDefaultWhitespace(in this CsvParserOptions<byte> options)
-    {
-        return options with { Whitespace = new[]{ (byte)' ', (byte)'\t' } };
-    }
-
-    /// <summary>
     /// Copies the options and converts chars to UTF8 bytes.
     /// </summary>
     public static CsvParserOptions<byte> ToUtf8Bytes(in this CsvParserOptions<char> options)
