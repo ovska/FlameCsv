@@ -1,0 +1,38 @@
+using System.Collections.Immutable;
+using CommunityToolkit.Diagnostics;
+
+namespace FlameCsv.Binding;
+
+/// <summary>
+/// Defines the value(s) for header name matching to use instead of member name in built-in header binding providers.
+/// </summary>
+/// <remarks>
+/// The provider determines case sensitivity.
+/// </remarks>
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+public sealed class HeaderBindingAttribute : Attribute
+{
+    /// <summary>
+    /// Value(s) to match to header.
+    /// </summary>
+    public ImmutableArray<string> Values { get; }
+
+    /// <summary>
+    /// Determines the order in which the members are checked. Default is 1, which checks the attributes
+    /// before undecorated members, which have an order of 0.
+    /// </summary>
+    public int Order { get; set; } = 1;
+
+    /// <inheritdoc cref="HeaderBindingAttribute"/>
+    public HeaderBindingAttribute(string value)
+    {
+        Values = ImmutableArray.Create(value);
+    }
+
+    /// <inheritdoc cref="HeaderBindingAttribute"/>
+    public HeaderBindingAttribute(params string[] values)
+    {
+        Guard.IsNotNull(values);
+        Values = ImmutableArray.Create(values);
+    }
+}
