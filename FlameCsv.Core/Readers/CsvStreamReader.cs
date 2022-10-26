@@ -1,23 +1,17 @@
 using System.Buffers;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
-using FlameCsv.Binding;
 
 namespace FlameCsv.Readers;
 
 internal sealed class CsvStreamReader<TValue>
 {
     private readonly CsvConfiguration<byte> _configuration;
-    private readonly CsvBindingCollection<TValue> _bindings;
 
-    public CsvStreamReader(
-        CsvConfiguration<byte> configuration,
-        CsvBindingCollection<TValue> bindings)
+    public CsvStreamReader(CsvConfiguration<byte> configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
-        ArgumentNullException.ThrowIfNull(bindings);
         _configuration = configuration;
-        _bindings = bindings;
     }
 
     public IAsyncEnumerable<TValue> ReadAsync(
@@ -34,7 +28,7 @@ internal sealed class CsvStreamReader<TValue>
     {
         ArgumentNullException.ThrowIfNull(reader);
 
-        using var processor = new CsvProcessor<byte, DoubleEscapeReader<byte>, TValue>(_configuration, _bindings);
+        using var processor = new CsvProcessor<byte, DoubleEscapeReader<byte>, TValue>(_configuration);
 
         try
         {

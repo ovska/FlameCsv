@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using CommunityToolkit.Diagnostics;
 using FlameCsv.Exceptions;
 
 namespace FlameCsv.Binding.Providers;
@@ -17,11 +18,24 @@ public class MultiBindingProvider<T> : ICsvBindingProvider<T> where T : unmanage
     public MultiBindingProvider(params ICsvBindingProvider<T>[] providers)
     {
         ArgumentNullException.ThrowIfNull(providers);
-        _providers.AddRange(providers);
-    }
+        Guard.IsNotEmpty(providers);
 
-    public MultiBindingProvider()
-    {
+        for (var index = 0; index < providers.Length; index++)
+        {
+            switch (providers[index])
+            {
+                case ICsvHeaderBindingProvider<T>:
+                    ThrowHelper.ThrowNotSupportedException(
+                        $"Provider at index {index} was a header binding provider, "
+                        + $"use {typeof(MultiHeaderBindingProvider<T>)} instead.");
+                    break;
+                case null:
+                    ThrowHelper.ThrowArgumentException($"Provider at index {index} was null");
+                    break;
+            }
+        }
+
+        _providers.AddRange(providers);
     }
 
     public virtual MultiBindingProvider<T> Add(ICsvBindingProvider<T> provider)

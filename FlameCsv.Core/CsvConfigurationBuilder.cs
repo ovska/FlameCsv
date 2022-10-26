@@ -17,13 +17,18 @@ public sealed class CsvConfigurationBuilder<T> where T : unmanaged, IEquatable<T
     public IList<ICsvParser<T>> Parsers => _parsers;
 
     /// <summary>
-    /// Contains the binding providers.
+    /// The provider that binds CSV columns to members of the parsed type.<para/>
+    /// Defaults to binding header columns to member names if <typeparamref name="T"/> is <see langword="char"/>
+    /// or <see langword="byte"/>.
     /// </summary>
-    public IList<ICsvBindingProvider<T>> BindingProviders => _binders;
+    /// <remarks>
+    /// To use multiple bindings and use the first one that succeeds, see <see cref="MultiBindingProvider{T}"/>
+    /// and <see cref="MultiHeaderBindingProvider{T}"/>.
+    /// </remarks>
+    public ICsvBindingProvider<T> BindingProvider { get; set; } = GetDefaultBinder();
 
     private CsvParserOptions<T>? _options;
     internal readonly List<ICsvParser<T>> _parsers = new();
-    internal readonly List<ICsvBindingProvider<T>> _binders = new();
 
     /// <inheritdoc cref="CsvConfiguration{T}.Options"/>
     public CsvParserOptions<T> Options
@@ -86,6 +91,16 @@ public sealed class CsvConfigurationBuilder<T> where T : unmanaged, IEquatable<T
     }
 
     /// <summary>
+    /// Sets the parameter to <see cref="BindingProvider"/>.
+    /// </summary>
+    /// <returns>The same builder instance</returns>
+    public CsvConfigurationBuilder<T> SetBinder(ICsvBindingProvider<T> bindingProvider)
+    {
+        BindingProvider = bindingProvider;
+        return this;
+    }
+
+    /// <summary>
     /// Sets the parameter to <see cref="ShouldSkipRow"/>.
     /// </summary>
     /// <returns>The same builder instance</returns>
@@ -110,4 +125,18 @@ public sealed class CsvConfigurationBuilder<T> where T : unmanaged, IEquatable<T
     /// </summary>
     /// <returns>Built read-only configuration instance</returns>
     public CsvConfiguration<T> Build() => new(this);
+
+    private static ICsvBindingProvider<T> GetDefaultBinder()
+    {
+        object obj;
+
+        if (typeof(T) == typeof(char))
+            obj = new HeaderTextBindingProvider<char>();
+        else if (typeof(T) == typeof(byte))
+            obj = new HeaderUtf8BindingProvider<char>();
+        else
+            obj = NotSupportedBindingProvider<char>.Instance;
+
+        return (ICsvBindingProvider<T>)obj;
+    }
 }

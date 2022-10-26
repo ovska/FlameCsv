@@ -17,9 +17,11 @@ public class CsvReadBench
     {
         await using var stream = new MemoryStream(_file);
 
-        new IndexBindingProvider<byte>().TryGetBindings<Item>(out var bindings);
+        var config = CsvConfiguration<byte>.DefaultBuilder
+            .SetParserOptions(CsvParserOptions<byte>.Unix)
+            .SetBinder(new IndexBindingProvider<byte>()).Build();
 
-        var reader = new CsvStreamReader<Item>(CsvConfiguration<byte>.Default, bindings!);
+        var reader = new CsvStreamReader<Item>(config);
         await foreach (var item in reader.ReadAsync(stream))
         {
             _ = item;

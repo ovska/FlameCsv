@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using FlameCsv.Binding.Providers;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Parsers;
@@ -32,6 +33,11 @@ public sealed partial class CsvConfiguration<T> where T : unmanaged, IEquatable<
     /// </summary>
     public SecurityLevel Security { get; }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    public ICsvBindingProvider<T> BindingProvider { get; }
+
     private readonly ConcurrentDictionary<Type, ICsvParser<T>> _cache = new();
     internal readonly ImmutableArray<ICsvParser<T>> _parsers;
 
@@ -43,6 +49,10 @@ public sealed partial class CsvConfiguration<T> where T : unmanaged, IEquatable<
         if (builder._parsers.Count == 0)
             throw new CsvConfigurationException("No parsers in the configuration builder.");
 
+        // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+        if (builder.BindingProvider is null)
+            throw new CsvConfigurationException("BindingProvider is null.");
+
         _options = builder.Options.ThrowIfInvalid();
 
         ShouldSkipRow = builder.ShouldSkipRow;
@@ -52,6 +62,8 @@ public sealed partial class CsvConfiguration<T> where T : unmanaged, IEquatable<
         var parsers = builder._parsers.ToArray();
         Array.Reverse(parsers);
         _parsers = ImmutableArray.Create(parsers);
+
+        BindingProvider = builder.BindingProvider;
     }
 
     /// <summary>
