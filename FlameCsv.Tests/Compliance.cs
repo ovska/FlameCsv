@@ -16,7 +16,7 @@ public class Compliance
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
         var options = CsvParserOptions<char>.Windows;
 
-        Assert.True(default(DoubleEscapeReader<char>).TryRead(in options, ref seq, out var line, out _));
+        Assert.True(LineReader.TryRead(in options, ref seq, out var line, out _));
 
         Assert.Equal("xyz", new string(line.ToArray()));
         Assert.Equal("abc", new string(seq.ToArray()));
@@ -43,7 +43,7 @@ public class Compliance
 
         var results = new List<string>();
 
-        while (default(DoubleEscapeReader<char>).TryRead(in options, ref seq, out var line, out _))
+        while (LineReader.TryRead(in options, ref seq, out var line, out _))
         {
             results.Add(new string(line.ToArray()));
         }
@@ -67,7 +67,7 @@ public class Compliance
 
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
 
-        Assert.True(default(DoubleEscapeReader<char>).TryRead(in options, ref seq, out var firstLine, out _));
+        Assert.True(LineReader.TryRead(in options, ref seq, out var firstLine, out _));
         Assert.Equal(segments[0], new string(firstLine.ToArray()));
         Assert.Equal(segments[2], new string(seq.ToArray()));
     }
@@ -79,7 +79,7 @@ public class Compliance
         var options = CsvParserOptions<char>.Windows;
         var seq = new ReadOnlySequence<char>(data.ToCharArray());
 
-        Assert.False(default(DoubleEscapeReader<char>).TryRead(in options, ref seq, out _, out _));
+        Assert.False(LineReader.TryRead(in options, ref seq, out _, out _));
         Assert.Equal(data, seq.ToArray());
     }
 
@@ -105,7 +105,7 @@ public class Compliance
 
         var found = new List<string>();
 
-        while (default(DoubleEscapeReader<char>).TryRead(in options, ref seq, out var line, out _))
+        while (LineReader.TryRead(in options, ref seq, out var line, out _))
         {
             found.Add(new string(line.ToArray()));
         }
@@ -134,7 +134,7 @@ public class Compliance
 
         if (data.Contains('|'))
         {
-            Assert.True(default(DoubleEscapeReader<char>).TryRead(in options, ref seq, out var line, out var strCount));
+            Assert.True(LineReader.TryRead(in options, ref seq, out var line, out var strCount));
             var lineStr = new string(line.ToArray());
             Assert.Equal(expected, lineStr);
             Assert.Equal(new string(seq.ToArray()), data[(lineStr.Length + 1)..]);
@@ -142,7 +142,7 @@ public class Compliance
         }
         else
         {
-            Assert.False(default(DoubleEscapeReader<char>).TryRead(in options, ref seq, out _, out _));
+            Assert.False(LineReader.TryRead(in options, ref seq, out _, out _));
 
             // original sequence is unchanged
             Assert.Equal(data, new string(seq.ToArray()));

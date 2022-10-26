@@ -47,7 +47,7 @@ public static class HeaderBindingTests
         var provider = new HeaderTextBindingProvider<Shim>(stringComparison: StringComparison.Ordinal);
         var config = CsvConfiguration<char>.Default;
 
-        using var processor = new CsvHeaderProcessor<char, DoubleEscapeReader<char>, Shim>(config, provider);
+        using var processor = new CsvHeaderProcessor<char, Shim>(config, provider);
         var buffer = new ReadOnlySequence<char>(data.AsMemory());
 
         Assert.False(processor.TryContinueRead(ref buffer, out _));

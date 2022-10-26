@@ -28,7 +28,7 @@ internal sealed class CsvStreamReader<TValue>
     {
         ArgumentNullException.ThrowIfNull(reader);
 
-        using var processor = new CsvProcessor<byte, DoubleEscapeReader<byte>, TValue>(_configuration);
+        using var processor = new CsvProcessor<byte, TValue>(_configuration);
 
         try
         {

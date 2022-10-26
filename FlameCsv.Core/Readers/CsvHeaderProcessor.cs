@@ -5,9 +5,8 @@ using FlameCsv.Readers.Internal;
 
 namespace FlameCsv.Readers;
 
-internal readonly struct CsvHeaderProcessor<T, TReader, TValue> : ICsvProcessor<T, TValue>
+internal readonly struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     where T : unmanaged, IEquatable<T>
-    where TReader : struct, ILineReader<T>
 {
     private readonly CsvConfiguration<T> _configuration;
     private readonly ICsvHeaderBindingProvider<T> _headerBindingProvider;
@@ -36,7 +35,7 @@ internal readonly struct CsvHeaderProcessor<T, TReader, TValue> : ICsvProcessor<
     [MethodImpl(MethodImplOptions.NoInlining)]
     private bool TryReadHeader(ref ReadOnlySequence<T> buffer)
     {
-        if (default(TReader).TryRead(in _configuration._options, ref buffer, out var line, out _))
+        if (LineReader.TryRead(in _configuration._options, ref buffer, out var line, out _))
         {
             using var view = new SequenceView<T>(line, _configuration.Security);
 
@@ -44,7 +43,7 @@ internal readonly struct CsvHeaderProcessor<T, TReader, TValue> : ICsvProcessor<
                 && _headerBindingProvider.TryGetBindings<TValue>(out var bindings))
             {
                 var state = _configuration.CreateState(bindings);
-                _wrapper.Value = new CsvProcessor<T, TReader, TValue>(_configuration, state);
+                _wrapper.Value = new CsvProcessor<T, TValue>(_configuration, state);
                 _wrapper.HasValue = true;
             }
         }
@@ -60,6 +59,6 @@ internal readonly struct CsvHeaderProcessor<T, TReader, TValue> : ICsvProcessor<
     private sealed class Wrapper
     {
         public bool HasValue;
-        public CsvProcessor<T, TReader, TValue> Value;
+        public CsvProcessor<T, TValue> Value;
     }
 }
