@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using FlameCsv.Readers.Internal;
 using FlameCsv.Runtime;
@@ -43,6 +44,11 @@ internal readonly struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
                 out ReadOnlySequence<T> line,
                 out int stringDelimiterCount))
         {
+            if (line.IsSingleSegment)
+            {
+                return TryReadColumnSpan(line.FirstSpan, stringDelimiterCount, out value);
+            }
+
             return TryReadColumns(in line, stringDelimiterCount, out value);
         }
 
@@ -56,10 +62,7 @@ internal readonly struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         int stringDelimiterCount,
         out TValue value)
     {
-        if (line.IsSingleSegment)
-        {
-            return TryReadColumnSpan(line.FirstSpan, stringDelimiterCount, out value);
-        }
+        Debug.Assert(!line.IsSingleSegment);
 
         int length = (int)line.Length;
 
@@ -83,21 +86,21 @@ internal readonly struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         int stringDelimiterCount,
         out TValue value)
     {
-        if (_skipPredicate is not null && _skipPredicate(line, in _options))
+        if (_skipPredicate is null || !_skipPredicate(line, in _options))
         {
-            Unsafe.SkipInit(out value);
-            return false;
+            var enumerator = new CsvColumnEnumerator<T>(
+                line,
+                in _options,
+                _columnCount,
+                stringDelimiterCount,
+                _enumeratorBuffer);
+
+            value = _state.Parse(ref enumerator);
+            return true;
         }
 
-        var enumerator = new CsvColumnEnumerator<T>(
-            line,
-            in _options,
-            _columnCount,
-            stringDelimiterCount,
-            _enumeratorBuffer);
-
-        value = _state.Parse(ref enumerator);
-        return true;
+        Unsafe.SkipInit(out value);
+        return false;
     }
 
     public void Dispose()
