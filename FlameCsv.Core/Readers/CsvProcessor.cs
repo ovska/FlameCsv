@@ -5,9 +5,8 @@ using FlameCsv.Runtime;
 
 namespace FlameCsv.Readers;
 
-internal readonly struct CsvProcessor<T, TReader, TValue> : ICsvProcessor<T, TValue>
+internal readonly struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     where T : unmanaged, IEquatable<T>
-    where TReader : struct, ILineReader<T>
 {
     private static readonly int StackallocThreshold = Unsafe.SizeOf<byte>() * 256 / Unsafe.SizeOf<T>();
 
@@ -38,7 +37,7 @@ internal readonly struct CsvProcessor<T, TReader, TValue> : ICsvProcessor<T, TVa
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryContinueRead(ref ReadOnlySequence<T> buffer, out TValue value)
     {
-        if (default(TReader).TryRead(
+        if (LineReader.TryRead(
                 in _options,
                 ref buffer,
                 out ReadOnlySequence<T> line,

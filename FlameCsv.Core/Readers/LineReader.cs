@@ -7,8 +7,7 @@ namespace FlameCsv.Readers;
 /// <summary>
 /// Reads CSV lines from a <see cref="ReadOnlySequence{T}"/>.
 /// </summary>
-internal readonly struct DoubleEscapeReader<T> : ILineReader<T>
-    where T : unmanaged, IEquatable<T>
+internal static class LineReader
 {
     /// <summary>Linefeed read state.</summary>
     private ref struct State
@@ -35,11 +34,12 @@ internal readonly struct DoubleEscapeReader<T> : ILineReader<T>
     /// <see langword="true"/> if the line was successfully parsed. In this case, the line and newline tokens
     /// are sliced from <paramref name="sequence"/>.
     /// </returns>
-    public bool TryRead(
+    public static bool TryRead<T>(
         in CsvParserOptions<T> options,
         ref ReadOnlySequence<T> sequence,
         out ReadOnlySequence<T> line,
         out int quoteCount)
+        where T : unmanaged, IEquatable<T>
     {
         ReadOnlySpan<T> newLine = options.NewLine.Span;
 

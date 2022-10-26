@@ -36,7 +36,7 @@ internal sealed class CsvTextReader<TValue> : IDisposable
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         using var reader = new TextPipeReader(_innerReader, _bufferSize);
-        using var processor = new CsvProcessor<char, DoubleEscapeReader<char>, TValue>(_configuration);
+        using var processor = new CsvProcessor<char, TValue>(_configuration);
 
         while (true)
         {
