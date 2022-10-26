@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Exceptions;
 
@@ -26,6 +27,13 @@ public sealed class CsvBindingCollection<TValue>
         var sorted = bindings.OrderBy(b => b.Index).ToImmutableArray();
         CsvBindingException.ThrowIfInvalid<TValue>(sorted);
         Bindings = sorted;
+    }
+
+    internal CsvBindingCollection(ImmutableArray<CsvBinding> bindings)
+    {
+        Debug.Assert(!bindings.IsEmpty);
+        Debug.Assert(bindings.SequenceEqual(bindings.OrderBy(x => x.Index)));
+        Bindings = bindings;
     }
 
     /// <summary>
