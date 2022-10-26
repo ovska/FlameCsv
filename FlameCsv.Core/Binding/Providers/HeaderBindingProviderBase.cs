@@ -3,11 +3,24 @@ using System.Reflection;
 using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding.Attributes;
+using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Readers;
 using FlameCsv.Readers.Internal;
 
 namespace FlameCsv.Binding.Providers;
+
+public enum UnmatchedHeaderBindingBehavior
+{
+    /// <summary>Requires all columns to match for the provider to report a successful binding.</summary>
+    RequireAll = 0,
+
+    /// <summary>Returns an ignored <see cref="CsvBinding"/> for columns that could not be matched.</summary>
+    Ignore = 1,
+
+    /// <summary>Throws an exception if a column cannot be bound.</summary>
+    Throw = 2,
+}
 
 public abstract class HeaderBindingProviderBase<T, TResult> : ICsvHeaderBindingProvider<T>
     where T : unmanaged, IEquatable<T>
@@ -15,7 +28,7 @@ public abstract class HeaderBindingProviderBase<T, TResult> : ICsvHeaderBindingP
     /// <summary>
     /// Columns that could not be matched are ignored.
     /// </summary>
-    public bool IgnoreNonMatched { get; }
+    public UnmatchedHeaderBindingBehavior UnmatchedBehavior { get; }
 
     private readonly CsvHeaderMatcher<T> _matcher;
     private List<CsvBinding>? _bindings;
@@ -26,12 +39,15 @@ public abstract class HeaderBindingProviderBase<T, TResult> : ICsvHeaderBindingP
 
     protected HeaderBindingProviderBase(
         CsvHeaderMatcher<T> matcher,
-        bool ignoreNonMatched)
+        UnmatchedHeaderBindingBehavior unmatchedBehavior)
     {
         ArgumentNullException.ThrowIfNull(matcher);
 
+        if (!Enum.IsDefined(unmatchedBehavior))
+            ThrowHelper.ThrowArgumentOutOfRangeException(nameof(unmatchedBehavior), unmatchedBehavior, null);
+
         _matcher = matcher;
-        IgnoreNonMatched = ignoreNonMatched;
+        UnmatchedBehavior = unmatchedBehavior;
     }
 
     public virtual bool TryProcessHeader(ReadOnlySpan<T> line, CsvConfiguration<T> configuration)
@@ -75,9 +91,20 @@ public abstract class HeaderBindingProviderBase<T, TResult> : ICsvHeaderBindingP
                 }
             }
 
-            if (!found && IgnoreNonMatched)
+            if (!found)
             {
-                foundBindings.Add(CsvBinding.Ignore(index));
+                switch (UnmatchedBehavior)
+                {
+                    case UnmatchedHeaderBindingBehavior.Ignore:
+                        foundBindings.Add(CsvBinding.Ignore(index));
+                        break;
+                    case UnmatchedHeaderBindingBehavior.Throw:
+                        throw new CsvBindingException(
+                            $"Column {index} could not be bound to a member of {typeof(TResult)}");
+                    case UnmatchedHeaderBindingBehavior.RequireAll:
+                    default:
+                        return false;
+                }
             }
 
             index++;

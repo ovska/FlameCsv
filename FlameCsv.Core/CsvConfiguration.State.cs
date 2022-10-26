@@ -9,6 +9,14 @@ namespace FlameCsv;
 
 public sealed partial class CsvConfiguration<T>
 {
+    internal ICsvRowState<T, TResult> BindToState<TResult>()
+    {
+        if (BindingProvider.TryGetBindings<TResult>(out var bindings))
+            return CreateState(bindings);
+
+        throw new CsvBindingException();
+    }
+
     /// <summary>
     /// Creates the state object using the bindings and <typeparamref name="TResult"/> type parameter.
     /// </summary>

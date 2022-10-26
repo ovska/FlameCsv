@@ -43,7 +43,8 @@ internal readonly struct CsvHeaderProcessor<T, TReader, TValue> : ICsvProcessor<
             if (_headerBindingProvider.TryProcessHeader(view.Span, _configuration)
                 && _headerBindingProvider.TryGetBindings<TValue>(out var bindings))
             {
-                _wrapper.Value = new CsvProcessor<T, TReader, TValue>(_configuration, bindings);
+                var state = _configuration.CreateState(bindings);
+                _wrapper.Value = new CsvProcessor<T, TReader, TValue>(_configuration, state);
                 _wrapper.HasValue = true;
             }
         }

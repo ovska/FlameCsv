@@ -15,7 +15,24 @@ namespace FlameCsv.Binding.Providers;
 public class ManualBindingProvider<T, TResult> : ICsvBindingProvider<T>
     where T : unmanaged, IEquatable<T>
 {
-    protected List<CsvBinding> Bindings { get; } = new();
+    protected List<CsvBinding> Bindings { get; }
+
+    public ManualBindingProvider(IEnumerable<CsvBinding> bindings)
+    {
+        Bindings = bindings.ToList();
+    }
+
+    public ManualBindingProvider()
+    {
+        Bindings = new();
+    }
+
+    public virtual ManualBindingProvider<T, TResult> Add(CsvBinding binding)
+    {
+        Guard.IsNotNull(binding.Member);
+        Bindings.Add(binding);
+        return this;
+    }
 
     /// <summary>
     /// Adds the property or field to the specified <paramref name="index"/>.

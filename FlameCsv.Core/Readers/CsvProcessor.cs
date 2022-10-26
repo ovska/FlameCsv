@@ -1,6 +1,5 @@
 using System.Buffers;
 using System.Runtime.CompilerServices;
-using FlameCsv.Binding;
 using FlameCsv.Readers.Internal;
 using FlameCsv.Runtime;
 
@@ -23,11 +22,11 @@ internal readonly struct CsvProcessor<T, TReader, TValue> : ICsvProcessor<T, TVa
     private readonly ICsvRowState<T, TValue> _state;
     private readonly int _columnCount;
 
-    public CsvProcessor(CsvConfiguration<T> configuration, CsvBindingCollection<TValue> bindings)
+    public CsvProcessor(CsvConfiguration<T> configuration, ICsvRowState<T, TValue>? state = null)
     {
         _options = configuration.Options;
         _skipPredicate = configuration.ShouldSkipRow;
-        _state = configuration.CreateState(bindings);
+        _state = state ?? configuration.BindToState<TValue>();
         _columnCount = _state.ColumnCount;
 
         // Two buffers are needed, as the ReadOnlySpan being manipulated by string escaping in the enumerator
@@ -52,6 +51,7 @@ internal readonly struct CsvProcessor<T, TReader, TValue> : ICsvProcessor<T, TVa
         return false;
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private bool TryReadColumns(
         in ReadOnlySequence<T> line,
         int stringDelimiterCount,
