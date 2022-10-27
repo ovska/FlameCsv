@@ -24,11 +24,15 @@ internal readonly struct TextReadResult
     }
 }
 
+/// <summary>
+/// Wrapper around a TextReader to facilitate reading it like a PipeReader.
+/// </summary>
 // based HEAVILY on the .NET runtime StreamPipeReader code
 internal sealed class TextPipeReader : IDisposable
 {
     private readonly TextReader _innerReader;
     private readonly int _bufferSize;
+    private readonly bool _leaveOpen;
 
     private TextSegment? _readHead;
     private int _readIndex;
@@ -40,10 +44,11 @@ internal sealed class TextPipeReader : IDisposable
     private bool _readerCompleted;
     private bool _disposed;
 
-    public TextPipeReader(TextReader innerReader, int bufferSize)
+    public TextPipeReader(TextReader innerReader, int bufferSize, bool leaveOpen = false)
     {
         _innerReader = innerReader;
         _bufferSize = bufferSize;
+        _leaveOpen = leaveOpen;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -226,6 +231,9 @@ internal sealed class TextPipeReader : IDisposable
 
             returnSegment.ResetMemory();
         }
+
+        if (!_leaveOpen)
+            _innerReader.Dispose();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

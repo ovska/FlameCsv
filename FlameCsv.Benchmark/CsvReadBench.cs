@@ -2,7 +2,6 @@ using System.Globalization;
 using CsvHelper;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Binding.Providers;
-using FlameCsv.Readers;
 
 namespace FlameCsv.Benchmark;
 
@@ -22,8 +21,7 @@ public class CsvReadBench
             .SetParserOptions(CsvParserOptions<byte>.Environment)
             .SetBinder(new IndexBindingProvider<byte>()).Build();
 
-        var reader = new CsvStreamReader<Item>(config);
-        await foreach (var item in reader.ReadAsync(stream))
+        await foreach (var item in Readers.CsvReader.ReadAsync<Item>(config, stream))
         {
             _ = item;
         }

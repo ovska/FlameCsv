@@ -1,11 +1,9 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
-using System.Runtime.CompilerServices;
 using CsvHelper;
 using FlameCsv;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Providers;
-using FlameCsv.Readers;
 
 var xyz = Enumerable.Range(0, byte.MaxValue)
     .Select(i => (char)i)
@@ -51,9 +49,8 @@ await using var stream = File.OpenRead("/home/sipi/test.csv");
 
 var collection = new ManualBindingProvider<byte, Item>(bindings);
 var config_ = CsvConfiguration<byte>.DefaultBuilder.SetBinder(collection).Build();
-var reader_ = new CsvStreamReader<Item>(config_);
 var result = new List<Item>();
-await foreach (var item in reader_.ReadAsync(stream))
+await foreach (var item in FlameCsv.Readers.CsvReader.ReadAsync<Item>(config_, stream))
 {
     result.Add(item);
 }
@@ -63,12 +60,11 @@ try
 {
     var _collection = new ManualBindingProvider<char, Item>(bindings);
     var _config_ = CsvConfiguration<char>.DefaultBuilder.SetBinder(_collection).Build();
-    
+
     using (var reader = new StreamReader("/home/sipi/test.csv"))
-    using (var csv = new CsvTextReader<Item>(reader, _config_))
     {
         var result__ = new List<Item>();
-        await foreach (var item in csv.ReadAsync())
+        await foreach (var item in FlameCsv.Readers.CsvReader.ReadAsync<Item>(_config_, reader))
         {
             result__.Add(item);
         }
