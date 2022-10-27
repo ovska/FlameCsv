@@ -45,9 +45,9 @@ public static class HeaderBindingTests
             + "false,Alice,2\r\n";
 
         var provider = new HeaderTextBindingProvider<Shim>(stringComparison: StringComparison.Ordinal);
-        var config = CsvConfiguration<char>.Default;
+        var config = CsvConfiguration<char>.DefaultBuilder.SetBinder(provider).Build();
 
-        using var processor = new CsvHeaderProcessor<char, Shim>(config, provider);
+        using var processor = new CsvHeaderProcessor<char, Shim>(config);
         var buffer = new ReadOnlySequence<char>(data.AsMemory());
 
         Assert.False(processor.TryContinueRead(ref buffer, out _));
