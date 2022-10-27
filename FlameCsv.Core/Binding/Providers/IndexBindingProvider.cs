@@ -23,7 +23,13 @@ public sealed class IndexBindingProvider<T> : ICsvBindingProvider<T>
         if (!_bindings.TryGetValue(typeof(TValue), out var tuple))
         {
             var arr = GetBindings<TValue>().OrderBy(b => b.Index).ToImmutableArray();
-            CsvBindingException.ThrowIfInvalid<TValue>(arr);
+
+            // Run the validation only once before caching
+            if (!arr.IsEmpty)
+            {
+                CsvBindingException.ThrowIfInvalid<TValue>(arr);
+            }
+
             _bindings.AddOrUpdate(typeof(TValue), tuple = new(arr));
         }
 
@@ -42,9 +48,18 @@ public sealed class IndexBindingProvider<T> : ICsvBindingProvider<T>
         var members = typeof(TValue).GetMembers(CsvBindingConstants.MemberLookupFlags)
             .Where(static m => m is PropertyInfo or FieldInfo)
             .Select(
-                static member => member.GetCustomAttribute<IndexBindingAttribute>() is { Index: var index }
-                    ? new CsvBinding(index, member)
-                    : new CsvBinding?())
+                static member =>
+                {
+                    object[] attributes = member.GetCustomAttributes(false);
+
+                    foreach (var attribute in attributes)
+                    {
+                        if (attribute is IndexBindingAttribute { Index: var index })
+                            return new CsvBinding(index, member, attributes);
+                    }
+
+                    return new CsvBinding?();
+                })
             .OfType<CsvBinding>();
 
         var targeted = typeof(TValue).GetCustomAttributes<IndexBindingTargetAttribute>()

@@ -71,7 +71,7 @@ public sealed partial class CsvConfiguration<T>
         {
             ICsvParserOverride? found = null;
 
-            foreach (var attribute in Attribute.GetCustomAttributes(binding.Member))
+            foreach (var attribute in binding.Attributes)
             {
                 if (attribute is ICsvParserOverride @override)
                 {

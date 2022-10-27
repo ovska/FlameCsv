@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -14,6 +15,8 @@ namespace FlameCsv.Binding;
 /// </summary>
 public readonly struct CsvBinding : IEquatable<CsvBinding>
 {
+    private static readonly Lazy<object[]> _sharedEmptyAttributes = new(Array.Empty<object>());
+
     /// <summary>
     /// Returns a binding that indicates the column at <paramref name="index"/> should be ignored.
     /// </summary>
@@ -51,6 +54,10 @@ public readonly struct CsvBinding : IEquatable<CsvBinding>
         ? ReflectionUtil.MemberType(Member)
         : ThrowHelper.ThrowInvalidOperationException<Type>("Cannot get type from ignored column");
 
+    internal object[] Attributes => _attributesLazy.Value;
+
+    private readonly Lazy<object[]> _attributesLazy;
+
     /// <summary>
     /// Initializes a binding between <paramref name="index"/> and <paramref name="member"/>.
     /// </summary>
@@ -67,8 +74,30 @@ public readonly struct CsvBinding : IEquatable<CsvBinding>
         if (member.DeclaringType is { IsInterface: true })
             ThrowHelper.ThrowNotSupportedException("Interface binding is not yet supported.");
 
-        Member = member.Equals(IgnoreSingleton) ? IgnoreSingleton : ReflectionUtil.ValidateMember(member);
         Index = index;
+
+        if (member.Equals(IgnoreSingleton))
+        {
+            Member = member;
+            _attributesLazy = _sharedEmptyAttributes;
+        }
+        else
+        {
+            Member = ReflectionUtil.ValidateMember(member);
+            _attributesLazy = new Lazy<object[]>(() => member.GetCustomAttributes(false));
+        }
+    }
+
+    internal CsvBinding(int index, MemberInfo member, object[] attributes)
+    {
+        Guard.IsGreaterThanOrEqualTo(index, 0);
+        Debug.Assert(!IgnoreSingleton.Equals(member));
+        Debug.Assert(ReflectionUtil.ValidateMember(member) is not null);
+        Debug.Assert(attributes is not null);
+
+        Index = index;
+        Member = member;
+        _attributesLazy = new(attributes);
     }
 
     /// <inheritdoc cref="IsApplicableTo"/>
