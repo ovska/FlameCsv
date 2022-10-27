@@ -141,7 +141,8 @@ public abstract class HeaderBindingProviderBase<T, TResult> : ICsvHeaderBindingP
                     ? attr.Values.Select(v => (v, m, attr.Order))
                     : Enumerable.Repeat((m.Name, m, 0), 1));
 
-        var targeted = typeof(TResult).GetCustomAttributes<HeaderBindingTargetAttribute>()
+        var targeted = typeof(TResult).GetCachedCustomAttributes()
+            .OfType<HeaderBindingTargetAttribute>()
             .SelectMany(attr => attr.GetMembers(typeof(TResult)));
 
         return members.Concat(targeted);
