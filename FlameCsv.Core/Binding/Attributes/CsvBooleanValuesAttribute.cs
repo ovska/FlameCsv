@@ -52,10 +52,10 @@ public class CsvBooleanValuesAttribute : Attribute, ICsvParserOverride
         }
 
         if (typeof(T) == typeof(char))
-            return (ICsvParser<T>)CreateForText(binding.Type, (CsvConfiguration<char>)(object)configuration);
+            return (ICsvParser<T>)CreateForText(target, (CsvConfiguration<char>)(object)configuration);
 
         if (typeof(T) == typeof(byte))
-            return (ICsvParser<T>)CreateForUtf8(binding.Type, (CsvConfiguration<byte>)(object)configuration);
+            return (ICsvParser<T>)CreateForUtf8(target, (CsvConfiguration<byte>)(object)configuration);
 
         return ThrowHelper.ThrowNotSupportedException<ICsvParser<T>>(
             $"Token type {typeof(T)} is not supported by {nameof(CsvBooleanValuesAttribute)}");
@@ -81,8 +81,8 @@ public class CsvBooleanValuesAttribute : Attribute, ICsvParserOverride
     {
         var parser = new BooleanUtf8Parser(
             TrueValues
-                .Select(static t => (U8(t), true))
-                .Concat(FalseValues.Select(static t => (U8(t), false)))
+                .Select(static t => (ToUtf8(t), true))
+                .Concat(FalseValues.Select(static t => (ToUtf8(t), false)))
                 .ToList());
 
         if (target == typeof(bool))
@@ -91,7 +91,7 @@ public class CsvBooleanValuesAttribute : Attribute, ICsvParserOverride
         return new NullableParser<byte, bool>(
             parser,
             (configuration.TryGetParser(typeof(bool?)) as NullableParser<byte, bool>)?.NullToken ?? default);
-
-        static ReadOnlyMemory<byte> U8(string? text) => Encoding.UTF8.GetBytes(text ?? "");
     }
+
+    private static ReadOnlyMemory<byte> ToUtf8(string? text) => Encoding.UTF8.GetBytes(text ?? "");
 }

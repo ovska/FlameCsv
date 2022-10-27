@@ -1,3 +1,6 @@
+using System.Collections.Immutable;
+using System.Diagnostics;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 
@@ -21,24 +24,35 @@ public sealed class CsvBindingException : CsvConfigurationException
     /// have missing or invalid indexes, or duplicate target members.
     /// </summary>
     /// <exception cref="CsvBindingException"/>
-    public static void ThrowIfInvalid<TValue>(IReadOnlyCollection<CsvBinding> bindings)
+    public static void ThrowIfInvalid<TValue>(IEnumerable<CsvBinding> bindings)
     {
         ArgumentNullException.ThrowIfNull(bindings);
 
-        if (bindings.Count == 0)
+        var bindingsList = bindings.ToList();
+
+        if (bindingsList.Count == 0)
         {
-            throw new CsvBindingException($"The binding collection for {typeof(TValue)} is empty", bindings)
+            throw new CsvBindingException($"The binding collection for {typeof(TValue)} is empty", bindingsList)
             {
                 TargetType = typeof(TValue),
             };
         }
 
+        InternalThrowIfInvalid<TValue>(bindingsList);
+    }
+
+    internal static void InternalThrowIfInvalid<TValue>(List<CsvBinding> bindings)
+    {
+        Debug.Assert(bindings.Count > 0);
+
+        bindings.AsSpan().Sort(static (a, b) => a.Index.CompareTo(b.Index));
+
         int currentColumnIndex = 0;
         int nonIgnoredCount = 0;
 
-        var members = new HashSet<CsvBinding>(CsvBindingMemberComparer.Instance);
+        var members = new HashSet<CsvBinding>(bindings.Count, CsvBindingMemberComparer.Instance);
 
-        foreach (var binding in bindings.OrderBy(b => b.Index))
+        foreach (var binding in bindings)
         {
             // Check if binding can be used to target the type
             if (!binding.IsApplicableTo<TValue>())

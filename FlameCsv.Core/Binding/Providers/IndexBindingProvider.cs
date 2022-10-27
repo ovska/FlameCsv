@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
@@ -17,31 +16,29 @@ public sealed class IndexBindingProvider<T> : ICsvBindingProvider<T>
     where T : unmanaged, IEquatable<T>
 {
     // ReSharper disable once StaticMemberInGenericType
-    private static readonly ConditionalWeakTable<Type, Tuple<ImmutableArray<CsvBinding>>> _bindings = new();
+    private static readonly ConditionalWeakTable<Type, object?> _bindingCache = new();
 
     public bool TryGetBindings<TValue>([NotNullWhen(true)] out CsvBindingCollection<TValue>? bindings)
     {
-        if (!_bindings.TryGetValue(typeof(TValue), out var tuple))
+        if (!_bindingCache.TryGetValue(typeof(TValue), out var obj))
         {
-            var arr = GetBindings<TValue>().OrderBy(b => b.Index).ToImmutableArray();
+            var list = GetBindings<TValue>().ToList();
 
-            // Run the validation only once before caching
-            if (!arr.IsEmpty)
+            if (list.Count > 0)
             {
-                CsvBindingException.ThrowIfInvalid<TValue>(arr);
+                // ensure we don't cache an invalid bindings list
+                CsvBindingException.InternalThrowIfInvalid<TValue>(list);
+                obj = new CsvBindingCollection<TValue>(list.ToImmutableArray());
+            }
+            else
+            {
+                obj = null;
             }
 
-            _bindings.AddOrUpdate(typeof(TValue), tuple = new(arr));
+            _bindingCache.AddOrUpdate(typeof(TValue), obj);
         }
 
-        if (!tuple.Item1.IsEmpty)
-        {
-            bindings = new CsvBindingCollection<TValue>(tuple.Item1);
-            return true;
-        }
-
-        bindings = null;
-        return false;
+        return (bindings = obj as CsvBindingCollection<TValue>) is not null;
     }
 
     private static IEnumerable<CsvBinding> GetBindings<TValue>()
