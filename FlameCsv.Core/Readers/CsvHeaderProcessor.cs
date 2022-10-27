@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using CommunityToolkit.Diagnostics;
 using FlameCsv.Binding.Providers;
 using FlameCsv.Readers.Internal;
 
@@ -12,12 +13,10 @@ internal readonly struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue
     private readonly ICsvHeaderBindingProvider<T> _headerBindingProvider;
     private readonly Wrapper _wrapper = new();
 
-    public CsvHeaderProcessor(
-        CsvConfiguration<T> configuration,
-        ICsvHeaderBindingProvider<T> headerBindingProvider)
+    public CsvHeaderProcessor(CsvConfiguration<T> configuration)
     {
         _configuration = configuration;
-        _headerBindingProvider = headerBindingProvider;
+        _headerBindingProvider = (ICsvHeaderBindingProvider<T>)_configuration.BindingProvider;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -28,12 +27,11 @@ internal readonly struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue
             return _wrapper.Value.TryContinueRead(ref buffer, out value);
         }
 
-        Unsafe.SkipInit(out value);
-        return TryReadHeader(ref buffer);
+        return TryReadHeader(ref buffer, out value);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private bool TryReadHeader(ref ReadOnlySequence<T> buffer)
+    private bool TryReadHeader(ref ReadOnlySequence<T> buffer, out TValue value)
     {
         if (LineReader.TryRead(in _configuration._options, ref buffer, out var line, out _))
         {
@@ -46,8 +44,13 @@ internal readonly struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue
                 _wrapper.Value = new CsvProcessor<T, TValue>(_configuration, state);
                 _wrapper.HasValue = true;
             }
+            else
+            {
+                ThrowHelper.ThrowInvalidOperationException();
+            }
         }
 
+        Unsafe.SkipInit(out value);
         return false;
     }
 
