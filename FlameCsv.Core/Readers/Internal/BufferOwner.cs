@@ -1,14 +1,19 @@
 using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Readers.Internal;
 
+/// <summary>
+/// Utility class holding on to a rented buffer. The buffer is meant to be reused
+/// across multiple writes/reads.
+/// </summary>
 internal sealed class BufferOwner<T> : IDisposable where T : unmanaged, IEquatable<T>
 {
     private T[]? _rented;
+    private bool _disposed;
     private readonly ArrayPool<T> _arrayPool;
     private readonly bool _clearBuffers;
 
@@ -21,57 +26,37 @@ internal sealed class BufferOwner<T> : IDisposable where T : unmanaged, IEquatab
     }
 
     /// <summary>
-    /// Initializes a buffer owner usin the specified array pool.
+    /// Initializes a buffer owner using the specified array pool.
     /// </summary>
     public BufferOwner(
         SecurityLevel security,
         ArrayPool<T> arrayPool)
     {
         _arrayPool = arrayPool;
-        _rented = System.Array.Empty<T>();
         _clearBuffers = security.ClearBuffers();
     }
 
-    public T[] Array
-    {
-        get
-        {
-            if (_rented is null)
-                ThrowObjectDisposedException();
-            return _rented;
-        }
-    }
-
     /// <summary>
-    /// Returns a buffer that is at least of the specified size.
+    /// Returns a buffer of the requested length.
     /// </summary>
+    /// <exception cref="ObjectDisposedException" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Span<T> GetSpan(int minimumSize)
+    public Span<T> GetSpan(int length)
     {
-        EnsureCapacity(minimumSize);
-        return _rented.AsSpan();
-    }
+        if (_disposed)
+            ThrowHelper.ThrowObjectDisposedException(typeof(BufferOwner<T>).ToTypeString());
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void EnsureCapacity(int minimumSize)
-    {
-        if (_rented is null)
-            ThrowObjectDisposedException();
-
-        if (_rented.Length < minimumSize)
-        {
-            if (_rented.Length != 0)
-            {
-                _arrayPool.Return(_rented, clearArray: _clearBuffers);
-            }
-
-            _rented = _arrayPool.Rent(minimumSize);
-        }
+        _arrayPool.EnsureCapacity(ref _rented, capacity: length, clearArray: _clearBuffers);
+        return _rented.AsSpan(0, length);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
+        if (_disposed)
+            return;
+
+        _disposed = true;
         var rented = _rented;
 
         if (rented is not null)
@@ -79,11 +64,5 @@ internal sealed class BufferOwner<T> : IDisposable where T : unmanaged, IEquatab
             _rented = null;
             _arrayPool.Return(rented, clearArray: _clearBuffers);
         }
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowObjectDisposedException()
-    {
-        throw new ObjectDisposedException(typeof(BufferOwner<T>).ToTypeString());
     }
 }

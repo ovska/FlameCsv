@@ -6,6 +6,7 @@ namespace FlameCsv.Parsers.Text;
 /// A parser for strings that uses pooling for the strings. Useful for reducing string allocations when the
 /// data has small entropy for string values.
 /// </summary>
+/// <seealso cref="StringPool"/>
 public sealed class PoolingStringTextParser : ParserBase<char, string?>
 {
     /// <inheritdoc cref="StringTextParser"/>

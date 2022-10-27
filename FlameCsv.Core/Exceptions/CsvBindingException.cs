@@ -41,6 +41,7 @@ public sealed class CsvBindingException : CsvConfigurationException
         InternalThrowIfInvalid<TValue>(bindingsList);
     }
 
+    /// <summary>Note: sorts the parameter list!</summary>
     internal static void InternalThrowIfInvalid<TValue>(List<CsvBinding> bindings)
     {
         Debug.Assert(bindings.Count > 0);

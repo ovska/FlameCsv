@@ -6,6 +6,7 @@ using FlameCsv.Readers;
 
 namespace FlameCsv.Benchmark;
 
+// [SimpleJob(BenchmarkDotNet.Engines.RunStrategy.ColdStart, launchCount: 10)]
 [SimpleJob]
 [MemoryDiagnoser]
 public class CsvReadBench
@@ -18,7 +19,7 @@ public class CsvReadBench
         await using var stream = new MemoryStream(_file);
 
         var config = CsvConfiguration<byte>.DefaultBuilder
-            .SetParserOptions(CsvParserOptions<byte>.Unix)
+            .SetParserOptions(CsvParserOptions<byte>.Environment)
             .SetBinder(new IndexBindingProvider<byte>()).Build();
 
         var reader = new CsvStreamReader<Item>(config);

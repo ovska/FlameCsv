@@ -59,6 +59,7 @@ public abstract class HeaderBindingProviderBase<T, TResult> : ICsvHeaderBindingP
         int index = 0;
 
         using var buffer = new BufferOwner<T>(configuration.Security);
+
         var enumerator = new CsvColumnEnumerator<T>(
             line,
             in configuration._options,

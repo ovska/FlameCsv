@@ -74,7 +74,7 @@ internal readonly struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         }
         else
         {
-            Span<T> buffer = _multisegmentBuffer.GetSpan(length)[..length];
+            Span<T> buffer = _multisegmentBuffer.GetSpan(length);
             line.CopyTo(buffer);
             return TryReadColumnSpan(buffer, stringDelimiterCount, out value);
         }
