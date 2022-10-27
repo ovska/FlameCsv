@@ -46,8 +46,7 @@ public sealed class IndexBindingProvider<T> : ICsvBindingProvider<T>
 
     private static IEnumerable<CsvBinding> GetBindings<TValue>()
     {
-        var members = typeof(TValue).GetMembers(CsvBindingConstants.MemberLookupFlags)
-            .Where(static m => m is PropertyInfo or FieldInfo)
+        var members = typeof(TValue).GetCachedPropertiesAndFields()
             .Select(
                 static member =>
                 {

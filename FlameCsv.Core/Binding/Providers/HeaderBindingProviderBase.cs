@@ -134,10 +134,10 @@ public abstract class HeaderBindingProviderBase<T, TResult> : ICsvHeaderBindingP
     /// </summary>
     protected virtual IEnumerable<(string Value, MemberInfo Member, int Order)> GetBindingCandidates()
     {
-        var members = typeof(TResult).GetMembers(CsvBindingConstants.MemberLookupFlags)
-            .Where(m => m is PropertyInfo or FieldInfo && !m.HasAttribute<HeaderBindingIgnoreAttribute>())
+        var members = typeof(TResult).GetCachedPropertiesAndFields()
+            .Where(m => !m.HasAttribute<HeaderBindingIgnoreAttribute>())
             .SelectMany(
-                static m => m.GetCustomAttribute<HeaderBindingAttribute>() is { } attr
+                static m => m.HasAttribute<HeaderBindingAttribute>(out var attr)
                     ? attr.Values.Select(v => (v, m, attr.Order))
                     : Enumerable.Repeat((m.Name, m, 0), 1));
 

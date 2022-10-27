@@ -1,4 +1,5 @@
 using System.Reflection;
+using FlameCsv.Extensions;
 using FlameCsv.Runtime;
 
 namespace FlameCsv.Parsers.Utf8;
@@ -21,7 +22,7 @@ public class EnumUtf8ParserFactory : ICsvParserFactory<byte>
     
     public bool CanParse(Type resultType)
     {
-        return resultType.IsEnum && resultType.GetCustomAttribute<FlagsAttribute>() is null;
+        return resultType.IsEnum && !resultType.HasAttribute<FlagsAttribute>();
     }
 
     public ICsvParser<byte> Create(Type resultType, CsvConfiguration<byte> configuration)
