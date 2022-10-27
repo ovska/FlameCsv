@@ -3,6 +3,7 @@ using System.Reflection;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
+using FlameCsv.Extensions;
 using FlameCsv.Runtime;
 
 namespace FlameCsv;
@@ -71,7 +72,7 @@ public sealed partial class CsvConfiguration<T>
         {
             ICsvParserOverride? found = null;
 
-            foreach (var attribute in binding.Attributes)
+            foreach (var attribute in binding.Member.GetCachedCustomAttributes())
             {
                 if (attribute is ICsvParserOverride @override)
                 {

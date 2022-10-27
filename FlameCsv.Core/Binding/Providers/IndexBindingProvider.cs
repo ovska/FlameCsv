@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Binding.Providers;
 
@@ -50,24 +51,26 @@ public sealed class IndexBindingProvider<T> : ICsvBindingProvider<T>
             .Select(
                 static member =>
                 {
-                    object[] attributes = member.GetCustomAttributes(false);
+                    object[] attributes = member.GetCachedCustomAttributes();
 
                     foreach (var attribute in attributes)
                     {
                         if (attribute is IndexBindingAttribute { Index: var index })
-                            return new CsvBinding(index, member, attributes);
+                            return new CsvBinding(index, member);
                     }
 
                     return new CsvBinding?();
-                })
-            .OfType<CsvBinding>();
+                });
 
-        var targeted = typeof(TValue).GetCustomAttributes<IndexBindingTargetAttribute>()
-            .Select(static attr => attr.GetAsBinding(typeof(TValue)));
+        var typeTargetedBindings = typeof(TValue).GetCachedCustomAttributes()
+            .Select(
+                static attr => attr switch
+                {
+                    IndexBindingTargetAttribute targetAttribute => targetAttribute.GetAsBinding(typeof(TValue)),
+                    IndexBindingIgnoreAttribute ignoreAttribute => CsvBinding.Ignore(ignoreAttribute.Index),
+                    _ => new CsvBinding?(),
+                });
 
-        var ignored = typeof(TValue).GetCustomAttributes<IndexBindingIgnoreAttribute>()
-            .Select(static attr => CsvBinding.Ignore(attr.Index));
-
-        return members.Concat(targeted).Concat(ignored);
+        return members.Concat(typeTargetedBindings).OfType<CsvBinding>();
     }
 }
