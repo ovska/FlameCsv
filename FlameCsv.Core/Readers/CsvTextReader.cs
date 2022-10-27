@@ -26,10 +26,10 @@ internal sealed class CsvTextReader<TValue> : IDisposable
         CsvConfiguration<char> configuration,
         int bufferSize = 8192)
     {
+        Guard.IsGreaterThan(bufferSize, 0);
         _innerReader = innerReader;
         _configuration = configuration;
         _bufferSize = bufferSize;
-        Guard.IsGreaterThan(bufferSize, 0);
     }
 
     public async IAsyncEnumerable<TValue> ReadAsync(

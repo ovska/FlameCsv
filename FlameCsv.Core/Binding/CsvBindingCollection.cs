@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
-using CommunityToolkit.Diagnostics;
 using FlameCsv.Exceptions;
 
 namespace FlameCsv.Binding;
@@ -29,25 +28,11 @@ public sealed class CsvBindingCollection<TValue>
         Bindings = sorted;
     }
 
+    // for internal use
     internal CsvBindingCollection(ImmutableArray<CsvBinding> bindings)
     {
         Debug.Assert(!bindings.IsEmpty);
         Debug.Assert(bindings.SequenceEqual(bindings.OrderBy(x => x.Index)));
         Bindings = bindings;
-    }
-
-    /// <summary>
-    /// Returns the binding at <paramref name="index"/>.
-    /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException"/>
-    public CsvBinding GetAt(int index)
-    {
-        foreach (var binding in Bindings)
-        {
-            if (binding.Index == index)
-                return binding;
-        }
-
-        return ThrowHelper.ThrowArgumentOutOfRangeException<CsvBinding>(nameof(index), index, null);
     }
 }
