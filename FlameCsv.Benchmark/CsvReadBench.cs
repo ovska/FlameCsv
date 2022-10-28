@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using CsvHelper;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Binding.Providers;
@@ -12,37 +13,55 @@ public class CsvReadBench
 {
     private static readonly byte[] _file = File.ReadAllBytes("/home/sipi/test.csv");
 
-    [Benchmark]
-    public async ValueTask Custom()
+    [Benchmark(Baseline = true)]
+    public async ValueTask CsvHelper()
     {
         await using var stream = new MemoryStream(_file);
-
-        var config = CsvConfiguration<byte>.DefaultBuilder
-            .SetParserOptions(CsvParserOptions<byte>.Environment)
-            .SetBinder(new IndexBindingProvider<byte>()).Build();
-
-        await foreach (var item in Readers.CsvReader.ReadAsync<Item>(config, stream))
-        {
-            _ = item;
-        }
-    }
-
-    [Benchmark(Baseline = true)]
-    public async ValueTask Csv_Helper()
-    {
+        using var reader = new StreamReader(stream, Encoding.ASCII, false);
         var config = new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)
         {
             NewLine = Environment.NewLine,
             HasHeaderRecord = false,
         };
 
-        await using var ms = new MemoryStream(_file);
-        using var reader = new StreamReader(ms);
         using var csv = new CsvReader(reader, config);
 
         await foreach (var record in csv.GetRecordsAsync<Item>())
         {
             _ = record;
+        }
+    }
+
+    [Benchmark]
+    public async ValueTask FlameCsv_ASCII()
+    {
+        await using var stream = new MemoryStream(_file);
+        using var reader = new StreamReader(stream, Encoding.ASCII, false);
+
+        var config = CsvConfiguration<char>.DefaultBuilder
+            .SetParserOptions(CsvParserOptions<char>.Environment)
+            .SetBinder(new IndexBindingProvider<char>())
+            .Build();
+
+        await foreach (var item in Readers.CsvReader.ReadAsync<Item>(config, reader))
+        {
+            _ = item;
+        }
+    }
+
+    [Benchmark]
+    public async ValueTask FlameCsv_Utf8()
+    {
+        await using var stream = new MemoryStream(_file);
+
+        var config = CsvConfiguration<byte>.DefaultBuilder
+            .SetParserOptions(CsvParserOptions<byte>.Environment)
+            .SetBinder(new IndexBindingProvider<byte>())
+            .Build();
+
+        await foreach (var item in Readers.CsvReader.ReadAsync<Item>(config, stream))
+        {
+            _ = item;
         }
     }
 
