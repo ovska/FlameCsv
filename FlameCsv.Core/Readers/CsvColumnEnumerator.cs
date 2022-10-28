@@ -34,9 +34,13 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
 
     /// <summary>
     /// Returns true if the previous <see cref="MoveNext"/> was the final expected column.
+    /// Always returns false if column count is not known.
     /// </summary>
-    // if columnCount is null, Column+1 never succeeds
-    public bool IsLastColumn => Column + 1 == _columnCount.GetValueOrDefault();
+    public bool IsLastColumn
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Column + 1 == _columnCount.GetValueOrDefault();
+    }
 
     /// <summary>
     /// Initializes a column enumerator over a line.
@@ -73,20 +77,23 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
 
     public CsvColumnEnumerator<T> GetEnumerator() => this;
 
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public bool MoveNext()
     {
         if (_columnCount.HasValue ? Column >= _columnCount.GetValueOrDefault() : _remaining.IsEmpty)
             return false;
 
+        // keep track of how many quotes the current column has
         var quotesConsumed = 0;
 
-        // If the remaining data has no quotes, there is no way to escape a delimiter and we can seek it directly
+        // If the remaining row has no quotes seek the next comma directly
         var index = _quotesRemaining == 0
             ? _remaining.IndexOf(_comma)
             : _remaining.IndexOfAny(_comma, _quote);
 
         while (index >= 0)
         {
+            // Hit a comma, either found end of column or more columns than expected
             if (_remaining[index].Equals(_comma))
             {
                 if (IsLastColumn) ThrowTooManyColumns(index);
@@ -119,7 +126,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
             index += nextIndex;
         }
 
-        // No delimiter at the end of the line
+        // No comma in the remaining data
         if ((IsLastColumn || !_columnCount.HasValue) && _quotesRemaining == 0)
         {
             Current = _remaining.Trim(_whitespace);
@@ -134,11 +141,14 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
             return true;
         }
 
+        // Column count is known and there were too little columns OR
+        // there were leftover unprocessed quotes (or the parameter quote count was invalid)
         return ThrowInvalidEOF();
     }
 
     /// <summary>
-    /// Verifies that the previous <see cref="MoveNext"/> processed the final column.
+    /// Verifies that the previous <see cref="MoveNext"/> processed the final column, either by checking
+    /// the known colun count or verifying all data was read.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void EnsureAllColumnsRead()
@@ -149,6 +159,9 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
         ThrowNotAllColumnsRead();
     }
 
+    /// <exception cref="InvalidDataException">
+    /// Thrown when column count is known and there were too many commas
+    /// </exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private void ThrowTooManyColumns(int index)
     {
@@ -157,6 +170,10 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
             + $"at line index {_remaining.Length + index}");
     }
 
+    /// <exception cref="InvalidDataException">
+    /// Thrown when column count is known and there were too little commas, or
+    /// there was an invalid amount of string delimiters.
+    /// </exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private bool ThrowInvalidEOF()
     {
@@ -165,6 +182,9 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
             + $"with {_quotesRemaining} string delimiters remaining.");
     }
 
+    /// <exception cref="InvalidDataException">
+    /// Thrown when all columns were not consumed as expected.
+    /// </exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private void ThrowNotAllColumnsRead()
     {

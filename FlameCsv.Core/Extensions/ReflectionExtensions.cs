@@ -12,7 +12,7 @@ internal static class ReflectionExtensions
     /// </summary>
     public const BindingFlags MemberLookupFlags = BindingFlags.Instance | BindingFlags.Public;
 
-    private static readonly ConditionalWeakTable<object, object[]> _attributesCache = new();
+    private static readonly ConditionalWeakTable<MemberInfo, object[]> _attributesCache = new();
     private static readonly ConditionalWeakTable<Type, MemberInfo[]> _membersCache = new();
 
     internal static MemberInfo[] GetCachedPropertiesAndFields(this Type type)
