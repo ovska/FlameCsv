@@ -5,9 +5,11 @@ using System.Runtime.CompilerServices;
 namespace FlameCsv.Readers.Internal;
 
 // based HEAVILY on the .NET runtime BufferSegment code
+[DebuggerDisplay(
+    @"\{ TextSegment, Memory Length: {AvailableMemory.Length}, Index: {RunningIndex}, IsLast: {_next == null} \}")]
 internal sealed class TextSegment : ReadOnlySequenceSegment<char>
 {
-    private char[]? _array;
+    internal char[]? _array;
     private TextSegment? _next;
     private int _end;
 

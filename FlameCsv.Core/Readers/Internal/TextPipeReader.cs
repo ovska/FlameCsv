@@ -5,29 +5,11 @@ using CommunityToolkit.Diagnostics;
 
 namespace FlameCsv.Readers.Internal;
 
-internal readonly struct TextReadResult
-{
-    /// <summary>
-    /// Buffer containing the read data. May be empty.
-    /// </summary>
-    public ReadOnlySequence<char> Buffer { get; }
-
-    /// <summary>
-    /// There is no more data to read.
-    /// </summary>
-    public bool IsCompleted { get; }
-
-    public TextReadResult(ReadOnlySequence<char> buffer, bool isCompleted)
-    {
-        Buffer = buffer;
-        IsCompleted = isCompleted;
-    }
-}
+// based HEAVILY on the .NET runtime StreamPipeReader code
 
 /// <summary>
 /// Wrapper around a TextReader to facilitate reading it like a PipeReader.
 /// </summary>
-// based HEAVILY on the .NET runtime StreamPipeReader code
 internal sealed class TextPipeReader : IDisposable
 {
     private readonly TextReader _innerReader;
@@ -43,6 +25,9 @@ internal sealed class TextPipeReader : IDisposable
 
     private bool _readerCompleted;
     private bool _disposed;
+
+    // Mutable struct! Don't make this readonly
+    private TextSegmentPool _segmentPool;
 
     public TextPipeReader(TextReader innerReader, int bufferSize, bool leaveOpen = false)
     {
@@ -140,7 +125,7 @@ internal sealed class TextPipeReader : IDisposable
 
     private TextSegment AllocateSegment()
     {
-        TextSegment nextSegment = new();
+        TextSegment nextSegment = CreateSegmentUnsynchronized();
         nextSegment.SetOwnedMemory(ArrayPool<char>.Shared.Rent(_bufferSize));
         return nextSegment;
     }
@@ -212,6 +197,7 @@ internal sealed class TextPipeReader : IDisposable
         {
             TextSegment next = returnStart.NextSegment!;
             returnStart.ResetMemory();
+            ReturnSegmentUnsynchronized(returnStart);
             returnStart = next;
         }
     }
@@ -228,12 +214,28 @@ internal sealed class TextPipeReader : IDisposable
         {
             TextSegment returnSegment = segment;
             segment = segment.NextSegment;
-
             returnSegment.ResetMemory();
         }
 
         if (!_leaveOpen)
             _innerReader.Dispose();
+    }
+
+    private TextSegment CreateSegmentUnsynchronized()
+    {
+        if (_segmentPool.TryPop(out TextSegment? segment))
+        {
+            return segment;
+        }
+
+        return new TextSegment();
+    }
+
+    private void ReturnSegmentUnsynchronized(TextSegment segment)
+    {
+        Debug.Assert(segment != _readHead, "Returning _readHead segment that's in use!");
+        Debug.Assert(segment != _readTail, "Returning _readTail segment that's in use!");
+        _segmentPool.Push(segment);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -48,7 +48,7 @@ await using var stream = File.OpenRead("/home/sipi/test.csv");
 
 
 var collection = new ManualBindingProvider<byte, Item>(bindings);
-var config_ = CsvConfiguration<byte>.DefaultBuilder.SetBinder(collection).Build();
+var config_ = CsvConfiguration<byte>.DefaultBuilder.SetParserOptions(CsvParserOptions<byte>.Unix).SetBinder(collection).Build();
 var result = new List<Item>();
 await foreach (var item in FlameCsv.Readers.CsvReader.ReadAsync<Item>(config_, stream))
 {
@@ -59,7 +59,7 @@ Debugger.Break();
 try
 {
     var _collection = new ManualBindingProvider<char, Item>(bindings);
-    var _config_ = CsvConfiguration<char>.DefaultBuilder.SetBinder(_collection).Build();
+    var _config_ = CsvConfiguration<char>.DefaultBuilder.SetParserOptions(CsvParserOptions<char>.Unix).SetBinder(_collection).Build();
 
     using (var reader = new StreamReader("/home/sipi/test.csv"))
     {
