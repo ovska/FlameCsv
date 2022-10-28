@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Buffers.Text;
 using CommunityToolkit.Diagnostics;
+using CommunityToolkit.HighPerformance.Buffers;
 
 namespace FlameCsv.Parsers.Utf8;
 
@@ -12,10 +13,7 @@ public sealed class Base64Utf8Parser :
 {
     public bool TryParse(ReadOnlySpan<byte> span, out byte[] value)
     {
-        var result = Decode(span);
-        value = result.Count == result.Array!.Length
-            ? result.Array
-            : result.ToArray();
+        value = Decode(span);
         return true;
     }
 
@@ -45,11 +43,11 @@ public sealed class Base64Utf8Parser :
             || resultType == typeof(ReadOnlyMemory<byte>);
     }
 
-    private static ArraySegment<byte> Decode(ReadOnlySpan<byte> span)
+    private static byte[] Decode(ReadOnlySpan<byte> span)
     {
-        var result = new byte[Base64.GetMaxDecodedFromUtf8Length(span.Length)];
+        using var spanOwner = SpanOwner<byte>.Allocate(Base64.GetMaxDecodedFromUtf8Length(span.Length));
 
-        var status = Base64.DecodeFromUtf8(span, result, out var bytesConsumed, out var bytesWritten);
+        var status = Base64.DecodeFromUtf8(span, spanOwner.Span, out var bytesConsumed, out var bytesWritten);
 
         if (status != OperationStatus.Done)
         {
@@ -62,6 +60,6 @@ public sealed class Base64Utf8Parser :
                 $"Base64 data was partial, decoded ${bytesConsumed} out of {span.Length}");
         }
 
-        return new(result, 0, bytesWritten);
+        return spanOwner.Span.Slice(0, bytesWritten).ToArray();
     }
 }

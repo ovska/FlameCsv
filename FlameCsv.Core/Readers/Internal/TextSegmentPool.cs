@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace FlameCsv.Readers.Internal;
 
+// most likely only 2 segments are needed at a time
 internal struct TextSegmentPool
 {
     private TextSegment? _a;

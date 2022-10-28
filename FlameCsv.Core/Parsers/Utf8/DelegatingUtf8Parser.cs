@@ -33,7 +33,7 @@ public sealed class DelegatingUtf8Parser<TValue> : ParserBase<byte, TValue>
         }
         else
         {
-            using var spanOwner = SpanOwner<char>.Allocate(maxLength, AllocationMode.Clear);
+            using var spanOwner = SpanOwner<char>.Allocate(maxLength);
             int written = Encoding.UTF8.GetChars(span, spanOwner.Span);
             return Inner.TryParse(spanOwner.Span[..written], out value!);
         }

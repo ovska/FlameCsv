@@ -42,6 +42,7 @@ internal static class LineReader
     /// <paramref name="sequence"/>.
     /// </returns>
     /// <remarks>A successful result might still be invalid CSV.</remarks>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static bool TryRead<T>(
         in CsvParserOptions<T> options,
         ref ReadOnlySequence<T> sequence,
@@ -51,7 +52,7 @@ internal static class LineReader
     {
         ReadOnlySpan<T> newLine = options.NewLine.Span;
 
-        // keep track of read newline tokens and string delimiters
+        // keep track of read newline tokens and quotes in the read data
         State state = default;
         quoteCount = 0;
 
@@ -63,8 +64,8 @@ internal static class LineReader
         {
             ReadOnlySpan<T> span = memory.Span;
 
-            // Find the next relevant token. Uneven string delimiters mean the current index is 100% inside a string,
-            // so we can skip checking for anything but the next string delimiter
+            // Find the next relevant token. Uneven quotes mean the current index is 100% inside a string,
+            // so we can skip everything until the next quote
             int index = quoteCount % 2 == 0
                 ? span.IndexOfAny(newLine[state.count], options.StringDelimiter)
                 : span.IndexOf(options.StringDelimiter);
@@ -72,19 +73,19 @@ internal static class LineReader
             // Found a newline token or a string delimiter
             while (index >= 0)
             {
-                // Found token was a string delimiter, reset possible found newline tokens
+                // Found token was a string delimiter
                 if (span[index].Equals(options.StringDelimiter))
                 {
                     quoteCount++;
-                    state = default;
+                    state = default; // zero out possible newline state such as \r"
                 }
                 // The match was for newline token
                 else
                 {
-                    // Newline tokens should be ignored by IndexOf(Any) if we are in string
+                    // We are 100% not inside a string as newline tokens are ignored by IndexOf in that case
                     Debug.Assert(quoteCount % 2 == 0);
 
-                    // Reset the line state if this was the first newline token
+                    // init the newline state if this was the first token
                     if (state.count == 0)
                     {
                         state.offset = index;
@@ -94,25 +95,25 @@ internal static class LineReader
                     // The conditions are:
                     // - All of newline read, e.g. single LF or the CR was in previous segment
                     // - Fast path check for common 2-token newline such as CRLF once CR was found
-                    // - Edge case of rest of a longer newline that matches instantly
+                    // - Edge case of rest of a longer newline in a single segment
                     // Even if 2&3 fail the line can still be valid if rest of the newline is in the next segment
                     if (++state.count == newLine.Length
                         || (newLine.Length == 2 && index + 1 < span.Length && span[index + 1].Equals(newLine[1]))
                         || span.Slice(index).StartsWith(newLine))
                     {
-                        var newlinePos = sequence.GetPosition(state.offset, state.start);
+                        SequencePosition newlinePos = sequence.GetPosition(state.offset, state.start);
                         line = sequence.Slice(0, newlinePos);
                         sequence = sequence.Slice(sequence.GetPosition(newLine.Length, newlinePos));
                         return true;
                     }
                 }
 
-                // Move the "cursor" past the current token, exiting if we hit the end of the segment
+                // Move the cursor past the current token and exit if we hit the end of the segment
                 if (++index >= span.Length)
                     break;
 
                 // Find the next relevant token
-                var next = quoteCount % 2 == 0
+                int next = quoteCount % 2 == 0
                     ? span.Slice(index).IndexOfAny(newLine[state.count], options.StringDelimiter)
                     : span.Slice(index).IndexOf(options.StringDelimiter);
 
