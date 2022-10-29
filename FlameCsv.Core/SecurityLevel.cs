@@ -3,9 +3,7 @@ namespace FlameCsv;
 [Flags]
 public enum SecurityLevel
 {
-    /// <summary>
-    /// CSV contents are not exposed outside the running code.
-    /// </summary>
+    /// <summary>CSV contents are not exposed outside the running code.</summary>
     Strict = 0,
 
     /// <summary>Rented buffers do not need to be cleared.</summary>
