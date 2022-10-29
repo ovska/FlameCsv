@@ -42,9 +42,7 @@ public abstract class HeaderBindingProviderBase<T, TResult> : ICsvHeaderBindingP
         UnmatchedHeaderBindingBehavior unmatchedBehavior)
     {
         ArgumentNullException.ThrowIfNull(matcher);
-
-        if (!Enum.IsDefined(unmatchedBehavior))
-            ThrowHelper.ThrowArgumentOutOfRangeException(nameof(unmatchedBehavior), unmatchedBehavior, null);
+        GuardEx.IsDefined(unmatchedBehavior);
 
         _matcher = matcher;
         UnmatchedBehavior = unmatchedBehavior;
