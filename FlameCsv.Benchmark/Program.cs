@@ -1,4 +1,4 @@
-﻿BenchmarkRunner.Run<CsvReadBench>();
+﻿BenchmarkRunner.Run<CsvStringEnumerateBench>();
 
 // Console.WriteLine("Process started: {0}", Environment.ProcessId);
 //
@@ -7,13 +7,13 @@
 // // ReSharper disable once AccessToDisposedClosure
 // Console.CancelKeyPress += (_, _) => cts.Cancel();
 //
-// var bench = new CsvReadBench();
+// var bench = new CsvStringEnumerateBench();
 //
 // try
 // {
 //     while (true)
 //     {
-//         await bench.Custom();
+//         bench.FlameCsv_Utf8();
 //
 //         if (cts.IsCancellationRequested)
 //             break;
