@@ -3,6 +3,8 @@ using System.Text;
 using CsvHelper;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Binding.Providers;
+using FlameCsv.Parsers;
+using FlameCsv.Parsers.Text;
 
 namespace FlameCsv.Benchmark;
 
@@ -26,6 +28,9 @@ public class CsvReadBench
 
         using var csv = new CsvReader(reader, config);
 
+        var options = new CsvHelper.TypeConversion.TypeConverterOptions { Formats = new[] { "yyyy'.'MM" } };
+        csv.Context.TypeConverterOptionsCache.AddOptions<DateTime>(options);
+
         await foreach (var record in csv.GetRecordsAsync<Item>())
         {
             _ = record;
@@ -38,7 +43,8 @@ public class CsvReadBench
         await using var stream = new MemoryStream(_file);
         using var reader = new StreamReader(stream, Encoding.ASCII, false);
 
-        var config = CsvConfiguration<char>.DefaultBuilder
+        var config = CsvConfiguration.GetTextDefaultsBuilder(
+                new CsvTextParserConfiguration{ DateTimeFormat = "yyyy'.'MM" })
             .SetParserOptions(CsvParserOptions<char>.Environment)
             .SetBinder(new IndexBindingProvider<char>())
             .Build();
@@ -55,6 +61,7 @@ public class CsvReadBench
         await using var stream = new MemoryStream(_file);
 
         var config = CsvConfiguration<byte>.DefaultBuilder
+            .AddParser(new YYYYMMParser())
             .SetParserOptions(CsvParserOptions<byte>.Environment)
             .SetBinder(new IndexBindingProvider<byte>())
             .Build();
@@ -84,7 +91,7 @@ public class CsvReadBench
         public string? SeriesReference { get; set; }
 
         [CsvHelper.Configuration.Attributes.Index(1), IndexBinding(1)]
-        public string? Period { get; set; } // date
+        public DateTime Period { get; set; } // date
 
         [CsvHelper.Configuration.Attributes.Index(2), IndexBinding(2)]
         public int DataValue { get; set; }
@@ -121,5 +128,37 @@ public class CsvReadBench
 
         [CsvHelper.Configuration.Attributes.Index(13), IndexBinding(13)]
         public string? SeriesTitle5 { get; set; }
+    }
+    
+    internal sealed class YYYYMMParser : ParserBase<byte, DateTime>
+    {
+        public override bool TryParse(ReadOnlySpan<byte> span, out DateTime value)
+        {
+            if (span.Length == 7 && span[4] == '.')
+            {
+                var y1 = (uint)span[0] - '0';
+                var y2 = (uint)span[1] - '0';
+                var y3 = (uint)span[2] - '0';
+                var y4 = (uint)span[3] - '0';
+                var m1 = (uint)span[5] - '0';
+                var m2 = (uint)span[6] - '0';
+
+                if (y1 <= 9 && y2 <= 9 && y3 <= 9 && y4 <= 9 && m1 <= 9 && m2 <= 9)
+                {
+                    value = new(
+                        (int)(y1 * 1000 + y2 * 100 + y3 * 10 + y4),
+                        (int)(m1 * 10 + m2),
+                        1,
+                        0,
+                        0,
+                        0);
+
+                    return true;
+                }
+            }
+
+            value = default;
+            return false;
+        }
     }
 }
