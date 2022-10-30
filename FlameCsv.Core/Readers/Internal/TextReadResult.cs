@@ -3,7 +3,13 @@ using System.Diagnostics;
 
 namespace FlameCsv.Readers.Internal;
 
-[DebuggerDisplay(@"\{ TextReadResult, Buffer Length: {Buffer.Length}, IsCompleted: {IsCompleted} \}")]
+#if DEBUG
+[DebuggerDisplay(
+    @"\{ ReadResult, Buffer: {Buffer.Length}, IsCompleted: {IsCompleted} \}",
+    Target = typeof(System.IO.Pipelines.ReadResult))]
+#endif
+
+[DebuggerDisplay(@"\{ TextReadResult, Buffer: {Buffer.Length}, IsCompleted: {IsCompleted} \}")]
 internal readonly struct TextReadResult
 {
     /// <summary>

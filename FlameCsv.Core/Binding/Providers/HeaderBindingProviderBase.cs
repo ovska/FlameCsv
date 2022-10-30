@@ -60,9 +60,9 @@ public abstract class HeaderBindingProviderBase<T, TResult> : ICsvHeaderBindingP
 
         var enumerator = new CsvColumnEnumerator<T>(
             line,
-            in configuration._options,
+            in configuration.options,
             columnCount: null,
-            quoteCount: line.Count(configuration._options.StringDelimiter),
+            quoteCount: line.Count(configuration.options.StringDelimiter),
             buffer);
 
         foreach (var value in enumerator)

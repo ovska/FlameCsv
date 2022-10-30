@@ -33,7 +33,7 @@ internal readonly struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue
     [MethodImpl(MethodImplOptions.NoInlining)]
     private bool TryReadHeader(ref ReadOnlySequence<T> buffer, out TValue value)
     {
-        if (LineReader.TryRead(in _configuration._options, ref buffer, out var line, out _))
+        if (LineReader.TryRead(in _configuration.options, ref buffer, out var line, out _))
         {
             using var view = new SequenceView<T>(line, _configuration.Security);
 
