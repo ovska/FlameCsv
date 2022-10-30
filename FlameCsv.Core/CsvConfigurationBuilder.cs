@@ -136,15 +136,16 @@ public sealed class CsvConfigurationBuilder<T> where T : unmanaged, IEquatable<T
 
     private static ICsvBindingProvider<T> GetDefaultBinder()
     {
-        object obj;
-
-        if (typeof(T) == typeof(char))
-            obj = new HeaderTextBindingProvider<char>();
-        else if (typeof(T) == typeof(byte))
-            obj = new HeaderUtf8BindingProvider<char>();
-        else
-            obj = NotSupportedBindingProvider<char>.Instance;
-
-        return (ICsvBindingProvider<T>)obj;
+        return NotSupportedBindingProvider<T>.Instance;
+        // object obj;
+        //
+        // if (typeof(T) == typeof(char))
+        //     obj = new HeaderTextBindingProvider<char>();
+        // else if (typeof(T) == typeof(byte))
+        //     obj = new HeaderUtf8BindingProvider<byte>();
+        // else
+        //     return NotSupportedBindingProvider<T>.Instance;
+        //
+        // return (ICsvBindingProvider<T>)obj;
     }
 }

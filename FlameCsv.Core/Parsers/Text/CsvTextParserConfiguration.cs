@@ -9,7 +9,8 @@ namespace FlameCsv.Parsers.Text;
 public class CsvTextParserConfiguration
 {
     /// <summary>
-    /// FormatProvider passed to multiple parsers. Default is <see cref="CultureInfo.InvariantCulture"/>.
+    /// FormatProvider passed by default to multiple parsers.
+    /// Default is <see cref="CultureInfo.InvariantCulture"/>.
     /// </summary>
     public virtual IFormatProvider? FormatProvider { get; set; } = CultureInfo.InvariantCulture;
 

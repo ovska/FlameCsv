@@ -7,7 +7,7 @@ internal sealed class NotSupportedBindingProvider<T> : ICsvHeaderBindingProvider
     where T : unmanaged, IEquatable<T>
 {
     internal static readonly NotSupportedBindingProvider<T> Instance = new();
-    
+
     [DoesNotReturn]
     public bool TryGetBindings<TValue>([NotNullWhen(true)] out CsvBindingCollection<TValue>? bindings)
     {
@@ -20,6 +20,6 @@ internal sealed class NotSupportedBindingProvider<T> : ICsvHeaderBindingProvider
         throw NotSupported;
     }
 
-    private NotSupportedException NotSupported
+    private static NotSupportedException NotSupported
         => new($"Default header binding is not supported for token type {typeof(T).ToTypeString()}");
 }
