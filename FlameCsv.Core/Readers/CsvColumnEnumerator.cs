@@ -36,10 +36,20 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
     /// Returns true if the previous <see cref="MoveNext"/> was the final expected column.
     /// Always returns false if column count is not known.
     /// </summary>
-    public bool IsLastColumn
+    public readonly bool IsKnownLastColumn
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Column + 1 == _columnCount.GetValueOrDefault();
+    }
+
+    /// <summary>
+    /// Returns true if column count is known and all columns have been read,
+    /// or column count is now known an all data has been read.
+    /// </summary>
+    public readonly bool AllDataConsumed
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _columnCount.HasValue ? Column >= _columnCount.GetValueOrDefault() : _remaining.IsEmpty;
     }
 
     /// <summary>
@@ -58,10 +68,12 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
         int quoteCount,
         BufferOwner<T> bufferOwner)
     {
-        Debug.Assert(!line.IsEmpty || columnCount is null or 1);
-        Debug.Assert(columnCount is null or > 0);
-        Debug.Assert(quoteCount % 2 == 0 && quoteCount >= 0);
-        Debug.Assert(!options.TryGetValidationErrors(out _));
+        Debug.Assert(!line.IsEmpty || columnCount is null or 1, "Empty line is not valid for over 1 column");
+        Debug.Assert(columnCount is null or > 0, "Known column count must be positive");
+        Debug.Assert(quoteCount >= 0, "Quote count must be positive");
+        Debug.Assert(quoteCount % 2 == 0, "Quote count must be divisible by 2");
+        Debug.Assert(!options.TryGetValidationErrors(out _), "Parser options must be valid");
+        Debug.Assert(bufferOwner is not null, "BufferOwner must not be null");
 
         _comma = options.Delimiter;
         _quote = options.StringDelimiter;
@@ -81,7 +93,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public bool MoveNext()
     {
-        if (_columnCount.HasValue ? Column >= _columnCount.GetValueOrDefault() : _remaining.IsEmpty)
+        if (AllDataConsumed)
             return false;
 
         // keep track of how many quotes the current column has
@@ -97,7 +109,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
             // Hit a comma, either found end of column or more columns than expected
             if (_remaining[index].Equals(_comma))
             {
-                if (IsLastColumn) ThrowTooManyColumns(index);
+                if (IsKnownLastColumn) ThrowTooManyColumns(index);
 
                 Current = TrimAndUnescape(_remaining.Slice(0, index), quotesConsumed);
                 _remaining = _remaining.Slice(index + 1);
@@ -120,7 +132,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
         }
 
         // No comma in the remaining data
-        if ((IsLastColumn || !_columnCount.HasValue) && _quotesRemaining == 0)
+        if ((IsKnownLastColumn || !_columnCount.HasValue) && _quotesRemaining == 0)
         {
             Current = TrimAndUnescape(_remaining, quotesConsumed);
             _remaining = default;
@@ -138,9 +150,9 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
     /// the known colun count or verifying all data was read.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void EnsureAllColumnsRead()
+    public readonly void EnsureAllColumnsRead()
     {
-        if (_columnCount.HasValue ? Column == _columnCount.GetValueOrDefault() : _remaining.IsEmpty)
+        if (AllDataConsumed)
             return;
 
         ThrowNotAllColumnsRead();
@@ -151,14 +163,14 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
     /// <see cref="_whitespace"/>.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private ReadOnlySpan<T> TrimAndUnescape(ReadOnlySpan<T> data, int quotesConsumed)
+    private readonly ReadOnlySpan<T> TrimAndUnescape(ReadOnlySpan<T> data, int quotesConsumed)
     {
         if (_whitespace.IsEmpty)
-            return _quotesRemaining == 0
+            return quotesConsumed == 0
                 ? data
                 : data.Unescape(_quote, quotesConsumed, _bufferOwner);
 
-        return _quotesRemaining == 0
+        return quotesConsumed == 0
             ? data.Trim(_whitespace)
             : data.Trim(_whitespace).Unescape(_quote, quotesConsumed, _bufferOwner);
     }
@@ -167,7 +179,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
     /// Thrown when column count is known and there were too many commas
     /// </exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private void ThrowTooManyColumns(int index)
+    private readonly void ThrowTooManyColumns(int index)
     {
         throw new InvalidDataException(
             $"Too many columns read, expected {Column} to be the last but found delimiter "
@@ -179,7 +191,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
     /// there was an invalid amount of string delimiters.
     /// </exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private bool ThrowInvalidEOF()
+    private readonly bool ThrowInvalidEOF()
     {
         throw new InvalidDataException(
             $"Line ended prematurely, expected {_columnCount} but read {Column} "
@@ -190,7 +202,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
     /// Thrown when all columns were not consumed as expected.
     /// </exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private void ThrowNotAllColumnsRead()
+    private readonly void ThrowNotAllColumnsRead()
     {
         throw new InvalidDataException($"Expected {_columnCount} columns to have been read, but read {Column}");
     }
