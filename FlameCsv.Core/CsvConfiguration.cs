@@ -16,9 +16,10 @@ public sealed partial class CsvConfiguration<T> where T : unmanaged, IEquatable<
     /// <summary>
     /// CSV parsing options, such as delimiters and line breaks. Defaults to environment specific.
     /// </summary>
-    public CsvParserOptions<T> Options => _options;
+    public CsvParserOptions<T> Options => options;
 
-    internal readonly CsvParserOptions<T> _options;
+    /// <summary>For internal use with "in"</summary>
+    internal readonly CsvParserOptions<T> options;
 
     /// <summary>
     /// Delegate that determines whether a row should be skipped.
@@ -53,14 +54,14 @@ public sealed partial class CsvConfiguration<T> where T : unmanaged, IEquatable<
         if (builder.BindingProvider is null)
             throw new CsvConfigurationException("BindingProvider is null.");
 
-        _options = builder.Options.ThrowIfInvalid();
+        options = builder.Options.ThrowIfInvalid();
 
         ShouldSkipRow = builder.ShouldSkipRow;
         Security = builder.Security;
 
         // HACK: reverse priority; parsers added last (user added) have the most weight
         var parsers = builder._parsers.ToArray();
-        Array.Reverse(parsers);
+        parsers.AsSpan().Reverse();
         _parsers = ImmutableArray.Create(parsers);
 
         BindingProvider = builder.BindingProvider;

@@ -1,5 +1,4 @@
 using CommunityToolkit.Diagnostics;
-using FlameCsv.Binding.Attributes;
 using FlameCsv.Binding.Providers;
 using FlameCsv.Parsers;
 
@@ -11,9 +10,7 @@ public sealed class CsvConfigurationBuilder<T> where T : unmanaged, IEquatable<T
     /// Contains the parsers and factories. Parsers are prioritized in "last in, first out", i.e. the last parser
     /// in the list is the first to be checked for any given type.
     /// </summary>
-    /// <remarks>
-    /// To override a parser for a specific member, use <see cref="CsvParserOverrideAttribute"/>.
-    /// </remarks>
+    /// <seealso cref="Binding.Attributes.CsvParserOverrideAttribute"/>
     public IList<ICsvParser<T>> Parsers => _parsers;
 
     /// <summary>
@@ -22,7 +19,7 @@ public sealed class CsvConfigurationBuilder<T> where T : unmanaged, IEquatable<T
     /// or <see langword="byte"/>.
     /// </summary>
     /// <remarks>
-    /// To use multiple bindings and use the first one that succeeds, see <see cref="MultiBindingProvider{T}"/>
+    /// To attempt to use multiple bindings, see <see cref="MultiBindingProvider{T}"/>
     /// and <see cref="MultiHeaderBindingProvider{T}"/>.
     /// </remarks>
     public ICsvBindingProvider<T> BindingProvider { get; set; } = GetDefaultBinder();
@@ -51,6 +48,17 @@ public sealed class CsvConfigurationBuilder<T> where T : unmanaged, IEquatable<T
     public CsvConfigurationBuilder<T> ClearParsers()
     {
         _parsers.Clear();
+        return this;
+    }
+
+    /// <summary>
+    /// Removes all for which <see cref="ICsvParser{T}.CanParse"/> returns <see langword="true"/>
+    /// for <typeparamref name="TValue"/>.
+    /// </summary>
+    /// <returns>The same builder instance</returns>
+    public CsvConfigurationBuilder<T> RemoveParsers<TValue>()
+    {
+        _parsers.RemoveAll(static p => p.CanParse(typeof(TValue)));
         return this;
     }
 
