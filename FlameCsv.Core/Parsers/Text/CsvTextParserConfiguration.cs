@@ -9,6 +9,11 @@ namespace FlameCsv.Parsers.Text;
 public class CsvTextParserConfiguration
 {
     /// <summary>
+    /// FormatProvider passed to multiple parsers. Default is <see cref="CultureInfo.InvariantCulture"/>.
+    /// </summary>
+    public virtual IFormatProvider? FormatProvider { get; set; } = CultureInfo.InvariantCulture;
+
+    /// <summary>
     /// Used by <see cref="IntegerTextParser"/>. Default is <see cref="System.Globalization.NumberStyles.Integer"/>.
     /// </summary>
     public virtual NumberStyles IntegerNumberStyles { get; set; } = NumberStyles.Integer;
@@ -49,9 +54,10 @@ public class CsvTextParserConfiguration
     public virtual DateTimeStyles DateTimeStyles { get; set; } = DateTimeStyles.None;
 
     /// <summary>
-    /// FormatProvider passed to multiple parsers. Default is <see cref="CultureInfo.InvariantCulture"/>.
+    /// Styles passed to <see cref="TimeSpanTextParser"/>. Default is
+    /// <see cref="System.Globalization.TimeSpanStyles.None"/>.
     /// </summary>
-    public virtual IFormatProvider? FormatProvider { get; set; } = CultureInfo.InvariantCulture;
+    public virtual TimeSpanStyles TimeSpanStyles { get; set; } = TimeSpanStyles.None;
 
     /// <summary>
     /// Used by <see cref="GuidTextParser"/>. Default is null, which auto-detects the format.

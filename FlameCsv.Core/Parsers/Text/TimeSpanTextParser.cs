@@ -1,14 +1,19 @@
+using System.Globalization;
+
 namespace FlameCsv.Parsers.Text;
 
 public sealed class TimeSpanTextParser : ParserBase<char, TimeSpan>
 {
     public string? Format { get; }
     public IFormatProvider? FormatProvider { get; }
+    public TimeSpanStyles Styles { get; }
 
     public TimeSpanTextParser(
         string? format = null,
-        IFormatProvider? formatProvider = null)
+        IFormatProvider? formatProvider = null,
+        TimeSpanStyles styles = TimeSpanStyles.None)
     {
+        Styles = styles;
         Format = format;
         FormatProvider = formatProvider;
     }
