@@ -10,6 +10,7 @@ namespace FlameCsv.Readers.Internal;
 /// <summary>
 /// Wrapper around a TextReader to facilitate reading it like a PipeReader.
 /// </summary>
+[DebuggerDisplay(@"\{ TextPipeReader, Buffered: {_bufferedBytes}, TextReader completed: {_readerCompleted} \}")]
 internal sealed class TextPipeReader : IDisposable
 {
     private readonly TextReader _innerReader;
