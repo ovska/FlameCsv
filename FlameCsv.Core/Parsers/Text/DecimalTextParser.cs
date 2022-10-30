@@ -8,10 +8,6 @@ public sealed class DecimalTextParser :
     ICsvParser<char, Half>,
     ICsvParser<char, decimal>
 {
-    // public static IntegerTextParser FromDefaults() => new(
-    //     CsvTextParserDefaults.DecimalNumberStyles,
-    //     CsvTextParserDefaults.FormatProvider);
-
     public NumberStyles Styles { get; }
     public IFormatProvider? FormatProvider { get; }
 

@@ -78,7 +78,7 @@ public static class CsvConfiguration
             .AddParser(new EnumTextParserFactory(config.AllowUndefinedEnumValues, config.IgnoreEnumCase))
             .AddParser(new NullableParserFactory<char>(config.Null.AsMemory()))
             .AddParser(new GuidTextParser(config.GuidFormat))
-            .AddParser(new TimeSpanTextParser(config.TimeSpanFormat, config.FormatProvider))
+            .AddParser(new TimeSpanTextParser(config.TimeSpanFormat, config.FormatProvider, config.TimeSpanStyles))
             .AddParser(new Base64TextParser())
             .AddParser(new DateOnlyTextParser(config.DateOnlyFormat, config.DateTimeStyles, config.FormatProvider))
             .AddParser(new TimeOnlyTextParser(config.TimeOnlyFormat, config.DateTimeStyles, config.FormatProvider));
