@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
@@ -10,6 +11,7 @@ namespace FlameCsv.Readers.Internal;
 /// Utility class holding on to a rented buffer. The buffer is meant to be reused
 /// across multiple writes/reads.
 /// </summary>
+[DebuggerDisplay(@"\{ BufferOwner: Length: {_rented?.Length}, Disposed: {_disposed} \}")]
 internal sealed class BufferOwner<T> : IDisposable where T : unmanaged, IEquatable<T>
 {
     private T[]? _rented;

@@ -10,6 +10,11 @@ namespace FlameCsv.Readers;
 /// Enumerates a columns from a line of data.
 /// </summary>
 /// <typeparam name="T"></typeparam>
+#if DEBUG
+[DebuggerDisplay(
+    @"\{ CsvColumnEnumerator: Column {Column}/{_columnCount?.ToString() ?? ""?""}, "
+    + @"Remaining: {_remaining.Length}, Quotes remaining: {_quotesRemaining}, Current: [{Current}] \}")]
+#endif
 internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
 {
     private readonly T _comma;
@@ -46,7 +51,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
     /// Returns true if column count is known and all columns have been read,
     /// or column count is now known an all data has been read.
     /// </summary>
-    public readonly bool AllDataConsumed
+    public readonly bool IsAtEnd
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _columnCount.HasValue ? Column >= _columnCount.GetValueOrDefault() : _remaining.IsEmpty;
@@ -93,7 +98,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public bool MoveNext()
     {
-        if (AllDataConsumed)
+        if (IsAtEnd)
             return false;
 
         // keep track of how many quotes the current column has
@@ -152,7 +157,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void EnsureAllColumnsRead()
     {
-        if (AllDataConsumed)
+        if (IsAtEnd)
             return;
 
         ThrowNotAllColumnsRead();
