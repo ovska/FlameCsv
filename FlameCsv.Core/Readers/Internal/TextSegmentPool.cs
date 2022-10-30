@@ -11,23 +11,24 @@ internal struct TextSegmentPool
     private TextSegment? _b;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool TryPop([NotNullWhen(true)] out TextSegment? textSegment)
+    public bool TryPop([NotNullWhen(true)] out TextSegment? textSegment)
     {
         if (_a is not null)
         {
             textSegment = _a;
+            _a = null;
         }
         else if (_b is not null)
         {
             textSegment = _b;
+            _b = null;
         }
         else
         {
             textSegment = null;
-            return false;
         }
 
-        return true;
+        return textSegment is not null;
     }
 
     public void Push(TextSegment textSegment)
