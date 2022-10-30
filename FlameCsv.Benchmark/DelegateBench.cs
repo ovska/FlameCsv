@@ -6,10 +6,10 @@ namespace FlameCsv.Benchmark;
 [SimpleJob]
 public class DelegateBench
 {
-    private readonly Func<string, string, int, string, CsvReadBench.StatusEnum, CsvReadBench.UnitsEnum, int, string, string, string, string, string,
+    private readonly Func<string, DateTime, int, string, CsvReadBench.StatusEnum, CsvReadBench.UnitsEnum, int, string, string, string, string, string,
         string, string, CsvReadBench.Item> _compiled
         = ReflectionUtil
-            .CreateInitializer<string, string, int, string, CsvReadBench.StatusEnum, CsvReadBench.UnitsEnum, int, string, string, string, string, string,
+            .CreateInitializer<string, DateTime, int, string, CsvReadBench.StatusEnum, CsvReadBench.UnitsEnum, int, string, string, string, string, string,
                 string, string, CsvReadBench.Item>(
                 typeof(CsvReadBench.Item).GetProperty("SeriesReference"),
                 typeof(CsvReadBench.Item).GetProperty("Period"),
@@ -31,7 +31,7 @@ public class DelegateBench
     {
         return _compiled(
             "SeriesReference",
-            "Period",
+            DateTime.UnixEpoch,
             1,
             "Suppressed",
             CsvReadBench.StatusEnum.F,
@@ -51,7 +51,7 @@ public class DelegateBench
     {
         return CreateItem(
             "SeriesReference",
-            "Period",
+            DateTime.UnixEpoch, 
             1,
             "Suppressed",
             CsvReadBench.StatusEnum.F,
@@ -69,7 +69,7 @@ public class DelegateBench
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static CsvReadBench.Item CreateItem(
         string SeriesReference,
-        string Period,
+        DateTime Period,
         int DataValue,
         string Suppressed,
         CsvReadBench.StatusEnum Status,

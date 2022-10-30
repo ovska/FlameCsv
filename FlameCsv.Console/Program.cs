@@ -1,9 +1,13 @@
-﻿using System.Diagnostics;
+﻿using System.Buffers.Text;
+using System.Diagnostics;
 using System.Globalization;
 using CsvHelper;
+using CsvHelper.TypeConversion;
 using FlameCsv;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Providers;
+using FlameCsv.Parsers;
+using FlameCsv.Parsers.Text;
 
 var xyz = Enumerable.Range(0, byte.MaxValue)
     .Select(i => (char)i)
@@ -14,12 +18,17 @@ var config = new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantC
 {
     NewLine = Environment.NewLine,
     HasHeaderRecord = false,
+    CacheFields = true,
+    CountBytes = false,
 };
 
 List<Item> records;
 using (var reader = new StreamReader("/home/sipi/test.csv"))
 using (var csv = new CsvReader(reader, config))
 {
+    var options = new TypeConverterOptions { Formats = new[] { "yyyy'.'MM" } };
+    csv.Context.TypeConverterOptionsCache.AddOptions<DateTime>(options);
+
     records = csv.GetRecords<Item>().ToList();
     Debugger.Break();
 }
@@ -47,8 +56,12 @@ var bindings = new CsvBinding[]
 await using var stream = File.OpenRead("/home/sipi/test.csv");
 
 
-var collection = new ManualBindingProvider<byte, Item>(bindings);
-var config_ = CsvConfiguration<byte>.DefaultBuilder.SetParserOptions(CsvParserOptions<byte>.Unix).SetBinder(collection).Build();
+var config_ = CsvConfiguration
+    .GetUtf8DefaultsBuilder()
+    .SetParserOptions(CsvParserOptions<byte>.Unix)
+    .AddParser(new YYYYMMParser())
+    .SetBinder(new ManualBindingProvider<byte, Item>(bindings))
+    .Build();
 var result = new List<Item>();
 await foreach (var item in FlameCsv.Readers.CsvReader.ReadAsync<Item>(config_, stream))
 {
@@ -59,7 +72,11 @@ Debugger.Break();
 try
 {
     var _collection = new ManualBindingProvider<char, Item>(bindings);
-    var _config_ = CsvConfiguration<char>.DefaultBuilder.SetParserOptions(CsvParserOptions<char>.Unix).SetBinder(_collection).Build();
+    var _config_ = CsvConfiguration
+        .GetTextDefaultsBuilder(new CsvTextParserConfiguration { DateTimeFormat = "yyyy'.'mm" })
+        .SetParserOptions(CsvParserOptions<char>.Unix)
+        .SetBinder(_collection)
+        .Build();
 
     using (var reader = new StreamReader("/home/sipi/test.csv"))
     {
@@ -101,7 +118,7 @@ public class Item
     public string? SeriesReference { get; set; }
 
     [CsvHelper.Configuration.Attributes.Index(1)]
-    public string? Period { get; set; } // date
+    public DateTime Period { get; set; } // date
 
     [CsvHelper.Configuration.Attributes.Index(2)]
     public int DataValue { get; set; }
@@ -189,5 +206,37 @@ public sealed class Comparer : IEqualityComparer<Item>
         hashCode.Add(obj.SeriesTitle4);
         hashCode.Add(obj.SeriesTitle5);
         return hashCode.ToHashCode();
+    }
+}
+
+internal sealed class YYYYMMParser : ParserBase<byte, DateTime>
+{
+    public override bool TryParse(ReadOnlySpan<byte> span, out DateTime value)
+    {
+        if (span.Length == 7 && span[4] == '.')
+        {
+            var y1 = (uint)span[0] - '0';
+            var y2 = (uint)span[1] - '0';
+            var y3 = (uint)span[2] - '0';
+            var y4 = (uint)span[3] - '0';
+            var m1 = (uint)span[5] - '0';
+            var m2 = (uint)span[6] - '0';
+
+            if (y1 <= 9 && y2 <= 9 && y3 <= 9 && y4 <= 9 && m1 <= 9 && m2 <= 9)
+            {
+                value = new(
+                    (int)(y1 * 1000 + y2 * 100 + y3 * 10 + y4),
+                    (int)(m1 * 10 + m2),
+                    1,
+                    0,
+                    0,
+                    0);
+
+                return true;
+            }
+        }
+
+        value = default;
+        return false;
     }
 }
