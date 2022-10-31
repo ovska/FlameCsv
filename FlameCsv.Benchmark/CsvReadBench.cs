@@ -14,12 +14,12 @@ namespace FlameCsv.Benchmark;
 public class CsvReadBench
 {
     private static readonly byte[] _file = File.ReadAllBytes("/home/sipi/test.csv");
+    private static readonly string _string = Encoding.UTF8.GetString(_file);
 
     [Benchmark(Baseline = true)]
-    public async ValueTask CsvHelper()
+    public void CsvHelper()
     {
-        await using var stream = new MemoryStream(_file);
-        using var reader = new StreamReader(stream, Encoding.ASCII, false);
+        using var reader = new StringReader(_string);
         var config = new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)
         {
             NewLine = Environment.NewLine,
@@ -31,42 +31,37 @@ public class CsvReadBench
         var options = new CsvHelper.TypeConversion.TypeConverterOptions { Formats = new[] { "yyyy'.'MM" } };
         csv.Context.TypeConverterOptionsCache.AddOptions<DateTime>(options);
 
-        await foreach (var record in csv.GetRecordsAsync<Item>())
+        foreach (var record in csv.GetRecords<Item>())
         {
             _ = record;
         }
     }
 
     [Benchmark]
-    public async ValueTask FlameCsv_ASCII()
+    public void FlameCsv_ASCII()
     {
-        await using var stream = new MemoryStream(_file);
-        using var reader = new StreamReader(stream, Encoding.ASCII, false);
-
         var config = CsvConfiguration.GetTextDefaultsBuilder(
                 new CsvTextParserConfiguration{ DateTimeFormat = "yyyy'.'MM" })
             .SetParserOptions(CsvParserOptions<char>.Environment)
             .SetBinder(new IndexBindingProvider<char>())
             .Build();
 
-        await foreach (var item in Readers.CsvReader.ReadAsync<Item>(config, reader))
+        foreach (var item in Readers.CsvReader.Read<Item>(config, _string))
         {
             _ = item;
         }
     }
 
     [Benchmark]
-    public async ValueTask FlameCsv_Utf8()
+    public void FlameCsv_Utf8()
     {
-        await using var stream = new MemoryStream(_file);
-
         var config = CsvConfiguration<byte>.DefaultBuilder
             .AddParser(new YYYYMMParser())
             .SetParserOptions(CsvParserOptions<byte>.Environment)
             .SetBinder(new IndexBindingProvider<byte>())
             .Build();
 
-        await foreach (var item in Readers.CsvReader.ReadAsync<Item>(config, stream))
+        foreach (var item in Readers.CsvReader.Read<byte, Item>(config, _file))
         {
             _ = item;
         }
