@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Readers.Internal;
 using FlameCsv.Runtime;
 
@@ -52,14 +53,27 @@ internal readonly struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
             return TryReadColumns(in line, stringDelimiterCount, out value);
         }
 
-        Unsafe.SkipInit(out value);
+        value = default!;
         return false;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryReadRemaining(in ReadOnlySequence<T> remaining, out TValue value)
+    {
+        Debug.Assert(!remaining.IsEmpty);
+
+        if (remaining.IsSingleSegment)
+        {
+            return TryReadColumnSpan(remaining.FirstSpan, null, out value);
+        }
+
+        return TryReadColumns(in remaining, null, out value);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private bool TryReadColumns(
         in ReadOnlySequence<T> line,
-        int stringDelimiterCount,
+        int? stringDelimiterCount,
         out TValue value)
     {
         Debug.Assert(!line.IsSingleSegment);
@@ -83,7 +97,7 @@ internal readonly struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool TryReadColumnSpan(
         ReadOnlySpan<T> line,
-        int stringDelimiterCount,
+        int? stringDelimiterCount,
         out TValue value)
     {
         if (_skipPredicate is null || !_skipPredicate(line, in _options))
@@ -92,14 +106,14 @@ internal readonly struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
                 line,
                 in _options,
                 _columnCount,
-                stringDelimiterCount,
+                stringDelimiterCount ?? line.Count(_options.StringDelimiter),
                 _enumeratorBuffer);
 
             value = _state.Parse(ref enumerator);
             return true;
         }
 
-        Unsafe.SkipInit(out value);
+        value = default!;
         return false;
     }
 

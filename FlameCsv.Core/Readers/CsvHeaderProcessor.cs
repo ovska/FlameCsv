@@ -30,6 +30,18 @@ internal readonly struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue
         return TryReadHeader(ref buffer, out value);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryReadRemaining(in ReadOnlySequence<T> remaining, out TValue value)
+    {
+        if (_wrapper.HasValue)
+        {
+            return _wrapper.Value.TryReadRemaining(in remaining, out value);
+        }
+
+        value = default!;
+        return false;
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     private bool TryReadHeader(ref ReadOnlySequence<T> buffer, out TValue value)
     {
