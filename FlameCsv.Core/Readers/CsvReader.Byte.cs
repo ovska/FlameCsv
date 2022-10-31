@@ -92,7 +92,7 @@ public static partial class CsvReader
                 if (result.IsCompleted)
                 {
                     // Read leftover data if there was no final newline
-                    if (!buffer.IsEmpty && processor.TryContinueRead(ref buffer, out TValue value))
+                    if (!buffer.IsEmpty && processor.TryReadRemaining(in buffer, out TValue value))
                     {
                         yield return value;
                     }

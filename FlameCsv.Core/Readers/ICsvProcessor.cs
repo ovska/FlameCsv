@@ -20,4 +20,14 @@ internal interface ICsvProcessor<T, TValue> : IDisposable where T : unmanaged, I
     /// <param name="value">Parsed value</param>
     /// <returns><see langword="true"/> if <paramref name="value"/> was parsed and can be used</returns>
     bool TryContinueRead(ref ReadOnlySequence<T> buffer, out TValue value);
+
+    /// <summary>
+    /// Attempts to parse an instance of <typeparamref name="TValue"/> from the remaining data. This
+    /// method is meant to be used for reading the last record from data that didn't have a trailing newline.
+    /// </summary>
+    /// <param name="remaining">Leftover buffer from <see cref="TryContinueRead"/></param>
+    /// <param name="value">Parsed value</param>
+    /// <returns><see langword="true"/> if <paramref name="value"/> was parsed and can be used</returns>
+    bool TryReadRemaining(in ReadOnlySequence<T> remaining, out TValue value);
+
 }
