@@ -38,7 +38,7 @@ internal abstract partial class CsvRowState
             ThrowParseFailed(ref enumerator, parser);
         }
 
-        Unsafe.SkipInit(out value);
+        value = default;
         ThrowMoveNextFailed(ref enumerator);
     }
 
