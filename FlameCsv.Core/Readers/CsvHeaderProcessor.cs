@@ -62,7 +62,7 @@ internal readonly struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue
             }
         }
 
-        Unsafe.SkipInit(out value);
+        value = default!;
         return false;
     }
 
