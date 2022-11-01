@@ -37,37 +37,38 @@ public class WriteTemp
         await using var stream = new MemoryStream();
 
         var pipeWriter = PipeWriter.Create(stream);
-        await using var writer = new CsvPipeWriter(pipeWriter);
 
-        try
+        await using (var writer = new CsvPipeWriter(pipeWriter))
         {
-            var formatter = new StringUtf8Formatter();
-
-            for (int i = 0; i < 10_000; i++)
+            try
             {
-                if (formatter.TryFormat("Hello, World!", writer.GetBuffer(), out int written))
+                var formatter = new StringUtf8Formatter();
+
+                for (int i = 0; i < 10_000; i++)
                 {
+                    if (formatter.TryFormat("Hello, World!", writer.GetBuffer(), out int written))
+                    {
+                        writer.Advance(written);
+                        continue;
+                    }
+
+                    Memory<byte> buffer;
+
+                    do
+                    {
+                        buffer = await writer.GrowAsync();
+                    } while (!formatter.TryFormat("Hello, World!", buffer.Span, out written));
+
                     writer.Advance(written);
-                    continue;
                 }
-
-                Memory<byte> buffer;
-
-                do
-                {
-                    buffer = await writer.GrowAsync();
-                } while (!formatter.TryFormat("Hello, World!", buffer.Span, out written));
-
-                writer.Advance(written);
+            }
+            catch (Exception e)
+            {
+                writer.Exception = e;
+                throw;
             }
         }
-        catch (Exception e)
-        {
-            writer.Exception = e;
-            throw;
-        }
 
-        await writer.FlushAsync(default);
 
         var str = Encoding.UTF8.GetString(stream.ToArray());
         Assert.Equal(HelloWorldFormatter.HelloWorld.Length * 10_000, str.Length);
