@@ -1,6 +1,6 @@
 using System.Buffers;
 
-namespace FlameCsv.Tests;
+namespace FlameCsv.Tests.Utilities;
 
 internal class MemorySegment<T> : ReadOnlySequenceSegment<T>
 {
@@ -26,7 +26,7 @@ internal class MemorySegment<T> : ReadOnlySequenceSegment<T>
     /// </summary>
     /// <param name="data">Source data</param>
     /// <param name="bufferSize">Segment max length, -1 to always return a single segment</param>
-    public static ReadOnlySequence<T> Create(ReadOnlyMemory<T> data, int bufferSize)
+    public static ReadOnlySequence<T> AsSequence(ReadOnlyMemory<T> data, int bufferSize)
     {
         if (bufferSize == -1 || data.Length <= bufferSize)
         {
