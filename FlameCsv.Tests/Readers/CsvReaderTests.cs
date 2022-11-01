@@ -6,6 +6,7 @@ using FlameCsv.Parsers.Text;
 using FlameCsv.Parsers.Utf8;
 using FlameCsv.Readers;
 using FlameCsv.Tests.TestData;
+using FlameCsv.Tests.Utilities;
 
 // ReSharper disable LoopCanBeConvertedToQuery
 
@@ -63,7 +64,7 @@ public static class CsvReaderTests
             }
             else
             {
-                var sequence = MemorySegment<char>.Create(GetDataChars(), bufferSize);
+                var sequence = MemorySegment<char>.AsSequence(GetDataChars(), bufferSize);
 
                 foreach (var obj in CsvReader.Read<char, Obj>(cfg, sequence))
                 {
@@ -96,7 +97,7 @@ public static class CsvReaderTests
             }
             else
             {
-                var sequence = MemorySegment<byte>.Create(GetDataBytes(), bufferSize);
+                var sequence = MemorySegment<byte>.AsSequence(GetDataBytes(), bufferSize);
 
                 foreach (var obj in CsvReader.Read<byte, Obj>(cfg, sequence))
                 {
