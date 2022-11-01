@@ -50,9 +50,9 @@ public static class HeaderBindingTests
         using var processor = new CsvHeaderProcessor<char, Shim>(config);
         var buffer = new ReadOnlySequence<char>(data.AsMemory());
 
-        Assert.False(processor.TryContinueRead(ref buffer, out _));
         Assert.True(processor.TryContinueRead(ref buffer, out var value1));
         Assert.True(processor.TryContinueRead(ref buffer, out var value2));
+        Assert.False(processor.TryContinueRead(ref buffer, out _));
         Assert.True(buffer.IsEmpty);
 
         Assert.True(value1.IsEnabled);
@@ -62,5 +62,19 @@ public static class HeaderBindingTests
         Assert.False(value2.IsEnabled);
         Assert.Equal("Alice", value2.DisplayName);
         Assert.Equal(2, value2.Targeted);
+    }
+
+    [Fact]
+    public static void Should_Bind_To_Only_Header()
+    {
+        const string data = "IsEnabled,Name,_targeted";
+
+        var provider = new HeaderTextBindingProvider<Shim>(stringComparison: StringComparison.Ordinal);
+        var config = CsvConfiguration<char>.DefaultBuilder.SetBinder(provider).Build();
+
+        using var processor = new CsvHeaderProcessor<char, Shim>(config);
+        var buffer = new ReadOnlySequence<char>(data.AsMemory());
+        Assert.False(processor.TryContinueRead(ref buffer, out _));
+        Assert.False(processor.TryReadRemaining(in buffer, out _));
     }
 }
