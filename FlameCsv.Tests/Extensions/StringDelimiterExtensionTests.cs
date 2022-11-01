@@ -33,7 +33,7 @@ public class StringDelimiterExtensionTests
     [InlineData("\"test\"\"")]
     public static void Should_Throw_On_Invalid(string input)
     {
-        var buffer = new BufferOwner<char>();
+        using var buffer = new BufferOwner<char>();
         Assert.Throws<InvalidOperationException>(() => input.AsSpan().Unescape('\"', 4, buffer));
     }
 }
