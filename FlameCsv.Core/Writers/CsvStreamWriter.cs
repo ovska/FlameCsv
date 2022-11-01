@@ -11,66 +11,6 @@ internal interface ICsvFormatter<T, in TValue> where T : unmanaged
     bool TryFormat(TValue value, Span<T> buffer, out int tokensWritten);
 }
 
-internal interface ICsvWriter<T> : IAsyncDisposable where T : unmanaged
-{
-    public Exception? Exception { get; set; }
-
-    /// <summary>
-    /// Amount of unflushed data in the writer.
-    /// </summary>
-    int Unflushed { get; }
-
-    /// <summary>
-    /// Returns a buffer that can be written to.
-    /// </summary>
-    Span<T> GetBuffer();
-
-    /// <summary>
-    /// Signals that the specified amount of tokens have been written to the buffer.
-    /// </summary>
-    /// <param name="length"></param>
-    void Advance(int length);
-
-    /// <summary>
-    /// Grows the buffer, either by flushing the data or increasing an unflushed buffer's size.
-    /// </summary>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
-    ValueTask<Memory<T>> GrowAsync(CancellationToken cancellationToken);
-}
-
-internal readonly struct CsvTextWriterWrapper : ICsvWriter<char>
-{
-    private readonly CsvTextWriter Arg;
-
-    public ValueTask DisposeAsync()
-    {
-        IFormattable test = null!;
-        throw new NotImplementedException();
-    }
-
-
-    public Exception? Exception
-    {
-        get => Arg.Exception;
-        set => Arg.Exception = value;
-    }
-
-    public int Unflushed => Arg.Unflushed;
-    public Span<char> GetBuffer() => Arg.GetBuffer();
-    public void Advance(int length) => Arg.Advance(length);
-
-    public ValueTask<Memory<char>> GrowAsync(CancellationToken cancellationToken)
-        => Arg.GrowAsync(cancellationToken);
-
-    public void SetException(Exception ex)
-    {
-        throw new NotImplementedException();
-    }
-
-    public ValueTask FlushAsync(CancellationToken cancellationToken) => Arg.FlushAsync(cancellationToken);
-}
-
 [DebuggerDisplay("[CsvTextWriter] Written: {Unflushed} / {_buffer.Length} (inner: {_writer.GetType().Name})")]
 internal sealed class CsvTextWriter : ICsvWriter<char>
 {
@@ -121,7 +61,7 @@ internal sealed class CsvTextWriter : ICsvWriter<char>
     {
         await FlushAsync(cancellationToken);
 
-        if (_previousLength > _buffer.Length)
+        if (_previousLength >= _buffer.Length)
             ArrayPool<char>.Shared.EnsureCapacity(ref _buffer, _previousLength * 2);
 
         var memory = _buffer.AsMemory(Unflushed);
@@ -139,6 +79,8 @@ internal sealed class CsvTextWriter : ICsvWriter<char>
     }
 }
 
+[DebuggerDisplay(
+    @"\{ CsvPipeWriter, Last Buffer: {_previousLength}, Unflushed: {Unflushed}, Faulted: {Exception != null} \}")]
 internal sealed class CsvPipeWriter : ICsvWriter<byte>
 {
     public Exception? Exception { get; set; }
