@@ -63,7 +63,9 @@ public static class CsvReaderTests
             }
             else
             {
-                foreach (var obj in CsvReader. Read<Obj>(cfg, GetDataChars()))
+                var sequence = MemorySegment<char>.Create(GetDataChars(), bufferSize);
+
+                foreach (var obj in CsvReader.Read<char, Obj>(cfg, sequence))
                 {
                     items.Add(obj);
                 }
@@ -94,7 +96,9 @@ public static class CsvReaderTests
             }
             else
             {
-                foreach (var obj in CsvReader.Read<Obj>(cfg, GetDataBytes()))
+                var sequence = MemorySegment<byte>.Create(GetDataBytes(), bufferSize);
+
+                foreach (var obj in CsvReader.Read<byte, Obj>(cfg, sequence))
                 {
                     items.Add(obj);
                 }
