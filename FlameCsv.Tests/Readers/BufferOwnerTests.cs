@@ -1,5 +1,4 @@
 using System.Buffers;
-using CommunityToolkit.HighPerformance;
 using FlameCsv.Readers.Internal;
 
 namespace FlameCsv.Tests.Readers;
@@ -9,7 +8,7 @@ public static class BufferOwnerTests
     [Fact]
     public static void Should_Throw_If_Disposed()
     {
-        var buffer = new BufferOwner<char>();
+        using var buffer = new BufferOwner<char>();
         buffer.Dispose();
         Assert.Throws<ObjectDisposedException>(() => buffer.GetSpan(1));
     }
@@ -18,7 +17,7 @@ public static class BufferOwnerTests
     public static void Should_Return_Span()
     {
         var pool = new TestPool<char>();
-        var buffer = new BufferOwner<char>(SecurityLevel.Strict, pool);
+        using var buffer = new BufferOwner<char>(SecurityLevel.Strict, pool);
         Span<char> span = buffer.GetSpan(123);
         Assert.Equal(123, span.Length);
         buffer.Dispose();
@@ -30,7 +29,7 @@ public static class BufferOwnerTests
     public static void Should_Return_Array_To_Pool()
     {
         var pool = new TestPool<char>();
-        var buffer = new BufferOwner<char>(SecurityLevel.Strict, pool);
+        using var buffer = new BufferOwner<char>(SecurityLevel.Strict, pool);
         var span = buffer.GetSpan(123);
         Assert.Equal(123, span.Length);
         buffer.Dispose();
@@ -43,7 +42,7 @@ public static class BufferOwnerTests
     public static void Should_Not_Clear_Array()
     {
         var pool = new TestPool<char>();
-        var buffer = new BufferOwner<char>(SecurityLevel.NoBufferClearing, pool);
+        using var buffer = new BufferOwner<char>(SecurityLevel.NoBufferClearing, pool);
         _ = buffer.GetSpan(123);
         buffer.Dispose();
         Assert.Single(pool.Returned);
