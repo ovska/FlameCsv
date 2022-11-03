@@ -8,6 +8,8 @@ public sealed class StringUtf8Parser :
     ICsvParser<byte, Memory<char>>,
     ICsvParser<byte, ReadOnlyMemory<char>>
 {
+    internal static readonly StringUtf8Parser Instance = new();
+
     public bool TryParse(ReadOnlySpan<byte> span, out string value)
     {
         value = !span.IsEmpty ? Encoding.UTF8.GetString(span) : "";

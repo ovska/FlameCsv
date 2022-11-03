@@ -8,7 +8,7 @@ using FlameCsv.Readers.Internal;
 
 namespace FlameCsv.Extensions;
 
-internal static class StringDelimiterExtensions
+internal static class UnescapeExtensions
 {
     /// <summary>
     /// Unescapes wrapping and inner double quotes from the input.

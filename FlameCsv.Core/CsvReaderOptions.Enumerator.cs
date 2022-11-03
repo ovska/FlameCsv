@@ -20,10 +20,11 @@ public sealed partial class CsvReaderOptions<T>
 
         public ParserEnumerator(List<ICsvParser<T>> list)
         {
-            _list = list;
-            _inner = list.GetEnumerator();
             _lockTaken = false;
             Monitor.Enter(list, ref _lockTaken);
+
+            _list = list;
+            _inner = list.GetEnumerator();
         }
 
         public bool MoveNext() => _inner.MoveNext();

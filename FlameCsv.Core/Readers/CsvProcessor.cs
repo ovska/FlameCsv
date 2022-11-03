@@ -39,18 +39,14 @@ internal readonly struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryContinueRead(ref ReadOnlySequence<T> buffer, out TValue value)
     {
-        if (LineReader.TryRead(
-                in _tokens,
-                ref buffer,
-                out ReadOnlySequence<T> line,
-                out int stringDelimiterCount))
+        if (LineReader.TryRead(in _tokens, ref buffer, out ReadOnlySequence<T> line, out int quoteCount))
         {
             if (line.IsSingleSegment)
             {
-                return TryReadColumnSpan(line.FirstSpan, stringDelimiterCount, out value);
+                return TryReadColumnSpan(line.FirstSpan, quoteCount, out value);
             }
 
-            return TryReadColumns(in line, stringDelimiterCount, out value);
+            return TryReadColumns(in line, quoteCount, out value);
         }
 
         value = default!;
@@ -73,7 +69,7 @@ internal readonly struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private bool TryReadColumns(
         in ReadOnlySequence<T> line,
-        int? stringDelimiterCount,
+        int? quoteCount,
         out TValue value)
     {
         Debug.Assert(!line.IsSingleSegment);
@@ -84,20 +80,20 @@ internal readonly struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         {
             Span<T> buffer = stackalloc T[length];
             line.CopyTo(buffer);
-            return TryReadColumnSpan(buffer, stringDelimiterCount, out value);
+            return TryReadColumnSpan(buffer, quoteCount, out value);
         }
         else
         {
             Span<T> buffer = _multisegmentBuffer.GetSpan(length);
             line.CopyTo(buffer);
-            return TryReadColumnSpan(buffer, stringDelimiterCount, out value);
+            return TryReadColumnSpan(buffer, quoteCount, out value);
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool TryReadColumnSpan(
         ReadOnlySpan<T> line,
-        int? stringDelimiterCount,
+        int? quoteCount,
         out TValue value)
     {
         if (_skipPredicate is null || !_skipPredicate(line, in _tokens))
@@ -106,7 +102,7 @@ internal readonly struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
                 line,
                 in _tokens,
                 _columnCount,
-                stringDelimiterCount ?? line.Count(_tokens.StringDelimiter),
+                quoteCount ?? line.Count(_tokens.StringDelimiter),
                 _enumeratorBuffer);
 
             value = _state.Parse(ref enumerator);

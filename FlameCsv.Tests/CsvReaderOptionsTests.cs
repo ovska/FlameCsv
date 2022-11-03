@@ -89,4 +89,42 @@ public class CsvReaderOptionsTests
         Assert.True(commentOrEmpty("", in options));
         Assert.True(commentOrEmpty(" ", in options));
     }
+
+    [Fact]
+    public void Should_Be_Threadsafe()
+    {
+        // this test isn't reliable to prove a negative, but should work as
+        // a canary in the coal mine
+        var options = new CsvReaderOptions<char>();
+
+        var parser = Base64TextParser.Instance;
+        Thread[] threads =
+        {
+            new(Repeat(o => o.AddParser(parser))),
+            new(Repeat(o => o.AddParsers(parser))),
+            new(Repeat(o => o.AddParsers(Enumerable.Repeat(parser, 1)))),
+            new(
+                Repeat(
+                    o =>
+                    {
+                        foreach (var x in o.EnumerateParsers()) _ = x;
+                    })),
+        };
+
+        foreach (var thread in threads) thread.Start();
+        foreach (var thread in threads) thread.Join();
+
+        Assert.Equal(3000, options._parsers.Count);
+
+        ThreadStart Repeat(Action<CsvReaderOptions<char>> action)
+        {
+            return () =>
+            {
+                for (int i = 0; i < 1000; i++)
+                {
+                    action(options);
+                }
+            };
+        }
+    }
 }

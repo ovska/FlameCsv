@@ -54,25 +54,36 @@ public static class CsvOptions
     public static CsvReaderOptions<char> GetTextReaderDefault(
         CsvTextParsersConfig? config = null)
     {
-        config ??= CsvTextParsersConfig.Default;
+        var options = new CsvReaderOptions<char>();
 
-        // TODO: if options are default, return a readonly default instance to avoid allocations
-        var options = new CsvReaderOptions<char>()
-            .AddParsers(
+        // parsers are readonly, for default options we can save on allocations by using the unconfigured ones
+        if (config is null)
+        {
+            options._parsers.AddRange(_defaultTextParsers);
+        }
+        else
+        {
+            options._parsers.EnsureCapacity(_defaultTextParsers.Length);
+            options._parsers.Add(
                 config.StringPool is { } stringPool
                     ? new PoolingStringTextParser(stringPool, config.ReadEmptyStringsAsNull)
-                    : new StringTextParser(config.ReadEmptyStringsAsNull),
-                new IntegerTextParser(config.IntegerNumberStyles, config.FormatProvider),
-                new BooleanTextParser(config.BooleanValues),
-                new DateTimeTextParser(config.DateTimeFormat, config.FormatProvider, config.DateTimeStyles),
-                new DecimalTextParser(config.DecimalNumberStyles, config.FormatProvider),
-                new EnumTextParserFactory(config.AllowUndefinedEnumValues, config.IgnoreEnumCase),
-                new NullableParserFactory<char>(config.Null.AsMemory()),
-                new GuidTextParser(config.GuidFormat),
-                new TimeSpanTextParser(config.TimeSpanFormat, config.FormatProvider, config.TimeSpanStyles),
-                new Base64TextParser(),
-                new DateOnlyTextParser(config.DateOnlyFormat, config.DateTimeStyles, config.FormatProvider),
+                    : new StringTextParser(config.ReadEmptyStringsAsNull));
+            options._parsers.Add(new IntegerTextParser(config.IntegerNumberStyles, config.FormatProvider));
+            options._parsers.Add(new BooleanTextParser(config.BooleanValues));
+            options._parsers.Add(
+                new DateTimeTextParser(config.DateTimeFormat, config.FormatProvider, config.DateTimeStyles));
+            options._parsers.Add(new DecimalTextParser(config.DecimalNumberStyles, config.FormatProvider));
+            options._parsers.Add(new EnumTextParserFactory(config.AllowUndefinedEnumValues, config.IgnoreEnumCase));
+            options._parsers.Add(new NullableParserFactory<char>(config.Null.AsMemory()));
+            options._parsers.Add(new GuidTextParser(config.GuidFormat));
+            options._parsers.Add(
+                new TimeSpanTextParser(config.TimeSpanFormat, config.FormatProvider, config.TimeSpanStyles));
+            options._parsers.Add(new Base64TextParser());
+            options._parsers.Add(
+                new DateOnlyTextParser(config.DateOnlyFormat, config.DateTimeStyles, config.FormatProvider));
+            options._parsers.Add(
                 new TimeOnlyTextParser(config.TimeOnlyFormat, config.DateTimeStyles, config.FormatProvider));
+        }
 
         // no need to lock as this instance isn't yet exposed outside this method
         options._parsers.Reverse(); // HACK: add most common types last so they are checked first
@@ -102,24 +113,79 @@ public static class CsvOptions
     public static CsvReaderOptions<byte> GetUtf8ReaderDefault(
         CsvUtf8ParsersConfig? config = null)
     {
-        config ??= CsvUtf8ParsersConfig.Default;
+        var options = new CsvReaderOptions<byte>();
 
-        // TODO: if options are default, return a readonly default instance to avoid allocations
-        var options = new CsvReaderOptions<byte>()
-            .AddParsers(
-                new StringUtf8Parser(),
-                new IntegerUtf8Parser(config.IntegerFormat),
-                new BooleanUtf8Parser(config.BooleanValues),
-                new DateTimeUtf8Parser(config.DateTimeFormat),
-                new DecimalUtf8Parser(config.DecimalFormat),
-                new EnumUtf8ParserFactory(config.AllowUndefinedEnumValues, config.IgnoreEnumCase),
-                new NullableParserFactory<byte>(config.Null),
-                new GuidUtf8Parser(config.GuidFormat),
-                new TimeSpanUtf8Parser(config.TimeSpanFormat),
-                new Base64Utf8Parser());
+        if (config is null)
+        {
+            options._parsers.AddRange(_defaultByteParsers);
+        }
+        else
+        {
+            options._parsers.EnsureCapacity(_defaultByteParsers.Length);
+            options._parsers.Add(StringUtf8Parser.Instance);
+            options._parsers.Add(new IntegerUtf8Parser(config.IntegerFormat));
+            options._parsers.Add(new BooleanUtf8Parser(config.BooleanValues));
+            options._parsers.Add(new DateTimeUtf8Parser(config.DateTimeFormat));
+            options._parsers.Add(new DecimalUtf8Parser(config.DecimalFormat));
+            options._parsers.Add(new EnumUtf8ParserFactory(config.AllowUndefinedEnumValues, config.IgnoreEnumCase));
+            options._parsers.Add(new NullableParserFactory<byte>(config.Null));
+            options._parsers.Add(new GuidUtf8Parser(config.GuidFormat));
+            options._parsers.Add(new TimeSpanUtf8Parser(config.TimeSpanFormat));
+            options._parsers.Add(Base64Utf8Parser.Instance);
+        }
 
         // no need to lock as this instance isn't yet exposed outside this method
         options._parsers.Reverse(); // HACK: add most common types last so they are checked first
         return options;
     }
+
+    private static readonly ICsvParser<char>[] _defaultTextParsers =
+    {
+        new StringTextParser(CsvTextParsersConfig.Default.ReadEmptyStringsAsNull),
+        new IntegerTextParser(
+            CsvTextParsersConfig.Default.IntegerNumberStyles,
+            CsvTextParsersConfig.Default.FormatProvider),
+        new BooleanTextParser(CsvTextParsersConfig.Default.BooleanValues),
+        new DateTimeTextParser(
+            CsvTextParsersConfig.Default.DateTimeFormat,
+            CsvTextParsersConfig.Default.FormatProvider,
+            CsvTextParsersConfig.Default.DateTimeStyles),
+        new DecimalTextParser(
+            CsvTextParsersConfig.Default.DecimalNumberStyles,
+            CsvTextParsersConfig.Default.FormatProvider),
+        new EnumTextParserFactory(
+            CsvTextParsersConfig.Default.AllowUndefinedEnumValues,
+            CsvTextParsersConfig.Default.IgnoreEnumCase),
+        new NullableParserFactory<char>(CsvTextParsersConfig.Default.Null.AsMemory()),
+        new GuidTextParser(CsvTextParsersConfig.Default.GuidFormat),
+        new TimeSpanTextParser(
+            CsvTextParsersConfig.Default.TimeSpanFormat,
+            CsvTextParsersConfig.Default.FormatProvider,
+            CsvTextParsersConfig.Default.TimeSpanStyles),
+        new Base64TextParser(),
+        new DateOnlyTextParser(
+            CsvTextParsersConfig.Default.DateOnlyFormat,
+            CsvTextParsersConfig.Default.DateTimeStyles,
+            CsvTextParsersConfig.Default.FormatProvider),
+        new TimeOnlyTextParser(
+            CsvTextParsersConfig.Default.TimeOnlyFormat,
+            CsvTextParsersConfig.Default.DateTimeStyles,
+            CsvTextParsersConfig.Default.FormatProvider),
+    };
+
+    private static readonly ICsvParser<byte>[] _defaultByteParsers =
+    {
+        StringUtf8Parser.Instance,
+        new IntegerUtf8Parser(CsvUtf8ParsersConfig.Default.IntegerFormat),
+        new BooleanUtf8Parser(CsvUtf8ParsersConfig.Default.BooleanValues),
+        new DateTimeUtf8Parser(CsvUtf8ParsersConfig.Default.DateTimeFormat),
+        new DecimalUtf8Parser(CsvUtf8ParsersConfig.Default.DecimalFormat),
+        new EnumUtf8ParserFactory(
+            CsvUtf8ParsersConfig.Default.AllowUndefinedEnumValues,
+            CsvUtf8ParsersConfig.Default.IgnoreEnumCase),
+        new NullableParserFactory<byte>(CsvUtf8ParsersConfig.Default.Null),
+        new GuidUtf8Parser(CsvUtf8ParsersConfig.Default.GuidFormat),
+        new TimeSpanUtf8Parser(CsvUtf8ParsersConfig.Default.TimeSpanFormat),
+        Base64Utf8Parser.Instance,
+    };
 }

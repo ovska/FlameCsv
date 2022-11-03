@@ -11,6 +11,8 @@ public sealed class Base64Utf8Parser :
     ICsvParser<byte, Memory<byte>>,
     ICsvParser<byte, ReadOnlyMemory<byte>>
 {
+    internal static readonly Base64Utf8Parser Instance = new();
+
     public bool TryParse(ReadOnlySpan<byte> span, out byte[] value)
     {
         value = Decode(span);
