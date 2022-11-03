@@ -18,13 +18,13 @@ public class EnumUtf8ParserFactory : ICsvParserFactory<byte>
         AllowUndefinedValues = allowUndefinedValues;
         IgnoreCase = ignoreCase;
     }
-    
+
     public bool CanParse(Type resultType)
     {
         return resultType.IsEnum && !resultType.HasAttribute<FlagsAttribute>();
     }
 
-    public ICsvParser<byte> Create(Type resultType, CsvConfiguration<byte> configuration)
+    public ICsvParser<byte> Create(Type resultType, CsvReaderOptions<byte> options)
     {
         return ActivatorEx.CreateInstance<ICsvParser<byte>>(
             typeof(EnumUtf8Parser<>).MakeGenericType(resultType),

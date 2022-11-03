@@ -3,13 +3,13 @@ using CommunityToolkit.Diagnostics;
 
 namespace FlameCsv;
 
-public sealed partial class CsvConfiguration<T>
+public sealed partial class CsvReaderOptions<T>
 {
     /// <summary>
     /// Returns true if the row is empty or entirely whitespace (as defined in <paramref name="options"/>).
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool DefaultRowSkipPredicate(ReadOnlySpan<T> row, in CsvParserOptions<T> options)
+    public static bool DefaultRowSkipPredicate(ReadOnlySpan<T> row, in CsvTokens<T> options)
     {
         return row.IsEmpty
             || (!options.Whitespace.IsEmpty && row.TrimStart(options.Whitespace.Span).IsEmpty);
@@ -34,12 +34,12 @@ public sealed partial class CsvConfiguration<T>
         var tokenArray = tokens.ToArray();
         return skipEmptyOrWhitespace ? WhitespaceOrStartsWith : StartsWith;
 
-        bool WhitespaceOrStartsWith(ReadOnlySpan<T> data, in CsvParserOptions<T> options)
+        bool WhitespaceOrStartsWith(ReadOnlySpan<T> data, in CsvTokens<T> options)
         {
             return DefaultRowSkipPredicate(data, in options) || data.StartsWith(tokenArray.AsSpan());
         }
 
-        bool StartsWith(ReadOnlySpan<T> data, in CsvParserOptions<T> _)
+        bool StartsWith(ReadOnlySpan<T> data, in CsvTokens<T> _)
         {
             return data.StartsWith(tokenArray.AsSpan());
         }

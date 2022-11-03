@@ -10,7 +10,7 @@ public interface ICsvHeaderBindingProvider<T> : ICsvBindingProvider<T>
     /// Attempts to parse bindings from the line.
     /// </summary>
     /// <param name="line"></param>
-    /// <param name="configuration"></param>
+    /// <param name="readerOptions"></param>
     /// <returns>The header was processed and the bindings can be used.</returns>
-    bool TryProcessHeader(ReadOnlySpan<T> line, CsvConfiguration<T> configuration);
+    bool TryProcessHeader(ReadOnlySpan<T> line, CsvReaderOptions<T> readerOptions);
 }

@@ -6,8 +6,10 @@ namespace FlameCsv.Parsers.Text;
 /// <summary>
 /// Represents the configuration for the built-in text parsers.
 /// </summary>
-public class CsvTextParserConfiguration
+public class CsvTextParsersConfig
 {
+    internal static readonly CsvTextParsersConfig Default = new();
+
     /// <summary>
     /// FormatProvider passed by default to multiple parsers.
     /// Default is <see cref="CultureInfo.InvariantCulture"/>.

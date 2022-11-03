@@ -27,7 +27,7 @@ public sealed class EnumTextParserFactory : ICsvParserFactory<char>
         return resultType.IsEnum && !resultType.HasAttribute<FlagsAttribute>();
     }
 
-    public ICsvParser<char> Create(Type resultType, CsvConfiguration<char> configuration)
+    public ICsvParser<char> Create(Type resultType, CsvReaderOptions<char> options)
     {
         return ActivatorEx.CreateInstance<ICsvParser<char>>(
             typeof(EnumTextParser<>).MakeGenericType(resultType),

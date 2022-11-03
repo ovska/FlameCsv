@@ -61,14 +61,14 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
     /// Initializes a column enumerator over a line.
     /// </summary>
     /// <param name="line">The line without trailing newline tokens</param>
-    /// <param name="options">Options instance</param>
+    /// <param name="tokens">Structural tokens</param>
     /// <param name="columnCount">Amount of columns expected, null if not known</param>
     /// <param name="quoteCount">Known string delimiter count on the line</param>
     /// <param name="bufferOwner">Provides the buffer needed to unescape possible quotes insides strings</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvColumnEnumerator(
         ReadOnlySpan<T> line,
-        in CsvParserOptions<T> options,
+        in CsvTokens<T> tokens,
         int? columnCount,
         int quoteCount,
         BufferOwner<T> bufferOwner)
@@ -77,12 +77,12 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
         Debug.Assert(columnCount is null or > 0, "Known column count must be positive");
         Debug.Assert(quoteCount >= 0, "Quote count must be positive");
         Debug.Assert(quoteCount % 2 == 0, "Quote count must be divisible by 2");
-        Debug.Assert(!options.TryGetValidationErrors(out _), "Parser options must be valid");
+        Debug.Assert(!tokens.TryGetValidationErrors(out _), "CsvTokens must be valid");
         Debug.Assert(bufferOwner is not null, "BufferOwner must not be null");
 
-        _comma = options.Delimiter;
-        _quote = options.StringDelimiter;
-        _whitespace = options.Whitespace.Span;
+        _comma = tokens.Delimiter;
+        _quote = tokens.StringDelimiter;
+        _whitespace = tokens.Whitespace.Span;
         _columnCount = columnCount;
         _bufferOwner = bufferOwner;
 

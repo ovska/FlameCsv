@@ -23,9 +23,9 @@ internal static class LineReader
     }
 
     /// <summary>
-    /// Attempts to read until a non-string wrapped <see cref="CsvParserOptions{T}.NewLine"/> is found.
+    /// Attempts to read until a non-string wrapped <see cref="CsvTokens{T}.NewLine"/> is found.
     /// </summary>
-    /// <param name="options">Options instance from which newline and string delimiter tokens are used</param>
+    /// <param name="tokens">Structural tokens instance from which newline and string delimiter tokens are used</param>
     /// <param name="sequence">
     /// Source data, modified if a newline is found and unmodified if the method returns <see langword="false"/>.
     /// </param>
@@ -37,20 +37,20 @@ internal static class LineReader
     /// Should be ignored if the method returns <see langword="false"/>.
     /// </param>
     /// <returns>
-    /// <see langword="true"/> if <see cref="CsvParserOptions{T}.NewLine"/> was found, <paramref name="line"/>
+    /// <see langword="true"/> if <see cref="CsvTokens{T}.NewLine"/> was found, <paramref name="line"/>
     /// and <paramref name="quoteCount"/> can be used, and the line and newline have been sliced off from
     /// <paramref name="sequence"/>.
     /// </returns>
     /// <remarks>A successful result might still be invalid CSV.</remarks>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static bool TryRead<T>(
-        in CsvParserOptions<T> options,
+        in CsvTokens<T> tokens,
         ref ReadOnlySequence<T> sequence,
         out ReadOnlySequence<T> line,
         out int quoteCount)
         where T : unmanaged, IEquatable<T>
     {
-        ReadOnlySpan<T> newLine = options.NewLine.Span;
+        ReadOnlySpan<T> newLine = tokens.NewLine.Span;
 
         // keep track of read newline tokens and quotes in the read data
         State state = default;
@@ -67,14 +67,14 @@ internal static class LineReader
             // Find the next relevant token. Uneven quotes mean the current index is 100% inside a string,
             // so we can skip everything until the next quote
             int index = quoteCount % 2 == 0
-                ? span.IndexOfAny(newLine[state.count], options.StringDelimiter)
-                : span.IndexOf(options.StringDelimiter);
+                ? span.IndexOfAny(newLine[state.count], tokens.StringDelimiter)
+                : span.IndexOf(tokens.StringDelimiter);
 
             // Found a newline token or a string delimiter
             while (index >= 0)
             {
                 // Found token was a string delimiter
-                if (span[index].Equals(options.StringDelimiter))
+                if (span[index].Equals(tokens.StringDelimiter))
                 {
                     quoteCount++;
                     state = default; // zero out possible newline state such as \r"
@@ -114,8 +114,8 @@ internal static class LineReader
 
                 // Find the next relevant token
                 int next = quoteCount % 2 == 0
-                    ? span.Slice(index).IndexOfAny(newLine[state.count], options.StringDelimiter)
-                    : span.Slice(index).IndexOf(options.StringDelimiter);
+                    ? span.Slice(index).IndexOfAny(newLine[state.count], tokens.StringDelimiter)
+                    : span.Slice(index).IndexOf(tokens.StringDelimiter);
 
                 // The segment still contains something of interest
                 if (next >= 0)

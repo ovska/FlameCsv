@@ -15,8 +15,8 @@ public static partial class CsvReader
     /// <remarks>
     /// The reader is completed at the end of the enumeration (on explicit dispose or at the end of a foreach-loop).
     /// </remarks>
-    /// <param name="configuration">Configuration instance to use for binding and parsing</param>
     /// <param name="stream">Stream reader to read the records from</param>
+    /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="encoding">
     /// Encoding to initialize the <see cref="StreamWriter"/> with, set to null to auto-detect
     /// </param>
@@ -29,18 +29,18 @@ public static partial class CsvReader
     /// as it is enumerated.
     /// </returns>
     public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
-        CsvConfiguration<char> configuration,
+        CsvReaderOptions<char> options,
         Stream stream,
         Encoding? encoding,
         bool leaveOpen = false,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(stream);
         Guard.CanRead(stream);
 
         return ReadAsync<TValue>(
-            configuration,
+            options,
             new StreamReader(stream, encoding: encoding, leaveOpen: leaveOpen, bufferSize: 4096),
             leaveOpen,
             cancellationToken);
@@ -52,8 +52,8 @@ public static partial class CsvReader
     /// <remarks>
     /// The reader is completed at the end of the enumeration (on explicit dispose or at the end of a foreach-loop).
     /// </remarks>
-    /// <param name="configuration">Configuration instance to use for binding and parsing</param>
     /// <param name="textReader">Text reader to read the records from</param>
+    /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="leaveOpen">
     /// If <see langword="true"/>, the writer is not disposed at the end of the enumeration
     /// </param>
@@ -63,26 +63,26 @@ public static partial class CsvReader
     /// as it is enumerated.
     /// </returns>
     public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
-        CsvConfiguration<char> configuration,
+        CsvReaderOptions<char> options,
         TextReader textReader,
         bool leaveOpen = false,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(textReader);
 
-        if (configuration.BindingProvider is ICsvHeaderBindingProvider<char>)
+        if (options.BindingProvider is ICsvHeaderBindingProvider<char>)
         {
             return ReadAsyncInternal<TValue, CsvHeaderProcessor<char, TValue>>(
                 textReader,
-                new CsvHeaderProcessor<char, TValue>(configuration),
+                new CsvHeaderProcessor<char, TValue>(options),
                 leaveOpen,
                 cancellationToken);
         }
 
         return ReadAsyncInternal<TValue, CsvProcessor<char, TValue>>(
             textReader,
-            new CsvProcessor<char, TValue>(configuration),
+            new CsvProcessor<char, TValue>(options),
             leaveOpen,
             cancellationToken);
     }

@@ -56,12 +56,11 @@ var bindings = new CsvBinding[]
 await using var stream = File.OpenRead("/home/sipi/test.csv");
 
 
-var config_ = CsvConfiguration
-    .GetUtf8DefaultsBuilder()
-    .SetParserOptions(CsvParserOptions<byte>.Unix)
+var config_ = CsvOptions
+    .GetUtf8ReaderDefault()
+    .SetTokens(CsvTokens<byte>.Unix)
     .AddParser(new YYYYMMParser())
-    .SetBinder(new ManualBindingProvider<byte, Item>(bindings))
-    .Build();
+    .SetBinder(new ManualBindingProvider<byte, Item>(bindings));
 var result = new List<Item>();
 await foreach (var item in FlameCsv.Readers.CsvReader.ReadAsync<Item>(config_, stream))
 {
@@ -72,11 +71,10 @@ Debugger.Break();
 try
 {
     var _collection = new ManualBindingProvider<char, Item>(bindings);
-    var _config_ = CsvConfiguration
-        .GetTextDefaultsBuilder(new CsvTextParserConfiguration { DateTimeFormat = "yyyy'.'mm" })
-        .SetParserOptions(CsvParserOptions<char>.Unix)
-        .SetBinder(_collection)
-        .Build();
+    var _config_ = CsvOptions
+        .GetTextReaderDefault(new CsvTextParsersConfig { DateTimeFormat = "yyyy'.'mm" })
+        .SetTokens(CsvTokens<char>.Unix)
+        .SetBinder(_collection);
 
     using (var reader = new StreamReader("/home/sipi/test.csv"))
     {

@@ -13,7 +13,7 @@ public interface ICsvParserFactory<T> : ICsvParser<T> where T : unmanaged, IEqua
     /// This method should only be called after <see cref="ICsvParser{T}.CanParse"/> has verified the type is valid.
     /// </remarks>
     /// <param name="resultType">Value type of the returned <see cref="ICsvParser{T,TValue}"/></param>
-    /// <param name="configuration">Current configuration object</param>
+    /// <param name="options">Current options instance</param>
     /// <returns>Parser instance</returns>
-    ICsvParser<T> Create(Type resultType, CsvConfiguration<T> configuration);
+    ICsvParser<T> Create(Type resultType, CsvReaderOptions<T> options);
 }

@@ -42,7 +42,7 @@ public class CsvStringEnumerateBench
     public void FlameCsv_ASCII()
     {
         var buffer = new ReadOnlySequence<char>(_string.AsMemory());
-        var options = CsvParserOptions<char>.Environment;
+        var options = CsvTokens<char>.Environment;
         using var _enumeratorBuffer = default(BufferOwner<char>)!;
 
         while (LineReader.TryRead(in options, ref buffer, out var line, out int quoteCount))
@@ -75,7 +75,7 @@ public class CsvStringEnumerateBench
     public void FlameCsv_Utf8()
     {
         var buffer = new ReadOnlySequence<byte>(_bytes);
-        var options = CsvParserOptions<byte>.Environment;
+        var options = CsvTokens<byte>.Environment;
         using var _enumeratorBuffer = default(BufferOwner<byte>)!;
 
         while (LineReader.TryRead(in options, ref buffer, out var line, out int quoteCount))
@@ -107,7 +107,7 @@ public class CsvStringEnumerateBench
     private static void EnumerateColumns<T>(
         in ReadOnlySequence<T> line,
         int stringDelimiterCount,
-        in CsvParserOptions<T> _options,
+        in CsvTokens<T> _options,
         BufferOwner<T> _enumeratorBuffer)
         where T : unmanaged, IEquatable<T>
     {
@@ -131,7 +131,7 @@ public class CsvStringEnumerateBench
     private static void EnumerateColumnSpan<T>(
         ReadOnlySpan<T> line,
         int stringDelimiterCount,
-        in CsvParserOptions<T> _options,
+        in CsvTokens<T> _options,
         BufferOwner<T> _enumeratorBuffer)
         where T : unmanaged, IEquatable<T>
     {

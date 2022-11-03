@@ -27,7 +27,7 @@ public static class HeaderBindingTests
     {
         var provider = new HeaderTextBindingProvider<Shim>(stringComparison: StringComparison.Ordinal);
 
-        Assert.True(provider.TryProcessHeader(header, CsvConfiguration<char>.Default));
+        Assert.True(provider.TryProcessHeader(header, CsvReaderOptions<char>.Default));
         Assert.True(provider.TryGetBindings<Shim>(out var bindingCollection));
         var byIndex = bindingCollection!.Bindings.ToDictionary(b => b.Index, b => b.Member);
         Assert.Equal(3, byIndex.Count);
@@ -45,9 +45,9 @@ public static class HeaderBindingTests
             + "false,Alice,2\r\n";
 
         var provider = new HeaderTextBindingProvider<Shim>(stringComparison: StringComparison.Ordinal);
-        var config = CsvConfiguration<char>.DefaultBuilder.SetBinder(provider).Build();
+        var options = CsvReaderOptions<char>.Default.SetBinder(provider);
 
-        using var processor = new CsvHeaderProcessor<char, Shim>(config);
+        using var processor = new CsvHeaderProcessor<char, Shim>(options);
         var buffer = new ReadOnlySequence<char>(data.AsMemory());
 
         Assert.True(processor.TryContinueRead(ref buffer, out var value1));
@@ -70,9 +70,9 @@ public static class HeaderBindingTests
         const string data = "IsEnabled,Name,_targeted";
 
         var provider = new HeaderTextBindingProvider<Shim>(stringComparison: StringComparison.Ordinal);
-        var config = CsvConfiguration<char>.DefaultBuilder.SetBinder(provider).Build();
+        var options = CsvReaderOptions<char>.Default.SetBinder(provider);
 
-        using var processor = new CsvHeaderProcessor<char, Shim>(config);
+        using var processor = new CsvHeaderProcessor<char, Shim>(options);
         var buffer = new ReadOnlySequence<char>(data.AsMemory());
         Assert.False(processor.TryContinueRead(ref buffer, out _));
         Assert.False(processor.TryReadRemaining(in buffer, out _));
