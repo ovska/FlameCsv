@@ -51,6 +51,20 @@ internal sealed class BufferOwner<T> : IDisposable where T : unmanaged, IEquatab
         _arrayPool.EnsureCapacity(ref _rented, capacity: length, clearArray: _clearBuffers);
         return _rented.AsSpan(0, length);
     }
+    
+    /// <summary>
+    /// Returns a buffer of the requested length.
+    /// </summary>
+    /// <exception cref="ObjectDisposedException" />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Memory<T> GetMemory(int length)
+    {
+        if (_disposed)
+            ThrowHelper.ThrowObjectDisposedException(typeof(BufferOwner<T>).ToTypeString());
+
+        _arrayPool.EnsureCapacity(ref _rented, capacity: length, clearArray: _clearBuffers);
+        return _rented.AsMemory(0, length);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()

@@ -95,11 +95,88 @@ internal static class UnescapeExtensions
         return ThrowInvalidUnescape(source, quote, quoteCount);
     }
 
+    /// <inheritdoc cref="Unescape{T}(ReadOnlySpan{T},T,int,BufferOwner{T})"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ReadOnlyMemory<T> Unescape<T>(
+        this ReadOnlyMemory<T> source,
+        T quote,
+        int quoteCount,
+        BufferOwner<T> bufferOwner)
+        where T : unmanaged, IEquatable<T>
+    {
+        Debug.Assert(quoteCount >= 2);
+        Debug.Assert(quoteCount % 2 == 0);
+
+        var span = source.Span;
+
+        if (span.Length >= 2)
+        {
+            if (span[0].Equals(quote) && span[^1].Equals(quote))
+            {
+                // Trim trailing and leading quotes
+                source = source.Slice(1, source.Length - 2);
+
+                if (quoteCount == 2)
+                {
+                    return source;
+                }
+
+                return source.UnescapeRare(quote, quoteCount - 2, bufferOwner);
+            }
+        }
+
+        return ThrowInvalidUnescape(source.Span, quote, quoteCount);
+    }
+
+    /// <inheritdoc cref="UnescapeRare{T}(ReadOnlySpan{T},T,int,BufferOwner{T})"/>
+    [MethodImpl(MethodImplOptions.NoInlining)] // encourage inlining common case above
+    private static ReadOnlyMemory<T> UnescapeRare<T>(
+        this ReadOnlyMemory<T> source,
+        T quote,
+        int quoteCount,
+        BufferOwner<T> bufferOwner)
+        where T : unmanaged, IEquatable<T>
+    {
+        Debug.Assert(quoteCount >= 2);
+        Debug.Assert(quoteCount % 2 == 0);
+
+        int written = 0;
+        int index = 0;
+        ReadOnlySpan<T> needle = stackalloc T[] { quote, quote };
+        Memory<T> buffer = bufferOwner.GetMemory(source.Length - quoteCount / 2);
+        int quotesLeft = quoteCount;
+
+        var sourceSpan = source.Span;
+
+        while (index < source.Length)
+        {
+            int next = sourceSpan.Slice(index).IndexOf(needle);
+
+            if (next < 0)
+                break;
+
+            int toCopy = next + 1;
+            source.Slice(index, toCopy).CopyTo(buffer.Slice(written));
+            written += toCopy;
+            index += toCopy + 1; // advance past the second quote
+
+            // Found all quotes, copy remaining data
+            if ((quotesLeft -= 2) == 0)
+            {
+                source.Slice(index).CopyTo(buffer.Slice(written));
+                written += source.Length - index;
+                return buffer.Slice(0, written);
+            }
+        }
+
+        return ThrowInvalidUnescape(source.Span, quote, quoteCount);
+    }
+
     /// <exception cref="InvalidOperationException">
     /// The data and/or the supplied quote count parameter were invalid. 
     /// </exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private static ReadOnlySpan<T> ThrowInvalidUnescape<T>(
+    private static T[] ThrowInvalidUnescape<T>(
         ReadOnlySpan<T> source,
         T quote,
         int quoteCount)

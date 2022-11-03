@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.IO.Pipelines;
 using System.Text;
 using CommunityToolkit.HighPerformance.Buffers;
@@ -9,29 +10,38 @@ using FlameCsv.Readers;
 using FlameCsv.Tests.TestData;
 using FlameCsv.Tests.Utilities;
 
+// ReSharper disable ConvertIfStatementToSwitchStatement
+
 // ReSharper disable LoopCanBeConvertedToQuery
 
 namespace FlameCsv.Tests.Readers;
 
 public static class CsvReaderTests
 {
+    public enum CsvApi
+    {
+        Async,
+        Sync,
+        Enumerator
+    }
+
     public static IEnumerable<object[]> GetTestParameters()
     {
         return
-            from isAsync in new[] { true, false }
+            from api in new[] { CsvApi.Async, CsvApi.Sync, CsvApi.Enumerator }
             from type in new[] { typeof(char), typeof(byte) }
             from bufferSize in new[] { -1, 17, 128, 1024, 8096 }
             from newline in new[] { "\n", "\r\n" }
             from writeHeader in new[] { true, false }
             from writeTrailingNewline in new[] { true, false }
-            select new object[] { isAsync, type, bufferSize, newline, writeHeader, writeTrailingNewline };
+            select new object[] { api, type, bufferSize, newline, writeHeader, writeTrailingNewline };
     }
 
     [Theory]
     [MemberData(nameof(GetTestParameters))]
     public static async Task Should_Read(
-        bool isAsync,
-        Type generic,
+        CsvApi api,
+        Type type,
         int bufferSize,
         string newLine,
         bool writeHeader,
@@ -39,7 +49,7 @@ public static class CsvReaderTests
     {
         List<Obj> items = new();
 
-        if (generic == typeof(char))
+        if (type == typeof(char))
         {
             var options = CsvOptions.GetTextReaderDefault(new CsvTextParsersConfig { DateTimeFormat = "O" });
             options.Tokens = options.Tokens.WithNewLine(newLine);
@@ -48,7 +58,7 @@ public static class CsvReaderTests
             else
                 options.SetBinder(new HeaderTextBindingProvider<Obj>());
 
-            if (isAsync)
+            if (api == CsvApi.Async)
             {
                 using var reader = new StreamReader(
                     new MemoryStream(GetDataBytes()),
@@ -64,13 +74,20 @@ public static class CsvReaderTests
             {
                 var sequence = MemorySegment<char>.AsSequence(GetDataChars(), bufferSize);
 
-                foreach (var obj in CsvReader.Read<char, Obj>(sequence, options))
+                if (api == CsvApi.Sync)
                 {
-                    items.Add(obj);
+                    foreach (var obj in CsvReader.Read<char, Obj>(sequence, options))
+                    {
+                        items.Add(obj);
+                    }
+                }
+                else
+                {
+                    EnumerateToList(writeHeader, sequence, options, items);
                 }
             }
         }
-        else if (generic == typeof(byte))
+        else if (type == typeof(byte))
         {
             var options = CsvOptions.GetUtf8ReaderDefault(new CsvUtf8ParsersConfig { DateTimeFormat = 'O' });
             options.Tokens = options.Tokens.WithNewLine(newLine);
@@ -79,7 +96,7 @@ public static class CsvReaderTests
             else
                 options.SetBinder(new HeaderUtf8BindingProvider<Obj>());
 
-            if (isAsync)
+            if (api == CsvApi.Async)
             {
                 var pipeReader = PipeReader.Create(
                     new MemoryStream(GetDataBytes()),
@@ -94,9 +111,16 @@ public static class CsvReaderTests
             {
                 var sequence = MemorySegment<byte>.AsSequence(GetDataBytes(), bufferSize);
 
-                foreach (var obj in CsvReader.Read<byte, Obj>(sequence, options))
+                if (api == CsvApi.Sync)
                 {
-                    items.Add(obj);
+                    foreach (var obj in CsvReader.Read<byte, Obj>(sequence, options))
+                    {
+                        items.Add(obj);
+                    }
+                }
+                else
+                {
+                    EnumerateToList(writeHeader, sequence, options, items);
                 }
             }
         }
@@ -158,5 +182,31 @@ public static class CsvReaderTests
         Assert.True(obj.IsEnabled);
         Assert.Equal(DateTime.UnixEpoch, obj.LastLogin);
         Assert.Equal(Guid.Empty, obj.Token);
+    }
+
+    private static void EnumerateToList<T>(
+        bool skipFirst,
+        ReadOnlySequence<T> sequence,
+        CsvReaderOptions<T> options,
+        ICollection<Obj> items) where T : unmanaged, IEquatable<T>
+    {
+        foreach (var record in CsvReader.Enumerate(sequence, options))
+        {
+            if (skipFirst)
+            {
+                skipFirst = false;
+                continue;
+            }
+
+            items.Add(
+                new Obj
+                {
+                    Id = record.GetValue<int>(0),
+                    Name = record.GetValue<string?>(1),
+                    IsEnabled = record.GetValue<bool>(2),
+                    LastLogin = record.GetValue<DateTimeOffset>(3),
+                    Token = record.GetValue<Guid>(4),
+                });
+        }
     }
 }
