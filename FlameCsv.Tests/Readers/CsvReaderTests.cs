@@ -2,6 +2,7 @@ using System.IO.Pipelines;
 using System.Text;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Binding.Providers;
+using FlameCsv.Extensions;
 using FlameCsv.Parsers.Text;
 using FlameCsv.Parsers.Utf8;
 using FlameCsv.Readers;
@@ -40,15 +41,12 @@ public static class CsvReaderTests
 
         if (generic == typeof(char))
         {
-            var builder = CsvConfiguration.GetTextDefaultsBuilder(
-                new CsvTextParserConfiguration { DateTimeFormat = "O" });
-            builder.SetParserOptions(newLine == "\n" ? CsvParserOptions<char>.Unix : CsvParserOptions<char>.Windows);
+            var options = CsvOptions.GetTextReaderDefault(new CsvTextParsersConfig { DateTimeFormat = "O" });
+            options.Tokens = options.Tokens.WithNewLine(newLine);
             if (!writeHeader)
-                builder.SetBinder(new IndexBindingProvider<char>());
+                options.SetBinder(new IndexBindingProvider<char>());
             else
-                builder.SetBinder(new HeaderTextBindingProvider<Obj>());
-
-            var cfg = builder.Build();
+                options.SetBinder(new HeaderTextBindingProvider<Obj>());
 
             if (isAsync)
             {
@@ -57,7 +55,7 @@ public static class CsvReaderTests
                     Encoding.UTF8,
                     bufferSize: bufferSize);
 
-                await foreach (var obj in CsvReader.ReadAsync<Obj>(cfg, reader))
+                await foreach (var obj in CsvReader.ReadAsync<Obj>(options, reader))
                 {
                     items.Add(obj);
                 }
@@ -66,7 +64,7 @@ public static class CsvReaderTests
             {
                 var sequence = MemorySegment<char>.AsSequence(GetDataChars(), bufferSize);
 
-                foreach (var obj in CsvReader.Read<char, Obj>(cfg, sequence))
+                foreach (var obj in CsvReader.Read<char, Obj>(options, sequence))
                 {
                     items.Add(obj);
                 }
@@ -74,15 +72,12 @@ public static class CsvReaderTests
         }
         else if (generic == typeof(byte))
         {
-            var builder = CsvConfiguration.GetUtf8DefaultsBuilder(
-                new CsvUtf8ParserConfiguration { DateTimeFormat = 'O' });
-            builder.SetParserOptions(newLine == "\n" ? CsvParserOptions<byte>.Unix : CsvParserOptions<byte>.Windows);
+            var options = CsvOptions.GetUtf8ReaderDefault(new CsvUtf8ParsersConfig { DateTimeFormat = 'O' });
+            options.Tokens = options.Tokens.WithNewLine(newLine);
             if (!writeHeader)
-                builder.SetBinder(new IndexBindingProvider<byte>());
+                options.SetBinder(new IndexBindingProvider<byte>());
             else
-                builder.SetBinder(new HeaderUtf8BindingProvider<Obj>());
-
-            var cfg = builder.Build();
+                options.SetBinder(new HeaderUtf8BindingProvider<Obj>());
 
             if (isAsync)
             {
@@ -90,7 +85,7 @@ public static class CsvReaderTests
                     new MemoryStream(GetDataBytes()),
                     new StreamPipeReaderOptions(bufferSize: bufferSize));
 
-                await foreach (var obj in CsvReader.ReadAsync<Obj>(cfg, pipeReader))
+                await foreach (var obj in CsvReader.ReadAsync<Obj>(options, pipeReader))
                 {
                     items.Add(obj);
                 }
@@ -99,7 +94,7 @@ public static class CsvReaderTests
             {
                 var sequence = MemorySegment<byte>.AsSequence(GetDataBytes(), bufferSize);
 
-                foreach (var obj in CsvReader.Read<byte, Obj>(cfg, sequence))
+                foreach (var obj in CsvReader.Read<byte, Obj>(options, sequence))
                 {
                     items.Add(obj);
                 }
@@ -149,11 +144,9 @@ public static class CsvReaderTests
 
         await using var ms = new MemoryStream(Encoding.UTF8.GetBytes(data));
         using var reader = new StreamReader(ms, bufferSize: 128);
-        var config = CsvConfiguration<char>.DefaultBuilder
-            .SetBinder(new IndexBindingProvider<char>())
-            .Build();
+        var options = CsvReaderOptions<char>.Default.SetBinder(new IndexBindingProvider<char>());
 
-        await foreach (var item in CsvReader.ReadAsync<Obj>(config, reader))
+        await foreach (var item in CsvReader.ReadAsync<Obj>(options, reader))
         {
             objs.Add(item);
         }

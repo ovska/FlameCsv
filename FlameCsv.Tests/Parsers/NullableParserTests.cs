@@ -33,7 +33,7 @@ public static class NullableParserTests
         Assert.True(factory.CanParse(typeof(int?)));
         Assert.False(factory.CanParse(typeof(int)));
 
-        var parser = (ICsvParser<char, int?>)factory.Create(typeof(int?), CsvConfiguration<char>.Default);
+        var parser = (ICsvParser<char, int?>)factory.Create(typeof(int?), CsvReaderOptions<char>.Default);
         Assert.True(parser.TryParse("null", out var value));
         Assert.Null(value);
     }

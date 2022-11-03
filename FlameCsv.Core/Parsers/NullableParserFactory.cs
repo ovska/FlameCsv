@@ -20,10 +20,10 @@ public sealed class NullableParserFactory<T> : ICsvParserFactory<T>
 
     public bool CanParse(Type resultType) => Nullable.GetUnderlyingType(resultType) is not null;
 
-    public ICsvParser<T> Create(Type resultType, CsvConfiguration<T> configuration)
+    public ICsvParser<T> Create(Type resultType, CsvReaderOptions<T> options)
     {
         var innerType = Nullable.GetUnderlyingType(resultType)!;
-        var inner = configuration.GetParser(innerType);
+        var inner = options.GetParser(innerType);
         return ActivatorEx.CreateInstance<ICsvParser<T>>(
             typeof(NullableParser<,>).MakeGenericType(typeof(T), innerType),
             inner,

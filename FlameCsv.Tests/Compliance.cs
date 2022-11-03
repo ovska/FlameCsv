@@ -15,7 +15,7 @@ public class Compliance
         var first = new MemorySegment<char>(start.ToCharArray());
         var last = first.Append(end.ToCharArray());
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
-        var options = CsvParserOptions<char>.Windows;
+        var options = CsvTokens<char>.Windows;
 
         Assert.True(LineReader.TryRead(in options, ref seq, out var line, out _));
 
@@ -40,7 +40,7 @@ public class Compliance
         var last = joined.Chunk(segmentSize).Aggregate(first, (prev, segment) => prev.Append(segment.AsMemory()));
 
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
-        var options = CsvParserOptions<char>.Windows;
+        var options = CsvTokens<char>.Windows;
 
         var results = new List<string>();
 
@@ -59,7 +59,7 @@ public class Compliance
     [InlineData(data: new object[] { "\n", new[] { "abc", "\n", "xyz" } })]
     public static void Should_Find_Segment_With_Only_Newline(string newline, string[] segments)
     {
-        var options = CsvParserOptions<char>.Windows with { NewLine = newline.ToCharArray() };
+        var options = CsvTokens<char>.Windows with { NewLine = newline.ToCharArray() };
 
         var first = new MemorySegment<char>(segments[0].ToCharArray());
         var last = first
@@ -77,7 +77,7 @@ public class Compliance
     public static void Should_Handle_Line_With_Uneven_Quotes_No_Newline()
     {
         const string data = "\"testxyz\",\"broken";
-        var options = CsvParserOptions<char>.Windows;
+        var options = CsvTokens<char>.Windows;
         var seq = new ReadOnlySequence<char>(data.ToCharArray());
 
         Assert.False(LineReader.TryRead(in options, ref seq, out _, out _));
@@ -101,7 +101,7 @@ public class Compliance
             "bb",
         };
 
-        var options = CsvParserOptions<char>.Windows with { NewLine = newline.ToCharArray() };
+        var options = CsvTokens<char>.Windows with { NewLine = newline.ToCharArray() };
         var seq = new ReadOnlySequence<char>(string.Join(newline, data).ToCharArray());
 
         var found = new List<string>();
@@ -129,7 +129,7 @@ public class Compliance
     [InlineData("\"James \"\"007\"\" Bond\"|Agent", "\"James \"\"007\"\" Bond\"", 6)]
     public static void Should_Find_Lines(string data, string expected, int expectedDelimiterCount)
     {
-        var options = CsvParserOptions<char>.Environment with { NewLine = new[] { '|' } };
+        var options = CsvTokens<char>.Environment with { NewLine = new[] { '|' } };
 
         var seq = new ReadOnlySequence<char>(data.ToCharArray());
 
@@ -161,7 +161,7 @@ public class Compliance
         var expected = line.Split(',').Select(s => s.Trim('"'));
 
         var list = new List<string>();
-        var options = CsvParserOptions<char>.Unix with { NewLine = "|".AsMemory() };
+        var options = CsvTokens<char>.Unix with { NewLine = "|".AsMemory() };
 
         using var bo = new BufferOwner<char>();
         var enumerator = new CsvColumnEnumerator<char>(

@@ -10,14 +10,14 @@ namespace FlameCsv.Readers;
 internal readonly struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     where T : unmanaged, IEquatable<T>
 {
-    private readonly CsvConfiguration<T> _configuration;
+    private readonly CsvReaderOptions<T> _options;
     private readonly ICsvHeaderBindingProvider<T> _headerBindingProvider;
     private readonly Wrapper _wrapper = new();
 
-    public CsvHeaderProcessor(CsvConfiguration<T> configuration)
+    public CsvHeaderProcessor(CsvReaderOptions<T> options)
     {
-        _configuration = configuration;
-        _headerBindingProvider = (ICsvHeaderBindingProvider<T>)_configuration.BindingProvider;
+        _options = options;
+        _headerBindingProvider = (ICsvHeaderBindingProvider<T>)_options.BindingProvider;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -49,7 +49,7 @@ internal readonly struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue
     [MethodImpl(MethodImplOptions.NoInlining)] // encourage inlining more common paths
     private bool ParseHeaderAndTryRead(ref ReadOnlySequence<T> buffer, out TValue value)
     {
-        if (LineReader.TryRead(in _configuration.options, ref buffer, out var line, out _))
+        if (LineReader.TryRead(in _options.tokens, ref buffer, out var line, out _))
         {
             ReadHeader(in line);
 
@@ -65,13 +65,13 @@ internal readonly struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue
     [MethodImpl(MethodImplOptions.NoInlining)] // encourage inlining more common paths
     private void ReadHeader(in ReadOnlySequence<T> line)
     {
-        using var view = new SequenceView<T>(in line, _configuration);
+        using var view = new SequenceView<T>(in line, _options);
 
-        if (_headerBindingProvider.TryProcessHeader(view.Memory.Span, _configuration)
+        if (_headerBindingProvider.TryProcessHeader(view.Memory.Span, _options)
             && _headerBindingProvider.TryGetBindings<TValue>(out var bindings))
         {
-            var state = _configuration.CreateState(bindings);
-            _wrapper.Value = new CsvProcessor<T, TValue>(_configuration, state);
+            var state = _options.CreateState(bindings);
+            _wrapper.Value = new CsvProcessor<T, TValue>(_options, state);
             _wrapper.HasValue = true;
         }
         else

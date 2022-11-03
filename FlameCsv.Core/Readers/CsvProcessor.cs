@@ -18,29 +18,29 @@ internal readonly struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     /// <summary>Shared buffer for long segment-fragmented lines.</summary>
     private readonly BufferOwner<T> _multisegmentBuffer;
 
-    private readonly CsvParserOptions<T> _options;
+    private readonly CsvTokens<T> _tokens;
     private readonly CsvCallback<T, bool>? _skipPredicate;
     private readonly ICsvRowState<T, TValue> _state;
     private readonly int _columnCount;
 
-    public CsvProcessor(CsvConfiguration<T> configuration, ICsvRowState<T, TValue>? state = null)
+    public CsvProcessor(CsvReaderOptions<T> readerOptions, ICsvRowState<T, TValue>? state = null)
     {
-        _options = configuration.Options;
-        _skipPredicate = configuration.ShouldSkipRow;
-        _state = state ?? configuration.BindToState<TValue>();
+        _tokens = readerOptions.Tokens;
+        _skipPredicate = readerOptions.ShouldSkipRow;
+        _state = state ?? readerOptions.BindToState<TValue>();
         _columnCount = _state.ColumnCount;
 
         // Two buffers are needed, as the ReadOnlySpan being manipulated by string escaping in the enumerator
         // might originate from the multisegment buffer
-        _enumeratorBuffer = new(configuration.Security);
-        _multisegmentBuffer = new(configuration.Security);
+        _enumeratorBuffer = new(readerOptions.Security);
+        _multisegmentBuffer = new(readerOptions.Security);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryContinueRead(ref ReadOnlySequence<T> buffer, out TValue value)
     {
         if (LineReader.TryRead(
-                in _options,
+                in _tokens,
                 ref buffer,
                 out ReadOnlySequence<T> line,
                 out int stringDelimiterCount))
@@ -100,13 +100,13 @@ internal readonly struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         int? stringDelimiterCount,
         out TValue value)
     {
-        if (_skipPredicate is null || !_skipPredicate(line, in _options))
+        if (_skipPredicate is null || !_skipPredicate(line, in _tokens))
         {
             var enumerator = new CsvColumnEnumerator<T>(
                 line,
-                in _options,
+                in _tokens,
                 _columnCount,
-                stringDelimiterCount ?? line.Count(_options.StringDelimiter),
+                stringDelimiterCount ?? line.Count(_tokens.StringDelimiter),
                 _enumeratorBuffer);
 
             value = _state.Parse(ref enumerator);

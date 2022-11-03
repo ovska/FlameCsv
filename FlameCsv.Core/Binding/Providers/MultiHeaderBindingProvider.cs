@@ -34,11 +34,11 @@ public class MultiHeaderBindingProvider<T> : ICsvHeaderBindingProvider<T>
         return _winningProvider.TryGetBindings(out bindings);
     }
 
-    public bool TryProcessHeader(ReadOnlySpan<T> line, CsvConfiguration<T> configuration)
+    public bool TryProcessHeader(ReadOnlySpan<T> line, CsvReaderOptions<T> readerOptions)
     {
         foreach (var provider in _providers)
         {
-            if (provider.TryProcessHeader(line, configuration))
+            if (provider.TryProcessHeader(line, readerOptions))
             {
                 _winningProvider = provider;
                 return true;

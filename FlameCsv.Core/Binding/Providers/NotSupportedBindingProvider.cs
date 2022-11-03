@@ -15,7 +15,7 @@ internal sealed class NotSupportedBindingProvider<T> : ICsvHeaderBindingProvider
     }
 
     [DoesNotReturn]
-    public bool TryProcessHeader(ReadOnlySpan<T> line, CsvConfiguration<T> configuration)
+    public bool TryProcessHeader(ReadOnlySpan<T> line, CsvReaderOptions<T> readerOptions)
     {
         throw NotSupported;
     }

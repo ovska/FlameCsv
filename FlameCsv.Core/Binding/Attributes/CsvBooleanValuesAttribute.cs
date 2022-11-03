@@ -9,7 +9,7 @@ namespace FlameCsv.Binding.Attributes;
 
 /// <summary>
 /// Overrides the default parser for the target member. Applicable for <c>bool</c> and <c>bool?</c>.
-/// For nullable booleans, attempts to fetch user defined null token from <see cref="CsvConfiguration{T}"/>.
+/// For nullable booleans, attempts to fetch user defined null token from <see cref="CsvReaderOptions{T}"/>.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public class CsvBooleanValuesAttribute : Attribute, ICsvParserOverride
@@ -37,10 +37,10 @@ public class CsvBooleanValuesAttribute : Attribute, ICsvParserOverride
     private string[] _trueValues = Array.Empty<string>();
     private string[] _falseValues = Array.Empty<string>();
 
-    public virtual ICsvParser<T> CreateParser<T>(CsvBinding binding, CsvConfiguration<T> configuration)
+    public virtual ICsvParser<T> CreateParser<T>(CsvBinding binding, CsvReaderOptions<T> readerOptions)
         where T : unmanaged, IEquatable<T>
     {
-        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(readerOptions);
         Guard.IsFalse(binding.IsIgnored);
 
         Type target = binding.Type;
@@ -52,16 +52,16 @@ public class CsvBooleanValuesAttribute : Attribute, ICsvParserOverride
         }
 
         if (typeof(T) == typeof(char))
-            return (ICsvParser<T>)CreateForText(target, (CsvConfiguration<char>)(object)configuration);
+            return (ICsvParser<T>)CreateForText(target, (CsvReaderOptions<char>)(object)readerOptions);
 
         if (typeof(T) == typeof(byte))
-            return (ICsvParser<T>)CreateForUtf8(target, (CsvConfiguration<byte>)(object)configuration);
+            return (ICsvParser<T>)CreateForUtf8(target, (CsvReaderOptions<byte>)(object)readerOptions);
 
         return ThrowHelper.ThrowNotSupportedException<ICsvParser<T>>(
             $"Token type {typeof(T)} is not supported by {nameof(CsvBooleanValuesAttribute)}");
     }
 
-    protected virtual ICsvParser<char> CreateForText(Type target, CsvConfiguration<char> configuration)
+    protected virtual ICsvParser<char> CreateForText(Type target, CsvReaderOptions<char> readerOptions)
     {
         var parser = new BooleanTextParser(
             TrueValues
@@ -74,10 +74,10 @@ public class CsvBooleanValuesAttribute : Attribute, ICsvParserOverride
 
         return new NullableParser<char, bool>(
             parser,
-            (configuration.TryGetParser(typeof(bool?)) as NullableParser<char, bool>)?.NullToken ?? default);
+            (readerOptions.TryGetParser(typeof(bool?)) as NullableParser<char, bool>)?.NullToken ?? default);
     }
 
-    protected virtual ICsvParser<byte> CreateForUtf8(Type target, CsvConfiguration<byte> configuration)
+    protected virtual ICsvParser<byte> CreateForUtf8(Type target, CsvReaderOptions<byte> readerOptions)
     {
         var parser = new BooleanUtf8Parser(
             TrueValues
@@ -90,7 +90,7 @@ public class CsvBooleanValuesAttribute : Attribute, ICsvParserOverride
 
         return new NullableParser<byte, bool>(
             parser,
-            (configuration.TryGetParser(typeof(bool?)) as NullableParser<byte, bool>)?.NullToken ?? default);
+            (readerOptions.TryGetParser(typeof(bool?)) as NullableParser<byte, bool>)?.NullToken ?? default);
     }
 
     private static ReadOnlyMemory<byte> ToUtf8(string? text) => Encoding.UTF8.GetBytes(text ?? "");

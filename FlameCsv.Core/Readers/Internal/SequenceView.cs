@@ -24,7 +24,7 @@ internal readonly struct SequenceView<T> : IDisposable
 
     public SequenceView(
         in ReadOnlySequence<T> sequence,
-        CsvConfiguration<T> configuration)
+        CsvReaderOptions<T> readerOptions)
     {
         if (sequence.IsSingleSegment)
         {
@@ -38,10 +38,10 @@ internal readonly struct SequenceView<T> : IDisposable
             _array = ArrayPool<T>.Shared.Rent(length);
             sequence.CopyTo(_array);
             Memory = _array.AsMemory(0, length);
-            _clearArray = configuration.Security.ClearBuffers();
+            _clearArray = readerOptions.Security.ClearBuffers();
         }
 
-        Memory = Memory.Trim(configuration.options.Whitespace.Span);
+        Memory = Memory.Trim(readerOptions.tokens.Whitespace.Span);
     }
 
     public void Dispose()

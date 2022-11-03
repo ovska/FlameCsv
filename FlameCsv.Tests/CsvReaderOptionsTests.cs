@@ -1,33 +1,24 @@
 using System.Globalization;
 using System.Text;
-using FlameCsv.Exceptions;
 using FlameCsv.Parsers.Text;
 
 namespace FlameCsv.Tests;
 
-public class CsvConfigurationTests
+public class CsvReaderOptionsTests
 {
     [Fact]
     public void Should_Support_Only_Byte_And_Char_Defaults()
     {
-        Assert.Throws<NotSupportedException>(() => CsvConfiguration<int>.DefaultBuilder);
-        Assert.Throws<NotSupportedException>(() => CsvConfiguration<int>.Default);
-        Assert.Null(Record.Exception(() => CsvConfiguration<byte>.Default));
-    }
-
-    [Fact]
-    public void Should_Validate_Parser_Count_When_Built()
-    {
-        Assert.Throws<CsvConfigurationException>(() => new CsvConfigurationBuilder<char>().Build());
+        Assert.Throws<NotSupportedException>(() => CsvReaderOptions<int>.Default);
+        Assert.Null(Record.Exception(() => CsvReaderOptions<byte>.Default));
     }
 
     [Fact]
     public void Should_Prioritize_Parsers_Added_Last()
     {
-        var config = new CsvConfigurationBuilder<char>()
+        var config = new CsvReaderOptions<char>()
             .AddParser(new IntegerTextParser(formatProvider: CultureInfo.CurrentCulture))
-            .AddParser(new IntegerTextParser(formatProvider: CultureInfo.InvariantCulture))
-            .Build();
+            .AddParser(new IntegerTextParser(formatProvider: CultureInfo.InvariantCulture));
 
         Assert.Equal(
             CultureInfo.InvariantCulture,
@@ -37,9 +28,9 @@ public class CsvConfigurationTests
     [Fact]
     public void Should_Return_Text_Defaults()
     {
-        var config = CsvConfiguration.GetTextDefaults();
+        var config = CsvOptions.GetTextReaderDefault();
 
-        Assert.Equal("\r\n", config.Options.NewLine.ToArray());
+        Assert.Equal("\r\n", config.Tokens.NewLine.ToArray());
 
         var boolParser = config.GetParser<bool>();
         Assert.True(boolParser.TryParse("true", out var bValue));
@@ -59,9 +50,9 @@ public class CsvConfigurationTests
     [Fact]
     public void Should_Return_Utf8_Defaults()
     {
-        var config = CsvConfiguration.GetUtf8Defaults();
+        var config = CsvOptions.GetUtf8ReaderDefault();
 
-        Assert.Equal(U8("\r\n"), config.Options.NewLine.ToArray());
+        Assert.Equal(U8("\r\n"), config.Tokens.NewLine.ToArray());
 
         var boolParser = config.GetParser<bool>();
         Assert.True(boolParser.TryParse(U8("true"), out var bValue));
@@ -83,16 +74,16 @@ public class CsvConfigurationTests
     [Fact]
     public void Should_Return_Skip_Callback()
     {
-        Assert.Throws<ArgumentException>(() => CsvConfiguration<char>.SkipIfStartsWith(default));
+        Assert.Throws<ArgumentException>(() => CsvReaderOptions<char>.SkipIfStartsWith(default));
 
-        var options = CsvParserOptions<char>.Windows with { Whitespace = " ".AsMemory() };
-        var commentfn = CsvConfiguration<char>.SkipIfStartsWith("#", skipEmptyOrWhitespace: false);
+        var options = CsvTokens<char>.Windows with { Whitespace = " ".AsMemory() };
+        var commentfn = CsvReaderOptions<char>.SkipIfStartsWith("#", skipEmptyOrWhitespace: false);
         Assert.True(commentfn("#test", in options));
         Assert.False(commentfn("t#est", in options));
         Assert.False(commentfn("", in options));
         Assert.False(commentfn(" ", in options));
 
-        var commentOrEmpty = CsvConfiguration<char>.SkipIfStartsWith("#", skipEmptyOrWhitespace: true);
+        var commentOrEmpty = CsvReaderOptions<char>.SkipIfStartsWith("#", skipEmptyOrWhitespace: true);
         Assert.True(commentOrEmpty("#test", in options));
         Assert.False(commentOrEmpty("t#est", in options));
         Assert.True(commentOrEmpty("", in options));

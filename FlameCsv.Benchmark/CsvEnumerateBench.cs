@@ -45,7 +45,7 @@ public class CsvEnumerateBench
         await using var stream = new MemoryStream(_file);
         using var reader = new TextPipeReader(new StreamReader(stream, Encoding.ASCII, false), 4096);
 
-        var options = CsvParserOptions<char>.Environment;
+        var options = CsvTokens<char>.Environment;
         using var _enumeratorBuffer = new BufferOwner<char>();
 
         while (true)
@@ -93,7 +93,7 @@ public class CsvEnumerateBench
         await using var stream = new MemoryStream(_file);
         var reader = PipeReader.Create(stream);
 
-        var options = CsvParserOptions<byte>.Environment;
+        var options = CsvTokens<byte>.Environment;
         using var _enumeratorBuffer = new BufferOwner<byte>();
 
         try
@@ -145,7 +145,7 @@ public class CsvEnumerateBench
     private static void EnumerateColumns<T>(
         in ReadOnlySequence<T> line,
         int stringDelimiterCount,
-        in CsvParserOptions<T> _options,
+        in CsvTokens<T> _options,
         BufferOwner<T> _enumeratorBuffer)
         where T : unmanaged, IEquatable<T>
     {
@@ -169,7 +169,7 @@ public class CsvEnumerateBench
     private static void EnumerateColumnSpan<T>(
         ReadOnlySpan<T> line,
         int stringDelimiterCount,
-        in CsvParserOptions<T> _options,
+        in CsvTokens<T> _options,
         BufferOwner<T> _enumeratorBuffer)
         where T : unmanaged, IEquatable<T>
     {

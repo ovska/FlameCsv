@@ -3,8 +3,10 @@ namespace FlameCsv.Parsers.Utf8;
 /// <summary>
 /// Represents the configuration for the built-in UTF8 parsers.
 /// </summary>
-public class CsvUtf8ParserConfiguration
+public class CsvUtf8ParsersConfig
 {
+    internal static readonly CsvUtf8ParsersConfig Default = new();
+
     /// <summary>
     /// Used by <see cref="IntegerUtf8Parser"/>. Default is <c>default(char)</c>.
     /// </summary>

@@ -16,22 +16,22 @@ public static partial class CsvReader
     /// To leave it open, use <see cref="PipeReader.Create(Stream,System.IO.Pipelines.StreamPipeReaderOptions?)"/>
     /// and the overload accepting a <see cref="PipeReader"/>.
     /// </remarks>
-    /// <param name="configuration">Configuration instance to use for binding and parsing</param>
     /// <param name="stream">Stream to read the records from</param>
+    /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="cancellationToken">Token to cancel the enumeration</param>
     /// <returns>
     /// <see cref="IAsyncEnumerable{T}"/> that reads records asynchronously line-by-line from the stream
     /// as it is enumerated.
     /// </returns>
     public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
-        CsvConfiguration<byte> configuration,
+        CsvReaderOptions<byte> options,
         Stream stream,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(stream);
         Guard.CanRead(stream);
-        return ReadAsync<TValue>(configuration, PipeReader.Create(stream), cancellationToken);
+        return ReadAsync<TValue>(options, PipeReader.Create(stream), cancellationToken);
     }
 
     /// <summary>
@@ -40,29 +40,29 @@ public static partial class CsvReader
     /// <remarks>
     /// The reader is completed at the end of the enumeration (on explicit dispose or at the end of a foreach-loop).
     /// </remarks>
-    /// <param name="configuration">Configuration instance to use for binding and parsing</param>
     /// <param name="reader">Pipe reader to read the records from</param>
+    /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="cancellationToken">Token to cancel the enumeration</param>
     /// <returns>
     /// <see cref="IAsyncEnumerable{T}"/> that reads records asynchronously line-by-line from the stream
     /// as it is enumerated.
     /// </returns>
     public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
-        CsvConfiguration<byte> configuration,
+        CsvReaderOptions<byte> options,
         PipeReader reader,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(reader);
 
-        if (configuration.BindingProvider is ICsvHeaderBindingProvider<byte>)
+        if (options.BindingProvider is ICsvHeaderBindingProvider<byte>)
         {
-            var processor = new CsvHeaderProcessor<byte, TValue>(configuration);
+            var processor = new CsvHeaderProcessor<byte, TValue>(options);
             return ReadAsyncInternal<TValue, CsvHeaderProcessor<byte, TValue>>(reader, processor, cancellationToken);
         }
         else
         {
-            var processor = new CsvProcessor<byte, TValue>(configuration);
+            var processor = new CsvProcessor<byte, TValue>(options);
             return ReadAsyncInternal<TValue, CsvProcessor<byte, TValue>>(reader, processor, cancellationToken);
         }
     }

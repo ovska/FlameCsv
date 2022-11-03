@@ -15,7 +15,7 @@ public static class ParserOptionsTests
     {
         AssertInvalid(default);
 
-        var o = CsvParserOptions<char>.Windows;
+        var o = CsvTokens<char>.Windows;
         AssertInvalid(o with { StringDelimiter = ',' });
         AssertInvalid(o with { Whitespace = ",".AsMemory() });
         AssertInvalid(o with { Whitespace = "\n".AsMemory() });
@@ -25,9 +25,9 @@ public static class ParserOptionsTests
         AssertInvalid(o with { NewLine = "\"".AsMemory() });
         AssertInvalid(o with { Delimiter = '\n' });
 
-        Assert.Null(Record.Exception(() => CsvParserOptions<char>.Windows.ThrowIfInvalid()));
+        Assert.Null(Record.Exception(() => CsvTokens<char>.Windows.ThrowIfInvalid()));
 
-        static void AssertInvalid(CsvParserOptions<char> options)
+        static void AssertInvalid(CsvTokens<char> options)
         {
             Assert.Throws<CsvConfigurationException>(() => options.ThrowIfInvalid());
         }
@@ -36,24 +36,24 @@ public static class ParserOptionsTests
     [Fact]
     public static void Should_Return_Default_Options()
     {
-        Assert.Equal(Environment.NewLine, CsvParserOptions<char>.Environment.NewLine.ToArray());
-        Assert.Equal("\n", CsvParserOptions<char>.Unix.NewLine.ToArray());
-        Assert.Equal("\r\n", CsvParserOptions<char>.Windows.NewLine.ToArray());
+        Assert.Equal(Environment.NewLine, CsvTokens<char>.Environment.NewLine.ToArray());
+        Assert.Equal("\n", CsvTokens<char>.Unix.NewLine.ToArray());
+        Assert.Equal("\r\n", CsvTokens<char>.Windows.NewLine.ToArray());
 
-        Assert.Equal(U8(Environment.NewLine), CsvParserOptions<byte>.Environment.NewLine.ToArray());
-        Assert.Equal(U8("\n"), CsvParserOptions<byte>.Unix.NewLine.ToArray());
-        Assert.Equal(U8("\r\n"), CsvParserOptions<byte>.Windows.NewLine.ToArray());
+        Assert.Equal(U8(Environment.NewLine), CsvTokens<byte>.Environment.NewLine.ToArray());
+        Assert.Equal(U8("\n"), CsvTokens<byte>.Unix.NewLine.ToArray());
+        Assert.Equal(U8("\r\n"), CsvTokens<byte>.Windows.NewLine.ToArray());
 
-        Assert.Throws<NotSupportedException>(() => CsvParserOptions<int>.Environment);
-        Assert.Throws<NotSupportedException>(() => CsvParserOptions<int>.Windows);
-        Assert.Throws<NotSupportedException>(() => CsvParserOptions<int>.Unix);
+        Assert.Throws<NotSupportedException>(() => CsvTokens<int>.Environment);
+        Assert.Throws<NotSupportedException>(() => CsvTokens<int>.Windows);
+        Assert.Throws<NotSupportedException>(() => CsvTokens<int>.Unix);
     }
 
     [Fact]
     public static void Should_Implement_IEquatable()
     {
-        var o1 = new CsvParserOptions<char>();
-        var o2 = new CsvParserOptions<char>();
+        var o1 = new CsvTokens<char>();
+        var o2 = new CsvTokens<char>();
         ShouldEqual();
 
         o1 = o1 with { NewLine = Environment.NewLine.AsMemory() };

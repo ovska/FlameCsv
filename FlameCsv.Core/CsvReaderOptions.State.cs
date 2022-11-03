@@ -8,7 +8,7 @@ using FlameCsv.Runtime;
 
 namespace FlameCsv;
 
-public sealed partial class CsvConfiguration<T>
+public sealed partial class CsvReaderOptions<T>
 {
     internal ICsvRowState<T, TResult> BindToState<TResult>()
     {

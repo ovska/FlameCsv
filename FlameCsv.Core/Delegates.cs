@@ -6,12 +6,12 @@ namespace FlameCsv;
 /// Callback for a CSV row or column.
 /// </summary>
 /// <param name="data">Row or column tokens</param>
-/// <param name="options">Current operation's options</param>
+/// <param name="tokens">Current operation's options</param>
 /// <typeparam name="T">CSV token type</typeparam>
 /// <typeparam name="TReturn">Return value</typeparam>
 public delegate TReturn CsvCallback<T, out TReturn>(
     ReadOnlySpan<T> data,
-    in CsvParserOptions<T> options)
+    in CsvTokens<T> tokens)
     where T : unmanaged, IEquatable<T>;
 
 /// <summary>

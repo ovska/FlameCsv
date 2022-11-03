@@ -40,11 +40,10 @@ public class CsvReadBench
     [Benchmark]
     public void FlameCsv_ASCII()
     {
-        var config = CsvConfiguration.GetTextDefaultsBuilder(
-                new CsvTextParserConfiguration{ DateTimeFormat = "yyyy'.'MM" })
-            .SetParserOptions(CsvParserOptions<char>.Environment)
-            .SetBinder(new IndexBindingProvider<char>())
-            .Build();
+        var config = CsvOptions.GetTextReaderDefault(
+                new CsvTextParsersConfig{ DateTimeFormat = "yyyy'.'MM" })
+            .SetTokens(CsvTokens<char>.Unix)
+            .SetBinder(new IndexBindingProvider<char>());
 
         foreach (var item in Readers.CsvReader.Read<Item>(config, _string))
         {
@@ -55,11 +54,10 @@ public class CsvReadBench
     [Benchmark]
     public void FlameCsv_Utf8()
     {
-        var config = CsvConfiguration<byte>.DefaultBuilder
+        var config = CsvReaderOptions<byte>.Default
             .AddParser(new YYYYMMParser())
-            .SetParserOptions(CsvParserOptions<byte>.Environment)
-            .SetBinder(new IndexBindingProvider<byte>())
-            .Build();
+            .SetTokens(CsvTokens<byte>.Environment)
+            .SetBinder(new IndexBindingProvider<byte>());
 
         foreach (var item in Readers.CsvReader.Read<byte, Item>(config, _file))
         {

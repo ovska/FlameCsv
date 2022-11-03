@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.Runtime.CompilerServices;
 using FlameCsv.Binding.Providers;
 
 namespace FlameCsv.Readers;
@@ -7,65 +6,65 @@ namespace FlameCsv.Readers;
 public static partial class CsvReader
 {
     // to avoid using two generics and AsMemory() for common operations
-    /// <inheritdoc cref="Read{T,TValue}(CsvConfiguration{T},ReadOnlyMemory{T})"/>
+    /// <inheritdoc cref="Read{T,TValue}(CsvReaderOptions{T},ReadOnlyMemory{T})"/>
     public static IEnumerable<TValue> Read<TValue>(
-        CsvConfiguration<char> configuration,
+        CsvReaderOptions<char> options,
         string csv)
     {
-        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(csv);
-        return Read<char, TValue>(configuration, new ReadOnlySequence<char>(csv.AsMemory()));
+        return Read<char, TValue>(options, new ReadOnlySequence<char>(csv.AsMemory()));
     }
 
     // to avoid using two generics for common operations
-    /// <inheritdoc cref="Read{T,TValue}(CsvConfiguration{T},ReadOnlyMemory{T})"/>
+    /// <inheritdoc cref="Read{T,TValue}(CsvReaderOptions{T},ReadOnlyMemory{T})"/>
     public static IEnumerable<TValue> Read<TValue>(
-        CsvConfiguration<char> configuration,
+        CsvReaderOptions<char> options,
         ReadOnlyMemory<char> csv)
     {
-        ArgumentNullException.ThrowIfNull(configuration);
-        return Read<char, TValue>(configuration, new ReadOnlySequence<char>(csv));
+        ArgumentNullException.ThrowIfNull(options);
+        return Read<char, TValue>(options, new ReadOnlySequence<char>(csv));
     }
 
     // to avoid using two generics for common operations
-    /// <inheritdoc cref="Read{T,TValue}(CsvConfiguration{T},ReadOnlyMemory{T})"/>
+    /// <inheritdoc cref="Read{T,TValue}(CsvReaderOptions{T},ReadOnlyMemory{T})"/>
     public static IEnumerable<TValue> Read<TValue>(
-        CsvConfiguration<byte> configuration,
+        CsvReaderOptions<byte> readerOptions,
         ReadOnlyMemory<byte> csv)
     {
-        ArgumentNullException.ThrowIfNull(configuration);
-        return Read<byte, TValue>(configuration, new ReadOnlySequence<byte>(csv));
+        ArgumentNullException.ThrowIfNull(readerOptions);
+        return Read<byte, TValue>(readerOptions, new ReadOnlySequence<byte>(csv));
     }
 
     /// <summary>
     /// Synchronously reads <typeparamref name="TValue"/> from the data.
     /// </summary>
-    /// <param name="configuration">Configuration instance to use for binding and parsing</param>
     /// <param name="csv">Data to read the records from</param>
+    /// <param name="options">Options instance containing tokens and parsers</param>
     /// <returns><see cref="IEnumerable{T}"/> that reads records line-by-line from the data.</returns>
     public static IEnumerable<TValue> Read<T, TValue>(
-        CsvConfiguration<T> configuration,
+        CsvReaderOptions<T> options,
         ReadOnlyMemory<T> csv)
         where T : unmanaged, IEquatable<T>
     {
-        ArgumentNullException.ThrowIfNull(configuration);
-        return Read<T, TValue>(configuration, new ReadOnlySequence<T>(csv));
+        ArgumentNullException.ThrowIfNull(options);
+        return Read<T, TValue>(options, new ReadOnlySequence<T>(csv));
     }
 
-    /// <inheritdoc cref="Read{T,TValue}(CsvConfiguration{T},ReadOnlyMemory{T})"/>
+    /// <inheritdoc cref="Read{T,TValue}(CsvReaderOptions{T},ReadOnlyMemory{T})"/>
     public static IEnumerable<TValue> Read<T, TValue>(
-        CsvConfiguration<T> configuration,
+        CsvReaderOptions<T> readerOptions,
         ReadOnlySequence<T> csv)
         where T : unmanaged, IEquatable<T>
     {
-        if (configuration.BindingProvider is ICsvHeaderBindingProvider<T>)
+        if (readerOptions.BindingProvider is ICsvHeaderBindingProvider<T>)
         {
-            var processor = new CsvHeaderProcessor<T, TValue>(configuration);
+            var processor = new CsvHeaderProcessor<T, TValue>(readerOptions);
             return ReadInternal<T, TValue, CsvHeaderProcessor<T, TValue>>(csv, processor);
         }
         else
         {
-            var processor = new CsvProcessor<T, TValue>(configuration);
+            var processor = new CsvProcessor<T, TValue>(readerOptions);
             return ReadInternal<T, TValue, CsvProcessor<T, TValue>>(csv, processor);
         }
     }

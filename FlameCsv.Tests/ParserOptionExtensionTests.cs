@@ -10,17 +10,17 @@ public static class ParserOptionExtensionTests
     {
         Assert.Equal(
             "abc".ToCharArray(),
-            CsvParserOptions<char>.Environment.WithWhitespace("abc").Whitespace.ToArray());
+            CsvTokens<char>.Environment.WithWhitespace("abc").Whitespace.ToArray());
 
         Assert.Equal(
             new[] { (byte)'a', (byte)'b', (byte)'c' },
-            CsvParserOptions<byte>.Environment.WithWhitespace("abc").Whitespace.ToArray());
+            CsvTokens<byte>.Environment.WithWhitespace("abc").Whitespace.ToArray());
     }
 
     [Fact]
     public static void Should_Convert_To_Utf()
     {
-        var opts = new CsvParserOptions<char>
+        var opts = new CsvTokens<char>
         {
             StringDelimiter = 'x',
             Delimiter = 'y',
@@ -38,7 +38,7 @@ public static class ParserOptionExtensionTests
     [Fact]
     public static void Should_Convert_From_Utf()
     {
-        var opts = new CsvParserOptions<byte>
+        var opts = new CsvTokens<byte>
         {
             StringDelimiter = (byte)'x',
             Delimiter = (byte)'y',
@@ -55,13 +55,13 @@ public static class ParserOptionExtensionTests
     public static void Should_Validate_Input()
     {
         Assert.Throws<InvalidOperationException>(
-            () => new CsvParserOptions<char>
+            () => new CsvTokens<char>
             {
                 StringDelimiter = '°',
             }.ToUtf8Bytes());
 
         Assert.Throws<InvalidOperationException>(
-            () => new CsvParserOptions<byte>
+            () => new CsvTokens<byte>
             {
                 StringDelimiter = byte.MaxValue,
             }.FromUtf8Bytes());

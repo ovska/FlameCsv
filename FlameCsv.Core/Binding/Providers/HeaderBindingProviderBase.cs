@@ -48,7 +48,7 @@ public abstract class HeaderBindingProviderBase<T, TResult> : ICsvHeaderBindingP
         UnmatchedBehavior = unmatchedBehavior;
     }
 
-    public virtual bool TryProcessHeader(ReadOnlySpan<T> line, CsvConfiguration<T> configuration)
+    public virtual bool TryProcessHeader(ReadOnlySpan<T> line, CsvReaderOptions<T> readerOptions)
     {
         var candidates = GetBindingCandidates().ToArray().AsSpan();
         candidates.Sort(static (a, b) => b.Order.CompareTo(a.Order));
@@ -56,13 +56,13 @@ public abstract class HeaderBindingProviderBase<T, TResult> : ICsvHeaderBindingP
         List<CsvBinding> foundBindings = new();
         int index = 0;
 
-        using var buffer = new BufferOwner<T>(configuration.Security);
+        using var buffer = new BufferOwner<T>(readerOptions.Security);
 
         var enumerator = new CsvColumnEnumerator<T>(
             line,
-            in configuration.options,
+            in readerOptions.tokens,
             columnCount: null,
-            quoteCount: line.Count(configuration.options.StringDelimiter),
+            quoteCount: line.Count(readerOptions.tokens.StringDelimiter),
             buffer);
 
         foreach (var value in enumerator)

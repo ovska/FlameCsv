@@ -44,14 +44,13 @@ public class Temp
                 new(2, typeof(Obj).GetProperty("C")!),
             });
 
-        var configuration = new CsvConfigurationBuilder<char>()
+        var configuration = new CsvReaderOptions<char>()
             .AddParser(new IntegerTextParser())
-            .AddParser(new DateTimeTextParser("o"))
-            .Build();
+            .AddParser(new DateTimeTextParser("o"));
 
         var state = configuration.CreateState(bindings);
 
-        var opts = CsvParserOptions<char>.Unix;
+        var opts = CsvTokens<char>.Unix;
         using var bo = new BufferOwner<char>();
         var enumerator = new CsvColumnEnumerator<char>(
             "1,2,2015-01-01T00:00:00.0000000Z",

@@ -13,6 +13,6 @@ public interface ICsvParserOverride
     /// Returns a parser for the binding's member.
     /// </summary>
     /// <exception cref="CsvConfigurationException">Thrown if the parser cannot be created</exception>
-    ICsvParser<T> CreateParser<T>(CsvBinding binding, CsvConfiguration<T> configuration)
+    ICsvParser<T> CreateParser<T>(CsvBinding binding, CsvReaderOptions<T> readerOptions)
         where T : unmanaged, IEquatable<T>;
 }

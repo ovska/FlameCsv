@@ -158,7 +158,7 @@ internal class CsvStreamWriter
 
 internal sealed class WriteState
 {
-    public static CsvCallback<T, bool> ShouldEscape<T>(Span<T> buffer, CsvParserOptions<T> options)
+    public static CsvCallback<T, bool> ShouldEscape<T>(Span<T> buffer, CsvTokens<T> options)
         where T : unmanaged, IEquatable<T>
     {
         T[] tokens = new T[2 + options.NewLine.Length + options.Whitespace.Length];
@@ -176,12 +176,12 @@ internal sealed class WriteState
         T t2 = tokens[2];
         return FastImp;
 
-        bool Impl(ReadOnlySpan<T> data, in CsvParserOptions<T> _)
+        bool Impl(ReadOnlySpan<T> data, in CsvTokens<T> _)
         {
             return data.IndexOfAny(tokens) >= 0;
         }
 
-        bool FastImp(ReadOnlySpan<T> data, in CsvParserOptions<T> _)
+        bool FastImp(ReadOnlySpan<T> data, in CsvTokens<T> _)
         {
             return data.IndexOfAny(t0, t1, t2) >= 0;
         }
