@@ -70,7 +70,7 @@ public struct CsvRecord<T> : IEnumerable<ReadOnlyMemory<T>>, IEnumerator<ReadOnl
     public TValue GetValue<TValue>(int index)
     {
         Guard.IsGreaterThanOrEqualTo(index, 0);
-        Reset();
+        Reset(); // TODO FIXME: cache parsed columns
 
         while (Column <= index)
         {
