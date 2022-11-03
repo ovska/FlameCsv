@@ -12,6 +12,8 @@ public class Base64TextParser :
     ICsvParser<char, Memory<byte>>,
     ICsvParser<char, ReadOnlyMemory<byte>>
 {
+    internal static readonly Base64TextParser Instance = new();
+
     public bool TryParse(ReadOnlySpan<char> span, out byte[] value)
     {
         value = Decode(span);
