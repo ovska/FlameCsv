@@ -18,7 +18,7 @@ public static partial class CsvReader
     /// <param name="stream">Stream reader to read the records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="encoding">
-    /// Encoding to initialize the <see cref="StreamWriter"/> with, set to null to auto-detect
+    /// Encoding to initialize the <see cref="StreamWriter"/> with, set to null to auto-detect (default behavior)
     /// </param>
     /// <param name="leaveOpen">
     /// If <see langword="true"/>, the stream and writer are not disposed at the end of the enumeration
@@ -29,19 +29,19 @@ public static partial class CsvReader
     /// as it is enumerated.
     /// </returns>
     public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
-        CsvReaderOptions<char> options,
         Stream stream,
-        Encoding? encoding,
+        CsvReaderOptions<char> options,
+        Encoding? encoding = null,
         bool leaveOpen = false,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(stream);
+        ArgumentNullException.ThrowIfNull(options);
         Guard.CanRead(stream);
 
         return ReadAsync<TValue>(
-            options,
             new StreamReader(stream, encoding: encoding, leaveOpen: leaveOpen, bufferSize: 4096),
+            options,
             leaveOpen,
             cancellationToken);
     }
@@ -63,13 +63,13 @@ public static partial class CsvReader
     /// as it is enumerated.
     /// </returns>
     public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
-        CsvReaderOptions<char> options,
         TextReader textReader,
+        CsvReaderOptions<char> options,
         bool leaveOpen = false,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(textReader);
+        ArgumentNullException.ThrowIfNull(options);
 
         if (options.BindingProvider is ICsvHeaderBindingProvider<char>)
         {

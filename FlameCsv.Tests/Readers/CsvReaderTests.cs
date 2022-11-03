@@ -55,7 +55,7 @@ public static class CsvReaderTests
                     Encoding.UTF8,
                     bufferSize: bufferSize);
 
-                await foreach (var obj in CsvReader.ReadAsync<Obj>(options, reader))
+                await foreach (var obj in CsvReader.ReadAsync<Obj>(reader, options))
                 {
                     items.Add(obj);
                 }
@@ -64,7 +64,7 @@ public static class CsvReaderTests
             {
                 var sequence = MemorySegment<char>.AsSequence(GetDataChars(), bufferSize);
 
-                foreach (var obj in CsvReader.Read<char, Obj>(options, sequence))
+                foreach (var obj in CsvReader.Read<char, Obj>(sequence, options))
                 {
                     items.Add(obj);
                 }
@@ -85,7 +85,7 @@ public static class CsvReaderTests
                     new MemoryStream(GetDataBytes()),
                     new StreamPipeReaderOptions(bufferSize: bufferSize));
 
-                await foreach (var obj in CsvReader.ReadAsync<Obj>(options, pipeReader))
+                await foreach (var obj in CsvReader.ReadAsync<Obj>(pipeReader, options))
                 {
                     items.Add(obj);
                 }
@@ -94,7 +94,7 @@ public static class CsvReaderTests
             {
                 var sequence = MemorySegment<byte>.AsSequence(GetDataBytes(), bufferSize);
 
-                foreach (var obj in CsvReader.Read<byte, Obj>(options, sequence))
+                foreach (var obj in CsvReader.Read<byte, Obj>(sequence, options))
                 {
                     items.Add(obj);
                 }
@@ -146,7 +146,7 @@ public static class CsvReaderTests
         using var reader = new StreamReader(ms, bufferSize: 128);
         var options = CsvReaderOptions<char>.Default.SetBinder(new IndexBindingProvider<char>());
 
-        await foreach (var item in CsvReader.ReadAsync<Obj>(options, reader))
+        await foreach (var item in CsvReader.ReadAsync<Obj>(reader, options))
         {
             objs.Add(item);
         }
