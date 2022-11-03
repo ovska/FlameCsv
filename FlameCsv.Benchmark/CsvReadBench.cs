@@ -45,7 +45,7 @@ public class CsvReadBench
             .SetTokens(CsvTokens<char>.Unix)
             .SetBinder(new IndexBindingProvider<char>());
 
-        foreach (var item in Readers.CsvReader.Read<Item>(config, _string))
+        foreach (var item in Readers.CsvReader.Read<Item>(_string, config))
         {
             _ = item;
         }
@@ -59,7 +59,7 @@ public class CsvReadBench
             .SetTokens(CsvTokens<byte>.Environment)
             .SetBinder(new IndexBindingProvider<byte>());
 
-        foreach (var item in Readers.CsvReader.Read<byte, Item>(config, _file))
+        foreach (var item in Readers.CsvReader.Read<Item>(_file, config))
         {
             _ = item;
         }

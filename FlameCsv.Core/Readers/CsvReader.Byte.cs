@@ -24,14 +24,14 @@ public static partial class CsvReader
     /// as it is enumerated.
     /// </returns>
     public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
-        CsvReaderOptions<byte> options,
         Stream stream,
+        CsvReaderOptions<byte> options,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(stream);
+        ArgumentNullException.ThrowIfNull(options);
         Guard.CanRead(stream);
-        return ReadAsync<TValue>(options, PipeReader.Create(stream), cancellationToken);
+        return ReadAsync<TValue>(PipeReader.Create(stream), options, cancellationToken);
     }
 
     /// <summary>
@@ -48,12 +48,12 @@ public static partial class CsvReader
     /// as it is enumerated.
     /// </returns>
     public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
-        CsvReaderOptions<byte> options,
         PipeReader reader,
+        CsvReaderOptions<byte> options,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(options);
 
         if (options.BindingProvider is ICsvHeaderBindingProvider<byte>)
         {

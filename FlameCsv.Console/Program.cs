@@ -62,7 +62,7 @@ var config_ = CsvOptions
     .AddParser(new YYYYMMParser())
     .SetBinder(new ManualBindingProvider<byte, Item>(bindings));
 var result = new List<Item>();
-await foreach (var item in FlameCsv.Readers.CsvReader.ReadAsync<Item>(config_, stream))
+await foreach (var item in FlameCsv.Readers.CsvReader.ReadAsync<Item>(stream, config_))
 {
     result.Add(item);
 }
@@ -79,7 +79,7 @@ try
     using (var reader = new StreamReader("/home/sipi/test.csv"))
     {
         var result__ = new List<Item>();
-        await foreach (var item in FlameCsv.Readers.CsvReader.ReadAsync<Item>(_config_, reader))
+        await foreach (var item in FlameCsv.Readers.CsvReader.ReadAsync<Item>(reader, _config_))
         {
             result__.Add(item);
         }
