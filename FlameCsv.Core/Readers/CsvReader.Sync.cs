@@ -5,6 +5,16 @@ namespace FlameCsv.Readers;
 
 public static partial class CsvReader
 {
+    public static CsvEnumerator<T> Enumerate<T>(
+        ReadOnlySequence<T> csv,
+        CsvReaderOptions<T> options)
+        where T : unmanaged, IEquatable<T>
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        return new CsvEnumerator<T>(csv, options, null);
+    }
+
     // to avoid using two generics and AsMemory() for common operations
     /// <inheritdoc cref="Read{T,TValue}(CsvReaderOptions{T},ReadOnlyMemory{T})"/>
     public static IEnumerable<TValue> Read<TValue>(

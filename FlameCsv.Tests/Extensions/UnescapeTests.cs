@@ -3,7 +3,7 @@ using FlameCsv.Readers.Internal;
 
 namespace FlameCsv.Tests.Extensions;
 
-public class StringDelimiterExtensionTests
+public class UnescapeTests
 {
     [Theory]
     [InlineData("\"test\"", "test")]
@@ -18,8 +18,12 @@ public class StringDelimiterExtensionTests
     {
         using var buffer = new BufferOwner<char>();
         var delimiterCount = input.Count(c => c == '"');
-        var actual = input.AsSpan().Unescape('\"', delimiterCount, buffer);
-        Assert.Equal(expected, new string(actual));
+
+        var actualSpan = input.AsSpan().Unescape('\"', delimiterCount, buffer);
+        Assert.Equal(expected, new string(actualSpan));
+
+        var actualMemory = input.AsMemory().Unescape('\"', delimiterCount, buffer);
+        Assert.Equal(expected, new string(actualMemory.Span));
     }
 
     [Theory]
@@ -35,5 +39,6 @@ public class StringDelimiterExtensionTests
     {
         using var buffer = new BufferOwner<char>();
         Assert.Throws<InvalidOperationException>(() => input.AsSpan().Unescape('\"', 4, buffer));
+        Assert.Throws<InvalidOperationException>(() => input.AsMemory().Unescape('\"', 4, buffer));
     }
 }
