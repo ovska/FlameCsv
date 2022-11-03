@@ -34,7 +34,10 @@ public static class CsvReaderTests
             from newline in new[] { "\n", "\r\n" }
             from writeHeader in new[] { true, false }
             from writeTrailingNewline in new[] { true, false }
-            select new object[] { api, type, bufferSize, newline, writeHeader, writeTrailingNewline };
+            from hasStrings in new[] { true, false }
+            from hasWhitespace in new[] { true, false }
+            select new object[]
+                { api, type, bufferSize, newline, writeHeader, writeTrailingNewline, hasStrings, hasWhitespace };
     }
 
     [Theory]
@@ -44,24 +47,33 @@ public static class CsvReaderTests
         Type type,
         int bufferSize,
         string newLine,
-        bool writeHeader,
-        bool writeTrailingNewline)
+        bool hasHeader,
+        bool trailingNewline,
+        bool hasStrings,
+        bool hasWhitespace)
     {
+        using var writer = new ArrayPoolBufferWriter<char>();
+
         List<Obj> items = new();
 
         if (type == typeof(char))
         {
             var options = CsvOptions.GetTextReaderDefault(new CsvTextParsersConfig { DateTimeFormat = "O" });
             options.Tokens = options.Tokens.WithNewLine(newLine);
-            if (!writeHeader)
+
+            if (hasWhitespace)
+                options.tokens = options.tokens.WithWhitespace(" ");
+            if (!hasHeader)
                 options.SetBinder(new IndexBindingProvider<char>());
             else
                 options.SetBinder(new HeaderTextBindingProvider<Obj>());
 
             if (api == CsvApi.Async)
             {
+                using var owner = GetDataBytes();
+                var segment = owner.DangerousGetArray();
                 using var reader = new StreamReader(
-                    new MemoryStream(GetDataBytes()),
+                    new MemoryStream(segment.Array!, segment.Offset, segment.Count),
                     Encoding.UTF8,
                     bufferSize: bufferSize);
 
@@ -83,7 +95,7 @@ public static class CsvReaderTests
                 }
                 else
                 {
-                    EnumerateToList(writeHeader, sequence, options, items);
+                    EnumerateToList(hasHeader, sequence, options, items);
                 }
             }
         }
@@ -91,15 +103,21 @@ public static class CsvReaderTests
         {
             var options = CsvOptions.GetUtf8ReaderDefault(new CsvUtf8ParsersConfig { DateTimeFormat = 'O' });
             options.Tokens = options.Tokens.WithNewLine(newLine);
-            if (!writeHeader)
+
+            if (hasWhitespace)
+                options.tokens = options.tokens.WithWhitespace(" ");
+            if (!hasHeader)
                 options.SetBinder(new IndexBindingProvider<byte>());
             else
                 options.SetBinder(new HeaderUtf8BindingProvider<Obj>());
 
+            using var owner = GetDataBytes();
+
             if (api == CsvApi.Async)
             {
+                var segment = owner.DangerousGetArray();
                 var pipeReader = PipeReader.Create(
-                    new MemoryStream(GetDataBytes()),
+                    new MemoryStream(segment.Array!, segment.Offset, segment.Count),
                     new StreamPipeReaderOptions(bufferSize: bufferSize));
 
                 await foreach (var obj in CsvReader.ReadAsync<Obj>(pipeReader, options))
@@ -109,7 +127,7 @@ public static class CsvReaderTests
             }
             else
             {
-                var sequence = MemorySegment<byte>.AsSequence(GetDataBytes(), bufferSize);
+                var sequence = MemorySegment<byte>.AsSequence(owner.Memory, bufferSize);
 
                 if (api == CsvApi.Sync)
                 {
@@ -120,7 +138,7 @@ public static class CsvReaderTests
                 }
                 else
                 {
-                    EnumerateToList(writeHeader, sequence, options, items);
+                    EnumerateToList(hasHeader, sequence, options, items);
                 }
             }
         }
@@ -135,26 +153,24 @@ public static class CsvReaderTests
         {
             var obj = items[i];
             Assert.Equal(i, obj.Id);
-            Assert.Equal($"Name-{i}", obj.Name);
+            Assert.Equal(hasStrings ? $"Name\"{i}" : $"Name-{i}", obj.Name);
             Assert.Equal(i % 2 == 0, obj.IsEnabled);
             Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(i), obj.LastLogin);
             Assert.Equal(new Guid(i, 0, 0, TestDataGenerator._guidbytes), obj.Token);
         }
 
-        byte[] GetDataBytes()
+        MemoryOwner<byte> GetDataBytes()
         {
-            using var writer = new ArrayPoolBufferWriter<char>();
-            TestDataGenerator.Generate(writer, newLine, writeHeader, writeTrailingNewline);
-            var data = new byte[Encoding.UTF8.GetByteCount(writer.WrittenSpan)];
-            Assert.Equal(data.Length, Encoding.UTF8.GetBytes(writer.WrittenSpan, data));
-            return data;
+            TestDataGenerator.Generate(writer, newLine, hasHeader, trailingNewline, hasStrings, hasWhitespace);
+            var owner = MemoryOwner<byte>.Allocate(Encoding.UTF8.GetByteCount(writer.WrittenSpan));
+            Assert.Equal(owner.Length, Encoding.UTF8.GetBytes(writer.WrittenSpan, owner.Span));
+            return owner;
         }
 
-        char[] GetDataChars()
+        ReadOnlyMemory<char> GetDataChars()
         {
-            using var writer = new ArrayPoolBufferWriter<char>();
-            TestDataGenerator.Generate(writer, newLine, writeHeader, writeTrailingNewline);
-            return writer.WrittenSpan.ToArray();
+            TestDataGenerator.Generate(writer, newLine, hasHeader, trailingNewline, hasStrings, hasWhitespace);
+            return writer.WrittenMemory;
         }
     }
 

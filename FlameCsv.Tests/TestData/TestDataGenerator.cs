@@ -20,7 +20,9 @@ internal static class TestDataGenerator
         IBufferWriter<char> writer,
         string newLine,
         bool writeHeader,
-        bool writeTrailingNewline)
+        bool writeTrailingNewline,
+        bool requireEscaping,
+        bool hasWhitespace)
     {
         if (writeHeader)
         {
@@ -32,11 +34,15 @@ internal static class TestDataGenerator
         {
             if (i != 0) writer.Write(newLine);
 
-            writer.Write(i.ToString());
+            writer.Write(requireEscaping ? $"\"{i}\"" : i.ToString());
             writer.Write(",");
-            writer.Write($"Name-{i}");
+            if (hasWhitespace) writer.Write(" ");
+            writer.Write(requireEscaping ? $"\"Name\"\"{i}\"" : $"Name-{i}");
+            if (hasWhitespace) writer.Write(" ");
             writer.Write(",");
+            if (hasWhitespace) writer.Write(" ");
             writer.Write(i % 2 == 0 ? "true" : "false");
+            if (hasWhitespace) writer.Write(" ");
             writer.Write(",");
             writer.Write(DateTimeOffset.UnixEpoch.AddDays(i).ToString("O"));
             writer.Write(",");
