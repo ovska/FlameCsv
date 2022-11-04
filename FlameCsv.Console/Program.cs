@@ -1,6 +1,7 @@
 ﻿using System.Buffers.Text;
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using CsvHelper;
 using CsvHelper.TypeConversion;
 using FlameCsv;
@@ -8,6 +9,10 @@ using FlameCsv.Binding;
 using FlameCsv.Binding.Providers;
 using FlameCsv.Parsers;
 using FlameCsv.Parsers.Text;
+
+var SIZEOFMEM = Unsafe.SizeOf<ReadOnlyMemory<char>>();
+var SIZEOFMEM2 = Unsafe.SizeOf<ReadOnlyMemory<byte>>();
+var SIZEOFRANGE = Unsafe.SizeOf<Range>();
 
 var xyz = Enumerable.Range(0, byte.MaxValue)
     .Select(i => (char)i)

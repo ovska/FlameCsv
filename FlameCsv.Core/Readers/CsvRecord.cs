@@ -9,9 +9,38 @@ using FlameCsv.Readers.Internal;
 
 namespace FlameCsv.Readers;
 
-// todo: public api description
-public struct CsvRecord<T> : IEnumerable<ReadOnlyMemory<T>>, IEnumerator<ReadOnlyMemory<T>>
+public interface ICsvRecord<T> :
+    IEnumerable<ReadOnlyMemory<T>>,
+    IEnumerator<ReadOnlyMemory<T>>
     where T : unmanaged, IEquatable<T>
+{
+    /// <summary>
+    /// Token position at the start of <see cref="Data"/> in the CSV.
+    /// </summary>
+    long Position { get; }
+
+    /// <summary>
+    /// 1-based line index in the CSV.
+    /// </summary>
+    int Line { get; }
+
+    /// <summary>
+    /// The complete unescaped data on the line without trailing newline tokens.
+    /// </summary>
+    ReadOnlyMemory<T> Data { get; }
+
+    /// <inheritdoc cref="CsvColumnEnumerator{T}.Column"/>
+    public int Column { get; }
+
+    /// <inheritdoc cref="CsvColumnEnumerator{T}.IsKnownLastColumn"/>
+    public bool IsKnownLastColumn { get; }
+
+    /// <inheritdoc cref="CsvColumnEnumerator{T}.IsAtEnd"/>
+    public bool IsAtEnd { get; }
+}
+
+// todo: public api description
+public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
 {
     private readonly int? _columnCount;
     private readonly BufferOwner<T> _bufferOwner;
@@ -21,9 +50,19 @@ public struct CsvRecord<T> : IEnumerable<ReadOnlyMemory<T>>, IEnumerator<ReadOnl
     private int _quotesRemaining;
 
     /// <summary>
+    /// Token positionat the start of line in the source data.
+    /// </summary>
+    public long Position { get; }
+
+    /// <summary>
+    /// 1-based line index in the source data.
+    /// </summary>
+    public int Line { get; }
+
+    /// <summary>
     /// The complete unescaped data on the line without trailing newline tokens.
     /// </summary>
-    public ReadOnlyMemory<T> Line { get; }
+    public ReadOnlyMemory<T> Data { get; }
 
     /// <inheritdoc cref="CsvColumnEnumerator{T}.Current"/>
     public ReadOnlyMemory<T> Current { get; private set; }
@@ -47,20 +86,25 @@ public struct CsvRecord<T> : IEnumerable<ReadOnlyMemory<T>>, IEnumerator<ReadOnl
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvRecord(
-        ReadOnlyMemory<T> line,
+        ReadOnlyMemory<T> data,
         CsvReaderOptions<T> options,
         int? columnCount,
         int? quoteCount,
-        BufferOwner<T> bufferOwner)
+        BufferOwner<T> bufferOwner,
+        long position,
+        int line)
     {
+        Position = position;
+        Line = line;
+
         _columnCount = columnCount;
         _bufferOwner = bufferOwner;
 
-        _remaining = line;
+        _remaining = data;
         _options = options;
-        _quotesRemaining = quoteCount ?? line.Span.Count(options.tokens.StringDelimiter);
+        _quotesRemaining = quoteCount ?? data.Span.Count(options.tokens.StringDelimiter);
 
-        Line = line;
+        Data = data;
         Column = 0;
         Current = default;
     }
@@ -205,8 +249,8 @@ public struct CsvRecord<T> : IEnumerable<ReadOnlyMemory<T>>, IEnumerator<ReadOnl
 
     public void Reset()
     {
-        _remaining = Line;
-        _quotesRemaining = Line.Span.Count(_options.tokens.StringDelimiter);
+        _remaining = Data;
+        _quotesRemaining = Data.Span.Count(_options.tokens.StringDelimiter);
         Column = 0;
         Current = default;
     }

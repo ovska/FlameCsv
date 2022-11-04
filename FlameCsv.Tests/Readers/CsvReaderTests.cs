@@ -206,8 +206,16 @@ public static class CsvReaderTests
         CsvReaderOptions<T> options,
         ICollection<Obj> items) where T : unmanaged, IEquatable<T>
     {
+        int index = 1;
+        long tokenPosition = 0;
+
         foreach (var record in CsvReader.Enumerate(sequence, options))
         {
+            Assert.Equal(index++, record.Line);
+            Assert.Equal(tokenPosition, record.Position);
+
+            tokenPosition += record.Data.Length + options.tokens.NewLine.Length;
+
             if (skipFirst)
             {
                 skipFirst = false;
