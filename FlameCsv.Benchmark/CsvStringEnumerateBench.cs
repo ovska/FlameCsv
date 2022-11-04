@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using CommunityToolkit.Diagnostics;
+using FlameCsv.Extensions;
 using FlameCsv.Readers;
 using FlameCsv.Readers.Internal;
 using CsvReader = CsvHelper.CsvReader;
@@ -43,7 +44,7 @@ public class CsvStringEnumerateBench
     {
         var buffer = new ReadOnlySequence<char>(_string.AsMemory());
         var options = CsvTokens<char>.Environment;
-        using var _enumeratorBuffer = default(BufferOwner<char>)!;
+        using BufferOwner<char> _enumeratorBuffer = null!;
 
         while (LineReader.TryRead(in options, ref buffer, out var line, out int quoteCount))
         {
@@ -72,11 +73,27 @@ public class CsvStringEnumerateBench
     }
 
     [Benchmark]
+    public void FlameCsv_Enumerator()
+    {
+        var options = CsvReaderOptions<byte>.Default;
+        options.tokens = options.tokens.WithNewLine("\n");
+
+        var seq = new ReadOnlySequence<byte>(_bytes);
+        foreach (var record in FlameCsv.Readers.CsvReader.Enumerate(seq, options))
+        {
+            foreach (var column in record)
+            {
+                _ = column;
+            }
+        }
+    }
+
+    [Benchmark]
     public void FlameCsv_Utf8()
     {
         var buffer = new ReadOnlySequence<byte>(_bytes);
         var options = CsvTokens<byte>.Environment;
-        using var _enumeratorBuffer = default(BufferOwner<byte>)!;
+        using BufferOwner<byte> _enumeratorBuffer = null!;
 
         while (LineReader.TryRead(in options, ref buffer, out var line, out int quoteCount))
         {

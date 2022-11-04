@@ -17,17 +17,8 @@ public struct CsvEnumerator<T> : IEnumerable<CsvRecord<T>>, IEnumerator<CsvRecor
     private readonly BufferOwner<T> _recordBuffer;
     private readonly BufferOwner<T> _multisegmentBuffer;
 
-    /// <summary>
-    /// Start index of the current line in the data.
-    /// First line starts at 0.
-    /// Equals length of the data after enumeration.
-    /// </summary>
-    public long Position { get; private set; }
-
-    /// <summary>
-    /// 1-based index of the line.
-    /// </summary>
-    public int Line { get; private set; }
+    private long _position;
+    private int _lineIndex;
 
     internal CsvEnumerator(
         ReadOnlySequence<T> data,
@@ -37,8 +28,8 @@ public struct CsvEnumerator<T> : IEnumerable<CsvRecord<T>>, IEnumerator<CsvRecor
         _data = data;
         _options = options;
         _columnCount = columnCount;
-        Position = default;
-        Line = default;
+        _position = default;
+        _lineIndex = default;
 
         _recordBuffer = new();
         _multisegmentBuffer = new();
@@ -52,31 +43,25 @@ public struct CsvEnumerator<T> : IEnumerable<CsvRecord<T>>, IEnumerator<CsvRecor
     {
         if (LineReader.TryRead(in _options.tokens, ref _data, out var line, out int quoteCount))
         {
-            Position += Current.Line.Length;
-            Line++;
-
-            Current = GetRecord(in line, quoteCount);
+            MoveNextImpl(in line, quoteCount, hasNewline: true);
             return true;
         }
 
         // If data didn't have trailing newline
         if (!_data.IsEmpty)
         {
-            Position += Current.Line.Length;
-            Line++;
-
-            Current = GetRecord(in _data, quoteCount: null);
+            MoveNextImpl(in _data, quoteCount: null, hasNewline: false);
             _data = default; // consume all data
             return true;
         }
 
-        Position += Current.Line.Length; // 0 if uninitialized
+        _position += Current.Data.Length;
         Current = default;
         return false;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private CsvRecord<T> GetRecord(in ReadOnlySequence<T> line, int? quoteCount)
+    private void MoveNextImpl(in ReadOnlySequence<T> line, int? quoteCount, bool hasNewline)
     {
         ReadOnlyMemory<T> memory;
 
@@ -92,7 +77,17 @@ public struct CsvEnumerator<T> : IEnumerable<CsvRecord<T>>, IEnumerator<CsvRecor
             memory = buffer;
         }
 
-        return new CsvRecord<T>(memory, _options, _columnCount, quoteCount, _recordBuffer);
+        Current = new CsvRecord<T>(
+            memory,
+            _options,
+            _columnCount,
+            quoteCount,
+            _recordBuffer,
+            _position,
+            ++_lineIndex);
+
+        _position += Current.Data.Length;
+        if (hasNewline) _position += _options.tokens.NewLine.Length;
     }
 
     public void Dispose()
