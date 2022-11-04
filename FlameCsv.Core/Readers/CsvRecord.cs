@@ -94,14 +94,15 @@ public struct CsvRecord<T> : IEnumerable<ReadOnlyMemory<T>>, IEnumerator<ReadOnl
         var quotesConsumed = 0;
 
         // If the remaining row has no quotes seek the next comma directly
+        var remaining = _remaining.Span;
         var index = _quotesRemaining == 0
-            ? _remaining.Span.IndexOf(_options.tokens.Delimiter)
-            : _remaining.Span.IndexOfAny(_options.tokens.Delimiter, _options.tokens.StringDelimiter);
+            ? remaining.IndexOf(_options.tokens.Delimiter)
+            : remaining.IndexOfAny(_options.tokens.Delimiter, _options.tokens.StringDelimiter);
 
         while (index >= 0)
         {
             // Hit a comma, either found end of column or more columns than expected
-            if (_remaining.Span[index].Equals(_options.tokens.Delimiter))
+            if (remaining[index].Equals(_options.tokens.Delimiter))
             {
                 if (IsKnownLastColumn) ThrowTooManyColumns(index);
 
@@ -116,8 +117,8 @@ public struct CsvRecord<T> : IEnumerable<ReadOnlyMemory<T>>, IEnumerator<ReadOnl
             index++; // move index past the quote
 
             var nextIndex = --_quotesRemaining == 0
-                ? _remaining.Slice(index).Span.IndexOf(_options.tokens.Delimiter)
-                : _remaining.Slice(index).Span.IndexOfAny(_options.tokens.Delimiter, _options.tokens.StringDelimiter);
+                ? remaining.Slice(index).IndexOf(_options.tokens.Delimiter)
+                : remaining.Slice(index).IndexOfAny(_options.tokens.Delimiter, _options.tokens.StringDelimiter);
 
             if (nextIndex < 0)
                 break;
