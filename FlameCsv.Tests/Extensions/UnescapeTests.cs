@@ -1,10 +1,18 @@
+using System.Buffers;
 using FlameCsv.Extensions;
-using FlameCsv.Readers.Internal;
 
 namespace FlameCsv.Tests.Extensions;
 
-public class UnescapeTests
+public sealed class UnescapeTests : IDisposable
 {
+    private char[]? buffer;
+
+    void IDisposable.Dispose()
+    {
+        if (buffer != null)
+            ArrayPool<char>.Shared.Return(buffer);
+    }
+
     [Theory]
     [InlineData("\"test\"", "test")]
     [InlineData("\"\"", "")]
@@ -14,15 +22,14 @@ public class UnescapeTests
     [InlineData("\"\"\"\"", "\"")]
     [InlineData("\"Some long, sentence\"", "Some long, sentence")]
     [InlineData("\"James \"\"007\"\" Bond\"", "James \"007\" Bond")]
-    public static void Should_Unescape(string input, string expected)
+    public void Should_Unescape(string input, string expected)
     {
-        using var buffer = new BufferOwner<char>();
         var delimiterCount = input.Count(c => c == '"');
 
-        var actualSpan = input.AsSpan().Unescape('\"', delimiterCount, buffer);
+        var actualSpan = input.AsSpan().Unescape('\"', delimiterCount, ref buffer);
         Assert.Equal(expected, new string(actualSpan));
 
-        var actualMemory = input.AsMemory().Unescape('\"', delimiterCount, buffer);
+        var actualMemory = input.AsMemory().Unescape('\"', delimiterCount, ref buffer);
         Assert.Equal(expected, new string(actualMemory.Span));
     }
 
@@ -35,10 +42,9 @@ public class UnescapeTests
     [InlineData("\"te\"st\"")]
     [InlineData("\"\"test\"")]
     [InlineData("\"test\"\"")]
-    public static void Should_Throw_On_Invalid(string input)
+    public void Should_Throw_On_Invalid(string input)
     {
-        using var buffer = new BufferOwner<char>();
-        Assert.Throws<InvalidOperationException>(() => input.AsSpan().Unescape('\"', 4, buffer));
-        Assert.Throws<InvalidOperationException>(() => input.AsMemory().Unescape('\"', 4, buffer));
+        Assert.Throws<InvalidOperationException>(() => input.AsSpan().Unescape('\"', 4, ref buffer));
+        Assert.Throws<InvalidOperationException>(() => input.AsMemory().Unescape('\"', 4, ref buffer));
     }
 }

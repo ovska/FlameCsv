@@ -57,7 +57,7 @@ public class Temp
             in opts,
             3,
             0,
-            bo);
+            ref bo._array);
         var asd = state.Parse(ref enumerator);
 
         var init = ReflectionUtil.CreateInitializer<int, int, DateTime, Obj>(

@@ -44,17 +44,17 @@ public class CsvStringEnumerateBench
     {
         var buffer = new ReadOnlySequence<char>(_string.AsMemory());
         var options = CsvTokens<char>.Environment;
-        using BufferOwner<char> _enumeratorBuffer = null!;
+        char[]? _buffer = null;
 
         while (LineReader.TryRead(in options, ref buffer, out var line, out int quoteCount))
         {
             if (line.IsSingleSegment)
             {
-                EnumerateColumnSpan(line.FirstSpan, quoteCount, in options, _enumeratorBuffer);
+                EnumerateColumnSpan(line.FirstSpan, quoteCount, in options, ref _buffer);
             }
             else
             {
-                EnumerateColumns(in line, quoteCount, in options, _enumeratorBuffer);
+                EnumerateColumns(in line, quoteCount, in options, ref _buffer);
             }
         }
 
@@ -63,47 +63,49 @@ public class CsvStringEnumerateBench
         {
             if (buffer.IsSingleSegment)
             {
-                EnumerateColumnSpan(buffer.FirstSpan, 0, in options, _enumeratorBuffer);
+                EnumerateColumnSpan(buffer.FirstSpan, 0, in options, ref _buffer);
             }
             else
             {
-                EnumerateColumns(in buffer, 0, in options, _enumeratorBuffer);
+                EnumerateColumns(in buffer, 0, in options, ref _buffer);
             }
         }
+
+        if (_buffer is not null) ArrayPool<char>.Shared.Return(_buffer);
     }
 
-    [Benchmark]
-    public void FlameCsv_Enumerator()
-    {
-        var options = CsvReaderOptions<byte>.Default;
-        options.tokens = options.tokens.WithNewLine("\n");
-
-        var seq = new ReadOnlySequence<byte>(_bytes);
-        foreach (var record in FlameCsv.Readers.CsvReader.Enumerate(seq, options))
-        {
-            foreach (var column in record)
-            {
-                _ = column;
-            }
-        }
-    }
+    // [Benchmark]
+    // public void FlameCsv_Enumerator()
+    // {
+    //     var options = CsvReaderOptions<byte>.Default;
+    //     options.tokens = options.tokens.WithNewLine("\n");
+    //
+    //     var seq = new ReadOnlySequence<byte>(_bytes);
+    //     foreach (var record in FlameCsv.Readers.CsvReader.Enumerate(seq, options))
+    //     {
+    //         foreach (var column in record)
+    //         {
+    //             _ = column;
+    //         }
+    //     }
+    // }
 
     [Benchmark]
     public void FlameCsv_Utf8()
     {
         var buffer = new ReadOnlySequence<byte>(_bytes);
         var options = CsvTokens<byte>.Environment;
-        using BufferOwner<byte> _enumeratorBuffer = null!;
+        byte[]? _buffer = null;
 
         while (LineReader.TryRead(in options, ref buffer, out var line, out int quoteCount))
         {
             if (line.IsSingleSegment)
             {
-                EnumerateColumnSpan(line.FirstSpan, quoteCount, in options, _enumeratorBuffer);
+                EnumerateColumnSpan(line.FirstSpan, quoteCount, in options, ref _buffer);
             }
             else
             {
-                EnumerateColumns(in line, quoteCount, in options, _enumeratorBuffer);
+                EnumerateColumns(in line, quoteCount, in options, ref _buffer);
             }
         }
 
@@ -112,20 +114,22 @@ public class CsvStringEnumerateBench
         {
             if (buffer.IsSingleSegment)
             {
-                EnumerateColumnSpan(buffer.FirstSpan, 0, in options, _enumeratorBuffer);
+                EnumerateColumnSpan(buffer.FirstSpan, 0, in options, ref _buffer);
             }
             else
             {
-                EnumerateColumns(in buffer, 0, in options, _enumeratorBuffer);
+                EnumerateColumns(in buffer, 0, in options, ref _buffer);
             }
         }
+
+        if (_buffer is not null) ArrayPool<byte>.Shared.Return(_buffer);
     }
 
     private static void EnumerateColumns<T>(
         in ReadOnlySequence<T> line,
         int stringDelimiterCount,
         in CsvTokens<T> _options,
-        BufferOwner<T> _enumeratorBuffer)
+        ref T[]? _buffer)
         where T : unmanaged, IEquatable<T>
     {
         Debug.Assert(!line.IsSingleSegment);
@@ -136,7 +140,7 @@ public class CsvStringEnumerateBench
         {
             Span<T> buffer = stackalloc T[length];
             line.CopyTo(buffer);
-            EnumerateColumnSpan(buffer, stringDelimiterCount, in _options, _enumeratorBuffer);
+            EnumerateColumnSpan(buffer, stringDelimiterCount, in _options, ref _buffer);
         }
         else
         {
@@ -149,7 +153,7 @@ public class CsvStringEnumerateBench
         ReadOnlySpan<T> line,
         int stringDelimiterCount,
         in CsvTokens<T> _options,
-        BufferOwner<T> _enumeratorBuffer)
+        ref T[]? _buffer)
         where T : unmanaged, IEquatable<T>
     {
         var enumerator = new CsvColumnEnumerator<T>(
@@ -157,7 +161,7 @@ public class CsvStringEnumerateBench
             in _options,
             14,
             stringDelimiterCount,
-            _enumeratorBuffer);
+            ref _buffer);
 
         foreach (var column in enumerator)
         {

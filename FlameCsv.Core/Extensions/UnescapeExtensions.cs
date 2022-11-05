@@ -1,10 +1,10 @@
+using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
-using FlameCsv.Readers.Internal;
 
 namespace FlameCsv.Extensions;
 
@@ -21,7 +21,7 @@ internal static class UnescapeExtensions
     /// <param name="source">Data to unescape</param>
     /// <param name="quote">Double quote token</param>
     /// <param name="quoteCount">Known quote count in the data, must be over 0 and divisible by 2</param>
-    /// <param name="bufferOwner">Buffer provider used if the data has quotes in-between the wrapping quotes</param>
+    /// <param name="array">Rented buffer used if the data has quotes in-between the wrapping quotes</param>
     /// <typeparam name="T">Token type</typeparam>
     /// <returns>Unescaped tokens, might be a slice of the original input</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -29,7 +29,7 @@ internal static class UnescapeExtensions
         this ReadOnlySpan<T> source,
         T quote,
         int quoteCount,
-        BufferOwner<T> bufferOwner)
+        ref T[]? array)
         where T : unmanaged, IEquatable<T>
     {
         Debug.Assert(quoteCount >= 2);
@@ -45,7 +45,7 @@ internal static class UnescapeExtensions
                 return source;
             }
 
-            return source.UnescapeRare(quote, quoteCount - 2, bufferOwner);
+            return source.UnescapeRare(quote, quoteCount - 2, ref array);
         }
 
         return ThrowInvalidUnescape(source, quote, quoteCount);
@@ -59,7 +59,7 @@ internal static class UnescapeExtensions
         this ReadOnlySpan<T> source,
         T quote,
         int quoteCount,
-        BufferOwner<T> bufferOwner)
+        ref T[]? array)
         where T : unmanaged, IEquatable<T>
     {
         Debug.Assert(quoteCount >= 2);
@@ -67,9 +67,12 @@ internal static class UnescapeExtensions
 
         int written = 0;
         int index = 0;
-        ReadOnlySpan<T> needle = stackalloc T[] { quote, quote };
-        Span<T> buffer = bufferOwner.GetSpan(source.Length - quoteCount / 2);
         int quotesLeft = quoteCount;
+        ReadOnlySpan<T> needle = stackalloc T[] { quote, quote };
+
+        int requiredLength = source.Length - quoteCount / 2;
+        ArrayPool<T>.Shared.EnsureCapacity(ref array, requiredLength);
+        Span<T> buffer = array;
 
         while (index < source.Length)
         {
@@ -95,13 +98,13 @@ internal static class UnescapeExtensions
         return ThrowInvalidUnescape(source, quote, quoteCount);
     }
 
-    /// <inheritdoc cref="Unescape{T}(ReadOnlySpan{T},T,int,BufferOwner{T})"/>
+    /// <inheritdoc cref="Unescape{T}(System.ReadOnlySpan{T},T,int,ref T[])"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ReadOnlyMemory<T> Unescape<T>(
         this ReadOnlyMemory<T> source,
         T quote,
         int quoteCount,
-        BufferOwner<T> bufferOwner)
+        ref T[]? array)
         where T : unmanaged, IEquatable<T>
     {
         Debug.Assert(quoteCount >= 2);
@@ -121,20 +124,20 @@ internal static class UnescapeExtensions
                     return source;
                 }
 
-                return source.UnescapeRare(quote, quoteCount - 2, bufferOwner);
+                return source.UnescapeRare(quote, quoteCount - 2, ref array);
             }
         }
 
         return ThrowInvalidUnescape(source.Span, quote, quoteCount);
     }
 
-    /// <inheritdoc cref="UnescapeRare{T}(ReadOnlySpan{T},T,int,BufferOwner{T})"/>
+    /// <inheritdoc cref="UnescapeRare{T}(System.ReadOnlySpan{T},T,int,ref T[])"/>
     [MethodImpl(MethodImplOptions.NoInlining)] // encourage inlining common case above
     private static ReadOnlyMemory<T> UnescapeRare<T>(
         this ReadOnlyMemory<T> source,
         T quote,
         int quoteCount,
-        BufferOwner<T> bufferOwner)
+        ref T[]? array)
         where T : unmanaged, IEquatable<T>
     {
         Debug.Assert(quoteCount >= 2);
@@ -142,11 +145,14 @@ internal static class UnescapeExtensions
 
         int written = 0;
         int index = 0;
-        ReadOnlySpan<T> needle = stackalloc T[] { quote, quote };
-        Memory<T> buffer = bufferOwner.GetMemory(source.Length - quoteCount / 2);
         int quotesLeft = quoteCount;
 
         var sourceSpan = source.Span;
+        ReadOnlySpan<T> needle = stackalloc T[] { quote, quote };
+
+        int requiredLength = source.Length - quoteCount / 2;
+        ArrayPool<T>.Shared.EnsureCapacity(ref array, requiredLength);
+        Memory<T> buffer = array;
 
         while (index < source.Length)
         {

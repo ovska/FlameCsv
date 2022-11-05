@@ -169,7 +169,7 @@ public class Compliance
             options,
             5,
             line.Count(c => c == '"'),
-            bo);
+            ref bo._array);
 
         foreach (var current in enumerator)
         {

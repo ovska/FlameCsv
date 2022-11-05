@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using FlameCsv.Extensions;
 using FlameCsv.Readers.Internal;
 
@@ -21,7 +22,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
     private readonly T _quote;
     private readonly ReadOnlySpan<T> _whitespace;
     private readonly int? _columnCount;
-    private readonly BufferOwner<T> _bufferOwner;
+    private readonly Span<T[]?> _buffer;
 
     private ReadOnlySpan<T> _remaining;
     private int _quotesRemaining;
@@ -64,27 +65,26 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
     /// <param name="tokens">Structural tokens</param>
     /// <param name="columnCount">Amount of columns expected, null if not known</param>
     /// <param name="quoteCount">Known string delimiter count on the line</param>
-    /// <param name="bufferOwner">Provides the buffer needed to unescape possible quotes insides strings</param>
+    /// <param name="buffer">Provides the buffer needed to unescape possible quotes insides strings</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvColumnEnumerator(
         ReadOnlySpan<T> line,
         in CsvTokens<T> tokens,
         int? columnCount,
         int quoteCount,
-        BufferOwner<T> bufferOwner)
+        ref T[]? buffer)
     {
         Debug.Assert(!line.IsEmpty || columnCount is null or 1, "Empty line is not valid for over 1 column");
         Debug.Assert(columnCount is null or > 0, "Known column count must be positive");
         Debug.Assert(quoteCount >= 0, "Quote count must be positive");
         Debug.Assert(quoteCount % 2 == 0, "Quote count must be divisible by 2");
         Debug.Assert(!tokens.TryGetValidationErrors(out _), "CsvTokens must be valid");
-        Debug.Assert(bufferOwner is not null, "BufferOwner must not be null");
 
         _comma = tokens.Delimiter;
         _quote = tokens.StringDelimiter;
         _whitespace = tokens.Whitespace.Span;
         _columnCount = columnCount;
-        _bufferOwner = bufferOwner;
+        _buffer = MemoryMarshal.CreateSpan(ref buffer, 1);
 
         _remaining = line;
         _quotesRemaining = quoteCount;
@@ -173,11 +173,11 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
         if (_whitespace.IsEmpty)
             return quotesConsumed == 0
                 ? data
-                : data.Unescape(_quote, quotesConsumed, _bufferOwner);
+                : data.Unescape(_quote, quotesConsumed, ref _buffer[0]);
 
         return quotesConsumed == 0
             ? data.Trim(_whitespace)
-            : data.Trim(_whitespace).Unescape(_quote, quotesConsumed, _bufferOwner);
+            : data.Trim(_whitespace).Unescape(_quote, quotesConsumed, ref _buffer[0]);
     }
 
     /// <exception cref="InvalidDataException">
