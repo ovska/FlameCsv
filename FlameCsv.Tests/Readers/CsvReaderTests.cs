@@ -11,7 +11,6 @@ using FlameCsv.Tests.TestData;
 using FlameCsv.Tests.Utilities;
 
 // ReSharper disable ConvertIfStatementToSwitchStatement
-
 // ReSharper disable LoopCanBeConvertedToQuery
 
 namespace FlameCsv.Tests.Readers;
@@ -52,6 +51,7 @@ public static class CsvReaderTests
         bool hasStrings,
         bool hasWhitespace)
     {
+        using var listener = new ArrayPoolEventListener();
         using var writer = new ArrayPoolBufferWriter<char>();
 
         List<Obj> items = new();
