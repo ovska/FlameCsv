@@ -103,7 +103,7 @@ internal readonly struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
                 in _tokens,
                 _columnCount,
                 quoteCount ?? line.Count(_tokens.StringDelimiter),
-                _enumeratorBuffer);
+                ref _enumeratorBuffer._array);
 
             value = _state.Parse(ref enumerator);
             return true;

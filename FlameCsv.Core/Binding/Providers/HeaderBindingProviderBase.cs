@@ -63,7 +63,7 @@ public abstract class HeaderBindingProviderBase<T, TResult> : ICsvHeaderBindingP
             in readerOptions.tokens,
             columnCount: null,
             quoteCount: line.Count(readerOptions.tokens.StringDelimiter),
-            buffer);
+            ref buffer._array);
 
         foreach (var value in enumerator)
         {

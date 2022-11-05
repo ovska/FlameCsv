@@ -14,7 +14,7 @@ namespace FlameCsv.Readers.Internal;
 [DebuggerDisplay(@"\{ BufferOwner: Length: {_rented?.Length}, Disposed: {_disposed} \}")]
 internal sealed class BufferOwner<T> : IDisposable where T : unmanaged, IEquatable<T>
 {
-    private T[]? _rented;
+    internal T[]? _array;
     private bool _disposed;
     private readonly ArrayPool<T> _arrayPool;
     private readonly bool _clearBuffers;
@@ -48,8 +48,8 @@ internal sealed class BufferOwner<T> : IDisposable where T : unmanaged, IEquatab
         if (_disposed)
             ThrowHelper.ThrowObjectDisposedException(typeof(BufferOwner<T>).ToTypeString());
 
-        _arrayPool.EnsureCapacity(ref _rented, capacity: length, clearArray: _clearBuffers);
-        return _rented.AsSpan(0, length);
+        _arrayPool.EnsureCapacity(ref _array, capacity: length, clearArray: _clearBuffers);
+        return _array.AsSpan(0, length);
     }
     
     /// <summary>
@@ -62,8 +62,8 @@ internal sealed class BufferOwner<T> : IDisposable where T : unmanaged, IEquatab
         if (_disposed)
             ThrowHelper.ThrowObjectDisposedException(typeof(BufferOwner<T>).ToTypeString());
 
-        _arrayPool.EnsureCapacity(ref _rented, capacity: length, clearArray: _clearBuffers);
-        return _rented.AsMemory(0, length);
+        _arrayPool.EnsureCapacity(ref _array, capacity: length, clearArray: _clearBuffers);
+        return _array.AsMemory(0, length);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -73,11 +73,11 @@ internal sealed class BufferOwner<T> : IDisposable where T : unmanaged, IEquatab
             return;
 
         _disposed = true;
-        var rented = _rented;
+        var rented = _array;
 
         if (rented is not null)
         {
-            _rented = null;
+            _array = null;
             _arrayPool.Return(rented, clearArray: _clearBuffers);
         }
     }

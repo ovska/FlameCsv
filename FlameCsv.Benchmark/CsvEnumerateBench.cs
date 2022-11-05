@@ -178,7 +178,7 @@ public class CsvEnumerateBench
             in _options,
             14,
             stringDelimiterCount,
-            _enumeratorBuffer);
+            ref _enumeratorBuffer._array);
 
         foreach (var column in enumerator)
         {
