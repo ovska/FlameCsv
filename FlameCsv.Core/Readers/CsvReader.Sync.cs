@@ -85,16 +85,23 @@ public static partial class CsvReader
         where T : unmanaged, IEquatable<T>
         where TProcessor : struct, ICsvProcessor<T, TValue>
     {
-        TValue value;
-
-        while (processor.TryContinueRead(ref buffer, out value))
+        try
         {
-            yield return value;
+            TValue value;
+
+            while (processor.TryContinueRead(ref buffer, out value))
+            {
+                yield return value;
+            }
+
+            if (!buffer.IsEmpty && processor.TryReadRemaining(in buffer, out value))
+            {
+                yield return value;
+            }
         }
-
-        if (!buffer.IsEmpty && processor.TryReadRemaining(in buffer, out value))
+        finally
         {
-            yield return value;
+            processor.Dispose();
         }
     }
 }
