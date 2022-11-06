@@ -158,7 +158,9 @@ internal class CsvStreamWriter
 
 internal sealed class WriteState
 {
-    public static CsvCallback<T, bool> ShouldEscape<T>(Span<T> buffer, CsvTokens<T> options)
+    public static CsvCallback<T, bool> ShouldEscape<T>(
+        Span<T> buffer,
+        in CsvTokens<T> options)
         where T : unmanaged, IEquatable<T>
     {
         T[] tokens = new T[2 + options.NewLine.Length + options.Whitespace.Length];

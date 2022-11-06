@@ -37,7 +37,7 @@ public struct CsvEnumerator<T> : IEnumerable<CsvRecord<T>>, IEnumerator<CsvRecor
         Current = default;
     }
 
-    public CsvEnumerator<T> GetEnumerator() => this;
+    public readonly CsvEnumerator<T> GetEnumerator() => this;
 
     public bool MoveNext()
     {
@@ -90,14 +90,14 @@ public struct CsvEnumerator<T> : IEnumerable<CsvRecord<T>>, IEnumerator<CsvRecor
         if (hasNewline) _position += _options.tokens.NewLine.Length;
     }
 
-    public void Dispose()
+    public readonly void Dispose()
     {
         _multisegmentBuffer.Dispose();
         _recordBuffer.Dispose();
     }
 
-    IEnumerator<CsvRecord<T>> IEnumerable<CsvRecord<T>>.GetEnumerator() => GetEnumerator();
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-    void IEnumerator.Reset() => throw new NotSupportedException();
-    object IEnumerator.Current => Current;
+    readonly IEnumerator<CsvRecord<T>> IEnumerable<CsvRecord<T>>.GetEnumerator() => GetEnumerator();
+    readonly IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    readonly void IEnumerator.Reset() => throw new NotSupportedException();
+    readonly object IEnumerator.Current => Current;
 }

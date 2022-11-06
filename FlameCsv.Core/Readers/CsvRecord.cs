@@ -109,7 +109,7 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
         Current = default;
     }
 
-    public CsvRecord<T> GetEnumerator() => this;
+    public readonly CsvRecord<T> GetEnumerator() => this;
 
     public TValue GetValue<TValue>(int index)
     {
@@ -243,7 +243,7 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
         throw new InvalidDataException($"Expected {_columnCount} columns to have been read, but read {Column}");
     }
 
-    void IDisposable.Dispose()
+    readonly void IDisposable.Dispose()
     {
     }
 
@@ -255,7 +255,7 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
         Current = default;
     }
 
-    object IEnumerator.Current => Current;
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-    IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator() => GetEnumerator();
+    readonly object IEnumerator.Current => Current;
+    readonly IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    readonly IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator() => GetEnumerator();
 }
