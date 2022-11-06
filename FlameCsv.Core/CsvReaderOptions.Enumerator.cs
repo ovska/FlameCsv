@@ -12,7 +12,7 @@ public sealed partial class CsvReaderOptions<T>
 
     internal struct ParserEnumerator : IEnumerator<ICsvParser<T>>
     {
-        public ParserEnumerator GetEnumerator() => this;
+        public readonly ParserEnumerator GetEnumerator() => this;
 
         private readonly List<ICsvParser<T>> _list;
         private List<ICsvParser<T>>.Enumerator _inner;
@@ -29,11 +29,11 @@ public sealed partial class CsvReaderOptions<T>
 
         public bool MoveNext() => _inner.MoveNext();
 
-        void IEnumerator.Reset() => ((IEnumerator)_inner).Reset();
+        readonly void IEnumerator.Reset() => ((IEnumerator)_inner).Reset();
         public ICsvParser<T> Current => _inner.Current;
         object IEnumerator.Current => Current;
 
-        public void Dispose()
+        public readonly void Dispose()
         {
             if (_lockTaken) Monitor.Exit(_list);
         }

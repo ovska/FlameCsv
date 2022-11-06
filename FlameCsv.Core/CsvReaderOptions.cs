@@ -202,7 +202,7 @@ public sealed partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<
     /// Sets the parameter to <see cref="Tokens"/>.
     /// </summary>
     /// <returns>The same options instance</returns>
-    public CsvReaderOptions<T> SetTokens(CsvTokens<T> tokens)
+    public CsvReaderOptions<T> SetTokens(in CsvTokens<T> tokens)
     {
         this.tokens = tokens;
         return this;

@@ -3,7 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using FlameCsv.Extensions;
-using FlameCsv.Readers.Internal;
 
 namespace FlameCsv.Readers;
 
@@ -93,7 +92,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
         Current = default;
     }
 
-    public CsvColumnEnumerator<T> GetEnumerator() => this;
+    public readonly CsvColumnEnumerator<T> GetEnumerator() => this;
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public bool MoveNext()
