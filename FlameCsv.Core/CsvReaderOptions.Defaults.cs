@@ -85,8 +85,6 @@ public static class CsvOptions
                 new TimeOnlyTextParser(config.TimeOnlyFormat, config.DateTimeStyles, config.FormatProvider));
         }
 
-        // no need to lock as this instance isn't yet exposed outside this method
-        options._parsers.Reverse(); // HACK: add most common types last so they are checked first
         return options;
     }
 
@@ -134,8 +132,6 @@ public static class CsvOptions
             options._parsers.Add(Base64Utf8Parser.Instance);
         }
 
-        // no need to lock as this instance isn't yet exposed outside this method
-        options._parsers.Reverse(); // HACK: add most common types last so they are checked first
         return options;
     }
 
