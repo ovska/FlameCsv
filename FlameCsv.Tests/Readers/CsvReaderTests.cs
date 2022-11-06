@@ -39,8 +39,10 @@ public class CsvReaderTests : PooledBufferVerifier
                 { api, type, bufferSize, newline, writeHeader, writeTrailingNewline, hasStrings, hasWhitespace };
     }
 
-    [Theory]
-    [MemberData(nameof(GetTestParameters))]
+    /// <summary>
+    /// A spray-and-pray "integration" test of different APIs using various CSV data.
+    /// </summary>
+    [Theory, MemberData(nameof(GetTestParameters))]
     public async Task Should_Read(
         CsvApi api,
         Type type,
