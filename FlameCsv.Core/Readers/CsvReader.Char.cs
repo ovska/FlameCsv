@@ -96,7 +96,7 @@ public static partial class CsvReader
     {
         using var reader = new TextPipeReader(textReader, 4096, leaveOpen);
 
-        using (processor)
+        try
         {
             while (true)
             {
@@ -121,6 +121,10 @@ public static partial class CsvReader
                     break;
                 }
             }
+        }
+        finally
+        {
+            processor.Dispose();
         }
     }
 }
