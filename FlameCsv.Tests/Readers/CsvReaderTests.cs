@@ -21,7 +21,7 @@ public static class CsvReaderTests
     {
         Async,
         Sync,
-        Enumerator
+        Enumerator,
     }
 
     public static IEnumerable<object[]> GetTestParameters()
