@@ -24,8 +24,8 @@ class User
 }
 ```
 ```csharp
-var config = CsvConfiguration<byte>.Default;
-await foreach (User record in CsvReader.ReadAsync<User>(config, File.OpenRead("/home/ovska/test.csv"))
+var options = CsvReaderOptions<byte>.Default;
+await foreach (User record in CsvReader.ReadAsync<User>(File.OpenRead("/home/ovska/test.csv"), options)
 {
     // ...
 }
@@ -44,23 +44,33 @@ class User
 }
 ```
 ```csharp
-var config = CsvConfiguration<byte>.DefaultBuilder
-    .SetBinder(new IndexBindingProvider<byte>())
-    .Build();
-await foreach (User record in CsvReader.ReadAsync<User>(config, File.OpenRead("/home/ovska/test.csv"))
+var options = CsvReaderOptions<byte>.Default.SetBinder(new IndexBindingProvider<byte>());
+await foreach (User record in CsvReader.ReadAsync<User>(File.OpenRead("/home/ovska/test.csv"), options)
 {
     // ...
 }
 ```
 
-## Reading from a string
+## Reading from buffered data
 ```csharp
 var csv = @"Id,Name\n1,Bob\n2,Alice";
-var config = CsvConfiguration<char>.Default;
-await foreach (User record in CsvReader.ReadAsync<User>(config, new StringReader(csv)))
+var options = CsvReaderOptions<char>.Default;
+foreach (User record in CsvReader.Read<User>(csv, options))
 {
     // ...
 }
 ```
 
-work in progress..
+## Reading manually
+```csharp
+var csv = @"1,Bob\n2,Alice";
+var options = CsvReaderOptions<char>.Default;
+foreach (CsvRecord<char> record in CsvReader.Enumerate(csv, options))
+{
+    var user = new User
+    {
+        Id = record.GetValue<int>(0),
+        Name = record.GetValue<string>(1),
+    };
+}
+```
