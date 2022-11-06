@@ -15,7 +15,7 @@ using FlameCsv.Tests.Utilities;
 
 namespace FlameCsv.Tests.Readers;
 
-public static class CsvReaderTests
+public class CsvReaderTests : PooledBufferVerifier
 {
     public enum CsvApi
     {
@@ -41,7 +41,7 @@ public static class CsvReaderTests
 
     [Theory]
     [MemberData(nameof(GetTestParameters))]
-    public static async Task Should_Read(
+    public async Task Should_Read(
         CsvApi api,
         Type type,
         int bufferSize,
@@ -51,7 +51,6 @@ public static class CsvReaderTests
         bool hasStrings,
         bool hasWhitespace)
     {
-        using var listener = new ArrayPoolEventListener();
         using var writer = new ArrayPoolBufferWriter<char>();
 
         List<Obj> items = new();
@@ -175,7 +174,7 @@ public static class CsvReaderTests
     }
 
     [Fact]
-    public static async Task Should_Read_Long_Multisegment_Lines()
+    public async Task Should_Read_Long_Multisegment_Lines()
     {
         string name = new string('x', 1024);
         string data = $"0,{name},true,{DateTime.UnixEpoch:o},{Guid.Empty}{Environment.NewLine}";
