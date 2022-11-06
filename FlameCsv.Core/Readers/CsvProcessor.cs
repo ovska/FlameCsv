@@ -2,28 +2,27 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
-using FlameCsv.Readers.Internal;
+using FlameCsv.Extensions;
 using FlameCsv.Runtime;
 
 namespace FlameCsv.Readers;
 
-internal readonly struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
+internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     where T : unmanaged, IEquatable<T>
 {
     private static readonly int StackallocThreshold = Unsafe.SizeOf<byte>() * 256 / Unsafe.SizeOf<T>();
-
-    /// <summary>Shared buffer for string unescaping in the data.</summary>
-    private readonly BufferOwner<T> _enumeratorBuffer;
-
-    /// <summary>Shared buffer for long segment-fragmented lines.</summary>
-    private readonly BufferOwner<T> _multisegmentBuffer;
 
     private readonly CsvTokens<T> _tokens;
     private readonly CsvCallback<T, bool>? _skipPredicate;
     private readonly ICsvRowState<T, TValue> _state;
     private readonly int _columnCount;
 
-    public CsvProcessor(CsvReaderOptions<T> readerOptions, ICsvRowState<T, TValue>? state = null)
+    private T[]? _enumeratorBuffer; // sting unescaping
+    private T[]? _multisegmentBuffer; // long fragmented lines, see TryReadColumns
+
+    public CsvProcessor(
+        CsvReaderOptions<T> readerOptions,
+        ICsvRowState<T, TValue>? state = null)
     {
         _tokens = readerOptions.Tokens;
         _skipPredicate = readerOptions.ShouldSkipRow;
@@ -32,8 +31,8 @@ internal readonly struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
 
         // Two buffers are needed, as the ReadOnlySpan being manipulated by string escaping in the enumerator
         // might originate from the multisegment buffer
-        _enumeratorBuffer = new(readerOptions.Security);
-        _multisegmentBuffer = new(readerOptions.Security);
+        _enumeratorBuffer = null;
+        _multisegmentBuffer = null;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -84,7 +83,8 @@ internal readonly struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         }
         else
         {
-            Span<T> buffer = _multisegmentBuffer.GetSpan(length);
+            ArrayPool<T>.Shared.EnsureCapacity(ref _multisegmentBuffer, length);
+            Span<T> buffer = _multisegmentBuffer.AsSpan(0, length);
             line.CopyTo(buffer);
             return TryReadColumnSpan(buffer, quoteCount, out value);
         }
@@ -103,7 +103,7 @@ internal readonly struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
                 in _tokens,
                 _columnCount,
                 quoteCount ?? line.Count(_tokens.StringDelimiter),
-                ref _enumeratorBuffer._array);
+                ref _enumeratorBuffer);
 
             value = _state.Parse(ref enumerator);
             return true;
@@ -116,7 +116,8 @@ internal readonly struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     public void Dispose()
     {
         _state.Dispose();
-        _enumeratorBuffer.Dispose();
-        _multisegmentBuffer.Dispose();
+
+        ArrayPool<T>.Shared.TryReturn(ref _enumeratorBuffer);
+        ArrayPool<T>.Shared.TryReturn(ref _multisegmentBuffer);
     }
 }

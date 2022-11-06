@@ -29,8 +29,7 @@ public sealed partial class CsvReaderOptions<T>
 
         public bool MoveNext() => _inner.MoveNext();
 
-        public void Reset() => throw new NotSupportedException();
-
+        void IEnumerator.Reset() => ((IEnumerator)_inner).Reset();
         public ICsvParser<T> Current => _inner.Current;
         object IEnumerator.Current => Current;
 

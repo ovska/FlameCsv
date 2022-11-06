@@ -88,6 +88,7 @@ public sealed partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<
         {
             Span<ICsvParser<T>> parsers = _parsers.AsSpan();
 
+            // Read parsers in reverse order so parser added last has the highest priority
             for (int i = parsers.Length - 1; i >= 0; i--)
             {
                 if (parsers[i].CanParse(resultType))
