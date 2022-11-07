@@ -24,7 +24,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         CsvReaderOptions<T> readerOptions,
         ICsvRowState<T, TValue>? state = null)
     {
-        _tokens = readerOptions.Tokens;
+        _tokens = readerOptions.Tokens.ThrowIfInvalid();
         _skipPredicate = readerOptions.ShouldSkipRow;
         _state = state ?? readerOptions.BindToState<TValue>();
         _columnCount = _state.ColumnCount;
