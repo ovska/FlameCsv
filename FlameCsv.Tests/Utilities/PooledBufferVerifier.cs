@@ -38,6 +38,7 @@ public abstract class PooledBufferVerifier : IDisposable
 
         public override void Dispose()
         {
+            Thread.SpinWait(1000);
             base.Dispose();
 
             if (_rentedCount != _returnedCount)
