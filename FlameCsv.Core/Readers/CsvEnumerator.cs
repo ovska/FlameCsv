@@ -25,6 +25,8 @@ public struct CsvEnumerator<T> : IEnumerable<CsvRecord<T>>, IEnumerator<CsvRecor
         CsvReaderOptions<T> options,
         int? columnCount)
     {
+        options.tokens.ThrowIfInvalid();
+
         _data = data;
         _options = options;
         _columnCount = columnCount;
