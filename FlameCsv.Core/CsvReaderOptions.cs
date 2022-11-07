@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
-using FlameCsv.Binding.Providers;
+using FlameCsv.Binding;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Parsers;
@@ -43,9 +43,16 @@ public sealed partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<
     public SecurityLevel Security { get; set; } = SecurityLevel.NoBufferClearing;
 
     /// <summary>
-    /// TODO
+    /// Whether the read CSV has a header record.
     /// </summary>
-    public ICsvBindingProvider<T> BindingProvider { get; set; } = NotSupportedBindingProvider<T>.Instance;
+    /// <seealso cref="HeaderBinder"/>
+    public bool HasHeader { get; set; }
+
+    /// <summary>
+    /// Custom header binder used in place of <see cref="HeaderTextBinder"/> or <see cref="HeaderUtf8Binder"/>
+    /// if <see cref="HasHeader"/> is true.
+    /// </summary>
+    public IHeaderBinder<T>? HeaderBinder { get; set; }
 
     private readonly ConcurrentDictionary<Type, ICsvParser<T>> _parserCache = new();
     internal readonly List<ICsvParser<T>> _parsers = new();
@@ -179,16 +186,6 @@ public sealed partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<
     }
 
     /// <summary>
-    /// Sets the parameter to <see cref="BindingProvider"/>.
-    /// </summary>
-    /// <returns>The same options instance</returns>
-    public CsvReaderOptions<T> SetBinder(ICsvBindingProvider<T> bindingProvider)
-    {
-        BindingProvider = bindingProvider;
-        return this;
-    }
-
-    /// <summary>
     /// Sets the parameter to <see cref="ShouldSkipRow"/>.
     /// </summary>
     /// <returns>The same options instance</returns>
@@ -202,6 +199,7 @@ public sealed partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<
     /// Sets the parameter to <see cref="Tokens"/>.
     /// </summary>
     /// <returns>The same options instance</returns>
+    // ReSharper disable once ParameterHidesMember
     public CsvReaderOptions<T> SetTokens(in CsvTokens<T> tokens)
     {
         this.tokens = tokens;

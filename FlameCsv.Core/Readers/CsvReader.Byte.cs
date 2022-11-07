@@ -2,7 +2,6 @@ using System.Buffers;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
-using FlameCsv.Binding.Providers;
 
 namespace FlameCsv.Readers;
 
@@ -55,7 +54,7 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(options);
 
-        if (options.BindingProvider is ICsvHeaderBindingProvider<byte>)
+        if (options.HasHeader)
         {
             var processor = new CsvHeaderProcessor<byte, TValue>(options);
             return ReadAsyncInternal<TValue, CsvHeaderProcessor<byte, TValue>>(reader, processor, cancellationToken);

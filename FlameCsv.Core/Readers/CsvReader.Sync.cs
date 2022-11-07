@@ -1,5 +1,4 @@
 using System.Buffers;
-using FlameCsv.Binding.Providers;
 
 namespace FlameCsv.Readers;
 
@@ -57,7 +56,7 @@ public static partial class CsvReader
         CsvReaderOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
-        if (options.BindingProvider is ICsvHeaderBindingProvider<T>)
+        if (options.HasHeader)
         {
             var processor = new CsvHeaderProcessor<T, TValue>(options);
             return ReadInternal<T, TValue, CsvHeaderProcessor<T, TValue>>(csv, processor);

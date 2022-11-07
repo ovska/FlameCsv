@@ -1,18 +1,17 @@
+using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
-using FlameCsv.Binding.Providers;
 
 // ReSharper disable UnusedMember.Local
 // ReSharper disable ClassNeverInstantiated.Local
 
 namespace FlameCsv.Tests.Binding;
 
-public static class IndexBindingTests
+public static class IndexAttributeBinderTests
 {
     [Fact]
     public static void Should_Bind_To_Members()
     {
-        var provider = new IndexBindingProvider<char>();
-        Assert.True(provider.TryGetBindings<Members>(out var result));
+        Assert.True(IndexAttributeBinder.TryGet<Members>(out var result));
         Assert.Equal(3, result!.Bindings.Length);
         Assert.Equal(
             new[] { (0, "A"), (1, "B"), (2, "C") },
@@ -22,8 +21,7 @@ public static class IndexBindingTests
     [Fact]
     public static void Should_Bind_To_Targets()
     {
-        var provider = new IndexBindingProvider<char>();
-        Assert.True(provider.TryGetBindings<Class>(out var result));
+        Assert.True(IndexAttributeBinder.TryGet<Class>(out var result));
         Assert.Equal(3, result!.Bindings.Length);
         Assert.Equal(
             new[] { (0, "A"), (1, "B"), (2, "C") },
@@ -33,8 +31,7 @@ public static class IndexBindingTests
     [Fact]
     public static void Should_Bind_To_Mixed()
     {
-        var provider = new IndexBindingProvider<char>();
-        Assert.True(provider.TryGetBindings<Mixed>(out var result));
+        Assert.True(IndexAttributeBinder.TryGet<Mixed>(out var result));
         Assert.Equal(3, result!.Bindings.Length);
         Assert.Equal(
             new[] { (0, "A"), (1, "B"), (2, "C") },
@@ -44,15 +41,13 @@ public static class IndexBindingTests
     [Fact]
     public static void Should_Handle_No_Bindings()
     {
-        var provider = new IndexBindingProvider<char>();
-        Assert.False(provider.TryGetBindings<None>(out _));
+        Assert.False(IndexAttributeBinder.TryGet<None>(out _));
     }
 
     [Fact]
     public static void Should_Handle_Ignores()
     {
-        var provider = new IndexBindingProvider<char>();
-        Assert.True(provider.TryGetBindings<Ignored>(out var result));
+        Assert.True(IndexAttributeBinder.TryGet<Ignored>(out var result));
         Assert.Equal(3, result!.Bindings.Length);
         Assert.Equal("A", result.Bindings[0].Member.Name);
         Assert.True(result.Bindings[1].IsIgnored);

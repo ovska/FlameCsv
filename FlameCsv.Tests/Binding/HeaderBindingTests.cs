@@ -1,6 +1,6 @@
 using System.Buffers;
+using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
-using FlameCsv.Binding.Providers;
 using FlameCsv.Readers;
 
 // ReSharper disable UnusedType.Local
@@ -25,11 +25,10 @@ public static class HeaderBindingTests
     [InlineData("\"IsEnabled\",\"Name\",\"_targeted\"")]
     public static void Should_Bind_To_Properties(string header)
     {
-        var provider = new HeaderTextBindingProvider<Shim>(stringComparison: StringComparison.Ordinal);
+        var binder = new HeaderTextBinder(stringComparison: StringComparison.Ordinal);
 
-        Assert.True(provider.TryProcessHeader(header, CsvReaderOptions<char>.Default));
-        Assert.True(provider.TryGetBindings<Shim>(out var bindingCollection));
-        var byIndex = bindingCollection!.Bindings.ToDictionary(b => b.Index, b => b.Member);
+        var bindingCollection = binder.Bind<Shim>(header, CsvReaderOptions<char>.Default);
+        var byIndex = bindingCollection.Bindings.ToDictionary(b => b.Index, b => b.Member);
         Assert.Equal(3, byIndex.Count);
         Assert.Equal(typeof(Shim).GetProperty(nameof(Shim.IsEnabled)), byIndex[0]);
         Assert.Equal(typeof(Shim).GetProperty(nameof(Shim.DisplayName)), byIndex[1]);
@@ -44,8 +43,8 @@ public static class HeaderBindingTests
             + "true,Bob,1\r\n"
             + "false,Alice,2\r\n";
 
-        var provider = new HeaderTextBindingProvider<Shim>(stringComparison: StringComparison.Ordinal);
-        var options = CsvReaderOptions<char>.Default.SetBinder(provider);
+        var options = CsvReaderOptions<char>.Default;
+        options.HeaderBinder = new HeaderTextBinder(stringComparison: StringComparison.Ordinal);
 
         using var processor = new CsvHeaderProcessor<char, Shim>(options);
         var buffer = new ReadOnlySequence<char>(data.AsMemory());
@@ -69,8 +68,8 @@ public static class HeaderBindingTests
     {
         const string data = "IsEnabled,Name,_targeted";
 
-        var provider = new HeaderTextBindingProvider<Shim>(stringComparison: StringComparison.Ordinal);
-        var options = CsvReaderOptions<char>.Default.SetBinder(provider);
+        var options = CsvReaderOptions<char>.Default;
+        options.HeaderBinder = new HeaderTextBinder(stringComparison: StringComparison.Ordinal); 
 
         using var processor = new CsvHeaderProcessor<char, Shim>(options);
         var buffer = new ReadOnlySequence<char>(data.AsMemory());

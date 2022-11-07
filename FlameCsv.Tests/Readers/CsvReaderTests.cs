@@ -2,7 +2,6 @@ using System.Buffers;
 using System.IO.Pipelines;
 using System.Text;
 using CommunityToolkit.HighPerformance.Buffers;
-using FlameCsv.Binding.Providers;
 using FlameCsv.Extensions;
 using FlameCsv.Parsers.Text;
 using FlameCsv.Parsers.Utf8;
@@ -64,10 +63,7 @@ public class CsvReaderTests : PooledBufferVerifier
 
             if (hasWhitespace)
                 options.tokens = options.tokens.WithWhitespace(" ");
-            if (!hasHeader)
-                options.SetBinder(new IndexBindingProvider<char>());
-            else
-                options.SetBinder(new HeaderTextBindingProvider<Obj>());
+            options.HasHeader = hasHeader;
 
             if (api == CsvApi.Async)
             {
@@ -107,10 +103,7 @@ public class CsvReaderTests : PooledBufferVerifier
 
             if (hasWhitespace)
                 options.tokens = options.tokens.WithWhitespace(" ");
-            if (!hasHeader)
-                options.SetBinder(new IndexBindingProvider<byte>());
-            else
-                options.SetBinder(new HeaderUtf8BindingProvider<Obj>());
+            options.HasHeader = hasHeader;
 
             using var owner = GetDataBytes();
 
@@ -185,7 +178,7 @@ public class CsvReaderTests : PooledBufferVerifier
 
         await using var ms = new MemoryStream(Encoding.UTF8.GetBytes(data));
         using var reader = new StreamReader(ms, bufferSize: 128);
-        var options = CsvReaderOptions<char>.Default.SetBinder(new IndexBindingProvider<char>());
+        var options = CsvReaderOptions<char>.Default;
 
         await foreach (var item in CsvReader.ReadAsync<Obj>(reader, options))
         {
