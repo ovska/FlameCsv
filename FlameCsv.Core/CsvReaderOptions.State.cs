@@ -1,15 +1,17 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
-using FlameCsv.Extensions;
 using FlameCsv.Runtime;
 
 namespace FlameCsv;
 
 public sealed partial class CsvReaderOptions<T>
 {
+    private static readonly ConditionalWeakTable<Type, Func<CsvReaderOptions<T>, object>> _stateFactoryCache = new();
+
     internal ICsvRowState<T, TResult> BindToState<TResult>()
     {
         if (IndexAttributeBinder.TryGet<TResult>(out var bindings))
@@ -24,66 +26,85 @@ public sealed partial class CsvReaderOptions<T>
     [ExcludeFromCodeCoverage]
     internal ICsvRowState<T, TResult> CreateState<TResult>(CsvBindingCollection<TResult> bindingCollection)
     {
-        var bindings = bindingCollection.Bindings;
-
-        // <T0, T1, T2, TResult>
-        Type[] genericsWithResult = new Type[bindings.Length + 1];
-        for (int i = 0; i < bindings.Length; i++)
+        if (!_stateFactoryCache.TryGetValue(typeof(TResult), out var stateFactory))
         {
-            genericsWithResult[i] = bindings[i].Type;
+            var bindings = bindingCollection.Bindings;
+
+            // <T0, T1, T2, TResult>
+            Type[] genericsWithResult = new Type[bindings.Length + 1];
+            for (int i = 0; i < bindings.Length; i++)
+            {
+                genericsWithResult[i] = bindings[i].Type;
+            }
+
+            genericsWithResult[^1] = typeof(TResult);
+
+            var factoryGenerator = ReflectionUtil
+                .InitializerFactories[bindings.Length]
+                .MakeGenericMethod(genericsWithResult);
+
+            // (member1, member2, member3)
+            var factoryGeneratorParameters = new object[bindings.Length];
+            for (int i = 0; i < bindings.Length; i++)
+            {
+                factoryGeneratorParameters[i] = bindings[i].Member;
+            }
+
+            // Func<...>, parser1, parser2, parser3
+            object? valueFactory = factoryGenerator.Invoke(null, factoryGeneratorParameters);
+
+            ConstructorInfo ctor = CsvRowState.GetConstructor<T, TResult>(bindings.Select(b => b.Type));
+
+            stateFactory = GetFactory(bindingCollection, ctor, valueFactory);
+            _stateFactoryCache.AddOrUpdate(typeof(TResult), stateFactory);
         }
 
-        genericsWithResult[^1] = typeof(TResult);
+        return (ICsvRowState<T, TResult>)stateFactory(this);
+    }
 
-        var factoryGenerator = ReflectionUtil
-            .InitializerFactories[bindings.Length]
-            .MakeGenericMethod(genericsWithResult);
+    private static Func<CsvReaderOptions<T>, object> GetFactory<TResult>(
+        CsvBindingCollection<TResult> bindingCollection,
+        ConstructorInfo? rowStateConstructor,
+        object? valueFactory)
+    {
+        ArgumentNullException.ThrowIfNull(bindingCollection);
+        ArgumentNullException.ThrowIfNull(rowStateConstructor);
+        ArgumentNullException.ThrowIfNull(valueFactory);
 
-        // (member1, member2, member3)
-        var factoryGeneratorParameters = new object[bindings.Length];
-        for (int i = 0; i < bindings.Length; i++)
+        Dictionary<int, ICsvParserOverride>? _overrides = new();
+
+        for (int i = 0; i < bindingCollection.Bindings.Length; i++)
         {
-            factoryGeneratorParameters[i] = bindings[i].Member;
-        }
-
-        // Func<...>, parser1, parser2, parser3
-        object[] rowStateConstructorArgs = new object[bindings.Length + 1];
-        rowStateConstructorArgs[0] = factoryGenerator.Invoke(null, factoryGeneratorParameters)
-            ?? throw new InvalidOperationException($"Failed to create factory func from {factoryGenerator}");
-
-        for (int i = 0; i < bindings.Length; i++)
-        {
-            var @override = GetOverride(bindings[i]);
+            var @override = bindingCollection.Bindings[i].GetParserOverride<TResult>();
 
             if (@override is not null)
             {
-                rowStateConstructorArgs[i + 1] = @override.CreateParser(bindings[i], this);
-            }
-            else
-            {
-                rowStateConstructorArgs[i + 1] = GetParser(bindings[i].Type);
+                _overrides[i] = @override;
             }
         }
 
-        ConstructorInfo ctor = CsvRowState.GetConstructor<T, TResult>(bindings.Select(b => b.Type));
-        return (ICsvRowState<T, TResult>)ctor.Invoke(rowStateConstructorArgs);
+        if (_overrides.Count == 0)
+            _overrides = null;
 
-        static ICsvParserOverride? GetOverride(in CsvBinding binding)
+        return options =>
         {
-            ICsvParserOverride? found = null;
+            var bindings = bindingCollection.Bindings;
+            object[] rowStateConstructorArgs = new object[bindings.Length + 1];
+            rowStateConstructorArgs[0] = valueFactory;
 
-            foreach (var attribute in binding.Member.GetCachedCustomAttributes())
+            for (int i = 0; i < bindings.Length; i++)
             {
-                if (attribute is ICsvParserOverride @override)
+                if (_overrides is not null && _overrides.TryGetValue(i, out var @override))
                 {
-                    if (found is not null)
-                        throw new CsvBindingException(typeof(TResult), binding, found, @override);
-
-                    found = @override;
+                    rowStateConstructorArgs[i + 1] = @override.CreateParser(bindings[i], options);
+                }
+                else
+                {
+                    rowStateConstructorArgs[i + 1] = options.GetParser(bindings[i].Type);
                 }
             }
 
-            return found;
-        }
+            return (ICsvRowState<T, TResult>)rowStateConstructor.Invoke(rowStateConstructorArgs);
+        };
     }
 }
