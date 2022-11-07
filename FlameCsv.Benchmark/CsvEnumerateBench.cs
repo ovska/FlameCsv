@@ -105,7 +105,7 @@ public class CsvEnumerateBench
         }
         finally
         {
-            ArrayPool<char>.Shared.TryReturn(ref _enumeratorBuffer);
+            ArrayPool<char>.Shared.EnsureReturned(ref _enumeratorBuffer);
         }
     }
 
@@ -161,7 +161,7 @@ public class CsvEnumerateBench
         finally
         {
             await reader.CompleteAsync();
-            ArrayPool<byte>.Shared.TryReturn(ref _enumeratorBuffer);
+            ArrayPool<byte>.Shared.EnsureReturned(ref _enumeratorBuffer);
         }
     }
 
