@@ -1,6 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using FastExpressionCompiler;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
@@ -86,6 +88,20 @@ public sealed partial class CsvReaderOptions<T>
         if (_overrides.Count == 0)
             _overrides = null;
 
+        var param = Expression.Parameter(typeof(object[]), "args");
+        var ctorInvoke = Expression.New(
+            rowStateConstructor,
+            rowStateConstructor
+                .GetParameters()
+                .Select(
+                    (p, i) => Expression.Convert(
+                        Expression.ArrayAccess(param, Expression.Constant(i)),
+                        p.ParameterType)));
+        var lambda = Expression.Lambda<Func<object[], ICsvRowState<T, TResult>>>(
+            Expression.Convert(ctorInvoke, typeof(ICsvRowState<T,TResult>)),
+            param);
+        var compiled = lambda.CompileFast(flags: CompilerFlags.ThrowOnNotSupportedExpression);
+
         return options =>
         {
             var bindings = bindingCollection.Bindings;
@@ -104,7 +120,7 @@ public sealed partial class CsvReaderOptions<T>
                 }
             }
 
-            return (ICsvRowState<T, TResult>)rowStateConstructor.Invoke(rowStateConstructorArgs);
+            return compiled(rowStateConstructorArgs);
         };
     }
 }
