@@ -10,8 +10,6 @@ namespace FlameCsv.Readers;
 internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     where T : unmanaged, IEquatable<T>
 {
-    private static readonly int StackallocThreshold = Unsafe.SizeOf<byte>() * 256 / Unsafe.SizeOf<T>();
-
     private readonly CsvTokens<T> _tokens;
     private readonly CsvCallback<T, bool>? _skipPredicate;
     private readonly ICsvRowState<T, TValue> _state;
@@ -75,7 +73,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
 
         int length = (int)line.Length;
 
-        if (length <= StackallocThreshold)
+        if (Token<T>.CanStackalloc(length))
         {
             Span<T> buffer = stackalloc T[length];
             line.CopyTo(buffer);

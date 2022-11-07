@@ -5,20 +5,13 @@ using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 
-namespace FlameCsv.Binding.Providers;
+namespace FlameCsv.Binding;
 
-/// <summary>
-/// Binds or ignores indexes to members via <see cref="IndexBindingAttribute"/>,
-/// <see cref="IndexBindingTargetAttribute"/> and <see cref="IndexBindingIgnoreAttribute"/>.
-/// </summary>
-/// <typeparam name="T"></typeparam>
-public sealed class IndexBindingProvider<T> : ICsvBindingProvider<T>
-    where T : unmanaged, IEquatable<T>
+internal static class IndexAttributeBinder
 {
-    // ReSharper disable once StaticMemberInGenericType
     private static readonly ConditionalWeakTable<Type, object?> _bindingCache = new();
 
-    public bool TryGetBindings<TValue>([NotNullWhen(true)] out CsvBindingCollection<TValue>? bindings)
+    public static bool TryGet<TValue>([NotNullWhen(true)] out CsvBindingCollection<TValue>? bindings)
     {
         if (!_bindingCache.TryGetValue(typeof(TValue), out var obj))
         {

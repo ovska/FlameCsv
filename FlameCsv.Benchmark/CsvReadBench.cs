@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Text;
 using CsvHelper;
 using FlameCsv.Binding.Attributes;
-using FlameCsv.Binding.Providers;
 using FlameCsv.Parsers;
 using FlameCsv.Parsers.Text;
 
@@ -42,8 +41,7 @@ public class CsvReadBench
     {
         var config = CsvOptions.GetTextReaderDefault(
                 new CsvTextParsersConfig{ DateTimeFormat = "yyyy'.'MM" })
-            .SetTokens(CsvTokens<char>.Unix)
-            .SetBinder(new IndexBindingProvider<char>());
+            .SetTokens(CsvTokens<char>.Unix);
 
         foreach (var item in Readers.CsvReader.Read<Item>(_string, config))
         {
@@ -56,8 +54,7 @@ public class CsvReadBench
     {
         var config = CsvReaderOptions<byte>.Default
             .AddParser(new YYYYMMParser())
-            .SetTokens(CsvTokens<byte>.Environment)
-            .SetBinder(new IndexBindingProvider<byte>());
+            .SetTokens(CsvTokens<byte>.Environment);
 
         foreach (var item in Readers.CsvReader.Read<Item>(_file, config))
         {

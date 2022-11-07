@@ -12,10 +12,10 @@ public sealed partial class CsvReaderOptions<T>
 {
     internal ICsvRowState<T, TResult> BindToState<TResult>()
     {
-        if (BindingProvider.TryGetBindings<TResult>(out var bindings))
+        if (IndexAttributeBinder.TryGet<TResult>(out var bindings))
             return CreateState(bindings);
 
-        throw new CsvBindingException();
+        throw new CsvBindingException("TODO");
     }
 
     /// <summary>

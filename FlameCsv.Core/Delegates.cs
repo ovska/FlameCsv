@@ -30,4 +30,4 @@ public delegate bool CsvTryParse<T, TValue>(
 /// <typeparam name="T">Token type</typeparam>
 public delegate CsvBinding? CsvHeaderMatcher<T>(
     in HeaderBindingArgs args,
-    ReadOnlySpan<T> data);
+    ReadOnlySpan<T> column);

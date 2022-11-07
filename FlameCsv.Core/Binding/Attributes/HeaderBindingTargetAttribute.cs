@@ -46,9 +46,9 @@ public sealed class HeaderBindingTargetAttribute : Attribute
         MemberName = memberName;
     }
 
-    internal IEnumerable<(string Value, MemberInfo Member, int Order)> GetMembers(Type targetType)
+    internal IEnumerable<HeaderBindingCandidate> GetMembers(Type targetType)
     {
         var member = targetType.GetPropertyOrField(MemberName);
-        return Values.Select(value => (value, member, Order));
+        return Values.Select(value => new HeaderBindingCandidate(value, member, Order));
     }
 }

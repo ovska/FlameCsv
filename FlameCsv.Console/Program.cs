@@ -6,7 +6,6 @@ using CsvHelper;
 using CsvHelper.TypeConversion;
 using FlameCsv;
 using FlameCsv.Binding;
-using FlameCsv.Binding.Providers;
 using FlameCsv.Parsers;
 using FlameCsv.Parsers.Text;
 
@@ -40,32 +39,12 @@ using (var csv = new CsvReader(reader, config))
 
 ///////////////////////////////////////////////////////////////////////7
 
-var bindings = new CsvBinding[]
-{
-    new(0, typeof(Item).GetProperty(nameof(Item.SeriesReference))!),
-    new(1, typeof(Item).GetProperty(nameof(Item.Period))!),
-    new(2, typeof(Item).GetProperty(nameof(Item.DataValue))!),
-    new(3, typeof(Item).GetProperty(nameof(Item.Suppressed))!),
-    new(4, typeof(Item).GetProperty(nameof(Item.Status))!),
-    new(5, typeof(Item).GetProperty(nameof(Item.Units))!),
-    new(6, typeof(Item).GetProperty(nameof(Item.Magnitude))!),
-    new(7, typeof(Item).GetProperty(nameof(Item.Subject))!),
-    new(8, typeof(Item).GetProperty(nameof(Item.Group))!),
-    new(9, typeof(Item).GetProperty(nameof(Item.SeriesTitle1))!),
-    new(10, typeof(Item).GetProperty(nameof(Item.SeriesTitle2))!),
-    new(11, typeof(Item).GetProperty(nameof(Item.SeriesTitle3))!),
-    new(12, typeof(Item).GetProperty(nameof(Item.SeriesTitle4))!),
-    new(13, typeof(Item).GetProperty(nameof(Item.SeriesTitle5))!),
-};
-
 await using var stream = File.OpenRead("/home/sipi/test.csv");
-
 
 var config_ = CsvOptions
     .GetUtf8ReaderDefault()
     .SetTokens(CsvTokens<byte>.Unix)
-    .AddParser(new YYYYMMParser())
-    .SetBinder(new ManualBindingProvider<byte, Item>(bindings));
+    .AddParser(new YYYYMMParser());
 var result = new List<Item>();
 await foreach (var item in FlameCsv.Readers.CsvReader.ReadAsync<Item>(stream, config_))
 {
@@ -75,11 +54,9 @@ await foreach (var item in FlameCsv.Readers.CsvReader.ReadAsync<Item>(stream, co
 Debugger.Break();
 try
 {
-    var _collection = new ManualBindingProvider<char, Item>(bindings);
     var _config_ = CsvOptions
         .GetTextReaderDefault(new CsvTextParsersConfig { DateTimeFormat = "yyyy'.'mm" })
-        .SetTokens(CsvTokens<char>.Unix)
-        .SetBinder(_collection);
+        .SetTokens(CsvTokens<char>.Unix);
 
     using (var reader = new StreamReader("/home/sipi/test.csv"))
     {

@@ -6,8 +6,23 @@ namespace FlameCsv.Binding;
 /// <summary>
 /// Built-in callbacks for header binding.
 /// </summary>
-public static class DefaultHeaderMatchers
+internal static class HeaderMatcherDefaults
 {
+    private static readonly HeaderTextBinder _headerTextBinder = new();
+    private static readonly HeaderUtf8Binder _headerUtf8Binder = new();
+
+    internal static IHeaderBinder<T> GetBinder<T>() where T : unmanaged, IEquatable<T>
+    {
+        if (typeof(T) == typeof(char))
+            return (IHeaderBinder<T>)(object)_headerTextBinder;
+
+        if (typeof(T) == typeof(byte))
+            return (IHeaderBinder<T>)(object)_headerUtf8Binder;
+
+        throw new NotSupportedException($"Default header binding for {typeof(T)} is not supported.");
+    }
+
+
     /// <summary>
     /// Matches member names to the column using the specified comparison.
     /// </summary>
@@ -35,9 +50,9 @@ public static class DefaultHeaderMatchers
 
         CsvBinding? Impl(in HeaderBindingArgs args, ReadOnlySpan<byte> data)
         {
-            var length = Encoding.UTF8.GetMaxCharCount(data.Length);
+            int length = Encoding.UTF8.GetMaxCharCount(data.Length);
 
-            if (length < 64)
+            if (Token<byte>.CanStackalloc(length))
             {
                 Span<char> buffer = stackalloc char[length];
                 var written = Encoding.UTF8.GetChars(data, buffer);

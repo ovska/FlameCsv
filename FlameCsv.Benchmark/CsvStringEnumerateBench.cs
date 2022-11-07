@@ -4,9 +4,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using CommunityToolkit.Diagnostics;
-using FlameCsv.Extensions;
 using FlameCsv.Readers;
-using FlameCsv.Readers.Internal;
 using CsvReader = CsvHelper.CsvReader;
 
 namespace FlameCsv.Benchmark;
