@@ -39,8 +39,8 @@ public class CsvReadBench
     [Benchmark]
     public void FlameCsv_ASCII()
     {
-        var config = CsvOptions.GetTextReaderDefault(
-                new CsvTextParsersConfig{ DateTimeFormat = "yyyy'.'MM" })
+        var config = CsvOptions.GetTextReaderDefault()
+            .AddParser(new DateTimeTextParser("yyyy'.'MM", CultureInfo.InvariantCulture))
             .SetTokens(CsvTokens<char>.Unix);
 
         foreach (var item in Readers.CsvReader.Read<Item>(_string, config))
@@ -119,7 +119,7 @@ public class CsvReadBench
         [CsvHelper.Configuration.Attributes.Index(13), IndexBinding(13)]
         public string? SeriesTitle5 { get; set; }
     }
-    
+
     internal sealed class YYYYMMParser : ParserBase<byte, DateTime>
     {
         public override bool TryParse(ReadOnlySpan<byte> span, out DateTime value)
@@ -135,13 +135,10 @@ public class CsvReadBench
 
                 if (y1 <= 9 && y2 <= 9 && y3 <= 9 && y4 <= 9 && m1 <= 9 && m2 <= 9)
                 {
-                    value = new(
-                        (int)(y1 * 1000 + y2 * 100 + y3 * 10 + y4),
-                        (int)(m1 * 10 + m2),
-                        1,
-                        0,
-                        0,
-                        0);
+                    value = new DateTime(
+                        year: (int)(y1 * 1000 + y2 * 100 + y3 * 10 + y4),
+                        month: (int)(m1 * 10 + m2),
+                        day: 1);
 
                     return true;
                 }

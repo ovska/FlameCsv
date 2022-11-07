@@ -3,6 +3,9 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using CommunityToolkit.Diagnostics;
+using FlameCsv.Binding.Attributes;
+using FlameCsv.Exceptions;
+using FlameCsv.Extensions;
 using FlameCsv.Runtime;
 
 namespace FlameCsv.Binding;
@@ -98,6 +101,24 @@ public readonly struct CsvBinding : IEquatable<CsvBinding>
         }
 
         return false;
+    }
+
+    internal ICsvParserOverride? GetParserOverride<TResult>()
+    {
+        ICsvParserOverride? found = null;
+
+        foreach (var attribute in Member.GetCachedCustomAttributes())
+        {
+            if (attribute is ICsvParserOverride @override)
+            {
+                if (found is not null)
+                    throw new CsvBindingException(typeof(TResult), this, found, @override);
+
+                found = @override;
+            }
+        }
+
+        return found;
     }
 
     internal MemberExpression AsExpression(Expression target) => ReflectionUtil.GetMember(target, Member);
