@@ -117,7 +117,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     {
         _state.Dispose();
 
-        ArrayPool<T>.Shared.TryReturn(ref _enumeratorBuffer);
-        ArrayPool<T>.Shared.TryReturn(ref _multisegmentBuffer);
+        ArrayPool<T>.Shared.EnsureReturned(ref _enumeratorBuffer);
+        ArrayPool<T>.Shared.EnsureReturned(ref _multisegmentBuffer);
     }
 }
