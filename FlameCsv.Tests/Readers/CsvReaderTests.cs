@@ -29,13 +29,13 @@ public class CsvReaderTests : PooledBufferVerifier
             from api in new[] { CsvApi.Async, CsvApi.Sync, CsvApi.Enumerator }
             from type in new[] { typeof(char), typeof(byte) }
             from bufferSize in new[] { -1, 17, 128, 1024, 8096 }
-            from newline in new[] { "\n", "\r\n" }
+            from crlf in new[] { true, false }
             from writeHeader in new[] { true, false }
             from writeTrailingNewline in new[] { true, false }
             from hasStrings in new[] { true, false }
             from hasWhitespace in new[] { true, false }
             select new object[]
-                { api, type, bufferSize, newline, writeHeader, writeTrailingNewline, hasStrings, hasWhitespace };
+                { api, type, bufferSize, crlf, writeHeader, writeTrailingNewline, hasStrings, hasWhitespace };
     }
 
     /// <summary>
@@ -46,14 +46,15 @@ public class CsvReaderTests : PooledBufferVerifier
         CsvApi api,
         Type type,
         int bufferSize,
-        string newLine,
-        bool hasHeader,
-        bool trailingNewline,
-        bool hasStrings,
-        bool hasWhitespace)
+        bool CRLF,
+        bool header,
+        bool trailingLF,
+        bool strings,
+        bool whitespace)
     {
         using var writer = new ArrayPoolBufferWriter<char>();
 
+        string newLine = CRLF ? "\r\n" : "\n";
         List<Obj> items = new();
 
         if (type == typeof(char))
@@ -61,9 +62,9 @@ public class CsvReaderTests : PooledBufferVerifier
             var options = CsvOptions.GetTextReaderDefault(new CsvTextParsersConfig { DateTimeFormat = "O" });
             options.Tokens = options.Tokens.WithNewLine(newLine);
 
-            if (hasWhitespace)
+            if (whitespace)
                 options.tokens = options.tokens.WithWhitespace(" ");
-            options.HasHeader = hasHeader;
+            options.HasHeader = header;
 
             if (api == CsvApi.Async)
             {
@@ -92,7 +93,7 @@ public class CsvReaderTests : PooledBufferVerifier
                 }
                 else
                 {
-                    EnumerateToList(hasHeader, sequence, options, items);
+                    EnumerateToList(header, sequence, options, items);
                 }
             }
         }
@@ -101,9 +102,9 @@ public class CsvReaderTests : PooledBufferVerifier
             var options = CsvOptions.GetUtf8ReaderDefault(new CsvUtf8ParsersConfig { DateTimeFormat = 'O' });
             options.Tokens = options.Tokens.WithNewLine(newLine);
 
-            if (hasWhitespace)
+            if (whitespace)
                 options.tokens = options.tokens.WithWhitespace(" ");
-            options.HasHeader = hasHeader;
+            options.HasHeader = header;
 
             using var owner = GetDataBytes();
 
@@ -132,7 +133,7 @@ public class CsvReaderTests : PooledBufferVerifier
                 }
                 else
                 {
-                    EnumerateToList(hasHeader, sequence, options, items);
+                    EnumerateToList(header, sequence, options, items);
                 }
             }
         }
@@ -147,7 +148,7 @@ public class CsvReaderTests : PooledBufferVerifier
         {
             var obj = items[i];
             Assert.Equal(i, obj.Id);
-            Assert.Equal(hasStrings ? $"Name\"{i}" : $"Name-{i}", obj.Name);
+            Assert.Equal(strings ? $"Name\"{i}" : $"Name-{i}", obj.Name);
             Assert.Equal(i % 2 == 0, obj.IsEnabled);
             Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(i), obj.LastLogin);
             Assert.Equal(new Guid(i, 0, 0, TestDataGenerator._guidbytes), obj.Token);
@@ -155,7 +156,7 @@ public class CsvReaderTests : PooledBufferVerifier
 
         MemoryOwner<byte> GetDataBytes()
         {
-            TestDataGenerator.Generate(writer, newLine, hasHeader, trailingNewline, hasStrings, hasWhitespace);
+            TestDataGenerator.Generate(writer, newLine, header, trailingLF, strings, whitespace);
             var owner = MemoryOwner<byte>.Allocate(Encoding.UTF8.GetByteCount(writer.WrittenSpan));
             Assert.Equal(owner.Length, Encoding.UTF8.GetBytes(writer.WrittenSpan, owner.Span));
             return owner;
@@ -163,7 +164,7 @@ public class CsvReaderTests : PooledBufferVerifier
 
         ReadOnlyMemory<char> GetDataChars()
         {
-            TestDataGenerator.Generate(writer, newLine, hasHeader, trailingNewline, hasStrings, hasWhitespace);
+            TestDataGenerator.Generate(writer, newLine, header, trailingLF, strings, whitespace);
             return writer.WrittenMemory;
         }
     }
