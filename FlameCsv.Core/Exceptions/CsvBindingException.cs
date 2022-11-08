@@ -112,10 +112,10 @@ public sealed class CsvBindingException : CsvConfigurationException
 
     public CsvBindingException(
         string message,
-        IEnumerable<CsvBinding> bindings)
+        IReadOnlyList<CsvBinding> bindings)
         : base(message)
     {
-        Bindings = bindings.ToList();
+        Bindings = bindings;
     }
 
     /// <summary>
