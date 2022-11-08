@@ -39,11 +39,11 @@ public sealed class CsvParserOverrideAttribute : Attribute, ICsvParserOverride
     /// <returns>Parser instnace</returns>
     /// <exception cref="CsvConfigurationException">Thrown if <see cref="ParserType"/> is not valid for the member,
     /// or is not present in the configuration and has no parameterless constructor.</exception>
-    public ICsvParser<T> CreateParser<T>(in CsvBinding _binding, CsvReaderOptions<T> options)
+    public ICsvParser<T> CreateParser<T>(in CsvBinding binding, CsvReaderOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
-        CsvBinding binding = _binding; // TODO
         ArgumentNullException.ThrowIfNull(options);
+        Guard.IsNotNull(binding.Member);
         Guard.IsFalse(binding.IsIgnored);
 
         if (ParserType is null)
@@ -61,7 +61,7 @@ public sealed class CsvParserOverrideAttribute : Attribute, ICsvParserOverride
                 if (!existing.CanParse(targetType))
                 {
                     throw new CsvConfigurationException(
-                        $"Existing instance of parser override for {GetMember()} {ParserType.ToTypeString()} "
+                        $"Existing instance of parser override for {binding.FormatMember} {ParserType.ToTypeString()} "
                         + $"could not parse target member type {targetType.ToTypeString()}");
                 }
 
@@ -81,7 +81,7 @@ public sealed class CsvParserOverrideAttribute : Attribute, ICsvParserOverride
                 ? " The type does not have a parameterless constructor."
                 : "";
             throw new CsvConfigurationException(
-                $"Parser override for {GetMember()} {ParserType.ToTypeString()} was not present in the "
+                $"Parser override for {binding.FormatMember} {ParserType.ToTypeString()} was not present in the "
                 + "configuration, and couldn't be created dynamically."
                 + ctorErr,
                 innerException: e);
@@ -90,12 +90,10 @@ public sealed class CsvParserOverrideAttribute : Attribute, ICsvParserOverride
         if (!parserOrFactory.CanParse(targetType))
         {
             throw new CsvConfigurationException(
-                $"Dynamically created instance of parser override for {GetMember()} {ParserType.ToTypeString()} "
-                + $"can not parse the member type: {targetType.ToTypeString()}");
+                $"Dynamically created instance of parser override for {binding.FormatMember} "
+                + $"{ParserType.ToTypeString()} can not parse the member type: {targetType.ToTypeString()}");
         }
 
         return parserOrFactory.GetParserOrFromFactory(targetType, options);
-
-        string GetMember() => $"{binding.Member.DeclaringType?.Name}.{binding.Member.Name}".TrimStart('.');
     }
 }

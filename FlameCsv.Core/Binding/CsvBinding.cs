@@ -148,6 +148,9 @@ public readonly struct CsvBinding : IEquatable<CsvBinding>
         return sb.ToString();
     }
 
+    /// <summary><code>"Type.Property"</code></summary>
+    internal string FormatMember => $"{Member.DeclaringType?.Name}.{Member.Name}".TrimStart('.');
+
     public bool Equals(CsvBinding other) => Index == other.Index && Member.Equals(other.Member);
     public override bool Equals(object? obj) => obj is CsvBinding other && Equals(other);
     public override int GetHashCode() => HashCode.Combine(Member, Index);
