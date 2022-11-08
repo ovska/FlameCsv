@@ -7,12 +7,6 @@ namespace FlameCsv.Tests;
 
 public class WriteTemp
 {
-    public sealed class CsvWriteState<T, T0, T1, T2, TResult>
-    {
-        private int written = 0;
-        private Obj _value;
-    }
-
     private sealed class HelloWorldFormatter : ICsvFormatter<char, string>
     {
         public const string HelloWorld = "Hello, World!";
@@ -72,6 +66,45 @@ public class WriteTemp
 
         var str = Encoding.UTF8.GetString(stream.ToArray());
         Assert.Equal(HelloWorldFormatter.HelloWorld.Length * 10_000, str.Length);
+    }
+
+    internal enum FormatResult
+    {
+        Fail = 0,
+        Success = 1,
+        NeedEscape = 2,
+    }
+
+    private static bool TryFormat<T, TValue>(
+        ICsvFormatter<T, TValue> formatter,
+        TValue value,
+        Span<T> buffer,
+        in CsvTokens<T> tokens,
+        ref T[]? leftoverBuffer,
+        out int tokensWritten) where T : unmanaged, IEquatable<T>
+    {
+        if (formatter.TryFormat(value, buffer, out tokensWritten))
+        {
+            var written = buffer[..tokensWritten];
+            if (WriteUtil.NeedsEscaping(written, tokens.StringDelimiter, out int quoteCount, out int escLen) ||
+                (!tokens.Whitespace.IsEmpty && WriteUtil.NeedsEscaping(written, tokens.Whitespace, out escLen)))
+            {
+                if (buffer.Length >= escLen)
+                {
+                    WriteUtil.Escape(written, buffer, tokens.StringDelimiter, quoteCount);
+                    tokensWritten = escLen;
+                    return true;
+                }
+
+                // Value was written but it needs to be escaped
+                tokensWritten = default;
+                return false;
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     [Fact(Skip = "TODO")]
