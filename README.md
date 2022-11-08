@@ -10,6 +10,26 @@
 
 # Examples
 
+## Binding to column indexes
+```csv
+1,Bob
+2,Alice
+```
+```csharp
+class User
+{
+    [CsvIndex(0)] public int Id { get; set; }
+    [CsvIndex(1)] public string? Name { get; set; }
+}
+```
+```csharp
+var options = CsvReaderOptions<byte>.Default;
+await foreach (User record in CsvReader.ReadAsync<User>(File.OpenRead("/home/ovska/test.csv"), options))
+{
+    // ...
+}
+```
+
 ## Binding to header
 ```csv
 Id,Name
@@ -25,27 +45,8 @@ class User
 ```
 ```csharp
 var options = CsvReaderOptions<byte>.Default;
-await foreach (User record in CsvReader.ReadAsync<User>(File.OpenRead("/home/ovska/test.csv"), options)
-{
-    // ...
-}
-```
-
-## Binding to column indexes
-```csv
-1,Bob
-2,Alice
-```
-```csharp
-class User
-{
-    [CsvIndexBinding(0)] public int Id { get; set; }
-    [CsvIndexBinding(1)] public string? Name { get; set; }
-}
-```
-```csharp
-var options = CsvReaderOptions<byte>.Default.SetBinder(new IndexBindingProvider<byte>());
-await foreach (User record in CsvReader.ReadAsync<User>(File.OpenRead("/home/ovska/test.csv"), options)
+options.HasHeader = true;
+await foreach (User record in CsvReader.ReadAsync<User>(File.OpenRead("/home/ovska/test.csv"), options))
 {
     // ...
 }
