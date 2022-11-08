@@ -54,23 +54,23 @@ public static class IndexAttributeBinderTests
         Assert.Equal("B", result.Bindings[2].Member.Name);
     }
 
-    [IndexBindingIgnore(1)]
+    [CsvIndexIgnore(1)]
     private class Ignored
     {
-        [IndexBinding(0)] public int A { get; set; }
-        [IndexBinding(2)] public int B { get; set; }
+        [CsvIndex(0)] public int A { get; set; }
+        [CsvIndex(2)] public int B { get; set; }
     }
 
     private class Members
     {
-        [IndexBinding(0)] public int A { get; set; }
-        [IndexBinding(1)] public string? B { get; set; }
-        [IndexBinding(2)] public bool C { get; set; }
+        [CsvIndex(0)] public int A { get; set; }
+        [CsvIndex(1)] public string? B { get; set; }
+        [CsvIndex(2)] public bool C { get; set; }
     }
 
-    [IndexBindingTarget(0, nameof(A))]
-    [IndexBindingTarget(1, nameof(B))]
-    [IndexBindingTarget(2, nameof(C))]
+    [CsvIndexTarget(0, nameof(A))]
+    [CsvIndexTarget(1, nameof(B))]
+    [CsvIndexTarget(2, nameof(C))]
     private class Class
     {
         public int A { get; set; }
@@ -78,12 +78,12 @@ public static class IndexAttributeBinderTests
         public bool C { get; set; }
     }
 
-    [IndexBindingTarget(1, nameof(B))]
+    [CsvIndexTarget(1, nameof(B))]
     private class Mixed
     {
-        [IndexBinding(0)] public int A { get; set; }
+        [CsvIndex(0)] public int A { get; set; }
         public string? B { get; set; }
-        [IndexBinding(2)] public bool C { get; set; }
+        [CsvIndex(2)] public bool C { get; set; }
     }
 
     private class None

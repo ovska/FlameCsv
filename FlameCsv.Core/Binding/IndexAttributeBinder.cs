@@ -44,7 +44,7 @@ internal static class IndexAttributeBinder
 
                     foreach (var attribute in attributes)
                     {
-                        if (attribute is IndexBindingAttribute { Index: var index })
+                        if (attribute is CsvIndexAttribute { Index: var index })
                             return new CsvBinding(index, member);
                     }
 
@@ -55,8 +55,8 @@ internal static class IndexAttributeBinder
             .Select(
                 static attr => attr switch
                 {
-                    IndexBindingTargetAttribute targetAttribute => targetAttribute.GetAsBinding(typeof(TValue)),
-                    IndexBindingIgnoreAttribute ignoreAttribute => CsvBinding.Ignore(ignoreAttribute.Index),
+                    CsvIndexTargetAttribute targetAttribute => targetAttribute.GetAsBinding(typeof(TValue)),
+                    CsvIndexIgnoreAttribute ignoreAttribute => CsvBinding.Ignore(ignoreAttribute.Index),
                     _ => new CsvBinding?(),
                 });
 
