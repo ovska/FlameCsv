@@ -1,3 +1,5 @@
+using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 
@@ -17,12 +19,12 @@ internal static class WriteUtil
 
         var written = destination[..tokensWritten];
 
-        if (NeedsEscaping(written, tokens.StringDelimiter, out int quoteCount, out int escapedLength) ||
-            (!tokens.Whitespace.IsEmpty && NeedsEscaping(written, tokens.Whitespace.Span, out escapedLength)))
+        if (NeedsEscaping(written, tokens.StringDelimiter, out int quoteCount, out int escapedLength)
+            || NeedsEscaping(written, tokens.Whitespace, out escapedLength))
         {
             if (destination.Length >= escapedLength)
             {
-                // Escape(written, destination
+                Escape(written, destination, tokens.StringDelimiter, quoteCount);
             }
         }
 
@@ -53,11 +55,11 @@ internal static class WriteUtil
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool NeedsEscaping<T>(
         ReadOnlySpan<T> value,
-        ReadOnlySpan<T> whitespace,
+        ReadOnlyMemory<T> whitespace,
         out int escapedLength)
         where T : unmanaged, IEquatable<T>
     {
-        if (value.Length != value.Trim(whitespace).Length)
+        if (!whitespace.IsEmpty && value.Length != value.Trim(whitespace.Span).Length)
         {
             // only the wrapping quotes needed
             escapedLength = value.Length + 2;
@@ -68,6 +70,105 @@ internal static class WriteUtil
         return false;
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="source">Data that needs escaping</param>
+    /// <param name="destination">Destination buffer, can be the same memory region as source</param>
+    /// <param name="quote">Quote token</param>
+    /// <param name="requiredLength">Total length required for the unescape</param>
+    /// <param name="quoteCount">Amount of quotes in the source</param>
+    /// <param name="array">Pooled buffer used to write the rest of the data</param>
+    /// <param name="overflowLength">Amount of bytes written to the start of <paramref name="array"/></param>
+    /// <typeparam name="T"></typeparam>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public static void PartialEscape<T>(
+        ReadOnlySpan<T> source,
+        Span<T> destination,
+        T quote,
+        int requiredLength,
+        int quoteCount,
+        ref T[]? array,
+        out int overflowLength)
+        where T : unmanaged, IEquatable<T>
+    {
+        Debug.Assert(destination.Length < requiredLength, "Destination should be too small");
+        Debug.Assert(
+            !source.Overlaps(destination, out int elementOffset) || elementOffset == 0,
+            "If src and dst overlap, they must have the same starting point in memory");
+
+        // TODO: should this even be here? can be calculated outside
+        overflowLength = requiredLength - destination.Length;
+        Debug.Assert(overflowLength + destination.Length == requiredLength);
+
+        ArrayPool<T>.Shared.EnsureCapacity(ref array, overflowLength);
+
+        // First write the overflowing data to the array
+        int srcIndex = source.Length - 1;
+        int ovrIndex = overflowLength - 1;
+        bool needQuote = false;
+
+        Span<T> overflow = array;
+        overflow[ovrIndex--] = quote;
+
+        while (ovrIndex >= 0)
+        {
+            if (needQuote)
+            {
+                overflow[ovrIndex--] = quote;
+                needQuote = false;
+            }
+            else if (source[srcIndex].Equals(quote))
+            {
+                overflow[ovrIndex--] = quote;
+                srcIndex--;
+                needQuote = true;
+            }
+            else
+            {
+                overflow[ovrIndex--] = source[srcIndex--];
+            }
+        }
+
+        int dstIndex = destination.Length - 1;
+
+        while (srcIndex >= 0)
+        {
+            if (needQuote)
+            {
+                destination[dstIndex--] = quote;
+                needQuote = false;
+            }
+            else if (source[srcIndex].Equals(quote))
+            {
+                destination[dstIndex--] = quote;
+                srcIndex--;
+                needQuote = true;
+            }
+            else
+            {
+                destination[dstIndex--] = source[srcIndex--];
+            }
+        }
+
+        if (needQuote)
+        {
+            destination[dstIndex--] = quote;
+        }
+
+        destination[dstIndex] = quote;
+
+        Debug.Assert(dstIndex == 0);
+    }
+
+    /// <summary>
+    /// Escapes <see cref="source"/> into <see cref="destination"/>. Source and destination can overlap.
+    /// </summary>
+    /// <param name="source">Data that needs escaping</param>
+    /// <param name="destination">Destination buffer, can be the same memory region as source</param>
+    /// <param name="quote">Quote token</param>
+    /// <param name="quoteCount">Amount of quotes in the source</param>
+    /// <typeparam name="T">Token type</typeparam>
     public static void Escape<T>(
         ReadOnlySpan<T> source,
         Span<T> destination,
@@ -75,6 +176,11 @@ internal static class WriteUtil
         int quoteCount)
         where T : unmanaged, IEquatable<T>
     {
+        Debug.Assert(destination.Length >= source.Length + quoteCount + 2, "Destination buffer is too small");
+        Debug.Assert(
+            !source.Overlaps(destination, out int elementOffset) || elementOffset == 0,
+            "If src and dst overlap, they must have the same starting point in memory");
+
         // Work backwards as the source and destination buffers might overlap
         // if the write buffer is large enough for the unescaped version
 
