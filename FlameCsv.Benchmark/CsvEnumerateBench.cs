@@ -203,9 +203,7 @@ public class CsvEnumerateBench
             stringDelimiterCount,
             ref _enumeratorBuffer);
 
-        foreach (var column in enumerator)
-        {
-            _ = column;
-        }
+        while (enumerator.MoveNext())
+            _ = enumerator.Current;
     }
 }

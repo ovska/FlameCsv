@@ -46,7 +46,7 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
             quoteCount: line.Count(options.tokens.StringDelimiter),
             ref buffer._array);
 
-        foreach (var value in enumerator)
+        while (enumerator.MoveNext())
         {
             bool found = false;
 
@@ -61,7 +61,7 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
                         TargetType = typeof(TValue),
                         Index = index,
                     },
-                    value);
+                    enumerator.Current);
 
                 if (binding.HasValue)
                 {

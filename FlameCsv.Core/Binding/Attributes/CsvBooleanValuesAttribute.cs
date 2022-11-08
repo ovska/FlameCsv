@@ -34,6 +34,8 @@ public class CsvBooleanValuesAttribute : Attribute, ICsvParserOverride
         }
     }
 
+    // could add explicit Null here
+
     private string[] _trueValues = Array.Empty<string>();
     private string[] _falseValues = Array.Empty<string>();
 
