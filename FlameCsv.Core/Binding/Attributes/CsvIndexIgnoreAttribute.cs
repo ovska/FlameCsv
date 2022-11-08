@@ -3,17 +3,18 @@ using CommunityToolkit.Diagnostics;
 namespace FlameCsv.Binding.Attributes;
 
 /// <summary>
-/// Binds the property or field to CSV column at <see cref="Index"/>.
+/// Marks the column at index as ignored.
 /// </summary>
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public sealed class IndexBindingAttribute : Attribute
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+public sealed class CsvIndexIgnoreAttribute : Attribute
 {
     /// <summary>CSV column index.</summary>
     public int Index { get; }
 
-    /// <inheritdoc cref="IndexBindingAttribute"/>
+    /// <inheritdoc cref="CsvIndexIgnoreAttribute"/>
     /// <param name="index">CSV column index</param>
-    public IndexBindingAttribute(int index)
+    public CsvIndexIgnoreAttribute(
+        int index)
     {
         Guard.IsGreaterThanOrEqualTo(index, 0);
         Index = index;

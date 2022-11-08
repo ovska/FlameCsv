@@ -77,46 +77,46 @@ public class CsvReadBench
     // Series_reference,Period,Data_value,Suppressed,STATUS,UNITS,Magnitude,Subject,Group,Series_title_1,Series_title_2,Series_title_3,Series_title_4,Series_title_5
     public class Item
     {
-        [CsvHelper.Configuration.Attributes.Index(0), IndexBinding(0)]
+        [CsvHelper.Configuration.Attributes.Index(0), CsvIndex(0)]
         public string? SeriesReference { get; set; }
 
-        [CsvHelper.Configuration.Attributes.Index(1), IndexBinding(1)]
+        [CsvHelper.Configuration.Attributes.Index(1), CsvIndex(1)]
         public DateTime Period { get; set; } // date
 
-        [CsvHelper.Configuration.Attributes.Index(2), IndexBinding(2)]
+        [CsvHelper.Configuration.Attributes.Index(2), CsvIndex(2)]
         public int DataValue { get; set; }
 
-        [CsvHelper.Configuration.Attributes.Index(3), IndexBinding(3)]
+        [CsvHelper.Configuration.Attributes.Index(3), CsvIndex(3)]
         public string? Suppressed { get; set; }
 
-        [CsvHelper.Configuration.Attributes.Index(4), IndexBinding(4)]
+        [CsvHelper.Configuration.Attributes.Index(4), CsvIndex(4)]
         public StatusEnum Status { get; set; }
 
-        [CsvHelper.Configuration.Attributes.Index(5), IndexBinding(5)]
+        [CsvHelper.Configuration.Attributes.Index(5), CsvIndex(5)]
         public UnitsEnum Units { get; set; }
 
-        [CsvHelper.Configuration.Attributes.Index(6), IndexBinding(6)]
+        [CsvHelper.Configuration.Attributes.Index(6), CsvIndex(6)]
         public int Magnitude { get; set; }
 
-        [CsvHelper.Configuration.Attributes.Index(7), IndexBinding(7)]
+        [CsvHelper.Configuration.Attributes.Index(7), CsvIndex(7)]
         public string? Subject { get; set; }
 
-        [CsvHelper.Configuration.Attributes.Index(8), IndexBinding(8)]
+        [CsvHelper.Configuration.Attributes.Index(8), CsvIndex(8)]
         public string? Group { get; set; }
 
-        [CsvHelper.Configuration.Attributes.Index(9), IndexBinding(9)]
+        [CsvHelper.Configuration.Attributes.Index(9), CsvIndex(9)]
         public string? SeriesTitle1 { get; set; }
 
-        [CsvHelper.Configuration.Attributes.Index(10), IndexBinding(10)]
+        [CsvHelper.Configuration.Attributes.Index(10), CsvIndex(10)]
         public string? SeriesTitle2 { get; set; }
 
-        [CsvHelper.Configuration.Attributes.Index(11), IndexBinding(11)]
+        [CsvHelper.Configuration.Attributes.Index(11), CsvIndex(11)]
         public string? SeriesTitle3 { get; set; }
 
-        [CsvHelper.Configuration.Attributes.Index(12), IndexBinding(12)]
+        [CsvHelper.Configuration.Attributes.Index(12), CsvIndex(12)]
         public string? SeriesTitle4 { get; set; }
 
-        [CsvHelper.Configuration.Attributes.Index(13), IndexBinding(13)]
+        [CsvHelper.Configuration.Attributes.Index(13), CsvIndex(13)]
         public string? SeriesTitle5 { get; set; }
     }
 

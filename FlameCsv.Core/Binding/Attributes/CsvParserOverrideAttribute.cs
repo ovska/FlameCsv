@@ -34,15 +34,16 @@ public sealed class CsvParserOverrideAttribute : Attribute, ICsvParserOverride
     /// Gets or creates a parser instance for the binding's member.
     /// </summary>
     /// <param name="binding">Target member</param>
-    /// <param name="readerOptions">Current configuration instance</param>
+    /// <param name="options">Current configuration instance</param>
     /// <typeparam name="T">Token type</typeparam>
     /// <returns>Parser instnace</returns>
     /// <exception cref="CsvConfigurationException">Thrown if <see cref="ParserType"/> is not valid for the member,
     /// or is not present in the configuration and has no parameterless constructor.</exception>
-    public ICsvParser<T> CreateParser<T>(CsvBinding binding, CsvReaderOptions<T> readerOptions)
+    public ICsvParser<T> CreateParser<T>(in CsvBinding _binding, CsvReaderOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
-        ArgumentNullException.ThrowIfNull(readerOptions);
+        CsvBinding binding = _binding; // TODO
+        ArgumentNullException.ThrowIfNull(options);
         Guard.IsFalse(binding.IsIgnored);
 
         if (ParserType is null)
@@ -53,7 +54,7 @@ public sealed class CsvParserOverrideAttribute : Attribute, ICsvParserOverride
 
         var targetType = binding.Type;
 
-        foreach (var existing in readerOptions.EnumerateParsers())
+        foreach (var existing in options.EnumerateParsers())
         {
             if (existing.GetType() == ParserType)
             {
@@ -64,7 +65,7 @@ public sealed class CsvParserOverrideAttribute : Attribute, ICsvParserOverride
                         + $"could not parse target member type {targetType.ToTypeString()}");
                 }
 
-                return existing.GetParserOrFromFactory(targetType, readerOptions);
+                return existing.GetParserOrFromFactory(targetType, options);
             }
         }
 
@@ -93,7 +94,7 @@ public sealed class CsvParserOverrideAttribute : Attribute, ICsvParserOverride
                 + $"can not parse the member type: {targetType.ToTypeString()}");
         }
 
-        return parserOrFactory.GetParserOrFromFactory(targetType, readerOptions);
+        return parserOrFactory.GetParserOrFromFactory(targetType, options);
 
         string GetMember() => $"{binding.Member.DeclaringType?.Name}.{binding.Member.Name}".TrimStart('.');
     }

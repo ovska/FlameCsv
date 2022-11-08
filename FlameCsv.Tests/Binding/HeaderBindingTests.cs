@@ -11,11 +11,11 @@ namespace FlameCsv.Tests.Binding;
 
 public static class HeaderBindingTests
 {
-    [HeaderBindingTarget(nameof(Targeted), "_targeted")]
+    [CsvHeaderTarget(nameof(Targeted), "_targeted")]
     private class Shim
     {
-        [HeaderBindingIgnore] public string? Name { get; set; }
-        [HeaderBinding("Name")] public string? DisplayName { get; set; }
+        [CsvHeaderIgnore] public string? Name { get; set; }
+        [CsvHeader("Name")] public string? DisplayName { get; set; }
         public bool IsEnabled { get; set; }
         public int Targeted { get; set; }
     }

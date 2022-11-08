@@ -10,7 +10,7 @@ namespace FlameCsv.Binding.Attributes;
 /// The provider determines case sensitivity.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public sealed class HeaderBindingAttribute : Attribute
+public sealed class CsvHeaderAttribute : Attribute
 {
     /// <summary>
     /// Value(s) to match to header.
@@ -23,14 +23,14 @@ public sealed class HeaderBindingAttribute : Attribute
     /// </summary>
     public int Order { get; set; } = 1;
 
-    /// <inheritdoc cref="HeaderBindingAttribute"/>
-    public HeaderBindingAttribute(string value)
+    /// <inheritdoc cref="CsvHeaderAttribute"/>
+    public CsvHeaderAttribute(string value)
     {
         Values = ImmutableArray.Create(value);
     }
 
-    /// <inheritdoc cref="HeaderBindingAttribute"/>
-    public HeaderBindingAttribute(params string[] values)
+    /// <inheritdoc cref="CsvHeaderAttribute"/>
+    public CsvHeaderAttribute(params string[] values)
     {
         Guard.IsNotNull(values);
         Guard.IsNotEmpty(values);

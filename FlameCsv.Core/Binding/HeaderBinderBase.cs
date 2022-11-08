@@ -90,21 +90,21 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
     /// <summary>
     /// Returns members of <typeparamref name="TValue"/> that can be used for binding.
     /// </summary>
-    /// <seealso cref="HeaderBindingAttribute"/>
-    /// <seealso cref="HeaderBindingIgnoreAttribute"/>
+    /// <seealso cref="CsvHeaderAttribute"/>
+    /// <seealso cref="CsvHeaderIgnoreAttribute"/>
     internal List<HeaderBindingCandidate> GetBindingCandidates<TValue>()
     {
         if (!_candidateCache.TryGetValue(typeof(TValue), out var candidates))
         {
             var members = typeof(TValue).GetCachedPropertiesAndFields()
-                .Where(m => !m.HasAttribute<HeaderBindingIgnoreAttribute>())
+                .Where(m => !m.HasAttribute<CsvHeaderIgnoreAttribute>())
                 .SelectMany(
-                    static m => m.HasAttribute<HeaderBindingAttribute>(out var attr)
+                    static m => m.HasAttribute<CsvHeaderAttribute>(out var attr)
                         ? attr.Values.Select(v => new HeaderBindingCandidate(v, m, attr.Order))
                         : Enumerable.Repeat(new HeaderBindingCandidate(m.Name, m, 0), 1));
 
             var targeted = typeof(TValue).GetCachedCustomAttributes()
-                .OfType<HeaderBindingTargetAttribute>()
+                .OfType<CsvHeaderTargetAttribute>()
                 .SelectMany(attr => attr.GetMembers(typeof(TValue)));
 
             candidates = members.Concat(targeted).ToList();

@@ -5,11 +5,11 @@ namespace FlameCsv.Tests.TestData;
 
 internal class Obj
 {
-    [IndexBinding(0)] public int Id { get; set; }
-    [IndexBinding(1)] public string? Name { get; set; }
-    [IndexBinding(2)] public bool IsEnabled { get; set; }
-    [IndexBinding(3)] public DateTimeOffset LastLogin { get; set; }
-    [IndexBinding(4)] public Guid Token { get; set; }
+    [CsvIndex(0)] public int Id { get; set; }
+    [CsvIndex(1)] public string? Name { get; set; }
+    [CsvIndex(2)] public bool IsEnabled { get; set; }
+    [CsvIndex(3)] public DateTimeOffset LastLogin { get; set; }
+    [CsvIndex(4)] public Guid Token { get; set; }
 }
 
 internal static class TestDataGenerator
