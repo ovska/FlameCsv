@@ -11,24 +11,45 @@ internal static class WriteUtil
         Span<T> destination,
         ICsvFormatter<T, TValue> formatter,
         TValue value,
-        in CsvTokens<T> tokens)
+        in CsvTokens<T> tokens,
+        ref T[]? array,
+        out int tokensWritten,
+        out int overflowWritten)
         where T : unmanaged, IEquatable<T>
     {
-        if (!formatter.TryFormat(value, destination, out int tokensWritten))
-            return false;
-
-        var written = destination[..tokensWritten];
-
-        if (NeedsEscaping(written, tokens.StringDelimiter, out int quoteCount, out int escapedLength)
-            || NeedsEscaping(written, tokens.Whitespace, out escapedLength))
+        if (!formatter.TryFormat(value, destination, out tokensWritten))
         {
-            if (destination.Length >= escapedLength)
+            overflowWritten = 0;
+            return false;
+        }
+
+        if (tokensWritten > 0)
+        {
+            var written = destination[..tokensWritten];
+
+            if (NeedsEscaping(written, tokens.StringDelimiter, out int quoteCount, out int escapedLength)
+                || NeedsEscaping(written, tokens.Whitespace, out escapedLength))
             {
+                if (destination.Length < escapedLength)
+                {
+                    PartialEscape(
+                        written,
+                        destination,
+                        tokens.StringDelimiter,
+                        escapedLength,
+                        quoteCount,
+                        ref array,
+                        out overflowWritten);
+                    return true;
+                }
+
                 Escape(written, destination, tokens.StringDelimiter, quoteCount);
+                tokensWritten = escapedLength;
             }
         }
 
-        throw new NotImplementedException();
+        overflowWritten = 0;
+        return true;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -59,14 +80,70 @@ internal static class WriteUtil
         out int escapedLength)
         where T : unmanaged, IEquatable<T>
     {
-        if (!whitespace.IsEmpty && value.Length != value.Trim(whitespace.Span).Length)
+        Debug.Assert(!value.IsEmpty);
+
+        if (!whitespace.IsEmpty)
         {
-            // only the wrapping quotes needed
-            escapedLength = value.Length + 2;
-            return true;
+            var head = value[0];
+            var tail = value[^1];
+            var span = whitespace.Span;
+
+            if ((span.Length == 1 && StartsOrEndsWith(head, tail, span[0]))
+                || (span.Length == 2 && StartsOrEndsWith(head, tail, span[0], span[1]))
+                || (span.Length == 3 && StartsOrEndsWith(head, tail, span[0], span[1], span[2]))
+                || StartsOrEndsWith(head, tail, span))
+            {
+                // only the wrapping quotes needed
+                escapedLength = value.Length + 2;
+                return true;
+            }
         }
 
         escapedLength = default;
+        return false;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool StartsOrEndsWith<T>(T head, T tail, T a0)
+        where T : unmanaged, IEquatable<T>
+    {
+        return a0.Equals(head) || a0.Equals(tail);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool StartsOrEndsWith<T>(T head, T tail, T a0, T a1)
+        where T : unmanaged, IEquatable<T>
+    {
+        return a0.Equals(head)
+            || a0.Equals(tail)
+            || a1.Equals(head)
+            || a1.Equals(tail);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool StartsOrEndsWith<T>(T head, T tail, T a0, T a1, T a2)
+        where T : unmanaged, IEquatable<T>
+    {
+        return a0.Equals(head)
+            || a0.Equals(tail)
+            || a1.Equals(head)
+            || a1.Equals(tail)
+            || a2.Equals(head)
+            || a2.Equals(tail);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool StartsOrEndsWith<T>(T head, T tail, ReadOnlySpan<T> span)
+        where T : unmanaged, IEquatable<T>
+    {
+        foreach (var a in span)
+        {
+            if (a.Equals(head) || a.Equals(tail))
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -169,6 +246,7 @@ internal static class WriteUtil
     /// <param name="quote">Quote token</param>
     /// <param name="quoteCount">Amount of quotes in the source</param>
     /// <typeparam name="T">Token type</typeparam>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Escape<T>(
         ReadOnlySpan<T> source,
         Span<T> destination,
@@ -182,8 +260,6 @@ internal static class WriteUtil
             "If src and dst overlap, they must have the same starting point in memory");
 
         // Work backwards as the source and destination buffers might overlap
-        // if the write buffer is large enough for the unescaped version
-
         int dstIndex = destination.Length - 1;
         int srcIndex = source.Length - 1;
 
