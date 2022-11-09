@@ -91,7 +91,7 @@ public static class WriteUtilTests
     }
 
     [Theory]
-    [InlineData(-1, "")]
+    [InlineData(-1, "test")]
     [InlineData(-1, "te st")]
     [InlineData(7, " test")]
     [InlineData(7, "test ")]
