@@ -24,12 +24,12 @@ public static class WriteUtilTests
         // The escape should work despite src and dst sharing a memory region
         Assert.Equal(input.Length, first.Length);
         Span<char> firstBuffer = stackalloc char[first.Length];
-        input.CopyTo(firstBuffer);
+        // input.CopyTo(firstBuffer);
 
         char[]? array = null;
 
         WriteUtil.PartialEscape(
-            source: firstBuffer,
+            source: input.AsSpan(),//firstBuffer,
             destination: firstBuffer,
             quote: '|',
             requiredLength: escapedLength,
@@ -40,6 +40,11 @@ public static class WriteUtilTests
         Assert.NotNull(array);
         Assert.Equal(first, firstBuffer.ToString());
         Assert.Equal(second, array.AsSpan(0, overflowLength).ToString());
+
+        // Last sanity check
+        Assert.Equal(
+            $"|{input.Replace("|", "||")}|",
+            firstBuffer.ToString() + array.AsSpan(0, overflowLength).ToString());
 
         ArrayPool<char>.Shared.Return(array!);
     }
@@ -69,6 +74,11 @@ public static class WriteUtilTests
 
         WriteUtil.Escape(sharedBuffer[..input.Length], sharedBuffer, '|', quoteCount);
         Assert.Equal(expected, new string(sharedBuffer));
+
+        // Last sanity check
+        Assert.Equal(
+            $"|{input.Replace("|", "||")}|",
+            sharedBuffer.ToString());
     }
 
     [Theory]
