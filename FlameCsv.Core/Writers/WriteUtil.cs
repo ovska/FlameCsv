@@ -181,12 +181,20 @@ internal static class WriteUtil
         ArrayPool<T>.Shared.EnsureCapacity(ref array, overflowLength);
 
         // First write the overflowing data to the array
+        // as in the other Escape impl, we work backwards as source and destination
+        // share a memory region
         int srcIndex = source.Length - 1;
         int ovrIndex = overflowLength - 1;
+        int dstIndex = destination.Length - 1;
         bool needQuote = false;
 
         Span<T> overflow = array;
         overflow[ovrIndex--] = quote;
+
+        if (quoteCount == 0)
+        {
+            goto CopyTo;
+        }
 
         while (ovrIndex >= 0)
         {
@@ -194,6 +202,9 @@ internal static class WriteUtil
             {
                 overflow[ovrIndex--] = quote;
                 needQuote = false;
+
+                if (--quoteCount == 0)
+                    goto CopyTo;
             }
             else if (source[srcIndex].Equals(quote))
             {
@@ -207,14 +218,15 @@ internal static class WriteUtil
             }
         }
 
-        int dstIndex = destination.Length - 1;
-
         while (srcIndex >= 0)
         {
             if (needQuote)
             {
                 destination[dstIndex--] = quote;
                 needQuote = false;
+
+                if (--quoteCount == 0)
+                    goto CopyTo;
             }
             else if (source[srcIndex].Equals(quote))
             {
@@ -228,14 +240,36 @@ internal static class WriteUtil
             }
         }
 
+        // true if the first token in the source is a quote
         if (needQuote)
         {
             destination[dstIndex--] = quote;
+            quoteCount--;
+        }
+
+        // We can swallow the added complexity as the CopyTo can be over 10x faster than
+        // the loop for longer inputs that don't have any quotes near the start
+        // CopyTo is also close to O(1) for quoteless data
+        CopyTo:
+        if (srcIndex > 0)
+        {
+            if (ovrIndex >= 0)
+            {
+                source.Slice(srcIndex, ovrIndex + 1).CopyTo(overflow);
+                srcIndex -= ovrIndex + 1;
+            }
+
+            if (dstIndex > 1)
+            {
+                source.Slice(0, srcIndex + 1).CopyTo(destination.Slice(1));
+                dstIndex = 0;
+            }
         }
 
         destination[dstIndex] = quote;
 
         Debug.Assert(dstIndex == 0);
+        Debug.Assert(quoteCount == 0);
     }
 
     /// <summary>
