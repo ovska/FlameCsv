@@ -46,9 +46,10 @@ public class PrtlUnescapeBench
         // destination is always almost exactly the length of the input
         destination = new char[input.Length];
 
-        if (!WriteUtil.NeedsEscaping(input.AsSpan(), ',', out quoteCount, out requiredLength)
-            && !WriteUtil.NeedsEscaping(input.AsSpan(), " ".AsMemory(), out requiredLength))
+        var tokens = new CsvTokens<char> { StringDelimiter = ',', Delimiter = '|', NewLine = "\n".AsMemory() };
+        if (!WriteUtil.NeedsEscaping(input.AsSpan(), in tokens, out quoteCount))
             throw new Exception("invalid test data!");
+        requiredLength = input.Length + quoteCount + 2;
     }
 
     [Benchmark(Baseline = true)]

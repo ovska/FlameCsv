@@ -86,20 +86,21 @@ public class WriteTemp
         if (formatter.TryFormat(value, buffer, out tokensWritten))
         {
             var written = buffer[..tokensWritten];
-            if (WriteUtil.NeedsEscaping(written, tokens.StringDelimiter, out int quoteCount, out int escLen) ||
-                (!tokens.Whitespace.IsEmpty && WriteUtil.NeedsEscaping(written, tokens.Whitespace, out escLen)))
-            {
-                if (buffer.Length >= escLen)
-                {
-                    WriteUtil.Escape(written, buffer, tokens.StringDelimiter, quoteCount);
-                    tokensWritten = escLen;
-                    return true;
-                }
 
-                // Value was written but it needs to be escaped
-                tokensWritten = default;
-                return false;
-            }
+            // if (WriteUtil.NeedsEscaping(written, tokens.StringDelimiter, out int quoteCount, out int escLen) ||
+            //     (!tokens.Whitespace.IsEmpty && WriteUtil.NeedsEscaping(written, tokens.Whitespace, out escLen)))
+            // {
+            //     if (buffer.Length >= escLen)
+            //     {
+            //         WriteUtil.Escape(written, buffer, tokens.StringDelimiter, quoteCount);
+            //         tokensWritten = escLen;
+            //         return true;
+            //     }
+            //
+            //     // Value was written but it needs to be escaped
+            //     tokensWritten = default;
+            //     return false;
+            // }
 
             return true;
         }

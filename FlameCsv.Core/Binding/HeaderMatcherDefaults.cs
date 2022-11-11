@@ -11,6 +11,11 @@ internal static class HeaderMatcherDefaults
     private static readonly HeaderTextBinder _headerTextBinder = new();
     private static readonly HeaderUtf8Binder _headerUtf8Binder = new();
 
+    /// <summary>
+    /// Returns the default header matched for the token type.
+    /// </summary>
+    /// <seealso cref="HeaderTextBinder"/>
+    /// <seealso cref="_headerUtf8Binder"/>
     internal static IHeaderBinder<T> GetBinder<T>() where T : unmanaged, IEquatable<T>
     {
         if (typeof(T) == typeof(char))

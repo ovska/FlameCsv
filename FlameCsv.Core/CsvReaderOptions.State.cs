@@ -12,14 +12,15 @@ namespace FlameCsv;
 
 public sealed partial class CsvReaderOptions<T>
 {
-    private static readonly ConditionalWeakTable<Type, Func<CsvReaderOptions<T>, object>> _stateFactoryCache = new();
+    private static readonly ConditionalWeakTable<Type, Func<CsvReaderOptions<T>, object>?> _stateFactoryCache = new();
 
     internal ICsvRowState<T, TResult> BindToState<TResult>()
     {
         if (IndexAttributeBinder.TryGet<TResult>(out var bindings))
             return CreateState(bindings);
 
-        throw new CsvBindingException("TODO");
+        throw new CsvBindingException(
+            $"CSV has no header and no {nameof(CsvIndexAttribute)} found on members of {typeof(TResult)}");
     }
 
     /// <summary>
@@ -73,7 +74,7 @@ public sealed partial class CsvReaderOptions<T>
         ArgumentNullException.ThrowIfNull(rowStateConstructor);
         ArgumentNullException.ThrowIfNull(valueFactory);
 
-        Dictionary<int, ICsvParserOverride>? _overrides = new();
+        Dictionary<int, ICsvParserOverride>? _overrides = null;
 
         for (int i = 0; i < bindingCollection.Bindings.Length; i++)
         {
@@ -81,12 +82,9 @@ public sealed partial class CsvReaderOptions<T>
 
             if (@override is not null)
             {
-                _overrides[i] = @override;
+                (_overrides ??= new())[i] = @override;
             }
         }
-
-        if (_overrides.Count == 0)
-            _overrides = null;
 
         var param = Expression.Parameter(typeof(object[]), "args");
         var ctorInvoke = Expression.New(
