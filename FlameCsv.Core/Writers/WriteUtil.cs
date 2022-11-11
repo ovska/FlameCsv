@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 
@@ -25,26 +26,28 @@ internal static class WriteUtil
 
         if (tokensWritten > 0)
         {
-            var written = destination[..tokensWritten];
+            Span<T> written = destination[..tokensWritten];
 
-            if (NeedsEscaping(written, tokens.StringDelimiter, out int quoteCount, out int escapedLength)
-                || NeedsEscaping(written, tokens.Whitespace, out escapedLength))
+            if (NeedsEscaping(written, in tokens, out int quoteCount))
             {
+                int escapedLength = tokensWritten + 2 + quoteCount;
+
                 if (destination.Length < escapedLength)
                 {
                     PartialEscape(
                         written,
                         destination,
                         tokens.StringDelimiter,
-                        escapedLength,
                         quoteCount,
-                        ref array,
-                        out overflowWritten);
+                        ref array);
+                    overflowWritten = escapedLength - destination.Length;
                     return true;
                 }
 
                 Escape(written, destination, tokens.StringDelimiter, quoteCount);
                 tokensWritten = escapedLength;
+                Debug.Assert(destination[0].Equals(tokens.StringDelimiter));
+                Debug.Assert(destination[tokensWritten].Equals(tokens.StringDelimiter));
             }
         }
 
@@ -52,150 +55,89 @@ internal static class WriteUtil
         return true;
     }
 
+    /// <summary>
+    /// Checks if the written value contains commas, quotes, or a newline.
+    /// </summary>
+    /// <param name="value">Non-empty value span</param>
+    /// <param name="tokens">Tokens instance</param>
+    /// <param name="quoteCount">Amount of quotes in the data if it needs escaping</param>
+    /// <typeparam name="T">Token type</typeparam>
+    /// <returns><see langword="true"/> if the value needs to be escaped</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool NeedsEscaping<T>(
         ReadOnlySpan<T> value,
-        T quote,
-        out int quoteCount,
-        out int escapedLength)
-        where T : unmanaged, IEquatable<T>
-    {
-        quoteCount = value.Count(quote);
-
-        if (quoteCount > 0)
-        {
-            // original value + wrapping quotes + another for each inner quote
-            escapedLength = value.Length + 2 + quoteCount;
-            return true;
-        }
-
-        escapedLength = default;
-        return false;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool NeedsEscaping<T>(
-        ReadOnlySpan<T> value,
-        ReadOnlyMemory<T> whitespace,
-        out int escapedLength)
+        in CsvTokens<T> tokens,
+        out int quoteCount)
         where T : unmanaged, IEquatable<T>
     {
         Debug.Assert(!value.IsEmpty);
 
-        if (!whitespace.IsEmpty)
-        {
-            var head = value[0];
-            var tail = value[^1];
-            var span = whitespace.Span;
+        ReadOnlySpan<T> newline = tokens.NewLine.Span;
 
-            if ((span.Length == 1 && StartsOrEndsWith(head, tail, span[0]))
-                || (span.Length == 2 && StartsOrEndsWith(head, tail, span[0], span[1]))
-                || (span.Length == 3 && StartsOrEndsWith(head, tail, span[0], span[1], span[2]))
-                || StartsOrEndsWith(head, tail, span))
-            {
-                // only the wrapping quotes needed
-                escapedLength = value.Length + 2;
-                return true;
-            }
+        // For 1 token newlines we can expedite the search
+        int index = newline.Length == 1
+            ? value.IndexOfAny(tokens.Delimiter, tokens.StringDelimiter, newline[0])
+            : value.IndexOfAny(tokens.Delimiter, tokens.StringDelimiter);
+
+        if (index >= 0)
+        {
+            // we know any token before index cannot be a quote
+            quoteCount = value.Slice(index).Count(tokens.StringDelimiter);
+            return true;
         }
 
-        escapedLength = default;
-        return false;
-    }
+        quoteCount = 0;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool StartsOrEndsWith<T>(T head, T tail, T a0)
-        where T : unmanaged, IEquatable<T>
-    {
-        return a0.Equals(head) || a0.Equals(tail);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool StartsOrEndsWith<T>(T head, T tail, T a0, T a1)
-        where T : unmanaged, IEquatable<T>
-    {
-        return a0.Equals(head)
-            || a0.Equals(tail)
-            || a1.Equals(head)
-            || a1.Equals(tail);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool StartsOrEndsWith<T>(T head, T tail, T a0, T a1, T a2)
-        where T : unmanaged, IEquatable<T>
-    {
-        return a0.Equals(head)
-            || a0.Equals(tail)
-            || a1.Equals(head)
-            || a1.Equals(tail)
-            || a2.Equals(head)
-            || a2.Equals(tail);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool StartsOrEndsWith<T>(T head, T tail, ReadOnlySpan<T> span)
-        where T : unmanaged, IEquatable<T>
-    {
-        foreach (var a in span)
-        {
-            if (a.Equals(head) || a.Equals(tail))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        // only possible escaping scenario left is a multitoken newline
+        return newline.Length > 1 && value.IndexOf(newline) >= 0;
     }
 
     /// <summary>
-    /// 
+    /// Escapes the data in <paramref name="source"/>, writing much data as possible to <paramref name="destination"/>
+    /// with the leftovers being written to <paramref name="array"/>. Length of the data escaped to array is:
+    /// <code>source.Length + quoteCount + 2 - destination.Length</code>
     /// </summary>
     /// <param name="source">Data that needs escaping</param>
     /// <param name="destination">Destination buffer, can be the same memory region as source</param>
     /// <param name="quote">Quote token</param>
-    /// <param name="requiredLength">Total length required for the unescape</param>
     /// <param name="quoteCount">Amount of quotes in the source</param>
-    /// <param name="array">Pooled buffer used to write the rest of the data</param>
-    /// <param name="overflowLength">Amount of bytes written to the start of <paramref name="array"/></param>
-    /// <typeparam name="T"></typeparam>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    /// <param name="array">
+    /// Pooled buffer used to write the rest of the data, guaranteed to not be null after this method returns
+    /// </param>
+    /// <typeparam name="T">Token type</typeparam>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)] // rare-ish, doesn't need to be inlined
     public static void PartialEscape<T>(
         ReadOnlySpan<T> source,
         Span<T> destination,
         T quote,
-        int requiredLength,
         int quoteCount,
-        ref T[]? array,
-        out int overflowLength)
+        [NotNull] ref T[]? array)
         where T : unmanaged, IEquatable<T>
     {
-        Debug.Assert(destination.Length < requiredLength, "Destination should be too small");
         Debug.Assert(
             !source.Overlaps(destination, out int elementOffset) || elementOffset == 0,
             "If src and dst overlap, they must have the same starting point in memory");
 
-        // TODO: should this even be here? can be calculated outside
-        overflowLength = requiredLength - destination.Length;
-        Debug.Assert(overflowLength + destination.Length == requiredLength);
+        int requiredLength = source.Length + quoteCount + 2;
 
-        ArrayPool<T>.Shared.EnsureCapacity(ref array, overflowLength);
+        // Ensure the buffer has enough space for the overflowing escaped data
+        ArrayPool<T>.Shared.EnsureCapacity(ref array, requiredLength - destination.Length);
 
-        // First write the overflowing data to the array
-        // as in the other Escape impl, we work backwards as source and destination
+        // First write the overflowing data to the array, working backwards as source and destination
         // share a memory region
         int srcIndex = source.Length - 1;
-        int ovrIndex = overflowLength - 1;
+        int ovrIndex = requiredLength - destination.Length - 1;
         int dstIndex = destination.Length - 1;
         bool needQuote = false;
 
         Span<T> overflow = array;
-        overflow[ovrIndex--] = quote;
+        overflow[ovrIndex--] = quote; // write closing quote
 
+        // Short circuit to faster impl if there are no quotes in the source data
         if (quoteCount == 0)
-        {
             goto CopyTo;
-        }
 
+        // Copy tokens one-at-a-time until all quotes have been escaped and use the faster impl after
         while (ovrIndex >= 0)
         {
             if (needQuote)
@@ -247,9 +189,6 @@ internal static class WriteUtil
             quoteCount--;
         }
 
-        // We can swallow the added complexity as the CopyTo can be over 10x faster than
-        // the loop for longer inputs that don't have any quotes near the start
-        // CopyTo is also close to O(1) for quoteless data
         CopyTo:
         if (srcIndex > 0)
         {
@@ -259,6 +198,7 @@ internal static class WriteUtil
                 srcIndex -= ovrIndex + 1;
             }
 
+            // dst needs 1 slot for the opening quote
             if (dstIndex > 1)
             {
                 source.Slice(0, srcIndex + 1).CopyTo(destination.Slice(1));
@@ -266,7 +206,7 @@ internal static class WriteUtil
             }
         }
 
-        destination[dstIndex] = quote;
+        destination[dstIndex] = quote; // write opening quote
 
         Debug.Assert(dstIndex == 0);
         Debug.Assert(quoteCount == 0);

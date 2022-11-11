@@ -1,41 +1,69 @@
 using System.Buffers;
-using CommunityToolkit.HighPerformance;
 using FlameCsv.Writers;
 
 namespace FlameCsv.Tests.Writing;
 
 public static class WriteUtilTests
 {
+    private static readonly CsvTokens<char> _tokens = new()
+    {
+        Delimiter = ',',
+        StringDelimiter = '|',
+        NewLine = "\r\n".AsMemory(),
+        Whitespace = " ".AsMemory(),
+    };
+
+    [Fact]
+    public static void Should_Partial_Escape_Larger_Destination()
+    {
+        ReadOnlySpan<char> input = "|t|e|s|t|";
+        Span<char> destination = stackalloc char[14];
+
+        Assert.True(WriteUtil.NeedsEscaping(input, in _tokens, out int quoteCount));
+        Assert.Equal(5, quoteCount);
+
+        input.CopyTo(destination);
+        char[] originalArrayRef = new char[2];
+        char[]? array = originalArrayRef;
+
+        WriteUtil.PartialEscape(
+            source: destination[..input.Length],
+            destination: destination,
+            quote: '|',
+            quoteCount: quoteCount,
+            array: ref array);
+
+        Assert.Equal("|||t||e||s||t|", destination.ToString());
+        Assert.Equal("||", array.AsSpan().ToString());
+        Assert.Same(originalArrayRef, array);
+    }
+
     [Theory]
-    [InlineData(" test ", "| test", " |")]
-    [InlineData("test ", "|test", " |")]
-    [InlineData(" test", "| tes", "t|")]
+    [InlineData(",test ", "|,test", " |")]
+    [InlineData("test,", "|test", ",|")]
+    [InlineData(",test", "|,tes", "t|")]
     [InlineData(" te|st ", "| te||s", "t |")]
     [InlineData("|", "|", "|||")]
     [InlineData("|t", "||", "|t|")]
     public static void Should_Partial_Escape(string input, string first, string second)
     {
-        if (!WriteUtil.NeedsEscaping(input, '|', out int quoteCount, out int escapedLength))
-        {
-            Assert.Equal(0, input.Count('|'));
-            Assert.True(WriteUtil.NeedsEscaping(input.AsSpan(), new[] { ' ' }, out escapedLength));
-        }
+        Assert.True(WriteUtil.NeedsEscaping(input, in _tokens, out int quoteCount));
 
-        // The escape should work despite src and dst sharing a memory region
+        // The escape is designed to work despite src and dst sharing a memory region
         Assert.Equal(input.Length, first.Length);
         Span<char> firstBuffer = stackalloc char[first.Length];
-        // input.CopyTo(firstBuffer);
+        input.CopyTo(firstBuffer);
 
         char[]? array = null;
 
         WriteUtil.PartialEscape(
-            source: input.AsSpan(),//firstBuffer,
+            source: firstBuffer,
             destination: firstBuffer,
             quote: '|',
-            requiredLength: escapedLength,
             quoteCount: quoteCount,
-            array: ref array,
-            overflowLength: out int overflowLength);
+            array: ref array);
+
+        int overflowLength = quoteCount + 2;
 
         Assert.NotNull(array);
         Assert.Equal(first, firstBuffer.ToString());
@@ -50,9 +78,9 @@ public static class WriteUtilTests
     }
 
     [Theory]
-    [InlineData(" test ", "| test |")]
-    [InlineData("test ", "|test |")]
-    [InlineData(" test", "| test|")]
+    [InlineData(",test", "|,test|")]
+    [InlineData("test,", "|test,|")]
+    [InlineData("\r\ntest", "|\r\ntest|")]
     [InlineData("te|st", "|te||st|")]
     [InlineData("||", "||||||")]
     [InlineData("|", "||||")]
@@ -60,16 +88,13 @@ public static class WriteUtilTests
     [InlineData("a|a", "|a||a|")]
     public static void Should_Escape(string input, string expected)
     {
-        if (!WriteUtil.NeedsEscaping(input, '|', out int quoteCount, out int escapedLength))
-        {
-            Assert.Equal(0, input.Count('|'));
-            Assert.True(WriteUtil.NeedsEscaping(input.AsSpan(), new[] { ' ' }, out escapedLength));
-        }
+        Assert.True(WriteUtil.NeedsEscaping(input, in _tokens, out int quoteCount));
 
-        Assert.Equal(expected.Length, escapedLength);
+        int expectedLength = input.Length + quoteCount + 2;
+        Assert.Equal(expected.Length, expectedLength);
 
         // Escaping should work even if source and destination are on the same buffer
-        var sharedBuffer = new char[escapedLength].AsSpan();
+        var sharedBuffer = new char[expectedLength].AsSpan();
         input.CopyTo(sharedBuffer);
 
         WriteUtil.Escape(sharedBuffer[..input.Length], sharedBuffer, '|', quoteCount);
@@ -81,42 +106,41 @@ public static class WriteUtilTests
             sharedBuffer.ToString());
     }
 
-    [Theory]
-    [InlineData(-1, "", 0)]
-    [InlineData(-1, "test", 0)]
-    [InlineData(4, "|", 1)]
-    [InlineData(10, "|test|", 2)]
-    public static void Should_Return_Escaped_Quoted(int expected, string input, int expectedQuotes)
+    private static readonly (int? quoteCount, string data)[] _needsEscapingData =
     {
-        if (expected >= 0)
-        {
-            Assert.True(WriteUtil.NeedsEscaping(input, '|', out int quoteCount, out int escapedLength));
-            Assert.Equal(expected, escapedLength);
-            Assert.Equal(expectedQuotes, quoteCount);
-        }
-        else
-        {
-            Assert.False(WriteUtil.NeedsEscaping(input, '|', out _, out _));
-        }
-    }
+        (null, "foobar"),
+        (null, "foo bar"),
+        (null, "\r \r"),
+        (0, "foo,bar"),
+        (1, "foo|bar"),
+        (2, "|foobar|"),
+        (1, "|"),
+        (0, "\r\n"),
+        (0, "\r\n,"),
+        (0, "Really, really long input"),
+        (2, "| test |"),
+        (3, "||\r\n test |"),
+    };
 
-    [Theory]
-    [InlineData(-1, "test")]
-    [InlineData(-1, "te st")]
-    [InlineData(7, " test")]
-    [InlineData(7, "test ")]
-    [InlineData(9, " te st ")]
-    public static void Should_Return_Escaped_Whitespace(int expected, string input)
+    public static IEnumerable<object?[]> NeedsEscapingData() =>
+        from x in _needsEscapingData
+        from newline in new[] { "\r\n", "\n" }
+        select new object?[] { newline, x.quoteCount, x.data };
+
+    [Theory, MemberData(nameof(NeedsEscapingData))]
+    public static void Should_Check_Needs_Escaping(string newline, int? quotes, string input)
     {
-        ReadOnlyMemory<char> whitespace = " ".AsMemory();
-        if (expected >= 0)
+        var tokens = _tokens with { NewLine = newline.AsMemory() };
+        input = input.Replace("\r\n", newline);
+
+        if (!quotes.HasValue)
         {
-            Assert.True(WriteUtil.NeedsEscaping(input, whitespace, out int escapedLength));
-            Assert.Equal(expected, escapedLength);
+            Assert.False(WriteUtil.NeedsEscaping(input, in tokens, out _));
         }
         else
         {
-            Assert.False(WriteUtil.NeedsEscaping(input, whitespace, out _));
+            Assert.True(WriteUtil.NeedsEscaping(input, in tokens, out var quoteCount));
+            Assert.Equal(quotes.Value, quoteCount);
         }
     }
 }
