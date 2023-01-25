@@ -1,6 +1,7 @@
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using System.Text;
+using FlameCsv.Formatters;
 using FlameCsv.Writers;
 
 namespace FlameCsv.Tests;
@@ -11,17 +12,22 @@ public class WriteTemp
     {
         public const string HelloWorld = "Hello, World!";
 
-        public bool TryFormat(string value, Span<char> buffer, out int tokensWritten)
+        public bool TryFormat(string value, Span<char> destination, out int tokensWritten)
         {
-            if (buffer.Length >= HelloWorld.Length)
+            if (destination.Length >= HelloWorld.Length)
             {
-                HelloWorld.CopyTo(buffer);
+                HelloWorld.CopyTo(destination);
                 tokensWritten = HelloWorld.Length;
                 return true;
             }
 
             tokensWritten = 0;
             return false;
+        }
+
+        public bool CanFormat(Type resultType)
+        {
+            throw new NotImplementedException();
         }
     }
 
@@ -165,24 +171,29 @@ public class WriteTemp
 
     public sealed class StringUtf8Formatter : ICsvFormatter<byte, string?>
     {
-        public bool TryFormat(string? value, Span<byte> buffer, out int tokensWritten)
+        public bool TryFormat(string? value, Span<byte> destination, out int tokensWritten)
         {
             var span = value.AsSpan();
-            if (Encoding.UTF8.GetMaxByteCount(span.Length) <= buffer.Length
-                || Encoding.UTF8.GetByteCount(span) <= buffer.Length)
+            if (Encoding.UTF8.GetMaxByteCount(span.Length) <= destination.Length
+                || Encoding.UTF8.GetByteCount(span) <= destination.Length)
             {
-                tokensWritten = Encoding.UTF8.GetBytes(span, buffer);
+                tokensWritten = Encoding.UTF8.GetBytes(span, destination);
                 return true;
             }
 
             Unsafe.SkipInit(out tokensWritten);
             return false;
         }
+
+        public bool CanFormat(Type resultType)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     public sealed class StringFormatter : ICsvFormatter<char, string?>
     {
-        public bool TryFormat(string? value, Span<char> buffer, out int tokensWritten)
+        public bool TryFormat(string? value, Span<char> destination, out int tokensWritten)
         {
             if (value is null)
             {
@@ -190,15 +201,20 @@ public class WriteTemp
                 return true;
             }
 
-            if (buffer.Length >= value.Length)
+            if (destination.Length >= value.Length)
             {
-                value.CopyTo(buffer);
+                value.CopyTo(destination);
                 tokensWritten = value.Length;
                 return true;
             }
 
             Unsafe.SkipInit(out tokensWritten);
             return false;
+        }
+
+        public bool CanFormat(Type resultType)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -28,28 +28,37 @@ public sealed class StringTextFormatter :
         CharArrayNull = charArrayNullToken;
     }
 
-    public bool TryFormat(string? value, Span<char> buffer, out int tokensWritten)
+    public bool TryFormat(string? value, Span<char> destination, out int tokensWritten)
     {
-        return (value ?? StringNull).AsSpan().TryWriteTo(buffer, out tokensWritten);
+        return (value ?? StringNull).AsSpan().TryWriteTo(destination, out tokensWritten);
     }
 
-    public bool TryFormat(char[]? value, Span<char> buffer, out int tokensWritten)
+    public bool TryFormat(char[]? value, Span<char> destination, out int tokensWritten)
     {
-        return (value is null ? value.AsSpan() : CharArrayNull.AsSpan()).TryWriteTo(buffer, out tokensWritten);
+        return (value is null ? value.AsSpan() : CharArrayNull.AsSpan()).TryWriteTo(destination, out tokensWritten);
     }
 
-    public bool TryFormat(ArraySegment<char> value, Span<char> buffer, out int tokensWritten)
+    public bool TryFormat(ArraySegment<char> value, Span<char> destination, out int tokensWritten)
     {
-        return value.AsSpan().TryWriteTo(buffer, out tokensWritten);
+        return value.AsSpan().TryWriteTo(destination, out tokensWritten);
     }
 
-    public bool TryFormat(Memory<char> value, Span<char> buffer, out int tokensWritten)
+    public bool TryFormat(Memory<char> value, Span<char> destination, out int tokensWritten)
     {
-        return value.Span.TryWriteTo(buffer, out tokensWritten);
+        return value.Span.TryWriteTo(destination, out tokensWritten);
     }
 
-    public bool TryFormat(ReadOnlyMemory<char> value, Span<char> buffer, out int tokensWritten)
+    public bool TryFormat(ReadOnlyMemory<char> value, Span<char> destination, out int tokensWritten)
     {
-        return value.Span.TryWriteTo(buffer, out tokensWritten);
+        return value.Span.TryWriteTo(destination, out tokensWritten);
+    }
+    
+    public bool CanFormat(Type resultType)
+    {
+        return resultType == typeof(string)
+            || resultType == typeof(char[])
+            || resultType == typeof(ArraySegment<char>)
+            || resultType == typeof(Memory<char>)
+            || resultType == typeof(ReadOnlyMemory<char>);
     }
 }

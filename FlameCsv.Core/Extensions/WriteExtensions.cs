@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace FlameCsv.Extensions;
 
 internal static class WriteExtensions
@@ -10,6 +12,7 @@ internal static class WriteExtensions
     /// <param name="tokensWritten">Length of <paramref name="value"/> if the copy succeeded</param>
     /// <typeparam name="T">Token type</typeparam>
     /// <returns>True if the destination buffer is large enough and data was copied.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryWriteTo<T>(
         this Span<T> value,
         Span<T> buffer,
@@ -27,6 +30,7 @@ internal static class WriteExtensions
     }
 
     /// <inheritdoc cref="TryWriteTo{T}(System.Span{T},System.Span{T},out int)"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryWriteTo<T>(
         this ReadOnlySpan<T> value,
         Span<T> buffer,

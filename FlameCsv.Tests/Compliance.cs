@@ -156,6 +156,7 @@ public class Compliance
     [InlineData("x,y,asdalksdjasd,,")]
     [InlineData(",jklsadklasdW,laskdjlksad,,1231")]
     [InlineData("A,\"B\",C,D,E")]
+    [InlineData("A,\"B\",C,D,\"E\"")]
     public static void Should_Enumerate_Columns(string line)
     {
         var expected = line.Split(',').Select(s => s.Trim('"'));
@@ -168,6 +169,31 @@ public class Compliance
             line,
             options,
             5,
+            line.Count(c => c == '"'),
+            ref bo._array);
+
+        foreach (var current in enumerator)
+        {
+            list.Add(current.ToString());
+        }
+
+        Assert.Equal(expected, list);
+    }
+
+    [Theory]
+    [InlineData("\"f,oo\",\"bar\",\"xyz\"", new[] { ",foo", "bar", "xyz" })]
+    [InlineData("\"fo,o\",\"bar\",\"xyz\"", new[] { "fo,o", "bar", "xyz" })]
+    [InlineData("\"foo,\",\"bar\",\"xyz\"", new[] { "foo,", "bar", "xyz" })]
+    public static void Should_Enumerate_With_Comma(string line, string[] expected)
+    {
+        var list = new List<string>();
+        var options = CsvTokens<char>.Unix;
+
+        using var bo = new BufferOwner<char>();
+        var enumerator = new CsvColumnEnumerator<char>(
+            line,
+            options,
+            3,
             line.Count(c => c == '"'),
             ref bo._array);
 
