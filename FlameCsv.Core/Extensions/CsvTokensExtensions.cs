@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Text;
 using CommunityToolkit.Diagnostics;
 
@@ -84,6 +85,9 @@ public static class CsvTokensExtensions
 
         static ReadOnlyMemory<byte> ToBytes(ReadOnlyMemory<char> chars)
         {
+            if (chars.IsEmpty)
+                return default;
+
             var len = Encoding.UTF8.GetByteCount(chars.Span);
             var result = new byte[len];
             _ = Encoding.UTF8.GetBytes(chars.Span, result.AsSpan());

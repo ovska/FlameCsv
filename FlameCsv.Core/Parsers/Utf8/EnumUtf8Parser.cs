@@ -1,7 +1,6 @@
-using System.Reflection;
-using System.Runtime.Serialization;
 using System.Text;
 using CommunityToolkit.HighPerformance.Helpers;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Parsers.Utf8;
 
@@ -68,12 +67,8 @@ public sealed class EnumUtf8Parser<TEnum> : ICsvParser<byte, TEnum> where TEnum 
         Dictionary<int, KnownValue> stringValues = new();
         Dictionary<int, KnownValue> attributeValues = new();
 
-        var fields = typeof(TEnum).GetFields();
-
-        foreach (var name in Enum.GetNames<TEnum>())
+        foreach (var (value, name, enumMember) in EnumExtensions.GetEnumMembers<TEnum>())
         {
-            var value = Enum.Parse<TEnum>(name);
-
             var asNumber = Encoding.UTF8.GetBytes(value.ToString("D"));
             numericValues.TryAdd(
                 HashCode<byte>.Combine(asNumber),
@@ -84,10 +79,9 @@ public sealed class EnumUtf8Parser<TEnum> : ICsvParser<byte, TEnum> where TEnum 
                 HashCode<byte>.Combine(asString),
                 new KnownValue { Value = value, Bytes = asString });
 
-            var valueField = fields.Single(f => f.Name.Equals(name));
-            if (valueField.GetCustomAttribute<EnumMemberAttribute>() is { Value: { Length: > 0 } enumName })
+            if (!string.IsNullOrEmpty(enumMember))
             {
-                var bytes = Encoding.UTF8.GetBytes(enumName);
+                var bytes = Encoding.UTF8.GetBytes(enumMember);
                 attributeValues.TryAdd(
                     HashCode<byte>.Combine(bytes),
                     new KnownValue { Value = value, Bytes = bytes });

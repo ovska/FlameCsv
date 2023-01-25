@@ -1,5 +1,4 @@
 using FlameCsv.Extensions;
-using FlameCsv.Writers;
 
 namespace FlameCsv.Formatters.Text;
 
@@ -29,18 +28,20 @@ public sealed class SpanFormattableTextFormatter<TValue> : ICsvFormatter<char, T
         IFormatProvider? formatProvider = null,
         string? format = null)
     {
-        Null = nullToken;
+        Null = nullToken == "" ? null : nullToken;
         FormatProvider = formatProvider;
         Format = format;
     }
 
-    public bool TryFormat(TValue? value, Span<char> buffer, out int tokensWritten)
+    public bool TryFormat(TValue? value, Span<char> destination, out int tokensWritten)
     {
         if (value is not null) // the condition is JITed out for value types
         {
-            return value.TryFormat(buffer, out tokensWritten, Format.AsSpan(), FormatProvider);
+            return value.TryFormat(destination, out tokensWritten, Format.AsSpan(), FormatProvider);
         }
 
-        return Null.AsSpan().TryWriteTo(buffer, out tokensWritten);
+        return Null.AsSpan().TryWriteTo(destination, out tokensWritten);
     }
+
+    public bool CanFormat(Type resultType) => resultType == typeof(TValue);
 }

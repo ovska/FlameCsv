@@ -1,7 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.Extensions;
-using FlameCsv.Writers;
 
 namespace FlameCsv.Formatters.Utf8;
 
@@ -26,35 +25,35 @@ public sealed class StringUtf8Formatter :
         Null = nullToken;
     }
 
-    public bool TryFormat(string? value, Span<byte> buffer, out int tokensWritten)
+    public bool TryFormat(string? value, Span<byte> destination, out int tokensWritten)
     {
         if (value is null)
-            return Null.Span.TryWriteTo(buffer, out tokensWritten);
+            return Null.Span.TryWriteTo(destination, out tokensWritten);
 
-        return Core(value.AsSpan(), buffer, out tokensWritten);
+        return Core(value.AsSpan(), destination, out tokensWritten);
     }
 
-    public bool TryFormat(char[]? value, Span<byte> buffer, out int tokensWritten)
+    public bool TryFormat(char[]? value, Span<byte> destination, out int tokensWritten)
     {
         if (value is null)
-            return Null.Span.TryWriteTo(buffer, out tokensWritten);
+            return Null.Span.TryWriteTo(destination, out tokensWritten);
 
-        return Core(value.AsSpan(), buffer, out tokensWritten);
+        return Core(value.AsSpan(), destination, out tokensWritten);
     }
 
-    public bool TryFormat(ArraySegment<char> value, Span<byte> buffer, out int tokensWritten)
+    public bool TryFormat(ArraySegment<char> value, Span<byte> destination, out int tokensWritten)
     {
-        return Core(value.AsSpan(), buffer, out tokensWritten);
+        return Core(value.AsSpan(), destination, out tokensWritten);
     }
 
-    public bool TryFormat(Memory<char> value, Span<byte> buffer, out int tokensWritten)
+    public bool TryFormat(Memory<char> value, Span<byte> destination, out int tokensWritten)
     {
-        return Core(value.Span, buffer, out tokensWritten);
+        return Core(value.Span, destination, out tokensWritten);
     }
 
-    public bool TryFormat(ReadOnlyMemory<char> value, Span<byte> buffer, out int tokensWritten)
+    public bool TryFormat(ReadOnlyMemory<char> value, Span<byte> destination, out int tokensWritten)
     {
-        return Core(value.Span, buffer, out tokensWritten);
+        return Core(value.Span, destination, out tokensWritten);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -76,5 +75,14 @@ public sealed class StringUtf8Formatter :
 
         tokensWritten = 0;
         return false;
+    }
+
+    public bool CanFormat(Type resultType)
+    {
+        return resultType == typeof(string)
+            || resultType == typeof(char[])
+            || resultType == typeof(ArraySegment<char>)
+            || resultType == typeof(Memory<char>)
+            || resultType == typeof(ReadOnlyMemory<char>);
     }
 }
