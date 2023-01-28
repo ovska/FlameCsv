@@ -181,9 +181,15 @@ public class Compliance
     }
 
     [Theory]
-    [InlineData("\"f,oo\",\"bar\",\"xyz\"", new[] { ",foo", "bar", "xyz" })]
-    [InlineData("\"fo,o\",\"bar\",\"xyz\"", new[] { "fo,o", "bar", "xyz" })]
-    [InlineData("\"foo,\",\"bar\",\"xyz\"", new[] { "foo,", "bar", "xyz" })]
+    [InlineData("""
+        "f,oo","bar","xyz"
+        """, new[] { "f,oo", "bar", "xyz" })]
+    [InlineData("""
+        "fo,o","bar","xyz"
+        """, new[] { "fo,o", "bar", "xyz" })]
+    [InlineData("""
+        "foo,","bar","xyz"
+        """, new[] { "foo,", "bar", "xyz" })]
     public static void Should_Enumerate_With_Comma(string line, string[] expected)
     {
         var list = new List<string>();
@@ -198,6 +204,24 @@ public class Compliance
             ref bo._array);
 
         foreach (var current in enumerator)
+        {
+            list.Add(current.ToString());
+        }
+
+        Assert.Equal(expected, list);
+
+        list.Clear();
+
+        var record = new CsvRecord<char>(
+            line.AsMemory(),
+            CsvReaderOptions<char>.Default.SetTokens(in options),
+            null,
+            null,
+            bo,
+            0,
+            0);
+
+        foreach (var current in record)
         {
             list.Add(current.ToString());
         }

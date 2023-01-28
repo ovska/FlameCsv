@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using CommunityToolkit.Diagnostics;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Readers;
@@ -113,7 +114,8 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
             // Hit a comma, either found end of column or more columns than expected
             if (_remaining[index].Equals(_comma))
             {
-                if (IsKnownLastColumn) ThrowTooManyColumns(index);
+                if (IsKnownLastColumn)
+                    ThrowTooManyColumns(index);
 
                 Current = TrimAndUnescape(_remaining.Slice(0, index), quotesConsumed);
                 _remaining = _remaining.Slice(index + 1);
@@ -125,9 +127,11 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
             quotesConsumed++;
             index++; // move index past the quote
 
-            var nextIndex = --_quotesRemaining == 0
+            int nextIndex = --_quotesRemaining == 0
                 ? _remaining.Slice(index).IndexOf(_comma)
-                : _remaining.Slice(index).IndexOfAny(_comma, _quote);
+                : quotesConsumed % 2 == 0 // uneven quotes, only need to find the next one
+                    ? _remaining.Slice(index).IndexOfAny(_comma, _quote)
+                    : _remaining.Slice(index).IndexOf(_quote);
 
             if (nextIndex < 0)
                 break;
