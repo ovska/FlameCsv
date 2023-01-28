@@ -6,10 +6,6 @@ namespace FlameCsv.Tests;
 
 public static class ParserOptionsTests
 {
-#if !NET7_0_OR_GREATER
-    private static byte[] U8(string s) => Encoding.UTF8.GetBytes(s);
-#endif
-
     [Fact]
     public static void Should_Validate()
     {
@@ -40,9 +36,9 @@ public static class ParserOptionsTests
         Assert.Equal("\n", CsvTokens<char>.Unix.NewLine.ToArray());
         Assert.Equal("\r\n", CsvTokens<char>.Windows.NewLine.ToArray());
 
-        Assert.Equal(U8(Environment.NewLine), CsvTokens<byte>.Environment.NewLine.ToArray());
-        Assert.Equal(U8("\n"), CsvTokens<byte>.Unix.NewLine.ToArray());
-        Assert.Equal(U8("\r\n"), CsvTokens<byte>.Windows.NewLine.ToArray());
+        Assert.Equal(Encoding.UTF8.GetBytes(Environment.NewLine), CsvTokens<byte>.Environment.NewLine.ToArray());
+        Assert.Equal("\n"u8.ToArray(), CsvTokens<byte>.Unix.NewLine.ToArray());
+        Assert.Equal("\r\n"u8.ToArray(), CsvTokens<byte>.Windows.NewLine.ToArray());
 
         Assert.Throws<NotSupportedException>(() => CsvTokens<int>.Environment);
         Assert.Throws<NotSupportedException>(() => CsvTokens<int>.Windows);

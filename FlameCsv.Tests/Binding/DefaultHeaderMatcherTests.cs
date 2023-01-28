@@ -46,8 +46,8 @@ public static class DefaultHeaderMatcherTests
     {
         var fn = HeaderMatcherDefaults.MatchUtf8(StringComparison.Ordinal);
         var member = typeof(Shim).GetProperty("Prop")!;
-        Assert.Equal(new CsvBinding(0, member), fn(GetArgs(0, member), U8("Prop")));
-        Assert.Null(fn(GetArgs(1, member), U8("prop")));
+        Assert.Equal(new CsvBinding(0, member), fn(GetArgs(0, member), "Prop"u8.ToArray()));
+        Assert.Null(fn(GetArgs(1, member), "prop"u8.ToArray()));
     }
 
     [Fact]
@@ -55,8 +55,8 @@ public static class DefaultHeaderMatcherTests
     {
         var fn = HeaderMatcherDefaults.MatchUtf8(StringComparison.OrdinalIgnoreCase);
         var member = typeof(Shim).GetProperty("Prop")!;
-        Assert.Equal(new CsvBinding(0, member), fn(GetArgs(0, member), U8("Prop")));
-        Assert.Equal(new CsvBinding(1, member), fn(GetArgs(1, member), U8("prop")));
+        Assert.Equal(new CsvBinding(0, member), fn(GetArgs(0, member), "Prop"u8.ToArray()));
+        Assert.Equal(new CsvBinding(1, member), fn(GetArgs(1, member), "prop"u8.ToArray()));
     }
 
     [Fact]
@@ -65,9 +65,4 @@ public static class DefaultHeaderMatcherTests
         Assert.ThrowsAny<ArgumentException>(() => HeaderMatcherDefaults.MatchText((StringComparison)int.MaxValue));
         Assert.ThrowsAny<ArgumentException>(() => HeaderMatcherDefaults.MatchUtf8((StringComparison)int.MaxValue));
     }
-
-#if !NET7_0_OR_GREATER
-    // u8 in c#11
-    private static byte[] U8(string s) => Encoding.UTF8.GetBytes(s);
-#endif
 }

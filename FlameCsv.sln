@@ -1,12 +1,25 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlameCsv.Core", "FlameCsv.Core\FlameCsv.Core.csproj", "{6BC229E7-192F-489E-A136-EE9FE2436E1F}"
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33213.308
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlameCsv.Core", "FlameCsv.Core\FlameCsv.Core.csproj", "{6BC229E7-192F-489E-A136-EE9FE2436E1F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlameCsv.Tests", "FlameCsv.Tests\FlameCsv.Tests.csproj", "{98ED9090-FF17-4853-968B-17AF360DF86A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlameCsv.Tests", "FlameCsv.Tests\FlameCsv.Tests.csproj", "{98ED9090-FF17-4853-968B-17AF360DF86A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlameCsv.Benchmark", "FlameCsv.Benchmark\FlameCsv.Benchmark.csproj", "{5C6A6EAD-B036-4651-BB21-3CFCB070AA70}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlameCsv.Benchmark", "FlameCsv.Benchmark\FlameCsv.Benchmark.csproj", "{5C6A6EAD-B036-4651-BB21-3CFCB070AA70}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlameCsv.Console", "FlameCsv.Console\FlameCsv.Console.csproj", "{35BEA969-A448-4919-B491-B4715E6EB72F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlameCsv.Console", "FlameCsv.Console\FlameCsv.Console.csproj", "{35BEA969-A448-4919-B491-B4715E6EB72F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{201B06D2-D562-498F-A009-229E057EB861}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		.gitattributes = .gitattributes
+		.gitignore = .gitignore
+		Directory.Build.props = Directory.Build.props
+		LICENSE.md = LICENSE.md
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,5 +43,11 @@ Global
 		{35BEA969-A448-4919-B491-B4715E6EB72F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{35BEA969-A448-4919-B491-B4715E6EB72F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{35BEA969-A448-4919-B491-B4715E6EB72F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {28918099-6662-492C-A109-40030777CDD8}
 	EndGlobalSection
 EndGlobal
