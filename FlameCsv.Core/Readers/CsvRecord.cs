@@ -160,9 +160,11 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
             quotesConsumed++;
             index++; // move index past the quote
 
-            var nextIndex = --_quotesRemaining == 0
-                ? remaining.Slice(index).IndexOf(_options.tokens.Delimiter)
-                : remaining.Slice(index).IndexOfAny(_options.tokens.Delimiter, _options.tokens.StringDelimiter);
+            int nextIndex = --_quotesRemaining == 0
+                ? _remaining.Span.Slice(index).IndexOf(_options.tokens.Delimiter)
+                : quotesConsumed % 2 == 0 // uneven quotes, only need to find the next one
+                    ? _remaining.Span.Slice(index).IndexOfAny(_options.tokens.Delimiter, _options.tokens.StringDelimiter)
+                    : _remaining.Span.Slice(index).IndexOf(_options.tokens.StringDelimiter);
 
             if (nextIndex < 0)
                 break;
