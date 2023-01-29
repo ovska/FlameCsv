@@ -62,6 +62,6 @@ public sealed class Base64Utf8Parser :
                 $"Base64 data was partial, decoded ${bytesConsumed} out of {span.Length}");
         }
 
-        return spanOwner.Span.Slice(0, bytesWritten).ToArray();
+        return spanOwner.Span[..bytesWritten].ToArray();
     }
 }

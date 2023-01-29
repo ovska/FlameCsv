@@ -51,7 +51,7 @@ internal sealed class BufferOwner<T> : IDisposable where T : unmanaged, IEquatab
         _arrayPool.EnsureCapacity(ref _array, capacity: length, clearArray: _clearBuffers);
         return _array.AsSpan(0, length);
     }
-    
+
     /// <summary>
     /// Returns a buffer of the requested length.
     /// </summary>
@@ -80,5 +80,15 @@ internal sealed class BufferOwner<T> : IDisposable where T : unmanaged, IEquatab
             _array = null;
             _arrayPool.Return(rented, clearArray: _clearBuffers);
         }
+
+#if DEBUG
+        GC.SuppressFinalize(this);
+    }
+
+    ~BufferOwner()
+    {
+        if (!_disposed)
+            throw new InvalidOperationException("A BufferOwner was not disposed!");
+#endif
     }
 }

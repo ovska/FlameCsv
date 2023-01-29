@@ -180,6 +180,45 @@ public class Compliance
         Assert.Equal(expected, list);
     }
 
+    [Fact]
+    public static void Should_Enumerate_With_Comma2()
+    {
+        var tokens = new CsvTokens<char>
+        {
+            Delimiter = ',',
+            NewLine = "|".AsMemory(),
+            Whitespace = " ".AsMemory(),
+            StringDelimiter = '"',
+        };
+
+        var data = new[] { tokens.Delimiter, tokens.NewLine.Span[0], tokens.Whitespace.Span[0] }.GetPermutations();
+        using var bo = new BufferOwner<char>();
+
+        foreach (var chars in data)
+        {
+            var input = new string(chars.ToArray());
+            var line = $"\"{input}\",test";
+
+            var enumerator = new CsvColumnEnumerator<char>(
+                line,
+                in tokens,
+                2,
+                line.Count(c => c == tokens.StringDelimiter),
+                ref bo._array);
+
+            var list = new List<string>();
+
+            foreach (var current in enumerator)
+            {
+                list.Add(current.ToString());
+            }
+
+            Assert.Equal(2, list.Count);
+            Assert.Equal(input, list[0]);
+            Assert.Equal("test", list[1]);
+        }
+    }
+
     [Theory]
     [InlineData("""
         "f,oo","bar","xyz"
