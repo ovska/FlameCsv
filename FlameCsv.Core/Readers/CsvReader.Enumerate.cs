@@ -6,7 +6,7 @@ public static partial class CsvReader
 {
     /// <inheritdoc cref="Enumerate{T}(ReadOnlySequence{T},CsvReaderOptions{T})"/>
     public static CsvEnumerator<char> Enumerate(
-        string? csv,
+        string csv,
         CsvReaderOptions<char> options)
     {
         ArgumentNullException.ThrowIfNull(csv);

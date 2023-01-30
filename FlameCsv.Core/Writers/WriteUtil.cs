@@ -96,7 +96,7 @@ internal static class WriteUtil
     /// <summary>
     /// Escapes the data in <paramref name="source"/>, writing much data as possible to <paramref name="destination"/>
     /// with the leftovers being written to <paramref name="array"/>. Length of the data escaped to array is:
-    /// <code>source.Length + quoteCount + 2 - destination.Length</code>
+    /// <c>source.Length + quoteCount + 2 - destination.Length</c>
     /// </summary>
     /// <param name="source">Data that needs escaping</param>
     /// <param name="destination">Destination buffer, can be the same memory region as source</param>

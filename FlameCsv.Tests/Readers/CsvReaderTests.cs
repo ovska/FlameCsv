@@ -86,10 +86,7 @@ public class CsvReaderTests : PooledBufferVerifier
 
                 if (api == CsvApi.Sync)
                 {
-                    foreach (var obj in CsvReader.Read<char, Obj>(sequence, options))
-                    {
-                        items.Add(obj);
-                    }
+                    items.AddRange(CsvReader.Read<char, Obj>(sequence, options));
                 }
                 else
                 {
@@ -126,10 +123,7 @@ public class CsvReaderTests : PooledBufferVerifier
 
                 if (api == CsvApi.Sync)
                 {
-                    foreach (var obj in CsvReader.Read<byte, Obj>(sequence, options))
-                    {
-                        items.Add(obj);
-                    }
+                    items.AddRange(CsvReader.Read<byte, Obj>(sequence, options));
                 }
                 else
                 {
@@ -172,7 +166,7 @@ public class CsvReaderTests : PooledBufferVerifier
     [Fact]
     public async Task Should_Read_Long_Multisegment_Lines()
     {
-        string name = new string('x', 1024);
+        string name = new('x', 1024);
         string data = $"0,{name},true,{DateTime.UnixEpoch:o},{Guid.Empty}{Environment.NewLine}";
 
         var objs = new List<Obj>();

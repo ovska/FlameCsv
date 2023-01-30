@@ -33,7 +33,7 @@ internal class MemorySegment<T> : ReadOnlySequenceSegment<T>
             return new ReadOnlySequence<T>(data);
         }
 
-        MemorySegment<T> first = new MemorySegment<T>(data.Slice(0, bufferSize));
+        MemorySegment<T> first = new(data.Slice(0, bufferSize));
         MemorySegment<T> last = first;
 
         ReadOnlyMemory<T> remaining = data.Slice(bufferSize);
