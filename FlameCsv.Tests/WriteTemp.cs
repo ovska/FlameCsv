@@ -121,7 +121,7 @@ public class WriteTemp
         await using var textWriter = new StreamWriter(stream, Encoding.UTF8, bufferSize: 128);
         var writer = new CsvTextWriter(textWriter);
 
-        HelloWorldFormatter formatter = new HelloWorldFormatter();
+        HelloWorldFormatter formatter = new();
 
         for (int i = 0; i < 10_000; i++)
         {

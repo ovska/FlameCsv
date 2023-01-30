@@ -119,13 +119,19 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
         while (Column <= index)
         {
             if (!MoveNext())
-                ThrowHelper.ThrowArgumentOutOfRangeException();
+            {
+                ThrowHelper.ThrowArgumentOutOfRangeException(
+                    nameof(index),
+                    index,
+                    $"Cannot get column at index {index} from data with only {Column} columns.");
+            }
         }
 
-        if (!_options.GetParser<TValue>().TryParse(Current.Span, out var value))
-            throw new CsvParseException();
+        if (_options.GetParser<TValue>().TryParse(Current.Span, out var value))
+            return value;
 
-        return value;
+        throw new CsvParseException(
+            $"Failed to parse {typeof(TValue).ToTypeString()} from column at index {index}");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -148,7 +154,8 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
             // Hit a comma, either found end of column or more columns than expected
             if (remaining[index].Equals(_options.tokens.Delimiter))
             {
-                if (IsKnownLastColumn) ThrowTooManyColumns(index);
+                if (IsKnownLastColumn)
+                    ThrowTooManyColumns(index);
 
                 Current = TrimAndUnescape(_remaining.Slice(0, index), quotesConsumed);
                 _remaining = _remaining.Slice(index + 1);

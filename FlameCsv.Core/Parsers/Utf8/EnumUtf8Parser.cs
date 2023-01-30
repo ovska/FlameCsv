@@ -48,12 +48,7 @@ public sealed class EnumUtf8Parser<TEnum> : ICsvParser<byte, TEnum> where TEnum 
 
         var written = Encoding.UTF8.GetChars(span, buffer);
 
-        if (Enum.TryParse(buffer[..written], IgnoreCase, out value) && (AllowUndefinedValues || Enum.IsDefined(value)))
-        {
-            return true;
-        }
-
-        return false;
+        return Enum.TryParse(buffer[..written], IgnoreCase, out value) && (AllowUndefinedValues || Enum.IsDefined(value));
     }
 
     public bool CanParse(Type resultType)

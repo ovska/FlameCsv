@@ -142,6 +142,11 @@ public sealed partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<
     /// <summary>
     /// Adds the parser to the builder.
     /// </summary>
+    /// <remarks>
+    /// Parsers are prioritized in "last in, first out"-order, so the last parser added will be the first one
+    /// checked. This also means that built-in parsers can be "overridden" by simply adding a new parser
+    /// for the specific type afterwards.
+    /// </remarks>
     /// <param name="parser">Parser to add</param>
     /// <returns>The same options instance</returns>
     public CsvReaderOptions<T> AddParser(ICsvParser<T> parser)
@@ -159,7 +164,7 @@ public sealed partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<
     /// <inheritdoc cref="AddParsers(IEnumerable{ICsvParser{T}})"/>
     public CsvReaderOptions<T> AddParsers(params ICsvParser<T>[] parsers)
     {
-        return AddParsers(parsers.AsEnumerable());
+        return AddParsers(parsers as IEnumerable<ICsvParser<T>>);
     }
 
     /// <summary>
