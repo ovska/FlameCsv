@@ -101,10 +101,10 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
             return false;
 
         // keep track of how many quotes the current column has
-        var quotesConsumed = 0;
+        int quotesConsumed = 0;
 
         // If the remaining row has no quotes seek the next comma directly
-        var index = _quotesRemaining == 0
+        int index = _quotesRemaining == 0
             ? _remaining.IndexOf(_comma)
             : _remaining.IndexOfAny(_comma, _quote);
 

@@ -53,6 +53,7 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
             foreach (ref var candidate in candidates)
             {
                 CsvBinding? binding = _matcher(
+                    enumerator.Current,
                     new HeaderBindingArgs
                     {
                         Member = candidate.Member,
@@ -60,8 +61,7 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
                         Value = candidate.Value,
                         TargetType = typeof(TValue),
                         Index = index,
-                    },
-                    enumerator.Current);
+                    });
 
                 if (binding.HasValue)
                 {

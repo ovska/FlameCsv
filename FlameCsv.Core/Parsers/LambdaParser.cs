@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace FlameCsv.Parsers;
 
 /// <summary>
@@ -15,6 +17,6 @@ public class LambdaParser<T, TValue> : ICsvParser<T, TValue> where T : unmanaged
         _tryParse = tryParse;
     }
 
-    public virtual bool TryParse(ReadOnlySpan<T> span, out TValue value) => _tryParse(span, out value);
+    public virtual bool TryParse(ReadOnlySpan<T> span, [MaybeNullWhen(false)] out TValue value) => _tryParse(span, out value);
     public virtual bool CanParse(Type resultType) => resultType == typeof(TValue);
 }

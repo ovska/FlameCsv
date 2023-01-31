@@ -10,7 +10,7 @@ namespace FlameCsv.Readers;
 internal static class LineReader
 {
     /// <summary>Linefeed read state.</summary>
-    private ref struct State
+    private struct State
     {
         /// <summary>Count of newline tokens parsed before current index</summary>
         public int count;

@@ -38,7 +38,7 @@ internal static class HeaderMatcherDefaults
         _ = "".Equals("", stringComparison); // validate the parameter
         return Impl;
 
-        CsvBinding? Impl(in HeaderBindingArgs args, ReadOnlySpan<char> data)
+        CsvBinding? Impl(ReadOnlySpan<char> data, in HeaderBindingArgs args)
         {
             if (data.Equals(args.Value.AsSpan(), stringComparison))
                 return new CsvBinding(args.Index, args.Member);
@@ -53,7 +53,7 @@ internal static class HeaderMatcherDefaults
         _ = "".Equals("", stringComparison); // validate the parameter
         return Impl;
 
-        CsvBinding? Impl(in HeaderBindingArgs args, ReadOnlySpan<byte> data)
+        CsvBinding? Impl(ReadOnlySpan<byte> data, in HeaderBindingArgs args)
         {
             int length = Encoding.UTF8.GetMaxCharCount(data.Length);
 
