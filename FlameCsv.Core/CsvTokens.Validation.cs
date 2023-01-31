@@ -17,11 +17,11 @@ public readonly partial record struct CsvTokens<T>
     {
         List<string>? list = null;
 
-        if (this.Equals(default))
+        if (Equals(default))
         {
             AddError("The CsvTokens<> instance is uninitialized.");
             errors = list!;
-            return true;
+            return true; // Early exit if default passed
         }
 
         if (Delimiter.Equals(StringDelimiter))

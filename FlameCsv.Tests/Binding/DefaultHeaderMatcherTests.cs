@@ -28,8 +28,8 @@ public static class DefaultHeaderMatcherTests
     {
         var fn = HeaderMatcherDefaults.MatchText(StringComparison.Ordinal);
         var member = typeof(Shim).GetProperty("Prop")!;
-        Assert.Equal(new CsvBinding(0, member), fn(GetArgs(0, member), "Prop"));
-        Assert.Null(fn(GetArgs(1, member), "prop"));
+        Assert.Equal(new CsvBinding(0, member), fn("Prop", GetArgs(0, member)));
+        Assert.Null(fn("prop", GetArgs(1, member)));
     }
 
     [Fact]
@@ -37,8 +37,8 @@ public static class DefaultHeaderMatcherTests
     {
         var fn = HeaderMatcherDefaults.MatchText(StringComparison.OrdinalIgnoreCase);
         var member = typeof(Shim).GetProperty("Prop")!;
-        Assert.Equal(new CsvBinding(0, member), fn(GetArgs(0, member), "Prop"));
-        Assert.Equal(new CsvBinding(1, member), fn(GetArgs(1, member), "prop"));
+        Assert.Equal(new CsvBinding(0, member), fn("Prop", GetArgs(0, member)));
+        Assert.Equal(new CsvBinding(1, member), fn("prop", GetArgs(1, member)));
     }
 
     [Fact]
@@ -46,8 +46,8 @@ public static class DefaultHeaderMatcherTests
     {
         var fn = HeaderMatcherDefaults.MatchUtf8(StringComparison.Ordinal);
         var member = typeof(Shim).GetProperty("Prop")!;
-        Assert.Equal(new CsvBinding(0, member), fn(GetArgs(0, member), "Prop"u8.ToArray()));
-        Assert.Null(fn(GetArgs(1, member), "prop"u8.ToArray()));
+        Assert.Equal(new CsvBinding(0, member), fn("Prop"u8.ToArray(), GetArgs(0, member)));
+        Assert.Null(fn("prop"u8.ToArray(), GetArgs(1, member)));
     }
 
     [Fact]
@@ -55,8 +55,8 @@ public static class DefaultHeaderMatcherTests
     {
         var fn = HeaderMatcherDefaults.MatchUtf8(StringComparison.OrdinalIgnoreCase);
         var member = typeof(Shim).GetProperty("Prop")!;
-        Assert.Equal(new CsvBinding(0, member), fn(GetArgs(0, member), "Prop"u8.ToArray()));
-        Assert.Equal(new CsvBinding(1, member), fn(GetArgs(1, member), "prop"u8.ToArray()));
+        Assert.Equal(new CsvBinding(0, member), fn("Prop"u8.ToArray(), GetArgs(0, member)));
+        Assert.Equal(new CsvBinding(1, member), fn("prop"u8.ToArray(), GetArgs(1, member)));
     }
 
     [Fact]

@@ -15,6 +15,23 @@ public interface ICsvRecord<T> :
     where T : unmanaged, IEquatable<T>
 {
     /// <summary>
+    /// The complete unescaped data on the line without trailing newline tokens.
+    /// </summary>
+    ReadOnlyMemory<T> Data { get; }
+
+    /// <inheritdoc cref="CsvColumnEnumerator{T}.Column"/>
+    public int Column { get; }
+
+    /// <summary>If not null, the known amount of columns.</summary>
+    public int? ColumnCount { get; }
+
+    /// <inheritdoc cref="CsvColumnEnumerator{T}.IsKnownLastColumn"/>
+    public bool IsKnownLastColumn { get; }
+
+    /// <inheritdoc cref="CsvColumnEnumerator{T}.IsAtEnd"/>
+    public bool IsAtEnd { get; }
+
+    /// <summary>
     /// Token position at the start of <see cref="Data"/> in the CSV.
     /// </summary>
     long Position { get; }
@@ -23,40 +40,19 @@ public interface ICsvRecord<T> :
     /// 1-based line index in the CSV.
     /// </summary>
     int Line { get; }
-
-    /// <summary>
-    /// The complete unescaped data on the line without trailing newline tokens.
-    /// </summary>
-    ReadOnlyMemory<T> Data { get; }
-
-    /// <inheritdoc cref="CsvColumnEnumerator{T}.Column"/>
-    public int Column { get; }
-
-    /// <inheritdoc cref="CsvColumnEnumerator{T}.IsKnownLastColumn"/>
-    public bool IsKnownLastColumn { get; }
-
-    /// <inheritdoc cref="CsvColumnEnumerator{T}.IsAtEnd"/>
-    public bool IsAtEnd { get; }
 }
 
 // todo: public api description
 public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
 {
-    private readonly int? _columnCount;
     private readonly BufferOwner<T> _bufferOwner;
     private readonly CsvReaderOptions<T> _options;
 
     private ReadOnlyMemory<T> _remaining;
     private int _quotesRemaining;
 
-    /// <summary>
-    /// Token positionat the start of line in the source data.
-    /// </summary>
+    public int? ColumnCount { get; }
     public long Position { get; }
-
-    /// <summary>
-    /// 1-based line index in the source data.
-    /// </summary>
     public int Line { get; }
 
     /// <summary>
@@ -74,14 +70,14 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
     public readonly bool IsKnownLastColumn
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Column + 1 == _columnCount.GetValueOrDefault();
+        get => Column + 1 == ColumnCount.GetValueOrDefault();
     }
 
     /// <inheritdoc cref="CsvColumnEnumerator{T}.IsAtEnd"/>
     public readonly bool IsAtEnd
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _columnCount.HasValue ? Column >= _columnCount.GetValueOrDefault() : _remaining.IsEmpty;
+        get => ColumnCount.HasValue ? Column >= ColumnCount.GetValueOrDefault() : _remaining.IsEmpty;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -97,7 +93,7 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
         Position = position;
         Line = line;
 
-        _columnCount = columnCount;
+        ColumnCount = columnCount;
         _bufferOwner = bufferOwner;
 
         _remaining = data;
@@ -180,7 +176,7 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
         }
 
         // No comma in the remaining data
-        if ((IsKnownLastColumn || !_columnCount.HasValue) && _quotesRemaining == 0)
+        if ((IsKnownLastColumn || !ColumnCount.HasValue) && _quotesRemaining == 0)
         {
             Current = TrimAndUnescape(_remaining, quotesConsumed);
             _remaining = default;
@@ -239,7 +235,7 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
     private readonly bool ThrowInvalidEOF()
     {
         throw new InvalidDataException(
-            $"Line ended prematurely, expected {_columnCount} but read {Column} "
+            $"Line ended prematurely, expected {ColumnCount} but read {Column} "
             + $"with {_quotesRemaining} string delimiters remaining.");
     }
 
@@ -249,7 +245,7 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private readonly void ThrowNotAllColumnsRead()
     {
-        throw new InvalidDataException($"Expected {_columnCount} columns to have been read, but read {Column}");
+        throw new InvalidDataException($"Expected {ColumnCount} columns to have been read, but read {Column}");
     }
 
     readonly void IDisposable.Dispose()
@@ -265,6 +261,7 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
     }
 
     readonly object IEnumerator.Current => Current;
+
     readonly IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     readonly IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator() => GetEnumerator();
 }

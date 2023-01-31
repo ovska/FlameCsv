@@ -72,7 +72,7 @@ internal static class UnescapeExtensions
 
         int requiredLength = source.Length - quoteCount / 2;
         ArrayPool<T>.Shared.EnsureCapacity(ref array, requiredLength);
-        Span<T> buffer = array;
+        Span<T> buffer = array; // We can't stackalloc here because the buffer is returned
 
         while (index < source.Length)
         {
@@ -215,6 +215,6 @@ internal static class UnescapeExtensions
         error.Append(']');
 
         throw new InvalidOperationException(
-            $"Internal error: failed to unescape {typeof(ReadOnlySpan<T>).ToTypeString()}: {error}");
+            $"Internal error, failed to unescape (token: {typeof(T).ToTypeString()}): {error}");
     }
 }
