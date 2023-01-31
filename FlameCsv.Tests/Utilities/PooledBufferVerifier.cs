@@ -19,7 +19,9 @@ public abstract class PooledBufferVerifier : IDisposable
         {
             if (eventSource.Name == "System.Buffers.ArrayPoolEventSource")
             {
+#if false
                 EnableEvents(eventSource, EventLevel.LogAlways, EventKeywords.All);
+#endif
             }
         }
 

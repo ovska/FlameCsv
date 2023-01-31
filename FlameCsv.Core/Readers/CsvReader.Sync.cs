@@ -11,7 +11,6 @@ public static partial class CsvReader
         CsvReaderOptions<char> options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(csv);
         return Read<char, TValue>(new ReadOnlySequence<char>(csv.AsMemory()), options);
     }
 
@@ -56,6 +55,8 @@ public static partial class CsvReader
         CsvReaderOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
+        ArgumentNullException.ThrowIfNull(options);
+
         if (options.HasHeader)
         {
             var processor = new CsvHeaderProcessor<T, TValue>(options);

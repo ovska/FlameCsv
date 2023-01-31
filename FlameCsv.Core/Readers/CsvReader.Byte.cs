@@ -72,8 +72,6 @@ public static partial class CsvReader
         [EnumeratorCancellation] CancellationToken cancellationToken)
         where TProcessor : struct, ICsvProcessor<byte, TValue>
     {
-        ArgumentNullException.ThrowIfNull(reader);
-
         try
         {
             while (true)

@@ -12,6 +12,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
 {
     private readonly CsvTokens<T> _tokens;
     private readonly CsvCallback<T, bool>? _skipPredicate;
+    private readonly CsvExceptionHandler<T>? _exceptionHandler;
     private readonly ICsvRowState<T, TValue> _state;
     private readonly int _columnCount;
 
@@ -24,6 +25,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     {
         _tokens = readerOptions.Tokens.ThrowIfInvalid();
         _skipPredicate = readerOptions.ShouldSkipRow;
+        _exceptionHandler = readerOptions.ExceptionHandler;
         _state = state ?? readerOptions.BindToState<TValue>();
         _columnCount = _state.ColumnCount;
 
@@ -94,17 +96,27 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         int? quoteCount,
         out TValue value)
     {
-        if (_skipPredicate is null || !_skipPredicate(line, in _tokens))
+        try
         {
-            var enumerator = new CsvColumnEnumerator<T>(
-                line,
-                in _tokens,
-                _columnCount,
-                quoteCount ?? line.Count(_tokens.StringDelimiter),
-                ref _enumeratorBuffer);
+            if (_skipPredicate is null || !_skipPredicate(line, in _tokens))
+            {
+                var enumerator = new CsvColumnEnumerator<T>(
+                    line,
+                    in _tokens,
+                    _columnCount,
+                    quoteCount ?? line.Count(_tokens.StringDelimiter),
+                    ref _enumeratorBuffer);
 
-            value = _state.Parse(ref enumerator);
-            return true;
+                value = _state.Parse(ref enumerator);
+                return true;
+            }
+        }
+        catch (Exception ex)
+        {
+#pragma warning disable RCS1236 // Use exception filter.
+            if (_exceptionHandler?.Invoke(line, ex) != true)
+                throw;
+#pragma warning restore RCS1236 // Use exception filter.
         }
 
         value = default!;

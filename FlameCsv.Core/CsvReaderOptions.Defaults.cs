@@ -7,7 +7,7 @@ namespace FlameCsv;
 public partial class CsvReaderOptions<T>
 {
     /// <summary>
-    /// Returns a builder for the default text or UTF8 configuration.
+    /// Returns a new options instance using the default text or UTF8 configuration.
     /// </summary>
     /// <exception cref="NotSupportedException"><typeparamref name="T"/> is not char or byte</exception>
     /// <seealso cref="CsvOptions.GetTextReaderDefault"/>
