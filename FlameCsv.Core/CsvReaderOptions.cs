@@ -36,10 +36,19 @@ public sealed partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<
     public CsvCallback<T, bool>? ShouldSkipRow { get; set; }
 
     /// <summary>
+    /// Delegate that is called when an exception is thrown while parsing values. If null (the default), or the
+    /// delegate returns false, the exception is considered unhandled and is thrown.<para/>For example, to ignore
+    /// unparseable values return <see langword="true"/> if the exception is <see cref="CsvParseException"/>. In
+    /// this case, rows with invalid data are skipped, see also: <see cref="ShouldSkipRow"/>.
+    /// </summary>
+    public CsvExceptionHandler<T>? ExceptionHandler { get; set; }
+
+    /// <summary>
     /// Flags determining if the CSV data can be exposed outside FlameCSV and the code running it.
     /// Default is <see cref="SecurityLevel.NoBufferClearing"/>, which allows pooled memory
     /// to be returned without clearing them.
     /// </summary>
+    // TODO: actually propagate this everywhere
     public SecurityLevel Security { get; set; } = SecurityLevel.NoBufferClearing;
 
     /// <summary>

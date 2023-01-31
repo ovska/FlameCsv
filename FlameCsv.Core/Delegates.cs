@@ -36,3 +36,14 @@ public delegate bool CsvTryParse<T, TValue>(
 public delegate CsvBinding? CsvHeaderMatcher<T>(
     ReadOnlySpan<T> column,
     in HeaderBindingArgs args);
+
+/// <summary>
+/// Callback for custom handling of parsing errors.
+/// </summary>
+/// <typeparam name="T">Token type</typeparam>
+/// <param name="data">Data being parsed</param>
+/// <param name="exception">Thrown exception</param>
+/// <returns><see langword="true"/> if the exception can be ignored.</returns>
+public delegate bool CsvExceptionHandler<T>(
+    ReadOnlySpan<T> data,
+    Exception exception);

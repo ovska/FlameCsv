@@ -123,11 +123,15 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
             }
         }
 
-        if (_options.GetParser<TValue>().TryParse(Current.Span, out var value))
+        var parser = _options.GetParser<TValue>();
+
+        if (parser.TryParse(Current.Span, out var value))
             return value;
 
-        throw new CsvParseException(
-            $"Failed to parse {typeof(TValue).ToTypeString()} from column at index {index}");
+        throw new CsvParseException($"Failed to parse {typeof(TValue).ToTypeString()} from column at index {index}")
+        {
+            Parser = parser,
+        };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
