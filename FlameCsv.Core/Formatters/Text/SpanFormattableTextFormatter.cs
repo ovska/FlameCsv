@@ -28,7 +28,7 @@ public sealed class SpanFormattableTextFormatter<TValue> : ICsvFormatter<char, T
         IFormatProvider? formatProvider = null,
         string? format = null)
     {
-        Null = nullToken == "" ? null : nullToken;
+        Null = nullToken;
         FormatProvider = formatProvider;
         Format = format;
     }

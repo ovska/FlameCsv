@@ -7,16 +7,16 @@ namespace FlameCsv.Formatters;
 public interface ICsvFormatter<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
-    /// Returns whether <paramref name="resultType"/> can be handled by this formatter, or a suitable formatter can be
+    /// Returns whether <paramref name="valueType"/> can be handled by this formatter, or a suitable formatter can be
     /// created if this is a factory instance.
     /// </summary>
     /// <remarks>
     /// For simple parsers this check is usually just whether the parameter is the type being parsed in the
     /// <see cref="ICsvFormatter{T,TValue}"/>.
     /// </remarks>
-    /// <param name="resultType">Type to check</param>
+    /// <param name="valueType">Type to check</param>
     /// <returns><see langword="true"/> if the type can be parsed</returns>
-    bool CanFormat(Type resultType);
+    bool CanFormat(Type valueType);
 }
 
 /// <summary>
