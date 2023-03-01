@@ -10,4 +10,20 @@ public sealed class CsvWriterOptions<T> where T : unmanaged, IEquatable<T>
     /// Whether a final newline is written after the last record. Default is <see langword="false"/>.
     /// </summary>
     public bool WriteFinalNewline { get; set; }
+
+    /// <summary>
+    /// Whether to trim whitespace from the output. Default is <see langword="false"/>.
+    /// </summary>
+    /// <remarks>
+    /// This setting must be <see langword="true"/> and <see cref="CsvTokens{T}.Whitespace"/> must be non-empty
+    /// for the whitespace to be trimmed.
+    /// </remarks>
+    public bool TrimWhitespace { get; set; }
+
+    /// <summary>
+    /// Whether to skip escaping the output altogether. Use this with caution, as this can cause
+    /// invalid CSV to be written if the formatters output data with delimiters, string delimiters, or 
+    /// newline characters. Default is <see langword="false"/>.
+    /// </summary>
+    public bool NoEscaping { get; set; }
 }

@@ -7,13 +7,13 @@ namespace FlameCsv.Formatters;
 public interface ICsvFormatterFactory<T> : ICsvFormatter<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
-    /// Creates an instance capable of parsing values of type <paramref name="resultType"/>.
+    /// Creates an instance capable of parsing values of type <paramref name="valueType"/>.
     /// </summary>
     /// <remarks>
     /// This method should only be called after <see cref="ICsvFormatter{T}.CanFormat"/> has verified the type is valid.
     /// </remarks>
-    /// <param name="resultType">Value type of the <see cref="ICsvFormatter{T,TValue}"/></param>
+    /// <param name="valueType">Value type of the <see cref="ICsvFormatter{T,TValue}"/></param>
     /// <param name="options">Current options instance</param>
     /// <returns>Formatter instance</returns>
-    ICsvFormatter<T> Create(Type resultType, object? options);
+    ICsvFormatter<T> Create(Type valueType, object? options);
 }

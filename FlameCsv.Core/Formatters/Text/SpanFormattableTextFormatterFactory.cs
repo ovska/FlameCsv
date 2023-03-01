@@ -14,20 +14,18 @@ public sealed class SpanFormattableTextFormatterFactory : ICsvFormatterFactory<c
         _configuration = configuration;
     }
 
-    public bool CanFormat(Type resultType)
+    public bool CanFormat(Type valueType)
     {
-        return resultType.IsAssignableTo(typeof(ISpanFormattable));
+        return valueType.IsAssignableTo(typeof(ISpanFormattable));
     }
 
-    public ICsvFormatter<char> Create(Type resultType, object? options)
+    public ICsvFormatter<char> Create(Type valueType, object? options)
     {
-        var formatterType = typeof(SpanFormattableTextFormatter<>).MakeGenericType(resultType);
+        var formatterType = typeof(SpanFormattableTextFormatter<>).MakeGenericType(valueType);
 
-        var nullToken = _configuration?.TypeNulls.GetValueOrDefault(resultType);
-        var formatProvider = _configuration?.TypeFormatProviders.TryGetValue(resultType, out var fp) ?? false
-            ? fp
-            : CultureInfo.InvariantCulture;
-        var format = _configuration?.TypeFormats.GetValueOrDefault(resultType);
+        var nullToken = _configuration?.TypeNulls.GetValueOrDefault(valueType);
+        var formatProvider = _configuration?.TypeFormatProviders.GetValueOrDefault(valueType, CultureInfo.InvariantCulture);
+        var format = _configuration?.TypeFormats.GetValueOrDefault(valueType);
 
         return ActivatorEx.CreateInstance<ICsvFormatter<char>>(
             formatterType,

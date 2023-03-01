@@ -27,9 +27,11 @@ internal abstract partial class CsvRowState
     protected void ParseNext<T, TValue>(
         ref CsvColumnEnumerator<T> enumerator,
         ICsvParser<T, TValue> parser,
-        [MaybeNullWhen(false)] out TValue value)
+        out TValue value)
         where T : unmanaged, IEquatable<T>
     {
+        Unsafe.SkipInit(out value); // reference types are always zeroed by jit
+
         if (enumerator.MoveNext())
         {
             if (parser.TryParse(enumerator.Current, out value))
@@ -38,7 +40,6 @@ internal abstract partial class CsvRowState
             ThrowParseFailed(ref enumerator, parser);
         }
 
-        value = default;
         ThrowMoveNextFailed(ref enumerator);
     }
 

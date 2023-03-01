@@ -1,11 +1,10 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
-using System.Text;
-using CommunityToolkit.HighPerformance.Helpers;
-using FlameCsv.Parsers.Utf8;
 
 namespace FlameCsv.Extensions;
+
+internal readonly record struct EnumValue<TEnum>(TEnum Value, string Name, string? Member) where TEnum : struct, Enum;
 
 internal static class EnumExtensions
 {
@@ -19,30 +18,26 @@ internal static class EnumExtensions
         return (security & SecurityLevel.NoBufferClearing) != SecurityLevel.NoBufferClearing;
     }
 
-    public static (TEnum value, string name, string? enumMember)[] GetEnumMembers<TEnum>()
+    public static EnumValue<TEnum>[] GetEnumMembers<TEnum>()
         where TEnum : struct, Enum
     {
         if (!_enumCache.TryGetValue(typeof(TEnum), out var members))
         {
-            members = GetMembersInternal<TEnum>().ToArray();
-            _enumCache.AddOrUpdate(typeof(TEnum), members);
+            _enumCache.AddOrUpdate(typeof(TEnum), members = GetMembersInternal<TEnum>());
         }
 
-        return ((TEnum value, string name, string? enumMember)[])members;
+        return (EnumValue<TEnum>[])members;
     }
 
-    private static IEnumerable<(TEnum value, string name, string? enumMember)> GetMembersInternal<TEnum>()
+    private static EnumValue<TEnum>[] GetMembersInternal<TEnum>()
         where TEnum : struct, Enum
     {
         var fields = typeof(TEnum).GetFields();
-
-        foreach (var name in Enum.GetNames<TEnum>())
-        {
-            yield return (
+        return Enum.GetNames<TEnum>()
+            .Select(name => new EnumValue<TEnum>(
                 Enum.Parse<TEnum>(name),
                 name,
                 fields.Single(f => f.Name.Equals(name)).GetCustomAttribute<EnumMemberAttribute>()?.Value
-            );
-        }
+            )).ToArray();
     }
 }

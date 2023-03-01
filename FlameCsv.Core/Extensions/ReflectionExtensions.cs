@@ -21,7 +21,7 @@ internal static class ReflectionExtensions
         {
             members = type
                 .GetMembers(MemberLookupFlags)
-                .Where(m => m is PropertyInfo or FieldInfo)
+                .Where(static m => m is PropertyInfo or FieldInfo)
                 .ToArray();
             _membersCache.AddOrUpdate(type, members);
         }
@@ -33,8 +33,7 @@ internal static class ReflectionExtensions
     {
         if (!_attributesCache.TryGetValue(obj, out var attributes))
         {
-            // TODO: revisit whether inherit should be true
-            _attributesCache.AddOrUpdate(obj, attributes = obj.GetCustomAttributes(inherit: false));
+            _attributesCache.AddOrUpdate(obj, attributes = obj.GetCustomAttributes(inherit: true));
         }
 
         return attributes;

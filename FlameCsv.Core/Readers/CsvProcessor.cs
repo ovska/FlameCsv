@@ -16,7 +16,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     private readonly ICsvRowState<T, TValue> _state;
     private readonly int _columnCount;
 
-    private T[]? _enumeratorBuffer; // sting unescaping
+    private T[]? _unescapeBuffer; // string unescaping
     private T[]? _multisegmentBuffer; // long fragmented lines, see TryReadColumns
 
     public CsvProcessor(
@@ -31,7 +31,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
 
         // Two buffers are needed, as the ReadOnlySpan being manipulated by string escaping in the enumerator
         // might originate from the multisegment buffer
-        _enumeratorBuffer = null;
+        _unescapeBuffer = null;
         _multisegmentBuffer = null;
     }
 
@@ -105,7 +105,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
                     in _tokens,
                     _columnCount,
                     quoteCount ?? line.Count(_tokens.StringDelimiter),
-                    ref _enumeratorBuffer);
+                    ref _unescapeBuffer);
 
                 value = _state.Parse(ref enumerator);
                 return true;
@@ -113,6 +113,8 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         }
         catch (Exception ex)
         {
+            // Note: exception filter doesn't correctly propagate exceptions
+            // possiblye thrown by the handler
 #pragma warning disable RCS1236 // Use exception filter.
             if (_exceptionHandler?.Invoke(line, ex) != true)
                 throw;
@@ -127,7 +129,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     {
         _state.Dispose();
 
-        ArrayPool<T>.Shared.EnsureReturned(ref _enumeratorBuffer);
+        ArrayPool<T>.Shared.EnsureReturned(ref _unescapeBuffer);
         ArrayPool<T>.Shared.EnsureReturned(ref _multisegmentBuffer);
     }
 }
