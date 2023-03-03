@@ -98,7 +98,7 @@ internal static class UnescapeExtensions
         return ThrowInvalidUnescape(source, quote, quoteCount);
     }
 
-    /// <inheritdoc cref="Unescape{T}(System.ReadOnlySpan{T},T,int,ref T[])"/>
+    /// <inheritdoc cref="Unescape{T}(ReadOnlySpan{T},T,int,ref T[])"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ReadOnlyMemory<T> Unescape<T>(
         this ReadOnlyMemory<T> source,
@@ -112,26 +112,23 @@ internal static class UnescapeExtensions
 
         var span = source.Span;
 
-        if (span.Length >= 2)
+        if (span.Length >= 2 && span[0].Equals(quote) && span[^1].Equals(quote))
         {
-            if (span[0].Equals(quote) && span[^1].Equals(quote))
+            // Trim trailing and leading quotes
+            source = source.Slice(1, source.Length - 2);
+
+            if (quoteCount == 2)
             {
-                // Trim trailing and leading quotes
-                source = source.Slice(1, source.Length - 2);
-
-                if (quoteCount == 2)
-                {
-                    return source;
-                }
-
-                return source.UnescapeRare(quote, quoteCount - 2, ref array);
+                return source;
             }
+
+            return source.UnescapeRare(quote, quoteCount - 2, ref array);
         }
 
         return ThrowInvalidUnescape(source.Span, quote, quoteCount);
     }
 
-    /// <inheritdoc cref="UnescapeRare{T}(System.ReadOnlySpan{T},T,int,ref T[])"/>
+    /// <inheritdoc cref="UnescapeRare{T}(ReadOnlySpan{T},T,int,ref T[])"/>
     [MethodImpl(MethodImplOptions.NoInlining)] // encourage inlining common case above
     private static ReadOnlyMemory<T> UnescapeRare<T>(
         this ReadOnlyMemory<T> source,

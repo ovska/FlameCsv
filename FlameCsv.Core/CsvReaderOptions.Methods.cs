@@ -3,7 +3,7 @@ using CommunityToolkit.Diagnostics;
 
 namespace FlameCsv;
 
-public sealed partial class CsvReaderOptions<T>
+public partial class CsvReaderOptions<T>
 {
     /// <summary>
     /// Returns true if the row is empty or entirely whitespace (as defined in <paramref name="options"/>).

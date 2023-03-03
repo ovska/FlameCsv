@@ -3,7 +3,7 @@ using FlameCsv.Parsers;
 
 namespace FlameCsv;
 
-public sealed partial class CsvReaderOptions<T>
+public partial class CsvReaderOptions<T>
 {
     /// <summary>
     /// Returns a locking enumerator around the parsers.
