@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
@@ -12,7 +13,7 @@ namespace FlameCsv;
 /// Represents the configuration used to read and parse CSV.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-public sealed partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
+public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
     /// Tokens used for CSV parsing. Defaults to <see cref="CsvTokens{T}.Windows"/> on supported types of
@@ -65,6 +66,8 @@ public sealed partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<
 
     private readonly ConcurrentDictionary<Type, ICsvParser<T>> _parserCache = new();
     internal readonly List<ICsvParser<T>> _parsers = new();
+
+    protected virtual IEnumerable<ICsvParser<T>> GetDefaultParsers() => Enumerable.Empty<ICsvParser<T>>();
 
     /// <summary>
     /// Returns a parser for parsing <typeparamref name="TResult"/>.

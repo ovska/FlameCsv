@@ -26,7 +26,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         _tokens = readerOptions.Tokens.ThrowIfInvalid();
         _skipPredicate = readerOptions.ShouldSkipRow;
         _exceptionHandler = readerOptions.ExceptionHandler;
-        _state = state ?? readerOptions.BindToState<TValue>();
+        _state = state ?? readerOptions.BindToState<T, TValue>();
         _columnCount = _state.ColumnCount;
 
         // Two buffers are needed, as the ReadOnlySpan being manipulated by string escaping in the enumerator

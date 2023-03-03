@@ -10,68 +10,98 @@ using FlameCsv.Runtime;
 
 namespace FlameCsv;
 
-public sealed partial class CsvReaderOptions<T>
+internal static class CsvReaderOptionsExtension
 {
-    private static readonly ConditionalWeakTable<Type, Func<CsvReaderOptions<T>, object>?> _stateFactoryCache = new();
+    private delegate object StateFactory<T>(CsvReaderOptions<T> options) where T : unmanaged, IEquatable<T>;
 
-    internal ICsvRowState<T, TResult> CreateState<TResult>(CsvBindingCollection<TResult> bindingCollection)
+    private static IReadOnlySet<Type> ValueTuples { get; } = new HashSet<Type>
     {
-        return (ICsvRowState<T, TResult>)CreateStateFactory(bindingCollection)(this);
+        typeof(ValueTuple<>),
+        typeof(ValueTuple<,>),
+        typeof(ValueTuple<,,>),
+        typeof(ValueTuple<,,,>),
+        typeof(ValueTuple<,,,,>),
+        typeof(ValueTuple<,,,,,>),
+        typeof(ValueTuple<,,,,,,>),
+        typeof(ValueTuple<,,,,,,,>)
+    };
+
+    private static class FactoryCache<T> where T : unmanaged, IEquatable<T>
+    {
+        public static readonly ConditionalWeakTable<Type, StateFactory<T>?> Value = new();
     }
 
-    internal ICsvRowState<T, TResult> BindToState<TResult>()
+    public static ICsvRowState<T, TResult> CreateState<T, TResult>(
+        this CsvReaderOptions<T> options,
+        CsvBindingCollection<TResult> bindingCollection)
+        where T : unmanaged, IEquatable<T>
     {
-        if (!_stateFactoryCache.TryGetValue(typeof(TResult), out var stateFactory))
+        return (ICsvRowState<T, TResult>)CreateStateFactory<T, TResult>(bindingCollection)(options);
+    }
+
+    public static ICsvRowState<T, TResult> BindToState<T, TResult>(this CsvReaderOptions<T> options)
+        where T : unmanaged, IEquatable<T>
+    {
+        if (!FactoryCache<T>.Value.TryGetValue(typeof(TResult), out var stateFactory))
         {
-            if (IndexAttributeBinder.TryGet<TResult>(out var bindings))
+            if (TryGetBuiltinFactory<T, TResult>(out stateFactory))
             {
-                _stateFactoryCache.Add(typeof(TResult), stateFactory = CreateStateFactory(bindings));
+            }
+            else if (IndexAttributeBinder.TryGet<TResult>(out var bindings))
+            {
+                stateFactory = CreateStateFactory<T, TResult>(bindings);
             }
             else
             {
-                _stateFactoryCache.Add(typeof(TResult), stateFactory = null);
+                stateFactory = null;
             }
+
+            FactoryCache<T>.Value.Add(typeof(TResult), stateFactory);
         }
 
         if (stateFactory is not null)
-            return (ICsvRowState<T, TResult>)stateFactory(this);
+            return (ICsvRowState<T, TResult>)stateFactory(options);
 
         throw new CsvBindingException(
             $"CSV has no header and no {nameof(CsvIndexAttribute)} found on members of {typeof(TResult)}");
     }
 
-    /// <summary>
-    /// Creates the state object using the bindings and <typeparamref name="TResult"/> type parameter.
-    /// </summary>
-    [ExcludeFromCodeCoverage]
-    private static Func<CsvReaderOptions<T>, object> CreateStateFactory<TResult>(
+    private static bool TryGetBuiltinFactory<T, TResult>([NotNullWhen(true)] out StateFactory<T>? factory)
+        where T : unmanaged, IEquatable<T>
+    {
+        if (typeof(TResult).IsValueType && ValueTuples.Contains(typeof(TResult)))
+        {
+            var ctor = typeof(TResult).GetConstructors()[0];
+            var ctorParams = ctor.GetParameters();
+            var factoryParams = ctorParams.Select(static p => Expression.Parameter(p.ParameterType)).ToArray();
+            var newExpr = Expression.New(ctor, factoryParams);
+            var lambda = Expression.Lambda(newExpr, factoryParams);
+
+
+            //factory = CreateStateFactory<T,TResult>();
+        }
+
+        factory = default;
+        return false;
+    }
+
+    private static StateFactory<T> CreateStateFactory<T, TResult>(
         CsvBindingCollection<TResult> bindingCollection)
+        where T : unmanaged, IEquatable<T>
+    {
+        return CreateStateFactory<T, TResult>(bindingCollection, CreateValueFactory(bindingCollection));
+    }
+
+/// <summary>
+/// Creates the state object using the bindings and <typeparamref name="TResult"/> type parameter.
+/// </summary>
+[ExcludeFromCodeCoverage]
+    private static StateFactory<T> CreateStateFactory<T, TResult>(
+        CsvBindingCollection<TResult> bindingCollection,
+        object valueFactory)
+        where T : unmanaged, IEquatable<T>
     {
         var bindings = bindingCollection.Bindings;
-
-        // <T0, T1, T2, TResult>
-        Type[] genericsWithResult = new Type[bindings.Length + 1];
-        for (int i = 0; i < bindings.Length; i++)
-        {
-            genericsWithResult[i] = bindings[i].Type;
-        }
-
-        genericsWithResult[^1] = typeof(TResult);
-
-        var factoryGenerator = ReflectionUtil
-            .InitializerFactories[bindings.Length]
-            .MakeGenericMethod(genericsWithResult);
-
-        // (member1, member2, member3)
-        var factoryGeneratorParameters = new object[bindings.Length];
-        for (int i = 0; i < bindings.Length; i++)
-        {
-            factoryGeneratorParameters[i] = bindings[i].Member;
-        }
-
-        // Func<...>, parser1, parser2, parser3
-        object? valueFactory = factoryGenerator.Invoke(null, factoryGeneratorParameters)
-            ?? throw new InvalidOperationException($"Could not factory for {typeof(TResult)}");
 
         ConstructorInfo rowStateCtor = CsvRowState.GetConstructor<T, TResult>(bindings.Select(b => b.Type));
 
@@ -120,5 +150,34 @@ public sealed partial class CsvReaderOptions<T>
 
             return compiled(rowStateConstructorArgs);
         };
+    }
+
+    private static object CreateValueFactory<TResult>(CsvBindingCollection<TResult> bindingCollection)
+    {
+        var bindings = bindingCollection.Bindings;
+
+        // <T0, T1, T2, TResult>
+        Type[] genericsWithResult = new Type[bindings.Length + 1];
+        for (int i = 0; i < bindings.Length; i++)
+        {
+            genericsWithResult[i] = bindings[i].Type;
+        }
+
+        genericsWithResult[^1] = typeof(TResult);
+
+        var factoryGenerator = ReflectionUtil
+            .InitializerFactories[bindings.Length]
+            .MakeGenericMethod(genericsWithResult);
+
+        // (member1, member2, member3)
+        var factoryGeneratorParameters = new object[bindings.Length];
+        for (int i = 0; i < bindings.Length; i++)
+        {
+            factoryGeneratorParameters[i] = bindings[i].Member;
+        }
+
+        // Func<...>, parser1, parser2, parser3
+        return factoryGenerator.Invoke(null, factoryGeneratorParameters)
+            ?? throw new InvalidOperationException($"Could not factory for {typeof(TResult)}");
     }
 }

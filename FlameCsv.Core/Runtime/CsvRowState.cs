@@ -34,7 +34,7 @@ internal abstract partial class CsvRowState
 
         if (enumerator.MoveNext())
         {
-            if (parser.TryParse(enumerator.Current, out value))
+            if (parser.TryParse(enumerator.Current, out value!))
                 return;
 
             ThrowParseFailed(ref enumerator, parser);
