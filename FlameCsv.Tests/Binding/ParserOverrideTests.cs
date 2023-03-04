@@ -27,13 +27,15 @@ public static class ParserOverrideTests
         }
     }
 
-    [Fact(Skip = "TODO FIXME: last column quoted breaks the enumerator")]
+    [Fact]
     public static void Should_Use_Custom_Parser()
     {
         const string data = "Dollars\n\"$ 8,042.15\"\n$ 123.45\n";
-        var options = CsvReaderOptions<char>.Default;
-        options.Tokens = options.Tokens.WithNewLine("\n");
-        options.HasHeader = true;
+        var options = new CsvTextReaderOptions
+        {
+            Tokens = CsvTokens<char>.Unix,
+            HasHeader = true
+        };
         var objs = CsvReader.Read<TestObj>(data, options).ToList();
         Assert.Equal(2, objs.Count);
         Assert.Equal(8042.15, objs[0].Dollars);

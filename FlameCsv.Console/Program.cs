@@ -43,10 +43,11 @@ using (var csv = new CsvReader(reader, config))
 
 await using var stream = File.OpenRead("/home/sipi/test.csv");
 
-var config_ = CsvOptions
-    .GetUtf8ReaderDefault()
-    .SetTokens(CsvTokens<byte>.Unix)
-    .AddParser(new YYYYMMParser());
+var config_ = new CsvUtf8ReaderOptions
+{
+    Tokens = CsvTokens<byte>.Unix,
+    Parsers = { new YYYYMMParser() },
+};
 var result = new List<Item>();
 await foreach (var item in FlameCsv.Readers.CsvReader.ReadAsync<Item>(stream, config_))
 {
@@ -56,9 +57,11 @@ await foreach (var item in FlameCsv.Readers.CsvReader.ReadAsync<Item>(stream, co
 Debugger.Break();
 try
 {
-    var _config_ = CsvOptions
-        .GetTextReaderDefault(new CsvTextParsersConfig { DateTimeFormat = "yyyy'.'mm" })
-        .SetTokens(CsvTokens<char>.Unix);
+    var _config_ = new CsvTextReaderOptions()
+    {
+        Tokens = CsvTokens<char>.Unix,
+        DateTimeFormat = "yyyy'.'mm",
+    };
 
     using (var reader = new StreamReader("/home/sipi/test.csv"))
     {
@@ -96,46 +99,60 @@ public enum UnitsEnum
 // Series_reference,Period,Data_value,Suppressed,STATUS,UNITS,Magnitude,Subject,Group,Series_title_1,Series_title_2,Series_title_3,Series_title_4,Series_title_5
 public class Item
 {
-    [CsvHelper.Configuration.Attributes.Index(0)][FlameCsv.Binding.Attributes.CsvIndex(0)]
+    [CsvHelper.Configuration.Attributes.Index(0)]
+    [FlameCsv.Binding.Attributes.CsvIndex(0)]
     public string? SeriesReference { get; set; }
 
-    [CsvHelper.Configuration.Attributes.Index(1)][FlameCsv.Binding.Attributes.CsvIndex(1)]
+    [CsvHelper.Configuration.Attributes.Index(1)]
+    [FlameCsv.Binding.Attributes.CsvIndex(1)]
     public DateTime Period { get; set; } // date
 
-    [CsvHelper.Configuration.Attributes.Index(2)][FlameCsv.Binding.Attributes.CsvIndex(2)]
+    [CsvHelper.Configuration.Attributes.Index(2)]
+    [FlameCsv.Binding.Attributes.CsvIndex(2)]
     public int DataValue { get; set; }
 
-    [CsvHelper.Configuration.Attributes.Index(3)][FlameCsv.Binding.Attributes.CsvIndex(3)]
+    [CsvHelper.Configuration.Attributes.Index(3)]
+    [FlameCsv.Binding.Attributes.CsvIndex(3)]
     public string? Suppressed { get; set; }
 
-    [CsvHelper.Configuration.Attributes.Index(4)][FlameCsv.Binding.Attributes.CsvIndex(4)]
+    [CsvHelper.Configuration.Attributes.Index(4)]
+    [FlameCsv.Binding.Attributes.CsvIndex(4)]
     public StatusEnum Status { get; set; }
 
-    [CsvHelper.Configuration.Attributes.Index(5)][FlameCsv.Binding.Attributes.CsvIndex(5)]
+    [CsvHelper.Configuration.Attributes.Index(5)]
+    [FlameCsv.Binding.Attributes.CsvIndex(5)]
     public UnitsEnum Units { get; set; }
 
-    [CsvHelper.Configuration.Attributes.Index(6)][FlameCsv.Binding.Attributes.CsvIndex(6)]
+    [CsvHelper.Configuration.Attributes.Index(6)]
+    [FlameCsv.Binding.Attributes.CsvIndex(6)]
     public int Magnitude { get; set; }
 
-    [CsvHelper.Configuration.Attributes.Index(7)][FlameCsv.Binding.Attributes.CsvIndex(7)]
+    [CsvHelper.Configuration.Attributes.Index(7)]
+    [FlameCsv.Binding.Attributes.CsvIndex(7)]
     public string? Subject { get; set; }
 
-    [CsvHelper.Configuration.Attributes.Index(8)][FlameCsv.Binding.Attributes.CsvIndex(8)]
+    [CsvHelper.Configuration.Attributes.Index(8)]
+    [FlameCsv.Binding.Attributes.CsvIndex(8)]
     public string? Group { get; set; }
 
-    [CsvHelper.Configuration.Attributes.Index(9)][FlameCsv.Binding.Attributes.CsvIndex(9)]
+    [CsvHelper.Configuration.Attributes.Index(9)]
+    [FlameCsv.Binding.Attributes.CsvIndex(9)]
     public string? SeriesTitle1 { get; set; }
 
-    [CsvHelper.Configuration.Attributes.Index(10)][FlameCsv.Binding.Attributes.CsvIndex(10)]
+    [CsvHelper.Configuration.Attributes.Index(10)]
+    [FlameCsv.Binding.Attributes.CsvIndex(10)]
     public string? SeriesTitle2 { get; set; }
 
-    [CsvHelper.Configuration.Attributes.Index(11)][FlameCsv.Binding.Attributes.CsvIndex(11)]
+    [CsvHelper.Configuration.Attributes.Index(11)]
+    [FlameCsv.Binding.Attributes.CsvIndex(11)]
     public string? SeriesTitle3 { get; set; }
 
-    [CsvHelper.Configuration.Attributes.Index(12)][FlameCsv.Binding.Attributes.CsvIndex(12)]
+    [CsvHelper.Configuration.Attributes.Index(12)]
+    [FlameCsv.Binding.Attributes.CsvIndex(12)]
     public string? SeriesTitle4 { get; set; }
 
-    [CsvHelper.Configuration.Attributes.Index(13)][FlameCsv.Binding.Attributes.CsvIndex(13)]
+    [CsvHelper.Configuration.Attributes.Index(13)]
+    [FlameCsv.Binding.Attributes.CsvIndex(13)]
     public string? SeriesTitle5 { get; set; }
 }
 

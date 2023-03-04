@@ -44,9 +44,10 @@ public class Temp
                 new(2, typeof(Obj).GetProperty("C")!),
             });
 
-        var configuration = new CsvReaderOptions<char>()
-            .AddParser(new IntegerTextParser())
-            .AddParser(new DateTimeTextParser("o"));
+        var configuration = new CsvReaderOptions<char>
+        {
+            Parsers = { new IntegerTextParser(), new DateTimeTextParser("o") }
+        };
 
         var state = configuration.CreateState(bindings);
 

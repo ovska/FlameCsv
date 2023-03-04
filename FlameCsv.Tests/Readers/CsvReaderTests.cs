@@ -59,7 +59,7 @@ public class CsvReaderTests : PooledBufferVerifier
 
         if (type == typeof(char))
         {
-            var options = CsvOptions.GetTextReaderDefault(new CsvTextParsersConfig { DateTimeFormat = "O" });
+            var options = new CsvTextReaderOptions { DateTimeFormat = "O" };
             options.Tokens = options.Tokens.WithNewLine(newLine);
 
             if (whitespace)
@@ -96,7 +96,7 @@ public class CsvReaderTests : PooledBufferVerifier
         }
         else if (type == typeof(byte))
         {
-            var options = CsvOptions.GetUtf8ReaderDefault(new CsvUtf8ParsersConfig { DateTimeFormat = 'O' });
+            var options = new CsvUtf8ReaderOptions { DateTimeFormat = 'O' };
             options.Tokens = options.Tokens.WithNewLine(newLine);
 
             if (whitespace)
