@@ -32,22 +32,22 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
     /// </summary>
     public static new CsvTextReaderOptions Default => CsvReaderOptionsDefaults.Text;
 
-    public StringPool? _stringPool;
-    public IFormatProvider? _formatProvider = CultureInfo.InvariantCulture;
-    public NumberStyles _integerNumberStyles = NumberStyles.Integer;
-    public NumberStyles _decimalNumberStyles = NumberStyles.Float;
-    public string? _dateTimeFormat;
-    public string? _timeSpanFormat;
-    public string? _dateOnlyFormat;
-    public string? _timeOnlyFormat;
-    public DateTimeStyles _dateTimeStyles;
-    public TimeSpanStyles _timeSpanStyles;
-    public string? _guidFormat;
-    public bool _ignoreEnumCase;
-    public bool _allowUndefinedEnumValues;
-    public bool _readEmptyStringsAsNull;
-    public string? _null;
-    public IReadOnlyCollection<(string text, bool value)>? _booleanValues;
+    private StringPool? _stringPool;
+    private IFormatProvider? _formatProvider = CultureInfo.InvariantCulture;
+    private NumberStyles _integerNumberStyles = NumberStyles.Integer;
+    private NumberStyles _decimalNumberStyles = NumberStyles.Float;
+    private string? _dateTimeFormat;
+    private string? _timeSpanFormat;
+    private string? _dateOnlyFormat;
+    private string? _timeOnlyFormat;
+    private DateTimeStyles _dateTimeStyles;
+    private TimeSpanStyles _timeSpanStyles;
+    private string? _guidFormat;
+    private bool _ignoreEnumCase;
+    private bool _allowUndefinedEnumValues;
+    private bool _readEmptyStringsAsNull;
+    private string? _null;
+    private IReadOnlyCollection<(string text, bool value)>? _booleanValues;
 
     /// <inheritdoc cref="CsvTextReaderOptions"/>
     public CsvTextReaderOptions()
