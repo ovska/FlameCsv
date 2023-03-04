@@ -9,7 +9,7 @@ using FlameCsv.Parsers;
 namespace FlameCsv;
 
 /// <summary>
-/// Represents the configuration used to read and parse CSV.
+/// Represents a base class for configuration used to read and parse CSV data.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
@@ -114,11 +114,22 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
         set => SetValue(ref _headerBinder, value);
     }
 
+    /// <summary>
+    /// Collection of all parsers and factories of the options instance.
+    /// </summary>
+    /// <remarks>
+    /// Modifying the collection after the options instance is used (<see cref="IsReadOnly"/> is <see langword="true"/>)
+    /// results in an exception.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException"/>
     public IList<ICsvParser<T>> Parsers => _parsers ?? GetOrInitParsers();
 
     private ParserList? _parsers;
     private readonly ConcurrentDictionary<Type, ICsvParser<T>> _parserCache = new();
 
+    /// <summary>
+    /// Returns the default parsers that are used to initialize <see cref="Parsers"/> in derived types.
+    /// </summary>
     protected virtual IEnumerable<ICsvParser<T>> GetDefaultParsers() => Enumerable.Empty<ICsvParser<T>>();
 
     [MemberNotNull(nameof(_parsers))]
@@ -210,6 +221,14 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
         return GetOrInitParsers().Span;
     }
 
+    /// <summary>
+    /// Sets the value of <paramref name="field"/> after ensuring that the current instance is not read-only.
+    /// </summary>
+    /// <typeparam name="TValue"></typeparam>
+    /// <param name="field">Reference to the field to modify</param>
+    /// <param name="value">Value to set</param>
+    /// <param name="memberName">Name of the property being set, used in exception messages</param>
+    /// <exception cref="InvalidOperationException"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected void SetValue<TValue>(ref TValue field, TValue value, [CallerMemberName] string memberName = "")
     {
@@ -217,6 +236,11 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
         field = value;
     }
 
+    /// <summary>
+    /// Throws if <see cref="IsReadOnly"/> is <see langword="true"/>.
+    /// </summary>
+    /// <param name="memberName">Name of the calling property or method used in exception messages</param>
+    /// <exception cref="InvalidOperationException"></exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected void ThrowIfReadOnly([CallerMemberName] string memberName = "")
     {

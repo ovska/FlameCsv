@@ -5,6 +5,8 @@ using FlameCsv.Readers.Internal;
 
 namespace FlameCsv.Readers;
 
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
 public struct CsvEnumerator<T> : IEnumerable<CsvRecord<T>>, IEnumerator<CsvRecord<T>>
     where T : unmanaged, IEquatable<T>
 {

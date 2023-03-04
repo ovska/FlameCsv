@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿#if NET7_0_OR_GREATER
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using FlameCsv.Extensions;
 using FlameCsv.Runtime;
@@ -54,3 +55,4 @@ public sealed class SpanParsableTextParser<T> : ICsvParser<char, T> where T : IS
         return T.TryParse(span, FormatProvider, out value);
     }
 }
+#endif

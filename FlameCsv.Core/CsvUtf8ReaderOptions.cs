@@ -127,6 +127,7 @@ public sealed class CsvUtf8ReaderOptions : CsvReaderOptions<byte>
         set => SetValue(ref _booleanValues, value);
     }
 
+    /// <inheritdoc/>
     protected override IEnumerable<ICsvParser<byte>> GetDefaultParsers()
     {
         return new ICsvParser<byte>[]

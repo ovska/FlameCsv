@@ -17,6 +17,11 @@ public sealed class CsvParserMissingException : CsvConfigurationException
     /// </summary>
     public Type ResultType { get; }
 
+    /// <summary>
+    /// Initializes an exception representing a missing parser for the specified type.
+    /// </summary>
+    /// <param name="tokenType">Type parameter of the <see cref="CsvReaderOptions{T}"/></param>
+    /// <param name="resultType">Type the parser was requested for</param>
     public CsvParserMissingException(Type tokenType, Type resultType)
         : base($"Parser not found for type: {resultType.ToTypeString()}")
     {

@@ -215,6 +215,7 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
         set => SetValue(ref _booleanValues, value);
     }
 
+    /// <inheritdoc/>
     protected override IEnumerable<ICsvParser<char>> GetDefaultParsers()
     {
         // sorted in assumed reverse order of usefulness

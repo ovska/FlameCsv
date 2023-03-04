@@ -2,6 +2,8 @@ using FlameCsv.Formatters;
 
 namespace FlameCsv.Writers;
 
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
 public sealed class CsvWriterOptions<T> where T : unmanaged, IEquatable<T>
 {
     public IList<ICsvFormatter<T>> Formatters { get; } = new List<ICsvFormatter<T>>();

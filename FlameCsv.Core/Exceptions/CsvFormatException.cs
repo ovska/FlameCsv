@@ -5,6 +5,9 @@ namespace FlameCsv.Exceptions;
 /// </summary>
 public sealed class CsvFormatException : Exception
 {
+    /// <summary>
+    /// Initializes an exception representing invalid CSV format.
+    /// </summary>
     public CsvFormatException(
         string? message = null,
         Exception? innerException = null)

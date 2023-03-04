@@ -29,8 +29,6 @@ public sealed class SpanFormattableTextFormatterFactory : ICsvFormatterFactory<c
 
         return ActivatorEx.CreateInstance<ICsvFormatter<char>>(
             formatterType,
-            nullToken,
-            formatProvider,
-            format);
+            parameters: new object?[] { nullToken, formatProvider, format });
     }
 }

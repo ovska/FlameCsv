@@ -10,6 +10,9 @@ public sealed class CsvParseException : Exception
     /// </summary>
     public object? Parser { get; set; }
 
+    /// <summary>
+    /// Initializes an exception representing an unparseable value.
+    /// </summary>
     public CsvParseException(
         string? message = null,
         Exception? innerException = null)
