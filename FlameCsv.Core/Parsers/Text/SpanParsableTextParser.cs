@@ -1,10 +1,17 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using FlameCsv.Extensions;
+using FlameCsv.Runtime;
 
 namespace FlameCsv.Parsers.Text;
 
 public sealed class SpanParsableTextParserFactory : ICsvParserFactory<char>
 {
+    /// <summary>
+    /// Format providers indexed by type to use instead of <see cref="CultureInfo.InvariantCulture"/>. Null values are allowed.
+    /// </summary>
+    public IDictionary<Type, IFormatProvider?> FormatProviders { get; } = new Dictionary<Type, IFormatProvider?>();
+
     public bool CanParse(Type resultType)
         => resultType
             .GetInterfaces()
@@ -12,23 +19,26 @@ public sealed class SpanParsableTextParserFactory : ICsvParserFactory<char>
 
     public ICsvParser<char> Create(Type resultType, CsvReaderOptions<char> options)
     {
-        return (ICsvParser<char>)typeof(SpanParsableTextParser<>)
-            .MakeGenericType(resultType)
-            .GetProperty("Default")!
-            .GetValue(null)!;
+        return ActivatorEx.CreateInstance<ICsvParser<char>>(
+            typeof(SpanParsableTextParser<>).MakeGenericType(resultType),
+            parameters: new object?[] { FormatProviders.GetValueOrDefault(resultType, CultureInfo.InvariantCulture) });
     }
 }
 
-public sealed class SpanParsableTextParser<T> : ICsvParser<char, T>
-    where T : ISpanParsable<T>
+public sealed class SpanParsableTextParser<T> : ICsvParser<char, T> where T : ISpanParsable<T>
 {
-    /// <summary>
-    /// Parser with the default format provider <see cref="CultureInfo.InvariantCulture"/>.
-    /// </summary>
-    public static SpanParsableTextParser<T> Default { get; } = new(CultureInfo.InvariantCulture);
-
     public IFormatProvider? FormatProvider { get; }
 
+    /// <summary>
+    /// Initializes a <see cref="SpanParsableTextParser{T}"/> using the invariant culture.
+    /// </summary>
+    public SpanParsableTextParser() : this(CultureInfo.InvariantCulture)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a <see cref="SpanParsableTextParser{T}"/> using the specified format provider.
+    /// </summary>
     public SpanParsableTextParser(IFormatProvider? formatProvider)
     {
         FormatProvider = formatProvider;

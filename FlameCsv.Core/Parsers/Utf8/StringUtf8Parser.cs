@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 
 namespace FlameCsv.Parsers.Utf8;
@@ -8,7 +9,7 @@ public sealed class StringUtf8Parser :
     ICsvParser<byte, Memory<char>>,
     ICsvParser<byte, ReadOnlyMemory<char>>
 {
-    internal static readonly StringUtf8Parser Instance = new();
+    public static StringUtf8Parser Instance { get; } = new();
 
     public bool TryParse(ReadOnlySpan<byte> span, out string value)
     {
@@ -26,7 +27,11 @@ public sealed class StringUtf8Parser :
 
         var charCount = Encoding.UTF8.GetCharCount(span);
         value = new char[charCount];
-        return charCount == Encoding.UTF8.GetChars(span, value); // should always succeed
+
+        if (charCount != Encoding.UTF8.GetChars(span, value))
+            Debug.Fail("Failed to properly UTF8 decode");
+
+        return true;
     }
 
     public bool TryParse(ReadOnlySpan<byte> span, out Memory<char> value)
