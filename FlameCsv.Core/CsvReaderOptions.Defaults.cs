@@ -13,8 +13,8 @@ public partial class CsvReaderOptions<T>
     /// Throws for other types of <typeparamref name="T"/>.
     /// </returns>
     /// <exception cref="NotSupportedException"><typeparamref name="T"/> is not char or byte</exception>
-    /// <seealso cref="CsvOptions.CsvTextReaderOptions"/>
-    /// <seealso cref="CsvOptions.CsvUtf8ReaderOptions"/>
+    /// <seealso cref="CsvTextReaderOptions.Default"/>
+    /// <seealso cref="CsvUtf8ReaderOptions.Default"/>
     public static CsvReaderOptions<T> Default
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

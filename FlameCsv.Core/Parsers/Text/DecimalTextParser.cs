@@ -2,15 +2,28 @@ using System.Globalization;
 
 namespace FlameCsv.Parsers.Text;
 
+/// <summary>
+/// Parser for <see langword="double"/>, <see langword="float"/>, <see langword="decimal"/> and <see cref="Half"/>.
+/// </summary>
 public sealed class DecimalTextParser :
     ICsvParser<char, double>,
     ICsvParser<char, float>,
     ICsvParser<char, Half>,
     ICsvParser<char, decimal>
 {
+    /// <summary>
+    /// Number styles passed to <c>TryParse</c>.
+    /// </summary>
     public NumberStyles Styles { get; }
+
+    /// <summary>
+    /// Format provider passed to <c>TryParse</c>.
+    /// </summary>
     public IFormatProvider? FormatProvider { get; }
 
+    /// <summary>
+    /// Initializes a new <see cref="DecimalTextParser"/>.
+    /// </summary>
     public DecimalTextParser(
         NumberStyles styles = NumberStyles.Integer,
         IFormatProvider? formatProvider = null)
@@ -19,26 +32,31 @@ public sealed class DecimalTextParser :
         FormatProvider = formatProvider;
     }
 
+    /// <inheritdoc/>
     public bool TryParse(ReadOnlySpan<char> span, out double value)
     {
         return double.TryParse(span, Styles, FormatProvider, out value);
     }
 
+    /// <inheritdoc/>
     public bool TryParse(ReadOnlySpan<char> span, out float value)
     {
         return float.TryParse(span, Styles, FormatProvider, out value);
     }
 
+    /// <inheritdoc/>
     public bool TryParse(ReadOnlySpan<char> span, out Half value)
     {
         return Half.TryParse(span, Styles, FormatProvider, out value);
     }
 
+    /// <inheritdoc/>
     public bool TryParse(ReadOnlySpan<char> span, out decimal value)
     {
         return decimal.TryParse(span, Styles, FormatProvider, out value);
     }
 
+    /// <inheritdoc/>
     public bool CanParse(Type resultType)
     {
         return resultType == typeof(double)

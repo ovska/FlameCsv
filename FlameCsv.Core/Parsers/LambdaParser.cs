@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace FlameCsv.Parsers;
 
 /// <summary>
-/// Parser that parses <typeparam name="TValue"/> using the supplied function.
+/// Parser that parses <typeparamref name="TValue"/> using the supplied function.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 /// <typeparam name="TValue">Value to parse</typeparam>
