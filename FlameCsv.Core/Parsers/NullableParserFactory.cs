@@ -18,7 +18,10 @@ public sealed class NullableParserFactory<T> : ICsvParserFactory<T>
         NullToken = nullToken;
     }
 
-    public bool CanParse(Type resultType) => Nullable.GetUnderlyingType(resultType) is not null;
+    public bool CanParse(Type resultType)
+    {
+        return resultType.IsGenericType && resultType.GetGenericTypeDefinition() == typeof(Nullable<>);
+    }
 
     public ICsvParser<T> Create(Type resultType, CsvReaderOptions<T> options)
     {
