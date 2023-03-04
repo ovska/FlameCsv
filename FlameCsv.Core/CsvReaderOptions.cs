@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
-using CommunityToolkit.Diagnostics;
-using CommunityToolkit.HighPerformance;
+using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -16,6 +15,40 @@ namespace FlameCsv;
 public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
+    /// Whether the options instance is sealed and can no longer be modified.
+    /// </summary>
+    public bool IsReadOnly { get; private set; }
+
+    /// <summary>
+    /// Seals the instance from modifications.
+    /// </summary>
+    /// <returns><see langword="true"/> if the instance was made readonly, <see langword="false"/> if it already was.</returns>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public bool MakeReadOnly()
+    {
+        if (!IsReadOnly)
+        {
+            lock (_parserCache)
+            {
+                if (!IsReadOnly)
+                {
+                    IsReadOnly = true;
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    internal CsvTokens<T> tokens = CsvTokens<T>.GetDefaultForOptions();
+    private CsvCallback<T, bool>? _shouldSkipRow;
+    private CsvExceptionHandler<T>? _exceptionHandler;
+    private bool _hasHeader;
+    private SecurityLevel _securityLevel = SecurityLevel.NoBufferClearing;
+    private IHeaderBinder<T>? _headerBinder;
+
+    /// <summary>
     /// Tokens used for CSV parsing. Defaults to <see cref="CsvTokens{T}.Windows"/> on supported types of
     /// <typeparamref name="T"/> and to uninitialized on unsupported types.
     /// </summary>
@@ -24,17 +57,18 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
     public CsvTokens<T> Tokens
     {
         get => tokens;
-        set => tokens = value.ThrowIfInvalid();
+        set => SetValue(ref tokens, value.ThrowIfInvalid());
     }
-
-    /// <summary>For internal use with "in"</summary>
-    internal CsvTokens<T> tokens = CsvTokens<T>.GetDefaultForOptions();
 
     /// <summary>
     /// Delegate that determines whether a row should be skipped.
     /// Default is <see langword="null"/>, which means all rows are processed.
     /// </summary>
-    public CsvCallback<T, bool>? ShouldSkipRow { get; set; }
+    public CsvCallback<T, bool>? ShouldSkipRow
+    {
+        get => _shouldSkipRow;
+        set => SetValue(ref _shouldSkipRow, value);
+    }
 
     /// <summary>
     /// Delegate that is called when an exception is thrown while parsing values. If null (the default), or the
@@ -42,7 +76,11 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
     /// unparseable values return <see langword="true"/> if the exception is <see cref="CsvParseException"/>. In
     /// this case, rows with invalid data are skipped, see also: <see cref="ShouldSkipRow"/>.
     /// </summary>
-    public CsvExceptionHandler<T>? ExceptionHandler { get; set; }
+    public CsvExceptionHandler<T>? ExceptionHandler
+    {
+        get => _exceptionHandler;
+        set => SetValue(ref _exceptionHandler, value);
+    }
 
     /// <summary>
     /// Flags determining if the CSV data can be exposed outside FlameCSV and the code running it.
@@ -50,24 +88,48 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
     /// to be returned without clearing them.
     /// </summary>
     // TODO: actually propagate this everywhere
-    public SecurityLevel Security { get; set; } = SecurityLevel.NoBufferClearing;
+    public SecurityLevel Security
+    {
+        get => _securityLevel;
+        set => SetValue(ref _securityLevel, value);
+    }
 
     /// <summary>
     /// Whether the read CSV has a header record.
     /// </summary>
     /// <seealso cref="HeaderBinder"/>
-    public bool HasHeader { get; set; }
+    public bool HasHeader
+    {
+        get => _hasHeader;
+        set => SetValue(ref _hasHeader, value);
+    }
 
     /// <summary>
     /// Custom header binder used in place of <see cref="HeaderTextBinder"/> or <see cref="HeaderUtf8Binder"/>
     /// if <see cref="HasHeader"/> is true.
     /// </summary>
-    public IHeaderBinder<T>? HeaderBinder { get; set; }
+    public IHeaderBinder<T>? HeaderBinder
+    {
+        get => _headerBinder;
+        set => SetValue(ref _headerBinder, value);
+    }
 
+    public IList<ICsvParser<T>> Parsers => _parsers ?? GetOrInitParsers();
+
+    private ParserList? _parsers;
     private readonly ConcurrentDictionary<Type, ICsvParser<T>> _parserCache = new();
-    internal readonly List<ICsvParser<T>> _parsers = new();
 
     protected virtual IEnumerable<ICsvParser<T>> GetDefaultParsers() => Enumerable.Empty<ICsvParser<T>>();
+
+    [MemberNotNull(nameof(_parsers))]
+    private ParserList GetOrInitParsers()
+    {
+        if (_parsers is not null)
+            return _parsers;
+
+        var parserList = new ParserList(this);
+        return Interlocked.CompareExchange(ref _parsers, parserList, null) ?? parserList;
+    }
 
     /// <summary>
     /// Returns a parser for parsing <typeparamref name="TResult"/>.
@@ -98,108 +160,28 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
     {
         ArgumentNullException.ThrowIfNull(resultType);
 
+        if (!IsReadOnly)
+            MakeReadOnly();
+
         if (_parserCache.TryGetValue(resultType, out var cached))
         {
             return cached;
         }
 
-        lock (_parsers)
-        {
-            Span<ICsvParser<T>> parsers = _parsers.AsSpan();
+        var parsers = GetOrInitParsers().Span;
 
-            // Read parsers in reverse order so parser added last has the highest priority
-            for (int i = parsers.Length - 1; i >= 0; i--)
+        // Read parsers in reverse order so parser added last has the highest priority
+        for (int i = parsers.Length - 1; i >= 0; i--)
+        {
+            if (parsers[i].CanParse(resultType))
             {
-                if (parsers[i].CanParse(resultType))
-                {
-                    var parser = parsers[i].GetParserOrFromFactory(resultType, this);
-                    _parserCache.TryAdd(resultType, parser);
-                    return parser;
-                }
+                var parser = parsers[i].GetParserOrFromFactory(resultType, this);
+                _parserCache.TryAdd(resultType, parser);
+                return parser;
             }
         }
 
         return null;
-    }
-
-    /// <summary>
-    /// Removes all parsers added to the builder.
-    /// </summary>
-    /// <returns>The same options instance</returns>
-    public CsvReaderOptions<T> ClearParsers()
-    {
-        lock (_parsers)
-        {
-            _parsers.Clear();
-        }
-
-        return this;
-    }
-
-    /// <summary>
-    /// Removes all for which <see cref="ICsvParser{T}.CanParse"/> returns <see langword="true"/>
-    /// for <typeparamref name="TValue"/>.
-    /// </summary>
-    /// <returns>The same options instance</returns>
-    public CsvReaderOptions<T> RemoveParsers<TValue>()
-    {
-        lock (_parsers)
-        {
-            _parsers.RemoveAll(static p => p.CanParse(typeof(TValue)));
-        }
-
-        return this;
-    }
-
-    /// <summary>
-    /// Adds the parser to the builder.
-    /// </summary>
-    /// <remarks>
-    /// Parsers are prioritized in "last in, first out"-order, so the last parser added will be the first one
-    /// checked. This also means that built-in parsers can be "overridden" by simply adding a new parser
-    /// for the specific type afterwards.
-    /// </remarks>
-    /// <param name="parser">Parser to add</param>
-    /// <returns>The same options instance</returns>
-    public CsvReaderOptions<T> AddParser(ICsvParser<T> parser)
-    {
-        ArgumentNullException.ThrowIfNull(parser);
-
-        lock (_parsers)
-        {
-            _parsers.Add(parser);
-        }
-
-        return this;
-    }
-
-    /// <inheritdoc cref="AddParsers(IEnumerable{ICsvParser{T}})"/>
-    public CsvReaderOptions<T> AddParsers(params ICsvParser<T>[] parsers)
-    {
-        return AddParsers(parsers as IEnumerable<ICsvParser<T>>);
-    }
-
-    /// <summary>
-    /// Adds the parsers to the builder.
-    /// </summary>
-    /// <param name="parsers">Parsers to add</param>
-    /// <returns>The same options instance</returns>
-    public CsvReaderOptions<T> AddParsers(IEnumerable<ICsvParser<T>> parsers)
-    {
-        ArgumentNullException.ThrowIfNull(parsers);
-
-        lock (_parsers)
-        {
-            foreach (var parser in parsers)
-            {
-                // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
-                if (parser is null)
-                    ThrowHelper.ThrowArgumentException(nameof(parsers), "The enumerable contained null");
-                _parsers.Add(parser);
-            }
-        }
-
-        return this;
     }
 
     /// <summary>
@@ -216,10 +198,35 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
     /// Sets the parameter to <see cref="Tokens"/>.
     /// </summary>
     /// <returns>The same options instance</returns>
-    // ReSharper disable once ParameterHidesMember
     public CsvReaderOptions<T> SetTokens(in CsvTokens<T> tokens)
     {
-        this.tokens = tokens;
+        Tokens = tokens;
         return this;
+    }
+
+    internal ReadOnlySpan<ICsvParser<T>> EnumerateParsers()
+    {
+        MakeReadOnly();
+        return GetOrInitParsers().Span;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected void SetValue<TValue>(ref TValue field, TValue value, [CallerMemberName] string memberName = "")
+    {
+        ThrowIfReadOnly(memberName);
+        field = value;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected void ThrowIfReadOnly([CallerMemberName] string memberName = "")
+    {
+        if (IsReadOnly)
+            ThrowForIsReadOnly(memberName);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void ThrowForIsReadOnly(string memberName)
+    {
+        throw new InvalidOperationException($"The options-instance is read only (accessed via {memberName}).");
     }
 }

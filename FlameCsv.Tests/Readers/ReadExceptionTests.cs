@@ -17,26 +17,29 @@ public class ReadExceptionTests
     [Fact]
     public void Should_Throw_On_Unhandled()
     {
-        var opts = CsvReaderOptions<char>.Default;
-        opts.ExceptionHandler = null;
+        var opts = new CsvTextReaderOptions
+        {
+            ExceptionHandler = null
+        };
         Assert.Throws<CsvParseException>(() => Run(opts));
     }
 
     [Fact]
     public void Should_Throw_If_Returns_False()
     {
-        var opts = CsvReaderOptions<char>.Default;
-        opts.ExceptionHandler = (_, _) => false;
+        var opts = new CsvTextReaderOptions
+        {
+            ExceptionHandler = (_, _) => false
+        };
         Assert.Throws<CsvParseException>(() => Run(opts));
     }
 
     [Fact]
     public void Should_Throw_Inner()
     {
-        var opts = CsvReaderOptions<char>.Default;
-        opts.ExceptionHandler = (_, e) =>
+        var opts = new CsvTextReaderOptions
         {
-            throw new AggregateException(e);
+            ExceptionHandler = (_, e) => throw new AggregateException(e)
         };
         Assert.Throws<AggregateException>(() => Run(opts));
     }

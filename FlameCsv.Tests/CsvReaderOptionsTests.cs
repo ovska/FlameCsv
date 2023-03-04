@@ -16,9 +16,14 @@ public class CsvReaderOptionsTests
     [Fact]
     public void Should_Prioritize_Parsers_Added_Last()
     {
-        var config = new CsvReaderOptions<char>()
-            .AddParser(new IntegerTextParser(formatProvider: CultureInfo.CurrentCulture))
-            .AddParser(new IntegerTextParser(formatProvider: CultureInfo.InvariantCulture));
+        var config = new CsvReaderOptions<char>
+        {
+            Parsers =
+            {
+                new IntegerTextParser(formatProvider: CultureInfo.CurrentCulture),
+                new IntegerTextParser(formatProvider: CultureInfo.InvariantCulture),
+            },
+        };
 
         Assert.Equal(
             CultureInfo.InvariantCulture,
@@ -28,7 +33,7 @@ public class CsvReaderOptionsTests
     [Fact]
     public void Should_Return_Text_Defaults()
     {
-        var config = CsvOptions.GetTextReaderDefault();
+        var config = CsvReaderOptions<char>.Default;
 
         Assert.Equal("\r\n", config.Tokens.NewLine.ToArray());
 
@@ -50,7 +55,7 @@ public class CsvReaderOptionsTests
     [Fact]
     public void Should_Return_Utf8_Defaults()
     {
-        var config = CsvOptions.GetUtf8ReaderDefault();
+        var config = CsvReaderOptions<byte>.Default;
 
         Assert.Equal(U8("\r\n"), config.Tokens.NewLine.ToArray());
 
@@ -90,7 +95,7 @@ public class CsvReaderOptionsTests
         Assert.True(commentOrEmpty(" ", in options));
     }
 
-    [Fact]
+    [Fact(Skip = "Thread safety of mutability is no longer guaranteed")]
     public void Should_Be_Threadsafe()
     {
         // this test isn't reliable to prove a negative, but should work as
@@ -100,9 +105,7 @@ public class CsvReaderOptionsTests
         var parser = Base64TextParser.Instance;
         Thread[] threads =
         {
-            new(Repeat(o => o.AddParser(parser))),
-            new(Repeat(o => o.AddParsers(parser))),
-            new(Repeat(o => o.AddParsers(Enumerable.Repeat(parser, 1)))),
+            new(Repeat(o => o.Parsers.Add(parser))),
             new(
                 Repeat(
                     o =>
@@ -114,7 +117,7 @@ public class CsvReaderOptionsTests
         foreach (var thread in threads) thread.Start();
         foreach (var thread in threads) thread.Join();
 
-        Assert.Equal(3000, options._parsers.Count);
+        Assert.Equal(1000, options.Parsers.Count);
 
         ThreadStart Repeat(Action<CsvReaderOptions<char>> action)
         {

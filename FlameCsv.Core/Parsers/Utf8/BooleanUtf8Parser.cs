@@ -1,5 +1,4 @@
 using System.Buffers.Text;
-using CommunityToolkit.Diagnostics;
 
 namespace FlameCsv.Parsers.Utf8;
 
@@ -9,9 +8,8 @@ public sealed class BooleanUtf8Parser : ParserBase<byte, bool>
 
     public BooleanUtf8Parser(IReadOnlyCollection<(ReadOnlyMemory<byte> bytes, bool value)>? values = null)
     {
-        if (values is not null)
+        if (values is { Count: > 0 })
         {
-            Guard.IsNotEmpty(values);
             _values = values.ToArray();
         }
     }

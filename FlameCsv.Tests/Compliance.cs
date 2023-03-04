@@ -253,7 +253,7 @@ public class Compliance
 
         var record = new CsvRecord<char>(
             line.AsMemory(),
-            CsvReaderOptions<char>.Default.SetTokens(in options),
+            new CsvTextReaderOptions { Tokens = options },
             null,
             null,
             bo,

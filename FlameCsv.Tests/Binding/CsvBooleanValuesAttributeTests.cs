@@ -107,7 +107,7 @@ public static class CsvBooleanValuesAttributeTests
         bool? expected,
         string nullToken)
     {
-        var options = CsvOptions.GetTextReaderDefault(new CsvTextParsersConfig { Null = nullToken });
+        var options = new CsvTextReaderOptions { Null = nullToken };
         var binding = new CsvBinding(0, typeof(Shim).GetProperty("IsEnabledN")!);
 
         var @override = binding.GetParserOverride<Shim>();
@@ -157,14 +157,13 @@ public static class CsvBooleanValuesAttributeTests
         bool? expected,
         string nullToken)
     {
-        var options =
-            CsvOptions.GetUtf8ReaderDefault(new CsvUtf8ParsersConfig { Null = Encoding.UTF8.GetBytes(nullToken) });
+        var options = new CsvUtf8ReaderOptions { Null = Encoding.UTF8.GetBytes(nullToken) };
         var binding = new CsvBinding(0, typeof(Shim).GetProperty("IsEnabledN")!);
 
         var @override = binding.GetParserOverride<Shim>();
         Assert.NotNull(@override);
 
-        var parser = (ICsvParser<byte, bool?>)@override!.CreateParser(in binding, options);
+        var parser = (ICsvParser<byte, bool?>)@override!.CreateParser<byte>(in binding, options);
         var inputBytes = Encoding.UTF8.GetBytes(input);
 
         if (success)
@@ -182,7 +181,6 @@ public static class CsvBooleanValuesAttributeTests
     public static void Should_Use_Empty_Null_If_None_Defined()
     {
         var options = CsvReaderOptions<char>.Default;
-        options.ClearParsers();
 
         var binding = new CsvBinding(0, typeof(Shim).GetProperty("IsEnabledN")!);
 
