@@ -5,38 +5,49 @@ using CommunityToolkit.HighPerformance.Buffers;
 
 namespace FlameCsv.Parsers.Utf8;
 
+/// <summary>
+/// Parses Base64 columns into byte arrays or its' derivatives.
+/// </summary>
 public sealed class Base64Utf8Parser :
     ICsvParser<byte, byte[]>,
     ICsvParser<byte, ArraySegment<byte>>,
     ICsvParser<byte, Memory<byte>>,
     ICsvParser<byte, ReadOnlyMemory<byte>>
 {
-    internal static readonly Base64Utf8Parser Instance = new();
+    /// <summary>
+    /// A thread-safe singleton instance of <see cref="Base64Utf8Parser"/>.
+    /// </summary>
+    public static Base64Utf8Parser Instance { get; } = new();
 
+    /// <inheritdoc/>
     public bool TryParse(ReadOnlySpan<byte> span, out byte[] value)
     {
         value = Decode(span);
         return true;
     }
 
+    /// <inheritdoc/>
     public bool TryParse(ReadOnlySpan<byte> span, out ArraySegment<byte> value)
     {
         value = Decode(span);
         return true;
     }
 
+    /// <inheritdoc/>
     public bool TryParse(ReadOnlySpan<byte> span, out Memory<byte> value)
     {
         value = Decode(span);
         return true;
     }
 
+    /// <inheritdoc/>
     public bool TryParse(ReadOnlySpan<byte> span, out ReadOnlyMemory<byte> value)
     {
         value = Decode(span);
         return true;
     }
 
+    /// <inheritdoc/>
     public bool CanParse(Type resultType)
     {
         return resultType == typeof(byte[])

@@ -66,8 +66,8 @@ public sealed class StringUtf8Formatter :
         }
 
         // Try with less expensive check first
-        if (buffer.Length >= Encoding.UTF8.GetMaxByteCount(value.Length)
-            || buffer.Length >= Encoding.UTF8.GetByteCount(value))
+        if (buffer.Length >= Encoding.UTF8.GetMaxByteCount(value.Length) ||
+            buffer.Length >= Encoding.UTF8.GetByteCount(value))
         {
             tokensWritten = Encoding.UTF8.GetBytes(value, buffer);
             return true;

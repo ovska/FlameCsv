@@ -2,6 +2,11 @@ using System.Buffers.Text;
 
 namespace FlameCsv.Parsers.Utf8;
 
+/// <summary>
+/// Parser for <see langword="byte"/>, <see langword="sbyte"/>, <see langword="short"/>, <see langword="ushort"/>,
+/// <see langword="int"/>, <see langword="uint"/>, <see langword="long"/>, <see langword="ulong"/>,
+/// <see langword="nint"/>, and <see langword="nuint"/>.
+/// </summary>
 public sealed class IntegerUtf8Parser :
     ICsvParser<byte, byte>,
     ICsvParser<byte, short>,
@@ -18,6 +23,9 @@ public sealed class IntegerUtf8Parser :
     /// </summary>
     public char StandardFormat { get; }
 
+    /// <summary>
+    /// Initializes a new <see cref="IntegerUtf8Parser"/> using the specified format.
+    /// </summary>
     public IntegerUtf8Parser(char standardFormat = '\0')
     {
         // validate the parameter
@@ -26,41 +34,49 @@ public sealed class IntegerUtf8Parser :
         StandardFormat = standardFormat;
     }
 
+    /// <inheritdoc/>
     public bool TryParse(ReadOnlySpan<byte> span, out byte value)
     {
         return Utf8Parser.TryParse(span, out value, out _, StandardFormat);
     }
 
+    /// <inheritdoc/>
     public bool TryParse(ReadOnlySpan<byte> span, out short value)
     {
         return Utf8Parser.TryParse(span, out value, out _, StandardFormat);
     }
 
+    /// <inheritdoc/>
     public bool TryParse(ReadOnlySpan<byte> span, out ushort value)
     {
         return Utf8Parser.TryParse(span, out value, out _, StandardFormat);
     }
 
+    /// <inheritdoc/>
     public bool TryParse(ReadOnlySpan<byte> span, out int value)
     {
         return Utf8Parser.TryParse(span, out value, out _, StandardFormat);
     }
 
+    /// <inheritdoc/>
     public bool TryParse(ReadOnlySpan<byte> span, out uint value)
     {
         return Utf8Parser.TryParse(span, out value, out _, StandardFormat);
     }
 
+    /// <inheritdoc/>
     public bool TryParse(ReadOnlySpan<byte> span, out long value)
     {
         return Utf8Parser.TryParse(span, out value, out _, StandardFormat);
     }
 
+    /// <inheritdoc/>
     public bool TryParse(ReadOnlySpan<byte> span, out ulong value)
     {
         return Utf8Parser.TryParse(span, out value, out _, StandardFormat);
     }
 
+    /// <inheritdoc/>
     public bool TryParse(ReadOnlySpan<byte> span, out nint value)
     {
         if (TryParse(span, out long _value))
@@ -73,6 +89,7 @@ public sealed class IntegerUtf8Parser :
         return false;
     }
 
+    /// <inheritdoc/>
     public bool TryParse(ReadOnlySpan<byte> span, out nuint value)
     {
         if (TryParse(span, out ulong _value))
@@ -85,6 +102,7 @@ public sealed class IntegerUtf8Parser :
         return false;
     }
 
+    /// <inheritdoc/>
     public bool CanParse(Type resultType)
     {
         return resultType == typeof(byte)

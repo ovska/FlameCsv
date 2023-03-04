@@ -6,38 +6,46 @@ namespace FlameCsv.Parsers.Text;
 /// <summary>
 /// Parses Base64 columns into byte arrays or its' derivatives.
 /// </summary>
-public class Base64TextParser :
+public sealed class Base64TextParser :
     ICsvParser<char, byte[]>,
     ICsvParser<char, ArraySegment<byte>>,
     ICsvParser<char, Memory<byte>>,
     ICsvParser<char, ReadOnlyMemory<byte>>
 {
-    internal static readonly Base64TextParser Instance = new();
+    /// <summary>
+    /// A thread-safe singleton instance of <see cref="Base64TextParser"/>.
+    /// </summary>
+    public static Base64TextParser Instance { get; } = new();
 
+    /// <inheritdoc/>
     public bool TryParse(ReadOnlySpan<char> span, out byte[] value)
     {
         value = Decode(span);
         return true;
     }
 
+    /// <inheritdoc/>
     public bool TryParse(ReadOnlySpan<char> span, out ArraySegment<byte> value)
     {
         value = Decode(span);
         return true;
     }
 
+    /// <inheritdoc/>
     public bool TryParse(ReadOnlySpan<char> span, out Memory<byte> value)
     {
         value = Decode(span);
         return true;
     }
 
+    /// <inheritdoc/>
     public bool TryParse(ReadOnlySpan<char> span, out ReadOnlyMemory<byte> value)
     {
         value = Decode(span);
         return true;
     }
 
+    /// <inheritdoc/>
     public bool CanParse(Type resultType)
     {
         return resultType == typeof(byte[])
@@ -71,6 +79,6 @@ public class Base64TextParser :
         }
 
         return ThrowHelper.ThrowInvalidOperationException<byte[]>(
-            $"Failed to convert span<char>[{span.Length}] to base64");
+            $"Failed to convert Span<char>[{span.Length}] to base64");
     }
 }

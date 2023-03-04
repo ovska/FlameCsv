@@ -103,6 +103,7 @@ public sealed class CsvBindingException : CsvConfigurationException
     /// </summary>
     public IReadOnlyList<CsvBinding>? Bindings { get; }
 
+    /// <inheritdoc/>
     public CsvBindingException(
         string? message = null,
         Exception? innerException = null)
@@ -110,6 +111,11 @@ public sealed class CsvBindingException : CsvConfigurationException
     {
     }
 
+    /// <summary>
+    /// Initializes a <see cref="CsvBindingException"/> for invalid bindings.
+    /// </summary>
+    /// <param name="message"></param>
+    /// <param name="bindings"></param>
     public CsvBindingException(
         string message,
         IReadOnlyList<CsvBinding> bindings)
@@ -119,7 +125,7 @@ public sealed class CsvBindingException : CsvConfigurationException
     }
 
     /// <summary>
-    /// Throws an exception for invalid target for a binding.
+    /// Initializes a <see cref="CsvBindingException"/> for invalid target for a binding.
     /// </summary>
     /// <param name="target">Target type</param>
     /// <param name="binding">Binding not applicable for the target</param>

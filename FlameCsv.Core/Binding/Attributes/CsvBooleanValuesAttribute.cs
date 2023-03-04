@@ -14,31 +14,17 @@ namespace FlameCsv.Binding.Attributes;
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public class CsvBooleanValuesAttribute : Attribute, ICsvParserOverride
 {
-    public string[] TrueValues
-    {
-        get => _trueValues;
-        set
-        {
-            Guard.IsNotNull(value);
-            _trueValues = value;
-        }
-    }
+    /// <summary>
+    /// Values that represent <see langword="true"/>.
+    /// </summary>
+    public string[] TrueValues { get; set; } = Array.Empty<string>();
 
-    public string[] FalseValues
-    {
-        get => _falseValues;
-        set
-        {
-            Guard.IsNotNull(value);
-            _falseValues = value;
-        }
-    }
+    /// <summary>
+    /// Values that represent <see langword="false"/>.
+    /// </summary>
+    public string[] FalseValues { get; set; } = Array.Empty<string>();
 
-    // could add explicit Null here
-
-    private string[] _trueValues = Array.Empty<string>();
-    private string[] _falseValues = Array.Empty<string>();
-
+    /// <inheritdoc/>
     public virtual ICsvParser<T> CreateParser<T>(in CsvBinding binding, CsvReaderOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
@@ -53,9 +39,9 @@ public class CsvBooleanValuesAttribute : Attribute, ICsvParserOverride
                 $"{nameof(CsvBooleanValuesAttribute)} was applied on a member with invalid type: {binding}");
         }
 
-        if (_trueValues.Length == 0 && _falseValues.Length == 0)
+        if (!(TrueValues?.Length > 0 && FalseValues?.Length > 0))
         {
-            throw new CsvConfigurationException($"No values defined for {nameof(CsvBooleanValuesAttribute)}");
+            throw new CsvConfigurationException($"Null/empty true/false values defined for {nameof(CsvBooleanValuesAttribute)}");
         }
 
         if (typeof(T) == typeof(char))
@@ -68,7 +54,7 @@ public class CsvBooleanValuesAttribute : Attribute, ICsvParserOverride
             $"Token type {typeof(T)} is not supported by {nameof(CsvBooleanValuesAttribute)}");
     }
 
-    protected virtual ICsvParser<char> CreateForText(Type target, CsvReaderOptions<char> options)
+    private ICsvParser<char> CreateForText(Type target, CsvReaderOptions<char> options)
     {
         var parser = new BooleanTextParser(
             TrueValues
@@ -82,7 +68,7 @@ public class CsvBooleanValuesAttribute : Attribute, ICsvParserOverride
         return new NullableParser<char, bool>(parser, FindNullTokens(options));
     }
 
-    protected virtual ICsvParser<byte> CreateForUtf8(Type target, CsvReaderOptions<byte> options)
+    private ICsvParser<byte> CreateForUtf8(Type target, CsvReaderOptions<byte> options)
     {
         var parser = new BooleanUtf8Parser(
             TrueValues

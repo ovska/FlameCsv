@@ -9,7 +9,7 @@ namespace FlameCsv.Parsers.Text;
 /// <seealso cref="CommunityToolkit.HighPerformance.Buffers.StringPool"/>
 public sealed class PoolingStringTextParser : ParserBase<char, string?>
 {
-    /// <inheritdoc cref="StringTextParser"/>
+    /// <inheritdoc cref="StringTextParser.ReadEmptyAsNull"/>
     public bool ReadEmptyAsNull { get; }
 
     /// <summary>
@@ -17,16 +17,25 @@ public sealed class PoolingStringTextParser : ParserBase<char, string?>
     /// </summary>
     public StringPool StringPool { get; }
 
+    private readonly string? _empty;
+
+    public PoolingStringTextParser() : this(StringPool.Shared, readEmptyAsNull: false)
+    {
+    }
+
     public PoolingStringTextParser(StringPool stringPool, bool readEmptyAsNull = false)
     {
         ArgumentNullException.ThrowIfNull(stringPool);
         StringPool = stringPool;
         ReadEmptyAsNull = readEmptyAsNull;
+
+        if (!ReadEmptyAsNull)
+            _empty = "";
     }
 
     public override bool TryParse(ReadOnlySpan<char> span, out string? value)
     {
-        value = span.IsEmpty && ReadEmptyAsNull ? null : StringPool.GetOrAdd(span);
+        value = !span.IsEmpty ? StringPool.GetOrAdd(span) : _empty;
         return true;
     }
 }

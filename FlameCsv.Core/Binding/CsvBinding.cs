@@ -50,7 +50,7 @@ public readonly struct CsvBinding : IEquatable<CsvBinding>
     /// </summary>
     public bool IsIgnored => Member.Equals(IgnoreSingleton);
 
-    public Type Type => !IsIgnored
+    internal Type Type => !IsIgnored
         ? ReflectionUtil.MemberType(Member)
         : ThrowHelper.ThrowInvalidOperationException<Type>("Cannot get type from ignored column");
 
@@ -151,11 +151,13 @@ public readonly struct CsvBinding : IEquatable<CsvBinding>
     /// <summary><c>"Type.Property"</c></summary>
     internal string FormatMember => $"{Member.DeclaringType?.Name}.{Member.Name}".TrimStart('.');
 
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
     public bool Equals(CsvBinding other) => Index == other.Index && Member.Equals(other.Member);
     public override bool Equals(object? obj) => obj is CsvBinding other && Equals(other);
     public override int GetHashCode() => HashCode.Combine(Member, Index);
     public static bool operator ==(CsvBinding left, CsvBinding right) => left.Equals(right);
     public static bool operator !=(CsvBinding left, CsvBinding right) => !(left == right);
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
 
     /// <summary>Singleton MemberInfo used to indicate ignored columns.</summary>
     private static MemberInfo IgnoreSingleton => _ignore

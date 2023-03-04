@@ -6,7 +6,7 @@ namespace FlameCsv;
 
 public partial class CsvReaderOptions<T>
 {
-    protected sealed class ParserList : IList<ICsvParser<T>>
+    private sealed class ParserList : IList<ICsvParser<T>>
     {
         private readonly CsvReaderOptions<T> _options;
         private readonly List<ICsvParser<T>> _list;

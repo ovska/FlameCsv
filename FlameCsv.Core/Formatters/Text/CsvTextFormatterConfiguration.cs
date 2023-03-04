@@ -2,6 +2,8 @@ using System.Globalization;
 
 namespace FlameCsv.Formatters.Text;
 
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
 public class CsvTextFormatterConfiguration
 {
     /// <summary>

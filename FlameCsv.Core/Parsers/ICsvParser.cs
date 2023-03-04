@@ -12,10 +12,6 @@ public interface ICsvParser<T> where T : unmanaged, IEquatable<T>
     /// Returns whether <paramref name="resultType"/> can be handled by this parser, or a suitable parser can be
     /// created if this is a factory instance.
     /// </summary>
-    /// <remarks>
-    /// For simple parsers this check is usually just whether the parameter is the type being parsed in the
-    /// <see cref="ICsvParser{T,TValue}"/>.
-    /// </remarks>
     /// <param name="resultType">Type to check</param>
     /// <returns><see langword="true"/> if the type can be parsed</returns>
     bool CanParse(Type resultType);
