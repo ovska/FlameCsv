@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using System.Text;
 using CommunityToolkit.Diagnostics;
 
@@ -7,6 +6,7 @@ namespace FlameCsv.Extensions;
 /// <summary>
 /// Extensions for manipulating and validating instances of <see cref="CsvTokens{T}"/>.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
 public static class CsvTokensExtensions
 {
     // cache common whitespace and line breaks

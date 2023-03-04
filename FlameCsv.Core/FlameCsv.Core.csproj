@@ -3,6 +3,7 @@
   <PropertyGroup>
     <Version>0.0.1</Version>
     <RootNamespace>FlameCsv</RootNamespace>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>

@@ -214,7 +214,7 @@ internal static class WriteUtil
     }
 
     /// <summary>
-    /// Escapes <see cref="source"/> into <see cref="destination"/>. Source and destination can overlap.
+    /// Escapes <paramref name="source"/> into <paramref name="destination"/>. Source and destination can overlap.
     /// </summary>
     /// <param name="source">Data that needs escaping</param>
     /// <param name="destination">Destination buffer, can be the same memory region as source</param>
