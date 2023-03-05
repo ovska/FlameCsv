@@ -32,37 +32,24 @@ public partial class CsvReaderOptions<T>
     }
 }
 
+// separate class to avoid statics in the generic CsvReaderOptions<T>
 internal static class CsvReaderOptionsDefaults
 {
-    public static CsvTextReaderOptions? _textDefault;
-    public static CsvUtf8ReaderOptions? _utf8Default;
+    public static CsvTextReaderOptions Text => _textLazy.Value;
+    public static CsvUtf8ReaderOptions Utf8 => _utf8Lazy.Value;
 
-    public static CsvTextReaderOptions Text
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _textDefault ?? GetOrInitializeTextDefaults();
-    }
-
-    public static CsvUtf8ReaderOptions Utf8
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _utf8Default ?? GetOrInitializeUtf8Defaults();
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    public static CsvTextReaderOptions GetOrInitializeTextDefaults()
-    {
-        var options = new CsvTextReaderOptions();
-        options.MakeReadOnly();
-        return Interlocked.CompareExchange(ref _textDefault, options, null) ?? options;
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    public static CsvUtf8ReaderOptions GetOrInitializeUtf8Defaults()
-    {
-
-        var options = new CsvUtf8ReaderOptions();
-        options.MakeReadOnly();
-        return Interlocked.CompareExchange(ref _utf8Default, options, null) ?? options;
-    }
+    public static readonly Lazy<CsvTextReaderOptions> _textLazy = new Lazy<CsvTextReaderOptions>(
+        static () =>
+        {
+            var options = new CsvTextReaderOptions();
+            options.MakeReadOnly();
+            return options;
+        }, LazyThreadSafetyMode.ExecutionAndPublication);
+    public static readonly Lazy<CsvUtf8ReaderOptions> _utf8Lazy = new Lazy<CsvUtf8ReaderOptions>(
+        static () =>
+        {
+            var options = new CsvUtf8ReaderOptions();
+            options.MakeReadOnly();
+            return options;
+        }, LazyThreadSafetyMode.ExecutionAndPublication);
 }
