@@ -8,10 +8,14 @@ public sealed class TimeOnlyTextParser : ParserBase<char, TimeOnly>
     public DateTimeStyles Styles { get; }
     public IFormatProvider? FormatProvider { get; }
 
+    public TimeOnlyTextParser() : this(null, DateTimeStyles.None, CultureInfo.InvariantCulture)
+    {
+    }
+
     public TimeOnlyTextParser(
-        string? format = null,
-        DateTimeStyles styles = default,
-        IFormatProvider? formatProvider = null)
+        string? format,
+        DateTimeStyles styles,
+        IFormatProvider? formatProvider)
     {
         Styles = styles;
         Format = format;

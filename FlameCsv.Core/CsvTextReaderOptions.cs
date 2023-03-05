@@ -25,7 +25,9 @@ namespace FlameCsv;
 /// <item><see cref="TimeOnlyTextParser"/></item>
 /// </list>
 /// </remarks>
-public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
+public sealed class CsvTextReaderOptions :
+    CsvReaderOptions<char>,
+    ICsvNullTokenProvider<char>
 {
     /// <summary>Returns a thread-safe read only singleton instance with default options.</summary>
     /// <remarks>Create a new instance if you need to configure the options or parsers.</remarks>
@@ -227,16 +229,25 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
             new DateOnlyTextParser(DateOnlyFormat, DateTimeStyles, FormatProvider),
             new GuidTextParser(GuidFormat),
             new Base64TextParser(),
-            new TimeSpanTextParser(TimeSpanFormat, FormatProvider, TimeSpanStyles),
+            new TimeSpanTextParser(TimeSpanFormat,  TimeSpanStyles, FormatProvider),
             new NullableParserFactory<char>(Null.AsMemory()),
             new EnumTextParserFactory(AllowUndefinedEnumValues, IgnoreEnumCase),
-            new DateTimeTextParser(DateTimeFormat, FormatProvider, DateTimeStyles),
-            new DecimalTextParser(DecimalNumberStyles, FormatProvider),
+            new DateTimeTextParser(DateTimeFormat, DateTimeStyles, FormatProvider),
+            new DecimalTextParser(FormatProvider, DecimalNumberStyles),
             new BooleanTextParser(BooleanValues),
-            new IntegerTextParser(IntegerNumberStyles, FormatProvider),
+            new IntegerTextParser(FormatProvider, IntegerNumberStyles),
             StringPool is { } stringPool
                 ? new PoolingStringTextParser(stringPool, ReadEmptyStringsAsNull)
                 : new StringTextParser(ReadEmptyStringsAsNull),
         };
+    }
+
+    ReadOnlyMemory<char> ICsvNullTokenProvider<char>.Default => Null.AsMemory();
+
+    // TODO: implement at some point
+    bool ICsvNullTokenProvider<char>.TryGetOverride(Type type, out ReadOnlyMemory<char> value)
+    {
+        value = default;
+        return false;
     }
 }

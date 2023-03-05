@@ -48,7 +48,7 @@ public partial class CsvReaderOptions<T>
 
         public bool Contains(ICsvParser<T> item) => _list.Contains(item);
 
-        public void CopyTo(ICsvParser<T>[] array, int arrayIndex) => throw new NotSupportedException();
+        public void CopyTo(ICsvParser<T>[] array, int arrayIndex) => _list.CopyTo(array, arrayIndex);
 
         public IEnumerator<ICsvParser<T>> GetEnumerator() => _list.GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => _list.GetEnumerator();

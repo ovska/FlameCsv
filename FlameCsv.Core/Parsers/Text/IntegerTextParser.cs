@@ -33,7 +33,7 @@ public sealed class IntegerTextParser :
     /// Initializes a new <see cref="IntegerTextParser"/> using <see cref="NumberStyles.Integer"/>
     /// and <see cref="CultureInfo.InvariantCulture"/>.
     /// </summary>
-    public IntegerTextParser() : this(NumberStyles.Integer, CultureInfo.InvariantCulture)
+    public IntegerTextParser() : this(CultureInfo.InvariantCulture, NumberStyles.Integer)
     {
     }
 
@@ -41,8 +41,8 @@ public sealed class IntegerTextParser :
     /// Initializes a new <see cref="IntegerTextParser"/> using the specified number styles and format provider.
     /// </summary>
     public IntegerTextParser(
-        NumberStyles styles = NumberStyles.Integer,
-        IFormatProvider? formatProvider = null)
+        IFormatProvider? formatProvider,
+        NumberStyles styles = NumberStyles.Integer)
     {
         Styles = styles;
         FormatProvider = formatProvider;

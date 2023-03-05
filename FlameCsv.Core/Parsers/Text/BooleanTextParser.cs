@@ -1,5 +1,3 @@
-using CommunityToolkit.Diagnostics;
-
 namespace FlameCsv.Parsers.Text;
 
 /// <summary>
