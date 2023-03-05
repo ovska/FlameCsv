@@ -22,13 +22,17 @@ public sealed class DateOnlyTextParser : ParserBase<char, DateOnly>
     /// </summary>
     public IFormatProvider? FormatProvider { get; }
 
+    public DateOnlyTextParser() : this(null, DateTimeStyles.None, CultureInfo.InvariantCulture)
+    {
+    }
+
     /// <summary>
     /// Initializes an instance of <see cref="DateOnlyTextParser"/>.
     /// </summary>
     public DateOnlyTextParser(
-        string? format = null,
-        DateTimeStyles styles = default,
-        IFormatProvider? formatProvider = null)
+        string? format,
+        DateTimeStyles styles,
+        IFormatProvider? formatProvider)
     {
         Styles = styles;
         Format = format;

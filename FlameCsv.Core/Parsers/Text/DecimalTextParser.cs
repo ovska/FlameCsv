@@ -22,11 +22,19 @@ public sealed class DecimalTextParser :
     public IFormatProvider? FormatProvider { get; }
 
     /// <summary>
+    /// Initializes a new <see cref="DecimalTextParser"/> using <see cref="NumberStyles.Float"/>
+    /// and <see cref="CultureInfo.InvariantCulture"/>.
+    /// </summary>
+    public DecimalTextParser() : this(CultureInfo.InvariantCulture)
+    {
+    }
+
+    /// <summary>
     /// Initializes a new <see cref="DecimalTextParser"/>.
     /// </summary>
     public DecimalTextParser(
-        NumberStyles styles = NumberStyles.Integer,
-        IFormatProvider? formatProvider = null)
+        IFormatProvider? formatProvider,
+        NumberStyles styles = NumberStyles.Float)
     {
         Styles = styles;
         FormatProvider = formatProvider;

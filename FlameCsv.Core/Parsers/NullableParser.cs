@@ -20,9 +20,7 @@ public sealed class NullableParser<T, TValue> :
     /// </summary>
     public ReadOnlyMemory<T> NullToken { get; }
 
-    /// <summary>
     /// <inheritdoc cref="NullableParser{T,TValue}"/>
-    /// </summary>
     /// <param name="inner">Parser for possible non-null values.</param>
     /// <param name="nullToken">Tokens that match a null value. Default is empty.</param>
     public NullableParser(

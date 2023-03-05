@@ -8,10 +8,14 @@ public sealed class TimeSpanTextParser : ParserBase<char, TimeSpan>
     public IFormatProvider? FormatProvider { get; }
     public TimeSpanStyles Styles { get; }
 
+    public TimeSpanTextParser() : this(null, TimeSpanStyles.None, CultureInfo.InvariantCulture)
+    {
+    }
+
     public TimeSpanTextParser(
-        string? format = null,
-        IFormatProvider? formatProvider = null,
-        TimeSpanStyles styles = TimeSpanStyles.None)
+        string? format,
+        TimeSpanStyles styles,
+        IFormatProvider? formatProvider)
     {
         Styles = styles;
         Format = format;

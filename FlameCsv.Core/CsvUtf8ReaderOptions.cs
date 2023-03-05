@@ -21,7 +21,9 @@ namespace FlameCsv;
 /// <item><see cref="Base64Utf8Parser"/></item>
 /// </list>
 /// </remarks>
-public sealed class CsvUtf8ReaderOptions : CsvReaderOptions<byte>
+public sealed class CsvUtf8ReaderOptions :
+    CsvReaderOptions<byte>,
+    ICsvNullTokenProvider<byte>
 {
     /// <summary>Returns a thread-safe read only singleton instance with default options.</summary>
     /// <remarks>Create a new instance if you need to configure the options or parsers.</remarks>
@@ -142,5 +144,14 @@ public sealed class CsvUtf8ReaderOptions : CsvReaderOptions<byte>
             new IntegerUtf8Parser(IntegerFormat),
             StringUtf8Parser.Instance,
         };
+    }
+
+    ReadOnlyMemory<byte> ICsvNullTokenProvider<byte>.Default => Null;
+
+    // TODO: implement at some point
+    bool ICsvNullTokenProvider<byte>.TryGetOverride(Type type, out ReadOnlyMemory<byte> value)
+    {
+        value = default;
+        return false;
     }
 }

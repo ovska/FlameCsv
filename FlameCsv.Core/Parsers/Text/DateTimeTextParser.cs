@@ -13,13 +13,21 @@ public sealed class DateTimeTextParser :
     public IFormatProvider? FormatProvider { get; }
     public DateTimeStyles Styles { get; }
 
+    public DateTimeTextParser() : this(null, DateTimeStyles.None, CultureInfo.InvariantCulture)
+    {
+    }
+
+    public DateTimeTextParser(string? format) : this(format, DateTimeStyles.None, CultureInfo.InvariantCulture)
+    {
+    }
+
     /// <param name="format">Format passed to <c>TryParseExact</c>. If null, <c>TryParse</c> is used</param>
     /// <param name="formatProvider">Format provider used</param>
     /// <param name="styles">DateTimeStyles used</param>
     public DateTimeTextParser(
-        string? format = null,
-        IFormatProvider? formatProvider = null,
-        DateTimeStyles styles = DateTimeStyles.None)
+        string? format,
+        DateTimeStyles styles,
+        IFormatProvider? formatProvider)
     {
         Format = format;
         FormatProvider = formatProvider;

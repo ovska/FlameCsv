@@ -15,6 +15,13 @@ namespace FlameCsv;
 public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
+    /// Initializes an options-instance with default options and no parsers defined.
+    /// </summary>
+    public CsvReaderOptions()
+    {
+    }
+
+    /// <summary>
     /// Whether the options instance is sealed and can no longer be modified.
     /// </summary>
     public bool IsReadOnly { get; private set; }
