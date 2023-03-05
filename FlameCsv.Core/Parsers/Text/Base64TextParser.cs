@@ -63,7 +63,7 @@ public sealed class Base64TextParser :
 
         int bufferSize = (span.Length + 2) / 3 * 4;
 
-        if (bufferSize <= 256)
+        if (Token<byte>.CanStackalloc(bufferSize))
         {
             Span<byte> buffer = stackalloc byte[bufferSize];
 
