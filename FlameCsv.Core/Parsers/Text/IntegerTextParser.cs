@@ -38,6 +38,14 @@ public sealed class IntegerTextParser :
     }
 
     /// <summary>
+    /// Initializes a new <see cref="IntegerTextParser"/> using the specified number styles
+    /// and <see cref="CultureInfo.InvariantCulture"/>.
+    /// </summary>
+    public IntegerTextParser(NumberStyles styles) : this(CultureInfo.InvariantCulture, styles)
+    {
+    }
+
+    /// <summary>
     /// Initializes a new <see cref="IntegerTextParser"/> using the specified number styles and format provider.
     /// </summary>
     public IntegerTextParser(

@@ -12,6 +12,10 @@ public sealed class TimeOnlyTextParser : ParserBase<char, TimeOnly>
     {
     }
 
+    public TimeOnlyTextParser(string? format) : this(format, DateTimeStyles.None, CultureInfo.InvariantCulture)
+    {
+    }
+
     public TimeOnlyTextParser(
         string? format,
         DateTimeStyles styles,

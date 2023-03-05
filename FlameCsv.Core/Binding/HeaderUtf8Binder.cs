@@ -11,7 +11,7 @@ public sealed class HeaderUtf8Binder : HeaderBinderBase<byte>
     /// <param name="stringComparison">Comparison used to check the header values</param>
     /// <param name="ignoreUnmatched">Whether columns that cannot be matched are ignored</param>
     public HeaderUtf8Binder(
-        StringComparison stringComparison = StringComparison.Ordinal,
+        StringComparison stringComparison = StringComparison.OrdinalIgnoreCase,
         bool ignoreUnmatched = false)
         : base(HeaderMatcherDefaults.MatchUtf8(stringComparison), ignoreUnmatched)
     {

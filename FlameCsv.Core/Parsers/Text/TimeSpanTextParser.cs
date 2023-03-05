@@ -12,6 +12,10 @@ public sealed class TimeSpanTextParser : ParserBase<char, TimeSpan>
     {
     }
 
+    public TimeSpanTextParser(string? format) : this(format, TimeSpanStyles.None, CultureInfo.InvariantCulture)
+    {
+    }
+
     public TimeSpanTextParser(
         string? format,
         TimeSpanStyles styles,

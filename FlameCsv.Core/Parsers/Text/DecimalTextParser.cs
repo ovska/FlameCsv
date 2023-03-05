@@ -30,6 +30,14 @@ public sealed class DecimalTextParser :
     }
 
     /// <summary>
+    /// Initializes a new <see cref="DecimalTextParser"/> using the specified number styles
+    /// and <see cref="CultureInfo.InvariantCulture"/>.
+    /// </summary>
+    public DecimalTextParser(NumberStyles styles) : this(CultureInfo.InvariantCulture, styles)
+    {
+    }
+
+    /// <summary>
     /// Initializes a new <see cref="DecimalTextParser"/>.
     /// </summary>
     public DecimalTextParser(

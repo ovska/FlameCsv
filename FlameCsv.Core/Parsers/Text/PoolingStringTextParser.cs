@@ -20,10 +20,9 @@ public sealed class PoolingStringTextParser : ParserBase<char, string?>
     private readonly string? _empty;
 
     /// <summary>
-    /// Initializes an instance of <see cref="PoolingStringTextParser"/> using <see cref="StringPool.Shared"/>
-    /// and <see cref="ReadEmptyAsNull"/> = <see langword="false"/>.
+    /// Initializes an instance of <see cref="PoolingStringTextParser"/> using <see cref="StringPool.Shared"/>.
     /// </summary>
-    public PoolingStringTextParser() : this(StringPool.Shared, readEmptyAsNull: false)
+    public PoolingStringTextParser(bool readEmptyAsNull = false) : this(StringPool.Shared, readEmptyAsNull)
     {
     }
 

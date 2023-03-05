@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text;
 using CommunityToolkit.HighPerformance.Buffers;
 
@@ -40,10 +41,9 @@ internal static class HeaderMatcherDefaults
 
         CsvBinding? Impl(ReadOnlySpan<char> data, in HeaderBindingArgs args)
         {
-            if (data.Equals(args.Value.AsSpan(), stringComparison))
-                return new CsvBinding(args.Index, args.Member);
-
-            return default;
+            return args.Value.AsSpan().Equals(data, stringComparison)
+                ? new CsvBinding(args.Index, args.Member)
+                : null;
         }
     }
 
@@ -59,22 +59,26 @@ internal static class HeaderMatcherDefaults
 
             if (Token<byte>.CanStackalloc(length))
             {
-                Span<char> buffer = stackalloc char[length];
-                var written = Encoding.UTF8.GetChars(data, buffer);
-                ReadOnlySpan<char> value = buffer[..written];
-
-                if (value.Equals(args.Value.AsSpan(), stringComparison))
-                    return new CsvBinding(args.Index, args.Member);
+                return ImplInner(data, stackalloc char[length], in args, stringComparison);
             }
             else
             {
                 using var owner = SpanOwner<char>.Allocate(length);
-                var written = Encoding.UTF8.GetChars(data, owner.Span);
-                ReadOnlySpan<char> value = owner.Span[..written];
-
-                if (value.Equals(args.Value.AsSpan(), stringComparison))
-                    return new CsvBinding(args.Index, args.Member);
+                return ImplInner(data, owner.Span, in args, stringComparison);
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static CsvBinding? ImplInner(
+            ReadOnlySpan<byte> data,
+            Span<char> buffer,
+            in HeaderBindingArgs args,
+            StringComparison stringComparison)
+        {
+            var written = Encoding.UTF8.GetChars(data, buffer);
+
+            if (args.Value.AsSpan().Equals(buffer[..written], stringComparison))
+                return new CsvBinding(args.Index, args.Member);
 
             return default;
         }
