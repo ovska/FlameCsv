@@ -16,18 +16,19 @@ public class CsvReaderOptionsTests
     [Fact]
     public void Should_Prioritize_Parsers_Added_Last()
     {
+        var c1 = new CultureInfo("fi");
+        var c2 = new CultureInfo("se");
+
         var config = new CsvReaderOptions<char>
         {
             Parsers =
             {
-                new IntegerTextParser(formatProvider: CultureInfo.CurrentCulture),
-                new IntegerTextParser(formatProvider: CultureInfo.InvariantCulture),
+                new IntegerTextParser(formatProvider: c1),
+                new IntegerTextParser(formatProvider: c2),
             },
         };
 
-        Assert.Equal(
-            CultureInfo.InvariantCulture,
-            ((IntegerTextParser)config.GetParser<int>()).FormatProvider);
+        Assert.Equal(c2, ((IntegerTextParser)config.GetParser<int>()).FormatProvider);
     }
 
     [Fact]
@@ -95,6 +96,32 @@ public class CsvReaderOptionsTests
         Assert.True(commentOrEmpty(" ", in options));
     }
 
+    [Fact]
+    public void Should_Throw_On_ReadOnly_Modified()
+    {
+        var options = new CsvReaderOptions<char>();
+        Assert.True(options.MakeReadOnly());
+        Assert.False(options.MakeReadOnly());
+
+        Run(o => o.Tokens = CsvTokens<char>.Unix);
+        Run(o => o.ShouldSkipRow = default);
+        Run(o => o.HasHeader = default);
+        Run(o => o.HeaderBinder = default);
+        Run(o => o.ExceptionHandler = default);
+        Run(o => o.Security = default);
+        Run(o => o.Parsers[0] = new IntegerTextParser());
+        Run(o => o.Parsers.Add(new IntegerTextParser()));
+        Run(o => o.Parsers.Insert(0, new IntegerTextParser()));
+        Run(o => o.Parsers.Remove(new IntegerTextParser()));
+        Run(o => o.Parsers.RemoveAt(0));
+        Run(o => o.Parsers.Clear());
+
+        void Run(Action<CsvReaderOptions<char>> action)
+        {
+            Assert.Throws<InvalidOperationException>(() => action(options));
+        }
+    }
+
     [Fact(Skip = "Thread safety of mutability is no longer guaranteed")]
     public void Should_Be_Threadsafe()
     {
@@ -114,8 +141,10 @@ public class CsvReaderOptionsTests
                     })),
         };
 
-        foreach (var thread in threads) thread.Start();
-        foreach (var thread in threads) thread.Join();
+        foreach (var thread in threads)
+            thread.Start();
+        foreach (var thread in threads)
+            thread.Join();
 
         Assert.Equal(1000, options.Parsers.Count);
 

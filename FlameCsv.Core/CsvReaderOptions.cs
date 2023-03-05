@@ -32,6 +32,7 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
             {
                 if (!IsReadOnly)
                 {
+                    _ = GetOrInitParsers();
                     IsReadOnly = true;
                     return true;
                 }
@@ -132,6 +133,7 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
     /// </summary>
     protected virtual IEnumerable<ICsvParser<T>> GetDefaultParsers() => Enumerable.Empty<ICsvParser<T>>();
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [MemberNotNull(nameof(_parsers))]
     private ParserList GetOrInitParsers()
     {
@@ -193,26 +195,6 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
         }
 
         return null;
-    }
-
-    /// <summary>
-    /// Sets the parameter to <see cref="ShouldSkipRow"/>.
-    /// </summary>
-    /// <returns>The same options instance</returns>
-    public CsvReaderOptions<T> SetRowSkipPredicate(CsvCallback<T, bool>? predicate)
-    {
-        ShouldSkipRow = predicate;
-        return this;
-    }
-
-    /// <summary>
-    /// Sets the parameter to <see cref="Tokens"/>.
-    /// </summary>
-    /// <returns>The same options instance</returns>
-    public CsvReaderOptions<T> SetTokens(in CsvTokens<T> tokens)
-    {
-        Tokens = tokens;
-        return this;
     }
 
     internal ReadOnlySpan<ICsvParser<T>> EnumerateParsers()

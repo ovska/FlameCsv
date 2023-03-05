@@ -69,7 +69,11 @@ public partial class CsvReaderOptions<T>
             return _list.Remove(item);
         }
 
-        public void RemoveForType(Type type) => _list.RemoveAll(p => p.CanParse(type));
+        public void RemoveForType(Type type)
+        {
+            _options.ThrowIfReadOnly();
+            _list.RemoveAll(p => p.CanParse(type));
+        }
 
         public void RemoveAt(int index)
         {

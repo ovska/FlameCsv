@@ -29,7 +29,10 @@ public readonly partial record struct CsvTokens<T>
     public static CsvTokens<T> Unix => FromGeneric(ref _charUnix, ref _byteUnix);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static CsvTokens<T> FromGeneric(ref CsvTokens<char> forChars, ref CsvTokens<byte> forBytes)
+    private static CsvTokens<T> FromGeneric(
+        ref CsvTokens<char> forChars,
+        ref CsvTokens<byte> forBytes,
+        [CallerMemberName] string propertyName = "")
     {
         if (typeof(T) == typeof(char))
             return Unsafe.As<CsvTokens<char>, CsvTokens<T>>(ref forChars);
@@ -37,8 +40,8 @@ public readonly partial record struct CsvTokens<T>
         if (typeof(T) == typeof(byte))
             return Unsafe.As<CsvTokens<byte>, CsvTokens<T>>(ref forBytes);
 
-        return ThrowHelper.ThrowNotSupportedException<CsvTokens<T>>(
-            $"Default options for type {typeof(T)} are not supported.");
+        throw new NotSupportedException(
+            $"CsvTokens<{typeof(T).Name}>.{propertyName} is not supported for this token type.");
     }
 
     /// <summary>

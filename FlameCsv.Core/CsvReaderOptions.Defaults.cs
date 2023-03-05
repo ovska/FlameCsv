@@ -5,7 +5,7 @@ namespace FlameCsv;
 public partial class CsvReaderOptions<T>
 {
     /// <summary>
-    /// Returns a new options instance using the default text or UTF8 configuration.
+    /// Returns a new read-only options instance using the default text or UTF8 configuration.
     /// </summary>
     /// <returns>
     /// Instance of <see cref="CsvTextReaderOptions"/> for <see langword="char"/>.<br/>

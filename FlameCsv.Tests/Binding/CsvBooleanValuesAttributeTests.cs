@@ -3,8 +3,6 @@ using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
 using FlameCsv.Parsers;
-using FlameCsv.Parsers.Text;
-using FlameCsv.Parsers.Utf8;
 
 // ReSharper disable UnusedMember.Local
 
