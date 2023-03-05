@@ -46,5 +46,5 @@ public sealed class NullableParser<T, TValue> :
         return NullToken.Span.SequenceEqual(span);
     }
 
-    public bool CanParse(Type resultType) => Nullable.GetUnderlyingType(resultType) is not null;
+    public bool CanParse(Type resultType) => Nullable.GetUnderlyingType(resultType) == typeof(TValue);
 }
