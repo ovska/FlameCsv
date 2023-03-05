@@ -23,9 +23,8 @@ namespace FlameCsv;
 /// </remarks>
 public sealed class CsvUtf8ReaderOptions : CsvReaderOptions<byte>
 {
-    /// <summary>
-    /// Returns a thread-safe read only singleton instance with default options.
-    /// </summary>
+    /// <summary>Returns a thread-safe read only singleton instance with default options.</summary>
+    /// <remarks>Create a new instance if you need to configure the options or parsers.</remarks>
     public static new CsvUtf8ReaderOptions Default => CsvReaderOptionsDefaults.Utf8;
 
     private char _integerFormat;
@@ -98,7 +97,7 @@ public sealed class CsvUtf8ReaderOptions : CsvReaderOptions<byte>
     }
 
     /// <summary>
-    /// Used by <see cref="EnumUtf8Parser{TEnum}"/> to optionally validate that the parsed value is defined.
+    /// Used by <see cref="EnumUtf8Parser{TEnum}"/> to optionally skip validating that the parsed value is defined.
     /// Default is <see langword="false"/>.
     /// </summary>
     public bool AllowUndefinedEnumValues

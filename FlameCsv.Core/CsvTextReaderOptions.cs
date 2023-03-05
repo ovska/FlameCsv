@@ -27,15 +27,14 @@ namespace FlameCsv;
 /// </remarks>
 public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
 {
-    /// <summary>
-    /// Returns a thread-safe read only singleton instance with default options.
-    /// </summary>
+    /// <summary>Returns a thread-safe read only singleton instance with default options.</summary>
+    /// <remarks>Create a new instance if you need to configure the options or parsers.</remarks>
     public static new CsvTextReaderOptions Default => CsvReaderOptionsDefaults.Text;
 
     private StringPool? _stringPool;
-    private IFormatProvider? _formatProvider = CultureInfo.InvariantCulture;
-    private NumberStyles _integerNumberStyles = NumberStyles.Integer;
-    private NumberStyles _decimalNumberStyles = NumberStyles.Float;
+    private IFormatProvider? _formatProvider;
+    private NumberStyles _integerNumberStyles;
+    private NumberStyles _decimalNumberStyles;
     private string? _dateTimeFormat;
     private string? _timeSpanFormat;
     private string? _dateOnlyFormat;
@@ -52,6 +51,9 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
     /// <inheritdoc cref="CsvTextReaderOptions"/>
     public CsvTextReaderOptions()
     {
+        _formatProvider = CultureInfo.InvariantCulture;
+        _integerNumberStyles = NumberStyles.Integer;
+        _decimalNumberStyles = NumberStyles.Float;
     }
 
     /// <summary>
@@ -176,7 +178,7 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
     }
 
     /// <summary>
-    /// Used by <see cref="EnumTextParser{TEnum}"/> to optionally validate that the parsed value is defined.
+    /// Used by <see cref="EnumUtf8Parser{TEnum}"/> to optionally skip validating that the parsed value is defined.
     /// Default is <see langword="false"/>.
     /// </summary>
     public bool AllowUndefinedEnumValues
