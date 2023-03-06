@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -55,6 +56,7 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
     private bool _hasHeader;
     private SecurityLevel _securityLevel = SecurityLevel.NoBufferClearing;
     private IHeaderBinder<T>? _headerBinder;
+    private ArrayPool<T>? _arrayPool = ArrayPool<T>.Shared;
 
     /// <summary>
     /// Tokens used for CSV parsing. Defaults to <see cref="CsvTokens{T}.Windows"/> on supported types of
@@ -124,6 +126,16 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
     {
         get => _headerBinder;
         set => SetValue(ref _headerBinder, value);
+    }
+
+    /// <summary>
+    /// Pool used to create reusable buffers when needed. Default is <see cref="ArrayPool{T}.Shared"/>.
+    /// Set to <see langword="null"/> to disable pooling and always allocate.
+    /// </summary>
+    public ArrayPool<T>? ArrayPool
+    {
+        get => _arrayPool;
+        set => SetValue(ref _arrayPool, value);
     }
 
     /// <summary>

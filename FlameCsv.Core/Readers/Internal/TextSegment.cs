@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Readers.Internal;
 
@@ -9,9 +10,16 @@ namespace FlameCsv.Readers.Internal;
     @"\{ TextSegment, Memory Length: {AvailableMemory.Length}, Index: {RunningIndex}, IsLast: {_next == null} \}")]
 internal sealed class TextSegment : ReadOnlySequenceSegment<char>
 {
+    private readonly ArrayPool<char> _arrayPool;
+
     internal char[]? _array;
     private TextSegment? _next;
     private int _end;
+
+    public TextSegment(ArrayPool<char> arrayPool)
+    {
+        _arrayPool = arrayPool;
+    }
 
     /// <summary>
     /// The End represents the offset into AvailableMemory where the range of "active" bytes ends. At the point when the block is leased
@@ -54,8 +62,7 @@ internal sealed class TextSegment : ReadOnlySequenceSegment<char>
 
     public void ResetMemory()
     {
-        ArrayPool<char>.Shared.Return(_array!);
-        _array = null;
+        _arrayPool.EnsureReturned(ref _array); // TODO: clear buffer
 
         Next = null;
         RunningIndex = 0;

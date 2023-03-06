@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Readers;
+using FlameCsv.Readers.Internal;
 using CsvReader = CsvHelper.CsvReader;
 
 namespace FlameCsv.Benchmark;
@@ -159,7 +160,7 @@ public class CsvStringEnumerateBench
             in _options,
             14,
             stringDelimiterCount,
-            ref _buffer);
+            new ValueBufferOwner<T>(ref _buffer, ArrayPool<T>.Shared));
 
         while (enumerator.MoveNext())
             _ = enumerator.Current;

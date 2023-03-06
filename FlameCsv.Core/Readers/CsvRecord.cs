@@ -214,12 +214,11 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
         if (_options.tokens.Whitespace.IsEmpty)
             return quotesConsumed == 0
                 ? data
-                : data.Unescape(_options.tokens.StringDelimiter, quotesConsumed, ref _bufferOwner._array);
+                : data.Unescape(_options.tokens.StringDelimiter, quotesConsumed, _bufferOwner);
 
         return quotesConsumed == 0
             ? data.Trim(_options.tokens.Whitespace.Span)
-            : data.Trim(_options.tokens.Whitespace.Span)
-                .Unescape(_options.tokens.StringDelimiter, quotesConsumed, ref _bufferOwner._array);
+            : data.Trim(_options.tokens.Whitespace.Span).Unescape(_options.tokens.StringDelimiter, quotesConsumed, _bufferOwner);
     }
 
     /// <exception cref="InvalidDataException">

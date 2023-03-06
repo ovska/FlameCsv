@@ -75,6 +75,7 @@ public static partial class CsvReader
             return ReadAsyncInternal<TValue, CsvHeaderProcessor<char, TValue>>(
                 textReader,
                 new CsvHeaderProcessor<char, TValue>(options),
+                options.ArrayPool,
                 leaveOpen,
                 cancellationToken);
         }
@@ -82,6 +83,7 @@ public static partial class CsvReader
         return ReadAsyncInternal<TValue, CsvProcessor<char, TValue>>(
             textReader,
             new CsvProcessor<char, TValue>(options),
+            options.ArrayPool,
             leaveOpen,
             cancellationToken);
     }
@@ -89,11 +91,12 @@ public static partial class CsvReader
     private static async IAsyncEnumerable<TValue> ReadAsyncInternal<TValue, TProcessor>(
         TextReader textReader,
         TProcessor processor,
+        ArrayPool<char>? arrayPool,
         bool leaveOpen,
         [EnumeratorCancellation] CancellationToken cancellationToken)
         where TProcessor : struct, ICsvProcessor<char, TValue>
     {
-        using var reader = new TextPipeReader(textReader, 4096, leaveOpen);
+        using var reader = new TextPipeReader(textReader, 4096, arrayPool, leaveOpen);
 
         try
         {

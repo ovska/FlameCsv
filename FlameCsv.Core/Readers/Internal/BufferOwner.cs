@@ -19,11 +19,11 @@ internal sealed class BufferOwner<T> : IDisposable where T : unmanaged, IEquatab
     private readonly ArrayPool<T> _arrayPool;
     private readonly bool _clearBuffers;
 
-    /// <summary>
-    /// Initializes a buffer owner using the shared array pool of <typeparamref name="T"/>.
-    /// </summary>
-    public BufferOwner(SecurityLevel security = SecurityLevel.Strict)
-        : this(security, ArrayPool<T>.Shared)
+    public BufferOwner(CsvReaderOptions<T> options) : this(options.Security, options.ArrayPool)
+    {
+    }
+
+    public BufferOwner(ArrayPool<T> arrayPool) : this(SecurityLevel.Strict, arrayPool)
     {
     }
 
@@ -32,24 +32,10 @@ internal sealed class BufferOwner<T> : IDisposable where T : unmanaged, IEquatab
     /// </summary>
     public BufferOwner(
         SecurityLevel security,
-        ArrayPool<T> arrayPool)
+        ArrayPool<T>? arrayPool)
     {
-        _arrayPool = arrayPool;
+        _arrayPool = arrayPool ?? AllocatingArrayPool<T>.Instance;
         _clearBuffers = security.ClearBuffers();
-    }
-
-    /// <summary>
-    /// Returns a buffer of the requested length.
-    /// </summary>
-    /// <exception cref="ObjectDisposedException" />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Span<T> GetSpan(int length)
-    {
-        if (_disposed)
-            ThrowHelper.ThrowObjectDisposedException(typeof(BufferOwner<T>).ToTypeString());
-
-        _arrayPool.EnsureCapacity(ref _array, capacity: length, clearArray: _clearBuffers);
-        return _array.AsSpan(0, length);
     }
 
     /// <summary>
@@ -60,7 +46,7 @@ internal sealed class BufferOwner<T> : IDisposable where T : unmanaged, IEquatab
     public Memory<T> GetMemory(int length)
     {
         if (_disposed)
-            ThrowHelper.ThrowObjectDisposedException(typeof(BufferOwner<T>).ToTypeString());
+            ThrowHelper.ThrowObjectDisposedException(nameof(BufferOwner<T>));
 
         _arrayPool.EnsureCapacity(ref _array, capacity: length, clearArray: _clearBuffers);
         return _array.AsMemory(0, length);
@@ -73,6 +59,7 @@ internal sealed class BufferOwner<T> : IDisposable where T : unmanaged, IEquatab
             return;
 
         _disposed = true;
+
         var rented = _array;
 
         if (rented is not null)

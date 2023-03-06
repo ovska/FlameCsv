@@ -52,13 +52,13 @@ public class Temp
         var state = configuration.CreateState(bindings);
 
         var opts = CsvTokens<char>.Unix;
-        using var bo = new BufferOwner<char>();
+        using var bo = new BufferOwner<char>(ArrayPool<char>.Shared);
         var enumerator = new CsvColumnEnumerator<char>(
             "1,2,2015-01-01T00:00:00.0000000Z",
             in opts,
             3,
             0,
-            ref bo._array);
+            new ValueBufferOwner<char>(ref bo._array, ArrayPool<char>.Shared));
         var asd = state.Parse(ref enumerator);
 
         var init = ReflectionUtil.CreateInitializer<int, int, DateTime, Obj>(
@@ -96,7 +96,7 @@ public class Temp
 
         void ReadValue(in ReadOnlySequence<char> column)
         {
-            parser.TryParse(column.FirstSpan, out int value);
+            _ = parser.TryParse(column.FirstSpan, out int value);
             parsed.Add(value);
         }
     }
@@ -112,11 +112,6 @@ public class Temp
             var memberInfo = ((MemberExpression)propertyExpression.Body).Member;
             _config.Add((memberInfo, parser));
             return this;
-        }
-
-        public T Read(IEnumerable<string> columns)
-        {
-            throw new NotSupportedException();
         }
     }
 }

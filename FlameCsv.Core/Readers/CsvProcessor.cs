@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
+using FlameCsv.Readers.Internal;
 using FlameCsv.Runtime;
 
 namespace FlameCsv.Readers;
@@ -16,17 +17,19 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     private readonly ICsvRowState<T, TValue> _state;
     private readonly int _columnCount;
 
+    private readonly ArrayPool<T> _arrayPool;
     private T[]? _unescapeBuffer; // string unescaping
     private T[]? _multisegmentBuffer; // long fragmented lines, see TryReadColumns
 
     public CsvProcessor(
-        CsvReaderOptions<T> readerOptions,
+        CsvReaderOptions<T> options,
         ICsvRowState<T, TValue>? state = null)
     {
-        _tokens = readerOptions.Tokens.ThrowIfInvalid();
-        _skipPredicate = readerOptions.ShouldSkipRow;
-        _exceptionHandler = readerOptions.ExceptionHandler;
-        _state = state ?? readerOptions.BindToState<T, TValue>();
+        _tokens = options.Tokens.ThrowIfInvalid();
+        _skipPredicate = options.ShouldSkipRow;
+        _exceptionHandler = options.ExceptionHandler;
+        _arrayPool = options.ArrayPool ?? AllocatingArrayPool<T>.Instance;
+        _state = state ?? options.BindToState<T, TValue>();
         _columnCount = _state.ColumnCount;
 
         // Two buffers are needed, as the ReadOnlySpan being manipulated by string escaping in the enumerator
@@ -83,8 +86,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         }
         else
         {
-            ArrayPool<T>.Shared.EnsureCapacity(ref _multisegmentBuffer, length);
-            Span<T> buffer = _multisegmentBuffer.AsSpan(0, length);
+            Span<T> buffer = new ValueBufferOwner<T>(ref _multisegmentBuffer, _arrayPool).GetSpan(length);
             line.CopyTo(buffer);
             return TryReadColumnSpan(buffer, quoteCount, out value);
         }
@@ -105,7 +107,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
                     in _tokens,
                     _columnCount,
                     quoteCount ?? line.Count(_tokens.StringDelimiter),
-                    ref _unescapeBuffer);
+                    new ValueBufferOwner<T>(ref _unescapeBuffer, _arrayPool));
 
                 value = _state.Parse(ref enumerator);
                 return true;
@@ -113,8 +115,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         }
         catch (Exception ex)
         {
-            // Note: exception filter doesn't correctly propagate exceptions
-            // possiblye thrown by the handler
+            // Note: exception filter doesn't correctly propagate exceptions if handler rethrows
 #pragma warning disable RCS1236 // Use exception filter.
             if (_exceptionHandler?.Invoke(line, ex) != true)
                 throw;
@@ -128,8 +129,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     public void Dispose()
     {
         _state.Dispose();
-
-        ArrayPool<T>.Shared.EnsureReturned(ref _unescapeBuffer);
-        ArrayPool<T>.Shared.EnsureReturned(ref _multisegmentBuffer);
+        _arrayPool.EnsureReturned(ref _unescapeBuffer);
+        _arrayPool.EnsureReturned(ref _multisegmentBuffer);
     }
 }
