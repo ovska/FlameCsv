@@ -173,7 +173,7 @@ public class CsvReaderTests : PooledBufferVerifier
 
         await using var ms = new MemoryStream(Encoding.UTF8.GetBytes(data));
         using var reader = new StreamReader(ms, bufferSize: 128);
-        var options = CsvReaderOptions<char>.Default;
+        var options = CsvTextReaderOptions.Default;
 
         await foreach (var item in CsvReader.ReadAsync<Obj>(reader, options))
         {

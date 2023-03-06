@@ -76,7 +76,7 @@ public class CsvStringEnumerateBench
     // [Benchmark]
     // public void FlameCsv_Enumerator()
     // {
-    //     var options = CsvReaderOptions<byte>.Default;
+    //     var options = CsvUtf8ReaderOptions.Default;
     //     options.tokens = options.tokens.WithNewLine("\n");
     //
     //     var seq = new ReadOnlySequence<byte>(_bytes);
