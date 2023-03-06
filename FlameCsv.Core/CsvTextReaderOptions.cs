@@ -200,8 +200,8 @@ public sealed class CsvTextReaderOptions :
     }
 
     /// <summary>
-    /// Used by <see cref="NullableParser{T,TValue}"/> when parsing nullable value types.
-    /// Default is null/empty, which will return null for supported types on empty columns, or columns that are all whitespace.
+    /// Used by <see cref="NullableParser{T,TValue}"/> when parsing nullable value types. Default is null/empty,
+    /// which will return null for supported types on empty columns, or columns that are all whitespace.
     /// </summary>
     public string? Null
     {
@@ -210,7 +210,7 @@ public sealed class CsvTextReaderOptions :
     }
 
     /// <summary>
-    /// Optional custom boolean value mapping. If not null, must not be empty. Default is <see langword="null"/>,
+    /// Optional custom boolean value mapping. Empty and null are equivalent. Default is <see langword="null"/>,
     /// which defers parsing to <see cref="bool.TryParse(ReadOnlySpan{char},out bool)"/>.
     /// </summary>
     public IReadOnlyCollection<(string text, bool value)>? BooleanValues

@@ -11,7 +11,7 @@ public sealed class HeaderTextBinder : HeaderBinderBase<char>
     /// <param name="stringComparison">Comparison used to check the header values</param>
     /// <param name="ignoreUnmatched">Whether columns that cannot be matched are ignored</param>
     public HeaderTextBinder(
-        StringComparison stringComparison = StringComparison.OrdinalIgnoreCase,
+        StringComparison stringComparison = HeaderMatcherDefaults.DefaultComparison,
         bool ignoreUnmatched = false)
         : base(HeaderMatcherDefaults.MatchText(stringComparison), ignoreUnmatched)
     {

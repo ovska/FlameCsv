@@ -74,6 +74,8 @@ internal static class UnescapeExtensions
         ArrayPool<T>.Shared.EnsureCapacity(ref array, requiredLength);
         Span<T> buffer = array; // We can't stackalloc here because the buffer is returned
 
+        Debug.Assert(!buffer.Overlaps(source), "Source and destination must not overlap");
+
         while (index < source.Length)
         {
             int next = source.Slice(index).IndexOf(needle);
@@ -150,6 +152,8 @@ internal static class UnescapeExtensions
         int requiredLength = source.Length - quoteCount / 2;
         ArrayPool<T>.Shared.EnsureCapacity(ref array, requiredLength);
         Memory<T> buffer = array;
+
+        Debug.Assert(!buffer.Span.Overlaps(sourceSpan), "Source and destination must not overlap");
 
         while (index < source.Length)
         {

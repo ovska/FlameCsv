@@ -116,6 +116,10 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
     /// Custom header binder used in place of <see cref="HeaderTextBinder"/> or <see cref="HeaderUtf8Binder"/>
     /// if <see cref="HasHeader"/> is true.
     /// </summary>
+    /// <remarks>
+    /// By default, CSV header is matched to property/field names and
+    /// <see cref="Binding.Attributes.CsvHeaderAttribute"/> using <see cref="StringComparison.OrdinalIgnoreCase"/>.
+    /// </remarks>
     public IHeaderBinder<T>? HeaderBinder
     {
         get => _headerBinder;
