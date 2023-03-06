@@ -23,7 +23,7 @@ class User
 }
 ```
 ```csharp
-var options = CsvReaderOptions<byte>.Default;
+var options = CsvUtf8ReaderOptions.Default;
 await foreach (User record in CsvReader.ReadAsync<User>(File.OpenRead("/home/ovska/test.csv"), options))
 {
     // ...
@@ -44,8 +44,11 @@ class User
 }
 ```
 ```csharp
-var options = CsvReaderOptions<byte>.Default;
-options.HasHeader = true;
+var options = new CsvUtf8ReaderOptions
+{
+    options.HasHeader = true;
+}
+
 await foreach (User record in CsvReader.ReadAsync<User>(File.OpenRead("/home/ovska/test.csv"), options))
 {
     // ...
@@ -55,7 +58,7 @@ await foreach (User record in CsvReader.ReadAsync<User>(File.OpenRead("/home/ovs
 ## Reading from buffered data
 ```csharp
 var csv = @"Id,Name\n1,Bob\n2,Alice";
-var options = CsvReaderOptions<char>.Default;
+var options = CsvTextReaderOptions.Default;
 foreach (User record in CsvReader.Read<User>(csv, options))
 {
     // ...
@@ -65,7 +68,7 @@ foreach (User record in CsvReader.Read<User>(csv, options))
 ## Reading manually
 ```csharp
 var csv = @"1,Bob\n2,Alice";
-var options = CsvReaderOptions<char>.Default;
+var options = CsvTextReaderOptions.Default;
 foreach (CsvRecord<char> record in CsvReader.Enumerate(csv, options))
 {
     var user = new User

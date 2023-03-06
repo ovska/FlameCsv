@@ -13,7 +13,7 @@ namespace FlameCsv.Readers;
 /// <typeparam name="T"></typeparam>
 #if DEBUG
 [DebuggerDisplay(
-    @"\{ CsvColumnEnumerator: Column {Column}/{_columnCount?.ToString() ?? ""?""}, "
+    @"\{ CsvColumnEnumerator: Column {Column}/{_columnCount?.ToString() ?? ""?"",nq}, "
     + @"Remaining: {_remaining.Length}, Quotes remaining: {_quotesRemaining}, Current: [{Current}] \}")]
 #endif
 internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>

@@ -43,7 +43,7 @@ public class CsvEnumerateBench
     [Benchmark]
     public void FlameCsv_Enumr()
     {
-        var options = CsvReaderOptions<byte>.Default;
+        var options = CsvUtf8ReaderOptions.Default;
 
         foreach (var record in Readers.CsvReader.Enumerate(_file, options))
         {

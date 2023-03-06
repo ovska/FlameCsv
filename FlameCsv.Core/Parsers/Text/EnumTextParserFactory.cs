@@ -33,15 +33,4 @@ public sealed class EnumTextParserFactory : ICsvParserFactory<char>
             typeof(EnumTextParser<>).MakeGenericType(resultType),
             parameters: new object[] { AllowUndefinedValues, IgnoreCase });
     }
-
-    private static readonly EnumTextParserFactory _instance = new();
-
-    internal static EnumTextParserFactory GetOrCreate(
-        bool allowUndefinedValues,
-        bool ignoreCase)
-    {
-        if (ignoreCase && !allowUndefinedValues)
-            return _instance;
-        return new(allowUndefinedValues, ignoreCase);
-    }
 }

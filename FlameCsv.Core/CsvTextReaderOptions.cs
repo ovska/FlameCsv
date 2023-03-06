@@ -31,7 +31,7 @@ public sealed class CsvTextReaderOptions :
 {
     /// <summary>Returns a thread-safe read only singleton instance with default options.</summary>
     /// <remarks>Create a new instance if you need to configure the options or parsers.</remarks>
-    public static new CsvTextReaderOptions Default => CsvReaderOptionsDefaults.Text;
+    public static CsvTextReaderOptions Default => CsvReaderOptionsDefaults.Text;
 
     private StringPool? _stringPool;
     private IFormatProvider? _formatProvider;
@@ -49,6 +49,7 @@ public sealed class CsvTextReaderOptions :
     private bool _readEmptyStringsAsNull;
     private string? _null;
     private IReadOnlyCollection<(string text, bool value)>? _booleanValues;
+    private Dictionary<Type, ReadOnlyMemory<char>>? _nullOverrides;
 
     /// <inheritdoc cref="CsvTextReaderOptions"/>
     public CsvTextReaderOptions()
@@ -219,6 +220,12 @@ public sealed class CsvTextReaderOptions :
         set => SetValue(ref _booleanValues, value);
     }
 
+    /// <summary>
+    /// Overridden values that match to null when parsing <see cref="Nullable{T}"/>
+    /// instead of the default <see cref="Null"/>.
+    /// </summary>
+    public IDictionary<Type, ReadOnlyMemory<char>> NullOverrides => _nullOverrides ??= new();
+
     /// <inheritdoc/>
     protected override IEnumerable<ICsvParser<char>> GetDefaultParsers()
     {
@@ -231,7 +238,7 @@ public sealed class CsvTextReaderOptions :
             Base64TextParser.Instance,
             TimeSpanTextParser.GetOrCreate(TimeSpanFormat,  TimeSpanStyles, FormatProvider),
             NullableParserFactory<char>.GetOrCreate(Null.AsMemory()),
-            EnumTextParserFactory.GetOrCreate(AllowUndefinedEnumValues, IgnoreEnumCase),
+            new EnumTextParserFactory(AllowUndefinedEnumValues, IgnoreEnumCase),
             DateTimeTextParser.GetOrCreate(DateTimeFormat, DateTimeStyles, FormatProvider),
             DecimalTextParser.GetOrCreate(FormatProvider, DecimalNumberStyles),
             BooleanTextParser.GetOrCreate(BooleanValues),
@@ -244,9 +251,11 @@ public sealed class CsvTextReaderOptions :
 
     ReadOnlyMemory<char> ICsvNullTokenProvider<char>.Default => Null.AsMemory();
 
-    // TODO: implement at some point
     bool ICsvNullTokenProvider<char>.TryGetOverride(Type type, out ReadOnlyMemory<char> value)
     {
+        if (_nullOverrides is not null)
+            return _nullOverrides.TryGetValue(type, out value);
+
         value = default;
         return false;
     }

@@ -22,7 +22,7 @@ public sealed class PoolingStringTextParser : ParserBase<char, string?>
     /// <summary>
     /// Initializes an instance of <see cref="PoolingStringTextParser"/> using <see cref="StringPool.Shared"/>.
     /// </summary>
-    public PoolingStringTextParser(bool readEmptyAsNull = false) : this(StringPool.Shared, readEmptyAsNull)
+    public PoolingStringTextParser() : this(StringPool.Shared, false)
     {
     }
 

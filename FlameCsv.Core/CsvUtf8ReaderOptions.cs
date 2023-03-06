@@ -27,7 +27,7 @@ public sealed class CsvUtf8ReaderOptions :
 {
     /// <summary>Returns a thread-safe read only singleton instance with default options.</summary>
     /// <remarks>Create a new instance if you need to configure the options or parsers.</remarks>
-    public static new CsvUtf8ReaderOptions Default => CsvReaderOptionsDefaults.Utf8;
+    public static CsvUtf8ReaderOptions Default => CsvReaderOptionsDefaults.Utf8;
 
     private char _integerFormat;
     private char _decimalFormat;
@@ -38,6 +38,7 @@ public sealed class CsvUtf8ReaderOptions :
     private bool _allowUndefinedEnumValues;
     private ReadOnlyMemory<byte> _null;
     private IReadOnlyCollection<(ReadOnlyMemory<byte> bytes, bool value)>? _booleanValues;
+    private Dictionary<Type, ReadOnlyMemory<byte>>? _nullOverrides;
 
     /// <inheritdoc cref="CsvUtf8ReaderOptions"/>
     public CsvUtf8ReaderOptions()
@@ -128,6 +129,12 @@ public sealed class CsvUtf8ReaderOptions :
         set => SetValue(ref _booleanValues, value);
     }
 
+    /// <summary>
+    /// Overridden values that match to null when parsing <see cref="Nullable{T}"/>
+    /// instead of the default <see cref="Null"/>.
+    /// </summary>
+    public IDictionary<Type, ReadOnlyMemory<byte>> NullOverrides => _nullOverrides ??= new();
+
     /// <inheritdoc/>
     protected override IEnumerable<ICsvParser<byte>> GetDefaultParsers()
     {
@@ -148,9 +155,11 @@ public sealed class CsvUtf8ReaderOptions :
 
     ReadOnlyMemory<byte> ICsvNullTokenProvider<byte>.Default => Null;
 
-    // TODO: implement at some point
     bool ICsvNullTokenProvider<byte>.TryGetOverride(Type type, out ReadOnlyMemory<byte> value)
     {
+        if (_nullOverrides is not null)
+            return _nullOverrides.TryGetValue(type, out value);
+
         value = default;
         return false;
     }

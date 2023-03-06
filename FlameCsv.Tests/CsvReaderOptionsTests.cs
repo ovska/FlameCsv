@@ -7,13 +7,6 @@ namespace FlameCsv.Tests;
 public class CsvReaderOptionsTests
 {
     [Fact]
-    public void Should_Support_Only_Byte_And_Char_Defaults()
-    {
-        Assert.Throws<NotSupportedException>(() => CsvReaderOptions<int>.Default);
-        Assert.Null(Record.Exception(() => CsvReaderOptions<byte>.Default));
-    }
-
-    [Fact]
     public void Should_Prioritize_Parsers_Added_Last()
     {
         var c1 = new CultureInfo("fi");
@@ -34,7 +27,7 @@ public class CsvReaderOptionsTests
     [Fact]
     public void Should_Return_Text_Defaults()
     {
-        var config = CsvReaderOptions<char>.Default;
+        var config = CsvTextReaderOptions.Default;
 
         Assert.Equal("\r\n", config.Tokens.NewLine.ToArray());
 
@@ -56,7 +49,7 @@ public class CsvReaderOptionsTests
     [Fact]
     public void Should_Return_Utf8_Defaults()
     {
-        var config = CsvReaderOptions<byte>.Default;
+        var config = CsvUtf8ReaderOptions.Default;
 
         Assert.Equal(U8("\r\n"), config.Tokens.NewLine.ToArray());
 
