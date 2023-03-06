@@ -25,4 +25,12 @@ public sealed class GuidTextParser : ParserBase<char, Guid>
             ? Guid.TryParse(span, out value)
             : Guid.TryParseExact(span, Format.AsSpan(), out value);
     }
+
+    /// <summary>Thread-safe singleton instance initialized to default values.</summary>
+    public static GuidTextParser Instance { get; } = new();
+
+    internal static GuidTextParser GetOrCreate(string? format)
+    {
+        return format is null ? Instance : new(format);
+    }
 }

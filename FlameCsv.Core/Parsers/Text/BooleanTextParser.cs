@@ -40,4 +40,14 @@ public sealed class BooleanTextParser : ParserBase<char, bool>
 
         return value = false;
     }
+
+    /// <summary>Thread-safe singleton instance initialized to default values.</summary>
+    public static BooleanTextParser Instance { get; } = new BooleanTextParser();
+
+    internal static BooleanTextParser GetOrCreate(IReadOnlyCollection<(string text, bool value)>? values)
+    {
+        return values is { Count: > 0 }
+            ? new BooleanTextParser(values)
+            : Instance;
+    }
 }

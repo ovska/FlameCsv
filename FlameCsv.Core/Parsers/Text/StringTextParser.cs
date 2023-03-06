@@ -55,4 +55,11 @@ public sealed class StringTextParser :
             || resultType == typeof(Memory<char>)
             || resultType == typeof(ReadOnlyMemory<char>);
     }
+
+    public static StringTextParser Instance { get; } = new();
+
+    internal static StringTextParser GetOrCreate(bool readEmptyAsNull)
+    {
+        return !readEmptyAsNull ? Instance : new(readEmptyAsNull);
+    }
 }

@@ -130,4 +130,17 @@ public sealed class IntegerTextParser :
             || resultType == typeof(nint)
             || resultType == typeof(nuint);
     }
+
+    /// <summary>Thread-safe singleton instance initialized to default values.</summary>
+    public static IntegerTextParser Instance { get; } = new();
+
+    internal static IntegerTextParser GetOrCreate(
+        IFormatProvider? formatProvider,
+        NumberStyles styles)
+    {
+        if (styles == NumberStyles.Integer && formatProvider == CultureInfo.InvariantCulture)
+            return Instance;
+
+        return new(formatProvider, styles);
+    }
 }

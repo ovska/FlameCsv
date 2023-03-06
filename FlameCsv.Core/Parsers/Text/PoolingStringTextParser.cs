@@ -44,4 +44,15 @@ public sealed class PoolingStringTextParser : ParserBase<char, string?>
         value = !span.IsEmpty ? StringPool.GetOrAdd(span) : _empty;
         return true;
     }
+
+    /// <summary>Thread-safe singleton instance initialized to default values.</summary>
+    public static PoolingStringTextParser Instance { get; } = new();
+
+    internal static PoolingStringTextParser GetOrCreate(StringPool stringPool, bool readEmptyAsNull)
+    {
+        ArgumentNullException.ThrowIfNull(stringPool);
+        return ReferenceEquals(stringPool, StringPool.Shared) && !readEmptyAsNull
+            ? Instance
+            : new(stringPool, readEmptyAsNull);
+    }
 }

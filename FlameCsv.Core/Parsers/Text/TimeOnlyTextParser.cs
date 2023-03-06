@@ -32,4 +32,18 @@ public sealed class TimeOnlyTextParser : ParserBase<char, TimeOnly>
             ? TimeOnly.TryParse(span, FormatProvider, Styles, out value)
             : TimeOnly.TryParseExact(span, Format, FormatProvider, Styles, out value);
     }
+
+    /// <summary>Thread-safe singleton instance initialized to default values.</summary>
+    public static TimeOnlyTextParser Instance { get; } = new();
+
+    internal static TimeOnlyTextParser GetOrCreate(
+        string? format,
+        DateTimeStyles styles,
+        IFormatProvider? formatProvider)
+    {
+        if (format is null && styles == DateTimeStyles.None && formatProvider == CultureInfo.InvariantCulture)
+            return Instance;
+
+        return new(format, styles, formatProvider);
+    }
 }
