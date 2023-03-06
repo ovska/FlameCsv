@@ -19,10 +19,10 @@ internal readonly ref struct ValueBufferOwner<T> where T : unmanaged
         _pool = pool ?? AllocatingArrayPool<T>.Instance;
     }
 
-    public Span<T> GetSpan(int minimumLength)
+    public Span<T> GetSpan(int length)
     {
         ref T[]? array = ref _span[0];
-        _pool.EnsureCapacity(ref array, minimumLength); // TODO: buffer clearing
-        return array;
+        _pool.EnsureCapacity(ref array, length); // TODO: buffer clearing
+        return array.AsSpan(0, length);
     }
 }
