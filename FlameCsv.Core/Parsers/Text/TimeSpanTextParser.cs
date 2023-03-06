@@ -32,4 +32,18 @@ public sealed class TimeSpanTextParser : ParserBase<char, TimeSpan>
             ? TimeSpan.TryParse(span, FormatProvider, out value)
             : TimeSpan.TryParseExact(span, Format, FormatProvider, out value);
     }
+
+    /// <summary>Thread-safe singleton instance initialized to default values.</summary>
+    public static TimeSpanTextParser Instance { get; } = new TimeSpanTextParser();
+
+    internal static TimeSpanTextParser GetOrCreate(
+        string? format,
+        TimeSpanStyles styles,
+        IFormatProvider? formatProvider)
+    {
+        if (format is null && styles == TimeSpanStyles.None && formatProvider == CultureInfo.InvariantCulture)
+            return Instance;
+
+        return new(format, styles, formatProvider);
+    }
 }

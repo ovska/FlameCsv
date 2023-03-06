@@ -225,20 +225,20 @@ public sealed class CsvTextReaderOptions :
         // sorted in assumed reverse order of usefulness
         return new ICsvParser<char>[]
         {
-            new TimeOnlyTextParser(TimeOnlyFormat, DateTimeStyles, FormatProvider),
-            new DateOnlyTextParser(DateOnlyFormat, DateTimeStyles, FormatProvider),
-            new GuidTextParser(GuidFormat),
-            new Base64TextParser(),
-            new TimeSpanTextParser(TimeSpanFormat,  TimeSpanStyles, FormatProvider),
-            new NullableParserFactory<char>(Null.AsMemory()),
-            new EnumTextParserFactory(AllowUndefinedEnumValues, IgnoreEnumCase),
-            new DateTimeTextParser(DateTimeFormat, DateTimeStyles, FormatProvider),
-            new DecimalTextParser(FormatProvider, DecimalNumberStyles),
-            new BooleanTextParser(BooleanValues),
-            new IntegerTextParser(FormatProvider, IntegerNumberStyles),
-            StringPool is { } stringPool
-                ? new PoolingStringTextParser(stringPool, ReadEmptyStringsAsNull)
-                : new StringTextParser(ReadEmptyStringsAsNull),
+            TimeOnlyTextParser.GetOrCreate(TimeOnlyFormat, DateTimeStyles, FormatProvider),
+            DateOnlyTextParser.GetOrCreate(DateOnlyFormat, DateTimeStyles, FormatProvider),
+            GuidTextParser.GetOrCreate(GuidFormat),
+            Base64TextParser.Instance,
+            TimeSpanTextParser.GetOrCreate(TimeSpanFormat,  TimeSpanStyles, FormatProvider),
+            NullableParserFactory<char>.GetOrCreate(Null.AsMemory()),
+            EnumTextParserFactory.GetOrCreate(AllowUndefinedEnumValues, IgnoreEnumCase),
+            DateTimeTextParser.GetOrCreate(DateTimeFormat, DateTimeStyles, FormatProvider),
+            DecimalTextParser.GetOrCreate(FormatProvider, DecimalNumberStyles),
+            BooleanTextParser.GetOrCreate(BooleanValues),
+            IntegerTextParser.GetOrCreate(FormatProvider, IntegerNumberStyles),
+            StringPool is null
+                ? StringTextParser.GetOrCreate(ReadEmptyStringsAsNull)
+                : PoolingStringTextParser.GetOrCreate(StringPool, ReadEmptyStringsAsNull),
         };
     }
 

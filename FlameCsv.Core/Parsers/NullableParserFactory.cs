@@ -45,4 +45,11 @@ public sealed class NullableParserFactory<T> : ICsvParserFactory<T>
             inner,
             nullToken);
     }
+
+    public static NullableParserFactory<T> Instance { get; } = new();
+
+    internal static NullableParserFactory<T> GetOrCreate(ReadOnlyMemory<T> nullToken)
+    {
+        return nullToken.IsEmpty ? Instance : (new(nullToken));
+    }
 }

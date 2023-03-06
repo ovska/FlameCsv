@@ -46,4 +46,18 @@ public sealed class DateOnlyTextParser : ParserBase<char, DateOnly>
             ? DateOnly.TryParse(span, FormatProvider, Styles, out value)
             : DateOnly.TryParseExact(span, Format, FormatProvider, Styles, out value);
     }
+
+    /// <summary>Thread-safe singleton instance initialized to default values.</summary>
+    public static DateOnlyTextParser Instance { get; } = new DateOnlyTextParser();
+
+    internal static DateOnlyTextParser GetOrCreate(
+        string? format,
+        DateTimeStyles styles,
+        IFormatProvider? formatProvider)
+    {
+        if (format is null && styles == DateTimeStyles.None && formatProvider == CultureInfo.InvariantCulture)
+            return Instance;
+
+        return new(format, styles, formatProvider);
+    }
 }

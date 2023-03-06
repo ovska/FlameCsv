@@ -80,4 +80,17 @@ public sealed class DecimalTextParser :
             || resultType == typeof(Half)
             || resultType == typeof(decimal);
     }
+
+    /// <summary>Thread-safe singleton instance initialized to default values.</summary>
+    public static DecimalTextParser Instance { get; } = new();
+
+    internal static DecimalTextParser GetOrCreate(
+        IFormatProvider? formatProvider,
+        NumberStyles styles)
+    {
+        if (styles == NumberStyles.Float && formatProvider == CultureInfo.InvariantCulture)
+            return Instance;
+
+        return new(formatProvider, styles);
+    }
 }

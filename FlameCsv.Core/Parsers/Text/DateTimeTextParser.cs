@@ -49,4 +49,18 @@ public sealed class DateTimeTextParser :
     }
 
     public bool CanParse(Type resultType) => resultType == typeof(DateTime) || resultType == typeof(DateTimeOffset);
+
+    /// <summary>Thread-safe singleton instance initialized to default values.</summary>
+    public static DateTimeTextParser Instance { get; } = new DateTimeTextParser();
+
+    internal static DateTimeTextParser GetOrCreate(
+        string? format,
+        DateTimeStyles styles,
+        IFormatProvider? formatProvider)
+    {
+        if (format is null && styles == DateTimeStyles.None && formatProvider == CultureInfo.InvariantCulture)
+            return Instance;
+
+        return new(format, styles, formatProvider);
+    }
 }
