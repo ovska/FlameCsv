@@ -6,13 +6,12 @@ namespace FlameCsv.Extensions;
 /// <summary>
 /// Extensions for manipulating and validating instances of <see cref="CsvTokens{T}"/>.
 /// </summary>
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
 public static class CsvTokensExtensions
 {
     // cache common whitespace and line breaks
-    private static readonly ReadOnlyMemory<byte> s_crlf = Encoding.UTF8.GetBytes("\r\n");
-    private static readonly ReadOnlyMemory<byte> s_lf = Encoding.UTF8.GetBytes("\n");
-    private static readonly ReadOnlyMemory<byte> s_space = Encoding.UTF8.GetBytes(" ");
+    private static readonly ReadOnlyMemory<byte> s_crlf = "\r\n"u8.ToArray();
+    private static readonly ReadOnlyMemory<byte> s_lf = "\n"u8.ToArray();
+    private static readonly ReadOnlyMemory<byte> s_space = " "u8.ToArray();
 
     private static ReadOnlyMemory<byte> AsBytes(this string? value) => value switch
     {

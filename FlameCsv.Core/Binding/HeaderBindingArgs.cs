@@ -2,6 +2,17 @@ using System.Reflection;
 
 namespace FlameCsv.Binding;
 
+/// <summary>
+/// Parameters representing a not-yet-resolved binding passed to <see cref="CsvHeaderMatcher{T}"/>
+/// to determine if the CSV column matches the potential binding.
+/// </summary>
+/// <remarks>
+/// The built-in implementation simply matches <see cref="Value"/> to the CSV column using
+/// <see cref="StringComparison.OrdinalIgnoreCase"/>.
+/// </remarks>
+/// <seealso cref="IHeaderBinder{T}"/>
+/// <seealso cref="HeaderTextBinder"/>
+/// <seealso cref="HeaderUtf8Binder"/>
 public readonly struct HeaderBindingArgs
 {
     /// <summary>

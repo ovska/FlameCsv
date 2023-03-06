@@ -32,7 +32,7 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
 
     public CsvBindingCollection<TValue> Bind<TValue>(ReadOnlySpan<T> line, CsvReaderOptions<T> options)
     {
-        var candidates = GetBindingCandidates<TValue>().AsSpan();
+        ReadOnlySpan<HeaderBindingCandidate> candidates = GetBindingCandidates<TValue>();
 
         List<CsvBinding> foundBindings = new();
         int index = 0;
@@ -50,7 +50,7 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
         {
             bool found = false;
 
-            foreach (ref var candidate in candidates)
+            foreach (ref readonly var candidate in candidates)
             {
                 CsvBinding? binding = _matcher(
                     enumerator.Current,
@@ -92,7 +92,7 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
     /// </summary>
     /// <seealso cref="CsvHeaderAttribute"/>
     /// <seealso cref="CsvHeaderIgnoreAttribute"/>
-    internal List<HeaderBindingCandidate> GetBindingCandidates<TValue>()
+    internal ReadOnlySpan<HeaderBindingCandidate> GetBindingCandidates<TValue>()
     {
         if (!_candidateCache.TryGetValue(typeof(TValue), out var candidates))
         {
@@ -105,13 +105,13 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
 
             var targeted = typeof(TValue).GetCachedCustomAttributes()
                 .OfType<CsvHeaderTargetAttribute>()
-                .SelectMany(attr => attr.GetMembers(typeof(TValue)));
+                .SelectMany(static attr => attr.GetMembers(typeof(TValue)));
 
             candidates = members.Concat(targeted).ToList();
             candidates.AsSpan().Sort(static (a, b) => b.Order.CompareTo(a.Order));
             _candidateCache.AddOrUpdate(typeof(TValue), candidates);
         }
 
-        return candidates;
+        return candidates.AsSpan();
     }
 }

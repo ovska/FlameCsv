@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Text;
+using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance.Buffers;
 
 namespace FlameCsv.Binding;
@@ -9,6 +10,8 @@ namespace FlameCsv.Binding;
 /// </summary>
 internal static class HeaderMatcherDefaults
 {
+    public const StringComparison DefaultComparison = StringComparison.OrdinalIgnoreCase;
+
     private static readonly HeaderTextBinder _headerTextBinder = new();
     private static readonly HeaderUtf8Binder _headerUtf8Binder = new();
 
@@ -25,7 +28,9 @@ internal static class HeaderMatcherDefaults
         if (typeof(T) == typeof(byte))
             return (IHeaderBinder<T>)(object)_headerUtf8Binder;
 
-        throw new NotSupportedException($"Default header binding for {typeof(T)} is not supported.");
+        throw new NotSupportedException(
+            $"Default header binding for token {typeof(T).ToTypeString()} is not supported. Implement " +
+            $"{nameof(IHeaderBinder<T>)} and use it in {nameof(CsvReaderOptions<T>.HeaderBinder)} in options.");
     }
 
 
@@ -39,6 +44,7 @@ internal static class HeaderMatcherDefaults
         _ = "".Equals("", stringComparison); // validate the parameter
         return Impl;
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         CsvBinding? Impl(ReadOnlySpan<char> data, in HeaderBindingArgs args)
         {
             return args.Value.AsSpan().Equals(data, stringComparison)
@@ -53,6 +59,7 @@ internal static class HeaderMatcherDefaults
         _ = "".Equals("", stringComparison); // validate the parameter
         return Impl;
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         CsvBinding? Impl(ReadOnlySpan<byte> data, in HeaderBindingArgs args)
         {
             int length = Encoding.UTF8.GetMaxCharCount(data.Length);

@@ -7,7 +7,8 @@ namespace FlameCsv.Binding.Attributes;
 /// Defines the value(s) for header name matching to use instead of member name in built-in header binding providers.
 /// </summary>
 /// <remarks>
-/// The provider determines case sensitivity.
+/// The provider determines case sensitivity, <see cref="HeaderTextBinder"/> or <see cref="HeaderUtf8Binder"/>
+/// for the default implementations.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public sealed class CsvHeaderAttribute : Attribute

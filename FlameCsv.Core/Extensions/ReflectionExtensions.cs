@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
+using FlameCsv.Exceptions;
 
 namespace FlameCsv.Extensions;
 
@@ -44,9 +44,7 @@ internal static class ReflectionExtensions
         return obj.HasAttribute<TAttribute>(out _);
     }
 
-    public static bool HasAttribute<TAttribute>(
-        this MemberInfo obj,
-        [NotNullWhen(true)] out TAttribute? attribute)
+    public static bool HasAttribute<TAttribute>(this MemberInfo obj, [NotNullWhen(true)] out TAttribute? attribute)
         where TAttribute : Attribute
     {
         foreach (var a in obj.GetCachedCustomAttributes())
@@ -72,7 +70,11 @@ internal static class ReflectionExtensions
                 return member;
         }
 
-        return ThrowHelper.ThrowInvalidOperationException<MemberInfo>(
-            $"Property/field {memberName} not found on type {targetType}");
+        return ThrowMemberNotFound(targetType, memberName);
+    }
+
+    private static MemberInfo ThrowMemberNotFound(Type targetType, string memberName)
+    {
+        throw new CsvConfigurationException($"Property/field {memberName} not found on type {targetType}");
     }
 }
