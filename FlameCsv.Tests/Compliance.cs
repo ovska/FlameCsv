@@ -5,7 +5,7 @@ using FlameCsv.Tests.Utilities;
 
 namespace FlameCsv.Tests;
 
-public class Compliance
+public static class Compliance
 {
     [Fact]
     public static void Should_Find_Multisegment_Newlines()
@@ -164,13 +164,13 @@ public class Compliance
         var list = new List<string>();
         var options = CsvTokens<char>.Unix with { NewLine = "|".AsMemory() };
 
-        using var bo = new BufferOwner<char>();
+        using var bo = new BufferOwner<char>(ArrayPool<char>.Shared);
         var enumerator = new CsvColumnEnumerator<char>(
             line,
             options,
             5,
             line.Count(c => c == '"'),
-            ref bo._array);
+            new ValueBufferOwner<char>(ref bo._array, ArrayPool<char>.Shared));
 
         foreach (var current in enumerator)
         {
@@ -192,7 +192,7 @@ public class Compliance
         };
 
         var data = new[] { tokens.Delimiter, tokens.NewLine.Span[0], tokens.Whitespace.Span[0] }.GetPermutations();
-        using var bo = new BufferOwner<char>();
+        using var bo = new BufferOwner<char>(ArrayPool<char>.Shared);
 
         foreach (var chars in data)
         {
@@ -204,7 +204,7 @@ public class Compliance
                 in tokens,
                 2,
                 line.Count(c => c == tokens.StringDelimiter),
-                ref bo._array);
+                new ValueBufferOwner<char>(ref bo._array, ArrayPool<char>.Shared));
 
             var list = new List<string>();
 
@@ -234,13 +234,13 @@ public class Compliance
         var list = new List<string>();
         var options = CsvTokens<char>.Unix;
 
-        using var bo = new BufferOwner<char>();
+        using var bo = new BufferOwner<char>(ArrayPool<char>.Shared);
         var enumerator = new CsvColumnEnumerator<char>(
             line,
             options,
             3,
             line.Count(c => c == '"'),
-            ref bo._array);
+            new ValueBufferOwner<char>(ref bo._array, ArrayPool<char>.Shared));
 
         foreach (var current in enumerator)
         {

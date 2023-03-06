@@ -8,21 +8,9 @@ public static class BufferOwnerTests
     [Fact]
     public static void Should_Throw_If_Disposed()
     {
-        using var buffer = new BufferOwner<char>();
+        using var buffer = new BufferOwner<char>(SecurityLevel.Strict, new TestPool<char>());
         buffer.Dispose();
-        Assert.Throws<ObjectDisposedException>(() => buffer.GetSpan(1));
-    }
-
-    [Fact]
-    public static void Should_Return_Span()
-    {
-        var pool = new TestPool<char>();
-        using var buffer = new BufferOwner<char>(SecurityLevel.Strict, pool);
-        Span<char> span = buffer.GetSpan(123);
-        Assert.Equal(123, span.Length);
-        buffer.Dispose();
-        Assert.Single(pool.Returned);
-        Assert.True(pool.Returned[0].clearArray);
+        Assert.Throws<ObjectDisposedException>(() => buffer.GetMemory(1));
     }
 
     [Fact]
@@ -30,7 +18,7 @@ public static class BufferOwnerTests
     {
         var pool = new TestPool<char>();
         using var buffer = new BufferOwner<char>(SecurityLevel.Strict, pool);
-        var span = buffer.GetSpan(123);
+        var span = buffer.GetMemory(123);
         Assert.Equal(123, span.Length);
         buffer.Dispose();
         Assert.Single(pool.Returned);
@@ -43,7 +31,7 @@ public static class BufferOwnerTests
     {
         var pool = new TestPool<char>();
         using var buffer = new BufferOwner<char>(SecurityLevel.NoBufferClearing, pool);
-        _ = buffer.GetSpan(123);
+        _ = buffer.GetMemory(123);
         buffer.Dispose();
         Assert.Single(pool.Returned);
         Assert.False(pool.Returned[0].clearArray);

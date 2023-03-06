@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
+using FlameCsv.Readers.Internal;
 
 namespace FlameCsv.Extensions;
 
@@ -21,7 +22,7 @@ internal static class UnescapeExtensions
     /// <param name="source">Data to unescape</param>
     /// <param name="quote">Double quote token</param>
     /// <param name="quoteCount">Known quote count in the data, must be over 0 and divisible by 2</param>
-    /// <param name="array">Rented buffer used if the data has quotes in-between the wrapping quotes</param>
+    /// <param name="buffer">Buffer used if the data has quotes in-between the wrapping quotes</param>
     /// <typeparam name="T">Token type</typeparam>
     /// <returns>Unescaped tokens, might be a slice of the original input</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -29,7 +30,7 @@ internal static class UnescapeExtensions
         this ReadOnlySpan<T> source,
         T quote,
         int quoteCount,
-        ref T[]? array)
+        ValueBufferOwner<T> buffer)
         where T : unmanaged, IEquatable<T>
     {
         Debug.Assert(quoteCount >= 2);
@@ -45,7 +46,7 @@ internal static class UnescapeExtensions
                 return source;
             }
 
-            return source.UnescapeRare(quote, quoteCount - 2, ref array);
+            return source.UnescapeRare(quote, quoteCount - 2, buffer);
         }
 
         return ThrowInvalidUnescape(source, quote, quoteCount);
@@ -59,7 +60,7 @@ internal static class UnescapeExtensions
         this ReadOnlySpan<T> source,
         T quote,
         int quoteCount,
-        ref T[]? array)
+        ValueBufferOwner<T> bufferHolder)
         where T : unmanaged, IEquatable<T>
     {
         Debug.Assert(quoteCount >= 2);
@@ -70,9 +71,7 @@ internal static class UnescapeExtensions
         int quotesLeft = quoteCount;
         ReadOnlySpan<T> needle = stackalloc T[] { quote, quote };
 
-        int requiredLength = source.Length - quoteCount / 2;
-        ArrayPool<T>.Shared.EnsureCapacity(ref array, requiredLength);
-        Span<T> buffer = array; // We can't stackalloc here because the buffer is returned
+        Span<T> buffer = bufferHolder.GetSpan(source.Length - quoteCount / 2);
 
         Debug.Assert(!buffer.Overlaps(source), "Source and destination must not overlap");
 
@@ -106,7 +105,7 @@ internal static class UnescapeExtensions
         this ReadOnlyMemory<T> source,
         T quote,
         int quoteCount,
-        ref T[]? array)
+        BufferOwner<T> bufferOwner)
         where T : unmanaged, IEquatable<T>
     {
         Debug.Assert(quoteCount >= 2);
@@ -124,7 +123,7 @@ internal static class UnescapeExtensions
                 return source;
             }
 
-            return source.UnescapeRare(quote, quoteCount - 2, ref array);
+            return source.UnescapeRare(quote, quoteCount - 2, bufferOwner);
         }
 
         return ThrowInvalidUnescape(source.Span, quote, quoteCount);
@@ -136,7 +135,7 @@ internal static class UnescapeExtensions
         this ReadOnlyMemory<T> source,
         T quote,
         int quoteCount,
-        ref T[]? array)
+        BufferOwner<T> bufferOwner)
         where T : unmanaged, IEquatable<T>
     {
         Debug.Assert(quoteCount >= 2);
@@ -149,9 +148,7 @@ internal static class UnescapeExtensions
         var sourceSpan = source.Span;
         ReadOnlySpan<T> needle = stackalloc T[] { quote, quote };
 
-        int requiredLength = source.Length - quoteCount / 2;
-        ArrayPool<T>.Shared.EnsureCapacity(ref array, requiredLength);
-        Memory<T> buffer = array;
+        Memory<T> buffer = bufferOwner.GetMemory(source.Length - quoteCount / 2);
 
         Debug.Assert(!buffer.Span.Overlaps(sourceSpan), "Source and destination must not overlap");
 

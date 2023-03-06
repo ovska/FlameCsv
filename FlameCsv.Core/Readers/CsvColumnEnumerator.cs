@@ -1,8 +1,9 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
+using FlameCsv.Readers.Internal;
 
 namespace FlameCsv.Readers;
 
@@ -21,7 +22,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
     private readonly T _quote;
     private readonly ReadOnlySpan<T> _whitespace;
     private readonly int? _columnCount;
-    private readonly Span<T[]?> _buffer;
+    private readonly ValueBufferOwner<T> _buffer;
 
     private ReadOnlySpan<T> _remaining;
     private int _quotesRemaining;
@@ -71,7 +72,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
         in CsvTokens<T> tokens,
         int? columnCount,
         int quoteCount,
-        ref T[]? buffer)
+        ValueBufferOwner<T> buffer)
     {
         Debug.Assert(!line.IsEmpty || columnCount is null or 1, "Empty line is not valid for over 1 column");
         Debug.Assert(columnCount is null or > 0, "Known column count must be positive");
@@ -83,7 +84,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
         _quote = tokens.StringDelimiter;
         _whitespace = tokens.Whitespace.Span;
         _columnCount = columnCount;
-        _buffer = MemoryMarshal.CreateSpan(ref buffer, 1);
+        _buffer = buffer;
 
         _remaining = line;
         _quotesRemaining = quoteCount;
@@ -175,11 +176,11 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
         if (_whitespace.IsEmpty)
             return quotesConsumed == 0
                 ? data
-                : data.Unescape(_quote, quotesConsumed, ref _buffer[0]);
+                : data.Unescape(_quote, quotesConsumed, _buffer);
 
         return quotesConsumed == 0
             ? data.Trim(_whitespace)
-            : data.Trim(_whitespace).Unescape(_quote, quotesConsumed, ref _buffer[0]);
+            : data.Trim(_whitespace).Unescape(_quote, quotesConsumed, _buffer);
     }
 
     /// <exception cref="InvalidDataException">

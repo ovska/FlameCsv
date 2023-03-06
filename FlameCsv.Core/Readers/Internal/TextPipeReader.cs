@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Readers.Internal;
 
@@ -15,6 +16,7 @@ internal sealed class TextPipeReader : IDisposable
 {
     private readonly TextReader _innerReader;
     private readonly int _bufferSize;
+    private readonly ArrayPool<char> _arrayPool;
     private readonly bool _leaveOpen;
 
     private TextSegment? _readHead;
@@ -30,10 +32,15 @@ internal sealed class TextPipeReader : IDisposable
     // Mutable struct! Don't make this readonly
     private TextSegmentPool _segmentPool;
 
-    public TextPipeReader(TextReader innerReader, int bufferSize, bool leaveOpen = false)
+    public TextPipeReader(
+        TextReader innerReader,
+        int bufferSize,
+        ArrayPool<char>? arrayPool,
+        bool leaveOpen = false)
     {
         _innerReader = innerReader;
         _bufferSize = bufferSize;
+        _arrayPool = arrayPool ?? AllocatingArrayPool<char>.Instance;
         _leaveOpen = leaveOpen;
     }
 
@@ -127,7 +134,7 @@ internal sealed class TextPipeReader : IDisposable
     private TextSegment AllocateSegment()
     {
         TextSegment nextSegment = CreateSegmentUnsynchronized();
-        nextSegment.SetOwnedMemory(ArrayPool<char>.Shared.Rent(_bufferSize));
+        nextSegment.SetOwnedMemory(_arrayPool.Rent(_bufferSize));
         return nextSegment;
     }
 
@@ -229,7 +236,7 @@ internal sealed class TextPipeReader : IDisposable
             return segment;
         }
 
-        return new TextSegment();
+        return new TextSegment(_arrayPool);
     }
 
     private void ReturnSegmentUnsynchronized(TextSegment segment)

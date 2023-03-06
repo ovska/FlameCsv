@@ -37,14 +37,14 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
         List<CsvBinding> foundBindings = new();
         int index = 0;
 
-        using var buffer = new BufferOwner<T>(options.Security);
+        using var bufferOwner = new BufferOwner<T>(options);
 
-        var enumerator = new CsvColumnEnumerator<T>(
+        CsvColumnEnumerator<T> enumerator = new(
             line,
             in options.tokens,
             columnCount: null,
             quoteCount: line.Count(options.tokens.StringDelimiter),
-            ref buffer._array);
+            new ValueBufferOwner<T>(ref bufferOwner._array, options.ArrayPool));
 
         while (enumerator.MoveNext())
         {
@@ -52,20 +52,18 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
 
             foreach (ref readonly var candidate in candidates)
             {
-                CsvBinding? binding = _matcher(
-                    enumerator.Current,
-                    new HeaderBindingArgs
-                    {
-                        Member = candidate.Member,
-                        Order = candidate.Order,
-                        Value = candidate.Value,
-                        TargetType = typeof(TValue),
-                        Index = index,
-                    });
-
-                if (binding.HasValue)
+                HeaderBindingArgs args = new()
                 {
-                    foundBindings.Add(binding.Value);
+                    Member = candidate.Member,
+                    Order = candidate.Order,
+                    Value = candidate.Value,
+                    TargetType = typeof(TValue),
+                    Index = index,
+                };
+
+                if (_matcher(enumerator.Current, in args) is CsvBinding binding)
+                {
+                    foundBindings.Add(binding);
                     found = true;
                     break;
                 }

@@ -20,34 +20,39 @@ internal readonly struct SequenceView<T> : IDisposable
     public ReadOnlyMemory<T> Memory { get; }
 
     private readonly T[]? _array;
+    private readonly ArrayPool<T> _pool;
     private readonly bool _clearArray;
 
     public SequenceView(
         in ReadOnlySequence<T> sequence,
-        CsvReaderOptions<T> readerOptions)
+        CsvReaderOptions<T> options)
     {
         if (sequence.IsSingleSegment)
         {
             Memory = sequence.First;
             _array = default;
+            _pool = default!;
             _clearArray = default;
         }
         else
         {
+            _pool = options.ArrayPool ?? AllocatingArrayPool<T>.Instance;
             int length = (int)sequence.Length;
-            _array = ArrayPool<T>.Shared.Rent(length);
+            _array = _pool.Rent(length);
             sequence.CopyTo(_array);
             Memory = _array.AsMemory(0, length);
-            _clearArray = readerOptions.Security.ClearBuffers();
+            _clearArray = options.Security.ClearBuffers();
         }
 
-        Memory = Memory.Trim(readerOptions.tokens.Whitespace.Span);
+        Memory = Memory.Trim(options.tokens.Whitespace.Span);
     }
 
     public void Dispose()
     {
         if (_array is not null)
-            ArrayPool<T>.Shared.Return(_array, _clearArray);
+        {
+            _pool.Return(_array, _clearArray);
+        }
     }
 
 #if DEBUG

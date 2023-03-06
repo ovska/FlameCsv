@@ -58,7 +58,7 @@ public class CsvEnumerateBench
     public async ValueTask FlameCsv_ASCII()
     {
         await using var stream = new MemoryStream(_file);
-        using var reader = new TextPipeReader(new StreamReader(stream, Encoding.ASCII, false), 4096);
+        using var reader = new TextPipeReader(new StreamReader(stream, Encoding.ASCII, false), 4096, ArrayPool<char>.Shared);
 
         var options = CsvTokens<char>.Environment;
         var _enumeratorBuffer = default(char[]);
@@ -201,7 +201,7 @@ public class CsvEnumerateBench
             in _options,
             14,
             stringDelimiterCount,
-            ref _enumeratorBuffer);
+            new ValueBufferOwner<T>(ref _enumeratorBuffer, ArrayPool<T>.Shared));
 
         while (enumerator.MoveNext())
             _ = enumerator.Current;
