@@ -28,7 +28,7 @@ public static class HeaderBindingTests
         var binder = new HeaderTextBinder(stringComparison: StringComparison.Ordinal);
 
         var bindingCollection = binder.Bind<Shim>(header, CsvTextReaderOptions.Default);
-        var byIndex = bindingCollection.Bindings.ToDictionary(b => b.Index, b => b.Member);
+        var byIndex = bindingCollection._bindingsSorted.ToDictionary(b => b.Index, b => b.Member);
         Assert.Equal(3, byIndex.Count);
         Assert.Equal(typeof(Shim).GetProperty(nameof(Shim.IsEnabled)), byIndex[0]);
         Assert.Equal(typeof(Shim).GetProperty(nameof(Shim.DisplayName)), byIndex[1]);

@@ -3,9 +3,12 @@ using CommunityToolkit.Diagnostics;
 namespace FlameCsv.Binding.Attributes;
 
 /// <summary>
-/// Binds the property or field to CSV column at <see cref="Index"/>.
+/// Binds the property, field or constructor parameter to CSV column at <see cref="Index"/>.
 /// </summary>
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+/// <remarks>
+/// Column indexes start at zero.
+/// </remarks>
+[AttributeUsage(CsvBinding.AllowedOn)]
 public sealed class CsvIndexAttribute : Attribute
 {
     /// <summary>CSV column index.</summary>

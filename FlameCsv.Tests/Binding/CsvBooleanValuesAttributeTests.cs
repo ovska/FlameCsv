@@ -58,8 +58,8 @@ public static class CsvBooleanValuesAttributeTests
             () =>
             {
                 var binding = new CsvBinding(0, typeof(Shim).GetProperty(property)!);
-                var @override = binding.GetParserOverride<Shim>();
-                _ = @override!.CreateParser(in binding, CsvTextReaderOptions.Default);
+                Assert.True(binding.TryGetParserOverride<Shim>(out var @override));
+                _ = @override!.CreateParser(binding, CsvTextReaderOptions.Default);
             });
     }
 
@@ -70,8 +70,8 @@ public static class CsvBooleanValuesAttributeTests
             () =>
             {
                 var binding = new CsvBinding(0, typeof(Shim).GetProperty("IsEnabled")!);
-                var @override = binding.GetParserOverride<Shim>();
-                _ = @override!.CreateParser(in binding, new CsvReaderOptions<int>());
+                Assert.True(binding.TryGetParserOverride<Shim>(out var @override));
+                _ = @override!.CreateParser(binding, new CsvReaderOptions<int>());
             });
     }
 
@@ -82,10 +82,9 @@ public static class CsvBooleanValuesAttributeTests
 
         var binding = new CsvBinding(0, typeof(Shim).GetProperty("IsEnabled")!);
 
-        var @override = binding.GetParserOverride<Shim>();
-        Assert.NotNull(@override);
+        Assert.True(binding.TryGetParserOverride<Shim>(out var @override));
 
-        var parser = (ICsvParser<char, bool>)@override!.CreateParser(in binding, options);
+        var parser = (ICsvParser<char, bool>)@override!.CreateParser(binding, options);
 
         if (success)
         {
@@ -108,10 +107,9 @@ public static class CsvBooleanValuesAttributeTests
         var options = new CsvTextReaderOptions { Null = nullToken };
         var binding = new CsvBinding(0, typeof(Shim).GetProperty("IsEnabledN")!);
 
-        var @override = binding.GetParserOverride<Shim>();
-        Assert.NotNull(@override);
+        Assert.True(binding.TryGetParserOverride<Shim>(out var @override));
 
-        var parser = (ICsvParser<char, bool?>)@override!.CreateParser(in binding, options);
+        var parser = (ICsvParser<char, bool?>)@override!.CreateParser(binding, options);
 
         if (success)
         {
@@ -131,10 +129,9 @@ public static class CsvBooleanValuesAttributeTests
 
         var binding = new CsvBinding(0, typeof(Shim).GetProperty("IsEnabled")!);
 
-        var @override = binding.GetParserOverride<Shim>();
-        Assert.NotNull(@override);
+        Assert.True(binding.TryGetParserOverride<Shim>(out var @override));
 
-        var parser = (ICsvParser<byte, bool>)@override!.CreateParser(in binding, options);
+        var parser = (ICsvParser<byte, bool>)@override!.CreateParser(binding, options);
         var inputBytes = Encoding.UTF8.GetBytes(input);
 
         if (success)
@@ -158,10 +155,9 @@ public static class CsvBooleanValuesAttributeTests
         var options = new CsvUtf8ReaderOptions { Null = Encoding.UTF8.GetBytes(nullToken) };
         var binding = new CsvBinding(0, typeof(Shim).GetProperty("IsEnabledN")!);
 
-        var @override = binding.GetParserOverride<Shim>();
-        Assert.NotNull(@override);
+        Assert.True(binding.TryGetParserOverride<Shim>(out var @override));
 
-        var parser = (ICsvParser<byte, bool?>)@override!.CreateParser<byte>(in binding, options);
+        var parser = (ICsvParser<byte, bool?>)@override!.CreateParser<byte>(binding, options);
         var inputBytes = Encoding.UTF8.GetBytes(input);
 
         if (success)
@@ -182,10 +178,9 @@ public static class CsvBooleanValuesAttributeTests
 
         var binding = new CsvBinding(0, typeof(Shim).GetProperty("IsEnabledN")!);
 
-        var @override = binding.GetParserOverride<Shim>();
-        Assert.NotNull(@override);
+        Assert.True(binding.TryGetParserOverride<Shim>(out var @override));
 
-        var parser = (NullableParser<char, bool>)@override!.CreateParser(in binding, options);
+        var parser = (NullableParser<char, bool>)@override!.CreateParser(binding, options);
         Assert.Equal(default, parser.NullToken);
     }
 }

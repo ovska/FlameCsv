@@ -10,7 +10,7 @@ namespace FlameCsv.Binding.Attributes;
 /// The provider determines case sensitivity, <see cref="HeaderTextBinder"/> or <see cref="HeaderUtf8Binder"/>
 /// for the default implementations.
 /// </remarks>
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+[AttributeUsage(CsvBinding.AllowedOn)]
 public sealed class CsvHeaderAttribute : Attribute
 {
     /// <summary>

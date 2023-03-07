@@ -1,80 +1,164 @@
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Binding.Attributes;
-using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Runtime;
 
 namespace FlameCsv.Binding;
 
-// TODO: support for constructor parameters
-
-/// <summary>
-/// A structure binding a CSV column to a property or field of the deserialized type.
-/// </summary>
-public readonly struct CsvBinding : IEquatable<CsvBinding>
+public readonly struct CsvBinding : IEquatable<CsvBinding>, IComparable<CsvBinding>
 {
-    /// <summary>
-    /// Returns a binding that indicates the column at <paramref name="index"/> should be ignored.
-    /// </summary>
-    /// <param name="index"></param>
-    /// <returns></returns>
-    public static CsvBinding Ignore(int index) => new(index, IgnoreSingleton);
+    internal const AttributeTargets AllowedOn
+        = AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter;
 
-    /// <summary>
-    /// Returns a binding to the property or field of the parameter expression.
-    /// </summary>
+    private enum CsvBindingType : byte
+    {
+        Ignored = 1,
+        ConstructorParameter = 2,
+        Property = 3,
+        Field = 4,
+    }
+
+    /// <summary>Marks the column at <paramref name="index"/> as ignored.</summary>
+    public static CsvBinding Ignore(int index) => new(index);
+
     public static CsvBinding For<T>(int index, Expression<Func<T, object?>> memberExpression)
     {
-        return new(index, ReflectionUtil.GetMemberFromExpression(memberExpression));
+        return ForMember(index, ReflectionUtil.GetMemberFromExpression(memberExpression));
+    }
+
+    public static CsvBinding ForMember(int index, MemberInfo member)
+    {
+        return member is PropertyInfo pi ? new(index, pi) : new(index, (FieldInfo)member);
     }
 
     /// <summary>
-    /// Member targeted by the binding.
-    /// </summary>
-    /// <remarks>
-    /// If the column is ignored, represents a singleton ignored MemberInfo. See: <see cref="IsIgnored"/>
-    /// </remarks>
-    public MemberInfo Member { get; }
-
-    /// <summary>
-    /// Column index (zero based).
+    /// The CSV column index of this binding.
     /// </summary>
     public int Index { get; }
 
     /// <summary>
-    /// Indicates if the binding's column should be skipped when parsing.
+    /// Returns the underlying member info, <see cref="IsMember"/>.
     /// </summary>
-    public bool IsIgnored => Member.Equals(IgnoreSingleton);
-
-    internal Type Type => !IsIgnored
-        ? ReflectionUtil.MemberType(Member)
-        : ThrowHelper.ThrowInvalidOperationException<Type>("Cannot get type from ignored column");
+    /// <exception cref="InvalidOperationException"/>
+    public MemberInfo Member => IsMember
+        ? (MemberInfo)_object
+        : ThrowHelper.ThrowInvalidOperationException<MemberInfo>("Binding is not a member.");
 
     /// <summary>
-    /// Initializes a binding between <paramref name="index"/> and <paramref name="member"/>.
+    /// Returns the underlying parameter info, <see cref="IsProperty"/>.
     /// </summary>
-    /// <param name="index">CSV column index</param>
-    /// <param name="member">The member's PropertyInfo or FieldInfo</param>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown if index is invalid</exception>
-    /// <exception cref="ArgumentNullException">Throw if member is null</exception>
-    /// <exception cref="ArgumentException">Throw if the member is not a writable property or field</exception>
-    public CsvBinding(int index, MemberInfo member)
+    /// <exception cref="InvalidOperationException"/>
+    public PropertyInfo Property => IsProperty
+        ? (PropertyInfo)_object
+        : ThrowHelper.ThrowInvalidOperationException<PropertyInfo>("Binding is not a property.");
+
+    /// <summary>
+    /// Returns the underlying parameter info, <see cref="IsField"/>.
+    /// </summary>
+    /// <exception cref="InvalidOperationException"/>
+    public FieldInfo Field => IsField
+        ? (FieldInfo)_object
+        : ThrowHelper.ThrowInvalidOperationException<FieldInfo>("Binding is not a property.");
+
+    /// <summary>
+    /// Returns the underlying parameter info, <see cref="IsParameter"/>.
+    /// </summary>
+    /// <exception cref="InvalidOperationException"/>
+    public ParameterInfo Parameter => IsParameter
+        ? (ParameterInfo)_object
+        : ThrowHelper.ThrowInvalidOperationException<ParameterInfo>("Binding is a member.");
+
+    /// <summary>
+    /// Returns the type of the binding's target (property/field/parameter type).
+    /// For ignored fields, returns <c>typeof(void)</c>.
+    /// </summary>
+    /// <exception cref="InvalidOperationException"/>
+    public Type Type => _type switch
+    {
+        CsvBindingType.Property => ((PropertyInfo)_object).PropertyType,
+        CsvBindingType.Field => ((FieldInfo)_object).FieldType,
+        CsvBindingType.ConstructorParameter => ((ParameterInfo)_object).ParameterType,
+        CsvBindingType.Ignored => typeof(void),
+        // can only get here with default struct
+        _ => ThrowHelper.ThrowInvalidOperationException<Type>($"The {nameof(CsvBinding)} struct is uninitialized"),
+    };
+
+    /// <summary>
+    /// Returns the constructor of the parameter, see <see cref="IsParameter"/>.
+    /// </summary>
+    /// <exception cref="InvalidOperationException"/>
+    public ConstructorInfo Constructor => (ConstructorInfo)Parameter.Member;
+
+    /// <summary>
+    /// Returns the type of the binding's target.
+    /// </summary>
+    /// <exception cref="InvalidOperationException"/>
+    public Type? DeclaringType => _object switch
+    {
+        MemberInfo member => member.DeclaringType,
+        ParameterInfo { Member: var member } => member.DeclaringType,
+        _ => ThrowHelper.ThrowInvalidOperationException<Type?>("Cannot get declaring type from binding"),
+    };
+
+    /// <summary>Returns whether the binding is on an ignored column.</summary>
+    public bool IsIgnored => _type is CsvBindingType.Ignored;
+
+    /// <summary>Returns whether the binding targets a property or a field.</summary>
+    public bool IsMember => _type is CsvBindingType.Property or CsvBindingType.Field;
+
+    /// <summary>Returns whether the binding targets a property.</summary>
+    public bool IsProperty => _type is CsvBindingType.Property;
+
+    /// <summary>Returns whether the binding targets a field.</summary>
+    public bool IsField => _type is CsvBindingType.Field;
+
+    /// <summary>Returns whether the binding targets a constructor parameter.</summary>
+    public bool IsParameter => _type is CsvBindingType.ConstructorParameter;
+
+    private readonly object _object;
+    private readonly CsvBindingType _type;
+
+    public CsvBinding(int index, PropertyInfo property) : this(index, (object)property)
+    {
+        ArgumentNullException.ThrowIfNull(property);
+        GuardEx.IsNotInterfaceDefined(property);
+        _type = CsvBindingType.Property;
+    }
+
+    public CsvBinding(int index, FieldInfo @field) : this(index, (object)@field)
+    {
+        ArgumentNullException.ThrowIfNull(@field);
+        GuardEx.IsNotInterfaceDefined(@field);
+        _type = CsvBindingType.Field;
+    }
+
+    public CsvBinding(int index, ParameterInfo parameter) : this(index, (object)parameter)
+    {
+        ArgumentNullException.ThrowIfNull(parameter);
+        Guard.IsAssignableToType<ConstructorInfo>(parameter.Member);
+        _type = CsvBindingType.ConstructorParameter;
+    }
+
+    /// <summary>Ctor for ignored column</summary>
+    private CsvBinding(int index) : this(index, Type.Missing)
+    {
+        _type = CsvBindingType.Ignored;
+    }
+
+    private CsvBinding(int index, object @object)
     {
         Guard.IsGreaterThanOrEqualTo(index, 0);
-        Guard.IsNotNull(member);
-
-        if (member.DeclaringType is { IsInterface: true })
-            ThrowHelper.ThrowNotSupportedException("Interface binding is not yet supported.");
-
         Index = index;
-        Member = member.Equals(IgnoreSingleton) ? member : ReflectionUtil.ValidateMember(member);
+        _object = @object;
     }
 
     /// <inheritdoc cref="IsApplicableTo"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsApplicableTo<TResult>() => IsApplicableTo(typeof(TResult));
 
     /// <summary>
@@ -82,19 +166,20 @@ public readonly struct CsvBinding : IEquatable<CsvBinding>
     /// Returns true if either the column is ignored, or the member is defined in the type
     /// or a base class.
     /// </summary>
-    /// <exception cref="ArgumentNullException"/>
     public bool IsApplicableTo(Type targetType)
     {
-        Guard.IsNotNull(targetType);
+        ArgumentNullException.ThrowIfNull(targetType);
 
         if (IsIgnored)
             return true;
 
-        var type = targetType;
+        // TODO: binding on interface property with a setter?
+        Type? type = targetType;
+        Type? declaringType = DeclaringType;
 
         while (type is not null)
         {
-            if (Member.DeclaringType == type)
+            if (declaringType == type)
                 return true;
 
             type = type.BaseType;
@@ -103,65 +188,77 @@ public readonly struct CsvBinding : IEquatable<CsvBinding>
         return false;
     }
 
-    internal ICsvParserOverride? GetParserOverride<TResult>()
+    internal bool TryGetParserOverride<TResult>([NotNullWhen(true)] out CsvParserOverrideAttribute? @override)
     {
-        ICsvParserOverride? found = null;
+        @override = null;
 
         foreach (var attribute in Member.GetCachedCustomAttributes())
         {
-            if (attribute is ICsvParserOverride @override)
+            if (attribute is CsvParserOverrideAttribute match)
             {
-                if (found is not null)
-                    throw new CsvBindingException(typeof(TResult), this, found, @override);
-
-                found = @override;
+                @override = match;
+                return true;
             }
         }
 
-        return found;
+        @override = null;
+        return false;
     }
 
-    internal MemberExpression AsExpression(Expression target) => ReflectionUtil.GetMember(target, Member);
+    /// <inheritdoc/>
+    public bool Equals(CsvBinding other)
+        => Index == other.Index
+        && _type == other._type
+        && _object == other._object;
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => obj is CsvBinding csvBinding && Equals(csvBinding);
+    /// <inheritdoc/>
+    public override int GetHashCode() => HashCode.Combine(Index, _object);
+    /// <inheritdoc/>
+    public int CompareTo(CsvBinding other) => Index.CompareTo(other.Index);
+
+    /// <inheritdoc/>
+    public static bool operator ==(CsvBinding left, CsvBinding right) => left.Equals(right);
+    /// <inheritdoc/>
+    public static bool operator !=(CsvBinding left, CsvBinding right) => !(left == right);
+
+    /// <summary>
+    /// Returns whether the binding targets the same property/field/parameter,
+    /// or both bindings are ignored columns.
+    /// </summary>
+    public bool TargetEquals(CsvBinding other) => _object == other._object;
+
+    /// <summary><c>"Type.Property"</c></summary>
+    internal string FormatMember => $"{Member.DeclaringType?.Name}.{Member.Name}".TrimStart('.');
 
     /// <summary>Returns the column index and member name.</summary>
     [ExcludeFromCodeCoverage]
     public override string ToString()
     {
         var sb = new StringBuilder(64);
-        sb.Append("{ [");
-        sb.Append(nameof(CsvBinding));
-        sb.Append("] Index: ");
-        sb.Append(Index);
-        sb.Append(", ");
+        sb.Append($"{{ [{nameof(CsvBinding)}] Index: {Index}, ");
 
         if (IsIgnored)
         {
             sb.Append("Ignored");
         }
+        else if (IsParameter)
+        {
+            sb.Append("Parameter: ");
+            sb.Append(Type.Name);
+            sb.Append(' ');
+            sb.Append(Parameter.Name);
+        }
         else
         {
-            sb.Append(Member is PropertyInfo ? "Property: " : "Field: ");
+            sb.Append(IsProperty ? "Property: " : "Field: ");
+            sb.Append(Type.Name);
+            sb.Append(' ');
             sb.Append(Member.Name);
         }
 
         sb.Append(" }");
         return sb.ToString();
     }
-
-    /// <summary><c>"Type.Property"</c></summary>
-    internal string FormatMember => $"{Member.DeclaringType?.Name}.{Member.Name}".TrimStart('.');
-
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-    public bool Equals(CsvBinding other) => Index == other.Index && Member.Equals(other.Member);
-    public override bool Equals(object? obj) => obj is CsvBinding other && Equals(other);
-    public override int GetHashCode() => HashCode.Combine(Member, Index);
-    public static bool operator ==(CsvBinding left, CsvBinding right) => left.Equals(right);
-    public static bool operator !=(CsvBinding left, CsvBinding right) => !(left == right);
-#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
-
-    /// <summary>Singleton MemberInfo used to indicate ignored columns.</summary>
-    private static MemberInfo IgnoreSingleton => _ignore
-        ??= typeof(CsvBinding).GetProperty(nameof(IgnoreSingleton), BindingFlags.Static | BindingFlags.NonPublic)!;
-
-    private static MemberInfo? _ignore;
 }

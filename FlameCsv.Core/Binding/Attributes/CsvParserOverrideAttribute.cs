@@ -7,20 +7,22 @@ using FlameCsv.Runtime;
 namespace FlameCsv.Binding.Attributes;
 
 /// <summary>
-/// Overrides the default parser for the target member. A parser or factory of the exact type is used if
-/// present in the configuration. Otherwise a new instance of the parameter parser or factory is created.
+/// Overrides the default parser for the target member.<para/>A parser or factory of the exact type is used if
+/// present in the configuration. Otherwise a new instance of the parameter parser or factory is created. For
+/// example, <c>[CsvParserOverride(typeof(MyParser))]</c> will first attempt to use a parser from the configuration
+/// with the exact type <c>MyParser</c> before creating it using reflection.
 /// </summary>
 /// <remarks>
-/// Parsers created this way are not cached in the configuration object, and a new instance is created
-/// for every overridden property.
+/// Parsers created this way are not cached in <see cref="CsvReaderOptions{T}"/>,
+/// and a new instance is created for every overridden property if necessary.
 /// </remarks>
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public sealed class CsvParserOverrideAttribute : Attribute, ICsvParserOverride
+[AttributeUsage(CsvBinding.AllowedOn, AllowMultiple = false)]
+public class CsvParserOverrideAttribute : Attribute
 {
     /// <summary>
     /// Parser or factory to use for this member.
     /// </summary>
-    public Type ParserType { get; }
+    public virtual Type? ParserType { get; }
 
     /// <inheritdoc cref="CsvParserOverrideAttribute"/>
     /// <param name="parserType">Parser or factory to use</param>
@@ -28,6 +30,11 @@ public sealed class CsvParserOverrideAttribute : Attribute, ICsvParserOverride
     {
         ArgumentNullException.ThrowIfNull(parserType);
         ParserType = parserType;
+    }
+
+    /// <inheritdoc cref="CsvParserOverrideAttribute"/>
+    public CsvParserOverrideAttribute()
+    {
     }
 
     /// <summary>
@@ -39,17 +46,15 @@ public sealed class CsvParserOverrideAttribute : Attribute, ICsvParserOverride
     /// <returns>Parser instnace</returns>
     /// <exception cref="CsvConfigurationException">Thrown if <see cref="ParserType"/> is not valid for the member,
     /// or is not present in the configuration and has no parameterless constructor.</exception>
-    public ICsvParser<T> CreateParser<T>(in CsvBinding binding, CsvReaderOptions<T> options)
+    public virtual ICsvParser<T> CreateParser<T>(CsvBinding binding, CsvReaderOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
         ArgumentNullException.ThrowIfNull(options);
-        Guard.IsNotNull(binding.Member);
-        Guard.IsFalse(binding.IsIgnored);
+        Guard.IsTrue(binding.IsMember);
 
         if (ParserType is null)
         {
-            throw new InvalidOperationException(
-                $"{nameof(ParserType)} must be set if default {nameof(CreateParser)} implementation is used");
+            ThrowHelper.ThrowInvalidOperationException("If CreateParser is not overridden, ParserType must be set.");
         }
 
         var targetType = binding.Type;

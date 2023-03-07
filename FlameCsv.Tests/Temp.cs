@@ -3,6 +3,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
+using FlameCsv.Extensions;
 using FlameCsv.Parsers;
 using FlameCsv.Parsers.Text;
 using FlameCsv.Readers;
@@ -29,50 +30,34 @@ public class Temp
         [CsvParserOverride(typeof(Nakki))] public DateTime C { get; set; }
     }
 
-    [Fact]
-    public void Testi()
+    class Testii
     {
-        var data = new[] { 0, 1, 2, 3, 4 };
-        Range r = default;
-        var test = data[r.End..];
+        public int Id { get; }
+        public string Name { get; }
+        public bool IsEnabled { get; init; }
 
-        var bindings = new CsvBindingCollection<Obj>(
-            new CsvBinding[]
-            {
-                new(0, typeof(Obj).GetProperty("A")!),
-                new(1, typeof(Obj).GetProperty("B")!),
-                new(2, typeof(Obj).GetProperty("C")!),
-            });
-
-        var configuration = new CsvReaderOptions<char>
+        public Testii(int id, string name)
         {
-            Parsers = { new IntegerTextParser(), new DateTimeTextParser("o") }
-        };
+            Id = id;
+            Name = name;
+        }
+    }
 
-        var state = configuration.CreateState(bindings);
+    [Fact]
+    public void ReflectionStuff()
+    {
+        var props = typeof(Testii).GetProperties();
 
-        var opts = CsvTokens<char>.Unix;
-        using var bo = new BufferOwner<char>(ArrayPool<char>.Shared);
-        var enumerator = new CsvColumnEnumerator<char>(
-            "1,2,2015-01-01T00:00:00.0000000Z",
-            in opts,
-            3,
-            0,
-            new ValueBufferOwner<char>(ref bo._array, ArrayPool<char>.Shared));
-        var asd = state.Parse(ref enumerator);
+        var ctor = typeof(Testii).GetConstructors()[0];
+        var x = ctor.GetParameters();
+        var fac = CsvReaderOptionsExtension.CreateValueFactory(new CsvBindingCollection<Testii>(new List<CsvBinding> {
+            new CsvBinding(0, ctor.GetParameters()[0]),
+            new CsvBinding(1, ctor.GetParameters()[1]),
+            new CsvBinding(2, typeof(Testii).GetProperty(nameof(Testii.IsEnabled))!),
+        }));
 
-        var init = ReflectionUtil.CreateInitializer<int, int, DateTime, Obj>(
-            typeof(Obj).GetProperty("A"),
-            typeof(Obj).GetProperty("B"),
-            typeof(Obj).GetProperty("C"));
-
-        var result = init(1, 2, DateTime.UnixEpoch);
-        Assert.Equal(1, result.A);
-        Assert.Equal(2, result.B);
-
-        var setter = ReflectionUtil.CreateSetter<Obj, int>(o => o.A);
-        setter(result, 123);
-        Assert.Equal(123, result.A);
+        var fac2 = (Func<int, string, bool, Testii>)fac;
+        var obj = fac2(123, "test", true);
     }
 
     [Fact]

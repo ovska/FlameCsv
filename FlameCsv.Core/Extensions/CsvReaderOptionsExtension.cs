@@ -2,13 +2,14 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using CommunityToolkit.HighPerformance;
 using FastExpressionCompiler;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
 using FlameCsv.Runtime;
 
-namespace FlameCsv;
+namespace FlameCsv.Extensions;
 
 internal static class CsvReaderOptionsExtension
 {
@@ -92,26 +93,24 @@ internal static class CsvReaderOptionsExtension
         return CreateStateFactory<T, TResult>(bindingCollection, CreateValueFactory(bindingCollection));
     }
 
-/// <summary>
-/// Creates the state object using the bindings and <typeparamref name="TResult"/> type parameter.
-/// </summary>
-[ExcludeFromCodeCoverage]
+    /// <summary>
+    /// Creates the state object using the bindings and <typeparamref name="TResult"/> type parameter.
+    /// </summary>
+    [ExcludeFromCodeCoverage]
     private static StateFactory<T> CreateStateFactory<T, TResult>(
         CsvBindingCollection<TResult> bindingCollection,
         object valueFactory)
         where T : unmanaged, IEquatable<T>
     {
-        var bindings = bindingCollection.Bindings;
+        ConstructorInfo rowStateCtor = CsvRowState.GetConstructor<T, TResult>(
+            bindingCollection._bindingsSorted.Select(b => b.Type));
 
-        ConstructorInfo rowStateCtor = CsvRowState.GetConstructor<T, TResult>(bindings.Select(b => b.Type));
-
-        Dictionary<int, ICsvParserOverride>? _overrides = null;
+        // don't create the dictionary unless needed, overrides should be relatively rare
+        Dictionary<int, CsvParserOverrideAttribute>? _overrides = null;
 
         for (int i = 0; i < bindingCollection.Bindings.Length; i++)
         {
-            var @override = bindingCollection.Bindings[i].GetParserOverride<TResult>();
-
-            if (@override is not null)
+            if (bindingCollection.Bindings[i].TryGetParserOverride<TResult>(out var @override))
             {
                 (_overrides ??= new())[i] = @override;
             }
@@ -133,6 +132,8 @@ internal static class CsvReaderOptionsExtension
 
         return options =>
         {
+            ReadOnlySpan<CsvBinding> bindings = bindingCollection._bindingsSorted.AsSpan();
+
             object[] rowStateConstructorArgs = new object[bindings.Length + 1];
             rowStateConstructorArgs[0] = valueFactory;
 
@@ -152,32 +153,55 @@ internal static class CsvReaderOptionsExtension
         };
     }
 
-    private static object CreateValueFactory<TResult>(CsvBindingCollection<TResult> bindingCollection)
+    internal static Delegate CreateValueFactory<TResult>(CsvBindingCollection<TResult> bc)
     {
-        var bindings = bindingCollection.Bindings;
+        ParameterExpression[] parameters = GetParametersByBindingIndex();
+        NewExpression newExpr = GetObjectInitialization();
+        Expression body = GetExpressionBody();
+        return Expression.Lambda(body, parameters).CompileFast(flags: CompilerFlags.ThrowOnNotSupportedExpression);
 
-        // <T0, T1, T2, TResult>
-        Type[] genericsWithResult = new Type[bindings.Length + 1];
-        for (int i = 0; i < bindings.Length; i++)
+        ParameterExpression[] GetParametersByBindingIndex()
         {
-            genericsWithResult[i] = bindings[i].Type;
+            var array = new ParameterExpression[bc.Bindings.Length];
+
+            foreach (var binding in bc.Bindings)
+            {
+                array[binding.Index] = Expression.Parameter(binding.Type);
+            }
+
+            return array;
         }
 
-        genericsWithResult[^1] = typeof(TResult);
-
-        var factoryGenerator = ReflectionUtil
-            .InitializerFactories[bindings.Length]
-            .MakeGenericMethod(genericsWithResult);
-
-        // (member1, member2, member3)
-        var factoryGeneratorParameters = new object[bindings.Length];
-        for (int i = 0; i < bindings.Length; i++)
+        NewExpression GetObjectInitialization()
         {
-            factoryGeneratorParameters[i] = bindings[i].Member;
+            if (!bc.HasConstructorParameters)
+                return Expression.New(bc.Constructor);
+
+            var ctorBindings = bc.ConstructorBindings;
+            var result = new ReadOnlyCollectionBuilder<Expression>(ctorBindings.Length);
+
+            foreach (var binding in ctorBindings)
+            {
+                result.Add(parameters[binding.Index]);
+            }
+
+            return Expression.New(bc.Constructor, result);
         }
 
-        // Func<...>, parser1, parser2, parser3
-        return factoryGenerator.Invoke(null, factoryGeneratorParameters)
-            ?? throw new InvalidOperationException($"Could not factory for {typeof(TResult)}");
+        Expression GetExpressionBody()
+        {
+            if (!bc.HasMemberInitializers)
+                return newExpr;
+
+            var memberBindings = bc.MemberBindings;
+            var result = new ReadOnlyCollectionBuilder<MemberBinding>(memberBindings.Length);
+
+            foreach (var binding in memberBindings)
+            {
+                result.Add(Expression.Bind(binding.Member, parameters[binding.Index]));
+            }
+
+            return Expression.MemberInit(newExpr, result);
+        }
     }
 }
