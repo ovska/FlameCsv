@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
+using FlameCsv.Binding;
 using FlameCsv.Parsers;
 using FlameCsv.Readers;
 
@@ -17,13 +18,18 @@ internal abstract partial class CsvRowState
     /// <typeparam name="T">CSV token type</typeparam>
     /// <typeparam name="TResult">Row parse return type</typeparam>
     [ExcludeFromCodeCoverage]
-    internal static ConstructorInfo GetConstructor<T, TResult>(IEnumerable<Type> genericTypeParameters)
+    internal static ConstructorInfo GetConstructor<T, TResult>(ReadOnlySpan<CsvBinding> bindings)
         where T : unmanaged, IEquatable<T>
     {
-        var typeList = genericTypeParameters.ToList();
-        typeList.Insert(0, typeof(T));
-        typeList.Add(typeof(TResult));
-        var types = typeList.ToArray();
+        Type[] types = new Type[bindings.Length + 2];
+
+        for (int i = 0; i < bindings.Length; i++)
+        {
+            types[i + 1] = bindings[i].Type;
+        }
+
+        types[0] = typeof(T);
+        types[^1] = typeof(TResult);
 
         return (types.Length switch
         {
@@ -43,7 +49,7 @@ internal abstract partial class CsvRowState
             16 => typeof(CsvRowState<,,,,,,,,,,,,,,,>),
             17 => typeof(CsvRowState<,,,,,,,,,,,,,,,,>),
             18 => typeof(CsvRowState<,,,,,,,,,,,,,,,,,>),
-            _ => ThrowHelper.ThrowArgumentException<Type>($"Unsupported typeparam count: {types.Length - 2}"),
+            _ => ThrowHelper.ThrowArgumentException<Type>($"Unsupported typeparam count: {bindings.Length}"),
         }).MakeGenericType(types).GetConstructors()[0];
     }
 }
@@ -86,7 +92,7 @@ internal sealed class CsvRowState<T, T0, TResult> :
         if (RuntimeHelpers.IsReferenceOrContainsReferences<T0>()) value0 = default;
     }
 
-    void IDisposable.Dispose() => ResetValues();
+    public void Dispose() => ResetValues();
 }
 
 [ExcludeFromCodeCoverage]
@@ -133,7 +139,7 @@ internal sealed class CsvRowState<T, T0, T1, TResult> :
         if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) value1 = default;
     }
 
-    void IDisposable.Dispose() => ResetValues();
+    public void Dispose() => ResetValues();
 }
 
 [ExcludeFromCodeCoverage]
@@ -186,7 +192,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, TResult> :
         if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) value2 = default;
     }
 
-    void IDisposable.Dispose() => ResetValues();
+    public void Dispose() => ResetValues();
 }
 
 [ExcludeFromCodeCoverage]
@@ -245,7 +251,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, TResult> :
         if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) value3 = default;
     }
 
-    void IDisposable.Dispose() => ResetValues();
+    public void Dispose() => ResetValues();
 }
 
 [ExcludeFromCodeCoverage]
@@ -310,7 +316,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, TResult> :
         if (RuntimeHelpers.IsReferenceOrContainsReferences<T4>()) value4 = default;
     }
 
-    void IDisposable.Dispose() => ResetValues();
+    public void Dispose() => ResetValues();
 }
 
 [ExcludeFromCodeCoverage]
@@ -381,7 +387,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, TResult> :
         if (RuntimeHelpers.IsReferenceOrContainsReferences<T5>()) value5 = default;
     }
 
-    void IDisposable.Dispose() => ResetValues();
+    public void Dispose() => ResetValues();
 }
 
 [ExcludeFromCodeCoverage]
@@ -458,7 +464,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, TResult> :
         if (RuntimeHelpers.IsReferenceOrContainsReferences<T6>()) value6 = default;
     }
 
-    void IDisposable.Dispose() => ResetValues();
+    public void Dispose() => ResetValues();
 }
 
 [ExcludeFromCodeCoverage]
@@ -541,7 +547,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult> :
         if (RuntimeHelpers.IsReferenceOrContainsReferences<T7>()) value7 = default;
     }
 
-    void IDisposable.Dispose() => ResetValues();
+    public void Dispose() => ResetValues();
 }
 
 [ExcludeFromCodeCoverage]
@@ -630,7 +636,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResult
         if (RuntimeHelpers.IsReferenceOrContainsReferences<T8>()) value8 = default;
     }
 
-    void IDisposable.Dispose() => ResetValues();
+    public void Dispose() => ResetValues();
 }
 
 [ExcludeFromCodeCoverage]
@@ -725,7 +731,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TRe
         if (RuntimeHelpers.IsReferenceOrContainsReferences<T9>()) value9 = default;
     }
 
-    void IDisposable.Dispose() => ResetValues();
+    public void Dispose() => ResetValues();
 }
 
 [ExcludeFromCodeCoverage]
@@ -826,7 +832,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10
         if (RuntimeHelpers.IsReferenceOrContainsReferences<T10>()) value10 = default;
     }
 
-    void IDisposable.Dispose() => ResetValues();
+    public void Dispose() => ResetValues();
 }
 
 [ExcludeFromCodeCoverage]
@@ -933,7 +939,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10
         if (RuntimeHelpers.IsReferenceOrContainsReferences<T11>()) value11 = default;
     }
 
-    void IDisposable.Dispose() => ResetValues();
+    public void Dispose() => ResetValues();
 }
 
 [ExcludeFromCodeCoverage]
@@ -1046,7 +1052,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10
         if (RuntimeHelpers.IsReferenceOrContainsReferences<T12>()) value12 = default;
     }
 
-    void IDisposable.Dispose() => ResetValues();
+    public void Dispose() => ResetValues();
 }
 
 [ExcludeFromCodeCoverage]
@@ -1165,7 +1171,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10
         if (RuntimeHelpers.IsReferenceOrContainsReferences<T13>()) value13 = default;
     }
 
-    void IDisposable.Dispose() => ResetValues();
+    public void Dispose() => ResetValues();
 }
 
 [ExcludeFromCodeCoverage]
@@ -1290,7 +1296,7 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10
         if (RuntimeHelpers.IsReferenceOrContainsReferences<T14>()) value14 = default;
     }
 
-    void IDisposable.Dispose() => ResetValues();
+    public void Dispose() => ResetValues();
 }
 
 [ExcludeFromCodeCoverage]
@@ -1421,6 +1427,6 @@ internal sealed class CsvRowState<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10
         if (RuntimeHelpers.IsReferenceOrContainsReferences<T15>()) value15 = default;
     }
 
-    void IDisposable.Dispose() => ResetValues();
+    public void Dispose() => ResetValues();
 }
 

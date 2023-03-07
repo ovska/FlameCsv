@@ -44,14 +44,11 @@ public sealed class CsvBindingCollection<TValue>
     /// </summary>
     public ConstructorInfo Constructor => HasConstructorParameters
         ? _ctorBindings[0].Constructor
-        : ReflectionCache<TValue>.ParameterlessCtor;
+        : ThrowHelper.ThrowInvalidOperationException<ConstructorInfo>("There is no constructor bindings.");
 
     private readonly List<CsvBinding> _allBindings;
     private readonly List<CsvBinding> _ctorBindings;
     private readonly List<CsvBinding> _memberBindings;
-
-    internal IEnumerable<Type> GetBindingTypes()
-        => _allBindings.Select(static b => b.IsIgnored ? typeof(object) : b.Type);
 
     /// <summary>
     /// Initializes a new binding collection.

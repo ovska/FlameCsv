@@ -103,7 +103,7 @@ internal static class CsvReaderOptionsExtension
         object valueFactory)
         where T : unmanaged, IEquatable<T>
     {
-        ConstructorInfo rowStateCtor = CsvRowState.GetConstructor<T, TResult>(bindingCollection.GetBindingTypes());
+        ConstructorInfo rowStateCtor = CsvRowState.GetConstructor<T, TResult>(bindingCollection.Bindings);
 
         // don't create the dictionary unless needed, overrides should be relatively rare
         Dictionary<int, CsvParserOverrideAttribute>? _overrides = null;
@@ -171,11 +171,9 @@ internal static class CsvReaderOptionsExtension
             foreach (var binding in bc.Bindings)
             {
                 // TODO: figure out how to completely skip ignored columns
-                array[binding.Index] = Expression.Parameter(
-                    binding.IsIgnored ? typeof(object) : binding.Type
+                array[binding.Index] = Expression.Parameter(binding.Type
 #if DEBUG
-                    ,
-                    binding.IsIgnored
+                    , binding.IsIgnored
                         ? $"column{binding.Index}_ignored"
                         : $"column{binding.Index}_{binding.Type.Name}"
 #endif

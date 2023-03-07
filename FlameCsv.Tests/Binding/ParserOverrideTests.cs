@@ -17,6 +17,12 @@ public static class ParserOverrideTests
         public double Dollars { get; set; }
     }
 
+    private class TestObj2
+    {
+        [CsvParserOverride<char, CurrencyParser>]
+        public double Dollars { get; set; }
+    }
+
     private sealed class CurrencyParser : ParserBase<char, double>
     {
         private readonly NumberFormatInfo _nfi = new CultureInfo("en-US").NumberFormat;
@@ -40,5 +46,10 @@ public static class ParserOverrideTests
         Assert.Equal(2, objs.Count);
         Assert.Equal(8042.15, objs[0].Dollars);
         Assert.Equal(123.45, objs[1].Dollars);
+
+        var objs2 = CsvReader.Read<TestObj2>(data, options).ToList();
+        Assert.Equal(2, objs2.Count);
+        Assert.Equal(8042.15, objs2[0].Dollars);
+        Assert.Equal(123.45, objs2[1].Dollars);
     }
 }
