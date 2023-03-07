@@ -6,7 +6,7 @@ using FlameCsv.Writers;
 
 namespace FlameCsv.Tests;
 
-public class WriteTemp
+public static class WriteTemp
 {
     private sealed class HelloWorldFormatter : ICsvFormatter<char, string>
     {

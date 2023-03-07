@@ -5,7 +5,7 @@ namespace FlameCsv.Binding.Attributes;
 /// <summary>
 /// Marks the column at index as ignored.
 /// </summary>
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true)]
 public sealed class CsvIndexIgnoreAttribute : Attribute
 {
     /// <summary>CSV column index.</summary>

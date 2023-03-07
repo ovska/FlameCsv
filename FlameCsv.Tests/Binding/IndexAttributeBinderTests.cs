@@ -15,7 +15,7 @@ public static class IndexAttributeBinderTests
         Assert.Equal(3, result!.Bindings.Length);
         Assert.Equal(
             new[] { (0, "A"), (1, "B"), (2, "C") },
-            result._bindingsSorted.Select(b => (b.Index, b.Member.Name)));
+            result.Bindings.ToArray().Select(b => (b.Index, b.Member.Name)));
     }
 
     [Fact]
@@ -25,7 +25,7 @@ public static class IndexAttributeBinderTests
         Assert.Equal(3, result!.Bindings.Length);
         Assert.Equal(
             new[] { (0, "A"), (1, "B"), (2, "C") },
-            result._bindingsSorted.Select(b => (b.Index, b.Member.Name)));
+            result.Bindings.ToArray().Select(b => (b.Index, b.Member.Name)));
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public static class IndexAttributeBinderTests
         Assert.Equal(3, result!.Bindings.Length);
         Assert.Equal(
             new[] { (0, "A"), (1, "B"), (2, "C") },
-            result._bindingsSorted.Select(b => (b.Index, b.Member.Name)));
+            result.Bindings.ToArray().Select(b => (b.Index, b.Member.Name)));
     }
 
     [Fact]

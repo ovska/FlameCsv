@@ -16,18 +16,6 @@ public delegate TReturn CsvCallback<T, out TReturn>(
     where T : unmanaged, IEquatable<T>;
 
 /// <summary>
-/// Parse callback for a CSV column.
-/// </summary>
-/// <param name="data">Trimmed column value</param>
-/// <param name="value">Parsed value</param>
-/// <typeparam name="T">Token type</typeparam>
-/// <typeparam name="TValue">Return value</typeparam>
-public delegate bool CsvTryParse<T, TValue>(
-    ReadOnlySpan<T> data,
-    [MaybeNullWhen(false)] out TValue value)
-    where T : unmanaged, IEquatable<T>;
-
-/// <summary>
 /// Callback for matching CSV header columns to members.
 /// </summary>
 /// <param name="column">Trimmed column value</param>
@@ -47,3 +35,5 @@ public delegate CsvBinding? CsvHeaderMatcher<T>(
 public delegate bool CsvExceptionHandler<T>(
     ReadOnlySpan<T> data,
     Exception exception);
+
+internal delegate bool SpanPredicate<T>(ReadOnlySpan<T> data);
