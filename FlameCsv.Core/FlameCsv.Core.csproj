@@ -26,10 +26,6 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CsvRowState.Generated.cs</LastGenOutput>
     </None>
-    <None Update="Runtime\ReflectionUtil.Generated.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>ReflectionUtil.Generated.cs</LastGenOutput>
-    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -37,11 +33,6 @@
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>CsvRowState.Generated.tt</DependentUpon>
-    </Compile>
-    <Compile Update="Runtime\ReflectionUtil.Generated.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>ReflectionUtil.Generated.tt</DependentUpon>
     </Compile>
   </ItemGroup>
 

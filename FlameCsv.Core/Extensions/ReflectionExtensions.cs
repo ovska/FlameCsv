@@ -1,9 +1,25 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using CommunityToolkit.Diagnostics;
 using FlameCsv.Exceptions;
 
 namespace FlameCsv.Extensions;
+
+internal static class ReflectionCache<T>
+{
+    private static ConstructorInfo? _parameterlessCtor;
+
+    public static ConstructorInfo ParameterlessCtor
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            return (_parameterlessCtor ??= typeof(T).GetConstructor(Type.EmptyTypes))
+             ?? ThrowHelper.ThrowInvalidOperationException<ConstructorInfo>("No parameterless ctor for type");
+        }
+    }
+}
 
 internal static class ReflectionExtensions
 {
@@ -12,7 +28,8 @@ internal static class ReflectionExtensions
     /// </summary>
     public const BindingFlags MemberLookupFlags = BindingFlags.Instance | BindingFlags.Public;
 
-    private static readonly ConditionalWeakTable<MemberInfo, object[]> _attributesCache = new();
+    private static readonly ConditionalWeakTable<MemberInfo, object[]> _memberAttrCache = new();
+    private static readonly ConditionalWeakTable<ParameterInfo, object[]> _paramAttrCache = new();
     private static readonly ConditionalWeakTable<Type, MemberInfo[]> _membersCache = new();
 
     internal static MemberInfo[] GetCachedPropertiesAndFields(this Type type)
@@ -31,9 +48,19 @@ internal static class ReflectionExtensions
 
     internal static object[] GetCachedCustomAttributes(this MemberInfo obj)
     {
-        if (!_attributesCache.TryGetValue(obj, out var attributes))
+        if (!_memberAttrCache.TryGetValue(obj, out var attributes))
         {
-            _attributesCache.AddOrUpdate(obj, attributes = obj.GetCustomAttributes(inherit: true));
+            _memberAttrCache.AddOrUpdate(obj, attributes = obj.GetCustomAttributes(inherit: true));
+        }
+
+        return attributes;
+    }
+
+    internal static object[] GetCachedParameterAttributes(this ParameterInfo obj)
+    {
+        if (!_paramAttrCache.TryGetValue(obj, out var attributes))
+        {
+            _paramAttrCache.AddOrUpdate(obj, attributes = obj.GetCustomAttributes(inherit: false));
         }
 
         return attributes;

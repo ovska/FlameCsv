@@ -32,10 +32,7 @@ public sealed class CsvIndexTargetAttribute : Attribute
     internal CsvBinding GetAsBinding(Type targetType)
     {
         Guard.IsNotNull(targetType);
-
-        if (targetType.IsInterface)
-            ThrowHelper.ThrowNotSupportedException("Interface binding is not yet supported.");
-
-        return new(Index, targetType.GetPropertyOrField(MemberName));
+        GuardEx.IsNotInterface(targetType);
+        return CsvBinding.ForMember(Index, targetType.GetPropertyOrField(MemberName));
     }
 }

@@ -43,6 +43,8 @@ internal static partial class ReflectionUtil
 
     public static MemberInfo GetMemberFromExpression(LambdaExpression memberExpression)
     {
+        ArgumentNullException.ThrowIfNull(memberExpression);
+
         if (memberExpression.Body is MemberExpression { Member: var member })
             return member;
 

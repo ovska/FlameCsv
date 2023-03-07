@@ -76,7 +76,7 @@ public static class CsvBindingTests
     public static void Should_Validate_Collection()
     {
         Assert.Throws<ArgumentNullException>(() => new CsvBindingCollection<Class>(null!));
-        Assert.Throws<CsvBindingException>(() => new CsvBindingCollection<Class>(Enumerable.Empty<CsvBinding>()));
+        Assert.Throws<ArgumentException>(() => new CsvBindingCollection<Class>(Enumerable.Empty<CsvBinding>()));
 
         Assert.Throws<CsvBindingException>(
             () => new CsvBindingCollection<Class>(new[] { CsvBinding.Ignore(0), CsvBinding.Ignore(1) }));

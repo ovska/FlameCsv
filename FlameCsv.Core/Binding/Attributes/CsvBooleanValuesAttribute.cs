@@ -11,8 +11,7 @@ namespace FlameCsv.Binding.Attributes;
 /// Overrides the default parser for the target member. Applicable for <c>bool</c> and <c>bool?</c>.
 /// For nullable booleans, attempts to fetch user defined null token from <see cref="CsvReaderOptions{T}"/>.
 /// </summary>
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class CsvBooleanValuesAttribute : Attribute, ICsvParserOverride
+public class CsvBooleanValuesAttribute : CsvParserOverrideAttribute
 {
     /// <summary>
     /// Values that represent <see langword="true"/>.
@@ -25,8 +24,7 @@ public class CsvBooleanValuesAttribute : Attribute, ICsvParserOverride
     public string[] FalseValues { get; set; } = Array.Empty<string>();
 
     /// <inheritdoc/>
-    public virtual ICsvParser<T> CreateParser<T>(in CsvBinding binding, CsvReaderOptions<T> options)
-        where T : unmanaged, IEquatable<T>
+    public override ICsvParser<T> CreateParser<T>(CsvBinding binding, CsvReaderOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
         Guard.IsFalse(binding.IsIgnored);

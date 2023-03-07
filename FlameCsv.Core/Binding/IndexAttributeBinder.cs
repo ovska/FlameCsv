@@ -1,8 +1,6 @@
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding.Attributes;
-using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Binding;
@@ -19,9 +17,7 @@ internal static class IndexAttributeBinder
 
             if (list.Count > 0)
             {
-                // ensure we don't cache an invalid bindings list
-                CsvBindingException.InternalThrowIfInvalid<TValue>(list);
-                obj = new CsvBindingCollection<TValue>(list.ToImmutableArray());
+                obj = new CsvBindingCollection<TValue>(list, true);
             }
             else
             {
@@ -40,16 +36,16 @@ internal static class IndexAttributeBinder
             .Select(
                 static member =>
                 {
-                    object[] attributes = member.GetCachedCustomAttributes();
-
-                    foreach (var attribute in attributes)
+                    foreach (var attribute in member.GetCachedCustomAttributes())
                     {
                         if (attribute is CsvIndexAttribute { Index: var index })
-                            return new CsvBinding(index, member);
+                            return CsvBinding.ForMember(index, member);
                     }
 
-                    return new CsvBinding?();
+                    return default(CsvBinding?);
                 });
+
+        // TODO: ctor bindings!
 
         var typeTargetedBindings = typeof(TValue).GetCachedCustomAttributes()
             .Select(
@@ -57,7 +53,7 @@ internal static class IndexAttributeBinder
                 {
                     CsvIndexTargetAttribute targetAttribute => targetAttribute.GetAsBinding(typeof(TValue)),
                     CsvIndexIgnoreAttribute ignoreAttribute => CsvBinding.Ignore(ignoreAttribute.Index),
-                    _ => new CsvBinding?(),
+                    _ => default(CsvBinding?),
                 });
 
         return members.Concat(typeTargetedBindings).OfType<CsvBinding>();

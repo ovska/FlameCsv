@@ -17,9 +17,9 @@ public sealed class StringUtf8Formatter :
     public ReadOnlyMemory<byte> Null { get; }
 
     /// <summary>
-    /// 
+    /// Initializes a new formatter using the specified null token.
     /// </summary>
-    /// <param name="nullToken"></param>
+    /// <param name="nullToken">Value to write if the string is null</param>
     public StringUtf8Formatter(ReadOnlyMemory<byte> nullToken = default)
     {
         Null = nullToken;
