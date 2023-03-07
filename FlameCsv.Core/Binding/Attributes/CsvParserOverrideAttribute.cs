@@ -6,6 +6,17 @@ using FlameCsv.Runtime;
 
 namespace FlameCsv.Binding.Attributes;
 
+/// <inheritdoc/>
+public class CsvParserOverrideAttribute<T, TParser> : CsvParserOverrideAttribute
+    where T : unmanaged, IEquatable<T>
+    where TParser : ICsvParser<T>
+{
+    /// <inheritdoc/>
+    public CsvParserOverrideAttribute() : base(typeof(TParser))
+    {
+    }
+}
+
 /// <summary>
 /// Overrides the default parser for the target member.<para/>A parser or factory of the exact type is used if
 /// present in the configuration. Otherwise a new instance of the parameter parser or factory is created. For

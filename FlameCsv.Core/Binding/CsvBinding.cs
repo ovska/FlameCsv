@@ -75,7 +75,7 @@ public readonly struct CsvBinding : IEquatable<CsvBinding>, IComparable<CsvBindi
 
     /// <summary>
     /// Returns the type of the binding's target (property/field/parameter type).
-    /// For ignored fields, returns <c>typeof(void)</c>.
+    /// For ignored fields, returns <c>typeof(object)</c>.
     /// </summary>
     /// <exception cref="InvalidOperationException"/>
     public Type Type => _type switch
@@ -83,7 +83,7 @@ public readonly struct CsvBinding : IEquatable<CsvBinding>, IComparable<CsvBindi
         CsvBindingType.Property => ((PropertyInfo)_object).PropertyType,
         CsvBindingType.Field => ((FieldInfo)_object).FieldType,
         CsvBindingType.ConstructorParameter => ((ParameterInfo)_object).ParameterType,
-        CsvBindingType.Ignored => typeof(void),
+        CsvBindingType.Ignored => typeof(object),
         // can only get here with default struct
         _ => ThrowHelper.ThrowInvalidOperationException<Type>($"The {nameof(CsvBinding)} struct is uninitialized"),
     };
@@ -195,7 +195,11 @@ public readonly struct CsvBinding : IEquatable<CsvBinding>, IComparable<CsvBindi
         if (IsIgnored)
             return false;
 
-        foreach (var attribute in Member.GetCachedCustomAttributes())
+        object[] attributes = IsMember
+            ? Member.GetCachedCustomAttributes()
+            : Parameter.GetCachedParameterAttributes();
+
+        foreach (var attribute in attributes)
         {
             if (attribute is CsvParserOverrideAttribute match)
             {

@@ -6,21 +6,6 @@ using FlameCsv.Exceptions;
 
 namespace FlameCsv.Extensions;
 
-internal static class ReflectionCache<T>
-{
-    private static ConstructorInfo? _parameterlessCtor;
-
-    public static ConstructorInfo ParameterlessCtor
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            return (_parameterlessCtor ??= typeof(T).GetConstructor(Type.EmptyTypes))
-             ?? ThrowHelper.ThrowInvalidOperationException<ConstructorInfo>("No parameterless ctor for type");
-        }
-    }
-}
-
 internal static class ReflectionExtensions
 {
     /// <summary>

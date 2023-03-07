@@ -96,7 +96,9 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
             {
                 if (!IgnoreUnmatched)
                 {
-                    throw new CsvBindingException($"Column {index} could not be bound to a member of {typeof(TValue)}");
+                    // TODO: check Securitylevel
+                    throw new CsvBindingException(
+                        $"Column {index} could not be bound to a member of {typeof(TValue)}");
                 }
 
                 foundBindings.Add(CsvBinding.Ignore(index));

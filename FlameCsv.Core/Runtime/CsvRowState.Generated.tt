@@ -15,6 +15,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
+using FlameCsv.Binding;
 using FlameCsv.Parsers;
 using FlameCsv.Readers;
 
@@ -29,13 +30,18 @@ internal abstract partial class CsvRowState
     /// <typeparam name="T">CSV token type</typeparam>
     /// <typeparam name="TResult">Row parse return type</typeparam>
     [ExcludeFromCodeCoverage]
-    internal static ConstructorInfo GetConstructor<T, TResult>(IEnumerable<Type> genericTypeParameters)
+    internal static ConstructorInfo GetConstructor<T, TResult>(ReadOnlySpan<CsvBinding> bindings)
         where T : unmanaged, IEquatable<T>
     {
-        var typeList = genericTypeParameters.ToList();
-        typeList.Insert(0, typeof(T));
-        typeList.Add(typeof(TResult));
-        var types = typeList.ToArray();
+        Type[] types = new Type[bindings.Length + 2];
+
+        for (int i = 0; i < bindings.Length; i++)
+        {
+            types[i + 1] = bindings[i].Type;
+        }
+
+        types[0] = typeof(T);
+        types[^1] = typeof(TResult);
 
         return (types.Length switch
         {
@@ -54,7 +60,7 @@ internal abstract partial class CsvRowState
         WriteLine(">),");
     }
 #>
-            _ => ThrowHelper.ThrowArgumentException<Type>($"Unsupported typeparam count: {types.Length - 2}"),
+            _ => ThrowHelper.ThrowArgumentException<Type>($"Unsupported typeparam count: {bindings.Length}"),
         }).MakeGenericType(types).GetConstructors()[0];
     }
 }
@@ -162,7 +168,7 @@ internal sealed class CsvRowState<T, <#= generics #>> :
 #>
     }
 
-    void IDisposable.Dispose() => ResetValues();
+    public void Dispose() => ResetValues();
 }
 
 <#
