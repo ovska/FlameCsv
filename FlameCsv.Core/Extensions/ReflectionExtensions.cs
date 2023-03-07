@@ -31,6 +31,28 @@ internal static class ReflectionExtensions
     private static readonly ConditionalWeakTable<MemberInfo, object[]> _memberAttrCache = new();
     private static readonly ConditionalWeakTable<ParameterInfo, object[]> _paramAttrCache = new();
     private static readonly ConditionalWeakTable<Type, MemberInfo[]> _membersCache = new();
+    private static readonly ConditionalWeakTable<ConstructorInfo, ParameterInfo[]> _ctorParamCache = new();
+
+    internal static ParameterInfo[] GetCachedParameters(this ConstructorInfo constructor)
+    {
+        if (!_ctorParamCache.TryGetValue(constructor, out var parameters))
+        {
+            parameters = constructor.GetParameters();
+
+            if (parameters.Length == 0)
+            {
+                parameters = Array.Empty<ParameterInfo>();
+            }
+            else
+            {
+                parameters.AsSpan().Sort((a, b) => a.Position.CompareTo(b.Position));
+            }
+
+            _ctorParamCache.AddOrUpdate(constructor, parameters);
+        }
+
+        return parameters;
+    }
 
     internal static MemberInfo[] GetCachedPropertiesAndFields(this Type type)
     {

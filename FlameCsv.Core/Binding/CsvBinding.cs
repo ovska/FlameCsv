@@ -188,9 +188,12 @@ public readonly struct CsvBinding : IEquatable<CsvBinding>, IComparable<CsvBindi
         return false;
     }
 
-    internal bool TryGetParserOverride<TResult>([NotNullWhen(true)] out CsvParserOverrideAttribute? @override)
+    internal bool TryGetParserOverride([NotNullWhen(true)] out CsvParserOverrideAttribute? @override)
     {
         @override = null;
+
+        if (IsIgnored)
+            return false;
 
         foreach (var attribute in Member.GetCachedCustomAttributes())
         {

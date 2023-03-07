@@ -1,13 +1,19 @@
-namespace FlameCsv.Binding.Attributes;
+﻿namespace FlameCsv.Binding.Attributes;
 
 /// <summary>
-/// Excludes the property from being matched from CSV header.
+/// Always ignores the specified columns when CSV has a header record.
 /// </summary>
-[AttributeUsage(CsvBinding.AllowedOn)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false)]
 public sealed class CsvHeaderIgnoreAttribute : Attribute
 {
-    /// <inheritdoc cref="CsvHeaderIgnoreAttribute"/>
-    public CsvHeaderIgnoreAttribute()
+    public StringComparison Comparison { get; set; } = StringComparison.OrdinalIgnoreCase;
+
+    public ReadOnlyMemory<string> Values { get; }
+
+    /// <inheritdoc cref="CsvHeaderExcludeAttribute"/>
+    public CsvHeaderIgnoreAttribute(params string[] values)
     {
+        ArgumentNullException.ThrowIfNull(values);
+        Values = values;
     }
 }

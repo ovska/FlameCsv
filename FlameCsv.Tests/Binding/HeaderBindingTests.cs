@@ -14,7 +14,7 @@ public static class HeaderBindingTests
     [CsvHeaderTarget(nameof(Targeted), "_targeted")]
     private class Shim
     {
-        [CsvHeaderIgnore] public string? Name { get; set; }
+        [CsvHeaderExclude] public string? Name { get; set; }
         [CsvHeader("Name")] public string? DisplayName { get; set; }
         public bool IsEnabled { get; set; }
         public int Targeted { get; set; }
@@ -28,7 +28,7 @@ public static class HeaderBindingTests
         var binder = new HeaderTextBinder(stringComparison: StringComparison.Ordinal);
 
         var bindingCollection = binder.Bind<Shim>(header, CsvTextReaderOptions.Default);
-        var byIndex = bindingCollection._bindingsSorted.ToDictionary(b => b.Index, b => b.Member);
+        var byIndex = bindingCollection.Bindings.ToArray().ToDictionary(b => b.Index, b => b.Member);
         Assert.Equal(3, byIndex.Count);
         Assert.Equal(typeof(Shim).GetProperty(nameof(Shim.IsEnabled)), byIndex[0]);
         Assert.Equal(typeof(Shim).GetProperty(nameof(Shim.DisplayName)), byIndex[1]);

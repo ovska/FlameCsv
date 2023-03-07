@@ -16,15 +16,15 @@ public sealed class CsvBindingCollection<TValue>
     /// <summary>
     /// All bindings, sorted by index. Guaranteed to be valid.
     /// </summary>
-    public ReadOnlySpan<CsvBinding> Bindings => _bindingsSorted.AsSpan();
+    public ReadOnlySpan<CsvBinding> Bindings => _allBindings.AsSpan();
 
     /// <summary>
-    /// Member bindings sorted by index, or empty if there are none.
+    /// Member bindings, or empty if there are none.
     /// </summary>
     public ReadOnlySpan<CsvBinding> MemberBindings => _memberBindings.AsSpan();
 
     /// <summary>
-    /// Constructor parameter bindings sorted by index, or empty if there are none.
+    /// Constructor parameter bindings sorted by parameter position, or empty if there are none.
     /// </summary>
     public ReadOnlySpan<CsvBinding> ConstructorBindings => _ctorBindings.AsSpan();
 
@@ -46,9 +46,12 @@ public sealed class CsvBindingCollection<TValue>
         ? _ctorBindings[0].Constructor
         : ReflectionCache<TValue>.ParameterlessCtor;
 
-    internal readonly List<CsvBinding> _bindingsSorted;
+    private readonly List<CsvBinding> _allBindings;
     private readonly List<CsvBinding> _ctorBindings;
     private readonly List<CsvBinding> _memberBindings;
+
+    internal IEnumerable<Type> GetBindingTypes()
+        => _allBindings.Select(static b => b.IsIgnored ? typeof(object) : b.Type);
 
     /// <summary>
     /// Initializes a new binding collection.
@@ -70,10 +73,9 @@ public sealed class CsvBindingCollection<TValue>
         bindings.Sort();
 
         int currentColumnIndex = 0;
-        int nonIgnoredCount = 0;
 
-        List<CsvBinding> members = new(bindings.Length);
-        List<CsvBinding> ctorParameters = new();
+        List<CsvBinding> memberBindings = new(bindings.Length);
+        List<CsvBinding> ctorBindings = new();
         ConstructorInfo? ctor = null;
 
         foreach (var binding in bindings)
@@ -99,13 +101,11 @@ public sealed class CsvBindingCollection<TValue>
             if (binding.IsIgnored)
                 continue;
 
-            nonIgnoredCount++;
-
             // Check that the member is unique among the bindings
             if (binding.IsMember)
             {
-                ThrowIfDuplicate(members, in binding);
-                members.Add(binding);
+                ThrowIfDuplicate(memberBindings, in binding);
+                memberBindings.Add(binding);
             }
             else
             {
@@ -120,31 +120,39 @@ public sealed class CsvBindingCollection<TValue>
                     ThrowIfMultipleCtors(ctor, in binding);
                 }
 
-                ThrowIfDuplicate(ctorParameters, in binding);
-                ctorParameters.Add(binding);
+                ThrowIfDuplicate(ctorBindings, in binding);
+                ctorBindings.Add(binding);
             }
         }
 
-        if (nonIgnoredCount == 0)
+        if (memberBindings.Count == 0 && ctorBindings.Count == 0)
         {
-            throw new CsvBindingException($"All bindings for {typeof(TValue)} are ignored", bindingsList)
-            {
-                TargetType = typeof(TValue),
-            };
+            throw new CsvBindingException(
+                $"All {bindings.Length} binding(s) for {typeof(TValue)} are ignored",
+                bindingsList)
+            { TargetType = typeof(TValue) };
         }
 
         // Ensure all parameters are accounted for
-        if (ctorParameters.Count != 0)
+        if (ctorBindings.Count != 0)
         {
+            var parameters = ctor!.GetCachedParameters();
 
+            if (ctorBindings.Count != parameters.Length)
+            {
+                throw new CsvBindingException(
+                    $"All constructor parameters were not accounted for (got {ctorBindings.Count} out of {parameters.Length})",
+                    ctorBindings);
+            }
+
+            // At this point we don't need to validate that the parameters are for the same constructor that
+            // have the correct positions.
+            ctorBindings.AsSpan().Sort(static (a, b) => a.Parameter.Position.CompareTo(b.Parameter.Position));
         }
-        ctorParameters.AsSpan().Sort(static (a, b) => a.Parameter.Position.CompareTo(b.Parameter.Position));
 
-
-        //
-        _bindingsSorted = bindingsList;
-        _memberBindings = members;
-        _ctorBindings = ctorParameters;
+        _allBindings = bindingsList;
+        _memberBindings = memberBindings;
+        _ctorBindings = ctorBindings;
 
         static void ThrowIfDuplicate(List<CsvBinding> existing, in CsvBinding binding)
         {

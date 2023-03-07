@@ -1,20 +1,22 @@
-﻿using FlameCsv;
-using FlameCsv.Binding;
+﻿using System.Runtime.CompilerServices;
+using FlameCsv;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Readers;
 
 const string data = """
-id,name,isadmin,favouriteday
-123,Bob,true,Friday
-456,Alice,false,Sunday
-789,Mallory,,Monday
+id,whocares,name,isadmin,favouriteday
+123,,Bob,true,Friday
+456,,Alice,false,Sunday
+789,,Mallory,,Monday
 """;
+
+var si = Unsafe.SizeOf<ValueTuple>();
 
 using var reader = new StringReader(data);
 var options = new CsvTextReaderOptions
 {
     Tokens = CsvTokens<char>.Unix,
-    HasHeader = false,
+    HasHeader = true,
 };
 
 await foreach (var user in CsvReader.ReadAsync<ValueUser>(reader, options))
@@ -32,10 +34,12 @@ public record class User
     public DayOfWeek FavouriteDay { get; set; }
 }
 
+[CsvHeaderIgnore("whocares", Comparison = StringComparison.Ordinal)]
+[CsvIndexIgnore(1)]
 public readonly struct ValueUser
 {
- [CsvIndex(0)]   public int Id { get; init; }
- [CsvIndex(1)]   public string? Name { get; init; }
- [CsvIndex(2)]   public bool? IsAdmin { get; init; }
- [CsvIndex(3)]   public DayOfWeek FavouriteDay { get; init; }
+    [CsvIndex(0)] public int Id { get; init; }
+    [CsvIndex(2)] public string? Name { get; init; }
+    [CsvIndex(3)] public bool? IsAdmin { get; init; }
+    [CsvIndex(4)] public DayOfWeek FavouriteDay { get; init; }
 }

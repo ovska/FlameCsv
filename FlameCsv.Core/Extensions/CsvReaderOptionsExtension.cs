@@ -7,6 +7,7 @@ using FastExpressionCompiler;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
+using FlameCsv.Parsers;
 using FlameCsv.Runtime;
 
 namespace FlameCsv.Extensions;
@@ -102,15 +103,14 @@ internal static class CsvReaderOptionsExtension
         object valueFactory)
         where T : unmanaged, IEquatable<T>
     {
-        ConstructorInfo rowStateCtor = CsvRowState.GetConstructor<T, TResult>(
-            bindingCollection._bindingsSorted.Select(b => b.Type));
+        ConstructorInfo rowStateCtor = CsvRowState.GetConstructor<T, TResult>(bindingCollection.GetBindingTypes());
 
         // don't create the dictionary unless needed, overrides should be relatively rare
         Dictionary<int, CsvParserOverrideAttribute>? _overrides = null;
 
         for (int i = 0; i < bindingCollection.Bindings.Length; i++)
         {
-            if (bindingCollection.Bindings[i].TryGetParserOverride<TResult>(out var @override))
+            if (bindingCollection.Bindings[i].TryGetParserOverride(out var @override))
             {
                 (_overrides ??= new())[i] = @override;
             }
@@ -132,14 +132,18 @@ internal static class CsvReaderOptionsExtension
 
         return options =>
         {
-            ReadOnlySpan<CsvBinding> bindings = bindingCollection._bindingsSorted.AsSpan();
+            var bindings = bindingCollection.Bindings;
 
             object[] rowStateConstructorArgs = new object[bindings.Length + 1];
             rowStateConstructorArgs[0] = valueFactory;
 
             for (int i = 0; i < bindings.Length; i++)
             {
-                if (_overrides is not null && _overrides.TryGetValue(i, out var @override))
+                if (bindings[i].IsIgnored)
+                {
+                    rowStateConstructorArgs[i + 1] = NoOpParser<T>.Instance;
+                }
+                else if (_overrides is not null && _overrides.TryGetValue(i, out var @override))
                 {
                     rowStateConstructorArgs[i + 1] = @override.CreateParser(bindings[i], options);
                 }
@@ -166,7 +170,16 @@ internal static class CsvReaderOptionsExtension
 
             foreach (var binding in bc.Bindings)
             {
-                array[binding.Index] = Expression.Parameter(binding.Type);
+                // TODO: figure out how to completely skip ignored columns
+                array[binding.Index] = Expression.Parameter(
+                    binding.IsIgnored ? typeof(object) : binding.Type
+#if DEBUG
+                    ,
+                    binding.IsIgnored
+                        ? $"column{binding.Index}_ignored"
+                        : $"column{binding.Index}_{binding.Type.Name}"
+#endif
+                    );
             }
 
             return array;
@@ -175,7 +188,7 @@ internal static class CsvReaderOptionsExtension
         NewExpression GetObjectInitialization()
         {
             if (!bc.HasConstructorParameters)
-                return Expression.New(bc.Constructor);
+                return Expression.New(typeof(TResult));
 
             var ctorBindings = bc.ConstructorBindings;
             var result = new ReadOnlyCollectionBuilder<Expression>(ctorBindings.Length);
