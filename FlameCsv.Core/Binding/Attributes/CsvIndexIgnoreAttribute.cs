@@ -13,8 +13,7 @@ public sealed class CsvIndexIgnoreAttribute : Attribute
 
     /// <inheritdoc cref="CsvIndexIgnoreAttribute"/>
     /// <param name="index">CSV column index</param>
-    public CsvIndexIgnoreAttribute(
-        int index)
+    public CsvIndexIgnoreAttribute(int index)
     {
         Guard.IsGreaterThanOrEqualTo(index, 0);
         Index = index;
