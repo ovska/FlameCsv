@@ -7,14 +7,17 @@ using FlameCsv.Parsers.Utf8;
 
 namespace FlameCsv.Benchmark;
 
+[HideColumns("Error", "StdDev")]
 [SimpleJob]
 [MemoryDiagnoser]
+//[BenchmarkDotNet.Diagnostics.Windows.Configs.EtwProfiler]
 public class CsvReadBench2
 {
-    private static Stream GetFileStream() =>
-        File.OpenRead("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv");
+    private static readonly byte[] _bytes
+        = File.ReadAllBytes("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv");
+    private static Stream GetFileStream() => new MemoryStream(_bytes);
 
-    [Benchmark]
+    [Benchmark(Baseline = true)]
     public async Task Helper()
     {
         var config = new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)
@@ -45,23 +48,23 @@ public class CsvReadBench2
     }
 
     [Benchmark]
-    public async Task FlameText_P()
+    public async Task FlameUtf8()
     {
-        using var reader = new StreamReader(GetFileStream(), Encoding.UTF8);
-        var options = new CsvTextReaderOptions { Tokens = CsvTokens<char>.Windows };
+        var options = new CsvUtf8ReaderOptions { Tokens = CsvTokens<byte>.Windows };
 
-        await foreach (var record in CsvReader.ReadAsync<Entry2_ASCII>(reader, options))
+        await foreach (var record in CsvReader.ReadAsync<Entry>(GetFileStream(), options))
         {
             _ = record;
         }
     }
 
     [Benchmark]
-    public async Task FlameUtf8()
+    public async Task FlameText_P()
     {
-        var options = new CsvUtf8ReaderOptions { Tokens = CsvTokens<byte>.Windows };
-      
-        await foreach (var record in CsvReader.ReadAsync<Entry>(GetFileStream(), options))
+        using var reader = new StreamReader(GetFileStream(), Encoding.UTF8);
+        var options = new CsvTextReaderOptions { Tokens = CsvTokens<char>.Windows };
+
+        await foreach (var record in CsvReader.ReadAsync<Entry2_ASCII>(reader, options))
         {
             _ = record;
         }

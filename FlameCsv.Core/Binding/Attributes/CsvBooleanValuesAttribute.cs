@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Exceptions;
@@ -8,8 +9,10 @@ using FlameCsv.Parsers.Utf8;
 namespace FlameCsv.Binding.Attributes;
 
 /// <summary>
-/// Overrides the default parser for the target member. Applicable for <c>bool</c> and <c>bool?</c>.
-/// For nullable booleans, attempts to fetch user defined null token from <see cref="CsvReaderOptions{T}"/>.
+/// Overrides the default parser for the target member. Applicable for <c>bool</c> and <c>bool?</c>
+/// when parsing text or UTF8 bytes.<br/>
+/// For nullable booleans, attempts to fetch user defined null token from the options via
+/// <see cref="ICsvNullTokenProvider{T}"/>.
 /// </summary>
 public class CsvBooleanValuesAttribute : CsvParserOverrideAttribute
 {
@@ -54,6 +57,7 @@ public class CsvBooleanValuesAttribute : CsvParserOverrideAttribute
 
     private ICsvParser<char> CreateForText(Type target, CsvReaderOptions<char> options)
     {
+        // TODO: get rid of linq
         var parser = new BooleanTextParser(
             TrueValues
                 .Select(static t => (t, true))
@@ -63,11 +67,14 @@ public class CsvBooleanValuesAttribute : CsvParserOverrideAttribute
         if (target == typeof(bool))
             return parser;
 
+        Debug.Assert(target == typeof(bool?));
+
         return new NullableParser<char, bool>(parser, FindNullTokens(options));
     }
 
     private ICsvParser<byte> CreateForUtf8(Type target, CsvReaderOptions<byte> options)
     {
+        // TODO: get rid of linq
         var parser = new BooleanUtf8Parser(
             TrueValues
                 .Select(static t => (ToUtf8(t), true))
@@ -76,6 +83,8 @@ public class CsvBooleanValuesAttribute : CsvParserOverrideAttribute
 
         if (target == typeof(bool))
             return parser;
+
+        Debug.Assert(target == typeof(bool?));
 
         return new NullableParser<byte, bool>(parser, FindNullTokens(options));
     }
@@ -86,12 +95,15 @@ public class CsvBooleanValuesAttribute : CsvParserOverrideAttribute
     protected static ReadOnlyMemory<T> FindNullTokens<T>(CsvReaderOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
-        foreach (var parser in options.EnumerateParsers())
+        if (options is ICsvNullTokenProvider<T> ntp)
         {
-            if (parser is NullableParserFactory<T> nullableParserFactory)
+            if (ntp.TryGetOverride(typeof(bool?), out var value) ||
+                ntp.TryGetOverride(typeof(bool), out value))
             {
-                return nullableParserFactory.NullToken;
+                return value;
             }
+
+            return ntp.Default;
         }
 
         return default;

@@ -7,5 +7,4 @@
 [AttributeUsage(CsvBinding.AllowedOn, AllowMultiple = false)]
 public abstract class CsvHeaderConfigurationAttribute : Attribute
 {
-
 }
