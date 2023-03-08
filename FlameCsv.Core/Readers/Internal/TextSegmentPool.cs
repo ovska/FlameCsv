@@ -39,9 +39,11 @@ internal struct TextSegmentPool
         {
             _a = textSegment;
         }
+#pragma warning disable IDE0074 // Use compound assignment
         else if (_b is null)
         {
             _b = textSegment;
         }
+#pragma warning restore IDE0074 // Use compound assignment
     }
 }

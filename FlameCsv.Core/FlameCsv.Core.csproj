@@ -4,6 +4,7 @@
     <Version>0.0.1</Version>
     <RootNamespace>FlameCsv</RootNamespace>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
 
   <ItemGroup>

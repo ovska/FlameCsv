@@ -6,7 +6,6 @@ using System.Text;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Extensions;
-using FlameCsv.Runtime;
 
 namespace FlameCsv.Binding;
 
@@ -28,7 +27,7 @@ public readonly struct CsvBinding : IEquatable<CsvBinding>, IComparable<CsvBindi
 
     public static CsvBinding For<T>(int index, Expression<Func<T, object?>> memberExpression)
     {
-        return ForMember(index, ReflectionUtil.GetMemberFromExpression(memberExpression));
+        return ForMember(index, memberExpression.GetMemberInfo());
     }
 
     public static CsvBinding ForMember(int index, MemberInfo member)
@@ -95,7 +94,6 @@ public readonly struct CsvBinding : IEquatable<CsvBinding>, IComparable<CsvBindi
         CsvBindingType.Field => ((FieldInfo)_object).FieldType,
         CsvBindingType.ConstructorParameter => ((ParameterInfo)_object).ParameterType,
         CsvBindingType.Ignored => typeof(object),
-        // can only get here with default struct
         _ => ThrowHelper.ThrowInvalidOperationException<Type>($"The {nameof(CsvBinding)} struct is uninitialized"),
     };
 
