@@ -36,6 +36,17 @@ public readonly struct CsvBinding : IEquatable<CsvBinding>, IComparable<CsvBindi
         return member is PropertyInfo pi ? new(index, pi) : new(index, (FieldInfo)member);
     }
 
+    internal static CsvBinding FromHeaderBinding(in HeaderBindingArgs candidate)
+    {
+        return candidate.Target switch
+        {
+            PropertyInfo p => new(candidate.Index, p),
+            FieldInfo f => new(candidate.Index, f),
+            ParameterInfo p => new(candidate.Index, p),
+            _ => ThrowHelper.ThrowInvalidOperationException<CsvBinding>("Invalid HeaderBindingArgs"),
+        };
+    }
+
     /// <summary>
     /// The CSV column index of this binding.
     /// </summary>
@@ -123,21 +134,21 @@ public readonly struct CsvBinding : IEquatable<CsvBinding>, IComparable<CsvBindi
     private readonly object _object;
     private readonly CsvBindingType _type;
 
-    public CsvBinding(int index, PropertyInfo property) : this(index, (object)property)
+    public CsvBinding(int index, PropertyInfo property) : this((object)property, index)
     {
         ArgumentNullException.ThrowIfNull(property);
         GuardEx.IsNotInterfaceDefined(property);
         _type = CsvBindingType.Property;
     }
 
-    public CsvBinding(int index, FieldInfo @field) : this(index, (object)@field)
+    public CsvBinding(int index, FieldInfo @field) : this((object)@field, index)
     {
         ArgumentNullException.ThrowIfNull(@field);
         GuardEx.IsNotInterfaceDefined(@field);
         _type = CsvBindingType.Field;
     }
 
-    public CsvBinding(int index, ParameterInfo parameter) : this(index, (object)parameter)
+    public CsvBinding(int index, ParameterInfo parameter) : this((object)parameter, index)
     {
         ArgumentNullException.ThrowIfNull(parameter);
         Guard.IsAssignableToType<ConstructorInfo>(parameter.Member);
@@ -145,12 +156,12 @@ public readonly struct CsvBinding : IEquatable<CsvBinding>, IComparable<CsvBindi
     }
 
     /// <summary>Ctor for ignored column</summary>
-    private CsvBinding(int index) : this(index, Type.Missing)
+    private CsvBinding(int index) : this(Type.Missing, index)
     {
         _type = CsvBindingType.Ignored;
     }
 
-    private CsvBinding(int index, object @object)
+    private CsvBinding(object @object, int index)
     {
         Guard.IsGreaterThanOrEqualTo(index, 0);
         Index = index;

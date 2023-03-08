@@ -3,10 +3,10 @@ using FlameCsv.Binding.Attributes;
 using FlameCsv.Readers;
 
 const string data = """
-id,whocares,name,isadmin,favouriteday
-123,,Bob,true,Friday
-456,,Alice,false,Sunday
-789,,Mallory,,Monday
+id,name,isadmin,favouriteday
+123,Bob,true,Friday
+456,Alice,false,Sunday
+789,Mallory,,Monday
 """;
 
 using var reader = new StringReader(data);
@@ -20,8 +20,6 @@ await foreach (var user in CsvReader.ReadAsync<User>(reader, options))
 {
     Console.WriteLine(user);
 }
-
-Console.ReadKey();
 
 public record class User
 {

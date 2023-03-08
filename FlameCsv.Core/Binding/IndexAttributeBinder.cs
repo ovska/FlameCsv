@@ -73,45 +73,9 @@ internal static class IndexAttributeBinder
         return list;
     }
 
-    internal static ParameterInfo[] FindConstructorParameters<TValue>()
-    {
-        var ctors = typeof(TValue).GetCachedConstructors();
-
-        if (ctors.Length == 0)
-        {
-            return Array.Empty<ParameterInfo>();
-        }
-        else if (ctors.Length == 1)
-        {
-            return ctors[0].GetCachedParameters();
-        }
-
-        ConstructorInfo? parameterlessCtor = null;
-
-        foreach (var ctor in ctors)
-        {
-            var parameters = ctor.GetCachedParameters();
-
-            if (ctor.HasAttribute<CsvConstuctorAttribute>())
-                return parameters;
-
-            if (ctor.GetCachedParameters().Length == 0)
-                parameterlessCtor = ctor;
-        }
-
-        // No explicit ctor found, but found parameterless
-        if (parameterlessCtor is not null)
-        {
-            return Array.Empty<ParameterInfo>();
-        }
-
-        throw new CsvBindingException(
-            $"No [CsvConstructor] or empty constructor found for type {typeof(TValue)}");
-    }
-
     internal static IEnumerable<CsvBinding> GetConstructorBindings<TValue>()
     {
-        foreach (var parameter in FindConstructorParameters<TValue>())
+        foreach (var parameter in ReflectionExtensions.FindConstructorParameters<TValue>())
         {
             bool found = false;
 
@@ -125,12 +89,9 @@ internal static class IndexAttributeBinder
                 }
             }
 
-            if (!found)
+            if (!found && !parameter.HasDefaultValue)
             {
-                // TODO: unify with CsvBindingCollection
-                if (!parameter.HasDefaultValue)
-                    throw new CsvBindingException(
-                        $"Constructor parameter '{parameter.Name}' has no index binding and no default value.");
+                throw new CsvBindingException(typeof(TValue), parameter);
             }
         }
     }

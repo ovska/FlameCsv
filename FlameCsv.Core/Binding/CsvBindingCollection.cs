@@ -188,8 +188,7 @@ public sealed class CsvBindingCollection<TValue>
             // Default value is required
             if (!match.HasValue && !parameter.HasDefaultValue)
             {
-                throw new CsvBindingException(
-                    $"Constructor parameter '{parameter.Name}' has no index binding and no default value.");
+                throw new CsvBindingException(typeof(TValue), parameter);
             }
 
             parameterInfos.Add((match, parameter));
