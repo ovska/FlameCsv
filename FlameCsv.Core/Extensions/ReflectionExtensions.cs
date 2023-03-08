@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
 using FlameCsv.Exceptions;
 
 namespace FlameCsv.Extensions;
@@ -17,22 +16,24 @@ internal static class ReflectionExtensions
     private static readonly ConditionalWeakTable<ParameterInfo, object[]> _paramAttrCache = new();
     private static readonly ConditionalWeakTable<Type, MemberInfo[]> _membersCache = new();
     private static readonly ConditionalWeakTable<ConstructorInfo, ParameterInfo[]> _ctorParamCache = new();
+    private static readonly ConditionalWeakTable<Type, ConstructorInfo[]> _ctorCache = new();
+
+    internal static ConstructorInfo[] GetCachedConstructors(this Type type)
+    {
+        if (!_ctorCache.TryGetValue(type, out var constructors))
+        {
+            _ctorCache.AddOrUpdate(type, constructors = type.GetConstructors(MemberLookupFlags).ForCache());
+        }
+
+        return constructors;
+    }
 
     internal static ParameterInfo[] GetCachedParameters(this ConstructorInfo constructor)
     {
         if (!_ctorParamCache.TryGetValue(constructor, out var parameters))
         {
-            parameters = constructor.GetParameters();
-
-            if (parameters.Length == 0)
-            {
-                parameters = Array.Empty<ParameterInfo>();
-            }
-            else
-            {
-                parameters.AsSpan().Sort((a, b) => a.Position.CompareTo(b.Position));
-            }
-
+            parameters = constructor.GetParameters().ForCache();
+            parameters.AsSpan().Sort(static (a, b) => a.Position.CompareTo(b.Position));
             _ctorParamCache.AddOrUpdate(constructor, parameters);
         }
 
@@ -46,7 +47,8 @@ internal static class ReflectionExtensions
             members = type
                 .GetMembers(MemberLookupFlags)
                 .Where(static m => m is PropertyInfo or FieldInfo)
-                .ToArray();
+                .ToArray()
+                .ForCache();
             _membersCache.AddOrUpdate(type, members);
         }
 
@@ -57,7 +59,7 @@ internal static class ReflectionExtensions
     {
         if (!_memberAttrCache.TryGetValue(obj, out var attributes))
         {
-            _memberAttrCache.AddOrUpdate(obj, attributes = obj.GetCustomAttributes(inherit: true));
+            _memberAttrCache.AddOrUpdate(obj, attributes = obj.GetCustomAttributes(inherit: true).ForCache());
         }
 
         return attributes;
@@ -67,7 +69,7 @@ internal static class ReflectionExtensions
     {
         if (!_paramAttrCache.TryGetValue(obj, out var attributes))
         {
-            _paramAttrCache.AddOrUpdate(obj, attributes = obj.GetCustomAttributes(inherit: false));
+            _paramAttrCache.AddOrUpdate(obj, attributes = obj.GetCustomAttributes(inherit: false).ForCache());
         }
 
         return attributes;

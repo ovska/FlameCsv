@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using FlameCsv;
+﻿using FlameCsv;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Readers;
 
@@ -10,8 +9,6 @@ id,whocares,name,isadmin,favouriteday
 789,,Mallory,,Monday
 """;
 
-var si = Unsafe.SizeOf<ValueTuple>();
-
 using var reader = new StringReader(data);
 var options = new CsvTextReaderOptions
 {
@@ -19,7 +16,7 @@ var options = new CsvTextReaderOptions
     HasHeader = true,
 };
 
-await foreach (var user in CsvReader.ReadAsync<ValueUser>(reader, options))
+await foreach (var user in CsvReader.ReadAsync<User>(reader, options))
 {
     Console.WriteLine(user);
 }

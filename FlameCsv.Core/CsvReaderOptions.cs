@@ -222,7 +222,9 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
 
     internal ReadOnlySpan<ICsvParser<T>> EnumerateParsers()
     {
-        MakeReadOnly();
+        if (!IsReadOnly)
+            MakeReadOnly();
+
         return GetOrInitParsers().Span;
     }
 
