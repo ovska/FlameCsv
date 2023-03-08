@@ -93,4 +93,12 @@ public sealed class CsvBindingException : CsvConfigurationException
         Bindings = new[] { binding };
         TargetType = target;
     }
+
+    public CsvBindingException(
+        Type target,
+        ParameterInfo parameter)
+        :base($"Constructor parameter '{parameter.Name}' had no matching binding and has no default value.")
+    {
+        TargetType = target;
+    }
 }

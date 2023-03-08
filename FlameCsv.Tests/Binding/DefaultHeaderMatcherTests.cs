@@ -14,14 +14,7 @@ public static class DefaultHeaderMatcherTests
     }
 
     private static HeaderBindingArgs GetArgs(int index, MemberInfo? member)
-        => new()
-        {
-            Index = index,
-            Value = member!.Name,
-            Member = member,
-            Order = 0,
-            TargetType = typeof(Shim),
-        };
+        => new(index, member!.Name, member, 0);
 
     [Fact]
     public static void Should_Match_Text_To_Name_Case_Sensitive()

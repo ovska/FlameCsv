@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
 
 namespace FlameCsv.Extensions;
@@ -108,6 +109,49 @@ internal static class ReflectionExtensions
 
         return ThrowMemberNotFound(targetType, memberName);
     }
+
+    public static ParameterInfo[] FindConstructorParameters<TValue>()
+    {
+        var ctors = typeof(TValue).GetCachedConstructors();
+
+        if (ctors.Length == 0)
+        {
+            return Array.Empty<ParameterInfo>();
+        }
+        else if (ctors.Length == 1)
+        {
+            return ctors[0].GetCachedParameters();
+        }
+
+        ConstructorInfo? parameterlessCtor = null;
+
+        foreach (var ctor in ctors)
+        {
+            var parameters = ctor.GetCachedParameters();
+
+            if (ctor.HasAttribute<CsvConstuctorAttribute>())
+                return parameters;
+
+            if (ctor.GetCachedParameters().Length == 0)
+                parameterlessCtor = ctor;
+        }
+
+        // No explicit ctor found, but found parameterless
+        if (parameterlessCtor is not null)
+        {
+            return Array.Empty<ParameterInfo>();
+        }
+
+        throw new CsvBindingException(
+            $"No [CsvConstructor] or empty constructor found for type {typeof(TValue)}");
+    }
+
+    public static bool IsReadOnly(this MemberInfo m) => m switch
+    {
+        PropertyInfo p => !p.CanWrite,
+        FieldInfo f => f.IsInitOnly,
+        _ => true,
+    };
 
     private static MemberInfo ThrowMemberNotFound(Type targetType, string memberName)
     {

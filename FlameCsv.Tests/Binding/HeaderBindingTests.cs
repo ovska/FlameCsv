@@ -20,6 +20,32 @@ public static class HeaderBindingTests
         public int Targeted { get; set; }
     }
 
+    private class ShimWithCtor
+    {
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Intended")]
+        public object? _Targeted { get; }
+
+        public string? Name { get; set; }
+        public bool IsEnabled { get; }
+
+        public ShimWithCtor(
+            [CsvHeader("_targeted")] bool isEnabled)
+        {
+            IsEnabled = isEnabled;
+        }
+    }
+
+    [Fact]
+    public static void Should_Bind_To_Ctor_Parameter()
+    {
+        var binder = new HeaderTextBinder(stringComparison: StringComparison.Ordinal);
+        var bindingCollection = binder.Bind<ShimWithCtor>("Name,_targeted", CsvTextReaderOptions.Default);
+        var byIndex = bindingCollection.Bindings.ToArray().ToDictionary(b => b.Index);
+        Assert.Equal(2, byIndex.Count);
+        Assert.Equal("Name", byIndex[0].Member.Name);
+        Assert.Equal("isEnabled", byIndex[1].Parameter.Name);
+    }
+
     [Theory]
     [InlineData("IsEnabled,Name,_targeted")]
     [InlineData("\"IsEnabled\",\"Name\",\"_targeted\"")]

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Reflection;
 
 namespace FlameCsv.Binding;
@@ -18,25 +19,45 @@ public readonly struct HeaderBindingArgs
     /// <summary>
     /// Column index in the binding attempt.
     /// </summary>
-    public int Index { get; init; }
-
-    /// <summary>
-    /// Type targeted by the binding provider.
-    /// </summary>
-    public Type TargetType { get; init; }
+    public int Index { get; }
 
     /// <summary>
     /// Binding candidate value. May be from member name, custom attribute, or otherwise.
     /// </summary>
-    public string Value { get; init; }
+    public string Value { get; }
 
     /// <summary>
-    /// Target member.
+    /// Target <see cref="MemberInfo"/> or <see cref="ParameterInfo"/>.
     /// </summary>
-    public MemberInfo Member { get; init; }
+    public object Target { get; }
 
     /// <summary>
     /// Order defined for the explicit binding. Default is 0.
     /// </summary>
-    public int Order { get; init; }
+    public int Order { get; }
+
+    public HeaderBindingArgs(int index, string value, MemberInfo target, int order)
+    {
+        Index = index;
+        Value = value;
+        Target = target;
+        Order = order;
+    }
+
+    public HeaderBindingArgs(int index, string value, ParameterInfo target, int order)
+    {
+        Index = index;
+        Value = value;
+        Target = target;
+        Order = order;
+    }
+
+    public HeaderBindingArgs(int index, string value, object target, int order)
+    {
+        Debug.Assert(target is MemberInfo or ParameterInfo);
+        Index = index;
+        Value = value;
+        Target = target;
+        Order = order;
+    }
 }

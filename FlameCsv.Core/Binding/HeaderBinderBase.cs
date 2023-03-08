@@ -1,3 +1,4 @@
+using System.Diagnostics.Metrics;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding.Attributes;
@@ -32,7 +33,7 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
 
     private readonly CsvHeaderMatcher<T> _matcher;
 
-    protected HeaderBinderBase(
+    internal protected HeaderBinderBase(
         CsvHeaderMatcher<T> matcher,
         bool ignoreUnmatched)
     {
@@ -75,14 +76,7 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
 
             foreach (ref readonly var candidate in candidates)
             {
-                HeaderBindingArgs args = new()
-                {
-                    Member = candidate.Member,
-                    Order = candidate.Order,
-                    Value = candidate.Value,
-                    TargetType = typeof(TValue),
-                    Index = index,
-                };
+                HeaderBindingArgs args = new(index, candidate.Value, candidate.Target, candidate.Order);
 
                 if (_matcher(enumerator.Current, in args) is CsvBinding binding)
                 {
@@ -117,33 +111,113 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
     /// <seealso cref="CsvHeaderExcludeAttribute"/>
     private HeaderData GetBindingCandidates<TValue>()
     {
-        if (!_candidateCache.TryGetValue(typeof(TValue), out var candidates))
+        if (!_candidateCache.TryGetValue(typeof(TValue), out var headerData))
         {
-            var members = typeof(TValue).GetCachedPropertiesAndFields()
-                .Where(m => !m.HasAttribute<CsvHeaderExcludeAttribute>())
-                .SelectMany(
-                    static m => m.HasAttribute<CsvHeaderAttribute>(out var attr)
-                        ? attr.Values.Select(v => new HeaderBindingCandidate(v, m, attr.Order))
-                        : Enumerable.Repeat(new HeaderBindingCandidate(m.Name, m, 0), 1));
+            List<HeaderBindingCandidate> candidates = new();
 
-            var targeted = typeof(TValue).GetCachedCustomAttributes()
-                .OfType<CsvHeaderTargetAttribute>()
-                .SelectMany(static attr => attr.GetMembers(typeof(TValue)));
+            foreach (var member in typeof(TValue).GetCachedPropertiesAndFields())
+            {
+                if (member.IsReadOnly())
+                    continue;
 
-            var candidatesList = members.Concat(targeted).ToList();
-            candidatesList.AsSpan().Sort(static (a, b) => b.Order.CompareTo(a.Order));
+                object[] attributes = member.GetCachedCustomAttributes();
 
-            var ignored = typeof(TValue).GetCachedCustomAttributes()
-                .OfType<CsvHeaderIgnoreAttribute>()
-                .FirstOrDefault();
+                bool isExcluded = false;
+                CsvHeaderAttribute? attr = null;
 
-            SpanPredicate<T>? predicate = ignored is not null
-                ? HeaderMatcherDefaults.CheckIgnore<T>(ignored.Values!, ignored.Comparison)
+                foreach (var attribute in attributes)
+                {
+                    if (attribute is CsvHeaderExcludeAttribute)
+                    {
+                        isExcluded = true;
+                        break;
+                    }
+
+                    if (attribute is CsvHeaderAttribute match)
+                    {
+                        attr = match;
+                        break;
+                    }
+                }
+
+                if (isExcluded)
+                {
+                    continue;
+                }
+
+                if (attr is not null)
+                {
+                    candidates.EnsureCapacity(candidates.Count + attr.Values.Length);
+                    foreach (var value in attr.Values)
+                    {
+                        candidates.Add(new HeaderBindingCandidate(value, member, attr.Order));
+                    }
+                }
+                else
+                {
+                    candidates.Add(new HeaderBindingCandidate(member.Name, member, default));
+                }
+            }
+
+            CsvHeaderIgnoreAttribute? ignoreAttribute = null;
+
+            foreach (var attribute in typeof(TValue).GetCachedCustomAttributes())
+            {
+                if (attribute is CsvHeaderTargetAttribute { } attr)
+                {
+                    var member = typeof(TValue).GetPropertyOrField(attr.MemberName);
+                    candidates.EnsureCapacity(candidates.Count + attr.Values.Length);
+
+                    foreach (var value in attr.Values)
+                    {
+                        candidates.Add(new HeaderBindingCandidate(value, member, attr.Order));
+                    }
+                }
+                else
+                {
+                    ignoreAttribute ??= attribute as CsvHeaderIgnoreAttribute;
+                }
+            }
+
+            SpanPredicate<T>? predicate = ignoreAttribute is not null
+                ? HeaderMatcherDefaults.CheckIgnore<T>(ignoreAttribute.Values!, ignoreAttribute.Comparison)
                 : null;
 
-            _candidateCache.AddOrUpdate(typeof(TValue), candidates = new HeaderData(predicate, candidatesList));
+            foreach (var parameter in ReflectionExtensions.FindConstructorParameters<TValue>())
+            {
+                var attributes = parameter.GetCachedParameterAttributes();
+                CsvHeaderAttribute? attr = null;
+
+                foreach (var attribute in attributes)
+                {
+                    if (attribute is CsvHeaderAttribute match)
+                    {
+                        attr = match;
+                        break;
+                    }
+                }
+
+                if (attr is not null)
+                {
+                    candidates.EnsureCapacity(candidates.Count + attr.Values.Length);
+                    foreach (var value in attr.Values)
+                    {
+                        candidates.Add(new HeaderBindingCandidate(value, parameter, attr.Order));
+                    }
+                }
+                else
+                {
+                    candidates.Add(new HeaderBindingCandidate(parameter.Name!, parameter, default));
+                }
+            }
+
+            candidates.AsSpan().Sort(); // sorted by Order
+
+            _candidateCache.AddOrUpdate(typeof(TValue), headerData = new HeaderData(predicate, candidates));
         }
 
-        return candidates;
+        return headerData;
+
+
     }
 }

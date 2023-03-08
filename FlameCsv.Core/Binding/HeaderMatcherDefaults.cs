@@ -47,7 +47,7 @@ internal static class HeaderMatcherDefaults
         CsvBinding? Impl(ReadOnlySpan<char> data, in HeaderBindingArgs args)
         {
             return args.Value.AsSpan().Equals(data, stringComparison)
-                ? CsvBinding.ForMember(args.Index, args.Member)
+                ? CsvBinding.FromHeaderBinding(in args)
                 : null;
         }
     }
@@ -84,7 +84,7 @@ internal static class HeaderMatcherDefaults
             var written = Encoding.UTF8.GetChars(data, buffer);
 
             return args.Value.AsSpan().Equals(buffer[..written], stringComparison)
-                ? CsvBinding.ForMember(args.Index, args.Member)
+                ? CsvBinding.FromHeaderBinding(in args)
                 : null;
         }
     }
