@@ -54,7 +54,7 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
     private CsvCallback<T, bool>? _shouldSkipRow;
     private CsvExceptionHandler<T>? _exceptionHandler;
     private bool _hasHeader;
-    private SecurityLevel _securityLevel = SecurityLevel.NoBufferClearing;
+    private bool _allowContentInExceptions;
     private IHeaderBinder<T>? _headerBinder;
     private ArrayPool<T>? _arrayPool = ArrayPool<T>.Shared;
 
@@ -93,15 +93,12 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
     }
 
     /// <summary>
-    /// Flags determining if the CSV data can be exposed outside FlameCSV and the code running it.
-    /// Default is <see cref="SecurityLevel.NoBufferClearing"/>, which allows pooled memory
-    /// to be returned without clearing them.
+    /// If <see langword="true"/>, CSV content is included in exception messages.
     /// </summary>
-    // TODO: actually propagate this everywhere
-    public SecurityLevel Security
+    public bool AllowContentInExceptions
     {
-        get => _securityLevel;
-        set => SetValue(ref _securityLevel, value);
+        get => _allowContentInExceptions;
+        set => SetValue(ref _allowContentInExceptions, value);
     }
 
     /// <summary>

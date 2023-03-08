@@ -39,7 +39,6 @@ internal readonly struct SequenceView<T> : IDisposable
             _array = _pool.Rent(length);
             sequence.CopyTo(_array);
             Memory = _array.AsMemory(0, length);
-            _clearArray = options.Security.ClearBuffers();
         }
 
         Memory = Memory.Trim(options.tokens.Whitespace.Span);
@@ -48,9 +47,7 @@ internal readonly struct SequenceView<T> : IDisposable
     public void Dispose()
     {
         if (_array is not null)
-        {
-            _pool.Return(_array, _clearArray);
-        }
+            _pool.Return(_array);
     }
 
 #if DEBUG

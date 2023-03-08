@@ -101,7 +101,7 @@ public class CsvReaderOptionsTests
         Run(o => o.HasHeader = default);
         Run(o => o.HeaderBinder = default);
         Run(o => o.ExceptionHandler = default);
-        Run(o => o.Security = default);
+        Run(o => o.AllowContentInExceptions = default);
         Run(o => o.Parsers[0] = new IntegerTextParser());
         Run(o => o.Parsers.Add(new IntegerTextParser()));
         Run(o => o.Parsers.Insert(0, new IntegerTextParser()));

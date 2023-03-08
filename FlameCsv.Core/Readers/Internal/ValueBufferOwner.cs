@@ -24,7 +24,7 @@ internal readonly ref struct ValueBufferOwner<T> where T : unmanaged
     public Span<T> GetSpan(int length)
     {
         ref T[]? array = ref _span[0];
-        _pool.EnsureCapacity(ref array, length); // TODO: buffer clearing
+        _pool.EnsureCapacity(ref array, length);
         return array.AsSpan(0, length);
     }
 }
