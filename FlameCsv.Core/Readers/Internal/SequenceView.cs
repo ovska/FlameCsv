@@ -30,9 +30,7 @@ internal readonly struct SequenceView<T> : IDisposable
         if (sequence.IsSingleSegment)
         {
             Memory = sequence.First;
-            _array = default;
             _pool = default!;
-            _clearArray = default;
         }
         else
         {

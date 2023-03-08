@@ -92,7 +92,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private bool TryReadColumnSpan(
         ReadOnlySpan<T> line,
         int? quoteCount,

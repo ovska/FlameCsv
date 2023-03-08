@@ -95,7 +95,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
 
     public readonly CsvColumnEnumerator<T> GetEnumerator() => this;
 
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.NoInlining)]
     public bool MoveNext()
     {
         if (IsAtEnd)
