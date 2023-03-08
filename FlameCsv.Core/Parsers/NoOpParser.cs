@@ -2,6 +2,7 @@
 
 namespace FlameCsv.Parsers;
 
+// Keep the parsed type in sync with CsvBinding.Type for ignored bindings.
 internal sealed class NoOpParser<T> : ICsvParser<T, object?> where T : unmanaged, IEquatable<T>
 {
     public static NoOpParser<T> Instance { get; } = new NoOpParser<T>();

@@ -1,4 +1,3 @@
-using System.Diagnostics.Metrics;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding.Attributes;

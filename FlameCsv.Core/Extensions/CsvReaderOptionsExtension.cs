@@ -3,8 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.HighPerformance;
-using FastExpressionCompiler;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
@@ -129,9 +127,11 @@ internal static class CsvReaderOptionsExtension
         var lambda = Expression.Lambda<Func<object[], ICsvRowState<T, TResult>>>(
             Expression.Convert(ctorInvoke, typeof(ICsvRowState<T, TResult>)),
             param);
-        var compiled = lambda.CompileFast(flags: CompilerFlags.ThrowOnNotSupportedExpression);
+        var stateFactory = lambda.CompileLambda<Func<object[], ICsvRowState<T, TResult>>>();
 
-        return options =>
+        return CreateStateImpl;
+
+        ICsvRowState<T, TResult> CreateStateImpl(CsvReaderOptions<T> options)
         {
             var bindings = bindingCollection.Bindings;
 
@@ -154,8 +154,8 @@ internal static class CsvReaderOptionsExtension
                 }
             }
 
-            return compiled(rowStateConstructorArgs);
-        };
+            return stateFactory(rowStateConstructorArgs);
+        }
     }
 
     internal static Delegate CreateValueFactory<TResult>(CsvBindingCollection<TResult> bc)
@@ -163,7 +163,7 @@ internal static class CsvReaderOptionsExtension
         ParameterExpression[] parameters = GetParametersByBindingIndex();
         NewExpression newExpr = GetObjectInitialization();
         Expression body = GetExpressionBody();
-        return Expression.Lambda(body, parameters).CompileFast(flags: CompilerFlags.ThrowOnNotSupportedExpression);
+        return Expression.Lambda(body, parameters).CompileLambda<Delegate>();
 
         ParameterExpression[] GetParametersByBindingIndex()
         {

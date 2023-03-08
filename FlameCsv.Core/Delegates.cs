@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Binding;
 
 namespace FlameCsv;
