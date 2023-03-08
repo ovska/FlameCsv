@@ -35,8 +35,8 @@ public struct CsvEnumerator<T> : IEnumerable<CsvRecord<T>>, IEnumerator<CsvRecor
         _position = default;
         _lineIndex = default;
 
-        _recordBuffer = new(options.Security, options.ArrayPool);
-        _multisegmentBuffer = new(options.Security, options.ArrayPool);
+        _recordBuffer = new(options.ArrayPool);
+        _multisegmentBuffer = new(options.ArrayPool);
 
         Current = default;
     }

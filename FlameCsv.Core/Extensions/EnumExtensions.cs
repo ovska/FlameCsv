@@ -10,14 +10,6 @@ internal static class EnumExtensions
 {
     private static readonly ConditionalWeakTable<Type, object> _enumCache = new();
 
-    /// <summary>
-    /// Returns true if <see cref="SecurityLevel.NoBufferClearing"/> is not set.
-    /// </summary>
-    public static bool ClearBuffers(this SecurityLevel security)
-    {
-        return (security & SecurityLevel.NoBufferClearing) != SecurityLevel.NoBufferClearing;
-    }
-
     public static EnumValue<TEnum>[] GetEnumMembers<TEnum>()
         where TEnum : struct, Enum
     {
