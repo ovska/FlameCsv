@@ -1,7 +1,7 @@
 ﻿using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
-using FlameCsv.Extensions;
 
 namespace FlameCsv.Readers.Internal;
 
@@ -13,12 +13,14 @@ internal readonly ref struct ValueBufferOwner<T> where T : unmanaged
     private readonly Span<T[]?> _span;
     private readonly ArrayPool<T> _pool;
 
-    public ValueBufferOwner(ref T[]? span, ArrayPool<T>? pool)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ValueBufferOwner(ref T[]? span, ArrayPool<T> pool)
     {
         _span = MemoryMarshal.CreateSpan(ref span, 1);
-        _pool = pool ?? AllocatingArrayPool<T>.Instance;
+        _pool = pool;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Span<T> GetSpan(int length)
     {
         ref T[]? array = ref _span[0];

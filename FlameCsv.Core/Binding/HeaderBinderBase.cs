@@ -56,7 +56,7 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
             in options.tokens,
             columnCount: null,
             quoteCount: line.Count(options.tokens.StringDelimiter),
-            new ValueBufferOwner<T>(ref bufferOwner._array, options.ArrayPool));
+            new ValueBufferOwner<T>(ref bufferOwner._array, options.ArrayPool ?? AllocatingArrayPool<T>.Instance));
 
         ReadOnlySpan<HeaderBindingCandidate> candidates = headerData.Candidates.AsSpan();
         SpanPredicate<T>? ignorePredicate = headerData.Ignore;
