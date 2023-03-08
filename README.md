@@ -5,7 +5,7 @@
     title="Flames icons created by Flat Icons - Flaticon"
     src="https://user-images.githubusercontent.com/68028366/197605525-a4a8c70f-d757-441b-a26a-adcfaca9ee03.png" />
   <h1 align="center">FlameCsv</h1>
-  <p align="center">High-performance RFC 4180-compliant CSV parsing library for .NET 6</p>
+  <p align="center">High-performance RFC 4180-compliant CSV parsing library for .NET 6+</p>
 </p>
 
 # Examples
@@ -52,6 +52,19 @@ var options = new CsvUtf8ReaderOptions
 await foreach (User record in CsvReader.ReadAsync<User>(File.OpenRead("/home/ovska/test.csv"), options))
 {
     // ...
+}
+```
+
+## Column index binding
+```csharp
+[CsvIndexIgnore(2)]
+record User(
+    [CsvIndex(0)] int Id,
+    [CsvIndex(1)] string Name,
+    bool IsAdmin = false)
+{
+    [CsvIndex(3)]
+    public DateTime Created { get; init; }
 }
 ```
 
