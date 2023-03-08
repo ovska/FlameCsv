@@ -7,7 +7,7 @@ using FlameCsv.Runtime;
 namespace FlameCsv.Binding.Attributes;
 
 /// <inheritdoc/>
-public class CsvParserOverrideAttribute<T, TParser> : CsvParserOverrideAttribute
+public sealed class CsvParserOverrideAttribute<T, TParser> : CsvParserOverrideAttribute
     where T : unmanaged, IEquatable<T>
     where TParser : ICsvParser<T>
 {
@@ -65,7 +65,8 @@ public class CsvParserOverrideAttribute : Attribute
 
         if (ParserType is null)
         {
-            ThrowHelper.ThrowInvalidOperationException("If CreateParser is not overridden, ParserType must be set.");
+            ThrowHelper.ThrowInvalidOperationException(
+                "Default implementation of CreateParser requires ParserType (was null)");
         }
 
         var targetType = binding.Type;
@@ -77,7 +78,7 @@ public class CsvParserOverrideAttribute : Attribute
                 if (!existing.CanParse(targetType))
                 {
                     throw new CsvConfigurationException(
-                        $"Existing instance of parser override for {binding.FormatMember} {ParserType.ToTypeString()} "
+                        $"Existing instance of parser override for {binding} {ParserType.ToTypeString()} "
                         + $"could not parse target member type {targetType.ToTypeString()}");
                 }
 
@@ -97,7 +98,7 @@ public class CsvParserOverrideAttribute : Attribute
                 ? " The type does not have a parameterless constructor."
                 : "";
             throw new CsvConfigurationException(
-                $"Parser override for {binding.FormatMember} {ParserType.ToTypeString()} was not present in the "
+                $"Parser override for {binding} {ParserType.ToTypeString()} was not present in the "
                 + "configuration, and couldn't be created dynamically."
                 + ctorErr,
                 innerException: e);
@@ -106,7 +107,7 @@ public class CsvParserOverrideAttribute : Attribute
         if (!parserOrFactory.CanParse(targetType))
         {
             throw new CsvConfigurationException(
-                $"Dynamically created instance of parser override for {binding.FormatMember} "
+                $"Dynamically created instance of parser override for {binding} "
                 + $"{ParserType.ToTypeString()} can not parse the member type: {targetType.ToTypeString()}");
         }
 

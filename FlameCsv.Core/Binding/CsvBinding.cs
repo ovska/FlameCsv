@@ -247,9 +247,6 @@ public readonly struct CsvBinding : IEquatable<CsvBinding>, IComparable<CsvBindi
     /// </summary>
     public bool TargetEquals(CsvBinding other) => _object == other._object;
 
-    /// <summary><c>"Type.Property"</c></summary>
-    internal string FormatMember => $"{Member.DeclaringType?.Name}.{Member.Name}".TrimStart('.');
-
     /// <summary>Returns the column index and member name.</summary>
     [ExcludeFromCodeCoverage]
     public override string ToString()
