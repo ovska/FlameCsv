@@ -38,6 +38,8 @@ internal static class EnumExtensions
                 Enum.Parse<TEnum>(name),
                 name,
                 fields.Single(f => f.Name.Equals(name)).GetCustomAttribute<EnumMemberAttribute>()?.Value
-            )).ToArray();
+            ))
+            .ToArray()
+            .ForCache();
     }
 }

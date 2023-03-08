@@ -24,31 +24,32 @@ public sealed class CsvBindingCollection<TValue>
     public ReadOnlySpan<CsvBinding> MemberBindings => _memberBindings.AsSpan();
 
     /// <summary>
-    /// Constructor parameter bindings sorted by parameter position, or empty if there are none.
+    /// Constructor parameters and their bindings. Parameters that don't have a binding are guaranteed
+    /// to have a default value.
     /// </summary>
-    public ReadOnlySpan<CsvBinding> ConstructorBindings => _ctorBindings.AsSpan();
+    public ReadOnlySpan<(CsvBinding? binding, ParameterInfo param)> ConstructorParameters => _ctorParameters.AsSpan();
 
     /// <summary>
     /// Return <see langword="true"/> is <see cref="ConstructorBindings"/> is not empty.
     /// </summary>
-    public bool HasConstructorParameters => _ctorBindings.Count != 0;
+    public bool HasConstructorParameters => _ctorParameters?.Count > 0;
 
     /// <summary>
     /// Return <see langword="true"/> is <see cref="MemberBindings"/> is not empty.
     /// </summary>
-    public bool HasMemberInitializers => _memberBindings.Count != 0;
+    public bool HasMemberInitializers => _memberBindings.Count > 0;
 
     /// <summary>
-    /// Returns the constructor defined in <see cref="ConstructorBindings"/>,
-    /// or the parameterless constructor if there is no constructor defined.
+    /// Returns the constructor defined in <see cref="ConstructorBindings"/>.
     /// </summary>
-    public ConstructorInfo Constructor => HasConstructorParameters
-        ? _ctorBindings[0].Constructor
-        : ThrowHelper.ThrowInvalidOperationException<ConstructorInfo>("There is no constructor bindings.");
+    /// <exception cref="InvalidOperationException"/>
+    public ConstructorInfo Constructor => _ctor ??
+        ThrowHelper.ThrowInvalidOperationException<ConstructorInfo>("There is no constructor bindings.");
 
     private readonly List<CsvBinding> _allBindings;
-    private readonly List<CsvBinding> _ctorBindings;
     private readonly List<CsvBinding> _memberBindings;
+    private readonly List<(CsvBinding? binding, ParameterInfo param)>? _ctorParameters;
+    private readonly ConstructorInfo? _ctor;
 
     /// <summary>
     /// Initializes a new binding collection.
@@ -62,8 +63,9 @@ public sealed class CsvBindingCollection<TValue>
     /// <summary>
     /// Internal use only. The parameter list is modified and retained.
     /// </summary>
-    internal CsvBindingCollection(List<CsvBinding> bindingsList, bool _)
+    internal CsvBindingCollection(List<CsvBinding> bindingsList, bool isInternalCall)
     {
+        Debug.Assert(isInternalCall);
         Guard.IsNotEmpty(bindingsList, "bindings");
 
         Span<CsvBinding> bindings = bindingsList.AsSpan();
@@ -130,26 +132,10 @@ public sealed class CsvBindingCollection<TValue>
             { TargetType = typeof(TValue) };
         }
 
-        // Ensure all parameters are accounted for
-        if (ctorBindings.Count != 0)
-        {
-            var parameters = ctor!.GetCachedParameters();
-
-            if (ctorBindings.Count != parameters.Length)
-            {
-                throw new CsvBindingException(
-                    $"All constructor parameters were not accounted for (got {ctorBindings.Count} out of {parameters.Length})",
-                    ctorBindings);
-            }
-
-            // At this point we don't need to validate that the parameters are for the same constructor that
-            // have the correct positions.
-            ctorBindings.AsSpan().Sort(static (a, b) => a.Parameter.Position.CompareTo(b.Parameter.Position));
-        }
-
         _allBindings = bindingsList;
         _memberBindings = memberBindings;
-        _ctorBindings = ctorBindings;
+        _ctor = ctor;
+        _ctorParameters = GetConstructorParameters(ctorBindings, ctor);
 
         static void ThrowIfDuplicate(List<CsvBinding> existing, in CsvBinding binding)
         {
@@ -167,5 +153,51 @@ public sealed class CsvBindingCollection<TValue>
             if (!ctor.Equals(binding.Constructor))
                 throw new CsvBindingException(typeof(TValue), ctor, binding.Constructor) { TargetType = typeof(TValue) };
         }
+    }
+
+    private static List<(CsvBinding? binding, ParameterInfo param)>? GetConstructorParameters(
+        List<CsvBinding> bindingsList,
+        ConstructorInfo? ctor)
+    {
+        if (bindingsList.Count == 0)
+            return null;
+
+        var bindings = bindingsList.AsSpan();
+        var parameters = ctor!.GetCachedParameters();
+
+        // Guard against some weirdness possible by custom header binders
+        if (bindings.Length > parameters.Length)
+            throw new CsvBindingException(
+                $"Invalid constructor bindings, got {bindings.Length} but ctor had {parameters.Length} parameters.");
+
+        List<(CsvBinding? ctorBinding, ParameterInfo param)> parameterInfos = new(parameters.Length);
+
+        foreach (var parameter in parameters)
+        {
+            CsvBinding? match = null;
+
+            foreach (var binding in bindings)
+            {
+                if (binding.Parameter.Equals(parameter))
+                {
+                    match = binding;
+                    break;
+                }
+            }
+
+            // Default value is required
+            if (!match.HasValue && !parameter.HasDefaultValue)
+            {
+                throw new CsvBindingException(
+                    $"Constructor parameter '{parameter.Name}' has no index binding and no default value.");
+            }
+
+            parameterInfos.Add((match, parameter));
+        }
+
+        // At this point we don't need to validate that the parameters are for the same constructor that
+        // have the correct positions.
+        parameterInfos.AsSpan().Sort(static (a, b) => a.param.Position.CompareTo(b.param.Position));
+        return parameterInfos;
     }
 }

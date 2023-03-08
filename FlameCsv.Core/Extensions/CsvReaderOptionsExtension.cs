@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -188,12 +189,34 @@ internal static class CsvReaderOptionsExtension
             if (!bc.HasConstructorParameters)
                 return Expression.New(typeof(TResult));
 
-            var ctorBindings = bc.ConstructorBindings;
-            var result = new ReadOnlyCollectionBuilder<Expression>(ctorBindings.Length);
+            var ctorParameters = bc.ConstructorParameters;
+            var result = new ReadOnlyCollectionBuilder<Expression>(ctorParameters.Length);
 
-            foreach (var binding in ctorBindings)
+            foreach (var (bindingOrNull, parameter) in ctorParameters)
             {
-                result.Add(parameters[binding.Index]);
+                Debug.Assert(bindingOrNull.HasValue || parameter.HasDefaultValue);
+
+                Expression? parameterExpression;
+
+                if (bindingOrNull is CsvBinding binding)
+                {
+                    parameterExpression = parameters[binding.Index];
+                }
+                else if (parameter.DefaultValue is not null)
+                {
+                    parameterExpression = Expression.Constant(parameter.DefaultValue, parameter.ParameterType);
+                }
+                else
+                {
+                    // DefaultValue is either not retrievable (default struct) or is null, applicable for scenarios like:
+                    //  string? s = null
+                    //  int? i = null
+                    //  DateTime date = default
+                    // In all of these cases we can just use default(T)
+                    parameterExpression = Expression.Default(parameter.ParameterType);
+                }
+
+                result.Add(parameterExpression);
             }
 
             return Expression.New(bc.Constructor, result);
