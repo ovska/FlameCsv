@@ -11,6 +11,7 @@ namespace FlameCsv.Binding;
 /// Represents a validated collection of CSV columns bound to properties, fields, or constructor parameters.
 /// </summary>
 /// <typeparam name="TValue">Type represented by the CSV</typeparam>
+[DebuggerDisplay("CsvBindingCollection<{typeof(TValue).Name,nq}>[{_allBindings.Count}]")]
 public sealed class CsvBindingCollection<TValue>
 {
     /// <summary>
@@ -57,7 +58,8 @@ public sealed class CsvBindingCollection<TValue>
     /// </summary>
     /// <param name="bindings">Column bindings</param>
     /// <exception cref="CsvBindingException">Bindings are invalid</exception>
-    public CsvBindingCollection(IEnumerable<CsvBinding<TValue>> bindings) : this(bindings.ToList(), true)
+    public CsvBindingCollection(IEnumerable<CsvBinding<TValue>> bindings)
+        : this(bindings.ToList() ?? throw new ArgumentNullException(nameof(bindings)), true)
     {
     }
 

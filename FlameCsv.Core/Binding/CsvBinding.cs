@@ -22,6 +22,9 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// </summary>
     public bool IsIgnored => ReferenceEquals(Sentinel, Type.Missing);
 
+    /// <summary>
+    /// The target of the binding (member or parameter), or <see cref="Type.Missing"/> if ignored column.
+    /// </summary>
     protected abstract object Sentinel { get; }
 
     internal protected CsvBinding(int index)
@@ -30,25 +33,35 @@ public abstract class CsvBinding : IComparable<CsvBinding>
         Index = index;
     }
 
-    /// <summary>Marks the column at <paramref name="index"/> as ignored.</summary>
+    /// <summary>
+    /// Returns a binding that ignores the column at <paramref name="index"/>.
+    /// </summary>
     public static CsvBinding<T> Ignore<T>(int index)
     {
         CsvBinding<T>.ThrowIfInvalid();
         return new IgnoredCsvBinding<T>(index);
     }
 
+    /// <summary>
+    /// Returns a binding for the specified member.
+    /// </summary>
     public static CsvBinding<T> For<T>(int index, Expression<Func<T, object?>> memberExpression)
     {
         CsvBinding<T>.ThrowIfInvalid();
         return ForMember<T>(index, memberExpression.GetMemberInfo());
     }
 
+    /// <summary>
+    /// Returns a binding for the specified member.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <exception cref="CsvBindingException{T}"></exception>
     public static CsvBinding<T> ForMember<T>(int index, MemberInfo member)
     {
         CsvBinding<T>.ThrowIfInvalid();
         foreach (var data in CsvTypeInfo<T>.Instance.Members)
         {
-            if (AreSameMember(data.Value, member))
+            if (ReferenceEquals(data.Value, member) || AreSameMember(data.Value, member))
             {
                 return new MemberCsvBinding<T>(index, data);
             }
@@ -57,6 +70,10 @@ public abstract class CsvBinding : IComparable<CsvBinding>
         throw new CsvBindingException<T>($"Member {member} is not applicable for type {typeof(T)}");
     }
 
+    /// <summary>
+    /// Returns a binding for the specified parameter.
+    /// </summary>
+    /// <exception cref="CsvBindingException{T}"></exception>
     public static CsvBinding<T> ForParameter<T>(int index, ParameterInfo parameter)
     {
         CsvBinding<T>.ThrowIfInvalid();
@@ -70,13 +87,16 @@ public abstract class CsvBinding : IComparable<CsvBinding>
             $"Parameter {parameter} was not found on the primary constructor of {typeof(T)}");
     }
 
-    public static CsvBinding<T> FromHeaderBinding<T>(in HeaderBindingArgs candidate)
+    /// <summary>
+    /// Returns a binding targeting the specified header binding match.
+    /// </summary>
+    public static CsvBinding<T> FromHeaderBinding<T>(in HeaderBindingArgs args)
     {
         CsvBinding<T>.ThrowIfInvalid();
-        return candidate.Target switch
+        return args.Target switch
         {
-            MemberInfo m => ForMember<T>(candidate.Index, m),
-            ParameterInfo p => ForParameter<T>(candidate.Index, p),
+            MemberInfo m => ForMember<T>(args.Index, m),
+            ParameterInfo p => ForParameter<T>(args.Index, p),
             _ => ThrowHelper.ThrowInvalidOperationException<CsvBinding<T>>("Invalid HeaderBindingArgs"),
         };
     }
@@ -87,6 +107,9 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// </summary>
     public bool TargetEquals(CsvBinding other) => AreSame(Sentinel, other.Sentinel);
 
+    /// <summary>
+    /// Returns true if the objects are the same instance, or both are the same member.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected static bool AreSame(object a, object b)
     {
@@ -94,6 +117,10 @@ public abstract class CsvBinding : IComparable<CsvBinding>
             || (a is MemberInfo ma && b is MemberInfo mb && AreSameMember(ma, mb));
     }
 
+    /// <summary>
+    /// Returns true if the objects represent the same member, even if they belong to
+    /// another type in the inheritance chain.
+    /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static bool AreSameMember(MemberInfo a, MemberInfo b)
     {

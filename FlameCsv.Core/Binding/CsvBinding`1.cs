@@ -8,16 +8,6 @@ public abstract class CsvBinding<T> :
     IEquatable<CsvBinding>,
     IEquatable<CsvBinding<T>>
 {
-#pragma warning disable RCS1158 // Static member in generic type should use a type parameter.
-    internal static readonly bool _isInvalid = typeof(T).IsInterface;
-
-    internal static void ThrowIfInvalid()
-    {
-        if (_isInvalid)
-            throw new NotSupportedException("Interface binding is not supported");
-    }
-#pragma warning restore RCS1158 // Static member in generic type should use a type parameter.
-
     protected internal CsvBinding(int index) : base(index)
     {
     }
@@ -54,10 +44,7 @@ public abstract class CsvBinding<T> :
     public bool Equals(CsvBinding<T>? other) => Equals(other as CsvBinding);
 
     /// <inheritdoc/>
-    public bool Equals(CsvBinding? other)
-    {
-        return other is not null && Index == other.Index && TargetEquals(other);
-    }
+    public bool Equals(CsvBinding? other) => other is not null && Index == other.Index && TargetEquals(other);
 
     /// <inheritdoc/>
     public override bool Equals(object? obj) => Equals(obj as CsvBinding);
@@ -82,4 +69,14 @@ public abstract class CsvBinding<T> :
     }
 
     protected abstract void PrintDetails(StringBuilder sb);
+
+#pragma warning disable RCS1158 // Static member in generic type should use a type parameter.
+    internal static readonly bool _isInvalid = typeof(T).IsInterface;
+
+    internal static void ThrowIfInvalid()
+    {
+        if (_isInvalid)
+            throw new NotSupportedException("Interface binding is not supported");
+    }
+#pragma warning restore RCS1158 // Static member in generic type should use a type parameter.
 }
