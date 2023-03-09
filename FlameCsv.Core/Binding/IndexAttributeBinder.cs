@@ -1,47 +1,24 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Binding;
 
-internal static class IndexAttributeBinder
+internal static class IndexAttributeBinder<TValue>
 {
-    private static readonly ConditionalWeakTable<Type, object?> _bindingCache = new();
+    private static readonly Lazy<CsvBindingCollection<TValue>?> _bindingsLazy = new(CreateBindingCollection);
 
-    public static bool TryGet<TValue>([NotNullWhen(true)] out CsvBindingCollection<TValue>? bindings)
+    public static bool TryGetBindings([NotNullWhen(true)] out CsvBindingCollection<TValue>? bindings)
     {
-        if (!_bindingCache.TryGetValue(typeof(TValue), out var obj))
-        {
-            var list = GetBindings<TValue>();
-
-            if (list.Count > 0)
-            {
-                obj = new CsvBindingCollection<TValue>(list, isInternalCall: true);
-            }
-            else
-            {
-                obj = null;
-            }
-
-            _bindingCache.AddOrUpdate(typeof(TValue), obj);
-        }
-
-        if (obj is null)
-        {
-            bindings = null;
-            return false;
-        }
-
-        bindings = (CsvBindingCollection<TValue>)obj;
-        return true;
+        return (bindings = _bindingsLazy.Value) is not null;
     }
 
-    internal static List<CsvBinding> GetBindings<TValue>()
+    private static CsvBindingCollection<TValue>? CreateBindingCollection()
     {
         List<CsvBinding> list = new();
 
+        // Member attributes
         foreach (var member in typeof(TValue).GetCachedPropertiesAndFields())
         {
             foreach (var attribute in member.GetCachedCustomAttributes())
@@ -54,6 +31,7 @@ internal static class IndexAttributeBinder
             }
         }
 
+        // Type targeted attributes
         foreach (var attr in typeof(TValue).GetCachedCustomAttributes())
         {
             if (attr is CsvIndexTargetAttribute targetAttribute)
@@ -66,13 +44,7 @@ internal static class IndexAttributeBinder
             }
         }
 
-        list.AddRange(GetConstructorBindings<TValue>());
-
-        return list;
-    }
-
-    internal static IEnumerable<CsvBinding> GetConstructorBindings<TValue>()
-    {
+        // Primary constructor parameters
         foreach (var parameter in ReflectionExtensions.FindConstructorParameters<TValue>())
         {
             bool found = false;
@@ -81,7 +53,7 @@ internal static class IndexAttributeBinder
             {
                 if (attr is CsvIndexAttribute { Index: var index })
                 {
-                    yield return new CsvBinding(index, parameter);
+                    list.Add(new CsvBinding(index, parameter));
                     found = true;
                     break;
                 }
@@ -92,5 +64,9 @@ internal static class IndexAttributeBinder
                 throw new CsvBindingException(typeof(TValue), parameter);
             }
         }
+
+        return list.Count > 0
+            ? new CsvBindingCollection<TValue>(list, isInternalCall: true)
+            : null;
     }
 }

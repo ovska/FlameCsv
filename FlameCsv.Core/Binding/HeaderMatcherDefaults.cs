@@ -32,7 +32,6 @@ internal static class HeaderMatcherDefaults
         throw NotSupportedGeneric<T>();
     }
 
-
     /// <summary>
     /// Matches member names to the column using the specified comparison.
     /// </summary>
