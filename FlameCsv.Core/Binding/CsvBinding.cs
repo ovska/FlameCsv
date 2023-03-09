@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using System.Diagnostics.Metrics;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
@@ -9,7 +10,7 @@ using FlameCsv.Reflection;
 
 namespace FlameCsv.Binding;
 
-public abstract class CsvBinding
+public abstract class CsvBinding : IComparable<CsvBinding>
 {
     /// <summary>
     /// The CSV column index of this binding.
@@ -65,7 +66,8 @@ public abstract class CsvBinding
                 return new ParameterCsvBinding<T>(index, data);
         }
 
-        throw new NotImplementedException(); // TODO
+        throw new CsvBindingException<T>(
+            $"Parameter {parameter} was not found on the primary constructor of {typeof(T)}");
     }
 
     public static CsvBinding<T> FromHeaderBinding<T>(in HeaderBindingArgs candidate)
@@ -96,5 +98,11 @@ public abstract class CsvBinding
     private static bool AreSameMember(MemberInfo a, MemberInfo b)
     {
         return a.MetadataToken == b.MetadataToken && a.Module == b.Module;
+    }
+
+    /// <inheritdoc/>
+    public int CompareTo(CsvBinding? other)
+    {
+        return other is null ? 1 : Index.CompareTo(other.Index);
     }
 }

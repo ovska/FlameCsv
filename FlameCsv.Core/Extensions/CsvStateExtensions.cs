@@ -71,17 +71,6 @@ internal static partial class CsvStateExtensions
     {
         ConstructorInfo rowStateCtor = CsvRowState.GetConstructor<T, TResult>(bindingCollection.Bindings);
 
-        // don't create the dictionary unless needed, overrides should be relatively rare
-        Dictionary<int, CsvParserOverrideAttribute>? _overrides = null;
-
-        for (int i = 0; i < bindingCollection.Bindings.Length; i++)
-        {
-            if (bindingCollection.Bindings[i].TryGetAttribute<CsvParserOverrideAttribute>(out var @override))
-            {
-                (_overrides ??= new())[i] = @override;
-            }
-        }
-
         var param = Expression.Parameter(typeof(object[]), "args");
         var ctorInvoke = Expression.New(
             rowStateCtor,
@@ -107,21 +96,25 @@ internal static partial class CsvStateExtensions
 
             for (int i = 0; i < bindings.Length; i++)
             {
-                if (bindings[i].IsIgnored)
-                {
-                    rowStateConstructorArgs[i + 1] = NoOpParser<T>.Instance;
-                }
-                else if (_overrides is not null && _overrides.TryGetValue(i, out var @override))
-                {
-                    rowStateConstructorArgs[i + 1] = @override.CreateParser(bindings[i].Type, options);
-                }
-                else
-                {
-                    rowStateConstructorArgs[i + 1] = options.GetParser(bindings[i].Type);
-                }
+                rowStateConstructorArgs[i + 1] = ResolveParser(bindings[i], options);
             }
 
             return stateFactory(rowStateConstructorArgs);
+        }
+
+        static ICsvParser<T> ResolveParser(CsvBinding<TResult> binding, CsvReaderOptions<T> options)
+        {
+            if (binding.IsIgnored)
+            {
+                return NoOpParser<T>.Instance;
+            }
+
+            if (binding.TryGetAttribute<CsvParserOverrideAttribute>(out var @override))
+            {
+                return @override.CreateParser(binding.Type, options);
+            }
+
+            return options.GetParser(binding.Type);
         }
     }
 
@@ -151,6 +144,9 @@ internal static partial class CsvStateExtensions
             return array;
         }
 
+        // returns object initialization expr, either new T()
+        // -- or --
+        // if there are ctor parameters: new T(arg0, arg1)
         NewExpression GetObjectInitialization()
         {
             if (!bc.HasConstructorParameters)
@@ -189,6 +185,9 @@ internal static partial class CsvStateExtensions
             return Expression.New(bc.Constructor, result);
         }
 
+        // returns either the new T(arg0, arg1) -expression
+        // -- or -- 
+        // member initialization: new T(arg0, arg1) { Prop = arg1 }
         Expression GetExpressionBody()
         {
             if (!bc.HasMemberInitializers)
