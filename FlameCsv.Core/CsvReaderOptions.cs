@@ -24,6 +24,7 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
 
     /// <summary>
     /// Whether the options instance is sealed and can no longer be modified.
+    /// Options become read only after they begin being used to avoid concurrency bugs.
     /// </summary>
     public bool IsReadOnly { get; private set; }
 
@@ -63,7 +64,7 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
     /// <typeparamref name="T"/> and to uninitialized on unsupported types.
     /// </summary>
     /// <seealso cref="CsvTokens{T}.Windows"/>
-    /// <exception cref="CsvConfigurationException">Thrown invalid options are set.</exception>
+    /// <exception cref="CsvConfigurationException">Thrown if invalid options are set</exception>
     public CsvTokens<T> Tokens
     {
         get => tokens;
@@ -93,7 +94,8 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
     }
 
     /// <summary>
-    /// If <see langword="true"/>, CSV content is included in exception messages.
+    /// If <see langword="true"/>, CSV content is included in exception messages. Default is
+    /// <see langword="false"/>, which will only show the CSV structure relative to <see cref="Tokens"/>.
     /// </summary>
     public bool AllowContentInExceptions
     {
@@ -142,7 +144,6 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
     /// Modifying the collection after the options instance is used (<see cref="IsReadOnly"/> is <see langword="true"/>)
     /// results in an exception.
     /// </remarks>
-    /// <exception cref="InvalidOperationException"/>
     public IList<ICsvParser<T>> Parsers => _parsers ?? GetOrInitParsers();
 
     private ParserList? _parsers;

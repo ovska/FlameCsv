@@ -15,12 +15,14 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
     private sealed class HeaderData
     {
         public SpanPredicate<T>? Ignore { get; }
-        public List<HeaderBindingCandidate> Candidates { get; }
+        public ReadOnlySpan<HeaderBindingCandidate> Candidates => _candidates.AsSpan();
+
+        private readonly List<HeaderBindingCandidate> _candidates;
 
         public HeaderData(SpanPredicate<T>? ignore, List<HeaderBindingCandidate> candidates)
         {
             Ignore = ignore;
-            Candidates = candidates;
+            _candidates = candidates;
         }
     }
 
@@ -59,7 +61,6 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
             quoteCount: line.Count(options.tokens.StringDelimiter),
             new ValueBufferOwner<T>(ref bufferOwner._array, options.ArrayPool ?? AllocatingArrayPool<T>.Instance));
 
-        ReadOnlySpan<HeaderBindingCandidate> candidates = headerData.Candidates.AsSpan();
         SpanPredicate<T>? ignorePredicate = headerData.Ignore;
 
         while (enumerator.MoveNext())
@@ -73,7 +74,7 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
 
             bool found = false;
 
-            foreach (ref readonly var candidate in candidates)
+            foreach (ref readonly var candidate in headerData.Candidates)
             {
                 HeaderBindingArgs args = new(index, candidate.Value, candidate.Target, candidate.Order);
 
