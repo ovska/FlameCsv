@@ -19,3 +19,5 @@ public interface ICsvNullTokenProvider<T> where T : unmanaged, IEquatable<T>
     /// <returns>True if the override was found</returns>
     bool TryGetOverride(Type type, out ReadOnlyMemory<T> value);
 }
+
+

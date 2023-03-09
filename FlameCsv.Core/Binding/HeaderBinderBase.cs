@@ -61,7 +61,6 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
         ReadOnlySpan<HeaderBindingCandidate> candidates = headerData.Candidates.AsSpan();
         SpanPredicate<T>? ignorePredicate = headerData.Ignore;
 
-        // TODO: clean up this loop
         while (enumerator.MoveNext())
         {
             if (ignorePredicate is not null && ignorePredicate(enumerator.Current))
@@ -89,9 +88,10 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
             {
                 if (!IgnoreUnmatched)
                 {
-                    // TODO: check Securitylevel
                     throw new CsvBindingException(
-                        $"Column {index} could not be bound to a member of {typeof(TValue)}");
+                        $"Column {index} could not be bound to a member of {typeof(TValue)}: Column " +
+                        enumerator.Current.AsPrintableString(options.AllowContentInExceptions, in options.tokens) +
+                        ", Line: " + line.AsPrintableString(options.AllowContentInExceptions, in options.tokens));
                 }
 
                 foundBindings.Add(CsvBinding.Ignore(index));

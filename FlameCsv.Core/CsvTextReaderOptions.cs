@@ -29,9 +29,11 @@ public sealed class CsvTextReaderOptions :
     CsvReaderOptions<char>,
     ICsvNullTokenProvider<char>
 {
+    private static readonly Lazy<CsvTextReaderOptions> _default = new(() => new(_: true));
+
     /// <summary>Returns a thread-safe read only singleton instance with default options.</summary>
     /// <remarks>Create a new instance if you need to configure the options or parsers.</remarks>
-    public static CsvTextReaderOptions Default => CsvReaderOptionsDefaults.Text;
+    public static CsvTextReaderOptions Default => _default.Value;
 
     private StringPool? _stringPool;
     private IFormatProvider? _formatProvider;
@@ -58,6 +60,8 @@ public sealed class CsvTextReaderOptions :
         _integerNumberStyles = NumberStyles.Integer;
         _decimalNumberStyles = NumberStyles.Float;
     }
+
+    private CsvTextReaderOptions(bool _) : this() => MakeReadOnly();
 
     /// <summary>
     /// String pool to use by default for all strings. If set, <see cref="PoolingStringTextParser"/> is used

@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text;
 using FlameCsv.Parsers.Text;
 
 namespace FlameCsv.Tests;
@@ -12,7 +11,7 @@ public class CsvReaderOptionsTests
         var c1 = new CultureInfo("fi");
         var c2 = new CultureInfo("se");
 
-        var config = new CsvReaderOptions<char>
+        var options = new CsvReaderOptions<char>
         {
             Parsers =
             {
@@ -21,53 +20,57 @@ public class CsvReaderOptionsTests
             },
         };
 
-        Assert.Equal(c2, ((IntegerTextParser)config.GetParser<int>()).FormatProvider);
+        Assert.Equal(c2, ((IntegerTextParser)options.GetParser<int>()).FormatProvider);
     }
 
     [Fact]
     public void Should_Return_Text_Defaults()
     {
-        var config = CsvTextReaderOptions.Default;
+        var options = CsvTextReaderOptions.Default;
+        Assert.True(options.IsReadOnly);
 
-        Assert.Equal("\r\n", config.Tokens.NewLine.ToArray());
+        Assert.Equal("\r\n", options.Tokens.NewLine.ToArray());
 
-        var boolParser = config.GetParser<bool>();
+        var boolParser = options.GetParser<bool>();
         Assert.True(boolParser.TryParse("true", out var bValue));
         Assert.True(bValue);
 
-        var intParser = config.GetParser<ushort>();
+        var intParser = options.GetParser<ushort>();
         Assert.True(intParser.TryParse("1234", out var iValue));
         Assert.Equal(1234, iValue);
 
-        var nullEnumParser = config.GetParser<DayOfWeek>();
+        var nullEnumParser = options.GetParser<DayOfWeek>();
         Assert.True(nullEnumParser.TryParse("Monday", out var mndy));
         Assert.Equal(DayOfWeek.Monday, mndy);
 
-        Assert.Null(config.TryGetParser(typeof(Type)));
+        Assert.Null(options.TryGetParser(typeof(Type)));
+
+        Assert.Same(options, CsvTextReaderOptions.Default);
     }
 
     [Fact]
     public void Should_Return_Utf8_Defaults()
     {
-        var config = CsvUtf8ReaderOptions.Default;
+        var options = CsvUtf8ReaderOptions.Default;
+        Assert.True(options.IsReadOnly);
 
-        Assert.Equal(U8("\r\n"), config.Tokens.NewLine.ToArray());
+        Assert.Equal("\r\n"u8.ToArray(), options.Tokens.NewLine.ToArray());
 
-        var boolParser = config.GetParser<bool>();
-        Assert.True(boolParser.TryParse(U8("true"), out var bValue));
+        var boolParser = options.GetParser<bool>();
+        Assert.True(boolParser.TryParse("true"u8, out var bValue));
         Assert.True(bValue);
 
-        var intParser = config.GetParser<ushort>();
-        Assert.True(intParser.TryParse(U8("1234"), out var iValue));
+        var intParser = options.GetParser<ushort>();
+        Assert.True(intParser.TryParse("1234"u8, out var iValue));
         Assert.Equal(1234, iValue);
 
-        var nullEnumParser = config.GetParser<DayOfWeek>();
-        Assert.True(nullEnumParser.TryParse(U8("Monday"), out var mndy));
+        var nullEnumParser = options.GetParser<DayOfWeek>();
+        Assert.True(nullEnumParser.TryParse("Monday"u8, out var mndy));
         Assert.Equal(DayOfWeek.Monday, mndy);
 
-        Assert.Null(config.TryGetParser(typeof(Type)));
+        Assert.Null(options.TryGetParser(typeof(Type)));
 
-        static byte[] U8(string input) => Encoding.UTF8.GetBytes(input);
+        Assert.Same(options, CsvUtf8ReaderOptions.Default);
     }
 
     [Fact]
@@ -75,18 +78,18 @@ public class CsvReaderOptionsTests
     {
         Assert.Throws<ArgumentException>(() => CsvReaderOptions<char>.SkipIfStartsWith(default));
 
-        var options = CsvTokens<char>.Windows with { Whitespace = " ".AsMemory() };
+        var tokens = CsvTokens<char>.Windows with { Whitespace = " ".AsMemory() };
         var commentfn = CsvReaderOptions<char>.SkipIfStartsWith("#", skipEmptyOrWhitespace: false);
-        Assert.True(commentfn("#test", in options));
-        Assert.False(commentfn("t#est", in options));
-        Assert.False(commentfn("", in options));
-        Assert.False(commentfn(" ", in options));
+        Assert.True(commentfn("#test", in tokens));
+        Assert.False(commentfn("t#est", in tokens));
+        Assert.False(commentfn("", in tokens));
+        Assert.False(commentfn(" ", in tokens));
 
         var commentOrEmpty = CsvReaderOptions<char>.SkipIfStartsWith("#", skipEmptyOrWhitespace: true);
-        Assert.True(commentOrEmpty("#test", in options));
-        Assert.False(commentOrEmpty("t#est", in options));
-        Assert.True(commentOrEmpty("", in options));
-        Assert.True(commentOrEmpty(" ", in options));
+        Assert.True(commentOrEmpty("#test", in tokens));
+        Assert.False(commentOrEmpty("t#est", in tokens));
+        Assert.True(commentOrEmpty("", in tokens));
+        Assert.True(commentOrEmpty(" ", in tokens));
     }
 
     [Fact]

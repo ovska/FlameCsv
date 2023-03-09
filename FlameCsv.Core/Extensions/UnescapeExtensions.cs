@@ -175,7 +175,7 @@ internal static class UnescapeExtensions
         return ThrowInvalidUnescape(source.Span, quote, quoteCount);
     }
 
-    /// <exception cref="InvalidOperationException">
+    /// <exception cref="UnreachableException">
     /// The data and/or the supplied quote count parameter were invalid. 
     /// </exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -211,7 +211,7 @@ internal static class UnescapeExtensions
 
         error.Append(']');
 
-        throw new InvalidOperationException(
+        throw new UnreachableException(
             $"Internal error, failed to unescape (token: {typeof(T).ToTypeString()}): {error}");
     }
 }

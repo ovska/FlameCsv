@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
+using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Readers.Internal;
 
@@ -65,6 +66,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
     /// <param name="tokens">Structural tokens</param>
     /// <param name="columnCount">Amount of columns expected, null if not known</param>
     /// <param name="quoteCount">Known string delimiter count on the line</param>
+    /// <param name="exposeContent">Whether CSV content is exposed in exceptions</param>
     /// <param name="buffer">Provides the buffer needed to unescape possible quotes insides strings</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvColumnEnumerator(
@@ -189,7 +191,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private readonly void ThrowTooManyColumns(int index)
     {
-        throw new InvalidDataException(
+        throw new CsvFormatException(
             $"Too many columns read, expected {Column} to be the last but found delimiter "
             + $"at line index {_remaining.Length + index}");
     }
@@ -201,9 +203,15 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private readonly bool ThrowInvalidEOF()
     {
-        throw new InvalidDataException(
-            $"Line ended prematurely, expected {_columnCount} but read {Column} "
-            + $"with {_quotesRemaining} string delimiters remaining.");
+        if (_columnCount.HasValue)
+        {
+            throw new CsvFormatException(
+                $"Line ended prematurely, expected {_columnCount} columns but read {Column} "
+                + $"with {_quotesRemaining} string delimiters remaining.");
+        }
+
+        throw new CsvFormatException(
+            $"Line ended prematurely with {_quotesRemaining} string delimiters remaining (unknown total column count).");
     }
 
     /// <exception cref="InvalidDataException">
@@ -212,6 +220,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private readonly void ThrowNotAllColumnsRead()
     {
-        throw new InvalidDataException($"Expected {_columnCount} columns to have been read, but read {Column}");
+        throw new CsvFormatException(
+            $"Expected all {_columnCount} column(s) to have been read, but there were {Column}");
     }
 }
