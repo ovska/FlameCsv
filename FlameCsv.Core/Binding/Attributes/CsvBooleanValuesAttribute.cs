@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Text;
-using CommunityToolkit.Diagnostics;
 using FlameCsv.Exceptions;
 using FlameCsv.Parsers;
 using FlameCsv.Parsers.Text;
@@ -27,17 +26,14 @@ public class CsvBooleanValuesAttribute : CsvParserOverrideAttribute
     public string[] FalseValues { get; set; } = Array.Empty<string>();
 
     /// <inheritdoc/>
-    public override ICsvParser<T> CreateParser<T>(CsvBinding binding, CsvReaderOptions<T> options)
+    public override ICsvParser<T> CreateParser<T>(Type targetType, CsvReaderOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        Guard.IsFalse(binding.IsIgnored);
 
-        Type target = binding.Type;
-
-        if (target != typeof(bool) && target != typeof(bool?))
+        if (targetType != typeof(bool) && targetType != typeof(bool?))
         {
             throw new CsvConfigurationException(
-                $"{nameof(CsvBooleanValuesAttribute)} was applied on a member with invalid type: {binding}");
+                $"{nameof(CsvBooleanValuesAttribute)} was applied on a member with invalid type: {targetType}");
         }
 
         if (!(TrueValues?.Length > 0 && FalseValues?.Length > 0))
@@ -46,10 +42,10 @@ public class CsvBooleanValuesAttribute : CsvParserOverrideAttribute
         }
 
         if (typeof(T) == typeof(char))
-            return (ICsvParser<T>)CreateForText(target, (CsvReaderOptions<char>)(object)options);
+            return (ICsvParser<T>)CreateForText(targetType, (CsvReaderOptions<char>)(object)options);
 
         if (typeof(T) == typeof(byte))
-            return (ICsvParser<T>)CreateForUtf8(target, (CsvReaderOptions<byte>)(object)options);
+            return (ICsvParser<T>)CreateForUtf8(targetType, (CsvReaderOptions<byte>)(object)options);
 
         throw new NotSupportedException($"Token type {typeof(T)} is not supported by {nameof(CsvBooleanValuesAttribute)}");
     }

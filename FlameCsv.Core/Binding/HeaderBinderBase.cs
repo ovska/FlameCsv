@@ -5,6 +5,7 @@ using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Readers;
 using FlameCsv.Readers.Internal;
+using FlameCsv.Reflection;
 
 namespace FlameCsv.Binding;
 
@@ -30,10 +31,10 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
     /// </summary>
     public bool IgnoreUnmatched { get; }
 
-    private readonly CsvHeaderMatcher<T> _matcher;
+    private readonly ICsvHeaderMatcher<T> _matcher;
 
     internal protected HeaderBinderBase(
-        CsvHeaderMatcher<T> matcher,
+        ICsvHeaderMatcher<T> matcher,
         bool ignoreUnmatched)
     {
         ArgumentNullException.ThrowIfNull(matcher);
@@ -46,7 +47,7 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
     {
         HeaderData headerData = GetBindingCandidates<TValue>();
 
-        List<CsvBinding> foundBindings = new();
+        List<CsvBinding<TValue>> foundBindings = new();
         int index = 0;
 
         using var bufferOwner = new BufferOwner<T>(options);
@@ -65,7 +66,7 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
         {
             if (ignorePredicate is not null && ignorePredicate(enumerator.Current))
             {
-                foundBindings.Add(CsvBinding.Ignore(index));
+                foundBindings.Add(CsvBinding.Ignore<TValue>(index));
                 index++;
                 continue;
             }
@@ -76,7 +77,9 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
             {
                 HeaderBindingArgs args = new(index, candidate.Value, candidate.Target, candidate.Order);
 
-                if (_matcher(enumerator.Current, in args) is CsvBinding binding)
+                CsvBinding<TValue>? binding = _matcher.TryMatch<TValue>(enumerator.Current, in args);
+
+                if (binding is not null)
                 {
                     foundBindings.Add(binding);
                     found = true;
@@ -94,7 +97,7 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
                         ", Line: " + line.AsPrintableString(options.AllowContentInExceptions, in options.tokens));
                 }
 
-                foundBindings.Add(CsvBinding.Ignore(index));
+                foundBindings.Add(CsvBinding.Ignore<TValue>(index));
             }
 
             index++;
@@ -112,19 +115,19 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
     {
         if (!_candidateCache.TryGetValue(typeof(TValue), out var headerData))
         {
+            var typeInfo = CsvTypeInfo<TValue>.Instance;
+
             List<HeaderBindingCandidate> candidates = new();
 
-            foreach (var member in typeof(TValue).GetCachedPropertiesAndFields())
+            foreach (var member in typeInfo.Members)
             {
-                if (member.IsReadOnly())
+                if (member.IsReadOnly)
                     continue;
-
-                object[] attributes = member.GetCachedCustomAttributes();
 
                 bool isExcluded = false;
                 CsvHeaderAttribute? attr = null;
 
-                foreach (var attribute in attributes)
+                foreach (var attribute in member.Attributes)
                 {
                     if (attribute is CsvHeaderExcludeAttribute)
                     {
@@ -149,27 +152,27 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
                     candidates.EnsureCapacity(candidates.Count + attr.Values.Length);
                     foreach (var value in attr.Values)
                     {
-                        candidates.Add(new HeaderBindingCandidate(value, member, attr.Order));
+                        candidates.Add(new HeaderBindingCandidate(value, member.Value, attr.Order));
                     }
                 }
                 else
                 {
-                    candidates.Add(new HeaderBindingCandidate(member.Name, member, default));
+                    candidates.Add(new HeaderBindingCandidate(member.Value.Name, member.Value, default));
                 }
             }
 
             CsvHeaderIgnoreAttribute? ignoreAttribute = null;
 
-            foreach (var attribute in typeof(TValue).GetCachedCustomAttributes())
+            foreach (var attribute in typeInfo.Attributes)
             {
                 if (attribute is CsvHeaderTargetAttribute { } attr)
                 {
-                    var member = typeof(TValue).GetPropertyOrField(attr.MemberName);
+                    var member = typeInfo.GetPropertyOrField(attr.MemberName);
                     candidates.EnsureCapacity(candidates.Count + attr.Values.Length);
 
                     foreach (var value in attr.Values)
                     {
-                        candidates.Add(new HeaderBindingCandidate(value, member, attr.Order));
+                        candidates.Add(new HeaderBindingCandidate(value, member.Value, attr.Order));
                     }
                 }
                 else
@@ -182,12 +185,11 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
                 ? HeaderMatcherDefaults.CheckIgnore<T>(ignoreAttribute.Values!, ignoreAttribute.Comparison)
                 : null;
 
-            foreach (var parameter in ReflectionExtensions.FindConstructorParameters<TValue>())
+            foreach (var parameter in typeInfo.ConstructorParameters)
             {
-                var attributes = parameter.GetCachedParameterAttributes();
                 CsvHeaderAttribute? attr = null;
 
-                foreach (var attribute in attributes)
+                foreach (var attribute in parameter.Attributes)
                 {
                     if (attribute is CsvHeaderAttribute match)
                     {
@@ -201,12 +203,12 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
                     candidates.EnsureCapacity(candidates.Count + attr.Values.Length);
                     foreach (var value in attr.Values)
                     {
-                        candidates.Add(new HeaderBindingCandidate(value, parameter, attr.Order));
+                        candidates.Add(new HeaderBindingCandidate(value, parameter.Value, attr.Order));
                     }
                 }
                 else
                 {
-                    candidates.Add(new HeaderBindingCandidate(parameter.Name!, parameter, default));
+                    candidates.Add(new HeaderBindingCandidate(parameter.Value.Name!, parameter.Value, default));
                 }
             }
 
@@ -216,7 +218,5 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
         }
 
         return headerData;
-
-
     }
 }

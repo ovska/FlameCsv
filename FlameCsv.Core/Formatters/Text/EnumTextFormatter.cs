@@ -1,4 +1,4 @@
-using FlameCsv.Extensions;
+using System.Reflection;
 
 namespace FlameCsv.Formatters.Text;
 
@@ -7,7 +7,7 @@ public sealed class EnumTextFormatter<TEnum> : ICsvFormatter<char, TEnum>
 {
     public bool CanFormat(Type resultType)
     {
-        return resultType.IsEnum && !resultType.HasAttribute<FlagsAttribute>();
+        return resultType.IsEnum && resultType.GetCustomAttribute<FlagsAttribute>(inherit: false) is null;
     }
 
     public bool TryFormat(TEnum value, Span<char> destination, out int tokensWritten)

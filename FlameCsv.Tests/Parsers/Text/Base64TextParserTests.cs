@@ -6,50 +6,50 @@ namespace FlameCsv.Tests.Parsers.Text;
 public static class Base64TextParserTests
 {
     private const string input = "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZy4=";
-    private static readonly Base64TextParser parser = new();
+    private static readonly Base64TextParser _parser = new();
 
     [Fact]
     public static void Should_Implement_CanParse()
     {
-        Assert.True(parser.CanParse(typeof(byte[])));
-        Assert.True(parser.CanParse(typeof(Memory<byte>)));
-        Assert.True(parser.CanParse(typeof(ReadOnlyMemory<byte>)));
-        Assert.True(parser.CanParse(typeof(ArraySegment<byte>)));
-        Assert.False(parser.CanParse(typeof(int[])));
+        Assert.True(_parser.CanParse(typeof(byte[])));
+        Assert.True(_parser.CanParse(typeof(Memory<byte>)));
+        Assert.True(_parser.CanParse(typeof(ReadOnlyMemory<byte>)));
+        Assert.True(_parser.CanParse(typeof(ArraySegment<byte>)));
+        Assert.False(_parser.CanParse(typeof(int[])));
     }
 
     [Fact]
     public static void Should_Parse_Empty()
     {
-        Assert.True(parser.TryParse("", out byte[] bytes));
+        Assert.True(_parser.TryParse("", out byte[] bytes));
         Assert.Empty(bytes);
     }
 
     [Fact]
     public static void Should_Parse_Utf8_To_Array()
     {
-        Assert.True(parser.TryParse(input, out byte[] bytes));
+        Assert.True(_parser.TryParse(input, out byte[] bytes));
         AssertValid(bytes);
     }
 
     [Fact]
     public static void Should_Parse_Utf8_To_ArraySegment()
     {
-        Assert.True(parser.TryParse(input, out ArraySegment<byte> bytes));
+        Assert.True(_parser.TryParse(input, out ArraySegment<byte> bytes));
         AssertValid(bytes);
     }
 
     [Fact]
     public static void Should_Parse_Utf8_To_Memory()
     {
-        Assert.True(parser.TryParse(input, out Memory<byte> bytes));
+        Assert.True(_parser.TryParse(input, out Memory<byte> bytes));
         AssertValid(bytes.Span);
     }
 
     [Fact]
     public static void Should_Parse_Utf8_To_ReadOnlyMemory()
     {
-        Assert.True(parser.TryParse(input, out ReadOnlyMemory<byte> bytes));
+        Assert.True(_parser.TryParse(input, out ReadOnlyMemory<byte> bytes));
         AssertValid(bytes.Span);
     }
 
@@ -68,7 +68,7 @@ public static class Base64TextParserTests
             + "\nABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n0123456789"
             + "\nABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n0123456789";
 
-        Assert.True(parser.TryParse(b64, out byte[] bytes));
+        Assert.True(_parser.TryParse(b64, out byte[] bytes));
         Assert.Equal(expected, Encoding.UTF8.GetString(bytes));
     }
 

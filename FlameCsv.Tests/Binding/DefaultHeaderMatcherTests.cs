@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using FlameCsv.Binding;
 
 namespace FlameCsv.Tests.Binding;
@@ -19,43 +20,43 @@ public static class DefaultHeaderMatcherTests
     [Fact]
     public static void Should_Match_Text_To_Name_Case_Sensitive()
     {
-        var fn = HeaderMatcherDefaults.MatchText(StringComparison.Ordinal);
+        var matcher = new DefaultTextHeaderMatcher(StringComparison.Ordinal);
         var member = typeof(Shim).GetProperty("Prop")!;
-        Assert.Equal(new CsvBinding(0, member), fn("Prop", GetArgs(0, member)));
-        Assert.Null(fn("prop", GetArgs(1, member)));
+        Assert.Equal(CsvBinding.ForMember<Shim>(0, member), matcher.TryMatch<Shim>("Prop", GetArgs(0, member)));
+        Assert.Null(matcher.TryMatch<Shim>("prop", GetArgs(1, member)));
     }
 
     [Fact]
     public static void Should_Match_Text_To_Name_Case_Inensitive()
     {
-        var fn = HeaderMatcherDefaults.MatchText(StringComparison.OrdinalIgnoreCase);
+        var matcher = new DefaultTextHeaderMatcher(StringComparison.OrdinalIgnoreCase);
         var member = typeof(Shim).GetProperty("Prop")!;
-        Assert.Equal(new CsvBinding(0, member), fn("Prop", GetArgs(0, member)));
-        Assert.Equal(new CsvBinding(1, member), fn("prop", GetArgs(1, member)));
+        Assert.Equal(CsvBinding.ForMember<Shim>(0, member), matcher.TryMatch<Shim>("Prop", GetArgs(0, member)));
+        Assert.Equal(CsvBinding.ForMember<Shim>(1, member), matcher.TryMatch<Shim>("prop", GetArgs(1, member)));
     }
 
     [Fact]
     public static void Should_Match_Bytes_To_Name_Case_Sensitive()
     {
-        var fn = HeaderMatcherDefaults.MatchUtf8(StringComparison.Ordinal);
+        var matcher = new DefaultUtf8HeaderMatcher(StringComparison.Ordinal);
         var member = typeof(Shim).GetProperty("Prop")!;
-        Assert.Equal(new CsvBinding(0, member), fn("Prop"u8.ToArray(), GetArgs(0, member)));
-        Assert.Null(fn("prop"u8.ToArray(), GetArgs(1, member)));
+        Assert.Equal(CsvBinding.ForMember<Shim>(0, member), matcher.TryMatch<Shim>("Prop"u8.ToArray(), GetArgs(0, member)));
+        Assert.Null(matcher.TryMatch<Shim>("prop"u8.ToArray(), GetArgs(1, member)));
     }
 
     [Fact]
     public static void Should_Match_Bytes_To_Name_Case_Inensitive()
     {
-        var fn = HeaderMatcherDefaults.MatchUtf8(StringComparison.OrdinalIgnoreCase);
+        var matcher = new DefaultUtf8HeaderMatcher(StringComparison.OrdinalIgnoreCase);
         var member = typeof(Shim).GetProperty("Prop")!;
-        Assert.Equal(new CsvBinding(0, member), fn("Prop"u8.ToArray(), GetArgs(0, member)));
-        Assert.Equal(new CsvBinding(1, member), fn("prop"u8.ToArray(), GetArgs(1, member)));
+        Assert.Equal(CsvBinding.ForMember<Shim>(0, member), matcher.TryMatch<Shim>("Prop"u8.ToArray(), GetArgs(0, member)));
+        Assert.Equal(CsvBinding.ForMember<Shim>(1, member), matcher.TryMatch<Shim>("prop"u8.ToArray(), GetArgs(1, member)));
     }
 
     [Fact]
     public static void Should_Validate_Parameter()
     {
-        Assert.ThrowsAny<ArgumentException>(() => HeaderMatcherDefaults.MatchText((StringComparison)int.MaxValue));
-        Assert.ThrowsAny<ArgumentException>(() => HeaderMatcherDefaults.MatchUtf8((StringComparison)int.MaxValue));
+        Assert.ThrowsAny<ArgumentException>(() => new DefaultTextHeaderMatcher((StringComparison)int.MaxValue));
+        Assert.ThrowsAny<ArgumentException>(() => new DefaultUtf8HeaderMatcher((StringComparison)int.MaxValue));
     }
 }

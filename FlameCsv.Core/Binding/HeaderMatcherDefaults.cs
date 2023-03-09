@@ -1,10 +1,14 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 using CommunityToolkit.Diagnostics;
-using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Buffers;
 
 namespace FlameCsv.Binding;
+
+public interface ICsvHeaderMatcher<T> where T : unmanaged, IEquatable<T>
+{
+    CsvBinding<TResult>? TryMatch<TResult>(ReadOnlySpan<T> value, in HeaderBindingArgs args);
+}
 
 /// <summary>
 /// Built-in callbacks for header binding.
@@ -30,62 +34,6 @@ internal static class HeaderMatcherDefaults
             return (IHeaderBinder<T>)(object)_headerUtf8Binder;
 
         throw NotSupportedGeneric<T>();
-    }
-
-    /// <summary>
-    /// Matches member names to the column using the specified comparison.
-    /// </summary>
-    /// <param name="stringComparison">Comparison to use</param>
-    /// <returns>Function that matches header columns to members</returns>
-    public static CsvHeaderMatcher<char> MatchText(StringComparison stringComparison)
-    {
-        _ = "".Equals("", stringComparison); // validate the parameter
-        return Impl;
-
-        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        CsvBinding? Impl(ReadOnlySpan<char> data, in HeaderBindingArgs args)
-        {
-            return args.Value.AsSpan().Equals(data, stringComparison)
-                ? CsvBinding.FromHeaderBinding(in args)
-                : null;
-        }
-    }
-
-    /// <inheritdoc cref="MatchText"/>
-    public static CsvHeaderMatcher<byte> MatchUtf8(StringComparison stringComparison)
-    {
-        _ = "".Equals("", stringComparison); // validate the parameter
-        return Impl;
-
-        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        CsvBinding? Impl(ReadOnlySpan<byte> data, in HeaderBindingArgs args)
-        {
-            int length = Encoding.UTF8.GetMaxCharCount(data.Length);
-
-            if (Token<byte>.CanStackalloc(length))
-            {
-                return ImplInner(data, stackalloc char[length], in args, stringComparison);
-            }
-            else
-            {
-                using var owner = SpanOwner<char>.Allocate(length);
-                return ImplInner(data, owner.Span, in args, stringComparison);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static CsvBinding? ImplInner(
-            ReadOnlySpan<byte> data,
-            Span<char> buffer,
-            in HeaderBindingArgs args,
-            StringComparison stringComparison)
-        {
-            var written = Encoding.UTF8.GetChars(data, buffer);
-
-            return args.Value.AsSpan().Equals(buffer[..written], stringComparison)
-                ? CsvBinding.FromHeaderBinding(in args)
-                : null;
-        }
     }
 
     public static SpanPredicate<T> CheckIgnore<T>(
@@ -174,7 +122,7 @@ internal static class HeaderMatcherDefaults
         }
     }
 
-    private static  Exception NotSupportedGeneric<T>()
+    private static Exception NotSupportedGeneric<T>()
         where T : unmanaged, IEquatable<T>
     {
         throw new NotSupportedException(

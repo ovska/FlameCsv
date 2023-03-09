@@ -4,7 +4,7 @@
 /// Base class for <see cref="CsvHeaderAttribute"/> and <see cref="CsvHeaderExcludeAttribute"/> to
 /// ensure only one is used.
 /// </summary>
-[AttributeUsage(CsvBinding.AllowedOn, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter, AllowMultiple = false)]
 public abstract class CsvHeaderConfigurationAttribute : Attribute
 {
 }

@@ -44,23 +44,6 @@ public class Temp
     }
 
     [Fact]
-    public void ReflectionStuff()
-    {
-        var props = typeof(Testii).GetProperties();
-
-        var ctor = typeof(Testii).GetConstructors()[0];
-        var x = ctor.GetParameters();
-        var fac = CsvStateExtensions.CreateValueFactory(new CsvBindingCollection<Testii>(new List<CsvBinding> {
-            new CsvBinding(0, ctor.GetParameters()[0]),
-            new CsvBinding(1, ctor.GetParameters()[1]),
-            new CsvBinding(2, typeof(Testii).GetProperty(nameof(Testii.IsEnabled))!),
-        }));
-
-        var fac2 = (Func<int, string, bool, Testii>)fac;
-        var obj = fac2(123, "test", true);
-    }
-
-    [Fact]
     public void Should_Parse()
     {
         var seq = new ReadOnlySequence<char>("1,2,3,4,5,6".ToCharArray());

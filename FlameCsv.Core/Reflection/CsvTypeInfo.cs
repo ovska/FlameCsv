@@ -1,0 +1,113 @@
+﻿using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using FlameCsv.Binding.Attributes;
+using FlameCsv.Exceptions;
+using FlameCsv.Extensions;
+
+namespace FlameCsv.Reflection;
+
+internal sealed class CsvTypeInfo<T>
+{
+    public static CsvTypeInfo<T> Instance { get; } = new();
+
+    public ReadOnlySpan<MemberData> Members => _members ?? GetOrInitPropertiesAndFields();
+    public ReadOnlySpan<object> Attributes => _customAttributes ?? GetOrInitCustomAttributes();
+    public ReadOnlySpan<ParameterData> ConstructorParameters
+        => (_ctorParams ?? GetOrInitPrimaryCtorParameters()) is ParameterData[] pi
+            ? pi
+            : ThrowExceptionForNoPrimaryConstructor();
+
+    private object[]? _customAttributes;
+    private MemberData[]? _members;
+    private object? _ctorParams;
+
+    private CsvTypeInfo() { }
+
+    public MemberData GetPropertyOrField(string memberName)
+    {
+        foreach (var member in Members)
+        {
+            if (member.Value.Name.Equals(memberName))
+                return member;
+        }
+
+        return ThrowMemberNotFound(memberName);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private MemberData[] GetOrInitPropertiesAndFields()
+    {
+        var members = typeof(T)
+            .GetMembers(BindingFlags.Instance | BindingFlags.Public)
+            .Where(static m => m is PropertyInfo or FieldInfo)
+            .Select(static m => (MemberData)m)
+            .ToArray()
+            .ForCache();
+
+        return Interlocked.CompareExchange(ref _members, members, null) ?? members;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private object[] GetOrInitCustomAttributes()
+    {
+        var attributes = typeof(T).GetCustomAttributes(inherit: true).ForCache();
+        return Interlocked.CompareExchange(ref _customAttributes, attributes, null) ?? attributes;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private object GetOrInitPrimaryCtorParameters()
+    {
+        var obj = Impl();
+        Debug.Assert(obj is ParameterData[] || obj == Type.Missing);
+        return Interlocked.CompareExchange(ref _ctorParams, obj, null) ?? _ctorParams;
+
+        static object Impl()
+        {
+            var ctors = typeof(T).GetConstructors(BindingFlags.Instance | BindingFlags.Public);
+
+            if (ctors.Length == 0)
+            {
+                return Array.Empty<ParameterData>();
+            }
+            else if (ctors.Length == 1)
+            {
+                return Array.ConvertAll(ctors[0].GetParameters(), p => (ParameterData)p);
+            }
+
+            ConstructorInfo? parameterlessCtor = null;
+
+            foreach (var ctor in ctors)
+            {
+                var parameters = ctor.GetParameters();
+
+                foreach (var attribute in ctor.GetCustomAttributes(inherit: false))
+                {
+                    if (attribute is CsvConstuctorAttribute)
+                        return Array.ConvertAll(parameters, p => (ParameterData)p);
+                }
+
+                if (parameters.Length == 0)
+                    parameterlessCtor = ctor;
+            }
+
+            // No explicit ctor found, but found parameterless
+            if (parameterlessCtor is not null)
+            {
+                return Array.Empty<ParameterData>();
+            }
+
+            return Type.Missing;
+        }
+    }
+
+    private static ParameterData[] ThrowExceptionForNoPrimaryConstructor()
+    {
+        throw new CsvBindingException(typeof(T), $"No [CsvConstructor] or an empty constructor found for type {typeof(T)}");
+    }
+
+    private static MemberData ThrowMemberNotFound(string memberName)
+    {
+        throw new CsvConfigurationException($"Property/field {memberName} not found on type {typeof(T)}");
+    }
+}

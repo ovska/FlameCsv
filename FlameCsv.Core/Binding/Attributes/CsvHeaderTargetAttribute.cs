@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using CommunityToolkit.Diagnostics;
-using FlameCsv.Extensions;
 
 namespace FlameCsv.Binding.Attributes;
 
@@ -48,11 +47,5 @@ public sealed class CsvHeaderTargetAttribute : Attribute
         Guard.IsNotNull(values);
         Values = values.ToImmutableArray();
         MemberName = memberName;
-    }
-
-    internal IEnumerable<HeaderBindingCandidate> GetMembers(Type targetType)
-    {
-        var member = targetType.GetPropertyOrField(MemberName);
-        return Values.Select(value => new HeaderBindingCandidate(value, member, Order));
     }
 }

@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -44,7 +43,7 @@ internal static partial class CsvStateExtensions
             else
             {
                 // Don't cache nulls since its unlikely they will be attempted many times
-                throw new CsvBindingException(
+                throw new CsvBindingException<TResult>(
                     $"Headerless CSV could not be bound to {typeof(TResult)}, since the type had no " +
                     "[CsvIndex]-attributes and no built-in configuration.");
             }
@@ -77,7 +76,7 @@ internal static partial class CsvStateExtensions
 
         for (int i = 0; i < bindingCollection.Bindings.Length; i++)
         {
-            if (bindingCollection.Bindings[i].TryGetParserOverride(out var @override))
+            if (bindingCollection.Bindings[i].TryGetAttribute<CsvParserOverrideAttribute>(out var @override))
             {
                 (_overrides ??= new())[i] = @override;
             }
@@ -114,7 +113,7 @@ internal static partial class CsvStateExtensions
                 }
                 else if (_overrides is not null && _overrides.TryGetValue(i, out var @override))
                 {
-                    rowStateConstructorArgs[i + 1] = @override.CreateParser(bindings[i], options);
+                    rowStateConstructorArgs[i + 1] = @override.CreateParser(bindings[i].Type, options);
                 }
                 else
                 {
@@ -160,13 +159,13 @@ internal static partial class CsvStateExtensions
             var ctorParameters = bc.ConstructorParameters;
             var result = new ReadOnlyCollectionBuilder<Expression>(ctorParameters.Length);
 
-            foreach (var (bindingOrNull, parameter) in ctorParameters)
+            foreach (var (binding, parameter) in ctorParameters)
             {
-                Debug.Assert(bindingOrNull.HasValue || parameter.HasDefaultValue);
+                Debug.Assert(binding is not null || parameter.HasDefaultValue);
 
                 Expression? parameterExpression;
 
-                if (bindingOrNull is CsvBinding binding)
+                if (binding is not null)
                 {
                     parameterExpression = parameters[binding.Index];
                 }
