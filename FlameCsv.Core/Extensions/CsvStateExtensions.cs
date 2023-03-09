@@ -11,21 +11,9 @@ using FlameCsv.Runtime;
 
 namespace FlameCsv.Extensions;
 
-internal static class CsvReaderOptionsExtension
+internal static partial class CsvStateExtensions
 {
     private delegate object StateFactory<T>(CsvReaderOptions<T> options) where T : unmanaged, IEquatable<T>;
-
-    private static IReadOnlySet<Type> ValueTuples { get; } = new HashSet<Type>
-    {
-        typeof(ValueTuple<>),
-        typeof(ValueTuple<,>),
-        typeof(ValueTuple<,,>),
-        typeof(ValueTuple<,,,>),
-        typeof(ValueTuple<,,,,>),
-        typeof(ValueTuple<,,,,,>),
-        typeof(ValueTuple<,,,,,,>),
-        typeof(ValueTuple<,,,,,,,>)
-    };
 
     private static class FactoryCache<T> where T : unmanaged, IEquatable<T>
     {
@@ -40,15 +28,16 @@ internal static class CsvReaderOptionsExtension
         return (ICsvRowState<T, TResult>)CreateStateFactory<T, TResult>(bindingCollection)(options);
     }
 
+    /// <summary>
+    /// Binds the options using default or 
+    /// </summary>
     public static ICsvRowState<T, TResult> BindToState<T, TResult>(this CsvReaderOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
         if (!FactoryCache<T>.Value.TryGetValue(typeof(TResult), out var stateFactory))
         {
-            if (TryGetBuiltinFactory<T, TResult>(out stateFactory))
-            {
-            }
-            else if (IndexAttributeBinder.TryGet<TResult>(out var bindings))
+            if (TryGetTupleBindings<T, TResult>(out var bindings) ||
+                IndexAttributeBinder.TryGet(out bindings))
             {
                 stateFactory = CreateStateFactory<T, TResult>(bindings);
             }
@@ -65,25 +54,6 @@ internal static class CsvReaderOptionsExtension
 
         throw new CsvBindingException(
             $"CSV has no header and no {nameof(CsvIndexAttribute)} found on members of {typeof(TResult)}");
-    }
-
-    private static bool TryGetBuiltinFactory<T, TResult>([NotNullWhen(true)] out StateFactory<T>? factory)
-        where T : unmanaged, IEquatable<T>
-    {
-        if (typeof(TResult).IsValueType && ValueTuples.Contains(typeof(TResult)))
-        {
-            var ctor = typeof(TResult).GetConstructors()[0];
-            var ctorParams = ctor.GetParameters();
-            var factoryParams = ctorParams.Select(static p => Expression.Parameter(p.ParameterType)).ToArray();
-            var newExpr = Expression.New(ctor, factoryParams);
-            var lambda = Expression.Lambda(newExpr, factoryParams);
-
-
-            //factory = CreateStateFactory<T,TResult>();
-        }
-
-        factory = default;
-        return false;
     }
 
     private static StateFactory<T> CreateStateFactory<T, TResult>(
