@@ -44,7 +44,7 @@ public sealed class CsvBindingCollection<TValue>
     /// </summary>
     /// <exception cref="InvalidOperationException"/>
     public ConstructorInfo Constructor => _ctor ??
-        ThrowHelper.ThrowInvalidOperationException<ConstructorInfo>("There is no constructor bindings.");
+        ThrowHelper.ThrowInvalidOperationException<ConstructorInfo>("There are no constructor bindings.");
 
     private readonly List<CsvBinding> _allBindings;
     private readonly List<CsvBinding> _memberBindings;

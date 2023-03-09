@@ -4,7 +4,7 @@ namespace FlameCsv.Writers;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
-public sealed class CsvWriterOptions<T> where T : unmanaged, IEquatable<T>
+public class CsvWriterOptions<T> where T : unmanaged, IEquatable<T>
 {
     public IList<ICsvFormatter<T>> Formatters { get; } = new List<ICsvFormatter<T>>();
 
@@ -27,5 +27,5 @@ public sealed class CsvWriterOptions<T> where T : unmanaged, IEquatable<T>
     /// invalid CSV to be written if the formatters output data with delimiters, string delimiters, or 
     /// newline characters. Default is <see langword="false"/>.
     /// </summary>
-    public bool NoEscaping { get; set; }
+    public bool DangerousNoEscaping { get; set; }
 }

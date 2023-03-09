@@ -227,7 +227,7 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private readonly void ThrowTooManyColumns(int index)
     {
-        throw new InvalidDataException(
+        throw new CsvFormatException(
             $"Too many columns read, expected {Column} to be the last but found delimiter "
             + $"at line index {_remaining.Length + index}");
     }
@@ -239,9 +239,8 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private readonly bool ThrowInvalidEOF()
     {
-        throw new InvalidDataException(
-            $"Line ended prematurely, expected {ColumnCount} but read {Column} "
-            + $"with {_quotesRemaining} string delimiters remaining.");
+        throw new CsvFormatException(
+            $"Line ended prematurely, expected {ColumnCount} but read {Column} with {_quotesRemaining} string delimiters remaining.");
     }
 
     /// <exception cref="InvalidDataException">
@@ -250,7 +249,8 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private readonly void ThrowNotAllColumnsRead()
     {
-        throw new InvalidDataException($"Expected {ColumnCount} columns to have been read, but read {Column}");
+        throw new CsvFormatException(
+            $"Expected {ColumnCount} columns to have been read, but read {Column}");
     }
 
     readonly void IDisposable.Dispose()

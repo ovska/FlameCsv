@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Diagnostics;
 using FlameCsv.Extensions;
 using FlameCsv.Readers.Internal;
 
@@ -10,11 +11,7 @@ public sealed class UnescapeTests : IDisposable
 
     private char[]? buffer;
 
-    void IDisposable.Dispose()
-    {
-        if (buffer != null)
-            ArrayPool<char>.Shared.Return(buffer);
-    }
+    void IDisposable.Dispose() => ArrayPool<char>.Shared.EnsureReturned(ref buffer);
 
     [Theory]
     [InlineData("\"test\"", "test")]
@@ -29,6 +26,7 @@ public sealed class UnescapeTests : IDisposable
     {
         var delimiterCount = input.Count(c => c == '"');
 
+        var vbo = new ValueBufferOwner<char>(ref buffer, ArrayPool<char>.Shared);
         var actualSpan = input.AsSpan().Unescape('\"', delimiterCount, RB);
         Assert.Equal(expected, new string(actualSpan));
 
@@ -46,10 +44,10 @@ public sealed class UnescapeTests : IDisposable
     [InlineData("\"te\"st\"")]
     [InlineData("\"\"test\"")]
     [InlineData("\"test\"\"")]
-    public void Should_Throw_On_Invalid(string input)
+    public void Should_Throw_UnreachableException_On_Invalid(string input)
     {
         using var bo = new BufferOwner<char>(ArrayPool<char>.Shared);
-        Assert.Throws<InvalidOperationException>(() => input.AsSpan().Unescape('\"', 4, RB));
-        Assert.Throws<InvalidOperationException>(() => input.AsMemory().Unescape('\"', 4, bo));
+        Assert.Throws<UnreachableException>(() => input.AsSpan().Unescape('\"', 4, RB));
+        Assert.Throws<UnreachableException>(() => input.AsMemory().Unescape('\"', 4, bo));
     }
 }

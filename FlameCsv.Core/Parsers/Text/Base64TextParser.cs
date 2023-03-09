@@ -1,4 +1,4 @@
-using CommunityToolkit.Diagnostics;
+using System.Diagnostics;
 using CommunityToolkit.HighPerformance.Buffers;
 
 namespace FlameCsv.Parsers.Text;
@@ -78,7 +78,9 @@ public sealed class Base64TextParser :
                 return spanOwner.Span[..bytesWritten].ToArray();
         }
 
-        return ThrowHelper.ThrowInvalidOperationException<byte[]>(
-            $"Failed to convert Span<char>[{span.Length}] to base64");
+        return ThrowForFailedConvert(span.Length);
     }
+
+    private static byte[] ThrowForFailedConvert(int length)
+        => throw new UnreachableException($"Failed to convert Span<char>[{length}] to base64");
 }

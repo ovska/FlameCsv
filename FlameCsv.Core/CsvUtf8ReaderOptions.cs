@@ -25,9 +25,11 @@ public sealed class CsvUtf8ReaderOptions :
     CsvReaderOptions<byte>,
     ICsvNullTokenProvider<byte>
 {
+    private static readonly Lazy<CsvUtf8ReaderOptions> _default = new(() => new(_: true));
+
     /// <summary>Returns a thread-safe read only singleton instance with default options.</summary>
     /// <remarks>Create a new instance if you need to configure the options or parsers.</remarks>
-    public static CsvUtf8ReaderOptions Default => CsvReaderOptionsDefaults.Utf8;
+    public static CsvUtf8ReaderOptions Default => _default.Value;
 
     private char _integerFormat;
     private char _decimalFormat;
@@ -44,6 +46,8 @@ public sealed class CsvUtf8ReaderOptions :
     public CsvUtf8ReaderOptions()
     {
     }
+
+    private CsvUtf8ReaderOptions(bool _) : this() => MakeReadOnly();
 
     /// <summary>
     /// Used by <see cref="IntegerUtf8Parser"/>. Default is <c>default(char)</c>.
