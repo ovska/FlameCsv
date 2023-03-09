@@ -6,8 +6,7 @@ namespace FlameCsv.Binding;
 public abstract class CsvBinding<T> :
     CsvBinding,
     IEquatable<CsvBinding>,
-    IEquatable<CsvBinding<T>>,
-    IComparable<CsvBinding<T>>
+    IEquatable<CsvBinding<T>>
 {
 #pragma warning disable RCS1158 // Static member in generic type should use a type parameter.
     internal static readonly bool _isInvalid = typeof(T).IsInterface;
@@ -30,6 +29,9 @@ public abstract class CsvBinding<T> :
     /// <exception cref="InvalidOperationException"/>
     public abstract Type Type { get; }
 
+    /// <summary>
+    /// Returns the custom attributes on the binding, or empty if not applicable (e.g. ignored column).
+    /// </summary>
     protected abstract ReadOnlySpan<object> Attributes { get; }
 
     public bool TryGetAttribute<TAttribute>([NotNullWhen(true)] out TAttribute? attribute)
@@ -62,11 +64,6 @@ public abstract class CsvBinding<T> :
 
     /// <inheritdoc/>
     public override int GetHashCode() => HashCode.Combine(Index, Sentinel);
-    /// <inheritdoc/>
-    public int CompareTo(CsvBinding<T>? other)
-    {
-        return other is null ? 1 : Index.CompareTo(other.Index);
-    }
 
     /// <inheritdoc/>
     public static bool operator ==(CsvBinding<T> left, CsvBinding<T> right) => left.Equals(right);

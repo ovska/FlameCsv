@@ -16,7 +16,7 @@ public sealed class CsvBindingCollection<TValue>
     /// <summary>
     /// All bindings, sorted by index. Guaranteed to be valid.
     /// </summary>
-    internal ReadOnlySpan<CsvBinding<TValue>> Bindings => _allBindings.AsSpan();
+    public ReadOnlySpan<CsvBinding<TValue>> Bindings => _allBindings.AsSpan();
 
     /// <summary>
     /// Member bindings, or empty if there are none.
@@ -70,7 +70,7 @@ public sealed class CsvBindingCollection<TValue>
         Guard.IsNotEmpty(bindingsList, "bindings");
 
         Span<CsvBinding<TValue>> bindings = bindingsList.AsSpan();
-        bindings.Sort();
+        bindings.Sort(); // sort by index
 
         int currentColumnIndex = 0;
 
