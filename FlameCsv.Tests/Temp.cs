@@ -50,7 +50,7 @@ public class Temp
 
         var ctor = typeof(Testii).GetConstructors()[0];
         var x = ctor.GetParameters();
-        var fac = CsvReaderOptionsExtension.CreateValueFactory(new CsvBindingCollection<Testii>(new List<CsvBinding> {
+        var fac = CsvStateExtensions.CreateValueFactory(new CsvBindingCollection<Testii>(new List<CsvBinding> {
             new CsvBinding(0, ctor.GetParameters()[0]),
             new CsvBinding(1, ctor.GetParameters()[1]),
             new CsvBinding(2, typeof(Testii).GetProperty(nameof(Testii.IsEnabled))!),
