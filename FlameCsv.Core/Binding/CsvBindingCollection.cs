@@ -8,9 +8,9 @@ using FlameCsv.Extensions;
 namespace FlameCsv.Binding;
 
 /// <summary>
-/// Represents a validated collection of member bindings.
+/// Represents a validated collection of CSV columns bound to properties, fields, or constructor parameters.
 /// </summary>
-/// <typeparam name="TValue"></typeparam>
+/// <typeparam name="TValue">Type represented by the CSV</typeparam>
 public sealed class CsvBindingCollection<TValue>
 {
     /// <summary>
@@ -168,7 +168,10 @@ public sealed class CsvBindingCollection<TValue>
         // Guard against some weirdness possible by custom header binders
         if (bindings.Length > parameters.Length)
             throw new CsvBindingException(
-                $"Invalid constructor bindings, got {bindings.Length} but ctor had {parameters.Length} parameters.");
+                $"Invalid constructor bindings, got {bindings.Length} but ctor had {parameters.Length} parameters.")
+            {
+                TargetType = typeof(TValue),
+            };
 
         List<(CsvBinding? ctorBinding, ParameterInfo param)> parameterInfos = new(parameters.Length);
 

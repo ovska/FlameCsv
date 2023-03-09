@@ -11,7 +11,7 @@ public static class IndexAttributeBinderTests
     [Fact]
     public static void Should_Bind_To_Members()
     {
-        Assert.True(IndexAttributeBinder.TryGet<Members>(out var result));
+        Assert.True(IndexAttributeBinder<Members>.TryGetBindings(out var result));
         Assert.Equal(3, result!.Bindings.Length);
         Assert.Equal(
             new[] { (0, "A"), (1, "B"), (2, "C") },
@@ -21,7 +21,7 @@ public static class IndexAttributeBinderTests
     [Fact]
     public static void Should_Bind_To_Targets()
     {
-        Assert.True(IndexAttributeBinder.TryGet<Class>(out var result));
+        Assert.True(IndexAttributeBinder<Class>.TryGetBindings(out var result));
         Assert.Equal(3, result!.Bindings.Length);
         Assert.Equal(
             new[] { (0, "A"), (1, "B"), (2, "C") },
@@ -31,7 +31,7 @@ public static class IndexAttributeBinderTests
     [Fact]
     public static void Should_Bind_To_Mixed()
     {
-        Assert.True(IndexAttributeBinder.TryGet<Mixed>(out var result));
+        Assert.True(IndexAttributeBinder<Mixed>.TryGetBindings(out var result));
         Assert.Equal(3, result!.Bindings.Length);
         Assert.Equal(
             new[] { (0, "A"), (1, "B"), (2, "C") },
@@ -41,13 +41,13 @@ public static class IndexAttributeBinderTests
     [Fact]
     public static void Should_Handle_No_Bindings()
     {
-        Assert.False(IndexAttributeBinder.TryGet<None>(out _));
+        Assert.False(IndexAttributeBinder<None>.TryGetBindings(out _));
     }
 
     [Fact]
     public static void Should_Handle_Ignores()
     {
-        Assert.True(IndexAttributeBinder.TryGet<Ignored>(out var result));
+        Assert.True(IndexAttributeBinder<Ignored>.TryGetBindings(out var result));
         Assert.Equal(3, result!.Bindings.Length);
         Assert.Equal("A", result.Bindings[0].Member.Name);
         Assert.True(result.Bindings[1].IsIgnored);

@@ -51,8 +51,7 @@ public class CsvBooleanValuesAttribute : CsvParserOverrideAttribute
         if (typeof(T) == typeof(byte))
             return (ICsvParser<T>)CreateForUtf8(target, (CsvReaderOptions<byte>)(object)options);
 
-        return ThrowHelper.ThrowNotSupportedException<ICsvParser<T>>(
-            $"Token type {typeof(T)} is not supported by {nameof(CsvBooleanValuesAttribute)}");
+        throw new NotSupportedException($"Token type {typeof(T)} is not supported by {nameof(CsvBooleanValuesAttribute)}");
     }
 
     private ICsvParser<char> CreateForText(Type target, CsvReaderOptions<char> options)

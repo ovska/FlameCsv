@@ -17,7 +17,7 @@ internal static partial class CsvStateExtensions
 
     private static class FactoryCache<T> where T : unmanaged, IEquatable<T>
     {
-        public static readonly ConditionalWeakTable<Type, StateFactory<T>?> Value = new();
+        public static readonly ConditionalWeakTable<Type, StateFactory<T>> Value = new();
     }
 
     public static ICsvRowState<T, TResult> CreateState<T, TResult>(
@@ -29,7 +29,7 @@ internal static partial class CsvStateExtensions
     }
 
     /// <summary>
-    /// Binds the options using default or 
+    /// Binds the options using built-in or index binding.
     /// </summary>
     public static ICsvRowState<T, TResult> BindToState<T, TResult>(this CsvReaderOptions<T> options)
         where T : unmanaged, IEquatable<T>
@@ -37,23 +37,22 @@ internal static partial class CsvStateExtensions
         if (!FactoryCache<T>.Value.TryGetValue(typeof(TResult), out var stateFactory))
         {
             if (TryGetTupleBindings<T, TResult>(out var bindings) ||
-                IndexAttributeBinder.TryGet(out bindings))
+                IndexAttributeBinder<TResult>.TryGetBindings(out bindings))
             {
                 stateFactory = CreateStateFactory<T, TResult>(bindings);
             }
             else
             {
-                stateFactory = null;
+                // Don't cache nulls since its unlikely they will be attempted many times
+                throw new CsvBindingException(
+                    $"Headerless CSV could not be bound to {typeof(TResult)}, since the type had no " +
+                    "[CsvIndex]-attributes and no built-in configuration.");
             }
 
             FactoryCache<T>.Value.Add(typeof(TResult), stateFactory);
         }
 
-        if (stateFactory is not null)
-            return (ICsvRowState<T, TResult>)stateFactory(options);
-
-        throw new CsvBindingException(
-            $"CSV has no header and no {nameof(CsvIndexAttribute)} found on members of {typeof(TResult)}");
+        return (ICsvRowState<T, TResult>)stateFactory(options);
     }
 
     private static StateFactory<T> CreateStateFactory<T, TResult>(
@@ -66,10 +65,9 @@ internal static partial class CsvStateExtensions
     /// <summary>
     /// Creates the state object using the bindings and <typeparamref name="TResult"/> type parameter.
     /// </summary>
-    [ExcludeFromCodeCoverage]
     private static StateFactory<T> CreateStateFactory<T, TResult>(
         CsvBindingCollection<TResult> bindingCollection,
-        object valueFactory)
+        Delegate valueFactory)
         where T : unmanaged, IEquatable<T>
     {
         ConstructorInfo rowStateCtor = CsvRowState.GetConstructor<T, TResult>(bindingCollection.Bindings);

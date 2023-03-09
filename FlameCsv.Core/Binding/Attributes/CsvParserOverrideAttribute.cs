@@ -94,7 +94,7 @@ public class CsvParserOverrideAttribute : Attribute
         }
         catch (Exception e)
         {
-            string ctorErr = ParserType.GetConstructor(Type.EmptyTypes) is null
+            string ctorErr = !ParserType.IsValueType && ParserType.GetConstructor(Type.EmptyTypes) is null
                 ? " The type does not have a parameterless constructor."
                 : "";
             throw new CsvConfigurationException(
