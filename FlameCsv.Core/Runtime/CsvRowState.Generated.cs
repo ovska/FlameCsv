@@ -18,7 +18,7 @@ internal abstract partial class CsvRowState
     /// <typeparam name="T">CSV token type</typeparam>
     /// <typeparam name="TResult">Row parse return type</typeparam>
     [ExcludeFromCodeCoverage]
-    internal static ConstructorInfo GetConstructor<T, TResult>(ReadOnlySpan<CsvBinding> bindings)
+    internal static ConstructorInfo GetConstructor<T, TResult>(ReadOnlySpan<CsvBinding<TResult>> bindings)
         where T : unmanaged, IEquatable<T>
     {
         Type[] types = new Type[bindings.Length + 2];

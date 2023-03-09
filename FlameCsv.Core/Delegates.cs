@@ -20,7 +20,7 @@ public delegate TReturn CsvCallback<T, out TReturn>(
 /// <param name="column">Trimmed column value</param>
 /// <param name="args">Possible match for the header</param>
 /// <typeparam name="T">Token type</typeparam>
-public delegate CsvBinding? CsvHeaderMatcher<T>(
+public delegate CsvBinding<TResult>? CsvHeaderMatcher<T, TResult>(
     ReadOnlySpan<T> column,
     in HeaderBindingArgs args);
 

@@ -34,32 +34,17 @@ public static class CsvBindingTests
     }
 
     [Fact]
-    public static void Should_Check_Applicability()
-    {
-        var idBinding = new CsvBinding(0, typeof(Base).GetProperty("Id")!);
-        var nameBinding = new CsvBinding(0, typeof(Class).GetProperty("Name")!);
-        Assert.True(idBinding.IsApplicableTo<Base>());
-        Assert.True(idBinding.IsApplicableTo<Class>());
-        Assert.False(nameBinding.IsApplicableTo<Base>());
-        Assert.True(nameBinding.IsApplicableTo<Class>());
-
-        var structBinding = new CsvBinding(0, typeof(Struct).GetProperty("Prop")!);
-        Assert.True(structBinding.IsApplicableTo<Struct>());
-        Assert.False(structBinding.IsApplicableTo<IFace>());
-    }
-
-    [Fact]
     public static void Should_Handle_Ignored()
     {
-        var ignored = CsvBinding.Ignore(2);
-        Assert.Equal(ignored, CsvBinding.Ignore(2));
-        Assert.Equal(ignored.GetHashCode(), CsvBinding.Ignore(2).GetHashCode());
+        var ignored = CsvBinding.Ignore<Class>(2);
+        Assert.Equal(ignored, CsvBinding.Ignore<Class>(2));
+        Assert.Equal(ignored.GetHashCode(), CsvBinding.Ignore<Class>(2).GetHashCode());
     }
 
     [Fact]
     public static void Should_Implement_IEquatable()
     {
-        var propInfo = new CsvBinding(0, typeof(Base).GetProperty("Id")!);
+        var propInfo = CsvBinding.ForMember<Base>(0, typeof(Base).GetProperty("Id")!);
         var expr = CsvBinding.For<Base>(0, b => b.Id);
         Assert.Equal(propInfo, expr);
         Assert.True(propInfo.Equals((object)expr));
@@ -76,12 +61,12 @@ public static class CsvBindingTests
     public static void Should_Validate_Collection()
     {
         Assert.Throws<ArgumentNullException>(() => new CsvBindingCollection<Class>(null!));
-        Assert.Throws<ArgumentException>(() => new CsvBindingCollection<Class>(Enumerable.Empty<CsvBinding>()));
+        Assert.Throws<ArgumentException>(() => new CsvBindingCollection<Class>(Enumerable.Empty<CsvBinding<Class>>()));
 
-        Assert.Throws<CsvBindingException>(
-            () => new CsvBindingCollection<Class>(new[] { CsvBinding.Ignore(0), CsvBinding.Ignore(1) }));
+        Assert.ThrowsAny<CsvBindingException>(
+            () => new CsvBindingCollection<Class>(new[] { CsvBinding.Ignore<Class>(0), CsvBinding.Ignore<Class>(1) }));
 
-        Assert.Throws<CsvBindingException>(
+        Assert.ThrowsAny<CsvBindingException>(
             () => new CsvBindingCollection<Class>(
                 new[]
                 {
@@ -89,7 +74,7 @@ public static class CsvBindingTests
                     CsvBinding.For<Class>(0, x => x.Name),
                 }));
 
-        Assert.Throws<CsvBindingException>(
+        Assert.ThrowsAny<CsvBindingException>(
             () => new CsvBindingCollection<Class>(
                 new[]
                 {
@@ -97,11 +82,11 @@ public static class CsvBindingTests
                     CsvBinding.For<Class>(1, x => x.Id),
                 }));
 
-        Assert.Throws<CsvBindingException>(
-            () => new CsvBindingCollection<Class>(
+        Assert.ThrowsAny<CsvBindingException>(
+            () => new CsvBindingCollection<Struct>(
                 new[]
                 {
-                    CsvBinding.For<Struct>(0, x => x.Prop),
+                    CsvBinding.ForMember<Struct>(0, typeof(Class).GetProperties()[0]),
                 }));
     }
 }

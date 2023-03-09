@@ -13,17 +13,17 @@ public sealed class HeaderTextBinder : HeaderBinderBase<char>
     public HeaderTextBinder(
         StringComparison stringComparison = HeaderMatcherDefaults.DefaultComparison,
         bool ignoreUnmatched = false)
-        : base(HeaderMatcherDefaults.MatchText(stringComparison), ignoreUnmatched)
+        : base(new DefaultTextHeaderMatcher(stringComparison), ignoreUnmatched)
     {
     }
 
     /// <summary>
     /// Initializes a provider that matches headers using the parameter function.
     /// </summary>
-    /// <param name="matcher">Function to match the members</param>
+    /// <param name="matcher">Matcher used to bind columns to members</param>
     /// <param name="ignoreUnmatched">Whether columns that cannot be matched are ignored</param>
     public HeaderTextBinder(
-        CsvHeaderMatcher<char> matcher,
+        ICsvHeaderMatcher<char> matcher,
         bool ignoreUnmatched = false)
         : base(matcher, ignoreUnmatched)
     {

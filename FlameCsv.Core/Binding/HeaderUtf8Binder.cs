@@ -13,17 +13,17 @@ public sealed class HeaderUtf8Binder : HeaderBinderBase<byte>
     public HeaderUtf8Binder(
         StringComparison stringComparison = HeaderMatcherDefaults.DefaultComparison,
         bool ignoreUnmatched = false)
-        : base(HeaderMatcherDefaults.MatchUtf8(stringComparison), ignoreUnmatched)
+        : base(new DefaultUtf8HeaderMatcher(stringComparison), ignoreUnmatched)
     {
     }
 
     /// <summary>
     /// Initializes a provider that matches headers using the parameter function.
     /// </summary>
-    /// <param name="matcher">Function to match the members</param>
+    /// <param name="matcher">Matcher used to bind columns to members</param>
     /// <param name="ignoreUnmatched">Whether columns that cannot be matched are ignored</param>
     public HeaderUtf8Binder(
-        CsvHeaderMatcher<byte> matcher,
+        ICsvHeaderMatcher<byte> matcher,
         bool ignoreUnmatched = false)
         : base(matcher, ignoreUnmatched)
     {

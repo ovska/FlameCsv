@@ -1,5 +1,4 @@
 using CommunityToolkit.Diagnostics;
-using FlameCsv.Extensions;
 
 namespace FlameCsv.Binding.Attributes;
 
@@ -27,12 +26,5 @@ public sealed class CsvIndexTargetAttribute : Attribute
         Guard.IsNotNullOrWhiteSpace(memberName);
         Index = index;
         MemberName = memberName;
-    }
-
-    internal CsvBinding GetAsBinding(Type targetType)
-    {
-        Guard.IsNotNull(targetType);
-        GuardEx.IsNotInterface(targetType);
-        return CsvBinding.ForMember(Index, targetType.GetPropertyOrField(MemberName));
     }
 }

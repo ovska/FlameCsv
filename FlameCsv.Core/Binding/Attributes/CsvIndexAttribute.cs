@@ -8,7 +8,7 @@ namespace FlameCsv.Binding.Attributes;
 /// <remarks>
 /// Column indexes start at zero.
 /// </remarks>
-[AttributeUsage(CsvBinding.AllowedOn)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
 public sealed class CsvIndexAttribute : Attribute
 {
     /// <summary>CSV column index.</summary>

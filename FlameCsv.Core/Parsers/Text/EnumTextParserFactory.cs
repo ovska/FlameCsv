@@ -1,4 +1,4 @@
-using FlameCsv.Extensions;
+using System.Reflection;
 using FlameCsv.Runtime;
 
 namespace FlameCsv.Parsers.Text;
@@ -24,7 +24,7 @@ public sealed class EnumTextParserFactory : ICsvParserFactory<char>
 
     public bool CanParse(Type resultType)
     {
-        return resultType.IsEnum && !resultType.HasAttribute<FlagsAttribute>();
+        return resultType.IsEnum && resultType.GetCustomAttribute<FlagsAttribute>(inherit: false) is null;
     }
 
     public ICsvParser<char> Create(Type resultType, CsvReaderOptions<char> options)

@@ -1,7 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Binding.Attributes;
+using FlameCsv.Binding.Internal;
 using FlameCsv.Exceptions;
-using FlameCsv.Extensions;
+using FlameCsv.Reflection;
 
 namespace FlameCsv.Binding;
 
@@ -16,52 +17,53 @@ internal static class IndexAttributeBinder<TValue>
 
     private static CsvBindingCollection<TValue>? CreateBindingCollection()
     {
-        List<CsvBinding> list = new();
+        var typeInfo = CsvTypeInfo<TValue>.Instance;
+        List<CsvBinding<TValue>> list = new();
 
         // Member attributes
-        foreach (var member in typeof(TValue).GetCachedPropertiesAndFields())
+        foreach (var member in typeInfo.Members)
         {
-            foreach (var attribute in member.GetCachedCustomAttributes())
+            foreach (var attribute in member.Attributes)
             {
                 if (attribute is CsvIndexAttribute { Index: var index })
                 {
-                    list.Add(CsvBinding.ForMember(index, member));
+                    list.Add(new MemberCsvBinding<TValue>(index, member));
                     break;
                 }
             }
         }
 
         // Type targeted attributes
-        foreach (var attr in typeof(TValue).GetCachedCustomAttributes())
+        foreach (var attr in typeInfo.Attributes)
         {
-            if (attr is CsvIndexTargetAttribute targetAttribute)
+            if (attr is CsvIndexTargetAttribute target)
             {
-                list.Add(targetAttribute.GetAsBinding(typeof(TValue)));
+                list.Add(new MemberCsvBinding<TValue>(target.Index, typeInfo.GetPropertyOrField(target.MemberName)));
             }
             else if (attr is CsvIndexIgnoreAttribute ignoreAttribute)
             {
-                list.Add(CsvBinding.Ignore(ignoreAttribute.Index));
+                list.Add(new IgnoredCsvBinding<TValue>(ignoreAttribute.Index));
             }
         }
 
         // Primary constructor parameters
-        foreach (var parameter in ReflectionExtensions.FindConstructorParameters<TValue>())
+        foreach (var parameter in typeInfo.ConstructorParameters)
         {
             bool found = false;
 
-            foreach (var attr in parameter.GetCachedParameterAttributes())
+            foreach (var attr in parameter.Attributes)
             {
                 if (attr is CsvIndexAttribute { Index: var index })
                 {
-                    list.Add(new CsvBinding(index, parameter));
+                    list.Add(new ParameterCsvBinding<TValue>(index, parameter));
                     found = true;
                     break;
                 }
             }
 
-            if (!found && !parameter.HasDefaultValue)
+            if (!found && !parameter.Value.HasDefaultValue)
             {
-                throw new CsvBindingException(typeof(TValue), parameter);
+                throw new CsvBindingException<TValue>(parameter.Value);
             }
         }
 

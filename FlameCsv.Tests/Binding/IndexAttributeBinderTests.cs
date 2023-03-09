@@ -1,5 +1,6 @@
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
+using FlameCsv.Binding.Internal;
 
 // ReSharper disable UnusedMember.Local
 // ReSharper disable ClassNeverInstantiated.Local
@@ -15,7 +16,7 @@ public static class IndexAttributeBinderTests
         Assert.Equal(3, result!.Bindings.Length);
         Assert.Equal(
             new[] { (0, "A"), (1, "B"), (2, "C") },
-            result.Bindings.ToArray().Select(b => (b.Index, b.Member.Name)));
+            result.Bindings.ToArray().Select(b => (b.Index, ((MemberCsvBinding<Members>)b).Member.Name)));
     }
 
     [Fact]
@@ -25,7 +26,7 @@ public static class IndexAttributeBinderTests
         Assert.Equal(3, result!.Bindings.Length);
         Assert.Equal(
             new[] { (0, "A"), (1, "B"), (2, "C") },
-            result.Bindings.ToArray().Select(b => (b.Index, b.Member.Name)));
+            result.Bindings.ToArray().Select(b => (b.Index, ((MemberCsvBinding<Class>)b).Member.Name)));
     }
 
     [Fact]
@@ -35,7 +36,7 @@ public static class IndexAttributeBinderTests
         Assert.Equal(3, result!.Bindings.Length);
         Assert.Equal(
             new[] { (0, "A"), (1, "B"), (2, "C") },
-            result.Bindings.ToArray().Select(b => (b.Index, b.Member.Name)));
+            result.Bindings.ToArray().Select(b => (b.Index, ((MemberCsvBinding<Mixed>)b).Member.Name)));
     }
 
     [Fact]
@@ -49,9 +50,9 @@ public static class IndexAttributeBinderTests
     {
         Assert.True(IndexAttributeBinder<Ignored>.TryGetBindings(out var result));
         Assert.Equal(3, result!.Bindings.Length);
-        Assert.Equal("A", result.Bindings[0].Member.Name);
+        Assert.Equal("A", ((MemberCsvBinding<Ignored>)result.Bindings[0]).Member.Name);
         Assert.True(result.Bindings[1].IsIgnored);
-        Assert.Equal("B", result.Bindings[2].Member.Name);
+        Assert.Equal("B", ((MemberCsvBinding<Ignored>)result.Bindings[2]).Member.Name);
     }
 
     [CsvIndexIgnore(1)]

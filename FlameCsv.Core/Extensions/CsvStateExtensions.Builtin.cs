@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Binding;
+using FlameCsv.Binding.Internal;
 
 namespace FlameCsv.Extensions;
 
@@ -15,12 +16,12 @@ internal static partial class CsvStateExtensions
         }
 
         var parameters = typeof(TTuple).GetConstructors()[0].GetParameters();
-        var bindingsList = new List<CsvBinding>(parameters.Length);
+        var bindingsList = new List<CsvBinding<TTuple>>(parameters.Length);
 
         // TODO: add support for ignored columns via a special type, e.g. struct CsvIgnore { }
         for (int i = 0; i < parameters.Length; i++)
         {
-            bindingsList.Add(new CsvBinding(i, parameters[i]));
+            bindingsList.Add(new ParameterCsvBinding<TTuple>(i, parameters[i]));
         }
 
         bindingCollection = new CsvBindingCollection<TTuple>(bindingsList, isInternalCall: true);

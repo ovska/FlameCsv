@@ -1,6 +1,8 @@
 using System.Buffers;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
+using FlameCsv.Binding.Internal;
 using FlameCsv.Readers;
 
 // ReSharper disable UnusedType.Local
@@ -42,8 +44,8 @@ public static class HeaderBindingTests
         var bindingCollection = binder.Bind<ShimWithCtor>("Name,_targeted", CsvTextReaderOptions.Default);
         var byIndex = bindingCollection.Bindings.ToArray().ToDictionary(b => b.Index);
         Assert.Equal(2, byIndex.Count);
-        Assert.Equal("Name", byIndex[0].Member.Name);
-        Assert.Equal("isEnabled", byIndex[1].Parameter.Name);
+        Assert.Equal("Name", ((MemberCsvBinding<ShimWithCtor>)byIndex[0]).Member.Name);
+        Assert.Equal("isEnabled", ((ParameterCsvBinding<ShimWithCtor>)byIndex[1]).Parameter.Name);
     }
 
     [Theory]
@@ -54,7 +56,8 @@ public static class HeaderBindingTests
         var binder = new HeaderTextBinder(stringComparison: StringComparison.Ordinal);
 
         var bindingCollection = binder.Bind<Shim>(header, CsvTextReaderOptions.Default);
-        var byIndex = bindingCollection.Bindings.ToArray().ToDictionary(b => b.Index, b => b.Member);
+        Assert.Equal(3, bindingCollection.Bindings.Length);
+        var byIndex = bindingCollection.MemberBindings.ToArray().ToDictionary(b => b.Index, b => b.Member);
         Assert.Equal(3, byIndex.Count);
         Assert.Equal(typeof(Shim).GetProperty(nameof(Shim.IsEnabled)), byIndex[0]);
         Assert.Equal(typeof(Shim).GetProperty(nameof(Shim.DisplayName)), byIndex[1]);
