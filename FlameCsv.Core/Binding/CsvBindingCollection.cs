@@ -59,7 +59,7 @@ public sealed class CsvBindingCollection<TValue>
     /// <param name="bindings">Column bindings</param>
     /// <exception cref="CsvBindingException">Bindings are invalid</exception>
     public CsvBindingCollection(IEnumerable<CsvBinding<TValue>> bindings)
-        : this(bindings.ToList() ?? throw new ArgumentNullException(nameof(bindings)), true)
+        : this(bindings?.ToList() ?? throw new ArgumentNullException(nameof(bindings)), true)
     {
     }
 
@@ -186,14 +186,13 @@ public sealed class CsvBindingCollection<TValue>
             // Default value is required
             if (match is null && !parameter.HasDefaultValue)
             {
-                throw new CsvBindingException<TValue>(parameter);
+                throw new CsvBindingException<TValue>(parameter, bindingsList);
             }
 
             parameterInfos.Add((match, parameter));
         }
 
-        // At this point we don't need to validate that the parameters are for the same constructor that
-        // have the correct positions.
+        Debug.Assert(parameterInfos.DistinctBy(p => p.param.Member).Count() == 1);
         parameterInfos.AsSpan().Sort(static (a, b) => a.param.Position.CompareTo(b.param.Position));
         return parameterInfos;
     }

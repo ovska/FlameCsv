@@ -5,11 +5,6 @@ using CommunityToolkit.HighPerformance.Buffers;
 
 namespace FlameCsv.Binding;
 
-public interface ICsvHeaderMatcher<T> where T : unmanaged, IEquatable<T>
-{
-    CsvBinding<TResult>? TryMatch<TResult>(ReadOnlySpan<T> value, in HeaderBindingArgs args);
-}
-
 /// <summary>
 /// Built-in callbacks for header binding.
 /// </summary>

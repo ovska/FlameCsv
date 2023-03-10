@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Binding.Internal;
 using FlameCsv.Exceptions;
@@ -20,7 +21,23 @@ internal static class IndexAttributeBinder<TValue>
         var typeInfo = CsvTypeInfo<TValue>.Instance;
         List<CsvBinding<TValue>> list = new();
 
-        // Member attributes
+        foreach (var attr in typeInfo.Attributes)
+        {
+            if (attr is CsvIndexTargetAttribute target)
+            {
+                list.Add(new MemberCsvBinding<TValue>(target.Index, typeInfo.GetPropertyOrField(target.MemberName)));
+            }
+            else if (attr is CsvIndexIgnoreAttribute ignoreAttribute)
+            {
+                foreach (var index in ignoreAttribute.Indexes)
+                {
+                    // Ensure no duplicate ignores since its not really harmful to have them
+                    if (!HasIgnoredIndex(index, list))
+                        list.Add(new IgnoredCsvBinding<TValue>(index));
+                }
+            }
+        }
+
         foreach (var member in typeInfo.Members)
         {
             foreach (var attribute in member.Attributes)
@@ -33,20 +50,6 @@ internal static class IndexAttributeBinder<TValue>
             }
         }
 
-        // Type targeted attributes
-        foreach (var attr in typeInfo.Attributes)
-        {
-            if (attr is CsvIndexTargetAttribute target)
-            {
-                list.Add(new MemberCsvBinding<TValue>(target.Index, typeInfo.GetPropertyOrField(target.MemberName)));
-            }
-            else if (attr is CsvIndexIgnoreAttribute ignoreAttribute)
-            {
-                list.Add(new IgnoredCsvBinding<TValue>(ignoreAttribute.Index));
-            }
-        }
-
-        // Primary constructor parameters
         foreach (var parameter in typeInfo.ConstructorParameters)
         {
             bool found = false;
@@ -63,12 +66,23 @@ internal static class IndexAttributeBinder<TValue>
 
             if (!found && !parameter.Value.HasDefaultValue)
             {
-                throw new CsvBindingException<TValue>(parameter.Value);
+                throw new CsvBindingException<TValue>(parameter.Value, Array.Empty<CsvBinding>());
             }
         }
 
         return list.Count > 0
             ? new CsvBindingCollection<TValue>(list, isInternalCall: true)
             : null;
+
+        static bool HasIgnoredIndex(int index, List<CsvBinding<TValue>> list)
+        {
+            foreach (var binding in list.AsSpan())
+            {
+                if (binding.Index == index && binding.IsIgnored)
+                    return true;
+            }
+
+            return false;
+        }
     }
 }
