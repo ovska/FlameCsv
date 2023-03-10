@@ -11,7 +11,7 @@ public class CsvBindingException : CsvConfigurationException
     /// </summary>
     public virtual Type? TargetType { get; }
 
-    public virtual IEnumerable<object>? Bindings { get; }
+    public virtual IEnumerable<CsvBinding> Bindings => Array.Empty<CsvBinding>();
 
     internal protected CsvBindingException(Type targetType, string message) : base(message)
     {
@@ -37,7 +37,7 @@ public sealed class CsvBindingException<T> : CsvBindingException
     /// <summary>
     /// Possible bindings that caused the exception.
     /// </summary>
-    public override IReadOnlyList<object>? Bindings { get; } = Array.Empty<object>();
+    public override IReadOnlyList<CsvBinding> Bindings { get; }
 
     /// <inheritdoc/>
     public CsvBindingException(
@@ -45,6 +45,7 @@ public sealed class CsvBindingException<T> : CsvBindingException
         Exception? innerException = null)
         : base(message, innerException)
     {
+        Bindings = Array.Empty<CsvBinding>();
     }
 
     /// <summary>
@@ -91,6 +92,7 @@ public sealed class CsvBindingException<T> : CsvBindingException
         ConstructorInfo second)
         : base($"Multiple constructors {target}: {first} and {second}")
     {
+        Bindings = Array.Empty<CsvBinding>();
     }
 
     /// <summary>
@@ -105,8 +107,13 @@ public sealed class CsvBindingException<T> : CsvBindingException
         Bindings = new[] { binding };
     }
 
-    public CsvBindingException(ParameterInfo parameter)
+    /// <summary>
+    /// Throws an exception for a required constructor parameter that didn't have a matching binding.
+    /// </summary>
+    /// <param name="parameter"></param>
+    internal CsvBindingException(ParameterInfo parameter, IEnumerable<CsvBinding> parameterBindings)
         : base($"Constructor parameter '{parameter.Name}' had no matching binding and has no default value.")
     {
+        Bindings = parameterBindings.ToArray();
     }
 }

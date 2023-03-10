@@ -1,5 +1,4 @@
-﻿using FlameCsv.Binding.Attributes;
-using FlameCsv.Parsers;
+﻿using FlameCsv.Parsers;
 
 namespace FlameCsv.Binding.Attributes;
 
