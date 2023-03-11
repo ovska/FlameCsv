@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 
-namespace FlameCsv.Readers.Internal;
+namespace FlameCsv.Reading;
 
 // based HEAVILY on the .NET runtime BufferSegment code
 [DebuggerDisplay(
@@ -103,6 +103,6 @@ internal sealed class TextSegment : ReadOnlySequenceSegment<char>
     internal static long GetLength(TextSegment startSegment, int startIndex, TextSegment endSegment, int endIndex)
     {
         // ReSharper disable once ArrangeRedundantParentheses
-        return (endSegment.RunningIndex + (uint)endIndex) - (startSegment.RunningIndex + (uint)startIndex);
+        return endSegment.RunningIndex + (uint)endIndex - (startSegment.RunningIndex + (uint)startIndex);
     }
 }

@@ -5,7 +5,7 @@ using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Extensions;
 using FlameCsv.Parsers.Text;
 using FlameCsv.Parsers.Utf8;
-using FlameCsv.Readers;
+using FlameCsv.Reading;
 using FlameCsv.Tests.TestData;
 using FlameCsv.Tests.Utilities;
 

@@ -3,7 +3,7 @@ using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Binding.Internal;
-using FlameCsv.Readers;
+using FlameCsv.Reading;
 
 // ReSharper disable UnusedType.Local
 // ReSharper disable UnusedMember.Local
@@ -80,9 +80,9 @@ public static class HeaderBindingTests
         using var processor = new CsvHeaderProcessor<char, Shim>(options);
         var buffer = new ReadOnlySequence<char>(data.AsMemory());
 
-        Assert.True(processor.TryContinueRead(ref buffer, out var value1));
-        Assert.True(processor.TryContinueRead(ref buffer, out var value2));
-        Assert.False(processor.TryContinueRead(ref buffer, out _));
+        Assert.True(processor.TryRead(ref buffer, out var value1, false));
+        Assert.True(processor.TryRead(ref buffer, out var value2, false));
+        Assert.False(processor.TryRead(ref buffer, out _, false));
         Assert.True(buffer.IsEmpty);
 
         Assert.True(value1.IsEnabled);
@@ -106,7 +106,7 @@ public static class HeaderBindingTests
 
         using var processor = new CsvHeaderProcessor<char, Shim>(options);
         var buffer = new ReadOnlySequence<char>(data.AsMemory());
-        Assert.False(processor.TryContinueRead(ref buffer, out _));
-        Assert.False(processor.TryReadRemaining(in buffer, out _));
+        Assert.False(processor.TryRead(ref buffer, out _, false));
+        Assert.False(processor.TryRead(ref buffer, out _, true));
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace FlameCsv.Readers;
+﻿namespace FlameCsv;
 
 /// <summary>
 /// Provides static methods for reading CSV records as objects or structs.

@@ -2,8 +2,9 @@ using System.Buffers;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
+using FlameCsv.Reading;
 
-namespace FlameCsv.Readers;
+namespace FlameCsv;
 
 public static partial class CsvReader
 {
@@ -79,7 +80,7 @@ public static partial class CsvReader
                 ReadResult result = await reader.ReadAsync(cancellationToken);
                 ReadOnlySequence<byte> buffer = result.Buffer;
 
-                while (processor.TryContinueRead(ref buffer, out TValue value))
+                while (processor.TryRead(ref buffer, out TValue value, isFinalBlock: false))
                 {
                     yield return value;
                 }
@@ -89,7 +90,7 @@ public static partial class CsvReader
                 if (result.IsCompleted)
                 {
                     // Read leftover data if there was no final newline
-                    if (!buffer.IsEmpty && processor.TryReadRemaining(in buffer, out TValue value))
+                    if (processor.TryRead(ref buffer, out TValue value, isFinalBlock: true))
                     {
                         yield return value;
                     }

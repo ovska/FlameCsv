@@ -1,14 +1,9 @@
 using System.Buffers;
 using System.Linq.Expressions;
 using System.Reflection;
-using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
-using FlameCsv.Extensions;
 using FlameCsv.Parsers;
 using FlameCsv.Parsers.Text;
-using FlameCsv.Readers;
-using FlameCsv.Readers.Internal;
-using FlameCsv.Runtime;
 
 namespace FlameCsv.Tests;
 

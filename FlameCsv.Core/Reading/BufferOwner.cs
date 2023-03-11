@@ -5,7 +5,7 @@ using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 
-namespace FlameCsv.Readers.Internal;
+namespace FlameCsv.Reading;
 
 /// <summary>
 /// Utility class holding on to a rented buffer. The buffer is meant to be reused

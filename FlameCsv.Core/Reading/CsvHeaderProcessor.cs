@@ -3,9 +3,8 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Extensions;
-using FlameCsv.Readers.Internal;
 
-namespace FlameCsv.Readers;
+namespace FlameCsv.Reading;
 
 internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     where T : unmanaged, IEquatable<T>
@@ -25,41 +24,27 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryContinueRead(ref ReadOnlySequence<T> buffer, out TValue value)
+    public bool TryRead(ref ReadOnlySequence<T> buffer, out TValue value, bool isFinalBlock)
     {
         if (_headerRead)
         {
-            return _inner.TryContinueRead(ref buffer, out value);
+            return _inner.TryRead(ref buffer, out value, isFinalBlock);
         }
 
-        return ParseHeaderAndTryRead(ref buffer, out value);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryReadRemaining(in ReadOnlySequence<T> remaining, out TValue value)
-    {
-        if (_headerRead)
-        {
-            return _inner.TryReadRemaining(in remaining, out value);
-        }
-
-        // still read header despite it being the only line in the data
-        // to ensure the data is valid for the bindings
-        ReadHeader(in remaining);
-        value = default!;
-        return false;
+        return ParseHeaderAndTryRead(ref buffer, out value, isFinalBlock);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)] // encourage inlining more common paths
-    private bool ParseHeaderAndTryRead(ref ReadOnlySequence<T> buffer, out TValue value)
+    private bool ParseHeaderAndTryRead(ref ReadOnlySequence<T> buffer, out TValue value, bool isFinalBlock)
     {
-        if (LineReader.TryRead(in _options.tokens, ref buffer, out var line, out _))
+        if (LineReader.TryGetLine(in _options.tokens, ref buffer, out var line, out _, isFinalBlock))
         {
             ReadHeader(in line);
 
             Debug.Assert(_headerRead);
 
-            return _inner.TryContinueRead(ref buffer, out value);
+            if (!isFinalBlock)
+                return _inner.TryRead(ref buffer, out value, isFinalBlock);
         }
 
         value = default!;
@@ -79,6 +64,7 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
 
     public void Dispose()
     {
-        if (_headerRead) _inner.Dispose();
+        if (_headerRead)
+            _inner.Dispose();
     }
 }

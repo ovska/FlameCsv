@@ -1,7 +1,7 @@
 using System.Buffers;
 using System.Diagnostics;
 
-namespace FlameCsv.Readers.Internal;
+namespace FlameCsv.Reading;
 
 [DebuggerDisplay(@"\{ TextReadResult, Buffer: {Buffer.Length}, IsCompleted: {IsCompleted} \}")]
 internal readonly struct TextReadResult

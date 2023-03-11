@@ -3,8 +3,7 @@ using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
-using FlameCsv.Readers;
-using FlameCsv.Readers.Internal;
+using FlameCsv.Reading;
 using FlameCsv.Reflection;
 
 namespace FlameCsv.Binding;

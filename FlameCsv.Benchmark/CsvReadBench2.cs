@@ -1,6 +1,6 @@
 ﻿using System.Globalization;
 using System.Text;
-using FlameCsv.Readers;
+using FlameCsv.Reading;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Parsers.Text;
 using FlameCsv.Parsers.Utf8;

@@ -1,10 +1,11 @@
 using System.Buffers;
+using FlameCsv.Reading;
 
-namespace FlameCsv.Readers;
+namespace FlameCsv;
 
 public static partial class CsvReader
 {
-    // to avoid using two generics and AsMemory() for common operations
+    // to avoid user having to use two generics for common operations
     /// <inheritdoc cref="Read{T,TValue}(CsvReaderOptions{T},ReadOnlyMemory{T})"/>
     public static IEnumerable<TValue> Read<TValue>(
         string csv,
@@ -14,7 +15,7 @@ public static partial class CsvReader
         return Read<char, TValue>(new ReadOnlySequence<char>(csv.AsMemory()), options);
     }
 
-    // to avoid using two generics for common operations
+    // to avoid user having to use two generics for common operations
     /// <inheritdoc cref="Read{T,TValue}(CsvReaderOptions{T},ReadOnlyMemory{T})"/>
     public static IEnumerable<TValue> Read<TValue>(
         ReadOnlyMemory<char> csv,
@@ -24,7 +25,7 @@ public static partial class CsvReader
         return Read<char, TValue>(new ReadOnlySequence<char>(csv), options);
     }
 
-    // to avoid using two generics for common operations
+    // to avoid user having to use two generics for common operations
     /// <inheritdoc cref="Read{T,TValue}(CsvReaderOptions{T},ReadOnlyMemory{T})"/>
     public static IEnumerable<TValue> Read<TValue>(
         ReadOnlyMemory<byte> csv,
@@ -79,12 +80,13 @@ public static partial class CsvReader
         {
             TValue value;
 
-            while (processor.TryContinueRead(ref buffer, out value))
+            while (processor.TryRead(ref buffer, out value, isFinalBlock: false))
             {
                 yield return value;
             }
 
-            if (!buffer.IsEmpty && processor.TryReadRemaining(in buffer, out value))
+            // read final block
+            if (processor.TryRead(ref buffer, out value, isFinalBlock: true))
             {
                 yield return value;
             }
@@ -95,3 +97,4 @@ public static partial class CsvReader
         }
     }
 }
+

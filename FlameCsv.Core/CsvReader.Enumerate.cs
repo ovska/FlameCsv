@@ -1,6 +1,6 @@
 using System.Buffers;
 
-namespace FlameCsv.Readers;
+namespace FlameCsv;
 
 public static partial class CsvReader
 {
@@ -26,7 +26,7 @@ public static partial class CsvReader
     }
 
     /// <summary>
-    /// Returns an enumerator that can be used to read CSV lines and columns in a forward-only fashion.
+    /// Returns an enumerator that can be used to read CSV records in a forward-only fashion.
     /// </summary>
     /// <remarks>
     /// The enumerator should either be used in a <see langword="foreach"/>-block or disposed explicitly.

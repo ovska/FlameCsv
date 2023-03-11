@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Text;
 using FlameCsv.Extensions;
 
-namespace FlameCsv.Readers.Internal;
+namespace FlameCsv.Reading;
 
 /// <summary>
 /// A non-allocating view around a <see cref="ReadOnlySequence{T}"/> that copies the
