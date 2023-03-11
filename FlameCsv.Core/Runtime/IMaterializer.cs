@@ -3,7 +3,7 @@ using FlameCsv.Reading;
 namespace FlameCsv.Runtime;
 
 /// <summary>
-/// State of a CSV row being parsed.
+/// Instance of a type that reads CSV records into objects/structs.
 /// </summary>
 internal interface IMaterializer<T, out TResult> where T : unmanaged, IEquatable<T>
 {

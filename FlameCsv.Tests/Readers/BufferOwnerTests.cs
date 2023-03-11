@@ -1,4 +1,5 @@
 using System.Buffers;
+using FlameCsv.Extensions;
 using FlameCsv.Reading;
 
 namespace FlameCsv.Tests.Readers;
@@ -11,6 +12,24 @@ public static class BufferOwnerTests
         using var buffer = new BufferOwner<char>(new TestPool<char>());
         buffer.Dispose();
         Assert.Throws<ObjectDisposedException>(() => buffer.GetMemory(1));
+    }
+
+    [Fact]
+    public static void Should_Use_Same_Array_Ref()
+    {
+        char[]? arr = null;
+
+        try
+        {
+            var vbo = new ValueBufferOwner<char>(ref arr, ArrayPool<char>.Shared);
+            var span = vbo.GetSpan(5);
+            Assert.Equal(5, span.Length);
+            Assert.NotNull(arr);
+        }
+        finally
+        {
+            ArrayPool<char>.Shared.EnsureReturned(ref arr);
+        }
     }
 
     [Fact]
@@ -48,7 +67,8 @@ public static class BufferOwnerTests
 
         public override void Return(T[] array, bool clearArray = false)
         {
-            if (array.Length > 0) Returned.Add((array, clearArray));
+            if (array.Length > 0)
+                Returned.Add((array, clearArray));
         }
     }
 }

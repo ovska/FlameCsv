@@ -151,7 +151,6 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     {
         var arrayPool = _arrayPool;
 
-        // Ensure we don't throw even if default(CsvProcessor) is disposed
         if (arrayPool is not null)
         {
             arrayPool.EnsureReturned(ref _unescapeBuffer);
