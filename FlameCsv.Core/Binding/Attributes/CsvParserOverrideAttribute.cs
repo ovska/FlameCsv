@@ -2,7 +2,6 @@ using CommunityToolkit.Diagnostics;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Parsers;
-using FlameCsv.Runtime;
 
 namespace FlameCsv.Binding.Attributes;
 
@@ -75,7 +74,7 @@ public class CsvParserOverrideAttribute : Attribute
 
         try
         {
-            parserOrFactory = ActivatorEx.CreateInstance<ICsvParser<T>>(ParserType);
+            parserOrFactory = ParserType.CreateInstance<ICsvParser<T>>();
         }
         catch (Exception e)
         {

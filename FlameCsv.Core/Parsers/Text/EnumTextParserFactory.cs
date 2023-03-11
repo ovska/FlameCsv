@@ -1,5 +1,5 @@
 using System.Reflection;
-using FlameCsv.Runtime;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Parsers.Text;
 
@@ -29,8 +29,7 @@ public sealed class EnumTextParserFactory : ICsvParserFactory<char>
 
     public ICsvParser<char> Create(Type resultType, CsvReaderOptions<char> options)
     {
-        return ActivatorEx.CreateInstance<ICsvParser<char>>(
-            typeof(EnumTextParser<>).MakeGenericType(resultType),
-            parameters: new object[] { AllowUndefinedValues, IgnoreCase });
+        return typeof(EnumTextParser<>).MakeGenericType(resultType)
+            .CreateInstance<ICsvParser<char>>(AllowUndefinedValues, IgnoreCase);
     }
 }

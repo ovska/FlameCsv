@@ -5,10 +5,7 @@ namespace FlameCsv.Runtime;
 /// <summary>
 /// State of a CSV row being parsed.
 /// </summary>
-/// <remarks>
-/// Disposing the state resets possible leftover object references from partially parsed lines.
-/// </remarks>
-internal interface ICsvRowState<T, out TResult> : IDisposable where T : unmanaged, IEquatable<T>
+internal interface IMaterializer<T, out TResult> where T : unmanaged, IEquatable<T>
 {
     /// <summary>Amount of columns required to create a value.</summary>
     int ColumnCount { get; }

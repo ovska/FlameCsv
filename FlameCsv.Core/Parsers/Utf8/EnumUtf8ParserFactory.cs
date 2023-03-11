@@ -1,5 +1,5 @@
 using System.Reflection;
-using FlameCsv.Runtime;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Parsers.Utf8;
 
@@ -26,8 +26,7 @@ public class EnumUtf8ParserFactory : ICsvParserFactory<byte>
 
     public ICsvParser<byte> Create(Type resultType, CsvReaderOptions<byte> options)
     {
-        return ActivatorEx.CreateInstance<ICsvParser<byte>>(
-            typeof(EnumUtf8Parser<>).MakeGenericType(resultType),
-            parameters: new object[] { AllowUndefinedValues, IgnoreCase });
+        return typeof(EnumUtf8Parser<>).MakeGenericType(resultType)
+            .CreateInstance<ICsvParser<byte>>(AllowUndefinedValues, IgnoreCase);
     }
 }

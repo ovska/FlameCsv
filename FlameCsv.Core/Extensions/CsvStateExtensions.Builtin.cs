@@ -4,7 +4,7 @@ using FlameCsv.Binding.Internal;
 
 namespace FlameCsv.Extensions;
 
-internal static partial class CsvStateExtensions
+internal static partial class CsvReadingExtensions
 {
     private static bool TryGetTupleBindings<T, TTuple>([NotNullWhen(true)] out CsvBindingCollection<TTuple>? bindingCollection)
         where T : unmanaged, IEquatable<T>

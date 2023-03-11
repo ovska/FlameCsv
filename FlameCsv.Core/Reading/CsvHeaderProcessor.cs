@@ -57,14 +57,13 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
         using var view = new SequenceView<T>(in line, _options);
 
         var bindings = _binder.Bind<TValue>(view.Memory.Span, _options);
-        var state = _options.CreateState(bindings);
-        _inner = new CsvProcessor<T, TValue>(_options, state);
+        var materializer = _options.CreateMaterializerFrom(bindings);
+        _inner = new CsvProcessor<T, TValue>(_options, materializer);
         _headerRead = true;
     }
 
     public void Dispose()
     {
-        if (_headerRead)
-            _inner.Dispose();
+        _inner.Dispose();
     }
 }

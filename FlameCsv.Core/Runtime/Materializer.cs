@@ -10,9 +10,9 @@ namespace FlameCsv.Runtime;
 /// <summary>
 /// State of a CSV row that is being parsed.
 /// </summary>
-internal abstract partial class CsvRowState
+internal abstract partial class Materializer
 {
-    /// <inheritdoc cref="ICsvRowState{T,TResult}.ColumnCount"/>
+    /// <inheritdoc cref="IMaterializer{T,TResult}.ColumnCount"/>
     public abstract int ColumnCount { get; }
 
     /// <summary>

@@ -10,7 +10,7 @@ using FlameCsv.Runtime;
 
 namespace FlameCsv.Extensions;
 
-internal static partial class CsvStateExtensions
+internal static partial class CsvReadingExtensions
 {
     private delegate object StateFactory<T>(CsvReaderOptions<T> options) where T : unmanaged, IEquatable<T>;
 
@@ -19,26 +19,26 @@ internal static partial class CsvStateExtensions
         public static readonly ConditionalWeakTable<Type, StateFactory<T>> Value = new();
     }
 
-    public static ICsvRowState<T, TResult> CreateState<T, TResult>(
+    public static IMaterializer<T, TResult> CreateMaterializerFrom<T, TResult>(
         this CsvReaderOptions<T> options,
         CsvBindingCollection<TResult> bindingCollection)
         where T : unmanaged, IEquatable<T>
     {
-        return (ICsvRowState<T, TResult>)CreateStateFactory<T, TResult>(bindingCollection)(options);
+        return (IMaterializer<T, TResult>)GetMaterializerFactory<T, TResult>(bindingCollection)(options);
     }
 
     /// <summary>
     /// Binds the options using built-in or index binding.
     /// </summary>
-    public static ICsvRowState<T, TResult> BindToState<T, TResult>(this CsvReaderOptions<T> options)
+    public static IMaterializer<T, TResult> GetMaterializer<T, TResult>(this CsvReaderOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
-        if (!FactoryCache<T>.Value.TryGetValue(typeof(TResult), out var stateFactory))
+        if (!FactoryCache<T>.Value.TryGetValue(typeof(TResult), out var materializerFactory))
         {
             if (TryGetTupleBindings<T, TResult>(out var bindings) ||
                 IndexAttributeBinder<TResult>.TryGetBindings(out bindings))
             {
-                stateFactory = CreateStateFactory<T, TResult>(bindings);
+                materializerFactory = GetMaterializerFactory<T, TResult>(bindings);
             }
             else
             {
@@ -48,58 +48,58 @@ internal static partial class CsvStateExtensions
                     "[CsvIndex]-attributes and no built-in configuration.");
             }
 
-            FactoryCache<T>.Value.Add(typeof(TResult), stateFactory);
+            FactoryCache<T>.Value.Add(typeof(TResult), materializerFactory);
         }
 
-        return (ICsvRowState<T, TResult>)stateFactory(options);
+        return (IMaterializer<T, TResult>)materializerFactory(options);
     }
 
-    private static StateFactory<T> CreateStateFactory<T, TResult>(
+    private static StateFactory<T> GetMaterializerFactory<T, TResult>(
         CsvBindingCollection<TResult> bindingCollection)
         where T : unmanaged, IEquatable<T>
     {
-        return CreateStateFactory<T, TResult>(bindingCollection, CreateValueFactory(bindingCollection));
+        return GetMaterializerFactory<T, TResult>(bindingCollection, GetValueFactory(bindingCollection));
     }
 
     /// <summary>
     /// Creates the state object using the bindings and <typeparamref name="TResult"/> type parameter.
     /// </summary>
-    private static StateFactory<T> CreateStateFactory<T, TResult>(
+    private static StateFactory<T> GetMaterializerFactory<T, TResult>(
         CsvBindingCollection<TResult> bindingCollection,
         Delegate valueFactory)
         where T : unmanaged, IEquatable<T>
     {
-        ConstructorInfo rowStateCtor = CsvRowState.GetConstructor<T, TResult>(bindingCollection.Bindings);
+        ConstructorInfo hydratorCtor = Materializer.GetConstructor<T, TResult>(bindingCollection.Bindings);
 
         var param = Expression.Parameter(typeof(object[]), "args");
         var ctorInvoke = Expression.New(
-            rowStateCtor,
-            rowStateCtor
+            hydratorCtor,
+            hydratorCtor
                 .GetParameters()
                 .Select(
                     (p, i) => Expression.Convert(
                         Expression.ArrayAccess(param, Expression.Constant(i)),
                         p.ParameterType)));
-        var lambda = Expression.Lambda<Func<object[], ICsvRowState<T, TResult>>>(
-            Expression.Convert(ctorInvoke, typeof(ICsvRowState<T, TResult>)),
+        var lambda = Expression.Lambda<Func<object[], IMaterializer<T, TResult>>>(
+            Expression.Convert(ctorInvoke, typeof(IMaterializer<T, TResult>)),
             param);
-        var stateFactory = lambda.CompileLambda<Func<object[], ICsvRowState<T, TResult>>>();
+        var materializerFactory = lambda.CompileLambda<Func<object[], IMaterializer<T, TResult>>>();
 
-        return CreateStateImpl;
+        return CreateMaterializerImpl;
 
-        ICsvRowState<T, TResult> CreateStateImpl(CsvReaderOptions<T> options)
+        IMaterializer<T, TResult> CreateMaterializerImpl(CsvReaderOptions<T> options)
         {
             var bindings = bindingCollection.Bindings;
 
-            object[] rowStateConstructorArgs = new object[bindings.Length + 1];
-            rowStateConstructorArgs[0] = valueFactory;
+            object[] materializerCtorArgs = new object[bindings.Length + 1];
+            materializerCtorArgs[0] = valueFactory;
 
             for (int i = 0; i < bindings.Length; i++)
             {
-                rowStateConstructorArgs[i + 1] = ResolveParser(bindings[i], options);
+                materializerCtorArgs[i + 1] = ResolveParser(bindings[i], options);
             }
 
-            return stateFactory(rowStateConstructorArgs);
+            return materializerFactory(materializerCtorArgs);
         }
 
         static ICsvParser<T> ResolveParser(CsvBinding<TResult> binding, CsvReaderOptions<T> options)
@@ -118,7 +118,7 @@ internal static partial class CsvStateExtensions
         }
     }
 
-    internal static Delegate CreateValueFactory<TResult>(CsvBindingCollection<TResult> bc)
+    private static Delegate GetValueFactory<TResult>(CsvBindingCollection<TResult> bc)
     {
         ParameterExpression[] parameters = GetParametersByBindingIndex();
         NewExpression newExpr = GetObjectInitialization();

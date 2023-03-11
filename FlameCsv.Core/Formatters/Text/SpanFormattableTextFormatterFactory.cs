@@ -1,6 +1,5 @@
 using System.Globalization;
 using FlameCsv.Extensions;
-using FlameCsv.Runtime;
 
 namespace FlameCsv.Formatters.Text;
 
@@ -26,9 +25,6 @@ public sealed class SpanFormattableTextFormatterFactory : ICsvFormatterFactory<c
         var nullToken = _configuration?.TypeNulls.GetValueOrDefault(valueType);
         var formatProvider = _configuration?.TypeFormatProviders.GetValueOrDefault(valueType, CultureInfo.InvariantCulture);
         var format = _configuration?.TypeFormats.GetValueOrDefault(valueType);
-
-        return ActivatorEx.CreateInstance<ICsvFormatter<char>>(
-            formatterType,
-            parameters: new object?[] { nullToken, formatProvider, format });
+        return formatterType.CreateInstance<ICsvFormatter<char>>(nullToken, formatProvider, format);
     }
 }
