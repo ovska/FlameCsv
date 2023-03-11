@@ -85,7 +85,7 @@ public static partial class CsvReader
                 yield return value;
             }
 
-            // read final block
+            // try to read final record if buffer didn't have trailing newline
             if (processor.TryRead(ref buffer, out value, isFinalBlock: true))
             {
                 yield return value;

@@ -17,7 +17,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     private readonly CsvTokens<T> _tokens;
     private readonly CsvCallback<T, bool>? _skipPredicate;
     private readonly CsvExceptionHandler<T>? _exceptionHandler;
-    private readonly ICsvRowState<T, TValue> _state;
+    private readonly IMaterializer<T, TValue> _materializer;
     private readonly bool _exposeContent;
 
     private readonly ArrayPool<T> _arrayPool;
@@ -26,7 +26,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
 
     public CsvProcessor(
         CsvReaderOptions<T> options,
-        ICsvRowState<T, TValue>? state = null)
+        IMaterializer<T, TValue>? materializer = null)
     {
         _tokens = options.Tokens.ThrowIfInvalid();
         _skipPredicate = options.ShouldSkipRow;
@@ -34,7 +34,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         _arrayPool = options.ArrayPool ?? AllocatingArrayPool<T>.Instance;
         _exposeContent = options.AllowContentInExceptions;
 
-        _state = state ?? options.BindToState<T, TValue>();
+        _materializer = materializer ?? options.GetMaterializer<T, TValue>();
 
         // Two buffers are needed, as the ReadOnlySpan being manipulated by string escaping in the enumerator
         // might originate from the multisegment buffer
@@ -118,11 +118,11 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
             var enumerator = new CsvColumnEnumerator<T>(
                 line,
                 in _tokens,
-                _state.ColumnCount,
+                _materializer.ColumnCount,
                 quoteCount,
                 new ValueBufferOwner<T>(ref _unescapeBuffer, _arrayPool));
 
-            value = _state.Parse(ref enumerator);
+            value = _materializer.Parse(ref enumerator);
             return true;
         }
         catch (CsvFormatException ex)
@@ -149,8 +149,13 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
 
     public void Dispose()
     {
-        _state.Dispose();
-        _arrayPool.EnsureReturned(ref _unescapeBuffer);
-        _arrayPool.EnsureReturned(ref _multisegmentBuffer);
+        var arrayPool = _arrayPool;
+
+        // Ensure we don't throw even if default(CsvProcessor) is disposed
+        if (arrayPool is not null)
+        {
+            arrayPool.EnsureReturned(ref _unescapeBuffer);
+            arrayPool.EnsureReturned(ref _multisegmentBuffer);
+        }
     }
 }

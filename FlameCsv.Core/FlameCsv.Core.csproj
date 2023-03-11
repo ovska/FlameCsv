@@ -23,17 +23,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Runtime\CsvRowState.Generated.tt">
+    <None Update="Runtime\Materializer.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>CsvRowState.Generated.cs</LastGenOutput>
+      <LastGenOutput>Materializer.Generated.cs</LastGenOutput>
     </None>
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Runtime\CsvRowState.Generated.cs">
+    <Compile Update="Runtime\Materializer.Generated.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
-      <DependentUpon>CsvRowState.Generated.tt</DependentUpon>
+      <DependentUpon>Materializer.Generated.tt</DependentUpon>
     </Compile>
   </ItemGroup>
 
