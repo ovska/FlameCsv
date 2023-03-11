@@ -4,10 +4,9 @@ using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
-using FlameCsv.Readers.Internal;
 using FlameCsv.Runtime;
 
-namespace FlameCsv.Readers;
+namespace FlameCsv.Reading;
 
 // exception filter doesn't correctly propagate exceptions if handler rethrows
 #pragma warning disable RCS1236 // Use exception filter.
@@ -44,39 +43,27 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryContinueRead(ref ReadOnlySequence<T> buffer, out TValue value)
+    public bool TryRead(ref ReadOnlySequence<T> buffer, out TValue value, bool isFinalBlock)
     {
-        if (LineReader.TryRead(in _tokens, ref buffer, out ReadOnlySequence<T> line, out int quoteCount))
+        Unsafe.SkipInit(out value);
+
+        if (LineReader.TryGetLine(in _tokens, ref buffer, out ReadOnlySequence<T> line, out int quoteCount, isFinalBlock))
         {
             if (line.IsSingleSegment)
             {
-                return TryReadColumnSpan(line.FirstSpan, quoteCount, out value);
+                return TrySkipOrReadColumnSpan(line.FirstSpan, quoteCount, out value);
             }
 
             return TryReadColumns(in line, quoteCount, out value);
         }
 
-        value = default!;
         return false;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryReadRemaining(in ReadOnlySequence<T> remaining, out TValue value)
-    {
-        Debug.Assert(!remaining.IsEmpty);
-
-        if (remaining.IsSingleSegment)
-        {
-            return TrySkipOrReadColumnSpan(remaining.FirstSpan, null, out value);
-        }
-
-        return TryReadColumns(in remaining, null, out value);
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)] // encourage inlining of common path
     private bool TryReadColumns(
         in ReadOnlySequence<T> line,
-        int? quoteCount,
+        int quoteCount,
         out TValue value)
     {
         Debug.Assert(!line.IsSingleSegment);
@@ -100,25 +87,19 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool TrySkipOrReadColumnSpan(
         ReadOnlySpan<T> line,
-        int? quoteCount,
+        int quoteCount,
         out TValue value)
     {
         Unsafe.SkipInit(out value);
 
-        int knownQuoteCount = quoteCount ?? line.Count(_tokens.StringDelimiter);
-
-        if (knownQuoteCount % 2 != 0)
+        if (quoteCount % 2 != 0)
         {
-            CsvFormatException.Throw(
-                "The data ended while there was a dangling string delimiter",
-                line,
-                _exposeContent,
-                in _tokens);
+            ThrowInvalidStringDelimiterException(line);
         }
 
         if (_skipPredicate is null || !_skipPredicate(line, in _tokens))
         {
-            return TryReadColumnSpan(line, knownQuoteCount, out value);
+            return TryReadColumnSpan(line, quoteCount, out value);
         }
 
         return false;
@@ -155,6 +136,15 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         }
 
         return false;
+    }
+
+    private void ThrowInvalidStringDelimiterException(ReadOnlySpan<T> line)
+    {
+        CsvFormatException.Throw(
+            "The data ended while there was a dangling string delimiter",
+            line,
+            _exposeContent,
+            in _tokens);
     }
 
     public void Dispose()

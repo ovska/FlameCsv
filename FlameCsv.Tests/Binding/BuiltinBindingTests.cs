@@ -1,4 +1,4 @@
-﻿using FlameCsv.Readers;
+﻿using FlameCsv.Reading;
 
 namespace FlameCsv.Tests.Binding;
 

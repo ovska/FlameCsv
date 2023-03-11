@@ -1,8 +1,9 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using CommunityToolkit.HighPerformance;
 
-namespace FlameCsv.Readers;
+namespace FlameCsv.Reading;
 
 /// <summary>
 /// Reads CSV lines from a <see cref="ReadOnlySequence{T}"/>.
@@ -36,14 +37,31 @@ internal static class LineReader
     /// Count of string delimiters in <paramref name="line"/>, used when parsing the columns later on.
     /// Should be ignored if the method returns <see langword="false"/>.
     /// </param>
+    /// <param name="isFinalBlock">
+    /// Whether the data is the last block in a given stream, and newline tokens need not be seeked.
+    /// </param>
     /// <returns>
     /// <see langword="true"/> if <see cref="CsvTokens{T}.NewLine"/> was found, <paramref name="line"/>
     /// and <paramref name="quoteCount"/> can be used, and the line and newline have been sliced off from
     /// <paramref name="sequence"/>.
     /// </returns>
     /// <remarks>A successful result might still be invalid CSV.</remarks>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public static bool TryRead<T>(
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryGetLine<T>(
+        in CsvTokens<T> tokens,
+        ref ReadOnlySequence<T> sequence,
+        out ReadOnlySequence<T> line,
+        out int quoteCount,
+        bool isFinalBlock)
+        where T : unmanaged, IEquatable<T>
+    {
+        return !isFinalBlock
+            ? TryRead(in tokens, ref sequence, out line, out quoteCount)
+            : TryGetFinalBlock(in tokens, ref sequence, out line, out quoteCount);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static bool TryRead<T>(
         in CsvTokens<T> tokens,
         ref ReadOnlySequence<T> sequence,
         out ReadOnlySequence<T> line,
@@ -137,5 +155,40 @@ internal static class LineReader
 
         Unsafe.SkipInit(out line);
         return false;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static bool TryGetFinalBlock<T>(
+        in CsvTokens<T> tokens,
+        ref ReadOnlySequence<T> sequence,
+        out ReadOnlySequence<T> line,
+        out int quoteCount)
+        where T : unmanaged, IEquatable<T>
+    {
+        if (sequence.IsEmpty)
+        {
+            line = default;
+            quoteCount = default;
+            return false;
+        }
+
+        line = sequence;
+
+        if (line.IsSingleSegment)
+        {
+            quoteCount = line.FirstSpan.Count(tokens.StringDelimiter);
+        }
+        else
+        {
+            quoteCount = 0;
+
+            foreach (var segment in sequence)
+            {
+                quoteCount += segment.Span.Count(tokens.StringDelimiter);
+            }
+        }
+
+        sequence = default;
+        return true;
     }
 }

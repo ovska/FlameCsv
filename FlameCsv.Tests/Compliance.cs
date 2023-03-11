@@ -1,6 +1,5 @@
 using System.Buffers;
-using FlameCsv.Readers;
-using FlameCsv.Readers.Internal;
+using FlameCsv.Reading;
 using FlameCsv.Tests.Utilities;
 
 namespace FlameCsv.Tests;
@@ -17,7 +16,7 @@ public static class Compliance
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
         var options = CsvTokens<char>.Windows;
 
-        Assert.True(LineReader.TryRead(in options, ref seq, out var line, out _));
+        Assert.True(LineReader.TryGetLine(in options, ref seq, out var line, out _, false));
 
         Assert.Equal("xyz", new string(line.ToArray()));
         Assert.Equal("abc", new string(seq.ToArray()));
@@ -44,7 +43,7 @@ public static class Compliance
 
         var results = new List<string>();
 
-        while (LineReader.TryRead(in options, ref seq, out var line, out _))
+        while (LineReader.TryGetLine(in options, ref seq, out var line, out _, false))
         {
             results.Add(new string(line.ToArray()));
         }
@@ -68,7 +67,7 @@ public static class Compliance
 
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
 
-        Assert.True(LineReader.TryRead(in options, ref seq, out var firstLine, out _));
+        Assert.True(LineReader.TryGetLine(in options, ref seq, out var firstLine, out _, false));
         Assert.Equal(segments[0], new string(firstLine.ToArray()));
         Assert.Equal(segments[2], new string(seq.ToArray()));
     }
@@ -80,7 +79,7 @@ public static class Compliance
         var options = CsvTokens<char>.Windows;
         var seq = new ReadOnlySequence<char>(data.ToCharArray());
 
-        Assert.False(LineReader.TryRead(in options, ref seq, out _, out _));
+        Assert.False(LineReader.TryGetLine(in options, ref seq, out _, out _, false));
         Assert.Equal(data, seq.ToArray());
     }
 
@@ -106,7 +105,7 @@ public static class Compliance
 
         var found = new List<string>();
 
-        while (LineReader.TryRead(in options, ref seq, out var line, out _))
+        while (LineReader.TryGetLine(in options, ref seq, out var line, out _, false))
         {
             found.Add(new string(line.ToArray()));
         }
@@ -135,7 +134,7 @@ public static class Compliance
 
         if (data.Contains('|'))
         {
-            Assert.True(LineReader.TryRead(in options, ref seq, out var line, out var strCount));
+            Assert.True(LineReader.TryGetLine(in options, ref seq, out var line, out var strCount, false));
             var lineStr = new string(line.ToArray());
             Assert.Equal(expected, lineStr);
             Assert.Equal(new string(seq.ToArray()), data[(lineStr.Length + 1)..]);
@@ -143,7 +142,7 @@ public static class Compliance
         }
         else
         {
-            Assert.False(LineReader.TryRead(in options, ref seq, out _, out _));
+            Assert.False(LineReader.TryGetLine(in options, ref seq, out _, out _, false));
 
             // original sequence is unchanged
             Assert.Equal(data, new string(seq.ToArray()));

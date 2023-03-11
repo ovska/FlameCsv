@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-namespace FlameCsv.Readers.Internal;
+namespace FlameCsv.Reading;
 
 // most likely only 2 segments are needed at a time
 internal struct TextSegmentPool

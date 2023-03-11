@@ -1,8 +1,6 @@
 using System.Globalization;
 using System.Text;
-using CsvHelper;
 using FlameCsv.Binding.Attributes;
-using FlameCsv.Parsers;
 
 namespace FlameCsv.Benchmark;
 
@@ -24,7 +22,7 @@ public class CsvReadBench
             HasHeaderRecord = false,
         };
 
-        using var csv = new CsvReader(reader, config);
+        using var csv = new CsvHelper.CsvReader(reader, config);
 
         var options = new CsvHelper.TypeConversion.TypeConverterOptions { Formats = new[] { "yyyy'.'MM" } };
         csv.Context.TypeConverterOptionsCache.AddOptions<DateTime>(options);
@@ -45,7 +43,7 @@ public class CsvReadBench
             Tokens = CsvTokens<char>.Unix,
         };
 
-        foreach (var item in Readers.CsvReader.Read<Item>(_string, config))
+        foreach (var item in CsvReader.Read<Item>(_string, config))
         {
             _ = item;
         }
@@ -60,7 +58,7 @@ public class CsvReadBench
             Parsers = { new YYYYMMParser() },
         };
 
-        foreach (var item in Readers.CsvReader.Read<Item>(_file, config))
+        foreach (var item in CsvReader.Read<Item>(_file, config))
         {
             _ = item;
         }
@@ -124,7 +122,7 @@ public class CsvReadBench
         public string? SeriesTitle5 { get; set; }
     }
 
-    internal sealed class YYYYMMParser : ParserBase<byte, DateTime>
+    internal sealed class YYYYMMParser : Parsers.ParserBase<byte, DateTime>
     {
         public override bool TryParse(ReadOnlySpan<byte> span, out DateTime value)
         {

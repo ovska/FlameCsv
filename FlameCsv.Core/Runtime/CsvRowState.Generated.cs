@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Binding;
 using FlameCsv.Parsers;
-using FlameCsv.Readers;
+using FlameCsv.Reading;
 
 namespace FlameCsv.Runtime;
 

@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
 
-namespace FlameCsv.Readers.Internal;
+namespace FlameCsv.Reading;
 
 /// <summary>
 /// Wrapper around an array reference and the array pool that owns it.

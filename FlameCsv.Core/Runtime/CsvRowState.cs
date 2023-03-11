@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Exceptions;
 using FlameCsv.Parsers;
-using FlameCsv.Readers;
+using FlameCsv.Reading;
 
 namespace FlameCsv.Runtime;
 

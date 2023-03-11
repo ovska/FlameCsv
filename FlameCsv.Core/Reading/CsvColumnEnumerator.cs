@@ -4,9 +4,8 @@ using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
-using FlameCsv.Readers.Internal;
 
-namespace FlameCsv.Readers;
+namespace FlameCsv.Reading;
 
 /// <summary>
 /// Enumerates a columns from a line of data.
@@ -66,7 +65,6 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
     /// <param name="tokens">Structural tokens</param>
     /// <param name="columnCount">Amount of columns expected, null if not known</param>
     /// <param name="quoteCount">Known string delimiter count on the line</param>
-    /// <param name="exposeContent">Whether CSV content is exposed in exceptions</param>
     /// <param name="buffer">Provides the buffer needed to unescape possible quotes insides strings</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvColumnEnumerator(

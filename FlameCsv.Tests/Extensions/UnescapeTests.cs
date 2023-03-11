@@ -1,7 +1,7 @@
 using System.Buffers;
 using System.Diagnostics;
 using FlameCsv.Extensions;
-using FlameCsv.Readers.Internal;
+using FlameCsv.Reading;
 
 namespace FlameCsv.Tests.Extensions;
 

@@ -1,9 +1,9 @@
 using System.Buffers;
 using System.Collections;
 using System.Runtime.CompilerServices;
-using FlameCsv.Readers.Internal;
+using FlameCsv.Reading;
 
-namespace FlameCsv.Readers;
+namespace FlameCsv;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
@@ -45,7 +45,7 @@ public struct CsvEnumerator<T> : IEnumerable<CsvRecord<T>>, IEnumerator<CsvRecor
 
     public bool MoveNext()
     {
-        if (LineReader.TryRead(in _options.tokens, ref _data, out var line, out int quoteCount))
+        if (LineReader.TryGetLine(in _options.tokens, ref _data, out var line, out int quoteCount, false))
         {
             MoveNextImpl(in line, quoteCount, hasNewline: true);
             return true;

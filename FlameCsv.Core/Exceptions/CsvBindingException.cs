@@ -64,7 +64,6 @@ public sealed class CsvBindingException<T> : CsvBindingException
     /// <summary>
     /// Initializes a <see cref="CsvBindingException"/> for invalid target for a binding.
     /// </summary>
-    /// <param name="target">Target type</param>
     /// <param name="binding">Binding not applicable for the target</param>
     public CsvBindingException(CsvBinding<T> binding)
         : base($"{binding} cannot be used for type {typeof(T)}")

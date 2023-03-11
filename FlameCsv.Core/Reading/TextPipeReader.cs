@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Extensions;
 
-namespace FlameCsv.Readers.Internal;
+namespace FlameCsv.Reading;
 
 // based HEAVILY on the .NET runtime StreamPipeReader code
 

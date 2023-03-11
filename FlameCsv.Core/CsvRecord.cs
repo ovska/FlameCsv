@@ -5,9 +5,9 @@ using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
-using FlameCsv.Readers.Internal;
+using FlameCsv.Reading;
 
-namespace FlameCsv.Readers;
+namespace FlameCsv;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 

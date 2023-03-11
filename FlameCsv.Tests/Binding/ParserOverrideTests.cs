@@ -2,7 +2,7 @@ using System.Globalization;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Extensions;
 using FlameCsv.Parsers;
-using FlameCsv.Readers;
+using FlameCsv.Reading;
 
 // ReSharper disable UnusedAutoPropertyAccessor.Local
 // ReSharper disable ClassNeverInstantiated.Local

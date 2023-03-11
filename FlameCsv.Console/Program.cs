@@ -1,6 +1,6 @@
 ﻿using FlameCsv;
 using FlameCsv.Binding.Attributes;
-using FlameCsv.Readers;
+using FlameCsv.Reading;
 
 const string data = """
 id,name,isadmin,favouriteday
