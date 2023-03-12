@@ -9,7 +9,9 @@ namespace FlameCsv.Reflection;
 
 internal sealed class CsvTypeInfo<T>
 {
-    public static CsvTypeInfo<T> Instance { get; } = new();
+    public static CsvTypeInfo<T> Instance => _instance ?? GetOrInitInstance();
+
+    private static CsvTypeInfo<T>? _instance;
 
     public ReadOnlySpan<MemberData> Members => _members ?? GetOrInitPropertiesAndFields();
     public ReadOnlySpan<object> Attributes => _customAttributes ?? GetOrInitCustomAttributes();
@@ -99,6 +101,13 @@ internal sealed class CsvTypeInfo<T>
 
             return Type.Missing;
         }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static CsvTypeInfo<T> GetOrInitInstance()
+    {
+        var instance = new CsvTypeInfo<T>();
+        return Interlocked.CompareExchange(ref _instance, instance, null) ?? instance;
     }
 
     private static ParameterData[] ThrowExceptionForNoPrimaryConstructor()

@@ -1,5 +1,3 @@
-using FlameCsv.Binding;
-
 namespace FlameCsv;
 
 /// <summary>
@@ -15,16 +13,6 @@ public delegate TReturn CsvCallback<T, out TReturn>(
     where T : unmanaged, IEquatable<T>;
 
 /// <summary>
-/// Callback for matching CSV header columns to members.
-/// </summary>
-/// <param name="column">Trimmed column value</param>
-/// <param name="args">Possible match for the header</param>
-/// <typeparam name="T">Token type</typeparam>
-public delegate CsvBinding<TResult>? CsvHeaderMatcher<T, TResult>(
-    ReadOnlySpan<T> column,
-    in HeaderBindingArgs args);
-
-/// <summary>
 /// Callback for custom handling of parsing errors.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
@@ -35,4 +23,9 @@ public delegate bool CsvExceptionHandler<T>(
     ReadOnlySpan<T> data,
     Exception exception);
 
+/// <summary>
+/// Callback that returns a boolean value for a given span.
+/// </summary>
+/// <typeparam name="T">Token type</typeparam>
+/// <param name="data">Dat</param>
 internal delegate bool SpanPredicate<T>(ReadOnlySpan<T> data);

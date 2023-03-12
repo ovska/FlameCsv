@@ -82,10 +82,9 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
 
         _comma = tokens.Delimiter;
         _quote = tokens.StringDelimiter;
-        _whitespace = tokens.Whitespace.Span;
+        _whitespace = tokens.Whitespace.IsEmpty ? default : tokens.Whitespace.Span;
         _columnCount = columnCount;
         _buffer = buffer;
-
         _remaining = line;
         _quotesRemaining = quoteCount;
 
@@ -95,7 +94,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
 
     public readonly CsvColumnEnumerator<T> GetEnumerator() => this;
 
-    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public bool MoveNext()
     {
         if (IsAtEnd)
@@ -127,9 +126,11 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
             quotesConsumed++;
             index++; // move index past the quote
 
+            // Consume one quote, and use fast path to comma if the remaining line has none
+            // if consumed quote count is uneven, we must be still inside a string so only seek the next quote
             int nextIndex = --_quotesRemaining == 0
                 ? _remaining.Slice(index).IndexOf(_comma)
-                : quotesConsumed % 2 == 0 // uneven quotes, only need to find the next one
+                : quotesConsumed % 2 == 0
                     ? _remaining.Slice(index).IndexOfAny(_comma, _quote)
                     : _remaining.Slice(index).IndexOf(_quote);
 
@@ -139,7 +140,8 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
             index += nextIndex;
         }
 
-        // No comma in the remaining data
+        // There are no quotes or commas left, verify that we are at the last column if possible,
+        // and that all quotes have been consumed as expected
         if ((IsKnownLastColumn || !_columnCount.HasValue) && _quotesRemaining == 0)
         {
             Current = TrimAndUnescape(_remaining, quotesConsumed);
@@ -155,7 +157,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
 
     /// <summary>
     /// Verifies that the previous <see cref="MoveNext"/> processed the final column, either by checking
-    /// the known colun count or verifying all data was read.
+    /// the known column count or verifying all data was read.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void EnsureAllColumnsRead()
@@ -173,14 +175,11 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private readonly ReadOnlySpan<T> TrimAndUnescape(ReadOnlySpan<T> data, int quotesConsumed)
     {
-        if (_whitespace.IsEmpty)
-            return quotesConsumed == 0
-                ? data
-                : data.Unescape(_quote, quotesConsumed, _buffer);
+        var trimmed = _whitespace.IsEmpty ? data : data.Trim(_whitespace);
 
         return quotesConsumed == 0
-            ? data.Trim(_whitespace)
-            : data.Trim(_whitespace).Unescape(_quote, quotesConsumed, _buffer);
+            ? trimmed
+            : trimmed.Unescape(_quote, quotesConsumed, _buffer);
     }
 
     /// <exception cref="InvalidDataException">

@@ -12,11 +12,11 @@ namespace FlameCsv.Extensions;
 
 internal static partial class CsvReadingExtensions
 {
-    private delegate object StateFactory<T>(CsvReaderOptions<T> options) where T : unmanaged, IEquatable<T>;
+    private delegate object MaterializerFactory<T>(CsvReaderOptions<T> options) where T : unmanaged, IEquatable<T>;
 
     private static class FactoryCache<T> where T : unmanaged, IEquatable<T>
     {
-        public static readonly ConditionalWeakTable<Type, StateFactory<T>> Value = new();
+        public static readonly ConditionalWeakTable<Type, MaterializerFactory<T>> Value = new();
     }
 
     public static IMaterializer<T, TResult> CreateMaterializerFrom<T, TResult>(
@@ -54,7 +54,7 @@ internal static partial class CsvReadingExtensions
         return (IMaterializer<T, TResult>)materializerFactory(options);
     }
 
-    private static StateFactory<T> GetMaterializerFactory<T, TResult>(
+    private static MaterializerFactory<T> GetMaterializerFactory<T, TResult>(
         CsvBindingCollection<TResult> bindingCollection)
         where T : unmanaged, IEquatable<T>
     {
@@ -64,7 +64,7 @@ internal static partial class CsvReadingExtensions
     /// <summary>
     /// Creates the state object using the bindings and <typeparamref name="TResult"/> type parameter.
     /// </summary>
-    private static StateFactory<T> GetMaterializerFactory<T, TResult>(
+    private static MaterializerFactory<T> GetMaterializerFactory<T, TResult>(
         CsvBindingCollection<TResult> bindingCollection,
         Delegate valueFactory)
         where T : unmanaged, IEquatable<T>

@@ -149,12 +149,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
 
     public void Dispose()
     {
-        var arrayPool = _arrayPool;
-
-        if (arrayPool is not null)
-        {
-            arrayPool.EnsureReturned(ref _unescapeBuffer);
-            arrayPool.EnsureReturned(ref _multisegmentBuffer);
-        }
+        _arrayPool.EnsureReturned(ref _unescapeBuffer);
+        _arrayPool.EnsureReturned(ref _multisegmentBuffer);
     }
 }
