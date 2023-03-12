@@ -76,6 +76,8 @@ internal sealed class Materializer<T, <#= generics #>>
 {
     public override int ColumnCount => <#= current #>;
 
+    protected override Type RecordType => typeof(TResult);
+
     private readonly Func<<#= generics #>> valueFactory;
 
     public Materializer(

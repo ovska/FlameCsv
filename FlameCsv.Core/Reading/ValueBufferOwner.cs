@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
@@ -8,6 +9,7 @@ namespace FlameCsv.Reading;
 /// <summary>
 /// Wrapper around an array reference and the array pool that owns it.
 /// </summary>
+[DebuggerDisplay(@"\{ ValueBufferOwner: Length: {_span[0] != null ? _span[0].Length.ToString() : ""-1"",nq} \}")]
 internal readonly ref struct ValueBufferOwner<T> where T : unmanaged
 {
     private readonly Span<T[]?> _span;

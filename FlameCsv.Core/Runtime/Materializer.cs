@@ -12,8 +12,11 @@ namespace FlameCsv.Runtime;
 /// </summary>
 internal abstract partial class Materializer
 {
-    /// <inheritdoc cref="IMaterializer{T,TResult}.ColumnCount"/>
+    /// <inheritdoc cref="IMaterializer{T, TResult}.ColumnCount" />
     public abstract int ColumnCount { get; }
+
+    /// <summary>The return type for a CSV record.</summary>
+    protected abstract Type RecordType { get; }
 
     /// <summary>
     /// Parses the next column from the <paramref name="enumerator"/> to <paramref name="value"/>.
@@ -48,7 +51,7 @@ internal abstract partial class Materializer
         where T : unmanaged, IEquatable<T>
     {
         throw new CsvFormatException(
-            $"Got only {enumerator.Column} columns out of {ColumnCount} in {GetType().ToTypeString()}");
+            $"Got only {enumerator.Column} columns out of {ColumnCount} when parsing {RecordType}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -60,8 +63,6 @@ internal abstract partial class Materializer
         throw new CsvParseException(
             $"Failed to parse with {parser.GetType()} from {enumerator.Current.ToString()} "
             + $"in {GetType().ToTypeString()}")
-            {
-                Parser = parser,
-            };
+        { Parser = parser };
     }
 }
