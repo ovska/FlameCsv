@@ -1,11 +1,111 @@
 using System.Buffers;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Formatters;
+using FlameCsv.Reading;
 
 namespace FlameCsv.Writers;
+
+internal ref struct CsvWriteState<T> where T : unmanaged, IEquatable<T>
+{
+    private readonly T _comma;
+    private readonly T _quote;
+    private readonly ReadOnlySpan<T> _newLine;
+    private readonly ValueBufferOwner<T> _buffer;
+
+    private ReadOnlySpan<T> _overflow;
+
+    public CsvWriteState(
+        in CsvTokens<T> tokens,
+        ValueBufferOwner<T> buffer)
+    {
+        _comma = tokens.Delimiter;
+        _quote = tokens.StringDelimiter;
+        _newLine = tokens.NewLine.Span;
+        _buffer = buffer;
+    }
+
+    public bool TryWrite<TValue>(
+        Span<T> destination,
+        ICsvFormatter<T, TValue> formatter,
+        TValue value,
+        out int tokensWritten,
+        out bool overflowWritten)
+    {
+        if (!formatter.TryFormat(value, destination, out tokensWritten))
+        {
+            overflowWritten = false;
+            return false;
+        }
+
+        if (tokensWritten > 0)
+        {
+            Span<T> written = destination.Slice(0, tokensWritten);
+
+            if (NeedsEscaping(written, out int quoteCount))
+            {
+                int escapedLength = tokensWritten + 2 + quoteCount;
+
+                if (destination.Length < escapedLength)
+                {
+                    Debug.Assert(_overflow.IsEmpty);
+
+                    _overflow = WriteUtil.PartialEscape(written, destination, _quote, quoteCount, _buffer);
+                    overflowWritten = true;
+                    return true;
+                }
+
+                WriteUtil.Escape(written, destination.Slice(0, escapedLength), _quote, quoteCount);
+                tokensWritten = escapedLength;
+            }
+        }
+
+        overflowWritten = false;
+        return true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryFlushOverflow(ref Span<T> destination)
+    {
+        if (destination.Length >= _overflow.Length)
+        {
+            _overflow.CopyTo(destination);
+            _overflow = default;
+            return true;
+        }
+
+        return false;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool NeedsEscaping(scoped ReadOnlySpan<T> value, out int quoteCount)
+    {
+        Debug.Assert(!value.IsEmpty);
+
+        // For 1 token newlines we can expedite the search
+        int index = _newLine.Length == 1
+            ? value.IndexOfAny(_comma, _quote, _newLine[0])
+            : value.IndexOfAny(_comma, _quote);
+
+        if (index >= 0)
+        {
+            // we know any token before index cannot be a quote
+            quoteCount = value.Slice(index).Count(_quote);
+            return true;
+        }
+
+        quoteCount = 0;
+
+        // only possible escaping scenario left is a multitoken newline
+        return _newLine.Length > 1 && value.IndexOf(_newLine) >= 0;
+    }
+}
+
+internal interface IRecordWriter<T, TValue> where T : unmanaged, IEquatable<T>
+{
+    bool TryWrite(Span<T> destination);
+}
 
 internal static class WriteUtil
 {
@@ -40,7 +140,7 @@ internal static class WriteUtil
                         destination,
                         tokens.StringDelimiter,
                         quoteCount,
-                        ref array);
+                        new ValueBufferOwner<T>(ref array, ArrayPool<T>.Shared));
                     overflowWritten = escapedLength - destination.Length;
                     return true;
                 }
@@ -66,7 +166,7 @@ internal static class WriteUtil
     /// <returns><see langword="true"/> if the value needs to be escaped</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool NeedsEscaping<T>(
-        ReadOnlySpan<T> value,
+        scoped ReadOnlySpan<T> value,
         in CsvTokens<T> tokens,
         out int quoteCount)
         where T : unmanaged, IEquatable<T>
@@ -95,24 +195,24 @@ internal static class WriteUtil
 
     /// <summary>
     /// Escapes the data in <paramref name="source"/>, writing much data as possible to <paramref name="destination"/>
-    /// with the leftovers being written to <paramref name="array"/>. Length of the data escaped to array is:
+    /// with the leftovers being written to <paramref name="overflow"/>. Length of the data escaped to array is:
     /// <c>source.Length + quoteCount + 2 - destination.Length</c>
     /// </summary>
     /// <param name="source">Data that needs escaping</param>
     /// <param name="destination">Destination buffer, can be the same memory region as source</param>
     /// <param name="quote">Quote token</param>
     /// <param name="quoteCount">Amount of quotes in the source</param>
-    /// <param name="array">
+    /// <param name="overflow">
     /// Pooled buffer used to write the rest of the data, guaranteed to not be null after this method returns
     /// </param>
     /// <typeparam name="T">Token type</typeparam>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)] // rare-ish, doesn't need to be inlined
-    public static void PartialEscape<T>(
-        ReadOnlySpan<T> source,
+    [MethodImpl(MethodImplOptions.NoInlining)] // rare-ish, doesn't need to be inlined
+    public static ReadOnlySpan<T> PartialEscape<T>(
+        scoped ReadOnlySpan<T> source,
         Span<T> destination,
         T quote,
         int quoteCount,
-        [NotNull] ref T[]? array)
+        ValueBufferOwner<T> overflowBuffer)
         where T : unmanaged, IEquatable<T>
     {
         Debug.Assert(
@@ -121,9 +221,6 @@ internal static class WriteUtil
 
         int requiredLength = source.Length + quoteCount + 2;
 
-        // Ensure the buffer has enough space for the overflowing escaped data
-        ArrayPool<T>.Shared.EnsureCapacity(ref array, requiredLength - destination.Length);
-
         // First write the overflowing data to the array, working backwards as source and destination
         // share a memory region
         int srcIndex = source.Length - 1;
@@ -131,7 +228,7 @@ internal static class WriteUtil
         int dstIndex = destination.Length - 1;
         bool needQuote = false;
 
-        Span<T> overflow = array;
+        Span<T> overflow = overflowBuffer.GetSpan(requiredLength - destination.Length);
         overflow[ovrIndex--] = quote; // write closing quote
 
         // Short circuit to faster impl if there are no quotes in the source data
@@ -211,6 +308,8 @@ internal static class WriteUtil
 
         Debug.Assert(dstIndex == 0);
         Debug.Assert(quoteCount == 0);
+
+        return overflow;
     }
 
     /// <summary>
