@@ -1,4 +1,5 @@
 using System.Buffers;
+using FlameCsv.Reading;
 using FlameCsv.Writers;
 
 namespace FlameCsv.Tests.Writing;
@@ -31,7 +32,7 @@ public static class WriteUtilTests
             destination: destination,
             quote: '|',
             quoteCount: quoteCount,
-            array: ref array);
+            new ValueBufferOwner<char>(ref array, ArrayPool<char>.Shared));
 
         Assert.Equal("|||t||e||s||t|", destination.ToString());
         Assert.Equal("||", array.AsSpan().ToString());
@@ -61,7 +62,7 @@ public static class WriteUtilTests
             destination: firstBuffer,
             quote: '|',
             quoteCount: quoteCount,
-            array: ref array);
+            new ValueBufferOwner<char>(ref array, ArrayPool<char>.Shared));
 
         int overflowLength = quoteCount + 2;
 

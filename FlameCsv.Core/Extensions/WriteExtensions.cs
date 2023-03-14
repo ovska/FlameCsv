@@ -20,8 +20,8 @@ internal static class WriteExtensions
     {
         if (buffer.Length >= value.Length)
         {
-            if ((tokensWritten = value.Length) != 0)
-                value.CopyTo(buffer);
+            value.CopyTo(buffer);
+            tokensWritten = value.Length;
             return true;
         }
 
@@ -29,7 +29,7 @@ internal static class WriteExtensions
         return false;
     }
 
-    /// <inheritdoc cref="TryWriteTo{T}(System.Span{T},System.Span{T},out int)"/>
+    /// <inheritdoc cref="TryWriteTo{T}(Span{T},Span{T},out int)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryWriteTo<T>(
         this ReadOnlySpan<T> value,
@@ -38,8 +38,8 @@ internal static class WriteExtensions
     {
         if (buffer.Length >= value.Length)
         {
-            if ((tokensWritten = value.Length) != 0)
-                value.CopyTo(buffer);
+            value.CopyTo(buffer);
+            tokensWritten = value.Length;
             return true;
         }
 

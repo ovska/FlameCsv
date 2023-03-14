@@ -1,6 +1,9 @@
+using System.Buffers;
+using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using System.Text;
+using FlameCsv.Extensions;
 using FlameCsv.Formatters;
 using FlameCsv.Writers;
 
@@ -29,6 +32,36 @@ public static class WriteTemp
         {
             throw new NotImplementedException();
         }
+    }
+
+    [Fact]
+    public static void Testest()
+    {
+        char[]? buffer = null;
+
+        var state = new CsvWriteState<char>(
+            CsvTokens<char>.Unix,
+            new Reading.ValueBufferOwner<char>(ref buffer, ArrayPool<char>.Shared));
+
+        var outputArray = new char[256];
+        Span<char> output = outputArray;
+        var formatter = new HelloWorldFormatter();
+
+        while (state.TryWrite(output, formatter, "", out int tokensWritten, out bool overflowWritten))
+        {
+            Assert.False(overflowWritten);
+            output = output.Slice(tokensWritten);
+
+            if (!output.IsEmpty)
+            {
+                output[0] = ',';
+                output = output.Slice(1);
+            }
+        }
+
+        Debugger.Break();
+
+        ArrayPool<char>.Shared.EnsureReturned(ref buffer);
     }
 
     [Fact]
