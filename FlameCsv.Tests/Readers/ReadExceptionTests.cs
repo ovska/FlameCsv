@@ -1,6 +1,5 @@
 ﻿using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
-using FlameCsv.Reading;
 
 namespace FlameCsv.Tests.Readers;
 

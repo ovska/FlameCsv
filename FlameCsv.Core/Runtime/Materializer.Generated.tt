@@ -5,7 +5,7 @@
 <#
     // Max supported generics
     const int TotalCount = 16;
-    var indexes = Enumerable.Range(0, TotalCount).ToArray();
+    var indexes = Enumerable.Range(0, TotalCount);
     var genericTypes = indexes.Select(i => $"T{i}").ToArray();
     var parsers = indexes.Select(i => $"ICsvParser<T, T{i}> parser{i}").ToArray();
     var values = indexes.Select(i => $"v{i}").ToArray();

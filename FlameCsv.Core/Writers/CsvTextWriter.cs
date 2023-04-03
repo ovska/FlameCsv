@@ -19,20 +19,6 @@ internal sealed class CsvTextWriter : ICsvWriter<char>
         Unflushed = 0;
     }
 
-    public async ValueTask DisposeAsync()
-    {
-        try
-        {
-            if (Exception is null)
-                await FlushAsync();
-        }
-        finally
-        {
-            ArrayPool<char>.Shared.Return(_buffer);
-            await _writer.DisposeAsync();
-        }
-    }
-
     public Exception? Exception { get; set; }
     public int Unflushed { get; private set; }
 
@@ -69,6 +55,20 @@ internal sealed class CsvTextWriter : ICsvWriter<char>
         {
             await _writer.WriteAsync(_buffer.AsMemory(0, Unflushed), cancellationToken);
             Unflushed = 0;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (Exception is null)
+                await FlushAsync();
+        }
+        finally
+        {
+            ArrayPool<char>.Shared.Return(_buffer);
+            await _writer.DisposeAsync();
         }
     }
 }

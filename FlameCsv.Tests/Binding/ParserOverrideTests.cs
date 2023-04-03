@@ -1,8 +1,6 @@
 using System.Globalization;
 using FlameCsv.Binding.Attributes;
-using FlameCsv.Extensions;
 using FlameCsv.Parsers;
-using FlameCsv.Reading;
 
 // ReSharper disable UnusedAutoPropertyAccessor.Local
 // ReSharper disable ClassNeverInstantiated.Local
@@ -39,8 +37,8 @@ public static class ParserOverrideTests
         const string data = "Dollars\n\"$ 8,042.15\"\n$ 123.45\n";
         var options = new CsvTextReaderOptions
         {
-            Tokens = CsvTokens<char>.Unix,
-            HasHeader = true
+            HasHeader = true,
+            Newline = "\n".AsMemory(),
         };
         var objs = CsvReader.Read<TestObj>(data, options).ToList();
         Assert.Equal(2, objs.Count);

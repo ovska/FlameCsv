@@ -62,14 +62,14 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
     /// Initializes a column enumerator over a line.
     /// </summary>
     /// <param name="line">The line without trailing newline tokens</param>
-    /// <param name="tokens">Structural tokens</param>
+    /// <param name="dialect">Structural tokens</param>
     /// <param name="columnCount">Amount of columns expected, null if not known</param>
     /// <param name="quoteCount">Known string delimiter count on the line</param>
     /// <param name="buffer">Provides the buffer needed to unescape possible quotes insides strings</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvColumnEnumerator(
         ReadOnlySpan<T> line,
-        in CsvTokens<T> tokens,
+        in CsvDialect<T> dialect,
         int? columnCount,
         int quoteCount,
         ValueBufferOwner<T> buffer)
@@ -78,11 +78,11 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
         Debug.Assert(columnCount is null or > 0, "Known column count must be positive");
         Debug.Assert(quoteCount >= 0, "Quote count must be positive");
         Debug.Assert(quoteCount % 2 == 0, "Quote count must be divisible by 2");
-        Debug.Assert(!tokens.TryGetValidationErrors(out _), "CsvTokens must be valid");
+        Debug.Assert(!dialect.Equals(default), "CsvDialect must be valid");
 
-        _comma = tokens.Delimiter;
-        _quote = tokens.StringDelimiter;
-        _whitespace = tokens.Whitespace.IsEmpty ? default : tokens.Whitespace.Span;
+        _comma = dialect.Delimiter;
+        _quote = dialect.Quote;
+        _whitespace = dialect.Whitespace.Span;
         _columnCount = columnCount;
         _buffer = buffer;
         _remaining = line;

@@ -14,7 +14,7 @@ namespace FlameCsv.Reading;
 internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     where T : unmanaged, IEquatable<T>
 {
-    private readonly CsvTokens<T> _tokens;
+    private readonly CsvDialect<T> _dialect;
     private readonly CsvCallback<T, bool>? _skipPredicate;
     private readonly CsvExceptionHandler<T>? _exceptionHandler;
     private readonly IMaterializer<T, TValue> _materializer;
@@ -28,7 +28,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         CsvReaderOptions<T> options,
         IMaterializer<T, TValue>? materializer = null)
     {
-        _tokens = options.Tokens.ThrowIfInvalid();
+        _dialect = new CsvDialect<T>(options);
         _skipPredicate = options.ShouldSkipRow;
         _exceptionHandler = options.ExceptionHandler;
         _arrayPool = options.ArrayPool ?? AllocatingArrayPool<T>.Instance;
@@ -45,9 +45,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryRead(ref ReadOnlySequence<T> buffer, out TValue value, bool isFinalBlock)
     {
-        Unsafe.SkipInit(out value);
-
-        if (LineReader.TryGetLine(in _tokens, ref buffer, out ReadOnlySequence<T> line, out int quoteCount, isFinalBlock))
+        if (LineReader.TryGetLine(in _dialect, ref buffer, out ReadOnlySequence<T> line, out int quoteCount, isFinalBlock))
         {
             if (line.IsSingleSegment)
             {
@@ -56,6 +54,8 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
 
             return TryReadColumns(in line, quoteCount, out value);
         }
+
+        Unsafe.SkipInit(out value);
 
         return false;
     }
@@ -90,18 +90,17 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         int quoteCount,
         out TValue value)
     {
-        Unsafe.SkipInit(out value);
-
         if (quoteCount % 2 != 0)
         {
             ThrowInvalidStringDelimiterException(line);
         }
 
-        if (_skipPredicate is null || !_skipPredicate(line, in _tokens))
+        if (_skipPredicate is null || !_skipPredicate(line, in _dialect))
         {
             return TryReadColumnSpan(line, quoteCount, out value);
         }
 
+        Unsafe.SkipInit(out value);
         return false;
     }
 
@@ -111,13 +110,11 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         int quoteCount,
         out TValue value)
     {
-        Unsafe.SkipInit(out value);
-
         try
         {
             var enumerator = new CsvColumnEnumerator<T>(
                 line,
-                in _tokens,
+                in _dialect,
                 _materializer.ColumnCount,
                 quoteCount,
                 new ValueBufferOwner<T>(ref _unescapeBuffer, _arrayPool));
@@ -127,7 +124,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         }
         catch (CsvFormatException ex)
         {
-            CsvFormatException.Throw(ex, line, _exposeContent, in _tokens);
+            CsvFormatException.Throw(ex, line, _exposeContent, in _dialect);
         }
         catch (Exception ex)
         {
@@ -135,6 +132,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
                 throw;
         }
 
+        Unsafe.SkipInit(out value);
         return false;
     }
 
@@ -144,7 +142,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
             "The data ended while there was a dangling string delimiter",
             line,
             _exposeContent,
-            in _tokens);
+            in _dialect);
     }
 
     public void Dispose()

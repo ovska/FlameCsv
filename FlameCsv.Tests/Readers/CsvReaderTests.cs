@@ -2,10 +2,6 @@ using System.Buffers;
 using System.IO.Pipelines;
 using System.Text;
 using CommunityToolkit.HighPerformance.Buffers;
-using FlameCsv.Extensions;
-using FlameCsv.Parsers.Text;
-using FlameCsv.Parsers.Utf8;
-using FlameCsv.Reading;
 using FlameCsv.Tests.TestData;
 using FlameCsv.Tests.Utilities;
 
@@ -59,12 +55,13 @@ public class CsvReaderTests : PooledBufferVerifier
 
         if (type == typeof(char))
         {
-            var options = new CsvTextReaderOptions { DateTimeFormat = "O" };
-            options.Tokens = options.Tokens.WithNewLine(newLine);
-
-            if (whitespace)
-                options.tokens = options.tokens.WithWhitespace(" ");
-            options.HasHeader = header;
+            var options = new CsvTextReaderOptions
+            {
+                DateTimeFormat = "O",
+                Newline = newLine.AsMemory(),
+                Whitespace = whitespace ? " ".AsMemory() : default,
+                HasHeader = header
+            };
 
             if (api == CsvApi.Async)
             {
@@ -96,12 +93,13 @@ public class CsvReaderTests : PooledBufferVerifier
         }
         else if (type == typeof(byte))
         {
-            var options = new CsvUtf8ReaderOptions { DateTimeFormat = 'O' };
-            options.Tokens = options.Tokens.WithNewLine(newLine);
-
-            if (whitespace)
-                options.tokens = options.tokens.WithWhitespace(" ");
-            options.HasHeader = header;
+            var options = new CsvUtf8ReaderOptions
+            {
+                DateTimeFormat = 'O',
+                Newline = Encoding.UTF8.GetBytes(newLine),
+                Whitespace = whitespace ? " "u8.ToArray() : default,
+                HasHeader = header
+            };
 
             using var owner = GetDataBytes();
 
@@ -203,7 +201,7 @@ public class CsvReaderTests : PooledBufferVerifier
             Assert.Equal(index++, record.Line);
             Assert.Equal(tokenPosition, record.Position);
 
-            tokenPosition += record.Data.Length + options.tokens.NewLine.Length;
+            tokenPosition += record.Data.Length + options.Newline.Length;
 
             if (skipFirst)
             {

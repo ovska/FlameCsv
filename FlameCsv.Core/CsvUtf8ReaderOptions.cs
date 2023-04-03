@@ -25,7 +25,7 @@ public sealed class CsvUtf8ReaderOptions :
     CsvReaderOptions<byte>,
     ICsvNullTokenProvider<byte>
 {
-    private static readonly Lazy<CsvUtf8ReaderOptions> _default = new(() => new(_: true));
+    private static readonly Lazy<CsvUtf8ReaderOptions> _default = new(() => new(isReadOnly: true));
 
     /// <summary>Returns a thread-safe read only singleton instance with default options.</summary>
     /// <remarks>Create a new instance if you need to configure the options or parsers.</remarks>
@@ -42,12 +42,21 @@ public sealed class CsvUtf8ReaderOptions :
     private IReadOnlyCollection<(ReadOnlyMemory<byte> bytes, bool value)>? _booleanValues;
     private Dictionary<Type, ReadOnlyMemory<byte>>? _nullOverrides;
 
-    /// <inheritdoc cref="CsvUtf8ReaderOptions"/>
-    public CsvUtf8ReaderOptions()
+    /// <inheritdoc cref="CsvTextReaderOptions"/>
+    public CsvUtf8ReaderOptions() : this(false)
     {
     }
 
-    private CsvUtf8ReaderOptions(bool _) : this() => MakeReadOnly();
+    private CsvUtf8ReaderOptions(bool isReadOnly)
+    {
+        _delimiter = (byte)',';
+        _quote = (byte)'"';
+        _newline = CsvDialectStatic._crlf;
+        _whitespace = ReadOnlyMemory<byte>.Empty;
+
+        if (isReadOnly)
+            MakeReadOnly();
+    }
 
     /// <summary>
     /// Used by <see cref="IntegerUtf8Parser"/>. Default is <c>default(char)</c>.

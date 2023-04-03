@@ -40,7 +40,7 @@ public class CsvReadBench
         {
             DateTimeFormat = "yyyy'.'MM",
             FormatProvider = CultureInfo.InvariantCulture,
-            Tokens = CsvTokens<char>.Unix,
+            Newline = "\n".AsMemory(),
         };
 
         foreach (var item in CsvReader.Read<Item>(_string, config))
@@ -54,7 +54,7 @@ public class CsvReadBench
     {
         var config = new CsvUtf8ReaderOptions
         {
-            Tokens = CsvTokens<byte>.Unix,
+            Newline = "\n"u8.ToArray(),
             Parsers = { new YYYYMMParser() },
         };
 

@@ -1,6 +1,5 @@
 ﻿using System.Globalization;
 using System.Text;
-using FlameCsv.Reading;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Parsers.Text;
 using FlameCsv.Parsers.Utf8;
@@ -39,7 +38,7 @@ public class CsvReadBench2
     public async Task FlameText()
     {
         using var reader = new StreamReader(GetFileStream());
-        var options = new CsvTextReaderOptions { Tokens = CsvTokens<char>.Windows };
+        var options = new CsvTextReaderOptions();
 
         await foreach (var record in CsvReader.ReadAsync<Entry>(reader, options))
         {
@@ -50,7 +49,7 @@ public class CsvReadBench2
     [Benchmark]
     public async Task FlameUtf8()
     {
-        var options = new CsvUtf8ReaderOptions { Tokens = CsvTokens<byte>.Windows };
+        var options = new CsvTextReaderOptions();
 
         await foreach (var record in CsvReader.ReadAsync<Entry>(GetFileStream(), options))
         {
@@ -62,7 +61,7 @@ public class CsvReadBench2
     public async Task FlameText_P()
     {
         using var reader = new StreamReader(GetFileStream(), Encoding.UTF8);
-        var options = new CsvTextReaderOptions { Tokens = CsvTokens<char>.Windows };
+        var options = new CsvTextReaderOptions();
 
         await foreach (var record in CsvReader.ReadAsync<Entry2_ASCII>(reader, options))
         {
@@ -73,8 +72,8 @@ public class CsvReadBench2
     [Benchmark]
     public async Task FlameUtf8_P()
     {
-        var options = new CsvUtf8ReaderOptions { Tokens = CsvTokens<byte>.Windows };
-       
+        var options = new CsvTextReaderOptions();
+
         await foreach (var record in CsvReader.ReadAsync<Entry2_UTF>(GetFileStream(), options))
         {
             _ = record;

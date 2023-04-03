@@ -1,9 +1,6 @@
-using System.Buffers;
-using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using System.Text;
-using FlameCsv.Extensions;
 using FlameCsv.Formatters;
 using FlameCsv.Writers;
 
@@ -34,35 +31,35 @@ public static class WriteTemp
         }
     }
 
-    [Fact]
-    public static void Testest()
-    {
-        char[]? buffer = null;
+    //[Fact]
+    //public static void Testest()
+    //{
+    //    char[]? buffer = null;
 
-        var state = new CsvWriteState<char>(
-            CsvTokens<char>.Unix,
-            new Reading.ValueBufferOwner<char>(ref buffer, ArrayPool<char>.Shared));
+    //    var state = new CsvWriteState<char>(
+    //        CsvTokens<char>.Unix,
+    //        new Reading.ValueBufferOwner<char>(ref buffer, ArrayPool<char>.Shared));
 
-        var outputArray = new char[256];
-        Span<char> output = outputArray;
-        var formatter = new HelloWorldFormatter();
+    //    var outputArray = new char[256];
+    //    Span<char> output = outputArray;
+    //    var formatter = new HelloWorldFormatter();
 
-        while (state.TryWrite(output, formatter, "", out int tokensWritten, out bool overflowWritten))
-        {
-            Assert.False(overflowWritten);
-            output = output.Slice(tokensWritten);
+    //    while (state.TryWrite(output, formatter, "", out int tokensWritten, out bool overflowWritten))
+    //    {
+    //        Assert.False(overflowWritten);
+    //        output = output.Slice(tokensWritten);
 
-            if (!output.IsEmpty)
-            {
-                output[0] = ',';
-                output = output.Slice(1);
-            }
-        }
+    //        if (!output.IsEmpty)
+    //        {
+    //            output[0] = ',';
+    //            output = output.Slice(1);
+    //        }
+    //    }
 
-        Debugger.Break();
+    //    Debugger.Break();
 
-        ArrayPool<char>.Shared.EnsureReturned(ref buffer);
-    }
+    //    ArrayPool<char>.Shared.EnsureReturned(ref buffer);
+    //}
 
     [Fact]
     public static async Task Should_Write_Utf8()
@@ -118,7 +115,7 @@ public static class WriteTemp
         ICsvFormatter<T, TValue> formatter,
         TValue value,
         Span<T> buffer,
-        in CsvTokens<T> tokens,
+        in CsvDialect<T> tokens,
         ref T[]? leftoverBuffer,
         out int tokensWritten) where T : unmanaged, IEquatable<T>
     {

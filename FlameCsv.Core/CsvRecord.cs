@@ -100,7 +100,7 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
 
         _remaining = data;
         _options = options;
-        _quotesRemaining = quoteCount ?? data.Span.Count(options.tokens.StringDelimiter);
+        _quotesRemaining = quoteCount ?? data.Span.Count(options.Quote);
 
         Data = data;
         Column = 0;
@@ -148,13 +148,13 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
         // If the remaining row has no quotes seek the next comma directly
         var remaining = _remaining.Span;
         var index = _quotesRemaining == 0
-            ? remaining.IndexOf(_options.tokens.Delimiter)
-            : remaining.IndexOfAny(_options.tokens.Delimiter, _options.tokens.StringDelimiter);
+            ? remaining.IndexOf(_options.Delimiter)
+            : remaining.IndexOfAny(_options.Delimiter, _options.Quote);
 
         while (index >= 0)
         {
             // Hit a comma, either found end of column or more columns than expected
-            if (remaining[index].Equals(_options.tokens.Delimiter))
+            if (remaining[index].Equals(_options.Delimiter))
             {
                 if (IsKnownLastColumn)
                     ThrowTooManyColumns(index);
@@ -170,10 +170,10 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
             index++; // move index past the quote
 
             int nextIndex = --_quotesRemaining == 0
-                ? remaining.Slice(index).IndexOf(_options.tokens.Delimiter)
+                ? remaining.Slice(index).IndexOf(_options.Delimiter)
                 : quotesConsumed % 2 == 0 // uneven quotes, only need to find the next one
-                    ? remaining.Slice(index).IndexOfAny(_options.tokens.Delimiter, _options.tokens.StringDelimiter)
-                    : remaining.Slice(index).IndexOf(_options.tokens.StringDelimiter);
+                    ? remaining.Slice(index).IndexOfAny(_options.Delimiter, _options.Quote)
+                    : remaining.Slice(index).IndexOf(_options.Quote);
 
             if (nextIndex < 0)
                 break;
@@ -211,14 +211,14 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private readonly ReadOnlyMemory<T> TrimAndUnescape(ReadOnlyMemory<T> data, int quotesConsumed)
     {
-        if (_options.tokens.Whitespace.IsEmpty)
+        if (_options.Whitespace.IsEmpty)
             return quotesConsumed == 0
                 ? data
-                : data.Unescape(_options.tokens.StringDelimiter, quotesConsumed, _bufferOwner);
+                : data.Unescape(_options.Quote, quotesConsumed, _bufferOwner);
 
         return quotesConsumed == 0
-            ? data.Trim(_options.tokens.Whitespace.Span)
-            : data.Trim(_options.tokens.Whitespace.Span).Unescape(_options.tokens.StringDelimiter, quotesConsumed, _bufferOwner);
+            ? data.Trim(_options.Whitespace.Span)
+            : data.Trim(_options.Whitespace.Span).Unescape(_options.Quote, quotesConsumed, _bufferOwner);
     }
 
     /// <exception cref="InvalidDataException">
@@ -260,7 +260,7 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
     public void Reset()
     {
         _remaining = Data;
-        _quotesRemaining = Data.Span.Count(_options.tokens.StringDelimiter);
+        _quotesRemaining = Data.Span.Count(_options.Quote);
         Column = 0;
         Current = default;
     }

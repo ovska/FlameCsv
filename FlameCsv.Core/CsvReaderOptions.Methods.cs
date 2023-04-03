@@ -6,13 +6,13 @@ namespace FlameCsv;
 public partial class CsvReaderOptions<T>
 {
     /// <summary>
-    /// Returns true if the row is empty or entirely whitespace (as defined in <paramref name="options"/>).
+    /// Returns true if the row is empty or entirely whitespace (as defined in <paramref name="dialect"/>).
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool DefaultRowSkipPredicate(ReadOnlySpan<T> row, in CsvTokens<T> options)
+    public static bool DefaultRowSkipPredicate(ReadOnlySpan<T> row, in CsvDialect<T> dialect)
     {
         return row.IsEmpty
-            || (!options.Whitespace.IsEmpty && row.TrimStart(options.Whitespace.Span).IsEmpty);
+            || (!dialect.Whitespace.IsEmpty && row.TrimStart(dialect.Whitespace.Span).IsEmpty);
     }
 
     /// <summary>
@@ -34,12 +34,12 @@ public partial class CsvReaderOptions<T>
         var tokenArray = tokens.ToArray();
         return skipEmptyOrWhitespace ? WhitespaceOrStartsWith : StartsWith;
 
-        bool WhitespaceOrStartsWith(ReadOnlySpan<T> data, in CsvTokens<T> options)
+        bool WhitespaceOrStartsWith(ReadOnlySpan<T> data, in CsvDialect<T> options)
         {
             return DefaultRowSkipPredicate(data, in options) || data.StartsWith(tokenArray.AsSpan());
         }
 
-        bool StartsWith(ReadOnlySpan<T> data, in CsvTokens<T> _)
+        bool StartsWith(ReadOnlySpan<T> data, in CsvDialect<T> _)
         {
             return data.StartsWith(tokenArray.AsSpan());
         }

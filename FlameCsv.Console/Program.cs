@@ -1,6 +1,5 @@
 ﻿using FlameCsv;
 using FlameCsv.Binding.Attributes;
-using FlameCsv.Reading;
 
 const string data = """
 id,name,isadmin,favouriteday
@@ -12,7 +11,7 @@ id,name,isadmin,favouriteday
 using var reader = new StringReader(data);
 var options = new CsvTextReaderOptions
 {
-    Tokens = CsvTokens<char>.Unix,
+    Newline = "\n".AsMemory(),
     HasHeader = true,
 };
 

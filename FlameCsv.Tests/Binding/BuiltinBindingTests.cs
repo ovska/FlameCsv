@@ -1,6 +1,4 @@
-﻿using FlameCsv.Reading;
-
-namespace FlameCsv.Tests.Binding;
+﻿namespace FlameCsv.Tests.Binding;
 
 public static class BuiltinBindingTests
 {

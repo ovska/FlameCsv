@@ -9,7 +9,7 @@ namespace FlameCsv;
 /// <typeparam name="TReturn">Return value</typeparam>
 public delegate TReturn CsvCallback<T, out TReturn>(
     ReadOnlySpan<T> data,
-    in CsvTokens<T> tokens)
+    in CsvDialect<T> tokens)
     where T : unmanaged, IEquatable<T>;
 
 /// <summary>

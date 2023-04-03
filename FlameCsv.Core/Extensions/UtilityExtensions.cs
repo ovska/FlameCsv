@@ -39,7 +39,7 @@ internal static class UtilityExtensions
     public static string AsPrintableString<T>(
         this ReadOnlySpan<T> value,
         bool exposeContent,
-        in CsvTokens<T> tokens)
+        in CsvDialect<T> tokens)
         where T : unmanaged, IEquatable<T>
     {
         string? content =
@@ -56,11 +56,11 @@ internal static class UtilityExtensions
             (tokens, memoryOwner.Memory),
             static (destination, state) =>
             {
-                (CsvTokens<T> tokens, ReadOnlyMemory<T> memory) = state;
+                (CsvDialect<T> tokens, ReadOnlyMemory<T> memory) = state;
                 var source = memory.Span;
 
                 var whitespace = tokens.Whitespace.Span;
-                var newline = tokens.NewLine.Span;
+                var newline = tokens.Newline.Span;
 
                 destination.Fill('x');
 
@@ -72,7 +72,7 @@ internal static class UtilityExtensions
                     {
                         destination[i] = ',';
                     }
-                    else if (token.Equals(tokens.StringDelimiter))
+                    else if (token.Equals(tokens.Quote))
                     {
                         destination[i] = '"';
                     }
