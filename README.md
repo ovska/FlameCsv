@@ -10,7 +10,20 @@
 
 # Examples
 
-## Binding to column indexes
+## Reading records
+```csharp
+var records = CsvReader.ReadRecordsAsync(
+    new StringReader("1,true,Bob\r\n2,false,Alice\r\n"),
+    new CsvTextReaderOptions(),
+    (int id, bool enabled, string name) => new { id, enabled, name });
+
+await foreach (var record in records)
+{
+    Console.WriteLine(record);
+}
+```
+
+## Binding column indexes to classes
 ```csv
 1,Bob
 2,Alice
