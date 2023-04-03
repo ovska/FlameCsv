@@ -24,7 +24,7 @@ public sealed class CsvFormatException : Exception
         CsvFormatException? inner,
         ReadOnlySpan<T> line,
         bool exposeContents,
-        in CsvTokens<T> tokens)
+        in CsvDialect<T> tokens)
         where T : unmanaged, IEquatable<T>
     {
         throw new CsvFormatException(
@@ -37,7 +37,7 @@ public sealed class CsvFormatException : Exception
         string message,
         ReadOnlySpan<T> line,
         bool exposeContents,
-        in CsvTokens<T> tokens)
+        in CsvDialect<T> tokens)
         where T : unmanaged, IEquatable<T>
     {
         throw new CsvFormatException(

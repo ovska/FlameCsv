@@ -33,8 +33,6 @@ internal abstract partial class Materializer
         out TValue value)
         where T : unmanaged, IEquatable<T>
     {
-        Unsafe.SkipInit(out value); // reference types are always zeroed by jit
-
         if (enumerator.MoveNext())
         {
             if (parser.TryParse(enumerator.Current, out value!))
@@ -44,6 +42,7 @@ internal abstract partial class Materializer
         }
 
         ThrowMoveNextFailed(ref enumerator);
+        Unsafe.SkipInit(out value); // reference types are always zeroed by jit
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]

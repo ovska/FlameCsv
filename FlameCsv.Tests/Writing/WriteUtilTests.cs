@@ -6,13 +6,11 @@ namespace FlameCsv.Tests.Writing;
 
 public static class WriteUtilTests
 {
-    private static readonly CsvTokens<char> _tokens = new()
-    {
-        Delimiter = ',',
-        StringDelimiter = '|',
-        NewLine = "\r\n".AsMemory(),
-        Whitespace = " ".AsMemory(),
-    };
+    private static readonly CsvDialect<char> _tokens = new(
+        delimiter: ',',
+        quote: '|',
+        newline: "\r\n".AsMemory(),
+        whitespace: " ".AsMemory());
 
     [Fact]
     public static void Should_Partial_Escape_Larger_Destination()
@@ -131,7 +129,7 @@ public static class WriteUtilTests
     [Theory, MemberData(nameof(NeedsEscapingData))]
     public static void Should_Check_Needs_Escaping(string newline, int? quotes, string input)
     {
-        var tokens = _tokens with { NewLine = newline.AsMemory() };
+        var tokens = _tokens.Clone(newline: newline.AsMemory());
         input = input.Replace("\r\n", newline);
 
         if (!quotes.HasValue)

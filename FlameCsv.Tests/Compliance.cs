@@ -14,7 +14,7 @@ public static class Compliance
         var first = new MemorySegment<char>(start.ToCharArray());
         var last = first.Append(end.ToCharArray());
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
-        var options = CsvTokens<char>.Windows;
+        var options = CsvDialect<char>.Default;
 
         Assert.True(LineReader.TryGetLine(in options, ref seq, out var line, out _, false));
 
@@ -39,11 +39,10 @@ public static class Compliance
         var last = joined.Chunk(segmentSize).Aggregate(first, (prev, segment) => prev.Append(segment.AsMemory()));
 
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
-        var options = CsvTokens<char>.Windows;
 
         var results = new List<string>();
 
-        while (LineReader.TryGetLine(in options, ref seq, out var line, out _, false))
+        while (LineReader.TryGetLine(CsvDialect<char>.Default, ref seq, out var line, out _, false))
         {
             results.Add(new string(line.ToArray()));
         }
@@ -58,7 +57,7 @@ public static class Compliance
     [InlineData(data: new object[] { "\n", new[] { "abc", "\n", "xyz" } })]
     public static void Should_Find_Segment_With_Only_Newline(string newline, string[] segments)
     {
-        var options = CsvTokens<char>.Windows with { NewLine = newline.ToCharArray() };
+        var options = new CsvTextReaderOptions { Newline = newline.AsMemory() };
 
         var first = new MemorySegment<char>(segments[0].ToCharArray());
         var last = first
@@ -67,7 +66,7 @@ public static class Compliance
 
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
 
-        Assert.True(LineReader.TryGetLine(in options, ref seq, out var firstLine, out _, false));
+        Assert.True(LineReader.TryGetLine(new CsvDialect<char>(options), ref seq, out var firstLine, out _, false));
         Assert.Equal(segments[0], new string(firstLine.ToArray()));
         Assert.Equal(segments[2], new string(seq.ToArray()));
     }
@@ -76,10 +75,10 @@ public static class Compliance
     public static void Should_Handle_Line_With_Uneven_Quotes_No_Newline()
     {
         const string data = "\"testxyz\",\"broken";
-        var options = CsvTokens<char>.Windows;
+        var options = new CsvTextReaderOptions();
         var seq = new ReadOnlySequence<char>(data.ToCharArray());
 
-        Assert.False(LineReader.TryGetLine(in options, ref seq, out _, out _, false));
+        Assert.False(LineReader.TryGetLine(new CsvDialect<char>(options), ref seq, out _, out _, false));
         Assert.Equal(data, seq.ToArray());
     }
 
@@ -100,7 +99,7 @@ public static class Compliance
             "bb",
         };
 
-        var options = CsvTokens<char>.Windows with { NewLine = newline.ToCharArray() };
+        var options = CsvDialect<char>.Default.Clone(newline: newline.AsMemory());
         var seq = new ReadOnlySequence<char>(string.Join(newline, data).ToCharArray());
 
         var found = new List<string>();
@@ -128,7 +127,7 @@ public static class Compliance
     [InlineData("\"James \"\"007\"\" Bond\"|Agent", "\"James \"\"007\"\" Bond\"", 6)]
     public static void Should_Find_Lines(string data, string expected, int expectedDelimiterCount)
     {
-        var options = CsvTokens<char>.Environment with { NewLine = new[] { '|' } };
+        var options = CsvDialect<char>.Default.Clone(newline: "|".AsMemory());
 
         var seq = new ReadOnlySequence<char>(data.ToCharArray());
 
@@ -161,7 +160,7 @@ public static class Compliance
         var expected = line.Split(',').Select(s => s.Trim('"'));
 
         var list = new List<string>();
-        var options = CsvTokens<char>.Unix with { NewLine = "|".AsMemory() };
+        var options = CsvDialect<char>.Default.Clone(newline: "|".AsMemory());
 
         using var bo = new BufferOwner<char>(ArrayPool<char>.Shared);
         var enumerator = new CsvColumnEnumerator<char>(
@@ -182,15 +181,9 @@ public static class Compliance
     [Fact]
     public static void Should_Enumerate_With_Comma2()
     {
-        var tokens = new CsvTokens<char>
-        {
-            Delimiter = ',',
-            NewLine = "|".AsMemory(),
-            Whitespace = " ".AsMemory(),
-            StringDelimiter = '"',
-        };
+        var dialect = CsvDialect<char>.Default.Clone(newline: "|".AsMemory(), whitespace: " ".AsMemory());
 
-        var data = new[] { tokens.Delimiter, tokens.NewLine.Span[0], tokens.Whitespace.Span[0] }.GetPermutations();
+        var data = new[] { dialect.Delimiter, dialect.Newline.Span[0], dialect.Whitespace.Span[0] }.GetPermutations();
         using var bo = new BufferOwner<char>(ArrayPool<char>.Shared);
 
         foreach (var chars in data)
@@ -200,9 +193,9 @@ public static class Compliance
 
             var enumerator = new CsvColumnEnumerator<char>(
                 line,
-                in tokens,
+                in dialect,
                 2,
-                line.Count(c => c == tokens.StringDelimiter),
+                line.Count(c => c == dialect.Quote),
                 new ValueBufferOwner<char>(ref bo._array, ArrayPool<char>.Shared));
 
             var list = new List<string>();
@@ -231,12 +224,11 @@ public static class Compliance
     public static void Should_Enumerate_With_Comma(string line, string[] expected)
     {
         var list = new List<string>();
-        var options = CsvTokens<char>.Unix;
 
         using var bo = new BufferOwner<char>(ArrayPool<char>.Shared);
         var enumerator = new CsvColumnEnumerator<char>(
             line,
-            options,
+            CsvDialect<char>.Default,
             3,
             line.Count(c => c == '"'),
             new ValueBufferOwner<char>(ref bo._array, ArrayPool<char>.Shared));
@@ -252,7 +244,7 @@ public static class Compliance
 
         var record = new CsvRecord<char>(
             line.AsMemory(),
-            new CsvTextReaderOptions { Tokens = options },
+            new CsvTextReaderOptions(),
             null,
             null,
             bo,

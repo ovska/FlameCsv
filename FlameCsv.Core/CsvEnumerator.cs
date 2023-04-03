@@ -15,6 +15,7 @@ public struct CsvEnumerator<T> : IEnumerable<CsvRecord<T>>, IEnumerator<CsvRecor
     private ReadOnlySequence<T> _data;
     private readonly CsvReaderOptions<T> _options;
     private readonly int? _columnCount;
+    private readonly CsvDialect<T> _dialect;
 
     private readonly BufferOwner<T> _recordBuffer;
     private readonly BufferOwner<T> _multisegmentBuffer;
@@ -27,14 +28,13 @@ public struct CsvEnumerator<T> : IEnumerable<CsvRecord<T>>, IEnumerator<CsvRecor
         CsvReaderOptions<T> options,
         int? columnCount)
     {
-        options.tokens.ThrowIfInvalid();
-
         _data = data;
         _options = options;
         _columnCount = columnCount;
         _position = default;
         _lineIndex = default;
 
+        _dialect = new(options);
         _recordBuffer = new(options.ArrayPool);
         _multisegmentBuffer = new(options.ArrayPool);
 
@@ -45,7 +45,7 @@ public struct CsvEnumerator<T> : IEnumerable<CsvRecord<T>>, IEnumerator<CsvRecor
 
     public bool MoveNext()
     {
-        if (LineReader.TryGetLine(in _options.tokens, ref _data, out var line, out int quoteCount, false))
+        if (LineReader.TryGetLine(in _dialect, ref _data, out var line, out int quoteCount, false))
         {
             MoveNextImpl(in line, quoteCount, hasNewline: true);
             return true;
@@ -91,7 +91,7 @@ public struct CsvEnumerator<T> : IEnumerable<CsvRecord<T>>, IEnumerator<CsvRecor
             ++_lineIndex);
 
         _position += Current.Data.Length;
-        if (hasNewline) _position += _options.tokens.NewLine.Length;
+        if (hasNewline) _position += _dialect.Newline.Length;
     }
 
     public readonly void Dispose()

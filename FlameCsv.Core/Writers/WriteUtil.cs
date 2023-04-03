@@ -17,12 +17,12 @@ internal ref struct CsvWriteState<T> where T : unmanaged, IEquatable<T>
     private ReadOnlySpan<T> _overflow;
 
     public CsvWriteState(
-        in CsvTokens<T> tokens,
+        in CsvDialect<T> tokens,
         ValueBufferOwner<T> buffer)
     {
         _comma = tokens.Delimiter;
-        _quote = tokens.StringDelimiter;
-        _newLine = tokens.NewLine.Span;
+        _quote = tokens.Quote;
+        _newLine = tokens.Newline.Span;
         _buffer = buffer;
     }
 
@@ -113,7 +113,7 @@ internal static class WriteUtil
         Span<T> destination,
         ICsvFormatter<T, TValue> formatter,
         TValue value,
-        in CsvTokens<T> tokens,
+        in CsvDialect<T> tokens,
         ref T[]? array,
         out int tokensWritten,
         out int overflowWritten)
@@ -138,17 +138,17 @@ internal static class WriteUtil
                     PartialEscape(
                         written,
                         destination,
-                        tokens.StringDelimiter,
+                        tokens.Quote,
                         quoteCount,
                         new ValueBufferOwner<T>(ref array, ArrayPool<T>.Shared));
                     overflowWritten = escapedLength - destination.Length;
                     return true;
                 }
 
-                Escape(written, destination, tokens.StringDelimiter, quoteCount);
+                Escape(written, destination, tokens.Quote, quoteCount);
                 tokensWritten = escapedLength;
-                Debug.Assert(destination[0].Equals(tokens.StringDelimiter));
-                Debug.Assert(destination[tokensWritten].Equals(tokens.StringDelimiter));
+                Debug.Assert(destination[0].Equals(tokens.Quote));
+                Debug.Assert(destination[tokensWritten].Equals(tokens.Quote));
             }
         }
 
@@ -167,23 +167,23 @@ internal static class WriteUtil
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool NeedsEscaping<T>(
         scoped ReadOnlySpan<T> value,
-        in CsvTokens<T> tokens,
+        in CsvDialect<T> tokens,
         out int quoteCount)
         where T : unmanaged, IEquatable<T>
     {
         Debug.Assert(!value.IsEmpty);
 
-        ReadOnlySpan<T> newline = tokens.NewLine.Span;
+        ReadOnlySpan<T> newline = tokens.Newline.Span;
 
         // For 1 token newlines we can expedite the search
         int index = newline.Length == 1
-            ? value.IndexOfAny(tokens.Delimiter, tokens.StringDelimiter, newline[0])
-            : value.IndexOfAny(tokens.Delimiter, tokens.StringDelimiter);
+            ? value.IndexOfAny(tokens.Delimiter, tokens.Quote, newline[0])
+            : value.IndexOfAny(tokens.Delimiter, tokens.Quote);
 
         if (index >= 0)
         {
             // we know any token before index cannot be a quote
-            quoteCount = value.Slice(index).Count(tokens.StringDelimiter);
+            quoteCount = value.Slice(index).Count(tokens.Quote);
             return true;
         }
 

@@ -9,7 +9,6 @@ using FlameCsv.Parsers;
 
 namespace FlameCsv;
 
-/// <summary>
 /// Represents a base class for configuration used to read and parse CSV data.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
@@ -51,25 +50,12 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
         return false;
     }
 
-    internal CsvTokens<T> tokens = CsvTokens<T>.GetDefaultForOptions();
     private CsvCallback<T, bool>? _shouldSkipRow;
     private CsvExceptionHandler<T>? _exceptionHandler;
     private bool _hasHeader;
     private bool _allowContentInExceptions;
     private IHeaderBinder<T>? _headerBinder;
     private ArrayPool<T>? _arrayPool = ArrayPool<T>.Shared;
-
-    /// <summary>
-    /// Tokens used for CSV parsing. Defaults to <see cref="CsvTokens{T}.Windows"/> on supported types of
-    /// <typeparamref name="T"/> and to uninitialized on unsupported types.
-    /// </summary>
-    /// <seealso cref="CsvTokens{T}.Windows"/>
-    /// <exception cref="CsvConfigurationException">Thrown if invalid options are set</exception>
-    public CsvTokens<T> Tokens
-    {
-        get => tokens;
-        set => SetValue(ref tokens, value.ThrowIfInvalid());
-    }
 
     /// <summary>
     /// Delegate that determines whether a row should be skipped.

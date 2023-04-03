@@ -29,7 +29,7 @@ public class CsvReaderOptionsTests
         var options = CsvTextReaderOptions.Default;
         Assert.True(options.IsReadOnly);
 
-        Assert.Equal("\r\n", options.Tokens.NewLine.ToArray());
+        Assert.Equal("\r\n", options.Newline.ToArray());
 
         var boolParser = options.GetParser<bool>();
         Assert.True(boolParser.TryParse("true", out var bValue));
@@ -54,7 +54,7 @@ public class CsvReaderOptionsTests
         var options = CsvUtf8ReaderOptions.Default;
         Assert.True(options.IsReadOnly);
 
-        Assert.Equal("\r\n"u8.ToArray(), options.Tokens.NewLine.ToArray());
+        Assert.Equal("\r\n"u8.ToArray(), options.Newline.ToArray());
 
         var boolParser = options.GetParser<bool>();
         Assert.True(boolParser.TryParse("true"u8, out var bValue));
@@ -78,7 +78,7 @@ public class CsvReaderOptionsTests
     {
         Assert.Throws<ArgumentException>(() => CsvReaderOptions<char>.SkipIfStartsWith(default));
 
-        var tokens = CsvTokens<char>.Windows with { Whitespace = " ".AsMemory() };
+        var tokens = CsvDialect<char>.Default.Clone(whitespace: " ".AsMemory());
         var commentfn = CsvReaderOptions<char>.SkipIfStartsWith("#", skipEmptyOrWhitespace: false);
         Assert.True(commentfn("#test", in tokens));
         Assert.False(commentfn("t#est", in tokens));
@@ -99,7 +99,10 @@ public class CsvReaderOptionsTests
         Assert.True(options.MakeReadOnly());
         Assert.False(options.MakeReadOnly());
 
-        Run(o => o.Tokens = CsvTokens<char>.Unix);
+        Run(o => o.Delimiter = default);
+        Run(o => o.Quote = default);
+        Run(o => o.Newline = default);
+        Run(o => o.Whitespace = default);
         Run(o => o.ShouldSkipRow = default);
         Run(o => o.HasHeader = default);
         Run(o => o.HeaderBinder = default);

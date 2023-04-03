@@ -1,6 +1,4 @@
 using System.Reflection;
-using System.Text;
-using System.Text.RegularExpressions;
 using FlameCsv.Binding;
 
 namespace FlameCsv.Tests.Binding;

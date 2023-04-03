@@ -48,7 +48,7 @@ internal static class LineReader
     /// <remarks>A successful result might still be invalid CSV.</remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryGetLine<T>(
-        in CsvTokens<T> tokens,
+        in CsvDialect<T> tokens,
         ref ReadOnlySequence<T> sequence,
         out ReadOnlySequence<T> line,
         out int quoteCount,
@@ -62,13 +62,13 @@ internal static class LineReader
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static bool TryRead<T>(
-        in CsvTokens<T> tokens,
+        in CsvDialect<T> tokens,
         ref ReadOnlySequence<T> sequence,
         out ReadOnlySequence<T> line,
         out int quoteCount)
         where T : unmanaged, IEquatable<T>
     {
-        ReadOnlySpan<T> newLine = tokens.NewLine.Span;
+        ReadOnlySpan<T> newLine = tokens.Newline.Span;
 
         // keep track of read newline tokens and quotes in the read data
         State state = default;
@@ -85,14 +85,14 @@ internal static class LineReader
             // Find the next relevant token. Uneven quotes mean the current index is 100% inside a string,
             // so we can skip everything until the next quote
             int index = quoteCount % 2 == 0
-                ? span.IndexOfAny(newLine[state.count], tokens.StringDelimiter)
-                : span.IndexOf(tokens.StringDelimiter);
+                ? span.IndexOfAny(newLine[state.count], tokens.Quote)
+                : span.IndexOf(tokens.Quote);
 
             // Found a newline token or a string delimiter
             while (index >= 0)
             {
                 // Found token was a string delimiter
-                if (span[index].Equals(tokens.StringDelimiter))
+                if (span[index].Equals(tokens.Quote))
                 {
                     quoteCount++;
                     state = default; // zero out possible newline state such as \r"
@@ -132,8 +132,8 @@ internal static class LineReader
 
                 // Find the next relevant token
                 int next = quoteCount % 2 == 0
-                    ? span.Slice(index).IndexOfAny(newLine[state.count], tokens.StringDelimiter)
-                    : span.Slice(index).IndexOf(tokens.StringDelimiter);
+                    ? span.Slice(index).IndexOfAny(newLine[state.count], tokens.Quote)
+                    : span.Slice(index).IndexOf(tokens.Quote);
 
                 // The segment still contains something of interest
                 if (next >= 0)
@@ -153,13 +153,13 @@ internal static class LineReader
             current = position;
         }
 
-        Unsafe.SkipInit(out line);
+        Unsafe.SkipInit(out line); // keep this at the bottom to ensure successful returns actually set it
         return false;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static bool TryGetFinalBlock<T>(
-        in CsvTokens<T> tokens,
+        in CsvDialect<T> tokens,
         ref ReadOnlySequence<T> sequence,
         out ReadOnlySequence<T> line,
         out int quoteCount)
@@ -176,7 +176,7 @@ internal static class LineReader
 
         if (line.IsSingleSegment)
         {
-            quoteCount = line.FirstSpan.Count(tokens.StringDelimiter);
+            quoteCount = line.FirstSpan.Count(tokens.Quote);
         }
         else
         {
@@ -184,7 +184,7 @@ internal static class LineReader
 
             foreach (var segment in sequence)
             {
-                quoteCount += segment.Span.Count(tokens.StringDelimiter);
+                quoteCount += segment.Span.Count(tokens.Quote);
             }
         }
 
