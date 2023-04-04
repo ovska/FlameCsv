@@ -62,7 +62,7 @@ internal sealed class TextSegment : ReadOnlySequenceSegment<char>
 
     public void ResetMemory()
     {
-        _arrayPool.EnsureReturned(ref _array); // TODO: clear buffer
+        _arrayPool.EnsureReturned(ref _array);
 
         Next = null;
         RunningIndex = 0;

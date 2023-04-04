@@ -1,4 +1,6 @@
 using System.Buffers.Text;
+using System.Diagnostics;
+using System.Text;
 
 namespace FlameCsv.Parsers.Utf8;
 
@@ -22,6 +24,21 @@ public sealed class BooleanUtf8Parser : ParserBase<byte, bool>
         {
             _values = values.ToArray();
         }
+    }
+
+    internal BooleanUtf8Parser(string[] trueValues, string[] falseValues)
+    {
+        Debug.Assert(trueValues is { Length: > 0 });
+        Debug.Assert(falseValues is { Length: > 0 });
+
+        _values = new (ReadOnlyMemory<byte> bytes, bool value)[trueValues.Length + falseValues.Length];
+        int index = 0;
+
+        foreach (var value in trueValues)
+            _values[index++] = (Encoding.UTF8.GetBytes(value ?? ""), true);
+
+        foreach (var value in falseValues)
+            _values[index++] = (Encoding.UTF8.GetBytes(value ?? ""), false);
     }
 
     /// <inheritdoc/>
