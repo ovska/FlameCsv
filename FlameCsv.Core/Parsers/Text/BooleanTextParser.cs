@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace FlameCsv.Parsers.Text;
 
 /// <summary>
@@ -21,6 +23,21 @@ public sealed class BooleanTextParser : ParserBase<char, bool>
         {
             _values = values.ToArray();
         }
+    }
+
+    internal BooleanTextParser(string[] trueValues, string[] falseValues)
+    {
+        Debug.Assert(trueValues is { Length: > 0});
+        Debug.Assert(falseValues is { Length: > 0});
+
+        _values = new(string text, bool value)[trueValues.Length + falseValues.Length];
+        int index = 0;
+
+        foreach (var value in trueValues)
+            _values[index++] = (value, true);
+
+        foreach (var value in falseValues)
+            _values[index++] = (value, false);
     }
 
     /// <inheritdoc/>

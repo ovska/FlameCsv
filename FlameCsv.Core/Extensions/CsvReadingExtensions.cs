@@ -131,7 +131,6 @@ internal static partial class CsvReadingExtensions
 
             foreach (var binding in bc.Bindings)
             {
-                // TODO: figure out how to completely skip ignored columns
                 array[binding.Index] = Expression.Parameter(binding.Type
 #if DEBUG
                     , binding.IsIgnored

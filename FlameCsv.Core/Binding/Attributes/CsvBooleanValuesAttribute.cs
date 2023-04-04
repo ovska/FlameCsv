@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Text;
 using FlameCsv.Exceptions;
 using FlameCsv.Parsers;
 using FlameCsv.Parsers.Text;
@@ -52,12 +51,7 @@ public class CsvBooleanValuesAttribute : CsvParserOverrideAttribute
 
     private ICsvParser<char> CreateForText(Type target, CsvReaderOptions<char> options)
     {
-        // TODO: get rid of linq
-        var parser = new BooleanTextParser(
-            TrueValues
-                .Select(static t => (t, true))
-                .Concat(FalseValues.Select(static t => (t, false)))
-                .ToList());
+        var parser = new BooleanTextParser(trueValues: TrueValues, falseValues: FalseValues);
 
         if (target == typeof(bool))
             return parser;
@@ -69,12 +63,7 @@ public class CsvBooleanValuesAttribute : CsvParserOverrideAttribute
 
     private ICsvParser<byte> CreateForUtf8(Type target, CsvReaderOptions<byte> options)
     {
-        // TODO: get rid of linq
-        var parser = new BooleanUtf8Parser(
-            TrueValues
-                .Select(static t => (ToUtf8(t), true))
-                .Concat(FalseValues.Select(static t => (ToUtf8(t), false)))
-                .ToList());
+        var parser = new BooleanUtf8Parser(trueValues: TrueValues, falseValues: FalseValues);
 
         if (target == typeof(bool))
             return parser;
@@ -103,6 +92,4 @@ public class CsvBooleanValuesAttribute : CsvParserOverrideAttribute
 
         return default;
     }
-
-    private static ReadOnlyMemory<byte> ToUtf8(string? text) => Encoding.UTF8.GetBytes(text ?? "");
 }
