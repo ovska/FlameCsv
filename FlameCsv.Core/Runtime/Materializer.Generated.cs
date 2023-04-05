@@ -48,7 +48,7 @@ internal abstract partial class Materializer
             16 => typeof(Materializer<,,,,,,,,,,,,,,,>),
             17 => typeof(Materializer<,,,,,,,,,,,,,,,,>),
             18 => typeof(Materializer<,,,,,,,,,,,,,,,,,>),
-            _ => ThrowHelper.ThrowArgumentException<Type>($"Unsupported typeparam count: {bindings.Length}"),
+            _ => ThrowHelper.ThrowArgumentException<Type>("Unsupported typeparam count: " + bindings.Length),
         }).MakeGenericType(types).GetConstructors()[0];
     }
 }

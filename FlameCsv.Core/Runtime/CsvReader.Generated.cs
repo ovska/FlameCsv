@@ -2,20 +2,25 @@
 using System.IO.Pipelines;
 using FlameCsv.Reading;
 using FlameCsv.Runtime;
-using CommunityToolkit.Diagnostics;
 
 namespace FlameCsv;
 
 public static partial class CsvReader
 {
     [System.Diagnostics.StackTraceHidden]
-    private static void ValidateSelectRecordsArgs<T>(object reader, CsvReaderOptions<T> options, object recordFactory)
-        where T : unmanaged, IEquatable<T>
+    private static void ValidateReadRecordsArgs(object reader, object options, object recordFactory, bool? hasHeader)
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(recordFactory);
-        Guard.IsFalse(options.HasHeader);
+        if (hasHeader.GetValueOrDefault()) ThrowArgumentExceptionReadRecordsHasHeader();
+    }
+
+    private static void ThrowArgumentExceptionReadRecordsHasHeader()
+    {
+        throw new ArgumentException(
+            "The options were configured to read a CSV with a header record, " +
+            "which is not supported by ReadRecordsAsync.");
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
@@ -30,7 +35,7 @@ public static partial class CsvReader
         Func<T0, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<char, T0, TValue> materializer = new(recordFactory, options.GetParser<T0>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
@@ -55,7 +60,7 @@ public static partial class CsvReader
         Func<T0, T1, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<char, T0, T1, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
@@ -80,7 +85,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<char, T0, T1, T2, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
@@ -105,7 +110,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<char, T0, T1, T2, T3, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
@@ -130,7 +135,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<char, T0, T1, T2, T3, T4, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
@@ -155,7 +160,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, T5, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
@@ -180,7 +185,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, T5, T6, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
@@ -205,7 +210,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, T5, T6, T7, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
@@ -230,7 +235,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
@@ -255,7 +260,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
@@ -280,7 +285,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
@@ -305,7 +310,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
@@ -330,7 +335,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
@@ -355,7 +360,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>(), options.GetParser<T13>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
@@ -380,7 +385,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>(), options.GetParser<T13>(), options.GetParser<T14>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
@@ -405,7 +410,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>(), options.GetParser<T13>(), options.GetParser<T14>(), options.GetParser<T15>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
@@ -430,7 +435,7 @@ public static partial class CsvReader
         Func<T0, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<byte, T0, TValue> materializer = new(recordFactory, options.GetParser<T0>());
         CsvProcessor<byte, TValue> processor = new(options, materializer);
@@ -453,7 +458,7 @@ public static partial class CsvReader
         Func<T0, T1, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<byte, T0, T1, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>());
         CsvProcessor<byte, TValue> processor = new(options, materializer);
@@ -476,7 +481,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<byte, T0, T1, T2, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>());
         CsvProcessor<byte, TValue> processor = new(options, materializer);
@@ -499,7 +504,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<byte, T0, T1, T2, T3, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>());
         CsvProcessor<byte, TValue> processor = new(options, materializer);
@@ -522,7 +527,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<byte, T0, T1, T2, T3, T4, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>());
         CsvProcessor<byte, TValue> processor = new(options, materializer);
@@ -545,7 +550,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, T5, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>());
         CsvProcessor<byte, TValue> processor = new(options, materializer);
@@ -568,7 +573,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, T5, T6, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>());
         CsvProcessor<byte, TValue> processor = new(options, materializer);
@@ -591,7 +596,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, T5, T6, T7, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>());
         CsvProcessor<byte, TValue> processor = new(options, materializer);
@@ -614,7 +619,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>());
         CsvProcessor<byte, TValue> processor = new(options, materializer);
@@ -637,7 +642,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>());
         CsvProcessor<byte, TValue> processor = new(options, materializer);
@@ -660,7 +665,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>());
         CsvProcessor<byte, TValue> processor = new(options, materializer);
@@ -683,7 +688,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>());
         CsvProcessor<byte, TValue> processor = new(options, materializer);
@@ -706,7 +711,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>());
         CsvProcessor<byte, TValue> processor = new(options, materializer);
@@ -729,7 +734,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>(), options.GetParser<T13>());
         CsvProcessor<byte, TValue> processor = new(options, materializer);
@@ -752,7 +757,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>(), options.GetParser<T13>(), options.GetParser<T14>());
         CsvProcessor<byte, TValue> processor = new(options, materializer);
@@ -775,7 +780,7 @@ public static partial class CsvReader
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>(), options.GetParser<T13>(), options.GetParser<T14>(), options.GetParser<T15>());
         CsvProcessor<byte, TValue> processor = new(options, materializer);

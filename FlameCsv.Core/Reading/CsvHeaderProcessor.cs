@@ -1,6 +1,7 @@
 using System.Buffers;
-using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
 using FlameCsv.Extensions;
 
@@ -12,23 +13,22 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     private readonly CsvReaderOptions<T> _options;
     private readonly IHeaderBinder<T> _binder;
 
-    private CsvProcessor<T, TValue> _inner;
-    private bool _headerRead;
+    private CsvProcessor<T, TValue>? _inner;
 
     public CsvHeaderProcessor(CsvReaderOptions<T> options)
     {
         _options = options;
         _binder = options.HeaderBinder ?? HeaderMatcherDefaults.GetBinder<T>();
         _inner = default;
-        _headerRead = false;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryRead(ref ReadOnlySequence<T> buffer, out TValue value, bool isFinalBlock)
     {
-        if (_headerRead)
+        if (_inner.HasValue)
         {
-            return _inner.TryRead(ref buffer, out value, isFinalBlock);
+            ref var inner = ref _inner.DangerousGetValueOrDefaultReference();
+            return inner.TryRead(ref buffer, out value, isFinalBlock);
         }
 
         return ParseHeaderAndTryRead(ref buffer, out value, isFinalBlock);
@@ -41,16 +41,18 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
         {
             ReadHeader(in line);
 
-            Debug.Assert(_headerRead);
-
             if (!isFinalBlock)
-                return _inner.TryRead(ref buffer, out value, isFinalBlock);
+            {
+                ref var inner = ref _inner.DangerousGetValueOrDefaultReference();
+                return inner.TryRead(ref buffer, out value, isFinalBlock);
+            }
         }
 
         value = default!;
         return false;
     }
 
+    [MemberNotNull(nameof(_inner))]
     [MethodImpl(MethodImplOptions.NoInlining)] // encourage inlining more common paths
     private void ReadHeader(in ReadOnlySequence<T> line)
     {
@@ -59,11 +61,14 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
         var bindings = _binder.Bind<TValue>(view.Memory.Span, _options);
         var materializer = _options.CreateMaterializerFrom(bindings);
         _inner = new CsvProcessor<T, TValue>(_options, materializer);
-        _headerRead = true;
     }
 
     public void Dispose()
     {
-        _inner.Dispose();
+        if (_inner.HasValue)
+        {
+            ref var inner = ref _inner.DangerousGetValueOrDefaultReference();
+            inner.Dispose();
+        }
     }
 }

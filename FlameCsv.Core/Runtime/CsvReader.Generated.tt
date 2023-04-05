@@ -14,20 +14,25 @@
 using System.IO.Pipelines;
 using FlameCsv.Reading;
 using FlameCsv.Runtime;
-using CommunityToolkit.Diagnostics;
 
 namespace FlameCsv;
 
 public static partial class CsvReader
 {
     [System.Diagnostics.StackTraceHidden]
-    private static void ValidateSelectRecordsArgs<T>(object reader, CsvReaderOptions<T> options, object recordFactory)
-        where T : unmanaged, IEquatable<T>
+    private static void ValidateReadRecordsArgs(object reader, object options, object recordFactory, bool? hasHeader)
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(recordFactory);
-        Guard.IsFalse(options.HasHeader);
+        if (hasHeader.GetValueOrDefault()) ThrowArgumentExceptionReadRecordsHasHeader();
+    }
+
+    private static void ThrowArgumentExceptionReadRecordsHasHeader()
+    {
+        throw new ArgumentException(
+            "The options were configured to read a CSV with a header record, " +
+            "which is not supported by ReadRecordsAsync.");
     }
 
 <#
@@ -53,7 +58,7 @@ for (var _tokenType = 0; _tokenType < 2; _tokenType++)
         Func<<#= generics #>> recordFactory,
         CancellationToken cancellationToken = default)
     {
-        ValidateSelectRecordsArgs(reader, options, recordFactory);
+        ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
         Materializer<<#= tokenType #>, <#= generics #>> materializer = new(recordFactory<#
             for (int i = 0; i < current; i++)

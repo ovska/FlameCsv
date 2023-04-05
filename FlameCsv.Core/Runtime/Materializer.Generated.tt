@@ -59,7 +59,7 @@ internal abstract partial class Materializer
         WriteLine(">),");
     }
 #>
-            _ => ThrowHelper.ThrowArgumentException<Type>($"Unsupported typeparam count: {bindings.Length}"),
+            _ => ThrowHelper.ThrowArgumentException<Type>("Unsupported typeparam count: " + bindings.Length),
         }).MakeGenericType(types).GetConstructors()[0];
     }
 }

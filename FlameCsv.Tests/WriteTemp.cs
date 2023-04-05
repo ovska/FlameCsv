@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using System.Text;
+using FlameCsv.Extensions;
 using FlameCsv.Formatters;
 using FlameCsv.Writers;
 
@@ -62,41 +64,77 @@ public static class WriteTemp
     //}
 
     [Fact]
+    public static async Task SHOULD_WRITE_TEST()
+    {
+        var formatter = new StringFormatter();
+        var stringWriter = new StringWriter();
+        var textPipe = new CsvTextPipeWriter(stringWriter, AllocatingArrayPool<char>.Instance);
+
+        var writer = new CsvWriter<char>(textPipe, CsvDialect<char>.Default, AllocatingArrayPool<char>.Instance);
+        Exception? exception = null;
+
+        try
+        {
+            for (var i = 0; i < 1000; i++)
+            {
+                await writer.WriteValueAsync(formatter, i.ToString(), default);
+
+            }
+        }
+        catch (Exception e)
+        {
+            exception = e;
+            throw;
+        }
+        finally
+        {
+            await writer.CompleteAsync(exception, default);
+        }
+
+        var result = stringWriter.ToString();
+        Debugger.Break();
+    }
+
+    [Fact]
     public static async Task Should_Write_Utf8()
     {
         await using var stream = new MemoryStream();
 
         var pipeWriter = PipeWriter.Create(stream);
 
-        await using (var writer = new CsvPipeWriter(pipeWriter))
+        var writer = new CsvPipeWriter(pipeWriter);
+        Exception? exception = null;
+
+        try
         {
-            try
-            {
-                var formatter = new StringUtf8Formatter();
+            var formatter = new StringUtf8Formatter();
 
-                for (int i = 0; i < 10_000; i++)
+            for (int i = 0; i < 10_000; i++)
+            {
+                if (formatter.TryFormat("Hello, World!", writer.GetBuffer().Span, out int written))
                 {
-                    if (formatter.TryFormat("Hello, World!", writer.GetBuffer(), out int written))
-                    {
-                        writer.Advance(written);
-                        continue;
-                    }
-
-                    Memory<byte> buffer;
-
-                    do
-                    {
-                        buffer = await writer.GrowAsync();
-                    } while (!formatter.TryFormat("Hello, World!", buffer.Span, out written));
-
                     writer.Advance(written);
+                    continue;
                 }
+
+                Memory<byte> buffer;
+
+                do
+                {
+                    buffer = await writer.GrowAsync();
+                } while (!formatter.TryFormat("Hello, World!", buffer.Span, out written));
+
+                writer.Advance(written);
             }
-            catch (Exception e)
-            {
-                writer.Exception = e;
-                throw;
-            }
+        }
+        catch (Exception e)
+        {
+            exception = e;
+            throw;
+        }
+        finally
+        {
+            await writer.CompleteAsync(exception);
         }
 
 
@@ -149,13 +187,13 @@ public static class WriteTemp
     {
         await using var stream = new MemoryStream();
         await using var textWriter = new StreamWriter(stream, Encoding.UTF8, bufferSize: 128);
-        var writer = new CsvTextWriter(textWriter);
+        var writer = new CsvTextPipeWriter(textWriter, AllocatingArrayPool<char>.Instance);
 
         HelloWorldFormatter formatter = new();
 
         for (int i = 0; i < 10_000; i++)
         {
-            if (formatter.TryFormat("", writer.GetBuffer(), out int written))
+            if (formatter.TryFormat("", writer.GetBuffer().Span, out int written))
             {
                 writer.Advance(written);
                 continue;
@@ -179,9 +217,9 @@ public static class WriteTemp
     }
 
     private static bool TryWrite<TWriter>(ICsvFormatter<char, string> formatter, ref TWriter writer)
-        where TWriter : ICsvWriter<char>
+        where TWriter : ICsvPipeWriter<char>
     {
-        Span<char> span = writer.GetBuffer();
+        Span<char> span = writer.GetBuffer().Span;
 
         if (formatter.TryFormat("", span, out var written))
         {
