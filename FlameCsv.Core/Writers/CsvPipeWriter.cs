@@ -5,12 +5,11 @@ namespace FlameCsv.Writers;
 
 [DebuggerDisplay(
     @"\{ CsvPipeWriter, Last Buffer: {_previousLength}, Unflushed: {Unflushed}, Faulted: {Exception != null} \}")]
-internal sealed class CsvPipeWriter : ICsvWriter<byte>
+internal sealed class CsvPipeWriter : ICsvPipeWriter<byte>
 {
-    public Exception? Exception { get; set; }
     public int Unflushed { get; private set; }
+    public int PreviousLength { get; private set; }
 
-    private int _previousLength;
     private readonly PipeWriter _pipeWriter;
 
     public CsvPipeWriter(PipeWriter pipeWriter)
@@ -28,11 +27,11 @@ internal sealed class CsvPipeWriter : ICsvWriter<byte>
         }
     }
 
-    public Span<byte> GetBuffer()
+    public Memory<byte> GetBuffer()
     {
-        var span = _pipeWriter.GetSpan();
-        _previousLength = span.Length;
-        return span;
+        var memory = _pipeWriter.GetMemory();
+        PreviousLength = memory.Length;
+        return memory;
     }
 
     public void Advance(int length)
@@ -49,25 +48,27 @@ internal sealed class CsvPipeWriter : ICsvWriter<byte>
         var memory = _pipeWriter.GetMemory();
 
         // the previous buffer was as big or bigger than the current, we need more space for the formatter
-        if (_previousLength >= memory.Length)
+        if (PreviousLength >= memory.Length)
         {
-            memory = _pipeWriter.GetMemory(_previousLength * 2);
+            memory = _pipeWriter.GetMemory(PreviousLength * 2);
         }
 
-        _previousLength = memory.Length;
+        PreviousLength = memory.Length;
         return memory;
     }
 
-    public async ValueTask DisposeAsync()
+    public async ValueTask CompleteAsync(
+        Exception? exception,
+        CancellationToken cancellationToken = default)
     {
         try
         {
-            if (Exception is null)
-                await _pipeWriter.FlushAsync();
+            if (exception is null)
+                await _pipeWriter.FlushAsync(cancellationToken);
         }
         finally
         {
-            await _pipeWriter.CompleteAsync(Exception);
+            await _pipeWriter.CompleteAsync(exception);
         }
     }
 }

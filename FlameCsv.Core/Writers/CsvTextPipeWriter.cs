@@ -6,27 +6,28 @@ using CommunityToolkit.HighPerformance;
 namespace FlameCsv.Writers;
 
 [DebuggerDisplay("[CsvTextWriter] Written: {Unflushed} / {_buffer.Length} (inner: {_writer.GetType().Name})")]
-internal sealed class CsvTextWriter : ICsvWriter<char>
+internal sealed class CsvTextPipeWriter : ICsvPipeWriter<char>
 {
     private readonly TextWriter _writer;
+    private readonly ArrayPool<char> _arrayPool;
     private char[] _buffer;
-    private int _previousLength;
 
-    public CsvTextWriter(TextWriter writer)
+    public CsvTextPipeWriter(TextWriter writer, ArrayPool<char> arrayPool)
     {
         _writer = writer;
-        _buffer = ArrayPool<char>.Shared.Rent(1024);
+        _arrayPool = arrayPool;
+        _buffer = arrayPool.Rent(1024);
         Unflushed = 0;
     }
 
-    public Exception? Exception { get; set; }
     public int Unflushed { get; private set; }
+    public int PreviousLength { get; private set; }
 
-    public Span<char> GetBuffer()
+    public Memory<char> GetBuffer()
     {
-        var span = _buffer.AsSpan(Unflushed);
-        _previousLength = span.Length;
-        return span;
+        var memory = _buffer.AsMemory(Unflushed);
+        PreviousLength = memory.Length;
+        return memory;
     }
 
     public void Advance(int length)
@@ -41,11 +42,11 @@ internal sealed class CsvTextWriter : ICsvWriter<char>
     {
         await FlushAsync(cancellationToken);
 
-        if (_previousLength >= _buffer.Length)
-            ArrayPool<char>.Shared.EnsureCapacity(ref _buffer, _previousLength * 2);
+        if (PreviousLength >= _buffer.Length)
+            ArrayPool<char>.Shared.EnsureCapacity(ref _buffer, PreviousLength * 2);
 
         var memory = _buffer.AsMemory(Unflushed);
-        _previousLength = memory.Length;
+        PreviousLength = memory.Length;
         return memory;
     }
 
@@ -58,16 +59,18 @@ internal sealed class CsvTextWriter : ICsvWriter<char>
         }
     }
 
-    public async ValueTask DisposeAsync()
+    public async ValueTask CompleteAsync(
+        Exception? exception,
+        CancellationToken cancellationToken = default)
     {
         try
         {
-            if (Exception is null)
-                await FlushAsync();
+            if (exception is null)
+                await FlushAsync(cancellationToken);
         }
         finally
         {
-            ArrayPool<char>.Shared.Return(_buffer);
+            _arrayPool.Return(_buffer);
             await _writer.DisposeAsync();
         }
     }

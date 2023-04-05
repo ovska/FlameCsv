@@ -1,6 +1,6 @@
 namespace FlameCsv.Writers;
 
-internal interface ICsvWriter<T> : IAsyncDisposable where T : unmanaged
+internal interface ICsvPipeWriter<T> where T : unmanaged
 {
     /// <summary>
     /// Amount of unflushed data in the writer.
@@ -8,16 +8,10 @@ internal interface ICsvWriter<T> : IAsyncDisposable where T : unmanaged
     int Unflushed { get; }
 
     /// <summary>
-    /// Exception observed when writing the data.
-    /// When set to non-null, pending unflushed data does not get flushed.
-    /// </summary>
-    public Exception? Exception { get; set; }
-
-    /// <summary>
     /// Returns a buffer of unspecified size that can be written to.
     /// </summary>
     /// <seealso cref="GrowAsync"/>
-    Span<T> GetBuffer();
+    Memory<T> GetBuffer();
 
     /// <summary>
     /// Signals that the specified amount of tokens have been written to the buffer.
@@ -42,4 +36,15 @@ internal interface ICsvWriter<T> : IAsyncDisposable where T : unmanaged
     /// <param name="cancellationToken">Token to cancel the operation</param>
     /// <returns>A ValueTask representing the completion of the flush operation.</returns>
     ValueTask FlushAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Completes the reader, flushing unflushed data if 
+    /// </summary>
+    /// <param name="exception">
+    /// Exception observed when writing the data. If null, pending unflushed data does not get flushed.
+    /// </param>
+    /// <param name="cancellationToken"></param>
+    ValueTask CompleteAsync(
+        Exception? exception,
+        CancellationToken cancellationToken = default);
 }

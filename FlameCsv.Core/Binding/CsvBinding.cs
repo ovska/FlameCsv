@@ -112,7 +112,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected static bool AreSame(object a, object b)
     {
-        return a == b
+        return ReferenceEquals(a, b)
             || (a is MemberInfo ma && b is MemberInfo mb && AreSameMember(ma, mb));
     }
 

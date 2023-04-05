@@ -29,4 +29,12 @@ internal readonly ref struct ValueBufferOwner<T> where T : unmanaged
         _pool.EnsureCapacity(ref array, length);
         return array.AsSpan(0, length);
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Memory<T> GetMemory(int length)
+    {
+        ref T[]? array = ref _span[0];
+        _pool.EnsureCapacity(ref array, length);
+        return array.AsMemory(0, length);
+    }
 }

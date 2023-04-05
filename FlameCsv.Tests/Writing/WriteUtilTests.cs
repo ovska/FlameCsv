@@ -18,14 +18,14 @@ public static class WriteUtilTests
         ReadOnlySpan<char> input = "|t|e|s|t|";
         Span<char> destination = stackalloc char[14];
 
-        Assert.True(WriteUtil.NeedsEscaping(input, in _tokens, out int quoteCount));
+        Assert.True(WriteUtil<char>.NeedsEscaping(input, in _tokens, out int quoteCount));
         Assert.Equal(5, quoteCount);
 
         input.CopyTo(destination);
         char[] originalArrayRef = new char[2];
         char[]? array = originalArrayRef;
 
-        WriteUtil.PartialEscape(
+        WriteUtil<char>.PartialEscape(
             source: destination[..input.Length],
             destination: destination,
             quote: '|',
@@ -46,7 +46,7 @@ public static class WriteUtilTests
     [InlineData("|t", "||", "|t|")]
     public static void Should_Partial_Escape(string input, string first, string second)
     {
-        Assert.True(WriteUtil.NeedsEscaping(input, in _tokens, out int quoteCount));
+        Assert.True(WriteUtil<char>.NeedsEscaping(input, in _tokens, out int quoteCount));
 
         // The escape is designed to work despite src and dst sharing a memory region
         Assert.Equal(input.Length, first.Length);
@@ -55,7 +55,7 @@ public static class WriteUtilTests
 
         char[]? array = null;
 
-        WriteUtil.PartialEscape(
+        WriteUtil<char>.PartialEscape(
             source: firstBuffer,
             destination: firstBuffer,
             quote: '|',
@@ -87,7 +87,7 @@ public static class WriteUtilTests
     [InlineData("a|a", "|a||a|")]
     public static void Should_Escape(string input, string expected)
     {
-        Assert.True(WriteUtil.NeedsEscaping(input, in _tokens, out int quoteCount));
+        Assert.True(WriteUtil<char>.NeedsEscaping(input, in _tokens, out int quoteCount));
 
         int expectedLength = input.Length + quoteCount + 2;
         Assert.Equal(expected.Length, expectedLength);
@@ -96,7 +96,7 @@ public static class WriteUtilTests
         var sharedBuffer = new char[expectedLength].AsSpan();
         input.CopyTo(sharedBuffer);
 
-        WriteUtil.Escape(sharedBuffer[..input.Length], sharedBuffer, '|', quoteCount);
+        WriteUtil<char>.Escape(sharedBuffer[..input.Length], sharedBuffer, '|', quoteCount);
         Assert.Equal(expected, new string(sharedBuffer));
 
         // Last sanity check
@@ -134,11 +134,11 @@ public static class WriteUtilTests
 
         if (!quotes.HasValue)
         {
-            Assert.False(WriteUtil.NeedsEscaping(input, in tokens, out _));
+            Assert.False(WriteUtil<char>.NeedsEscaping(input, in tokens, out _));
         }
         else
         {
-            Assert.True(WriteUtil.NeedsEscaping(input, in tokens, out var quoteCount));
+            Assert.True(WriteUtil<char>.NeedsEscaping(input, in tokens, out var quoteCount));
             Assert.Equal(quotes.Value, quoteCount);
         }
     }
