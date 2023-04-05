@@ -15,7 +15,7 @@ internal sealed class AllocatingArrayPool<T> : ArrayPool<T> where T : unmanaged
 
     public override T[] Rent(int minimumLength)
     {
-        Guard.IsGreaterThanOrEqualTo(0, minimumLength);
+        Guard.IsGreaterThanOrEqualTo(minimumLength, 0);
         return minimumLength > 0 ? new T[minimumLength] : Array.Empty<T>();
     }
 
