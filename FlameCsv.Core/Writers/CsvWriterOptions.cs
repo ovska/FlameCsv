@@ -14,18 +14,13 @@ public class CsvWriterOptions<T> where T : unmanaged, IEquatable<T>
     public bool WriteFinalNewline { get; set; }
 
     /// <summary>
-    /// Whether to trim whitespace from the output. Default is <see langword="false"/>.
-    /// </summary>
-    /// <remarks>
-    /// This setting must be <see langword="true"/> and <see cref="CsvTokens{T}.Whitespace"/> must be non-empty
-    /// for the whitespace to be trimmed.
-    /// </remarks>
-    public bool TrimWhitespace { get; set; }
-
-    /// <summary>
     /// Whether to skip escaping the output altogether. Use this with caution, as this can cause
     /// invalid CSV to be written if the formatters output data with delimiters, string delimiters, or 
     /// newline characters. Default is <see langword="false"/>.
     /// </summary>
     public bool DangerousNoEscaping { get; set; }
+
+    public ICsvFormatter<T> GetFormatter(Type type) => throw new NotImplementedException();
+
+    public ICsvFormatter<T, TValue> GetFormatter<TValue>() => throw new NotImplementedException();
 }

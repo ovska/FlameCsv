@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.Extensions;
 using FlameCsv.Formatters;
+using FlameCsv.Runtime;
 using FlameCsv.Writers;
 
 namespace FlameCsv.Tests;
@@ -31,6 +32,30 @@ public static class WriteTemp
         {
             throw new NotImplementedException();
         }
+    }
+
+    public class Obj
+    {
+        public string? Id { get; init; }
+        public string? Name { get; init; }
+        public string? Prop { get; init; }
+    }
+
+    [Fact]
+    public static async Task TestAsync()
+    {
+        var propr = typeof(Obj).GetProperty("Id")!;
+        var func = CsvWriterReflection<char, Obj>.CreateFunc(propr, new StringFormatter());
+
+        var stringWriter = new StringWriter();
+        var textPipe = new CsvTextPipeWriter(stringWriter, AllocatingArrayPool<char>.Instance);
+
+        await using (var writer = new CsvWriter<char>(textPipe, CsvDialect<char>.Default, AllocatingArrayPool<char>.Instance))
+        {
+            await func(writer, new Obj { Id = "xyz" }, default);
+        }
+
+        Assert.Equal("xyz", stringWriter.ToString());
     }
 
     //[Fact]
@@ -70,8 +95,7 @@ public static class WriteTemp
         var stringWriter = new StringWriter();
         var textPipe = new CsvTextPipeWriter(stringWriter, AllocatingArrayPool<char>.Instance);
 
-        var writer = new CsvWriter<char>(textPipe, CsvDialect<char>.Default, AllocatingArrayPool<char>.Instance);
-        Exception? exception = null;
+        await using var writer = new CsvWriter<char>(textPipe, CsvDialect<char>.Default, AllocatingArrayPool<char>.Instance);
 
         try
         {
@@ -79,20 +103,18 @@ public static class WriteTemp
             {
                 await writer.WriteValueAsync(formatter, i.ToString(), default);
 
+                if (i < 999)
+                    await writer.WriteDelimiterAsync(default);
             }
         }
         catch (Exception e)
         {
-            exception = e;
+            writer.Exception = e;
             throw;
-        }
-        finally
-        {
-            await writer.CompleteAsync(exception, default);
         }
 
         var result = stringWriter.ToString();
-        Debugger.Break();
+        Assert.Equal(string.Join(',', Enumerable.Range(0, 1000)), result);
     }
 
     [Fact]
@@ -228,13 +250,6 @@ public static class WriteTemp
         }
 
         return false;
-    }
-
-    public class Obj
-    {
-        public string? Id { get; init; }
-        public string? Name { get; init; }
-        public string? Prop { get; init; }
     }
 
     public sealed class StringUtf8Formatter : ICsvFormatter<byte, string?>
