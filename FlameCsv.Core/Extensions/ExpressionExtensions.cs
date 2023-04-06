@@ -24,6 +24,18 @@ internal static class ExpressionExtensions
             ?? lambda.CompileFast<TDelegate>(flags: DefaultCompilerFlags);
     }
 
+    public static (MemberExpression, Type) GetAsMemberExpression(this MemberInfo memberInfo, Expression target)
+    {
+        return memberInfo switch
+        {
+            PropertyInfo { CanRead: true } property => (Expression.Property(target, property), property.PropertyType),
+            FieldInfo field => (Expression.Field(target, field), field.FieldType),
+            _ => ThrowHelper.ThrowArgumentException<(MemberExpression, Type)>(
+                nameof(memberInfo),
+                $"Parameter must be a readable property or field: {memberInfo}"),
+        };
+    }
+
     public static MemberInfo GetMemberInfo(this LambdaExpression memberExpression)
     {
         ArgumentNullException.ThrowIfNull(memberExpression);

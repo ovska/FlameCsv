@@ -6,7 +6,7 @@ using FlameCsv.Reading;
 
 namespace FlameCsv.Writers;
 
-internal sealed class CsvWriter<T> where T : unmanaged, IEquatable<T>
+internal sealed class CsvWriter<T> : IAsyncDisposable where T : unmanaged, IEquatable<T>
 {
     public Exception? Exception { get; set; }
 
@@ -25,44 +25,44 @@ internal sealed class CsvWriter<T> where T : unmanaged, IEquatable<T>
         _arrayPool = arrayPool ?? AllocatingArrayPool<T>.Instance;
     }
 
-    public ValueTask WriteValueAsync<TValue>(
+    public async ValueTask WriteValueAsync<TValue>(
         ICsvFormatter<T, TValue> formatter,
         TValue value,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default)
     {
+        int tokensWritten;
         Memory<T> destination = _pipe.GetBuffer();
-        Span<T> destinationSpan = destination.Span;
 
-        if (formatter.TryFormat(value, destinationSpan, out int tokensWritten))
+        while (!formatter.TryFormat(value, destination.Span, out tokensWritten))
         {
-            Memory<T> written = destination[..tokensWritten];
-            Span<T> writtenSpan = written.Span;
+            destination = await _pipe.GrowAsync(cancellationToken);
+        }
 
-            if (WriteUtil<T>.NeedsEscaping(writtenSpan, in _dialect, out int quoteCount))
+        if (tokensWritten == 0)
+            return;
+
+        Memory<T> written = destination[..tokensWritten];
+
+        if (WriteUtil<T>.NeedsEscaping(written.Span, in _dialect, out int quoteCount))
+        {
+            int escapedLength = tokensWritten + 2 + quoteCount;
+
+            if (destination.Length > escapedLength)
             {
-                int escapedLength = tokensWritten + 2 + quoteCount;
-
-                if (destination.Length > escapedLength)
-                {
-                    return EscapePartialValueAndAdvance(
-                        written,
-                        destination,
-                        quoteCount,
-                        cancellationToken);
-                }
-
-                WriteUtil<T>.Escape(writtenSpan, destinationSpan[..escapedLength], _dialect.Quote, quoteCount);
+                await EscapePartialValueAndAdvance(written, destination, quoteCount, cancellationToken);
+                return;
+            }
+            else
+            {
+                WriteUtil<T>.Escape(written.Span, destination.Span[..escapedLength], _dialect.Quote, quoteCount);
                 tokensWritten = escapedLength;
             }
 
-            _pipe.Advance(tokensWritten);
-            return default;
         }
 
-        return GrowBufferAndWrite(formatter, value, cancellationToken);
+        _pipe.Advance(tokensWritten);
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
     private async ValueTask EscapePartialValueAndAdvance(
         ReadOnlyMemory<T> written,
         Memory<T> destination,
@@ -78,58 +78,16 @@ internal sealed class CsvWriter<T> where T : unmanaged, IEquatable<T>
 
         _pipe.Advance(destination.Length);
 
-        Memory<T> ofd;
-
         do
         {
-            ofd = await _pipe.GrowAsync(cancellationToken);
-        } while (ofd.Length < overflow.Length);
+            destination = await _pipe.GrowAsync(cancellationToken);
+        } while (destination.Length < overflow.Length);
 
-        overflow.Span.CopyTo(ofd.Span);
+        overflow.Span.CopyTo(destination.Span);
         _pipe.Advance(overflow.Length);
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private async ValueTask GrowBufferAndWrite<TValue>(
-        ICsvFormatter<T, TValue> formatter,
-        TValue value,
-        CancellationToken cancellationToken)
-    {
-        int tokensWritten;
-        Memory<T> destination;
-
-        do
-        {
-            await _pipe.GrowAsync(cancellationToken);
-            destination = _pipe.GetBuffer();
-        }
-        while (!formatter.TryFormat(value, destination.Span, out tokensWritten));
-
-        Memory<T> written = destination[..tokensWritten];
-
-        if (WriteUtil<T>.NeedsEscaping(written.Span, in _dialect, out int quoteCount))
-        {
-            int escapedLength = tokensWritten + 2 + quoteCount;
-
-            if (destination.Length > escapedLength)
-            {
-                await EscapePartialValueAndAdvance(written, destination, quoteCount, cancellationToken);
-                return;
-            }
-
-            WriteUtil<T>.Escape(written.Span, destination[..escapedLength].Span, _dialect.Quote, quoteCount);
-            tokensWritten = escapedLength;
-        }
-
-        _pipe.Advance(tokensWritten);
-    }
-
-    public ValueTask CompleteAsync(Exception? exception, CancellationToken cancellationToken)
-    {
-        _arrayPool.EnsureReturned(ref _array);
-        return _pipe.CompleteAsync(exception, cancellationToken);
-    }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask WriteDelimiterAsync(CancellationToken cancellationToken)
     {
         Memory<T> destination = _pipe.GetBuffer();
@@ -143,6 +101,7 @@ internal sealed class CsvWriter<T> where T : unmanaged, IEquatable<T>
 
         return Core(cancellationToken);
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         async ValueTask Core(CancellationToken cancellationToken)
         {
             Memory<T> destination;
@@ -157,7 +116,7 @@ internal sealed class CsvWriter<T> where T : unmanaged, IEquatable<T>
         }
     }
 
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask WriteNewlineAsync(CancellationToken cancellationToken)
     {
         Memory<T> destination = _pipe.GetBuffer();
@@ -171,6 +130,7 @@ internal sealed class CsvWriter<T> where T : unmanaged, IEquatable<T>
 
         return Core(cancellationToken);
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         async ValueTask Core(CancellationToken cancellationToken)
         {
             Memory<T> destination;
@@ -183,5 +143,11 @@ internal sealed class CsvWriter<T> where T : unmanaged, IEquatable<T>
             _dialect.Newline.Span.CopyTo(destination.Span);
             _pipe.Advance(_dialect.Newline.Length);
         }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        _arrayPool.EnsureReturned(ref _array);
+        return _pipe.CompleteAsync(Exception);
     }
 }
