@@ -6,13 +6,16 @@ using FlameCsv.Binding;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Parsers;
+using FlameCsv.Utilities;
+using static FlameCsv.Utilities.SealableUtil;
 
 namespace FlameCsv;
 
 /// Represents a base class for configuration used to read and parse CSV data.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
+public partial class CsvReaderOptions<T> : ISealable
+    where T : unmanaged, IEquatable<T>
 {
     /// <summary>
     /// Initializes an options-instance with default options and no parsers defined.
@@ -64,7 +67,7 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
     public CsvCallback<T, bool>? ShouldSkipRow
     {
         get => _shouldSkipRow;
-        set => SetValue(ref _shouldSkipRow, value);
+        set => this.SetValue(ref _shouldSkipRow, value);
     }
 
     /// <summary>
@@ -76,7 +79,7 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
     public CsvExceptionHandler<T>? ExceptionHandler
     {
         get => _exceptionHandler;
-        set => SetValue(ref _exceptionHandler, value);
+        set => this.SetValue(ref _exceptionHandler, value);
     }
 
     /// <summary>
@@ -86,7 +89,7 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
     public bool AllowContentInExceptions
     {
         get => _allowContentInExceptions;
-        set => SetValue(ref _allowContentInExceptions, value);
+        set => this.SetValue(ref _allowContentInExceptions, value);
     }
 
     /// <summary>
@@ -96,7 +99,7 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
     public bool HasHeader
     {
         get => _hasHeader;
-        set => SetValue(ref _hasHeader, value);
+        set => this.SetValue(ref _hasHeader, value);
     }
 
     /// <summary>
@@ -110,7 +113,7 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
     public IHeaderBinder<T>? HeaderBinder
     {
         get => _headerBinder;
-        set => SetValue(ref _headerBinder, value);
+        set => this.SetValue(ref _headerBinder, value);
     }
 
     /// <summary>
@@ -120,7 +123,7 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
     public ArrayPool<T>? ArrayPool
     {
         get => _arrayPool;
-        set => SetValue(ref _arrayPool, value);
+        set => this.SetValue(ref _arrayPool, value);
     }
 
     /// <summary>
@@ -132,7 +135,7 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
     /// </remarks>
     public IList<ICsvParser<T>> Parsers => _parsers ?? GetOrInitParsers();
 
-    private ParserList? _parsers;
+    private SealableList<ICsvParser<T>>? _parsers;
     private readonly ConcurrentDictionary<Type, ICsvParser<T>> _parserCache = new();
 
     /// <summary>
@@ -142,12 +145,12 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [MemberNotNull(nameof(_parsers))]
-    private ParserList GetOrInitParsers()
+    private SealableList<ICsvParser<T>> GetOrInitParsers()
     {
         if (_parsers is not null)
             return _parsers;
 
-        var parserList = new ParserList(this);
+        var parserList = new SealableList<ICsvParser<T>>(this, this.GetDefaultParsers());
         return Interlocked.CompareExchange(ref _parsers, parserList, null) ?? parserList;
     }
 
@@ -210,38 +213,5 @@ public partial class CsvReaderOptions<T> where T : unmanaged, IEquatable<T>
             MakeReadOnly();
 
         return GetOrInitParsers().Span;
-    }
-
-    /// <summary>
-    /// Sets the value of <paramref name="field"/> after ensuring that the current instance is not read-only.
-    /// </summary>
-    /// <typeparam name="TValue"></typeparam>
-    /// <param name="field">Reference to the field to modify</param>
-    /// <param name="value">Value to set</param>
-    /// <param name="memberName">Name of the property being set, used in exception messages</param>
-    /// <exception cref="InvalidOperationException"/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void SetValue<TValue>(ref TValue field, TValue value, [CallerMemberName] string memberName = "")
-    {
-        ThrowIfReadOnly(memberName);
-        field = value;
-    }
-
-    /// <summary>
-    /// Throws if <see cref="IsReadOnly"/> is <see langword="true"/>.
-    /// </summary>
-    /// <param name="memberName">Name of the calling property or method used in exception messages</param>
-    /// <exception cref="InvalidOperationException"></exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void ThrowIfReadOnly([CallerMemberName] string memberName = "")
-    {
-        if (IsReadOnly)
-            ThrowForIsReadOnly(memberName);
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowForIsReadOnly(string memberName)
-    {
-        throw new InvalidOperationException($"The options-instance is read only (accessed via {memberName}).");
     }
 }

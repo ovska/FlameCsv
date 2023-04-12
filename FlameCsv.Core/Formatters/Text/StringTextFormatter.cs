@@ -9,6 +9,8 @@ public sealed class StringTextFormatter :
     ICsvFormatter<char, Memory<char>>,
     ICsvFormatter<char, ReadOnlyMemory<char>>
 {
+    internal static StringTextFormatter Instance { get; } = new();
+
     /// <summary>
     /// Token to write if the string value is null. Empty string and null are equivalent.
     /// </summary>

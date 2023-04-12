@@ -1,5 +1,6 @@
-﻿using FlameCsv;
-using FlameCsv.Binding.Attributes;
+﻿using System.Globalization;
+using CsvHelper;
+using CsvHelper.Configuration;
 
 const string data = """
 id,name,isadmin,favouriteday
@@ -8,17 +9,23 @@ id,name,isadmin,favouriteday
 789,Mallory,,Monday
 """;
 
-using var reader = new StringReader(data);
-var options = new CsvTextReaderOptions
-{
-    Newline = "\n".AsMemory(),
-    HasHeader = true,
-};
+var textWriter = new StringWriter();
+var config = new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = ";"};
+var csvwriter = new CsvWriter(textWriter, config);
+StreamWriter
+csvwriter.WriteRecord(data);
 
-await foreach (var user in CsvReader.ReadAsync<User>(reader, options))
-{
-    Console.WriteLine(user);
-}
+//using var reader = new StringReader(data);
+//var options = new CsvTextReaderOptions
+//{
+//    Newline = "\n".AsMemory(),
+//    HasHeader = true,
+//};
+
+//await foreach (var user in CsvReader.ReadAsync<User>(reader, options))
+//{
+//    Console.WriteLine(user);
+//}
 
 public record class User
 {
@@ -28,12 +35,12 @@ public record class User
     public DayOfWeek FavouriteDay { get; set; }
 }
 
-[CsvHeaderIgnore("whocares", Comparison = StringComparison.Ordinal)]
-[CsvIndexIgnore(1)]
-public readonly struct ValueUser
-{
-    [CsvIndex(0)] public int Id { get; init; }
-    [CsvIndex(2)] public string? Name { get; init; }
-    [CsvIndex(3)] public bool? IsAdmin { get; init; }
-    [CsvIndex(4)] public DayOfWeek FavouriteDay { get; init; }
-}
+//[CsvHeaderIgnore("whocares", Comparison = StringComparison.Ordinal)]
+//[CsvIndexIgnore(1)]
+//public readonly struct ValueUser
+//{
+//    [CsvIndex(0)] public int Id { get; init; }
+//    [CsvIndex(2)] public string? Name { get; init; }
+//    [CsvIndex(3)] public bool? IsAdmin { get; init; }
+//    [CsvIndex(4)] public DayOfWeek FavouriteDay { get; init; }
+//}

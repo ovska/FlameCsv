@@ -7,7 +7,7 @@ namespace FlameCsv.Parsers;
 public interface ICsvParserFactory<T> : ICsvParser<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
-    /// Creates an instance capable of parsing values of type <paramref name="resultType"/>.
+    /// Creates an instance capable of parsing values of the specified type.
     /// </summary>
     /// <remarks>
     /// This method should only be called after <see cref="ICsvParser{T}.CanParse"/> has verified the type is valid.
@@ -16,4 +16,8 @@ public interface ICsvParserFactory<T> : ICsvParser<T> where T : unmanaged, IEqua
     /// <param name="options">Current options instance</param>
     /// <returns>Parser instance</returns>
     ICsvParser<T> Create(Type resultType, CsvReaderOptions<T> options);
+
+    /// <inheritdoc cref="Create(Type, CsvReaderOptions{T})"/>
+    ICsvParser<T, TValue> Create<TValue>(CsvReaderOptions<T> options)
+        => (ICsvParser<T, TValue>)Create(typeof(TValue), options);
 }

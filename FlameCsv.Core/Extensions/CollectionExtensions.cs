@@ -2,7 +2,7 @@ namespace FlameCsv.Extensions;
 
 internal static class CollectionExtensions
 {
-    public static TValue? GetValueOrDefault<TKey, TValue>(
+    public static TValue? GetValueOrDefaultEx<TKey, TValue>(
         this IDictionary<TKey, TValue>? dictionary,
         TKey key,
         TValue? defaultValue = default)

@@ -1,9 +1,12 @@
-﻿using System.Linq.Expressions;
+﻿using System;
+using System.Diagnostics;
+using System.Linq.Expressions;
 using System.Reflection;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Internal;
 using FlameCsv.Extensions;
 using FlameCsv.Formatters;
+using FlameCsv.Formatters.Internal;
 using FlameCsv.Writers;
 
 namespace FlameCsv.Runtime;
@@ -56,6 +59,9 @@ internal static class WriteTest<T, TValue>
         IEnumerable<TValue> records,
         CancellationToken cancellationToken)
     {
+        if (options.WriteHeader)
+            await WriteHeader(writer, bindingCollection, cancellationToken);
+
         // TODO: write header?
         WriteCallback<T, TValue>[] columnCallbacks = CsvWriterReflection<T, TValue>.CreateWriteCallbacks(bindingCollection, options);
 
@@ -73,6 +79,30 @@ internal static class WriteTest<T, TValue>
             await writer.WriteNewlineAsync(cancellationToken);
         }
     }
+
+    private static async ValueTask WriteHeader(
+        CsvWriter<T> writer,
+        CsvBindingCollection<TValue> bindingCollection,
+        CancellationToken cancellationToken)
+    {
+        var formatter = DefaultFormatters.Binding<T, TValue>();
+
+        for (int i = 0; i < bindingCollection.MemberBindings.Length; i++)
+        {
+            if (i > 0)
+            {
+                await writer.WriteDelimiterAsync(cancellationToken);
+            }
+
+            await writer.WriteValueAsync(formatter, bindingCollection.Bindings[i], cancellationToken);
+        }
+
+        await writer.WriteNewlineAsync(cancellationToken);
+    }
+
+
+
+    private delegate bool TryFormatMember(MemberInfo memberInfo, Span<T> destination, out int tokensWritten);
 }
 
 internal static class CsvWriterReflection<T, TValue> where T : unmanaged, IEquatable<T>

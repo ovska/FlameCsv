@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Numerics;
 using CommunityToolkit.Diagnostics;
 
 namespace FlameCsv.Extensions;
@@ -16,12 +17,12 @@ internal sealed class AllocatingArrayPool<T> : ArrayPool<T> where T : unmanaged
     public override T[] Rent(int minimumLength)
     {
         Guard.IsGreaterThanOrEqualTo(minimumLength, 0);
-        return minimumLength > 0 ? new T[minimumLength] : Array.Empty<T>();
+        return minimumLength > 0
+            ? new T[BitOperations.RoundUpToPowerOf2((uint)minimumLength)]
+            : Array.Empty<T>();
     }
 
     public override void Return(T[] array, bool clearArray = false)
     {
-        // unnecessary?
-        //if (clearArray) array.AsSpan().Clear();
     }
 }

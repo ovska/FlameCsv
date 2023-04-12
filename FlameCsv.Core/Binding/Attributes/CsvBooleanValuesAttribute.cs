@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using FlameCsv.Configuration;
 using FlameCsv.Exceptions;
 using FlameCsv.Parsers;
 using FlameCsv.Parsers.Text;
@@ -10,7 +11,7 @@ namespace FlameCsv.Binding.Attributes;
 /// Overrides the default parser for the target member. Applicable for <c>bool</c> and <c>bool?</c>
 /// when parsing text or UTF8 bytes.<br/>
 /// For nullable booleans, attempts to fetch user defined null token from the options via
-/// <see cref="ICsvNullTokenProvider{T}"/>.
+/// <see cref="ICsvNullTokenConfiguration{T}"/>.
 /// </summary>
 public class CsvBooleanValuesAttribute : CsvParserOverrideAttribute
 {
@@ -79,7 +80,7 @@ public class CsvBooleanValuesAttribute : CsvParserOverrideAttribute
     protected static ReadOnlyMemory<T> FindNullTokens<T>(CsvReaderOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
-        if (options is ICsvNullTokenProvider<T> ntp)
+        if (options is ICsvNullTokenConfiguration<T> ntp)
         {
             if (ntp.TryGetOverride(typeof(bool?), out var value) ||
                 ntp.TryGetOverride(typeof(bool), out value))

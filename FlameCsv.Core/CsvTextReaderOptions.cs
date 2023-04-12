@@ -1,7 +1,10 @@
 ﻿using System.Globalization;
 using CommunityToolkit.HighPerformance.Buffers;
+using FlameCsv.Configuration;
+using FlameCsv.Extensions;
 using FlameCsv.Parsers;
 using FlameCsv.Parsers.Text;
+using FlameCsv.Utilities;
 
 namespace FlameCsv;
 
@@ -27,7 +30,7 @@ namespace FlameCsv;
 /// </remarks>
 public sealed class CsvTextReaderOptions :
     CsvReaderOptions<char>,
-    ICsvNullTokenProvider<char>
+    ICsvNullTokenConfiguration<char>
 {
     private static readonly Lazy<CsvTextReaderOptions> _default = new(() => new(isReadOnly: true));
 
@@ -85,7 +88,7 @@ public sealed class CsvTextReaderOptions :
     public StringPool? StringPool
     {
         get => _stringPool;
-        set => SetValue(ref _stringPool, value);
+        set => this.SetValue(ref _stringPool, value);
     }
 
     /// <summary>
@@ -95,7 +98,7 @@ public sealed class CsvTextReaderOptions :
     public IFormatProvider? FormatProvider
     {
         get => _formatProvider;
-        set => SetValue(ref _formatProvider, value);
+        set => this.SetValue(ref _formatProvider, value);
     }
 
     /// <summary>
@@ -104,7 +107,7 @@ public sealed class CsvTextReaderOptions :
     public NumberStyles IntegerNumberStyles
     {
         get => _integerNumberStyles;
-        set => SetValue(ref _integerNumberStyles, value);
+        set => this.SetValue(ref _integerNumberStyles, value);
     }
 
     /// <summary>
@@ -113,7 +116,7 @@ public sealed class CsvTextReaderOptions :
     public NumberStyles DecimalNumberStyles
     {
         get => _decimalNumberStyles;
-        set => SetValue(ref _decimalNumberStyles, value);
+        set => this.SetValue(ref _decimalNumberStyles, value);
     }
 
     /// <summary>
@@ -123,7 +126,7 @@ public sealed class CsvTextReaderOptions :
     public string? DateTimeFormat
     {
         get => _dateTimeFormat;
-        set => SetValue(ref _dateTimeFormat, value);
+        set => this.SetValue(ref _dateTimeFormat, value);
     }
 
     /// <summary>
@@ -133,7 +136,7 @@ public sealed class CsvTextReaderOptions :
     public string? TimeSpanFormat
     {
         get => _timeSpanFormat;
-        set => SetValue(ref _timeSpanFormat, value);
+        set => this.SetValue(ref _timeSpanFormat, value);
     }
 
     /// <summary>
@@ -143,7 +146,7 @@ public sealed class CsvTextReaderOptions :
     public string? DateOnlyFormat
     {
         get => _dateOnlyFormat;
-        set => SetValue(ref _dateOnlyFormat, value);
+        set => this.SetValue(ref _dateOnlyFormat, value);
     }
 
     /// <summary>
@@ -153,7 +156,7 @@ public sealed class CsvTextReaderOptions :
     public string? TimeOnlyFormat
     {
         get => _timeOnlyFormat;
-        set => SetValue(ref _timeOnlyFormat, value);
+        set => this.SetValue(ref _timeOnlyFormat, value);
     }
 
     /// <summary>
@@ -163,7 +166,7 @@ public sealed class CsvTextReaderOptions :
     public DateTimeStyles DateTimeStyles
     {
         get => _dateTimeStyles;
-        set => SetValue(ref _dateTimeStyles, value);
+        set => this.SetValue(ref _dateTimeStyles, value);
     }
 
     /// <summary>
@@ -173,7 +176,7 @@ public sealed class CsvTextReaderOptions :
     public TimeSpanStyles TimeSpanStyles
     {
         get => _timeSpanStyles;
-        set => SetValue(ref _timeSpanStyles, value);
+        set => this.SetValue(ref _timeSpanStyles, value);
     }
 
     /// <summary>
@@ -182,7 +185,7 @@ public sealed class CsvTextReaderOptions :
     public string? GuidFormat
     {
         get => _guidFormat;
-        set => SetValue(ref _guidFormat, value);
+        set => this.SetValue(ref _guidFormat, value);
     }
 
     /// <summary>
@@ -191,7 +194,7 @@ public sealed class CsvTextReaderOptions :
     public bool IgnoreEnumCase
     {
         get => _ignoreEnumCase;
-        set => SetValue(ref _ignoreEnumCase, value);
+        set => this.SetValue(ref _ignoreEnumCase, value);
     }
 
     /// <summary>
@@ -201,7 +204,7 @@ public sealed class CsvTextReaderOptions :
     public bool AllowUndefinedEnumValues
     {
         get => _allowUndefinedEnumValues;
-        set => SetValue(ref _allowUndefinedEnumValues, value);
+        set => this.SetValue(ref _allowUndefinedEnumValues, value);
     }
 
     /// <summary>
@@ -211,7 +214,7 @@ public sealed class CsvTextReaderOptions :
     public bool ReadEmptyStringsAsNull
     {
         get => _readEmptyStringsAsNull;
-        set => SetValue(ref _readEmptyStringsAsNull, value);
+        set => this.SetValue(ref _readEmptyStringsAsNull, value);
     }
 
     /// <summary>
@@ -221,7 +224,7 @@ public sealed class CsvTextReaderOptions :
     public string? Null
     {
         get => _null;
-        set => SetValue(ref _null, value);
+        set => this.SetValue(ref _null, value);
     }
 
     /// <summary>
@@ -231,7 +234,7 @@ public sealed class CsvTextReaderOptions :
     public IReadOnlyCollection<(string text, bool value)>? BooleanValues
     {
         get => _booleanValues;
-        set => SetValue(ref _booleanValues, value);
+        set => this.SetValue(ref _booleanValues, value);
     }
 
     /// <summary>
@@ -263,14 +266,8 @@ public sealed class CsvTextReaderOptions :
         };
     }
 
-    ReadOnlyMemory<char> ICsvNullTokenProvider<char>.Default => Null.AsMemory();
-
-    bool ICsvNullTokenProvider<char>.TryGetOverride(Type type, out ReadOnlyMemory<char> value)
+    ReadOnlyMemory<char> ICsvNullTokenConfiguration<char>.GetNullToken(Type type)
     {
-        if (_nullOverrides is not null)
-            return _nullOverrides.TryGetValue(type, out value);
-
-        value = default;
-        return false;
+        return _nullOverrides.GetValueOrDefaultEx(type, ReadOnlyMemory<char>.Empty);
     }
 }

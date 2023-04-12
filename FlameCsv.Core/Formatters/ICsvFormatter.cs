@@ -7,7 +7,7 @@ namespace FlameCsv.Formatters;
 public interface ICsvFormatter<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
-    /// Returns whether <paramref name="valueType"/> can be handled by this formatter, or a suitable formatter can be
+    /// Returns whether the type can be handled by this formatter, or a suitable formatter can be
     /// created if this is a factory instance.
     /// </summary>
     /// <remarks>
@@ -17,6 +17,9 @@ public interface ICsvFormatter<T> where T : unmanaged, IEquatable<T>
     /// <param name="valueType">Type to check</param>
     /// <returns><see langword="true"/> if the type can be parsed</returns>
     bool CanFormat(Type valueType);
+
+    /// <inheritdoc cref="CanFormat(Type)"/>
+    bool CanFormat<TValue>() => CanFormat(typeof(TValue));
 }
 
 /// <summary>

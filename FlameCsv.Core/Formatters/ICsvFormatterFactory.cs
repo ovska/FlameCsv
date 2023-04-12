@@ -1,3 +1,5 @@
+using FlameCsv.Writers;
+
 namespace FlameCsv.Formatters;
 
 /// <summary>
@@ -7,7 +9,7 @@ namespace FlameCsv.Formatters;
 public interface ICsvFormatterFactory<T> : ICsvFormatter<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
-    /// Creates an instance capable of parsing values of type <paramref name="valueType"/>.
+    /// Creates an instance capable of formatting values of the specified type.
     /// </summary>
     /// <remarks>
     /// This method should only be called after <see cref="ICsvFormatter{T}.CanFormat"/> has verified the type is valid.
@@ -15,5 +17,9 @@ public interface ICsvFormatterFactory<T> : ICsvFormatter<T> where T : unmanaged,
     /// <param name="valueType">Value type of the <see cref="ICsvFormatter{T,TValue}"/></param>
     /// <param name="options">Current options instance</param>
     /// <returns>Formatter instance</returns>
-    ICsvFormatter<T> Create(Type valueType, object? options);
+    ICsvFormatter<T> Create(Type valueType, CsvWriterOptions<T> options);
+
+    /// <inheritdoc cref="Create(Type, CsvWriterOptions{T})"/>
+    ICsvFormatter<T, TValue> Create<TValue>(CsvWriterOptions<T> options)
+        => (ICsvFormatter<T, TValue>)Create(typeof(TValue), options);
 }

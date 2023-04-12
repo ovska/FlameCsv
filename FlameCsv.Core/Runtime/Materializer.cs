@@ -27,22 +27,21 @@ internal abstract partial class Materializer
     /// <typeparam name="T">Token type</typeparam>
     /// <typeparam name="TValue">Parsed value</typeparam>
     [MethodImpl(MethodImplOptions.AggressiveInlining)] // should be small enough to inline in Parse()
-    protected void ParseNext<T, TValue>(
+    protected TValue ParseNext<T, TValue>(
         ref CsvColumnEnumerator<T> enumerator,
-        ICsvParser<T, TValue> parser,
-        out TValue value)
+        ICsvParser<T, TValue> parser)
         where T : unmanaged, IEquatable<T>
     {
         if (enumerator.MoveNext())
         {
-            if (parser.TryParse(enumerator.Current, out value!))
-                return;
+            if (parser.TryParse(enumerator.Current, out TValue? value))
+                return value;
 
             ThrowParseFailed(ref enumerator, parser);
         }
 
         ThrowMoveNextFailed(ref enumerator);
-        Unsafe.SkipInit(out value); // reference types are always zeroed by jit
+        return default;
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
