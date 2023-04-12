@@ -20,8 +20,9 @@ internal static class WriteExtensions
     {
         if (buffer.Length >= value.Length)
         {
-            value.CopyTo(buffer);
-            tokensWritten = value.Length;
+            if ((tokensWritten = value.Length) > 0)
+                value.CopyTo(buffer);
+
             return true;
         }
 
@@ -38,8 +39,9 @@ internal static class WriteExtensions
     {
         if (buffer.Length >= value.Length)
         {
-            value.CopyTo(buffer);
-            tokensWritten = value.Length;
+            if ((tokensWritten = value.Length) > 0)
+                value.CopyTo(buffer);
+
             return true;
         }
 

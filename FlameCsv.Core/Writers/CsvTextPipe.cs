@@ -2,60 +2,60 @@ using System.Buffers;
 using System.Diagnostics;
 using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Writers;
 
 [DebuggerDisplay("[CsvTextWriter] Written: {Unflushed} / {_buffer.Length} (inner: {_writer.GetType().Name})")]
-internal sealed class CsvTextPipeWriter : ICsvPipeWriter<char>
+internal sealed class CsvTextPipe : ICsvPipe<char>
 {
     private readonly TextWriter _writer;
     private readonly ArrayPool<char> _arrayPool;
     private char[] _buffer;
+    private int _unflushed;
 
-    public CsvTextPipeWriter(TextWriter writer, ArrayPool<char> arrayPool)
+    public CsvTextPipe(TextWriter writer, ArrayPool<char>? arrayPool)
     {
         _writer = writer;
-        _arrayPool = arrayPool;
-        _buffer = arrayPool.Rent(1024);
-        Unflushed = 0;
+        _arrayPool = arrayPool ?? AllocatingArrayPool<char>.Instance;
+        _buffer = _arrayPool.Rent(1024);
+        _unflushed = 0;
     }
 
-    public int Unflushed { get; private set; }
-    public int PreviousLength { get; private set; }
-
-    public Memory<char> GetBuffer()
+    public Span<char> GetSpan()
     {
-        var memory = _buffer.AsMemory(Unflushed);
-        PreviousLength = memory.Length;
-        return memory;
+        return _buffer.AsSpan(_unflushed);
+    }
+
+    public Memory<char> GetMemory()
+    {
+        return _buffer.AsMemory(_unflushed);
     }
 
     public void Advance(int length)
     {
         Guard.IsGreaterThanOrEqualTo(length, 0);
-        Guard.IsLessThanOrEqualTo(length, _buffer.Length - Unflushed);
+        Guard.IsLessThanOrEqualTo(length, _buffer.Length - _unflushed);
 
-        Unflushed += length;
+        _unflushed += length;
     }
 
-    public async ValueTask<Memory<char>> GrowAsync(CancellationToken cancellationToken = default)
+    public async ValueTask GrowAsync(
+        int previousBufferSize,
+        CancellationToken cancellationToken = default)
     {
         await FlushAsync(cancellationToken);
 
-        if (PreviousLength >= _buffer.Length)
-            ArrayPool<char>.Shared.EnsureCapacity(ref _buffer, PreviousLength * 2);
-
-        var memory = _buffer.AsMemory(Unflushed);
-        PreviousLength = memory.Length;
-        return memory;
+        if (previousBufferSize >= _buffer.Length)
+            ArrayPool<char>.Shared.EnsureCapacity(ref _buffer, previousBufferSize * 2);
     }
 
     public async ValueTask FlushAsync(CancellationToken cancellationToken = default)
     {
-        if (Unflushed > 0)
+        if (_unflushed > 0)
         {
-            await _writer.WriteAsync(_buffer.AsMemory(0, Unflushed), cancellationToken);
-            Unflushed = 0;
+            await _writer.WriteAsync(_buffer.AsMemory(0, _unflushed), cancellationToken);
+            _unflushed = 0;
         }
     }
 

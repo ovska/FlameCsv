@@ -1,3 +1,4 @@
+using FlameCsv.Configuration;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Parsers;
@@ -12,7 +13,7 @@ public sealed class NullableParserFactory<T> : ICsvParserFactory<T>
     /// Token to match null to if the parsing fails.
     /// </summary>
     /// <remarks>
-    /// If the <see cref="CsvReaderOptions{T}"/>-instance used when implements <see cref="ICsvNullTokenProvider{T}"/>
+    /// If the <see cref="CsvReaderOptions{T}"/>-instance used when implements <see cref="ICsvNullTokenConfiguration{T}"/>
     /// the provider's configuration is used instead.
     /// </remarks>
     public ReadOnlyMemory<T> NullToken { get; }
@@ -31,7 +32,7 @@ public sealed class NullableParserFactory<T> : ICsvParserFactory<T>
     {
         var nullToken = NullToken;
 
-        if (options is ICsvNullTokenProvider<T> nullableProvider)
+        if (options is ICsvNullTokenConfiguration<T> nullableProvider)
         {
             nullToken = nullableProvider.TryGetOverride(resultType, out var @override)
                 ? @override

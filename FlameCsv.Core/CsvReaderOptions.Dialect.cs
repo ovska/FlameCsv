@@ -1,4 +1,6 @@
-﻿namespace FlameCsv;
+﻿using static FlameCsv.Utilities.SealableUtil;
+
+namespace FlameCsv;
 
 public partial class CsvReaderOptions<T> : ICsvDialectOptions<T>
 {
@@ -11,30 +13,30 @@ public partial class CsvReaderOptions<T> : ICsvDialectOptions<T>
     public T Delimiter
     {
         get => _delimiter;
-        set => SetValue(ref _delimiter, value);
+        set => this.SetValue(ref _delimiter, value);
     }
 
     public T Quote
     {
         get => _quote;
-        set => SetValue(ref _quote, value);
+        set => this.SetValue(ref _quote, value);
     }
 
     public ReadOnlyMemory<T> Newline
     {
         get => _newline;
-        set => SetValue(ref _newline, value);
+        set => this.SetValue(ref _newline, value);
     }
 
     public ReadOnlyMemory<T> Whitespace
     {
         get => _whitespace;
-        set => SetValue(ref _whitespace, value);
+        set => this.SetValue(ref _whitespace, value);
     }
 
     public T? Escape
     {
         get => _escape;
-        set => SetValue(ref _escape, value);
+        set => this.SetValue(ref _escape, value);
     }
 }

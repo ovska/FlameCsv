@@ -119,12 +119,12 @@ internal sealed class Materializer<T, <#= generics #>>
 <#
         for (var i = 0; i < current; i++)
         {
-            Write("        ParseNext(ref enumerator, parser");
-            Write(i.ToString());
-            Write(", out ");
+            Write("        ");
             Write(genericTypes[i]);
             Write(" ");
             Write(values[i]);
+            Write(" = ParseNext(ref enumerator, parser");
+            Write(i.ToString());
             WriteLine(");");
         }
 #>

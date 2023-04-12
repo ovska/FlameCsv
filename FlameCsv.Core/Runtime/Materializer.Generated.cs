@@ -76,7 +76,7 @@ internal sealed class Materializer<T, T0, TResult>
 
     public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
     {
-        ParseNext(ref enumerator, parser0, out T0 v0);
+        T0 v0 = ParseNext(ref enumerator, parser0);
 
         enumerator.EnsureAllColumnsRead();
 
@@ -112,8 +112,8 @@ internal sealed class Materializer<T, T0, T1, TResult>
 
     public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
     {
-        ParseNext(ref enumerator, parser0, out T0 v0);
-        ParseNext(ref enumerator, parser1, out T1 v1);
+        T0 v0 = ParseNext(ref enumerator, parser0);
+        T1 v1 = ParseNext(ref enumerator, parser1);
 
         enumerator.EnsureAllColumnsRead();
 
@@ -152,9 +152,9 @@ internal sealed class Materializer<T, T0, T1, T2, TResult>
 
     public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
     {
-        ParseNext(ref enumerator, parser0, out T0 v0);
-        ParseNext(ref enumerator, parser1, out T1 v1);
-        ParseNext(ref enumerator, parser2, out T2 v2);
+        T0 v0 = ParseNext(ref enumerator, parser0);
+        T1 v1 = ParseNext(ref enumerator, parser1);
+        T2 v2 = ParseNext(ref enumerator, parser2);
 
         enumerator.EnsureAllColumnsRead();
 
@@ -196,10 +196,10 @@ internal sealed class Materializer<T, T0, T1, T2, T3, TResult>
 
     public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
     {
-        ParseNext(ref enumerator, parser0, out T0 v0);
-        ParseNext(ref enumerator, parser1, out T1 v1);
-        ParseNext(ref enumerator, parser2, out T2 v2);
-        ParseNext(ref enumerator, parser3, out T3 v3);
+        T0 v0 = ParseNext(ref enumerator, parser0);
+        T1 v1 = ParseNext(ref enumerator, parser1);
+        T2 v2 = ParseNext(ref enumerator, parser2);
+        T3 v3 = ParseNext(ref enumerator, parser3);
 
         enumerator.EnsureAllColumnsRead();
 
@@ -244,11 +244,11 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult>
 
     public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
     {
-        ParseNext(ref enumerator, parser0, out T0 v0);
-        ParseNext(ref enumerator, parser1, out T1 v1);
-        ParseNext(ref enumerator, parser2, out T2 v2);
-        ParseNext(ref enumerator, parser3, out T3 v3);
-        ParseNext(ref enumerator, parser4, out T4 v4);
+        T0 v0 = ParseNext(ref enumerator, parser0);
+        T1 v1 = ParseNext(ref enumerator, parser1);
+        T2 v2 = ParseNext(ref enumerator, parser2);
+        T3 v3 = ParseNext(ref enumerator, parser3);
+        T4 v4 = ParseNext(ref enumerator, parser4);
 
         enumerator.EnsureAllColumnsRead();
 
@@ -296,12 +296,12 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult>
 
     public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
     {
-        ParseNext(ref enumerator, parser0, out T0 v0);
-        ParseNext(ref enumerator, parser1, out T1 v1);
-        ParseNext(ref enumerator, parser2, out T2 v2);
-        ParseNext(ref enumerator, parser3, out T3 v3);
-        ParseNext(ref enumerator, parser4, out T4 v4);
-        ParseNext(ref enumerator, parser5, out T5 v5);
+        T0 v0 = ParseNext(ref enumerator, parser0);
+        T1 v1 = ParseNext(ref enumerator, parser1);
+        T2 v2 = ParseNext(ref enumerator, parser2);
+        T3 v3 = ParseNext(ref enumerator, parser3);
+        T4 v4 = ParseNext(ref enumerator, parser4);
+        T5 v5 = ParseNext(ref enumerator, parser5);
 
         enumerator.EnsureAllColumnsRead();
 
@@ -352,13 +352,13 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult>
 
     public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
     {
-        ParseNext(ref enumerator, parser0, out T0 v0);
-        ParseNext(ref enumerator, parser1, out T1 v1);
-        ParseNext(ref enumerator, parser2, out T2 v2);
-        ParseNext(ref enumerator, parser3, out T3 v3);
-        ParseNext(ref enumerator, parser4, out T4 v4);
-        ParseNext(ref enumerator, parser5, out T5 v5);
-        ParseNext(ref enumerator, parser6, out T6 v6);
+        T0 v0 = ParseNext(ref enumerator, parser0);
+        T1 v1 = ParseNext(ref enumerator, parser1);
+        T2 v2 = ParseNext(ref enumerator, parser2);
+        T3 v3 = ParseNext(ref enumerator, parser3);
+        T4 v4 = ParseNext(ref enumerator, parser4);
+        T5 v5 = ParseNext(ref enumerator, parser5);
+        T6 v6 = ParseNext(ref enumerator, parser6);
 
         enumerator.EnsureAllColumnsRead();
 
@@ -412,14 +412,14 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult>
 
     public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
     {
-        ParseNext(ref enumerator, parser0, out T0 v0);
-        ParseNext(ref enumerator, parser1, out T1 v1);
-        ParseNext(ref enumerator, parser2, out T2 v2);
-        ParseNext(ref enumerator, parser3, out T3 v3);
-        ParseNext(ref enumerator, parser4, out T4 v4);
-        ParseNext(ref enumerator, parser5, out T5 v5);
-        ParseNext(ref enumerator, parser6, out T6 v6);
-        ParseNext(ref enumerator, parser7, out T7 v7);
+        T0 v0 = ParseNext(ref enumerator, parser0);
+        T1 v1 = ParseNext(ref enumerator, parser1);
+        T2 v2 = ParseNext(ref enumerator, parser2);
+        T3 v3 = ParseNext(ref enumerator, parser3);
+        T4 v4 = ParseNext(ref enumerator, parser4);
+        T5 v5 = ParseNext(ref enumerator, parser5);
+        T6 v6 = ParseNext(ref enumerator, parser6);
+        T7 v7 = ParseNext(ref enumerator, parser7);
 
         enumerator.EnsureAllColumnsRead();
 
@@ -476,15 +476,15 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
 
     public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
     {
-        ParseNext(ref enumerator, parser0, out T0 v0);
-        ParseNext(ref enumerator, parser1, out T1 v1);
-        ParseNext(ref enumerator, parser2, out T2 v2);
-        ParseNext(ref enumerator, parser3, out T3 v3);
-        ParseNext(ref enumerator, parser4, out T4 v4);
-        ParseNext(ref enumerator, parser5, out T5 v5);
-        ParseNext(ref enumerator, parser6, out T6 v6);
-        ParseNext(ref enumerator, parser7, out T7 v7);
-        ParseNext(ref enumerator, parser8, out T8 v8);
+        T0 v0 = ParseNext(ref enumerator, parser0);
+        T1 v1 = ParseNext(ref enumerator, parser1);
+        T2 v2 = ParseNext(ref enumerator, parser2);
+        T3 v3 = ParseNext(ref enumerator, parser3);
+        T4 v4 = ParseNext(ref enumerator, parser4);
+        T5 v5 = ParseNext(ref enumerator, parser5);
+        T6 v6 = ParseNext(ref enumerator, parser6);
+        T7 v7 = ParseNext(ref enumerator, parser7);
+        T8 v8 = ParseNext(ref enumerator, parser8);
 
         enumerator.EnsureAllColumnsRead();
 
@@ -544,16 +544,16 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
 
     public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
     {
-        ParseNext(ref enumerator, parser0, out T0 v0);
-        ParseNext(ref enumerator, parser1, out T1 v1);
-        ParseNext(ref enumerator, parser2, out T2 v2);
-        ParseNext(ref enumerator, parser3, out T3 v3);
-        ParseNext(ref enumerator, parser4, out T4 v4);
-        ParseNext(ref enumerator, parser5, out T5 v5);
-        ParseNext(ref enumerator, parser6, out T6 v6);
-        ParseNext(ref enumerator, parser7, out T7 v7);
-        ParseNext(ref enumerator, parser8, out T8 v8);
-        ParseNext(ref enumerator, parser9, out T9 v9);
+        T0 v0 = ParseNext(ref enumerator, parser0);
+        T1 v1 = ParseNext(ref enumerator, parser1);
+        T2 v2 = ParseNext(ref enumerator, parser2);
+        T3 v3 = ParseNext(ref enumerator, parser3);
+        T4 v4 = ParseNext(ref enumerator, parser4);
+        T5 v5 = ParseNext(ref enumerator, parser5);
+        T6 v6 = ParseNext(ref enumerator, parser6);
+        T7 v7 = ParseNext(ref enumerator, parser7);
+        T8 v8 = ParseNext(ref enumerator, parser8);
+        T9 v9 = ParseNext(ref enumerator, parser9);
 
         enumerator.EnsureAllColumnsRead();
 
@@ -616,17 +616,17 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
     public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
     {
-        ParseNext(ref enumerator, parser0, out T0 v0);
-        ParseNext(ref enumerator, parser1, out T1 v1);
-        ParseNext(ref enumerator, parser2, out T2 v2);
-        ParseNext(ref enumerator, parser3, out T3 v3);
-        ParseNext(ref enumerator, parser4, out T4 v4);
-        ParseNext(ref enumerator, parser5, out T5 v5);
-        ParseNext(ref enumerator, parser6, out T6 v6);
-        ParseNext(ref enumerator, parser7, out T7 v7);
-        ParseNext(ref enumerator, parser8, out T8 v8);
-        ParseNext(ref enumerator, parser9, out T9 v9);
-        ParseNext(ref enumerator, parser10, out T10 v10);
+        T0 v0 = ParseNext(ref enumerator, parser0);
+        T1 v1 = ParseNext(ref enumerator, parser1);
+        T2 v2 = ParseNext(ref enumerator, parser2);
+        T3 v3 = ParseNext(ref enumerator, parser3);
+        T4 v4 = ParseNext(ref enumerator, parser4);
+        T5 v5 = ParseNext(ref enumerator, parser5);
+        T6 v6 = ParseNext(ref enumerator, parser6);
+        T7 v7 = ParseNext(ref enumerator, parser7);
+        T8 v8 = ParseNext(ref enumerator, parser8);
+        T9 v9 = ParseNext(ref enumerator, parser9);
+        T10 v10 = ParseNext(ref enumerator, parser10);
 
         enumerator.EnsureAllColumnsRead();
 
@@ -692,18 +692,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
     public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
     {
-        ParseNext(ref enumerator, parser0, out T0 v0);
-        ParseNext(ref enumerator, parser1, out T1 v1);
-        ParseNext(ref enumerator, parser2, out T2 v2);
-        ParseNext(ref enumerator, parser3, out T3 v3);
-        ParseNext(ref enumerator, parser4, out T4 v4);
-        ParseNext(ref enumerator, parser5, out T5 v5);
-        ParseNext(ref enumerator, parser6, out T6 v6);
-        ParseNext(ref enumerator, parser7, out T7 v7);
-        ParseNext(ref enumerator, parser8, out T8 v8);
-        ParseNext(ref enumerator, parser9, out T9 v9);
-        ParseNext(ref enumerator, parser10, out T10 v10);
-        ParseNext(ref enumerator, parser11, out T11 v11);
+        T0 v0 = ParseNext(ref enumerator, parser0);
+        T1 v1 = ParseNext(ref enumerator, parser1);
+        T2 v2 = ParseNext(ref enumerator, parser2);
+        T3 v3 = ParseNext(ref enumerator, parser3);
+        T4 v4 = ParseNext(ref enumerator, parser4);
+        T5 v5 = ParseNext(ref enumerator, parser5);
+        T6 v6 = ParseNext(ref enumerator, parser6);
+        T7 v7 = ParseNext(ref enumerator, parser7);
+        T8 v8 = ParseNext(ref enumerator, parser8);
+        T9 v9 = ParseNext(ref enumerator, parser9);
+        T10 v10 = ParseNext(ref enumerator, parser10);
+        T11 v11 = ParseNext(ref enumerator, parser11);
 
         enumerator.EnsureAllColumnsRead();
 
@@ -772,19 +772,19 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
     public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
     {
-        ParseNext(ref enumerator, parser0, out T0 v0);
-        ParseNext(ref enumerator, parser1, out T1 v1);
-        ParseNext(ref enumerator, parser2, out T2 v2);
-        ParseNext(ref enumerator, parser3, out T3 v3);
-        ParseNext(ref enumerator, parser4, out T4 v4);
-        ParseNext(ref enumerator, parser5, out T5 v5);
-        ParseNext(ref enumerator, parser6, out T6 v6);
-        ParseNext(ref enumerator, parser7, out T7 v7);
-        ParseNext(ref enumerator, parser8, out T8 v8);
-        ParseNext(ref enumerator, parser9, out T9 v9);
-        ParseNext(ref enumerator, parser10, out T10 v10);
-        ParseNext(ref enumerator, parser11, out T11 v11);
-        ParseNext(ref enumerator, parser12, out T12 v12);
+        T0 v0 = ParseNext(ref enumerator, parser0);
+        T1 v1 = ParseNext(ref enumerator, parser1);
+        T2 v2 = ParseNext(ref enumerator, parser2);
+        T3 v3 = ParseNext(ref enumerator, parser3);
+        T4 v4 = ParseNext(ref enumerator, parser4);
+        T5 v5 = ParseNext(ref enumerator, parser5);
+        T6 v6 = ParseNext(ref enumerator, parser6);
+        T7 v7 = ParseNext(ref enumerator, parser7);
+        T8 v8 = ParseNext(ref enumerator, parser8);
+        T9 v9 = ParseNext(ref enumerator, parser9);
+        T10 v10 = ParseNext(ref enumerator, parser10);
+        T11 v11 = ParseNext(ref enumerator, parser11);
+        T12 v12 = ParseNext(ref enumerator, parser12);
 
         enumerator.EnsureAllColumnsRead();
 
@@ -856,20 +856,20 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
     public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
     {
-        ParseNext(ref enumerator, parser0, out T0 v0);
-        ParseNext(ref enumerator, parser1, out T1 v1);
-        ParseNext(ref enumerator, parser2, out T2 v2);
-        ParseNext(ref enumerator, parser3, out T3 v3);
-        ParseNext(ref enumerator, parser4, out T4 v4);
-        ParseNext(ref enumerator, parser5, out T5 v5);
-        ParseNext(ref enumerator, parser6, out T6 v6);
-        ParseNext(ref enumerator, parser7, out T7 v7);
-        ParseNext(ref enumerator, parser8, out T8 v8);
-        ParseNext(ref enumerator, parser9, out T9 v9);
-        ParseNext(ref enumerator, parser10, out T10 v10);
-        ParseNext(ref enumerator, parser11, out T11 v11);
-        ParseNext(ref enumerator, parser12, out T12 v12);
-        ParseNext(ref enumerator, parser13, out T13 v13);
+        T0 v0 = ParseNext(ref enumerator, parser0);
+        T1 v1 = ParseNext(ref enumerator, parser1);
+        T2 v2 = ParseNext(ref enumerator, parser2);
+        T3 v3 = ParseNext(ref enumerator, parser3);
+        T4 v4 = ParseNext(ref enumerator, parser4);
+        T5 v5 = ParseNext(ref enumerator, parser5);
+        T6 v6 = ParseNext(ref enumerator, parser6);
+        T7 v7 = ParseNext(ref enumerator, parser7);
+        T8 v8 = ParseNext(ref enumerator, parser8);
+        T9 v9 = ParseNext(ref enumerator, parser9);
+        T10 v10 = ParseNext(ref enumerator, parser10);
+        T11 v11 = ParseNext(ref enumerator, parser11);
+        T12 v12 = ParseNext(ref enumerator, parser12);
+        T13 v13 = ParseNext(ref enumerator, parser13);
 
         enumerator.EnsureAllColumnsRead();
 
@@ -944,21 +944,21 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
     public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
     {
-        ParseNext(ref enumerator, parser0, out T0 v0);
-        ParseNext(ref enumerator, parser1, out T1 v1);
-        ParseNext(ref enumerator, parser2, out T2 v2);
-        ParseNext(ref enumerator, parser3, out T3 v3);
-        ParseNext(ref enumerator, parser4, out T4 v4);
-        ParseNext(ref enumerator, parser5, out T5 v5);
-        ParseNext(ref enumerator, parser6, out T6 v6);
-        ParseNext(ref enumerator, parser7, out T7 v7);
-        ParseNext(ref enumerator, parser8, out T8 v8);
-        ParseNext(ref enumerator, parser9, out T9 v9);
-        ParseNext(ref enumerator, parser10, out T10 v10);
-        ParseNext(ref enumerator, parser11, out T11 v11);
-        ParseNext(ref enumerator, parser12, out T12 v12);
-        ParseNext(ref enumerator, parser13, out T13 v13);
-        ParseNext(ref enumerator, parser14, out T14 v14);
+        T0 v0 = ParseNext(ref enumerator, parser0);
+        T1 v1 = ParseNext(ref enumerator, parser1);
+        T2 v2 = ParseNext(ref enumerator, parser2);
+        T3 v3 = ParseNext(ref enumerator, parser3);
+        T4 v4 = ParseNext(ref enumerator, parser4);
+        T5 v5 = ParseNext(ref enumerator, parser5);
+        T6 v6 = ParseNext(ref enumerator, parser6);
+        T7 v7 = ParseNext(ref enumerator, parser7);
+        T8 v8 = ParseNext(ref enumerator, parser8);
+        T9 v9 = ParseNext(ref enumerator, parser9);
+        T10 v10 = ParseNext(ref enumerator, parser10);
+        T11 v11 = ParseNext(ref enumerator, parser11);
+        T12 v12 = ParseNext(ref enumerator, parser12);
+        T13 v13 = ParseNext(ref enumerator, parser13);
+        T14 v14 = ParseNext(ref enumerator, parser14);
 
         enumerator.EnsureAllColumnsRead();
 
@@ -1036,22 +1036,22 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
     public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
     {
-        ParseNext(ref enumerator, parser0, out T0 v0);
-        ParseNext(ref enumerator, parser1, out T1 v1);
-        ParseNext(ref enumerator, parser2, out T2 v2);
-        ParseNext(ref enumerator, parser3, out T3 v3);
-        ParseNext(ref enumerator, parser4, out T4 v4);
-        ParseNext(ref enumerator, parser5, out T5 v5);
-        ParseNext(ref enumerator, parser6, out T6 v6);
-        ParseNext(ref enumerator, parser7, out T7 v7);
-        ParseNext(ref enumerator, parser8, out T8 v8);
-        ParseNext(ref enumerator, parser9, out T9 v9);
-        ParseNext(ref enumerator, parser10, out T10 v10);
-        ParseNext(ref enumerator, parser11, out T11 v11);
-        ParseNext(ref enumerator, parser12, out T12 v12);
-        ParseNext(ref enumerator, parser13, out T13 v13);
-        ParseNext(ref enumerator, parser14, out T14 v14);
-        ParseNext(ref enumerator, parser15, out T15 v15);
+        T0 v0 = ParseNext(ref enumerator, parser0);
+        T1 v1 = ParseNext(ref enumerator, parser1);
+        T2 v2 = ParseNext(ref enumerator, parser2);
+        T3 v3 = ParseNext(ref enumerator, parser3);
+        T4 v4 = ParseNext(ref enumerator, parser4);
+        T5 v5 = ParseNext(ref enumerator, parser5);
+        T6 v6 = ParseNext(ref enumerator, parser6);
+        T7 v7 = ParseNext(ref enumerator, parser7);
+        T8 v8 = ParseNext(ref enumerator, parser8);
+        T9 v9 = ParseNext(ref enumerator, parser9);
+        T10 v10 = ParseNext(ref enumerator, parser10);
+        T11 v11 = ParseNext(ref enumerator, parser11);
+        T12 v12 = ParseNext(ref enumerator, parser12);
+        T13 v13 = ParseNext(ref enumerator, parser13);
+        T14 v14 = ParseNext(ref enumerator, parser14);
+        T15 v15 = ParseNext(ref enumerator, parser15);
 
         enumerator.EnsureAllColumnsRead();
 

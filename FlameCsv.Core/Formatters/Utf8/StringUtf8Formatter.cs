@@ -11,6 +11,8 @@ public sealed class StringUtf8Formatter :
     ICsvFormatter<byte, Memory<char>>,
     ICsvFormatter<byte, ReadOnlyMemory<char>>
 {
+    internal static StringUtf8Formatter Instance { get; } = new();
+
     /// <summary>
     /// Token to write if the value is null.
     /// </summary>

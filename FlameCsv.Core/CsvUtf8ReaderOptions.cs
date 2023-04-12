@@ -1,5 +1,8 @@
-﻿using FlameCsv.Parsers;
+﻿using FlameCsv.Configuration;
+using FlameCsv.Extensions;
+using FlameCsv.Parsers;
 using FlameCsv.Parsers.Utf8;
+using FlameCsv.Utilities;
 
 namespace FlameCsv;
 
@@ -23,7 +26,7 @@ namespace FlameCsv;
 /// </remarks>
 public sealed class CsvUtf8ReaderOptions :
     CsvReaderOptions<byte>,
-    ICsvNullTokenProvider<byte>
+    ICsvNullTokenConfiguration<byte>
 {
     private static readonly Lazy<CsvUtf8ReaderOptions> _default = new(() => new(isReadOnly: true));
 
@@ -64,7 +67,7 @@ public sealed class CsvUtf8ReaderOptions :
     public char IntegerFormat
     {
         get => _integerFormat;
-        set => SetValue(ref _integerFormat, value);
+        set => this.SetValue(ref _integerFormat, value);
     }
 
     /// <summary>
@@ -73,7 +76,7 @@ public sealed class CsvUtf8ReaderOptions :
     public char DecimalFormat
     {
         get => _decimalFormat;
-        set => SetValue(ref _decimalFormat, value);
+        set => this.SetValue(ref _decimalFormat, value);
     }
 
     /// <summary>
@@ -82,7 +85,7 @@ public sealed class CsvUtf8ReaderOptions :
     public char DateTimeFormat
     {
         get => _dateTimeFormat;
-        set => SetValue(ref _dateTimeFormat, value);
+        set => this.SetValue(ref _dateTimeFormat, value);
     }
 
     /// <summary>
@@ -91,7 +94,7 @@ public sealed class CsvUtf8ReaderOptions :
     public char TimeSpanFormat
     {
         get => _timeSpanFormat;
-        set => SetValue(ref _timeSpanFormat, value);
+        set => this.SetValue(ref _timeSpanFormat, value);
     }
 
     /// <summary>
@@ -100,7 +103,7 @@ public sealed class CsvUtf8ReaderOptions :
     public char GuidFormat
     {
         get => _guidFormat;
-        set => SetValue(ref _guidFormat, value);
+        set => this.SetValue(ref _guidFormat, value);
     }
 
     /// <summary>
@@ -109,7 +112,7 @@ public sealed class CsvUtf8ReaderOptions :
     public bool IgnoreEnumCase
     {
         get => _ignoreEnumCase;
-        set => SetValue(ref _ignoreEnumCase, value);
+        set => this.SetValue(ref _ignoreEnumCase, value);
     }
 
     /// <summary>
@@ -119,7 +122,7 @@ public sealed class CsvUtf8ReaderOptions :
     public bool AllowUndefinedEnumValues
     {
         get => _allowUndefinedEnumValues;
-        set => SetValue(ref _allowUndefinedEnumValues, value);
+        set => this.SetValue(ref _allowUndefinedEnumValues, value);
     }
 
     /// <summary>
@@ -129,7 +132,7 @@ public sealed class CsvUtf8ReaderOptions :
     public ReadOnlyMemory<byte> Null
     {
         get => _null;
-        set => SetValue(ref _null, value);
+        set => this.SetValue(ref _null, value);
     }
 
     /// <summary>
@@ -139,7 +142,7 @@ public sealed class CsvUtf8ReaderOptions :
     public IReadOnlyCollection<(ReadOnlyMemory<byte> bytes, bool value)>? BooleanValues
     {
         get => _booleanValues;
-        set => SetValue(ref _booleanValues, value);
+        set => this.SetValue(ref _booleanValues, value);
     }
 
     /// <summary>
@@ -166,14 +169,8 @@ public sealed class CsvUtf8ReaderOptions :
         };
     }
 
-    ReadOnlyMemory<byte> ICsvNullTokenProvider<byte>.Default => Null;
-
-    bool ICsvNullTokenProvider<byte>.TryGetOverride(Type type, out ReadOnlyMemory<byte> value)
+    ReadOnlyMemory<byte> ICsvNullTokenConfiguration<byte>.GetNullToken(Type type)
     {
-        if (_nullOverrides is not null)
-            return _nullOverrides.TryGetValue(type, out value);
-
-        value = default;
-        return false;
+        return _nullOverrides.GetValueOrDefaultEx(type, ReadOnlyMemory<byte>.Empty);
     }
 }
