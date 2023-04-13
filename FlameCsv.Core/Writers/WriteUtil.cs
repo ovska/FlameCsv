@@ -7,36 +7,52 @@ namespace FlameCsv.Writers;
 
 internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
 {
+    /// <summary>
+    /// Returns whether the value contains a delimiter, quote or newline characters.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool NeedsEscaping(
+    public static bool NeedsQuoting(
         scoped ReadOnlySpan<T> value,
-        in CsvDialect<T> _dialect,
+        in CsvDialect<T> dialect,
         out int quoteCount)
     {
         Debug.Assert(!value.IsEmpty);
 
-        var newline = _dialect.Newline.Span;
+        int index;
 
-        // For 1 token newlines we can expedite the search
-        int index = newline.Length == 1
-            ? value.IndexOfAny(_dialect.Delimiter, _dialect.Quote, newline[0])
-            : value.IndexOfAny(_dialect.Delimiter, _dialect.Quote);
-
-        if (index >= 0)
+        if (dialect.Newline.Length == 1)
         {
-            // we know any token before index cannot be a quote
-            quoteCount = value.Slice(index).Count(_dialect.Quote);
-            return true;
+            index = value.IndexOfAny(dialect.Delimiter, dialect.Quote, dialect.Newline.Span[0]);
+
+            if (index >= 0)
+            {
+                goto Found;
+            }
+        }
+        else
+        {
+            index = value.IndexOfAny(dialect.Delimiter, dialect.Quote);
+
+            if (index >= 0)
+            {
+                goto Found;
+            }
+
+            quoteCount = 0;
+            return value.IndexOf(dialect.Newline.Span) >= 0;
         }
 
-        quoteCount = 0;
+        Unsafe.SkipInit(out quoteCount);
+        return false;
 
-        // only possible escaping scenario left is a multitoken newline
-        return newline.Length > 1 && value.IndexOf(newline) >= 0;
+        Found:
+        quoteCount = value.Slice(index).Count(dialect.Quote);
+        return true;
     }
 
     /// <summary>
-    /// Escapes <paramref name="source"/> into <paramref name="destination"/>. Source and destination can overlap.
+    /// Escapes <paramref name="source"/> into <paramref name="destination"/> by wrapping it in quotes and escaping
+    /// possible quotes in the value.
     /// </summary>
     /// <param name="source">Data that needs escaping</param>
     /// <param name="destination">Destination buffer, can be the same memory region as source</param>
@@ -86,7 +102,7 @@ internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
     /// <param name="overflowBuffer">Buffer to write the overlowing part to</param>
     /// <returns>A memory wrapping around the parts in the overflow buffer that were written to</returns>
     [MethodImpl(MethodImplOptions.NoInlining)] // rare-ish, doesn't need to be inlined
-    public static ReadOnlyMemory<T> PartialEscape(
+    public static ReadOnlyMemory<T> EscapeWithOverflow(
         scoped ReadOnlySpan<T> source,
         scoped Span<T> destination,
         T quote,

@@ -32,6 +32,9 @@ internal static class UnescapeExtensions
         ValueBufferOwner<T> buffer)
         where T : unmanaged, IEquatable<T>
     {
+        if (quoteCount == 0)
+            return source;
+
         Debug.Assert(quoteCount >= 2);
         Debug.Assert(quoteCount % 2 == 0);
 
@@ -48,7 +51,8 @@ internal static class UnescapeExtensions
             return source.UnescapeRare(quote, quoteCount - 2, buffer);
         }
 
-        return ThrowInvalidUnescape(source, quote, quoteCount);
+        ThrowInvalidUnescape(source, quote, quoteCount);
+        return default; // unreachable
     }
 
     /// <summary>
@@ -95,7 +99,8 @@ internal static class UnescapeExtensions
             }
         }
 
-        return ThrowInvalidUnescape(source, quote, quoteCount);
+        ThrowInvalidUnescape(source, quote, quoteCount);
+        return default; // unreachable
     }
 
     /// <inheritdoc cref="Unescape{T}(ReadOnlySpan{T},T,int,ref T[])"/>
@@ -107,6 +112,9 @@ internal static class UnescapeExtensions
         BufferOwner<T> bufferOwner)
         where T : unmanaged, IEquatable<T>
     {
+        if (quoteCount == 0)
+            return source;
+
         Debug.Assert(quoteCount >= 2);
         Debug.Assert(quoteCount % 2 == 0);
 
@@ -125,7 +133,8 @@ internal static class UnescapeExtensions
             return source.UnescapeRare(quote, quoteCount - 2, bufferOwner);
         }
 
-        return ThrowInvalidUnescape(source.Span, quote, quoteCount);
+        ThrowInvalidUnescape(source.Span, quote, quoteCount);
+        return default; // unreachable
     }
 
     /// <inheritdoc cref="UnescapeRare{T}(ReadOnlySpan{T},T,int,ref T[])"/>
@@ -172,14 +181,15 @@ internal static class UnescapeExtensions
             }
         }
 
-        return ThrowInvalidUnescape(source.Span, quote, quoteCount);
+        ThrowInvalidUnescape(source.Span, quote, quoteCount);
+        return default; // unreachable
     }
 
     /// <exception cref="UnreachableException">
     /// The data and/or the supplied quote count parameter were invalid. 
     /// </exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private static T[] ThrowInvalidUnescape<T>(
+    private static void ThrowInvalidUnescape<T>(
         ReadOnlySpan<T> source,
         T quote,
         int quoteCount)

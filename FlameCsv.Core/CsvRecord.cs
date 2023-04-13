@@ -159,7 +159,7 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
                 if (IsKnownLastColumn)
                     ThrowTooManyColumns(index);
 
-                Current = TrimAndUnescape(_remaining.Slice(0, index), quotesConsumed);
+                Current = _remaining.Slice(0, index).Unescape(_options.Quote, quotesConsumed, _bufferOwner);
                 _remaining = _remaining.Slice(index + 1);
                 Column++;
                 return true;
@@ -184,7 +184,7 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
         // No comma in the remaining data
         if ((IsKnownLastColumn || !ColumnCount.HasValue) && _quotesRemaining == 0)
         {
-            Current = TrimAndUnescape(_remaining, quotesConsumed);
+            Current = _remaining.Unescape(_options.Quote, quotesConsumed, _bufferOwner);
             _remaining = default;
             Column++;
             return true;
@@ -206,19 +206,6 @@ public struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
             return;
 
         ThrowNotAllColumnsRead();
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private readonly ReadOnlyMemory<T> TrimAndUnescape(ReadOnlyMemory<T> data, int quotesConsumed)
-    {
-        if (_options.Whitespace.IsEmpty)
-            return quotesConsumed == 0
-                ? data
-                : data.Unescape(_options.Quote, quotesConsumed, _bufferOwner);
-
-        return quotesConsumed == 0
-            ? data.Trim(_options.Whitespace.Span)
-            : data.Trim(_options.Whitespace.Span).Unescape(_options.Quote, quotesConsumed, _bufferOwner);
     }
 
     /// <exception cref="InvalidDataException">

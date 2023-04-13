@@ -1,33 +1,35 @@
-﻿using System.Diagnostics.CodeAnalysis;
-
-namespace FlameCsv.Configuration;
-
-
+﻿namespace FlameCsv.Configuration;
 
 /// <summary>
 /// Provides values that can be used to configure the null token used when parsing and formatting supported types.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-public interface ICsvNullTokenConfiguration<T>    where T : unmanaged, IEquatable<T>
+public interface ICsvNullTokenConfiguration<T> where T : unmanaged, IEquatable<T>
 {
-    ReadOnlyMemory<T> GetNullToken(Type type);
+    bool TryGetOverride(Type type, out ReadOnlyMemory<T> value);
+    ReadOnlyMemory<T> Default { get; }
+    ReadOnlyMemory<T> GetNullToken(Type type) => TryGetOverride(type, out var value) ? value : Default;
 }
 
 /// <summary>
 /// Provides values that can be used to configure the format provider used when parsing and formatting supported types.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-public interface ICsvFormatProviderConfiguration<T>     where T : unmanaged, IEquatable<T>
+public interface ICsvFormatProviderConfiguration<T> where T : unmanaged, IEquatable<T>
 {
-    IFormatProvider? GetFormatProvider(Type type);
+    bool TryGetOverride(Type type, out IFormatProvider? value);
+    IFormatProvider? Default { get; }
+    IFormatProvider? GetFormatProvider(Type type) => TryGetOverride(type, out var value) ? value : Default;
+
 }
 
 /// <summary>
 /// Provides values that can be used to configure the format when parsing and formatting supported types.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-public interface ICsvFormatConfiguration<T>    where T : unmanaged, IEquatable<T>
+public interface ICsvFormatConfiguration<T> where T : unmanaged, IEquatable<T>
 {
     string? GetFormat(Type type);
+    bool TryGetOverride(Type type, out string? value);
 }
 

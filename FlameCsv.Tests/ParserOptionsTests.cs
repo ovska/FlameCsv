@@ -10,9 +10,6 @@ public static class ParserOptionsTests
         Assert.Throws<CsvConfigurationException>(() => default(CsvDialect<char>).Clone());
 
         AssertInvalid(o => o.Clone(quote: ','));
-        AssertInvalid(o => o.Clone(whitespace: ",".AsMemory()));
-        AssertInvalid(o => o.Clone(whitespace: "\n".AsMemory()));
-        AssertInvalid(o => o.Clone(whitespace: "\"".AsMemory()));
         AssertInvalid(o => o.Clone(newline: ReadOnlyMemory<char>.Empty));
         AssertInvalid(o => o.Clone(newline: ",".AsMemory()));
         AssertInvalid(o => o.Clone(newline: "\"".AsMemory()));

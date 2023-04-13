@@ -29,9 +29,7 @@ public class CsvReaderTests : PooledBufferVerifier
             from writeHeader in new[] { true, false }
             from writeTrailingNewline in new[] { true, false }
             from hasStrings in new[] { true, false }
-            from hasWhitespace in new[] { true, false }
-            select new object[]
-                { api, type, bufferSize, crlf, writeHeader, writeTrailingNewline, hasStrings, hasWhitespace };
+            select new object[] { api, type, bufferSize, crlf, writeHeader, writeTrailingNewline, hasStrings };
     }
 
     /// <summary>
@@ -45,8 +43,7 @@ public class CsvReaderTests : PooledBufferVerifier
         bool CRLF,
         bool header,
         bool trailingLF,
-        bool strings,
-        bool whitespace)
+        bool strings)
     {
         using var writer = new ArrayPoolBufferWriter<char>();
 
@@ -59,7 +56,6 @@ public class CsvReaderTests : PooledBufferVerifier
             {
                 DateTimeFormat = "O",
                 Newline = newLine.AsMemory(),
-                Whitespace = whitespace ? " ".AsMemory() : default,
                 HasHeader = header
             };
 
@@ -97,7 +93,6 @@ public class CsvReaderTests : PooledBufferVerifier
             {
                 DateTimeFormat = 'O',
                 Newline = Encoding.UTF8.GetBytes(newLine),
-                Whitespace = whitespace ? " "u8.ToArray() : default,
                 HasHeader = header
             };
 
@@ -148,7 +143,7 @@ public class CsvReaderTests : PooledBufferVerifier
 
         MemoryOwner<byte> GetDataBytes()
         {
-            TestDataGenerator.Generate(writer, newLine, header, trailingLF, strings, whitespace);
+            TestDataGenerator.Generate(writer, newLine, header, trailingLF, strings);
             var owner = MemoryOwner<byte>.Allocate(Encoding.UTF8.GetByteCount(writer.WrittenSpan));
             Assert.Equal(owner.Length, Encoding.UTF8.GetBytes(writer.WrittenSpan, owner.Span));
             return owner;
@@ -156,7 +151,7 @@ public class CsvReaderTests : PooledBufferVerifier
 
         ReadOnlyMemory<char> GetDataChars()
         {
-            TestDataGenerator.Generate(writer, newLine, header, trailingLF, strings, whitespace);
+            TestDataGenerator.Generate(writer, newLine, header, trailingLF, strings);
             return writer.WrittenMemory;
         }
     }

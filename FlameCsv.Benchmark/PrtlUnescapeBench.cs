@@ -46,9 +46,9 @@ public class PrtlUnescapeBench
         // destination is always almost exactly the length of the input
         destination = new char[input.Length];
 
-        var dialect = new CsvDialect<char>(delimiter: '|', quote: ',', newline: "\n".AsMemory(), whitespace: default);
+        var dialect = new CsvDialect<char>(delimiter: '|', quote: ',', newline: "\n".AsMemory());
 
-        if (!WriteUtil<char>.NeedsEscaping(input.AsSpan(), in dialect, out quoteCount))
+        if (!WriteUtil<char>.NeedsQuoting(input.AsSpan(), in dialect, out quoteCount))
             throw new Exception("invalid test data!");
         requiredLength = input.Length + quoteCount + 2;
     }

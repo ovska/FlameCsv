@@ -18,11 +18,9 @@ internal static class WriteExtensions
         Span<T> buffer,
         out int tokensWritten)
     {
-        if (buffer.Length >= value.Length)
+        if (value.TryCopyTo(buffer))
         {
-            if ((tokensWritten = value.Length) > 0)
-                value.CopyTo(buffer);
-
+            tokensWritten = value.Length;
             return true;
         }
 
@@ -37,11 +35,9 @@ internal static class WriteExtensions
         Span<T> buffer,
         out int tokensWritten)
     {
-        if (buffer.Length >= value.Length)
+        if (value.TryCopyTo(buffer))
         {
-            if ((tokensWritten = value.Length) > 0)
-                value.CopyTo(buffer);
-
+            tokensWritten = value.Length;
             return true;
         }
 

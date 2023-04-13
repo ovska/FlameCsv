@@ -1,3 +1,5 @@
+using FlameCsv.Configuration;
+
 namespace FlameCsv.Formatters;
 
 /// <summary>
@@ -20,6 +22,15 @@ public interface ICsvFormatter<T> where T : unmanaged, IEquatable<T>
 
     /// <inheritdoc cref="CanFormat(Type)"/>
     bool CanFormat<TValue>() => CanFormat(typeof(TValue));
+
+    /// <summary>
+    /// Returns whether the formatter can handle null values. The default is <see langword="false"/>,
+    /// in which case a null token for the type is retrieved from the options via <see cref="ICsvNullTokenConfiguration{T}"/>.
+    /// </summary>
+    /// <remarks>
+    /// For value types other than <see cref="Nullable{T}"/>, this property is not used.
+    /// </remarks>
+    bool HandleNull => false;
 }
 
 /// <summary>

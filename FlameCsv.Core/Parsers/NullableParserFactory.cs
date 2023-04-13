@@ -30,14 +30,9 @@ public sealed class NullableParserFactory<T> : ICsvParserFactory<T>
 
     public ICsvParser<T> Create(Type resultType, CsvReaderOptions<T> options)
     {
-        var nullToken = NullToken;
-
-        if (options is ICsvNullTokenConfiguration<T> nullableProvider)
-        {
-            nullToken = nullableProvider.TryGetOverride(resultType, out var @override)
-                ? @override
-                : nullableProvider.Default;
-        }
+        ReadOnlyMemory<T> nullToken = options is ICsvNullTokenConfiguration<T> ntc
+            ? ntc.GetNullToken(resultType)
+            : NullToken;
 
         var innerType = Nullable.GetUnderlyingType(resultType)!;
         var inner = options.GetParser(innerType);

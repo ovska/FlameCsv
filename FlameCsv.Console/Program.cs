@@ -12,7 +12,6 @@ id,name,isadmin,favouriteday
 var textWriter = new StringWriter();
 var config = new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = ";"};
 var csvwriter = new CsvWriter(textWriter, config);
-StreamWriter
 csvwriter.WriteRecord(data);
 
 //using var reader = new StringReader(data);

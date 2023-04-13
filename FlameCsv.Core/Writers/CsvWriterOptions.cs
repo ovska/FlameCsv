@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.Reflection;
 using FlameCsv.Configuration;
 using FlameCsv.Formatters;
 using FlameCsv.Utilities;
@@ -8,11 +7,32 @@ using static FlameCsv.Utilities.SealableUtil;
 namespace FlameCsv.Writers;
 
 public class CsvWriterOptions<T> : ICsvDialectOptions<T>, ISealable,
-    ICsvNullTokenConfiguration<T>,
-    ICsvFormatProviderConfiguration<T>,
-    ICsvFormatConfiguration<T>
+    ICsvNullTokenConfiguration<T>
     where T : unmanaged, IEquatable<T>
 {
+    public IDictionary<Type, ReadOnlyMemory<T>> NullOverrides => _nullOverrides ??= new();
+    private Dictionary<Type, ReadOnlyMemory<T>>? _nullOverrides;
+
+    public ReadOnlyMemory<T> Null { get; set; }
+
+    ReadOnlyMemory<T> ICsvNullTokenConfiguration<T>.Default => Null;
+
+    ReadOnlyMemory<T> ICsvNullTokenConfiguration<T>.GetNullToken(Type type)
+    {
+        return ((ICsvNullTokenConfiguration<T>)this).TryGetOverride(type, out var value)
+            ? value
+            : Null;
+    }
+
+    bool ICsvNullTokenConfiguration<T>.TryGetOverride(Type type, out ReadOnlyMemory<T> value)
+    {
+        if (_nullOverrides is not null && _nullOverrides.TryGetValue(type, out value))
+            return true;
+
+        value = default;
+        return false;
+    }
+
     public bool WriteHeader { get; set; }
 
     public IList<ICsvFormatter<T>> Formatters { get; } = new List<ICsvFormatter<T>>();
@@ -22,16 +42,9 @@ public class CsvWriterOptions<T> : ICsvDialectOptions<T>, ISealable,
     /// </summary>
     public bool WriteFinalNewline { get; set; }
 
-    /// <summary>
-    /// Whether to skip escaping the output altogether. Use this with caution, as this can cause
-    /// invalid CSV to be written if the formatters output data with delimiters, string delimiters, or 
-    /// newline characters. Default is <see langword="false"/>.
-    /// </summary>
-    public bool DangerousNoEscaping { get; set; }
+    public CsvFieldQuoting FieldQuoting { get; set; }
 
     public ArrayPool<T>? ArrayPool { get; set; }
-
-    internal CsvDialect<T> Dialect { get; }
 
     public ICsvFormatter<T> GetFormatter(Type type) => throw new NotImplementedException();
 
@@ -44,10 +57,17 @@ public class CsvWriterOptions<T> : ICsvDialectOptions<T>, ISealable,
         throw new NotImplementedException();
     }
 
+    public CsvWriterOptions()
+    {
+        var temp = CsvDialect<T>.Default;
+        _delimiter = temp.Delimiter;
+        _quote = temp.Quote;
+        _newline = temp.Newline;
+    }
+
     protected internal T _delimiter;
     protected internal T _quote;
     protected internal ReadOnlyMemory<T> _newline;
-    protected internal ReadOnlyMemory<T> _whitespace;
     protected internal T? _escape;
 
     public T Delimiter
@@ -66,12 +86,6 @@ public class CsvWriterOptions<T> : ICsvDialectOptions<T>, ISealable,
     {
         get => _newline;
         set => this.SetValue(ref _newline, value);
-    }
-
-    public ReadOnlyMemory<T> Whitespace
-    {
-        get => _whitespace;
-        set => this.SetValue(ref _whitespace, value);
     }
 
     public T? Escape
