@@ -106,7 +106,7 @@ internal static partial class CsvReadingExtensions
         {
             if (binding.IsIgnored)
             {
-                return NoOpParser<T>.Instance;
+                return IgnoredColumnParser<T>.Instance;
             }
 
             if (binding.TryGetAttribute<CsvParserOverrideAttribute>(out var @override))

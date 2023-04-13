@@ -21,8 +21,7 @@ internal static class TestDataGenerator
         string newLine,
         bool writeHeader,
         bool writeTrailingNewline,
-        bool requireEscaping,
-        bool hasWhitespace)
+        bool requireEscaping)
     {
         if (writeHeader)
         {
@@ -36,13 +35,9 @@ internal static class TestDataGenerator
 
             writer.Write(requireEscaping ? $"\"{i}\"" : i.ToString());
             writer.Write(",");
-            if (hasWhitespace) writer.Write(" ");
             writer.Write(requireEscaping ? $"\"Name\"\"{i}\"" : $"Name-{i}");
-            if (hasWhitespace) writer.Write(" ");
             writer.Write(",");
-            if (hasWhitespace) writer.Write(" ");
             writer.Write(i % 2 == 0 ? "true" : "false");
-            if (hasWhitespace) writer.Write(" ");
             writer.Write(",");
             writer.Write(DateTimeOffset.UnixEpoch.AddDays(i).ToString("O"));
             writer.Write(",");

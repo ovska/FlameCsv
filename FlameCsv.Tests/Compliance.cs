@@ -181,9 +181,9 @@ public static class Compliance
     [Fact]
     public static void Should_Enumerate_With_Comma2()
     {
-        var dialect = CsvDialect<char>.Default.Clone(newline: "|".AsMemory(), whitespace: " ".AsMemory());
+        var dialect = CsvDialect<char>.Default.Clone(newline: "|".AsMemory());
 
-        var data = new[] { dialect.Delimiter, dialect.Newline.Span[0], dialect.Whitespace.Span[0] }.GetPermutations();
+        var data = new[] { dialect.Delimiter, dialect.Newline.Span[0] }.GetPermutations();
         using var bo = new BufferOwner<char>(ArrayPool<char>.Shared);
 
         foreach (var chars in data)

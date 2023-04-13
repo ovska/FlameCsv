@@ -191,7 +191,7 @@ public partial class CsvReaderOptions<T> : ISealable
             return cached;
         }
 
-        var parsers = GetOrInitParsers().Span;
+        ReadOnlySpan<ICsvParser<T>> parsers = GetOrInitParsers().Span;
 
         // Read parsers in reverse order so parser added last has the highest priority
         for (int i = parsers.Length - 1; i >= 0; i--)

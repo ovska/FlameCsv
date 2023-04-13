@@ -14,11 +14,17 @@ internal sealed class CsvTextPipe : ICsvPipe<char>
     private char[] _buffer;
     private int _unflushed;
 
-    public CsvTextPipe(TextWriter writer, ArrayPool<char>? arrayPool)
+    public CsvTextPipe(
+        TextWriter writer,
+        ArrayPool<char>? arrayPool,
+        int initialBufferSize = 1024 * 4)
     {
+        ArgumentNullException.ThrowIfNull(writer);
+        Guard.IsGreaterThan(initialBufferSize, 0);
+
         _writer = writer;
         _arrayPool = arrayPool ?? AllocatingArrayPool<char>.Instance;
-        _buffer = _arrayPool.Rent(1024);
+        _buffer = _arrayPool.Rent(initialBufferSize);
         _unflushed = 0;
     }
 
@@ -47,7 +53,9 @@ internal sealed class CsvTextPipe : ICsvPipe<char>
         await FlushAsync(cancellationToken);
 
         if (previousBufferSize >= _buffer.Length)
-            ArrayPool<char>.Shared.EnsureCapacity(ref _buffer, previousBufferSize * 2);
+        {
+            _arrayPool.EnsureCapacity(ref _buffer, previousBufferSize * 2);
+        }
     }
 
     public async ValueTask FlushAsync(CancellationToken cancellationToken = default)

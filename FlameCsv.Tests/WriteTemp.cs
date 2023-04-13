@@ -50,7 +50,8 @@ public static class WriteTemp
         var stringWriter = new StringWriter();
         var textPipe = new CsvTextPipe(stringWriter, AllocatingArrayPool<char>.Instance);
 
-        await using (var writer = new CsvWriter<char>(textPipe, CsvDialect<char>.Default, AllocatingArrayPool<char>.Instance))
+        var opts = new CsvWriterOptions<char> { ArrayPool = AllocatingArrayPool<char>.Instance };
+        await using (var writer = new CsvWriter<char>(textPipe, opts))
         {
             await func(writer, new Obj { Id = "xyz" }, default);
         }
@@ -65,7 +66,8 @@ public static class WriteTemp
         var stringWriter = new StringWriter();
         var textPipe = new CsvTextPipe(stringWriter, AllocatingArrayPool<char>.Instance);
 
-        await using (var writer = new CsvWriter<char>(textPipe, CsvDialect<char>.Default, AllocatingArrayPool<char>.Instance))
+        var opts = new CsvWriterOptions<char> { ArrayPool = AllocatingArrayPool<char>.Instance };
+        await using (var writer = new CsvWriter<char>(textPipe, opts))
         {
             try
             {

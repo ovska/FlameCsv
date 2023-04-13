@@ -78,7 +78,7 @@ public class CsvReaderOptionsTests
     {
         Assert.Throws<ArgumentException>(() => CsvReaderOptions<char>.SkipIfStartsWith(default));
 
-        var tokens = CsvDialect<char>.Default.Clone(whitespace: " ".AsMemory());
+        var tokens = CsvDialect<char>.Default;
         var commentfn = CsvReaderOptions<char>.SkipIfStartsWith("#", skipEmptyOrWhitespace: false);
         Assert.True(commentfn("#test", in tokens));
         Assert.False(commentfn("t#est", in tokens));
@@ -89,7 +89,7 @@ public class CsvReaderOptionsTests
         Assert.True(commentOrEmpty("#test", in tokens));
         Assert.False(commentOrEmpty("t#est", in tokens));
         Assert.True(commentOrEmpty("", in tokens));
-        Assert.True(commentOrEmpty(" ", in tokens));
+        Assert.False(commentOrEmpty(" ", in tokens));
     }
 
     [Fact]
@@ -102,7 +102,6 @@ public class CsvReaderOptionsTests
         Run(o => o.Delimiter = default);
         Run(o => o.Quote = default);
         Run(o => o.Newline = default);
-        Run(o => o.Whitespace = default);
         Run(o => o.ShouldSkipRow = default);
         Run(o => o.HasHeader = default);
         Run(o => o.HeaderBinder = default);

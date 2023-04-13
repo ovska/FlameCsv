@@ -80,17 +80,11 @@ public class CsvBooleanValuesAttribute : CsvParserOverrideAttribute
     protected static ReadOnlyMemory<T> FindNullTokens<T>(CsvReaderOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
-        if (options is ICsvNullTokenConfiguration<T> ntp)
+        if (options is ICsvNullTokenConfiguration<T> ntc)
         {
-            if (ntp.TryGetOverride(typeof(bool?), out var value) ||
-                ntp.TryGetOverride(typeof(bool), out value))
-            {
-                return value;
-            }
-
-            return ntp.Default;
+            return ntc.GetNullToken(typeof(bool?));
         }
 
-        return default;
+        return ReadOnlyMemory<T>.Empty;
     }
 }

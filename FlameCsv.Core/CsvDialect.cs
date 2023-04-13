@@ -20,14 +20,10 @@ public readonly struct CsvDialect<T> : IEquatable<CsvDialect<T>> where T : unman
     /// <inheritdoc cref="ICsvDialectOptions{T}.Newline"/>
     public ReadOnlyMemory<T> Newline { get; }
 
-    /// <inheritdoc cref="ICsvDialectOptions{T}.Whitespace"/>
-    public ReadOnlyMemory<T> Whitespace { get; }
-
     public CsvDialect(ICsvDialectOptions<T> value) : this(
         delimiter: value.Delimiter,
         quote: value.Quote,
-        newline: value.Newline,
-        whitespace: value.Whitespace)
+        newline: value.Newline)
     {
     }
 
@@ -35,39 +31,34 @@ public readonly struct CsvDialect<T> : IEquatable<CsvDialect<T>> where T : unman
     public CsvDialect(
         T delimiter,
         T quote,
-        ReadOnlyMemory<T> newline,
-        ReadOnlyMemory<T> whitespace)
+        ReadOnlyMemory<T> newline)
     {
-        CsvDialectStatic.ThrowIfInvalid(delimiter, quote, newline.Span, whitespace.Span);
+        CsvDialectStatic.ThrowIfInvalid(delimiter, quote, newline.Span);
 
         Delimiter = delimiter;
         Quote = quote;
         Newline = newline;
-        Whitespace = whitespace;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CsvDialect<T> Clone(
         T? delimiter = null,
         T? quote = null,
-        ReadOnlyMemory<T>? newline = null,
-        ReadOnlyMemory<T>? whitespace = null)
+        ReadOnlyMemory<T>? newline = null)
     {
         return new(
             delimiter ?? Delimiter,
             quote ?? Quote,
-            newline ?? Newline,
-            whitespace ?? Whitespace);
+            newline ?? Newline);
     }
 
-    public void EnsureValid() => CsvDialectStatic.ThrowIfInvalid(Delimiter, Quote, Newline.Span, Whitespace.Span);
+    public void EnsureValid() => CsvDialectStatic.ThrowIfInvalid(Delimiter, Quote, Newline.Span);
 
     public bool Equals(CsvDialect<T> other)
     {
         return Delimiter.Equals(other.Delimiter)
             && Quote.Equals(other.Quote)
-            && Newline.Span.SequenceEqual(other.Newline.Span)
-            && Whitespace.Span.SequenceEqual(other.Whitespace.Span);
+            && Newline.Span.SequenceEqual(other.Newline.Span);
     }
 
     public override int GetHashCode()
@@ -75,8 +66,7 @@ public readonly struct CsvDialect<T> : IEquatable<CsvDialect<T>> where T : unman
         return HashCode.Combine(
             Delimiter,
             Quote,
-            HashCode<T>.Combine(Newline.Span),
-            HashCode<T>.Combine(Whitespace.Span));
+            HashCode<T>.Combine(Newline.Span));
     }
 
     public override bool Equals(object? obj) => obj is CsvDialect<T> other && Equals(other);

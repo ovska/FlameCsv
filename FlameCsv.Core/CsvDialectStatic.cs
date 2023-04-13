@@ -9,8 +9,8 @@ internal static class CsvDialectStatic
 {
     internal static readonly ReadOnlyMemory<byte> _crlf = "\r\n"u8.ToArray();
 
-    private static readonly CsvDialect<char> _charCRLF = new(',', '"', "\r\n".AsMemory(), default);
-    private static readonly CsvDialect<byte> _byteCRLF = new((byte)',', (byte)'"', _crlf, default);
+    private static readonly CsvDialect<char> _charCRLF = new(',', '"', "\r\n".AsMemory());
+    private static readonly CsvDialect<byte> _byteCRLF = new((byte)',', (byte)'"', _crlf);
 
     public static CsvDialect<T> GetDefault<T>()
         where T : unmanaged, IEquatable<T>
@@ -29,16 +29,12 @@ internal static class CsvDialectStatic
     public static void ThrowIfInvalid<T>(
         T delimiter,
         T quote,
-        ReadOnlySpan<T> newline,
-        ReadOnlySpan<T> whitespace)
+        ReadOnlySpan<T> newline)
         where T : unmanaged, IEquatable<T>
     {
         List<string>? errors = null;
 
-        if (delimiter.Equals(default) &&
-            quote.Equals(default) &&
-            newline.IsEmpty &&
-            whitespace.IsEmpty)
+        if (delimiter.Equals(default) && quote.Equals(default) && newline.IsEmpty)
         {
             ThrowForDefault();
         }
@@ -59,18 +55,6 @@ internal static class CsvDialectStatic
 
             if (newline.Contains(quote))
                 AddError("Newline must not contain Quote.");
-        }
-
-        if (!whitespace.IsEmpty)
-        {
-            if (whitespace.Contains(delimiter))
-                AddError("Whitespace must not contain Delimiter.");
-
-            if (whitespace.Contains(quote))
-                AddError("Whitespace must not contain Quote.");
-
-            if (!newline.IsEmpty && whitespace.IndexOfAny(newline) >= 0)
-                AddError("Newline and Whitespace must not have tokens in common.");
         }
 
         if (errors is not null)

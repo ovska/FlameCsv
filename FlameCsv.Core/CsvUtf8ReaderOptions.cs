@@ -55,7 +55,6 @@ public sealed class CsvUtf8ReaderOptions :
         _delimiter = (byte)',';
         _quote = (byte)'"';
         _newline = CsvDialectStatic._crlf;
-        _whitespace = ReadOnlyMemory<byte>.Empty;
 
         if (isReadOnly)
             MakeReadOnly();
@@ -169,8 +168,21 @@ public sealed class CsvUtf8ReaderOptions :
         };
     }
 
+    ReadOnlyMemory<byte> ICsvNullTokenConfiguration<byte>.Default => Null;
+
     ReadOnlyMemory<byte> ICsvNullTokenConfiguration<byte>.GetNullToken(Type type)
     {
-        return _nullOverrides.GetValueOrDefaultEx(type, ReadOnlyMemory<byte>.Empty);
+        return ((ICsvNullTokenConfiguration<byte>)this).TryGetOverride(type, out var value)
+            ? value
+            : Null;
+    }
+
+    bool ICsvNullTokenConfiguration<byte>.TryGetOverride(Type type, out ReadOnlyMemory<byte> value)
+    {
+        if (_nullOverrides is not null && _nullOverrides.TryGetValue(type, out value))
+            return true;
+
+        value = default;
+        return false;
     }
 }

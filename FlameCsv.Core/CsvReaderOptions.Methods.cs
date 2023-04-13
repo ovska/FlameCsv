@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 
 namespace FlameCsv;
@@ -8,11 +7,11 @@ public partial class CsvReaderOptions<T>
     /// <summary>
     /// Returns true if the row is empty or entirely whitespace (as defined in <paramref name="dialect"/>).
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1163:Unused parameter.", Justification = "<Pending>")]
     public static bool DefaultRowSkipPredicate(ReadOnlySpan<T> row, in CsvDialect<T> dialect)
     {
-        return row.IsEmpty
-            || (!dialect.Whitespace.IsEmpty && row.TrimStart(dialect.Whitespace.Span).IsEmpty);
+        return row.IsEmpty;
     }
 
     /// <summary>
@@ -34,9 +33,9 @@ public partial class CsvReaderOptions<T>
         var tokenArray = tokens.ToArray();
         return skipEmptyOrWhitespace ? WhitespaceOrStartsWith : StartsWith;
 
-        bool WhitespaceOrStartsWith(ReadOnlySpan<T> data, in CsvDialect<T> options)
+        bool WhitespaceOrStartsWith(ReadOnlySpan<T> data, in CsvDialect<T> _)
         {
-            return DefaultRowSkipPredicate(data, in options) || data.StartsWith(tokenArray.AsSpan());
+            return data.IsEmpty || data.StartsWith(tokenArray.AsSpan());
         }
 
         bool StartsWith(ReadOnlySpan<T> data, in CsvDialect<T> _)

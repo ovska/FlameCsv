@@ -70,7 +70,6 @@ public sealed class CsvTextReaderOptions :
         _delimiter = ',';
         _quote = '"';
         _newline = "\r\n".AsMemory();
-        _whitespace = ReadOnlyMemory<char>.Empty;
 
         if (isReadOnly)
             MakeReadOnly();
@@ -266,8 +265,21 @@ public sealed class CsvTextReaderOptions :
         };
     }
 
+    ReadOnlyMemory<char> ICsvNullTokenConfiguration<char>.Default => Null.AsMemory();
+
     ReadOnlyMemory<char> ICsvNullTokenConfiguration<char>.GetNullToken(Type type)
     {
-        return _nullOverrides.GetValueOrDefaultEx(type, ReadOnlyMemory<char>.Empty);
+        return ((ICsvNullTokenConfiguration<char>)this).TryGetOverride(type, out var value)
+            ? value
+            : Null.AsMemory();
+    }
+
+    bool ICsvNullTokenConfiguration<char>.TryGetOverride(Type type, out ReadOnlyMemory<char> value)
+    {
+        if (_nullOverrides is not null && _nullOverrides.TryGetValue(type, out value))
+            return true;
+
+        value = default;
+        return false;
     }
 }

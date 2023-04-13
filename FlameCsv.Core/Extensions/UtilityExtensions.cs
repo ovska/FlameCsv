@@ -59,7 +59,6 @@ internal static class UtilityExtensions
                 (CsvDialect<T> tokens, ReadOnlyMemory<T> memory) = state;
                 var source = memory.Span;
 
-                var whitespace = tokens.Whitespace.Span;
                 var newline = tokens.Newline.Span;
 
                 destination.Fill('x');
@@ -75,10 +74,6 @@ internal static class UtilityExtensions
                     else if (token.Equals(tokens.Quote))
                     {
                         destination[i] = '"';
-                    }
-                    else if (whitespace.Contains(token))
-                    {
-                        destination[i] = '_';
                     }
                     else if (newline.Contains(token))
                     {

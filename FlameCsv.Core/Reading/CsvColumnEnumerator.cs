@@ -20,7 +20,6 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
 {
     private readonly T _comma;
     private readonly T _quote;
-    private readonly ReadOnlySpan<T> _whitespace;
     private readonly int? _columnCount;
     private readonly ValueBufferOwner<T> _buffer;
 
@@ -82,7 +81,6 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
 
         _comma = dialect.Delimiter;
         _quote = dialect.Quote;
-        _whitespace = dialect.Whitespace.Span;
         _columnCount = columnCount;
         _buffer = buffer;
         _remaining = line;
@@ -116,7 +114,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
                 if (IsKnownLastColumn)
                     ThrowTooManyColumns(index);
 
-                Current = TrimAndUnescape(_remaining.Slice(0, index), quotesConsumed);
+                Current = _remaining.Slice(0, index).Unescape(_quote, quotesConsumed, _buffer);
                 _remaining = _remaining.Slice(index + 1);
                 Column++;
                 return true;
@@ -144,7 +142,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
         // and that all quotes have been consumed as expected
         if ((IsKnownLastColumn || !_columnCount.HasValue) && _quotesRemaining == 0)
         {
-            Current = TrimAndUnescape(_remaining, quotesConsumed);
+            Current = _remaining.Unescape(_quote, quotesConsumed, _buffer);
             _remaining = default;
             Column++;
             return true;
@@ -166,20 +164,6 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
             return;
 
         ThrowNotAllColumnsRead();
-    }
-
-    /// <summary>
-    /// Trims and unescapes the data according to <paramref name="quotesConsumed"/> and
-    /// <see cref="_whitespace"/>.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private readonly ReadOnlySpan<T> TrimAndUnescape(ReadOnlySpan<T> data, int quotesConsumed)
-    {
-        var trimmed = _whitespace.IsEmpty ? data : data.Trim(_whitespace);
-
-        return quotesConsumed == 0
-            ? trimmed
-            : trimmed.Unescape(_quote, quotesConsumed, _buffer);
     }
 
     /// <exception cref="InvalidDataException">
