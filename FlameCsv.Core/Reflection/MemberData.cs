@@ -29,7 +29,7 @@ internal sealed class MemberData
     [MethodImpl(MethodImplOptions.NoInlining)]
     private object[] GetOrInitMemberAttributes()
     {
-        var attributes = Value.GetCustomAttributes(inherit: true).ForCache();
+        var attributes = Value.GetCustomAttributes(inherit: true);
         return Interlocked.CompareExchange(ref _attributes, attributes, null) ?? attributes;
     }
 

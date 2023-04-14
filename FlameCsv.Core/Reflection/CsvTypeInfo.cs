@@ -44,8 +44,7 @@ internal sealed class CsvTypeInfo<T>
             .GetMembers(BindingFlags.Instance | BindingFlags.Public)
             .Where(static m => m is PropertyInfo or FieldInfo)
             .Select(static m => (MemberData)m)
-            .ToArray()
-            .ForCache();
+            .ToArray();
 
         return Interlocked.CompareExchange(ref _members, members, null) ?? members;
     }
@@ -53,7 +52,7 @@ internal sealed class CsvTypeInfo<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private object[] GetOrInitCustomAttributes()
     {
-        var attributes = typeof(T).GetCustomAttributes(inherit: true).ForCache();
+        var attributes = typeof(T).GetCustomAttributes(inherit: true);
         return Interlocked.CompareExchange(ref _customAttributes, attributes, null) ?? attributes;
     }
 

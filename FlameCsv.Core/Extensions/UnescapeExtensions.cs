@@ -103,7 +103,7 @@ internal static class UnescapeExtensions
         return default; // unreachable
     }
 
-    /// <inheritdoc cref="Unescape{T}(ReadOnlySpan{T},T,int,ref T[])"/>
+    /// <inheritdoc cref="Unescape{T}(ReadOnlySpan{T}, T, int, ValueBufferOwner{T})"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ReadOnlyMemory<T> Unescape<T>(
         this ReadOnlyMemory<T> source,
@@ -137,7 +137,7 @@ internal static class UnescapeExtensions
         return default; // unreachable
     }
 
-    /// <inheritdoc cref="UnescapeRare{T}(ReadOnlySpan{T},T,int,ref T[])"/>
+    /// <inheritdoc cref="UnescapeRare{T}(ReadOnlySpan{T}, T, int, ValueBufferOwner{T})"/>
     [MethodImpl(MethodImplOptions.NoInlining)] // encourage inlining common case above
     private static ReadOnlyMemory<T> UnescapeRare<T>(
         this ReadOnlyMemory<T> source,

@@ -12,19 +12,23 @@ namespace FlameCsv.Extensions;
 
 internal static partial class CsvReadingExtensions
 {
-    private delegate object MaterializerFactory<T>(CsvReaderOptions<T> options) where T : unmanaged, IEquatable<T>;
+    private delegate IMaterializer<T, TResult> MaterializerFactory<T, TResult>(CsvReaderOptions<T> options)
+        where T : unmanaged, IEquatable<T>;
 
-    private static class FactoryCache<T> where T : unmanaged, IEquatable<T>
+    private static class CachedFactory<T, TResult> where T : unmanaged, IEquatable<T>
     {
-        public static readonly ConditionalWeakTable<Type, MaterializerFactory<T>> Value = new();
+        public static MaterializerFactory<T, TResult>? Value;
     }
 
+    /// <summary>
+    /// Creates a materializer from the bindings.
+    /// </summary>
     public static IMaterializer<T, TResult> CreateMaterializerFrom<T, TResult>(
         this CsvReaderOptions<T> options,
         CsvBindingCollection<TResult> bindingCollection)
         where T : unmanaged, IEquatable<T>
     {
-        return (IMaterializer<T, TResult>)GetMaterializerFactory<T, TResult>(bindingCollection)(options);
+        return GetMaterializerFactory<T, TResult>(bindingCollection)(options);
     }
 
     /// <summary>
@@ -33,12 +37,14 @@ internal static partial class CsvReadingExtensions
     public static IMaterializer<T, TResult> GetMaterializer<T, TResult>(this CsvReaderOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
-        if (!FactoryCache<T>.Value.TryGetValue(typeof(TResult), out var materializerFactory))
+        MaterializerFactory<T, TResult>? factory = CachedFactory<T, TResult>.Value;
+
+        if (factory is null)
         {
             if (TryGetTupleBindings<T, TResult>(out var bindings) ||
                 IndexAttributeBinder<TResult>.TryGetBindings(out bindings))
             {
-                materializerFactory = GetMaterializerFactory<T, TResult>(bindings);
+                factory = GetMaterializerFactory<T, TResult>(bindings);
             }
             else
             {
@@ -48,13 +54,15 @@ internal static partial class CsvReadingExtensions
                     "[CsvIndex]-attributes and no built-in configuration.");
             }
 
-            FactoryCache<T>.Value.Add(typeof(TResult), materializerFactory);
+            factory =
+                Interlocked.CompareExchange(ref CachedFactory<T, TResult>.Value, factory, null)
+                ?? factory;
         }
 
-        return (IMaterializer<T, TResult>)materializerFactory(options);
+        return factory(options);
     }
 
-    private static MaterializerFactory<T> GetMaterializerFactory<T, TResult>(
+    private static MaterializerFactory<T, TResult> GetMaterializerFactory<T, TResult>(
         CsvBindingCollection<TResult> bindingCollection)
         where T : unmanaged, IEquatable<T>
     {
@@ -64,25 +72,26 @@ internal static partial class CsvReadingExtensions
     /// <summary>
     /// Creates the state object using the bindings and <typeparamref name="TResult"/> type parameter.
     /// </summary>
-    private static MaterializerFactory<T> GetMaterializerFactory<T, TResult>(
+    private static MaterializerFactory<T, TResult> GetMaterializerFactory<T, TResult>(
         CsvBindingCollection<TResult> bindingCollection,
         Delegate valueFactory)
         where T : unmanaged, IEquatable<T>
     {
-        ConstructorInfo hydratorCtor = Materializer.GetConstructor<T, TResult>(bindingCollection.Bindings);
+        ConstructorInfo ctor = Materializer.GetConstructor<T, TResult>(bindingCollection.Bindings);
 
-        var param = Expression.Parameter(typeof(object[]), "args");
+        var objArrParam = Expression.Parameter(typeof(object[]), "args");
+
+        // new Materializer(args[0], args[1], args[2], ...))
         var ctorInvoke = Expression.New(
-            hydratorCtor,
-            hydratorCtor
-                .GetParameters()
+            ctor,
+            ctor.GetParameters()
                 .Select(
                     (p, i) => Expression.Convert(
-                        Expression.ArrayAccess(param, Expression.Constant(i)),
+                        Expression.ArrayAccess(objArrParam, Expression.Constant(i)),
                         p.ParameterType)));
         var lambda = Expression.Lambda<Func<object[], IMaterializer<T, TResult>>>(
             Expression.Convert(ctorInvoke, typeof(IMaterializer<T, TResult>)),
-            param);
+            objArrParam);
         var materializerFactory = lambda.CompileLambda<Func<object[], IMaterializer<T, TResult>>>();
 
         return CreateMaterializerImpl;

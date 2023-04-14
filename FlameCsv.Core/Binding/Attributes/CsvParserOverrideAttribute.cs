@@ -39,6 +39,7 @@ public class CsvParserOverrideAttribute : Attribute
     /// <summary>
     /// Gets or creates a parser instance for the binding's member.
     /// </summary>
+    /// <param name="targetType"></param>
     /// <param name="options">Current configuration instance</param>
     /// <typeparam name="T">Token type</typeparam>
     /// <returns>Parser instance</returns>

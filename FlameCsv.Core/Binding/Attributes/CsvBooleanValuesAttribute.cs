@@ -52,7 +52,7 @@ public class CsvBooleanValuesAttribute : CsvParserOverrideAttribute
 
     private ICsvParser<char> CreateForText(Type target, CsvReaderOptions<char> options)
     {
-        var parser = new BooleanTextParser(trueValues: TrueValues, falseValues: FalseValues);
+        BooleanTextParser parser = new(trueValues: TrueValues, falseValues: FalseValues);
 
         if (target == typeof(bool))
             return parser;
@@ -64,7 +64,7 @@ public class CsvBooleanValuesAttribute : CsvParserOverrideAttribute
 
     private ICsvParser<byte> CreateForUtf8(Type target, CsvReaderOptions<byte> options)
     {
-        var parser = new BooleanUtf8Parser(trueValues: TrueValues, falseValues: FalseValues);
+        BooleanUtf8Parser parser = new(trueValues: TrueValues, falseValues: FalseValues);
 
         if (target == typeof(bool))
             return parser;
@@ -80,11 +80,15 @@ public class CsvBooleanValuesAttribute : CsvParserOverrideAttribute
     protected static ReadOnlyMemory<T> FindNullTokens<T>(CsvReaderOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
-        if (options is ICsvNullTokenConfiguration<T> ntc)
+        ReadOnlyMemory<T> value = default;
+
+        if (options is ICsvNullTokenConfiguration<T> ntc &&
+            !ntc.TryGetOverride(typeof(bool?), out value) &&
+            !ntc.TryGetOverride(typeof(bool), out value))
         {
-            return ntc.GetNullToken(typeof(bool?));
+            value = ntc.Default;
         }
 
-        return ReadOnlyMemory<T>.Empty;
+        return value;
     }
 }

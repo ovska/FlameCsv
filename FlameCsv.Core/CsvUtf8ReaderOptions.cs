@@ -159,7 +159,7 @@ public sealed class CsvUtf8ReaderOptions :
             new TimeSpanUtf8Parser(TimeSpanFormat),
             new GuidUtf8Parser(GuidFormat),
             new EnumUtf8ParserFactory(AllowUndefinedEnumValues, IgnoreEnumCase),
-            new NullableParserFactory<byte>(Null),
+            new NullableParserFactory<byte>(),
             new DateTimeUtf8Parser(DateTimeFormat),
             new DecimalUtf8Parser(DecimalFormat),
             new BooleanUtf8Parser(BooleanValues),
@@ -169,13 +169,6 @@ public sealed class CsvUtf8ReaderOptions :
     }
 
     ReadOnlyMemory<byte> ICsvNullTokenConfiguration<byte>.Default => Null;
-
-    ReadOnlyMemory<byte> ICsvNullTokenConfiguration<byte>.GetNullToken(Type type)
-    {
-        return ((ICsvNullTokenConfiguration<byte>)this).TryGetOverride(type, out var value)
-            ? value
-            : Null;
-    }
 
     bool ICsvNullTokenConfiguration<byte>.TryGetOverride(Type type, out ReadOnlyMemory<byte> value)
     {

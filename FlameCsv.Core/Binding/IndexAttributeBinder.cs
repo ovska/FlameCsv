@@ -27,9 +27,9 @@ internal static class IndexAttributeBinder<TValue>
             {
                 list.Add(new MemberCsvBinding<TValue>(target.Index, typeInfo.GetPropertyOrField(target.MemberName)));
             }
-            else if (attr is CsvIndexIgnoreAttribute ignoreAttribute)
+            else if (attr is CsvIndexIgnoreAttribute { Indexes: var ignoredIndices })
             {
-                foreach (var index in ignoreAttribute.Indexes)
+                foreach (var index in ignoredIndices)
                 {
                     // Ensure no duplicate ignores since its not really harmful to have them
                     if (!HasIgnoredIndex(index, list))

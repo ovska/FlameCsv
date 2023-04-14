@@ -19,11 +19,10 @@ internal abstract partial class Materializer
     protected abstract Type RecordType { get; }
 
     /// <summary>
-    /// Parses the next column from the <paramref name="enumerator"/> to <paramref name="value"/>.
+    /// Parses the next column from the <paramref name="enumerator"/>.
     /// </summary>
     /// <param name="enumerator">Column enumerator</param>
     /// <param name="parser">Parser instance</param>
-    /// <param name="value">Target to assign the parsed value to</param>
     /// <typeparam name="T">Token type</typeparam>
     /// <typeparam name="TValue">Parsed value</typeparam>
     [MethodImpl(MethodImplOptions.AggressiveInlining)] // should be small enough to inline in Parse()

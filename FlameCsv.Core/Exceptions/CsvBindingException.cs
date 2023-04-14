@@ -109,7 +109,6 @@ public sealed class CsvBindingException<T> : CsvBindingException
     /// <summary>
     /// Throws an exception for a required constructor parameter that didn't have a matching binding.
     /// </summary>
-    /// <param name="parameter"></param>
     internal CsvBindingException(ParameterInfo parameter, IEnumerable<CsvBinding> parameterBindings)
         : base($"Constructor parameter '{parameter.Name}' had no matching binding and has no default value.")
     {

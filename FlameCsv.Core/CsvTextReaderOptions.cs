@@ -197,7 +197,7 @@ public sealed class CsvTextReaderOptions :
     }
 
     /// <summary>
-    /// Used by <see cref="EnumUtf8Parser{TEnum}"/> to optionally skip validating that the parsed value is defined.
+    /// Used by <see cref="Parsers.Utf8.EnumUtf8Parser{TEnum}"/> to optionally skip validating that the parsed value is defined.
     /// Default is <see langword="false"/>.
     /// </summary>
     public bool AllowUndefinedEnumValues
@@ -253,7 +253,7 @@ public sealed class CsvTextReaderOptions :
             GuidTextParser.GetOrCreate(GuidFormat),
             Base64TextParser.Instance,
             TimeSpanTextParser.GetOrCreate(TimeSpanFormat,  TimeSpanStyles, FormatProvider),
-            NullableParserFactory<char>.GetOrCreate(Null.AsMemory()),
+            NullableParserFactory<char>.Instance,
             new EnumTextParserFactory(AllowUndefinedEnumValues, IgnoreEnumCase),
             DateTimeTextParser.GetOrCreate(DateTimeFormat, DateTimeStyles, FormatProvider),
             DecimalTextParser.GetOrCreate(FormatProvider, DecimalNumberStyles),
@@ -266,13 +266,6 @@ public sealed class CsvTextReaderOptions :
     }
 
     ReadOnlyMemory<char> ICsvNullTokenConfiguration<char>.Default => Null.AsMemory();
-
-    ReadOnlyMemory<char> ICsvNullTokenConfiguration<char>.GetNullToken(Type type)
-    {
-        return ((ICsvNullTokenConfiguration<char>)this).TryGetOverride(type, out var value)
-            ? value
-            : Null.AsMemory();
-    }
 
     bool ICsvNullTokenConfiguration<char>.TryGetOverride(Type type, out ReadOnlyMemory<char> value)
     {

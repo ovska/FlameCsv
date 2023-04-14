@@ -4,7 +4,7 @@ using System.Reflection;
 namespace FlameCsv.Binding;
 
 /// <summary>
-/// Parameters representing a not-yet-resolved binding passed to <see cref="CsvHeaderMatcher{T}"/>
+/// Parameters representing a not-yet-resolved binding passed to <see cref="ICsvHeaderMatcher{T}"/>
 /// to determine if the CSV column matches the potential binding.
 /// </summary>
 /// <remarks>

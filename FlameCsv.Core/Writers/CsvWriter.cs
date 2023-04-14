@@ -68,10 +68,13 @@ internal sealed class CsvWriter<T> : IAsyncDisposable where T : unmanaged, IEqua
             return ValueTask.FromCanceled(cancellationToken);
         }
 
-        // null check is JITed out for value types
+        // this whole branch is JITed out for value types
         if (value is null && !formatter.HandleNull)
         {
-            return WriteNullAsync<TValue>(cancellationToken);
+            return WriteValueAsync(
+                MemoryFormatter<T>.Instance,
+                _nullCfg.GetNullTokenOrDefault(typeof(TValue)),
+                cancellationToken);
         }
 
         Span<T> destination = _pipe.GetSpan();
@@ -81,7 +84,7 @@ internal sealed class CsvWriter<T> : IAsyncDisposable where T : unmanaged, IEqua
             // Buffer too small, grow and retry
             return GrowAndRetry(destination.Length);
         }
-        
+
         // validate tokensWritten in case of broken user-defined formatters
         // this check also handles negative values
         if ((uint)tokensWritten > (uint)destination.Length)
@@ -226,21 +229,6 @@ internal sealed class CsvWriter<T> : IAsyncDisposable where T : unmanaged, IEqua
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private ValueTask WriteNullAsync<TValue>(CancellationToken cancellationToken)
-    {
-        ReadOnlyMemory<T> value = default;
-
-        if (_nullCfg is not null && !_nullCfg.TryGetOverride(typeof(TValue), out value))
-        {
-            value = _nullCfg.Default;
-        }
-
-        // write null using the regular formatter path to ensure its quoted if needed
-        return WriteValueAsync(MemoryFormatter<T>.Instance, value, cancellationToken);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private async ValueTask<Memory<T>> GrowToAtLeastAsync(int length, CancellationToken cancellationToken)
     {
         Memory<T> destination = default;

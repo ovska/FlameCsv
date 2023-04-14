@@ -9,6 +9,7 @@ internal static class SealableUtil
     /// Sets the value of <paramref name="field"/> after ensuring that the current instance is not read-only.
     /// </summary>
     /// <typeparam name="TValue"></typeparam>
+    /// <param name="sealable"></param>
     /// <param name="field">Reference to the field to modify</param>
     /// <param name="value">Value to set</param>
     /// <param name="memberName">Name of the property being set, used in exception messages</param>
@@ -25,8 +26,9 @@ internal static class SealableUtil
     }
 
     /// <summary>
-    /// Throws if <see cref="IsReadOnly"/> is <see langword="true"/>.
+    /// Throws if <see cref="ISealable.IsReadOnly"/> is <see langword="true"/>.
     /// </summary>
+    /// <param name="sealable"></param>
     /// <param name="memberName">Name of the calling property or method used in exception messages</param>
     /// <exception cref="InvalidOperationException"></exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

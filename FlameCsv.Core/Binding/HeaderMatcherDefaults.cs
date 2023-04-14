@@ -83,33 +83,39 @@ internal static class HeaderMatcherDefaults
         {
             if (data.IsEmpty)
             {
-                return ImplInner(default, values.Span, stringComparison);
+                foreach (var value in values.Span)
+                {
+                    if (string.IsNullOrEmpty(value))
+                        return true;
+                }
+
+                return false;
             }
 
             int maxLength = Encoding.UTF8.GetMaxCharCount(data.Length);
-            int written;
 
             if (Token<char>.CanStackalloc(maxLength))
             {
-                Span<char> buffer = stackalloc char[maxLength];
-                written = Encoding.UTF8.GetChars(data, buffer);
-                return ImplInner(buffer[..written], values.Span, stringComparison);
+                return ImplInner(data, stackalloc char[maxLength], values.Span, stringComparison);
             }
 
             using var spanOwner = SpanOwner<char>.Allocate(maxLength);
-            written = Encoding.UTF8.GetChars(data, spanOwner.Span);
-            return ImplInner(spanOwner.Span[..written], values.Span, stringComparison);
+            return ImplInner(data, spanOwner.Span, values.Span, stringComparison);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static bool ImplInner(
-            ReadOnlySpan<char> data,
-            ReadOnlySpan<string?> values,
+            scoped ReadOnlySpan<byte> data,
+            scoped Span<char> buffer,
+            scoped ReadOnlySpan<string?> values,
             StringComparison stringComparison)
         {
+            int written = Encoding.UTF8.GetChars(data, buffer);
+            ReadOnlySpan<char> text = buffer[..written];
+
             foreach (var value in values)
             {
-                if (data.Equals(value, stringComparison))
+                if (text.Equals(value, stringComparison))
                     return true;
             }
 

@@ -33,7 +33,7 @@ public sealed class CsvBindingCollection<TValue>
         => _ctorParameters.AsSpan();
 
     /// <summary>
-    /// Return <see langword="true"/> is <see cref="ConstructorBindings"/> is not empty.
+    /// Returns <see langword="true"/> if the bindings will use a specific constructor.
     /// </summary>
     public bool HasConstructorParameters => _ctorParameters?.Count > 0;
 
@@ -43,7 +43,7 @@ public sealed class CsvBindingCollection<TValue>
     public bool HasMemberInitializers => _memberBindings.Count > 0;
 
     /// <summary>
-    /// Returns the constructor defined in <see cref="ConstructorBindings"/>.
+    /// Returns the constructor used by the bindings, throwing if there are no constructor bindings.
     /// </summary>
     /// <exception cref="InvalidOperationException"/>
     public ConstructorInfo Constructor => _ctor ??

@@ -39,11 +39,11 @@ internal class PoolingStringUtf8Parser :
 
     private string Impl(ReadOnlySpan<byte> span)
     {
-        int maxLenght = Encoding.UTF8.GetMaxCharCount(span.Length);
+        int maxLength = Encoding.UTF8.GetMaxCharCount(span.Length);
 
-        if (Token<char>.CanStackalloc(maxLenght))
+        if (Token<char>.CanStackalloc(maxLength))
         {
-            Span<char> buffer = stackalloc char[maxLenght];
+            Span<char> buffer = stackalloc char[maxLength];
             int written = Encoding.UTF8.GetChars(span, buffer);
             return StringPool.GetOrAdd(buffer[..written]);
         }

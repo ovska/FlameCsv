@@ -8,7 +8,6 @@ public interface ICsvNullTokenConfiguration<T> where T : unmanaged, IEquatable<T
 {
     bool TryGetOverride(Type type, out ReadOnlyMemory<T> value);
     ReadOnlyMemory<T> Default { get; }
-    ReadOnlyMemory<T> GetNullToken(Type type) => TryGetOverride(type, out var value) ? value : Default;
 }
 
 /// <summary>
@@ -19,8 +18,6 @@ public interface ICsvFormatProviderConfiguration<T> where T : unmanaged, IEquata
 {
     bool TryGetOverride(Type type, out IFormatProvider? value);
     IFormatProvider? Default { get; }
-    IFormatProvider? GetFormatProvider(Type type) => TryGetOverride(type, out var value) ? value : Default;
-
 }
 
 /// <summary>

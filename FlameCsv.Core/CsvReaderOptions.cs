@@ -11,6 +11,7 @@ using static FlameCsv.Utilities.SealableUtil;
 
 namespace FlameCsv;
 
+/// <summary>
 /// Represents a base class for configuration used to read and parse CSV data.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
@@ -84,7 +85,7 @@ public partial class CsvReaderOptions<T> : ISealable
 
     /// <summary>
     /// If <see langword="true"/>, CSV content is included in exception messages. Default is
-    /// <see langword="false"/>, which will only show the CSV structure relative to <see cref="Tokens"/>.
+    /// <see langword="false"/>, which will only show the CSV structure relative to delimiters/quotes/newlines.
     /// </summary>
     public bool AllowContentInExceptions
     {

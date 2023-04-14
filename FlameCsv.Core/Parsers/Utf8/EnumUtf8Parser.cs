@@ -62,7 +62,7 @@ public sealed class EnumUtf8Parser<TEnum> : ICsvParser<byte, TEnum> where TEnum 
         Dictionary<int, KnownValue> stringValues = new();
         Dictionary<int, KnownValue> attributeValues = new();
 
-        foreach (var (value, name, enumMember) in EnumExtensions.GetEnumMembers<TEnum>())
+        foreach (var (value, name, enumMember) in EnumMembers<TEnum>.Value)
         {
             var asNumber = Encoding.UTF8.GetBytes(value.ToString("D"));
             numericValues.TryAdd(
