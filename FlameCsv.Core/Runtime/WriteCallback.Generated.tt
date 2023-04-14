@@ -32,15 +32,24 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
     for (int i = 1; i < TotalCount; i++)
 	{
 		var generics = string.Join(", ", genericTypes.Take(i + 1));
+    foreach (var isAsync in new[] { false, true })
+	{
+        var moniker = isAsync ? "Async" : "";
+        var waiter = isAsync ? "await " : "";
 #>
-    public static async Task Write<<#= generics #>>(
+    public static async Task Write<#= moniker #><<#= generics #>>(
         CsvWriter<T> writer,
         CsvWriterOptions<T> options,
-        IEnumerable<(<#= generics #>)> records,
+        I<#= moniker #>Enumerable<(<#= generics #>)> records,
         CancellationToken cancellationToken)
     {
         EnsureNoHeader(options);
         cancellationToken.ThrowIfCancellationRequested();
+
+        <#= waiter #>using var enumerator = records.Get<#= moniker #>Enumerator(<# if (isAsync) Write("cancellationToken"); #>);
+
+        if (!<#= waiter #>enumerator.MoveNext<#= moniker #>())
+			return;
 
 <#
     for (int j = 0; j <= i; j++)
@@ -53,8 +62,9 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
     }
 #>
 
-        foreach (var record in records)
+        do
         {
+            var record = enumerator.Current;
 <#
     for (int j = 0; j <= i; j++)
 	{
@@ -67,10 +77,11 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
     }
 #>
             await writer.WriteNewlineAsync(cancellationToken);
-        }
+        } while (<#= waiter #>enumerator.MoveNext<#= moniker #>());
     }
 
 <#
+        }
     }
 #>
 }

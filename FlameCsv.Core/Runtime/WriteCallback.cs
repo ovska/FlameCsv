@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.Metrics;
+﻿using System.Collections.Generic;
+using System.Diagnostics.Metrics;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.Serialization;
@@ -40,10 +41,17 @@ internal static class WriteTest<T, TValue>
         if (options.WriteHeader)
             await WriteHeader(writer, bindingCollection, cancellationToken);
 
+        using var enumerator = records.GetEnumerator();
+
+        if (!enumerator.MoveNext())
+            return;
+
         WriteCallback<T, TValue>[] columnCallbacks = CreateWriteCallbacks(bindingCollection, options);
 
-        foreach (var value in records)
+        do
         {
+            TValue value = enumerator.Current;
+
             await columnCallbacks[0](writer, value, cancellationToken);
 
             for (int i = 1; i < columnCallbacks.Length; i++)
@@ -52,9 +60,8 @@ internal static class WriteTest<T, TValue>
                 await columnCallbacks[i](writer, value, cancellationToken);
             }
 
-
             await writer.WriteNewlineAsync(cancellationToken);
-        }
+        } while (enumerator.MoveNext());
     }
 
     private static async ValueTask WriteHeader(
