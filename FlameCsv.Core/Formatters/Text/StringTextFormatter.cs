@@ -9,6 +9,8 @@ public sealed class StringTextFormatter :
     ICsvFormatter<char, Memory<char>>,
     ICsvFormatter<char, ReadOnlyMemory<char>>
 {
+    bool ICsvFormatter<char>.HandleNull => true;
+
     internal static StringTextFormatter Instance { get; } = new();
 
     /// <summary>

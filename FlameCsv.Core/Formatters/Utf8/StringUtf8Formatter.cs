@@ -11,6 +11,8 @@ public sealed class StringUtf8Formatter :
     ICsvFormatter<byte, Memory<char>>,
     ICsvFormatter<byte, ReadOnlyMemory<char>>
 {
+    bool ICsvFormatter<byte>.HandleNull => true;
+
     internal static StringUtf8Formatter Instance { get; } = new();
 
     /// <summary>

@@ -14,7 +14,7 @@ public sealed class CsvIndexIgnoreAttribute : Attribute
     private readonly int[] _indexes;
 
     /// <inheritdoc cref="CsvIndexIgnoreAttribute"/>
-    /// <param name="index">CSV column index</param>
+    /// <param name="indexes">CSV column indexes</param>
     public CsvIndexIgnoreAttribute(params int[] indexes)
     {
         ArgumentNullException.ThrowIfNull(indexes);

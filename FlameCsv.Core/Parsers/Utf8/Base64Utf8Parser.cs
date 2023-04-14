@@ -66,7 +66,7 @@ public sealed class Base64Utf8Parser :
             return DecodeImpl(input, buffer);
         }
 
-        using var spanOwner = SpanOwner<byte>.Allocate(Base64.GetMaxDecodedFromUtf8Length(input.Length));
+        using var spanOwner = SpanOwner<byte>.Allocate(maxLength);
         return DecodeImpl(input, spanOwner.Span);
     }
 

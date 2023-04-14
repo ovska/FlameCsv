@@ -8,7 +8,11 @@ internal static class Token<T> where T : unmanaged
     /// Safe upper limit for <see langword="stackalloc"/> for <typeparamref name="T"/>.
     /// </summary>
     // JITed to a constant
-    public static int StackallocThreshold => Unsafe.SizeOf<byte>() * 512 / Unsafe.SizeOf<T>();
+    public static int StackallocThreshold
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Unsafe.SizeOf<byte>() * 512 / Unsafe.SizeOf<T>();
+    }
 
     /// <summary>
     /// Returns true if <paramref name="length"/> is not greater than <see cref="StackallocThreshold"/>.

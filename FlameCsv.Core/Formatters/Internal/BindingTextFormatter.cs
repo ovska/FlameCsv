@@ -1,6 +1,4 @@
-﻿using System.Text;
-using CommunityToolkit.HighPerformance.Buffers;
-using FlameCsv.Binding;
+﻿using FlameCsv.Binding;
 using FlameCsv.Binding.Internal;
 using FlameCsv.Extensions;
 
@@ -30,21 +28,6 @@ internal sealed class BindingUtf8Formatter<T> : ICsvFormatter<byte, CsvBinding<T
 
     public bool TryFormat(CsvBinding<T> value, Span<byte> destination, out int tokensWritten)
     {
-        var memberName = ((MemberCsvBinding<T>)value).Member.Name.AsSpan();
-
-        var maxLength = Encoding.UTF8.GetMaxByteCount(memberName.Length);
-
-        if (Token<byte>.CanStackalloc(maxLength))
-        {
-            Span<byte> buffer = stackalloc byte[maxLength];
-            int encoded = Encoding.UTF8.GetBytes(memberName, buffer);
-            return buffer[..encoded].TryWriteTo(destination, out tokensWritten);
-        }
-        else
-        {
-            using var spanOwner = SpanOwner<byte>.Allocate(maxLength);
-            int encoded = Encoding.UTF8.GetBytes(memberName, spanOwner.Span);
-            return spanOwner.Span[..encoded].TryWriteTo(destination, out tokensWritten);
-        }
+        return ((MemberCsvBinding<T>)value).Member.Name.AsSpan().TryWriteUtf8To(destination, out tokensWritten);
     }
 }

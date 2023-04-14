@@ -1,4 +1,6 @@
 using System.Runtime.CompilerServices;
+using CommunityToolkit.HighPerformance.Buffers;
+using System.Text;
 
 namespace FlameCsv.Extensions;
 
@@ -38,6 +40,22 @@ internal static class WriteExtensions
         if (value.TryCopyTo(buffer))
         {
             tokensWritten = value.Length;
+            return true;
+        }
+
+        tokensWritten = 0;
+        return false;
+    }
+
+    public static bool TryWriteUtf8To(
+         this ReadOnlySpan<char> value,
+         Span<byte> destination,
+         out int tokensWritten)
+    {
+        if (Encoding.UTF8.GetMaxByteCount(value.Length) <= destination.Length ||
+            Encoding.UTF8.GetByteCount(value) <= destination.Length)
+        {
+            tokensWritten = Encoding.UTF8.GetBytes(value, destination);
             return true;
         }
 

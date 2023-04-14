@@ -26,28 +26,18 @@ public static class NullableParserTests
     [Fact]
     public static void Should_Create_Parser()
     {
-        var factory = new NullableParserFactory<char>("null".AsMemory());
-
-        Assert.Equal("null", factory.NullToken.ToString());
+        var factory = new NullableParserFactory<char>();
 
         Assert.True(factory.CanParse(typeof(int?)));
         Assert.False(factory.CanParse(typeof(int)));
 
-        var emptyOptions = new CsvReaderOptions<char> { Parsers = { factory, new IntegerTextParser() } };
+        var emptyOptions = new CsvTextReaderOptions
+        {
+            Parsers = { factory, new IntegerTextParser() },
+            Null = "null",
+        };
         var parser = (ICsvParser<char, int?>)factory.Create(typeof(int?), emptyOptions);
         Assert.True(parser.TryParse("null", out var value));
-        Assert.Null(value);
-    }
-
-    [Fact]
-    public static void Should_Use_Options_NullToken()
-    {
-        var factory = new NullableParserFactory<char>("null".AsMemory());
-        Assert.Equal("null", factory.NullToken.ToString());
-
-        var options = new CsvTextReaderOptions { Null = "xyz" };
-        var parser = (ICsvParser<char, int?>)factory.Create(typeof(int?), options);
-        Assert.True(parser.TryParse("xyz", out var value));
         Assert.Null(value);
     }
 }

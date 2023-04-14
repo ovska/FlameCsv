@@ -24,7 +24,7 @@ internal static class LineReader
     }
 
     /// <summary>
-    /// Attempts to read until a non-string wrapped <see cref="CsvTokens{T}.NewLine"/> is found.
+    /// Attempts to read until a non-string wrapped <see cref="CsvDialect{T}.Newline"/> is found.
     /// </summary>
     /// <param name="tokens">Structural tokens instance from which newline and string delimiter tokens are used</param>
     /// <param name="sequence">
@@ -41,7 +41,7 @@ internal static class LineReader
     /// Whether the data is the last block in a given stream, and newline tokens need not be seeked.
     /// </param>
     /// <returns>
-    /// <see langword="true"/> if <see cref="CsvTokens{T}.NewLine"/> was found, <paramref name="line"/>
+    /// <see langword="true"/> if <see cref="CsvDialect{T}.Newline"/> was found, <paramref name="line"/>
     /// and <paramref name="quoteCount"/> can be used, and the line and newline have been sliced off from
     /// <paramref name="sequence"/>.
     /// </returns>

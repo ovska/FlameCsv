@@ -17,13 +17,6 @@ public class CsvWriterOptions<T> : ICsvDialectOptions<T>, ISealable,
 
     ReadOnlyMemory<T> ICsvNullTokenConfiguration<T>.Default => Null;
 
-    ReadOnlyMemory<T> ICsvNullTokenConfiguration<T>.GetNullToken(Type type)
-    {
-        return ((ICsvNullTokenConfiguration<T>)this).TryGetOverride(type, out var value)
-            ? value
-            : Null;
-    }
-
     bool ICsvNullTokenConfiguration<T>.TryGetOverride(Type type, out ReadOnlyMemory<T> value)
     {
         if (_nullOverrides is not null && _nullOverrides.TryGetValue(type, out value))
