@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO.Pipelines;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 
@@ -18,16 +19,19 @@ internal readonly struct CsvByteBufferWriter : IAsyncBufferWriter<byte>
         _pipeWriter = pipeWriter;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Span<byte> GetSpan(int sizeHint = 0)
     {
         return _pipeWriter.GetSpan(sizeHint);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Memory<byte> GetMemory(int sizeHint = 0)
     {
         return _pipeWriter.GetMemory(sizeHint);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Advance(int length)
     {
         _pipeWriter.Advance(length);
