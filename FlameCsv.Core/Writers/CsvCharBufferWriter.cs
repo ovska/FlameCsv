@@ -48,8 +48,11 @@ internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>
         _state = new State(_arrayPool.Rent(initialBufferSize));
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Span<char> GetSpan(int sizeHint = 0)
     {
+        sizeHint = Math.Max(1, sizeHint); // ensure non empty buffer
+
         if (_state.Remaining < sizeHint)
             EnsureCapacityRare(sizeHint);
 
@@ -57,8 +60,11 @@ internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>
         return _state.Buffer.AsSpan(_state.Unflushed);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Memory<char> GetMemory(int sizeHint = 0)
     {
+        sizeHint = Math.Max(1, sizeHint); // ensure non empty buffer
+
         if (_state.Remaining < sizeHint)
             EnsureCapacityRare(sizeHint);
 
@@ -66,6 +72,7 @@ internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>
         return _state.Buffer.AsMemory(_state.Unflushed);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Advance(int length)
     {
         Guard.IsGreaterThanOrEqualTo(length, 0);

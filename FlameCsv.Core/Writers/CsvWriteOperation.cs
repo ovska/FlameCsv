@@ -84,20 +84,23 @@ internal sealed class CsvWriteOperation<T, TWriter> : IAsyncDisposable
         TValue value,
         CancellationToken cancellationToken)
     {
+        bool formatSuccessful;
+        int tokensWritten;
+
         // this whole branch is JITed out for value types
         if (value is null && !formatter.HandleNull)
         {
-            return WriteValueCore(
-                destination,
-                MemoryFormatter<T>.Instance,
-                _nullCfg.GetNullTokenOrDefault(typeof(TValue)),
-                cancellationToken);
+            formatSuccessful = _nullCfg.GetNullTokenOrDefault(typeof(TValue)).Span.TryWriteTo(destination, out tokensWritten);
+        }
+        else
+        {
+            formatSuccessful = formatter.TryFormat(value, destination, out tokensWritten);
         }
 
-        if (!formatter.TryFormat(value, destination, out int tokensWritten))
+        if (!formatSuccessful)
         {
             // Buffer too small, grow and retry
-            return GrowAndRetry(destination.Length, formatter, value, cancellationToken);
+            return GrowAndRetryAsync(destination.Length, formatter, value, cancellationToken);
         }
 
         // validate negative or too large tokensWritten in case of broken user-defined formatters
@@ -111,6 +114,7 @@ internal sealed class CsvWriteOperation<T, TWriter> : IAsyncDisposable
         {
             if (_fieldQuoting == CsvFieldQuoting.Always)
             {
+                // Ensure the buffer is large enough
                 if (destination.Length < 2)
                     destination = _writer.GetSpan(2);
 
@@ -174,7 +178,7 @@ internal sealed class CsvWriteOperation<T, TWriter> : IAsyncDisposable
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private async ValueTask GrowAndRetry<TValue>(
+    private async ValueTask GrowAndRetryAsync<TValue>(
         int previousBufferLength,
         ICsvFormatter<T, TValue> formatter,
         TValue value,
