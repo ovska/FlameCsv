@@ -2,13 +2,12 @@
 using FlameCsv.Extensions;
 using FlameCsv.Formatters;
 using FlameCsv.Writers;
-using Newtonsoft.Json.Linq;
 
 namespace FlameCsv.Tests.Writing;
 
 public sealed class CsvWriterTests : IAsyncDisposable
 {
-    private CsvWriter<char>? _writer;
+    private CsvWriteOperation<char, CsvCharBufferWriter>? _writer;
     private StringWriter? _textWriter;
 
     private string Written => _textWriter?.ToString() ?? string.Empty;
@@ -27,7 +26,7 @@ public sealed class CsvWriterTests : IAsyncDisposable
     {
         Initialize();
 
-        await _writer.WriteDelimiterAsync(default);
+        _writer.WriteDelimiter();
         await _writer.DisposeAsync();
 
         Assert.Equal(",", Written);
@@ -38,7 +37,7 @@ public sealed class CsvWriterTests : IAsyncDisposable
     {
         Initialize();
 
-        await _writer.WriteNewlineAsync(default);
+        _writer.WriteNewline();
         await _writer.DisposeAsync();
 
         Assert.Equal("\r\n", Written);
@@ -82,6 +81,17 @@ public sealed class CsvWriterTests : IAsyncDisposable
         Assert.Equal($"\"Test \"\"{new string('x', 114)}\"\" test\"", Written);
     }
 
+    [Theory, InlineData(-1), InlineData(int.MaxValue)]
+    public async Task Should_Guard_Against_Broken_Formatters(int tokensWritten)
+    {
+        Initialize(CsvFieldQuoting.Always, bufferSize: 128);
+
+        var formatter = new BrokenFormatter { Write = tokensWritten };
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await _writer.WriteValueAsync(formatter, "", default));
+    }
+
     [Theory]
     [InlineData(CsvFieldQuoting.Auto, "", "")]
     [InlineData(CsvFieldQuoting.Auto, ",", "\",\"")]
@@ -105,8 +115,8 @@ public sealed class CsvWriterTests : IAsyncDisposable
         int bufferSize = 1024)
     {
         _textWriter = new StringWriter();
-        _writer = new CsvWriter<char>(
-            new CsvTextPipe(_textWriter, AllocatingArrayPool<char>.Instance, bufferSize),
+        _writer = new CsvWriteOperation<char, CsvCharBufferWriter>(
+            new CsvCharBufferWriter(_textWriter, AllocatingArrayPool<char>.Instance, bufferSize),
             new CsvWriterOptions<char> { FieldQuoting = quoting, Null = "null".AsMemory() });
     }
 
@@ -121,5 +131,19 @@ public sealed class CsvWriterTests : IAsyncDisposable
             => value.AsSpan().TryWriteTo(destination, out tokensWritten);
 
         public bool HandleNull => false;
+    }
+
+    private sealed class BrokenFormatter : ICsvFormatter<char, string>
+    {
+        public int Write { get; set; }
+
+        public bool CanFormat(Type valueType)
+            => throw new NotImplementedException();
+
+        public bool TryFormat(string value, Span<char> destination, out int tokensWritten)
+        {
+            tokensWritten = Write;
+            return true;
+        }
     }
 }

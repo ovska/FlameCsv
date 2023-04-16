@@ -20,86 +20,97 @@ namespace FlameCsv.Runtime;
 /// <param name="writer">Writer instance</param>
 /// <param name="value">Record instance</param>
 /// <param name="cancellationToken">Token to cancel the asynchronous write operation</param>
-internal delegate ValueTask WriteCallback<T, TValue>(
-       CsvWriter<T> writer,
+internal delegate ValueTask WriteCallback<T, TWriter, TValue>(
+       CsvWriteOperation<T, TWriter> writer,
        TValue value,
        CancellationToken cancellationToken)
-    where T : unmanaged, IEquatable<T>;
+    where T : unmanaged, IEquatable<T>
+    where TWriter : struct, IAsyncBufferWriter<T>;
 
-internal static class WriteTest<T, TValue>
-        where T : unmanaged, IEquatable<T>
+internal static class WriteTest<T, TWriter, TValue>
+    where T : unmanaged, IEquatable<T>
+    where TWriter : struct, IAsyncBufferWriter<T>
 {
     public static async Task WriteRecords(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvBindingCollection<TValue> bindingCollection,
         CsvWriterOptions<T> options,
         IEnumerable<TValue> records,
         CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (options.WriteHeader)
-            await WriteHeader(writer, bindingCollection, cancellationToken);
-
-        using var enumerator = records.GetEnumerator();
-
-        if (!enumerator.MoveNext())
-            return;
-
-        WriteCallback<T, TValue>[] columnCallbacks = CreateWriteCallbacks(bindingCollection, options);
-
-        do
+        try
         {
-            TValue value = enumerator.Current;
+            cancellationToken.ThrowIfCancellationRequested();
 
-            await columnCallbacks[0](writer, value, cancellationToken);
+            if (options.WriteHeader)
+                await WriteHeader(writer, bindingCollection, cancellationToken);
 
-            for (int i = 1; i < columnCallbacks.Length; i++)
+            using var enumerator = records.GetEnumerator();
+
+            if (!enumerator.MoveNext())
+                return;
+
+            WriteCallback<T, TWriter, TValue>[] columnCallbacks = CreateWriteCallbacks(bindingCollection, options);
+
+            do
             {
-                await writer.WriteDelimiterAsync(cancellationToken);
-                await columnCallbacks[i](writer, value, cancellationToken);
-            }
+                TValue value = enumerator.Current;
 
-            await writer.WriteNewlineAsync(cancellationToken);
-        } while (enumerator.MoveNext());
+                await columnCallbacks[0](writer, value, cancellationToken);
+
+                for (int i = 1; i < columnCallbacks.Length; i++)
+                {
+                    writer.WriteDelimiter();
+                    await columnCallbacks[i](writer, value, cancellationToken);
+                }
+
+                writer.WriteNewline();
+            } while (enumerator.MoveNext());
+        }
+        catch (Exception e)
+        {
+            writer.Exception = e;
+        }
+        finally
+        {
+            await writer.DisposeAsync();
+        }
     }
 
     private static async ValueTask WriteHeader(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvBindingCollection<TValue> bindingCollection,
         CancellationToken cancellationToken)
     {
         var formatter = DefaultFormatters.Binding<T, TValue>();
 
-        for (int i = 0; i < bindingCollection.MemberBindings.Length; i++)
-        {
-            if (i > 0)
-            {
-                await writer.WriteDelimiterAsync(cancellationToken);
-            }
+        await writer.WriteValueAsync(formatter, bindingCollection.Bindings[0], cancellationToken);
 
+        for (int i = 1; i < bindingCollection.MemberBindings.Length; i++)
+        {
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter, bindingCollection.Bindings[i], cancellationToken);
         }
 
-        await writer.WriteNewlineAsync(cancellationToken);
+        writer.WriteNewline();
     }
 
-    private static WriteCallback<T, TValue>[] CreateWriteCallbacks(
+    private static WriteCallback<T, TWriter, TValue>[] CreateWriteCallbacks(
         CsvBindingCollection<TValue> bindingCollection,
         CsvWriterOptions<T> options)
     {
         var bindings = bindingCollection.Bindings;
-        var callbacks = new WriteCallback<T, TValue>[bindings.Length];
+        var callbacks = new WriteCallback<T, TWriter, TValue>[bindings.Length];
 
         for (int i = 0; i < bindings.Length; i++)
         {
             var binding = (MemberCsvBinding<TValue>)bindings[i];
-            
+
             var tvalue = Expression.Parameter(typeof(TValue), "value");
             var (memberExpression, memberType) = binding.Member.GetAsMemberExpression(tvalue);
             var getter = Expression.Lambda(memberExpression, tvalue).CompileLambda<Delegate>();
 
-            callbacks[i] = (WriteCallback<T, TValue>)_getWriteCallbackFn
+            callbacks[i] = (WriteCallback<T, TWriter, TValue>)_getWriteCallbackFn
                 .MakeGenericMethod(memberType)
                 .Invoke(null, new object[] { getter, options.GetFormatter(memberType) })!;
         }
@@ -107,13 +118,13 @@ internal static class WriteTest<T, TValue>
         return callbacks;
     }
 
-    private static WriteCallback<T, TValue> GetWriteCallback<TProperty>(
+    private static WriteCallback<T, TWriter, TValue> GetWriteCallback<TProperty>(
         Func<TValue, TProperty> getter,
         ICsvFormatter<T, TProperty> formatter)
     {
         return WriteImpl;
 
-        ValueTask WriteImpl(CsvWriter<T> writer, TValue value, CancellationToken cancellationToken)
+        ValueTask WriteImpl(CsvWriteOperation<T, TWriter> writer, TValue value, CancellationToken cancellationToken)
         {
             return writer.WriteValueAsync(formatter, getter(value), cancellationToken);
         }

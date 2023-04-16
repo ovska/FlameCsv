@@ -3,7 +3,9 @@ using FlameCsv.Writers;
 
 namespace FlameCsv;
 
-internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
+internal static class WriteTestGen<T, TWriter>
+    where T : unmanaged, IEquatable<T>
+    where TWriter : struct, IAsyncBufferWriter<T>
 {
     private static void EnsureNoHeader(CsvWriterOptions<T> options)
 	{
@@ -17,7 +19,7 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
     }
 
     public static async Task Write<T0, T1>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IEnumerable<(T0, T1)> records,
         CancellationToken cancellationToken)
@@ -37,14 +39,14 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (enumerator.MoveNext());
     }
 
     public static async Task WriteAsync<T0, T1>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IAsyncEnumerable<(T0, T1)> records,
         CancellationToken cancellationToken)
@@ -64,14 +66,14 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (await enumerator.MoveNextAsync());
     }
 
     public static async Task Write<T0, T1, T2>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IEnumerable<(T0, T1, T2)> records,
         CancellationToken cancellationToken)
@@ -92,16 +94,16 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (enumerator.MoveNext());
     }
 
     public static async Task WriteAsync<T0, T1, T2>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IAsyncEnumerable<(T0, T1, T2)> records,
         CancellationToken cancellationToken)
@@ -122,16 +124,16 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (await enumerator.MoveNextAsync());
     }
 
     public static async Task Write<T0, T1, T2, T3>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IEnumerable<(T0, T1, T2, T3)> records,
         CancellationToken cancellationToken)
@@ -153,18 +155,18 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (enumerator.MoveNext());
     }
 
     public static async Task WriteAsync<T0, T1, T2, T3>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IAsyncEnumerable<(T0, T1, T2, T3)> records,
         CancellationToken cancellationToken)
@@ -186,18 +188,18 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (await enumerator.MoveNextAsync());
     }
 
     public static async Task Write<T0, T1, T2, T3, T4>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IEnumerable<(T0, T1, T2, T3, T4)> records,
         CancellationToken cancellationToken)
@@ -220,20 +222,20 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (enumerator.MoveNext());
     }
 
     public static async Task WriteAsync<T0, T1, T2, T3, T4>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IAsyncEnumerable<(T0, T1, T2, T3, T4)> records,
         CancellationToken cancellationToken)
@@ -256,20 +258,20 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (await enumerator.MoveNextAsync());
     }
 
     public static async Task Write<T0, T1, T2, T3, T4, T5>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IEnumerable<(T0, T1, T2, T3, T4, T5)> records,
         CancellationToken cancellationToken)
@@ -293,22 +295,22 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter5, record.Item6, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (enumerator.MoveNext());
     }
 
     public static async Task WriteAsync<T0, T1, T2, T3, T4, T5>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IAsyncEnumerable<(T0, T1, T2, T3, T4, T5)> records,
         CancellationToken cancellationToken)
@@ -332,22 +334,22 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter5, record.Item6, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (await enumerator.MoveNextAsync());
     }
 
     public static async Task Write<T0, T1, T2, T3, T4, T5, T6>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IEnumerable<(T0, T1, T2, T3, T4, T5, T6)> records,
         CancellationToken cancellationToken)
@@ -372,24 +374,24 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter5, record.Item6, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter6, record.Item7, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (enumerator.MoveNext());
     }
 
     public static async Task WriteAsync<T0, T1, T2, T3, T4, T5, T6>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IAsyncEnumerable<(T0, T1, T2, T3, T4, T5, T6)> records,
         CancellationToken cancellationToken)
@@ -414,24 +416,24 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter5, record.Item6, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter6, record.Item7, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (await enumerator.MoveNextAsync());
     }
 
     public static async Task Write<T0, T1, T2, T3, T4, T5, T6, T7>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7)> records,
         CancellationToken cancellationToken)
@@ -457,26 +459,26 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter5, record.Item6, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter6, record.Item7, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter7, record.Item8, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (enumerator.MoveNext());
     }
 
     public static async Task WriteAsync<T0, T1, T2, T3, T4, T5, T6, T7>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IAsyncEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7)> records,
         CancellationToken cancellationToken)
@@ -502,26 +504,26 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter5, record.Item6, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter6, record.Item7, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter7, record.Item8, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (await enumerator.MoveNextAsync());
     }
 
     public static async Task Write<T0, T1, T2, T3, T4, T5, T6, T7, T8>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7, T8)> records,
         CancellationToken cancellationToken)
@@ -548,28 +550,28 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter5, record.Item6, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter6, record.Item7, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter7, record.Item8, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter8, record.Item9, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (enumerator.MoveNext());
     }
 
     public static async Task WriteAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IAsyncEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7, T8)> records,
         CancellationToken cancellationToken)
@@ -596,28 +598,28 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter5, record.Item6, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter6, record.Item7, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter7, record.Item8, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter8, record.Item9, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (await enumerator.MoveNextAsync());
     }
 
     public static async Task Write<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9)> records,
         CancellationToken cancellationToken)
@@ -645,30 +647,30 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter5, record.Item6, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter6, record.Item7, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter7, record.Item8, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter8, record.Item9, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter9, record.Item10, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (enumerator.MoveNext());
     }
 
     public static async Task WriteAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IAsyncEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9)> records,
         CancellationToken cancellationToken)
@@ -696,30 +698,30 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter5, record.Item6, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter6, record.Item7, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter7, record.Item8, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter8, record.Item9, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter9, record.Item10, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (await enumerator.MoveNextAsync());
     }
 
     public static async Task Write<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)> records,
         CancellationToken cancellationToken)
@@ -748,32 +750,32 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter5, record.Item6, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter6, record.Item7, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter7, record.Item8, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter8, record.Item9, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter9, record.Item10, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter10, record.Item11, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (enumerator.MoveNext());
     }
 
     public static async Task WriteAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IAsyncEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)> records,
         CancellationToken cancellationToken)
@@ -802,32 +804,32 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter5, record.Item6, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter6, record.Item7, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter7, record.Item8, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter8, record.Item9, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter9, record.Item10, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter10, record.Item11, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (await enumerator.MoveNextAsync());
     }
 
     public static async Task Write<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)> records,
         CancellationToken cancellationToken)
@@ -857,34 +859,34 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter5, record.Item6, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter6, record.Item7, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter7, record.Item8, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter8, record.Item9, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter9, record.Item10, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter10, record.Item11, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter11, record.Item12, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (enumerator.MoveNext());
     }
 
     public static async Task WriteAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IAsyncEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)> records,
         CancellationToken cancellationToken)
@@ -914,34 +916,34 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter5, record.Item6, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter6, record.Item7, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter7, record.Item8, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter8, record.Item9, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter9, record.Item10, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter10, record.Item11, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter11, record.Item12, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (await enumerator.MoveNextAsync());
     }
 
     public static async Task Write<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12)> records,
         CancellationToken cancellationToken)
@@ -972,36 +974,36 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter5, record.Item6, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter6, record.Item7, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter7, record.Item8, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter8, record.Item9, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter9, record.Item10, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter10, record.Item11, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter11, record.Item12, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter12, record.Item13, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (enumerator.MoveNext());
     }
 
     public static async Task WriteAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IAsyncEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12)> records,
         CancellationToken cancellationToken)
@@ -1032,36 +1034,36 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter5, record.Item6, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter6, record.Item7, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter7, record.Item8, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter8, record.Item9, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter9, record.Item10, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter10, record.Item11, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter11, record.Item12, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter12, record.Item13, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (await enumerator.MoveNextAsync());
     }
 
     public static async Task Write<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13)> records,
         CancellationToken cancellationToken)
@@ -1093,38 +1095,38 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter5, record.Item6, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter6, record.Item7, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter7, record.Item8, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter8, record.Item9, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter9, record.Item10, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter10, record.Item11, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter11, record.Item12, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter12, record.Item13, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter13, record.Item14, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (enumerator.MoveNext());
     }
 
     public static async Task WriteAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IAsyncEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13)> records,
         CancellationToken cancellationToken)
@@ -1156,38 +1158,38 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter5, record.Item6, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter6, record.Item7, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter7, record.Item8, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter8, record.Item9, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter9, record.Item10, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter10, record.Item11, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter11, record.Item12, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter12, record.Item13, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter13, record.Item14, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (await enumerator.MoveNextAsync());
     }
 
     public static async Task Write<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14)> records,
         CancellationToken cancellationToken)
@@ -1220,40 +1222,40 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter5, record.Item6, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter6, record.Item7, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter7, record.Item8, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter8, record.Item9, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter9, record.Item10, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter10, record.Item11, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter11, record.Item12, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter12, record.Item13, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter13, record.Item14, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter14, record.Item15, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (enumerator.MoveNext());
     }
 
     public static async Task WriteAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IAsyncEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14)> records,
         CancellationToken cancellationToken)
@@ -1286,40 +1288,40 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter5, record.Item6, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter6, record.Item7, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter7, record.Item8, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter8, record.Item9, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter9, record.Item10, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter10, record.Item11, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter11, record.Item12, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter12, record.Item13, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter13, record.Item14, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter14, record.Item15, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (await enumerator.MoveNextAsync());
     }
 
     public static async Task Write<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15)> records,
         CancellationToken cancellationToken)
@@ -1353,42 +1355,42 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter5, record.Item6, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter6, record.Item7, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter7, record.Item8, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter8, record.Item9, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter9, record.Item10, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter10, record.Item11, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter11, record.Item12, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter12, record.Item13, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter13, record.Item14, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter14, record.Item15, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter15, record.Item16, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (enumerator.MoveNext());
     }
 
     public static async Task WriteAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         IAsyncEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15)> records,
         CancellationToken cancellationToken)
@@ -1422,37 +1424,37 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         {
             var record = enumerator.Current;
             await writer.WriteValueAsync(formatter0, record.Item1, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter1, record.Item2, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter2, record.Item3, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter3, record.Item4, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter4, record.Item5, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter5, record.Item6, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter6, record.Item7, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter7, record.Item8, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter8, record.Item9, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter9, record.Item10, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter10, record.Item11, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter11, record.Item12, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter12, record.Item13, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter13, record.Item14, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter14, record.Item15, cancellationToken);
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
             await writer.WriteValueAsync(formatter15, record.Item16, cancellationToken);
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (await enumerator.MoveNextAsync());
     }
 

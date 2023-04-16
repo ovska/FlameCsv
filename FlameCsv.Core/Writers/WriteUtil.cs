@@ -19,17 +19,9 @@ internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
         Debug.Assert(!value.IsEmpty);
 
         int index;
+        ReadOnlySpan<T> newLine = dialect.Newline.Span;
 
-        if (dialect.Newline.Length == 1)
-        {
-            index = value.IndexOfAny(dialect.Delimiter, dialect.Quote, dialect.Newline.Span[0]);
-
-            if (index >= 0)
-            {
-                goto Found;
-            }
-        }
-        else
+        if (newLine.Length > 1)
         {
             index = value.IndexOfAny(dialect.Delimiter, dialect.Quote);
 
@@ -39,7 +31,17 @@ internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
             }
 
             quoteCount = 0;
-            return value.IndexOf(dialect.Newline.Span) >= 0;
+            return value.IndexOf(newLine) >= 0;
+        }
+        else
+        {
+            // Single token newlines can be seeked directly
+            index = value.IndexOfAny(dialect.Delimiter, dialect.Quote, newLine[0]);
+
+            if (index >= 0)
+            {
+                goto Found;
+            }
         }
 
         Unsafe.SkipInit(out quoteCount);

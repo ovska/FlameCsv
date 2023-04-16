@@ -15,7 +15,9 @@ using FlameCsv.Writers;
 
 namespace FlameCsv;
 
-internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
+internal static class WriteTestGen<T, TWriter>
+    where T : unmanaged, IEquatable<T>
+    where TWriter : struct, IAsyncBufferWriter<T>
 {
     private static void EnsureNoHeader(CsvWriterOptions<T> options)
 	{
@@ -38,7 +40,7 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
         var waiter = isAsync ? "await " : "";
 #>
     public static async Task Write<#= moniker #><<#= generics #>>(
-        CsvWriter<T> writer,
+        CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
         I<#= moniker #>Enumerable<(<#= generics #>)> records,
         CancellationToken cancellationToken)
@@ -70,13 +72,13 @@ internal static class WriteTestGen<T> where T : unmanaged, IEquatable<T>
 	{
 #>
 <# if (j != 0) { #>
-            await writer.WriteDelimiterAsync(cancellationToken);
+            writer.WriteDelimiter();
 <# }#>
             await writer.WriteValueAsync(formatter<#= j #>, record.<#= properties[j] #>, cancellationToken);
 <#
     }
 #>
-            await writer.WriteNewlineAsync(cancellationToken);
+            writer.WriteNewline();
         } while (<#= waiter #>enumerator.MoveNext<#= moniker #>());
     }
 
