@@ -46,10 +46,10 @@ public static class WriteTemp
     {
         var formatter = new StringFormatter();
         var stringWriter = new StringWriter();
-        var textPipe = new CsvTextPipe(stringWriter, AllocatingArrayPool<char>.Instance);
+        var textPipe = new CsvCharBufferWriter(stringWriter, AllocatingArrayPool<char>.Instance);
 
         var opts = new CsvWriterOptions<char> { ArrayPool = AllocatingArrayPool<char>.Instance };
-        await using (var writer = new CsvWriter<char>(textPipe, opts))
+        await using (var writer = new CsvWriteOperation<char, CsvCharBufferWriter>(textPipe, opts))
         {
             try
             {
@@ -58,7 +58,7 @@ public static class WriteTemp
                     await writer.WriteValueAsync(formatter, i.ToString(), default);
 
                     if (i < 999)
-                        await writer.WriteDelimiterAsync(default);
+                        writer.WriteDelimiter();
                 }
             }
             catch (Exception e)
@@ -73,7 +73,7 @@ public static class WriteTemp
     }
 
     private static bool TryWrite<TWriter>(ICsvFormatter<char, string> formatter, ref TWriter writer)
-        where TWriter : ICsvPipe<char>
+        where TWriter : IAsyncBufferWriter<char>
     {
         Span<char> span = writer.GetMemory().Span;
 
