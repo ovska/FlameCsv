@@ -92,7 +92,7 @@ public sealed class CsvReaderTests : IDisposable
                 }
                 else
                 {
-                    await EnumerateToListAsync(header, CsvReader.EnumerateAsync(reader, options), items);
+                    await EnumerateToListAsync(header, CsvReader.GetAsyncEnumerable(reader, options), items);
                 }
             }
             else
@@ -105,7 +105,7 @@ public sealed class CsvReaderTests : IDisposable
                 }
                 else
                 {
-                    EnumerateToList(header, sequence, options, items);
+                    EnumerateToList(header, CsvReader.GetEnumerable(sequence, options), items);
                 }
             }
         }
@@ -140,7 +140,7 @@ public sealed class CsvReaderTests : IDisposable
                 }
                 else
                 {
-                    await EnumerateToListAsync(header, CsvReader.EnumerateAsync(pipeReader, options), items);
+                    await EnumerateToListAsync(header, CsvReader.GetAsyncEnumerable(pipeReader, options), items);
                 }
             }
             else
@@ -153,7 +153,7 @@ public sealed class CsvReaderTests : IDisposable
                 }
                 else
                 {
-                    EnumerateToList(header, sequence, options, items);
+                    EnumerateToList(header, CsvReader.GetEnumerable(sequence, options), items);
                 }
             }
         }
@@ -217,19 +217,18 @@ public sealed class CsvReaderTests : IDisposable
 
     private static void EnumerateToList<T>(
         bool skipFirst,
-        ReadOnlySequence<T> sequence,
-        CsvReaderOptions<T> options,
+        CsvEnumerable<T> enumerable,
         ICollection<Obj> items) where T : unmanaged, IEquatable<T>
     {
         int index = 1;
         long tokenPosition = 0;
 
-        foreach (var record in CsvReader.Enumerate(sequence, options))
+        foreach (var record in enumerable)
         {
             Assert.Equal(index++, record.Line);
             Assert.Equal(tokenPosition, record.Position);
 
-            tokenPosition += record.Data.Length + options.Newline.Length;
+            tokenPosition += record.Data.Length + record.Dialect.Newline.Length;
 
             if (skipFirst)
             {
@@ -246,23 +245,25 @@ public sealed class CsvReaderTests : IDisposable
                     LastLogin = record.GetValue<DateTimeOffset>(3),
                     Token = record.GetValue<Guid>(4),
                 });
+       
+            Assert.Equal(5, record.GetFieldCount());
         }
     }
 
     private static async Task EnumerateToListAsync<T>(
         bool skipFirst,
-        AsyncCsvEnumerator<T> enumerator,
+        AsyncCsvEnumerable<T> enumerable,
         ICollection<Obj> items) where T : unmanaged, IEquatable<T>
     {
         int index = 1;
         long tokenPosition = 0;
 
-        await foreach (var record in enumerator)
+        await foreach (var record in enumerable)
         {
             Assert.Equal(index++, record.Line);
             Assert.Equal(tokenPosition, record.Position);
 
-            tokenPosition += record.Data.Length + enumerator.Dialect.Newline.Length;
+            tokenPosition += record.Data.Length + record.Dialect.Newline.Length;
 
             if (skipFirst)
             {
@@ -279,6 +280,8 @@ public sealed class CsvReaderTests : IDisposable
                     LastLogin = record.GetValue<DateTimeOffset>(3),
                     Token = record.GetValue<Guid>(4),
                 });
+
+            Assert.Equal(5, record.GetFieldCount());
         }
     }
 }

@@ -109,7 +109,7 @@ internal static class UnescapeExtensions
         this ReadOnlyMemory<T> source,
         T quote,
         int quoteCount,
-        BufferOwner<T> bufferOwner)
+        ref Memory<T> unescapeBuffer)
         where T : unmanaged, IEquatable<T>
     {
         if (quoteCount == 0)
@@ -130,7 +130,7 @@ internal static class UnescapeExtensions
                 return source;
             }
 
-            return source.UnescapeRare(quote, quoteCount - 2, bufferOwner);
+            return source.UnescapeRare(quote, quoteCount - 2, ref unescapeBuffer);
         }
 
         ThrowInvalidUnescape(source.Span, quote, quoteCount);
@@ -143,11 +143,12 @@ internal static class UnescapeExtensions
         this ReadOnlyMemory<T> source,
         T quote,
         int quoteCount,
-        BufferOwner<T> bufferOwner)
+        ref Memory<T> unescapeBuffer)
         where T : unmanaged, IEquatable<T>
     {
         Debug.Assert(quoteCount >= 2);
         Debug.Assert(quoteCount % 2 == 0);
+        Debug.Assert(!unescapeBuffer.Span.Overlaps(source.Span), "Source and unescape buffer must not overlap");
 
         int written = 0;
         int index = 0;
@@ -156,9 +157,13 @@ internal static class UnescapeExtensions
         var sourceSpan = source.Span;
         ReadOnlySpan<T> needle = stackalloc T[] { quote, quote };
 
-        Memory<T> buffer = bufferOwner.GetMemory(source.Length - quoteCount / 2);
+        int unescapedLength = source.Length - quoteCount / 2;
 
-        Debug.Assert(!buffer.Span.Overlaps(sourceSpan), "Source and destination must not overlap");
+        if (unescapedLength > unescapeBuffer.Length)
+            ThrowUnescapeBufferTooSmall(unescapedLength, unescapeBuffer.Length);
+
+        Memory<T> buffer = unescapeBuffer.Slice(0, unescapedLength);
+        unescapeBuffer = unescapeBuffer.Slice(unescapedLength); // "consume" the buffer
 
         while (index < source.Length)
         {
@@ -183,6 +188,13 @@ internal static class UnescapeExtensions
 
         ThrowInvalidUnescape(source.Span, quote, quoteCount);
         return default; // unreachable
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    private static void ThrowUnescapeBufferTooSmall(int requiredLength, int bufferLength)
+    {
+        throw new UnreachableException(
+            $"Internal error, failed to unescape: required {requiredLength} but got buffer with length {bufferLength}.");
     }
 
     /// <exception cref="UnreachableException">

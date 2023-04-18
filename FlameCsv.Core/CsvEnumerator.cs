@@ -5,77 +5,58 @@ using FlameCsv.Reading;
 
 namespace FlameCsv;
 
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
-public sealed class CsvEnumerator<T> :
-    IEnumerable<CsvRecord<T>>, IEnumerator<CsvRecord<T>>,
-    IAsyncEnumerable<CsvRecord<T>>, IAsyncEnumerator<CsvRecord<T>>
+public sealed class CsvEnumerator<T> : IEnumerator<CsvRecord<T>>, IAsyncEnumerator<CsvRecord<T>>
     where T : unmanaged, IEquatable<T>
 {
     public CsvRecord<T> Current { get; private set; }
+    public int Line { get; private set; }
+    public long Position { get; private set; }
 
     private ReadOnlySequence<T> _data;
     private readonly CsvReaderOptions<T> _options;
-    private readonly int? _columnCount;
     private readonly CsvDialect<T> _dialect;
 
-    private readonly BufferOwner<T> _recordBuffer;
+    private readonly CsvEnumerationState<T> _state;
     private readonly BufferOwner<T> _multisegmentBuffer;
-
-    private long _position;
-    private int _lineIndex;
-    private CancellationToken _cancellationToken;
+    private readonly CancellationToken _cancellationToken;
 
     public CsvEnumerator(
         ReadOnlySequence<T> data,
         CsvReaderOptions<T> options,
-        int? columnCount)
+        CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(options);
+
         _data = data;
         _options = options;
-        _columnCount = columnCount;
-        _position = default;
-        _lineIndex = default;
-
         _dialect = new(options);
-        _recordBuffer = new(options.ArrayPool);
+        _state = new(options);
         _multisegmentBuffer = new(options.ArrayPool);
-
-        Current = default;
-    }
-
-    public CsvEnumerator<T> GetEnumerator() => this;
-    
-    public CsvEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
-    {
         _cancellationToken = cancellationToken;
-        return this;
     }
 
     public bool MoveNext()
     {
-        if (LineReader.TryGetLine(in _dialect, ref _data, out var line, out int quoteCount, isFinalBlock: false))
+        if (LineReader.TryGetLine(in _dialect, ref _data, out ReadOnlySequence<T> line, out int quoteCount, isFinalBlock: false))
         {
-            MoveNextImpl(in line, quoteCount, hasNewline: true);
-            _position += _dialect.Newline.Length;
+            MoveNextImpl(in line, quoteCount);
+            Position += _dialect.Newline.Length; // increment position after record has been initialized
             return true;
         }
 
-        // If data didn't have trailing newline
-        if (!_data.IsEmpty)
+        if (LineReader.TryGetLine(in _dialect, ref _data, out line, out quoteCount, isFinalBlock: true))
         {
-            MoveNextImpl(in _data, quoteCount: null, hasNewline: false);
-            _data = default; // consume all data
+            MoveNextImpl(in line, quoteCount);
             return true;
         }
 
-        _position += Current.Data.Length;
+        Position += Current.Data.Length;
         Current = default;
         return false;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void MoveNextImpl(in ReadOnlySequence<T> line, int? quoteCount, bool hasNewline)
+    private void MoveNextImpl(in ReadOnlySequence<T> line, int quoteCount)
     {
         ReadOnlyMemory<T> memory;
 
@@ -91,26 +72,18 @@ public sealed class CsvEnumerator<T> :
             memory = buffer;
         }
 
-        Current = new CsvRecord<T>(
-            memory,
-            _options,
-            _columnCount,
-            quoteCount,
-            _recordBuffer,
-            _position,
-            ++_lineIndex);
+        Current = new CsvRecord<T>(Position, ++Line, memory, _options, quoteCount, _state);
 
-        _position += Current.Data.Length;
+        // increment position _after_ the record has been initialized
+        Position += memory.Length;
     }
 
     public void Dispose()
     {
         _multisegmentBuffer.Dispose();
-        _recordBuffer.Dispose();
+        _state.Dispose();
     }
 
-    IEnumerator<CsvRecord<T>> IEnumerable<CsvRecord<T>>.GetEnumerator() => GetEnumerator();
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     void IEnumerator.Reset() => throw new NotSupportedException();
 
     ValueTask<bool> IAsyncEnumerator<CsvRecord<T>>.MoveNextAsync()
@@ -124,11 +97,6 @@ public sealed class CsvEnumerator<T> :
     {
         Dispose();
         return default;
-    }
-
-    IAsyncEnumerator<CsvRecord<T>> IAsyncEnumerable<CsvRecord<T>>.GetAsyncEnumerator(CancellationToken cancellationToken)
-    {
-        return GetAsyncEnumerator(cancellationToken);
     }
 
     object IEnumerator.Current => Current;

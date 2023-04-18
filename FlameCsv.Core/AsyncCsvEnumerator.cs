@@ -3,43 +3,32 @@ using FlameCsv.Reading;
 
 namespace FlameCsv;
 
-public sealed class AsyncCsvEnumerator<T> : IAsyncEnumerable<CsvRecord<char>>, IAsyncEnumerator<CsvRecord<char>>
+public sealed class AsyncCsvEnumerator<T> : IAsyncEnumerator<CsvRecord<T>>
     where T : unmanaged, IEquatable<T>
 {
     public CsvDialect<T> Dialect => _dialect;
-
     public CsvRecord<T> Current { get; private set; }
-
-    CsvRecord<char> IAsyncEnumerator<CsvRecord<char>>.Current { get; }
+    public int Line { get; private set; }
+    public long Position { get; private set; }
 
     private readonly ICsvPipeReader<T> _reader;
     private readonly CsvReaderOptions<T> _options;
-    private readonly int? _columnCount;
     private readonly CsvDialect<T> _dialect;
-
-    private readonly BufferOwner<T> _recordBuffer;
+    private readonly CsvEnumerationState<T> _state;
     private readonly BufferOwner<T> _multisegmentBuffer;
+    private readonly CancellationToken _cancellationToken;
 
-    private ReadOnlySequence<T> _data;
-    private bool _readerCompleted;
-    private long _position;
-    private int _lineIndex;
-    private CancellationToken _cancellationToken;
+    private ReadOnlySequence<T> _data; // current buffer
+    private bool _readerCompleted; // last call to ReadAsync returned IsCompleted=true
 
-    internal AsyncCsvEnumerator(
-        ICsvPipeReader<T> reader,
-        CsvReaderOptions<T> options,
-        int? columnCount)
+    internal AsyncCsvEnumerator(ICsvPipeReader<T> reader, CsvReaderOptions<T> options, CancellationToken cancellationToken)
     {
         _reader = reader;
         _options = options;
-        _columnCount = columnCount;
-
         _dialect = new(options);
-        _recordBuffer = new(options.ArrayPool);
+        _state = new(options);
         _multisegmentBuffer = new(options.ArrayPool);
-
-        Current = default;
+        _cancellationToken = cancellationToken;
     }
 
     public ValueTask<bool> MoveNextAsync()
@@ -47,7 +36,7 @@ public sealed class AsyncCsvEnumerator<T> : IAsyncEnumerable<CsvRecord<char>>, I
         if (_cancellationToken.IsCancellationRequested)
             return ValueTask.FromCanceled<bool>(_cancellationToken);
 
-        if (TryMoveNextFromExistingBuffer())
+        if (TryMoveNextSync())
             return new ValueTask<bool>(true);
 
         return MoveNextAsyncCore();
@@ -59,24 +48,21 @@ public sealed class AsyncCsvEnumerator<T> : IAsyncEnumerable<CsvRecord<char>>, I
         {
             _reader.AdvanceTo(_data.Start, _data.End);
 
-            var result = await _reader.ReadAsync(_cancellationToken);
+            (_data, _readerCompleted) = await _reader.ReadAsync(_cancellationToken);
 
-            _data = result.Buffer;
-            _readerCompleted = result.IsCompleted;
-
-            if (TryMoveNextFromExistingBuffer())
+            if (TryMoveNextSync())
                 return true;
         }
 
         return false;
     }
 
-    private bool TryMoveNextFromExistingBuffer()
+    private bool TryMoveNextSync()
     {
         if (LineReader.TryGetLine(in _dialect, ref _data, out ReadOnlySequence<T> line, out int quoteCount, isFinalBlock: false))
         {
             MoveNextImpl(in line, quoteCount);
-            _position += _dialect.Newline.Length;
+            Position += _dialect.Newline.Length;
             return true;
         }
 
@@ -88,7 +74,7 @@ public sealed class AsyncCsvEnumerator<T> : IAsyncEnumerable<CsvRecord<char>>, I
                 return true;
             }
 
-            _position += Current.Data.Length;
+            Position += Current.Data.Length;
             Current = default;
         }
 
@@ -111,33 +97,14 @@ public sealed class AsyncCsvEnumerator<T> : IAsyncEnumerable<CsvRecord<char>>, I
             memory = buffer;
         }
 
-        Current = new CsvRecord<T>(
-            memory,
-            _options,
-            _columnCount,
-            quoteCount,
-            _recordBuffer,
-            _position,
-            ++_lineIndex);
-
-        _position += Current.Data.Length;
+        Current = new CsvRecord<T>(Position, ++Line, memory, _options, quoteCount, _state);
+        Position += memory.Length;
     }
 
     public async ValueTask DisposeAsync()
     {
         _multisegmentBuffer.Dispose();
-        _recordBuffer.Dispose();
+        _state.Dispose();
         await _reader.DisposeAsync();
-    }
-
-    public AsyncCsvEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
-    {
-        _cancellationToken = cancellationToken;
-        return this;
-    }
-
-    IAsyncEnumerator<CsvRecord<char>> IAsyncEnumerable<CsvRecord<char>>.GetAsyncEnumerator(CancellationToken cancellationToken)
-    {
-        return GetAsyncEnumerator(cancellationToken);
     }
 }

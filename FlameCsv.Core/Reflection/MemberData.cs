@@ -1,7 +1,6 @@
 ﻿using System.Reflection;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
-using FlameCsv.Extensions;
 
 namespace FlameCsv.Reflection;
 

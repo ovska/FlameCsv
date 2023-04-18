@@ -1,5 +1,4 @@
 ﻿using FlameCsv.Configuration;
-using FlameCsv.Extensions;
 using FlameCsv.Parsers;
 using FlameCsv.Parsers.Utf8;
 using FlameCsv.Utilities;

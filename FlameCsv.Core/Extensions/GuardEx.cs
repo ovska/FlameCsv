@@ -12,4 +12,17 @@ internal static class GuardEx
         if (!Enum.IsDefined(value))
             ThrowHelper.ThrowArgumentOutOfRangeException(name, value, null);
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void EnsureNotDefaultStruct(object? sentinel)
+    {
+        if (sentinel is null)
+            ThrowInvalidOp();
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static void ThrowInvalidOp()
+        {
+            throw new InvalidOperationException("The struct was uninitialized.");
+        }
+    }
 }

@@ -1,6 +1,4 @@
-﻿using CommunityToolkit.HighPerformance;
-
-namespace FlameCsv.Binding;
+﻿namespace FlameCsv.Binding;
 
 public sealed class DefaultTextHeaderMatcher : ICsvHeaderMatcher<char>
 {

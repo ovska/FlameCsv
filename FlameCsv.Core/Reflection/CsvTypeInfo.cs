@@ -3,7 +3,6 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
-using FlameCsv.Extensions;
 
 namespace FlameCsv.Reflection;
 
