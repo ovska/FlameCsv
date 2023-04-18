@@ -20,7 +20,10 @@ public sealed class CsvIndexIgnoreAttribute : Attribute
         ArgumentNullException.ThrowIfNull(indexes);
 
         foreach (var index in indexes)
-            Guard.IsGreaterThanOrEqualTo(index, 0);
+        {
+            if (index < 0)
+                ThrowHelper.ThrowArgumentException(nameof(indexes), "All indexes must be non-negative.");
+        }
 
         _indexes = indexes;
     }

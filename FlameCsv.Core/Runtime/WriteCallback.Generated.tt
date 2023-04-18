@@ -19,38 +19,42 @@ internal static class WriteTestGen<T, TWriter>
     where T : unmanaged, IEquatable<T>
     where TWriter : struct, IAsyncBufferWriter<T>
 {
-    private static void EnsureNoHeader(CsvWriterOptions<T> options)
+    private static void WriteHeader<TTuple>(CsvWriteOperation<T, TWriter> writer, CsvWriterOptions<T> options)
+        where TTuple : struct, System.Runtime.CompilerServices.ITuple
 	{
-		if (options.WriteHeader)
-            ThrowForHeaderRecordWhenWritingTuples();
-	}
+        if (options.WriteHeader)
+        {
+            int count = new TTuple().Length;
+            int current = 0;
+            
+            while (current < count)
+			{
+                if (current != 0) writer.WriteDelimiter();
+                writer.WriteString($"Item{++current}");
+		    }
 
-    private static void ThrowForHeaderRecordWhenWritingTuples()
-    {
-        throw new InvalidOperationException("Cannot write header when writing value tuples.");
-    }
+            writer.WriteNewline();
+        }
+	}
 
 <#
     for (int i = 1; i < TotalCount; i++)
 	{
 		var generics = string.Join(", ", genericTypes.Take(i + 1));
-    foreach (var isAsync in new[] { false, true })
-	{
-        var moniker = isAsync ? "Async" : "";
-        var waiter = isAsync ? "await " : "";
 #>
-    public static async Task Write<#= moniker #><<#= generics #>>(
+    public static async Task WriteAsync<<#= generics #>>(
         CsvWriteOperation<T, TWriter> writer,
         CsvWriterOptions<T> options,
-        I<#= moniker #>Enumerable<(<#= generics #>)> records,
+        IAsyncEnumerable<(<#= generics #>)> records,
         CancellationToken cancellationToken)
     {
-        EnsureNoHeader(options);
         cancellationToken.ThrowIfCancellationRequested();
 
-        <#= waiter #>using var enumerator = records.Get<#= moniker #>Enumerator(<# if (isAsync) Write("cancellationToken"); #>);
+        WriteHeader<(<#= generics #>)>(writer, options);
 
-        if (!<#= waiter #>enumerator.MoveNext<#= moniker #>())
+        await using var enumerator = records.GetAsyncEnumerator(cancellationToken);
+
+        if (!await enumerator.MoveNextAsync())
 			return;
 
 <#
@@ -66,6 +70,9 @@ internal static class WriteTestGen<T, TWriter>
 
         do
         {
+            if (writer.NeedsFlush)
+                await writer.FlushAsync(cancellationToken);
+
             var record = enumerator.Current;
 <#
     for (int j = 0; j <= i; j++)
@@ -74,16 +81,16 @@ internal static class WriteTestGen<T, TWriter>
 <# if (j != 0) { #>
             writer.WriteDelimiter();
 <# }#>
-            await writer.WriteValueAsync(formatter<#= j #>, record.<#= properties[j] #>, cancellationToken);
+            writer.WriteValue(formatter<#= j #>, record.<#= properties[j] #>);
 <#
     }
 #>
             writer.WriteNewline();
-        } while (<#= waiter #>enumerator.MoveNext<#= moniker #>());
+        }
+        while (await enumerator.MoveNextAsync());
     }
 
 <#
-        }
     }
 #>
 }

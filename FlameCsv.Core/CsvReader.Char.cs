@@ -70,63 +70,21 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(textReader);
         ArgumentNullException.ThrowIfNull(options);
 
+        var reader = new TextPipeReader(textReader, 4096, options.ArrayPool, leaveOpen);
+
         if (options.HasHeader)
         {
-            return ReadAsyncInternal<TValue, CsvHeaderProcessor<char, TValue>>(
-                textReader,
+            return ReadCoreAsync<char, TValue, TextPipeReader, CsvHeaderProcessor<char, TValue>>(
+                reader,
                 new CsvHeaderProcessor<char, TValue>(options),
-                options.ArrayPool,
-                leaveOpen,
                 cancellationToken);
         }
-
-        return ReadAsyncInternal<TValue, CsvProcessor<char, TValue>>(
-            textReader,
-            new CsvProcessor<char, TValue>(options),
-            options.ArrayPool,
-            leaveOpen,
-            cancellationToken);
-    }
-
-    private static async IAsyncEnumerable<TValue> ReadAsyncInternal<TValue, TProcessor>(
-        TextReader textReader,
-        TProcessor processor,
-        ArrayPool<char>? arrayPool,
-        bool leaveOpen,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
-        where TProcessor : struct, ICsvProcessor<char, TValue>
-    {
-        using var reader = new TextPipeReader(textReader, 4096, arrayPool, leaveOpen);
-
-        try
+        else
         {
-            while (true)
-            {
-                TextReadResult result = await reader.ReadAsync(cancellationToken);
-                ReadOnlySequence<char> buffer = result.Buffer;
-
-                while (processor.TryRead(ref buffer, out TValue value, isFinalBlock: false))
-                {
-                    yield return value;
-                }
-
-                reader.AdvanceTo(buffer.Start, buffer.End);
-
-                if (result.IsCompleted)
-                {
-                    // Read leftover data if there was no final newline
-                    if (processor.TryRead(ref buffer, out TValue value, isFinalBlock: true))
-                    {
-                        yield return value;
-                    }
-
-                    break;
-                }
-            }
-        }
-        finally
-        {
-            processor.Dispose();
+            return ReadCoreAsync<char, TValue, TextPipeReader, CsvProcessor<char, TValue>>(
+                reader,
+                new CsvProcessor<char, TValue>(options),
+                cancellationToken);
         }
     }
 }

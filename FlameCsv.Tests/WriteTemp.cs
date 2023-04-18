@@ -55,7 +55,7 @@ public static class WriteTemp
             {
                 for (var i = 0; i < 1000; i++)
                 {
-                    await writer.WriteValueAsync(formatter, i.ToString(), default);
+                    writer.WriteValue(formatter, i.ToString());
 
                     if (i < 999)
                         writer.WriteDelimiter();

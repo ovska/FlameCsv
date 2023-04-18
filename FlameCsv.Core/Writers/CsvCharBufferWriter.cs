@@ -24,7 +24,7 @@ internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>
             get => Buffer.Length - Unflushed;
         }
 
-        public bool NeedsFlush
+        public bool HasUnflushedData
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => Unflushed > 0;
@@ -34,6 +34,12 @@ internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>
     private readonly TextWriter _writer;
     private readonly ArrayPool<char> _arrayPool;
     private readonly State _state;
+
+    public bool NeedsFlush
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => (_state.Unflushed / (double)_state.Buffer.Length) >= 0.875;
+    }
 
     public CsvCharBufferWriter(
         TextWriter writer,
@@ -83,7 +89,7 @@ internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>
 
     public async ValueTask FlushAsync(CancellationToken cancellationToken = default)
     {
-        if (_state.NeedsFlush)
+        if (_state.HasUnflushedData)
         {
             await _writer.WriteAsync(_state.Buffer.AsMemory(0, _state.Unflushed), cancellationToken);
             _state.Unflushed = 0;
@@ -97,7 +103,7 @@ internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>
         if (cancellationToken.IsCancellationRequested)
             exception ??= new OperationCanceledException(cancellationToken);
 
-        if (exception is null && _state.NeedsFlush)
+        if (exception is null && _state.HasUnflushedData)
         {
             try
             {

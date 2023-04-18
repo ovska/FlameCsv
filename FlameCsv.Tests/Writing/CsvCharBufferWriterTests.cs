@@ -19,6 +19,23 @@ public sealed class CsvCharBufferWriterTests : IAsyncDisposable
             await _textWriter.DisposeAsync();
     }
 
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, false)]
+    [InlineData(16, false)]
+    [InlineData(24, false)]
+    [InlineData(27, false)]
+    [InlineData(28, true)]
+    [InlineData(32, true)]
+    [InlineData(1024, true)]
+    public void Should_Return_If_Needs_Flush(int written, bool expected)
+    {
+        Initialize(bufferSize: 32);
+        _ = _writer.GetSpan(written);
+        _writer.Advance(written);
+        Assert.Equal(_writer.NeedsFlush, expected);
+    }
+
     [Fact]
     public static void Should_Validate_Constructor_Params()
     {

@@ -1,6 +1,7 @@
 using System.Buffers;
 using FlameCsv.Configuration;
 using FlameCsv.Formatters;
+using FlameCsv.Formatters.Text;
 using FlameCsv.Utilities;
 using static FlameCsv.Utilities.SealableUtil;
 
@@ -39,7 +40,19 @@ public class CsvWriterOptions<T> : ICsvDialectOptions<T>, ISealable,
 
     public ArrayPool<T>? ArrayPool { get; set; }
 
-    public ICsvFormatter<T> GetFormatter(Type type) => throw new NotImplementedException();
+    public ICsvFormatter<T> GetFormatter(Type type)
+    {
+        if (type == typeof(int))
+            return (ICsvFormatter<T>)(object)new SpanFormattableTextFormatter<int>();
+
+        if (type == typeof(bool))
+            return (ICsvFormatter<T>)(object)new BooleanTextFormatter();
+
+        if (type == typeof(string))
+            return (ICsvFormatter<T>)(object)new StringTextFormatter();
+
+        throw new NotImplementedException();
+    }
 
     public ICsvFormatter<T, TValue> GetFormatter<TValue>() => throw new NotImplementedException();
 

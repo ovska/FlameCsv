@@ -39,7 +39,8 @@ public static partial class CsvReader
 for (var _tokenType = 0; _tokenType < 2; _tokenType++)
 {
     string tokenType = _tokenType == 0 ? "char" : "byte";
-    string readerType = _tokenType == 0 ? "TextReader" : "PipeReader";
+    string parameterReaderType = _tokenType == 0 ? "TextReader" : "PipeReader";
+    string readerType = _tokenType == 0 ? "TextPipeReader" : "CsvBytePipeReader";
 #>
 <#
     for (var current = 1; current <= TotalCount; current++)
@@ -53,7 +54,7 @@ for (var _tokenType = 0; _tokenType < 2; _tokenType++)
     /// <param name="cancellationToken">Token to cancel the enumeration</param>
     /// <remarks>The CSV records must have <#= current #> column<# if (current != 1) Write("s"); #>.</remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<<#= generics #>>(
-        <#= readerType #> reader,
+        <#= parameterReaderType #> reader,
         CsvReaderOptions<<#= tokenType #>> options,
         Func<<#= generics #>> recordFactory,
         CancellationToken cancellationToken = default)
@@ -70,13 +71,16 @@ for (var _tokenType = 0; _tokenType < 2; _tokenType++)
         #>);
         CsvProcessor<<#= tokenType #>, TValue> processor = new(options, materializer);
 
-        return ReadAsyncInternal<TValue, CsvProcessor<<#= tokenType #>, TValue>>(
-            reader,
-            processor,
 <# if (tokenType == "char") { #>
-            arrayPool: options.ArrayPool,
-            leaveOpen: false,
-<# } #>            cancellationToken: cancellationToken);
+        var pipeReader = new <#= readerType #>(reader, options.ArrayPool);
+<# } else { #>
+        var pipeReader = new PipeReaderWrapper(reader);
+<# } #>
+
+        return ReadCore<<#= tokenType #>, TValue, <#= readerType #>, CsvProcessor<<#= tokenType #>, TValue>>(
+            pipeReader,
+            processor,
+            cancellationToken: cancellationToken);
     }
 
 <#

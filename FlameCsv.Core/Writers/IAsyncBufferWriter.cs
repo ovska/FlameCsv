@@ -5,6 +5,11 @@ namespace FlameCsv.Writers;
 internal interface IAsyncBufferWriter<T> : IBufferWriter<T> where T : unmanaged
 {
     /// <summary>
+    /// Whether the writer's buffer is nearly full and it needs to be flushed.
+    /// </summary>
+    bool NeedsFlush { get; }
+
+    /// <summary>
     /// Flushes the writer.
     /// </summary>
     ValueTask FlushAsync(CancellationToken cancellationToken = default);

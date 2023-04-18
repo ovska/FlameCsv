@@ -11,8 +11,8 @@ namespace FlameCsv.Reading;
 /// <summary>
 /// Wrapper around a TextReader to facilitate reading it like a PipeReader.
 /// </summary>
-[DebuggerDisplay(@"\{ TextPipeReader, Buffered: {_bufferedBytes}, TextReader completed: {_readerCompleted} \}")]
-internal sealed class TextPipeReader : IDisposable
+[DebuggerDisplay(@"\{ TextPipeReader, Buffered: {_bufferedBytes}, Completed: {_readerCompleted} \}")]
+internal sealed class TextPipeReader : ICsvPipeReader<char>
 {
     private readonly TextReader _innerReader;
     private readonly int _bufferSize;
@@ -32,6 +32,10 @@ internal sealed class TextPipeReader : IDisposable
     // Mutable struct! Don't make this readonly
     private TextSegmentPool _segmentPool;
 
+    public TextPipeReader(TextReader innerReader, ArrayPool<char>? arrayPool) : this(innerReader, 4096, arrayPool, false)
+    {
+    }
+
     public TextPipeReader(
         TextReader innerReader,
         int bufferSize,
@@ -45,23 +49,23 @@ internal sealed class TextPipeReader : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ValueTask<TextReadResult> ReadAsync(CancellationToken cancellationToken = default)
+    public ValueTask<CsvReadResult<char>> ReadAsync(CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
 
         if (cancellationToken.IsCancellationRequested)
         {
-            return ValueTask.FromCanceled<TextReadResult>(cancellationToken);
+            return ValueTask.FromCanceled<CsvReadResult<char>>(cancellationToken);
         }
 
         if (TryRead(out var buffer))
         {
-            return new(new TextReadResult(buffer, false));
+            return new(new CsvReadResult<char>(buffer, false));
         }
 
         if (_readerCompleted)
         {
-            return new(new TextReadResult(default, true));
+            return new(new CsvReadResult<char>(default, true));
         }
 
         return ReadAsyncCore(cancellationToken);
@@ -90,7 +94,7 @@ internal sealed class TextPipeReader : IDisposable
             : new ReadOnlySequence<char>(_readHead, _readIndex, _readTail!, _readTail!.End);
     }
 
-    private async ValueTask<TextReadResult> ReadAsyncCore(CancellationToken cancellationToken)
+    private async ValueTask<CsvReadResult<char>> ReadAsyncCore(CancellationToken cancellationToken)
     {
         EnsureReadTail();
 
@@ -108,7 +112,7 @@ internal sealed class TextPipeReader : IDisposable
             _readerCompleted = true;
         }
 
-        return new TextReadResult(GetCurrentReadOnlySequence(), _readerCompleted);
+        return new CsvReadResult<char>(GetCurrentReadOnlySequence(), _readerCompleted);
     }
 
     private void EnsureReadTail()
@@ -210,23 +214,25 @@ internal sealed class TextPipeReader : IDisposable
         }
     }
 
-    public void Dispose()
+    public ValueTask DisposeAsync()
     {
-        if (_disposed)
-            return;
-
-        _disposed = true;
-
-        TextSegment? segment = _readHead;
-        while (segment != null)
+        if (!_disposed)
         {
-            TextSegment returnSegment = segment;
-            segment = segment.NextSegment;
-            returnSegment.ResetMemory();
+            _disposed = true;
+
+            TextSegment? segment = _readHead;
+            while (segment != null)
+            {
+                TextSegment returnSegment = segment;
+                segment = segment.NextSegment;
+                returnSegment.ResetMemory();
+            }
+
+            if (!_leaveOpen)
+                _innerReader.Dispose();
         }
 
-        if (!_leaveOpen)
-            _innerReader.Dispose();
+        return default;
     }
 
     private TextSegment CreateSegmentUnsynchronized()

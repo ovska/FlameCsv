@@ -1,7 +1,7 @@
 using System.Buffers;
 using System.IO.Pipelines;
-using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
+using FlameCsv.Extensions;
 using FlameCsv.Reading;
 
 namespace FlameCsv;
@@ -18,6 +18,7 @@ public static partial class CsvReader
     /// </remarks>
     /// <param name="stream">Stream to read the records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="leaveOpen">Whether to leave the stream open after it has been read</param>
     /// <param name="cancellationToken">Token to cancel the enumeration</param>
     /// <returns>
     /// <see cref="IAsyncEnumerable{T}"/> that reads records asynchronously line-by-line from the stream
@@ -26,12 +27,21 @@ public static partial class CsvReader
     public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
         Stream stream,
         CsvReaderOptions<byte> options,
+        bool leaveOpen = false,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(options);
         Guard.CanRead(stream);
-        return ReadAsync<TValue>(PipeReader.Create(stream), options, cancellationToken);
+
+        MemoryPool<byte>? memoryPool = options.ArrayPool == ArrayPool<byte>.Shared
+            ? null
+            : new ArrayPoolMemoryPoolWrapper<byte>(options.ArrayPool ?? AllocatingArrayPool<byte>.Instance);
+
+        return ReadAsync<TValue>(
+            PipeReader.Create(stream, new StreamPipeReaderOptions(pool: memoryPool, leaveOpen: leaveOpen)),
+            options,
+            cancellationToken);
     }
 
     /// <summary>
@@ -44,7 +54,7 @@ public static partial class CsvReader
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="cancellationToken">Token to cancel the enumeration</param>
     /// <returns>
-    /// <see cref="IAsyncEnumerable{T}"/> that reads records asynchronously line-by-line from the stream
+    /// <see cref="IAsyncEnumerable{T}"/> that reads records asynchronously line-by-line from the reader
     /// as it is enumerated.
     /// </returns>
     public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
@@ -57,52 +67,17 @@ public static partial class CsvReader
 
         if (options.HasHeader)
         {
-            var processor = new CsvHeaderProcessor<byte, TValue>(options);
-            return ReadAsyncInternal<TValue, CsvHeaderProcessor<byte, TValue>>(reader, processor, cancellationToken);
+            return ReadCoreAsync<byte, TValue, PipeReaderWrapper, CsvHeaderProcessor<byte, TValue>>(
+                new PipeReaderWrapper(reader),
+                new CsvHeaderProcessor<byte, TValue>(options),
+                cancellationToken);
         }
         else
         {
-            var processor = new CsvProcessor<byte, TValue>(options);
-            return ReadAsyncInternal<TValue, CsvProcessor<byte, TValue>>(reader, processor, cancellationToken);
-        }
-    }
-
-    private static async IAsyncEnumerable<TValue> ReadAsyncInternal<TValue, TProcessor>(
-        PipeReader reader,
-        TProcessor processor,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
-        where TProcessor : struct, ICsvProcessor<byte, TValue>
-    {
-        try
-        {
-            while (true)
-            {
-                ReadResult result = await reader.ReadAsync(cancellationToken);
-                ReadOnlySequence<byte> buffer = result.Buffer;
-
-                while (processor.TryRead(ref buffer, out TValue value, isFinalBlock: false))
-                {
-                    yield return value;
-                }
-
-                reader.AdvanceTo(buffer.Start, buffer.End);
-
-                if (result.IsCompleted)
-                {
-                    // Read leftover data if there was no final newline
-                    if (processor.TryRead(ref buffer, out TValue value, isFinalBlock: true))
-                    {
-                        yield return value;
-                    }
-
-                    break;
-                }
-            }
-        }
-        finally
-        {
-            processor.Dispose();
-            await reader.CompleteAsync();
+            return ReadCoreAsync<byte, TValue, PipeReaderWrapper, CsvProcessor<byte, TValue>>(
+                new PipeReaderWrapper(reader),
+                new CsvProcessor<byte, TValue>(options),
+                cancellationToken);
         }
     }
 }

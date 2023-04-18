@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Configuration;
@@ -39,6 +40,38 @@ internal static class InfrastructureExtensions
         where T : unmanaged, IEquatable<T>
     {
         ReadOnlyMemory<T> value = default;
+
+        if (config is not null && !config.TryGetOverride(type, out value))
+        {
+            value = config.Default;
+        }
+
+        return value;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static string? GetFormatOrDefault<T>(
+        this ICsvFormatConfiguration<T>? config,
+        Type type)
+        where T : unmanaged, IEquatable<T>
+    {
+        string? value = null;
+
+        if (config is not null && !config.TryGetOverride(type, out value))
+        {
+            value = config.Default;
+        }
+
+        return value;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static IFormatProvider? GetFormatProviderOrDefault<T>(
+        this ICsvFormatProviderConfiguration<T>? config,
+        Type type)
+        where T : unmanaged, IEquatable<T>
+    {
+        IFormatProvider? value = CultureInfo.InvariantCulture;
 
         if (config is not null && !config.TryGetOverride(type, out value))
         {

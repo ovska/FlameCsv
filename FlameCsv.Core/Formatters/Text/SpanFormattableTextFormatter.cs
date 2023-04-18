@@ -1,3 +1,4 @@
+using System.Globalization;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Formatters.Text;
@@ -23,10 +24,14 @@ public sealed class SpanFormattableTextFormatter<TValue> : ICsvFormatter<char, T
     /// </summary>
     public string? Format { get; }
 
+    public SpanFormattableTextFormatter() : this(null, CultureInfo.InvariantCulture, null)
+    {
+    }
+
     public SpanFormattableTextFormatter(
         string? nullToken,
-        IFormatProvider? formatProvider = null,
-        string? format = null)
+        IFormatProvider? formatProvider,
+        string? format)
     {
         Null = nullToken;
         FormatProvider = formatProvider;
@@ -37,7 +42,7 @@ public sealed class SpanFormattableTextFormatter<TValue> : ICsvFormatter<char, T
     {
         if (value is not null) // the condition is JITed out for value types
         {
-            return value.TryFormat(destination, out tokensWritten, Format.AsSpan(), FormatProvider);
+            return value.TryFormat(destination, out tokensWritten, Format, FormatProvider);
         }
 
         return Null.AsSpan().TryWriteTo(destination, out tokensWritten);
