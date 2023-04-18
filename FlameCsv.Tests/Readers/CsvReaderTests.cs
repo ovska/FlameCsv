@@ -2,27 +2,38 @@ using System.Buffers;
 using System.IO.Pipelines;
 using System.Text;
 using CommunityToolkit.HighPerformance.Buffers;
+using FlameCsv.Extensions;
+using FlameCsv.Reading;
 using FlameCsv.Tests.TestData;
 using FlameCsv.Tests.Utilities;
+using FlameCsv.Utilities;
 
 // ReSharper disable ConvertIfStatementToSwitchStatement
 // ReSharper disable LoopCanBeConvertedToQuery
 
 namespace FlameCsv.Tests.Readers;
 
-public class CsvReaderTests : PooledBufferVerifier
+public sealed class CsvReaderTests : IDisposable
 {
     public enum CsvApi
     {
         Async,
         Sync,
+        AsyncEnum,
         Enumerator,
     }
+
+    public void Dispose()
+    {
+        _trackingPool?.Dispose();
+    }
+
+    private IDisposable? _trackingPool;
 
     public static IEnumerable<object[]> GetTestParameters()
     {
         return
-            from api in new[] { CsvApi.Async, CsvApi.Sync, CsvApi.Enumerator }
+            from api in new[] { CsvApi.Async, CsvApi.Sync, CsvApi.Enumerator, CsvApi.AsyncEnum }
             from type in new[] { typeof(char), typeof(byte) }
             from bufferSize in new[] { -1, 17, 128, 1024, 8096 }
             from crlf in new[] { true, false }
@@ -52,14 +63,18 @@ public class CsvReaderTests : PooledBufferVerifier
 
         if (type == typeof(char))
         {
+            var pool = new ReturnTrackingArrayPool<char>();
+            _trackingPool = pool;
+
             var options = new CsvTextReaderOptions
             {
                 DateTimeFormat = "O",
                 Newline = newLine.AsMemory(),
-                HasHeader = header
+                HasHeader = header,
+                ArrayPool = pool,
             };
 
-            if (api == CsvApi.Async)
+            if (api is CsvApi.Async or CsvApi.AsyncEnum)
             {
                 using var owner = GetDataBytes();
                 var segment = owner.DangerousGetArray();
@@ -68,9 +83,16 @@ public class CsvReaderTests : PooledBufferVerifier
                     Encoding.UTF8,
                     bufferSize: bufferSize);
 
-                await foreach (var obj in CsvReader.ReadAsync<Obj>(reader, options))
+                if (api == CsvApi.Async)
                 {
-                    items.Add(obj);
+                    await foreach (var obj in CsvReader.ReadAsync<Obj>(reader, options))
+                    {
+                        items.Add(obj);
+                    }
+                }
+                else
+                {
+                    await EnumerateToListAsync(header, CsvReader.EnumerateAsync(reader, options), items);
                 }
             }
             else
@@ -89,25 +111,36 @@ public class CsvReaderTests : PooledBufferVerifier
         }
         else if (type == typeof(byte))
         {
+            var pool = new ReturnTrackingArrayPool<byte>();
+            _trackingPool = pool;
+
             var options = new CsvUtf8ReaderOptions
             {
                 DateTimeFormat = 'O',
                 Newline = Encoding.UTF8.GetBytes(newLine),
-                HasHeader = header
+                HasHeader = header,
+                ArrayPool = pool,
             };
 
             using var owner = GetDataBytes();
 
-            if (api == CsvApi.Async)
+            if (api is CsvApi.Async or CsvApi.AsyncEnum)
             {
                 var segment = owner.DangerousGetArray();
                 var pipeReader = PipeReader.Create(
                     new MemoryStream(segment.Array!, segment.Offset, segment.Count),
-                    new StreamPipeReaderOptions(bufferSize: bufferSize));
+                    new StreamPipeReaderOptions(bufferSize: bufferSize, pool: new ArrayPoolMemoryPoolWrapper<byte>(options.ArrayPool)));
 
-                await foreach (var obj in CsvReader.ReadAsync<Obj>(pipeReader, options))
+                if (api is CsvApi.Async)
                 {
-                    items.Add(obj);
+                    await foreach (var obj in CsvReader.ReadAsync<Obj>(pipeReader, options))
+                    {
+                        items.Add(obj);
+                    }
+                }
+                else
+                {
+                    await EnumerateToListAsync(header, CsvReader.EnumerateAsync(pipeReader, options), items);
                 }
             }
             else
@@ -197,6 +230,39 @@ public class CsvReaderTests : PooledBufferVerifier
             Assert.Equal(tokenPosition, record.Position);
 
             tokenPosition += record.Data.Length + options.Newline.Length;
+
+            if (skipFirst)
+            {
+                skipFirst = false;
+                continue;
+            }
+
+            items.Add(
+                new Obj
+                {
+                    Id = record.GetValue<int>(0),
+                    Name = record.GetValue<string?>(1),
+                    IsEnabled = record.GetValue<bool>(2),
+                    LastLogin = record.GetValue<DateTimeOffset>(3),
+                    Token = record.GetValue<Guid>(4),
+                });
+        }
+    }
+
+    private static async Task EnumerateToListAsync<T>(
+        bool skipFirst,
+        AsyncCsvEnumerator<T> enumerator,
+        ICollection<Obj> items) where T : unmanaged, IEquatable<T>
+    {
+        int index = 1;
+        long tokenPosition = 0;
+
+        await foreach (var record in enumerator)
+        {
+            Assert.Equal(index++, record.Line);
+            Assert.Equal(tokenPosition, record.Position);
+
+            tokenPosition += record.Data.Length + enumerator.Dialect.Newline.Length;
 
             if (skipFirst)
             {

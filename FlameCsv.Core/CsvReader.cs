@@ -1,5 +1,9 @@
-﻿using FlameCsv.Reading;
+﻿using CommunityToolkit.Diagnostics;
+using FlameCsv.Extensions;
+using FlameCsv.Reading;
 using System.Buffers;
+using System.Diagnostics;
+using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 
 namespace FlameCsv;
@@ -81,5 +85,28 @@ public static partial class CsvReader
         {
             processor.Dispose();
         }
+    }
+
+    /// <summary>
+    /// Creates a PipeReader from a Stream.
+    /// </summary>
+    [StackTraceHidden]
+    private static PipeReader CreatePipeReader(
+        Stream stream,
+        CsvReaderOptions<byte> options,
+        bool leaveOpen)
+    {
+        Guard.CanRead(stream);
+
+        MemoryPool<byte>? memoryPool = null;
+
+        if (options.ArrayPool != ArrayPool<byte>.Shared)
+        {
+            memoryPool = new ArrayPoolMemoryPoolWrapper<byte>(options.ArrayPool ?? AllocatingArrayPool<byte>.Instance);
+        }
+
+        return PipeReader.Create(
+            stream,
+            new StreamPipeReaderOptions(pool: memoryPool, leaveOpen: leaveOpen));
     }
 }
