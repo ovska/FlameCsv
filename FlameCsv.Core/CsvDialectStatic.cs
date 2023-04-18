@@ -21,8 +21,8 @@ internal static class CsvDialectStatic
         if (typeof(T) == typeof(byte))
             return (CsvDialect<T>)(object)_byteCRLF;
 
-        throw new NotSupportedException(
-            $"{nameof(CsvDialect<T>)}<{typeof(T).Name}>.{nameof(CsvDialect<T>.Default)} is not supported.");
+        Token<T>.ThrowNotSupportedException();
+        return default; // unreachable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -75,6 +75,6 @@ internal static class CsvDialectStatic
     private static void ThrowForDefault()
     {
         throw new CsvConfigurationException(
-            "All CSV dialect tokens were uninitialized (separator, quote, newline, whitespace, escape).");
+            "All CSV dialect tokens were uninitialized (separator, quote, newline).");
     }
 }

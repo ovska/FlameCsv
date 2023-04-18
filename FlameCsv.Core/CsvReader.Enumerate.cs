@@ -6,12 +6,21 @@ public static partial class CsvReader
 {
     /// <inheritdoc cref="Enumerate{T}(ReadOnlySequence{T},CsvReaderOptions{T})"/>
     public static CsvEnumerator<char> Enumerate(
-        string csv,
+        string? csv,
         CsvReaderOptions<char> options)
     {
         ArgumentNullException.ThrowIfNull(csv);
         ArgumentNullException.ThrowIfNull(options);
         return new CsvEnumerator<char>(new(csv.AsMemory()), options, null);
+    }
+
+    public static CsvEnumerator<byte> Enumerate(
+        ReadOnlyMemory<byte> csv,
+        CsvReaderOptions<byte> options)
+    {
+        ArgumentNullException.ThrowIfNull(csv);
+        ArgumentNullException.ThrowIfNull(options);
+        return new CsvEnumerator<byte>(new(csv), options, null);
     }
 
     /// <inheritdoc cref="Enumerate{T}(ReadOnlySequence{T},CsvReaderOptions{T})"/>

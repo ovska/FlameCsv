@@ -8,7 +8,7 @@ public static partial class CsvReader
     // to avoid user having to use two generics for common operations
     /// <inheritdoc cref="Read{T,TValue}(CsvReaderOptions{T},ReadOnlyMemory{T})"/>
     public static IEnumerable<TValue> Read<TValue>(
-        string csv,
+        string? csv,
         CsvReaderOptions<char> options)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -61,39 +61,12 @@ public static partial class CsvReader
         if (options.HasHeader)
         {
             var processor = new CsvHeaderProcessor<T, TValue>(options);
-            return ReadInternal<T, TValue, CsvHeaderProcessor<T, TValue>>(csv, processor);
+            return ReadCore<T, TValue, CsvHeaderProcessor<T, TValue>>(csv, processor);
         }
         else
         {
             var processor = new CsvProcessor<T, TValue>(options);
-            return ReadInternal<T, TValue, CsvProcessor<T, TValue>>(csv, processor);
-        }
-    }
-
-    private static IEnumerable<TValue> ReadInternal<T, TValue, TProcessor>(
-        ReadOnlySequence<T> buffer,
-        TProcessor processor)
-        where T : unmanaged, IEquatable<T>
-        where TProcessor : struct, ICsvProcessor<T, TValue>
-    {
-        try
-        {
-            TValue value;
-
-            while (processor.TryRead(ref buffer, out value, isFinalBlock: false))
-            {
-                yield return value;
-            }
-
-            // try to read final record if buffer didn't have trailing newline
-            if (processor.TryRead(ref buffer, out value, isFinalBlock: true))
-            {
-                yield return value;
-            }
-        }
-        finally
-        {
-            processor.Dispose();
+            return ReadCore<T, TValue, CsvProcessor<T, TValue>>(csv, processor);
         }
     }
 }

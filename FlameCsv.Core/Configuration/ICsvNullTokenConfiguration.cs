@@ -26,7 +26,7 @@ public interface ICsvFormatProviderConfiguration<T> where T : unmanaged, IEquata
 /// <typeparam name="T">Token type</typeparam>
 public interface ICsvFormatConfiguration<T> where T : unmanaged, IEquatable<T>
 {
-    string? GetFormat(Type type);
+    string? Default { get; }
     bool TryGetOverride(Type type, out string? value);
 }
 

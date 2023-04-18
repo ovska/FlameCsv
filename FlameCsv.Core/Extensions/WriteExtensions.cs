@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using CommunityToolkit.HighPerformance.Buffers;
 using System.Text;
 
 namespace FlameCsv.Extensions;

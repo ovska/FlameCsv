@@ -1,15 +1,14 @@
 ﻿using System.Buffers;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Configuration;
 using FlameCsv.Extensions;
 using FlameCsv.Formatters;
-using FlameCsv.Formatters.Internal;
 using FlameCsv.Reading;
 
 namespace FlameCsv.Writers;
@@ -43,6 +42,12 @@ internal sealed class CsvWriteOperation<T, TWriter> : IAsyncDisposable
     where T : unmanaged, IEquatable<T>
     where TWriter : struct, IAsyncBufferWriter<T>
 {
+    public bool NeedsFlush
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _writer.NeedsFlush;
+    }
+
     /// <summary>
     /// Observed exception when reading the data.
     /// </summary>
@@ -66,41 +71,28 @@ internal sealed class CsvWriteOperation<T, TWriter> : IAsyncDisposable
         _nullCfg = options as ICsvNullTokenConfiguration<T>;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ValueTask WriteValueAsync<TValue>(
-        ICsvFormatter<T, TValue> formatter,
-        TValue value,
-        CancellationToken cancellationToken)
-    {
-        return !cancellationToken.IsCancellationRequested
-            ? WriteValueCore(_writer.GetSpan(), formatter, value, cancellationToken)
-            : ValueTask.FromCanceled(cancellationToken);
-    }
-
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private ValueTask WriteValueCore<TValue>(
-        Span<T> destination,
-        ICsvFormatter<T, TValue> formatter,
-        TValue value,
-        CancellationToken cancellationToken)
+    public void WriteValue<TValue>(ICsvFormatter<T, TValue> formatter, TValue value)
     {
-        bool formatSuccessful;
         int tokensWritten;
+        scoped Span<T> destination;
 
         // this whole branch is JITed out for value types
         if (value is null && !formatter.HandleNull)
         {
-            formatSuccessful = _nullCfg.GetNullTokenOrDefault(typeof(TValue)).Span.TryWriteTo(destination, out tokensWritten);
+            ReadOnlySpan<T> nullValue = _nullCfg.GetNullTokenOrDefault(typeof(TValue)).Span;
+            destination = _writer.GetSpan(nullValue.Length);
+            nullValue.CopyTo(destination);
+            tokensWritten = nullValue.Length;
         }
         else
         {
-            formatSuccessful = formatter.TryFormat(value, destination, out tokensWritten);
-        }
+            destination = _writer.GetSpan();
 
-        if (!formatSuccessful)
-        {
-            // Buffer too small, grow and retry
-            return GrowAndRetryAsync(destination.Length, formatter, value, cancellationToken);
+            while (!formatter.TryFormat(value, destination, out tokensWritten))
+            {
+                destination = _writer.GetSpan(destination.Length * 2);
+            }
         }
 
         // validate negative or too large tokensWritten in case of broken user-defined formatters
@@ -109,7 +101,7 @@ internal sealed class CsvWriteOperation<T, TWriter> : IAsyncDisposable
             WriteOpHelpers.ThrowForInvalidTokensWritten(formatter, tokensWritten, destination.Length);
         }
 
-        // early exit for empty writes, e.g. nulls
+        // early exit for empty writes, like nulls or empty strings
         if (tokensWritten == 0)
         {
             if (_fieldQuoting == CsvFieldQuoting.Always)
@@ -122,7 +114,7 @@ internal sealed class CsvWriteOperation<T, TWriter> : IAsyncDisposable
                 _writer.Advance(2);
             }
 
-            return default;
+            return;
         }
 
         // Value formatted, check if it needs to be wrapped in quotes
@@ -152,7 +144,7 @@ internal sealed class CsvWriteOperation<T, TWriter> : IAsyncDisposable
                 // to avoid having to call the formatter again after growing the buffer
                 if (escapedLength > destination.Length)
                 {
-                    ReadOnlyMemory<T> overflow = WriteUtil<T>.EscapeWithOverflow(
+                    ReadOnlySpan<T> overflow = WriteUtil<T>.EscapeWithOverflow(
                         written,
                         destination,
                         _dialect.Quote,
@@ -162,9 +154,10 @@ internal sealed class CsvWriteOperation<T, TWriter> : IAsyncDisposable
                     // The whole of the span is filled, with the leftovers being written to the overflow
                     _writer.Advance(destination.Length);
 
-                    // Return the async version from the get go; this is a rare case and we can safely
-                    // assume that pipe/textwriter needs to be flushed anyway if the buffer is full
-                    return FlushAndWriteMemoryAsync(overflow, cancellationToken);
+                    overflow.CopyTo(_writer.GetSpan(overflow.Length));
+                    _writer.Advance(overflow.Length);
+
+                    return;
                 }
 
                 // escape directly to the destination buffer and adjust the tokens written accordingly
@@ -174,18 +167,6 @@ internal sealed class CsvWriteOperation<T, TWriter> : IAsyncDisposable
         }
 
         _writer.Advance(tokensWritten);
-        return default;
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private async ValueTask GrowAndRetryAsync<TValue>(
-        int previousBufferLength,
-        ICsvFormatter<T, TValue> formatter,
-        TValue value,
-        CancellationToken cancellationToken)
-    {
-        await _writer.FlushAsync(cancellationToken);
-        await WriteValueCore(_writer.GetSpan(previousBufferLength * 2), formatter, value, cancellationToken);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -204,12 +185,36 @@ internal sealed class CsvWriteOperation<T, TWriter> : IAsyncDisposable
         _writer.Advance(_dialect.Newline.Length);
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private async ValueTask FlushAndWriteMemoryAsync(ReadOnlyMemory<T> tokens, CancellationToken cancellationToken)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void WriteString(ReadOnlySpan<char> value)
     {
-        await _writer.FlushAsync(cancellationToken);
-        tokens.Span.CopyTo(_writer.GetSpan(tokens.Length));
-        _writer.Advance(tokens.Length);
+        if (value.IsEmpty)
+            return;
+
+        if (typeof(T) == typeof(char))
+        {
+            Span<T> destination = _writer.GetSpan(value.Length);
+            value.CopyTo(destination.Cast<T, char>());
+            _writer.Advance(value.Length);
+        }
+        else if (typeof(T) == typeof(byte))
+        {
+            Span<T> destination = _writer.GetSpan(Encoding.UTF8.GetMaxByteCount(value.Length));
+            int written = Encoding.UTF8.GetBytes(value, destination.Cast<T, byte>());
+            _writer.Advance(written);
+        }
+        else
+        {
+            Token<T>.ThrowNotSupportedException();
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ValueTask FlushAsync(CancellationToken cancellationToken = default)
+    {
+        return !cancellationToken.IsCancellationRequested
+            ? _writer.FlushAsync(cancellationToken)
+            : ValueTask.FromCanceled(cancellationToken);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -10,8 +10,16 @@ namespace FlameCsv.Writers;
     @"\{ CsvPipeWriter, Unflushed: {Unflushed} \}")]
 internal readonly struct CsvByteBufferWriter : IAsyncBufferWriter<byte>
 {
+    public const int InternalFlushThreshold = 4096 - 256;
+
     private readonly PipeWriter _pipeWriter;
     private readonly Box<int> _unflushed = 0;
+
+    public bool NeedsFlush
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _unflushed >= InternalFlushThreshold;
+    }
 
     public CsvByteBufferWriter(PipeWriter pipeWriter)
     {

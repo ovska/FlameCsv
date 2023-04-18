@@ -1,24 +1,31 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Buffers;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.IO.Pipelines;
+using System.Text;
+using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Extensions;
 using FlameCsv.Formatters;
 using FlameCsv.Writers;
 
 namespace FlameCsv.Tests.Writing;
 
-public sealed class CsvCharWriterTests : IAsyncDisposable
+public sealed class CsvByteWriterTests : IAsyncDisposable
 {
-    private CsvWriteOperation<char, CsvCharBufferWriter>? _writer;
-    private StringWriter? _textWriter;
+    private CsvWriteOperation<byte, CsvByteBufferWriter>? _writer;
+    private MemoryStream? _stream;
 
-    private string Written => _textWriter?.ToString() ?? string.Empty;
+    private string Written => _stream is not null && _stream.TryGetBuffer(out var buffer)
+        ? Encoding.UTF8.GetString(buffer.AsSpan())
+        : throw new UnreachableException();
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
         if (_writer is not null)
             await _writer.DisposeAsync();
 
-        if (_textWriter is not null)
-            await _textWriter.DisposeAsync();
+        if (_stream is not null)
+            await _stream.DisposeAsync();
     }
 
     [Fact]
@@ -126,36 +133,50 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
         CsvFieldQuoting quoting = CsvFieldQuoting.Auto,
         int bufferSize = 1024)
     {
-        _textWriter = new StringWriter();
-        _writer = new CsvWriteOperation<char, CsvCharBufferWriter>(
-            new CsvCharBufferWriter(_textWriter, AllocatingArrayPool<char>.Instance, bufferSize),
-            new CsvWriterOptions<char> { FieldQuoting = quoting, Null = "null".AsMemory() });
+        _stream = new MemoryStream();
+        _writer = new CsvWriteOperation<byte, CsvByteBufferWriter>(
+            new CsvByteBufferWriter(PipeWriter.Create(_stream, new StreamPipeWriterOptions(minimumBufferSize: bufferSize, pool: new AllocatingMemoryPool()))),
+            new CsvWriterOptions<byte> { FieldQuoting = quoting, Null = "null"u8.ToArray() });
     }
 
-    private sealed class Formatter : ICsvFormatter<char, string>
+    private sealed class Formatter : ICsvFormatter<byte, string>
     {
         public static readonly Formatter Instance = new();
 
         public bool CanFormat(Type valueType)
             => throw new NotImplementedException();
 
-        public bool TryFormat(string value, Span<char> destination, out int tokensWritten)
-            => value.AsSpan().TryWriteTo(destination, out tokensWritten);
+        public bool TryFormat(string value, Span<byte> destination, out int tokensWritten)
+            => value.AsSpan().TryWriteUtf8To(destination, out tokensWritten);
 
         public bool HandleNull => false;
     }
 
-    private sealed class BrokenFormatter : ICsvFormatter<char, string>
+    private sealed class BrokenFormatter : ICsvFormatter<byte, string>
     {
         public int Write { get; set; }
 
         public bool CanFormat(Type valueType)
             => throw new NotImplementedException();
 
-        public bool TryFormat(string value, Span<char> destination, out int tokensWritten)
+        public bool TryFormat(string value, Span<byte> destination, out int tokensWritten)
         {
             tokensWritten = Write;
             return true;
+        }
+    }
+
+    private sealed class AllocatingMemoryPool : MemoryPool<byte>
+    {
+        public override int MaxBufferSize => Array.MaxLength;
+
+        public override IMemoryOwner<byte> Rent(int minBufferSize = -1)
+        {
+            return MemoryOwner<byte>.Allocate(Math.Max(0, minBufferSize), AllocatingArrayPool<byte>.Instance);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
         }
     }
 }

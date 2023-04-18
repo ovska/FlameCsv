@@ -4,21 +4,8 @@
     <Version>0.0.1</Version>
     <RootNamespace>FlameCsv</RootNamespace>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
   </PropertyGroup>
-
-  <ItemGroup>
-    <None Include="Runtime\CsvReader.Generated.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>CsvReader.Generated.tt</DependentUpon>
-    </None>
-    <None Include="Runtime\WriteCallback.Generated.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>WriteCallback.Generated.tt</DependentUpon>
-    </None>
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Diagnostics" Version="8.1.0" />
@@ -56,14 +43,9 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>CsvReader.Generated.tt</DependentUpon>
     </Compile>
-    <Compile Update="Runtime\CsvReader.Inline.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>CsvReader.Inline.tt</DependentUpon>
-    </Compile>
     <Compile Update="Runtime\Materializer.Generated.cs">
       <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
+      <AutoGen>False</AutoGen>
       <DependentUpon>Materializer.Generated.tt</DependentUpon>
     </Compile>
     <Compile Update="Runtime\WriteCallback.Generated.cs">

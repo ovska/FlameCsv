@@ -18,6 +18,19 @@ public sealed class CsvByteBufferWriterTests : IAsyncDisposable
         await _memoryStream.DisposeAsync();
     }
 
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(CsvByteBufferWriter.InternalFlushThreshold - 1, false)]
+    [InlineData(CsvByteBufferWriter.InternalFlushThreshold, true)]
+    [InlineData(CsvByteBufferWriter.InternalFlushThreshold + 100, true)]
+    public void Should_Return_If_Needs_Flush(int written, bool expected)
+    {
+        Initialize();
+        _ = _writer.GetSpan(written);
+        _writer.Advance(written);
+        Assert.Equal(_writer.NeedsFlush, expected);
+    }
+
     [Fact]
     public static void Should_Validate_Constructor_Params()
     {

@@ -1,13 +1,10 @@
-﻿using System.Collections.Generic;
-using System.Diagnostics.Metrics;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 using System.Reflection;
-using System.Runtime.Serialization;
+using FastExpressionCompiler;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Internal;
 using FlameCsv.Extensions;
 using FlameCsv.Formatters;
-using FlameCsv.Formatters.Internal;
 using FlameCsv.Writers;
 
 namespace FlameCsv.Runtime;
@@ -19,11 +16,7 @@ namespace FlameCsv.Runtime;
 /// <typeparam name="TValue">Record type</typeparam>
 /// <param name="writer">Writer instance</param>
 /// <param name="value">Record instance</param>
-/// <param name="cancellationToken">Token to cancel the asynchronous write operation</param>
-internal delegate ValueTask WriteCallback<T, TWriter, TValue>(
-       CsvWriteOperation<T, TWriter> writer,
-       TValue value,
-       CancellationToken cancellationToken)
+internal delegate void WriteCallback<T, TWriter, TValue>(CsvWriteOperation<T, TWriter> writer, TValue value)
     where T : unmanaged, IEquatable<T>
     where TWriter : struct, IAsyncBufferWriter<T>;
 
@@ -43,29 +36,23 @@ internal static class WriteTest<T, TWriter, TValue>
             cancellationToken.ThrowIfCancellationRequested();
 
             if (options.WriteHeader)
-                await WriteHeader(writer, bindingCollection, cancellationToken);
+                WriteHeader(writer, bindingCollection);
 
             using var enumerator = records.GetEnumerator();
 
             if (!enumerator.MoveNext())
                 return;
 
-            WriteCallback<T, TWriter, TValue>[] columnCallbacks = CreateWriteCallbacks(bindingCollection, options);
+            WriteCallback<T, TWriter, TValue> writeValue = CreateWriteCallback(bindingCollection, options);
 
             do
             {
-                TValue value = enumerator.Current;
+                if (writer.NeedsFlush)
+                    await writer.FlushAsync(cancellationToken);
 
-                await columnCallbacks[0](writer, value, cancellationToken);
-
-                for (int i = 1; i < columnCallbacks.Length; i++)
-                {
-                    writer.WriteDelimiter();
-                    await columnCallbacks[i](writer, value, cancellationToken);
-                }
-
-                writer.WriteNewline();
-            } while (enumerator.MoveNext());
+                writeValue(writer, enumerator.Current);
+            }
+            while (enumerator.MoveNext());
         }
         catch (Exception e)
         {
@@ -77,57 +64,68 @@ internal static class WriteTest<T, TWriter, TValue>
         }
     }
 
-    private static async ValueTask WriteHeader(
-        CsvWriteOperation<T, TWriter> writer,
-        CsvBindingCollection<TValue> bindingCollection,
-        CancellationToken cancellationToken)
+    private static void WriteHeader(CsvWriteOperation<T, TWriter> writer, CsvBindingCollection<TValue> bindingCollection)
     {
-        var formatter = DefaultFormatters.Binding<T, TValue>();
-
-        await writer.WriteValueAsync(formatter, bindingCollection.Bindings[0], cancellationToken);
+        writer.WriteString(bindingCollection.MemberBindings[0].Member.Name);
 
         for (int i = 1; i < bindingCollection.MemberBindings.Length; i++)
         {
             writer.WriteDelimiter();
-            await writer.WriteValueAsync(formatter, bindingCollection.Bindings[i], cancellationToken);
+            writer.WriteString(bindingCollection.MemberBindings[i].Member.Name);
         }
 
         writer.WriteNewline();
     }
 
-    private static WriteCallback<T, TWriter, TValue>[] CreateWriteCallbacks(
+    private static WriteCallback<T, TWriter, TValue> CreateWriteCallback(
         CsvBindingCollection<TValue> bindingCollection,
         CsvWriterOptions<T> options)
     {
+        /*
+        * (writer, value) =>
+        * {
+        *     writer.WriteValue(formatter1, value.Member1);
+        *     writer.WriteDelimiter();
+        *     writer.WriteValue(formatter2, value.Member2);
+        *     writer.WriteDelimiter();
+        *     writer.WriteValue(formatter3, value.Member3);
+        *     writer.WriteNewline();
+        * }
+        */
+
         var bindings = bindingCollection.Bindings;
-        var callbacks = new WriteCallback<T, TWriter, TValue>[bindings.Length];
+
+        var writerParam = Expression.Parameter(typeof(CsvWriteOperation<T, TWriter>), "writer");
+        var valueParam = Expression.Parameter(typeof(TValue), "value");
+
+        var methodBody = new List<Expression>(bindings.Length * 2);
 
         for (int i = 0; i < bindings.Length; i++)
         {
             var binding = (MemberCsvBinding<TValue>)bindings[i];
 
-            var tvalue = Expression.Parameter(typeof(TValue), "value");
-            var (memberExpression, memberType) = binding.Member.GetAsMemberExpression(tvalue);
-            var getter = Expression.Lambda(memberExpression, tvalue).CompileLambda<Delegate>();
+            var (memberExpression, memberType) = binding.Member.GetAsMemberExpression(valueParam);
+            var formatter = Expression.Constant(options.GetFormatter(memberType), typeof(ICsvFormatter<,>).MakeGenericType(typeof(T), memberType));
 
-            callbacks[i] = (WriteCallback<T, TWriter, TValue>)_getWriteCallbackFn
-                .MakeGenericMethod(memberType)
-                .Invoke(null, new object[] { getter, options.GetFormatter(memberType) })!;
+            var writeValueCall = Expression.Call(
+                writerParam,
+                _writeValueMethod.MakeGenericMethod(memberType),
+                formatter,
+                memberExpression);
+
+            var writeDelimiterOrNewlineCall = (i == bindings.Length - 1)
+                ? Expression.Call(writerParam, _writeNewlineMethod)
+                : Expression.Call(writerParam, _writeDelimiterMethod);
+
+            methodBody.Add(writeValueCall);
+            methodBody.Add(writeDelimiterOrNewlineCall);
         }
 
-        return callbacks;
+        var lambda = Expression.Lambda<WriteCallback<T, TWriter, TValue>>(Expression.Block(methodBody), writerParam, valueParam);
+        return lambda.CompileFast(flags: CompilerFlags.ThrowOnNotSupportedExpression);
     }
 
-    private static WriteCallback<T, TWriter, TValue> GetWriteCallback<TProperty>(
-        Func<TValue, TProperty> getter,
-        ICsvFormatter<T, TProperty> formatter)
-    {
-        return WriteImpl;
-
-        ValueTask WriteImpl(CsvWriteOperation<T, TWriter> writer, TValue value, CancellationToken cancellationToken)
-        {
-            return writer.WriteValueAsync(formatter, getter(value), cancellationToken);
-        }
-    }
-    private static readonly MethodInfo _getWriteCallbackFn = ((Delegate)GetWriteCallback<object>).Method.GetGenericMethodDefinition();
+    private static readonly MethodInfo _writeValueMethod = (typeof(CsvWriteOperation<T, TWriter>).GetMethod("WriteValue"))!;
+    private static readonly MethodInfo _writeDelimiterMethod = (typeof(CsvWriteOperation<T, TWriter>).GetMethod("WriteDelimiter"))!;
+    private static readonly MethodInfo _writeNewlineMethod = (typeof(CsvWriteOperation<T, TWriter>).GetMethod("WriteNewline"))!;
 }

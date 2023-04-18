@@ -104,12 +104,12 @@ internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
     /// <param name="overflowBuffer">Buffer to write the overlowing part to</param>
     /// <returns>A memory wrapping around the parts in the overflow buffer that were written to</returns>
     [MethodImpl(MethodImplOptions.NoInlining)] // rare-ish, doesn't need to be inlined
-    public static ReadOnlyMemory<T> EscapeWithOverflow(
+    public static ReadOnlySpan<T> EscapeWithOverflow(
         scoped ReadOnlySpan<T> source,
         scoped Span<T> destination,
         T quote,
         int quoteCount,
-        scoped ValueBufferOwner<T> overflowBuffer)
+        ValueBufferOwner<T> overflowBuffer)
     {
         Debug.Assert(
             !source.Overlaps(destination, out int elementOffset) || elementOffset == 0,
@@ -124,8 +124,7 @@ internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
         int dstIndex = destination.Length - 1;
         bool needQuote = false;
 
-        Memory<T> overflowMemory = overflowBuffer.GetMemory(requiredLength - destination.Length);
-        Span<T> overflow = overflowMemory.Span;
+        Span<T> overflow = overflowBuffer.GetSpan(requiredLength - destination.Length);
         overflow[ovrIndex--] = quote; // write closing quote
 
         // Short circuit to faster impl if there are no quotes in the source data
@@ -206,6 +205,6 @@ internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
         Debug.Assert(dstIndex == 0);
         Debug.Assert(quoteCount == 0);
 
-        return overflowMemory;
+        return overflow;
     }
 }
