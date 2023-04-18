@@ -32,7 +32,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
         }
     }
 
-    private readonly ConditionalWeakTable<Type, HeaderData> _candidateCache = new();
+    private static readonly ConditionalWeakTable<Type, HeaderData> _candidateCache = new();
 
     /// <summary>
     /// Columns that could not be matched are ignored.
@@ -46,7 +46,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
         bool ignoreUnmatched = false)
     {
         ArgumentNullException.ThrowIfNull(options);
-        Guard.IsAssignableToType<ICsvHeaderConfiguration<T>>(options);
+        Guard.IsAssignableToType<ICsvStringConfiguration<T>>(options);
 
         Options = options;
         IgnoreUnmatched = ignoreUnmatched;
@@ -56,9 +56,9 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
     {
         Options.MakeReadOnly();
 
-        var config = (ICsvHeaderConfiguration<T>)Options;
+        var comparer = (ICsvStringConfiguration<T>)Options;
 
-        HeaderData headerData = GetHeaderDataFor<TValue>();
+        HeaderData headerData = DefaultHeaderBinder<T>.GetHeaderDataFor<TValue>();
         List<CsvBinding<TValue>> foundBindings = new();
         SpanPredicate<T>? ignorePredicate = headerData.Ignore;
 
@@ -89,7 +89,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
 
                 foreach (ref readonly var candidate in headerData.Candidates)
                 {
-                    if (config.Matches(field, candidate.Value))
+                    if (comparer.TokensEqual(field, candidate.Value))
                     {
                         binding = CsvBinding.FromHeaderBinding<TValue>(candidate.Target, index);
                         break;
@@ -121,7 +121,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
     /// </summary>
     /// <seealso cref="CsvHeaderAttribute"/>
     /// <seealso cref="CsvHeaderExcludeAttribute"/>
-    private HeaderData GetHeaderDataFor<TValue>()
+    private static HeaderData GetHeaderDataFor<TValue>()
     {
         if (!_candidateCache.TryGetValue(typeof(TValue), out var headerData))
         {

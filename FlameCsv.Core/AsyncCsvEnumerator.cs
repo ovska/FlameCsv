@@ -3,32 +3,27 @@ using FlameCsv.Reading;
 
 namespace FlameCsv;
 
-public sealed class AsyncCsvEnumerator<T> : IAsyncEnumerator<CsvRecord<T>>
+/// <summary>
+/// Asynchronously enumerates CSV records.
+/// </summary>
+/// <remarks>
+/// If the CSV has a header record, it will be processed first before any records are yielded.
+/// </remarks>
+/// <typeparam name="T"></typeparam>
+public sealed class AsyncCsvEnumerator<T> :
+    CsvEnumeratorBase<T>,
+    IAsyncEnumerator<CsvRecord<T>>
     where T : unmanaged, IEquatable<T>
 {
-    public CsvDialect<T> Dialect => _dialect;
-    public CsvRecord<T> Current { get; private set; }
-    public int Line { get; private set; }
-    public long Position { get; private set; }
-
     private readonly ICsvPipeReader<T> _reader;
-    private readonly CsvReaderOptions<T> _options;
-    private readonly CsvDialect<T> _dialect;
-    private readonly CsvEnumerationState<T> _state;
-    private readonly BufferOwner<T> _multisegmentBuffer;
-    private readonly CancellationToken _cancellationToken;
 
     private ReadOnlySequence<T> _data; // current buffer
     private bool _readerCompleted; // last call to ReadAsync returned IsCompleted=true
 
     internal AsyncCsvEnumerator(ICsvPipeReader<T> reader, CsvReaderOptions<T> options, CancellationToken cancellationToken)
+        : base(options, cancellationToken)
     {
         _reader = reader;
-        _options = options;
-        _dialect = new(options);
-        _state = new(options);
-        _multisegmentBuffer = new(options.ArrayPool);
-        _cancellationToken = cancellationToken;
     }
 
     public ValueTask<bool> MoveNextAsync()
@@ -36,13 +31,13 @@ public sealed class AsyncCsvEnumerator<T> : IAsyncEnumerator<CsvRecord<T>>
         if (_cancellationToken.IsCancellationRequested)
             return ValueTask.FromCanceled<bool>(_cancellationToken);
 
-        if (TryMoveNextSync())
+        if (MoveNextCore())
             return new ValueTask<bool>(true);
 
-        return MoveNextAsyncCore();
+        return ReadAndMoveNextAsync();
     }
 
-    private async ValueTask<bool> MoveNextAsyncCore()
+    private async ValueTask<bool> ReadAndMoveNextAsync()
     {
         while (!_readerCompleted)
         {
@@ -50,30 +45,24 @@ public sealed class AsyncCsvEnumerator<T> : IAsyncEnumerator<CsvRecord<T>>
 
             (_data, _readerCompleted) = await _reader.ReadAsync(_cancellationToken);
 
-            if (TryMoveNextSync())
+            if (MoveNextCore())
                 return true;
         }
 
         return false;
     }
 
-    private bool TryMoveNextSync()
+    private bool MoveNextCore()
     {
-        if (LineReader.TryGetLine(in _dialect, ref _data, out ReadOnlySequence<T> line, out int quoteCount, isFinalBlock: false))
-        {
-            MoveNextImpl(in line, quoteCount);
-            Position += _dialect.Newline.Length;
+        if (MoveNextCore(ref _data, isFinalBlock: false))
             return true;
-        }
 
         if (_readerCompleted)
         {
-            if (LineReader.TryGetLine(in _dialect, ref _data, out line, out quoteCount, isFinalBlock: true))
-            {
-                MoveNextImpl(in line, quoteCount);
+            if (MoveNextCore(ref _data, isFinalBlock: true))
                 return true;
-            }
 
+            // reached end of data
             Position += Current.Data.Length;
             Current = default;
         }
@@ -81,30 +70,9 @@ public sealed class AsyncCsvEnumerator<T> : IAsyncEnumerator<CsvRecord<T>>
         return false;
     }
 
-    private void MoveNextImpl(in ReadOnlySequence<T> line, int quoteCount)
-    {
-        ReadOnlyMemory<T> memory;
-
-        if (line.IsSingleSegment)
-        {
-            memory = line.First;
-        }
-        else
-        {
-            int length = (int)line.Length;
-            Memory<T> buffer = _multisegmentBuffer.GetMemory(length);
-            line.CopyTo(buffer.Span);
-            memory = buffer;
-        }
-
-        Current = new CsvRecord<T>(Position, ++Line, memory, _options, quoteCount, _state);
-        Position += memory.Length;
-    }
-
     public async ValueTask DisposeAsync()
     {
-        _multisegmentBuffer.Dispose();
-        _state.Dispose();
+        Dispose(true);
         await _reader.DisposeAsync();
     }
 }

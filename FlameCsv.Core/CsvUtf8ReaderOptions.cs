@@ -1,8 +1,6 @@
 ﻿using System.Text;
-using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Binding;
 using FlameCsv.Configuration;
-using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Parsers;
 using FlameCsv.Parsers.Utf8;
@@ -31,7 +29,7 @@ namespace FlameCsv;
 public sealed class CsvUtf8ReaderOptions :
     CsvReaderOptions<byte>,
     ICsvNullTokenConfiguration<byte>,
-    ICsvHeaderConfiguration<byte>
+    ICsvStringConfiguration<byte>
 {
     private static readonly Lazy<CsvUtf8ReaderOptions> _default = new(() => new(isReadOnly: true));
 
@@ -191,21 +189,14 @@ public sealed class CsvUtf8ReaderOptions :
         return false;
     }
 
-    bool ICsvHeaderConfiguration<byte>.Matches(ReadOnlySpan<byte> tokens, ReadOnlySpan<char> chars)
+    StringComparison ICsvStringConfiguration<byte>.Comparison => _headerComparison;
+
+    bool ICsvStringConfiguration<byte>.TokensEqual(ReadOnlySpan<byte> tokens, ReadOnlySpan<char> chars)
     {
         return Utf8Util.SequenceEqual(tokens, chars, _headerComparison);
     }
 
-    public IReadOnlyDictionary<string, int> CreateHeaderDictionary(CsvRecord<byte> record)
-    {
-        Dictionary<string, int> dictionary = new(record.GetFieldCount(), StringComparer.FromComparison(_headerComparison));
-        int index = 0;
-
-        foreach (var field in record)
-            AddToDictionary(in record, dictionary, Encoding.UTF8.GetString(field.Span), index++);
-
-        return dictionary;
-    }
+    string ICsvStringConfiguration<byte>.GetTokensAsString(ReadOnlySpan<byte> tokens) => Encoding.UTF8.GetString(tokens);
 
     public override IHeaderBinder<byte> GetHeaderBinder() => new DefaultHeaderBinder<byte>(this);
 }

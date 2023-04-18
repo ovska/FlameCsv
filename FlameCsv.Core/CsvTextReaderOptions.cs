@@ -31,7 +31,7 @@ namespace FlameCsv;
 public sealed class CsvTextReaderOptions :
     CsvReaderOptions<char>,
     ICsvNullTokenConfiguration<char>,
-    ICsvHeaderConfiguration<char>
+    ICsvStringConfiguration<char>
 {
     private static readonly Lazy<CsvTextReaderOptions> _default = new(() => new(isReadOnly: true));
 
@@ -275,6 +275,8 @@ public sealed class CsvTextReaderOptions :
 
     ReadOnlyMemory<char> ICsvNullTokenConfiguration<char>.Default => Null.AsMemory();
 
+    StringComparison ICsvStringConfiguration<char>.Comparison => _headerComparison;
+
     bool ICsvNullTokenConfiguration<char>.TryGetOverride(Type type, out ReadOnlyMemory<char> value)
     {
         if (_nullOverrides is not null && _nullOverrides.TryGetValue(type, out value))
@@ -284,25 +286,16 @@ public sealed class CsvTextReaderOptions :
         return false;
     }
 
-    bool ICsvHeaderConfiguration<char>.Matches(ReadOnlySpan<char> tokens, ReadOnlySpan<char> chars)
+    bool ICsvStringConfiguration<char>.TokensEqual(ReadOnlySpan<char> tokens, ReadOnlySpan<char> chars)
     {
         return tokens.Equals(chars, _headerComparison);
     }
 
-    IReadOnlyDictionary<string, int> ICsvHeaderConfiguration<char>.CreateHeaderDictionary(CsvRecord<char> record)
-    {
-        Dictionary<string, int> dictionary = new(record.GetFieldCount(), StringComparer.FromComparison(_headerComparison));
-        int index = 0;
-
-        foreach (var field in record)
-            AddToDictionary(in record, dictionary, field.ToString(), index++);
-
-        dictionary.TrimExcess();
-        return dictionary;
-    }
+    string ICsvStringConfiguration<char>.GetTokensAsString(ReadOnlySpan<char> tokens) => new(tokens);
 
     public override IHeaderBinder<char> GetHeaderBinder()
     {
         return new DefaultHeaderBinder<char>(this);
     }
+
 }

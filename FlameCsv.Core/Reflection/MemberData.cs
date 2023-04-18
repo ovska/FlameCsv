@@ -1,6 +1,5 @@
 ﻿using System.Reflection;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
 
 namespace FlameCsv.Reflection;
 
@@ -21,7 +20,7 @@ internal sealed class MemberData
         {
             PropertyInfo p => (true, p.PropertyType, !p.CanWrite),
             FieldInfo f => (false, f.FieldType, f.IsInitOnly),
-            _ => ThrowHelper.ThrowInvalidOperationException<(bool, Type, bool)>("Invalid member type"),
+            _ => throw new InvalidOperationException("Invalid member type"),
         };
     }
 

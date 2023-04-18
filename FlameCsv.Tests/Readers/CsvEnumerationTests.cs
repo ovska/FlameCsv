@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Diagnostics;
 using FlameCsv.Exceptions;
 using FlameCsv.Utilities;
 
@@ -34,7 +35,7 @@ public static class CsvEnumerationTests
     [Fact]
     public static void Should_Verify_Parameters()
     {
-        Assert.Throws<ArgumentNullException>(() => new CsvEnumerable<char>(default, null!));
+        Assert.Throws<ArgumentNullException>(() => new CsvEnumerable<char>(default(ReadOnlySequence<char>), null!));
         Assert.Throws<ArgumentNullException>(() => new CsvRecord<char>(default, null!));
         Assert.Throws<CsvConfigurationException>(() => new CsvRecord<char>(default, new CsvTextReaderOptions { Quote = ',' }));
         Assert.Throws<ArgumentOutOfRangeException>(() => new CsvRecord<char>(default, CsvTextReaderOptions.Default, 0));
@@ -89,6 +90,15 @@ public static class CsvEnumerationTests
     }
 
     [Fact]
+    public static void Should_Return_Field_Count()
+    {
+        CsvRecord<char> record = GetRecord();
+
+        Assert.Equal(3, record.GetFieldCount());
+        Assert.Equal(3, record.GetFieldCount());
+    }
+
+    [Fact]
     public static void Should_Enumerate_Record()
     {
         CsvRecord<char> record = GetRecord();
@@ -110,6 +120,15 @@ public static class CsvEnumerationTests
         Assert.Equal(1, record.GetField<int>(0));
         Assert.Equal("Test", record.GetField<string?>(1));
         Assert.True(record.GetField<bool>(2));
+
+        Assert.True(record.TryGetValue(0, out int _1));
+        Assert.Equal(1, _1);
+
+        Assert.True(record.TryGetValue(1, out string? _2));
+        Assert.Equal("Test", _2);
+
+        Assert.True(record.TryGetValue(2, out bool _3));
+        Assert.True(_3);
     }
 
     [Fact]
@@ -123,12 +142,58 @@ public static class CsvEnumerationTests
     }
 
     [Fact]
-    public static void Should_Return_Field_Count()
+    public static void Should_Return_Fields_By_Name()
     {
-        CsvRecord<char> record = GetRecord();
+        using var enumerator = new CsvEnumerable<char>("A,B,C\r\n1,2,3".AsMemory(), new CsvTextReaderOptions { HasHeader = true })
+            .GetEnumerator();
 
-        Assert.Equal(3, record.GetFieldCount());
-        Assert.Equal(3, record.GetFieldCount());
+        CsvRecord<char> record = default;
+        int count = 0;
+
+        while (enumerator.MoveNext())
+        {
+            record = enumerator.Current;
+            Assert.Equal(1, ++count);
+        }
+
+        Assert.Equal("1", record.GetField("A").ToString());
+        Assert.Equal("2", record.GetField("B").ToString());
+        Assert.Equal("3", record.GetField("C").ToString());
+    }
+
+    [Fact]
+    public static void Should_Return_Parse_Failure_Reason()
+    {
+        using var enumerator = new CsvEnumerable<char>(
+            "A,B,C\r\n1,2,3".AsMemory(), new CsvTextReaderOptions { HasHeader = true })
+            .GetEnumerator();
+
+        CsvRecord<char> record = default;
+        int count = 0;
+
+        while (enumerator.MoveNext())
+        {
+            record = enumerator.Current;
+            Assert.Equal(1, ++count);
+        }
+
+        Assert.False(record.TryGetValue<Stopwatch>(4, out _, out var reason));
+        Assert.Equal(CsvGetValueReason.FieldNotFound, reason);
+
+        Assert.False(record.TryGetValue<Stopwatch>(0, out _, out reason));
+        Assert.Equal(CsvGetValueReason.NoParserFound, reason);
+
+        Assert.False(record.TryGetValue<bool>(0, out _, out reason));
+        Assert.Equal(CsvGetValueReason.UnparsableValue, reason);
+
+        Assert.False(record.TryGetValue<Stopwatch>("D", out _, out reason));
+        Assert.Equal(CsvGetValueReason.FieldNotFound, reason);
+
+        Assert.False(record.TryGetValue<Stopwatch>("A", out _, out reason));
+        Assert.Equal(CsvGetValueReason.NoParserFound, reason);
+
+        Assert.False(record.TryGetValue<bool>("C", out _, out reason));
+        Assert.Equal(CsvGetValueReason.UnparsableValue, reason);
     }
 
     private static CsvRecord<char> GetRecord() => new("1,\"Test\",true".AsMemory(), CsvTextReaderOptions.Default);

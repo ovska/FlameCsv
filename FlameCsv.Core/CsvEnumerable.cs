@@ -17,6 +17,12 @@ public readonly struct CsvEnumerable<T> : IEnumerable<CsvRecord<T>> where T : un
     private readonly ReadOnlySequence<T> _data;
     private readonly CsvReaderOptions<T> _options;
 
+    public CsvEnumerable(ReadOnlyMemory<T> data, CsvReaderOptions<T> options)
+        : this(new ReadOnlySequence<T>(data), options)
+    {
+    }
+
+
     public CsvEnumerable(ReadOnlySequence<T> data, CsvReaderOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
