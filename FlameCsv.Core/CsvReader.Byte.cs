@@ -32,16 +32,8 @@ public static partial class CsvReader
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(options);
-        Guard.CanRead(stream);
 
-        MemoryPool<byte>? memoryPool = options.ArrayPool == ArrayPool<byte>.Shared
-            ? null
-            : new ArrayPoolMemoryPoolWrapper<byte>(options.ArrayPool ?? AllocatingArrayPool<byte>.Instance);
-
-        return ReadAsync<TValue>(
-            PipeReader.Create(stream, new StreamPipeReaderOptions(pool: memoryPool, leaveOpen: leaveOpen)),
-            options,
-            cancellationToken);
+        return ReadAsync<TValue>(CreatePipeReader(stream, options, leaveOpen), options, cancellationToken);
     }
 
     /// <summary>
