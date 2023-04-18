@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
@@ -9,7 +10,7 @@ using FlameCsv.Extensions;
 namespace FlameCsv;
 
 // todo: public api description
-public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
+public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
 {
     public long Position { get; }
     public int Line { get; }
@@ -30,6 +31,8 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquata
         int quoteCount,
         CsvEnumerationState<T> state)
     {
+        Debug.Assert(quoteCount % 2 == 0);
+
         Position = position;
         Line = line;
         Data = data;
@@ -42,8 +45,8 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquata
     /// Initializes a new CSV record using the specified data.
     /// </summary>
     /// <remarks>
-    /// Creating a record this way always causes an allocation for the data. To read CSV records with more efficient
-    /// memory usage, use the GetEnumerable-methods on <see cref="CsvReader"/>.
+    /// Creating a record this way always causes an allocation for the data if it contains quotes.
+    /// To read multiple CSV records with efficient memory usage, use the GetEnumerable-methods on <see cref="CsvReader"/>.
     /// </remarks>
     public CsvRecord(
         ReadOnlyMemory<T> data,
@@ -107,7 +110,7 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquata
         return true;
     }
 
-    public TValue GetValue<TValue>(int index)
+    public TValue GetField<TValue>(int index)
     {
         if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> column))
         {
@@ -151,7 +154,7 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquata
             $"from {data.AsPrintableString(_options.AllowContentInExceptions, _state.Dialect)}");
     }
 
-    public CsvRecordEnumerator<T> GetEnumerator() => new(_state);
+    public CsvFieldEnumerator<T> GetEnumerator() => new(_state);
     IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator() => GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

@@ -239,11 +239,11 @@ public sealed class CsvReaderTests : IDisposable
             items.Add(
                 new Obj
                 {
-                    Id = record.GetValue<int>(0),
-                    Name = record.GetValue<string?>(1),
-                    IsEnabled = record.GetValue<bool>(2),
-                    LastLogin = record.GetValue<DateTimeOffset>(3),
-                    Token = record.GetValue<Guid>(4),
+                    Id = record.GetField<int>(0),
+                    Name = record.GetField<string?>(1),
+                    IsEnabled = record.GetField<bool>(2),
+                    LastLogin = record.GetField<DateTimeOffset>(3),
+                    Token = record.GetField<Guid>(4),
                 });
        
             Assert.Equal(5, record.GetFieldCount());
@@ -274,11 +274,11 @@ public sealed class CsvReaderTests : IDisposable
             items.Add(
                 new Obj
                 {
-                    Id = record.GetValue<int>(0),
-                    Name = record.GetValue<string?>(1),
-                    IsEnabled = record.GetValue<bool>(2),
-                    LastLogin = record.GetValue<DateTimeOffset>(3),
-                    Token = record.GetValue<Guid>(4),
+                    Id = record.GetField<int>(0),
+                    Name = record.GetField<string?>(1),
+                    IsEnabled = record.GetField<bool>(2),
+                    LastLogin = record.GetField<DateTimeOffset>(3),
+                    Token = record.GetField<Guid>(4),
                 });
 
             Assert.Equal(5, record.GetFieldCount());
