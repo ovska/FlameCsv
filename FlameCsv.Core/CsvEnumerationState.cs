@@ -10,6 +10,12 @@ namespace FlameCsv;
 
 internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, IEquatable<T>
 {
+    public bool NeedsHeader
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _hasHeader && _header is null;
+    }
+
     public int Version { get; private set; }
     public CsvDialect<T> Dialect { get; }
 
@@ -25,30 +31,12 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     private ReadOnlyMemory<T> _remaining;
     private int _quotesRemaining;
 
-    private readonly bool _hasHeaders;
-    internal IReadOnlyDictionary<string, int>? _headers;
-
-    internal IReadOnlyDictionary<string, int>? HeaderNames
-    {
-        get
-        {
-            if (!_hasHeaders)
-                ThrowHelper.ThrowNotSupportedException("The current CSV does not have a header record.");
-
-            return _headers;
-        }
-        set
-        {
-            if (!_hasHeaders)
-                ThrowHelper.ThrowNotSupportedException("The current CSV does not have a header record.");
-
-            _headers = value;
-        }
-    }
+    private readonly bool _hasHeader;
+    internal Dictionary<string, int>? _header;
 
     public CsvEnumerationState(CsvReaderOptions<T> options) : this(new CsvDialect<T>(options), options.ArrayPool)
     {
-        _hasHeaders = options.HasHeader;
+        _hasHeader = options.HasHeader;
         _exposeContents = options.AllowContentInExceptions;
     }
 
@@ -88,12 +76,13 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
 
     public bool TryGetHeaderIndex(string name, out int index)
     {
-        var headers = HeaderNames;
+        if (!_hasHeader)
+            ThrowHelper.ThrowNotSupportedException("The current CSV does not have a header record.");
 
-        if (headers is null)
+        if (_header is null)
             ThrowHelper.ThrowInvalidOperationException("CSV header has not been read.");
 
-        return headers.TryGetValue(name, out index);
+        return _header.TryGetValue(name, out index);
     }
 
     public bool TryGetAtIndex(int index, out ReadOnlyMemory<T> column)
@@ -119,6 +108,17 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
         { }
 
         return _index;
+    }
+
+    public void SetHeader(Dictionary<string, int> header)
+    {
+        if (!_hasHeader)
+            ThrowHelper.ThrowNotSupportedException("The current CSV does not have a header record.");
+
+        if (_header is not null)
+            ThrowHelper.ThrowInvalidOperationException("CSV header has already been read.");
+
+        _header = header;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

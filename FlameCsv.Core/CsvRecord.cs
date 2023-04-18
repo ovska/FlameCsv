@@ -4,12 +4,14 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
+using FlameCsv.Configuration;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 
 namespace FlameCsv;
 
-// todo: public api description
+/// <inheritdoc cref="ICsvRecord{T}"/>
+[DebuggerTypeProxy(typeof(CsvRecord<>.CsvRecordDebugView))]
 public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
 {
     public long Position { get; }
@@ -65,6 +67,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
         Guard.IsGreaterThanOrEqualTo(position, 0L);
     }
 
+    /// <inheritdoc cref="ICsvRecord{T}.GetField(string)"/>
     public ReadOnlyMemory<T> GetField(string name)
     {
         ArgumentNullException.ThrowIfNull(name);
@@ -77,6 +80,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
         return GetField(index);
     }
 
+    /// <inheritdoc cref="ICsvRecord{T}.GetField(int)"/>
     public ReadOnlyMemory<T> GetField(int index)
     {
         if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> column))
@@ -87,11 +91,12 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
         return column;
     }
 
+    /// <inheritdoc cref="ICsvRecord{T}.GetFieldCount"/>
     public int GetFieldCount() => _state.GetFieldCount();
 
-    public bool TryGetValue<TValue>(int index, [MaybeNullWhen(false)] out TValue value)
-        => TryGetValue(index, out value, out _);
+    public bool TryGetValue<TValue>(int index, [MaybeNullWhen(false)] out TValue value) => TryGetValue(index, out value, out _);
 
+    /// <inheritdoc cref="ICsvRecord{T}.TryGetValue{TValue}(int, out TValue, out CsvGetValueReason)"/>
     public bool TryGetValue<TValue>(
         int index,
         [MaybeNullWhen(false)] out TValue value,
@@ -99,7 +104,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
     {
         if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> column))
         {
-            reason = CsvGetValueReason.InvalidIndex;
+            reason = CsvGetValueReason.FieldNotFound;
             value = default;
             return false;
         }
@@ -118,10 +123,35 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
             return false;
         }
 
-        reason = CsvGetValueReason.None;
+        reason = CsvGetValueReason.Success;
         return true;
     }
 
+    public bool TryGetValue<TValue>(string name, [MaybeNullWhen(false)] out TValue value) => TryGetValue(name, out value, out _);
+
+    public bool TryGetValue<TValue>(string name, [MaybeNullWhen(false)] out TValue value, out CsvGetValueReason reason)
+    {
+        if (!_state.TryGetHeaderIndex(name, out int index))
+        {
+            value = default;
+            reason = CsvGetValueReason.FieldNotFound;
+            return false;
+        }
+
+        return TryGetValue(index, out value, out reason);
+    }
+
+    public TValue GetField<TValue>(string name)
+    {
+        if (!_state.TryGetHeaderIndex(name, out int index))
+        {
+            ThrowHeaderException(name);
+        }
+
+        return GetField<TValue>(index);
+    }
+
+    /// <inheritdoc cref="ICsvRecord{T}.GetField{TValue}(int)"/>
     public TValue GetField<TValue>(int index)
     {
         if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> column))
@@ -142,11 +172,11 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private void ThrowHeaderException(string name)
     {
-        Debug.Assert(_state.HeaderNames is not null);
+        Debug.Assert(_state._header is not null);
 
         string msg = _options.AllowContentInExceptions
-            ? $"Header \"{name}\" was not found among the CSV headers: {string.Join(", ", _state.HeaderNames)}"
-            : $"Header not found among the CSV headers.";
+            ? $"Header \"{name}\" was not found among the CSV headers: {string.Join(", ", _state._header.Keys)}"
+            : "Header not found among the CSV headers.";
 
         throw new ArgumentException(msg, nameof(name));
     }
@@ -181,5 +211,21 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
     public CsvFieldEnumerator<T> GetEnumerator() => new(_state);
     IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator() => GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-}
 
+    private sealed class CsvRecordDebugView
+    {
+        private readonly CsvRecord<T> _record;
+
+        public CsvRecordDebugView(CsvRecord<T> record) => _record = record;
+
+        public int Line => _record.Line;
+
+        public long Position => _record.Position;
+
+        public string[] Headers => _record._state._header?.Keys.ToArray() ?? Array.Empty<string>();
+
+        public string[] Fields => _record._options is ICsvStringConfiguration<T> cfg
+            ? _record.AsEnumerable().Select(f => cfg.GetTokensAsString(f.Span)).ToArray()
+            : Array.Empty<string>();
+    }
+}

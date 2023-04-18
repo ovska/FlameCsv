@@ -216,25 +216,25 @@ public sealed class CsvReaderTests : IDisposable
     }
 
     private static void EnumerateToList<T>(
-        bool skipFirst,
+        bool hasHeader,
         CsvEnumerable<T> enumerable,
         ICollection<Obj> items) where T : unmanaged, IEquatable<T>
     {
-        int index = 1;
+        int index = 0;
         long tokenPosition = 0;
 
         foreach (var record in enumerable)
         {
-            Assert.Equal(index++, record.Line);
+            if (tokenPosition == 0 && hasHeader)
+            {
+                tokenPosition = TestDataGenerator.Header.Length + record.Dialect.Newline.Length;
+            }
+
+            index++;
+            Assert.Equal(hasHeader ? index + 1 : index, record.Line);
             Assert.Equal(tokenPosition, record.Position);
 
             tokenPosition += record.Data.Length + record.Dialect.Newline.Length;
-
-            if (skipFirst)
-            {
-                skipFirst = false;
-                continue;
-            }
 
             items.Add(
                 new Obj
@@ -251,25 +251,25 @@ public sealed class CsvReaderTests : IDisposable
     }
 
     private static async Task EnumerateToListAsync<T>(
-        bool skipFirst,
+        bool hasHeader,
         AsyncCsvEnumerable<T> enumerable,
         ICollection<Obj> items) where T : unmanaged, IEquatable<T>
     {
-        int index = 1;
+        int index = 0;
         long tokenPosition = 0;
 
         await foreach (var record in enumerable)
         {
-            Assert.Equal(index++, record.Line);
+            if (tokenPosition == 0 && hasHeader)
+            {
+                tokenPosition = TestDataGenerator.Header.Length + record.Dialect.Newline.Length;
+            }
+
+            index++;
+            Assert.Equal(hasHeader ? index + 1 : index, record.Line);
             Assert.Equal(tokenPosition, record.Position);
 
             tokenPosition += record.Data.Length + record.Dialect.Newline.Length;
-
-            if (skipFirst)
-            {
-                skipFirst = false;
-                continue;
-            }
 
             items.Add(
                 new Obj

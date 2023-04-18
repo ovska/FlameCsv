@@ -14,7 +14,7 @@ public static partial class CsvReader
         CsvReaderOptions<char> options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        return new CsvEnumerable<char>(new(csv.AsMemory()), options);
+        return new CsvEnumerable<char>(csv.AsMemory(), options);
     }
 
     public static CsvEnumerable<byte> GetEnumerable(
@@ -22,7 +22,7 @@ public static partial class CsvReader
         CsvReaderOptions<byte> options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        return new CsvEnumerable<byte>(new(csv), options);
+        return new CsvEnumerable<byte>(csv, options);
     }
 
     /// <inheritdoc cref="GetEnumerable{T}(ReadOnlySequence{T},CsvReaderOptions{T})"/>

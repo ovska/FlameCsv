@@ -2,7 +2,6 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Text;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -211,26 +210,5 @@ public abstract partial class CsvReaderOptions<T> : ISealable
             MakeReadOnly();
 
         return GetOrInitParsers().Span;
-    }
-
-    internal protected void AddToDictionary(
-        in CsvRecord<T> record,
-        Dictionary<string, int> dictionary,
-        string fieldAsString,
-        int index)
-    {
-        if (!dictionary.TryAdd(fieldAsString, index++))
-        {
-            if (AllowContentInExceptions)
-            {
-                throw new CsvFormatException(
-                    $"Duplicate header \"{fieldAsString}\" in CSV: " +
-                    record.Data.Span.AsPrintableString(true, record.Dialect));
-            }
-            else
-            {
-                throw new CsvFormatException("Duplicate header in CSV.");
-            }
-        }
     }
 }
