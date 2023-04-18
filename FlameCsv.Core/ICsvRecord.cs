@@ -80,6 +80,6 @@ public interface ICsvRecord<T> : IEnumerable<ReadOnlyMemory<T>> where T : unmana
     /// <exception cref="ArgumentOutOfRangeException"/>
     /// <exception cref="CsvParserMissingException"/>
     /// <exception cref="CsvParseException"/>
-    TValue GetValue<TValue>(int index);
+    TValue GetField<TValue>(int index);
 }
 
