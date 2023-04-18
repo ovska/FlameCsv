@@ -1,6 +1,9 @@
+using System.Buffers;
 using System.Runtime.CompilerServices;
+using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding.Attributes;
+using FlameCsv.Configuration;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
@@ -8,7 +11,11 @@ using FlameCsv.Reflection;
 
 namespace FlameCsv.Binding;
 
-public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
+/// <summary>
+/// Binds CSV header to members.
+/// </summary>
+/// <typeparam name="T">Token type</typeparam>
+public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
     where T : unmanaged, IEquatable<T>
 {
     private sealed class HeaderData
@@ -32,68 +39,78 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
     /// </summary>
     public bool IgnoreUnmatched { get; }
 
-    private readonly ICsvHeaderMatcher<T> _matcher;
+    public CsvReaderOptions<T> Options { get; }
 
-    internal protected HeaderBinderBase(
-        ICsvHeaderMatcher<T> matcher,
-        bool ignoreUnmatched)
+    public DefaultHeaderBinder(
+        CsvReaderOptions<T> options,
+        bool ignoreUnmatched = false)
     {
-        ArgumentNullException.ThrowIfNull(matcher);
+        ArgumentNullException.ThrowIfNull(options);
+        Guard.IsAssignableToType<ICsvHeaderConfiguration<T>>(options);
 
-        _matcher = matcher;
+        Options = options;
         IgnoreUnmatched = ignoreUnmatched;
     }
 
-    public CsvBindingCollection<TValue> Bind<TValue>(ReadOnlySpan<T> line, CsvReaderOptions<T> options)
+    public CsvBindingCollection<TValue> Bind<TValue>(ReadOnlyMemory<T> line)
     {
-        HeaderData headerData = GetBindingCandidates<TValue>();
+        Options.MakeReadOnly();
 
+        var config = (ICsvHeaderConfiguration<T>)Options;
+
+        HeaderData headerData = GetHeaderDataFor<TValue>();
         List<CsvBinding<TValue>> foundBindings = new();
-
-        using var bufferOwner = new BufferOwner<T>(options);
-
-        CsvDialect<T> dialect = new(options);
-
-        CsvColumnEnumerator<T> enumerator = new(
-            line,
-            in dialect,
-            columnCount: null,
-            quoteCount: line.Count(options.Quote),
-            new ValueBufferOwner<T>(ref bufferOwner._array, options.ArrayPool ?? AllocatingArrayPool<T>.Instance));
-
         SpanPredicate<T>? ignorePredicate = headerData.Ignore;
 
-        foreach (var column in enumerator)
+        CsvDialect<T> dialect = new(Options);
+        ArrayPool<T> arrayPool = Options.ArrayPool ?? AllocatingArrayPool<T>.Instance;
+        T[]? buffer = null;
+
+        try
         {
-            int index = foundBindings.Count;
+            var enumerator = new CsvColumnEnumerator<T>(
+                line.Span,
+                in dialect,
+                null,
+                line.Span.Count(dialect.Quote),
+                new ValueBufferOwner<T>(ref buffer, arrayPool));
 
-            if (ignorePredicate is not null && ignorePredicate(column))
+            foreach (var field in enumerator)
             {
-                foundBindings.Add(CsvBinding.Ignore<TValue>(index));
-                continue;
+                int index = foundBindings.Count;
+
+                if (ignorePredicate is not null && ignorePredicate(field))
+                {
+                    foundBindings.Add(CsvBinding.Ignore<TValue>(index));
+                    continue;
+                }
+
+                CsvBinding<TValue>? binding = null;
+
+                foreach (ref readonly var candidate in headerData.Candidates)
+                {
+                    if (config.Matches(field, candidate.Value))
+                    {
+                        binding = CsvBinding.FromHeaderBinding<TValue>(candidate.Target, index);
+                        break;
+
+                    }
+                }
+
+                if (binding is null && !IgnoreUnmatched)
+                {
+                    throw new CsvBindingException(
+                        $"Column {foundBindings.Count} could not be bound to a member of {typeof(TValue)}: Column " +
+                        field.AsPrintableString(Options.AllowContentInExceptions, in dialect) +
+                        ", Line: " + line.Span.AsPrintableString(Options.AllowContentInExceptions, in dialect));
+                }
+
+                foundBindings.Add(binding ?? CsvBinding.Ignore<TValue>(index: foundBindings.Count));
             }
-
-            CsvBinding<TValue>? binding = null;
-
-            foreach (ref readonly var candidate in headerData.Candidates)
-            {
-                HeaderBindingArgs args = new(index, candidate.Value, candidate.Target, candidate.Order);
-
-                binding = _matcher.TryMatch<TValue>(column, in args);
-
-                if (binding is not null)
-                    break;
-            }
-
-            if (binding is null && !IgnoreUnmatched)
-            {
-                throw new CsvBindingException(
-                    $"Column {index} could not be bound to a member of {typeof(TValue)}: Column " +
-                    column.AsPrintableString(options.AllowContentInExceptions, in dialect) +
-                    ", Line: " + line.AsPrintableString(options.AllowContentInExceptions, in dialect));
-            }
-
-            foundBindings.Add(binding ?? CsvBinding.Ignore<TValue>(index));
+        }
+        finally
+        {
+            arrayPool.EnsureReturned(ref buffer);
         }
 
         return new CsvBindingCollection<TValue>(foundBindings);
@@ -104,7 +121,7 @@ public abstract class HeaderBinderBase<T> : IHeaderBinder<T>
     /// </summary>
     /// <seealso cref="CsvHeaderAttribute"/>
     /// <seealso cref="CsvHeaderExcludeAttribute"/>
-    private HeaderData GetBindingCandidates<TValue>()
+    private HeaderData GetHeaderDataFor<TValue>()
     {
         if (!_candidateCache.TryGetValue(typeof(TValue), out var headerData))
         {

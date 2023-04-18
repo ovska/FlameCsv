@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Text;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -15,13 +16,13 @@ namespace FlameCsv;
 /// Represents a base class for configuration used to read and parse CSV data.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-public partial class CsvReaderOptions<T> : ISealable
+public abstract partial class CsvReaderOptions<T> : ISealable
     where T : unmanaged, IEquatable<T>
 {
     /// <summary>
     /// Initializes an options-instance with default options and no parsers defined.
     /// </summary>
-    public CsvReaderOptions()
+    protected CsvReaderOptions()
     {
     }
 
@@ -58,7 +59,6 @@ public partial class CsvReaderOptions<T> : ISealable
     private CsvExceptionHandler<T>? _exceptionHandler;
     private bool _hasHeader;
     private bool _allowContentInExceptions;
-    private IHeaderBinder<T>? _headerBinder;
     private ArrayPool<T>? _arrayPool = ArrayPool<T>.Shared;
 
     /// <summary>
@@ -104,18 +104,13 @@ public partial class CsvReaderOptions<T> : ISealable
     }
 
     /// <summary>
-    /// Custom header binder used in place of <see cref="HeaderTextBinder"/> or <see cref="HeaderUtf8Binder"/>
-    /// if <see cref="HasHeader"/> is true.
+    /// Returns the header binder that matches CSV header record fields to parsed type's properties/fields.
     /// </summary>
     /// <remarks>
     /// By default, CSV header is matched to property/field names and
     /// <see cref="Binding.Attributes.CsvHeaderAttribute"/> using <see cref="StringComparison.OrdinalIgnoreCase"/>.
     /// </remarks>
-    public IHeaderBinder<T>? HeaderBinder
-    {
-        get => _headerBinder;
-        set => this.SetValue(ref _headerBinder, value);
-    }
+    public virtual IHeaderBinder<T> GetHeaderBinder() => throw new NotImplementedException();
 
     /// <summary>
     /// Pool used to create reusable buffers when needed. Default is <see cref="ArrayPool{T}.Shared"/>.
@@ -175,7 +170,7 @@ public partial class CsvReaderOptions<T> : ISealable
         return TryGetParser(resultType) ?? throw new CsvParserMissingException(typeof(T), resultType);
     }
 
-    public ICsvParser<T, TResult>? TryGetParser<TResult>() => (ICsvParser<T,TResult>?)TryGetParser(typeof(TResult));
+    public ICsvParser<T, TResult>? TryGetParser<TResult>() => (ICsvParser<T, TResult>?)TryGetParser(typeof(TResult));
 
     /// <summary>
     /// Returns a parser for parsing values of the parameter type, or null if there is no
@@ -216,5 +211,26 @@ public partial class CsvReaderOptions<T> : ISealable
             MakeReadOnly();
 
         return GetOrInitParsers().Span;
+    }
+
+    internal protected void AddToDictionary(
+        in CsvRecord<T> record,
+        Dictionary<string, int> dictionary,
+        string fieldAsString,
+        int index)
+    {
+        if (!dictionary.TryAdd(fieldAsString, index++))
+        {
+            if (AllowContentInExceptions)
+            {
+                throw new CsvFormatException(
+                    $"Duplicate header \"{fieldAsString}\" in CSV: " +
+                    record.Data.Span.AsPrintableString(true, record.Dialect));
+            }
+            else
+            {
+                throw new CsvFormatException("Duplicate header in CSV.");
+            }
+        }
     }
 }

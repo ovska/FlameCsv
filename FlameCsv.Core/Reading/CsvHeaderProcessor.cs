@@ -18,7 +18,7 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     public CsvHeaderProcessor(CsvReaderOptions<T> options)
     {
         _options = options;
-        _binder = options.HeaderBinder ?? HeaderMatcherDefaults.GetBinder<T>();
+        _binder = options.GetHeaderBinder();
         _inner = default;
     }
 
@@ -58,7 +58,7 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     {
         using var view = new SequenceView<T>(in line, _options);
 
-        var bindings = _binder.Bind<TValue>(view.Memory.Span, _options);
+        var bindings = _binder.Bind<TValue>(view.Memory);
         var materializer = _options.CreateMaterializerFrom(bindings);
         _inner = new CsvProcessor<T, TValue>(_options, materializer);
     }

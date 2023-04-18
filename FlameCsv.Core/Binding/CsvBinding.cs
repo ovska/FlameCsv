@@ -89,13 +89,13 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// <summary>
     /// Returns a binding targeting the specified header binding match.
     /// </summary>
-    public static CsvBinding<T> FromHeaderBinding<T>(in HeaderBindingArgs args)
+    internal static CsvBinding<T> FromHeaderBinding<T>(object target, int index)
     {
         CsvBinding<T>.ThrowIfInvalid();
-        return args.Target switch
+        return target switch
         {
-            MemberInfo m => ForMember<T>(args.Index, m),
-            ParameterInfo p => ForParameter<T>(args.Index, p),
+            MemberInfo m => ForMember<T>(index, m),
+            ParameterInfo p => ForParameter<T>(index, p),
             _ => ThrowHelper.ThrowInvalidOperationException<CsvBinding<T>>("Invalid HeaderBindingArgs"),
         };
     }

@@ -65,6 +65,18 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
         Guard.IsGreaterThanOrEqualTo(position, 0L);
     }
 
+    public ReadOnlyMemory<T> GetField(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        if (!_state.TryGetHeaderIndex(name, out int index))
+        {
+            ThrowHeaderException(name);
+        }
+
+        return GetField(index);
+    }
+
     public ReadOnlyMemory<T> GetField(int index)
     {
         if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> column))
@@ -125,6 +137,18 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
         }
 
         return value;
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    private void ThrowHeaderException(string name)
+    {
+        Debug.Assert(_state.HeaderNames is not null);
+
+        string msg = _options.AllowContentInExceptions
+            ? $"Header \"{name}\" was not found among the CSV headers: {string.Join(", ", _state.HeaderNames)}"
+            : $"Header not found among the CSV headers.";
+
+        throw new ArgumentException(msg, nameof(name));
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
