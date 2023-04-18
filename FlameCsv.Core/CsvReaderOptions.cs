@@ -175,6 +175,8 @@ public partial class CsvReaderOptions<T> : ISealable
         return TryGetParser(resultType) ?? throw new CsvParserMissingException(typeof(T), resultType);
     }
 
+    public ICsvParser<T, TResult>? TryGetParser<TResult>() => (ICsvParser<T,TResult>?)TryGetParser(typeof(TResult));
+
     /// <summary>
     /// Returns a parser for parsing values of the parameter type, or null if there is no
     /// parser registered for <paramref name="resultType"/>.

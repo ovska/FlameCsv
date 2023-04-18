@@ -2,38 +2,37 @@ using System.Buffers;
 using CommunityToolkit.Diagnostics;
 using System.Text;
 using FlameCsv.Reading;
-using FlameCsv.Extensions;
 using System.IO.Pipelines;
 
 namespace FlameCsv;
 
 public static partial class CsvReader
 {
-    /// <inheritdoc cref="Enumerate{T}(ReadOnlySequence{T},CsvReaderOptions{T})"/>
-    public static CsvEnumerator<char> Enumerate(
+    /// <inheritdoc cref="GetEnumerable{T}(ReadOnlySequence{T},CsvReaderOptions{T})"/>
+    public static CsvEnumerable<char> GetEnumerable(
         string? csv,
         CsvReaderOptions<char> options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        return new CsvEnumerator<char>(new(csv.AsMemory()), options, null);
+        return new CsvEnumerable<char>(new(csv.AsMemory()), options);
     }
 
-    public static CsvEnumerator<byte> Enumerate(
+    public static CsvEnumerable<byte> GetEnumerable(
         ReadOnlyMemory<byte> csv,
         CsvReaderOptions<byte> options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        return new CsvEnumerator<byte>(new(csv), options, null);
+        return new CsvEnumerable<byte>(new(csv), options);
     }
 
-    /// <inheritdoc cref="Enumerate{T}(ReadOnlySequence{T},CsvReaderOptions{T})"/>
-    public static CsvEnumerator<T> Enumerate<T>(
+    /// <inheritdoc cref="GetEnumerable{T}(ReadOnlySequence{T},CsvReaderOptions{T})"/>
+    public static CsvEnumerable<T> GetEnumerable<T>(
         ReadOnlyMemory<T> csv,
         CsvReaderOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
         ArgumentNullException.ThrowIfNull(options);
-        return new CsvEnumerator<T>(new ReadOnlySequence<T>(csv), options, null);
+        return new CsvEnumerable<T>(new ReadOnlySequence<T>(csv), options);
     }
 
     /// <summary>
@@ -45,17 +44,17 @@ public static partial class CsvReader
     /// <param name="csv">Data to read the records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <returns>A CSV-enumerator structure</returns>
-    public static CsvEnumerator<T> Enumerate<T>(
+    public static CsvEnumerable<T> GetEnumerable<T>(
         ReadOnlySequence<T> csv,
         CsvReaderOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        return new CsvEnumerator<T>(csv, options, null);
+        return new CsvEnumerable<T>(csv, options);
     }
 
-    public static AsyncCsvEnumerator<char> EnumerateAsync(
+    public static AsyncCsvEnumerable<char> GetAsyncEnumerable(
         Stream stream,
         CsvReaderOptions<char> options,
         Encoding? encoding = null,
@@ -65,7 +64,7 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(options);
         Guard.CanRead(stream);
 
-        return EnumerateAsync(
+        return GetAsyncEnumerable(
             new StreamReader(stream, encoding: encoding, leaveOpen: leaveOpen, bufferSize: 4096),
             options,
             leaveOpen);
@@ -86,7 +85,7 @@ public static partial class CsvReader
     /// <see cref="IAsyncEnumerable{T}"/> that reads records asynchronously line-by-line from the stream
     /// as it is enumerated.
     /// </returns>
-    public static AsyncCsvEnumerator<char> EnumerateAsync(
+    public static AsyncCsvEnumerable<char> GetAsyncEnumerable(
         TextReader textReader,
         CsvReaderOptions<char> options,
         bool leaveOpen = false)
@@ -94,13 +93,12 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(textReader);
         ArgumentNullException.ThrowIfNull(options);
 
-        return new AsyncCsvEnumerator<char>(
+        return new AsyncCsvEnumerable<char>(
             new TextPipeReader(textReader, 4096, options.ArrayPool, leaveOpen: leaveOpen),
-            options,
-            columnCount: null);
+            options);
     }
 
-    public static AsyncCsvEnumerator<byte> EnumerateAsync(
+    public static AsyncCsvEnumerable<byte> GetAsyncEnumerable(
         Stream stream,
         CsvReaderOptions<byte> options,
         bool leaveOpen = false)
@@ -108,13 +106,16 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(options);
 
-        return EnumerateAsync(CreatePipeReader(stream, options, leaveOpen), options);
+        return GetAsyncEnumerable(CreatePipeReader(stream, options, leaveOpen), options);
     }
 
-    public static AsyncCsvEnumerator<byte> EnumerateAsync(
+    public static AsyncCsvEnumerable<byte> GetAsyncEnumerable(
         PipeReader reader,
         CsvReaderOptions<byte> options)
     {
-        return new AsyncCsvEnumerator<byte>(new PipeReaderWrapper(reader), options, null);
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(options);
+
+        return new AsyncCsvEnumerable<byte>(new PipeReaderWrapper(reader), options);
     }
 }

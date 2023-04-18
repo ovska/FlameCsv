@@ -23,4 +23,11 @@ internal readonly struct CsvReadResult<T> where T : unmanaged, IEquatable<T>
         Buffer = buffer;
         IsCompleted = isCompleted;
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Deconstruct(out ReadOnlySequence<T> buffer, out bool isCompleted)
+    {
+        buffer = Buffer;
+        isCompleted = IsCompleted;
+    }
 }

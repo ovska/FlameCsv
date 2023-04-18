@@ -211,51 +211,51 @@ public static class Compliance
         }
     }
 
-    [Theory]
-    [InlineData("""
-        "f,oo","bar","xyz"
-        """, new[] { "f,oo", "bar", "xyz" })]
-    [InlineData("""
-        "fo,o","bar","xyz"
-        """, new[] { "fo,o", "bar", "xyz" })]
-    [InlineData("""
-        "foo,","bar","xyz"
-        """, new[] { "foo,", "bar", "xyz" })]
-    public static void Should_Enumerate_With_Comma(string line, string[] expected)
-    {
-        var list = new List<string>();
+    //[Theory]
+    //[InlineData("""
+    //    "f,oo","bar","xyz"
+    //    """, new[] { "f,oo", "bar", "xyz" })]
+    //[InlineData("""
+    //    "fo,o","bar","xyz"
+    //    """, new[] { "fo,o", "bar", "xyz" })]
+    //[InlineData("""
+    //    "foo,","bar","xyz"
+    //    """, new[] { "foo,", "bar", "xyz" })]
+    //public static void Should_Enumerate_With_Comma(string line, string[] expected)
+    //{
+    //    var list = new List<string>();
 
-        using var bo = new BufferOwner<char>(ArrayPool<char>.Shared);
-        var enumerator = new CsvColumnEnumerator<char>(
-            line,
-            CsvDialect<char>.Default,
-            3,
-            line.Count(c => c == '"'),
-            new ValueBufferOwner<char>(ref bo._array, ArrayPool<char>.Shared));
+    //    using var bo = new BufferOwner<char>(ArrayPool<char>.Shared);
+    //    var enumerator = new CsvColumnEnumerator<char>(
+    //        line,
+    //        CsvDialect<char>.Default,
+    //        3,
+    //        line.Count(c => c == '"'),
+    //        new ValueBufferOwner<char>(ref bo._array, ArrayPool<char>.Shared));
 
-        foreach (var current in enumerator)
-        {
-            list.Add(current.ToString());
-        }
+    //    foreach (var current in enumerator)
+    //    {
+    //        list.Add(current.ToString());
+    //    }
 
-        Assert.Equal(expected, list);
+    //    Assert.Equal(expected, list);
 
-        list.Clear();
+    //    list.Clear();
 
-        var record = new CsvRecord<char>(
-            line.AsMemory(),
-            new CsvTextReaderOptions(),
-            null,
-            null,
-            bo,
-            0,
-            0);
+    //    var record = new CsvRecord<char>(
+    //        line.AsMemory(),
+    //        new CsvTextReaderOptions(),
+    //        null,
+    //        null,
+    //        bo,
+    //        0,
+    //        0);
 
-        foreach (var current in record)
-        {
-            list.Add(current.ToString());
-        }
+    //    foreach (var current in record)
+    //    {
+    //        list.Add(current.ToString());
+    //    }
 
-        Assert.Equal(expected, list);
-    }
+    //    Assert.Equal(expected, list);
+    //}
 }

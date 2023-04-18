@@ -28,9 +28,18 @@ public sealed class UnescapeTests : IDisposable
         var actualSpan = input.AsSpan().Unescape('\"', delimiterCount, vbo);
         Assert.Equal(expected, new string(actualSpan));
 
-        using var bo = new BufferOwner<char>(ArrayPool<char>.Shared);
-        var actualMemory = input.AsMemory().Unescape('\"', delimiterCount, bo);
+        char[] unescapeArray = new char[input.Length * 2];
+        unescapeArray.AsSpan().Fill('\0');
+        Memory<char> unescapeBuffer = unescapeArray;
+        ReadOnlyMemory<char> actualMemory = input.AsMemory().Unescape('\"', delimiterCount, ref unescapeBuffer);
         Assert.Equal(expected, new string(actualMemory.Span));
+
+        if (new Span<char>(unescapeArray).Overlaps(actualMemory.Span))
+        {
+            Assert.Equal(unescapeArray.Length - actualMemory.Length, unescapeBuffer.Length);
+            Assert.Equal(actualMemory.ToArray(), unescapeArray.AsMemory(0, actualMemory.Length).ToArray());
+            Assert.All(unescapeArray.AsMemory(actualMemory.Length).ToArray(), c => Assert.Equal('\0', c));
+        }
     }
 
     [Theory]
@@ -51,8 +60,8 @@ public sealed class UnescapeTests : IDisposable
         });
         Assert.Throws<UnreachableException>(() =>
         {
-            using var bo = new BufferOwner<char>(ArrayPool<char>.Shared);
-            return input.AsMemory().Unescape('\"', 4, bo);
+            Memory<char> unused = Array.Empty<char>();
+            return input.AsMemory().Unescape('\"', 4, ref unused);
         });
     }
 }

@@ -1,7 +1,6 @@
 ﻿using System.Globalization;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Configuration;
-using FlameCsv.Extensions;
 using FlameCsv.Parsers;
 using FlameCsv.Parsers.Text;
 using FlameCsv.Utilities;
