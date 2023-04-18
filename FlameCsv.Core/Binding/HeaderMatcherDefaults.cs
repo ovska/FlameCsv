@@ -1,7 +1,5 @@
-using System.Runtime.CompilerServices;
-using System.Text;
 using CommunityToolkit.Diagnostics;
-using CommunityToolkit.HighPerformance.Buffers;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Binding;
 
@@ -11,25 +9,6 @@ namespace FlameCsv.Binding;
 internal static class HeaderMatcherDefaults
 {
     public const StringComparison DefaultComparison = StringComparison.OrdinalIgnoreCase;
-
-    private static readonly HeaderTextBinder _headerTextBinder = new();
-    private static readonly HeaderUtf8Binder _headerUtf8Binder = new();
-
-    /// <summary>
-    /// Returns the default header matched for the token type.
-    /// </summary>
-    /// <seealso cref="HeaderTextBinder"/>
-    /// <seealso cref="_headerUtf8Binder"/>
-    internal static IHeaderBinder<T> GetBinder<T>() where T : unmanaged, IEquatable<T>
-    {
-        if (typeof(T) == typeof(char))
-            return (IHeaderBinder<T>)(object)_headerTextBinder;
-
-        if (typeof(T) == typeof(byte))
-            return (IHeaderBinder<T>)(object)_headerUtf8Binder;
-
-        throw NotSupportedGeneric<T>();
-    }
 
     public static SpanPredicate<T> CheckIgnore<T>(
         ReadOnlyMemory<string?> values,
@@ -81,41 +60,9 @@ internal static class HeaderMatcherDefaults
 
         bool Impl(ReadOnlySpan<byte> data)
         {
-            if (data.IsEmpty)
+            foreach (var value in values.Span)
             {
-                foreach (var value in values.Span)
-                {
-                    if (string.IsNullOrEmpty(value))
-                        return true;
-                }
-
-                return false;
-            }
-
-            int maxLength = Encoding.UTF8.GetMaxCharCount(data.Length);
-
-            if (Token<char>.CanStackalloc(maxLength))
-            {
-                return ImplInner(data, stackalloc char[maxLength], values.Span, stringComparison);
-            }
-
-            using var spanOwner = SpanOwner<char>.Allocate(maxLength);
-            return ImplInner(data, spanOwner.Span, values.Span, stringComparison);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static bool ImplInner(
-            scoped ReadOnlySpan<byte> data,
-            scoped Span<char> buffer,
-            scoped ReadOnlySpan<string?> values,
-            StringComparison stringComparison)
-        {
-            int written = Encoding.UTF8.GetChars(data, buffer);
-            ReadOnlySpan<char> text = buffer[..written];
-
-            foreach (var value in values)
-            {
-                if (text.Equals(value, stringComparison))
+                if (Utf8Util.SequenceEqual(data, value, stringComparison))
                     return true;
             }
 
@@ -128,7 +75,7 @@ internal static class HeaderMatcherDefaults
     {
         throw new NotSupportedException(
             $"Default header binding for token {typeof(T).ToTypeString()} is not supported. Implement " +
-            $"{nameof(IHeaderBinder<T>)} and use it in {nameof(CsvReaderOptions<T>.HeaderBinder)} in options.");
+            $"a custom {nameof(IHeaderBinder<T>)}.");
 
     }
 }

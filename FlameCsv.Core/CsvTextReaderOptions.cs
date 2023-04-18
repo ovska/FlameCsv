@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using CommunityToolkit.HighPerformance.Buffers;
+using FlameCsv.Binding;
 using FlameCsv.Configuration;
 using FlameCsv.Parsers;
 using FlameCsv.Parsers.Text;
@@ -29,7 +30,8 @@ namespace FlameCsv;
 /// </remarks>
 public sealed class CsvTextReaderOptions :
     CsvReaderOptions<char>,
-    ICsvNullTokenConfiguration<char>
+    ICsvNullTokenConfiguration<char>,
+    ICsvHeaderConfiguration<char>
 {
     private static readonly Lazy<CsvTextReaderOptions> _default = new(() => new(isReadOnly: true));
 
@@ -37,6 +39,7 @@ public sealed class CsvTextReaderOptions :
     /// <remarks>Create a new instance if you need to configure the options or parsers.</remarks>
     public static CsvTextReaderOptions Default => _default.Value;
 
+    private StringComparison _headerComparison;
     private StringPool? _stringPool;
     private IFormatProvider? _formatProvider;
     private NumberStyles _integerNumberStyles;
@@ -72,6 +75,12 @@ public sealed class CsvTextReaderOptions :
 
         if (isReadOnly)
             MakeReadOnly();
+    }
+
+    public StringComparison HeaderComparison
+    {
+        get => _headerComparison;
+        set => this.SetValue(ref _headerComparison, value);
     }
 
     /// <summary>
@@ -273,5 +282,27 @@ public sealed class CsvTextReaderOptions :
 
         value = default;
         return false;
+    }
+
+    bool ICsvHeaderConfiguration<char>.Matches(ReadOnlySpan<char> tokens, ReadOnlySpan<char> chars)
+    {
+        return tokens.Equals(chars, _headerComparison);
+    }
+
+    IReadOnlyDictionary<string, int> ICsvHeaderConfiguration<char>.CreateHeaderDictionary(CsvRecord<char> record)
+    {
+        Dictionary<string, int> dictionary = new(record.GetFieldCount(), StringComparer.FromComparison(_headerComparison));
+        int index = 0;
+
+        foreach (var field in record)
+            AddToDictionary(in record, dictionary, field.ToString(), index++);
+
+        dictionary.TrimExcess();
+        return dictionary;
+    }
+
+    public override IHeaderBinder<char> GetHeaderBinder()
+    {
+        return new DefaultHeaderBinder<char>(this);
     }
 }

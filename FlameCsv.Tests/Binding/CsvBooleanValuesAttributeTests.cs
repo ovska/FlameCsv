@@ -10,6 +10,10 @@ namespace FlameCsv.Tests.Binding;
 
 public static class CsvBooleanValuesAttributeTests
 {
+    private sealed class IntOptions : CsvReaderOptions<int>
+    {
+    }
+
     public static IEnumerable<object?[]> NonNullableTestData()
     {
         yield return new object?[] { "1", true, true };
@@ -71,7 +75,7 @@ public static class CsvBooleanValuesAttributeTests
             {
                 var binding = CsvBinding.ForMember<Shim>(0, typeof(Shim).GetProperty("IsEnabled")!);
                 Assert.True(binding.TryGetAttribute<CsvParserOverrideAttribute>(out var @override));
-                _ = @override!.CreateParser(typeof(bool), new CsvReaderOptions<int>());
+                _ = @override!.CreateParser(typeof(bool), new IntOptions());
             });
     }
 

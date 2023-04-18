@@ -40,8 +40,8 @@ public static class HeaderBindingTests
     [Fact]
     public static void Should_Bind_To_Ctor_Parameter()
     {
-        var binder = new HeaderTextBinder(stringComparison: StringComparison.Ordinal);
-        var bindingCollection = binder.Bind<ShimWithCtor>("Name,_targeted", CsvTextReaderOptions.Default);
+        var binder = new DefaultHeaderBinder<char>(new CsvTextReaderOptions { HeaderComparison = StringComparison.Ordinal });
+        var bindingCollection = binder.Bind<ShimWithCtor>("Name,_targeted".AsMemory());
         var byIndex = bindingCollection.Bindings.ToArray().ToDictionary(b => b.Index);
         Assert.Equal(2, byIndex.Count);
         Assert.Equal("Name", ((MemberCsvBinding<ShimWithCtor>)byIndex[0]).Member.Name);
@@ -53,9 +53,9 @@ public static class HeaderBindingTests
     [InlineData("\"IsEnabled\",\"Name\",\"_targeted\"")]
     public static void Should_Bind_To_Properties(string header)
     {
-        var binder = new HeaderTextBinder(stringComparison: StringComparison.Ordinal);
+        var binder = new DefaultHeaderBinder<char>(new CsvTextReaderOptions { HeaderComparison = StringComparison.Ordinal });
 
-        var bindingCollection = binder.Bind<Shim>(header, CsvTextReaderOptions.Default);
+        var bindingCollection = binder.Bind<Shim>(header.AsMemory());
         Assert.Equal(3, bindingCollection.Bindings.Length);
         var byIndex = bindingCollection.MemberBindings.ToArray().ToDictionary(b => b.Index, b => b.Member);
         Assert.Equal(3, byIndex.Count);
@@ -74,7 +74,7 @@ public static class HeaderBindingTests
 
         var options = new CsvTextReaderOptions
         {
-            HeaderBinder = new HeaderTextBinder(stringComparison: StringComparison.Ordinal)
+            HeaderComparison = StringComparison.Ordinal,
         };
 
         using var processor = new CsvHeaderProcessor<char, Shim>(options);
@@ -101,7 +101,7 @@ public static class HeaderBindingTests
 
         var options = new CsvTextReaderOptions
         {
-            HeaderBinder = new HeaderTextBinder(stringComparison: StringComparison.Ordinal)
+            HeaderComparison = StringComparison.Ordinal,
         };
 
         using var processor = new CsvHeaderProcessor<char, Shim>(options);

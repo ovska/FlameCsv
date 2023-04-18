@@ -11,7 +11,7 @@ public class CsvReaderOptionsTests
         var c1 = new CultureInfo("fi");
         var c2 = new CultureInfo("se");
 
-        var options = new CsvReaderOptions<char>
+        var options = new CsvTextReaderOptions
         {
             Parsers =
             {
@@ -95,7 +95,7 @@ public class CsvReaderOptionsTests
     [Fact]
     public void Should_Throw_On_ReadOnly_Modified()
     {
-        var options = new CsvReaderOptions<char>();
+        var options = new CsvTextReaderOptions();
         Assert.True(options.MakeReadOnly());
         Assert.False(options.MakeReadOnly());
 
@@ -104,7 +104,7 @@ public class CsvReaderOptionsTests
         Run(o => o.Newline = default);
         Run(o => o.ShouldSkipRow = default);
         Run(o => o.HasHeader = default);
-        Run(o => o.HeaderBinder = default);
+        Run(o => o.HeaderComparison = default);
         Run(o => o.ExceptionHandler = default);
         Run(o => o.AllowContentInExceptions = default);
         Run(o => o.Parsers[0] = new IntegerTextParser());
@@ -114,47 +114,9 @@ public class CsvReaderOptionsTests
         Run(o => o.Parsers.RemoveAt(0));
         Run(o => o.Parsers.Clear());
 
-        void Run(Action<CsvReaderOptions<char>> action)
+        void Run(Action<CsvTextReaderOptions> action)
         {
             Assert.Throws<InvalidOperationException>(() => action(options));
-        }
-    }
-
-    [Fact(Skip = "Thread safety of mutability is no longer guaranteed")]
-    public void Should_Be_Threadsafe()
-    {
-        // this test isn't reliable to prove a negative, but should work as
-        // a canary in the coal mine
-        var options = new CsvReaderOptions<char>();
-
-        var parser = Base64TextParser.Instance;
-        Thread[] threads =
-        {
-            new(Repeat(o => o.Parsers.Add(parser))),
-            new(
-                Repeat(
-                    o =>
-                    {
-                        foreach (var x in o.EnumerateParsers()) _ = x;
-                    })),
-        };
-
-        foreach (var thread in threads)
-            thread.Start();
-        foreach (var thread in threads)
-            thread.Join();
-
-        Assert.Equal(1000, options.Parsers.Count);
-
-        ThreadStart Repeat(Action<CsvReaderOptions<char>> action)
-        {
-            return () =>
-            {
-                for (int i = 0; i < 1000; i++)
-                {
-                    action(options);
-                }
-            };
         }
     }
 }
