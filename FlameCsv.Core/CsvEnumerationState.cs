@@ -19,17 +19,18 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     public int Version { get; private set; }
     public CsvDialect<T> Dialect { get; }
 
-    private readonly ArrayPool<T> _arrayPool;
-    private readonly bool _exposeContents;
-    private T[]? _unescapeBuffer;
-    private Memory<T> _remainingUnescapeBuffer;
+    private readonly bool _exposeContents; // allow content in exceptions
 
-    private ReadOnlyMemory<T>[] _values;
-    private int _index;
+    private readonly ArrayPool<T> _arrayPool; // pool used for unescape buffer
+    private T[]? _unescapeBuffer; // rented array for unescaping
+    private Memory<T> _remainingUnescapeBuffer; // unused tail of the buffer
 
-    private ReadOnlyMemory<T> _record;
-    private ReadOnlyMemory<T> _remaining;
-    private int _quotesRemaining;
+    private ReadOnlyMemory<T>[] _values; // cached column values by index
+    private int _index; // how many values have been read
+
+    private ReadOnlyMemory<T> _record; // whole record's raw data
+    private ReadOnlyMemory<T> _remaining; // unread data, if empty, the whole record has been read
+    private int _quotesRemaining; // how many quotes are left in the remaining data
 
     private readonly bool _hasHeader;
     internal Dictionary<string, int>? _header;
@@ -76,6 +77,8 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
 
     public bool TryGetHeaderIndex(string name, out int index)
     {
+        ArgumentNullException.ThrowIfNull(name);
+
         if (!_hasHeader)
             ThrowHelper.ThrowNotSupportedException("The current CSV does not have a header record.");
 
@@ -87,8 +90,6 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
 
     public bool TryGetAtIndex(int index, out ReadOnlyMemory<T> column)
     {
-        Guard.IsGreaterThanOrEqualTo(index, 0);
-
         while (_index <= index)
         {
             if (!TryReadNextColumn())
@@ -132,7 +133,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
         if (_index != 0)
         {
             if (!_remaining.Span[0].Equals(Dialect.Delimiter))
-                ThrowUnreachableInvalidState();
+                ThrowNoDelimiterAtHead();
 
             _remaining = _remaining.Slice(1);
         }
@@ -172,16 +173,15 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
             index += nextIndex;
         }
 
-        // No comma in the remaining data
-        if (_quotesRemaining == 0)
+        if (_quotesRemaining != 0)
         {
-            AdvanceColumn(_remaining, quotesConsumed);
-            _remaining = default; // consume all data
-            return true;
+            // there were leftover unprocessed quotes
+            ThrowInvalidEOF();
         }
 
-        // there were leftover unprocessed quotes
-        return ThrowInvalidEOF();
+        AdvanceColumn(_remaining, quotesConsumed);
+        _remaining = default; // consume all data
+        return true;
     }
 
     private void AdvanceColumn(ReadOnlyMemory<T> unescapedColumn, int quotesConsumed)
@@ -193,7 +193,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private void ThrowUnreachableInvalidState()
+    private void ThrowNoDelimiterAtHead()
     {
         throw new UnreachableException(
             "The CSV record was in an invalid state (no delimiter at head after first column), " +
@@ -202,11 +202,11 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private bool ThrowInvalidEOF()
+    private void ThrowInvalidEOF()
     {
         throw new UnreachableException(
-            $"There were leftover quotes ({_quotesRemaining}) in the line: " +
-            _record.Span.AsPrintableString(_exposeContents, Dialect));
+            $"The CSV record was in an invalid state ({_quotesRemaining} leftover quotes), " +
+            $"Record: {_record.Span.AsPrintableString(_exposeContents, Dialect)}");
     }
 }
 

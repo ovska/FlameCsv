@@ -29,7 +29,7 @@ internal static class UnescapeExtensions
         this ReadOnlySpan<T> source,
         T quote,
         int quoteCount,
-        ValueBufferOwner<T> buffer)
+        BufferOwner<T> buffer)
         where T : unmanaged, IEquatable<T>
     {
         if (quoteCount == 0)
@@ -63,7 +63,7 @@ internal static class UnescapeExtensions
         this ReadOnlySpan<T> source,
         T quote,
         int quoteCount,
-        ValueBufferOwner<T> bufferHolder)
+        BufferOwner<T> bufferHolder)
         where T : unmanaged, IEquatable<T>
     {
         Debug.Assert(quoteCount >= 2);
@@ -103,7 +103,7 @@ internal static class UnescapeExtensions
         return default; // unreachable
     }
 
-    /// <inheritdoc cref="Unescape{T}(ReadOnlySpan{T}, T, int, ValueBufferOwner{T})"/>
+    /// <inheritdoc cref="Unescape{T}(ReadOnlySpan{T}, T, int, BufferOwner{T})"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ReadOnlyMemory<T> Unescape<T>(
         this ReadOnlyMemory<T> source,
@@ -137,7 +137,7 @@ internal static class UnescapeExtensions
         return default; // unreachable
     }
 
-    /// <inheritdoc cref="UnescapeRare{T}(ReadOnlySpan{T}, T, int, ValueBufferOwner{T})"/>
+    /// <inheritdoc cref="UnescapeRare{T}(ReadOnlySpan{T}, T, int, BufferOwner{T})"/>
     [MethodImpl(MethodImplOptions.NoInlining)] // encourage inlining common case above
     private static ReadOnlyMemory<T> UnescapeRare<T>(
         this ReadOnlyMemory<T> source,

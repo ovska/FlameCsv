@@ -1,4 +1,5 @@
 using System.Buffers;
+using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Tests.Utilities;
 
@@ -162,13 +163,14 @@ public static class Compliance
         var list = new List<string>();
         var options = CsvDialect<char>.Default.Clone(newline: "|".AsMemory());
 
-        using var bo = new BufferOwner<char>(ArrayPool<char>.Shared);
+        char[]? buffer = null;
+
         var enumerator = new CsvColumnEnumerator<char>(
             line,
             options,
             5,
             line.Count(c => c == '"'),
-            new ValueBufferOwner<char>(ref bo._array, ArrayPool<char>.Shared));
+            new BufferOwner<char>(ref buffer, AllocatingArrayPool<char>.Instance));
 
         foreach (var current in enumerator)
         {
@@ -184,7 +186,7 @@ public static class Compliance
         var dialect = CsvDialect<char>.Default.Clone(newline: "|".AsMemory());
 
         var data = new[] { dialect.Delimiter, dialect.Newline.Span[0] }.GetPermutations();
-        using var bo = new BufferOwner<char>(ArrayPool<char>.Shared);
+        char[]? buffer = null;
 
         foreach (var chars in data)
         {
@@ -196,7 +198,7 @@ public static class Compliance
                 in dialect,
                 2,
                 line.Count(c => c == dialect.Quote),
-                new ValueBufferOwner<char>(ref bo._array, ArrayPool<char>.Shared));
+                new BufferOwner<char>(ref buffer, AllocatingArrayPool<char>.Instance));
 
             var list = new List<string>();
 
@@ -210,52 +212,4 @@ public static class Compliance
             Assert.Equal("test", list[1]);
         }
     }
-
-    //[Theory]
-    //[InlineData("""
-    //    "f,oo","bar","xyz"
-    //    """, new[] { "f,oo", "bar", "xyz" })]
-    //[InlineData("""
-    //    "fo,o","bar","xyz"
-    //    """, new[] { "fo,o", "bar", "xyz" })]
-    //[InlineData("""
-    //    "foo,","bar","xyz"
-    //    """, new[] { "foo,", "bar", "xyz" })]
-    //public static void Should_Enumerate_With_Comma(string line, string[] expected)
-    //{
-    //    var list = new List<string>();
-
-    //    using var bo = new BufferOwner<char>(ArrayPool<char>.Shared);
-    //    var enumerator = new CsvColumnEnumerator<char>(
-    //        line,
-    //        CsvDialect<char>.Default,
-    //        3,
-    //        line.Count(c => c == '"'),
-    //        new ValueBufferOwner<char>(ref bo._array, ArrayPool<char>.Shared));
-
-    //    foreach (var current in enumerator)
-    //    {
-    //        list.Add(current.ToString());
-    //    }
-
-    //    Assert.Equal(expected, list);
-
-    //    list.Clear();
-
-    //    var record = new CsvRecord<char>(
-    //        line.AsMemory(),
-    //        new CsvTextReaderOptions(),
-    //        null,
-    //        null,
-    //        bo,
-    //        0,
-    //        0);
-
-    //    foreach (var current in record)
-    //    {
-    //        list.Add(current.ToString());
-    //    }
-
-    //    Assert.Equal(expected, list);
-    //}
 }

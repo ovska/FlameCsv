@@ -24,7 +24,7 @@ public sealed class UnescapeTests : IDisposable
     {
         var delimiterCount = input.Count(c => c == '"');
 
-        var vbo = new ValueBufferOwner<char>(ref buffer, ArrayPool<char>.Shared);
+        var vbo = new BufferOwner<char>(ref buffer, ArrayPool<char>.Shared);
         var actualSpan = input.AsSpan().Unescape('\"', delimiterCount, vbo);
         Assert.Equal(expected, new string(actualSpan));
 
@@ -55,7 +55,7 @@ public sealed class UnescapeTests : IDisposable
     {
         Assert.Throws<UnreachableException>(() =>
         {
-            var vbo = new ValueBufferOwner<char>(ref buffer, ArrayPool<char>.Shared);
+            var vbo = new BufferOwner<char>(ref buffer, ArrayPool<char>.Shared);
             input.AsSpan().Unescape('\"', 4, vbo);
         });
         Assert.Throws<UnreachableException>(() =>

@@ -10,7 +10,10 @@ public sealed class CsvEnumerator<T> :
 {
     private ReadOnlySequence<T> _data;
 
-    public CsvEnumerator(ReadOnlySequence<T> data, CsvReaderOptions<T> options, CancellationToken cancellationToken)
+    public CsvEnumerator(
+        ReadOnlySequence<T> data,
+        CsvReaderOptions<T> options,
+        CancellationToken cancellationToken)
         : base(options, cancellationToken)
     {
         _data = data;
@@ -31,7 +34,7 @@ public sealed class CsvEnumerator<T> :
         return false;
     }
 
-    void IEnumerator.Reset() => throw new NotSupportedException();
+    void IEnumerator.Reset() => throw new NotSupportedException(); // TODO: preserve the original ReadOnlySequence<T> as well?
 
     ValueTask<bool> IAsyncEnumerator<CsvRecord<T>>.MoveNextAsync()
     {

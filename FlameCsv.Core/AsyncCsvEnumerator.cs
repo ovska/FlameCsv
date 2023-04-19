@@ -17,8 +17,11 @@ public sealed class AsyncCsvEnumerator<T> :
 {
     private readonly ICsvPipeReader<T> _reader;
 
-    private ReadOnlySequence<T> _data; // current buffer
-    private bool _readerCompleted; // last call to ReadAsync returned IsCompleted=true
+    /// <summary>Current unadvanced buffer from reader, or empty before first call to ReadAsync</summary>
+    private ReadOnlySequence<T> _data;
+
+    /// <summary>Last call to ReadAsync returned IsCompleted = true</summary>
+    private bool _readerCompleted;
 
     internal AsyncCsvEnumerator(ICsvPipeReader<T> reader, CsvReaderOptions<T> options, CancellationToken cancellationToken)
         : base(options, cancellationToken)
@@ -33,6 +36,9 @@ public sealed class AsyncCsvEnumerator<T> :
 
         if (MoveNextCore())
             return new ValueTask<bool>(true);
+
+        if (_readerCompleted)
+            return new ValueTask<bool>(false);
 
         return ReadAndMoveNextAsync();
     }

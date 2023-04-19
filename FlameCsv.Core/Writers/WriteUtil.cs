@@ -109,7 +109,7 @@ internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
         scoped Span<T> destination,
         T quote,
         int quoteCount,
-        ValueBufferOwner<T> overflowBuffer)
+        BufferOwner<T> overflowBuffer)
     {
         Debug.Assert(
             !source.Overlaps(destination, out int elementOffset) || elementOffset == 0,

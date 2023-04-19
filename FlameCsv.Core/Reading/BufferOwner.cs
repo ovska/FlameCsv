@@ -1,66 +1,40 @@
-using System.Buffers;
+﻿using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
+using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
-using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading;
 
 /// <summary>
-/// Utility class holding on to a rented buffer. The buffer is meant to be reused
-/// across multiple writes/reads.
+/// Wrapper around an array reference and the array pool that owns it.
 /// </summary>
-[DebuggerDisplay(@"\{ BufferOwner: Length: {_rented?.Length}, Disposed: {_disposed} \}")]
-internal sealed class BufferOwner<T> : IDisposable where T : unmanaged, IEquatable<T>
+[DebuggerDisplay(@"\{ ValueBufferOwner: Length: {_span[0] != null ? _span[0].Length.ToString() : ""-1"",nq} \}")]
+internal readonly ref struct BufferOwner<T> where T : unmanaged
 {
-    internal T[]? _array;
-    private bool _disposed;
-    private readonly ArrayPool<T> _arrayPool;
+    private readonly Span<T[]?> _span;
+    private readonly ArrayPool<T> _pool;
 
-    public BufferOwner(CsvReaderOptions<T> options) : this(options.ArrayPool)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public BufferOwner(ref T[]? span, ArrayPool<T> pool)
     {
+        _span = MemoryMarshal.CreateSpan(ref span, 1);
+        _pool = pool;
     }
 
-    /// <summary>
-    /// Initializes a buffer owner using the specified array pool.
-    /// </summary>
-    public BufferOwner(ArrayPool<T>? arrayPool)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Span<T> GetSpan(int length)
     {
-        _arrayPool = arrayPool ?? AllocatingArrayPool<T>.Instance;
+        ref T[]? array = ref _span[0];
+        _pool.EnsureCapacity(ref array, length);
+        return array.AsSpan(0, length);
     }
 
-    /// <summary>
-    /// Returns a buffer of the requested length.
-    /// </summary>
-    /// <exception cref="ObjectDisposedException" />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Memory<T> GetMemory(int length)
     {
-        if (_disposed)
-            ThrowHelper.ThrowObjectDisposedException(nameof(BufferOwner<T>));
-
-        _arrayPool.EnsureCapacity(ref _array, length);
-        return _array.AsMemory(0, length);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Dispose()
-    {
-        if (_disposed)
-            return;
-
-        _disposed = true;
-        _arrayPool.EnsureReturned(ref _array);
-
-#if DEBUG
-        GC.SuppressFinalize(this);
-    }
-
-    ~BufferOwner()
-    {
-        if (!_disposed)
-            throw new InvalidOperationException("A BufferOwner was not disposed!");
-#endif
+        ref T[]? array = ref _span[0];
+        _pool.EnsureCapacity(ref array, length);
+        return array.AsMemory(0, length);
     }
 }
