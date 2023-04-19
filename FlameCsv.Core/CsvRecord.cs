@@ -67,6 +67,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
     }
 
     /// <inheritdoc cref="ICsvRecord{T}.GetField(string)"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlyMemory<T> GetField(string name)
     {
         if (!_state.TryGetHeaderIndex(name, out int index))
@@ -78,6 +79,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
     }
 
     /// <inheritdoc cref="ICsvRecord{T}.GetField(int)"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlyMemory<T> GetField(int index)
     {
         if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> column))
@@ -89,6 +91,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
     }
 
     /// <inheritdoc cref="ICsvRecord{T}.GetFieldCount"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int GetFieldCount() => _state.GetFieldCount();
 
     public bool TryGetValue<TValue>(int index, [MaybeNullWhen(false)] out TValue value) => TryGetValue(index, out value, out _);

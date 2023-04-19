@@ -1,4 +1,7 @@
+using System;
 using System.Buffers;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
@@ -44,7 +47,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryRead(ref ReadOnlySequence<T> buffer, out TValue value, bool isFinalBlock)
     {
-        if (LineReader.TryGetLine(in _dialect, ref buffer, out ReadOnlySequence<T> line, out int quoteCount, isFinalBlock))
+        if (RFC4180Mode<T>.TryGetLine(in _dialect, ref buffer, out ReadOnlySequence<T> line, out int quoteCount, isFinalBlock))
         {
             return TryReadOrSkipRecord(in line, quoteCount, out value);
         }
@@ -54,31 +57,32 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         return false;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private bool TryReadOrSkipRecord(
         in ReadOnlySequence<T> lineSequence,
         int quoteCount,
         out TValue value)
     {
+        if (quoteCount % 2 != 0)
+        {
+            ThrowInvalidStringDelimiterException(lineSequence);
+        }
+
         ReadOnlyMemory<T> line;
+        ReadOnlySpan<T> lineSpan;
 
         if (lineSequence.IsSingleSegment)
         {
             line = lineSequence.First;
+            lineSpan = line.Span;
         }
         else
         {
-
-            Memory<T> buffer = new BufferOwner<T>(ref _multisegmentBuffer, _arrayPool).GetMemory((int)lineSequence.Length);
-            lineSequence.CopyTo(buffer.Span);
-            line = buffer;
-        }
-
-        ReadOnlySpan<T> lineSpan = line.Span;
-
-        if (quoteCount % 2 != 0)
-        {
-            ThrowInvalidStringDelimiterException(lineSpan);
+            int length = (int)lineSequence.Length;
+            _arrayPool.EnsureCapacity(ref _multisegmentBuffer, length);
+            lineSequence.CopyTo(_multisegmentBuffer);
+            line = _multisegmentBuffer.AsMemory(0, length);
+            lineSpan = _multisegmentBuffer.AsSpan(0, length);
         }
 
         if (_skipPredicate is not null && _skipPredicate(lineSpan, in _dialect))
@@ -94,7 +98,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
                 record: line,
                 remaining: line,
                 isAtStart: true,
-                quoteCount: ref quoteCount,
+                quoteCount: quoteCount,
                 buffer: ref _unescapeBuffer,
                 arrayPool: _arrayPool,
                 exposeContent: _exposeContent);
@@ -104,11 +108,11 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         }
         catch (CsvFormatException ex)
         {
-            CsvFormatException.Throw(ex, line.Span, _exposeContent, in _dialect);
+            ThrowInvalidFormatException(ex, lineSpan);
         }
         catch (Exception ex)
         {
-            if (_exceptionHandler?.Invoke(line.Span, ex) != true)
+            if (_exceptionHandler?.Invoke(lineSpan, ex) != true)
                 throw;
         }
 
@@ -116,13 +120,24 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         return false;
     }
 
-    private void ThrowInvalidStringDelimiterException(ReadOnlySpan<T> line)
+    [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    private void ThrowInvalidFormatException(
+        Exception exception,
+        ReadOnlySpan<T> line)
     {
-        CsvFormatException.Throw(
-            "The data ended while there was a dangling string delimiter",
-            line,
-            _exposeContent,
-            in _dialect);
+        throw new CsvFormatException(
+            $"The CSV was in an invalid format: {line.AsPrintableString(_exposeContent, in _dialect)}",
+            exception);
+    }
+
+    [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    private void ThrowInvalidStringDelimiterException(in ReadOnlySequence<T> line)
+    {
+        using var view = new SequenceView<T>(in line, _arrayPool);
+
+        throw new CsvFormatException(
+            "The data ended while there was a dangling string delimiter: " +
+            view.Span.AsPrintableString(_exposeContent, in _dialect));
     }
 
     public void Dispose()

@@ -8,7 +8,7 @@ using FlameCsv.Reading;
 
 namespace FlameCsv.Runtime;
 
-internal abstract partial class Materializer
+internal abstract partial class Materializer<T>
 {
     /// <summary>
     /// Returns the constructor info for materializer of <typeparamref name="TResult"/>.
@@ -17,8 +17,7 @@ internal abstract partial class Materializer
     /// <typeparam name="T">CSV token type</typeparam>
     /// <typeparam name="TResult">Type of the object/struct being read</typeparam>
     [ExcludeFromCodeCoverage]
-    internal static ConstructorInfo GetConstructor<T, TResult>(ReadOnlySpan<CsvBinding<TResult>> bindings)
-        where T : unmanaged, IEquatable<T>
+    internal static ConstructorInfo GetConstructor<TResult>(ReadOnlySpan<CsvBinding<TResult>> bindings)
     {
         Type[] types = new Type[bindings.Length + 2];
 

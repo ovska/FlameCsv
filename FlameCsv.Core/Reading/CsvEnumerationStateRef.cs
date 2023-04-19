@@ -1,7 +1,6 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 
@@ -17,10 +16,7 @@ public ref struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
     public ReadOnlyMemory<T> remaining;
     public Memory<T> unescapeBuffer;
     public bool isAtStart;
-
-    public readonly ref int QuotesRemaining => ref _quotesRemaining[0];
-
-    private readonly Span<int> _quotesRemaining;
+    public int quotesRemaining;
 
     public CsvEnumerationStateRef(CsvReaderOptions<T> options, ReadOnlyMemory<T> record)
     {
@@ -31,8 +27,7 @@ public ref struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
         ExposeContent = options.AllowContentInExceptions;
 
         int quoteCount = record.Span.Count(Dialect.Quote);
-        _quotesRemaining = MemoryMarshal.CreateSpan(ref quoteCount, 1);
-
+        quotesRemaining = quoteCount;
         remaining = record;
         isAtStart = true;
 
@@ -51,7 +46,7 @@ public ref struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
         ReadOnlyMemory<T> record,
         ReadOnlyMemory<T> remaining,
         bool isAtStart,
-        ref int quoteCount,
+        int quoteCount,
         ref T[]? buffer,
         ArrayPool<T> arrayPool,
         bool exposeContent)
@@ -67,7 +62,7 @@ public ref struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
         Record = record;
         ExposeContent = exposeContent;
 
-        _quotesRemaining = MemoryMarshal.CreateSpan(ref quoteCount, 1);
+        quotesRemaining = quoteCount;
         this.remaining = remaining;
         this.isAtStart = isAtStart;
 

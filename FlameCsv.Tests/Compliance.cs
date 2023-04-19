@@ -17,7 +17,7 @@ public static class Compliance
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
         var options = CsvDialect<char>.Default;
 
-        Assert.True(LineReader.TryGetLine(in options, ref seq, out var line, out _, false));
+        Assert.True(RFC4180Mode<char>.TryGetLine(in options, ref seq, out var line, out _, false));
 
         Assert.Equal("xyz", new string(line.ToArray()));
         Assert.Equal("abc", new string(seq.ToArray()));
@@ -43,7 +43,7 @@ public static class Compliance
 
         var results = new List<string>();
 
-        while (LineReader.TryGetLine(CsvDialect<char>.Default, ref seq, out var line, out _, false))
+        while (RFC4180Mode<char>.TryGetLine(CsvDialect<char>.Default, ref seq, out var line, out _, false))
         {
             results.Add(new string(line.ToArray()));
         }
@@ -67,7 +67,7 @@ public static class Compliance
 
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
 
-        Assert.True(LineReader.TryGetLine(new CsvDialect<char>(options), ref seq, out var firstLine, out _, false));
+        Assert.True(RFC4180Mode<char>.TryGetLine(new CsvDialect<char>(options), ref seq, out var firstLine, out _, false));
         Assert.Equal(segments[0], new string(firstLine.ToArray()));
         Assert.Equal(segments[2], new string(seq.ToArray()));
     }
@@ -79,7 +79,7 @@ public static class Compliance
         var options = new CsvTextReaderOptions();
         var seq = new ReadOnlySequence<char>(data.ToCharArray());
 
-        Assert.False(LineReader.TryGetLine(new CsvDialect<char>(options), ref seq, out _, out _, false));
+        Assert.False(RFC4180Mode<char>.TryGetLine(new CsvDialect<char>(options), ref seq, out _, out _, false));
         Assert.Equal(data, seq.ToArray());
     }
 
@@ -105,7 +105,7 @@ public static class Compliance
 
         var found = new List<string>();
 
-        while (LineReader.TryGetLine(in dialect, ref seq, out var line, out _, false))
+        while (RFC4180Mode<char>.TryGetLine(in dialect, ref seq, out var line, out _, false))
         {
             found.Add(new string(line.ToArray()));
         }
@@ -134,7 +134,7 @@ public static class Compliance
 
         if (data.Contains('|'))
         {
-            Assert.True(LineReader.TryGetLine(in dialect, ref seq, out var line, out var strCount, false));
+            Assert.True(RFC4180Mode<char>.TryGetLine(in dialect, ref seq, out var line, out var strCount, false));
             var lineStr = new string(line.ToArray());
             Assert.Equal(expected, lineStr);
             Assert.Equal(new string(seq.ToArray()), data[(lineStr.Length + 1)..]);
@@ -142,7 +142,7 @@ public static class Compliance
         }
         else
         {
-            Assert.False(LineReader.TryGetLine(in dialect, ref seq, out _, out _, false));
+            Assert.False(RFC4180Mode<char>.TryGetLine(in dialect, ref seq, out _, out _, false));
 
             // original sequence is unchanged
             Assert.Equal(data, new string(seq.ToArray()));
@@ -165,17 +165,15 @@ public static class Compliance
 
         char[]? buffer = null;
 
-        int quoteCount = line.Count(c => c == '"');
-
         CsvEnumerationStateRef<char> enumerator = new(
-            in dialect,
-            line.AsMemory(),
-            line.AsMemory(),
-            true,
-            ref quoteCount,
-            ref buffer,
-            AllocatingArrayPool<char>.Instance,
-            true);
+            dialect: in dialect,
+            record: line.AsMemory(),
+            remaining: line.AsMemory(),
+            isAtStart: true,
+            quoteCount: line.Count(c => c == '"'),
+            buffer: ref buffer,
+            arrayPool: AllocatingArrayPool<char>.Instance,
+            exposeContent: true);
 
         foreach (var current in enumerator)
         {
@@ -198,17 +196,15 @@ public static class Compliance
             var input = new string(chars.ToArray());
             var line = $"\"{input}\",test";
 
-            int quoteCount = line.Count(c => c == '"');
-
             CsvEnumerationStateRef<char> state = new(
-                in dialect,
-                line.AsMemory(),
-                line.AsMemory(),
-                true,
-                ref quoteCount,
-                ref buffer,
-                AllocatingArrayPool<char>.Instance,
-                true);
+                dialect: in dialect,
+                record: line.AsMemory(),
+                remaining: line.AsMemory(),
+                isAtStart: true,
+                quoteCount: line.Count(c => c == '"'),
+                buffer: ref buffer,
+                arrayPool: AllocatingArrayPool<char>.Instance,
+                exposeContent: true);
 
             var list = new List<string>();
 
