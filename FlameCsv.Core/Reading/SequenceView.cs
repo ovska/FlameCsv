@@ -15,16 +15,21 @@ internal readonly struct SequenceView<T> : IDisposable
     where T : unmanaged, IEquatable<T>
 {
     /// <summary>
-    /// Data in the parameter sequence trimmed according to options.
+    /// Data in the parameter sequence.
     /// </summary>
     public ReadOnlyMemory<T> Memory { get; }
+
+    /// <summary>
+    /// Data in the parameter sequence.
+    /// </summary>
+    public ReadOnlySpan<T> Span => Memory.Span;
 
     private readonly T[]? _array;
     private readonly ArrayPool<T>? _pool;
 
     public SequenceView(
         in ReadOnlySequence<T> sequence,
-        CsvReaderOptions<T> options)
+        ArrayPool<T>? arrayPool)
     {
         if (sequence.IsSingleSegment)
         {
@@ -32,8 +37,8 @@ internal readonly struct SequenceView<T> : IDisposable
         }
         else
         {
-            _pool = options.ArrayPool ?? AllocatingArrayPool<T>.Instance;
             int length = (int)sequence.Length;
+            _pool = arrayPool ?? AllocatingArrayPool<T>.Instance;
             _array = _pool.Rent(length);
             sequence.CopyTo(_array);
             Memory = _array.AsMemory(0, length);

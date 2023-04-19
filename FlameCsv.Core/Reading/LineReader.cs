@@ -8,7 +8,7 @@ namespace FlameCsv.Reading;
 /// <summary>
 /// Reads CSV lines from a <see cref="ReadOnlySequence{T}"/>.
 /// </summary>
-internal static class LineReader
+internal static partial class RFC4180Mode<T>
 {
     /// <summary>Linefeed read state.</summary>
     private struct State
@@ -26,7 +26,7 @@ internal static class LineReader
     /// <summary>
     /// Attempts to read until a non-string wrapped <see cref="CsvDialect{T}.Newline"/> is found.
     /// </summary>
-    /// <param name="tokens">Structural tokens instance from which newline and string delimiter tokens are used</param>
+    /// <param name="dialect">Structural tokens instance from which newline and string delimiter tokens are used</param>
     /// <param name="sequence">
     /// Source data, modified if a newline is found and unmodified if the method returns <see langword="false"/>.
     /// </param>
@@ -47,28 +47,27 @@ internal static class LineReader
     /// </returns>
     /// <remarks>A successful result might still be invalid CSV.</remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryGetLine<T>(
-        in CsvDialect<T> tokens,
+    public static bool TryGetLine(
+        in CsvDialect<T> dialect,
         ref ReadOnlySequence<T> sequence,
         out ReadOnlySequence<T> line,
         out int quoteCount,
         bool isFinalBlock)
-        where T : unmanaged, IEquatable<T>
     {
         return !isFinalBlock
-            ? TryRead(in tokens, ref sequence, out line, out quoteCount)
-            : TryGetFinalBlock(in tokens, ref sequence, out line, out quoteCount);
+            ? TryGetLineCore(in dialect, ref sequence, out line, out quoteCount)
+            : TryGetLineFinal(in dialect, ref sequence, out line, out quoteCount);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static bool TryRead<T>(
-        in CsvDialect<T> tokens,
+    private static bool TryGetLineCore(
+        in CsvDialect<T> dialect,
         ref ReadOnlySequence<T> sequence,
         out ReadOnlySequence<T> line,
         out int quoteCount)
-        where T : unmanaged, IEquatable<T>
     {
-        ReadOnlySpan<T> newLine = tokens.Newline.Span;
+        ReadOnlySpan<T> newLine = dialect.Newline.Span;
+        T quote = dialect.Quote;
 
         // keep track of read newline tokens and quotes in the read data
         State state = default;
@@ -85,14 +84,14 @@ internal static class LineReader
             // Find the next relevant token. Uneven quotes mean the current index is 100% inside a string,
             // so we can skip everything until the next quote
             int index = quoteCount % 2 == 0
-                ? span.IndexOfAny(newLine[state.count], tokens.Quote)
-                : span.IndexOf(tokens.Quote);
+                ? span.IndexOfAny(newLine[state.count], quote)
+                : span.IndexOf(quote);
 
             // Found a newline token or a string delimiter
             while (index >= 0)
             {
                 // Found token was a string delimiter
-                if (span[index].Equals(tokens.Quote))
+                if (span[index].Equals(quote))
                 {
                     quoteCount++;
                     state = default; // zero out possible newline state such as \r"
@@ -132,8 +131,8 @@ internal static class LineReader
 
                 // Find the next relevant token
                 int next = quoteCount % 2 == 0
-                    ? span.Slice(index).IndexOfAny(newLine[state.count], tokens.Quote)
-                    : span.Slice(index).IndexOf(tokens.Quote);
+                    ? span.Slice(index).IndexOfAny(newLine[state.count], quote)
+                    : span.Slice(index).IndexOf(quote);
 
                 // The segment still contains something of interest
                 if (next >= 0)
@@ -158,12 +157,11 @@ internal static class LineReader
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static bool TryGetFinalBlock<T>(
+    private static bool TryGetLineFinal(
         in CsvDialect<T> tokens,
         ref ReadOnlySequence<T> sequence,
         out ReadOnlySequence<T> line,
         out int quoteCount)
-        where T : unmanaged, IEquatable<T>
     {
         if (sequence.IsEmpty)
         {

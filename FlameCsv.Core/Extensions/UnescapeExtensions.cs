@@ -4,7 +4,6 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
-using FlameCsv.Reading;
 
 namespace FlameCsv.Extensions;
 
@@ -21,89 +20,9 @@ internal static class UnescapeExtensions
     /// <param name="source">Data to unescape</param>
     /// <param name="quote">Double quote token</param>
     /// <param name="quoteCount">Known quote count in the data, must be over 0 and divisible by 2</param>
-    /// <param name="buffer">Buffer used if the data has quotes in-between the wrapping quotes</param>
+    /// <param name="unescapeBuffer">Buffer used if the data has quotes in-between the wrapping quotes</param>
     /// <typeparam name="T">Token type</typeparam>
     /// <returns>Unescaped tokens, might be a slice of the original input</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ReadOnlySpan<T> Unescape<T>(
-        this ReadOnlySpan<T> source,
-        T quote,
-        int quoteCount,
-        BufferOwner<T> buffer)
-        where T : unmanaged, IEquatable<T>
-    {
-        if (quoteCount == 0)
-            return source;
-
-        Debug.Assert(quoteCount >= 2);
-        Debug.Assert(quoteCount % 2 == 0);
-
-        if (source.Length >= 2 && source[0].Equals(quote) && source[^1].Equals(quote))
-        {
-            // Trim trailing and leading quotes
-            source = source.Slice(1, source.Length - 2);
-
-            if (quoteCount == 2)
-            {
-                return source;
-            }
-
-            return source.UnescapeRare(quote, quoteCount - 2, buffer);
-        }
-
-        ThrowInvalidUnescape(source, quote, quoteCount);
-        return default; // unreachable
-    }
-
-    /// <summary>
-    /// Unescapes inner quotes from the input. Wrapping quotes have been trimmed at this point.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.NoInlining)] // encourage inlining common case above
-    private static ReadOnlySpan<T> UnescapeRare<T>(
-        this ReadOnlySpan<T> source,
-        T quote,
-        int quoteCount,
-        BufferOwner<T> bufferHolder)
-        where T : unmanaged, IEquatable<T>
-    {
-        Debug.Assert(quoteCount >= 2);
-        Debug.Assert(quoteCount % 2 == 0);
-
-        int written = 0;
-        int index = 0;
-        int quotesLeft = quoteCount;
-        ReadOnlySpan<T> needle = stackalloc T[] { quote, quote };
-
-        Span<T> buffer = bufferHolder.GetSpan(source.Length - quoteCount / 2);
-
-        Debug.Assert(!buffer.Overlaps(source), "Source and destination must not overlap");
-
-        while (index < source.Length)
-        {
-            int next = source.Slice(index).IndexOf(needle);
-
-            if (next < 0)
-                break;
-
-            int toCopy = next + 1;
-            source.Slice(index, toCopy).CopyTo(buffer.Slice(written));
-            written += toCopy;
-            index += toCopy + 1; // advance past the second quote
-
-            // Found all quotes, copy remaining data
-            if ((quotesLeft -= 2) == 0)
-            {
-                source.Slice(index).CopyTo(buffer.Slice(written));
-                written += source.Length - index;
-                return buffer.Slice(0, written);
-            }
-        }
-
-        ThrowInvalidUnescape(source, quote, quoteCount);
-        return default; // unreachable
-    }
-
-    /// <inheritdoc cref="Unescape{T}(ReadOnlySpan{T}, T, int, BufferOwner{T})"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ReadOnlyMemory<T> Unescape<T>(
         this ReadOnlyMemory<T> source,
@@ -112,32 +31,37 @@ internal static class UnescapeExtensions
         ref Memory<T> unescapeBuffer)
         where T : unmanaged, IEquatable<T>
     {
-        if (quoteCount == 0)
-            return source;
-
-        Debug.Assert(quoteCount >= 2);
-        Debug.Assert(quoteCount % 2 == 0);
-
-        var span = source.Span;
-
-        if (span.Length >= 2 && span[0].Equals(quote) && span[^1].Equals(quote))
+        if (quoteCount != 0)
         {
-            // Trim trailing and leading quotes
-            source = source.Slice(1, source.Length - 2);
+            Debug.Assert(quoteCount >= 2);
+            Debug.Assert(quoteCount % 2 == 0);
 
-            if (quoteCount == 2)
+            var span = source.Span;
+
+            if (span.Length >= 2 &&
+                span.DangerousGetReference().Equals(quote) &&
+                span.DangerousGetReferenceAt(span.Length - 1).Equals(quote))
             {
-                return source;
-            }
+                // Trim trailing and leading quotes
+                source = source.Slice(1, source.Length - 2);
 
-            return source.UnescapeRare(quote, quoteCount - 2, ref unescapeBuffer);
+                if (quoteCount != 2)
+                {
+                    return source.UnescapeRare(quote, quoteCount - 2, ref unescapeBuffer);
+                }
+            }
+            else
+            {
+                ThrowInvalidUnescape(span, quote, quoteCount);
+            }
         }
 
-        ThrowInvalidUnescape(source.Span, quote, quoteCount);
-        return default; // unreachable
+        return source;
     }
 
-    /// <inheritdoc cref="UnescapeRare{T}(ReadOnlySpan{T}, T, int, BufferOwner{T})"/>
+    /// <summary>
+    /// Unescapes inner quotes from the input. Wrapping quotes have been trimmed at this point.
+    /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)] // encourage inlining common case above
     private static ReadOnlyMemory<T> UnescapeRare<T>(
         this ReadOnlyMemory<T> source,
@@ -190,7 +114,7 @@ internal static class UnescapeExtensions
         return default; // unreachable
     }
 
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private static void ThrowUnescapeBufferTooSmall(int requiredLength, int bufferLength)
     {
         throw new UnreachableException(
@@ -200,7 +124,7 @@ internal static class UnescapeExtensions
     /// <exception cref="UnreachableException">
     /// The data and/or the supplied quote count parameter were invalid. 
     /// </exception>
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private static void ThrowInvalidUnescape<T>(
         ReadOnlySpan<T> source,
         T quote,

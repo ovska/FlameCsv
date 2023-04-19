@@ -47,6 +47,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
         _values = new ReadOnlyMemory<T>[32];
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Initialize(ReadOnlyMemory<T> memory, int quoteCount)
     {
         Version++;
@@ -57,6 +58,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
         _quotesRemaining = quoteCount;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         Version = -1;
@@ -68,6 +70,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
         _arrayPool.EnsureReturned(ref _unescapeBuffer);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryGetHeaderIndex(string name, out int index)
     {
         ArgumentNullException.ThrowIfNull(name);
@@ -81,6 +84,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
         return _header.TryGetValue(name, out index);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryGetAtIndex(int index, out ReadOnlyMemory<T> column)
     {
         while (_index <= index)
@@ -104,6 +108,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
         return _index;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetHeader(Dictionary<string, int> header)
     {
         if (!_hasHeader)
@@ -115,14 +120,14 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
         _header = header;
     }
 
-    public bool TryReadNextColumn()
+    private bool TryReadNextColumn()
     {
         CsvEnumerationStateRef<T> state = new(
             dialect: in _dialect,
             record: _record,
             remaining: _remaining,
             isAtStart: _index == 0,
-            quoteCount: ref _quotesRemaining,
+            quoteCount: _quotesRemaining,
             buffer: ref _unescapeBuffer,
             arrayPool: _arrayPool,
             exposeContent: _exposeContents);
@@ -134,6 +139,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
 
             _values[_index++] = field;
             _remaining = state.remaining;
+            _quotesRemaining = state.quotesRemaining;
             return true;
         }
 

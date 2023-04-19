@@ -77,7 +77,7 @@ internal static partial class CsvReadingExtensions
         Delegate valueFactory)
         where T : unmanaged, IEquatable<T>
     {
-        ConstructorInfo ctor = Materializer.GetConstructor<T, TResult>(bindingCollection.Bindings);
+        ConstructorInfo ctor = Materializer<T>.GetConstructor(bindingCollection.Bindings);
 
         var objArrParam = Expression.Parameter(typeof(object[]), "args");
 

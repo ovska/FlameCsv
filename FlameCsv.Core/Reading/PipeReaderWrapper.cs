@@ -17,9 +17,23 @@ internal readonly struct PipeReaderWrapper : ICsvPipeReader<byte>
     public ValueTask DisposeAsync() => _inner.CompleteAsync(exception: null);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public async ValueTask<CsvReadResult<byte>> ReadAsync(CancellationToken cancellationToken = default)
+    public ValueTask<CsvReadResult<byte>> ReadAsync(CancellationToken cancellationToken = default)
     {
-        var result = await _inner.ReadAsync(cancellationToken);
+        var readTask = _inner.ReadAsync(cancellationToken);
+
+        if (readTask.IsCompletedSuccessfully)
+        {
+            var result = readTask.Result;
+            return new(new CsvReadResult<byte>(result.Buffer, result.IsCompleted));
+        }
+
+        return Core(readTask);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static async ValueTask<CsvReadResult<byte>> Core(ValueTask<ReadResult> readTask)
+    {
+        var result = await readTask;
         return new CsvReadResult<byte>(result.Buffer, result.IsCompleted);
     }
 }

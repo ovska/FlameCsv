@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Configuration;
 using FlameCsv.Exceptions;
@@ -16,9 +17,9 @@ public abstract class CsvEnumeratorBase<T> : IDisposable
     public long Position { get; protected set; }
 
     protected readonly CsvReaderOptions<T> _options;
-    protected readonly CsvDialect<T> _dialect;
     protected readonly CancellationToken _cancellationToken;
 
+    private readonly CsvDialect<T> _dialect;
     private readonly CsvEnumerationState<T> _state;
     private readonly ArrayPool<T> _arrayPool;
     private T[]? _multisegmentBuffer;
@@ -32,27 +33,31 @@ public abstract class CsvEnumeratorBase<T> : IDisposable
         _dialect = new CsvDialect<T>(options);
         _state = new CsvEnumerationState<T>(options);
         _arrayPool = options.ArrayPool ?? AllocatingArrayPool<T>.Instance;
-        _cancellationToken = cancellationToken;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected internal bool MoveNextCore(ref ReadOnlySequence<T> data, bool isFinalBlock)
     {
-        if (LineReader.TryGetLine(in _dialect, ref data, out ReadOnlySequence<T> line, out int quoteCount, isFinalBlock))
+        Retry:
+        if (RFC4180Mode<T>.TryGetLine(in _dialect, ref data, out ReadOnlySequence<T> line, out int quoteCount, isFinalBlock))
         {
             MoveNextOrReadHeader(in line, quoteCount, out bool headerRead);
 
             if (!isFinalBlock)
                 Position += _dialect.Newline.Length; // increment position _after_ record has been initialized
 
-            if (headerRead)
-                return MoveNextCore(ref data, isFinalBlock);
+            if (!headerRead)
+            {
+                return true;
+            }
 
-            return true;
+            goto Retry;
         }
 
         return false;
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
     protected internal void MoveNextOrReadHeader(in ReadOnlySequence<T> line, int quoteCount, out bool headerRead)
     {
         ReadOnlyMemory<T> memory;
@@ -72,15 +77,15 @@ public abstract class CsvEnumeratorBase<T> : IDisposable
         CsvRecord<T> record = new(Position, ++Line, memory, _options, quoteCount, _state);
         Position += memory.Length;
 
-        if (_state.NeedsHeader)
-        {
-            _state.SetHeader(CreateHeaderDictionary(record));
-            headerRead = true;
-        }
-        else
+        if (!_state.NeedsHeader)
         {
             Current = record;
             headerRead = false;
+        }
+        else
+        {
+            _state.SetHeader(CreateHeaderDictionary(record));
+            headerRead = true;
         }
     }
 

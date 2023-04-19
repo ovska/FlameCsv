@@ -10,9 +10,7 @@ namespace FlameCsv;
 /// If the CSV has a header record, it will be processed first before any records are yielded.
 /// </remarks>
 /// <typeparam name="T"></typeparam>
-public sealed class AsyncCsvEnumerator<T> :
-    CsvEnumeratorBase<T>,
-    IAsyncEnumerator<CsvRecord<T>>
+public sealed class AsyncCsvEnumerator<T> : CsvEnumeratorBase<T>, IAsyncEnumerator<CsvRecord<T>>
     where T : unmanaged, IEquatable<T>
 {
     private readonly ICsvPipeReader<T> _reader;
@@ -23,7 +21,10 @@ public sealed class AsyncCsvEnumerator<T> :
     /// <summary>Last call to ReadAsync returned IsCompleted = true</summary>
     private bool _readerCompleted;
 
-    internal AsyncCsvEnumerator(ICsvPipeReader<T> reader, CsvReaderOptions<T> options, CancellationToken cancellationToken)
+    internal AsyncCsvEnumerator(
+        ICsvPipeReader<T> reader,
+        CsvReaderOptions<T> options,
+        CancellationToken cancellationToken)
         : base(options, cancellationToken)
     {
         _reader = reader;
@@ -36,9 +37,6 @@ public sealed class AsyncCsvEnumerator<T> :
 
         if (MoveNextCore())
             return new ValueTask<bool>(true);
-
-        if (_readerCompleted)
-            return new ValueTask<bool>(false);
 
         return ReadAndMoveNextAsync();
     }

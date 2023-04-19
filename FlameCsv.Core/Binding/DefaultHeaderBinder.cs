@@ -62,23 +62,12 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
         List<CsvBinding<TValue>> foundBindings = new();
         SpanPredicate<T>? ignorePredicate = headerData.Ignore;
 
-        CsvDialect<T> dialect = new(Options);
         ArrayPool<T> arrayPool = Options.ArrayPool ?? AllocatingArrayPool<T>.Instance;
-        int quoteCount = line.Span.Count(dialect.Quote);
-
         T[]? buffer = null;
 
         try
         {
-            var state = new CsvEnumerationStateRef<T>(
-                dialect: in dialect,
-                record: line,
-                remaining: line,
-                isAtStart: true,
-                quoteCount: ref quoteCount,
-                buffer: ref buffer,
-                arrayPool: arrayPool,
-                exposeContent: Options.AllowContentInExceptions);
+            var state = new CsvEnumerationStateRef<T>(Options, line);
 
             while (RFC4180Mode<T>.TryGetField(ref state, out ReadOnlyMemory<T> fieldMemory))
             {
@@ -107,8 +96,8 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
                 {
                     throw new CsvBindingException(
                         $"Column {foundBindings.Count} could not be bound to a member of {typeof(TValue)}: Column " +
-                        field.AsPrintableString(Options.AllowContentInExceptions, in dialect) +
-                        ", Line: " + line.Span.AsPrintableString(Options.AllowContentInExceptions, in dialect));
+                        field.AsPrintableString(Options.AllowContentInExceptions, state.Dialect) +
+                        ", Line: " + line.Span.AsPrintableString(Options.AllowContentInExceptions, state.Dialect));
                 }
 
                 foundBindings.Add(binding ?? CsvBinding.Ignore<TValue>(index: foundBindings.Count));

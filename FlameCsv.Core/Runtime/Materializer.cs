@@ -12,7 +12,7 @@ namespace FlameCsv.Runtime;
 /// State of a CSV row that is being parsed.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-public abstract partial class Materializer<T> where T : unmanaged, IEquatable<T>
+internal abstract partial class Materializer<T> where T : unmanaged, IEquatable<T>
 {
     /// <inheritdoc cref="IMaterializer{T, TResult}.FieldCount" />
     public abstract int FieldCount { get; }

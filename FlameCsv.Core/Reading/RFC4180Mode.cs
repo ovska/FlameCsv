@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
@@ -7,55 +6,42 @@ using CommunityToolkit.HighPerformance;
 
 namespace FlameCsv.Reading;
 
-internal interface ICsvMode<T> where T : unmanaged, IEquatable<T>
+internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
 {
-    bool TryGetLine(
-        in CsvDialect<T> dialect,
-        ref ReadOnlySequence<T> sequence,
-        out ReadOnlySequence<T> line,
-        out int quoteCount,
-        bool isFinalBlock);
-
-    bool TryGetField(
-        ref CsvEnumerationStateRef<T> state,
-        out ReadOnlyMemory<T> field);
-}
-
-internal static class RFC4180Mode<T> /*: ICsvMode<T>*/ where T : unmanaged, IEquatable<T>
-{
-    public static bool TryGetLine(
-        in CsvDialect<T> dialect,
-        ref ReadOnlySequence<T> sequence,
-        out ReadOnlySequence<T> line,
-        out int quoteCount,
-        bool isFinalBlock)
-    {
-        return LineReader.TryGetLine(in dialect, ref sequence, out line, out quoteCount, isFinalBlock);
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryGetField(
         ref CsvEnumerationStateRef<T> state,
         out ReadOnlyMemory<T> field)
     {
-        if (state.remaining.IsEmpty)
+        if (!state.remaining.IsEmpty)
         {
-            if (state.QuotesRemaining != 0)
-                ThrowInvalidQuoteCount(ref state);
-
-            field = default;
-            return false;
+            return TryGetFieldCore(ref state, out field);
         }
 
+        if (state.quotesRemaining != 0)
+            ThrowInvalidQuoteCount(ref state);
+
+        field = default;
+        return false;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static bool TryGetFieldCore(
+        ref CsvEnumerationStateRef<T> state,
+        out ReadOnlyMemory<T> field)
+    {
+        Debug.Assert(!state.remaining.IsEmpty);
+
         ReadOnlySpan<T> remaining = state.remaining.Span;
-        CsvDialect<T> dialect = state.Dialect;
+        T delimiter = state.Dialect.Delimiter;
+        T quote = state.Dialect.Quote;
 
         // If not the first column, validate that the first character is a delimiter
         if (!state.isAtStart)
         {
             // Since column count may not be known in advance, we leave the delimiter at the head after each column
             // so we can differentiate between an empty last column and end of the data in general
-            if (!remaining[0].Equals(dialect.Delimiter))
+            if (!remaining[0].Equals(delimiter))
                 ThrowNoDelimiterAtHead(ref state);
 
             state.remaining = state.remaining.Slice(1);
@@ -64,19 +50,19 @@ internal static class RFC4180Mode<T> /*: ICsvMode<T>*/ where T : unmanaged, IEqu
 
         // keep track of how many quotes the current column has
         int quotesConsumed = 0;
-        ref int quotesRemaining = ref state.QuotesRemaining;
+        ref int quotesRemaining = ref state.quotesRemaining;
 
         // If the remaining row has no quotes seek the next comma directly
-        int index = state.QuotesRemaining == 0
-            ? remaining.IndexOf(state.Dialect.Delimiter)
-            : remaining.IndexOfAny(state.Dialect.Delimiter, state.Dialect.Quote);
+        int index = quotesRemaining == 0
+            ? remaining.IndexOf(delimiter)
+            : remaining.IndexOfAny(delimiter, quote);
 
         while (index >= 0)
         {
             // Hit a comma, either found end of column or more columns than expected
-            if (remaining[index].Equals(state.Dialect.Delimiter))
+            if (remaining[index].Equals(delimiter))
             {
-                field = state.remaining.Slice(0, index).Unescape(dialect.Quote, quotesConsumed, ref state.unescapeBuffer);
+                field = state.remaining.Slice(0, index).Unescape(quote, quotesConsumed, ref state.unescapeBuffer);
                 state.remaining = state.remaining.Slice(index); // note: leave the comma in
                 state.isAtStart = false;
                 return true;
@@ -87,10 +73,10 @@ internal static class RFC4180Mode<T> /*: ICsvMode<T>*/ where T : unmanaged, IEqu
             index++; // move index past the quote
 
             int nextIndex = --quotesRemaining == 0
-                ? remaining.Slice(index).IndexOf(dialect.Delimiter)
+                ? remaining.Slice(index).IndexOf(delimiter)
                 : quotesConsumed % 2 == 0 // uneven quotes, only need to find the next one
-                    ? remaining.Slice(index).IndexOfAny(dialect.Delimiter, dialect.Quote)
-                    : remaining.Slice(index).IndexOf(dialect.Quote);
+                    ? remaining.Slice(index).IndexOfAny(delimiter, quote)
+                    : remaining.Slice(index).IndexOf(quote);
 
             if (nextIndex < 0)
                 break;
@@ -104,7 +90,7 @@ internal static class RFC4180Mode<T> /*: ICsvMode<T>*/ where T : unmanaged, IEqu
             ThrowInvalidQuoteCount(ref state);
         }
 
-        field = state.remaining.Unescape(dialect.Quote, quotesConsumed, ref state.unescapeBuffer);
+        field = state.remaining.Unescape(quote, quotesConsumed, ref state.unescapeBuffer);
         state.remaining = default; // consume all data
         state.isAtStart = false;
         return true;
@@ -123,7 +109,7 @@ internal static class RFC4180Mode<T> /*: ICsvMode<T>*/ where T : unmanaged, IEqu
     private static void ThrowInvalidQuoteCount(ref CsvEnumerationStateRef<T> state)
     {
         throw new UnreachableException(
-            $"CSV record was fully consumed, but there were {state.QuotesRemaining} quotes left, " +
+            $"CSV record was fully consumed, but there were {state.quotesRemaining} quotes left, " +
             $"Record: {state.remaining.Span.AsPrintableString(state.ExposeContent, state.Dialect)}");
     }
 }
