@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Configuration;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -19,7 +20,8 @@ public abstract class CsvEnumeratorBase<T> : IDisposable
     protected readonly CancellationToken _cancellationToken;
 
     private readonly CsvEnumerationState<T> _state;
-    private readonly BufferOwner<T> _multisegmentBuffer;
+    private readonly ArrayPool<T> _arrayPool;
+    private T[]? _multisegmentBuffer;
 
     protected CsvEnumeratorBase(CsvReaderOptions<T> options, CancellationToken cancellationToken)
     {
@@ -27,9 +29,9 @@ public abstract class CsvEnumeratorBase<T> : IDisposable
 
         _options = options;
         _cancellationToken = cancellationToken;
-        _dialect = new(options);
-        _state = new(options);
-        _multisegmentBuffer = new(options.ArrayPool);
+        _dialect = new CsvDialect<T>(options);
+        _state = new CsvEnumerationState<T>(options);
+        _arrayPool = options.ArrayPool ?? AllocatingArrayPool<T>.Instance;
         _cancellationToken = cancellationToken;
     }
 
@@ -62,9 +64,9 @@ public abstract class CsvEnumeratorBase<T> : IDisposable
         else
         {
             int length = (int)line.Length;
-            Memory<T> buffer = _multisegmentBuffer.GetMemory(length);
-            line.CopyTo(buffer.Span);
-            memory = buffer;
+            _arrayPool.EnsureCapacity(ref _multisegmentBuffer, length);
+            line.CopyTo(_multisegmentBuffer);
+            memory = _multisegmentBuffer.AsMemory(0, length);
         }
 
         CsvRecord<T> record = new(Position, ++Line, memory, _options, quoteCount, _state);
@@ -92,7 +94,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable
     {
         if (disposing)
         {
-            _multisegmentBuffer.Dispose();
+            _arrayPool.EnsureReturned(ref _multisegmentBuffer);
             _state.Dispose();
         }
     }

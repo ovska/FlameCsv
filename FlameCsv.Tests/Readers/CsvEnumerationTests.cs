@@ -165,7 +165,7 @@ public static class CsvEnumerationTests
     public static void Should_Return_Parse_Failure_Reason()
     {
         using var enumerator = new CsvEnumerable<char>(
-            "A,B,C\r\n1,2,3".AsMemory(), new CsvTextReaderOptions { HasHeader = true })
+            "A,B,C,D\r\n1,2,3".AsMemory(), new CsvTextReaderOptions { HasHeader = true })
             .GetEnumerator();
 
         CsvRecord<char> record = default;
@@ -186,11 +186,14 @@ public static class CsvEnumerationTests
         Assert.False(record.TryGetValue<bool>(0, out _, out reason));
         Assert.Equal(CsvGetValueReason.UnparsableValue, reason);
 
+        Assert.False(record.TryGetValue<Stopwatch>("E", out _, out reason));
+        Assert.Equal(CsvGetValueReason.HeaderNotFound, reason);
+
         Assert.False(record.TryGetValue<Stopwatch>("D", out _, out reason));
         Assert.Equal(CsvGetValueReason.FieldNotFound, reason);
 
-        Assert.False(record.TryGetValue<Stopwatch>("A", out _, out reason));
-        Assert.Equal(CsvGetValueReason.NoParserFound, reason);
+        Assert.False(record.TryGetValue<bool>("D", out _, out reason));
+        Assert.Equal(CsvGetValueReason.FieldNotFound, reason);
 
         Assert.False(record.TryGetValue<bool>("C", out _, out reason));
         Assert.Equal(CsvGetValueReason.UnparsableValue, reason);

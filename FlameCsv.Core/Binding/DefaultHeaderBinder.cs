@@ -73,7 +73,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
                 in dialect,
                 null,
                 line.Span.Count(dialect.Quote),
-                new ValueBufferOwner<T>(ref buffer, arrayPool));
+                new BufferOwner<T>(ref buffer, arrayPool));
 
             foreach (var field in enumerator)
             {

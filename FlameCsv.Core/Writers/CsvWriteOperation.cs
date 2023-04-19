@@ -148,7 +148,7 @@ internal sealed class CsvWriteOperation<T, TWriter> : IAsyncDisposable
                         destination,
                         _dialect.Quote,
                         quoteCount,
-                        new ValueBufferOwner<T>(ref _array, _arrayPool));
+                        new BufferOwner<T>(ref _array, _arrayPool));
 
                     // The whole of the span is filled, with the leftovers being written to the overflow
                     _writer.Advance(destination.Length);

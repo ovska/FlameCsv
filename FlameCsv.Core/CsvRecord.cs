@@ -33,8 +33,6 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
         int quoteCount,
         CsvEnumerationState<T> state)
     {
-        Debug.Assert(quoteCount % 2 == 0);
-
         Position = position;
         Line = line;
         Data = data;
@@ -63,6 +61,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
                 data.Span.Count(options.Delimiter),
                 new CsvEnumerationState<T>(new CsvDialect<T>(options), arrayPool: null))
     {
+        // ^ obs: this ctor always foregoes array pooling as the record itself isn't disposable
         Guard.IsGreaterThanOrEqualTo(line, 1);
         Guard.IsGreaterThanOrEqualTo(position, 0L);
     }
@@ -70,8 +69,6 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
     /// <inheritdoc cref="ICsvRecord{T}.GetField(string)"/>
     public ReadOnlyMemory<T> GetField(string name)
     {
-        ArgumentNullException.ThrowIfNull(name);
-
         if (!_state.TryGetHeaderIndex(name, out int index))
         {
             ThrowHeaderException(name);
@@ -134,7 +131,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
         if (!_state.TryGetHeaderIndex(name, out int index))
         {
             value = default;
-            reason = CsvGetValueReason.FieldNotFound;
+            reason = CsvGetValueReason.HeaderNotFound;
             return false;
         }
 

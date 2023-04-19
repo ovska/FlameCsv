@@ -21,7 +21,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
     private readonly T _comma;
     private readonly T _quote;
     private readonly int? _columnCount;
-    private readonly ValueBufferOwner<T> _buffer;
+    private readonly BufferOwner<T> _buffer;
 
     private ReadOnlySpan<T> _remaining;
     private int _quotesRemaining;
@@ -71,7 +71,7 @@ internal ref struct CsvColumnEnumerator<T> where T : unmanaged, IEquatable<T>
         in CsvDialect<T> dialect,
         int? columnCount,
         int quoteCount,
-        ValueBufferOwner<T> buffer)
+        BufferOwner<T> buffer)
     {
         Debug.Assert(!line.IsEmpty || columnCount is null or 1, "Empty line is not valid for over 1 column");
         Debug.Assert(columnCount is null or > 0, "Known column count must be positive");

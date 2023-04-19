@@ -78,7 +78,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         }
         else
         {
-            Span<T> buffer = new ValueBufferOwner<T>(ref _multisegmentBuffer, _arrayPool).GetSpan(length);
+            Span<T> buffer = new BufferOwner<T>(ref _multisegmentBuffer, _arrayPool).GetSpan(length);
             line.CopyTo(buffer);
             return TrySkipOrReadColumnSpan(buffer, quoteCount, out value);
         }
@@ -117,7 +117,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
                 in _dialect,
                 _materializer.ColumnCount,
                 quoteCount,
-                new ValueBufferOwner<T>(ref _unescapeBuffer, _arrayPool));
+                new BufferOwner<T>(ref _unescapeBuffer, _arrayPool));
 
             value = _materializer.Parse(ref enumerator);
             return true;
