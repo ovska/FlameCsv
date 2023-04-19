@@ -64,19 +64,25 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
 
         CsvDialect<T> dialect = new(Options);
         ArrayPool<T> arrayPool = Options.ArrayPool ?? AllocatingArrayPool<T>.Instance;
+        int quoteCount = line.Span.Count(dialect.Quote);
+
         T[]? buffer = null;
 
         try
         {
-            var enumerator = new CsvColumnEnumerator<T>(
-                line.Span,
-                in dialect,
-                null,
-                line.Span.Count(dialect.Quote),
-                new BufferOwner<T>(ref buffer, arrayPool));
+            var state = new CsvEnumerationStateRef<T>(
+                dialect: in dialect,
+                record: line,
+                remaining: line,
+                isAtStart: true,
+                quoteCount: ref quoteCount,
+                buffer: ref buffer,
+                arrayPool: arrayPool,
+                exposeContent: Options.AllowContentInExceptions);
 
-            foreach (var field in enumerator)
+            while (RFC4180Mode<T>.TryGetField(ref state, out ReadOnlyMemory<T> fieldMemory))
             {
+                ReadOnlySpan<T> field = fieldMemory.Span;
                 int index = foundBindings.Count;
 
                 if (ignorePredicate is not null && ignorePredicate(field))

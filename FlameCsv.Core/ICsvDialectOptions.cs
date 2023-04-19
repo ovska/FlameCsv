@@ -16,4 +16,10 @@ public interface ICsvDialectOptions<T> where T : unmanaged, IEquatable<T>
     /// Line terminator.
     /// </summary>
     ReadOnlyMemory<T> Newline { get; set; }
+
+    /// <summary>
+    /// Escape character. If null, RFC 4180 mode is used. Otherwise, the escape character is used to
+    /// escape the following character.
+    /// </summary>
+    T? Escape { get; set; }
 }

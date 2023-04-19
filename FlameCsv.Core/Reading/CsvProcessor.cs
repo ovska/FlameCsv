@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
@@ -47,88 +46,69 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     {
         if (LineReader.TryGetLine(in _dialect, ref buffer, out ReadOnlySequence<T> line, out int quoteCount, isFinalBlock))
         {
-            if (line.IsSingleSegment)
-            {
-                return TrySkipOrReadColumnSpan(line.FirstSpan, quoteCount, out value);
-            }
-
-            return TryReadColumns(in line, quoteCount, out value);
+            return TryReadOrSkipRecord(in line, quoteCount, out value);
         }
 
         Unsafe.SkipInit(out value);
 
         return false;
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)] // encourage inlining of common path
-    private bool TryReadColumns(
-        in ReadOnlySequence<T> line,
-        int quoteCount,
-        out TValue value)
-    {
-        Debug.Assert(!line.IsSingleSegment);
-
-        int length = (int)line.Length;
-
-        if (Token<T>.CanStackalloc(length))
-        {
-            Span<T> buffer = stackalloc T[length];
-            line.CopyTo(buffer);
-            return TrySkipOrReadColumnSpan(buffer, quoteCount, out value);
-        }
-        else
-        {
-            Span<T> buffer = new BufferOwner<T>(ref _multisegmentBuffer, _arrayPool).GetSpan(length);
-            line.CopyTo(buffer);
-            return TrySkipOrReadColumnSpan(buffer, quoteCount, out value);
-        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool TrySkipOrReadColumnSpan(
-        ReadOnlySpan<T> line,
+    private bool TryReadOrSkipRecord(
+        in ReadOnlySequence<T> lineSequence,
         int quoteCount,
         out TValue value)
     {
+        ReadOnlyMemory<T> line;
+
+        if (lineSequence.IsSingleSegment)
+        {
+            line = lineSequence.First;
+        }
+        else
+        {
+
+            Memory<T> buffer = new BufferOwner<T>(ref _multisegmentBuffer, _arrayPool).GetMemory((int)lineSequence.Length);
+            lineSequence.CopyTo(buffer.Span);
+            line = buffer;
+        }
+
+        ReadOnlySpan<T> lineSpan = line.Span;
+
         if (quoteCount % 2 != 0)
         {
-            ThrowInvalidStringDelimiterException(line);
+            ThrowInvalidStringDelimiterException(lineSpan);
         }
 
-        if (_skipPredicate is null || !_skipPredicate(line, in _dialect))
+        if (_skipPredicate is not null && _skipPredicate(lineSpan, in _dialect))
         {
-            return TryReadColumnSpan(line, quoteCount, out value);
+            Unsafe.SkipInit(out value);
+            return false;
         }
 
-        Unsafe.SkipInit(out value);
-        return false;
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private bool TryReadColumnSpan(
-        ReadOnlySpan<T> line,
-        int quoteCount,
-        out TValue value)
-    {
         try
         {
-            var enumerator = new CsvColumnEnumerator<T>(
-                line,
-                in _dialect,
-                _materializer.ColumnCount,
-                quoteCount,
-                new BufferOwner<T>(ref _unescapeBuffer, _arrayPool));
+            CsvEnumerationStateRef<T> state = new(
+                dialect: in _dialect,
+                record: line,
+                remaining: line,
+                isAtStart: true,
+                quoteCount: ref quoteCount,
+                buffer: ref _unescapeBuffer,
+                arrayPool: _arrayPool,
+                exposeContent: _exposeContent);
 
-            value = _materializer.Parse(ref enumerator);
+            value = _materializer.Parse(ref state);
             return true;
         }
         catch (CsvFormatException ex)
         {
-            CsvFormatException.Throw(ex, line, _exposeContent, in _dialect);
+            CsvFormatException.Throw(ex, line.Span, _exposeContent, in _dialect);
         }
         catch (Exception ex)
         {
-            if (_exceptionHandler?.Invoke(line, ex) != true)
+            if (_exceptionHandler?.Invoke(line.Span, ex) != true)
                 throw;
         }
 

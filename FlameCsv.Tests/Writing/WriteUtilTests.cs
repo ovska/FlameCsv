@@ -124,7 +124,7 @@ public static class WriteUtilTests
     [InlineData("\n", "|\n|")]
     public static void Should_Escape_1Char_Newline(string input, string expected)
     {
-        Assert.True(WriteUtil<char>.NeedsQuoting(input, _tokens.Clone(newline: "\n".AsMemory()), out int quoteCount));
+        Assert.True(WriteUtil<char>.NeedsQuoting(input, _tokens with { Newline = "\n".AsMemory() }, out int quoteCount));
 
         int expectedLength = input.Length + quoteCount + 2;
         Assert.Equal(expected.Length, expectedLength);
@@ -166,7 +166,7 @@ public static class WriteUtilTests
     [Theory, MemberData(nameof(NeedsEscapingData))]
     public static void Should_Check_Needs_Escaping(string newline, int? quotes, string input)
     {
-        var tokens = _tokens.Clone(newline: newline.AsMemory());
+        var tokens = _tokens with { Newline = newline.AsMemory() };
         input = input.Replace("\r\n", newline);
 
         if (!quotes.HasValue)

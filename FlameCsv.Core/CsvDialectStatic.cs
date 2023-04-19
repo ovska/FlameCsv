@@ -9,8 +9,8 @@ internal static class CsvDialectStatic
 {
     internal static readonly ReadOnlyMemory<byte> _crlf = "\r\n"u8.ToArray();
 
-    private static readonly CsvDialect<char> _charCRLF = new(',', '"', "\r\n".AsMemory());
-    private static readonly CsvDialect<byte> _byteCRLF = new((byte)',', (byte)'"', _crlf);
+    private static readonly CsvDialect<char> _charCRLF = new(',', '"', "\r\n".AsMemory(), default);
+    private static readonly CsvDialect<byte> _byteCRLF = new((byte)',', (byte)'"', _crlf, default);
 
     public static CsvDialect<T> GetDefault<T>()
         where T : unmanaged, IEquatable<T>
@@ -25,56 +25,15 @@ internal static class CsvDialectStatic
         return default; // unreachable
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ThrowIfInvalid<T>(
-        T delimiter,
-        T quote,
-        ReadOnlySpan<T> newline)
-        where T : unmanaged, IEquatable<T>
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public static void ThrowForInvalid(IEnumerable<string> errors)
     {
-        List<string>? errors = null;
-
-        if (delimiter.Equals(default) && quote.Equals(default) && newline.IsEmpty)
-        {
-            ThrowForDefault();
-        }
-
-        if (delimiter.Equals(quote))
-        {
-            AddError("Delimiter and Quote must not be equal.");
-        }
-
-        if (newline.IsEmpty)
-        {
-            AddError("Newline must not be empty.");
-        }
-        else
-        {
-            if (newline.Contains(delimiter))
-                AddError("Newline must not contain Delimiter.");
-
-            if (newline.Contains(quote))
-                AddError("Newline must not contain Quote.");
-        }
-
-        if (errors is not null)
-            ThrowForInvalid(errors);
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        void AddError(string message) => (errors ??= new()).Add(message);
+        throw new CsvConfigurationException($"Invalid CSV dialect: {string.Join(' ', errors)}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowForInvalid(IEnumerable<string> errors)
+    public static void ThrowForDefault()
     {
-        throw new CsvConfigurationException(
-            $"Invalid CSV dialect: {string.Join(' ', errors)}");
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowForDefault()
-    {
-        throw new CsvConfigurationException(
-            "All CSV dialect tokens were uninitialized (separator, quote, newline).");
+        throw new CsvConfigurationException("All CSV dialect tokens were uninitialized (separator, quote, newline).");
     }
 }

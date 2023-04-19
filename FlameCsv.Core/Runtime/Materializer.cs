@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Exceptions;
+using FlameCsv.Extensions;
 using FlameCsv.Parsers;
 using FlameCsv.Reading;
 
@@ -10,10 +11,11 @@ namespace FlameCsv.Runtime;
 /// <summary>
 /// State of a CSV row that is being parsed.
 /// </summary>
-internal abstract partial class Materializer
+/// <typeparam name="T">Token type</typeparam>
+public abstract partial class Materializer<T> where T : unmanaged, IEquatable<T>
 {
-    /// <inheritdoc cref="IMaterializer{T, TResult}.ColumnCount" />
-    public abstract int ColumnCount { get; }
+    /// <inheritdoc cref="IMaterializer{T, TResult}.FieldCount" />
+    public abstract int FieldCount { get; }
 
     /// <summary>The return type for a CSV record.</summary>
     protected abstract Type RecordType { get; }
@@ -21,45 +23,58 @@ internal abstract partial class Materializer
     /// <summary>
     /// Parses the next column from the <paramref name="enumerator"/>.
     /// </summary>
-    /// <param name="enumerator">Column enumerator</param>
     /// <param name="parser">Parser instance</param>
-    /// <typeparam name="T">Token type</typeparam>
     /// <typeparam name="TValue">Parsed value</typeparam>
     [MethodImpl(MethodImplOptions.AggressiveInlining)] // should be small enough to inline in Parse()
-    protected TValue ParseNext<T, TValue>(
-        ref CsvColumnEnumerator<T> enumerator,
-        ICsvParser<T, TValue> parser)
-        where T : unmanaged, IEquatable<T>
+    protected TValue ParseNext<TValue>(ref CsvEnumerationStateRef<T> state, ICsvParser<T, TValue> parser)
     {
-        if (enumerator.MoveNext())
+        if (RFC4180Mode<T>.TryGetField(ref state, out ReadOnlyMemory<T> field))
         {
-            if (parser.TryParse(enumerator.Current, out TValue? value))
+            if (parser.TryParse(field.Span, out TValue? value))
                 return value;
 
-            ThrowParseFailed(ref enumerator, parser);
+            ThrowParseFailed(ref state, field, parser);
         }
 
-        ThrowMoveNextFailed(ref enumerator);
+        ThrowMoveNextFailed(ref state);
         return default;
     }
 
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private void ThrowMoveNextFailed<T>(ref CsvColumnEnumerator<T> enumerator)
-        where T : unmanaged, IEquatable<T>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected void EnsureAllFieldsRead(ref CsvEnumerationStateRef<T> state)
     {
-        throw new CsvFormatException(
-            $"Got only {enumerator.Column} columns out of {ColumnCount} when parsing {RecordType}");
+        if (!state.remaining.IsEmpty)
+        {
+            ThrowNotAllFieldsRead(ref state);
+        }
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    protected void ThrowParseFailed<T>(
-        ref CsvColumnEnumerator<T> enumerator,
+    private void ThrowMoveNextFailed(ref CsvEnumerationStateRef<T> state)
+    {
+        throw new CsvFormatException(
+            $"Expected the record to have {FieldCount} fields when parsing {RecordType}, but it ended prematurely. " +
+            $"Record: {state.Record.Span.AsPrintableString(state.ExposeContent, state.Dialect)}");
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    private void ThrowNotAllFieldsRead(ref CsvEnumerationStateRef<T> state)
+    {
+        throw new CsvFormatException(
+            $"Expected the record to have exactly {FieldCount} fields, but the record had leftover data. " +
+            $"Record: {state.Record.Span.AsPrintableString(state.ExposeContent, state.Dialect)}, " +
+            $"Leftover data: {state.remaining.Span.AsPrintableString(state.ExposeContent, state.Dialect)}");
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    protected void ThrowParseFailed(
+        ref CsvEnumerationStateRef<T> state,
+        ReadOnlyMemory<T> field,
         ICsvParser<T> parser)
-        where T : unmanaged, IEquatable<T>
     {
         throw new CsvParseException(
-            $"Failed to parse with {parser.GetType()} from {enumerator.Current.ToString()} "
-            + $"in {GetType().ToTypeString()}")
+            $"Failed to parse with {parser.GetType()} from {field.Span.AsPrintableString(state.ExposeContent, state.Dialect)} "
+            + $"in {GetType().ToTypeString()}.")
         { Parser = parser };
     }
 }

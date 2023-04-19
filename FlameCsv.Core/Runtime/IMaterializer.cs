@@ -5,19 +5,19 @@ namespace FlameCsv.Runtime;
 /// <summary>
 /// Instance of a type that reads CSV records into objects/structs.
 /// </summary>
-internal interface IMaterializer<T, out TResult> where T : unmanaged, IEquatable<T>
+public interface IMaterializer<T, out TResult> where T : unmanaged, IEquatable<T>
 {
-    /// <summary>Amount of columns required to create a value.</summary>
-    int ColumnCount { get; }
+    /// <summary>Amount of fields required to create a value.</summary>
+    int FieldCount { get; }
 
     /// <summary>
-    /// Parses <typeparamref name="TResult"/> from the CSV columns.
+    /// Parses <typeparamref name="TResult"/> from the CSV record.
     /// </summary>
-    /// <param name="enumerator">Column enumerator</param>
+    /// <param name="state">State containing the enumerated record</param>
     /// <returns>Parsed value</returns>
     /// <exception cref="Exceptions.CsvFormatException">
     /// Thrown if the data is invalid (e.g. wrong column count)
     /// </exception>
     /// <exception cref="Exceptions.CsvParseException">Thrown if a value cannot be parsed</exception>
-    TResult Parse(ref CsvColumnEnumerator<T> enumerator);
+    TResult Parse(ref CsvEnumerationStateRef<T> state);
 }
