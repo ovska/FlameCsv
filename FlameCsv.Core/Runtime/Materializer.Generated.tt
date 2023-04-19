@@ -72,9 +72,9 @@ internal abstract partial class Materializer
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, <#= generics #>>
-    : Materializer, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
 {
-    public override int ColumnCount => <#= current #>;
+    public override int FieldCount => <#= current #>;
 
     protected override Type RecordType => typeof(TResult);
 
@@ -114,7 +114,7 @@ internal sealed class Materializer<T, <#= generics #>>
         }
 #>
 
-    public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
+    public TResult Parse(ref CsvEnumerationStateRef<T> state)
     {
 <#
         for (var i = 0; i < current; i++)
@@ -123,13 +123,13 @@ internal sealed class Materializer<T, <#= generics #>>
             Write(genericTypes[i]);
             Write(" ");
             Write(values[i]);
-            Write(" = ParseNext(ref enumerator, parser");
+            Write(" = ParseNext(ref state, parser");
             Write(i.ToString());
             WriteLine(");");
         }
 #>
 
-        enumerator.EnsureAllColumnsRead();
+        EnsureAllFieldsRead(ref state);
 
 <#
         Write("        var result = valueFactory(");

@@ -8,7 +8,7 @@ namespace FlameCsv.Extensions;
 /// <summary>
 /// Array "pool" that always allocates a new array.
 /// </summary>
-internal sealed class AllocatingArrayPool<T> : ArrayPool<T> where T : unmanaged
+internal sealed class AllocatingArrayPool<T> : ArrayPool<T>
 {
     /// <inheritdoc cref="AllocatingArrayPool{T}"/>
     public static AllocatingArrayPool<T> Instance { get; } = new();

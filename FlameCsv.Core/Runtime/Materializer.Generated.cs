@@ -56,9 +56,9 @@ internal abstract partial class Materializer
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, TResult>
-    : Materializer, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
 {
-    public override int ColumnCount => 1;
+    public override int FieldCount => 1;
 
     protected override Type RecordType => typeof(TResult);
 
@@ -74,11 +74,11 @@ internal sealed class Materializer<T, T0, TResult>
 
     private readonly ICsvParser<T, T0> parser0;
 
-    public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
+    public TResult Parse(ref CsvEnumerationStateRef<T> state)
     {
-        T0 v0 = ParseNext(ref enumerator, parser0);
+        T0 v0 = ParseNext(ref state, parser0);
 
-        enumerator.EnsureAllColumnsRead();
+        EnsureAllFieldsRead(ref state);
 
         var result = valueFactory(v0);
 
@@ -89,9 +89,9 @@ internal sealed class Materializer<T, T0, TResult>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, TResult>
-    : Materializer, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
 {
-    public override int ColumnCount => 2;
+    public override int FieldCount => 2;
 
     protected override Type RecordType => typeof(TResult);
 
@@ -110,12 +110,12 @@ internal sealed class Materializer<T, T0, T1, TResult>
     private readonly ICsvParser<T, T0> parser0;
     private readonly ICsvParser<T, T1> parser1;
 
-    public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
+    public TResult Parse(ref CsvEnumerationStateRef<T> state)
     {
-        T0 v0 = ParseNext(ref enumerator, parser0);
-        T1 v1 = ParseNext(ref enumerator, parser1);
+        T0 v0 = ParseNext(ref state, parser0);
+        T1 v1 = ParseNext(ref state, parser1);
 
-        enumerator.EnsureAllColumnsRead();
+        EnsureAllFieldsRead(ref state);
 
         var result = valueFactory(v0, v1);
 
@@ -126,9 +126,9 @@ internal sealed class Materializer<T, T0, T1, TResult>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, TResult>
-    : Materializer, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
 {
-    public override int ColumnCount => 3;
+    public override int FieldCount => 3;
 
     protected override Type RecordType => typeof(TResult);
 
@@ -150,13 +150,13 @@ internal sealed class Materializer<T, T0, T1, T2, TResult>
     private readonly ICsvParser<T, T1> parser1;
     private readonly ICsvParser<T, T2> parser2;
 
-    public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
+    public TResult Parse(ref CsvEnumerationStateRef<T> state)
     {
-        T0 v0 = ParseNext(ref enumerator, parser0);
-        T1 v1 = ParseNext(ref enumerator, parser1);
-        T2 v2 = ParseNext(ref enumerator, parser2);
+        T0 v0 = ParseNext(ref state, parser0);
+        T1 v1 = ParseNext(ref state, parser1);
+        T2 v2 = ParseNext(ref state, parser2);
 
-        enumerator.EnsureAllColumnsRead();
+        EnsureAllFieldsRead(ref state);
 
         var result = valueFactory(v0, v1, v2);
 
@@ -167,9 +167,9 @@ internal sealed class Materializer<T, T0, T1, T2, TResult>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, TResult>
-    : Materializer, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
 {
-    public override int ColumnCount => 4;
+    public override int FieldCount => 4;
 
     protected override Type RecordType => typeof(TResult);
 
@@ -194,14 +194,14 @@ internal sealed class Materializer<T, T0, T1, T2, T3, TResult>
     private readonly ICsvParser<T, T2> parser2;
     private readonly ICsvParser<T, T3> parser3;
 
-    public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
+    public TResult Parse(ref CsvEnumerationStateRef<T> state)
     {
-        T0 v0 = ParseNext(ref enumerator, parser0);
-        T1 v1 = ParseNext(ref enumerator, parser1);
-        T2 v2 = ParseNext(ref enumerator, parser2);
-        T3 v3 = ParseNext(ref enumerator, parser3);
+        T0 v0 = ParseNext(ref state, parser0);
+        T1 v1 = ParseNext(ref state, parser1);
+        T2 v2 = ParseNext(ref state, parser2);
+        T3 v3 = ParseNext(ref state, parser3);
 
-        enumerator.EnsureAllColumnsRead();
+        EnsureAllFieldsRead(ref state);
 
         var result = valueFactory(v0, v1, v2, v3);
 
@@ -212,9 +212,9 @@ internal sealed class Materializer<T, T0, T1, T2, T3, TResult>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult>
-    : Materializer, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
 {
-    public override int ColumnCount => 5;
+    public override int FieldCount => 5;
 
     protected override Type RecordType => typeof(TResult);
 
@@ -242,15 +242,15 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult>
     private readonly ICsvParser<T, T3> parser3;
     private readonly ICsvParser<T, T4> parser4;
 
-    public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
+    public TResult Parse(ref CsvEnumerationStateRef<T> state)
     {
-        T0 v0 = ParseNext(ref enumerator, parser0);
-        T1 v1 = ParseNext(ref enumerator, parser1);
-        T2 v2 = ParseNext(ref enumerator, parser2);
-        T3 v3 = ParseNext(ref enumerator, parser3);
-        T4 v4 = ParseNext(ref enumerator, parser4);
+        T0 v0 = ParseNext(ref state, parser0);
+        T1 v1 = ParseNext(ref state, parser1);
+        T2 v2 = ParseNext(ref state, parser2);
+        T3 v3 = ParseNext(ref state, parser3);
+        T4 v4 = ParseNext(ref state, parser4);
 
-        enumerator.EnsureAllColumnsRead();
+        EnsureAllFieldsRead(ref state);
 
         var result = valueFactory(v0, v1, v2, v3, v4);
 
@@ -261,9 +261,9 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult>
-    : Materializer, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
 {
-    public override int ColumnCount => 6;
+    public override int FieldCount => 6;
 
     protected override Type RecordType => typeof(TResult);
 
@@ -294,16 +294,16 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult>
     private readonly ICsvParser<T, T4> parser4;
     private readonly ICsvParser<T, T5> parser5;
 
-    public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
+    public TResult Parse(ref CsvEnumerationStateRef<T> state)
     {
-        T0 v0 = ParseNext(ref enumerator, parser0);
-        T1 v1 = ParseNext(ref enumerator, parser1);
-        T2 v2 = ParseNext(ref enumerator, parser2);
-        T3 v3 = ParseNext(ref enumerator, parser3);
-        T4 v4 = ParseNext(ref enumerator, parser4);
-        T5 v5 = ParseNext(ref enumerator, parser5);
+        T0 v0 = ParseNext(ref state, parser0);
+        T1 v1 = ParseNext(ref state, parser1);
+        T2 v2 = ParseNext(ref state, parser2);
+        T3 v3 = ParseNext(ref state, parser3);
+        T4 v4 = ParseNext(ref state, parser4);
+        T5 v5 = ParseNext(ref state, parser5);
 
-        enumerator.EnsureAllColumnsRead();
+        EnsureAllFieldsRead(ref state);
 
         var result = valueFactory(v0, v1, v2, v3, v4, v5);
 
@@ -314,9 +314,9 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult>
-    : Materializer, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
 {
-    public override int ColumnCount => 7;
+    public override int FieldCount => 7;
 
     protected override Type RecordType => typeof(TResult);
 
@@ -350,17 +350,17 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult>
     private readonly ICsvParser<T, T5> parser5;
     private readonly ICsvParser<T, T6> parser6;
 
-    public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
+    public TResult Parse(ref CsvEnumerationStateRef<T> state)
     {
-        T0 v0 = ParseNext(ref enumerator, parser0);
-        T1 v1 = ParseNext(ref enumerator, parser1);
-        T2 v2 = ParseNext(ref enumerator, parser2);
-        T3 v3 = ParseNext(ref enumerator, parser3);
-        T4 v4 = ParseNext(ref enumerator, parser4);
-        T5 v5 = ParseNext(ref enumerator, parser5);
-        T6 v6 = ParseNext(ref enumerator, parser6);
+        T0 v0 = ParseNext(ref state, parser0);
+        T1 v1 = ParseNext(ref state, parser1);
+        T2 v2 = ParseNext(ref state, parser2);
+        T3 v3 = ParseNext(ref state, parser3);
+        T4 v4 = ParseNext(ref state, parser4);
+        T5 v5 = ParseNext(ref state, parser5);
+        T6 v6 = ParseNext(ref state, parser6);
 
-        enumerator.EnsureAllColumnsRead();
+        EnsureAllFieldsRead(ref state);
 
         var result = valueFactory(v0, v1, v2, v3, v4, v5, v6);
 
@@ -371,9 +371,9 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult>
-    : Materializer, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
 {
-    public override int ColumnCount => 8;
+    public override int FieldCount => 8;
 
     protected override Type RecordType => typeof(TResult);
 
@@ -410,18 +410,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult>
     private readonly ICsvParser<T, T6> parser6;
     private readonly ICsvParser<T, T7> parser7;
 
-    public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
+    public TResult Parse(ref CsvEnumerationStateRef<T> state)
     {
-        T0 v0 = ParseNext(ref enumerator, parser0);
-        T1 v1 = ParseNext(ref enumerator, parser1);
-        T2 v2 = ParseNext(ref enumerator, parser2);
-        T3 v3 = ParseNext(ref enumerator, parser3);
-        T4 v4 = ParseNext(ref enumerator, parser4);
-        T5 v5 = ParseNext(ref enumerator, parser5);
-        T6 v6 = ParseNext(ref enumerator, parser6);
-        T7 v7 = ParseNext(ref enumerator, parser7);
+        T0 v0 = ParseNext(ref state, parser0);
+        T1 v1 = ParseNext(ref state, parser1);
+        T2 v2 = ParseNext(ref state, parser2);
+        T3 v3 = ParseNext(ref state, parser3);
+        T4 v4 = ParseNext(ref state, parser4);
+        T5 v5 = ParseNext(ref state, parser5);
+        T6 v6 = ParseNext(ref state, parser6);
+        T7 v7 = ParseNext(ref state, parser7);
 
-        enumerator.EnsureAllColumnsRead();
+        EnsureAllFieldsRead(ref state);
 
         var result = valueFactory(v0, v1, v2, v3, v4, v5, v6, v7);
 
@@ -432,9 +432,9 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResult>
-    : Materializer, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
 {
-    public override int ColumnCount => 9;
+    public override int FieldCount => 9;
 
     protected override Type RecordType => typeof(TResult);
 
@@ -474,19 +474,19 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
     private readonly ICsvParser<T, T7> parser7;
     private readonly ICsvParser<T, T8> parser8;
 
-    public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
+    public TResult Parse(ref CsvEnumerationStateRef<T> state)
     {
-        T0 v0 = ParseNext(ref enumerator, parser0);
-        T1 v1 = ParseNext(ref enumerator, parser1);
-        T2 v2 = ParseNext(ref enumerator, parser2);
-        T3 v3 = ParseNext(ref enumerator, parser3);
-        T4 v4 = ParseNext(ref enumerator, parser4);
-        T5 v5 = ParseNext(ref enumerator, parser5);
-        T6 v6 = ParseNext(ref enumerator, parser6);
-        T7 v7 = ParseNext(ref enumerator, parser7);
-        T8 v8 = ParseNext(ref enumerator, parser8);
+        T0 v0 = ParseNext(ref state, parser0);
+        T1 v1 = ParseNext(ref state, parser1);
+        T2 v2 = ParseNext(ref state, parser2);
+        T3 v3 = ParseNext(ref state, parser3);
+        T4 v4 = ParseNext(ref state, parser4);
+        T5 v5 = ParseNext(ref state, parser5);
+        T6 v6 = ParseNext(ref state, parser6);
+        T7 v7 = ParseNext(ref state, parser7);
+        T8 v8 = ParseNext(ref state, parser8);
 
-        enumerator.EnsureAllColumnsRead();
+        EnsureAllFieldsRead(ref state);
 
         var result = valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8);
 
@@ -497,9 +497,9 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TResult>
-    : Materializer, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
 {
-    public override int ColumnCount => 10;
+    public override int FieldCount => 10;
 
     protected override Type RecordType => typeof(TResult);
 
@@ -542,20 +542,20 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
     private readonly ICsvParser<T, T8> parser8;
     private readonly ICsvParser<T, T9> parser9;
 
-    public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
+    public TResult Parse(ref CsvEnumerationStateRef<T> state)
     {
-        T0 v0 = ParseNext(ref enumerator, parser0);
-        T1 v1 = ParseNext(ref enumerator, parser1);
-        T2 v2 = ParseNext(ref enumerator, parser2);
-        T3 v3 = ParseNext(ref enumerator, parser3);
-        T4 v4 = ParseNext(ref enumerator, parser4);
-        T5 v5 = ParseNext(ref enumerator, parser5);
-        T6 v6 = ParseNext(ref enumerator, parser6);
-        T7 v7 = ParseNext(ref enumerator, parser7);
-        T8 v8 = ParseNext(ref enumerator, parser8);
-        T9 v9 = ParseNext(ref enumerator, parser9);
+        T0 v0 = ParseNext(ref state, parser0);
+        T1 v1 = ParseNext(ref state, parser1);
+        T2 v2 = ParseNext(ref state, parser2);
+        T3 v3 = ParseNext(ref state, parser3);
+        T4 v4 = ParseNext(ref state, parser4);
+        T5 v5 = ParseNext(ref state, parser5);
+        T6 v6 = ParseNext(ref state, parser6);
+        T7 v7 = ParseNext(ref state, parser7);
+        T8 v8 = ParseNext(ref state, parser8);
+        T9 v9 = ParseNext(ref state, parser9);
 
-        enumerator.EnsureAllColumnsRead();
+        EnsureAllFieldsRead(ref state);
 
         var result = valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9);
 
@@ -566,9 +566,9 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TResult>
-    : Materializer, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
 {
-    public override int ColumnCount => 11;
+    public override int FieldCount => 11;
 
     protected override Type RecordType => typeof(TResult);
 
@@ -614,21 +614,21 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly ICsvParser<T, T9> parser9;
     private readonly ICsvParser<T, T10> parser10;
 
-    public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
+    public TResult Parse(ref CsvEnumerationStateRef<T> state)
     {
-        T0 v0 = ParseNext(ref enumerator, parser0);
-        T1 v1 = ParseNext(ref enumerator, parser1);
-        T2 v2 = ParseNext(ref enumerator, parser2);
-        T3 v3 = ParseNext(ref enumerator, parser3);
-        T4 v4 = ParseNext(ref enumerator, parser4);
-        T5 v5 = ParseNext(ref enumerator, parser5);
-        T6 v6 = ParseNext(ref enumerator, parser6);
-        T7 v7 = ParseNext(ref enumerator, parser7);
-        T8 v8 = ParseNext(ref enumerator, parser8);
-        T9 v9 = ParseNext(ref enumerator, parser9);
-        T10 v10 = ParseNext(ref enumerator, parser10);
+        T0 v0 = ParseNext(ref state, parser0);
+        T1 v1 = ParseNext(ref state, parser1);
+        T2 v2 = ParseNext(ref state, parser2);
+        T3 v3 = ParseNext(ref state, parser3);
+        T4 v4 = ParseNext(ref state, parser4);
+        T5 v5 = ParseNext(ref state, parser5);
+        T6 v6 = ParseNext(ref state, parser6);
+        T7 v7 = ParseNext(ref state, parser7);
+        T8 v8 = ParseNext(ref state, parser8);
+        T9 v9 = ParseNext(ref state, parser9);
+        T10 v10 = ParseNext(ref state, parser10);
 
-        enumerator.EnsureAllColumnsRead();
+        EnsureAllFieldsRead(ref state);
 
         var result = valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10);
 
@@ -639,9 +639,9 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TResult>
-    : Materializer, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
 {
-    public override int ColumnCount => 12;
+    public override int FieldCount => 12;
 
     protected override Type RecordType => typeof(TResult);
 
@@ -690,22 +690,22 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly ICsvParser<T, T10> parser10;
     private readonly ICsvParser<T, T11> parser11;
 
-    public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
+    public TResult Parse(ref CsvEnumerationStateRef<T> state)
     {
-        T0 v0 = ParseNext(ref enumerator, parser0);
-        T1 v1 = ParseNext(ref enumerator, parser1);
-        T2 v2 = ParseNext(ref enumerator, parser2);
-        T3 v3 = ParseNext(ref enumerator, parser3);
-        T4 v4 = ParseNext(ref enumerator, parser4);
-        T5 v5 = ParseNext(ref enumerator, parser5);
-        T6 v6 = ParseNext(ref enumerator, parser6);
-        T7 v7 = ParseNext(ref enumerator, parser7);
-        T8 v8 = ParseNext(ref enumerator, parser8);
-        T9 v9 = ParseNext(ref enumerator, parser9);
-        T10 v10 = ParseNext(ref enumerator, parser10);
-        T11 v11 = ParseNext(ref enumerator, parser11);
+        T0 v0 = ParseNext(ref state, parser0);
+        T1 v1 = ParseNext(ref state, parser1);
+        T2 v2 = ParseNext(ref state, parser2);
+        T3 v3 = ParseNext(ref state, parser3);
+        T4 v4 = ParseNext(ref state, parser4);
+        T5 v5 = ParseNext(ref state, parser5);
+        T6 v6 = ParseNext(ref state, parser6);
+        T7 v7 = ParseNext(ref state, parser7);
+        T8 v8 = ParseNext(ref state, parser8);
+        T9 v9 = ParseNext(ref state, parser9);
+        T10 v10 = ParseNext(ref state, parser10);
+        T11 v11 = ParseNext(ref state, parser11);
 
-        enumerator.EnsureAllColumnsRead();
+        EnsureAllFieldsRead(ref state);
 
         var result = valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11);
 
@@ -716,9 +716,9 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TResult>
-    : Materializer, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
 {
-    public override int ColumnCount => 13;
+    public override int FieldCount => 13;
 
     protected override Type RecordType => typeof(TResult);
 
@@ -770,23 +770,23 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly ICsvParser<T, T11> parser11;
     private readonly ICsvParser<T, T12> parser12;
 
-    public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
+    public TResult Parse(ref CsvEnumerationStateRef<T> state)
     {
-        T0 v0 = ParseNext(ref enumerator, parser0);
-        T1 v1 = ParseNext(ref enumerator, parser1);
-        T2 v2 = ParseNext(ref enumerator, parser2);
-        T3 v3 = ParseNext(ref enumerator, parser3);
-        T4 v4 = ParseNext(ref enumerator, parser4);
-        T5 v5 = ParseNext(ref enumerator, parser5);
-        T6 v6 = ParseNext(ref enumerator, parser6);
-        T7 v7 = ParseNext(ref enumerator, parser7);
-        T8 v8 = ParseNext(ref enumerator, parser8);
-        T9 v9 = ParseNext(ref enumerator, parser9);
-        T10 v10 = ParseNext(ref enumerator, parser10);
-        T11 v11 = ParseNext(ref enumerator, parser11);
-        T12 v12 = ParseNext(ref enumerator, parser12);
+        T0 v0 = ParseNext(ref state, parser0);
+        T1 v1 = ParseNext(ref state, parser1);
+        T2 v2 = ParseNext(ref state, parser2);
+        T3 v3 = ParseNext(ref state, parser3);
+        T4 v4 = ParseNext(ref state, parser4);
+        T5 v5 = ParseNext(ref state, parser5);
+        T6 v6 = ParseNext(ref state, parser6);
+        T7 v7 = ParseNext(ref state, parser7);
+        T8 v8 = ParseNext(ref state, parser8);
+        T9 v9 = ParseNext(ref state, parser9);
+        T10 v10 = ParseNext(ref state, parser10);
+        T11 v11 = ParseNext(ref state, parser11);
+        T12 v12 = ParseNext(ref state, parser12);
 
-        enumerator.EnsureAllColumnsRead();
+        EnsureAllFieldsRead(ref state);
 
         var result = valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12);
 
@@ -797,9 +797,9 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TResult>
-    : Materializer, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
 {
-    public override int ColumnCount => 14;
+    public override int FieldCount => 14;
 
     protected override Type RecordType => typeof(TResult);
 
@@ -854,24 +854,24 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly ICsvParser<T, T12> parser12;
     private readonly ICsvParser<T, T13> parser13;
 
-    public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
+    public TResult Parse(ref CsvEnumerationStateRef<T> state)
     {
-        T0 v0 = ParseNext(ref enumerator, parser0);
-        T1 v1 = ParseNext(ref enumerator, parser1);
-        T2 v2 = ParseNext(ref enumerator, parser2);
-        T3 v3 = ParseNext(ref enumerator, parser3);
-        T4 v4 = ParseNext(ref enumerator, parser4);
-        T5 v5 = ParseNext(ref enumerator, parser5);
-        T6 v6 = ParseNext(ref enumerator, parser6);
-        T7 v7 = ParseNext(ref enumerator, parser7);
-        T8 v8 = ParseNext(ref enumerator, parser8);
-        T9 v9 = ParseNext(ref enumerator, parser9);
-        T10 v10 = ParseNext(ref enumerator, parser10);
-        T11 v11 = ParseNext(ref enumerator, parser11);
-        T12 v12 = ParseNext(ref enumerator, parser12);
-        T13 v13 = ParseNext(ref enumerator, parser13);
+        T0 v0 = ParseNext(ref state, parser0);
+        T1 v1 = ParseNext(ref state, parser1);
+        T2 v2 = ParseNext(ref state, parser2);
+        T3 v3 = ParseNext(ref state, parser3);
+        T4 v4 = ParseNext(ref state, parser4);
+        T5 v5 = ParseNext(ref state, parser5);
+        T6 v6 = ParseNext(ref state, parser6);
+        T7 v7 = ParseNext(ref state, parser7);
+        T8 v8 = ParseNext(ref state, parser8);
+        T9 v9 = ParseNext(ref state, parser9);
+        T10 v10 = ParseNext(ref state, parser10);
+        T11 v11 = ParseNext(ref state, parser11);
+        T12 v12 = ParseNext(ref state, parser12);
+        T13 v13 = ParseNext(ref state, parser13);
 
-        enumerator.EnsureAllColumnsRead();
+        EnsureAllFieldsRead(ref state);
 
         var result = valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13);
 
@@ -882,9 +882,9 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TResult>
-    : Materializer, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
 {
-    public override int ColumnCount => 15;
+    public override int FieldCount => 15;
 
     protected override Type RecordType => typeof(TResult);
 
@@ -942,25 +942,25 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly ICsvParser<T, T13> parser13;
     private readonly ICsvParser<T, T14> parser14;
 
-    public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
+    public TResult Parse(ref CsvEnumerationStateRef<T> state)
     {
-        T0 v0 = ParseNext(ref enumerator, parser0);
-        T1 v1 = ParseNext(ref enumerator, parser1);
-        T2 v2 = ParseNext(ref enumerator, parser2);
-        T3 v3 = ParseNext(ref enumerator, parser3);
-        T4 v4 = ParseNext(ref enumerator, parser4);
-        T5 v5 = ParseNext(ref enumerator, parser5);
-        T6 v6 = ParseNext(ref enumerator, parser6);
-        T7 v7 = ParseNext(ref enumerator, parser7);
-        T8 v8 = ParseNext(ref enumerator, parser8);
-        T9 v9 = ParseNext(ref enumerator, parser9);
-        T10 v10 = ParseNext(ref enumerator, parser10);
-        T11 v11 = ParseNext(ref enumerator, parser11);
-        T12 v12 = ParseNext(ref enumerator, parser12);
-        T13 v13 = ParseNext(ref enumerator, parser13);
-        T14 v14 = ParseNext(ref enumerator, parser14);
+        T0 v0 = ParseNext(ref state, parser0);
+        T1 v1 = ParseNext(ref state, parser1);
+        T2 v2 = ParseNext(ref state, parser2);
+        T3 v3 = ParseNext(ref state, parser3);
+        T4 v4 = ParseNext(ref state, parser4);
+        T5 v5 = ParseNext(ref state, parser5);
+        T6 v6 = ParseNext(ref state, parser6);
+        T7 v7 = ParseNext(ref state, parser7);
+        T8 v8 = ParseNext(ref state, parser8);
+        T9 v9 = ParseNext(ref state, parser9);
+        T10 v10 = ParseNext(ref state, parser10);
+        T11 v11 = ParseNext(ref state, parser11);
+        T12 v12 = ParseNext(ref state, parser12);
+        T13 v13 = ParseNext(ref state, parser13);
+        T14 v14 = ParseNext(ref state, parser14);
 
-        enumerator.EnsureAllColumnsRead();
+        EnsureAllFieldsRead(ref state);
 
         var result = valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14);
 
@@ -971,9 +971,9 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TResult>
-    : Materializer, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
 {
-    public override int ColumnCount => 16;
+    public override int FieldCount => 16;
 
     protected override Type RecordType => typeof(TResult);
 
@@ -1034,26 +1034,26 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly ICsvParser<T, T14> parser14;
     private readonly ICsvParser<T, T15> parser15;
 
-    public TResult Parse(ref CsvColumnEnumerator<T> enumerator)
+    public TResult Parse(ref CsvEnumerationStateRef<T> state)
     {
-        T0 v0 = ParseNext(ref enumerator, parser0);
-        T1 v1 = ParseNext(ref enumerator, parser1);
-        T2 v2 = ParseNext(ref enumerator, parser2);
-        T3 v3 = ParseNext(ref enumerator, parser3);
-        T4 v4 = ParseNext(ref enumerator, parser4);
-        T5 v5 = ParseNext(ref enumerator, parser5);
-        T6 v6 = ParseNext(ref enumerator, parser6);
-        T7 v7 = ParseNext(ref enumerator, parser7);
-        T8 v8 = ParseNext(ref enumerator, parser8);
-        T9 v9 = ParseNext(ref enumerator, parser9);
-        T10 v10 = ParseNext(ref enumerator, parser10);
-        T11 v11 = ParseNext(ref enumerator, parser11);
-        T12 v12 = ParseNext(ref enumerator, parser12);
-        T13 v13 = ParseNext(ref enumerator, parser13);
-        T14 v14 = ParseNext(ref enumerator, parser14);
-        T15 v15 = ParseNext(ref enumerator, parser15);
+        T0 v0 = ParseNext(ref state, parser0);
+        T1 v1 = ParseNext(ref state, parser1);
+        T2 v2 = ParseNext(ref state, parser2);
+        T3 v3 = ParseNext(ref state, parser3);
+        T4 v4 = ParseNext(ref state, parser4);
+        T5 v5 = ParseNext(ref state, parser5);
+        T6 v6 = ParseNext(ref state, parser6);
+        T7 v7 = ParseNext(ref state, parser7);
+        T8 v8 = ParseNext(ref state, parser8);
+        T9 v9 = ParseNext(ref state, parser9);
+        T10 v10 = ParseNext(ref state, parser10);
+        T11 v11 = ParseNext(ref state, parser11);
+        T12 v12 = ParseNext(ref state, parser12);
+        T13 v13 = ParseNext(ref state, parser13);
+        T14 v14 = ParseNext(ref state, parser14);
+        T15 v15 = ParseNext(ref state, parser15);
 
-        enumerator.EnsureAllColumnsRead();
+        EnsureAllFieldsRead(ref state);
 
         var result = valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
 

@@ -57,7 +57,7 @@ public class CsvReadBench2
         }
     }
 
-    [Benchmark]
+    //[Benchmark]
     public async Task FlameText_P()
     {
         using var reader = new StreamReader(GetFileStream(), Encoding.UTF8);
@@ -69,7 +69,7 @@ public class CsvReadBench2
         }
     }
 
-    [Benchmark]
+    //[Benchmark]
     public async Task FlameUtf8_P()
     {
         var options = new CsvTextReaderOptions();

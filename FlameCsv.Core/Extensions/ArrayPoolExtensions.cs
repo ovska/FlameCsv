@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using CommunityToolkit.HighPerformance;
 
 namespace FlameCsv.Extensions;
 
@@ -19,5 +20,20 @@ internal static class ArrayPoolExtensions
             arrayPool.Return(array, clearArray);
             array = null;
         }
+    }
+
+    public static Memory<T> GetUnescapeBuffer<T>(
+        this ArrayPool<T> arrayPool,
+        ref T[]? buffer,
+        int valueLength,
+        int quoteCount)
+    {
+        if (quoteCount != 0)
+        {
+            arrayPool.EnsureCapacity(ref buffer, valueLength - quoteCount / 2);
+            return buffer;
+        }
+
+        return default;
     }
 }

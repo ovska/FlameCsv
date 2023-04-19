@@ -7,17 +7,22 @@ public static class ParserOptionsTests
     [Fact]
     public static void Should_Validate()
     {
-        Assert.Throws<CsvConfigurationException>(() => default(CsvDialect<char>).Clone());
+        Assert.Throws<CsvConfigurationException>(() => default(CsvDialect<char>).EnsureValid());
 
-        AssertInvalid(o => o.Clone(quote: ','));
-        AssertInvalid(o => o.Clone(newline: ReadOnlyMemory<char>.Empty));
-        AssertInvalid(o => o.Clone(newline: ",".AsMemory()));
-        AssertInvalid(o => o.Clone(newline: "\"".AsMemory()));
-        AssertInvalid(o => o.Clone(delimiter: '\n'));
+        AssertInvalid(o => o with { Quote = ',' });
+        AssertInvalid(o => o with { Newline = ReadOnlyMemory<char>.Empty });
+        AssertInvalid(o => o with { Newline = ",".AsMemory() });
+        AssertInvalid(o => o with { Newline = "\"".AsMemory() });
+        AssertInvalid(o => o with { Delimiter = '\n' });
+        AssertInvalid(o => o with { Escape = ',' });
 
-        static void AssertInvalid(Action<CsvDialect<char>> action)
+        static void AssertInvalid(Func<CsvDialect<char>, CsvDialect<char>> action)
         {
-            Assert.Throws<CsvConfigurationException>(() => action(CsvDialect<char>.Default));
+            Assert.Throws<CsvConfigurationException>(() =>
+            {
+                var d = action(CsvDialect<char>.Default);
+                _ = new CsvDialect<char>(d.Delimiter, d.Quote, d.Newline, d.Escape);
+            });
         }
     }
 
@@ -37,19 +42,19 @@ public static class ParserOptionsTests
         var o2 = CsvDialect<char>.Default;
         ShouldEqual();
 
-        o1 = o1.Clone(newline: "xyz".AsMemory());
+        o1 = o1 with { Newline = "xyz".AsMemory() };
         ShouldNotEqual();
-        o2 = o2.Clone(newline: "xyz".AsMemory());
+        o2 = o2 with { Newline = "xyz".AsMemory() };
         ShouldEqual();
 
-        o1 = o1.Clone(delimiter: '^');
+        o1 = o1 with { Delimiter = '^' };
         ShouldNotEqual();
-        o2 = o2.Clone(delimiter: '^');
+        o2 = o2 with { Delimiter = '^' };
         ShouldEqual();
 
-        o1 = o1.Clone(quote: '_');
+        o1 = o1 with { Quote = '_' };
         ShouldNotEqual();
-        o2 = o2.Clone(quote: '_');
+        o2 = o2 with { Quote = '_' };
         ShouldEqual();
 
         void ShouldNotEqual()

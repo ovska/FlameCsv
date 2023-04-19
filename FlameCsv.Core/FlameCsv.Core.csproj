@@ -45,8 +45,8 @@
     </Compile>
     <Compile Update="Runtime\Materializer.Generated.cs">
       <AutoGen>True</AutoGen>
-      <AutoGen>False</AutoGen>
       <DependentUpon>Materializer.Generated.tt</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <Compile Update="Runtime\WriteCallback.Generated.cs">
       <DesignTime>True</DesignTime>

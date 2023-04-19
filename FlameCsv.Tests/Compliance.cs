@@ -100,12 +100,12 @@ public static class Compliance
             "bb",
         };
 
-        var options = CsvDialect<char>.Default.Clone(newline: newline.AsMemory());
+        var dialect = CsvDialect<char>.Default with { Newline = newline.AsMemory() };
         var seq = new ReadOnlySequence<char>(string.Join(newline, data).ToCharArray());
 
         var found = new List<string>();
 
-        while (LineReader.TryGetLine(in options, ref seq, out var line, out _, false))
+        while (LineReader.TryGetLine(in dialect, ref seq, out var line, out _, false))
         {
             found.Add(new string(line.ToArray()));
         }
@@ -128,13 +128,13 @@ public static class Compliance
     [InlineData("\"James \"\"007\"\" Bond\"|Agent", "\"James \"\"007\"\" Bond\"", 6)]
     public static void Should_Find_Lines(string data, string expected, int expectedDelimiterCount)
     {
-        var options = CsvDialect<char>.Default.Clone(newline: "|".AsMemory());
+        var dialect = CsvDialect<char>.Default with { Newline = "|".AsMemory() };
 
         var seq = new ReadOnlySequence<char>(data.ToCharArray());
 
         if (data.Contains('|'))
         {
-            Assert.True(LineReader.TryGetLine(in options, ref seq, out var line, out var strCount, false));
+            Assert.True(LineReader.TryGetLine(in dialect, ref seq, out var line, out var strCount, false));
             var lineStr = new string(line.ToArray());
             Assert.Equal(expected, lineStr);
             Assert.Equal(new string(seq.ToArray()), data[(lineStr.Length + 1)..]);
@@ -142,7 +142,7 @@ public static class Compliance
         }
         else
         {
-            Assert.False(LineReader.TryGetLine(in options, ref seq, out _, out _, false));
+            Assert.False(LineReader.TryGetLine(in dialect, ref seq, out _, out _, false));
 
             // original sequence is unchanged
             Assert.Equal(data, new string(seq.ToArray()));
@@ -161,16 +161,21 @@ public static class Compliance
         var expected = line.Split(',').Select(s => s.Trim('"'));
 
         var list = new List<string>();
-        var options = CsvDialect<char>.Default.Clone(newline: "|".AsMemory());
+        var dialect = CsvDialect<char>.Default with { Newline = "|".AsMemory() };
 
         char[]? buffer = null;
 
-        var enumerator = new CsvColumnEnumerator<char>(
-            line,
-            options,
-            5,
-            line.Count(c => c == '"'),
-            new BufferOwner<char>(ref buffer, AllocatingArrayPool<char>.Instance));
+        int quoteCount = line.Count(c => c == '"');
+
+        CsvEnumerationStateRef<char> enumerator = new(
+            in dialect,
+            line.AsMemory(),
+            line.AsMemory(),
+            true,
+            ref quoteCount,
+            ref buffer,
+            AllocatingArrayPool<char>.Instance,
+            true);
 
         foreach (var current in enumerator)
         {
@@ -183,7 +188,7 @@ public static class Compliance
     [Fact]
     public static void Should_Enumerate_With_Comma2()
     {
-        var dialect = CsvDialect<char>.Default.Clone(newline: "|".AsMemory());
+        var dialect = CsvDialect<char>.Default with { Newline = "|".AsMemory() };
 
         var data = new[] { dialect.Delimiter, dialect.Newline.Span[0] }.GetPermutations();
         char[]? buffer = null;
@@ -193,16 +198,21 @@ public static class Compliance
             var input = new string(chars.ToArray());
             var line = $"\"{input}\",test";
 
-            var enumerator = new CsvColumnEnumerator<char>(
-                line,
+            int quoteCount = line.Count(c => c == '"');
+
+            CsvEnumerationStateRef<char> state = new(
                 in dialect,
-                2,
-                line.Count(c => c == dialect.Quote),
-                new BufferOwner<char>(ref buffer, AllocatingArrayPool<char>.Instance));
+                line.AsMemory(),
+                line.AsMemory(),
+                true,
+                ref quoteCount,
+                ref buffer,
+                AllocatingArrayPool<char>.Instance,
+                true);
 
             var list = new List<string>();
 
-            foreach (var current in enumerator)
+            foreach (var current in state)
             {
                 list.Add(current.ToString());
             }

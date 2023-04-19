@@ -33,7 +33,7 @@ internal static class UtilityExtensions
     public static string AsPrintableString<T>(
         this ReadOnlySpan<T> value,
         bool exposeContent,
-        in CsvDialect<T> tokens)
+        in CsvDialect<T> dialect)
         where T : unmanaged, IEquatable<T>
     {
         string? content =
@@ -47,7 +47,7 @@ internal static class UtilityExtensions
 
         string structure = string.Create(
             value.Length,
-            (tokens, memoryOwner.Memory),
+            (dialect, memoryOwner.Memory),
             static (destination, state) =>
             {
                 (CsvDialect<T> tokens, ReadOnlyMemory<T> memory) = state;
