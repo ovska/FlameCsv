@@ -4,10 +4,10 @@ namespace FlameCsv;
 
 public partial class CsvReaderOptions<T> : ICsvDialectOptions<T>
 {
-    protected internal T _delimiter;
-    protected internal T _quote;
-    protected internal ReadOnlyMemory<T> _newline;
-    protected internal T? _escape;
+    internal T _delimiter;
+    internal T _quote;
+    internal ReadOnlyMemory<T> _newline;
+    internal T? _escape;
 
     public T Delimiter
     {

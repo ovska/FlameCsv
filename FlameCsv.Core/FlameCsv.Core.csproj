@@ -3,8 +3,10 @@
   <PropertyGroup>
     <Version>0.0.1</Version>
     <RootNamespace>FlameCsv</RootNamespace>
+    <WarningsAsErrors>true</WarningsAsErrors>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+    <!--<AnalysisLevel>6.0-all</AnalysisLevel>-->
   </PropertyGroup>
 
   <ItemGroup>

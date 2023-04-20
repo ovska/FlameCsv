@@ -188,16 +188,18 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
 
         try
         {
-            knownColumn = $" (there were {_state.GetFieldCount()} columns in the record)";
+            knownColumn = $"(there were {_state.GetFieldCount()} columns in the record)";
         }
+#pragma warning disable CA1031 // Do not catch general exception types
         catch
         {
-            knownColumn = null;
+            knownColumn = "<could not get field count>";
         }
+#pragma warning restore CA1031 // Do not catch general exception types
 
         throw new ArgumentOutOfRangeException(
             nameof(index),
-            $"Could not get column at index {index}{knownColumn}.");
+            $"Could not get column at index {index} {knownColumn}.");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]

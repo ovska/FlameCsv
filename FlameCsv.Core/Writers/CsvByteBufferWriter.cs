@@ -50,11 +50,15 @@ internal readonly struct CsvByteBufferWriter : IAsyncBufferWriter<byte>
     {
         if (_unflushed > 0)
         {
-            await _pipeWriter.FlushAsync(cancellationToken);
+            await _pipeWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
             _unflushed.GetReference() = 0;
         }
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Exception is used to complete the PipeWriter")]
     public async ValueTask CompleteAsync(
         Exception? exception,
         CancellationToken cancellationToken = default)
@@ -66,7 +70,7 @@ internal readonly struct CsvByteBufferWriter : IAsyncBufferWriter<byte>
         {
             try
             {
-                await _pipeWriter.FlushAsync(cancellationToken);
+                await _pipeWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
                 _unflushed.GetReference() = -1;
             }
             catch (Exception e)
@@ -75,7 +79,7 @@ internal readonly struct CsvByteBufferWriter : IAsyncBufferWriter<byte>
             }
         }
 
-        await _pipeWriter.CompleteAsync(exception);
+        await _pipeWriter.CompleteAsync(exception).ConfigureAwait(false);
 
         if (exception is not null)
             throw exception;

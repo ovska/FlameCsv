@@ -29,7 +29,7 @@ internal sealed class CsvTypeInfo<T>
     {
         foreach (var member in Members)
         {
-            if (member.Value.Name.Equals(memberName))
+            if (member.Value.Name.Equals(memberName, StringComparison.Ordinal))
                 return member;
         }
 

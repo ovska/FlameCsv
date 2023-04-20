@@ -1,6 +1,6 @@
 ﻿namespace FlameCsv;
 
-public enum CsvGetValueReason : byte
+public enum CsvGetValueReason
 {
     /// <summary>
     /// Value was successfully parsed.

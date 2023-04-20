@@ -16,25 +16,13 @@ namespace FlameCsv.Binding.Attributes;
 public sealed class CsvHeaderTargetAttribute : Attribute
 {
     /// <summary>Header values to match.</summary>
-    public ImmutableArray<string> Values { get; }
+    public string[] Values { get; }
 
     /// <summary>Name of the property or field.</summary>
     public string MemberName { get; }
 
     /// <inheritdoc cref="CsvHeaderAttribute.Order"/>
     public int Order { get; set; } = 1;
-
-    /// <inheritdoc cref="CsvHeaderTargetAttribute"/>
-    /// <param name="memberName">Name of the property or field</param>
-    /// <param name="value">Header column value</param>
-    public CsvHeaderTargetAttribute(
-        string memberName,
-        string value)
-    {
-        Guard.IsNotNullOrWhiteSpace(memberName);
-        Values = ImmutableArray.Create(value);
-        MemberName = memberName;
-    }
 
     /// <inheritdoc cref="CsvHeaderTargetAttribute"/>
     /// <param name="memberName">Name of the property or field</param>
@@ -45,7 +33,7 @@ public sealed class CsvHeaderTargetAttribute : Attribute
     {
         Guard.IsNotNullOrWhiteSpace(memberName);
         Guard.IsNotNull(values);
-        Values = values.ToImmutableArray();
+        Values = values;
         MemberName = memberName;
     }
 }

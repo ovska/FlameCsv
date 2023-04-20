@@ -48,7 +48,7 @@ internal static class WriteTest<T, TWriter, TValue>
             do
             {
                 if (writer.NeedsFlush)
-                    await writer.FlushAsync(cancellationToken);
+                    await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
 
                 writeValue(writer, enumerator.Current);
             }
@@ -60,7 +60,7 @@ internal static class WriteTest<T, TWriter, TValue>
         }
         finally
         {
-            await writer.DisposeAsync();
+            await writer.DisposeAsync().ConfigureAwait(false);
         }
     }
 

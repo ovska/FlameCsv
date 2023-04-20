@@ -5,7 +5,7 @@ namespace FlameCsv.Runtime;
 /// <summary>
 /// Instance of a type that reads CSV records into objects/structs.
 /// </summary>
-public interface IMaterializer<T, out TResult> where T : unmanaged, IEquatable<T>
+internal interface IMaterializer<T, out TResult> where T : unmanaged, IEquatable<T>
 {
     /// <summary>Amount of fields required to create a value.</summary>
     int FieldCount { get; }

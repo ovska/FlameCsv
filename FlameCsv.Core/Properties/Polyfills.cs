@@ -2,6 +2,8 @@
 #pragma warning disable IDE0161 // Convert to file-scoped namespace
 namespace System.Diagnostics
 {
+    [CodeAnalysis.SuppressMessage("Design", "CA1032:Implement standard exception constructors")]
+    [CodeAnalysis.SuppressMessage("Design", "CA1064:Exceptions should be public")]
     internal sealed class UnreachableException : Exception
     {
         /// <summary>

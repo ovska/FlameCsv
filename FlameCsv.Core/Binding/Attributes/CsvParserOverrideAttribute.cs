@@ -16,6 +16,10 @@ namespace FlameCsv.Binding.Attributes;
 /// and a new instance is created for every overridden property if necessary.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter, AllowMultiple = false)]
+[System.Diagnostics.CodeAnalysis.SuppressMessage(
+    "Performance",
+    "CA1813:Avoid unsealed attributes",
+    Justification = "Used as the base class for overriding")]
 public class CsvParserOverrideAttribute : Attribute
 {
     /// <summary>
@@ -49,6 +53,7 @@ public class CsvParserOverrideAttribute : Attribute
         where T : unmanaged, IEquatable<T>
     {
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(targetType);
 
         if (ParserType is null)
         {

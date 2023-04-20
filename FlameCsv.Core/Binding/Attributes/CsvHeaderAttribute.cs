@@ -15,7 +15,7 @@ public sealed class CsvHeaderAttribute : CsvHeaderConfigurationAttribute
     /// <summary>
     /// Value(s) to match to header.
     /// </summary>
-    public ImmutableArray<string> Values { get; }
+    public string[] Values { get; }
 
     /// <summary>
     /// Determines the order in which the members are checked. Default is 1, which checks the attributes
@@ -24,16 +24,10 @@ public sealed class CsvHeaderAttribute : CsvHeaderConfigurationAttribute
     public int Order { get; set; } = 1;
 
     /// <inheritdoc cref="CsvHeaderAttribute"/>
-    public CsvHeaderAttribute(string value)
-    {
-        Values = ImmutableArray.Create(value);
-    }
-
-    /// <inheritdoc cref="CsvHeaderAttribute"/>
     public CsvHeaderAttribute(params string[] values)
     {
         Guard.IsNotNull(values);
         Guard.IsNotEmpty(values);
-        Values = ImmutableArray.Create(values);
+        Values = values;
     }
 }
