@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using System.Text;
+﻿using System.Text;
 using FlameCsv.Binding.Attributes;
 
 namespace FlameCsv.Benchmark;
@@ -17,7 +16,7 @@ public class CsvReadBench2
     [Benchmark(Baseline = true)]
     public async Task Helper()
     {
-        var config = new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)
+        var config = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture)
         {
             NewLine = Environment.NewLine,
             HasHeaderRecord = false,
@@ -35,22 +34,20 @@ public class CsvReadBench2
     [Benchmark]
     public async Task FlameText()
     {
-        using var reader = new StreamReader(GetFileStream());
-
-        await foreach (var record in CsvReader.ReadAsync<Entry>(reader, CsvTextReaderOptions.Default))
+        await foreach (var record in CsvReader.ReadAsync<Entry>(GetFileStream(), CsvTextReaderOptions.Default, Encoding.UTF8))
         {
             _ = record;
         }
     }
 
-    [Benchmark]
-    public async Task FlameUtf8()
-    {
-        await foreach (var record in CsvReader.ReadAsync<Entry>(GetFileStream(), CsvTextReaderOptions.Default))
-        {
-            _ = record;
-        }
-    }
+    //[Benchmark]
+    //public async Task FlameUtf8()
+    //{
+    //    await foreach (var record in CsvReader.ReadAsync<Entry>(GetFileStream(), CsvUtf8ReaderOptions.Default))
+    //    {
+    //        _ = record;
+    //    }
+    //}
 
     public sealed class Entry
     {

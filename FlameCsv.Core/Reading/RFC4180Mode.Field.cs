@@ -8,6 +8,9 @@ namespace FlameCsv.Reading;
 
 internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
 {
+    /// <summary>
+    /// Reads the next field from the state if it is not empty.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryGetField(
         ref CsvEnumerationStateRef<T> state,
@@ -15,7 +18,8 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
     {
         if (!state.remaining.IsEmpty)
         {
-            return TryGetFieldCore(ref state, out field);
+            field = ReadNextField(ref state);
+            return true;
         }
 
         if (state.quotesRemaining != 0)
@@ -25,10 +29,11 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
         return false;
     }
 
+    /// <summary>
+    /// Reads the next field from a <strong>non-empty</strong> state.
+    /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static bool TryGetFieldCore(
-        ref CsvEnumerationStateRef<T> state,
-        out ReadOnlyMemory<T> field)
+    public static ReadOnlyMemory<T> ReadNextField(ref CsvEnumerationStateRef<T> state)
     {
         Debug.Assert(!state.remaining.IsEmpty);
 
@@ -47,6 +52,10 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
             state.remaining = state.remaining.Slice(1);
             remaining = remaining.Slice(1);
         }
+        else
+        {
+            state.isAtStart = false;
+        }
 
         // keep track of how many quotes the current column has
         int quotesConsumed = 0;
@@ -57,15 +66,18 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
             ? remaining.IndexOf(delimiter)
             : remaining.IndexOfAny(delimiter, quote);
 
+        ReadOnlyMemory<T> field;
+
         while (index >= 0)
         {
             // Hit a comma, either found end of column or more columns than expected
             if (remaining[index].Equals(delimiter))
             {
-                field = state.remaining.Slice(0, index).Unescape(quote, quotesConsumed, ref state.unescapeBuffer);
+                field = state.remaining.Slice(0, index);
                 state.remaining = state.remaining.Slice(index); // note: leave the comma in
-                state.isAtStart = false;
-                return true;
+                return quotesConsumed > 0
+                    ? field.Unescape(quote, quotesConsumed, ref state.buffer)
+                    : field;
             }
 
             // Token found but was not delimiter, must be a quote. This branch is never taken if quotesRemaining is 0
@@ -90,10 +102,11 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
             ThrowInvalidQuoteCount(ref state);
         }
 
-        field = state.remaining.Unescape(quote, quotesConsumed, ref state.unescapeBuffer);
+        field = state.remaining;
         state.remaining = default; // consume all data
-        state.isAtStart = false;
-        return true;
+        return quotesConsumed != 0
+            ? field.Unescape(quote, quotesConsumed, ref state.buffer)
+            : field;
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]

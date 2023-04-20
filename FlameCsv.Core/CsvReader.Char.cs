@@ -30,6 +30,7 @@ public static partial class CsvReader
         CsvReaderOptions<char> options,
         Encoding? encoding = null,
         bool leaveOpen = false,
+        int bufferSize = DefaultBufferSize,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
@@ -37,7 +38,7 @@ public static partial class CsvReader
         Guard.CanRead(stream);
 
         return ReadAsync<TValue>(
-            new StreamReader(stream, encoding: encoding, leaveOpen: leaveOpen, bufferSize: 4096),
+            new StreamReader(stream, encoding: encoding, leaveOpen: leaveOpen, bufferSize: bufferSize),
             options,
             leaveOpen,
             cancellationToken);
@@ -68,19 +69,19 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(textReader);
         ArgumentNullException.ThrowIfNull(options);
 
-        var reader = new TextPipeReader(textReader, 4096, options.ArrayPool, leaveOpen);
+        var reader = new TextPipeReader(textReader, DefaultBufferSize, options.ArrayPool, leaveOpen);
 
         if (options.HasHeader)
         {
-            return ReadCoreAsync<char, TValue, TextPipeReader, CsvHeaderProcessor<char, TValue>>(
-                reader,
+            return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvHeaderProcessor<char, TValue>>(
+                new TextPipeReaderWrapper(reader),
                 new CsvHeaderProcessor<char, TValue>(options),
                 cancellationToken);
         }
         else
         {
-            return ReadCoreAsync<char, TValue, TextPipeReader, CsvProcessor<char, TValue>>(
-                reader,
+            return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
+                new TextPipeReaderWrapper(reader),
                 new CsvProcessor<char, TValue>(options),
                 cancellationToken);
         }

@@ -13,16 +13,24 @@ namespace FlameCsv;
 /// </summary>
 public static partial class CsvReader
 {
+    /// <summary>
+    /// Default buffer size used by the <see cref="CsvReader"/> when creating a <see cref="PipeReader"/>
+    /// or a <see cref="TextReader"/>.
+    /// </summary>
+    public const int DefaultBufferSize = 4096;
+
     private static async IAsyncEnumerable<TValue> ReadCoreAsync<T, TValue, TReader, TProcessor>(
         TReader reader,
         TProcessor processor,
         [EnumeratorCancellation] CancellationToken cancellationToken)
         where T : unmanaged, IEquatable<T>
-        where TReader : ICsvPipeReader<T>
+        where TReader : struct, ICsvPipeReader<T>
         where TProcessor : struct, ICsvProcessor<T, TValue>
     {
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             while (true)
             {
                 CsvReadResult<T> result = await reader.ReadAsync(cancellationToken);
@@ -107,6 +115,8 @@ public static partial class CsvReader
 
         return PipeReader.Create(
             stream,
-            new StreamPipeReaderOptions(pool: memoryPool, leaveOpen: leaveOpen));
+            memoryPool is null && !leaveOpen
+                ? null
+                : new StreamPipeReaderOptions(pool: memoryPool, leaveOpen: leaveOpen));
     }
 }

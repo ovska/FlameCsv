@@ -62,11 +62,9 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     public void Dispose()
     {
         Version = -1;
-        _index = int.MinValue;
-        _values = Array.Empty<ReadOnlyMemory<T>>();
+        _values = default!;
         _record = default;
         _remaining = default;
-        _quotesRemaining = 0;
         _arrayPool.EnsureReturned(ref _unescapeBuffer);
     }
 

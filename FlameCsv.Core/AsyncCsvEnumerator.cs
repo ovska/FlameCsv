@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Runtime.CompilerServices;
 using FlameCsv.Reading;
 
 namespace FlameCsv;
@@ -30,6 +31,7 @@ public sealed class AsyncCsvEnumerator<T> : CsvEnumeratorBase<T>, IAsyncEnumerat
         _reader = reader;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask<bool> MoveNextAsync()
     {
         if (_cancellationToken.IsCancellationRequested)
@@ -41,6 +43,7 @@ public sealed class AsyncCsvEnumerator<T> : CsvEnumeratorBase<T>, IAsyncEnumerat
         return ReadAndMoveNextAsync();
     }
 
+    [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))]
     private async ValueTask<bool> ReadAndMoveNextAsync()
     {
         while (!_readerCompleted)
@@ -56,6 +59,7 @@ public sealed class AsyncCsvEnumerator<T> : CsvEnumeratorBase<T>, IAsyncEnumerat
         return false;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool MoveNextCore()
     {
         if (MoveNextCore(ref _data, isFinalBlock: false))

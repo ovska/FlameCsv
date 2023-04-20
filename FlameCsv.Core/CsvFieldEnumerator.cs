@@ -49,6 +49,7 @@ public struct CsvFieldEnumerator<T> : IEnumerator<ReadOnlyMemory<T>> where T : u
         _index = 0;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvFieldEnumerator(CsvEnumerationState<T> source)
     {
         _state = source;
@@ -56,12 +57,14 @@ public struct CsvFieldEnumerator<T> : IEnumerator<ReadOnlyMemory<T>> where T : u
         _index = 0;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     void IDisposable.Dispose()
     {
         if (_disposeSource)
             _state.Dispose();
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool MoveNext()
     {
         if (_version != _state.Version)
@@ -77,7 +80,7 @@ public struct CsvFieldEnumerator<T> : IEnumerator<ReadOnlyMemory<T>> where T : u
         return false;
     }
 
-    public void Reset() => _index = 0;
+    void IEnumerator.Reset() => _index = 0;
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private static void ThrowForUnevenQuotes(ReadOnlySpan<T> data, int quoteCount, in CsvDialect<T> dialect)
