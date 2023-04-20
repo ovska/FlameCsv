@@ -55,20 +55,15 @@ public sealed class StringUtf8Parser :
 
     public bool TryParse(ReadOnlySpan<byte> span, out Memory<char> value)
     {
-        if (TryParse(span, out char[] charArray))
-        {
-            value = charArray;
-            return true;
-        }
-
-        value = default;
-        return false;
+        bool result = TryParse(span, out char[] charArray);
+        value = charArray;
+        return result;
     }
 
     public bool TryParse(ReadOnlySpan<byte> span, out ReadOnlyMemory<char> value)
     {
-        bool result = TryParse(span, out string str);
-        value = str.AsMemory();
+        bool result = TryParse(span, out char[] charArray);
+        value = charArray;
         return result;
     }
 

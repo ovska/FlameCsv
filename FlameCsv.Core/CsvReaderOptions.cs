@@ -35,23 +35,28 @@ public abstract partial class CsvReaderOptions<T> : ISealable
     /// Seals the instance from modifications.
     /// </summary>
     /// <returns><see langword="true"/> if the instance was made readonly, <see langword="false"/> if it already was.</returns>
-    [MethodImpl(MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool MakeReadOnly()
     {
-        if (!IsReadOnly)
+        if (IsReadOnly)
+            return false;
+
+        return MakeReadOnlyCore(this);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static bool MakeReadOnlyCore(CsvReaderOptions<T> _this)
         {
-            lock (_parserCache)
+            lock (_this._parserCache)
             {
-                if (!IsReadOnly)
+                if (!_this.IsReadOnly)
                 {
-                    _ = GetOrInitParsers();
-                    IsReadOnly = true;
-                    return true;
+                    _this.GetOrInitParsers();
+                    return _this.IsReadOnly = true;
                 }
             }
-        }
 
-        return false;
+            return false;
+        }
     }
 
     private CsvCallback<T, bool>? _shouldSkipRow;
@@ -145,7 +150,7 @@ public abstract partial class CsvReaderOptions<T> : ISealable
         if (_parsers is not null)
             return _parsers;
 
-        var parserList = new SealableList<ICsvParser<T>>(this, this.GetDefaultParsers());
+        var parserList = new SealableList<ICsvParser<T>>(this, GetDefaultParsers());
         return Interlocked.CompareExchange(ref _parsers, parserList, null) ?? parserList;
     }
 

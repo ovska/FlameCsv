@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
@@ -102,6 +103,7 @@ internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
     /// <param name="quote">Quote token</param>
     /// <param name="quoteCount">Amount of quotes in the source</param>
     /// <param name="overflowBuffer">Buffer to write the overlowing part to</param>
+    /// <param name="arrayPool">Pool to </param>
     /// <returns>A memory wrapping around the parts in the overflow buffer that were written to</returns>
     [MethodImpl(MethodImplOptions.NoInlining)] // rare-ish, doesn't need to be inlined
     public static ReadOnlySpan<T> EscapeWithOverflow(
@@ -109,7 +111,8 @@ internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
         scoped Span<T> destination,
         T quote,
         int quoteCount,
-        BufferOwner<T> overflowBuffer)
+        ref T[]? overflowBuffer,
+        ArrayPool<T> arrayPool)
     {
         Debug.Assert(
             !source.Overlaps(destination, out int elementOffset) || elementOffset == 0,
@@ -124,7 +127,9 @@ internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
         int dstIndex = destination.Length - 1;
         bool needQuote = false;
 
-        Span<T> overflow = overflowBuffer.GetSpan(requiredLength - destination.Length);
+        int overflowLength = requiredLength - destination.Length;
+        arrayPool.EnsureCapacity(ref overflowBuffer, overflowLength);
+        Span<T> overflow = new(overflowBuffer, 0, overflowLength);
         overflow[ovrIndex--] = quote; // write closing quote
 
         // Short circuit to faster impl if there are no quotes in the source data

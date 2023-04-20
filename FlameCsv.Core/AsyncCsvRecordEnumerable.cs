@@ -17,6 +17,8 @@ internal sealed class AsyncCsvRecordEnumerable<T, TValue, TReader> : IAsyncEnume
 
     public IAsyncEnumerator<TValue> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
+        _options.MakeReadOnly();
+
         if (_options.HasHeader)
         {
             return new AsyncCsvRecordEnumerator<T, TValue, TReader, CsvHeaderProcessor<T, TValue>>(

@@ -27,7 +27,7 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     {
         if (_inner.HasValue)
         {
-            ref var inner = ref _inner.DangerousGetValueOrDefaultReference();
+            ref CsvProcessor<T, TValue> inner = ref _inner.DangerousGetValueOrDefaultReference();
             return inner.TryRead(ref buffer, out value, isFinalBlock);
         }
 
@@ -43,7 +43,7 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
 
             if (!isFinalBlock)
             {
-                ref var inner = ref _inner.DangerousGetValueOrDefaultReference();
+                ref CsvProcessor<T, TValue> inner = ref _inner.DangerousGetValueOrDefaultReference();
                 return inner.TryRead(ref buffer, out value, isFinalBlock);
             }
         }
@@ -53,7 +53,6 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     }
 
     [MemberNotNull(nameof(_inner))]
-    [MethodImpl(MethodImplOptions.NoInlining)] // encourage inlining more common paths
     private void ReadHeader(in ReadOnlySequence<T> line)
     {
         using var view = new SequenceView<T>(in line, _options.ArrayPool);
@@ -67,7 +66,7 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     {
         if (_inner.HasValue)
         {
-            ref var inner = ref _inner.DangerousGetValueOrDefaultReference();
+            ref CsvProcessor<T, TValue> inner = ref _inner.DangerousGetValueOrDefaultReference();
             inner.Dispose();
         }
     }

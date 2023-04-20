@@ -22,7 +22,10 @@ internal static class ArrayPoolExtensions
         }
     }
 
-    public static ArrayPool<T> AllocatingIfNull<T>(this ArrayPool<T>? arrayPool) => arrayPool.AllocatingIfNull();
+    public static ArrayPool<T> AllocatingIfNull<T>(this ArrayPool<T>? arrayPool)
+    {
+        return arrayPool ?? AllocatingArrayPool<T>.Instance;
+    }
 
     public static MemoryPool<T> AsMemoryPool<T>(this ArrayPool<T> arrayPool) => new ArrayPoolMemoryPoolWrapper<T>(arrayPool);
 

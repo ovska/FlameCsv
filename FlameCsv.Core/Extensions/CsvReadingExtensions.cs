@@ -92,7 +92,7 @@ internal static partial class CsvReadingExtensions
         var lambda = Expression.Lambda<Func<object[], IMaterializer<T, TResult>>>(
             Expression.Convert(ctorInvoke, typeof(IMaterializer<T, TResult>)),
             objArrParam);
-        var materializerFactory = lambda.CompileLambda<Func<object[], IMaterializer<T, TResult>>>();
+        var materializerFactory = lambda.CompileLambda<Func<object[], IMaterializer<T, TResult>>>(throwIfClosure: true);
 
         return CreateMaterializerImpl;
 
@@ -132,7 +132,7 @@ internal static partial class CsvReadingExtensions
         ParameterExpression[] parameters = GetParametersByBindingIndex();
         NewExpression newExpr = GetObjectInitialization();
         Expression body = GetExpressionBody();
-        return Expression.Lambda(body, parameters).CompileLambda<Delegate>();
+        return Expression.Lambda(body, parameters).CompileLambda<Delegate>(throwIfClosure: true);
 
         ParameterExpression[] GetParametersByBindingIndex()
         {

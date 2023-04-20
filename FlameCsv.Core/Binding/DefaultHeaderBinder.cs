@@ -67,7 +67,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
 
         try
         {
-            var state = new CsvEnumerationStateRef<T>(Options, line);
+            CsvEnumerationStateRef<T> state = new(Options, line);
 
             while (RFC4180Mode<T>.TryGetField(ref state, out ReadOnlyMemory<T> fieldMemory))
             {

@@ -122,7 +122,7 @@ internal static class WriteTest<T, TWriter, TValue>
         }
 
         var lambda = Expression.Lambda<WriteCallback<T, TWriter, TValue>>(Expression.Block(methodBody), writerParam, valueParam);
-        return lambda.CompileFast(flags: CompilerFlags.ThrowOnNotSupportedExpression);
+        return lambda.CompileLambdaWithClosure<WriteCallback<T, TWriter, TValue>>();
     }
 
     private static readonly MethodInfo _writeValueMethod = (typeof(CsvWriteOperation<T, TWriter>).GetMethod("WriteValue"))!;

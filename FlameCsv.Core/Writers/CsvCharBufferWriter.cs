@@ -50,7 +50,7 @@ internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>
         Guard.IsGreaterThan(initialBufferSize, 0);
 
         _writer = writer;
-        _arrayPool = arrayPool ?? AllocatingArrayPool<char>.Instance;
+        _arrayPool = arrayPool.AllocatingIfNull();
         _state = new State(_arrayPool.Rent(initialBufferSize));
     }
 

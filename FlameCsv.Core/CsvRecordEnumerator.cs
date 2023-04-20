@@ -4,7 +4,6 @@ using FlameCsv.Reading;
 
 namespace FlameCsv;
 
-/// <inheritdoc cref="CsvEnumeratorBase{T}"/>
 [System.Diagnostics.CodeAnalysis.SuppressMessage(
     "Style", "IDE0044:Add readonly modifier",
     Justification = "TProcessor is a mutable struct with non-readonly methods")]
