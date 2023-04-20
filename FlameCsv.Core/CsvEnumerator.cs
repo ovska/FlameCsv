@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace FlameCsv;
 
+/// <inheritdoc cref="CsvEnumeratorBase{T}"/>
 public sealed class CsvEnumerator<T> : CsvEnumeratorBase<T>, IEnumerator<CsvRecord<T>>
     where T : unmanaged, IEquatable<T>
 {
@@ -21,11 +22,11 @@ public sealed class CsvEnumerator<T> : CsvEnumeratorBase<T>, IEnumerator<CsvReco
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool MoveNext()
     {
-        if (MoveNextCore(ref _data, isFinalBlock: false))
+        if (MoveNextCore(ref _data, isFinalBlock: false) ||
+            MoveNextCore(ref _data, isFinalBlock: true))
+        {
             return true;
-
-        if (MoveNextCore(ref _data, isFinalBlock: true))
-            return true;
+        }
 
         // reached end of data
         Position += Current.Data.Length;

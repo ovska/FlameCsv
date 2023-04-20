@@ -1,4 +1,8 @@
+using System.Buffers;
+using System.Diagnostics;
 using System.IO.Pipelines;
+using CommunityToolkit.Diagnostics;
+using FlameCsv.Extensions;
 using FlameCsv.Reading;
 
 namespace FlameCsv;
@@ -16,21 +20,18 @@ public static partial class CsvReader
     /// <param name="stream">Stream to read the records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="leaveOpen">Whether to leave the stream open after it has been read</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <returns>
-    /// <see cref="IAsyncEnumerable{T}"/> that reads records asynchronously line-by-line from the stream
-    /// as it is enumerated.
-    /// </returns>
+    /// <returns><see cref="IAsyncEnumerable{T}"/> that reads the CSV one record at a time from the stream.</returns>
     public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
         Stream stream,
         CsvReaderOptions<byte> options,
-        bool leaveOpen = false,
-        CancellationToken cancellationToken = default)
+        bool leaveOpen = false)
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(options);
+        Guard.CanRead(stream);
 
-        return ReadAsync<TValue>(CreatePipeReader(stream, options, leaveOpen), options, cancellationToken);
+        var reader = CreatePipeReader(stream, options, leaveOpen);
+        return new AsyncCsvRecordEnumerable<byte, TValue, PipeReaderWrapper>(options, new PipeReaderWrapper(reader));
     }
 
     /// <summary>
@@ -41,32 +42,39 @@ public static partial class CsvReader
     /// </remarks>
     /// <param name="reader">Pipe reader to read the records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <returns>
-    /// <see cref="IAsyncEnumerable{T}"/> that reads records asynchronously line-by-line from the reader
-    /// as it is enumerated.
-    /// </returns>
+    /// <returns><see cref="IAsyncEnumerable{T}"/> that reads the CSV one record at a time from the reader.</returns>
     public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
         PipeReader reader,
-        CsvReaderOptions<byte> options,
-        CancellationToken cancellationToken = default)
+        CsvReaderOptions<byte> options)
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(options);
 
-        if (options.HasHeader)
+        return new AsyncCsvRecordEnumerable<byte, TValue, PipeReaderWrapper>(options, new PipeReaderWrapper(reader));
+    }
+
+    /// <summary>
+    /// Creates a PipeReader from a Stream.
+    /// </summary>
+    [StackTraceHidden]
+    private static PipeReader CreatePipeReader(
+        Stream stream,
+        CsvReaderOptions<byte> options,
+        bool leaveOpen)
+    {
+        Guard.CanRead(stream);
+
+        MemoryPool<byte>? memoryPool = null;
+
+        if (options.ArrayPool != ArrayPool<byte>.Shared)
         {
-            return ReadCoreAsync<byte, TValue, PipeReaderWrapper, CsvHeaderProcessor<byte, TValue>>(
-                new PipeReaderWrapper(reader),
-                new CsvHeaderProcessor<byte, TValue>(options),
-                cancellationToken);
+            memoryPool = options.ArrayPool.AllocatingIfNull().AsMemoryPool();
         }
-        else
-        {
-            return ReadCoreAsync<byte, TValue, PipeReaderWrapper, CsvProcessor<byte, TValue>>(
-                new PipeReaderWrapper(reader),
-                new CsvProcessor<byte, TValue>(options),
-                cancellationToken);
-        }
+
+        return PipeReader.Create(
+            stream,
+            memoryPool is null && !leaveOpen
+                ? null
+                : new StreamPipeReaderOptions(pool: memoryPool, leaveOpen: leaveOpen));
     }
 }

@@ -20,28 +20,21 @@ public static partial class CsvReader
     /// <param name="leaveOpen">
     /// If <see langword="true"/>, the stream and writer are not disposed at the end of the enumeration
     /// </param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <returns>
-    /// <see cref="IAsyncEnumerable{T}"/> that reads records asynchronously line-by-line from the stream
-    /// as it is enumerated.
-    /// </returns>
+    /// <returns><see cref="IAsyncEnumerable{T}"/> that reads the CSV one record at a time from the reader.</returns>
     public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
         Stream stream,
         CsvReaderOptions<char> options,
         Encoding? encoding = null,
         bool leaveOpen = false,
-        int bufferSize = DefaultBufferSize,
-        CancellationToken cancellationToken = default)
+        int bufferSize = DefaultBufferSize)
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(options);
         Guard.CanRead(stream);
 
-        return ReadAsync<TValue>(
-            new StreamReader(stream, encoding: encoding, leaveOpen: leaveOpen, bufferSize: bufferSize),
-            options,
-            leaveOpen,
-            cancellationToken);
+        var textReader = new StreamReader(stream, encoding: encoding, leaveOpen: leaveOpen, bufferSize: bufferSize);
+        var reader = new TextPipeReader(textReader, bufferSize, options.ArrayPool, leaveOpen);
+        return new AsyncCsvRecordEnumerable<char, TValue, TextPipeReaderWrapper>(options, new TextPipeReaderWrapper(reader));
     }
 
     /// <summary>
@@ -55,35 +48,16 @@ public static partial class CsvReader
     /// <param name="leaveOpen">
     /// If <see langword="true"/>, the writer is not disposed at the end of the enumeration
     /// </param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <returns>
-    /// <see cref="IAsyncEnumerable{T}"/> that reads records asynchronously line-by-line from the stream
-    /// as it is enumerated.
-    /// </returns>
+    /// <returns><see cref="IAsyncEnumerable{T}"/> that reads the CSV one record at a time from the reader.</returns>
     public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
         TextReader textReader,
         CsvReaderOptions<char> options,
-        bool leaveOpen = false,
-        CancellationToken cancellationToken = default)
+        bool leaveOpen = false)
     {
         ArgumentNullException.ThrowIfNull(textReader);
         ArgumentNullException.ThrowIfNull(options);
 
         var reader = new TextPipeReader(textReader, DefaultBufferSize, options.ArrayPool, leaveOpen);
-
-        if (options.HasHeader)
-        {
-            return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvHeaderProcessor<char, TValue>>(
-                new TextPipeReaderWrapper(reader),
-                new CsvHeaderProcessor<char, TValue>(options),
-                cancellationToken);
-        }
-        else
-        {
-            return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
-                new TextPipeReaderWrapper(reader),
-                new CsvProcessor<char, TValue>(options),
-                cancellationToken);
-        }
+        return new AsyncCsvRecordEnumerable<char, TValue, TextPipeReaderWrapper>(options, new TextPipeReaderWrapper(reader));
     }
 }

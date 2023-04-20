@@ -8,6 +8,14 @@ using FlameCsv.Reading;
 
 namespace FlameCsv;
 
+/// <summary>
+/// An enumerator that parses CSV records.
+/// </summary>
+/// <remarks>
+/// If the options are configured to read a header record, it will be processed first before any records are yielded.<br/>
+/// This class is not thread-safe, and should not be used concurrently.<br/>
+/// The enumerator should always be disposed after use, either explicitly or using <c>foreach</c>.
+/// </remarks>
 public abstract class CsvEnumeratorBase<T> : IDisposable
     where T : unmanaged, IEquatable<T>
 {
@@ -32,7 +40,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable
         _cancellationToken = cancellationToken;
         _dialect = new CsvDialect<T>(options);
         _state = new CsvEnumerationState<T>(options);
-        _arrayPool = options.ArrayPool ?? AllocatingArrayPool<T>.Instance;
+        _arrayPool = options.ArrayPool.AllocatingIfNull();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -44,7 +52,9 @@ public abstract class CsvEnumeratorBase<T> : IDisposable
             MoveNextOrReadHeader(in line, quoteCount, out bool headerRead);
 
             if (!isFinalBlock)
+            {
                 Position += _dialect.Newline.Length; // increment position _after_ record has been initialized
+            }
 
             if (!headerRead)
             {
@@ -58,7 +68,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    protected internal void MoveNextOrReadHeader(in ReadOnlySequence<T> line, int quoteCount, out bool headerRead)
+    private void MoveNextOrReadHeader(in ReadOnlySequence<T> line, int quoteCount, out bool headerRead)
     {
         ReadOnlyMemory<T> memory;
 
@@ -119,7 +129,9 @@ public abstract class CsvEnumeratorBase<T> : IDisposable
             string fieldString = config.GetTokensAsString(field.Span);
 
             if (!dictionary.TryAdd(fieldString, index++))
+            {
                 ThrowExceptionForDuplicateHeaderField(fieldString, headerRecord);
+            }
         }
 
         return dictionary;

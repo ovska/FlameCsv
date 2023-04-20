@@ -19,6 +19,8 @@ public readonly struct AsyncCsvEnumerable<T> : IAsyncEnumerable<CsvRecord<T>> wh
     {
         _reader = reader;
         _options = options;
+
+        _options.MakeReadOnly();
     }
 
 

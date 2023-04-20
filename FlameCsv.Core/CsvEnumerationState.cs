@@ -43,7 +43,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     public CsvEnumerationState(CsvDialect<T> dialect, ArrayPool<T>? arrayPool)
     {
         _dialect = dialect;
-        _arrayPool = arrayPool ?? AllocatingArrayPool<T>.Instance;
+        _arrayPool = arrayPool.AllocatingIfNull();
         _values = new ReadOnlyMemory<T>[32];
     }
 

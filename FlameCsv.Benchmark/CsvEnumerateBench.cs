@@ -15,7 +15,6 @@ public class CsvEnumerateBench
     [Benchmark(Baseline = true)]
     public void CsvHelper_Sync()
     {
-        using var stream = GetFileStream();
         using var reader = new StringReader(_chars);
 
         var config = new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)

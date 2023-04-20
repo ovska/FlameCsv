@@ -40,14 +40,14 @@ public class CsvReadBench2
         }
     }
 
-    //[Benchmark]
-    //public async Task FlameUtf8()
-    //{
-    //    await foreach (var record in CsvReader.ReadAsync<Entry>(GetFileStream(), CsvUtf8ReaderOptions.Default))
-    //    {
-    //        _ = record;
-    //    }
-    //}
+    [Benchmark]
+    public async Task FlameUtf8()
+    {
+        await foreach (var record in CsvReader.ReadAsync<Entry>(GetFileStream(), CsvUtf8ReaderOptions.Default))
+        {
+            _ = record;
+        }
+    }
 
     public sealed class Entry
     {
