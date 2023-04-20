@@ -30,7 +30,7 @@ internal readonly struct PipeReaderWrapper : ICsvPipeReader<byte>
         return Core(readTask);
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
+    [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))]
     private static async ValueTask<CsvReadResult<byte>> Core(ValueTask<ReadResult> readTask)
     {
         var result = await readTask;

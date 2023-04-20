@@ -41,6 +41,7 @@ for (var _tokenType = 0; _tokenType < 2; _tokenType++)
     string tokenType = _tokenType == 0 ? "char" : "byte";
     string parameterReaderType = _tokenType == 0 ? "TextReader" : "PipeReader";
     string readerType = _tokenType == 0 ? "TextPipeReader" : "CsvBytePipeReader";
+    string readerStructType =_tokenType == 0 ? "TextPipeReaderWrapper" : "PipeReaderWrapper";
 #>
 <#
     for (var current = 1; current <= TotalCount; current++)
@@ -72,12 +73,12 @@ for (var _tokenType = 0; _tokenType < 2; _tokenType++)
         CsvProcessor<<#= tokenType #>, TValue> processor = new(options, materializer);
 
 <# if (tokenType == "char") { #>
-        var pipeReader = new <#= readerType #>(reader, options.ArrayPool);
+        var pipeReader = new TextPipeReaderWrapper(new <#= readerType #>(reader, options.ArrayPool));
 <# } else { #>
         var pipeReader = new PipeReaderWrapper(reader);
 <# } #>
 
-        return ReadCore<<#= tokenType #>, TValue, <#= readerType #>, CsvProcessor<<#= tokenType #>, TValue>>(
+        return ReadCoreAsync<<#= tokenType #>, TValue, <#= readerStructType #>, CsvProcessor<<#= tokenType #>, TValue>>(
             pipeReader,
             processor,
             cancellationToken: cancellationToken);

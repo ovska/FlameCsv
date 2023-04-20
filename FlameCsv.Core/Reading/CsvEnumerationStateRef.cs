@@ -1,12 +1,15 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Text;
 using CommunityToolkit.HighPerformance;
+using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading;
 
-public ref struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
+public struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
 {
     public readonly CsvDialect<T> Dialect { get; }
     public readonly ReadOnlyMemory<T> Record { get; }
@@ -14,31 +17,9 @@ public ref struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
     public readonly bool ExposeContent { get; }
 
     public ReadOnlyMemory<T> remaining;
-    public Memory<T> unescapeBuffer;
+    public Memory<T> buffer;
     public bool isAtStart;
     public int quotesRemaining;
-
-    public CsvEnumerationStateRef(CsvReaderOptions<T> options, ReadOnlyMemory<T> record)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-
-        Dialect = new CsvDialect<T>(options);
-        Record = record;
-        ExposeContent = options.AllowContentInExceptions;
-
-        int quoteCount = record.Span.Count(Dialect.Quote);
-        quotesRemaining = quoteCount;
-        remaining = record;
-        isAtStart = true;
-
-        if (quoteCount != 0)
-        {
-            T[]? buffer = null;
-            var arrayPool = options.ArrayPool ?? AllocatingArrayPool<T>.Instance;
-            arrayPool.EnsureCapacity(ref buffer, remaining.Length - quoteCount / 2);
-            unescapeBuffer = buffer;
-        }
-    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvEnumerationStateRef(
@@ -69,11 +50,63 @@ public ref struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
         if (quoteCount != 0)
         {
             arrayPool.EnsureCapacity(ref buffer, remaining.Length - quoteCount / 2);
-            unescapeBuffer = buffer;
+            this.buffer = buffer;
         }
     }
 
-    public Enumerator GetEnumerator() => new(this);
+    public CsvEnumerationStateRef(CsvReaderOptions<T> options, ReadOnlyMemory<T> record)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        Dialect = new CsvDialect<T>(options);
+        Record = record;
+        ExposeContent = options.AllowContentInExceptions;
+
+        int quoteCount = record.Span.Count(Dialect.Quote);
+        quotesRemaining = quoteCount;
+        remaining = record;
+        isAtStart = true;
+
+        if (quoteCount != 0)
+        {
+            T[]? buffer = null;
+            var arrayPool = options.ArrayPool ?? AllocatingArrayPool<T>.Instance;
+            arrayPool.EnsureCapacity(ref buffer, remaining.Length - quoteCount / 2);
+            this.buffer = buffer;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly void EnsureFullyConsumed(int fieldCount)
+    {
+        if (remaining.IsEmpty && quotesRemaining == 0)
+            return;
+
+        ThrowNotFullyConsumed(fieldCount);
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    private readonly void ThrowNotFullyConsumed(int fieldCount)
+    {
+        StringBuilder sb = new(capacity: 128);
+
+        if (quotesRemaining != 0)
+        {
+            sb.Append($"There were {quotesRemaining} leftover quotes in the state. ");
+        }
+
+        if (!remaining.IsEmpty)
+        {
+            sb.Append($"Expected the record to have {fieldCount} fields, but it had more. ");
+            sb.Append($"Remaining: {remaining.Span.AsPrintableString(ExposeContent, Dialect)}, ");
+        }
+
+        sb.Append($"Record: {Record.Span.AsPrintableString(ExposeContent, Dialect)}");
+
+        throw new CsvFormatException(sb.ToString());
+    }
+
+    public readonly Enumerator GetEnumerator() => new(this);
 
     public ref struct Enumerator
     {

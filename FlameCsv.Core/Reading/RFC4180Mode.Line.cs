@@ -8,7 +8,7 @@ namespace FlameCsv.Reading;
 /// <summary>
 /// Reads CSV lines from a <see cref="ReadOnlySequence{T}"/>.
 /// </summary>
-internal static partial class RFC4180Mode<T>
+internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>Linefeed read state.</summary>
     private struct State

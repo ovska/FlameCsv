@@ -38,7 +38,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
 
         _materializer = materializer ?? options.GetMaterializer<T, TValue>();
 
-        // Two buffers are needed, as the ReadOnlySpan being manipulated by string escaping in the enumerator
+        // Two buffers are needed, as the span being manipulated by string escaping in the enumerator
         // might originate from the multisegment buffer
         _unescapeBuffer = null;
         _multisegmentBuffer = null;
@@ -53,15 +53,11 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         }
 
         Unsafe.SkipInit(out value);
-
         return false;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private bool TryReadOrSkipRecord(
-        in ReadOnlySequence<T> lineSequence,
-        int quoteCount,
-        out TValue value)
+    private bool TryReadOrSkipRecord(in ReadOnlySequence<T> lineSequence, int quoteCount, out TValue value)
     {
         if (quoteCount % 2 != 0)
         {

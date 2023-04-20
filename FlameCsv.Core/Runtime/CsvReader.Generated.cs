@@ -40,9 +40,9 @@ public static partial class CsvReader
         Materializer<char, T0, TValue> materializer = new(recordFactory, options.GetParser<T0>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
 
-        var pipeReader = new TextPipeReader(reader, options.ArrayPool);
+        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReader, CsvProcessor<char, TValue>>(
+        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
             pipeReader,
             processor,
             cancellationToken: cancellationToken);
@@ -65,9 +65,9 @@ public static partial class CsvReader
         Materializer<char, T0, T1, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
 
-        var pipeReader = new TextPipeReader(reader, options.ArrayPool);
+        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReader, CsvProcessor<char, TValue>>(
+        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
             pipeReader,
             processor,
             cancellationToken: cancellationToken);
@@ -90,9 +90,9 @@ public static partial class CsvReader
         Materializer<char, T0, T1, T2, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
 
-        var pipeReader = new TextPipeReader(reader, options.ArrayPool);
+        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReader, CsvProcessor<char, TValue>>(
+        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
             pipeReader,
             processor,
             cancellationToken: cancellationToken);
@@ -115,9 +115,9 @@ public static partial class CsvReader
         Materializer<char, T0, T1, T2, T3, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
 
-        var pipeReader = new TextPipeReader(reader, options.ArrayPool);
+        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReader, CsvProcessor<char, TValue>>(
+        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
             pipeReader,
             processor,
             cancellationToken: cancellationToken);
@@ -140,9 +140,9 @@ public static partial class CsvReader
         Materializer<char, T0, T1, T2, T3, T4, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
 
-        var pipeReader = new TextPipeReader(reader, options.ArrayPool);
+        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReader, CsvProcessor<char, TValue>>(
+        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
             pipeReader,
             processor,
             cancellationToken: cancellationToken);
@@ -165,9 +165,9 @@ public static partial class CsvReader
         Materializer<char, T0, T1, T2, T3, T4, T5, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
 
-        var pipeReader = new TextPipeReader(reader, options.ArrayPool);
+        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReader, CsvProcessor<char, TValue>>(
+        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
             pipeReader,
             processor,
             cancellationToken: cancellationToken);
@@ -190,9 +190,9 @@ public static partial class CsvReader
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
 
-        var pipeReader = new TextPipeReader(reader, options.ArrayPool);
+        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReader, CsvProcessor<char, TValue>>(
+        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
             pipeReader,
             processor,
             cancellationToken: cancellationToken);
@@ -215,9 +215,9 @@ public static partial class CsvReader
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
 
-        var pipeReader = new TextPipeReader(reader, options.ArrayPool);
+        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReader, CsvProcessor<char, TValue>>(
+        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
             pipeReader,
             processor,
             cancellationToken: cancellationToken);
@@ -240,9 +240,9 @@ public static partial class CsvReader
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
 
-        var pipeReader = new TextPipeReader(reader, options.ArrayPool);
+        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReader, CsvProcessor<char, TValue>>(
+        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
             pipeReader,
             processor,
             cancellationToken: cancellationToken);
@@ -265,9 +265,9 @@ public static partial class CsvReader
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
 
-        var pipeReader = new TextPipeReader(reader, options.ArrayPool);
+        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReader, CsvProcessor<char, TValue>>(
+        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
             pipeReader,
             processor,
             cancellationToken: cancellationToken);
@@ -290,9 +290,9 @@ public static partial class CsvReader
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
 
-        var pipeReader = new TextPipeReader(reader, options.ArrayPool);
+        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReader, CsvProcessor<char, TValue>>(
+        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
             pipeReader,
             processor,
             cancellationToken: cancellationToken);
@@ -315,9 +315,9 @@ public static partial class CsvReader
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
 
-        var pipeReader = new TextPipeReader(reader, options.ArrayPool);
+        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReader, CsvProcessor<char, TValue>>(
+        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
             pipeReader,
             processor,
             cancellationToken: cancellationToken);
@@ -340,9 +340,9 @@ public static partial class CsvReader
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
 
-        var pipeReader = new TextPipeReader(reader, options.ArrayPool);
+        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReader, CsvProcessor<char, TValue>>(
+        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
             pipeReader,
             processor,
             cancellationToken: cancellationToken);
@@ -365,9 +365,9 @@ public static partial class CsvReader
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>(), options.GetParser<T13>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
 
-        var pipeReader = new TextPipeReader(reader, options.ArrayPool);
+        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReader, CsvProcessor<char, TValue>>(
+        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
             pipeReader,
             processor,
             cancellationToken: cancellationToken);
@@ -390,9 +390,9 @@ public static partial class CsvReader
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>(), options.GetParser<T13>(), options.GetParser<T14>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
 
-        var pipeReader = new TextPipeReader(reader, options.ArrayPool);
+        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReader, CsvProcessor<char, TValue>>(
+        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
             pipeReader,
             processor,
             cancellationToken: cancellationToken);
@@ -415,9 +415,9 @@ public static partial class CsvReader
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>(), options.GetParser<T13>(), options.GetParser<T14>(), options.GetParser<T15>());
         CsvProcessor<char, TValue> processor = new(options, materializer);
 
-        var pipeReader = new TextPipeReader(reader, options.ArrayPool);
+        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReader, CsvProcessor<char, TValue>>(
+        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
             pipeReader,
             processor,
             cancellationToken: cancellationToken);

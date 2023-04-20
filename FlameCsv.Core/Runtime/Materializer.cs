@@ -28,29 +28,22 @@ internal abstract partial class Materializer<T> where T : unmanaged, IEquatable<
     [MethodImpl(MethodImplOptions.AggressiveInlining)] // should be small enough to inline in Parse()
     protected TValue ParseNext<TValue>(ref CsvEnumerationStateRef<T> state, ICsvParser<T, TValue> parser)
     {
-        if (RFC4180Mode<T>.TryGetField(ref state, out ReadOnlyMemory<T> field))
+        if (!state.remaining.IsEmpty)
         {
-            if (parser.TryParse(field.Span, out TValue? value))
+            ReadOnlySpan<T> field = RFC4180Mode<T>.ReadNextField(ref state).Span;
+
+            if (parser.TryParse(field, out TValue? value))
                 return value;
 
             ThrowParseFailed(ref state, field, parser);
         }
 
-        ThrowMoveNextFailed(ref state);
+        ThrowRecordEndedPrematurely(ref state);
         return default;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void EnsureAllFieldsRead(ref CsvEnumerationStateRef<T> state)
-    {
-        if (!state.remaining.IsEmpty)
-        {
-            ThrowNotAllFieldsRead(ref state);
-        }
-    }
-
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private void ThrowMoveNextFailed(ref CsvEnumerationStateRef<T> state)
+    private void ThrowRecordEndedPrematurely(ref CsvEnumerationStateRef<T> state)
     {
         throw new CsvFormatException(
             $"Expected the record to have {FieldCount} fields when parsing {RecordType}, but it ended prematurely. " +
@@ -58,22 +51,13 @@ internal abstract partial class Materializer<T> where T : unmanaged, IEquatable<
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private void ThrowNotAllFieldsRead(ref CsvEnumerationStateRef<T> state)
-    {
-        throw new CsvFormatException(
-            $"Expected the record to have exactly {FieldCount} fields, but the record had leftover data. " +
-            $"Record: {state.Record.Span.AsPrintableString(state.ExposeContent, state.Dialect)}, " +
-            $"Leftover data: {state.remaining.Span.AsPrintableString(state.ExposeContent, state.Dialect)}");
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     protected void ThrowParseFailed(
         ref CsvEnumerationStateRef<T> state,
-        ReadOnlyMemory<T> field,
+        ReadOnlySpan<T> field,
         ICsvParser<T> parser)
     {
         throw new CsvParseException(
-            $"Failed to parse with {parser.GetType()} from {field.Span.AsPrintableString(state.ExposeContent, state.Dialect)} "
+            $"Failed to parse with {parser.GetType()} from {field.AsPrintableString(state.ExposeContent, state.Dialect)} "
             + $"in {GetType().ToTypeString()}.")
         { Parser = parser };
     }

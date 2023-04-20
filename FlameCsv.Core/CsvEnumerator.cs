@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Collections;
+using System.Runtime.CompilerServices;
 
 namespace FlameCsv;
 
@@ -17,6 +18,7 @@ public sealed class CsvEnumerator<T> : CsvEnumeratorBase<T>, IEnumerator<CsvReco
         _data = data;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool MoveNext()
     {
         if (MoveNextCore(ref _data, isFinalBlock: false))

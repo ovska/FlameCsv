@@ -128,7 +128,7 @@ internal sealed class Materializer<T, <#= generics #>>
         }
 #>
 
-        EnsureAllFieldsRead(ref state);
+        state.EnsureFullyConsumed(FieldCount);
 
 <#
         Write("        var result = valueFactory(");

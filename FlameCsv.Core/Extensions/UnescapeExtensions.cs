@@ -31,29 +31,26 @@ internal static class UnescapeExtensions
         ref Memory<T> unescapeBuffer)
         where T : unmanaged, IEquatable<T>
     {
-        if (quoteCount != 0)
+        Debug.Assert(quoteCount != 0);
+        Debug.Assert(quoteCount % 2 == 0);
+
+        ReadOnlySpan<T> span = source.Span;
+
+        if (span.Length >= 2 &&
+            span.DangerousGetReference().Equals(quote) &&
+            span.DangerousGetReferenceAt(span.Length - 1).Equals(quote))
         {
-            Debug.Assert(quoteCount >= 2);
-            Debug.Assert(quoteCount % 2 == 0);
+            // Trim trailing and leading quotes
+            source = source.Slice(1, source.Length - 2);
 
-            var span = source.Span;
-
-            if (span.Length >= 2 &&
-                span.DangerousGetReference().Equals(quote) &&
-                span.DangerousGetReferenceAt(span.Length - 1).Equals(quote))
+            if (quoteCount != 2)
             {
-                // Trim trailing and leading quotes
-                source = source.Slice(1, source.Length - 2);
-
-                if (quoteCount != 2)
-                {
-                    return source.UnescapeRare(quote, quoteCount - 2, ref unescapeBuffer);
-                }
+                return UnescapeRare(source, quote, quoteCount - 2, ref unescapeBuffer);
             }
-            else
-            {
-                ThrowInvalidUnescape(span, quote, quoteCount);
-            }
+        }
+        else
+        {
+            ThrowInvalidUnescape(span, quote, quoteCount);
         }
 
         return source;
@@ -64,7 +61,7 @@ internal static class UnescapeExtensions
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)] // encourage inlining common case above
     private static ReadOnlyMemory<T> UnescapeRare<T>(
-        this ReadOnlyMemory<T> source,
+        ReadOnlyMemory<T> sourceMemory,
         T quote,
         int quoteCount,
         ref Memory<T> unescapeBuffer)
@@ -72,16 +69,16 @@ internal static class UnescapeExtensions
     {
         Debug.Assert(quoteCount >= 2);
         Debug.Assert(quoteCount % 2 == 0);
-        Debug.Assert(!unescapeBuffer.Span.Overlaps(source.Span), "Source and unescape buffer must not overlap");
+        Debug.Assert(!unescapeBuffer.Span.Overlaps(sourceMemory.Span), "Source and unescape buffer must not overlap");
 
         int written = 0;
         int index = 0;
         int quotesLeft = quoteCount;
 
-        var sourceSpan = source.Span;
+        var source = sourceMemory.Span;
         ReadOnlySpan<T> needle = stackalloc T[] { quote, quote };
 
-        int unescapedLength = source.Length - quoteCount / 2;
+        int unescapedLength = sourceMemory.Length - quoteCount / 2;
 
         if (unescapedLength > unescapeBuffer.Length)
             ThrowUnescapeBufferTooSmall(unescapedLength, unescapeBuffer.Length);
@@ -89,28 +86,28 @@ internal static class UnescapeExtensions
         Memory<T> buffer = unescapeBuffer.Slice(0, unescapedLength);
         unescapeBuffer = unescapeBuffer.Slice(unescapedLength); // "consume" the buffer
 
-        while (index < source.Length)
+        while (index < sourceMemory.Length)
         {
-            int next = sourceSpan.Slice(index).IndexOf(needle);
+            int next = source.Slice(index).IndexOf(needle);
 
             if (next < 0)
                 break;
 
             int toCopy = next + 1;
-            source.Slice(index, toCopy).CopyTo(buffer.Slice(written));
+            sourceMemory.Slice(index, toCopy).CopyTo(buffer.Slice(written));
             written += toCopy;
             index += toCopy + 1; // advance past the second quote
 
             // Found all quotes, copy remaining data
             if ((quotesLeft -= 2) == 0)
             {
-                source.Slice(index).CopyTo(buffer.Slice(written));
-                written += source.Length - index;
+                sourceMemory.Slice(index).CopyTo(buffer.Slice(written));
+                written += sourceMemory.Length - index;
                 return buffer.Slice(0, written);
             }
         }
 
-        ThrowInvalidUnescape(source.Span, quote, quoteCount);
+        ThrowInvalidUnescape(sourceMemory.Span, quote, quoteCount);
         return default; // unreachable
     }
 

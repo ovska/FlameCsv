@@ -8,6 +8,32 @@ namespace FlameCsv.Reading;
 
 // based HEAVILY on the .NET runtime StreamPipeReader code
 
+internal readonly struct TextPipeReaderWrapper : ICsvPipeReader<char>
+{
+    private readonly TextPipeReader _reader;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public TextPipeReaderWrapper(TextPipeReader reader) => _reader = reader;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void AdvanceTo(SequencePosition consumed, SequencePosition examined)
+    {
+        _reader.AdvanceTo(consumed, examined);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ValueTask DisposeAsync()
+    {
+        return _reader.DisposeAsync();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ValueTask<CsvReadResult<char>> ReadAsync(CancellationToken cancellationToken = default)
+    {
+        return _reader.ReadAsync(cancellationToken);
+    }
+}
+
 /// <summary>
 /// Wrapper around a TextReader to facilitate reading it like a PipeReader.
 /// </summary>
@@ -51,16 +77,17 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask<CsvReadResult<char>> ReadAsync(CancellationToken cancellationToken = default)
     {
-        ThrowIfDisposed();
+        if (_disposed)
+            ThrowHelper.ThrowObjectDisposedException(nameof(TextPipeReader));
 
         if (cancellationToken.IsCancellationRequested)
         {
             return ValueTask.FromCanceled<CsvReadResult<char>>(cancellationToken);
         }
 
-        if (TryRead(out var buffer))
+        if (_bufferedBytes > 0 && !_examinedEverything)
         {
-            return new(new CsvReadResult<char>(buffer, false));
+            return new(new CsvReadResult<char>(GetCurrentReadOnlySequence(), false));
         }
 
         if (_readerCompleted)
@@ -69,20 +96,6 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
         }
 
         return ReadAsyncCore(cancellationToken);
-    }
-
-    private bool TryRead(out ReadOnlySequence<char> result)
-    {
-        ThrowIfDisposed();
-
-        if (_bufferedBytes > 0 && !_examinedEverything)
-        {
-            result = GetCurrentReadOnlySequence();
-            return true;
-        }
-
-        result = default;
-        return false;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -94,6 +107,7 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
             : new ReadOnlySequence<char>(_readHead, _readIndex, _readTail!, _readTail!.End);
     }
 
+    [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))]
     private async ValueTask<CsvReadResult<char>> ReadAsyncCore(CancellationToken cancellationToken)
     {
         EnsureReadTail();
@@ -144,21 +158,16 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
 
     public void AdvanceTo(SequencePosition consumed, SequencePosition examined)
     {
-        ThrowIfDisposed();
+        if (_disposed)
+        {
+            ThrowHelper.ThrowObjectDisposedException(nameof(TextPipeReader));
+        }
 
-        AdvanceTo(
-            (TextSegment?)consumed.GetObject(),
-            consumed.GetInteger(),
-            (TextSegment?)examined.GetObject(),
-            examined.GetInteger());
-    }
+        TextSegment? consumedSegment = (TextSegment?)consumed.GetObject();
+        int consumedIndex = consumed.GetInteger();
+        TextSegment? examinedSegment = (TextSegment?)examined.GetObject();
+        int examinedIndex = examined.GetInteger();
 
-    private void AdvanceTo(
-        TextSegment? consumedSegment,
-        int consumedIndex,
-        TextSegment? examinedSegment,
-        int examinedIndex)
-    {
         if (consumedSegment == null || examinedSegment == null)
         {
             return;
@@ -250,12 +259,5 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
         Debug.Assert(segment != _readHead, "Returning _readHead segment that's in use!");
         Debug.Assert(segment != _readTail, "Returning _readTail segment that's in use!");
         _segmentPool.Push(segment);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ThrowIfDisposed()
-    {
-        if (_disposed)
-            ThrowHelper.ThrowObjectDisposedException(nameof(TextPipeReader));
     }
 }

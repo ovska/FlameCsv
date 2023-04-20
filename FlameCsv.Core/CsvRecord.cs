@@ -208,7 +208,9 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
             $"from {data.AsPrintableString(_options.AllowContentInExceptions, _state.Dialect)}");
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CsvFieldEnumerator<T> GetEnumerator() => new(_state);
+
     IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator() => GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
