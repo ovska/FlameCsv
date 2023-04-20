@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using CommunityToolkit.Diagnostics;
@@ -134,12 +135,12 @@ internal static class UnescapeExtensions
 
         if (source.Length < 2)
         {
-            error.Append($"Source is too short (length: {source.Length}). ");
+            error.Append(CultureInfo.InvariantCulture, $"Source is too short (length: {source.Length}). ");
         }
 
         if (actualCount != quoteCount)
         {
-            error.Append($"String delimiter count {quoteCount} was invalid (actual was {actualCount}). ");
+            error.Append(CultureInfo.InvariantCulture, $"String delimiter count {quoteCount} was invalid (actual was {actualCount}). ");
         }
 
         if (error.Length != 0)

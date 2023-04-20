@@ -3,7 +3,7 @@
 /// <summary>
 /// Enumeration that determines field quoting behavior when writing CSV.
 /// </summary>
-public enum CsvFieldQuoting : byte
+public enum CsvFieldQuoting
 {
     /// <summary>
     /// Only quote and escape fields that contain the delimiter, quote or newline characters.

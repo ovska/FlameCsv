@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Text;
 
 namespace FlameCsv.Binding;
@@ -53,7 +54,11 @@ public abstract class CsvBinding<T> :
     public override int GetHashCode() => HashCode.Combine(Index, Sentinel);
 
     /// <inheritdoc/>
-    public static bool operator ==(CsvBinding<T> left, CsvBinding<T> right) => left.Equals(right);
+    public static bool operator ==(CsvBinding<T> left, CsvBinding<T> right)
+    {
+        return left is null ? right is null : left.Equals(right as CsvBinding);
+    }
+
     /// <inheritdoc/>
     public static bool operator !=(CsvBinding<T> left, CsvBinding<T> right) => !(left == right);
 
@@ -62,7 +67,7 @@ public abstract class CsvBinding<T> :
     public override string ToString()
     {
         var sb = new StringBuilder(64);
-        sb.Append($"{{ [{nameof(CsvBinding<T>)}] Index: {Index}, ");
+        sb.Append(CultureInfo.InvariantCulture, $"{{ [{nameof(CsvBinding<T>)}] Index: {Index}, ");
         PrintDetails(sb);
         sb.Append(" }");
         return sb.ToString();

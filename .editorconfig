@@ -23,7 +23,6 @@ csharp_prefer_static_local_function = true:suggestion
 # Useless rules
 # dotnet_diagnostic.CS1591.severity = none # Missing XML comment on public member
 dotnet_diagnostic.RCS1001.severity = none # Add braces to if statement (when expression spans over multiple lines).
-dotnet_diagnostic.RCS1090.severity = none # Add call to 'ConfigureAwait'.
 dotnet_diagnostic.RCS1194.severity = none # Implement exception constructors.
 dotnet_diagnostic.RCS1139.severity = none # Add summary element to documentation comment.
 dotnet_diagnostic.xUnit1004.severity = none # Test methods should not be skipped.
@@ -115,6 +114,14 @@ dotnet_diagnostic.RCS1197.severity = none
 
 # IDE0057: Use range operator
 dotnet_diagnostic.IDE0057.severity = none
+
+dotnet_diagnostic.RCS1090.severity = warning # Add call to 'ConfigureAwait'.
+
+# CA1815: Override equals and operator equals on value types
+dotnet_diagnostic.CA1815.severity = silent
+
+# CA1032: Implement standard exception constructors
+dotnet_diagnostic.CA1032.severity = none
 
 [*.{cs,vb}]
 #### Naming styles ####

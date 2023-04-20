@@ -7,7 +7,7 @@ namespace FlameCsv.Benchmark;
 [SimpleJob]
 [MemoryDiagnoser]
 //[BenchmarkDotNet.Diagnostics.Windows.Configs.EtwProfiler]
-public class CsvReadBench2
+public class CsvReadBench
 {
     private static readonly byte[] _bytes
         = File.ReadAllBytes("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv");

@@ -9,6 +9,7 @@ using FlameCsv.Reflection;
 
 namespace FlameCsv.Binding;
 
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1036:Override methods on comparable types", Justification = "<Pending>")]
 public abstract class CsvBinding : IComparable<CsvBinding>
 {
     /// <summary>
@@ -46,7 +47,9 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// </summary>
     public static CsvBinding<T> For<T>(int index, Expression<Func<T, object?>> memberExpression)
     {
+        ArgumentNullException.ThrowIfNull(memberExpression);
         CsvBinding<T>.ThrowIfInvalid();
+
         return ForMember<T>(index, memberExpression.GetMemberInfo());
     }
 
@@ -57,7 +60,9 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// <exception cref="CsvBindingException{T}"></exception>
     public static CsvBinding<T> ForMember<T>(int index, MemberInfo member)
     {
+        ArgumentNullException.ThrowIfNull(member);
         CsvBinding<T>.ThrowIfInvalid();
+
         foreach (var data in CsvTypeInfo<T>.Instance.Members)
         {
             if (ReferenceEquals(data.Value, member) || AreSameMember(data.Value, member))
@@ -75,7 +80,9 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// <exception cref="CsvBindingException{T}"></exception>
     public static CsvBinding<T> ForParameter<T>(int index, ParameterInfo parameter)
     {
+        ArgumentNullException.ThrowIfNull(parameter);
         CsvBinding<T>.ThrowIfInvalid();
+
         foreach (var data in CsvTypeInfo<T>.Instance.ConstructorParameters)
         {
             if (parameter.Equals(data.Value))
@@ -92,6 +99,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     internal static CsvBinding<T> FromHeaderBinding<T>(object target, int index)
     {
         CsvBinding<T>.ThrowIfInvalid();
+
         return target switch
         {
             MemberInfo m => ForMember<T>(index, m),
@@ -104,13 +112,13 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// Returns whether the binding targets the same property/field/parameter,
     /// or both bindings are ignored columns.
     /// </summary>
-    public bool TargetEquals(CsvBinding other) => AreSame(Sentinel, other.Sentinel);
+    public bool TargetEquals(CsvBinding? other) => AreSame(Sentinel, other?.Sentinel);
 
     /// <summary>
     /// Returns true if the objects are the same instance, or both are the same member.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected static bool AreSame(object a, object b)
+    protected static bool AreSame(object? a, object? b)
     {
         return ReferenceEquals(a, b)
             || (a is MemberInfo ma && b is MemberInfo mb && AreSameMember(ma, mb));

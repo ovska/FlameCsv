@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using CommunityToolkit.HighPerformance;
@@ -9,7 +10,7 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading;
 
-public struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
+internal struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
 {
     public readonly CsvDialect<T> Dialect { get; }
     public readonly ReadOnlyMemory<T> Record { get; }
@@ -92,16 +93,16 @@ public struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
 
         if (quotesRemaining != 0)
         {
-            sb.Append($"There were {quotesRemaining} leftover quotes in the state. ");
+            sb.Append(CultureInfo.InvariantCulture, $"There were {quotesRemaining} leftover quotes in the state. ");
         }
 
         if (!remaining.IsEmpty)
         {
-            sb.Append($"Expected the record to have {fieldCount} fields, but it had more. ");
-            sb.Append($"Remaining: {remaining.Span.AsPrintableString(ExposeContent, Dialect)}, ");
+            sb.Append(CultureInfo.InvariantCulture, $"Expected the record to have {fieldCount} fields, but it had more. ");
+            sb.Append(CultureInfo.InvariantCulture, $"Remaining: {remaining.Span.AsPrintableString(ExposeContent, Dialect)}, ");
         }
 
-        sb.Append($"Record: {Record.Span.AsPrintableString(ExposeContent, Dialect)}");
+        sb.Append(CultureInfo.InvariantCulture, $"Record: {Record.Span.AsPrintableString(ExposeContent, Dialect)}");
 
         throw new CsvFormatException(sb.ToString());
     }

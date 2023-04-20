@@ -48,7 +48,7 @@ public sealed class AsyncCsvEnumerator<T> : CsvEnumeratorBase<T>, IAsyncEnumerat
         {
             _reader.AdvanceTo(_data.Start, _data.End);
 
-            (_data, _readerCompleted) = await _reader.ReadAsync(_cancellationToken);
+            (_data, _readerCompleted) = await _reader.ReadAsync(_cancellationToken).ConfigureAwait(false);
 
             if (MoveNextCore())
                 return true;
@@ -83,6 +83,6 @@ public sealed class AsyncCsvEnumerator<T> : CsvEnumeratorBase<T>, IAsyncEnumerat
     public async ValueTask DisposeAsync()
     {
         Dispose(true);
-        await _reader.DisposeAsync();
+        await _reader.DisposeAsync().ConfigureAwait(false);
     }
 }

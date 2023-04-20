@@ -26,11 +26,13 @@ internal static class ExpressionExtensions
         {
             asString = expression.ToString();
         }
+#pragma warning disable CA1031 // Do not catch general exception types
         catch (Exception e)
         {
             asString = "<failed to get string>";
             inner = e;
         }
+#pragma warning restore CA1031 // Do not catch general exception types
 
         throw new UnreachableException($"Expected lambda to have no closure, but compiling it failed: {asString}", inner);
     }

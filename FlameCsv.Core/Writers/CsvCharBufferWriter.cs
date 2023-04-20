@@ -91,11 +91,15 @@ internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>
     {
         if (_state.HasUnflushedData)
         {
-            await _writer.WriteAsync(_state.Buffer.AsMemory(0, _state.Unflushed), cancellationToken);
+            await _writer.WriteAsync(_state.Buffer.AsMemory(0, _state.Unflushed), cancellationToken).ConfigureAwait(false);
             _state.Unflushed = 0;
         }
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Exception is caught and rethrown later")]
     public async ValueTask CompleteAsync(
         Exception? exception,
         CancellationToken cancellationToken = default)
@@ -107,7 +111,7 @@ internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>
         {
             try
             {
-                await _writer.WriteAsync(_state.Buffer.AsMemory(0, _state.Unflushed), cancellationToken);
+                await _writer.WriteAsync(_state.Buffer.AsMemory(0, _state.Unflushed), cancellationToken).ConfigureAwait(false);
                 _state.Unflushed = -1;
             }
             catch (Exception e)
@@ -117,7 +121,7 @@ internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>
         }
 
         _arrayPool.Return(_state.Buffer);
-        await _writer.DisposeAsync();
+        await _writer.DisposeAsync().ConfigureAwait(false);
 
         if (exception is not null)
             throw exception;

@@ -13,7 +13,7 @@ namespace FlameCsv.Binding.Attributes;
 /// For nullable booleans, attempts to fetch user defined null token from the options via
 /// <see cref="ICsvNullTokenConfiguration{T}"/>.
 /// </summary>
-public class CsvBooleanValuesAttribute : CsvParserOverrideAttribute
+public sealed class CsvBooleanValuesAttribute : CsvParserOverrideAttribute
 {
     /// <summary>
     /// Values that represent <see langword="true"/>.
@@ -77,7 +77,7 @@ public class CsvBooleanValuesAttribute : CsvParserOverrideAttribute
     /// <summary>
     /// Returns null tokens defined in an existing <see cref="NullableParserFactory{T}"/> if any.
     /// </summary>
-    protected static ReadOnlyMemory<T> FindNullTokens<T>(CsvReaderOptions<T> options)
+    private static ReadOnlyMemory<T> FindNullTokens<T>(CsvReaderOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
         ReadOnlyMemory<T> value = default;

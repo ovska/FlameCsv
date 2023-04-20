@@ -97,7 +97,7 @@ public sealed class CsvBindingException<T> : CsvBindingException
     /// <summary>
     /// Throws an exception for multiple overrides.
     /// </summary>
-    public CsvBindingException(
+    internal CsvBindingException(
         CsvBinding<T> binding,
         CsvParserOverrideAttribute first,
         CsvParserOverrideAttribute second)

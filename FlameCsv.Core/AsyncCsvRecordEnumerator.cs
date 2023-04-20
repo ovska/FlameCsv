@@ -56,7 +56,7 @@ internal sealed class AsyncCsvRecordEnumerator<T, TValue, TReader, TProcessor> :
         {
             _reader.AdvanceTo(_data.Start, _data.End);
 
-            (_data, _readerCompleted) = await _reader.ReadAsync(_cancellationToken);
+            (_data, _readerCompleted) = await _reader.ReadAsync(_cancellationToken).ConfigureAwait(false);
 
             if (_processor.TryRead(ref _data, out _current, false))
             {
@@ -76,6 +76,6 @@ internal sealed class AsyncCsvRecordEnumerator<T, TValue, TReader, TProcessor> :
     public async ValueTask DisposeAsync()
     {
         _processor.Dispose();
-        await _reader.DisposeAsync();
+        await _reader.DisposeAsync().ConfigureAwait(false);
     }
 }

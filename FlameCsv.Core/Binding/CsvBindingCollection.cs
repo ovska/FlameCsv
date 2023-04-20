@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Diagnostics;
 using System.Reflection;
 using CommunityToolkit.Diagnostics;
@@ -12,7 +13,7 @@ namespace FlameCsv.Binding;
 /// </summary>
 /// <typeparam name="TValue">Type represented by the CSV</typeparam>
 [DebuggerDisplay("CsvBindingCollection<{typeof(TValue).Name,nq}>[{_allBindings.Count}]")]
-public sealed class CsvBindingCollection<TValue>
+public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue>>
 {
     /// <summary>
     /// All bindings, sorted by index. Guaranteed to be valid.
@@ -196,4 +197,11 @@ public sealed class CsvBindingCollection<TValue>
         parameterInfos.AsSpan().Sort(static (a, b) => a.param.Position.CompareTo(b.param.Position));
         return parameterInfos;
     }
+
+    IEnumerator<CsvBinding<TValue>> IEnumerable<CsvBinding<TValue>>.GetEnumerator()
+    {
+        return _allBindings.GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<CsvBinding<TValue>>)this).GetEnumerator();
 }

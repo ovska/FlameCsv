@@ -34,7 +34,7 @@ internal static class EnumMembers<TEnum> where TEnum : struct, Enum
 
                 Value = Enum.Parse<TEnum>(name),
                 Name = name,
-                MemberName = fields.Single(f => f.Name.Equals(name)).GetCustomAttribute<EnumMemberAttribute>()?.Value
+                MemberName = fields.First(f => f.Name.Equals(name, StringComparison.Ordinal)).GetCustomAttribute<EnumMemberAttribute>()?.Value
             })
             .ToArray();
 
