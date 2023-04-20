@@ -184,16 +184,14 @@ public abstract partial class CsvReaderOptions<T> : ISealable
     public ICsvParser<T>? TryGetParser(Type resultType)
     {
         ArgumentNullException.ThrowIfNull(resultType);
-
-        if (!IsReadOnly)
-            MakeReadOnly();
+        MakeReadOnly();
 
         if (_parserCache.TryGetValue(resultType, out var cached))
         {
             return cached;
         }
 
-        ReadOnlySpan<ICsvParser<T>> parsers = GetOrInitParsers().Span;
+        ReadOnlySpan<ICsvParser<T>> parsers = (_parsers ?? GetOrInitParsers()).Span;
 
         // Read parsers in reverse order so parser added last has the highest priority
         for (int i = parsers.Length - 1; i >= 0; i--)
@@ -211,9 +209,7 @@ public abstract partial class CsvReaderOptions<T> : ISealable
 
     internal ReadOnlySpan<ICsvParser<T>> EnumerateParsers()
     {
-        if (!IsReadOnly)
-            MakeReadOnly();
-
-        return GetOrInitParsers().Span;
+        MakeReadOnly();
+        return (_parsers ?? GetOrInitParsers()).Span;
     }
 }
