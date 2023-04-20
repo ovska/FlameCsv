@@ -24,6 +24,8 @@ public sealed class CsvRecordEnumerable<T, TValue> : IEnumerable<TValue>
 
     public IEnumerator<TValue> GetEnumerator()
     {
+        Options.MakeReadOnly();
+
         if (Options.HasHeader)
         {
             return new CsvRecordEnumerator<T, TValue, CsvHeaderProcessor<T, TValue>>(

@@ -70,7 +70,7 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
     {
         _innerReader = innerReader;
         _bufferSize = bufferSize;
-        _arrayPool = arrayPool ?? AllocatingArrayPool<char>.Instance;
+        _arrayPool = arrayPool.AllocatingIfNull();
         _leaveOpen = leaveOpen;
     }
 

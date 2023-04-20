@@ -29,7 +29,8 @@ public static class WriteUtilTests
             destination: destination,
             quote: '|',
             quoteCount: quoteCount,
-            new BufferOwner<char>(ref array, ArrayPool<char>.Shared));
+            overflowBuffer: ref array,
+            arrayPool: ArrayPool<char>.Shared);
 
         Assert.Equal("|||t||e||s||t|", destination.ToString());
         Assert.Equal("||", array.AsSpan().ToString());
@@ -59,7 +60,8 @@ public static class WriteUtilTests
             destination: firstBuffer,
             quote: '|',
             quoteCount: quoteCount,
-            new BufferOwner<char>(ref array, ArrayPool<char>.Shared));
+            overflowBuffer: ref array,
+            arrayPool: ArrayPool<char>.Shared);
 
         int overflowLength = quoteCount + 2;
 

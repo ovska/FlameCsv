@@ -144,11 +144,12 @@ internal sealed class CsvWriteOperation<T, TWriter> : IAsyncDisposable
                 if (escapedLength > destination.Length)
                 {
                     ReadOnlySpan<T> overflow = WriteUtil<T>.EscapeWithOverflow(
-                        written,
-                        destination,
-                        _dialect.Quote,
-                        quoteCount,
-                        new BufferOwner<T>(ref _array, _arrayPool));
+                        source: written,
+                        destination: destination,
+                        quote: _dialect.Quote,
+                        quoteCount: quoteCount,
+                        overflowBuffer: ref _array,
+                        arrayPool: _arrayPool);
 
                     // The whole of the span is filled, with the leftovers being written to the overflow
                     _writer.Advance(destination.Length);

@@ -36,6 +36,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
 
     public CsvEnumerationState(CsvReaderOptions<T> options) : this(new CsvDialect<T>(options), options.ArrayPool)
     {
+        options.MakeReadOnly();
         _hasHeader = options.HasHeader;
         _exposeContents = options.AllowContentInExceptions;
     }

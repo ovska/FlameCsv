@@ -1,4 +1,6 @@
-﻿using System.Linq.Expressions;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 using System.Reflection;
 using CommunityToolkit.Diagnostics;
 using FastExpressionCompiler;
@@ -14,14 +16,47 @@ internal static class ExpressionExtensions
 #endif
     ;
 
+    [StackTraceHidden, DoesNotReturn]
+    private static void ThrowForClosure(Expression expression)
+    {
+        string asString;
+        Exception? inner = null;
+
+        try
+        {
+            asString = expression.ToString();
+        }
+        catch (Exception e)
+        {
+            asString = "<failed to get string>";
+            inner = e;
+        }
+
+        throw new UnreachableException($"Expected lambda to have no closure, but compiling it failed: {asString}", inner);
+    }
+
     /// <summary>
     /// Compiles a lambda expression into a delegate using FastExpressionCompiler.
     /// </summary>
-    public static TDelegate CompileLambda<TDelegate>(this LambdaExpression lambda)
-        where TDelegate : class
+    public static TDelegate CompileLambda<TDelegate>(this LambdaExpression lambda, bool throwIfClosure = false)
+        where TDelegate : Delegate
     {
-        return lambda.TryCompileWithoutClosure<TDelegate>(flags: DefaultCompilerFlags)
-            ?? lambda.CompileFast<TDelegate>(flags: DefaultCompilerFlags);
+        TDelegate? fn = lambda.TryCompileWithoutClosure<TDelegate>(flags: DefaultCompilerFlags);
+
+        if (fn is null && throwIfClosure)
+            ThrowForClosure(lambda);
+
+        return fn ?? lambda.CompileFast<TDelegate>(flags: DefaultCompilerFlags);
+    }
+
+    /// <summary>
+    /// Compiles a lambda expression with a closure (not static) into a delegate using FastExpressionCompiler.
+    /// </summary>
+    public static TDelegate CompileLambdaWithClosure<TDelegate>(this LambdaExpression lambda)
+        where TDelegate : Delegate
+    {
+        Debug.Assert(lambda.TryCompileWithoutClosure<TDelegate>(flags: DefaultCompilerFlags) is null);
+        return lambda.CompileFast<TDelegate>(flags: DefaultCompilerFlags);
     }
 
     public static (MemberExpression, Type) GetAsMemberExpression(this MemberInfo memberInfo, Expression target)

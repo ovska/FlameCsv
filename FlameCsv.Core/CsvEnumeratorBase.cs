@@ -30,73 +30,66 @@ public abstract class CsvEnumeratorBase<T> : IDisposable
     private readonly CsvDialect<T> _dialect;
     private readonly CsvEnumerationState<T> _state;
     private readonly ArrayPool<T> _arrayPool;
+    private readonly CsvCallback<T, bool>? _shouldSkipRow;
     private T[]? _multisegmentBuffer;
 
     protected CsvEnumeratorBase(CsvReaderOptions<T> options, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(options);
 
+        options.MakeReadOnly();
+
         _options = options;
         _cancellationToken = cancellationToken;
         _dialect = new CsvDialect<T>(options);
         _state = new CsvEnumerationState<T>(options);
         _arrayPool = options.ArrayPool.AllocatingIfNull();
+        _shouldSkipRow = options.ShouldSkipRow;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected internal bool MoveNextCore(ref ReadOnlySequence<T> data, bool isFinalBlock)
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    protected bool MoveNextCore(ref ReadOnlySequence<T> data, bool isFinalBlock)
     {
         Retry:
         if (RFC4180Mode<T>.TryGetLine(in _dialect, ref data, out ReadOnlySequence<T> line, out int quoteCount, isFinalBlock))
         {
-            MoveNextOrReadHeader(in line, quoteCount, out bool headerRead);
+            ReadOnlyMemory<T> memory;
 
-            if (!isFinalBlock)
+            if (line.IsSingleSegment)
             {
-                Position += _dialect.Newline.Length; // increment position _after_ record has been initialized
+                memory = line.First;
+            }
+            else
+            {
+                int length = (int)line.Length;
+                _arrayPool.EnsureCapacity(ref _multisegmentBuffer, length);
+                line.CopyTo(_multisegmentBuffer);
+                memory = _multisegmentBuffer.AsMemory(0, length);
             }
 
-            if (!headerRead)
+            long oldPosition = Position;
+
+            Position += memory.Length + _dialect.Newline.Length * (!isFinalBlock).ToByte();
+            Line++;
+
+            if (_shouldSkipRow is not null && _shouldSkipRow(memory.Span, in _dialect))
             {
-                return true;
+                goto Retry;
             }
 
-            goto Retry;
+            CsvRecord<T> record = new(oldPosition, Line, memory, _options, quoteCount, _state);
+
+            if (_state.NeedsHeader)
+            {
+                _state.SetHeader(CreateHeaderDictionary(record));
+                goto Retry;
+            }
+
+            Current = record;
+            return true;
         }
 
         return false;
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private void MoveNextOrReadHeader(in ReadOnlySequence<T> line, int quoteCount, out bool headerRead)
-    {
-        ReadOnlyMemory<T> memory;
-
-        if (line.IsSingleSegment)
-        {
-            memory = line.First;
-        }
-        else
-        {
-            int length = (int)line.Length;
-            _arrayPool.EnsureCapacity(ref _multisegmentBuffer, length);
-            line.CopyTo(_multisegmentBuffer);
-            memory = _multisegmentBuffer.AsMemory(0, length);
-        }
-
-        CsvRecord<T> record = new(Position, ++Line, memory, _options, quoteCount, _state);
-        Position += memory.Length;
-
-        if (!_state.NeedsHeader)
-        {
-            Current = record;
-            headerRead = false;
-        }
-        else
-        {
-            _state.SetHeader(CreateHeaderDictionary(record));
-            headerRead = true;
-        }
     }
 
     public void Dispose()

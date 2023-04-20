@@ -24,6 +24,7 @@ internal sealed class AllocatingArrayPool<T> : ArrayPool<T>
 
     public override void Return(T[] array, bool clearArray = false)
     {
+        ArgumentNullException.ThrowIfNull(array);
     }
 }
 

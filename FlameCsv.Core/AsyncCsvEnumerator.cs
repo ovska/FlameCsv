@@ -4,13 +4,7 @@ using FlameCsv.Reading;
 
 namespace FlameCsv;
 
-/// <summary>
-/// Asynchronously enumerates CSV records.
-/// </summary>
-/// <remarks>
-/// If the CSV has a header record, it will be processed first before any records are yielded.
-/// </remarks>
-/// <typeparam name="T"></typeparam>
+/// <inheritdoc cref="CsvEnumeratorBase{T}"/>
 public sealed class AsyncCsvEnumerator<T> : CsvEnumeratorBase<T>, IAsyncEnumerator<CsvRecord<T>>
     where T : unmanaged, IEquatable<T>
 {
