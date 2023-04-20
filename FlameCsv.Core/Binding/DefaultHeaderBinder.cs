@@ -62,7 +62,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
         List<CsvBinding<TValue>> foundBindings = new();
         SpanPredicate<T>? ignorePredicate = headerData.Ignore;
 
-        ArrayPool<T> arrayPool = Options.ArrayPool ?? AllocatingArrayPool<T>.Instance;
+        ArrayPool<T> arrayPool = Options.ArrayPool.AllocatingIfNull();
         T[]? buffer = null;
 
         try

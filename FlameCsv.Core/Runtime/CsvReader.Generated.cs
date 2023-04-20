@@ -7,6 +7,31 @@ namespace FlameCsv;
 
 public static partial class CsvReader
 {
+    internal sealed class CsvRecordFactoryAsyncEnumerable<T, TValue, TReader> : IAsyncEnumerable<TValue>
+        where T : unmanaged, IEquatable<T>
+        where TReader : struct, ICsvPipeReader<T>
+    {
+        private readonly CsvReaderOptions<T> _options;
+        private readonly TReader _reader;
+        private readonly IMaterializer<T, TValue> _materializer;
+
+        public CsvRecordFactoryAsyncEnumerable(CsvReaderOptions<T> options, TReader reader, IMaterializer<T, TValue> materializer)
+        {
+            _options = options;
+            _reader = reader;
+            _materializer = materializer;
+        }
+
+        public IAsyncEnumerator<TValue> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+        {
+            CommunityToolkit.Diagnostics.Guard.IsFalse(_options.HasHeader);
+            return new AsyncCsvRecordEnumerator<T, TValue, TReader, CsvProcessor<T, TValue>>(
+                _reader,
+                new CsvProcessor<T, TValue>(_options, _materializer),
+                cancellationToken);
+        }
+    }
+
     [System.Diagnostics.StackTraceHidden]
     private static void ValidateReadRecordsArgs(object reader, object options, object recordFactory, bool? hasHeader)
     {
@@ -14,26 +39,27 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(recordFactory);
         if (hasHeader.GetValueOrDefault()) ThrowArgumentExceptionReadRecordsHasHeader();
-    }
 
-    private static void ThrowArgumentExceptionReadRecordsHasHeader()
-    {
-        throw new ArgumentException(
-            "The options were configured to read a CSV with a header record, " +
-            "which is not supported by ReadRecordsAsync.");
+        static void ThrowArgumentExceptionReadRecordsHasHeader()
+        {
+            throw new ArgumentException(
+                "The options were configured to read a CSV with a header record, " +
+                "which is not supported by ReadRecordsAsync.");
+        }
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 1 column.</remarks>
+    /// <remarks>
+    /// The CSV records must have 1 column.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
-        Func<T0, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -42,23 +68,21 @@ public static partial class CsvReader
 
         var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 2 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 2 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
-        Func<T0, T1, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -67,23 +91,21 @@ public static partial class CsvReader
 
         var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 3 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 3 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
-        Func<T0, T1, T2, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -92,23 +114,21 @@ public static partial class CsvReader
 
         var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 4 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 4 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
-        Func<T0, T1, T2, T3, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -117,23 +137,21 @@ public static partial class CsvReader
 
         var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 5 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 5 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
-        Func<T0, T1, T2, T3, T4, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -142,23 +160,21 @@ public static partial class CsvReader
 
         var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 6 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 6 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
-        Func<T0, T1, T2, T3, T4, T5, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, T5, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -167,23 +183,21 @@ public static partial class CsvReader
 
         var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 7 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 7 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -192,23 +206,21 @@ public static partial class CsvReader
 
         var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 8 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 8 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -217,23 +229,21 @@ public static partial class CsvReader
 
         var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 9 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 9 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -242,23 +252,21 @@ public static partial class CsvReader
 
         var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 10 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 10 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -267,23 +275,21 @@ public static partial class CsvReader
 
         var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 11 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 11 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -292,23 +298,21 @@ public static partial class CsvReader
 
         var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 12 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 12 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -317,23 +321,21 @@ public static partial class CsvReader
 
         var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 13 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 13 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -342,23 +344,21 @@ public static partial class CsvReader
 
         var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 14 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 14 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -367,23 +367,21 @@ public static partial class CsvReader
 
         var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 15 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 15 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -392,23 +390,21 @@ public static partial class CsvReader
 
         var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 16 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 16 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -417,23 +413,21 @@ public static partial class CsvReader
 
         var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, options.ArrayPool));
 
-        return ReadCoreAsync<char, TValue, TextPipeReaderWrapper, CsvProcessor<char, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 1 column.</remarks>
+    /// <remarks>
+    /// The CSV records must have 1 column.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
-        Func<T0, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -442,23 +436,21 @@ public static partial class CsvReader
 
         var pipeReader = new PipeReaderWrapper(reader);
 
-        return ReadCoreAsync<byte, TValue, PipeReaderWrapper, CsvProcessor<byte, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 2 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 2 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
-        Func<T0, T1, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -467,23 +459,21 @@ public static partial class CsvReader
 
         var pipeReader = new PipeReaderWrapper(reader);
 
-        return ReadCoreAsync<byte, TValue, PipeReaderWrapper, CsvProcessor<byte, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 3 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 3 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
-        Func<T0, T1, T2, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -492,23 +482,21 @@ public static partial class CsvReader
 
         var pipeReader = new PipeReaderWrapper(reader);
 
-        return ReadCoreAsync<byte, TValue, PipeReaderWrapper, CsvProcessor<byte, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 4 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 4 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
-        Func<T0, T1, T2, T3, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -517,23 +505,21 @@ public static partial class CsvReader
 
         var pipeReader = new PipeReaderWrapper(reader);
 
-        return ReadCoreAsync<byte, TValue, PipeReaderWrapper, CsvProcessor<byte, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 5 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 5 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -542,23 +528,21 @@ public static partial class CsvReader
 
         var pipeReader = new PipeReaderWrapper(reader);
 
-        return ReadCoreAsync<byte, TValue, PipeReaderWrapper, CsvProcessor<byte, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 6 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 6 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, T5, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, T5, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -567,23 +551,21 @@ public static partial class CsvReader
 
         var pipeReader = new PipeReaderWrapper(reader);
 
-        return ReadCoreAsync<byte, TValue, PipeReaderWrapper, CsvProcessor<byte, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 7 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 7 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -592,23 +574,21 @@ public static partial class CsvReader
 
         var pipeReader = new PipeReaderWrapper(reader);
 
-        return ReadCoreAsync<byte, TValue, PipeReaderWrapper, CsvProcessor<byte, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 8 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 8 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -617,23 +597,21 @@ public static partial class CsvReader
 
         var pipeReader = new PipeReaderWrapper(reader);
 
-        return ReadCoreAsync<byte, TValue, PipeReaderWrapper, CsvProcessor<byte, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 9 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 9 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -642,23 +620,21 @@ public static partial class CsvReader
 
         var pipeReader = new PipeReaderWrapper(reader);
 
-        return ReadCoreAsync<byte, TValue, PipeReaderWrapper, CsvProcessor<byte, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 10 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 10 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -667,23 +643,21 @@ public static partial class CsvReader
 
         var pipeReader = new PipeReaderWrapper(reader);
 
-        return ReadCoreAsync<byte, TValue, PipeReaderWrapper, CsvProcessor<byte, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 11 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 11 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -692,23 +666,21 @@ public static partial class CsvReader
 
         var pipeReader = new PipeReaderWrapper(reader);
 
-        return ReadCoreAsync<byte, TValue, PipeReaderWrapper, CsvProcessor<byte, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 12 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 12 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -717,23 +689,21 @@ public static partial class CsvReader
 
         var pipeReader = new PipeReaderWrapper(reader);
 
-        return ReadCoreAsync<byte, TValue, PipeReaderWrapper, CsvProcessor<byte, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 13 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 13 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -742,23 +712,21 @@ public static partial class CsvReader
 
         var pipeReader = new PipeReaderWrapper(reader);
 
-        return ReadCoreAsync<byte, TValue, PipeReaderWrapper, CsvProcessor<byte, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 14 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 14 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -767,23 +735,21 @@ public static partial class CsvReader
 
         var pipeReader = new PipeReaderWrapper(reader);
 
-        return ReadCoreAsync<byte, TValue, PipeReaderWrapper, CsvProcessor<byte, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 15 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 15 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -792,23 +758,21 @@ public static partial class CsvReader
 
         var pipeReader = new PipeReaderWrapper(reader);
 
-        return ReadCoreAsync<byte, TValue, PipeReaderWrapper, CsvProcessor<byte, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(options, pipeReader, materializer);
     }
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="recordFactory">Function to create the record from parsed column values</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration</param>
-    /// <remarks>The CSV records must have 16 columns.</remarks>
+    /// <remarks>
+    /// The CSV records must have 16 columns.<br/>Possible binding attributes placed
+    /// on the method are ignored, and parameter position is used to determine the field index.
+    /// </remarks>
     public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> recordFactory,
-        CancellationToken cancellationToken = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> recordFactory)
     {
         ValidateReadRecordsArgs(reader, options, recordFactory, options?.HasHeader);
 
@@ -817,10 +781,7 @@ public static partial class CsvReader
 
         var pipeReader = new PipeReaderWrapper(reader);
 
-        return ReadCoreAsync<byte, TValue, PipeReaderWrapper, CsvProcessor<byte, TValue>>(
-            pipeReader,
-            processor,
-            cancellationToken: cancellationToken);
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(options, pipeReader, materializer);
     }
 
 }

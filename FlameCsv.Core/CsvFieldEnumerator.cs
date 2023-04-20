@@ -12,11 +12,21 @@ public struct CsvFieldEnumerator<T> : IEnumerator<ReadOnlyMemory<T>> where T : u
 {
     private readonly CsvEnumerationState<T> _state;
     private readonly int _version;
-    private readonly bool _disposeSource;
+    private readonly bool _disposeState;
     private int _index;
 
     public ReadOnlyMemory<T> Current { get; private set; }
     object IEnumerator.Current => Current;
+
+    public CsvFieldEnumerator(
+        ReadOnlyMemory<T> data,
+        CsvReaderOptions<T> options)
+        : this(
+              data,
+              options != null ? new CsvDialect<T>(options) : throw new ArgumentNullException(nameof(options)),
+              options.ArrayPool)
+    {
+    }
 
     /// <summary>
     /// Initializes a new field enumerator for the specified CSV record.
@@ -38,29 +48,31 @@ public struct CsvFieldEnumerator<T> : IEnumerator<ReadOnlyMemory<T>> where T : u
         int quoteCount = data.Span.Count(dialect.Quote);
 
         if (quoteCount % 2 != 0)
+        {
             ThrowForUnevenQuotes(data.Span, quoteCount, in dialect);
+        }
 
         CsvEnumerationState<T> state = new(dialect, arrayPool);
         state.Initialize(data, quoteCount);
 
         _state = state;
-        _disposeSource = true;
+        _disposeState = true;
         _version = state.Version;
         _index = 0;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal CsvFieldEnumerator(CsvEnumerationState<T> source)
+    internal CsvFieldEnumerator(CsvEnumerationState<T> state)
     {
-        _state = source;
-        _version = source.Version;
+        _state = state;
+        _version = state.Version;
         _index = 0;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     void IDisposable.Dispose()
     {
-        if (_disposeSource)
+        if (_disposeState)
             _state.Dispose();
     }
 
@@ -68,7 +80,9 @@ public struct CsvFieldEnumerator<T> : IEnumerator<ReadOnlyMemory<T>> where T : u
     public bool MoveNext()
     {
         if (_version != _state.Version)
+        {
             ThrowHelper.ThrowInvalidOperationException("The enumerator cannot be used after the next record has been read.");
+        }
 
         if (_state.TryGetAtIndex(_index, out ReadOnlyMemory<T> column))
         {
@@ -80,7 +94,7 @@ public struct CsvFieldEnumerator<T> : IEnumerator<ReadOnlyMemory<T>> where T : u
         return false;
     }
 
-    void IEnumerator.Reset() => _index = 0;
+    public void Reset() => _index = 0;
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private static void ThrowForUnevenQuotes(ReadOnlySpan<T> data, int quoteCount, in CsvDialect<T> dialect)

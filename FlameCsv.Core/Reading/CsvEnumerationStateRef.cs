@@ -70,7 +70,7 @@ public struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
         if (quoteCount != 0)
         {
             T[]? buffer = null;
-            var arrayPool = options.ArrayPool ?? AllocatingArrayPool<T>.Instance;
+            var arrayPool = options.ArrayPool.AllocatingIfNull();
             arrayPool.EnsureCapacity(ref buffer, remaining.Length - quoteCount / 2);
             this.buffer = buffer;
         }

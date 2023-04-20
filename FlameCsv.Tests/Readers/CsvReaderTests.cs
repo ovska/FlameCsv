@@ -1,9 +1,7 @@
-using System.Buffers;
 using System.IO.Pipelines;
 using System.Text;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Extensions;
-using FlameCsv.Reading;
 using FlameCsv.Tests.TestData;
 using FlameCsv.Tests.Utilities;
 using FlameCsv.Utilities;
@@ -129,7 +127,7 @@ public sealed class CsvReaderTests : IDisposable
                 var segment = owner.DangerousGetArray();
                 var pipeReader = PipeReader.Create(
                     new MemoryStream(segment.Array!, segment.Offset, segment.Count),
-                    new StreamPipeReaderOptions(bufferSize: bufferSize, pool: new ArrayPoolMemoryPoolWrapper<byte>(options.ArrayPool)));
+                    new StreamPipeReaderOptions(bufferSize: bufferSize, pool: options.ArrayPool.AsMemoryPool()));
 
                 if (api is CsvApi.Async)
                 {

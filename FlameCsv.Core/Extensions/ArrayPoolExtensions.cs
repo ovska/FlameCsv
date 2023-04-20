@@ -1,6 +1,6 @@
 using System.Buffers;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.HighPerformance;
+using CommunityToolkit.HighPerformance.Buffers;
 
 namespace FlameCsv.Extensions;
 
@@ -19,6 +19,36 @@ internal static class ArrayPoolExtensions
         {
             arrayPool.Return(array, clearArray);
             array = null;
+        }
+    }
+
+    public static ArrayPool<T> AllocatingIfNull<T>(this ArrayPool<T>? arrayPool) => arrayPool.AllocatingIfNull();
+
+    public static MemoryPool<T> AsMemoryPool<T>(this ArrayPool<T> arrayPool) => new ArrayPoolMemoryPoolWrapper<T>(arrayPool);
+
+    private sealed class ArrayPoolMemoryPoolWrapper<T> : MemoryPool<T>
+    {
+        private readonly ArrayPool<T> _arrayPool;
+
+        public override int MaxBufferSize => Array.MaxLength;
+
+        public ArrayPoolMemoryPoolWrapper(ArrayPool<T> arrayPool)
+        {
+            ArgumentNullException.ThrowIfNull(arrayPool);
+            _arrayPool = arrayPool;
+        }
+
+        public override IMemoryOwner<T> Rent(int minBufferSize = -1)
+        {
+            return minBufferSize switch
+            {
+                -1 => MemoryOwner<T>.Allocate(4096, _arrayPool),
+                _ => MemoryOwner<T>.Allocate(minBufferSize, _arrayPool),
+            };
+        }
+
+        protected override void Dispose(bool disposing)
+        {
         }
     }
 }

@@ -42,7 +42,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
     }
 
     /// <summary>
-    /// Initializes a new CSV record using the specified data.
+    /// Initializes a new CSV record a single entry.
     /// </summary>
     /// <remarks>
     /// Creating a record this way always causes an allocation for the data if it contains quotes.

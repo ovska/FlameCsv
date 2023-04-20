@@ -25,9 +25,9 @@ public readonly struct CsvEnumerable<T> : IEnumerable<CsvRecord<T>> where T : un
     public CsvEnumerable(ReadOnlySequence<T> data, CsvReaderOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
-
         _data = data;
         _options = options;
+        _options.MakeReadOnly();
     }
 
     public CsvEnumerator<T> GetEnumerator()

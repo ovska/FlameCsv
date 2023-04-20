@@ -1,11 +1,8 @@
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using FlameCsv.Extensions;
-
 namespace FlameCsv.Exceptions;
 
 /// <summary>
 /// Represents format errors in the read CSV, such as invalid column counts in a row.
+/// Exceptions of this kind cannot be handled by <see cref="CsvReaderOptions{T}.ExceptionHandler"/>.
 /// </summary>
 public sealed class CsvFormatException : Exception
 {

@@ -32,7 +32,7 @@ public static partial class CsvReader
         where T : unmanaged, IEquatable<T>
     {
         ArgumentNullException.ThrowIfNull(options);
-        return new CsvEnumerable<T>(new ReadOnlySequence<T>(csv), options);
+        return new CsvEnumerable<T>(csv, options);
     }
 
     /// <summary>
@@ -50,7 +50,6 @@ public static partial class CsvReader
         where T : unmanaged, IEquatable<T>
     {
         ArgumentNullException.ThrowIfNull(options);
-
         return new CsvEnumerable<T>(csv, options);
     }
 

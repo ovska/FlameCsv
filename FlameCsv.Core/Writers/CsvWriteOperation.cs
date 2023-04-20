@@ -65,7 +65,7 @@ internal sealed class CsvWriteOperation<T, TWriter> : IAsyncDisposable
     {
         _writer = writer;
         _dialect = new CsvDialect<T>(options);
-        _arrayPool = options.ArrayPool ?? AllocatingArrayPool<T>.Instance;
+        _arrayPool = options.ArrayPool.AllocatingIfNull();
         _fieldQuoting = options.FieldQuoting;
         _nullCfg = options as ICsvNullTokenConfiguration<T>;
     }

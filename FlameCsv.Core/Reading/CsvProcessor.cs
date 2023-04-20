@@ -1,4 +1,3 @@
-using System;
 using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -33,7 +32,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         _dialect = new CsvDialect<T>(options);
         _skipPredicate = options.ShouldSkipRow;
         _exceptionHandler = options.ExceptionHandler;
-        _arrayPool = options.ArrayPool ?? AllocatingArrayPool<T>.Instance;
+        _arrayPool = options.ArrayPool.AllocatingIfNull();
         _exposeContent = options.AllowContentInExceptions;
 
         _materializer = materializer ?? options.GetMaterializer<T, TValue>();
@@ -117,7 +116,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     }
 
     [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private void ThrowInvalidFormatException(
+    private readonly void ThrowInvalidFormatException(
         Exception exception,
         ReadOnlySpan<T> line)
     {
@@ -127,7 +126,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     }
 
     [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private void ThrowInvalidStringDelimiterException(in ReadOnlySequence<T> line)
+    private readonly void ThrowInvalidStringDelimiterException(in ReadOnlySequence<T> line)
     {
         using var view = new SequenceView<T>(in line, _arrayPool);
 

@@ -38,7 +38,7 @@ internal readonly struct SequenceView<T> : IDisposable
         else
         {
             int length = (int)sequence.Length;
-            _pool = arrayPool ?? AllocatingArrayPool<T>.Instance;
+            _pool = arrayPool.AllocatingIfNull();
             _array = _pool.Rent(length);
             sequence.CopyTo(_array);
             Memory = _array.AsMemory(0, length);

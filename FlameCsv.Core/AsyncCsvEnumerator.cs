@@ -35,10 +35,14 @@ public sealed class AsyncCsvEnumerator<T> : CsvEnumeratorBase<T>, IAsyncEnumerat
     public ValueTask<bool> MoveNextAsync()
     {
         if (_cancellationToken.IsCancellationRequested)
+        {
             return ValueTask.FromCanceled<bool>(_cancellationToken);
+        }
 
         if (MoveNextCore())
+        {
             return new ValueTask<bool>(true);
+        }
 
         return ReadAndMoveNextAsync();
     }
@@ -63,12 +67,16 @@ public sealed class AsyncCsvEnumerator<T> : CsvEnumeratorBase<T>, IAsyncEnumerat
     private bool MoveNextCore()
     {
         if (MoveNextCore(ref _data, isFinalBlock: false))
+        {
             return true;
+        }
 
         if (_readerCompleted)
         {
             if (MoveNextCore(ref _data, isFinalBlock: true))
+            {
                 return true;
+            }
 
             // reached end of data
             Position += Current.Data.Length;

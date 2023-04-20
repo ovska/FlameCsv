@@ -24,7 +24,7 @@ public interface ICsvRecord<T> : IEnumerable<ReadOnlyMemory<T>> where T : unmana
     long Position { get; }
 
     /// <summary>
-    /// 1-based line number in the CSV.
+    /// 1-based logical line number in the CSV. The header record is counted as a line.
     /// </summary>
     /// <remarks>First record's line number is always 1.</remarks>
     int Line { get; }
