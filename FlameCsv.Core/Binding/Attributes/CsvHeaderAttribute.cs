@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using CommunityToolkit.Diagnostics;
 
 namespace FlameCsv.Binding.Attributes;

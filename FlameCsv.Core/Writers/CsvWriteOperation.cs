@@ -8,7 +8,6 @@ using CommunityToolkit.HighPerformance;
 using FlameCsv.Configuration;
 using FlameCsv.Extensions;
 using FlameCsv.Formatters;
-using FlameCsv.Reading;
 
 namespace FlameCsv.Writers;
 

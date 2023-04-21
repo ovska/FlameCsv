@@ -1,14 +1,22 @@
-using System.Buffers;
+﻿using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 
 namespace FlameCsv.Reading;
 
-/// <summary>
-/// Reads CSV lines from a <see cref="ReadOnlySequence{T}"/>.
-/// </summary>
-internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
+internal interface ICsvMode<T> where T : unmanaged, IEquatable<T>
+{
+    bool TryGetLine(
+        in CsvDialect<T> dialect,
+        ref ReadOnlySequence<T> sequence,
+        out ReadOnlySequence<T> line,
+        out RecordMeta meta);
+
+    ReadOnlyMemory<T> ReadNextField(ref CsvEnumerationStateRef<T> state);
+}
+
+internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>Linefeed read state.</summary>
     private struct State
@@ -23,26 +31,6 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
         public SequencePosition start;
     }
 
-    /// <summary>
-    /// Attempts to read until a non-string wrapped <see cref="CsvDialect{T}.Newline"/> is found.
-    /// </summary>
-    /// <param name="dialect">Structural tokens instance from which newline and string delimiter tokens are used</param>
-    /// <param name="sequence">
-    /// Source data, modified if a newline is found and unmodified if the method returns <see langword="false"/>.
-    /// </param>
-    /// <param name="line">
-    /// The line without trailing newline tokens. Should be ignored if the method returns <see langword="false"/>.
-    /// </param>
-    /// <param name="meta">
-    /// Count of string delimiters in <paramref name="line"/>, used when parsing the columns later on.
-    /// Should be ignored if the method returns <see langword="false"/>.
-    /// </param>
-    /// <returns>
-    /// <see langword="true"/> if <see cref="CsvDialect{T}.Newline"/> was found, <paramref name="line"/>
-    /// and <paramref name="quoteCount"/> can be used, and the line and newline have been sliced off from
-    /// <paramref name="sequence"/>.
-    /// </returns>
-    /// <remarks>A successful result might still be invalid CSV.</remarks>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static bool TryGetLine(
         in CsvDialect<T> dialect,
@@ -50,42 +38,74 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
         out ReadOnlySequence<T> line,
         out RecordMeta meta)
     {
+        Debug.Assert(dialect.Escape.HasValue, "EscapeMode is only valid with an usable escape character.");
+
         ReadOnlySpan<T> newLine = dialect.Newline.Span;
         T quote = dialect.Quote;
+        T escape = dialect.Escape!.Value;
+
         meta = default;
         ref uint quoteCount = ref meta.quoteCount;
+        ref uint escapeCount = ref meta.escapeCount;
 
         // keep track of read newline tokens and quotes in the read data
         State state = default;
-        
+
+        // 1 = previous token was an escape
+        int skip = 0;
+
         // for iterating the sequence
         SequencePosition position = sequence.Start;
         SequencePosition current = position;
 
         while (sequence.TryGet(ref position, out ReadOnlyMemory<T> memory))
         {
+            if (memory.IsEmpty)
+            {
+                goto NextSegment;
+            }
+            // single segment segment that needs to be skipped
+            else if (memory.Length == skip)
+            {
+                skip = 0;
+                goto NextSegment;
+            }
+
             ReadOnlySpan<T> span = memory.Span;
 
             // Find the next relevant token. Uneven quotes mean the current index is 100% inside a string,
             // so we can skip everything until the next quote
+            // If we need to skip the first token in the segment, ignore the first character and increment the
+            // result of IndexOf. This is safe because we've already established above that the segment isn't empty
             int index = quoteCount % 2 == 0
-                ? span.IndexOfAny(newLine[state.count], quote)
-                : span.IndexOf(quote);
+                ? span.Slice(skip).IndexOfAny(newLine[state.count], quote, escape)
+                : span.Slice(skip).IndexOfAny(quote, escape);
+
+            if (index >= 0)
+                index += skip;
+
+            skip = 0;
 
             // Found a newline token or a string delimiter
             while (index >= 0)
             {
-                // Found token was a string delimiter
                 if (span[index].Equals(quote))
                 {
                     quoteCount++;
-                    state = default; // zero out possible newline state such as \r"
+                    state = default; // reset possible newline state
+                }
+                else if (span[index].Equals(escape))
+                {
+                    skip = 1;
+                    escapeCount++;
+                    state = default; // reset possible newline state
                 }
                 // The match was for newline token
                 else
                 {
                     // We are 100% not inside a string as newline tokens are ignored by IndexOf in that case
                     Debug.Assert(quoteCount % 2 == 0);
+                    Debug.Assert(span[index].Equals(newLine[state.count]));
 
                     // init the newline state if this was the first token
                     if (state.count == 0)
@@ -114,10 +134,18 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
                 if (++index >= span.Length)
                     break;
 
+                if (skip != 0)
+                {
+                    skip = 0;
+
+                    if (++index >= span.Length)
+                        break;
+                }
+
                 // Find the next relevant token
                 int next = quoteCount % 2 == 0
-                    ? span.Slice(index).IndexOfAny(newLine[state.count], quote)
-                    : span.Slice(index).IndexOf(quote);
+                    ? span.Slice(index).IndexOfAny(newLine[state.count], quote, escape)
+                    : span.Slice(index).IndexOfAny(quote, escape);
 
                 // The segment still contains something of interest
                 if (next >= 0)
@@ -131,6 +159,8 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
                 }
             }
 
+            NextSegment:
+            // Move to the next segment, and abort if it was the last one
             if (position.GetObject() is null)
                 break;
 
@@ -139,38 +169,5 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
 
         Unsafe.SkipInit(out line); // keep this at the bottom to ensure successful returns actually set it
         return false;
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    public static bool TryGetFinalLine(
-        in CsvDialect<T> tokens,
-        ref ReadOnlySequence<T> sequence,
-        out ReadOnlySequence<T> line,
-        out RecordMeta meta)
-    {
-        meta = default;
-
-        if (sequence.IsEmpty)
-        {
-            line = default;
-            return false;
-        }
-
-        line = sequence;
-
-        if (line.IsSingleSegment)
-        {
-            meta.quoteCount = (uint)line.FirstSpan.Count(tokens.Quote);
-        }
-        else
-        {
-            foreach (var segment in sequence)
-            {
-                meta.quoteCount += (uint)segment.Span.Count(tokens.Quote);
-            }
-        }
-
-        sequence = default;
-        return true;
     }
 }

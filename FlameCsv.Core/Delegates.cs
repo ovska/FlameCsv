@@ -27,5 +27,10 @@ public delegate bool CsvExceptionHandler<T>(
 /// Callback that returns a boolean value for a given span.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-/// <param name="data">Dat</param>
 internal delegate bool SpanPredicate<T>(ReadOnlySpan<T> data);
+
+/// <summary>
+/// Callback that returns a boolean value for a given span.
+/// </summary>
+/// <typeparam name="T">Token type</typeparam>
+internal delegate bool SpanPredicate<T, in TArg>(ReadOnlySpan<T> data, TArg arg);

@@ -51,7 +51,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable
     protected bool MoveNextCore(ref ReadOnlySequence<T> data, bool isFinalBlock)
     {
         Retry:
-        if (RFC4180Mode<T>.TryGetLine(in _dialect, ref data, out ReadOnlySequence<T> line, out int quoteCount, isFinalBlock))
+        if (_dialect.TryGetLine(ref data, out ReadOnlySequence<T> line, out RecordMeta meta, isFinalBlock))
         {
             ReadOnlyMemory<T> memory;
 
@@ -77,7 +77,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable
                 goto Retry;
             }
 
-            CsvRecord<T> record = new(oldPosition, Line, memory, _options, quoteCount, _state);
+            CsvRecord<T> record = new(oldPosition, Line, memory, _options, meta, _state);
 
             if (_state.NeedsHeader)
             {

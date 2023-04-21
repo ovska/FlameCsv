@@ -50,10 +50,10 @@ internal static class UtilityExtensions
             (dialect, memoryOwner.Memory),
             static (destination, state) =>
             {
-                (CsvDialect<T> tokens, ReadOnlyMemory<T> memory) = state;
+                (CsvDialect<T> dialect, ReadOnlyMemory<T> memory) = state;
                 var source = memory.Span;
 
-                var newline = tokens.Newline.Span;
+                var newline = dialect.Newline.Span;
 
                 destination.Fill('x');
 
@@ -61,13 +61,17 @@ internal static class UtilityExtensions
                 {
                     T token = source[i];
 
-                    if (token.Equals(tokens.Delimiter))
+                    if (token.Equals(dialect.Delimiter))
                     {
                         destination[i] = ',';
                     }
-                    else if (token.Equals(tokens.Quote))
+                    else if (token.Equals(dialect.Quote))
                     {
                         destination[i] = '"';
+                    }
+                    else if (dialect.Escape.HasValue && token.Equals(dialect.Escape.Value))
+                    {
+                        destination[i] = 'E';
                     }
                     else if (newline.Contains(token))
                     {

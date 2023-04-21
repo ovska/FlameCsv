@@ -1,12 +1,11 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
-using CommunityToolkit.HighPerformance;
 
 namespace FlameCsv.Reading;
 
-internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
+internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
     /// Reads the next field from the state if it is not empty.
@@ -27,17 +26,16 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
         return false;
     }
 
-    /// <summary>
-    /// Reads the next field from a <strong>non-empty</strong> state.
-    /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static ReadOnlyMemory<T> ReadNextField(ref CsvEnumerationStateRef<T> state)
     {
         Debug.Assert(!state.remaining.IsEmpty);
+        Debug.Assert(state.Dialect.Escape.HasValue);
 
         ReadOnlySpan<T> remaining = state.remaining.Span;
         T delimiter = state.Dialect.Delimiter;
         T quote = state.Dialect.Quote;
+        T escape = state.Dialect.Escape.Value;
 
         // If not the first column, validate that the first character is a delimiter
         if (!state.isAtStart)
@@ -57,12 +55,17 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
 
         // keep track of how many quotes the current column has
         uint quotesConsumed = 0;
+        uint escapesConsumed = 0;
         ref uint quotesRemaining = ref state.quotesRemaining;
+        ref uint escapesRemaining = ref state.escapesRemaining;
 
-        // If the remaining row has no quotes seek the next comma directly
-        int index = quotesRemaining == 0
-            ? remaining.IndexOf(delimiter)
-            : remaining.IndexOfAny(delimiter, quote);
+        int index = (quotesRemaining, escapesRemaining) switch
+        {
+            (0, 0) => remaining.IndexOf(delimiter),
+            (0, _) => remaining.IndexOfAny(delimiter, escape),
+            (_, 0) => remaining.IndexOfAny(delimiter, quote),
+            (_, _) => remaining.IndexOfAny(delimiter, escape, quote)
+        };
 
         ReadOnlyMemory<T> field;
 
@@ -73,20 +76,37 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
             {
                 field = state.remaining.Slice(0, index);
                 state.remaining = state.remaining.Slice(index); // note: leave the comma in
-                return quotesConsumed > 0
-                    ? Unescape(field, quote, quotesConsumed, ref state.buffer)
-                    : field;
+                goto UnescapeAndReturn;
+            }
+            else if (remaining[index].Equals(escape))
+            {
+                escapesRemaining--;
+                escapesConsumed++;
+
+                if (++index >= remaining.Length)
+                    ThrowEscapeAtEnd(ref state);
+
+                // Move past the next character, break if it was the last one
+                if (++index >= remaining.Length)
+                    break;
+            }
+            else
+            {
+                // Token found but was not delimiter, must be a quote. This branch is never taken if quotesRemaining is 0
+                quotesConsumed++;
+                quotesRemaining--;
+                index++; // move index past the quote
             }
 
-            // Token found but was not delimiter, must be a quote. This branch is never taken if quotesRemaining is 0
-            quotesConsumed++;
-            index++; // move index past the quote
+            ReadOnlySpan<T> notYetRead = remaining.Slice(index);
 
-            int nextIndex = --quotesRemaining == 0
-                ? remaining.Slice(index).IndexOf(delimiter)
-                : quotesConsumed % 2 == 0 // uneven quotes, only need to find the next one
-                    ? remaining.Slice(index).IndexOfAny(delimiter, quote)
-                    : remaining.Slice(index).IndexOf(quote);
+            int nextIndex = (quotesRemaining, escapesRemaining) switch
+            {
+                (0, 0) => notYetRead.IndexOf(delimiter),
+                (0, _) => notYetRead.IndexOfAny(delimiter, escape),
+                (_, 0) => quotesConsumed % 2 != 0 ? notYetRead.IndexOf(quote) : notYetRead.IndexOfAny(quote, escape),
+                (_, _) => quotesConsumed % 2 != 0 ? notYetRead.IndexOfAny(quote, escape) : notYetRead.IndexOfAny(quote, escape, delimiter),
+            };
 
             if (nextIndex < 0)
                 break;
@@ -99,9 +119,19 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
 
         state.EnsureFullyConsumed(-1);
 
-        return quotesConsumed != 0
-            ? Unescape(field, quote, quotesConsumed, ref state.buffer)
+        UnescapeAndReturn:
+        return (quotesConsumed | escapesConsumed) != 0
+            ? Unescape(field, quote, escape, quotesConsumed, escapesConsumed, ref state.buffer)
             : field;
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    private static void ThrowEscapeAtEnd(ref CsvEnumerationStateRef<T> state)
+    {
+        throw new UnreachableException(
+            "The CSV record was in an invalid state (escape token was the final character), " +
+            $"Remaining: {state.remaining.Span.AsPrintableString(state.ExposeContent, state.Dialect)}, " +
+            $"Record: {state.remaining.Span.AsPrintableString(state.ExposeContent, state.Dialect)}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -113,3 +143,4 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
             $"Record: {state.remaining.Span.AsPrintableString(state.ExposeContent, state.Dialect)}");
     }
 }
+

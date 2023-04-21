@@ -3,10 +3,10 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
-using CommunityToolkit.HighPerformance;
 using FlameCsv.Configuration;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
+using FlameCsv.Reading;
 
 namespace FlameCsv;
 
@@ -30,7 +30,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
         int line,
         ReadOnlyMemory<T> data,
         CsvReaderOptions<T> options,
-        int quoteCount,
+        RecordMeta meta,
         CsvEnumerationState<T> state)
     {
         Position = position;
@@ -38,7 +38,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
         Data = data;
         _options = options;
         _state = state;
-        _state.Initialize(data, quoteCount);
+        _state.Initialize(data, meta);
     }
 
     /// <summary>
@@ -58,7 +58,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
                 line,
                 data,
                 options ?? throw new ArgumentNullException(nameof(options)),
-                data.Span.Count(options.Delimiter),
+                new CsvDialect<T>(options).GetRecordMeta(data, options.AllowContentInExceptions),
                 new CsvEnumerationState<T>(new CsvDialect<T>(options), arrayPool: null))
     {
         // ^ obs: this ctor always foregoes array pooling as the record itself isn't disposable

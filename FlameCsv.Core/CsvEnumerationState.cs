@@ -29,7 +29,8 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
 
     private ReadOnlyMemory<T> _record; // whole record's raw data
     private ReadOnlyMemory<T> _remaining; // unread data, if empty, the whole record has been read
-    private int _quotesRemaining; // how many quotes are left in the remaining data
+    private uint _quotesRemaining; // how many quotes are left in the remaining data
+    private uint _escapesRemaining; // how many escapes are left in the remaining data
 
     private readonly bool _hasHeader;
     internal Dictionary<string, int>? _header;
@@ -49,14 +50,15 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Initialize(ReadOnlyMemory<T> memory, int quoteCount)
+    public void Initialize(ReadOnlyMemory<T> memory, RecordMeta meta)
     {
         Version++;
         _index = 0;
         _values.AsSpan().Clear();
         _record = memory;
         _remaining = memory;
-        _quotesRemaining = quoteCount;
+        _quotesRemaining = meta.quoteCount;
+        _escapesRemaining = meta.escapeCount;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -126,12 +128,12 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
             record: _record,
             remaining: _remaining,
             isAtStart: _index == 0,
-            quoteCount: _quotesRemaining,
-            buffer: ref _unescapeBuffer,
+            meta: new RecordMeta { quoteCount = _quotesRemaining, escapeCount = _escapesRemaining },
+            array: ref _unescapeBuffer,
             arrayPool: _arrayPool,
             exposeContent: _exposeContents);
 
-        if (RFC4180Mode<T>.TryGetField(ref state, out ReadOnlyMemory<T> field))
+        if (state.TryGetField(out ReadOnlyMemory<T> field))
         {
             if (_index >= _values.Length)
                 Array.Resize(ref _values, _values.Length * 2);
@@ -139,6 +141,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
             _values[_index++] = field;
             _remaining = state.remaining;
             _quotesRemaining = state.quotesRemaining;
+            _escapesRemaining = state.escapesRemaining;
             return true;
         }
 

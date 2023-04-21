@@ -69,7 +69,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
         {
             CsvEnumerationStateRef<T> state = new(Options, line);
 
-            while (RFC4180Mode<T>.TryGetField(ref state, out ReadOnlyMemory<T> fieldMemory))
+            while (state.TryGetField(out ReadOnlyMemory<T> fieldMemory))
             {
                 ReadOnlySpan<T> field = fieldMemory.Span;
                 int index = foundBindings.Count;

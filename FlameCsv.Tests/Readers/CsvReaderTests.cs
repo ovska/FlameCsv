@@ -1,5 +1,6 @@
 using System.IO.Pipelines;
 using System.Text;
+using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Extensions;
 using FlameCsv.Tests.TestData;
@@ -34,11 +35,12 @@ public sealed class CsvReaderTests : IDisposable
             from api in new[] { CsvApi.Async, CsvApi.Sync, CsvApi.Enumerator, CsvApi.AsyncEnum }
             from type in new[] { typeof(char), typeof(byte) }
             from bufferSize in new[] { -1, 17, 128, 1024, 8096 }
+            from emptySegmentsEvery in new[] { 0, 1, 7 }
             from crlf in new[] { true, false }
             from writeHeader in new[] { true, false }
             from writeTrailingNewline in new[] { true, false }
-            from hasStrings in new[] { true, false }
-            select new object[] { api, type, bufferSize, crlf, writeHeader, writeTrailingNewline, hasStrings };
+            from escaping in new[] { EscapeArg.None, EscapeArg.Quotes, EscapeArg.QuotesAndEscapes }
+            select new object[] { api, type, bufferSize, emptySegmentsEvery, crlf, writeHeader, writeTrailingNewline, escaping };
     }
 
     /// <summary>
@@ -49,12 +51,13 @@ public sealed class CsvReaderTests : IDisposable
         CsvApi api,
         Type type,
         int bufferSize,
+        int emptySegments,
         bool CRLF,
         bool header,
         bool trailingLF,
-        bool strings)
+        EscapeArg escaping)
     {
-        using var writer = new ArrayPoolBufferWriter<char>();
+        using var writer = new ArrayPoolBufferWriter<char>(ushort.MaxValue + short.MaxValue);
 
         string newLine = CRLF ? "\r\n" : "\n";
         List<Obj> items = new();
@@ -70,12 +73,14 @@ public sealed class CsvReaderTests : IDisposable
                 Newline = newLine.AsMemory(),
                 HasHeader = header,
                 ArrayPool = pool,
+                Escape = escaping == EscapeArg.QuotesAndEscapes ? '^' : null,
+                AllowContentInExceptions = true,
             };
 
             if (api is CsvApi.Async or CsvApi.AsyncEnum)
             {
-                using var owner = GetDataBytes();
-                var segment = owner.DangerousGetArray();
+                using MemoryOwner<byte> owner = GetDataBytes();
+                ArraySegment<byte> segment = owner.DangerousGetArray();
                 using var reader = new StreamReader(
                     new MemoryStream(segment.Array!, segment.Offset, segment.Count),
                     Encoding.UTF8,
@@ -95,11 +100,15 @@ public sealed class CsvReaderTests : IDisposable
             }
             else
             {
-                var sequence = MemorySegment<char>.AsSequence(GetDataChars(), bufferSize);
+                var sequence = MemorySegment<char>.AsSequence(GetDataChars(), bufferSize, emptySegments);
 
                 if (api == CsvApi.Sync)
                 {
-                    items.AddRange(CsvReader.Read<char, Obj>(sequence, options));
+                    foreach (var obj in CsvReader.Read<char, Obj>(sequence, options))
+                    {
+                        items.Add(obj);
+                    }
+                    //items.AddRange(CsvReader.Read<char, Obj>(sequence, options));
                 }
                 else
                 {
@@ -118,15 +127,16 @@ public sealed class CsvReaderTests : IDisposable
                 Newline = Encoding.UTF8.GetBytes(newLine),
                 HasHeader = header,
                 ArrayPool = pool,
+                Escape = escaping == EscapeArg.QuotesAndEscapes ? (byte)'^' : null,
+                AllowContentInExceptions = true,
             };
 
             using var owner = GetDataBytes();
 
             if (api is CsvApi.Async or CsvApi.AsyncEnum)
             {
-                var segment = owner.DangerousGetArray();
                 var pipeReader = PipeReader.Create(
-                    new MemoryStream(segment.Array!, segment.Offset, segment.Count),
+                    owner.AsStream(),
                     new StreamPipeReaderOptions(bufferSize: bufferSize, pool: options.ArrayPool.AsMemoryPool()));
 
                 if (api is CsvApi.Async)
@@ -143,7 +153,7 @@ public sealed class CsvReaderTests : IDisposable
             }
             else
             {
-                var sequence = MemorySegment<byte>.AsSequence(owner.Memory, bufferSize);
+                var sequence = MemorySegment<byte>.AsSequence(owner.Memory, bufferSize, emptySegments);
 
                 if (api == CsvApi.Sync)
                 {
@@ -166,7 +176,7 @@ public sealed class CsvReaderTests : IDisposable
         {
             var obj = items[i];
             Assert.Equal(i, obj.Id);
-            Assert.Equal(strings ? $"Name\"{i}" : $"Name-{i}", obj.Name);
+            Assert.Equal(escaping != EscapeArg.None ? $"Name\"{i}" : $"Name-{i}", obj.Name);
             Assert.Equal(i % 2 == 0, obj.IsEnabled);
             Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(i), obj.LastLogin);
             Assert.Equal(new Guid(i, 0, 0, TestDataGenerator._guidbytes), obj.Token);
@@ -174,15 +184,16 @@ public sealed class CsvReaderTests : IDisposable
 
         MemoryOwner<byte> GetDataBytes()
         {
-            TestDataGenerator.Generate(writer, newLine, header, trailingLF, strings);
+            TestDataGenerator.Generate(writer, newLine, header, trailingLF, escaping);
             var owner = MemoryOwner<byte>.Allocate(Encoding.UTF8.GetByteCount(writer.WrittenSpan));
             Assert.Equal(owner.Length, Encoding.UTF8.GetBytes(writer.WrittenSpan, owner.Span));
+            writer.Dispose();
             return owner;
         }
 
         ReadOnlyMemory<char> GetDataChars()
         {
-            TestDataGenerator.Generate(writer, newLine, header, trailingLF, strings);
+            TestDataGenerator.Generate(writer, newLine, header, trailingLF, escaping);
             return writer.WrittenMemory;
         }
     }

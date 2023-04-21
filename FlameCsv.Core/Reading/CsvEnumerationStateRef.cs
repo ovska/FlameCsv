@@ -20,7 +20,8 @@ internal struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
     public ReadOnlyMemory<T> remaining;
     public Memory<T> buffer;
     public bool isAtStart;
-    public int quotesRemaining;
+    public uint quotesRemaining;
+    public uint escapesRemaining;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvEnumerationStateRef(
@@ -28,30 +29,31 @@ internal struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
         ReadOnlyMemory<T> record,
         ReadOnlyMemory<T> remaining,
         bool isAtStart,
-        int quoteCount,
-        ref T[]? buffer,
+        RecordMeta meta,
+        ref T[]? array,
         ArrayPool<T> arrayPool,
         bool exposeContent)
     {
         dialect.DebugValidate();
-        Debug.Assert(quoteCount >= 0 && quoteCount % 2 == 0);
+        Debug.Assert(meta.quoteCount % 2 == 0);
         Debug.Assert(!isAtStart || record.Span.SequenceEqual(remaining.Span));
         Debug.Assert(remaining.IsEmpty || record.Span.Overlaps(remaining.Span));
-        Debug.Assert(!Unsafe.IsNullRef(ref buffer));
+        Debug.Assert(!Unsafe.IsNullRef(ref array));
         Debug.Assert(arrayPool is not null);
 
         Dialect = dialect;
         Record = record;
         ExposeContent = exposeContent;
 
-        quotesRemaining = quoteCount;
+        quotesRemaining = meta.quoteCount;
+        escapesRemaining = meta.escapeCount;
         this.remaining = remaining;
         this.isAtStart = isAtStart;
 
-        if (quoteCount != 0)
+        if (meta.HasSpecialCharacters)
         {
-            arrayPool.EnsureCapacity(ref buffer, remaining.Length - quoteCount / 2);
-            this.buffer = buffer;
+            arrayPool.EnsureCapacity(ref array, meta.GetMaxUnescapedLength(remaining.Length));
+            buffer = array;
         }
     }
 
@@ -59,28 +61,31 @@ internal struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        Dialect = new CsvDialect<T>(options);
+        CsvDialect<T> dialect = new(options);
+
+        Dialect = dialect;
         Record = record;
         ExposeContent = options.AllowContentInExceptions;
 
-        int quoteCount = record.Span.Count(Dialect.Quote);
-        quotesRemaining = quoteCount;
+        var meta = dialect.GetRecordMeta(record, options.AllowContentInExceptions);
+        quotesRemaining = meta.quoteCount;
+        escapesRemaining = meta.escapeCount;
         remaining = record;
         isAtStart = true;
 
-        if (quoteCount != 0)
+        if (meta.HasSpecialCharacters)
         {
-            T[]? buffer = null;
+            T[]? array = null;
             var arrayPool = options.ArrayPool.AllocatingIfNull();
-            arrayPool.EnsureCapacity(ref buffer, remaining.Length - quoteCount / 2);
-            this.buffer = buffer;
+            arrayPool.EnsureCapacity(ref array, meta.GetMaxUnescapedLength(record.Length));
+            buffer = array;
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void EnsureFullyConsumed(int fieldCount)
     {
-        if (remaining.IsEmpty && quotesRemaining == 0)
+        if (((uint)remaining.Length | quotesRemaining | escapesRemaining) == 0)
             return;
 
         ThrowNotFullyConsumed(fieldCount);
@@ -96,37 +101,22 @@ internal struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
             sb.Append(CultureInfo.InvariantCulture, $"There were {quotesRemaining} leftover quotes in the state. ");
         }
 
+        if (escapesRemaining != 0)
+        {
+            sb.Append(CultureInfo.InvariantCulture, $"There were {escapesRemaining} leftover escapes in the state. ");
+        }
+
         if (!remaining.IsEmpty)
         {
-            sb.Append(CultureInfo.InvariantCulture, $"Expected the record to have {fieldCount} fields, but it had more. ");
+            if (fieldCount != -1)
+            {
+                sb.Append(CultureInfo.InvariantCulture, $"Expected the record to have {fieldCount} fields, but it had more. ");
+            }
             sb.Append(CultureInfo.InvariantCulture, $"Remaining: {remaining.Span.AsPrintableString(ExposeContent, Dialect)}, ");
         }
 
         sb.Append(CultureInfo.InvariantCulture, $"Record: {Record.Span.AsPrintableString(ExposeContent, Dialect)}");
 
         throw new CsvFormatException(sb.ToString());
-    }
-
-    public readonly Enumerator GetEnumerator() => new(this);
-
-    public ref struct Enumerator
-    {
-        public ReadOnlyMemory<T> Current { readonly get; private set; }
-
-        private CsvEnumerationStateRef<T> _state;
-
-        public Enumerator(CsvEnumerationStateRef<T> state) => _state = state;
-
-        public bool MoveNext()
-        {
-            if (RFC4180Mode<T>.TryGetField(ref _state, out ReadOnlyMemory<T> field))
-            {
-                Current = field;
-                return true;
-            }
-
-            Current = default;
-            return false;
-        }
     }
 }
