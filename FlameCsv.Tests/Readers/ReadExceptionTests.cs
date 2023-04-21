@@ -42,7 +42,7 @@ public class ReadExceptionTests
         };
 
         var list = Run(opts);
-        Assert.Equal(2, list.Count);
+        Assert.Equal(3, list.Count);
         Assert.Equal(
             new (int, string?)[]
             {

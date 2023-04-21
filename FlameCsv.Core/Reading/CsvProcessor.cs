@@ -15,6 +15,13 @@ namespace FlameCsv.Reading;
 internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     where T : unmanaged, IEquatable<T>
 {
+    private enum TryReadResult
+    {
+        Success,
+        Skip,
+        Fail,
+    }
+
     private readonly CsvDialect<T> _dialect;
     private readonly CsvCallback<T, bool>? _skipPredicate;
     private readonly CsvExceptionHandler<T>? _exceptionHandler;
@@ -46,9 +53,16 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryRead(ref ReadOnlySequence<T> buffer, out TValue value, bool isFinalBlock)
     {
+        ReadNextRecord:
         if (_dialect.TryGetLine(ref buffer, out ReadOnlySequence<T> line, out RecordMeta meta, isFinalBlock))
         {
-            return TryReadOrSkipRecord(in line, meta, out value);
+            var result = TryReadOrSkipRecord(in line, meta, out value);
+
+            if (result == TryReadResult.Success)
+                return true;
+
+            if (result == TryReadResult.Skip)
+                goto ReadNextRecord;
         }
 
         Unsafe.SkipInit(out value);
@@ -56,7 +70,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private bool TryReadOrSkipRecord(in ReadOnlySequence<T> lineSequence, RecordMeta meta, out TValue value)
+    private TryReadResult TryReadOrSkipRecord(in ReadOnlySequence<T> lineSequence, RecordMeta meta, out TValue value)
     {
         if (meta.quoteCount % 2 != 0)
         {
@@ -83,7 +97,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         if (_skipPredicate is not null && _skipPredicate(lineSpan, in _dialect))
         {
             Unsafe.SkipInit(out value);
-            return false;
+            return TryReadResult.Skip;
         }
 
         try
@@ -99,7 +113,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
                 exposeContent: _exposeContent);
 
             value = _materializer.Parse(ref state);
-            return true;
+            return TryReadResult.Success;
         }
         catch (CsvFormatException ex)
         {
@@ -109,10 +123,13 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         {
             if (_exceptionHandler?.Invoke(lineSpan, ex) != true)
                 throw;
+
+            Unsafe.SkipInit(out value);
+            return TryReadResult.Skip;
         }
 
         Unsafe.SkipInit(out value);
-        return false;
+        return TryReadResult.Fail;
     }
 
     [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
