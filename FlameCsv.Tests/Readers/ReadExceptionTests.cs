@@ -11,7 +11,7 @@ public class ReadExceptionTests
         [CsvIndex(1)] public string? Name { get; set; }
     }
 
-    private const string Data = "0,A\r\n1,B\r\nX,C";
+    private const string Data = "0,A\r\n1,B\r\nX,C\r\n3,D";
 
     [Fact]
     public void Should_Throw_On_Unhandled()
@@ -34,6 +34,26 @@ public class ReadExceptionTests
     }
 
     [Fact]
+    public void Should_Handle()
+    {
+        var opts = new CsvTextReaderOptions
+        {
+            ExceptionHandler = (_, e) => e is CsvParseException,
+        };
+
+        var list = Run(opts);
+        Assert.Equal(2, list.Count);
+        Assert.Equal(
+            new (int, string?)[]
+            {
+                (0, "A"),
+                (1, "B"),
+                (3, "D"),
+            },
+            list.Select(o => (o.Id, o.Name)));
+    }
+
+    [Fact]
     public void Should_Throw_Inner()
     {
         var opts = new CsvTextReaderOptions
@@ -43,10 +63,5 @@ public class ReadExceptionTests
         Assert.Throws<AggregateException>(() => Run(opts));
     }
 
-    private static void Run(CsvReaderOptions<char> opts)
-    {
-        foreach (var _ in CsvReader.Read<Obj>(Data, opts))
-        {
-        }
-    }
+    private static List<Obj> Run(CsvReaderOptions<char> opts) => new(CsvReader.Read<Obj>(Data, opts));
 }

@@ -4,7 +4,7 @@ using FlameCsv.Binding.Attributes;
 
 namespace FlameCsv.Tests.TestData;
 
-internal class Obj
+public class Obj
 {
     [CsvIndex(0)] public int Id { get; set; }
     [CsvIndex(1)] public string? Name { get; set; }
@@ -13,9 +13,9 @@ internal class Obj
     [CsvIndex(4)] public Guid Token { get; set; }
 }
 
-public enum EscapeArg
+public enum Mode
 {
-    None = 0, Quotes = 1, QuotesAndEscapes = 2,
+    None = 0, RFC = 1, Escape = 2,
 }
 
 internal static class TestDataGenerator
@@ -29,7 +29,7 @@ internal static class TestDataGenerator
         string newLine,
         bool writeHeader,
         bool writeTrailingNewline,
-        EscapeArg escaping)
+        Mode escaping)
     {
         if (writeHeader)
         {
@@ -41,12 +41,12 @@ internal static class TestDataGenerator
         {
             if (i != 0) writer.Write(newLine);
 
-            writer.Write(escaping != EscapeArg.None ? $"\"{i}\"" : i.ToString());
+            writer.Write(escaping != Mode.None ? $"\"{i}\"" : i.ToString());
             writer.Write(",");
             writer.Write(escaping switch
             {
-                EscapeArg.QuotesAndEscapes => $"\"Name^\"{i}\"",
-                EscapeArg.Quotes => $"\"Name\"\"{i}\"",
+                Mode.Escape => $"\"Name^\"{i}\"",
+                Mode.RFC => $"\"Name\"\"{i}\"",
                 _ => $"Name-{i}",
             });
             writer.Write(",");
