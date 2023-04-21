@@ -11,6 +11,8 @@ using static FlameCsv.Utilities.SealableUtil;
 
 namespace FlameCsv;
 
+// TODO: move stringcomparison and null stuff here and make it abstract
+
 /// <summary>
 /// Represents a base class for configuration used to read and parse CSV data.
 /// </summary>

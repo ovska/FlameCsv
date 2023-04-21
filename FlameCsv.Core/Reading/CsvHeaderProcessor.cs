@@ -37,7 +37,7 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     [MethodImpl(MethodImplOptions.NoInlining)] // encourage inlining more common paths
     private bool ParseHeaderAndTryRead(ref ReadOnlySequence<T> buffer, out TValue value, bool isFinalBlock)
     {
-        if (RFC4180Mode<T>.TryGetLine(new CsvDialect<T>(_options), ref buffer, out var line, out _, isFinalBlock))
+        if (new CsvDialect<T>(_options).TryGetLine(ref buffer, out var line, out _, isFinalBlock))
         {
             ReadHeader(in line);
 

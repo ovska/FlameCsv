@@ -6,6 +6,7 @@
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false)]
 public sealed class CsvHeaderIgnoreAttribute : Attribute
 {
+    // TODO: use comparison from options
     public StringComparison Comparison { get; set; } = StringComparison.OrdinalIgnoreCase;
 
     public ReadOnlyMemory<string> Values { get; }

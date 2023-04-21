@@ -1,14 +1,14 @@
-using System.Diagnostics;
+﻿using CommunityToolkit.Diagnostics;
+using CommunityToolkit.HighPerformance;
 using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
-using CommunityToolkit.Diagnostics;
-using CommunityToolkit.HighPerformance;
 
-namespace FlameCsv.Extensions;
+namespace FlameCsv.Reading;
 
-internal static class UnescapeExtensions
+internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
     /// Unescapes wrapping and inner double quotes from the input.
@@ -22,18 +22,15 @@ internal static class UnescapeExtensions
     /// <param name="quote">Double quote token</param>
     /// <param name="quoteCount">Known quote count in the data, must be over 0 and divisible by 2</param>
     /// <param name="unescapeBuffer">Buffer used if the data has quotes in-between the wrapping quotes</param>
-    /// <typeparam name="T">Token type</typeparam>
     /// <returns>Unescaped tokens, might be a slice of the original input</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ReadOnlyMemory<T> Unescape<T>(
-        this ReadOnlyMemory<T> source,
+    public static ReadOnlyMemory<T> Unescape(
+        ReadOnlyMemory<T> source,
         T quote,
-        int quoteCount,
+        uint quoteCount,
         ref Memory<T> unescapeBuffer)
-        where T : unmanaged, IEquatable<T>
     {
-        Debug.Assert(quoteCount != 0);
-        Debug.Assert(quoteCount % 2 == 0);
+        Debug.Assert(quoteCount != 0 && quoteCount % 2 == 0);
 
         ReadOnlySpan<T> span = source.Span;
 
@@ -46,6 +43,7 @@ internal static class UnescapeExtensions
 
             if (quoteCount != 2)
             {
+                Debug.Assert(quoteCount >= 4);
                 return UnescapeRare(source, quote, quoteCount - 2, ref unescapeBuffer);
             }
         }
@@ -61,12 +59,11 @@ internal static class UnescapeExtensions
     /// Unescapes inner quotes from the input. Wrapping quotes have been trimmed at this point.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)] // encourage inlining common case above
-    private static ReadOnlyMemory<T> UnescapeRare<T>(
+    private static ReadOnlyMemory<T> UnescapeRare(
         ReadOnlyMemory<T> sourceMemory,
         T quote,
-        int quoteCount,
+        uint quoteCount,
         ref Memory<T> unescapeBuffer)
-        where T : unmanaged, IEquatable<T>
     {
         Debug.Assert(quoteCount >= 2);
         Debug.Assert(quoteCount % 2 == 0);
@@ -74,12 +71,12 @@ internal static class UnescapeExtensions
 
         int written = 0;
         int index = 0;
-        int quotesLeft = quoteCount;
+        uint quotesLeft = quoteCount;
 
-        var source = sourceMemory.Span;
+        ReadOnlySpan<T> source = sourceMemory.Span;
         ReadOnlySpan<T> needle = stackalloc T[] { quote, quote };
 
-        int unescapedLength = sourceMemory.Length - quoteCount / 2;
+        int unescapedLength = sourceMemory.Length - (int)(quoteCount / 2);
 
         if (unescapedLength > unescapeBuffer.Length)
             ThrowUnescapeBufferTooSmall(unescapedLength, unescapeBuffer.Length);
@@ -123,11 +120,10 @@ internal static class UnescapeExtensions
     /// The data and/or the supplied quote count parameter were invalid. 
     /// </exception>
     [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowInvalidUnescape<T>(
+    private static void ThrowInvalidUnescape(
         ReadOnlySpan<T> source,
         T quote,
-        int quoteCount)
-        where T : unmanaged, IEquatable<T>
+        uint quoteCount)
     {
         int actualCount = source.Count(quote);
 

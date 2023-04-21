@@ -26,10 +26,12 @@ internal readonly struct SequenceView<T> : IDisposable
 
     private readonly T[]? _array;
     private readonly ArrayPool<T>? _pool;
+    private readonly bool _clearArray;
 
     public SequenceView(
         in ReadOnlySequence<T> sequence,
-        ArrayPool<T>? arrayPool)
+        ArrayPool<T>? arrayPool,
+        bool clearArray = false)
     {
         if (sequence.IsSingleSegment)
         {
@@ -40,6 +42,7 @@ internal readonly struct SequenceView<T> : IDisposable
             int length = (int)sequence.Length;
             _pool = arrayPool.AllocatingIfNull();
             _array = _pool.Rent(length);
+            _clearArray = clearArray;
             sequence.CopyTo(_array);
             Memory = _array.AsMemory(0, length);
         }
@@ -48,7 +51,7 @@ internal readonly struct SequenceView<T> : IDisposable
     public void Dispose()
     {
         if (_array is not null)
-            _pool!.Return(_array);
+            _pool!.Return(_array, _clearArray);
     }
 
 #if DEBUG

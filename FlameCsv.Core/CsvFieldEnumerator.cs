@@ -3,8 +3,8 @@ using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
-using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
+using FlameCsv.Reading;
 
 namespace FlameCsv;
 
@@ -24,7 +24,8 @@ public struct CsvFieldEnumerator<T> : IEnumerator<ReadOnlyMemory<T>> where T : u
         : this(
               data,
               options != null ? new CsvDialect<T>(options) : throw new ArgumentNullException(nameof(options)),
-              options.ArrayPool)
+              options.ArrayPool,
+              options.AllowContentInExceptions)
     {
     }
 
@@ -41,19 +42,23 @@ public struct CsvFieldEnumerator<T> : IEnumerator<ReadOnlyMemory<T>> where T : u
     /// Pool used to unescape possible quoted fields. Set to null to allocate instead. If set, remember to dispose the enumerator
     /// either via <c>foreach</c> or explicitly.
     /// </param>
-    public CsvFieldEnumerator(ReadOnlyMemory<T> data, CsvDialect<T> dialect, ArrayPool<T>? arrayPool = null)
+    public CsvFieldEnumerator(
+        ReadOnlyMemory<T> data,
+        CsvDialect<T> dialect,
+        ArrayPool<T>? arrayPool = null,
+        bool allowContentInExceptions = false)
     {
         dialect.EnsureValid();
 
-        int quoteCount = data.Span.Count(dialect.Quote);
+        RecordMeta meta = dialect.GetRecordMeta(data, allowContentInExceptions);
 
-        if (quoteCount % 2 != 0)
+        if (meta.quoteCount % 2 != 0)
         {
-            ThrowForUnevenQuotes(data.Span, quoteCount, in dialect);
+            ThrowForUnevenQuotes(data.Span, meta, in dialect);
         }
 
         CsvEnumerationState<T> state = new(dialect, arrayPool);
-        state.Initialize(data, quoteCount);
+        state.Initialize(data, meta);
 
         _state = state;
         _disposeState = true;
@@ -97,10 +102,10 @@ public struct CsvFieldEnumerator<T> : IEnumerator<ReadOnlyMemory<T>> where T : u
     public void Reset() => _index = 0;
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowForUnevenQuotes(ReadOnlySpan<T> data, int quoteCount, in CsvDialect<T> dialect)
+    private static void ThrowForUnevenQuotes(ReadOnlySpan<T> data, RecordMeta meta, in CsvDialect<T> dialect)
     {
         throw new ArgumentException(
-            $"The data had an uneven amount of quotes ({quoteCount}): {data.AsPrintableString(false, in dialect)}");
+            $"The data had an uneven amount of quotes ({meta.quoteCount}): {data.AsPrintableString(false, in dialect)}");
     }
 }
 

@@ -1,6 +1,5 @@
 ﻿using System.Linq.Expressions;
 using System.Reflection;
-using FastExpressionCompiler;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Internal;
 using FlameCsv.Extensions;

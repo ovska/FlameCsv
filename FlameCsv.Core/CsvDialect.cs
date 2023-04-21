@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance.Helpers;
 
 namespace FlameCsv;
@@ -22,6 +23,9 @@ public readonly struct CsvDialect<T> : IEquatable<CsvDialect<T>> where T : unman
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Escape"/>
     public T? Escape { get; internal init;  }
+
+    [MemberNotNullWhen(false, nameof(Escape))]
+    public bool IsRFC4188Mode => !Escape.HasValue;
 
     public CsvDialect(ICsvDialectOptions<T> value) : this(
         delimiter: value.Delimiter,

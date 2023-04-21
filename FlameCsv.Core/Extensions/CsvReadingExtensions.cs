@@ -127,6 +127,7 @@ internal static partial class CsvReadingExtensions
         }
     }
 
+    // (int i, bool b, string s) => new TResult(i, b, s)
     private static Delegate GetValueFactory<TResult>(CsvBindingCollection<TResult> bc)
     {
         ParameterExpression[] parameters = GetParametersByBindingIndex();

@@ -26,7 +26,10 @@ internal class MemorySegment<T> : ReadOnlySequenceSegment<T>
     /// </summary>
     /// <param name="data">Source data</param>
     /// <param name="bufferSize">Segment max length, -1 to always return a single segment</param>
-    public static ReadOnlySequence<T> AsSequence(ReadOnlyMemory<T> data, int bufferSize)
+    public static ReadOnlySequence<T> AsSequence(
+        ReadOnlyMemory<T> data,
+        int bufferSize,
+        int emptyFrequency = 0)
     {
         if (bufferSize == -1 || data.Length <= bufferSize)
         {
@@ -38,10 +41,17 @@ internal class MemorySegment<T> : ReadOnlySequenceSegment<T>
 
         ReadOnlyMemory<T> remaining = data.Slice(bufferSize);
 
+        int counter = 0;
+
         while (remaining.Length > bufferSize)
         {
             last = last.Append(remaining.Slice(0, bufferSize));
             remaining = remaining.Slice(bufferSize);
+
+            if (emptyFrequency > 0 && ++counter % emptyFrequency == 0)
+            {
+                last = last.Append(ReadOnlyMemory<T>.Empty);
+            }
         }
 
         last = last.Append(remaining);

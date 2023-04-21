@@ -9,6 +9,11 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <TieredCompilation>false</TieredCompilation>
+    <TieredPGO>true</TieredPGO>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.13.5" />
     <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.5" />

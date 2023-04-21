@@ -46,9 +46,9 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryRead(ref ReadOnlySequence<T> buffer, out TValue value, bool isFinalBlock)
     {
-        if (RFC4180Mode<T>.TryGetLine(in _dialect, ref buffer, out ReadOnlySequence<T> line, out int quoteCount, isFinalBlock))
+        if (_dialect.TryGetLine(ref buffer, out ReadOnlySequence<T> line, out RecordMeta meta, isFinalBlock))
         {
-            return TryReadOrSkipRecord(in line, quoteCount, out value);
+            return TryReadOrSkipRecord(in line, meta, out value);
         }
 
         Unsafe.SkipInit(out value);
@@ -56,9 +56,9 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private bool TryReadOrSkipRecord(in ReadOnlySequence<T> lineSequence, int quoteCount, out TValue value)
+    private bool TryReadOrSkipRecord(in ReadOnlySequence<T> lineSequence, RecordMeta meta, out TValue value)
     {
-        if (quoteCount % 2 != 0)
+        if (meta.quoteCount % 2 != 0)
         {
             ThrowInvalidStringDelimiterException(lineSequence);
         }
@@ -93,8 +93,8 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
                 record: line,
                 remaining: line,
                 isAtStart: true,
-                quoteCount: quoteCount,
-                buffer: ref _unescapeBuffer,
+                meta: meta,
+                array: ref _unescapeBuffer,
                 arrayPool: _arrayPool,
                 exposeContent: _exposeContent);
 

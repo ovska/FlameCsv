@@ -30,7 +30,7 @@ internal abstract partial class Materializer<T> where T : unmanaged, IEquatable<
     {
         if (!state.remaining.IsEmpty)
         {
-            ReadOnlySpan<T> field = RFC4180Mode<T>.ReadNextField(ref state).Span;
+            ReadOnlySpan<T> field = state.ReadNextField().Span;
 
             if (parser.TryParse(field, out TValue? value))
                 return value;
