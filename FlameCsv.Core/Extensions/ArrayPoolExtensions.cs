@@ -1,11 +1,23 @@
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Buffers;
 
 namespace FlameCsv.Extensions;
 
 internal static class ArrayPoolExtensions
 {
+    public static ReadOnlyMemory<T> AsMemory<T>(this ReadOnlySequence<T> sequence, ref T[]? array, ArrayPool<T> arrayPool)
+    {
+        if (sequence.IsSingleSegment)
+            return sequence.First;
+
+        int length = (int)sequence.Length;
+        arrayPool.EnsureCapacity(ref array, length);
+        sequence.CopyTo(array);
+        return new ReadOnlyMemory<T>(array, 0, length);
+    }
+
     /// <summary>
     /// If <paramref name="array"/> is not null, returns it to the pool and sets the reference to null.
     /// </summary>

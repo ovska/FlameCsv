@@ -1,8 +1,8 @@
 using System.Buffers;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
-using FlameCsv.Binding;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading;
@@ -11,14 +11,12 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     where T : unmanaged, IEquatable<T>
 {
     private readonly CsvReaderOptions<T> _options;
-    private readonly IHeaderBinder<T> _binder;
 
     private CsvProcessor<T, TValue>? _inner;
 
     public CsvHeaderProcessor(CsvReaderOptions<T> options)
     {
         _options = options;
-        _binder = options.GetHeaderBinder();
         _inner = default;
     }
 
@@ -27,8 +25,7 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     {
         if (_inner.HasValue)
         {
-            ref CsvProcessor<T, TValue> inner = ref _inner.DangerousGetValueOrDefaultReference();
-            return inner.TryRead(ref buffer, out value, isFinalBlock);
+            return _inner.DangerousGetValueOrDefaultReference().TryRead(ref buffer, out value, isFinalBlock);
         }
 
         return ParseHeaderAndTryRead(ref buffer, out value, isFinalBlock);
@@ -41,10 +38,11 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
         {
             ReadHeader(in line);
 
+            Debug.Assert(_inner.HasValue);
+
             if (!isFinalBlock)
             {
-                ref CsvProcessor<T, TValue> inner = ref _inner.DangerousGetValueOrDefaultReference();
-                return inner.TryRead(ref buffer, out value, isFinalBlock);
+                return _inner.DangerousGetValueOrDefaultReference().TryRead(ref buffer, out value, isFinalBlock);
             }
         }
 
@@ -57,7 +55,8 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     {
         using var view = new SequenceView<T>(in line, _options.ArrayPool);
 
-        var bindings = _binder.Bind<TValue>(view.Memory);
+        var headerBinder = _options.GetHeaderBinder();
+        var bindings = headerBinder.Bind<TValue>(view.Memory);
         var materializer = _options.CreateMaterializerFrom(bindings);
         _inner = new CsvProcessor<T, TValue>(_options, materializer);
     }
@@ -66,8 +65,7 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     {
         if (_inner.HasValue)
         {
-            ref CsvProcessor<T, TValue> inner = ref _inner.DangerousGetValueOrDefaultReference();
-            inner.Dispose();
+            _inner.Value.Dispose();
         }
     }
 }
