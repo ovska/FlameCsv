@@ -53,26 +53,14 @@ public abstract class CsvEnumeratorBase<T> : IDisposable
         Retry:
         if (_dialect.TryGetLine(ref data, out ReadOnlySequence<T> line, out RecordMeta meta, isFinalBlock))
         {
-            ReadOnlyMemory<T> memory;
-
-            if (line.IsSingleSegment)
-            {
-                memory = line.First;
-            }
-            else
-            {
-                int length = (int)line.Length;
-                _arrayPool.EnsureCapacity(ref _multisegmentBuffer, length);
-                line.CopyTo(_multisegmentBuffer);
-                memory = _multisegmentBuffer.AsMemory(0, length);
-            }
+            ReadOnlyMemory<T> memory = line.AsMemory(ref _multisegmentBuffer, _arrayPool);
 
             long oldPosition = Position;
 
             Position += memory.Length + _dialect.Newline.Length * (!isFinalBlock).ToByte();
             Line++;
 
-            if (_shouldSkipRow is not null && _shouldSkipRow(memory.Span, in _dialect))
+            if (_shouldSkipRow?.Invoke(memory, in _dialect) ?? false)
             {
                 goto Retry;
             }

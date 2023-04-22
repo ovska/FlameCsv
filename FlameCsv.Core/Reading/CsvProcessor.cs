@@ -9,19 +9,9 @@ using FlameCsv.Runtime;
 
 namespace FlameCsv.Reading;
 
-// exception filter doesn't correctly propagate exceptions if handler rethrows
-#pragma warning disable RCS1236 // Use exception filter.
-
 internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     where T : unmanaged, IEquatable<T>
 {
-    private enum TryReadResult
-    {
-        Success,
-        Skip,
-        Fail,
-    }
-
     private readonly CsvDialect<T> _dialect;
     private readonly CsvCallback<T, bool>? _skipPredicate;
     private readonly CsvExceptionHandler<T>? _exceptionHandler;
@@ -50,54 +40,27 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         _multisegmentBuffer = null;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public bool TryRead(ref ReadOnlySequence<T> buffer, out TValue value, bool isFinalBlock)
     {
         ReadNextRecord:
-        if (_dialect.TryGetLine(ref buffer, out ReadOnlySequence<T> line, out RecordMeta meta, isFinalBlock))
-        {
-            var result = TryReadOrSkipRecord(in line, meta, out value);
-
-            if (result == TryReadResult.Success)
-                return true;
-
-            if (result == TryReadResult.Skip)
-                goto ReadNextRecord;
-        }
-
-        Unsafe.SkipInit(out value);
-        return false;
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private TryReadResult TryReadOrSkipRecord(in ReadOnlySequence<T> lineSequence, RecordMeta meta, out TValue value)
-    {
-        if (meta.quoteCount % 2 != 0)
-        {
-            ThrowInvalidStringDelimiterException(lineSequence);
-        }
-
-        ReadOnlyMemory<T> line;
-        ReadOnlySpan<T> lineSpan;
-
-        if (lineSequence.IsSingleSegment)
-        {
-            line = lineSequence.First;
-            lineSpan = line.Span;
-        }
-        else
-        {
-            int length = (int)lineSequence.Length;
-            _arrayPool.EnsureCapacity(ref _multisegmentBuffer, length);
-            lineSequence.CopyTo(_multisegmentBuffer);
-            line = _multisegmentBuffer.AsMemory(0, length);
-            lineSpan = _multisegmentBuffer.AsSpan(0, length);
-        }
-
-        if (_skipPredicate is not null && _skipPredicate(lineSpan, in _dialect))
+        if (!_dialect.TryGetLine(ref buffer, out ReadOnlySequence<T> lineSeq, out RecordMeta meta, isFinalBlock))
         {
             Unsafe.SkipInit(out value);
-            return TryReadResult.Skip;
+            return false;
+        }
+
+        // TODO: unify with other recordmeta throws
+        if (meta.quoteCount % 2 != 0)
+        {
+            ThrowInvalidStringDelimiterException(in lineSeq);
+        }
+
+        ReadOnlyMemory<T> line = lineSeq.AsMemory(ref _multisegmentBuffer, _arrayPool);
+
+        if (_skipPredicate?.Invoke(line, in _dialect) ?? false)
+        {
+            goto ReadNextRecord;
         }
 
         try
@@ -113,33 +76,33 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
                 exposeContent: _exposeContent);
 
             value = _materializer.Parse(ref state);
-            return TryReadResult.Success;
-        }
-        catch (CsvFormatException ex)
-        {
-            ThrowInvalidFormatException(ex, lineSpan);
+            return true;
         }
         catch (Exception ex)
         {
-            if (_exceptionHandler?.Invoke(lineSpan, ex) != true)
-                throw;
+            // this is treated as an unrecoverable exception
+            if (ex is CsvFormatException)
+            {
+                ThrowInvalidFormatException(ex, line);
+            }
 
-            Unsafe.SkipInit(out value);
-            return TryReadResult.Skip;
+            if ((_exceptionHandler?.Invoke(line, ex)) ?? false)
+            {
+                goto ReadNextRecord;
+            }
+
+            throw;
         }
-
-        Unsafe.SkipInit(out value);
-        return TryReadResult.Fail;
     }
 
     [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private readonly void ThrowInvalidFormatException(
-        Exception exception,
-        ReadOnlySpan<T> line)
+        Exception innerException,
+        ReadOnlyMemory<T> line)
     {
         throw new CsvFormatException(
-            $"The CSV was in an invalid format: {line.AsPrintableString(_exposeContent, in _dialect)}",
-            exception);
+            $"The CSV was in an invalid format: {line.Span.AsPrintableString(_exposeContent, in _dialect)}",
+            innerException);
     }
 
     [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]

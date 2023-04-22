@@ -33,14 +33,14 @@ public partial class CsvReaderOptions<T>
         var tokenArray = tokens.ToArray();
         return skipEmptyOrWhitespace ? WhitespaceOrStartsWith : StartsWith;
 
-        bool WhitespaceOrStartsWith(ReadOnlySpan<T> data, in CsvDialect<T> _)
+        bool WhitespaceOrStartsWith(ReadOnlyMemory<T> data, in CsvDialect<T> _)
         {
-            return data.IsEmpty || data.StartsWith(tokenArray.AsSpan());
+            return data.IsEmpty || data.Span.StartsWith(tokenArray);
         }
 
-        bool StartsWith(ReadOnlySpan<T> data, in CsvDialect<T> _)
+        bool StartsWith(ReadOnlyMemory<T> data, in CsvDialect<T> _)
         {
-            return data.StartsWith(tokenArray.AsSpan());
+            return data.Span.StartsWith(tokenArray);
         }
     }
 }

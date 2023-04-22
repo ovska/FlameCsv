@@ -80,16 +80,16 @@ public class CsvReaderOptionsTests
 
         var tokens = CsvDialect<char>.Default;
         var commentfn = CsvReaderOptions<char>.SkipIfStartsWith("#", skipEmptyOrWhitespace: false);
-        Assert.True(commentfn("#test", in tokens));
-        Assert.False(commentfn("t#est", in tokens));
-        Assert.False(commentfn("", in tokens));
-        Assert.False(commentfn(" ", in tokens));
+        Assert.True(commentfn("#test".AsMemory(), in tokens));
+        Assert.False(commentfn("t#est".AsMemory(), in tokens));
+        Assert.False(commentfn("".AsMemory(), in tokens));
+        Assert.False(commentfn(" ".AsMemory(), in tokens));
 
         var commentOrEmpty = CsvReaderOptions<char>.SkipIfStartsWith("#", skipEmptyOrWhitespace: true);
-        Assert.True(commentOrEmpty("#test", in tokens));
-        Assert.False(commentOrEmpty("t#est", in tokens));
-        Assert.True(commentOrEmpty("", in tokens));
-        Assert.False(commentOrEmpty(" ", in tokens));
+        Assert.True(commentOrEmpty("#test".AsMemory(), in tokens));
+        Assert.False(commentOrEmpty("t#est".AsMemory(), in tokens));
+        Assert.True(commentOrEmpty("".AsMemory(), in tokens));
+        Assert.False(commentOrEmpty(" ".AsMemory(), in tokens));
     }
 
     [Fact]

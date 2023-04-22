@@ -8,7 +8,7 @@ namespace FlameCsv;
 /// <typeparam name="T">CSV token type</typeparam>
 /// <typeparam name="TReturn">Return value</typeparam>
 public delegate TReturn CsvCallback<T, out TReturn>(
-    ReadOnlySpan<T> data,
+    ReadOnlyMemory<T> data,
     in CsvDialect<T> tokens)
     where T : unmanaged, IEquatable<T>;
 
@@ -20,7 +20,7 @@ public delegate TReturn CsvCallback<T, out TReturn>(
 /// <param name="exception">Thrown exception</param>
 /// <returns><see langword="true"/> if the exception can be ignored.</returns>
 public delegate bool CsvExceptionHandler<T>(
-    ReadOnlySpan<T> data,
+    ReadOnlyMemory<T> data,
     Exception exception);
 
 /// <summary>
