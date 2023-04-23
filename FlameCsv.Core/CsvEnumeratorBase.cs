@@ -2,7 +2,6 @@
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
-using FlameCsv.Configuration;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
@@ -88,10 +87,10 @@ public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IE
         if (_disposed)
             return;
 
+        _disposed = true;
+
         Dispose(true);
         GC.SuppressFinalize(this);
-
-        _disposed = true;
     }
 
     protected virtual void Dispose(bool disposing)
@@ -105,17 +104,15 @@ public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IE
 
     private Dictionary<string, int> CreateHeaderDictionary(CsvValueRecord<T> headerRecord)
     {
-        ICsvStringConfiguration<T> config = (ICsvStringConfiguration<T>)_options;
-
         Dictionary<string, int> dictionary = new(
             capacity: headerRecord.GetFieldCount(),
-            comparer: StringComparer.FromComparison(config.Comparison));
+            comparer: StringComparer.FromComparison(_options.Comparison));
 
         int index = 0;
 
         foreach (ReadOnlyMemory<T> field in headerRecord)
         {
-            string fieldString = config.GetTokensAsString(field.Span);
+            string fieldString = _options.GetAsString(field.Span);
 
             if (!dictionary.TryAdd(fieldString, index++))
             {

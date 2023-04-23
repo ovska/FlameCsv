@@ -11,8 +11,6 @@ using static FlameCsv.Utilities.SealableUtil;
 
 namespace FlameCsv;
 
-// TODO: move stringcomparison and null stuff here and make it abstract
-
 /// <summary>
 /// Represents a base class for configuration used to read and parse CSV data.
 /// </summary>
@@ -61,11 +59,24 @@ public abstract partial class CsvReaderOptions<T> : ISealable
         }
     }
 
+    public abstract string GetAsString(ReadOnlySpan<T> field);
+    public abstract bool SequenceEqual(ReadOnlySpan<char> text, ReadOnlySpan<T> field);
+
+    private StringComparison _stringComparison = StringComparison.OrdinalIgnoreCase;
     private CsvCallback<T, bool>? _shouldSkipRow;
     private CsvExceptionHandler<T>? _exceptionHandler;
     private bool _hasHeader;
     private bool _allowContentInExceptions;
     private ArrayPool<T>? _arrayPool = ArrayPool<T>.Shared;
+
+    /// <summary>
+    /// Text comparison used to match header names.
+    /// </summary>
+    public StringComparison Comparison
+    {
+        get => _stringComparison;
+        set => this.SetValue(ref _stringComparison, value);
+    }
 
     /// <summary>
     /// Delegate that determines whether a row should be skipped.

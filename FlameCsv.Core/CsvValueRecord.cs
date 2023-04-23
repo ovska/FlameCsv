@@ -1,9 +1,7 @@
 using System.Buffers;
-using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using FlameCsv.Configuration;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
@@ -12,7 +10,7 @@ namespace FlameCsv;
 
 /// <inheritdoc cref="ICsvRecord{T}"/>
 [DebuggerTypeProxy(typeof(CsvValueRecord<>.CsvRecordDebugView))]
-public readonly partial struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMemory<T>> where T : unmanaged, IEquatable<T>
+public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
 {
     public long Position { get; }
     public int Line { get; }
@@ -84,7 +82,7 @@ public readonly partial struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<Re
     public ReadOnlyMemory<T> GetField(int index)
     {
         _state.EnsureVersion(_version);
- 
+
         if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> field))
         {
             ThrowIndexException(index);
@@ -111,7 +109,7 @@ public readonly partial struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<Re
         out CsvGetValueReason reason)
     {
         _state.EnsureVersion(_version);
-    
+
         if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> field))
         {
             reason = CsvGetValueReason.FieldNotFound;
@@ -142,7 +140,7 @@ public readonly partial struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<Re
     public bool TryGetValue<TValue>(string name, [MaybeNullWhen(false)] out TValue value, out CsvGetValueReason reason)
     {
         _state.EnsureVersion(_version);
-    
+
         if (!_state.TryGetHeaderIndex(name, out int index))
         {
             value = default;
@@ -156,7 +154,7 @@ public readonly partial struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<Re
     public TValue GetField<TValue>(string name)
     {
         _state.EnsureVersion(_version);
-     
+
         if (!_state.TryGetHeaderIndex(name, out int index))
         {
             ThrowHeaderException(name);
@@ -169,7 +167,7 @@ public readonly partial struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<Re
     public TValue GetField<TValue>(int index)
     {
         _state.EnsureVersion(_version);
-      
+
         if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> field))
         {
             ThrowIndexException(index);
@@ -229,9 +227,6 @@ public readonly partial struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<Re
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CsvFieldEnumerator<T> GetEnumerator() => new(value: Data, state: _state, meta: _meta);
 
-    IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator() => GetEnumerator();
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
     private sealed class CsvRecordDebugView
     {
         private readonly CsvValueRecord<T> _record;
@@ -239,15 +234,21 @@ public readonly partial struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<Re
         public CsvRecordDebugView(CsvValueRecord<T> record) => _record = record;
 
         public int Line => _record.Line;
-
         public long Position => _record.Position;
-
         public string[] Headers => _record._state._header?.Keys.ToArray() ?? Array.Empty<string>();
+        public ReadOnlyMemory<T>[] Fields
+        {
+            get
+            {
+                List<ReadOnlyMemory<T>> fields = new();
+                foreach (var field in _record)
+                    fields.Add(field);
+                return fields.ToArray();
+            }
+        }
 
-        public ReadOnlyMemory<T>[] Fields => _record.AsEnumerable().ToArray();
-
-        public string[] FieldValues => _record._options is ICsvStringConfiguration<T> cfg
-            ? Fields.Select(f => cfg.GetTokensAsString(f.Span)).ToArray()
-            : Array.Empty<string>();
+        public string[] FieldValues => Fields.Select(f => _record._options.GetAsString(f.Span)).ToArray();
     }
+
+    public static explicit operator CsvRecord<T>(CsvValueRecord<T> record) => new(record);
 }

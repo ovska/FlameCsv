@@ -28,10 +28,7 @@ namespace FlameCsv;
 /// <item><see cref="TimeOnlyTextParser"/></item>
 /// </list>
 /// </remarks>
-public sealed class CsvTextReaderOptions :
-    CsvReaderOptions<char>,
-    ICsvNullTokenConfiguration<char>,
-    ICsvStringConfiguration<char>
+public sealed class CsvTextReaderOptions : CsvReaderOptions<char>, ICsvNullTokenConfiguration<char>
 {
     private static readonly Lazy<CsvTextReaderOptions> _default = new(() => new(isReadOnly: true));
 
@@ -39,7 +36,6 @@ public sealed class CsvTextReaderOptions :
     /// <remarks>Create a new instance if you need to configure the options or parsers.</remarks>
     public static CsvTextReaderOptions Default => _default.Value;
 
-    private StringComparison _headerComparison;
     private StringPool? _stringPool;
     private IFormatProvider? _formatProvider;
     private NumberStyles _integerNumberStyles;
@@ -75,12 +71,6 @@ public sealed class CsvTextReaderOptions :
 
         if (isReadOnly)
             MakeReadOnly();
-    }
-
-    public StringComparison HeaderComparison
-    {
-        get => _headerComparison;
-        set => this.SetValue(ref _headerComparison, value);
     }
 
     /// <summary>
@@ -275,8 +265,6 @@ public sealed class CsvTextReaderOptions :
 
     ReadOnlyMemory<char> ICsvNullTokenConfiguration<char>.Default => Null.AsMemory();
 
-    StringComparison ICsvStringConfiguration<char>.Comparison => _headerComparison;
-
     bool ICsvNullTokenConfiguration<char>.TryGetOverride(Type type, out ReadOnlyMemory<char> value)
     {
         if (_nullOverrides is not null && _nullOverrides.TryGetValue(type, out value))
@@ -286,16 +274,11 @@ public sealed class CsvTextReaderOptions :
         return false;
     }
 
-    bool ICsvStringConfiguration<char>.TokensEqual(ReadOnlySpan<char> tokens, ReadOnlySpan<char> chars)
-    {
-        return tokens.Equals(chars, _headerComparison);
-    }
-
-    string ICsvStringConfiguration<char>.GetTokensAsString(ReadOnlySpan<char> tokens) => new(tokens);
-
     public override IHeaderBinder<char> GetHeaderBinder()
     {
         return new DefaultHeaderBinder<char>(this);
     }
 
+    public override string GetAsString(ReadOnlySpan<char> field) => field.ToString();
+    public override bool SequenceEqual(ReadOnlySpan<char> text, ReadOnlySpan<char> field) => text.Equals(field, Comparison);
 }

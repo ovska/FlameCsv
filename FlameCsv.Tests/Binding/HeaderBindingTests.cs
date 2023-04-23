@@ -40,7 +40,7 @@ public static class HeaderBindingTests
     [Fact]
     public static void Should_Bind_To_Ctor_Parameter()
     {
-        var binder = new DefaultHeaderBinder<char>(new CsvTextReaderOptions { HeaderComparison = StringComparison.Ordinal });
+        var binder = new DefaultHeaderBinder<char>(new CsvTextReaderOptions { Comparison = StringComparison.Ordinal });
         var bindingCollection = binder.Bind<ShimWithCtor>("Name,_targeted".AsMemory());
         var byIndex = bindingCollection.Bindings.ToArray().ToDictionary(b => b.Index);
         Assert.Equal(2, byIndex.Count);
@@ -53,7 +53,7 @@ public static class HeaderBindingTests
     [InlineData("\"IsEnabled\",\"Name\",\"_targeted\"")]
     public static void Should_Bind_To_Properties(string header)
     {
-        var binder = new DefaultHeaderBinder<char>(new CsvTextReaderOptions { HeaderComparison = StringComparison.Ordinal });
+        var binder = new DefaultHeaderBinder<char>(new CsvTextReaderOptions { Comparison = StringComparison.Ordinal });
 
         var bindingCollection = binder.Bind<Shim>(header.AsMemory());
         Assert.Equal(3, bindingCollection.Bindings.Length);
@@ -72,10 +72,7 @@ public static class HeaderBindingTests
             + "true,Bob,1\r\n"
             + "false,Alice,2\r\n";
 
-        var options = new CsvTextReaderOptions
-        {
-            HeaderComparison = StringComparison.Ordinal,
-        };
+        var options = new CsvTextReaderOptions { Comparison = StringComparison.Ordinal };
 
         using var processor = new CsvHeaderProcessor<char, Shim>(options);
         var buffer = new ReadOnlySequence<char>(data.AsMemory());
@@ -99,10 +96,7 @@ public static class HeaderBindingTests
     {
         const string data = "IsEnabled,Name,_targeted";
 
-        var options = new CsvTextReaderOptions
-        {
-            HeaderComparison = StringComparison.Ordinal,
-        };
+        var options = new CsvTextReaderOptions { Comparison = StringComparison.Ordinal };
 
         using var processor = new CsvHeaderProcessor<char, Shim>(options);
         var buffer = new ReadOnlySequence<char>(data.AsMemory());

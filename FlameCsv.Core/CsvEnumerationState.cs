@@ -122,6 +122,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
         return true;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int GetFieldCount()
     {
         while (TryReadNextColumn())
@@ -164,8 +165,12 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
         return false;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void EnsureVersion(int version)
     {
+        if (_disposed)
+            ThrowHelper.ThrowObjectDisposedException(null, "The CSV enumeration has been disposed.");
+
         if (version != Version)
             ThrowHelper.ThrowInvalidOperationException("The CSV enumeration state has been modified.");
     }

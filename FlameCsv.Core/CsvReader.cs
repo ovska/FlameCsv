@@ -1,6 +1,5 @@
 ﻿using System.IO.Pipelines;
 using CommunityToolkit.Diagnostics;
-using FlameCsv.Enumeration;
 using FlameCsv.Reading;
 using System.Text;
 using FlameCsv.Extensions;
