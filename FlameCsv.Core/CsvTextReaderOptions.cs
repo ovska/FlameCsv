@@ -1,5 +1,4 @@
 ﻿using System.Globalization;
-using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Binding;
 using FlameCsv.Parsers;
@@ -57,6 +56,34 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
     /// <inheritdoc cref="CsvTextReaderOptions"/>
     public CsvTextReaderOptions() : this(false)
     {
+    }
+
+    public CsvTextReaderOptions(CsvTextReaderOptions other) : base(other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+
+        _stringPool = other._stringPool;
+        _formatProvider = other._formatProvider;
+        _integerNumberStyles = other._integerNumberStyles;
+        _decimalNumberStyles = other._decimalNumberStyles;
+        _dateTimeFormat = other._dateTimeFormat;
+        _timeSpanFormat = other._timeSpanFormat;
+        _dateOnlyFormat = other._dateOnlyFormat;
+        _timeOnlyFormat = other._timeOnlyFormat;
+        _dateTimeStyles = other._dateTimeStyles;
+        _timeSpanStyles = other._timeSpanStyles;
+        _guidFormat = other._guidFormat;
+        _ignoreEnumCase = other._ignoreEnumCase;
+        _allowUndefinedEnumValues = other._allowUndefinedEnumValues;
+        _readEmptyStringsAsNull = other._readEmptyStringsAsNull;
+        _null = other._null;
+
+        // copy collections
+        _booleanValues = other._booleanValues?.ToList();
+        _nullOverrides = new SealableDictionary<Type, string?>(
+            this, 
+            SealableUtil.ValidateNullToken,
+            other._nullOverrides);
     }
 
     private CsvTextReaderOptions(bool isReadOnly)
@@ -235,9 +262,12 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
     }
 
     /// <summary>
-    /// Overridden values that match to null when parsing <see cref="Nullable{T}"/>
-    /// instead of the default <see cref="Null"/>.
+    /// Overridden values that match to null when parsing <see cref="Nullable{T}"/> instead of the default, <see cref="Null"/>.
     /// </summary>
+    /// <remarks>
+    /// Modifying the collection after the options instance is used (<see cref="IsReadOnly"/> is <see langword="true"/>)
+    /// results in an exception.
+    /// </remarks>
     public IDictionary<Type, string?> NullOverrides => _nullOverrides ??= new(this, SealableUtil.ValidateNullToken);
 
     /// <inheritdoc/>

@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
@@ -25,6 +26,21 @@ public abstract partial class CsvReaderOptions<T> : ISealable
     {
     }
 
+    protected CsvReaderOptions(CsvReaderOptions<T> other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+
+        _stringComparison = other._stringComparison;
+        _shouldSkipRow = other._shouldSkipRow;
+        _exceptionHandler = other._exceptionHandler;
+        _hasHeader = other._hasHeader;
+        _allowContentInExceptions = other._allowContentInExceptions;
+        _arrayPool = other._arrayPool;
+
+        // copy collections
+        _parsers = new(this, other.Parsers);
+    }
+
     /// <summary>
     /// Whether the options instance is sealed and can no longer be modified.
     /// Options become read only after they begin being used to avoid concurrency bugs.
@@ -38,10 +54,7 @@ public abstract partial class CsvReaderOptions<T> : ISealable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool MakeReadOnly()
     {
-        if (IsReadOnly)
-            return false;
-
-        return MakeReadOnlyCore(this);
+        return !IsReadOnly && MakeReadOnlyCore(this);
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         static bool MakeReadOnlyCore(CsvReaderOptions<T> _this)
@@ -59,17 +72,25 @@ public abstract partial class CsvReaderOptions<T> : ISealable
         }
     }
 
-    public abstract ReadOnlyMemory<T> GetNullToken(Type resultType);
+    /// <summary>
+    /// Returns the header binder that matches CSV header record fields to parsed type's properties/fields.
+    /// </summary>
+    /// <remarks>
+    /// By default, CSV header is matched to property/field names and
+    /// <see cref="Binding.Attributes.CsvHeaderAttribute"/> using <see cref="StringComparison.OrdinalIgnoreCase"/>.
+    /// </remarks>
+    public abstract IHeaderBinder<T> GetHeaderBinder();
 
+    public abstract ReadOnlyMemory<T> GetNullToken(Type resultType);
     public abstract string GetAsString(ReadOnlySpan<T> field);
     public abstract bool SequenceEqual(ReadOnlySpan<char> text, ReadOnlySpan<T> field);
 
-    private StringComparison _stringComparison = StringComparison.OrdinalIgnoreCase;
-    private CsvCallback<T, bool>? _shouldSkipRow;
+    private StringComparison        _stringComparison = StringComparison.OrdinalIgnoreCase;
+    private CsvCallback<T, bool>?   _shouldSkipRow;
     private CsvExceptionHandler<T>? _exceptionHandler;
-    private bool _hasHeader;
-    private bool _allowContentInExceptions;
-    private ArrayPool<T>? _arrayPool = ArrayPool<T>.Shared;
+    private bool                    _hasHeader;
+    private bool                    _allowContentInExceptions;
+    private ArrayPool<T>?           _arrayPool = ArrayPool<T>.Shared;
 
     /// <summary>
     /// Text comparison used to match header names.
@@ -77,7 +98,11 @@ public abstract partial class CsvReaderOptions<T> : ISealable
     public StringComparison Comparison
     {
         get => _stringComparison;
-        set => this.SetValue(ref _stringComparison, value);
+        set
+        {
+            "".Equals("", comparisonType: value);
+            this.SetValue(ref _stringComparison, value);
+        }
     }
 
     /// <summary>
@@ -121,15 +146,6 @@ public abstract partial class CsvReaderOptions<T> : ISealable
         get => _hasHeader;
         set => this.SetValue(ref _hasHeader, value);
     }
-
-    /// <summary>
-    /// Returns the header binder that matches CSV header record fields to parsed type's properties/fields.
-    /// </summary>
-    /// <remarks>
-    /// By default, CSV header is matched to property/field names and
-    /// <see cref="Binding.Attributes.CsvHeaderAttribute"/> using <see cref="StringComparison.OrdinalIgnoreCase"/>.
-    /// </remarks>
-    public virtual IHeaderBinder<T> GetHeaderBinder() => throw new NotImplementedException();
 
     /// <summary>
     /// Pool used to create reusable buffers when needed. Default is <see cref="ArrayPool{T}.Shared"/>.
@@ -203,6 +219,7 @@ public abstract partial class CsvReaderOptions<T> : ISealable
 
         if (_parserCache.TryGetValue(resultType, out var cached))
         {
+            Debug.Assert(cached.CanParse(resultType));
             return cached;
         }
 

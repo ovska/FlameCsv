@@ -9,10 +9,13 @@ internal sealed class SealableDictionary<TKey, TValue> : IDictionary<TKey, TValu
     private readonly Dictionary<TKey, TValue> _dictionary;
     private readonly Action<TKey> _validateKey;
 
-    public SealableDictionary(ISealable owner, Action<TKey> validateKey)
+    public SealableDictionary(
+        ISealable owner,
+        Action<TKey> validateKey,
+        IEnumerable<KeyValuePair<TKey, TValue>>? source = null)
     {
         _owner = owner;
-        _dictionary = new();
+        _dictionary = source is null ? new() : new(source);
         _validateKey = validateKey;
     }
 
@@ -21,8 +24,8 @@ internal sealed class SealableDictionary<TKey, TValue> : IDictionary<TKey, TValu
         get => _dictionary[key];
         set
         {
-            _owner.ThrowIfReadOnly();
             _validateKey(key);
+            _owner.ThrowIfReadOnly();
             _dictionary[key] = value;
         }
     }
@@ -34,15 +37,15 @@ internal sealed class SealableDictionary<TKey, TValue> : IDictionary<TKey, TValu
 
     public void Add(TKey key, TValue value)
     {
-        _owner.ThrowIfReadOnly();
         _validateKey(key);
+        _owner.ThrowIfReadOnly();
         _dictionary[key] = value;
     }
 
     public void Add(KeyValuePair<TKey, TValue> item)
     {
-        _owner.ThrowIfReadOnly();
         _validateKey(item.Key);
+        _owner.ThrowIfReadOnly();
         _dictionary.Add(item.Key, item.Value);
     }
 

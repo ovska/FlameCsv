@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
@@ -8,7 +9,7 @@ using FlameCsv.Reading;
 
 namespace FlameCsv;
 
-public class CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
+public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> where T : unmanaged, IEquatable<T>
 {
     public virtual ReadOnlyMemory<T> this[int index] => GetField(index);
     public virtual ReadOnlyMemory<T> this[string name] => GetField(name);
@@ -19,6 +20,9 @@ public class CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
     public virtual ReadOnlyMemory<T> Data => _data;
 
     public bool HasHeader => _header is not null;
+
+    int IReadOnlyCollection<ReadOnlyMemory<T>>.Count => GetFieldCount();
+    ReadOnlyMemory<T> IReadOnlyList<ReadOnlyMemory<T>>.this[int index] => this[index];
 
     protected readonly CsvDialect<T> _dialect;
     protected readonly CsvReaderOptions<T> _options;
@@ -250,6 +254,16 @@ public class CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
         }
 
         return other.ToArray();
+    }
+
+    IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator()
+    {
+        throw new NotImplementedException();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        throw new NotImplementedException();
     }
 
     private readonly struct PreservedValues
