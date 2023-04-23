@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 
@@ -8,8 +9,15 @@ internal static class SealableUtil
 {
     public static readonly Action<Type> ValidateNullToken = type =>
     {
-        if (type.IsPointer || type.IsByRef || (type.IsValueType && Nullable.GetUnderlyingType(type) is not null))
-            ThrowHelper.ThrowArgumentException("Null tokens are only valid for types that can be null.");
+        if (type.IsPointer ||
+            type.IsByRef ||
+            type.IsGenericTypeDefinition ||
+            (type.IsValueType && !(type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))))
+        {
+            ThrowHelper.ThrowArgumentException(
+                $"Null tokens are only valid for concrete types that can be null (was: {type.FullName})");
+            // ^ TODO: use ToTypeString once open generics bug is fixed
+        }
     };
 
     /// <summary>
@@ -47,7 +55,7 @@ internal static class SealableUtil
             ThrowForIsReadOnly(memberName);
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining), DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining), DoesNotReturn, StackTraceHidden]
     private static void ThrowForIsReadOnly(string memberName)
     {
         if (string.IsNullOrEmpty(memberName))

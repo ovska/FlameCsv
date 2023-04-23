@@ -49,6 +49,24 @@ public sealed class CsvUtf8ReaderOptions : CsvReaderOptions<byte>
     {
     }
 
+    public CsvUtf8ReaderOptions(CsvUtf8ReaderOptions other) : base(other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+
+        _integerFormat = other._integerFormat;
+        _decimalFormat = other._decimalFormat;
+        _dateTimeFormat = other._dateTimeFormat;
+        _timeSpanFormat = other._timeSpanFormat;
+        _guidFormat = other._guidFormat;
+        _ignoreEnumCase = other._ignoreEnumCase;
+        _allowUndefinedEnumValues = other._allowUndefinedEnumValues;
+        _null = other._null;
+
+        // copy collections
+        _booleanValues = other._booleanValues?.ToList();
+        _nullOverrides = new(this, SealableUtil.ValidateNullToken, other._nullOverrides);
+    }
+
     private CsvUtf8ReaderOptions(bool isReadOnly)
     {
         _delimiter = (byte)',';
@@ -144,9 +162,12 @@ public sealed class CsvUtf8ReaderOptions : CsvReaderOptions<byte>
     }
 
     /// <summary>
-    /// Overridden values that match to null when parsing <see cref="Nullable{T}"/>
-    /// instead of the default <see cref="Null"/>.
+    /// Overridden values that match to null when parsing <see cref="Nullable{T}"/> instead of the default, <see cref="Null"/>.
     /// </summary>
+    /// <remarks>
+    /// Modifying the collection after the options instance is used (<see cref="IsReadOnly"/> is <see langword="true"/>)
+    /// results in an exception.
+    /// </remarks>
     public IDictionary<Type, ReadOnlyMemory<byte>> NullOverrides => _nullOverrides ??= new(this, SealableUtil.ValidateNullToken);
 
     /// <inheritdoc/>

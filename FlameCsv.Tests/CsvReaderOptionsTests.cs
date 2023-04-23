@@ -6,6 +6,22 @@ namespace FlameCsv.Tests;
 public class CsvReaderOptionsTests
 {
     [Fact]
+    public static void Should_Validate_NullToken()
+    {
+        var to = new CsvTextReaderOptions();
+        Assert.Throws<ArgumentException>(() => to.NullOverrides[typeof(int)] = default);
+        Assert.Throws<ArgumentException>(() => to.NullOverrides[typeof(int*)] = default);
+        Assert.Throws<ArgumentException>(() => to.NullOverrides[typeof(Span<>)] = default);
+        Assert.Throws<ArgumentException>(() => to.NullOverrides[typeof(Span<int>)] = default);
+
+        var bo = new CsvUtf8ReaderOptions();
+        Assert.Throws<ArgumentException>(() => bo.NullOverrides[typeof(int)] = default);
+        Assert.Throws<ArgumentException>(() => bo.NullOverrides[typeof(int*)] = default);
+        Assert.Throws<ArgumentException>(() => bo.NullOverrides[typeof(Span<>)] = default);
+        Assert.Throws<ArgumentException>(() => bo.NullOverrides[typeof(Span<int>)] = default);
+    }
+
+    [Fact]
     public void Should_Prioritize_Parsers_Added_Last()
     {
         var c1 = new CultureInfo("fi");
