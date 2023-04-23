@@ -34,12 +34,12 @@ public sealed class CsvReaderTestsUtf8 : CsvReaderTestsBase<byte>
             options);
     }
 
-    protected override IAsyncEnumerable<CsvRecord<byte>> GetRecords(
+    protected override CsvRecordAsyncEnumerable<byte> GetRecords(
         Stream stream,
         CsvReaderOptions<byte> options,
         int bufferSize)
     {
-        return CsvReader.GetAsyncEnumerable(
+        return CsvReader.EnumerateAsync(
             PipeReader.Create(stream, new StreamPipeReaderOptions(bufferSize: bufferSize)),
             options);
     }

@@ -1,51 +1,36 @@
-﻿using System.Buffers;
-using System.Collections;
-using FlameCsv.Reading;
+using System.Buffers;
+using System.Runtime.CompilerServices;
 
 namespace FlameCsv;
 
-[System.Diagnostics.CodeAnalysis.SuppressMessage(
-    "Style", "IDE0044:Add readonly modifier",
-    Justification = "TProcessor is a mutable struct with non-readonly methods")]
-internal sealed class CsvRecordEnumerator<T, TValue, TProcessor> : IEnumerator<TValue>
-    where T : unmanaged, IEquatable<T>
-    where TProcessor : struct, ICsvProcessor<T, TValue>
+/// <inheritdoc cref="CsvEnumeratorBase{T}"/>
+public sealed class CsvRecordEnumerator<T> : CsvEnumeratorBase<T> where T : unmanaged, IEquatable<T>
 {
-    public TValue Current => _current;
+    private ReadOnlySequence<T> _data;
 
-    private TValue _current;
-
-    private TProcessor _processor;
-    private ReadOnlySequence<T> _remaining;
-
-    public CsvRecordEnumerator(ReadOnlySequence<T> csv, TProcessor processor)
+    public CsvRecordEnumerator(ReadOnlyMemory<T> data, CsvReaderOptions<T> options) : base(options)
     {
-        _remaining = csv;
-        _processor = processor;
-        _current = default!;
+        _data = new ReadOnlySequence<T>(data);
     }
 
+    public CsvRecordEnumerator(ReadOnlySequence<T> data, CsvReaderOptions<T> options) : base(options)
+    {
+        _data = data;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool MoveNext()
     {
-        if (_processor.TryRead(ref _remaining, out _current, false))
+        if (MoveNextCore(ref _data, isFinalBlock: false) ||
+            MoveNextCore(ref _data, isFinalBlock: true))
         {
             return true;
         }
 
-        if (_processor.TryRead(ref _remaining, out _current, true))
-        {
-            return true;
-        }
+        // reached end of data
+        Position += Current.Data.Length;
+        Current = default;
 
-        _current = default!;
         return false;
     }
-
-    public void Dispose()
-    {
-        _processor.Dispose();
-    }
-
-    object IEnumerator.Current => _current!;
-    void IEnumerator.Reset() => throw new NotSupportedException();
 }

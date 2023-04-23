@@ -15,6 +15,12 @@ internal static class Token<T> where T : unmanaged
         get => Unsafe.SizeOf<byte>() * 512 / Unsafe.SizeOf<T>();
     }
 
+    public static nint LOHLimit
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Unsafe.SizeOf<byte>() * 84_000 / Unsafe.SizeOf<T>();
+    }
+
     /// <summary>
     /// Returns true if <paramref name="length"/> is not greater than <see cref="StackallocThreshold"/>.
     /// </summary>

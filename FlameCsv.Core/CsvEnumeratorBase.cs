@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Runtime.CompilerServices;
+using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Configuration;
 using FlameCsv.Exceptions;
@@ -16,16 +17,14 @@ namespace FlameCsv;
 /// This class is not thread-safe, and should not be used concurrently.<br/>
 /// The enumerator should always be disposed after use, either explicitly or using <c>foreach</c>.
 /// </remarks>
-public abstract class CsvEnumeratorBase<T> : IDisposable
-    where T : unmanaged, IEquatable<T>
+public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IEquatable<T>
 {
     public CsvDialect<T> Dialect => _dialect;
-    public CsvRecord<T> Current { get; protected set; }
+    public CsvValueRecord<T> Current { get; protected set; }
     public int Line { get; protected set; }
     public long Position { get; protected set; }
 
     protected readonly CsvReaderOptions<T> _options;
-    protected readonly CancellationToken _cancellationToken;
 
     private readonly CsvDialect<T> _dialect;
     private readonly CsvEnumerationState<T> _state;
@@ -33,14 +32,15 @@ public abstract class CsvEnumeratorBase<T> : IDisposable
     private readonly CsvCallback<T, bool>? _shouldSkipRow;
     private T[]? _multisegmentBuffer;
 
-    protected CsvEnumeratorBase(CsvReaderOptions<T> options, CancellationToken cancellationToken)
+    protected bool _disposed;
+
+    protected CsvEnumeratorBase(CsvReaderOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
         options.MakeReadOnly();
 
         _options = options;
-        _cancellationToken = cancellationToken;
         _dialect = new CsvDialect<T>(options);
         _state = new CsvEnumerationState<T>(options);
         _arrayPool = options.ArrayPool.AllocatingIfNull();
@@ -50,6 +50,9 @@ public abstract class CsvEnumeratorBase<T> : IDisposable
     [MethodImpl(MethodImplOptions.NoInlining)]
     protected bool MoveNextCore(ref ReadOnlySequence<T> data, bool isFinalBlock)
     {
+        if (_disposed)
+            ThrowHelper.ThrowObjectDisposedException(GetType().Name);
+
         Retry:
         if (_dialect.TryGetLine(ref data, out ReadOnlySequence<T> line, out RecordMeta meta, isFinalBlock))
         {
@@ -65,7 +68,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable
                 goto Retry;
             }
 
-            CsvRecord<T> record = new(oldPosition, Line, memory, _options, meta, _state);
+            CsvValueRecord<T> record = new(oldPosition, Line, memory, _options, meta, _state);
 
             if (_state.NeedsHeader)
             {
@@ -82,8 +85,13 @@ public abstract class CsvEnumeratorBase<T> : IDisposable
 
     public void Dispose()
     {
+        if (_disposed)
+            return;
+
         Dispose(true);
         GC.SuppressFinalize(this);
+
+        _disposed = true;
     }
 
     protected virtual void Dispose(bool disposing)
@@ -95,7 +103,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable
         }
     }
 
-    private Dictionary<string, int> CreateHeaderDictionary(CsvRecord<T> headerRecord)
+    private Dictionary<string, int> CreateHeaderDictionary(CsvValueRecord<T> headerRecord)
     {
         ICsvStringConfiguration<T> config = (ICsvStringConfiguration<T>)_options;
 
@@ -105,7 +113,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable
 
         int index = 0;
 
-        foreach (var field in headerRecord)
+        foreach (ReadOnlyMemory<T> field in headerRecord)
         {
             string fieldString = config.GetTokensAsString(field.Span);
 
@@ -118,7 +126,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable
         return dictionary;
     }
 
-    private void ThrowExceptionForDuplicateHeaderField(string field, CsvRecord<T> record)
+    private void ThrowExceptionForDuplicateHeaderField(string field, CsvValueRecord<T> record)
     {
         if (_options.AllowContentInExceptions)
         {

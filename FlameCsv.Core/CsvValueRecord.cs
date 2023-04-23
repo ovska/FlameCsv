@@ -1,8 +1,8 @@
+using System.Buffers;
 using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
 using FlameCsv.Configuration;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -11,21 +11,44 @@ using FlameCsv.Reading;
 namespace FlameCsv;
 
 /// <inheritdoc cref="ICsvRecord{T}"/>
-[DebuggerTypeProxy(typeof(CsvRecord<>.CsvRecordDebugView))]
-public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
+[DebuggerTypeProxy(typeof(CsvValueRecord<>.CsvRecordDebugView))]
+public readonly partial struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMemory<T>> where T : unmanaged, IEquatable<T>
 {
     public long Position { get; }
     public int Line { get; }
     public ReadOnlyMemory<T> Data { get; }
     public CsvDialect<T> Dialect => _state.Dialect;
 
-    public ReadOnlyMemory<T> this[int index] => GetField(index);
+    public bool HasHeader => _state._header is not null;
 
-    private readonly CsvEnumerationState<T> _state;
-    private readonly CsvReaderOptions<T> _options;
+    public ReadOnlyMemory<T> this[int index] => GetField(index);
+    public ReadOnlyMemory<T> this[string name] => GetField(name);
+
+    internal int TotalFieldLength => _state.TotalFieldLength;
+
+    internal readonly CsvEnumerationState<T> _state;
+    internal readonly CsvReaderOptions<T> _options;
+    private readonly int _version;
+    private readonly RecordMeta _meta;
+
+    public CsvValueRecord(
+        ReadOnlyMemory<T> data,
+        CsvReaderOptions<T> options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        options.MakeReadOnly();
+
+        Position = 0;
+        Line = 1;
+        Data = data;
+        _options = options;
+        _state = new CsvEnumerationState<T>(options);
+        _meta = _state.Dialect.GetRecordMeta(data, options.AllowContentInExceptions);
+        _version = _state.Initialize(data, _meta);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal CsvRecord(
+    internal CsvValueRecord(
         long position,
         int line,
         ReadOnlyMemory<T> data,
@@ -38,38 +61,16 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
         Data = data;
         _options = options;
         _state = state;
-        _state.Initialize(data, meta);
-    }
-
-    /// <summary>
-    /// Initializes a new CSV record a single entry.
-    /// </summary>
-    /// <remarks>
-    /// Creating a record this way always causes an allocation for the data if it contains quotes.
-    /// To read multiple CSV records with efficient memory usage, use the GetEnumerable-methods on <see cref="CsvReader"/>.
-    /// </remarks>
-    public CsvRecord(
-        ReadOnlyMemory<T> data,
-        CsvReaderOptions<T> options,
-        int line = 1,
-        long position = 0) :
-            this(
-                position,
-                line,
-                data,
-                options ?? throw new ArgumentNullException(nameof(options)),
-                new CsvDialect<T>(options).GetRecordMeta(data, options.AllowContentInExceptions),
-                new CsvEnumerationState<T>(new CsvDialect<T>(options), arrayPool: null))
-    {
-        // ^ obs: this ctor always foregoes array pooling as the record itself isn't disposable
-        Guard.IsGreaterThanOrEqualTo(line, 1);
-        Guard.IsGreaterThanOrEqualTo(position, 0L);
+        _meta = meta;
+        _version = _state.Initialize(data, meta);
     }
 
     /// <inheritdoc cref="ICsvRecord{T}.GetField(string)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlyMemory<T> GetField(string name)
     {
+        _state.EnsureVersion(_version);
+
         if (!_state.TryGetHeaderIndex(name, out int index))
         {
             ThrowHeaderException(name);
@@ -82,17 +83,24 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlyMemory<T> GetField(int index)
     {
-        if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> column))
+        _state.EnsureVersion(_version);
+ 
+        if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> field))
         {
             ThrowIndexException(index);
         }
 
-        return column;
+        return field;
     }
 
     /// <inheritdoc cref="ICsvRecord{T}.GetFieldCount"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int GetFieldCount() => _state.GetFieldCount();
+    public int GetFieldCount()
+    {
+        _state.EnsureVersion(_version);
+
+        return _state.GetFieldCount();
+    }
 
     public bool TryGetValue<TValue>(int index, [MaybeNullWhen(false)] out TValue value) => TryGetValue(index, out value, out _);
 
@@ -102,7 +110,9 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
         [MaybeNullWhen(false)] out TValue value,
         out CsvGetValueReason reason)
     {
-        if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> column))
+        _state.EnsureVersion(_version);
+    
+        if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> field))
         {
             reason = CsvGetValueReason.FieldNotFound;
             value = default;
@@ -116,7 +126,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
             return false;
         }
 
-        if (!parser.TryParse(column.Span, out value))
+        if (!parser.TryParse(field.Span, out value))
         {
             reason = CsvGetValueReason.UnparsableValue;
             value = default;
@@ -131,6 +141,8 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
 
     public bool TryGetValue<TValue>(string name, [MaybeNullWhen(false)] out TValue value, out CsvGetValueReason reason)
     {
+        _state.EnsureVersion(_version);
+    
         if (!_state.TryGetHeaderIndex(name, out int index))
         {
             value = default;
@@ -143,6 +155,8 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
 
     public TValue GetField<TValue>(string name)
     {
+        _state.EnsureVersion(_version);
+     
         if (!_state.TryGetHeaderIndex(name, out int index))
         {
             ThrowHeaderException(name);
@@ -154,16 +168,18 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
     /// <inheritdoc cref="ICsvRecord{T}.GetField{TValue}(int)"/>
     public TValue GetField<TValue>(int index)
     {
-        if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> column))
+        _state.EnsureVersion(_version);
+      
+        if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> field))
         {
             ThrowIndexException(index);
         }
 
         var parser = _options.GetParser<TValue>();
 
-        if (!parser.TryParse(column.Span, out var value))
+        if (!parser.TryParse(field.Span, out var value))
         {
-            ThrowParseException(column.Span, typeof(TValue), parser);
+            ThrowParseException(field.Span, typeof(TValue), parser);
         }
 
         return value;
@@ -211,16 +227,16 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public CsvFieldEnumerator<T> GetEnumerator() => new(_state);
+    public CsvFieldEnumerator<T> GetEnumerator() => new(value: Data, state: _state, meta: _meta);
 
     IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator() => GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     private sealed class CsvRecordDebugView
     {
-        private readonly CsvRecord<T> _record;
+        private readonly CsvValueRecord<T> _record;
 
-        public CsvRecordDebugView(CsvRecord<T> record) => _record = record;
+        public CsvRecordDebugView(CsvValueRecord<T> record) => _record = record;
 
         public int Line => _record.Line;
 
@@ -228,8 +244,10 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged,
 
         public string[] Headers => _record._state._header?.Keys.ToArray() ?? Array.Empty<string>();
 
-        public string[] Fields => _record._options is ICsvStringConfiguration<T> cfg
-            ? _record.AsEnumerable().Select(f => cfg.GetTokensAsString(f.Span)).ToArray()
+        public ReadOnlyMemory<T>[] Fields => _record.AsEnumerable().ToArray();
+
+        public string[] FieldValues => _record._options is ICsvStringConfiguration<T> cfg
+            ? Fields.Select(f => cfg.GetTokensAsString(f.Span)).ToArray()
             : Array.Empty<string>();
     }
 }

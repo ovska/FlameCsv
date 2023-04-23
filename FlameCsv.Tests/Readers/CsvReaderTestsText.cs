@@ -26,12 +26,12 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
         return null;
     }
 
-    protected override IAsyncEnumerable<CsvRecord<char>> GetRecords(
+    protected override CsvRecordAsyncEnumerable<char> GetRecords(
         Stream stream,
         CsvReaderOptions<char> options,
         int bufferSize)
     {
-        return CsvReader.GetAsyncEnumerable(
+        return CsvReader.EnumerateAsync(
             new StreamReader(stream, Encoding.UTF8, bufferSize: bufferSize),
             options);
     }

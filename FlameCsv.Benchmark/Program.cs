@@ -1,4 +1,4 @@
-﻿BenchmarkRunner.Run<CsvReadBench>();
+﻿BenchmarkRunner.Run<CsvEnumerateBench>();
 
 // Console.WriteLine("Process started: {0}", Environment.ProcessId);
 //
