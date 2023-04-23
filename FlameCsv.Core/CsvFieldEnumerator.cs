@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 
@@ -40,6 +41,7 @@ public struct CsvFieldEnumerator<T> : IDisposable where T : unmanaged, IEquatabl
         _state = state.GetInitialStateFor(value, meta);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool MoveNext()
     {
         _source?.EnsureVersion(_version);

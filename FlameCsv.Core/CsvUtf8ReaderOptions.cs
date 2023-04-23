@@ -26,10 +26,7 @@ namespace FlameCsv;
 /// <item><see cref="Base64Utf8Parser"/></item>
 /// </list>
 /// </remarks>
-public sealed class CsvUtf8ReaderOptions :
-    CsvReaderOptions<byte>,
-    ICsvNullTokenConfiguration<byte>,
-    ICsvStringConfiguration<byte>
+public sealed class CsvUtf8ReaderOptions :    CsvReaderOptions<byte>,    ICsvNullTokenConfiguration<byte>
 {
     private static readonly Lazy<CsvUtf8ReaderOptions> _default = new(() => new(isReadOnly: true));
 
@@ -189,14 +186,8 @@ public sealed class CsvUtf8ReaderOptions :
         return false;
     }
 
-    StringComparison ICsvStringConfiguration<byte>.Comparison => _headerComparison;
-
-    bool ICsvStringConfiguration<byte>.TokensEqual(ReadOnlySpan<byte> tokens, ReadOnlySpan<char> chars)
-    {
-        return Utf8Util.SequenceEqual(tokens, chars, _headerComparison);
-    }
-
-    string ICsvStringConfiguration<byte>.GetTokensAsString(ReadOnlySpan<byte> tokens) => Encoding.UTF8.GetString(tokens);
-
     public override IHeaderBinder<byte> GetHeaderBinder() => new DefaultHeaderBinder<byte>(this);
+
+    public override string GetAsString(ReadOnlySpan<byte> field) => Encoding.UTF8.GetString(field);
+    public override bool SequenceEqual(ReadOnlySpan<char> text, ReadOnlySpan<byte> field) => Utf8Util.SequenceEqual(field, text, Comparison);
 }

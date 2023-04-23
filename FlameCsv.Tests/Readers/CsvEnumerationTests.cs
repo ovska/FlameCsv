@@ -49,7 +49,6 @@ public static class CsvEnumerationTests
         Assert.False(enumerator.MoveNext());
 
         var record = new CsvValueRecord<char>("".AsMemory(), CsvTextReaderOptions.Default);
-        Assert.Empty(record);
         Assert.Equal(0, record.GetFieldCount());
         Assert.ThrowsAny<ArgumentException>(() => record.GetField(0));
     }

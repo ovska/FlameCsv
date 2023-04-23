@@ -21,7 +21,6 @@ public readonly struct CsvRecordAsyncEnumerable<T> where T : unmanaged, IEquatab
         _options = options;
     }
 
-
     public CsvRecordAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
         GuardEx.EnsureNotDefaultStruct(_options);

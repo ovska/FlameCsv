@@ -12,6 +12,8 @@ public static class CsvBooleanValuesAttributeTests
 {
     private sealed class IntOptions : CsvReaderOptions<int>
     {
+        public override string GetAsString(ReadOnlySpan<int> field) => throw new NotImplementedException();
+        public override bool SequenceEqual(ReadOnlySpan<char> text, ReadOnlySpan<int> field) => throw new NotImplementedException();
     }
 
     public static IEnumerable<object?[]> NonNullableTestData()

@@ -46,7 +46,6 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
         bool ignoreUnmatched = false)
     {
         ArgumentNullException.ThrowIfNull(options);
-        Guard.IsAssignableToType<ICsvStringConfiguration<T>>(options);
 
         Options = options;
         IgnoreUnmatched = ignoreUnmatched;
@@ -55,8 +54,6 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
     public CsvBindingCollection<TValue> Bind<TValue>(ReadOnlyMemory<T> line)
     {
         Options.MakeReadOnly();
-
-        var comparer = (ICsvStringConfiguration<T>)Options;
 
         HeaderData headerData = DefaultHeaderBinder<T>.GetHeaderDataFor<TValue>();
         List<CsvBinding<TValue>> foundBindings = new();
@@ -84,7 +81,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
 
                 foreach (ref readonly var candidate in headerData.Candidates)
                 {
-                    if (comparer.TokensEqual(field, candidate.Value))
+                    if (Options.SequenceEqual(candidate.Value, field))
                     {
                         binding = CsvBinding.FromHeaderBinding<TValue>(candidate.Target, index);
                         break;
