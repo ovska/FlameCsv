@@ -5,10 +5,10 @@ using FlameCsv.Reading;
 namespace FlameCsv;
 
 /// <inheritdoc cref="CsvEnumeratorBase{T}"/>
-public sealed class AsyncCsvEnumerator<T> : CsvEnumeratorBase<T>, IAsyncEnumerator<CsvRecord<T>>
-    where T : unmanaged, IEquatable<T>
+public sealed class CsvRecordAsyncEnumerator<T> : CsvEnumeratorBase<T>, IAsyncDisposable where T : unmanaged, IEquatable<T>
 {
     private readonly ICsvPipeReader<T> _reader;
+    private readonly CancellationToken _cancellationToken;
 
     /// <summary>Current unadvanced buffer from reader, or empty before first call to ReadAsync</summary>
     private ReadOnlySequence<T> _data;
@@ -16,13 +16,14 @@ public sealed class AsyncCsvEnumerator<T> : CsvEnumeratorBase<T>, IAsyncEnumerat
     /// <summary>Last call to ReadAsync returned IsCompleted = true</summary>
     private bool _readerCompleted;
 
-    internal AsyncCsvEnumerator(
+    internal CsvRecordAsyncEnumerator(
         ICsvPipeReader<T> reader,
         CsvReaderOptions<T> options,
         CancellationToken cancellationToken)
-        : base(options, cancellationToken)
+        : base(options)
     {
         _reader = reader;
+        _cancellationToken = cancellationToken;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -82,7 +83,20 @@ public sealed class AsyncCsvEnumerator<T> : CsvEnumeratorBase<T>, IAsyncEnumerat
 
     public async ValueTask DisposeAsync()
     {
-        Dispose(true);
-        await _reader.DisposeAsync().ConfigureAwait(false);
+        if (!_disposed)
+        {
+            Dispose(true);
+            await _reader.DisposeAsync().ConfigureAwait(false);
+        }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        // Ensure arrays always get returned to the pool
+        if (!_disposed)
+        {
+            base.Dispose(disposing);
+            _reader.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        }
     }
 }

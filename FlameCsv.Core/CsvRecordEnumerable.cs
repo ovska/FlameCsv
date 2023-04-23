@@ -1,44 +1,43 @@
 ﻿using System.Buffers;
-using System.Collections;
-using FlameCsv.Reading;
+using FlameCsv.Extensions;
 
 namespace FlameCsv;
 
-public sealed class CsvRecordEnumerable<T, TValue> : IEnumerable<TValue>
-    where T : unmanaged, IEquatable<T>
+/// <summary>
+/// Enumerates known data into CSV records.
+/// </summary>
+/// <remarks>
+/// Maybe be enumerated multiple times, multiple concurrent enumerations are allowed.
+/// </remarks>
+/// <typeparam name="T">Token type</typeparam>
+public readonly struct CsvRecordEnumerable<T> where T : unmanaged, IEquatable<T>
 {
-    public CsvReaderOptions<T> Options { get; }
-    public ReadOnlySequence<T> Data { get; }
+    private readonly ReadOnlySequence<T> _data;
+    private readonly CsvReaderOptions<T> _options;
 
-    public CsvRecordEnumerable(CsvReaderOptions<T> options, ReadOnlyMemory<T> csv)
-        : this(options, new ReadOnlySequence<T>(csv))
+    public CsvRecordEnumerable(ReadOnlyMemory<T> data, CsvReaderOptions<T> options)
+        : this(new ReadOnlySequence<T>(data), options)
     {
     }
 
-    public CsvRecordEnumerable(CsvReaderOptions<T> options, ReadOnlySequence<T> csv)
+
+    public CsvRecordEnumerable(ReadOnlySequence<T> data, CsvReaderOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        Options = options;
-        Data = csv;
+        options.MakeReadOnly();
+        _data = data;
+        _options = options;
     }
 
-    public IEnumerator<TValue> GetEnumerator()
+    public CsvRecordEnumerator<T> GetEnumerator()
     {
-        Options.MakeReadOnly();
-
-        if (Options.HasHeader)
-        {
-            return new CsvRecordEnumerator<T, TValue, CsvHeaderProcessor<T, TValue>>(
-                Data,
-                new CsvHeaderProcessor<T, TValue>(Options));
-        }
-        else
-        {
-            return new CsvRecordEnumerator<T, TValue, CsvProcessor<T, TValue>>(
-                Data,
-                new CsvProcessor<T, TValue>(Options));
-        }
+        GuardEx.EnsureNotDefaultStruct(_options);
+        return new(_data, _options);
     }
 
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    public IEnumerable<CsvRecord<T>> AsEnumerable()
+    {
+        GuardEx.EnsureNotDefaultStruct(_options);
+        return new CopyingRecordEnumerable<T>(this);
+    }
 }

@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text;
 using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Buffers;
@@ -27,7 +28,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
 
     protected abstract CsvReaderOptions<T> CreateOptions(string newline, char? escape);
     protected abstract IDisposable? GetMemory(ArrayPoolBufferWriter<char> writer, out ReadOnlyMemory<T> memory);
-    protected abstract IAsyncEnumerable<CsvRecord<T>> GetRecords(
+    protected abstract CsvRecordAsyncEnumerable<T> GetRecords(
         Stream stream,
         CsvReaderOptions<T> options,
         int bufferSize);
@@ -97,7 +98,13 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         using (GetMemory(writer, out var memory))
         {
             var sequence = MemorySegment<T>.AsSequence(memory, bufferSize, emptySegmentFreq);
-            items = await GetItems(CsvReader.GetEnumerable(sequence, options), header);
+
+            CsvRecordEnumerable<T> enumerable = CsvReader.Enumerate(sequence, options);
+
+            using (var enumerator = enumerable.GetEnumerator())
+            {
+                items = await GetItems(() => new(enumerator.MoveNext() ? enumerator.Current : null), header);
+            }
         }
 
         Validate(items, escaping);
@@ -146,7 +153,12 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         using (var owner = GetMemoryOwner(writer))
         using (var stream = owner.AsStream())
         {
-            items = await GetItems(GetRecords(stream, options, bufferSize), header);
+            CsvRecordAsyncEnumerable<T> enumerable = GetRecords(stream, options, bufferSize);
+
+            using (var enumerator = enumerable.GetAsyncEnumerator())
+            {
+                items = await GetItems(async () => await enumerator.MoveNextAsync() ? enumerator.Current : null, header);
+            }
         }
 
         Validate(items, escaping);
@@ -174,19 +186,16 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         return owner;
     }
 
-    private static Task<List<Obj>> GetItems(IEnumerable<CsvRecord<T>> enumerable, bool hasHeader)
-    {
-        return GetItems(new AsyncIEnumerable<CsvRecord<T>>(enumerable), hasHeader);
-    }
-
-    private static async Task<List<Obj>> GetItems(IAsyncEnumerable<CsvRecord<T>> enumerable, bool hasHeader)
+    private static async Task<List<Obj>> GetItems(
+        Func<ValueTask<CsvValueRecord<T>?>> enumerator,
+        bool hasHeader)
     {
         List<Obj> items = new(1000);
 
         int index = 0;
         long tokenPosition = 0;
 
-        await foreach (var record in enumerable)
+        while (await enumerator() is { } record)
         {
             if (tokenPosition == 0 && hasHeader)
             {

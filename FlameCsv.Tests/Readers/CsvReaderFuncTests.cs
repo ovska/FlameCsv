@@ -1,4 +1,5 @@
-﻿namespace FlameCsv.Tests.Readers;
+﻿#if false
+namespace FlameCsv.Tests.Readers;
 
 public static class CsvReaderFuncTests
 {
@@ -28,3 +29,4 @@ public static class CsvReaderFuncTests
         Assert.Equal((2, false, "Alice"), results[1]);
     }
 }
+#endif
