@@ -59,6 +59,8 @@ public abstract partial class CsvReaderOptions<T> : ISealable
         }
     }
 
+    public abstract ReadOnlyMemory<T> GetNullToken(Type resultType);
+
     public abstract string GetAsString(ReadOnlySpan<T> field);
     public abstract bool SequenceEqual(ReadOnlySpan<char> text, ReadOnlySpan<T> field);
 

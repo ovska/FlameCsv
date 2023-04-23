@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
+using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Binding;
-using FlameCsv.Configuration;
 using FlameCsv.Parsers;
 using FlameCsv.Parsers.Text;
 using FlameCsv.Utilities;
@@ -28,7 +28,7 @@ namespace FlameCsv;
 /// <item><see cref="TimeOnlyTextParser"/></item>
 /// </list>
 /// </remarks>
-public sealed class CsvTextReaderOptions : CsvReaderOptions<char>, ICsvNullTokenConfiguration<char>
+public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
 {
     private static readonly Lazy<CsvTextReaderOptions> _default = new(() => new(isReadOnly: true));
 
@@ -52,7 +52,7 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>, ICsvNullToken
     private bool _readEmptyStringsAsNull;
     private string? _null;
     private IReadOnlyCollection<(string text, bool value)>? _booleanValues;
-    private Dictionary<Type, ReadOnlyMemory<char>>? _nullOverrides;
+    private SealableDictionary<Type, string?>? _nullOverrides;
 
     /// <inheritdoc cref="CsvTextReaderOptions"/>
     public CsvTextReaderOptions() : this(false)
@@ -238,7 +238,7 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>, ICsvNullToken
     /// Overridden values that match to null when parsing <see cref="Nullable{T}"/>
     /// instead of the default <see cref="Null"/>.
     /// </summary>
-    public IDictionary<Type, ReadOnlyMemory<char>> NullOverrides => _nullOverrides ??= new();
+    public IDictionary<Type, string?> NullOverrides => _nullOverrides ??= new(this, SealableUtil.ValidateNullToken);
 
     /// <inheritdoc/>
     protected override IEnumerable<ICsvParser<char>> GetDefaultParsers()
@@ -263,17 +263,6 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>, ICsvNullToken
         };
     }
 
-    ReadOnlyMemory<char> ICsvNullTokenConfiguration<char>.Default => Null.AsMemory();
-
-    bool ICsvNullTokenConfiguration<char>.TryGetOverride(Type type, out ReadOnlyMemory<char> value)
-    {
-        if (_nullOverrides is not null && _nullOverrides.TryGetValue(type, out value))
-            return true;
-
-        value = default;
-        return false;
-    }
-
     public override IHeaderBinder<char> GetHeaderBinder()
     {
         return new DefaultHeaderBinder<char>(this);
@@ -281,4 +270,12 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>, ICsvNullToken
 
     public override string GetAsString(ReadOnlySpan<char> field) => field.ToString();
     public override bool SequenceEqual(ReadOnlySpan<char> text, ReadOnlySpan<char> field) => text.Equals(field, Comparison);
+
+    public override ReadOnlyMemory<char> GetNullToken(Type resultType)
+    {
+        if (_nullOverrides is not null && _nullOverrides.TryGetValue(resultType, out string? value))
+            return value.AsMemory();
+
+        return Null.AsMemory();
+    }
 }

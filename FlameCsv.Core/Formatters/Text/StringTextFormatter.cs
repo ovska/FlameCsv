@@ -56,12 +56,12 @@ public sealed class StringTextFormatter :
         return value.Span.TryWriteTo(destination, out tokensWritten);
     }
     
-    public bool CanFormat(Type resultType)
+    public bool CanFormat(Type valueType)
     {
-        return resultType == typeof(string)
-            || resultType == typeof(char[])
-            || resultType == typeof(ArraySegment<char>)
-            || resultType == typeof(Memory<char>)
-            || resultType == typeof(ReadOnlyMemory<char>);
+        return valueType == typeof(string)
+            || valueType == typeof(char[])
+            || valueType == typeof(ArraySegment<char>)
+            || valueType == typeof(Memory<char>)
+            || valueType == typeof(ReadOnlyMemory<char>);
     }
 }

@@ -7,7 +7,7 @@ namespace FlameCsv;
 [System.Diagnostics.CodeAnalysis.SuppressMessage(
     "Style", "IDE0044:Add readonly modifier",
     Justification = "TProcessor is a mutable struct with non-readonly methods")]
-internal sealed class AsyncCsvValueEnumerator<T, TValue, TReader, TProcessor> : IAsyncEnumerator<TValue>
+internal sealed class CsvValueAsyncEnumerator<T, TValue, TReader, TProcessor> : IAsyncEnumerator<TValue>
     where T : unmanaged, IEquatable<T>
     where TReader : struct, ICsvPipeReader<T>
     where TProcessor : struct, ICsvProcessor<T, TValue>
@@ -23,7 +23,7 @@ internal sealed class AsyncCsvValueEnumerator<T, TValue, TReader, TProcessor> : 
 
     private TValue _current;
 
-    public AsyncCsvValueEnumerator(
+    public CsvValueAsyncEnumerator(
         TReader reader,
         TProcessor processor,
         CancellationToken cancellationToken)

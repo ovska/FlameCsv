@@ -43,7 +43,6 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
     private readonly TextReader _innerReader;
     private readonly int _bufferSize;
     private readonly ArrayPool<char> _arrayPool;
-    private readonly bool _leaveOpen;
 
     private TextSegment? _readHead;
     private int _readIndex;
@@ -58,20 +57,14 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
     // Mutable struct! Don't make this readonly
     private TextSegmentPool _segmentPool;
 
-    public TextPipeReader(TextReader innerReader, ArrayPool<char>? arrayPool) : this(innerReader, 4096, arrayPool, false)
+    public TextPipeReader(TextReader innerReader, int bufferSize, ArrayPool<char>? arrayPool)
     {
-    }
+        ArgumentNullException.ThrowIfNull(innerReader);
+        Guard.IsGreaterThanOrEqualTo(bufferSize, 16);
 
-    public TextPipeReader(
-        TextReader innerReader,
-        int bufferSize,
-        ArrayPool<char>? arrayPool,
-        bool leaveOpen = false)
-    {
         _innerReader = innerReader;
         _bufferSize = bufferSize;
         _arrayPool = arrayPool.AllocatingIfNull();
-        _leaveOpen = leaveOpen;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -236,9 +229,6 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
                 segment = segment.NextSegment;
                 returnSegment.ResetMemory();
             }
-
-            if (!_leaveOpen)
-                _innerReader.Dispose();
         }
 
         return default;

@@ -11,6 +11,10 @@ namespace FlameCsv;
 /// <summary>
 /// Provides static methods for reading CSV records as objects or structs.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage(
+    "Reliability",
+    "CA2000:Dispose objects before losing scope",
+    Justification = "Readers are passed to an enumerable whose enumerator disposes the reader")]
 public static class CsvReader
 {
     /// <summary>
@@ -98,8 +102,8 @@ public static class CsvReader
         Guard.CanRead(stream);
 
         var textReader = new StreamReader(stream, encoding: encoding, leaveOpen: leaveOpen, bufferSize: bufferSize);
-        var reader = new TextPipeReader(textReader, bufferSize, options.ArrayPool, leaveOpen);
-        return new AsyncCsvValueEnumerable<char, TValue, TextPipeReaderWrapper>(options, new TextPipeReaderWrapper(reader));
+        var reader = new TextPipeReader(textReader, bufferSize, options.ArrayPool);
+        return new CsvValueAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(options, new TextPipeReaderWrapper(reader));
     }
 
     /// <summary>
@@ -116,14 +120,13 @@ public static class CsvReader
     /// <returns><see cref="IAsyncEnumerable{T}"/> that reads the CSV one record at a time from the reader.</returns>
     public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
         TextReader textReader,
-        CsvReaderOptions<char> options,
-        bool leaveOpen = false)
+        CsvReaderOptions<char> options)
     {
         ArgumentNullException.ThrowIfNull(textReader);
         ArgumentNullException.ThrowIfNull(options);
 
-        var reader = new TextPipeReader(textReader, DefaultBufferSize, options.ArrayPool, leaveOpen);
-        return new AsyncCsvValueEnumerable<char, TValue, TextPipeReaderWrapper>(options, new TextPipeReaderWrapper(reader));
+        var reader = new TextPipeReader(textReader, DefaultBufferSize, options.ArrayPool);
+        return new CsvValueAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(options, new TextPipeReaderWrapper(reader));
     }
 
     /// <summary>
@@ -148,7 +151,7 @@ public static class CsvReader
         Guard.CanRead(stream);
 
         var reader = CreatePipeReader(stream, options, leaveOpen);
-        return new AsyncCsvValueEnumerable<byte, TValue, PipeReaderWrapper>(options, new PipeReaderWrapper(reader));
+        return new CsvValueAsyncEnumerable<byte, TValue, PipeReaderWrapper>(options, new PipeReaderWrapper(reader));
     }
 
     /// <summary>
@@ -167,7 +170,7 @@ public static class CsvReader
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(options);
 
-        return new AsyncCsvValueEnumerable<byte, TValue, PipeReaderWrapper>(options, new PipeReaderWrapper(reader));
+        return new CsvValueAsyncEnumerable<byte, TValue, PipeReaderWrapper>(options, new PipeReaderWrapper(reader));
     }
 
     /// <summary>
@@ -237,8 +240,7 @@ public static class CsvReader
 
         return EnumerateAsync(
             new StreamReader(stream, encoding: encoding, leaveOpen: leaveOpen, bufferSize: 4096),
-            options,
-            leaveOpen);
+            options);
     }
 
     /// <summary>
@@ -252,14 +254,13 @@ public static class CsvReader
     /// </remarks>
     public static CsvRecordAsyncEnumerable<char> EnumerateAsync(
         TextReader textReader,
-        CsvReaderOptions<char> options,
-        bool leaveOpen = false)
+        CsvReaderOptions<char> options)
     {
         ArgumentNullException.ThrowIfNull(textReader);
         ArgumentNullException.ThrowIfNull(options);
 
         return new CsvRecordAsyncEnumerable<char>(
-            new TextPipeReader(textReader, 4096, options.ArrayPool, leaveOpen: leaveOpen),
+            new TextPipeReader(textReader, 4096, options.ArrayPool),
             options);
     }
 

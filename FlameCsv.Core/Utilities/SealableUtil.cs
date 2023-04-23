@@ -1,10 +1,17 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using CommunityToolkit.Diagnostics;
 
 namespace FlameCsv.Utilities;
 
 internal static class SealableUtil
 {
+    public static readonly Action<Type> ValidateNullToken = type =>
+    {
+        if (type.IsPointer || type.IsByRef || (type.IsValueType && Nullable.GetUnderlyingType(type) is not null))
+            ThrowHelper.ThrowArgumentException("Null tokens are only valid for types that can be null.");
+    };
+
     /// <summary>
     /// Sets the value of <paramref name="field"/> after ensuring that the current instance is not read-only.
     /// </summary>

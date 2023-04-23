@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
-using FlameCsv.Configuration;
 using FlameCsv.Extensions;
 using FlameCsv.Formatters;
 
@@ -55,7 +54,7 @@ internal sealed class CsvWriteOperation<T, TWriter> : IAsyncDisposable
     private readonly CsvDialect<T> _dialect;
     private readonly ArrayPool<T> _arrayPool;
     private readonly CsvFieldQuoting _fieldQuoting;
-    private readonly ICsvNullTokenConfiguration<T>? _nullCfg;
+    private readonly CsvWriterOptions<T> _options;
     private T[]? _array;
 
     public CsvWriteOperation(
@@ -66,7 +65,7 @@ internal sealed class CsvWriteOperation<T, TWriter> : IAsyncDisposable
         _dialect = new CsvDialect<T>(options);
         _arrayPool = options.ArrayPool.AllocatingIfNull();
         _fieldQuoting = options.FieldQuoting;
-        _nullCfg = options as ICsvNullTokenConfiguration<T>;
+        _options = options;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -78,7 +77,7 @@ internal sealed class CsvWriteOperation<T, TWriter> : IAsyncDisposable
         // this whole branch is JITed out for value types
         if (value is null && !formatter.HandleNull)
         {
-            ReadOnlySpan<T> nullValue = _nullCfg.GetNullTokenOrDefault(typeof(TValue)).Span;
+            ReadOnlySpan<T> nullValue = _options.GetNullToken(typeof(TValue)).Span;
             destination = _writer.GetSpan(nullValue.Length);
             nullValue.CopyTo(destination);
             tokensWritten = nullValue.Length;

@@ -2,14 +2,14 @@
 
 namespace FlameCsv;
 
-internal sealed class AsyncCsvValueEnumerable<T, TValue, TReader> : IAsyncEnumerable<TValue>
+internal sealed class CsvValueAsyncEnumerable<T, TValue, TReader> : IAsyncEnumerable<TValue>
     where T : unmanaged, IEquatable<T>
     where TReader : struct, ICsvPipeReader<T>
 {
     private readonly CsvReaderOptions<T> _options;
     private readonly TReader _reader;
 
-    public AsyncCsvValueEnumerable(CsvReaderOptions<T> options, TReader reader)
+    public CsvValueAsyncEnumerable(CsvReaderOptions<T> options, TReader reader)
     {
         _options = options;
         _reader = reader;
@@ -21,14 +21,14 @@ internal sealed class AsyncCsvValueEnumerable<T, TValue, TReader> : IAsyncEnumer
 
         if (_options.HasHeader)
         {
-            return new AsyncCsvValueEnumerator<T, TValue, TReader, CsvHeaderProcessor<T, TValue>>(
+            return new CsvValueAsyncEnumerator<T, TValue, TReader, CsvHeaderProcessor<T, TValue>>(
                 _reader,
                 new CsvHeaderProcessor<T, TValue>(_options),
                 cancellationToken);
         }
         else
         {
-            return new AsyncCsvValueEnumerator<T, TValue, TReader, CsvProcessor<T, TValue>>(
+            return new CsvValueAsyncEnumerator<T, TValue, TReader, CsvProcessor<T, TValue>>(
                 _reader,
                 new CsvProcessor<T, TValue>(_options),
                 cancellationToken);

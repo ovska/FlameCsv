@@ -10,6 +10,7 @@ namespace FlameCsv;
 /// <typeparam name="T">Token type</typeparam>
 public readonly struct CsvDialect<T> : IEquatable<CsvDialect<T>> where T : unmanaged, IEquatable<T>
 {
+    [SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "<Pending>")]
     public static CsvDialect<T> Default => CsvDialectStatic.GetDefault<T>();
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Delimiter"/>
@@ -27,12 +28,21 @@ public readonly struct CsvDialect<T> : IEquatable<CsvDialect<T>> where T : unman
     [MemberNotNullWhen(false, nameof(Escape))]
     public bool IsRFC4188Mode => !Escape.HasValue;
 
-    public CsvDialect(ICsvDialectOptions<T> value) : this(
-        delimiter: value.Delimiter,
-        quote: value.Quote,
-        newline: value.Newline,
-        escape: value.Escape)
+    public CsvDialect(ICsvDialectOptions<T> options)
     {
+        ArgumentNullException.ThrowIfNull(options);
+
+        var delimiter = options.Delimiter;
+        var quote = options.Quote;
+        var newline = options.Newline;
+        var escape = options.Escape;
+
+        ThrowIfInvalid(delimiter, quote, newline.Span, escape);
+
+        Delimiter = delimiter ;
+        Quote= quote ;
+        Newline= newline ;
+        Escape = escape;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

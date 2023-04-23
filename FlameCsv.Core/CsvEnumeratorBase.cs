@@ -23,17 +23,20 @@ public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IE
     public int Line { get; protected set; }
     public long Position { get; protected set; }
 
-    protected readonly CsvReaderOptions<T> _options;
+    protected CsvReaderOptions<T> Options => _options;
 
+    private readonly CsvReaderOptions<T> _options;
     private readonly CsvDialect<T> _dialect;
     private readonly CsvEnumerationState<T> _state;
     private readonly ArrayPool<T> _arrayPool;
     private readonly CsvCallback<T, bool>? _shouldSkipRow;
     private T[]? _multisegmentBuffer;
 
-    protected bool _disposed;
+#pragma warning disable CA1051 // Do not declare visible instance fields
+    protected internal bool _disposed;
+#pragma warning restore CA1051 // Do not declare visible instance fields
 
-    protected CsvEnumeratorBase(CsvReaderOptions<T> options)
+    protected internal CsvEnumeratorBase(CsvReaderOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
@@ -84,17 +87,17 @@ public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IE
 
     public void Dispose()
     {
-        if (_disposed)
-            return;
-
-        _disposed = true;
-
         Dispose(true);
         GC.SuppressFinalize(this);
     }
 
     protected virtual void Dispose(bool disposing)
     {
+        if (_disposed)
+            return;
+
+        _disposed = true;
+
         if (disposing)
         {
             _arrayPool.EnsureReturned(ref _multisegmentBuffer);

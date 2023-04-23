@@ -1,4 +1,4 @@
-using FlameCsv.Configuration;
+using FlameCsv.Writers;
 
 namespace FlameCsv.Formatters;
 
@@ -25,7 +25,7 @@ public interface ICsvFormatter<T> where T : unmanaged, IEquatable<T>
 
     /// <summary>
     /// Returns whether the formatter can handle null values. The default is <see langword="false"/>,
-    /// in which case a null token for the type is retrieved from the options via <see cref="ICsvNullTokenConfiguration{T}"/>.
+    /// in which case a null token for the type is retrieved from the options via <see cref="CsvWriterOptions{T}.GetNullToken(Type)"/>.
     /// </summary>
     /// <remarks>
     /// For value types other than <see cref="Nullable{T}"/>, this property is not used.
