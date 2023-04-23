@@ -3,7 +3,7 @@ using CommunityToolkit.HighPerformance;
 
 namespace FlameCsv.Utilities;
 
-internal class SealableList<T> : IList<T>
+internal sealed class SealableList<T> : IList<T>
 {
     private readonly ISealable _owner;
     private readonly List<T> _list;

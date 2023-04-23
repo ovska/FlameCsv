@@ -1,5 +1,4 @@
 using System.Buffers;
-using FlameCsv.Configuration;
 using FlameCsv.Formatters;
 using FlameCsv.Formatters.Text;
 using FlameCsv.Utilities;
@@ -7,8 +6,7 @@ using static FlameCsv.Utilities.SealableUtil;
 
 namespace FlameCsv.Writers;
 
-public class CsvWriterOptions<T> : ICsvDialectOptions<T>, ISealable,
-    ICsvNullTokenConfiguration<T>
+public class CsvWriterOptions<T> : ICsvDialectOptions<T>, ISealable
     where T : unmanaged, IEquatable<T>
 {
     public IDictionary<Type, ReadOnlyMemory<T>> NullOverrides => _nullOverrides ??= new();
@@ -16,15 +14,12 @@ public class CsvWriterOptions<T> : ICsvDialectOptions<T>, ISealable,
 
     public ReadOnlyMemory<T> Null { get; set; }
 
-    ReadOnlyMemory<T> ICsvNullTokenConfiguration<T>.Default => Null;
-
-    bool ICsvNullTokenConfiguration<T>.TryGetOverride(Type type, out ReadOnlyMemory<T> value)
+    public ReadOnlyMemory<T> GetNullToken(Type type)
     {
-        if (_nullOverrides is not null && _nullOverrides.TryGetValue(type, out value))
-            return true;
+        if (_nullOverrides is not null && _nullOverrides.TryGetValue(type, out var value))
+            return value;
 
-        value = default;
-        return false;
+        return Null;
     }
 
     public bool WriteHeader { get; set; }

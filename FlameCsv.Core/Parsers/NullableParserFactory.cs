@@ -1,4 +1,3 @@
-using FlameCsv.Configuration;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Parsers;
@@ -16,13 +15,11 @@ public sealed class NullableParserFactory<T> : ICsvParserFactory<T>
 
     public ICsvParser<T> Create(Type resultType, CsvReaderOptions<T> options)
     {
-        ReadOnlyMemory<T> nullToken = (options as ICsvNullTokenConfiguration<T>).GetNullTokenOrDefault(resultType);
-
         var innerType = Nullable.GetUnderlyingType(resultType)!;
         var inner = options.GetParser(innerType);
         return typeof(NullableParser<,>)
             .MakeGenericType(typeof(T), innerType)
-            .CreateInstance<ICsvParser<T>>(inner, nullToken);
+            .CreateInstance<ICsvParser<T>>(inner, options.GetNullToken(resultType));
     }
 
     public static NullableParserFactory<T> Instance { get; } = new();

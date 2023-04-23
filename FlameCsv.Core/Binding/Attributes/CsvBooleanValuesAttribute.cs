@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using FlameCsv.Configuration;
 using FlameCsv.Exceptions;
 using FlameCsv.Parsers;
 using FlameCsv.Parsers.Text;
@@ -59,7 +58,7 @@ public sealed class CsvBooleanValuesAttribute : CsvParserOverrideAttribute
 
         Debug.Assert(target == typeof(bool?));
 
-        return new NullableParser<char, bool>(parser, FindNullTokens(options));
+        return new NullableParser<char, bool>(parser, options.GetNullToken(typeof(bool?)));
     }
 
     private ICsvParser<byte> CreateForUtf8(Type target, CsvReaderOptions<byte> options)
@@ -71,24 +70,6 @@ public sealed class CsvBooleanValuesAttribute : CsvParserOverrideAttribute
 
         Debug.Assert(target == typeof(bool?));
 
-        return new NullableParser<byte, bool>(parser, FindNullTokens(options));
-    }
-
-    /// <summary>
-    /// Returns null tokens defined in an existing <see cref="NullableParserFactory{T}"/> if any.
-    /// </summary>
-    private static ReadOnlyMemory<T> FindNullTokens<T>(CsvReaderOptions<T> options)
-        where T : unmanaged, IEquatable<T>
-    {
-        ReadOnlyMemory<T> value = default;
-
-        if (options is ICsvNullTokenConfiguration<T> ntc &&
-            !ntc.TryGetOverride(typeof(bool?), out value) &&
-            !ntc.TryGetOverride(typeof(bool), out value))
-        {
-            value = ntc.Default;
-        }
-
-        return value;
+        return new NullableParser<byte, bool>(parser, options.GetNullToken(typeof(bool?)));
     }
 }

@@ -31,7 +31,7 @@ internal sealed class CopyingRecordAsyncEnumerable<T> : IAsyncEnumerable<CsvReco
 
         public async ValueTask<bool> MoveNextAsync()
         {
-            if (await _source.MoveNextAsync())
+            if (await _source.MoveNextAsync().ConfigureAwait(false))
             {
                 Current = new CsvRecord<T>(_source.Current);
                 return true;

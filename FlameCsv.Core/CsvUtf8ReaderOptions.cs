@@ -1,6 +1,5 @@
 ﻿using System.Text;
 using FlameCsv.Binding;
-using FlameCsv.Configuration;
 using FlameCsv.Extensions;
 using FlameCsv.Parsers;
 using FlameCsv.Parsers.Utf8;
@@ -26,7 +25,7 @@ namespace FlameCsv;
 /// <item><see cref="Base64Utf8Parser"/></item>
 /// </list>
 /// </remarks>
-public sealed class CsvUtf8ReaderOptions :    CsvReaderOptions<byte>,    ICsvNullTokenConfiguration<byte>
+public sealed class CsvUtf8ReaderOptions : CsvReaderOptions<byte>
 {
     private static readonly Lazy<CsvUtf8ReaderOptions> _default = new(() => new(isReadOnly: true));
 
@@ -34,7 +33,6 @@ public sealed class CsvUtf8ReaderOptions :    CsvReaderOptions<byte>,    ICsvNul
     /// <remarks>Create a new instance if you need to configure the options or parsers.</remarks>
     public static CsvUtf8ReaderOptions Default => _default.Value;
 
-    private StringComparison _headerComparison;
     private char _integerFormat;
     private char _decimalFormat;
     private char _dateTimeFormat;
@@ -44,7 +42,7 @@ public sealed class CsvUtf8ReaderOptions :    CsvReaderOptions<byte>,    ICsvNul
     private bool _allowUndefinedEnumValues;
     private ReadOnlyMemory<byte> _null;
     private IReadOnlyCollection<(ReadOnlyMemory<byte> bytes, bool value)>? _booleanValues;
-    private Dictionary<Type, ReadOnlyMemory<byte>>? _nullOverrides;
+    private SealableDictionary<Type, ReadOnlyMemory<byte>>? _nullOverrides;
 
     /// <inheritdoc cref="CsvTextReaderOptions"/>
     public CsvUtf8ReaderOptions() : this(false)
@@ -59,12 +57,6 @@ public sealed class CsvUtf8ReaderOptions :    CsvReaderOptions<byte>,    ICsvNul
 
         if (isReadOnly)
             MakeReadOnly();
-    }
-
-    public StringComparison HeaderComparison
-    {
-        get => _headerComparison;
-        set => this.SetValue(ref _headerComparison, value);
     }
 
     /// <summary>
@@ -155,7 +147,7 @@ public sealed class CsvUtf8ReaderOptions :    CsvReaderOptions<byte>,    ICsvNul
     /// Overridden values that match to null when parsing <see cref="Nullable{T}"/>
     /// instead of the default <see cref="Null"/>.
     /// </summary>
-    public IDictionary<Type, ReadOnlyMemory<byte>> NullOverrides => _nullOverrides ??= new();
+    public IDictionary<Type, ReadOnlyMemory<byte>> NullOverrides => _nullOverrides ??= new(this, SealableUtil.ValidateNullToken);
 
     /// <inheritdoc/>
     protected override IEnumerable<ICsvParser<byte>> GetDefaultParsers()
@@ -175,19 +167,16 @@ public sealed class CsvUtf8ReaderOptions :    CsvReaderOptions<byte>,    ICsvNul
         };
     }
 
-    ReadOnlyMemory<byte> ICsvNullTokenConfiguration<byte>.Default => Null;
-
-    bool ICsvNullTokenConfiguration<byte>.TryGetOverride(Type type, out ReadOnlyMemory<byte> value)
-    {
-        if (_nullOverrides is not null && _nullOverrides.TryGetValue(type, out value))
-            return true;
-
-        value = default;
-        return false;
-    }
-
     public override IHeaderBinder<byte> GetHeaderBinder() => new DefaultHeaderBinder<byte>(this);
 
     public override string GetAsString(ReadOnlySpan<byte> field) => Encoding.UTF8.GetString(field);
     public override bool SequenceEqual(ReadOnlySpan<char> text, ReadOnlySpan<byte> field) => Utf8Util.SequenceEqual(field, text, Comparison);
+
+    public override ReadOnlyMemory<byte> GetNullToken(Type resultType)
+    {
+        if (_nullOverrides is not null && _nullOverrides.TryGetValue(resultType, out var value))
+            return value;
+
+        return Null;
+    }
 }

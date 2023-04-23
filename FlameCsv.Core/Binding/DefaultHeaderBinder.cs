@@ -1,9 +1,7 @@
 using System.Buffers;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding.Attributes;
-using FlameCsv.Configuration;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
