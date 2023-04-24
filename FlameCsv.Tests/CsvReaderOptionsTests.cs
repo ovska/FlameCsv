@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.InteropServices;
 using FlameCsv.Parsers.Text;
 
 namespace FlameCsv.Tests;
@@ -9,16 +10,16 @@ public class CsvReaderOptionsTests
     public static void Should_Validate_NullToken()
     {
         var to = new CsvTextReaderOptions();
-        Assert.Throws<ArgumentException>(() => to.NullOverrides[typeof(int)] = default);
-        Assert.Throws<ArgumentException>(() => to.NullOverrides[typeof(int*)] = default);
-        Assert.Throws<ArgumentException>(() => to.NullOverrides[typeof(Span<>)] = default);
-        Assert.Throws<ArgumentException>(() => to.NullOverrides[typeof(Span<int>)] = default);
+        Assert.Throws<ArgumentException>(() => to.NullTokens[typeof(int)] = default);
+        Assert.Throws<ArgumentException>(() => to.NullTokens[typeof(int*)] = default);
+        Assert.Throws<ArgumentException>(() => to.NullTokens[typeof(Span<>)] = default);
+        Assert.Throws<ArgumentException>(() => to.NullTokens[typeof(Span<int>)] = default);
 
         var bo = new CsvUtf8ReaderOptions();
-        Assert.Throws<ArgumentException>(() => bo.NullOverrides[typeof(int)] = default);
-        Assert.Throws<ArgumentException>(() => bo.NullOverrides[typeof(int*)] = default);
-        Assert.Throws<ArgumentException>(() => bo.NullOverrides[typeof(Span<>)] = default);
-        Assert.Throws<ArgumentException>(() => bo.NullOverrides[typeof(Span<int>)] = default);
+        Assert.Throws<ArgumentException>(() => bo.NullTokens[typeof(int)] = default);
+        Assert.Throws<ArgumentException>(() => bo.NullTokens[typeof(int*)] = default);
+        Assert.Throws<ArgumentException>(() => bo.NullTokens[typeof(Span<>)] = default);
+        Assert.Throws<ArgumentException>(() => bo.NullTokens[typeof(Span<int>)] = default);
     }
 
     [Fact]
@@ -65,12 +66,39 @@ public class CsvReaderOptionsTests
     }
 
     [Fact]
+    public void Should_Reuse_Common_Strings()
+    {
+        var options = new CsvUtf8ReaderOptions { Newline = "\r\n" };
+        Assert.True(MemoryMarshal.TryGetArray(((ICsvDialectOptions<byte>)options).Newline, out var segment1));
+        Assert.True(MemoryMarshal.TryGetArray(CsvDialectStatic._crlf, out var segment2));
+
+        Assert.Equal(segment1.Count, segment2.Count);
+        Assert.Equal(segment1.Offset, segment2.Offset);
+        Assert.Same(segment1.Array, segment1.Array);
+
+        var s1 = options.Newline;
+        var s2 = options.Newline;
+        Assert.Same(s1, s2);
+
+        options.Newline = "\n";
+        s1 = options.Newline;
+        s2 = options.Newline;
+        Assert.Same(s1, s2);
+
+        options.Newline = "\r";
+        s1 = options.Newline;
+        s2 = options.Newline;
+        Assert.NotSame(s1, s2);
+    }
+
+    [Fact]
     public void Should_Return_Utf8_Defaults()
     {
         var options = CsvUtf8ReaderOptions.Default;
         Assert.True(options.IsReadOnly);
 
-        Assert.Equal("\r\n"u8.ToArray(), options.Newline.ToArray());
+        Assert.Equal("\r\n"u8.ToArray(), ((ICsvDialectOptions<byte>)options).Newline.ToArray());
+        Assert.Equal("\r\n", options.Newline);
 
         var boolParser = options.GetParser<bool>();
         Assert.True(boolParser.TryParse("true"u8, out var bValue));
@@ -117,7 +145,7 @@ public class CsvReaderOptionsTests
 
         Run(o => o.Delimiter = default);
         Run(o => o.Quote = default);
-        Run(o => o.Newline = default);
+        Run(o => o.Newline = "");
         Run(o => o.ShouldSkipRow = default);
         Run(o => o.HasHeader = default);
         Run(o => o.Comparison = default);

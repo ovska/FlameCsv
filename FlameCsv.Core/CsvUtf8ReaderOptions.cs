@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using CommunityToolkit.Diagnostics;
 using FlameCsv.Binding;
 using FlameCsv.Extensions;
 using FlameCsv.Parsers;
@@ -42,7 +43,7 @@ public sealed class CsvUtf8ReaderOptions : CsvReaderOptions<byte>
     private bool _allowUndefinedEnumValues;
     private ReadOnlyMemory<byte> _null;
     private IReadOnlyCollection<(ReadOnlyMemory<byte> bytes, bool value)>? _booleanValues;
-    private SealableDictionary<Type, ReadOnlyMemory<byte>>? _nullOverrides;
+    private TypeByteDictionary? _nullTokens;
 
     /// <inheritdoc cref="CsvTextReaderOptions"/>
     public CsvUtf8ReaderOptions() : this(false)
@@ -64,7 +65,7 @@ public sealed class CsvUtf8ReaderOptions : CsvReaderOptions<byte>
 
         // copy collections
         _booleanValues = other._booleanValues?.ToList();
-        _nullOverrides = new(this, SealableUtil.ValidateNullToken, other._nullOverrides);
+        _nullTokens = new(this, other._nullTokens);
     }
 
     private CsvUtf8ReaderOptions(bool isReadOnly)
@@ -76,6 +77,38 @@ public sealed class CsvUtf8ReaderOptions : CsvReaderOptions<byte>
         if (isReadOnly)
             MakeReadOnly();
     }
+
+    public CsvUtf8ReaderOptions Clone() => new(this);
+
+    public char Delimiter
+    {
+        get => (char)_delimiter;
+        set => ((ICsvDialectOptions<byte>)this).Delimiter = CsvDialectStatic.AsByte(value);
+    }
+
+    public char Quote
+    {
+        get => (char)_quote;
+        set => ((ICsvDialectOptions<byte>)this).Quote = CsvDialectStatic.AsByte(value);
+    }
+
+    public string Newline
+    {
+        get => CsvDialectStatic.AsString(_newline);
+        set
+        {
+            Guard.IsNotNullOrEmpty(value, nameof(Newline));
+            ((ICsvDialectOptions<byte>)this).Newline = CsvDialectStatic.AsBytes(value);
+        }
+    }
+
+    public char? Escape
+    {
+        get => _escape.HasValue ? (char)_escape.Value : null;
+        set => ((ICsvDialectOptions<byte>)this).Escape = value.HasValue ? CsvDialectStatic.AsByte(value.Value) : null;
+    }
+
+    public override ITypeMap<string?> NullTokens => _nullTokens ??= new(this);
 
     /// <summary>
     /// Used by <see cref="IntegerUtf8Parser"/>. Default is <c>default(char)</c>.
@@ -161,15 +194,6 @@ public sealed class CsvUtf8ReaderOptions : CsvReaderOptions<byte>
         set => this.SetValue(ref _booleanValues, value);
     }
 
-    /// <summary>
-    /// Overridden values that match to null when parsing <see cref="Nullable{T}"/> instead of the default, <see cref="Null"/>.
-    /// </summary>
-    /// <remarks>
-    /// Modifying the collection after the options instance is used (<see cref="IsReadOnly"/> is <see langword="true"/>)
-    /// results in an exception.
-    /// </remarks>
-    public IDictionary<Type, ReadOnlyMemory<byte>> NullOverrides => _nullOverrides ??= new(this, SealableUtil.ValidateNullToken);
-
     /// <inheritdoc/>
     protected override IEnumerable<ICsvParser<byte>> GetDefaultParsers()
     {
@@ -195,7 +219,7 @@ public sealed class CsvUtf8ReaderOptions : CsvReaderOptions<byte>
 
     public override ReadOnlyMemory<byte> GetNullToken(Type resultType)
     {
-        if (_nullOverrides is not null && _nullOverrides.TryGetValue(resultType, out var value))
+        if (_nullTokens is not null && _nullTokens.TryGetInternalValue(resultType, out ReadOnlyMemory<byte> value))
             return value;
 
         return Null;

@@ -51,7 +51,7 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
     private bool _readEmptyStringsAsNull;
     private string? _null;
     private IReadOnlyCollection<(string text, bool value)>? _booleanValues;
-    private SealableDictionary<Type, string?>? _nullOverrides;
+    private TypeStringDictionary? _nullTokens;
 
     /// <inheritdoc cref="CsvTextReaderOptions"/>
     public CsvTextReaderOptions() : this(false)
@@ -80,10 +80,7 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
 
         // copy collections
         _booleanValues = other._booleanValues?.ToList();
-        _nullOverrides = new SealableDictionary<Type, string?>(
-            this, 
-            SealableUtil.ValidateNullToken,
-            other._nullOverrides);
+        _nullTokens = new(this, other._nullTokens);
     }
 
     private CsvTextReaderOptions(bool isReadOnly)
@@ -99,6 +96,34 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
         if (isReadOnly)
             MakeReadOnly();
     }
+
+    public CsvTextReaderOptions Clone() => new(this);
+
+    public char Delimiter
+    {
+        get => _delimiter;
+        set => ((ICsvDialectOptions<char>)this).Delimiter = value;
+    }
+
+    public char Quote
+    {
+        get => _quote;
+        set => ((ICsvDialectOptions<char>)this).Quote = value;
+    }
+
+    public string Newline
+    {
+        get => _newline.ToString();
+        set => ((ICsvDialectOptions<char>)this).Newline = value.AsMemory();
+    }
+
+    public char? Escape
+    {
+        get => _escape;
+        set => ((ICsvDialectOptions<char>)this).Escape = value;
+    }
+
+    public override ITypeMap<string?> NullTokens => _nullTokens ??= new(this);
 
     /// <summary>
     /// String pool to use by default for all strings. If set, <see cref="PoolingStringTextParser"/> is used
@@ -261,15 +286,6 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
         set => this.SetValue(ref _booleanValues, value);
     }
 
-    /// <summary>
-    /// Overridden values that match to null when parsing <see cref="Nullable{T}"/> instead of the default, <see cref="Null"/>.
-    /// </summary>
-    /// <remarks>
-    /// Modifying the collection after the options instance is used (<see cref="IsReadOnly"/> is <see langword="true"/>)
-    /// results in an exception.
-    /// </remarks>
-    public IDictionary<Type, string?> NullOverrides => _nullOverrides ??= new(this, SealableUtil.ValidateNullToken);
-
     /// <inheritdoc/>
     protected override IEnumerable<ICsvParser<char>> GetDefaultParsers()
     {
@@ -303,7 +319,7 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
 
     public override ReadOnlyMemory<char> GetNullToken(Type resultType)
     {
-        if (_nullOverrides is not null && _nullOverrides.TryGetValue(resultType, out string? value))
+        if (_nullTokens is not null && _nullTokens.TryGetInternalValue(resultType, out string? value))
             return value.AsMemory();
 
         return Null.AsMemory();

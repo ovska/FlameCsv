@@ -7,19 +7,6 @@ namespace FlameCsv.Utilities;
 
 internal static class SealableUtil
 {
-    public static readonly Action<Type> ValidateNullToken = type =>
-    {
-        if (type.IsPointer ||
-            type.IsByRef ||
-            type.IsGenericTypeDefinition ||
-            (type.IsValueType && !(type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))))
-        {
-            ThrowHelper.ThrowArgumentException(
-                $"Null tokens are only valid for concrete types that can be null (was: {type.FullName})");
-            // ^ TODO: use ToTypeString once open generics bug is fixed
-        }
-    };
-
     /// <summary>
     /// Sets the value of <paramref name="field"/> after ensuring that the current instance is not read-only.
     /// </summary>

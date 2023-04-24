@@ -38,7 +38,7 @@ public static class ParserOverrideTests
         var options = new CsvTextReaderOptions
         {
             HasHeader = true,
-            Newline = "\n".AsMemory(),
+            Newline = "\n",
         };
         var objs = CsvReader.Read<TestObj>(data, options).ToList();
         Assert.Equal(2, objs.Count);

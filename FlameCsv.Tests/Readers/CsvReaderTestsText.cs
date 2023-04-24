@@ -15,7 +15,7 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
         return new CsvTextReaderOptions
         {
             DateTimeFormat = "O",
-            Newline = newline.AsMemory(),
+            Newline = newline,
             Escape = escape,
         };
     }
