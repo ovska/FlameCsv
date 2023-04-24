@@ -1,45 +1,35 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using CommunityToolkit.Diagnostics;
 
 namespace FlameCsv;
 
 internal static class Token<T> where T : unmanaged
 {
     /// <summary>
-    /// Safe upper limit for <see langword="stackalloc"/> for <typeparamref name="T"/>.
+    /// Returns true if an array of <paramref name="length"/> would be likely to be allocated on the Large Object Heap.
     /// </summary>
-    // JITed to a constant
-    public static int StackallocThreshold
+    public static bool LargeObjectHeapAllocates(int length)
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Unsafe.SizeOf<byte>() * 512 / Unsafe.SizeOf<T>();
+        // JITed to a constant
+        int threshold = Unsafe.SizeOf<byte>() * 84_000 / Unsafe.SizeOf<T>();
+        return length > threshold;
     }
 
     /// <summary>
-    /// Represents an approximation the array length for <typeparamref name="T"/> that
-    /// causes a large object heap allocation.
-    /// </summary>
-    public static int LOHLimit
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Unsafe.SizeOf<byte>() * 84_000 / Unsafe.SizeOf<T>();
-    }
-
-    /// <summary>
-    /// Returns true if <paramref name="length"/> greater than <see cref="LOHLimit"/>.
-    /// </summary>
-    /// <param name="length"></param>
-    public static bool RequiresLOH(int length) => LOHLimit < length;
-
-    /// <summary>
-    /// Returns true if <paramref name="length"/> is not greater than <see cref="StackallocThreshold"/>.
+    /// Returns true if a stack allocation with <paramref name="length"/> is reasonably safe.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool CanStackalloc(int length) => StackallocThreshold >= length;
+    public static bool CanStackalloc(int length)
+    {
+        // JITed to a constant
+        int threshold = Unsafe.SizeOf<byte>() * 512 / Unsafe.SizeOf<T>();
+        return length <= threshold;
+    }
 
     [MethodImpl(MethodImplOptions.NoInlining), DoesNotReturn]
     public static void ThrowNotSupportedException()
     {
-        throw new NotSupportedException($"The current operation for {typeof(T).FullName} is not supported by default.");
+        throw new NotSupportedException($"The current operation for {typeof(T).ToTypeString()} is not supported by default.");
     }
 }
