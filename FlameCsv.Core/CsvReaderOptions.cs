@@ -104,6 +104,7 @@ public abstract partial class CsvReaderOptions<T> : ISealable
     private CsvCallback<T, bool>? _shouldSkipRow;
     private CsvExceptionHandler<T>? _exceptionHandler;
     private bool _hasHeader;
+    private bool _validateFieldCount;
     private bool _allowContentInExceptions;
     private ArrayPool<T>? _arrayPool = ArrayPool<T>.Shared;
 
@@ -160,6 +161,17 @@ public abstract partial class CsvReaderOptions<T> : ISealable
     {
         get => _hasHeader;
         set => this.SetValue(ref _hasHeader, value);
+    }
+
+    /// <summary>
+    /// Whether to ensure that all records have the same number of fields. The first non-skipped row of the CSV
+    /// is used as the source of truth for the record count, regardless of whether it was a header record or not.
+    /// Default is <see langword="false"/>.
+    /// </summary>
+    public bool ValidateFieldCount
+    {
+        get => _validateFieldCount;
+        set => this.SetValue(ref _validateFieldCount, value);
     }
 
     /// <summary>
