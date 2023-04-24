@@ -81,16 +81,27 @@ public abstract partial class CsvReaderOptions<T> : ISealable
     /// </remarks>
     public abstract IHeaderBinder<T> GetHeaderBinder();
 
+    /// <summary>
+    /// Returns the value used to match to <see langword="null"/> for the parameter type.
+    /// </summary>
     public abstract ReadOnlyMemory<T> GetNullToken(Type resultType);
+
+    /// <summary>
+    /// Returns a <see langword="string"/> representation of the value.
+    /// </summary>
     public abstract string GetAsString(ReadOnlySpan<T> field);
+
+    /// <summary>
+    /// Compares a value of the token type to a string using <see cref="Comparison"/>.
+    /// </summary>
     public abstract bool SequenceEqual(ReadOnlySpan<char> text, ReadOnlySpan<T> field);
 
-    private StringComparison        _stringComparison = StringComparison.OrdinalIgnoreCase;
-    private CsvCallback<T, bool>?   _shouldSkipRow;
+    private StringComparison _stringComparison = StringComparison.OrdinalIgnoreCase;
+    private CsvCallback<T, bool>? _shouldSkipRow;
     private CsvExceptionHandler<T>? _exceptionHandler;
-    private bool                    _hasHeader;
-    private bool                    _allowContentInExceptions;
-    private ArrayPool<T>?           _arrayPool = ArrayPool<T>.Shared;
+    private bool _hasHeader;
+    private bool _allowContentInExceptions;
+    private ArrayPool<T>? _arrayPool = ArrayPool<T>.Shared;
 
     /// <summary>
     /// Text comparison used to match header names.

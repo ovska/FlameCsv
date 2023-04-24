@@ -5,6 +5,7 @@ namespace FlameCsv.Parsers;
 /// <summary>
 /// Factory for <see cref="NullableParser{T,TValue}"/>
 /// </summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "<Pending>")]
 public sealed class NullableParserFactory<T> : ICsvParserFactory<T>
     where T : unmanaged, IEquatable<T>
 {

@@ -37,7 +37,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
     /// </summary>
     public bool IgnoreUnmatched { get; }
 
-    public CsvReaderOptions<T> Options { get; }
+    private readonly CsvReaderOptions<T> _options;
 
     public DefaultHeaderBinder(
         CsvReaderOptions<T> options,
@@ -45,24 +45,24 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        Options = options;
+        _options = options;
         IgnoreUnmatched = ignoreUnmatched;
     }
 
-    public CsvBindingCollection<TValue> Bind<TValue>(ReadOnlyMemory<T> line)
+    public CsvBindingCollection<TValue> Bind<TValue>(ReadOnlyMemory<T> record)
     {
-        Options.MakeReadOnly();
+        _options.MakeReadOnly();
 
         HeaderData headerData = DefaultHeaderBinder<T>.GetHeaderDataFor<TValue>();
         List<CsvBinding<TValue>> foundBindings = new();
         SpanPredicate<T>? ignorePredicate = headerData.Ignore;
 
-        ArrayPool<T> arrayPool = Options.ArrayPool.AllocatingIfNull();
+        ArrayPool<T> arrayPool = _options.ArrayPool.AllocatingIfNull();
         T[]? buffer = null;
 
         try
         {
-            CsvEnumerationStateRef<T> state = new(Options, line);
+            CsvEnumerationStateRef<T> state = new(_options, record);
 
             while (state.TryGetField(out ReadOnlyMemory<T> fieldMemory))
             {
@@ -79,7 +79,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
 
                 foreach (ref readonly var candidate in headerData.Candidates)
                 {
-                    if (Options.SequenceEqual(candidate.Value, field))
+                    if (_options.SequenceEqual(candidate.Value, field))
                     {
                         binding = CsvBinding.FromHeaderBinding<TValue>(candidate.Target, index);
                         break;
@@ -91,8 +91,8 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
                 {
                     throw new CsvBindingException(
                         $"Column {foundBindings.Count} could not be bound to a member of {typeof(TValue)}: Column " +
-                        field.AsPrintableString(Options.AllowContentInExceptions, state.Dialect) +
-                        ", Line: " + line.Span.AsPrintableString(Options.AllowContentInExceptions, state.Dialect));
+                        field.AsPrintableString(_options.AllowContentInExceptions, state.Dialect) +
+                        ", Line: " + record.Span.AsPrintableString(_options.AllowContentInExceptions, state.Dialect));
                 }
 
                 foundBindings.Add(binding ?? CsvBinding.Ignore<TValue>(index: foundBindings.Count));
