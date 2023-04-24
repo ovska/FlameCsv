@@ -15,8 +15,8 @@ public sealed class CsvReaderTestsUtf8 : CsvReaderTestsBase<byte>
         return new CsvUtf8ReaderOptions
         {
             DateTimeFormat = 'O',
-            Newline = Encoding.UTF8.GetBytes(newline),
-            Escape = escape.HasValue ? (byte)escape.Value : null,
+            Newline = newline,
+            Escape = escape,
         };
     }
 

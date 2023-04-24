@@ -96,6 +96,15 @@ public abstract partial class CsvReaderOptions<T> : ISealable
     /// </summary>
     public abstract bool SequenceEqual(ReadOnlySpan<char> text, ReadOnlySpan<T> field);
 
+    /// <summary>
+    /// Overridden values that match to null when parsing <see cref="Nullable{T}"/> instead of the default, <see cref="Null"/>.
+    /// </summary>
+    /// <remarks>
+    /// Modifying the collection after the options instance is used (<see cref="IsReadOnly"/> is <see langword="true"/>)
+    /// results in an exception.
+    /// </remarks>
+    public abstract ITypeMap<string?> NullTokens { get; }
+
     private StringComparison _stringComparison = StringComparison.OrdinalIgnoreCase;
     private CsvCallback<T, bool>? _shouldSkipRow;
     private CsvExceptionHandler<T>? _exceptionHandler;

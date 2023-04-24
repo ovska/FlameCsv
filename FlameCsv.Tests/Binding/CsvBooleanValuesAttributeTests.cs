@@ -3,6 +3,7 @@ using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
 using FlameCsv.Parsers;
+using FlameCsv.Utilities;
 
 // ReSharper disable UnusedMember.Local
 
@@ -12,6 +13,7 @@ public static class CsvBooleanValuesAttributeTests
 {
     private sealed class IntOptions : CsvReaderOptions<int>
     {
+        public override ITypeMap<string?> NullTokens => throw new NotImplementedException();
         public override string GetAsString(ReadOnlySpan<int> field) => throw new NotImplementedException();
         public override IHeaderBinder<int> GetHeaderBinder() => throw new NotImplementedException();
         public override ReadOnlyMemory<int> GetNullToken(Type resultType) => throw new NotImplementedException();

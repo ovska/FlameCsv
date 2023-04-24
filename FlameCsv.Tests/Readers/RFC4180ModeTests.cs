@@ -105,7 +105,7 @@ public static class RFC4180ModeTests
     [InlineData(data: new object[] { "\n", new[] { "abc", "\n", "xyz" } })]
     public static void Should_Find_Segment_With_Only_Newline(string newline, string[] segments)
     {
-        var options = new CsvTextReaderOptions { Newline = newline.AsMemory() };
+        var options = new CsvTextReaderOptions { Newline = newline };
 
         var first = new MemorySegment<char>(segments[0].AsMemory());
         var last = first
