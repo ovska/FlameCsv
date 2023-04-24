@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using System.Collections;
+﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
@@ -61,6 +60,11 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         Options = options;
         Dialect = dialect;
         (Data, _values) = InitializeFromValues(Preserve(record), options, in dialect, true);
+    }
+
+    public TRecord ParseRecord<TRecord>()
+    {
+        throw new NotImplementedException();
     }
 
     public virtual ReadOnlyMemory<T> GetField(int index) => _values.Span[index];
@@ -216,14 +220,10 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         {
             ReadOnlyMemory<T>[] values = new ReadOnlyMemory<T>[16];
             int index = 0;
-
             T[]? buffer = null;
-            ArrayPool<T> arrayPool = options.ArrayPool.AllocatingIfNull();
 
-            try
+            using (CsvEnumerationStateRefLifetime<T>.Create(options, record, ref buffer, out var state))
             {
-                CsvEnumerationStateRef<T> state = new(options, record);
-
                 while (!state.remaining.IsEmpty)
                 {
                     if (index >= values.Length)
@@ -235,10 +235,6 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
                 return new PreservedValues(
                     recordPreserved ? record : Preserve(record.Span),
                     values.AsMemory(0, index));
-            }
-            finally
-            {
-                arrayPool.EnsureReturned(ref buffer);
             }
         }
     }

@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Text;
 using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Buffers;
@@ -232,7 +231,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
 
         options.HasHeader = header;
         options.AllowContentInExceptions = true;
-        options.ArrayPool = _pool = new();
+        options.ArrayPool = _pool = new() { TrackStackTraces = false };
 
         return options;
     }

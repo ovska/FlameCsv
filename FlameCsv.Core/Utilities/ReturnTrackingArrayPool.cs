@@ -1,11 +1,14 @@
 ﻿using System.Buffers;
+using System.Diagnostics;
 using System.Numerics;
 
 namespace FlameCsv.Utilities;
 
 internal sealed class ReturnTrackingArrayPool<T> : ArrayPool<T>, IDisposable
 {
-    private readonly HashSet<T[]> _values = new();
+    public bool TrackStackTraces { get; set; }
+
+    private readonly Dictionary<T[], StackTrace?> _values = new();
     private int rentedCount;
     private int returnedCount;
 
@@ -14,7 +17,9 @@ internal sealed class ReturnTrackingArrayPool<T> : ArrayPool<T>, IDisposable
         if (_values.Count > 0)
         {
             throw new InvalidOperationException(
-                $"{_values.Count} arrays not returned to pool, {returnedCount} out of {rentedCount}");
+                $"{_values.Count} arrays not returned to pool, {returnedCount} out of {rentedCount}. " +
+                Environment.NewLine +
+                string.Join(Environment.NewLine + Environment.NewLine, _values.Select(kvp => kvp.Value)));
         }
     }
 
@@ -28,7 +33,7 @@ internal sealed class ReturnTrackingArrayPool<T> : ArrayPool<T>, IDisposable
         }
 
         var arr = new T[BitOperations.RoundUpToPowerOf2((uint)minimumLength)];
-        _values.Add(arr);
+        _values.Add(arr, TrackStackTraces ? new StackTrace(fNeedFileInfo: true) : null);
         return arr;
     }
 
@@ -38,7 +43,7 @@ internal sealed class ReturnTrackingArrayPool<T> : ArrayPool<T>, IDisposable
 
         if (array.Length > 0 && !_values.Remove(array))
         {
-            throw new InvalidOperationException("Array not rented from pool.");
+            throw new InvalidOperationException("The returned array was not rented from the pool.");
         }
     }
 }

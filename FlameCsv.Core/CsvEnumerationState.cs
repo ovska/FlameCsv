@@ -15,12 +15,14 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
         get => _hasHeader && _header is null;
     }
 
+    public Dictionary<Type, object> MaterializerCache => _materializerCache ??= new();
+
     public int Version { get; private set; }
     public int TotalFieldLength { get; private set; }
     public CsvDialect<T> Dialect => _dialect;
 
+    internal readonly CsvReaderOptions<T> _options;
     private readonly CsvDialect<T> _dialect;
-    private readonly CsvReaderOptions<T> _options;
     private readonly ArrayPool<T> _arrayPool; // pool used for unescape buffer
     private T[]? _unescapeBuffer; // rented array for unescaping
 
@@ -32,6 +34,8 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
 
     private CsvEnumerationStateRef<T> _state;
     private bool _disposed;
+
+    private Dictionary<Type, object>? _materializerCache;
 
     public CsvEnumerationState(CsvReaderOptions<T> options)
     {

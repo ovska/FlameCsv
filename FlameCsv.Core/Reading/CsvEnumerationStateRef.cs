@@ -3,12 +3,59 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading;
+
+internal readonly ref struct CsvEnumerationStateRefLifetime<T> where T : unmanaged, IEquatable<T>
+{
+    private readonly ArrayPool<T> _arrayPool;
+    private readonly Span<T[]?> _rentedBuffer;
+
+    public static CsvEnumerationStateRefLifetime<T> Create(
+        CsvReaderOptions<T> options,
+        ReadOnlyMemory<T> record,
+        ref T[]? array,
+        out CsvEnumerationStateRef<T> state)
+    {
+        ArrayPool<T> arrayPool = options.ArrayPool.AllocatingIfNull();
+
+        CsvDialect<T> dialect = new(options);
+
+        state = new CsvEnumerationStateRef<T>(
+            in dialect,
+            record,
+            record,
+            true,
+            dialect.GetRecordMeta(record, options.AllowContentInExceptions),
+            ref array,
+            arrayPool,
+            options.AllowContentInExceptions);
+
+        return new CsvEnumerationStateRefLifetime<T>(arrayPool, ref array);
+    }
+
+    public void Dispose()
+    {
+        ref T[]? array = ref _rentedBuffer[0];
+
+        if (array is not null)
+        {
+            _arrayPool.Return(array);
+            _rentedBuffer[0] = null;
+        }
+    }
+
+    private CsvEnumerationStateRefLifetime(ArrayPool<T> arrayPool, ref T[]? array)
+    {
+        _arrayPool = arrayPool;
+        _rentedBuffer = MemoryMarshal.CreateSpan(ref array, 1);
+    }
+}
 
 internal struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
 {
@@ -53,31 +100,6 @@ internal struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
         if (meta.HasSpecialCharacters)
         {
             arrayPool.EnsureCapacity(ref array, meta.GetMaxUnescapedLength(remaining.Length));
-            buffer = array;
-        }
-    }
-
-    public CsvEnumerationStateRef(CsvReaderOptions<T> options, ReadOnlyMemory<T> record)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-
-        CsvDialect<T> dialect = new(options);
-
-        Dialect = dialect;
-        Record = record;
-        ExposeContent = options.AllowContentInExceptions;
-
-        var meta = dialect.GetRecordMeta(record, options.AllowContentInExceptions);
-        quotesRemaining = meta.quoteCount;
-        escapesRemaining = meta.escapeCount;
-        remaining = record;
-        isAtStart = true;
-
-        if (meta.HasSpecialCharacters)
-        {
-            T[]? array = null;
-            var arrayPool = options.ArrayPool.AllocatingIfNull();
-            arrayPool.EnsureCapacity(ref array, meta.GetMaxUnescapedLength(record.Length));
             buffer = array;
         }
     }

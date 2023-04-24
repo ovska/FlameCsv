@@ -1,8 +1,8 @@
 using System.Buffers;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
+using FlameCsv.Binding;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading;
@@ -25,6 +25,7 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     {
         if (_inner.HasValue)
         {
+            // obs: don't use .Value here
             return _inner.DangerousGetValueOrDefaultReference().TryRead(ref buffer, out value, isFinalBlock);
         }
 
@@ -38,10 +39,10 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
         {
             ReadHeader(in line);
 
-            Debug.Assert(_inner.HasValue);
-
+            // read the header unless the CSV consisted of a single record without trailing newline
             if (!isFinalBlock)
             {
+                // obs: don't use .Value here
                 return _inner.DangerousGetValueOrDefaultReference().TryRead(ref buffer, out value, isFinalBlock);
             }
         }
@@ -55,8 +56,21 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     {
         using var view = new SequenceView<T>(in line, _options.ArrayPool);
 
-        var headerBinder = _options.GetHeaderBinder();
-        var bindings = headerBinder.Bind<TValue>(view.Memory);
+        CsvBindingCollection<TValue> bindings;
+        T[]? buffer = null;
+
+        using (CsvEnumerationStateRefLifetime<T>.Create(_options, view.Memory, ref buffer, out var state))
+        {
+            List<string> values = new(16);
+
+            while (state.TryGetField(out ReadOnlyMemory<T> field))
+            {
+                values.Add(_options.GetAsString(field.Span));
+            }
+
+            bindings = _options.GetHeaderBinder().Bind<TValue>(values);
+        }
+
         var materializer = _options.CreateMaterializerFrom(bindings);
         _inner = new CsvProcessor<T, TValue>(_options, materializer);
     }

@@ -1,11 +1,34 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
+using FlameCsv.Binding.Attributes;
 using FlameCsv.Utilities;
 
 namespace FlameCsv.Tests.Readers;
 
 public static class CsvEnumerationTests
 {
+    private class Shim
+    {
+        [CsvIndex(0)] public int Id { get; set; }
+        [CsvIndex(1)] public string? Name { get; set; }
+    }
+
+    [Fact]
+    public static void Should_Parse_Record()
+    {
+        const string data = "1,Bob\r\n2,Alice";
+
+        int index = 0;
+
+        foreach (var record in new CsvRecordEnumerable<char>(data.AsMemory(), CsvTextReaderOptions.Default))
+        {
+            var shim = record.ParseRecord<Shim>();
+            Assert.Equal(index + 1, shim.Id);
+            Assert.Equal(index == 0 ? "Bob" : "Alice", shim.Name);
+            index++;
+        }
+    }
+
     [Fact]
     public static void Should_Verify_Parameters()
     {

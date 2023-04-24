@@ -41,21 +41,19 @@ public static class HeaderBindingTests
     public static void Should_Bind_To_Ctor_Parameter()
     {
         var binder = new DefaultHeaderBinder<char>(new CsvTextReaderOptions { Comparison = StringComparison.Ordinal });
-        var bindingCollection = binder.Bind<ShimWithCtor>("Name,_targeted".AsMemory());
+        var bindingCollection = binder.Bind<ShimWithCtor>(new[] { "Name", "_targeted" });
         var byIndex = bindingCollection.Bindings.ToArray().ToDictionary(b => b.Index);
         Assert.Equal(2, byIndex.Count);
         Assert.Equal("Name", ((MemberCsvBinding<ShimWithCtor>)byIndex[0]).Member.Name);
         Assert.Equal("isEnabled", ((ParameterCsvBinding<ShimWithCtor>)byIndex[1]).Parameter.Name);
     }
 
-    [Theory]
-    [InlineData("IsEnabled,Name,_targeted")]
-    [InlineData("\"IsEnabled\",\"Name\",\"_targeted\"")]
-    public static void Should_Bind_To_Properties(string header)
+    [Fact]
+    public static void Should_Bind_To_Properties()
     {
         var binder = new DefaultHeaderBinder<char>(new CsvTextReaderOptions { Comparison = StringComparison.Ordinal });
 
-        var bindingCollection = binder.Bind<Shim>(header.AsMemory());
+        var bindingCollection = binder.Bind<Shim>(new[] { "IsEnabled", "Name", "_targeted" });
         Assert.Equal(3, bindingCollection.Bindings.Length);
         var byIndex = bindingCollection.MemberBindings.ToArray().ToDictionary(b => b.Index, b => b.Member);
         Assert.Equal(3, byIndex.Count);
