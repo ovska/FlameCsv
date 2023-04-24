@@ -23,7 +23,7 @@ public readonly struct CsvDialect<T> : IEquatable<CsvDialect<T>> where T : unman
     public ReadOnlyMemory<T> Newline { get; internal init; }
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Escape"/>
-    public T? Escape { get; internal init;  }
+    public T? Escape { get; internal init; }
 
     [MemberNotNullWhen(false, nameof(Escape))]
     public bool IsRFC4188Mode => !Escape.HasValue;
@@ -39,10 +39,16 @@ public readonly struct CsvDialect<T> : IEquatable<CsvDialect<T>> where T : unman
 
         ThrowIfInvalid(delimiter, quote, newline.Span, escape);
 
-        Delimiter = delimiter ;
-        Quote= quote ;
-        Newline= newline ;
+        Delimiter = delimiter;
+        Quote = quote;
+        Newline = newline;
         Escape = escape;
+    }
+
+    // perf: use the fields directly internally instead of through iface
+    internal CsvDialect(CsvReaderOptions<T> options)
+        : this(options._delimiter, options._quote, options._newline, options._escape)
+    {
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
