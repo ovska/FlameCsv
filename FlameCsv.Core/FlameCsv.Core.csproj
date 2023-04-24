@@ -5,8 +5,8 @@
     <RootNamespace>FlameCsv</RootNamespace>
     <WarningsAsErrors>true</WarningsAsErrors>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <!--<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <AnalysisLevel>6.0-all</AnalysisLevel>-->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>6.0-recommended</AnalysisLevel>
   </PropertyGroup>
 
   <ItemGroup>

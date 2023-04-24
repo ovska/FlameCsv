@@ -48,5 +48,5 @@ public sealed class SpanFormattableTextFormatter<TValue> : ICsvFormatter<char, T
         return Null.AsSpan().TryWriteTo(destination, out tokensWritten);
     }
 
-    public bool CanFormat(Type resultType) => resultType == typeof(TValue);
+    public bool CanFormat(Type valueType) => valueType == typeof(TValue);
 }

@@ -10,6 +10,11 @@ namespace FlameCsv;
 
 /// <inheritdoc cref="ICsvRecord{T}"/>
 [DebuggerTypeProxy(typeof(CsvValueRecord<>.CsvRecordDebugView))]
+[SuppressMessage(
+    "Design",
+    "CA1001:Types that own disposable fields should be disposable",
+    Justification = "CsvValueRecord<T> is only intended to be used directly in a foreach loop, "
+        + "and has runtime guards against using it after the enumeration has continued/completed.")]
 public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
 {
     public long Position { get; }
