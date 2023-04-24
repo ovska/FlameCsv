@@ -61,4 +61,11 @@ internal abstract partial class Materializer<T> where T : unmanaged, IEquatable<
             + $"in {GetType().ToTypeString()}.")
         { Parser = parser };
     }
+
+    public override string ToString()
+    {
+        return $"Materializer<{string.Join(
+            ", ",
+            GetType().GetGenericArguments().Select(t => t.ToTypeString().Replace(t.Namespace + '.', "")))}>";
+    }
 }

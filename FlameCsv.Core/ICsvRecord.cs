@@ -135,5 +135,10 @@ public interface ICsvRecord<T> where T : unmanaged, IEquatable<T>
     /// <exception cref="CsvParserMissingException"/>
     /// <exception cref="CsvParseException"/>
     TValue GetField<TValue>(string name);
+
+    /// <summary>
+    /// Parses the current record into an instance of <typeparamref name="TRecord"/>.
+    /// </summary>
+    TRecord ParseRecord<TRecord>();
 }
 

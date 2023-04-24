@@ -1,7 +1,6 @@
 ﻿using System.Text;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Binding;
-using FlameCsv.Extensions;
 using FlameCsv.Parsers;
 using FlameCsv.Parsers.Utf8;
 using FlameCsv.Utilities;
@@ -215,7 +214,6 @@ public sealed class CsvUtf8ReaderOptions : CsvReaderOptions<byte>
     public override IHeaderBinder<byte> GetHeaderBinder() => new DefaultHeaderBinder<byte>(this);
 
     public override string GetAsString(ReadOnlySpan<byte> field) => Encoding.UTF8.GetString(field);
-    public override bool SequenceEqual(ReadOnlySpan<char> text, ReadOnlySpan<byte> field) => Utf8Util.SequenceEqual(field, text, Comparison);
 
     public override ReadOnlyMemory<byte> GetNullToken(Type resultType)
     {

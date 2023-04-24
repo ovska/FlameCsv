@@ -315,7 +315,6 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
     }
 
     public override string GetAsString(ReadOnlySpan<char> field) => field.ToString();
-    public override bool SequenceEqual(ReadOnlySpan<char> text, ReadOnlySpan<char> field) => text.Equals(field, Comparison);
 
     public override ReadOnlyMemory<char> GetNullToken(Type resultType)
     {

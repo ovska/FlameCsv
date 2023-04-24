@@ -1,10 +1,7 @@
-using System.Buffers;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
-using FlameCsv.Extensions;
-using FlameCsv.Reading;
 using FlameCsv.Reflection;
 
 namespace FlameCsv.Binding;
@@ -13,19 +10,18 @@ namespace FlameCsv.Binding;
 /// Binds CSV header to members.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
-    where T : unmanaged, IEquatable<T>
+public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanaged, IEquatable<T>
 {
     private sealed class HeaderData
     {
-        public SpanPredicate<T>? Ignore { get; }
+        public ReadOnlyMemory<string> IgnoredValues { get; }
         public ReadOnlySpan<HeaderBindingCandidate> Candidates => _candidates.AsSpan();
 
         private readonly List<HeaderBindingCandidate> _candidates;
 
-        public HeaderData(SpanPredicate<T>? ignore, List<HeaderBindingCandidate> candidates)
+        public HeaderData(ReadOnlyMemory<string> ignoredValues, List<HeaderBindingCandidate> candidates)
         {
-            Ignore = ignore;
+            IgnoredValues = ignoredValues;
             _candidates = candidates;
         }
     }
@@ -49,58 +45,48 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
         IgnoreUnmatched = ignoreUnmatched;
     }
 
-    public CsvBindingCollection<TValue> Bind<TValue>(ReadOnlyMemory<T> record)
+    public CsvBindingCollection<TValue> Bind<TValue>(IEnumerable<string> headerFields)
     {
         _options.MakeReadOnly();
 
         HeaderData headerData = DefaultHeaderBinder<T>.GetHeaderDataFor<TValue>();
-        List<CsvBinding<TValue>> foundBindings = new();
-        SpanPredicate<T>? ignorePredicate = headerData.Ignore;
+        ReadOnlySpan<string> IgnoredValues = headerData.IgnoredValues.Span;
+        List<CsvBinding<TValue>> foundBindings = headerFields.TryGetNonEnumeratedCount(out int count) ? new(count) : new();
 
-        ArrayPool<T> arrayPool = _options.ArrayPool.AllocatingIfNull();
-        T[]? buffer = null;
-
-        try
+        foreach (var field in headerFields)
         {
-            CsvEnumerationStateRef<T> state = new(_options, record);
+            int index = foundBindings.Count;
 
-            while (state.TryGetField(out ReadOnlyMemory<T> fieldMemory))
+            CsvBinding<TValue>? binding = null;
+
+            foreach (var value in IgnoredValues)
             {
-                ReadOnlySpan<T> field = fieldMemory.Span;
-                int index = foundBindings.Count;
-
-                if (ignorePredicate is not null && ignorePredicate(field))
+                if (string.Equals(value, field, _options.Comparison))
                 {
-                    foundBindings.Add(CsvBinding.Ignore<TValue>(index));
-                    continue;
+                    binding = CsvBinding.Ignore<TValue>(index);
+                    break;
                 }
+            }
 
-                CsvBinding<TValue>? binding = null;
-
+            if (binding is null)
+            {
                 foreach (ref readonly var candidate in headerData.Candidates)
                 {
-                    if (_options.SequenceEqual(candidate.Value, field))
+                    if (string.Equals(candidate.Value, field, _options.Comparison))
                     {
                         binding = CsvBinding.FromHeaderBinding<TValue>(candidate.Target, index);
                         break;
 
                     }
                 }
-
-                if (binding is null && !IgnoreUnmatched)
-                {
-                    throw new CsvBindingException(
-                        $"Column {foundBindings.Count} could not be bound to a member of {typeof(TValue)}: Column " +
-                        field.AsPrintableString(_options.AllowContentInExceptions, state.Dialect) +
-                        ", Line: " + record.Span.AsPrintableString(_options.AllowContentInExceptions, state.Dialect));
-                }
-
-                foundBindings.Add(binding ?? CsvBinding.Ignore<TValue>(index: foundBindings.Count));
             }
-        }
-        finally
-        {
-            arrayPool.EnsureReturned(ref buffer);
+
+            if (binding is null && !IgnoreUnmatched)
+            {
+                throw new CsvBindingException();
+            }
+
+            foundBindings.Add(binding ?? CsvBinding.Ignore<TValue>(index: foundBindings.Count));
         }
 
         return new CsvBindingCollection<TValue>(foundBindings);
@@ -181,10 +167,6 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
                 }
             }
 
-            SpanPredicate<T>? predicate = ignoreAttribute is not null
-                ? HeaderMatcherDefaults.CheckIgnore<T>(ignoreAttribute.Values!, ignoreAttribute.Comparison)
-                : null;
-
             foreach (var parameter in typeInfo.ConstructorParameters)
             {
                 CsvHeaderAttribute? attr = null;
@@ -214,7 +196,9 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T>
 
             candidates.AsSpan().Sort(); // sorted by Order
 
-            _candidateCache.AddOrUpdate(typeof(TValue), headerData = new HeaderData(predicate, candidates));
+            _candidateCache.AddOrUpdate(
+                typeof(TValue),
+                headerData = new HeaderData(ignoreAttribute?.Values ?? default, candidates));
         }
 
         return headerData;

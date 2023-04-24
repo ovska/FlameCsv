@@ -1,5 +1,4 @@
 ﻿using System.Text;
-using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Tests.TestData;
 

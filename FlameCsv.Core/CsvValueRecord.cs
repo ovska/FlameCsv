@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
+using FlameCsv.Runtime;
 
 namespace FlameCsv;
 
@@ -31,8 +32,8 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
 
     internal readonly CsvEnumerationState<T> _state;
     internal readonly CsvReaderOptions<T> _options;
-    private readonly int _version;
-    private readonly RecordMeta _meta;
+    internal readonly int _version;
+    internal readonly RecordMeta _meta;
 
     public CsvValueRecord(
         ReadOnlyMemory<T> data,
@@ -231,6 +232,23 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CsvFieldEnumerator<T> GetEnumerator() => new(value: Data, state: _state, meta: _meta);
+
+    public TRecord ParseRecord<TRecord>()
+    {
+        _state.EnsureVersion(_version);
+
+        var cache = _state.MaterializerCache;
+
+        if (!cache.TryGetValue(typeof(TRecord), out object? cached))
+        {
+            cache[typeof(TRecord)] = cached = _state._options.GetMaterializer<T, TRecord>();
+        }
+
+        IMaterializer<T, TRecord> materializer = (IMaterializer<T, TRecord>)cached;
+        CsvEnumerationStateRef<T> state = _state.GetInitialStateFor(Data, _meta);
+
+        return materializer.Parse(ref state);
+    }
 
     private sealed class CsvRecordDebugView
     {

@@ -9,9 +9,9 @@ namespace FlameCsv.Tests.Readers;
 public static class EscapeModeTests
 {
     [Theory]
-    [InlineData("'test'", 2,0, "test")]
-    [InlineData("te^'st", 0,1, "te'st")]
-    [InlineData("te^^st", 0,1, "te^st")]
+    [InlineData("'test'", 2, 0, "test")]
+    [InlineData("te^'st", 0, 1, "te'st")]
+    [InlineData("te^^st", 0, 1, "te^st")]
     public static void Should_Unescape(string input, uint quoteCount, uint escapeCount, string expected)
     {
         Memory<char> buffer = new char[128];
@@ -30,13 +30,18 @@ public static class EscapeModeTests
     public static void Should_Read_Columns(string input, string[] expected)
     {
         var options = new CsvTextReaderOptions { Escape = '^', Quote = '\'' };
-        var state = new CsvEnumerationStateRef<char>(options, input.AsMemory());
-        List<string> actual = new();
 
-        while (EscapeMode<char>.TryGetField(ref state, out ReadOnlyMemory<char> field))
-            actual.Add(field.ToString());
+        char[]? buffer = null;
 
-        Assert.Equal(expected, actual);
+        using (CsvEnumerationStateRefLifetime<char>.Create(options, input.AsMemory(), ref buffer, out var state))
+        {
+            List<string> actual = new();
+
+            while (EscapeMode<char>.TryGetField(ref state, out ReadOnlyMemory<char> field))
+                actual.Add(field.ToString());
+
+            Assert.Equal(expected, actual);
+        }
     }
 
     [Fact]

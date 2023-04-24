@@ -92,11 +92,6 @@ public abstract partial class CsvReaderOptions<T> : ISealable
     public abstract string GetAsString(ReadOnlySpan<T> field);
 
     /// <summary>
-    /// Compares a value of the token type to a string using <see cref="Comparison"/>.
-    /// </summary>
-    public abstract bool SequenceEqual(ReadOnlySpan<char> text, ReadOnlySpan<T> field);
-
-    /// <summary>
     /// Overridden values that match to null when parsing <see cref="Nullable{T}"/> instead of the default, <see cref="Null"/>.
     /// </summary>
     /// <remarks>
