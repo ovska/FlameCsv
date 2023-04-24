@@ -36,6 +36,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     private bool _disposed;
 
     private Dictionary<Type, object>? _materializerCache;
+    private int? _validatedFieldCount;
 
     public CsvEnumerationState(CsvReaderOptions<T> options)
     {
@@ -148,6 +149,14 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
             ThrowHelper.ThrowInvalidOperationException("CSV header has already been read.");
 
         _header = header;
+
+        if (_options.ValidateFieldCount)
+        {
+            if (_validatedFieldCount.HasValue)
+                ThrowHelper.ThrowInvalidOperationException("Internal error: field count was set twice");
+
+            _validatedFieldCount = _header.Count;
+        }
     }
 
     private bool TryReadNextColumn()
@@ -157,6 +166,9 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
 
         if (_state.TryGetField(out ReadOnlyMemory<T> field))
         {
+            if (_index >= _validatedFieldCount)
+                ThrowHelper.ThrowInvalidDataException(); // TODO
+
             if (_index >= _values.Length)
                 Array.Resize(ref _values, _values.Length * 2);
 
@@ -165,6 +177,10 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
             TotalFieldLength += field.Length;
             return true;
         }
+
+        if (_validatedFieldCount.HasValue && _index != _validatedFieldCount.Value)
+            ThrowHelper.ThrowInvalidDataException(); // TODO
+            //ThrowHelper.ThrowCsvException("The CSV record has an invalid number of fields.", _state.Meta)
 
         return false;
     }

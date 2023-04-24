@@ -9,7 +9,10 @@ using FlameCsv.Runtime;
 
 namespace FlameCsv;
 
-/// <inheritdoc cref="ICsvRecord{T}"/>
+/// <summary>
+/// Represents the current record when reading CSV.
+/// </summary>
+/// <typeparam name="T">Token type</typeparam>
 [DebuggerTypeProxy(typeof(CsvValueRecord<>.CsvRecordDebugView))]
 [SuppressMessage(
     "Design",
