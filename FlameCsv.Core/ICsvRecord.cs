@@ -130,7 +130,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     private static PreservedValues Initialize(CsvValueRecord<T> record)
     {
         int count = 0;
-        nint totalLength = record.Data.Length;
+        int totalLength = record.Data.Length;
 
         foreach (var field in record)
         {
@@ -139,7 +139,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         }
 
         // split into separate arrays if the record is really big
-        if (totalLength >= Token<T>.LOHLimit)
+        if (Token<T>.LargeObjectHeapAllocates(totalLength))
         {
             var _values = new ReadOnlyMemory<T>[count];
             int _index = 0;
@@ -175,7 +175,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         in CsvDialect<T> dialect,
         bool recordPreserved)
     {
-        //if (record.Length < Token<T>.LOHLimit)
+        //if (!Token<T>.LargeObjectHeapAllocates(record.Length * 2))
         //{
         //    T[]? buffer = null;
         //    ArrayPool<T> arrayPool = options.ArrayPool.AllocatingIfNull();
