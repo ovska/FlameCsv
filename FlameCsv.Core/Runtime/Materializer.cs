@@ -51,10 +51,7 @@ internal abstract partial class Materializer<T> where T : unmanaged, IEquatable<
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    protected void ThrowParseFailed(
-        ref CsvEnumerationStateRef<T> state,
-        ReadOnlySpan<T> field,
-        ICsvParser<T> parser)
+    private void ThrowParseFailed(ref CsvEnumerationStateRef<T> state, ReadOnlySpan<T> field, ICsvParser<T> parser)
     {
         throw new CsvParseException(
             $"Failed to parse with {parser.GetType()} from {field.AsPrintableString(state.ExposeContent, state.Dialect)} "

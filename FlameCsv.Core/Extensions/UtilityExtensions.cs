@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Text;
 using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
@@ -8,6 +9,21 @@ namespace FlameCsv.Extensions;
 
 internal static class UtilityExtensions
 {
+    public static ReadOnlyMemory<T> SafeCopy<T>(this ReadOnlyMemory<T> data)
+    {
+        if (data.IsEmpty)
+            return data;
+
+        // strings are immutable and safe to return as-is
+        if (typeof(T) == typeof(char) &&
+            MemoryMarshal.TryGetString((ReadOnlyMemory<char>)(object)data, out _, out _, out _))
+        {
+            return data;
+        }
+
+        return data.ToArray();
+    }
+
     public static T CreateInstance<T>(this Type type, params object?[] parameters) where T : class
     {
         try

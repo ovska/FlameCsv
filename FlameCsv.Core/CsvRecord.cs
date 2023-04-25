@@ -1,7 +1,5 @@
 ﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 
@@ -27,12 +25,20 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
 
     public CsvRecord(CsvValueRecord<T> record)
     {
-        GuardEx.EnsureNotDefaultStruct(record._options);
+        Throw.IfDefaultStruct<CsvValueRecord<T>>(record._options);
 
         Options = record._options;
         Dialect = record.Dialect;
-        _header = record._state._header;
+        _header = record._state.Header;
         (Data, _values) = Initialize(record);
+
+        if (Options.ValidateFieldCount && (_values.Length != record._state._expectedFieldCount))
+        {
+            if (!record._state._expectedFieldCount.HasValue)
+                Throw.InvalidOp_DefaultStruct(record.GetType());
+
+            Throw.InvalidData_FieldCount(_values.Length, record._state._expectedFieldCount ?? -1);
+        }
     }
 
     public CsvRecord(ReadOnlyMemory<T> record, CsvReaderOptions<T> options)
@@ -50,18 +56,6 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
             false);
     }
 
-    public CsvRecord(ReadOnlySpan<T> record, CsvReaderOptions<T> options)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        options.MakeReadOnly();
-
-        CsvDialect<T> dialect = new(options);
-
-        Options = options;
-        Dialect = dialect;
-        (Data, _values) = InitializeFromValues(Preserve(record), options, in dialect, true);
-    }
-
     public TRecord ParseRecord<TRecord>()
     {
         throw new NotImplementedException();
@@ -71,7 +65,9 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
 
     public virtual ReadOnlyMemory<T> GetField(string name)
     {
-        EnsureHeader();
+        if (_header is null)
+            Throw.NotSupported_CsvHasNoHeader();
+        
         return _values.Span[_header[name]];
     }
 
@@ -117,18 +113,6 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         throw new NotImplementedException();
     }
 
-    /// <summary>
-    /// Throws an <see cref="NotSupportedException"/> if the record does not have a header.
-    /// </summary>
-    [MemberNotNull(nameof(_header))]
-    protected void EnsureHeader()
-    {
-        if (_header is null)
-        {
-            ThrowHelper.ThrowNotSupportedException("The current CSV does not have a header record.");
-        }
-    }
-
     private static PreservedValues Initialize(CsvValueRecord<T> record)
     {
         int count = 0;
@@ -147,9 +131,9 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
             int _index = 0;
 
             foreach (var field in record)
-                _values[_index++] = Preserve(field.Span);
+                _values[_index++] = field.SafeCopy();
 
-            return new PreservedValues(Preserve(record.Data.Span), _values);
+            return new PreservedValues(record.Data.SafeCopy(), _values);
         }
 
         var array = new T[totalLength];
@@ -229,25 +213,14 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
                     if (index >= values.Length)
                         Array.Resize(ref values, values.Length * 2);
 
-                    values[index++] = Preserve(state.ReadNextField().Span);
+                    values[index++] = state.ReadNextField().SafeCopy();
                 }
 
                 return new PreservedValues(
-                    recordPreserved ? record : Preserve(record.Span),
+                    recordPreserved ? record : record.SafeCopy(),
                     values.AsMemory(0, index));
             }
         }
-    }
-
-    private static ReadOnlyMemory<T> Preserve(ReadOnlySpan<T> other)
-    {
-        if (typeof(T) == typeof(char))
-        {
-            var str = other.ToString().AsMemory();
-            return Unsafe.As<ReadOnlyMemory<char>, ReadOnlyMemory<T>>(ref str);
-        }
-
-        return other.ToArray();
     }
 
     IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator()

@@ -2,7 +2,6 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Runtime;
@@ -26,7 +25,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
     public ReadOnlyMemory<T> Data { get; }
     public CsvDialect<T> Dialect => _state.Dialect;
 
-    public bool HasHeader => _state._header is not null;
+    public bool HasHeader => _state.Header is not null;
 
     public ReadOnlyMemory<T> this[int index] => GetField(index);
     public ReadOnlyMemory<T> this[string name] => GetField(name);
@@ -80,7 +79,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
 
         if (!_state.TryGetHeaderIndex(name, out int index))
         {
-            ThrowHeaderException(name);
+            Throw.Argument_HeaderNameNotFound(name, _options.AllowContentInExceptions, _state.Header.Keys);
         }
 
         return GetField(index);
@@ -94,7 +93,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
 
         if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> field))
         {
-            ThrowIndexException(index);
+            Throw.Argument_FieldIndex(index, _state);
         }
 
         return field;
@@ -166,7 +165,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
 
         if (!_state.TryGetHeaderIndex(name, out int index))
         {
-            ThrowHeaderException(name);
+            Throw.Argument_HeaderNameNotFound(name, _options.AllowContentInExceptions, _state.Header.Keys);
         }
 
         return GetField<TValue>(index);
@@ -179,62 +178,33 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
 
         if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> field))
         {
-            ThrowIndexException(index);
+            Throw.Argument_FieldIndex(index, _state);
         }
 
         var parser = _options.GetParser<TValue>();
 
         if (!parser.TryParse(field.Span, out var value))
         {
-            ThrowParseException(field.Span, typeof(TValue), parser);
+            Throw.ParseFailed<T, TValue>(field, parser, _state);
         }
 
         return value;
     }
 
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private void ThrowHeaderException(string name)
-    {
-        Debug.Assert(_state._header is not null);
-
-        string msg = _options.AllowContentInExceptions
-            ? $"Header \"{name}\" was not found among the CSV headers: {string.Join(", ", _state._header.Keys)}"
-            : "Header not found among the CSV headers.";
-
-        throw new ArgumentException(msg, nameof(name));
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private void ThrowIndexException(int index)
-    {
-        string? knownColumn;
-
-        try
-        {
-            knownColumn = $"(there were {_state.GetFieldCount()} columns in the record)";
-        }
-#pragma warning disable CA1031 // Do not catch general exception types
-        catch
-        {
-            knownColumn = "<could not get field count>";
-        }
-#pragma warning restore CA1031 // Do not catch general exception types
-
-        throw new ArgumentOutOfRangeException(
-            nameof(index),
-            $"Could not get column at index {index} {knownColumn}.");
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private void ThrowParseException(ReadOnlySpan<T> data, Type parsedType, object parser)
-    {
-        throw new CsvParseException(
-            $"Failed to parse {parsedType.FullName} using {parser.GetType().FullName} " +
-            $"from {data.AsPrintableString(_options.AllowContentInExceptions, _state.Dialect)}");
-    }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CsvFieldEnumerator<T> GetEnumerator() => new(value: Data, state: _state, meta: _meta);
+
+    public List<ReadOnlyMemory<T>> ToList()
+    {
+        List<ReadOnlyMemory<T>> list = new();
+
+        foreach (ReadOnlyMemory<T> field in this)
+        {
+            list.Add(field.SafeCopy());
+        }
+
+        return list;
+    }
 
     public TRecord ParseRecord<TRecord>()
     {
@@ -261,18 +231,8 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
 
         public int Line => _record.Line;
         public long Position => _record.Position;
-        public string[] Headers => _record._state._header?.Keys.ToArray() ?? Array.Empty<string>();
-        public ReadOnlyMemory<T>[] Fields
-        {
-            get
-            {
-                List<ReadOnlyMemory<T>> fields = new();
-                foreach (var field in _record)
-                    fields.Add(field);
-                return fields.ToArray();
-            }
-        }
-
+        public string[] Headers => _record._state.Header?.Keys.ToArray() ?? Array.Empty<string>();
+        public ReadOnlyMemory<T>[] Fields => _record.ToList().ToArray();
         public string[] FieldValues => Fields.Select(f => _record._options.GetAsString(f.Span)).ToArray();
     }
 
