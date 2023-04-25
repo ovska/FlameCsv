@@ -20,7 +20,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
 
     private readonly ArrayPool<T> _arrayPool;
     private T[]? _unescapeBuffer; // string unescaping
-    private T[]? _multisegmentBuffer; // long fragmented lines, see TryReadColumns
+    private T[]? _multisegmentBuffer; // long fragmented lines
 
     public CsvProcessor(
         CsvReaderOptions<T> options,

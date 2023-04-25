@@ -13,7 +13,7 @@ public sealed class CsvRecordEnumerator<T> : CsvEnumeratorBase<T> where T : unma
         _data = new ReadOnlySequence<T>(data);
     }
 
-    public CsvRecordEnumerator(ReadOnlySequence<T> data, CsvReaderOptions<T> options) : base(options)
+    public CsvRecordEnumerator(in ReadOnlySequence<T> data, CsvReaderOptions<T> options) : base(options)
     {
         _data = data;
     }
