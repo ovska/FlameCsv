@@ -23,13 +23,13 @@ public readonly struct CsvRecordAsyncEnumerable<T> where T : unmanaged, IEquatab
 
     public CsvRecordAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
-        GuardEx.EnsureNotDefaultStruct(_options);
+        Throw.IfDefaultStruct<CsvRecordAsyncEnumerable<T>>(_options);
         return new(_reader, _options, cancellationToken);
     }
 
     public IAsyncEnumerable<CsvRecord<T>> AsAsyncEnumerable()
     {
-        GuardEx.EnsureNotDefaultStruct(_options);
+        Throw.IfDefaultStruct<CsvRecordAsyncEnumerable<T>>(_options);
         return new CopyingRecordAsyncEnumerable<T>(this);
     }
 }

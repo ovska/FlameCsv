@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 
@@ -6,23 +8,10 @@ namespace FlameCsv.Extensions;
 internal static class GuardEx
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void IsDefined<TEnum>(TEnum value, [CallerArgumentExpression("value")] string name = "")
+    public static void IsDefined<TEnum>(TEnum value, [CallerArgumentExpression(nameof(value))] string name = "")
         where TEnum : struct, Enum
     {
         if (!Enum.IsDefined(value))
             ThrowHelper.ThrowArgumentOutOfRangeException(name, value, null);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void EnsureNotDefaultStruct(object? sentinel)
-    {
-        if (sentinel is null)
-            ThrowInvalidOp();
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        static void ThrowInvalidOp()
-        {
-            throw new InvalidOperationException("The struct was uninitialized.");
-        }
     }
 }

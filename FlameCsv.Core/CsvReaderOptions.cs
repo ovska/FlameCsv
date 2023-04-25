@@ -166,8 +166,11 @@ public abstract partial class CsvReaderOptions<T> : ISealable
     /// <summary>
     /// Whether to ensure that all records have the same number of fields. The first non-skipped row of the CSV
     /// is used as the source of truth for the record count, regardless of whether it was a header record or not.
-    /// Default is <see langword="false"/>.
+    /// Object parsing always validates the field count. Default is <see langword="false"/>.
     /// </summary>
+    /// <remarks>
+    /// Causes <see cref="CsvValueRecord{T}"/> instances to eagerly read the whole record when they are initialized.
+    /// </remarks>
     public bool ValidateFieldCount
     {
         get => _validateFieldCount;

@@ -20,7 +20,6 @@ public readonly struct CsvRecordEnumerable<T> where T : unmanaged, IEquatable<T>
     {
     }
 
-
     public CsvRecordEnumerable(ReadOnlySequence<T> data, CsvReaderOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -31,13 +30,13 @@ public readonly struct CsvRecordEnumerable<T> where T : unmanaged, IEquatable<T>
 
     public CsvRecordEnumerator<T> GetEnumerator()
     {
-        GuardEx.EnsureNotDefaultStruct(_options);
+        Throw.IfDefaultStruct<CsvRecordEnumerable<T>>(_options);
         return new(_data, _options);
     }
 
     public IEnumerable<CsvRecord<T>> AsEnumerable()
     {
-        GuardEx.EnsureNotDefaultStruct(_options);
+        Throw.IfDefaultStruct<CsvRecordEnumerable<T>>(_options);
         return new CopyingRecordEnumerable<T>(this);
     }
 }

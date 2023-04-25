@@ -1,6 +1,6 @@
 ﻿using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
@@ -12,7 +12,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     public bool NeedsHeader
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _hasHeader && _header is null;
+        get => _hasHeader && Header is null;
     }
 
     public Dictionary<Type, object> MaterializerCache => _materializerCache ??= new();
@@ -30,13 +30,13 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     private int _index; // how many values have been read
 
     private readonly bool _hasHeader;
-    internal Dictionary<string, int>? _header;
+    public Dictionary<string, int>? Header { get; set; }
 
     private CsvEnumerationStateRef<T> _state;
     private bool _disposed;
 
     private Dictionary<Type, object>? _materializerCache;
-    private int? _validatedFieldCount;
+    internal int? _expectedFieldCount;
 
     public CsvEnumerationState(CsvReaderOptions<T> options)
     {
@@ -53,19 +53,22 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Initialize(ReadOnlyMemory<T> memory, RecordMeta meta)
     {
-        if (_disposed)
-            ThrowHelper.ThrowObjectDisposedException(null, "The CSV enumeration has been disposed.");
+        Throw.IfEnumerationDisposed(_disposed);
 
         _index = 0;
         _values.AsSpan().Clear();
         _state = GetInitialStateFor(memory, meta);
-        return ++Version;
+        int newVersion = ++Version;
+
+        if (_options.ValidateFieldCount)
+            InitializeOrValidateFieldCount();
+
+        return newVersion;
     }
 
     public CsvEnumerationStateRef<T> GetInitialStateFor(ReadOnlyMemory<T> memory, RecordMeta? meta = null)
     {
-        if (_disposed)
-            ThrowHelper.ThrowObjectDisposedException(null, "The CSV enumeration has been disposed.");
+        Throw.IfEnumerationDisposed(_disposed);
 
         return new(
             dialect: in _dialect,
@@ -92,27 +95,25 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MemberNotNull(nameof(Header))]
     public bool TryGetHeaderIndex(string name, out int index)
     {
         ArgumentNullException.ThrowIfNull(name);
-
-        if (_disposed)
-            ThrowHelper.ThrowObjectDisposedException(null, "The CSV enumeration has been disposed.");
+        Throw.IfEnumerationDisposed(_disposed);
 
         if (!_hasHeader)
-            ThrowHelper.ThrowNotSupportedException("The current CSV does not have a header record.");
+            Throw.NotSupported_CsvHasNoHeader();
 
-        if (_header is null)
-            ThrowHelper.ThrowInvalidOperationException("CSV header has not been read.");
+        if (Header is null)
+            Throw.InvalidOperation_HeaderNotRead();
 
-        return _header.TryGetValue(name, out index);
+        return Header.TryGetValue(name, out index);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryGetAtIndex(int index, out ReadOnlyMemory<T> column)
     {
-        if (_disposed)
-            ThrowHelper.ThrowObjectDisposedException(null, "The CSV enumeration has been disposed.");
+        Throw.IfEnumerationDisposed(_disposed);
 
         while (_index <= index)
         {
@@ -139,36 +140,24 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetHeader(Dictionary<string, int> header)
     {
-        if (_disposed)
-            ThrowHelper.ThrowObjectDisposedException(null, "The CSV enumeration has been disposed.");
+        Throw.IfEnumerationDisposed(_disposed);
 
         if (!_hasHeader)
-            ThrowHelper.ThrowNotSupportedException("The current CSV does not have a header record.");
+            Throw.NotSupported_CsvHasNoHeader();
 
-        if (_header is not null)
-            ThrowHelper.ThrowInvalidOperationException("CSV header has already been read.");
+        if (Header is not null)
+            Throw.Unreachable_AlreadyHasHeader();
 
-        _header = header;
-
-        if (_options.ValidateFieldCount)
-        {
-            if (_validatedFieldCount.HasValue)
-                ThrowHelper.ThrowInvalidOperationException("Internal error: field count was set twice");
-
-            _validatedFieldCount = _header.Count;
-        }
+        Header = header;
+        _expectedFieldCount ??= Header.Count;
     }
 
     private bool TryReadNextColumn()
     {
-        if (_disposed)
-            ThrowHelper.ThrowObjectDisposedException(null, "The CSV enumeration has been disposed.");
+        Throw.IfEnumerationDisposed(_disposed);
 
         if (_state.TryGetField(out ReadOnlyMemory<T> field))
         {
-            if (_index >= _validatedFieldCount)
-                ThrowHelper.ThrowInvalidDataException(); // TODO
-
             if (_index >= _values.Length)
                 Array.Resize(ref _values, _values.Length * 2);
 
@@ -178,9 +167,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
             return true;
         }
 
-        if (_validatedFieldCount.HasValue && _index != _validatedFieldCount.Value)
-            ThrowHelper.ThrowInvalidDataException(); // TODO
-            //ThrowHelper.ThrowCsvException("The CSV record has an invalid number of fields.", _state.Meta)
+        //ThrowHelper.ThrowCsvException("The CSV record has an invalid number of fields.", _state.Meta)
 
         return false;
     }
@@ -188,11 +175,20 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void EnsureVersion(int version)
     {
-        if (_disposed)
-            ThrowHelper.ThrowObjectDisposedException(null, "The CSV enumeration has been disposed.");
+        Throw.IfEnumerationDisposed(_disposed);
+        Throw.IfEnumerationChanged(version, Version);
+    }
 
-        if (version != Version)
-            ThrowHelper.ThrowInvalidOperationException("The CSV enumeration state has been modified.");
+    private void InitializeOrValidateFieldCount()
+    {
+        while (TryReadNextColumn())
+        {
+        }
+
+        if (_index != (_expectedFieldCount ??= _index))
+            Throw.InvalidData_FieldCount(_expectedFieldCount.Value, _index);
+
+        _expectedFieldCount = _index;
     }
 }
 
