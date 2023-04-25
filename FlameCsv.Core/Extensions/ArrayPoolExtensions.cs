@@ -7,7 +7,8 @@ namespace FlameCsv.Extensions;
 
 internal static class ArrayPoolExtensions
 {
-    public static ReadOnlyMemory<T> AsMemory<T>(this ReadOnlySequence<T> sequence, ref T[]? array, ArrayPool<T> arrayPool)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ReadOnlyMemory<T> AsMemory<T>(in this ReadOnlySequence<T> sequence, ref T[]? array, ArrayPool<T> arrayPool)
     {
         if (sequence.IsSingleSegment)
             return sequence.First;

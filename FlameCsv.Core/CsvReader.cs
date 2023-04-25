@@ -218,11 +218,11 @@ public static class CsvReader
     /// <param name="csv"><inheritdoc cref="Enumerate(string?, CsvReaderOptions{char})" path="/param[@name='csv']"/></param>
     /// <param name="options"><inheritdoc cref="Enumerate(string?, CsvReaderOptions{char})" path="/param[@name='options']"/></param>
     public static CsvRecordEnumerable<T> Enumerate<T>(
-        ReadOnlySequence<T> csv,
+        in ReadOnlySequence<T> csv,
         CsvReaderOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
-        return new CsvRecordEnumerable<T>(csv, options);
+        return new CsvRecordEnumerable<T>(in csv, options);
     }
 
     /// <summary>
