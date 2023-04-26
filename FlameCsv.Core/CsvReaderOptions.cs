@@ -16,8 +16,7 @@ namespace FlameCsv;
 /// Represents a base class for configuration used to read and parse CSV data.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-public abstract partial class CsvReaderOptions<T> : ISealable
-    where T : unmanaged, IEquatable<T>
+public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
     /// Initializes an options-instance with default options and no parsers defined.
@@ -98,7 +97,7 @@ public abstract partial class CsvReaderOptions<T> : ISealable
     /// Modifying the collection after the options instance is used (<see cref="IsReadOnly"/> is <see langword="true"/>)
     /// results in an exception.
     /// </remarks>
-    public abstract ITypeMap<string?> NullTokens { get; }
+    public abstract IDictionary<Type, string?> NullTokens { get; }
 
     private StringComparison _stringComparison = StringComparison.OrdinalIgnoreCase;
     private CsvCallback<T, bool>? _shouldSkipRow;

@@ -107,7 +107,7 @@ public sealed class CsvUtf8ReaderOptions : CsvReaderOptions<byte>
         set => ((ICsvDialectOptions<byte>)this).Escape = value.HasValue ? CsvDialectStatic.AsByte(value.Value) : null;
     }
 
-    public override ITypeMap<string?> NullTokens => _nullTokens ??= new(this);
+    public override IDictionary<Type, string?> NullTokens => _nullTokens ??= new(this);
 
     /// <summary>
     /// Used by <see cref="IntegerUtf8Parser"/>. Default is <c>default(char)</c>.

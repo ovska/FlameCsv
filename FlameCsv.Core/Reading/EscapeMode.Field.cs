@@ -1,7 +1,5 @@
 ﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading;
 
@@ -30,12 +28,12 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
     public static ReadOnlyMemory<T> ReadNextField(ref CsvEnumerationStateRef<T> state)
     {
         Debug.Assert(!state.remaining.IsEmpty);
-        Debug.Assert(state.Dialect.Escape.HasValue);
+        Debug.Assert(state._context.dialect.Escape.HasValue);
 
         ReadOnlySpan<T> remaining = state.remaining.Span;
-        T delimiter = state.Dialect.Delimiter;
-        T quote = state.Dialect.Quote;
-        T escape = state.Dialect.Escape.Value;
+        T delimiter = state._context.dialect.Delimiter;
+        T quote = state._context.dialect.Quote;
+        T escape = state._context.dialect.Escape.Value;
 
         // If not the first column, validate that the first character is a delimiter
         if (!state.isAtStart)
@@ -43,7 +41,7 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
             // Since column count may not be known in advance, we leave the delimiter at the head after each column
             // so we can differentiate between an empty last column and end of the data in general
             if (!remaining[0].Equals(delimiter))
-                ThrowNoDelimiterAtHead(ref state);
+                state.ThrowNoDelimiterAtHead();
 
             state.remaining = state.remaining.Slice(1);
             remaining = remaining.Slice(1);
@@ -84,7 +82,7 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
                 escapesConsumed++;
 
                 if (++index >= remaining.Length)
-                    ThrowEscapeAtEnd(ref state);
+                    state.ThrowEscapeAtEnd();
 
                 // Move past the next character, break if it was the last one
                 if (++index >= remaining.Length)
@@ -123,24 +121,6 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
         return (quotesConsumed | escapesConsumed) != 0
             ? Unescape(field, quote, escape, quotesConsumed, escapesConsumed, ref state.buffer)
             : field;
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowEscapeAtEnd(ref CsvEnumerationStateRef<T> state)
-    {
-        throw new UnreachableException(
-            "The CSV record was in an invalid state (escape token was the final character), " +
-            $"Remaining: {state.remaining.Span.AsPrintableString(state.ExposeContent, state.Dialect)}, " +
-            $"Record: {state.remaining.Span.AsPrintableString(state.ExposeContent, state.Dialect)}");
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowNoDelimiterAtHead(ref CsvEnumerationStateRef<T> state)
-    {
-        throw new UnreachableException(
-            "The CSV record was in an invalid state (no delimiter at head after first column), " +
-            $"Remaining: {state.remaining.Span.AsPrintableString(state.ExposeContent, state.Dialect)}, " +
-            $"Record: {state.remaining.Span.AsPrintableString(state.ExposeContent, state.Dialect)}");
     }
 }
 

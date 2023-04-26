@@ -1,7 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using FlameCsv.Extensions;
 using CommunityToolkit.HighPerformance;
 
 namespace FlameCsv.Reading;
@@ -36,8 +34,8 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
         Debug.Assert(!state.remaining.IsEmpty);
 
         ReadOnlySpan<T> remaining = state.remaining.Span;
-        T delimiter = state.Dialect.Delimiter;
-        T quote = state.Dialect.Quote;
+        T delimiter = state._context.dialect.Delimiter;
+        T quote = state._context.dialect.Quote;
 
         // If not the first column, validate that the first character is a delimiter
         if (!state.isAtStart)
@@ -45,7 +43,7 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
             // Since column count may not be known in advance, we leave the delimiter at the head after each column
             // so we can differentiate between an empty last column and end of the data in general
             if (!remaining[0].Equals(delimiter))
-                ThrowNoDelimiterAtHead(ref state);
+                state.ThrowNoDelimiterAtHead();
 
             state.remaining = state.remaining.Slice(1);
             remaining = remaining.Slice(1);
@@ -102,14 +100,5 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
         return quotesConsumed != 0
             ? Unescape(field, quote, quotesConsumed, ref state.buffer)
             : field;
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowNoDelimiterAtHead(ref CsvEnumerationStateRef<T> state)
-    {
-        throw new UnreachableException(
-            "The CSV record was in an invalid state (no delimiter at head after first column), " +
-            $"Remaining: {state.remaining.Span.AsPrintableString(state.ExposeContent, state.Dialect)}, " +
-            $"Record: {state.remaining.Span.AsPrintableString(state.ExposeContent, state.Dialect)}");
     }
 }

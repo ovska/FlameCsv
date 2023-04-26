@@ -1,4 +1,5 @@
-﻿using FlameCsv.Reading;
+﻿using FlameCsv.Extensions;
+using FlameCsv.Reading;
 
 namespace FlameCsv;
 
@@ -21,6 +22,7 @@ internal sealed class CsvValueAsyncEnumerable<T, TValue, TReader> : IAsyncEnumer
 
         if (_options.HasHeader)
         {
+            // TODO!!!!
             return new CsvValueAsyncEnumerator<T, TValue, TReader, CsvHeaderProcessor<T, TValue>>(
                 _reader,
                 new CsvHeaderProcessor<T, TValue>(_options),
@@ -28,9 +30,11 @@ internal sealed class CsvValueAsyncEnumerable<T, TValue, TReader> : IAsyncEnumer
         }
         else
         {
+            CsvReadingContext<T> context = new(_options);
+
             return new CsvValueAsyncEnumerator<T, TValue, TReader, CsvProcessor<T, TValue>>(
                 _reader,
-                new CsvProcessor<T, TValue>(_options),
+                new CsvProcessor<T, TValue>(in context, _options.GetMaterializer<T, TValue>()),
                 cancellationToken);
         }
     }

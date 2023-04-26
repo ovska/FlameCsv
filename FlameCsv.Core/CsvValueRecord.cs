@@ -13,17 +13,27 @@ namespace FlameCsv;
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 [DebuggerTypeProxy(typeof(CsvValueRecord<>.CsvRecordDebugView))]
-[SuppressMessage(
-    "Design",
-    "CA1001:Types that own disposable fields should be disposable",
-    Justification = "CsvValueRecord<T> is only intended to be used directly in a foreach loop, "
-        + "and has runtime guards against using it after the enumeration has continued/completed.")]
 public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
 {
     public long Position { get; }
     public int Line { get; }
-    public ReadOnlyMemory<T> Data { get; }
-    public CsvDialect<T> Dialect => _state.Dialect;
+
+    public ReadOnlyMemory<T> RawRecord
+    {
+        get
+        {
+            _state.EnsureVersion(_version);
+            return _record;
+        }
+    }
+    public CsvDialect<T> Dialect
+    {
+        get
+        {
+            _state.EnsureVersion(_version);
+            return _state.Dialect;
+        }
+    }
 
     public bool HasHeader => _state.Header is not null;
 
@@ -36,22 +46,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
     internal readonly CsvReaderOptions<T> _options;
     internal readonly int _version;
     internal readonly RecordMeta _meta;
-
-    public CsvValueRecord(
-        ReadOnlyMemory<T> data,
-        CsvReaderOptions<T> options)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        options.MakeReadOnly();
-
-        Position = 0;
-        Line = 1;
-        Data = data;
-        _options = options;
-        _state = new CsvEnumerationState<T>(options);
-        _meta = _state.Dialect.GetRecordMeta(data, options.AllowContentInExceptions);
-        _version = _state.Initialize(data, _meta);
-    }
+    private readonly ReadOnlyMemory<T> _record;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvValueRecord(
@@ -64,7 +59,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
     {
         Position = position;
         Line = line;
-        Data = data;
+        _record = data;
         _options = options;
         _state = state;
         _meta = meta;
@@ -185,14 +180,15 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
 
         if (!parser.TryParse(field.Span, out var value))
         {
-            Throw.ParseFailed<T, TValue>(field, parser, _state);
+            throw new UnreachableException(); // TODO
+            //Throw.ParseFailed<T, TValue>(field, parser, _state);
         }
 
         return value;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public CsvFieldEnumerator<T> GetEnumerator() => new(value: Data, state: _state, meta: _meta);
+    public CsvFieldEnumerator<T> GetEnumerator() => new(value: RawRecord, state: _state, meta: _meta);
 
     public List<ReadOnlyMemory<T>> ToList()
     {
@@ -214,11 +210,11 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
 
         if (!cache.TryGetValue(typeof(TRecord), out object? cached))
         {
-            cache[typeof(TRecord)] = cached = _state._options.GetMaterializer<T, TRecord>();
+            cache[typeof(TRecord)] = cached = _options.GetMaterializer<T, TRecord>();
         }
 
         IMaterializer<T, TRecord> materializer = (IMaterializer<T, TRecord>)cached;
-        CsvEnumerationStateRef<T> state = _state.GetInitialStateFor(Data, _meta);
+        CsvEnumerationStateRef<T> state = _state.GetInitialStateFor(RawRecord, _meta);
 
         return materializer.Parse(ref state);
     }

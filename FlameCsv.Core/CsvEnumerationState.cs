@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
@@ -12,24 +11,21 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     public bool NeedsHeader
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _hasHeader && Header is null;
+        get => _context.hasHeader && Header is null;
     }
 
     public Dictionary<Type, object> MaterializerCache => _materializerCache ??= new();
 
     public int Version { get; private set; }
     public int TotalFieldLength { get; private set; }
-    public CsvDialect<T> Dialect => _dialect;
+    public CsvDialect<T> Dialect => _context.dialect;
 
-    internal readonly CsvReaderOptions<T> _options;
-    private readonly CsvDialect<T> _dialect;
-    private readonly ArrayPool<T> _arrayPool; // pool used for unescape buffer
+    private readonly CsvReadingContext<T> _context;
     private T[]? _unescapeBuffer; // rented array for unescaping
 
     private ReadOnlyMemory<T>[] _values; // cached column values by index
     private int _index; // how many values have been read
 
-    private readonly bool _hasHeader;
     public Dictionary<string, int>? Header { get; set; }
 
     private CsvEnumerationStateRef<T> _state;
@@ -38,16 +34,10 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     private Dictionary<Type, object>? _materializerCache;
     internal int? _expectedFieldCount;
 
-    public CsvEnumerationState(CsvReaderOptions<T> options)
+    public CsvEnumerationState(in CsvReadingContext<T> context)
     {
-        ArgumentNullException.ThrowIfNull(options);
-        options.MakeReadOnly();
-
-        _options = options;
-        _dialect = new CsvDialect<T>(options);
+        _context = context;
         _values = new ReadOnlyMemory<T>[32];
-        _arrayPool = options.ArrayPool.AllocatingIfNull();
-        _hasHeader = options.HasHeader;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -60,8 +50,8 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
         _state = GetInitialStateFor(memory, meta);
         int newVersion = ++Version;
 
-        if (_options.ValidateFieldCount)
-            InitializeOrValidateFieldCount();
+        if (_context.validateFieldCount)
+            ValidateFieldCountForCurrent();
 
         return newVersion;
     }
@@ -70,15 +60,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     {
         Throw.IfEnumerationDisposed(_disposed);
 
-        return new(
-            dialect: in _dialect,
-            record: memory,
-            remaining: memory,
-            isAtStart: true,
-            meta: meta ?? _dialect.GetRecordMeta(memory, _options.AllowContentInExceptions),
-            array: ref _unescapeBuffer,
-            arrayPool: _arrayPool,
-            exposeContent: _options.AllowContentInExceptions);
+        return new CsvEnumerationStateRef<T>(in _context, memory, ref _unescapeBuffer, meta);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -91,7 +73,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
         Version = -1;
         _values = default!;
         _state = default;
-        _arrayPool.EnsureReturned(ref _unescapeBuffer);
+        _context.arrayPool.EnsureReturned(ref _unescapeBuffer);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -101,7 +83,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
         ArgumentNullException.ThrowIfNull(name);
         Throw.IfEnumerationDisposed(_disposed);
 
-        if (!_hasHeader)
+        if (!_context.hasHeader)
             Throw.NotSupported_CsvHasNoHeader();
 
         if (Header is null)
@@ -142,7 +124,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     {
         Throw.IfEnumerationDisposed(_disposed);
 
-        if (!_hasHeader)
+        if (!_context.hasHeader)
             Throw.NotSupported_CsvHasNoHeader();
 
         if (Header is not null)
@@ -156,7 +138,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     {
         Throw.IfEnumerationDisposed(_disposed);
 
-        if (_state.TryGetField(out ReadOnlyMemory<T> field))
+        if (_context.TryGetField(ref _state, out ReadOnlyMemory<T> field))
         {
             if (_index >= _values.Length)
                 Array.Resize(ref _values, _values.Length * 2);
@@ -179,7 +161,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
         Throw.IfEnumerationChanged(version, Version);
     }
 
-    private void InitializeOrValidateFieldCount()
+    private void ValidateFieldCountForCurrent()
     {
         while (TryReadNextColumn())
         {

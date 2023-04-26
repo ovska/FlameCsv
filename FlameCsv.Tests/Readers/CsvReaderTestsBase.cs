@@ -205,7 +205,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
             Assert.Equal(hasHeader ? index + 1 : index, record.Line);
             Assert.Equal(tokenPosition, record.Position);
 
-            tokenPosition += record.Data.Length + record.Dialect.Newline.Length;
+            tokenPosition += record.RawRecord.Length + record.Dialect.Newline.Length;
 
             items.Add(
                 new Obj

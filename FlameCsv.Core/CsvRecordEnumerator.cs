@@ -28,9 +28,8 @@ public sealed class CsvRecordEnumerator<T> : CsvEnumeratorBase<T> where T : unma
         }
 
         // reached end of data
-        Position += Current.Data.Length;
-        Current = default;
-
+        Position += _current.RawRecord.Length;
+        _current = default;
         return false;
     }
 }

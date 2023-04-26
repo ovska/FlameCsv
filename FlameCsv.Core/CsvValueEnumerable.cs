@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Collections;
+using FlameCsv.Extensions;
 using FlameCsv.Reading;
 
 namespace FlameCsv;
@@ -36,7 +37,7 @@ public sealed class CsvValueEnumerable<T, TValue> : IEnumerable<TValue>
         {
             return new CsvValueEnumerator<T, TValue, CsvProcessor<T, TValue>>(
                 Data,
-                new CsvProcessor<T, TValue>(Options));
+                new CsvProcessor<T, TValue>(new CsvReadingContext<T>(Options), Options.GetMaterializer<T, TValue>()));
         }
     }
 

@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
-using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Parsers;
 using FlameCsv.Reading;
@@ -30,7 +29,7 @@ internal abstract partial class Materializer<T> where T : unmanaged, IEquatable<
     {
         if (!state.remaining.IsEmpty)
         {
-            ReadOnlySpan<T> field = state.ReadNextField().Span;
+            ReadOnlySpan<T> field = state._context.ReadNextField(ref state).Span;
 
             if (parser.TryParse(field, out TValue? value))
                 return value;
@@ -45,18 +44,13 @@ internal abstract partial class Materializer<T> where T : unmanaged, IEquatable<
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private void ThrowRecordEndedPrematurely(ref CsvEnumerationStateRef<T> state)
     {
-        throw new CsvFormatException(
-            $"Expected the record to have {FieldCount} fields when parsing {RecordType}, but it ended prematurely. " +
-            $"Record: {state.Record.Span.AsPrintableString(state.ExposeContent, state.Dialect)}");
+        state.ThrowRecordEndedPrematurely(FieldCount, RecordType);
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private void ThrowParseFailed(ref CsvEnumerationStateRef<T> state, ReadOnlySpan<T> field, ICsvParser<T> parser)
+    private static void ThrowParseFailed(ref CsvEnumerationStateRef<T> state, ReadOnlySpan<T> field, ICsvParser<T> parser)
     {
-        throw new CsvParseException(
-            $"Failed to parse with {parser.GetType()} from {field.AsPrintableString(state.ExposeContent, state.Dialect)} "
-            + $"in {GetType().ToTypeString()}.")
-        { Parser = parser };
+        state.ThrowParseFailed(field, parser);
     }
 
     public override string ToString()

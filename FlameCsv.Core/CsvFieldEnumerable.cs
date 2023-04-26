@@ -27,9 +27,14 @@ public readonly struct CsvFieldEnumerable<T> where T : unmanaged, IEquatable<T>
 
     public CsvFieldEnumerator<T> GetEnumerator()
     {
-        return _state is null
-            ? new(_record, _options)
-            : new(_record, _state, _state.Dialect.GetRecordMeta(_record, _options.AllowContentInExceptions));
+        if (_state is null)
+        {
+            return new(_record, new CsvReadingContext<T>(_options));
+        }
+        else
+        {
+            return new(_record, _state);
+        }
     }
 
     /// <summary>
