@@ -12,29 +12,27 @@ public struct CsvFieldEnumerator<T> : IDisposable where T : unmanaged, IEquatabl
     private readonly ArrayPool<T>? _arrayPool;
     private T[]? _toReturn;
 
-    private CsvEnumerationStateRef<T> _state;
+    private readonly CsvReadingContext<T> _context;
     private readonly CsvEnumerationState<T>? _source;
     private readonly int _version;
 
-    internal CsvFieldEnumerator(ReadOnlyMemory<T> value, CsvReaderOptions<T> options)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        options.MakeReadOnly();
+    private CsvEnumerationStateRef<T> _state;
 
-        var dialect = new CsvDialect<T>(options);
-        _arrayPool = options.ArrayPool.AllocatingIfNull();
-        _state = new CsvEnumerationStateRef<T>(
-            dialect: in dialect,
-            record: value,
-            remaining: value,
-            isAtStart: true,
-            meta: dialect.GetRecordMeta(value, options.AllowContentInExceptions),
-            array: ref _toReturn,
-            arrayPool: _arrayPool,
-            exposeContent: options.AllowContentInExceptions);
+    internal CsvFieldEnumerator(ReadOnlyMemory<T> value, CsvReaderOptions<T> options)
+        : this(value, new CsvReadingContext<T>(options))
+    {
     }
 
-    internal CsvFieldEnumerator(ReadOnlyMemory<T> value, CsvEnumerationState<T> state, RecordMeta meta)
+    internal CsvFieldEnumerator(ReadOnlyMemory<T> value, in CsvReadingContext<T> context)
+    {
+        Throw.IfDefaultStruct<CsvFieldEnumerator<T>>(context.arrayPool);
+
+        _context = context;
+        _arrayPool = context.arrayPool;
+        _state = new CsvEnumerationStateRef<T>(in context, value, ref _toReturn);
+    }
+
+    internal CsvFieldEnumerator(ReadOnlyMemory<T> value, CsvEnumerationState<T> state, RecordMeta? meta = null)
     {
         _source = state;
         _version = state.Version;
@@ -46,7 +44,7 @@ public struct CsvFieldEnumerator<T> : IDisposable where T : unmanaged, IEquatabl
     {
         _source?.EnsureVersion(_version);
 
-        if (_state.TryGetField(out ReadOnlyMemory<T> field))
+        if (_context.TryGetField(ref _state, out ReadOnlyMemory<T> field))
         {
             Current = field;
             return true;

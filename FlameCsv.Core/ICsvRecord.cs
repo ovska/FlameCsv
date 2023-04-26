@@ -46,7 +46,7 @@ public interface ICsvRecord<T> where T : unmanaged, IEquatable<T>
     /// Reference to the data must not be held onto after the next record has been read.
     /// If the data is needed later, copy the data into a separate array.
     /// </remarks>
-    ReadOnlyMemory<T> Data { get; }
+    ReadOnlyMemory<T> RawRecord { get; }
 
     /// <summary>
     /// Returns the value of the field at the specified index.

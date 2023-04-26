@@ -123,7 +123,7 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
         set => ((ICsvDialectOptions<char>)this).Escape = value;
     }
 
-    public override ITypeMap<string?> NullTokens => _nullTokens ??= new(this);
+    public override IDictionary<Type, string?> NullTokens => _nullTokens ??= new(this);
 
     /// <summary>
     /// String pool to use by default for all strings. If set, <see cref="PoolingStringTextParser"/> is used

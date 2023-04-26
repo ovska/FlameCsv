@@ -12,27 +12,16 @@ namespace FlameCsv.Reading;
 internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     where T : unmanaged, IEquatable<T>
 {
-    private readonly CsvDialect<T> _dialect;
-    private readonly CsvCallback<T, bool>? _skipPredicate;
-    private readonly CsvExceptionHandler<T>? _exceptionHandler;
+    private readonly CsvReadingContext<T> _context;
     private readonly IMaterializer<T, TValue> _materializer;
-    private readonly bool _exposeContent;
 
-    private readonly ArrayPool<T> _arrayPool;
     private T[]? _unescapeBuffer; // string unescaping
     private T[]? _multisegmentBuffer; // long fragmented lines
 
-    public CsvProcessor(
-        CsvReaderOptions<T> options,
-        IMaterializer<T, TValue>? materializer = null)
+    public CsvProcessor(in CsvReadingContext<T> context, IMaterializer<T, TValue> materializer)
     {
-        _dialect = new CsvDialect<T>(options);
-        _skipPredicate = options.ShouldSkipRow;
-        _exceptionHandler = options.ExceptionHandler;
-        _arrayPool = options.ArrayPool.AllocatingIfNull();
-        _exposeContent = options.AllowContentInExceptions;
-
-        _materializer = materializer ?? options.GetMaterializer<T, TValue>();
+        _context = context;
+        _materializer = materializer;
 
         // Two buffers are needed, as the span being manipulated by string escaping in the enumerator
         // might originate from the multisegment buffer
@@ -44,36 +33,27 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     public bool TryRead(ref ReadOnlySequence<T> buffer, out TValue value, bool isFinalBlock)
     {
         ReadNextRecord:
-        if (!_dialect.TryGetLine(ref buffer, out ReadOnlySequence<T> lineSeq, out RecordMeta meta, isFinalBlock))
+        if (!_context.TryGetLine(ref buffer, out ReadOnlySequence<T> lineSeq, out RecordMeta meta, isFinalBlock))
         {
             Unsafe.SkipInit(out value);
             return false;
         }
 
-        // TODO: unify with other recordmeta throws
+        ReadOnlyMemory<T> line = lineSeq.AsMemory(ref _multisegmentBuffer, _context.arrayPool);
+
         if (meta.quoteCount % 2 != 0)
         {
-            ThrowInvalidStringDelimiterException(in lineSeq);
+            _context.ThrowForUnevenQuotes(line);
         }
 
-        ReadOnlyMemory<T> line = lineSeq.AsMemory(ref _multisegmentBuffer, _arrayPool);
-
-        if (_skipPredicate?.Invoke(line, in _dialect) ?? false)
+        if (_context.SkipRecord(line))
         {
             goto ReadNextRecord;
         }
 
         try
         {
-            CsvEnumerationStateRef<T> state = new(
-                dialect: in _dialect,
-                record: line,
-                remaining: line,
-                isAtStart: true,
-                meta: meta,
-                array: ref _unescapeBuffer,
-                arrayPool: _arrayPool,
-                exposeContent: _exposeContent);
+            CsvEnumerationStateRef<T> state = new(in _context, line, ref _unescapeBuffer, meta);
 
             value = _materializer.Parse(ref state);
             return true;
@@ -86,7 +66,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
                 ThrowInvalidFormatException(ex, line);
             }
 
-            if ((_exceptionHandler?.Invoke(line, ex)) ?? false)
+            if (_context.ExceptionIsHandled(line, ex))
             {
                 goto ReadNextRecord;
             }
@@ -101,23 +81,13 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         ReadOnlyMemory<T> line)
     {
         throw new CsvFormatException(
-            $"The CSV was in an invalid format: {line.Span.AsPrintableString(_exposeContent, in _dialect)}",
+            $"The CSV was in an invalid format: {_context.AsPrintableString(line)}",
             innerException);
-    }
-
-    [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private readonly void ThrowInvalidStringDelimiterException(in ReadOnlySequence<T> line)
-    {
-        using var view = new SequenceView<T>(in line, _arrayPool);
-
-        throw new CsvFormatException(
-            "The data ended while there was a dangling string delimiter: " +
-            view.Span.AsPrintableString(_exposeContent, in _dialect));
     }
 
     public void Dispose()
     {
-        _arrayPool.EnsureReturned(ref _unescapeBuffer);
-        _arrayPool.EnsureReturned(ref _multisegmentBuffer);
+        _context.arrayPool.EnsureReturned(ref _unescapeBuffer);
+        _context.arrayPool.EnsureReturned(ref _multisegmentBuffer);
     }
 }

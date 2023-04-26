@@ -2,14 +2,42 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Text;
 using CommunityToolkit.HighPerformance;
+using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Exceptions;
+using FlameCsv.Extensions;
 using FlameCsv.Reading;
 
-namespace FlameCsv.Extensions;
+namespace FlameCsv;
 
-internal static class ReadingExtensions
+internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
 {
+    public readonly CsvDialect<T> dialect;
+    public readonly ArrayPool<T> arrayPool;
+    public readonly bool hasHeader;
+    public readonly bool exposeContent;
+    public readonly bool validateFieldCount;
+    private readonly CsvCallback<T, bool>? _skipCallback;
+    private readonly CsvExceptionHandler<T>? _exceptionHandler;
+
+    public CsvReadingContext(CsvReaderOptions<T> options)
+    {
+        dialect = new CsvDialect<T>(options);
+        arrayPool = options.ArrayPool.AllocatingIfNull();
+        hasHeader = options.HasHeader;
+        exposeContent = options.AllowContentInExceptions;
+        validateFieldCount = options.ValidateFieldCount;
+        _skipCallback = options.ShouldSkipRow;
+        _exceptionHandler = options.ExceptionHandler;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool SkipRecord(ReadOnlyMemory<T> value) => _skipCallback?.Invoke(value, in dialect) ?? false;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool ExceptionIsHandled(ReadOnlyMemory<T> value, Exception exception) => (_exceptionHandler?.Invoke(value, exception)) ?? false;
+
     /// <summary>
     /// Seeks the sequence for a <see cref="CsvDialect{T}.Newline"/>.
     /// </summary>
@@ -33,13 +61,11 @@ internal static class ReadingExtensions
     /// </returns>
     /// <remarks>A successful result might still be invalid CSV.</remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryGetLine<T>(
-        this in CsvDialect<T> dialect,
+    public bool TryGetLine(
         ref ReadOnlySequence<T> sequence,
         out ReadOnlySequence<T> line,
         out RecordMeta meta,
         bool isFinalBlock)
-        where T : unmanaged, IEquatable<T>
     {
         if (!isFinalBlock)
         {
@@ -51,7 +77,7 @@ internal static class ReadingExtensions
         if (!sequence.IsEmpty)
         {
             line = sequence;
-            meta = dialect.GetRecordMeta(in sequence, exposeContent: false);
+            meta = GetRecordMeta(in sequence);
             sequence = default;
             return true;
         }
@@ -62,30 +88,24 @@ internal static class ReadingExtensions
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryGetField<T>(this ref CsvEnumerationStateRef<T> state, out ReadOnlyMemory<T> line)
-        where T : unmanaged, IEquatable<T>
+    public bool TryGetField(ref CsvEnumerationStateRef<T> state, out ReadOnlyMemory<T> line)
     {
-        return !state.Dialect.Escape.HasValue
+        return !dialect.Escape.HasValue
             ? RFC4180Mode<T>.TryGetField(ref state, out line)
             : EscapeMode<T>.TryGetField(ref state, out line);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ReadOnlyMemory<T> ReadNextField<T>(this ref CsvEnumerationStateRef<T> state)
-        where T : unmanaged, IEquatable<T>
+    public ReadOnlyMemory<T> ReadNextField(ref CsvEnumerationStateRef<T> state)
     {
         Debug.Assert(!state.remaining.IsEmpty);
-        return !state.Dialect.Escape.HasValue
+        return !dialect.Escape.HasValue
             ? RFC4180Mode<T>.ReadNextField(ref state)
             : EscapeMode<T>.ReadNextField(ref state);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static RecordMeta GetRecordMeta<T>(
-        this in CsvDialect<T> dialect,
-        ReadOnlyMemory<T> memory,
-        bool exposeContent)
-        where T : unmanaged, IEquatable<T>
+    public RecordMeta GetRecordMeta(ReadOnlyMemory<T> memory)
     {
         RecordMeta meta = default;
 
@@ -94,33 +114,29 @@ internal static class ReadingExtensions
             meta.quoteCount = (uint)memory.Span.Count(dialect.Quote);
 
             if (meta.quoteCount % 2 != 0)
-                ThrowForUnevenQuotes(in dialect, memory, exposeContent);
+                ThrowForUnevenQuotes(memory);
         }
         else
         {
             bool skipNext = false;
 
-            CountTokensEscape(memory.Span, in dialect, ref meta, ref skipNext);
+            CountTokensEscape(memory.Span, ref meta, ref skipNext);
 
             if (skipNext)
-                ThrowForInvalidLastEscape(in dialect, memory, exposeContent);
+                ThrowForInvalidLastEscape(memory);
 
             if (meta.quoteCount == 1)
-                ThrowForInvalidEscapeQuotes(in dialect, memory, exposeContent);
+                ThrowForInvalidEscapeQuotes(memory);
         }
 
         return meta;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static RecordMeta GetRecordMeta<T>(
-        this in CsvDialect<T> dialect,
-        in ReadOnlySequence<T> sequence,
-        bool exposeContent)
-        where T : unmanaged, IEquatable<T>
+    public RecordMeta GetRecordMeta(in ReadOnlySequence<T> sequence)
     {
         if (sequence.IsSingleSegment)
-            return GetRecordMeta(in dialect, sequence.First, exposeContent);
+            return GetRecordMeta(sequence.First);
 
         RecordMeta meta = default;
 
@@ -132,7 +148,7 @@ internal static class ReadingExtensions
             }
 
             if (meta.quoteCount % 2 != 0)
-                ThrowForUnevenQuotes(in dialect, in sequence, exposeContent);
+                ThrowForUnevenQuotes(in sequence);
 
             return meta;
         }
@@ -142,24 +158,22 @@ internal static class ReadingExtensions
         foreach (var segment in sequence)
         {
             if (!segment.IsEmpty)
-                CountTokensEscape(segment.Span, in dialect, ref meta, ref skipNext);
+                CountTokensEscape(segment.Span, ref meta, ref skipNext);
         }
 
         if (skipNext)
-            ThrowForInvalidLastEscape(in dialect, in sequence, exposeContent);
+            ThrowForInvalidLastEscape(in sequence);
 
         if (meta.quoteCount == 1)
-            ThrowForInvalidEscapeQuotes(in dialect, in sequence, exposeContent);
+            ThrowForInvalidEscapeQuotes(in sequence);
 
         return meta;
     }
 
-    private static void CountTokensEscape<T>(
+    private void CountTokensEscape(
         ReadOnlySpan<T> span,
-        in CsvDialect<T> dialect,
         ref RecordMeta meta,
         ref bool skipNext)
-        where T : unmanaged, IEquatable<T>
     {
         T quote = dialect.Quote;
         T escape = dialect.Escape.GetValueOrDefault();
@@ -193,50 +207,102 @@ internal static class ReadingExtensions
         }
     }
 
+
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowForInvalidLastEscape<T>(in CsvDialect<T> dialect, in ReadOnlySequence<T> line, bool exposeContent)
-        where T : unmanaged, IEquatable<T>
+    private void ThrowForInvalidLastEscape(in ReadOnlySequence<T> line)
     {
         using SequenceView<T> view = new(in line, ArrayPool<T>.Shared, clearArray: true);
-        ThrowForInvalidLastEscape(in dialect, view.Memory, exposeContent);
+        ThrowForInvalidLastEscape(view.Memory);
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowForInvalidLastEscape<T>(in CsvDialect<T> dialect, ReadOnlyMemory<T> line, bool exposeContent)
-        where T : unmanaged, IEquatable<T>
+    private void ThrowForInvalidLastEscape(ReadOnlyMemory<T> line)
     {
         throw new CsvFormatException(
-            $"The final entry ended on a escape character: {line.Span.AsPrintableString(exposeContent, in dialect)}");
+            $"The final entry ended on a escape character: {AsPrintableString(line)}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowForInvalidEscapeQuotes<T>(in CsvDialect<T> dialect, in ReadOnlySequence<T> line, bool exposeContent)
-        where T : unmanaged, IEquatable<T>
+    private void ThrowForInvalidEscapeQuotes(in ReadOnlySequence<T> line)
     {
         using SequenceView<T> view = new(in line, ArrayPool<T>.Shared, clearArray: true);
-        ThrowForInvalidEscapeQuotes(in dialect, view.Memory, exposeContent);
+        ThrowForInvalidEscapeQuotes(view.Memory);
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowForInvalidEscapeQuotes<T>(in CsvDialect<T> dialect, ReadOnlyMemory<T> line, bool exposeContent)
-        where T : unmanaged, IEquatable<T>
+    private void ThrowForInvalidEscapeQuotes(ReadOnlyMemory<T> line)
     {
         throw new CsvFormatException(
-            $"The entry had an invalid amount of quotes for escaped CSV: {line.Span.AsPrintableString(exposeContent, in dialect)}");
+            $"The entry had an invalid amount of quotes for escaped CSV: {AsPrintableString(line)}");
     }
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowForUnevenQuotes<T>(in CsvDialect<T> dialect, in ReadOnlySequence<T> line, bool exposeContent)
-        where T : unmanaged, IEquatable<T>
+    private void ThrowForUnevenQuotes(in ReadOnlySequence<T> line)
     {
         using SequenceView<T> view = new(in line, ArrayPool<T>.Shared, clearArray: true);
-        ThrowForUnevenQuotes(in dialect, view.Memory, exposeContent);
+        ThrowForUnevenQuotes(view.Memory);
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowForUnevenQuotes<T>(in CsvDialect<T> dialect, ReadOnlyMemory<T> line, bool exposeContent)
-        where T : unmanaged, IEquatable<T>
+    public void ThrowForUnevenQuotes(ReadOnlyMemory<T> line)
     {
         throw new ArgumentException(
-            $"The data had an uneven amount of quotes : {line.Span.AsPrintableString(exposeContent, in dialect)}");
+            $"The data had an uneven amount of quotes: {AsPrintableString(line)}");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public string AsPrintableString(ReadOnlyMemory<T> value) => AsPrintableString(value.Span);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public string AsPrintableString(ReadOnlySpan<T> value)
+    {
+        string? content =
+            !exposeContent ? null :
+            typeof(T) == typeof(char) ? value.ToString() :
+            typeof(T) == typeof(byte) ? Encoding.UTF8.GetString(value.Cast<T, byte>()) :
+            null;
+
+        using var memoryOwner = MemoryOwner<T>.Allocate(value.Length);
+        value.CopyTo(memoryOwner.Span);
+
+        string structure = string.Create(
+            value.Length,
+            (dialect, memoryOwner.Memory),
+            static (destination, state) =>
+            {
+                (CsvDialect<T> dialect, ReadOnlyMemory<T> memory) = state;
+                var source = memory.Span;
+
+                var newline = dialect.Newline.Span;
+
+                destination.Fill('x');
+
+                for (int i = 0; i < destination.Length; i++)
+                {
+                    T token = source[i];
+
+                    if (token.Equals(dialect.Delimiter))
+                    {
+                        destination[i] = ',';
+                    }
+                    else if (token.Equals(dialect.Quote))
+                    {
+                        destination[i] = '"';
+                    }
+                    else if (dialect.Escape.HasValue && token.Equals(dialect.Escape.Value))
+                    {
+                        destination[i] = 'E';
+                    }
+                    else if (newline.Contains(token))
+                    {
+                        destination[i] = 'N';
+                    }
+                }
+            });
+
+        if (content is null)
+            return $"Data structure: [{structure}]";
+
+        return $"Content: [{content}], data structure: [{structure}]";
     }
 }
+

@@ -11,12 +11,14 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     where T : unmanaged, IEquatable<T>
 {
     private readonly CsvReaderOptions<T> _options;
+    private readonly CsvReadingContext<T> _context;
 
     private CsvProcessor<T, TValue>? _inner;
 
     public CsvHeaderProcessor(CsvReaderOptions<T> options)
     {
         _options = options;
+        _context = new CsvReadingContext<T>(options);
         _inner = default;
     }
 
@@ -35,7 +37,7 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     [MethodImpl(MethodImplOptions.NoInlining)] // encourage inlining more common paths
     private bool ParseHeaderAndTryRead(ref ReadOnlySequence<T> buffer, out TValue value, bool isFinalBlock)
     {
-        if (new CsvDialect<T>(_options).TryGetLine(ref buffer, out var line, out _, isFinalBlock))
+        if (_context.TryGetLine(ref buffer, out var line, out _, isFinalBlock))
         {
             ReadHeader(in line);
 
@@ -59,11 +61,11 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
         CsvBindingCollection<TValue> bindings;
         T[]? buffer = null;
 
-        using (CsvEnumerationStateRefLifetime<T>.Create(_options, view.Memory, ref buffer, out var state))
+        using (CsvEnumerationStateRefLifetime<T>.Create(in _context, view.Memory, ref buffer, out var state))
         {
             List<string> values = new(16);
 
-            while (state.TryGetField(out ReadOnlyMemory<T> field))
+            while (_context.TryGetField(ref state, out ReadOnlyMemory<T> field))
             {
                 values.Add(_options.GetAsString(field.Span));
             }
@@ -72,14 +74,14 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
         }
 
         var materializer = _options.CreateMaterializerFrom(bindings);
-        _inner = new CsvProcessor<T, TValue>(_options, materializer);
+        _inner = new CsvProcessor<T, TValue>(in _context, materializer);
     }
 
     public void Dispose()
     {
         if (_inner.HasValue)
         {
-            _inner.Value.Dispose();
+            _inner.DangerousGetValueOrDefaultReference().Dispose();
         }
     }
 }

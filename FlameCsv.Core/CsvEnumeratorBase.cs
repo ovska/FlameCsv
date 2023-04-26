@@ -16,25 +16,28 @@ namespace FlameCsv;
 /// This class is not thread-safe, and should not be used concurrently.<br/>
 /// The enumerator should always be disposed after use, either explicitly or using <c>foreach</c>.
 /// </remarks>
+[System.Diagnostics.CodeAnalysis.SuppressMessage(
+    "Design",
+    "CA1051:Do not declare visible instance fields",
+    Justification = "The constructor is internal so this type cannot be inherited outside the library")]
 public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IEquatable<T>
 {
-    public CsvDialect<T> Dialect => _dialect;
-    public CsvValueRecord<T> Current { get; protected set; }
+    public CsvValueRecord<T> Current => _current._options is not null ? _current : ThrowInvalidCurrentAccess();
+
     public int Line { get; protected set; }
     public long Position { get; protected set; }
 
-    protected CsvReaderOptions<T> Options => _options;
-
     private readonly CsvReaderOptions<T> _options;
-    private readonly CsvDialect<T> _dialect;
+    private readonly CsvReadingContext<T> _context;
     private readonly CsvEnumerationState<T> _state;
-    private readonly ArrayPool<T> _arrayPool;
-    private readonly CsvCallback<T, bool>? _shouldSkipRow;
-    private T[]? _multisegmentBuffer;
 
-#pragma warning disable CA1051 // Do not declare visible instance fields
+    private readonly int _newlineLength;
+
+    private T[]? _multisegmentBuffer; // rented array for multi-segmented lines
+
+    protected CsvValueRecord<T> _current;
+
     protected internal bool _disposed;
-#pragma warning restore CA1051 // Do not declare visible instance fields
 
     protected internal CsvEnumeratorBase(CsvReaderOptions<T> options)
     {
@@ -43,10 +46,10 @@ public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IE
         options.MakeReadOnly();
 
         _options = options;
-        _dialect = new CsvDialect<T>(options);
-        _state = new CsvEnumerationState<T>(options);
-        _arrayPool = options.ArrayPool.AllocatingIfNull();
-        _shouldSkipRow = options.ShouldSkipRow;
+        _context = new CsvReadingContext<T>(options);
+        _state = new CsvEnumerationState<T>(in _context);
+
+        _newlineLength = options._newline.Length;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -56,16 +59,16 @@ public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IE
             ThrowHelper.ThrowObjectDisposedException(GetType().Name);
 
         Retry:
-        if (_dialect.TryGetLine(ref data, out ReadOnlySequence<T> line, out RecordMeta meta, isFinalBlock))
+        if (_context.TryGetLine(ref data, out ReadOnlySequence<T> line, out RecordMeta meta, isFinalBlock))
         {
-            ReadOnlyMemory<T> memory = line.AsMemory(ref _multisegmentBuffer, _arrayPool);
+            ReadOnlyMemory<T> memory = line.AsMemory(ref _multisegmentBuffer, _context.arrayPool);
 
             long oldPosition = Position;
 
-            Position += memory.Length + _dialect.Newline.Length * (!isFinalBlock).ToByte();
+            Position += memory.Length + _newlineLength * (!isFinalBlock).ToByte();
             Line++;
 
-            if (_shouldSkipRow?.Invoke(memory, in _dialect) ?? false)
+            if (_context.SkipRecord(memory))
             {
                 goto Retry;
             }
@@ -78,7 +81,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IE
                 goto Retry;
             }
 
-            Current = record;
+            _current = record;
             return true;
         }
 
@@ -100,7 +103,8 @@ public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IE
 
         if (disposing)
         {
-            _arrayPool.EnsureReturned(ref _multisegmentBuffer);
+            _current = default;
+            _context.arrayPool.EnsureReturned(ref _multisegmentBuffer);
             _state.Dispose();
         }
     }
@@ -126,16 +130,17 @@ public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IE
         return dictionary;
     }
 
+    private CsvValueRecord<T> ThrowInvalidCurrentAccess()
+    {
+        if (_disposed)
+            Throw.ObjectDisposed_Enumeration();
+
+        throw new InvalidOperationException("Current was accessed before the enumeration started.");
+    }
+
     private void ThrowExceptionForDuplicateHeaderField(string field, CsvValueRecord<T> record)
     {
-        if (_options.AllowContentInExceptions)
-        {
-            throw new CsvFormatException(
-                $"Duplicate header field \"{field}\" in CSV: {record.Data.Span.AsPrintableString(true, record.Dialect)}");
-        }
-        else
-        {
-            throw new CsvFormatException("Duplicate header field in CSV.");
-        }
+        throw new CsvFormatException(
+            $"Duplicate header field \"{field}\" in CSV: {_context.AsPrintableString(record.RawRecord)}");
     }
 }

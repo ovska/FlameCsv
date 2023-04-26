@@ -74,8 +74,8 @@ public sealed class CsvRecordAsyncEnumerator<T> : CsvEnumeratorBase<T>, IAsyncDi
             }
 
             // reached end of data
-            Position += Current.Data.Length;
-            Current = default;
+            Position += _current.RawRecord.Length;
+            _current = default;
         }
 
         return false;

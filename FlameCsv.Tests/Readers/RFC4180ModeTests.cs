@@ -3,6 +3,7 @@ using System.Diagnostics;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Tests.Utilities;
+using FlameCsv.Utilities;
 
 namespace FlameCsv.Tests.Readers;
 
@@ -205,22 +206,22 @@ public static class RFC4180ModeTests
     [InlineData("A,\"B\",C,D,\"E\"")]
     public static void Should_Enumerate_Columns(string line)
     {
+        using var pool = new ReturnTrackingArrayPool<char>();
+        var options = new CsvTextReaderOptions
+        {
+            Newline = "|",
+            ArrayPool = pool,
+            AllowContentInExceptions = true,
+        };
+
         var expected = line.Split(',').Select(s => s.Trim('"'));
 
         var list = new List<string>();
-        var dialect = CsvDialect<char>.Default with { Newline = "|".AsMemory() };
+        var context = new CsvReadingContext<char>(options);
 
         char[]? buffer = null;
 
-        CsvEnumerationStateRef<char> state = new(
-            dialect: in dialect,
-            record: line.AsMemory(),
-            remaining: line.AsMemory(),
-            isAtStart: true,
-            meta: dialect.GetRecordMeta(line.AsMemory(), true),
-            array: ref buffer,
-            arrayPool: AllocatingArrayPool<char>.Instance,
-            exposeContent: true);
+        CsvEnumerationStateRef<char> state = new(in context, line.AsMemory(), ref buffer);
 
         while (RFC4180Mode<char>.TryGetField(ref state, out ReadOnlyMemory<char> field))
         {
@@ -228,30 +229,32 @@ public static class RFC4180ModeTests
         }
 
         Assert.Equal(expected, list);
+
+        state._context.arrayPool.EnsureReturned(ref buffer);
     }
 
     [Fact]
     public static void Should_Enumerate_With_Comma2()
     {
-        var dialect = CsvDialect<char>.Default with { Newline = "|".AsMemory() };
+        using var pool = new ReturnTrackingArrayPool<char>();
+        var options = new CsvTextReaderOptions
+        {
+            Newline = "|",
+            ArrayPool = pool,
+            AllowContentInExceptions = true,
+        };
 
-        var data = new[] { dialect.Delimiter, dialect.Newline.Span[0] }.GetPermutations();
+        var data = new[] { options.Delimiter, options.Newline[0] }.GetPermutations();
         char[]? buffer = null;
+
+        var context = new CsvReadingContext<char>(options);
 
         foreach (var chars in data)
         {
             var input = new string(chars.ToArray());
             var line = $"\"{input}\",test";
 
-            CsvEnumerationStateRef<char> state = new(
-                dialect: in dialect,
-                record: line.AsMemory(),
-                remaining: line.AsMemory(),
-                isAtStart: true,
-                meta: dialect.GetRecordMeta(line.AsMemory(), true),
-                array: ref buffer,
-                arrayPool: AllocatingArrayPool<char>.Instance,
-                exposeContent: true);
+            CsvEnumerationStateRef<char> state = new(in context, line.AsMemory(), ref buffer);
 
             var list = new List<string>();
 
@@ -264,5 +267,7 @@ public static class RFC4180ModeTests
             Assert.Equal(input, list[0]);
             Assert.Equal("test", list[1]);
         }
+
+        context.arrayPool.EnsureReturned(ref buffer);
     }
 }

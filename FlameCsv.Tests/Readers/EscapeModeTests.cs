@@ -3,6 +3,7 @@ using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Tests.Utilities;
+using FlameCsv.Utilities;
 
 namespace FlameCsv.Tests.Readers;
 
@@ -29,11 +30,20 @@ public static class EscapeModeTests
     [InlineData("^,", new[] { "," })]
     public static void Should_Read_Columns(string input, string[] expected)
     {
-        var options = new CsvTextReaderOptions { Escape = '^', Quote = '\'' };
+        using var pool = new ReturnTrackingArrayPool<char>();
+        var options = new CsvTextReaderOptions
+        {
+            Escape = '^',
+            Quote = '\'',
+            AllowContentInExceptions = true,
+            ArrayPool = pool,
+        };
+
+        var context = new CsvReadingContext<char>(options);
 
         char[]? buffer = null;
 
-        using (CsvEnumerationStateRefLifetime<char>.Create(options, input.AsMemory(), ref buffer, out var state))
+        using (CsvEnumerationStateRefLifetime<char>.Create(in context, input.AsMemory(), ref buffer, out var state))
         {
             List<string> actual = new();
 
@@ -161,35 +171,36 @@ public static class EscapeModeTests
         string fullLine,
         string noNewline)
     {
+        using var pool = new ReturnTrackingArrayPool<char>();
+        var options = new CsvTextReaderOptions
+        {
+            Escape = '^',
+            Quote = '\'',
+            AllowContentInExceptions = true,
+            ArrayPool = pool,
+        };
+        var context = new CsvReadingContext<char>(options);
+
         var originalData = MemorySegment<char>.AsSequence(fullLine.AsMemory(), segmentSize, emptyFrequency);
         var originalWithoutNewline = MemorySegment<char>.AsSequence(noNewline.AsMemory(), segmentSize, emptyFrequency);
 
         string data = originalData.ToString();
         var seq = originalData;
-        var dialect = CsvDialect<char>.Default with { Escape = '^', Quote = '\'' };
 
         string withoutNewline = originalWithoutNewline.ToString();
 
-        Assert.True(EscapeMode<char>.TryGetLine(in dialect, ref seq, out var line, out var meta));
+        Assert.True(context.TryGetLine(ref seq, out var line, out var meta, false));
         Assert.Equal(0, seq.Length);
         Assert.Equal(withoutNewline, line.ToString());
-        Assert.Equal(
-            data.Replace("^'", "").Count(dialect.Quote),
-            (int)meta.quoteCount);
-        Assert.Equal(
-            data.Replace("^^", "^").Count(dialect.Escape.Value),
-            (int)meta.escapeCount);
+        Assert.Equal(data.Replace("^'", "").Count('\''), (int)meta.quoteCount);
+        Assert.Equal(data.Replace("^^", "^").Count('^'), (int)meta.escapeCount);
 
         seq = originalWithoutNewline;
-        Assert.True(dialect.TryGetLine(ref seq, out line, out meta, true));
+        Assert.True(context.TryGetLine(ref seq, out line, out meta, true));
         Assert.Equal(0, seq.Length);
         Assert.Equal(withoutNewline, line.ToString());
-        Assert.Equal(
-            data.Replace("^'", "").Count(dialect.Quote),
-            (int)meta.quoteCount);
-        Assert.Equal(
-            data.Replace("^^", "^").Count(dialect.Escape.Value),
-            (int)meta.escapeCount);
+        Assert.Equal(data.Replace("^'", "").Count('\''), (int)meta.quoteCount);
+        Assert.Equal(data.Replace("^^", "^").Count('^'), (int)meta.escapeCount);
     }
 
     public static IEnumerable<object[]> GetEscapeTestData()
