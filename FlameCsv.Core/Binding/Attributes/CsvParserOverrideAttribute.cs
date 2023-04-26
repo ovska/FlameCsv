@@ -76,6 +76,21 @@ public class CsvParserOverrideAttribute : Attribute
             }
         }
 
+        foreach (var existing in options.EnumerateBuiltinParsers())
+        {
+            if (existing.GetType() == ParserType)
+            {
+                if (!existing.CanParse(targetType))
+                {
+                    throw new CsvConfigurationException(
+                        $"Existing instance of parser override for {ParserType.ToTypeString()} "
+                        + $"could not parse target member type {targetType.ToTypeString()}");
+                }
+
+                return existing.GetParserOrFromFactory(targetType, options);
+            }
+        }
+
         ICsvParser<T> parserOrFactory;
 
         try

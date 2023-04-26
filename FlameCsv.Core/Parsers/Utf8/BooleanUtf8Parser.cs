@@ -1,13 +1,14 @@
 using System.Buffers.Text;
 using System.Diagnostics;
 using System.Text;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Parsers.Utf8;
 
 /// <summary>
 /// Parser for booleans.
 /// </summary>
-public sealed class BooleanUtf8Parser : ParserBase<byte, bool>
+public sealed class BooleanUtf8Parser : ParserBase<byte, bool>, ICsvParserFactory<byte>
 {
     private readonly (ReadOnlyMemory<byte> bytes, bool value)[]? _values;
 
@@ -57,5 +58,15 @@ public sealed class BooleanUtf8Parser : ParserBase<byte, bool>
         }
 
         return value = false;
+    }
+
+    ICsvParser<byte> ICsvParserFactory<byte>.Create(Type resultType, CsvReaderOptions<byte> options)
+    {
+        var o = GuardEx.IsType<CsvUtf8ReaderOptions>(options);
+
+        if (o.BooleanValues is { Count: > 0 } values)
+            return new BooleanUtf8Parser(values);
+
+        return this;
     }
 }

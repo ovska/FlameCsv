@@ -1,3 +1,6 @@
+using CommunityToolkit.HighPerformance.Buffers;
+using FlameCsv.Extensions;
+
 namespace FlameCsv.Parsers.Text;
 
 /// <summary>
@@ -7,7 +10,8 @@ public sealed class StringTextParser :
     ICsvParser<char, string?>,
     ICsvParser<char, char[]>,
     ICsvParser<char, Memory<char>>,
-    ICsvParser<char, ReadOnlyMemory<char>>
+    ICsvParser<char, ReadOnlyMemory<char>>,
+    ICsvParserFactory<char>
 {
     /// <summary>
     /// Whether empty strings are returned as null.
@@ -56,10 +60,20 @@ public sealed class StringTextParser :
             || resultType == typeof(ReadOnlyMemory<char>);
     }
 
-    public static StringTextParser Instance { get; } = new();
-
-    internal static StringTextParser GetOrCreate(bool readEmptyAsNull)
+    ICsvParser<char> ICsvParserFactory<char>.Create(Type resultType, CsvReaderOptions<char> options)
     {
-        return !readEmptyAsNull ? Instance : new(readEmptyAsNull);
+        var o = GuardEx.IsType<CsvTextReaderOptions>(options);
+
+        if (o.StringPool is not null)
+        {
+            if (o.StringPool == StringPool.Shared && !o.ReadEmptyStringsAsNull)
+            {
+                return PoolingStringTextParser.Instance;
+            }
+
+            return new PoolingStringTextParser(o.StringPool, o.ReadEmptyStringsAsNull);
+        }
+
+        return o.ReadEmptyStringsAsNull ? new StringTextParser(true) : this;
     }
 }

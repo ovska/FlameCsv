@@ -1,4 +1,5 @@
 using System.Globalization;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Parsers.Text;
 
@@ -17,7 +18,8 @@ public sealed class IntegerTextParser :
     ICsvParser<char, long>,
     ICsvParser<char, ulong>,
     ICsvParser<char, nint>,
-    ICsvParser<char, nuint>
+    ICsvParser<char, nuint>,
+    ICsvParserFactory<char>
 {
     /// <summary>
     /// Number styles passed to <c>TryParse</c>.
@@ -142,5 +144,15 @@ public sealed class IntegerTextParser :
             return Instance;
 
         return new(formatProvider, styles);
+    }
+
+    ICsvParser<char> ICsvParserFactory<char>.Create(Type resultType, CsvReaderOptions<char> options)
+    {
+        var o = GuardEx.IsType<CsvTextReaderOptions>(options);
+
+        if (o.IntegerNumberStyles == NumberStyles.Integer && o.FormatProvider == CultureInfo.InvariantCulture)
+            return this;
+
+        return new IntegerTextParser(o.FormatProvider, o.IntegerNumberStyles);
     }
 }

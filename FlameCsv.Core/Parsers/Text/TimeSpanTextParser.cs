@@ -1,8 +1,9 @@
 using System.Globalization;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Parsers.Text;
 
-public sealed class TimeSpanTextParser : ParserBase<char, TimeSpan>
+public sealed class TimeSpanTextParser : ParserBase<char, TimeSpan>, ICsvParserFactory<char>
 {
     public string? Format { get; }
     public IFormatProvider? FormatProvider { get; }
@@ -33,17 +34,13 @@ public sealed class TimeSpanTextParser : ParserBase<char, TimeSpan>
             : TimeSpan.TryParseExact(span, Format, FormatProvider, out value);
     }
 
-    /// <summary>Thread-safe singleton instance initialized to default values.</summary>
-    public static TimeSpanTextParser Instance { get; } = new TimeSpanTextParser();
-
-    internal static TimeSpanTextParser GetOrCreate(
-        string? format,
-        TimeSpanStyles styles,
-        IFormatProvider? formatProvider)
+    ICsvParser<char> ICsvParserFactory<char>.Create(Type resultType, CsvReaderOptions<char> options)
     {
-        if (format is null && styles == TimeSpanStyles.None && formatProvider == CultureInfo.InvariantCulture)
-            return Instance;
+        var o = GuardEx.IsType<CsvTextReaderOptions>(options);
 
-        return new(format, styles, formatProvider);
+        if (o.TimeSpanFormat == null && o.TimeSpanStyles == TimeSpanStyles.None && o.FormatProvider == CultureInfo.InvariantCulture)
+            return this;
+
+        return new TimeSpanTextParser(o.TimeSpanFormat, o.TimeSpanStyles, o.FormatProvider);
     }
 }

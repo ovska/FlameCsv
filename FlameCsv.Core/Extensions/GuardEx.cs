@@ -1,5 +1,3 @@
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 
@@ -13,5 +11,11 @@ internal static class GuardEx
     {
         if (!Enum.IsDefined(value))
             ThrowHelper.ThrowArgumentOutOfRangeException(name, value, null);
+    }
+
+    public static T IsType<T>(object value, [CallerArgumentExpression(nameof(value))] string name = "")
+    {
+        Guard.IsAssignableToType<T>(value, name);
+        return (T)value;
     }
 }

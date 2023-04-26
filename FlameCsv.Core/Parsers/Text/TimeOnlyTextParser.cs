@@ -1,8 +1,9 @@
 using System.Globalization;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Parsers.Text;
 
-public sealed class TimeOnlyTextParser : ParserBase<char, TimeOnly>
+public sealed class TimeOnlyTextParser : ParserBase<char, TimeOnly>, ICsvParserFactory<char>
 {
     public string? Format { get; }
     public DateTimeStyles Styles { get; }
@@ -45,5 +46,15 @@ public sealed class TimeOnlyTextParser : ParserBase<char, TimeOnly>
             return Instance;
 
         return new(format, styles, formatProvider);
+    }
+
+    ICsvParser<char> ICsvParserFactory<char>.Create(Type resultType, CsvReaderOptions<char> options)
+    {
+        var o = GuardEx.IsType<CsvTextReaderOptions>(options);
+
+        if (o.TimeOnlyFormat == null && o.DateTimeStyles == DateTimeStyles.None && o.FormatProvider == CultureInfo.InvariantCulture)
+            return this;
+
+        return new TimeOnlyTextParser(o.TimeOnlyFormat, o.DateTimeStyles, o.FormatProvider);
     }
 }

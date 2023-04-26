@@ -19,7 +19,6 @@ internal static class InfrastructureExtensions
         if (targetType.IsGenericTypeDefinition)
             throw new ArgumentException($"Cannot create a parser for generic type {targetType.ToTypeString()}");
 
-
         return factory.Create(targetType, readerOptions)
             ?? throw new InvalidOperationException(
                 $"Factory {factory.GetType().ToTypeString()} returned null " +

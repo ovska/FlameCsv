@@ -50,4 +50,30 @@ public static class ParserOverrideTests
         Assert.Equal(8042.15, objs2[0].Dollars);
         Assert.Equal(123.45, objs2[1].Dollars);
     }
+
+    [Fact]
+    public static void Should_Pool_Strings()
+    {
+        const string data = "A,B,C\nx,x,x";
+        var options = new CsvTextReaderOptions
+        {
+            HasHeader = true,
+            Newline = "\n",
+        };
+
+        var objs = CsvReader.Read<Pooler>(data, options).ToList();
+        Assert.Single(objs);
+        Assert.Equal(objs[0].A, objs[0].B);
+        Assert.Equal(objs[0].A, objs[0].C);
+        Assert.NotSame(objs[0].A, objs[0].B);
+        Assert.NotSame(objs[0].A, objs[0].C);
+        Assert.Same(objs[0].B, objs[0].C);
+    }
+
+    private class Pooler
+    {
+        public string? A { get; set; }
+        [UseStringPooling] public string? B { get; set; }
+        [UseStringPooling] public string? C { get; set; }
+    }
 }

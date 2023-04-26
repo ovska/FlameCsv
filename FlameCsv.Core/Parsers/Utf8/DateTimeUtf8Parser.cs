@@ -1,10 +1,12 @@
 using System.Buffers.Text;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Parsers.Utf8;
 
 public sealed class DateTimeUtf8Parser :
     ICsvParser<byte, DateTime>,
-    ICsvParser<byte, DateTimeOffset>
+    ICsvParser<byte, DateTimeOffset>,
+    ICsvParserFactory<byte>
 {
     public char StandardFormat { get; }
 
@@ -29,5 +31,11 @@ public sealed class DateTimeUtf8Parser :
     public bool CanParse(Type resultType)
     {
         return resultType == typeof(DateTime) || resultType == typeof(DateTimeOffset);
+    }
+
+    ICsvParser<byte> ICsvParserFactory<byte>.Create(Type resultType, CsvReaderOptions<byte> options)
+    {
+        var o = GuardEx.IsType<CsvUtf8ReaderOptions>(options);
+        return o.DateTimeFormat == default ? this : new DateTimeUtf8Parser(o.DateTimeFormat);
     }
 }

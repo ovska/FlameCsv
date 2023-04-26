@@ -41,6 +41,13 @@ public class CsvReaderOptionsTests
     }
 
     [Fact]
+    public void Should_Not_Use_Builtin_Parsers()
+    {
+        var options = new CsvTextReaderOptions { UseDefaultParsers = false };
+        Assert.Null(options.TryGetParser<int>());
+    }
+
+    [Fact]
     public void Should_Return_Text_Defaults()
     {
         var options = CsvTextReaderOptions.Default;

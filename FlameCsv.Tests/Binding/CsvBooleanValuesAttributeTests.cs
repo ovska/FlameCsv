@@ -16,6 +16,7 @@ public static class CsvBooleanValuesAttributeTests
         public override string GetAsString(ReadOnlySpan<int> field) => throw new NotImplementedException();
         public override IHeaderBinder<int> GetHeaderBinder() => throw new NotImplementedException();
         public override ReadOnlyMemory<int> GetNullToken(Type resultType) => throw new NotImplementedException();
+        protected override ReadOnlySpan<ICsvParserFactory<int>> GetDefaultParsers() => throw new NotImplementedException();
     }
 
     public static IEnumerable<object?[]> NonNullableTestData()

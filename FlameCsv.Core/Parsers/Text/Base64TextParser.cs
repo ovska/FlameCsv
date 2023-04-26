@@ -10,12 +10,13 @@ public sealed class Base64TextParser :
     ICsvParser<char, byte[]>,
     ICsvParser<char, ArraySegment<byte>>,
     ICsvParser<char, Memory<byte>>,
-    ICsvParser<char, ReadOnlyMemory<byte>>
+    ICsvParser<char, ReadOnlyMemory<byte>>,
+    ICsvParserFactory<char>
 {
-    /// <summary>
-    /// A thread-safe singleton instance of <see cref="Base64TextParser"/>.
-    /// </summary>
-    public static Base64TextParser Instance { get; } = new();
+    ICsvParser<char> ICsvParserFactory<char>.Create(Type resultType, CsvReaderOptions<char> options)
+    {
+        return this;
+    }
 
     /// <inheritdoc/>
     public bool TryParse(ReadOnlySpan<char> span, out byte[] value)

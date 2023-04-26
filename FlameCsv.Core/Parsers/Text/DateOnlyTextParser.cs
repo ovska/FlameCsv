@@ -1,11 +1,12 @@
 using System.Globalization;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Parsers.Text;
 
 /// <summary>
 /// Parser for <see cref="DateOnly"/>.
 /// </summary>
-public sealed class DateOnlyTextParser : ParserBase<char, DateOnly>
+public sealed class DateOnlyTextParser : ParserBase<char, DateOnly>, ICsvParserFactory<char>
 {
     /// <summary>
     /// Format used.
@@ -47,17 +48,13 @@ public sealed class DateOnlyTextParser : ParserBase<char, DateOnly>
             : DateOnly.TryParseExact(span, Format, FormatProvider, Styles, out value);
     }
 
-    /// <summary>Thread-safe singleton instance initialized to default values.</summary>
-    public static DateOnlyTextParser Instance { get; } = new DateOnlyTextParser();
-
-    internal static DateOnlyTextParser GetOrCreate(
-        string? format,
-        DateTimeStyles styles,
-        IFormatProvider? formatProvider)
+    ICsvParser<char> ICsvParserFactory<char>.Create(Type resultType, CsvReaderOptions<char> options)
     {
-        if (format is null && styles == DateTimeStyles.None && formatProvider == CultureInfo.InvariantCulture)
-            return Instance;
+        var o = GuardEx.IsType<CsvTextReaderOptions>(options);
 
-        return new(format, styles, formatProvider);
+        if (o.DateTimeFormat == null && o.DateTimeStyles == DateTimeStyles.None && o.FormatProvider == CultureInfo.InvariantCulture)
+            return this;
+
+        return new DateOnlyTextParser(o.DateTimeFormat, o.DateTimeStyles, o.FormatProvider);
     }
 }
