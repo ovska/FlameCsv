@@ -1,4 +1,5 @@
 using System.Buffers.Text;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Parsers.Utf8;
 
@@ -6,7 +7,8 @@ public sealed class DecimalUtf8Parser :
     ICsvParser<byte, double>,
     ICsvParser<byte, float>,
     ICsvParser<byte, Half>,
-    ICsvParser<byte, decimal>
+    ICsvParser<byte, decimal>,
+    ICsvParserFactory<byte>
 {
     /// <summary>
     /// Format parameter passed to <see cref="Utf8Parser"/>.
@@ -54,5 +56,11 @@ public sealed class DecimalUtf8Parser :
             || resultType == typeof(float)
             || resultType == typeof(Half)
             || resultType == typeof(decimal);
+    }
+
+    ICsvParser<byte> ICsvParserFactory<byte>.Create(Type resultType, CsvReaderOptions<byte> options)
+    {
+        var o = GuardEx.IsType<CsvUtf8ReaderOptions>(options);
+        return o.DecimalFormat == default ? this : new DecimalUtf8Parser(o.DecimalFormat);
     }
 }

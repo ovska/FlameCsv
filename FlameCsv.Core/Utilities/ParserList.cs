@@ -1,22 +1,23 @@
 ﻿using System.Collections;
 using CommunityToolkit.HighPerformance;
+using FlameCsv.Parsers;
 
 namespace FlameCsv.Utilities;
 
-internal sealed class SealableList<T> : IList<T>
+internal sealed class ParserList<T> : IList<ICsvParser<T>> where T : unmanaged, IEquatable<T>
 {
     private readonly ISealable _owner;
-    private readonly List<T> _list;
+    private readonly List<ICsvParser<T>> _list;
 
-    public ReadOnlySpan<T> Span => _list.AsSpan();
+    public ReadOnlySpan<ICsvParser<T>> Span => _list.AsSpan();
 
-    public SealableList(ISealable owner, IEnumerable<T>? defaultValues)
+    public ParserList(CsvReaderOptions<T> owner, IEnumerable<ICsvParser<T>>? defaultValues)
     {
         _owner = owner;
-        _list = defaultValues is null ? new List<T>() : new List<T>(defaultValues);
+        _list = defaultValues is null ? new List<ICsvParser<T>>() : new List<ICsvParser<T>>(defaultValues);
     }
 
-    public T this[int index]
+    public ICsvParser<T> this[int index]
     {
         get => _list[index];
         set
@@ -30,7 +31,7 @@ internal sealed class SealableList<T> : IList<T>
     public int Count => _list.Count;
     public bool IsReadOnly => _owner.IsReadOnly;
 
-    public void Add(T item)
+    public void Add(ICsvParser<T> item)
     {
         ArgumentNullException.ThrowIfNull(item);
         _owner.ThrowIfReadOnly();
@@ -43,23 +44,23 @@ internal sealed class SealableList<T> : IList<T>
         _list.Clear();
     }
 
-    public bool Contains(T item) => _list.Contains(item);
+    public bool Contains(ICsvParser<T> item) => _list.Contains(item);
 
-    public void CopyTo(T[] array, int arrayIndex) => _list.CopyTo(array, arrayIndex);
+    public void CopyTo(ICsvParser<T>[] array, int arrayIndex) => _list.CopyTo(array, arrayIndex);
 
-    public IEnumerator<T> GetEnumerator() => _list.GetEnumerator();
+    public IEnumerator<ICsvParser<T>> GetEnumerator() => _list.GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => _list.GetEnumerator();
 
-    public int IndexOf(T item) => _list.IndexOf(item);
+    public int IndexOf(ICsvParser<T> item) => _list.IndexOf(item);
 
-    public void Insert(int index, T item)
+    public void Insert(int index, ICsvParser<T> item)
     {
         ArgumentNullException.ThrowIfNull(item);
         _owner.ThrowIfReadOnly();
         _list.Insert(index, item);
     }
 
-    public bool Remove(T item)
+    public bool Remove(ICsvParser<T> item)
     {
         ArgumentNullException.ThrowIfNull(item);
         _owner.ThrowIfReadOnly();
@@ -72,7 +73,7 @@ internal sealed class SealableList<T> : IList<T>
         _list.RemoveAt(index);
     }
 
-    public int RemoveAll(Predicate<T> match)
+    public int RemoveAll(Predicate<ICsvParser<T>> match)
     {
         ArgumentNullException.ThrowIfNull(match);
         _owner.ThrowIfReadOnly();

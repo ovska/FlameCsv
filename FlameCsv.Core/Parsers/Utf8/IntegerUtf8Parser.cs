@@ -1,4 +1,5 @@
 using System.Buffers.Text;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Parsers.Utf8;
 
@@ -16,7 +17,8 @@ public sealed class IntegerUtf8Parser :
     ICsvParser<byte, long>,
     ICsvParser<byte, ulong>,
     ICsvParser<byte, nint>,
-    ICsvParser<byte, nuint>
+    ICsvParser<byte, nuint>,
+    ICsvParserFactory<byte>
 {
     /// <summary>
     /// Format parameter passed to <see cref="Utf8Parser"/>.
@@ -114,5 +116,11 @@ public sealed class IntegerUtf8Parser :
             || resultType == typeof(ulong)
             || resultType == typeof(nint)
             || resultType == typeof(nuint);
+    }
+
+    ICsvParser<byte> ICsvParserFactory<byte>.Create(Type resultType, CsvReaderOptions<byte> options)
+    {
+        var o = GuardEx.IsType<CsvUtf8ReaderOptions>(options);
+        return o.IntegerFormat == default ? this : new IntegerUtf8Parser(o.IntegerFormat);
     }
 }

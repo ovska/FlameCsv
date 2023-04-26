@@ -1,6 +1,8 @@
+using FlameCsv.Extensions;
+
 namespace FlameCsv.Parsers.Text;
 
-public sealed class GuidTextParser : ParserBase<char, Guid>
+public sealed class GuidTextParser : ParserBase<char, Guid>, ICsvParserFactory<char>
 {
     /// <summary>
     /// Guid format. If not null, exact parsing is used.
@@ -26,11 +28,9 @@ public sealed class GuidTextParser : ParserBase<char, Guid>
             : Guid.TryParseExact(span, Format.AsSpan(), out value);
     }
 
-    /// <summary>Thread-safe singleton instance initialized to default values.</summary>
-    public static GuidTextParser Instance { get; } = new();
-
-    internal static GuidTextParser GetOrCreate(string? format)
+    ICsvParser<char> ICsvParserFactory<char>.Create(Type resultType, CsvReaderOptions<char> options)
     {
-        return format is null ? Instance : new(format);
+        var o = GuardEx.IsType<CsvTextReaderOptions>(options);
+        return o.GuidFormat is null ? this : new GuidTextParser(o.GuidFormat);
     }
 }

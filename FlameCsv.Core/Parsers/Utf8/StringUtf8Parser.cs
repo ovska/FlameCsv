@@ -7,10 +7,9 @@ public sealed class StringUtf8Parser :
     ICsvParser<byte, string>,
     ICsvParser<byte, char[]>,
     ICsvParser<byte, Memory<char>>,
-    ICsvParser<byte, ReadOnlyMemory<char>>
+    ICsvParser<byte, ReadOnlyMemory<char>>,
+    ICsvParserFactory<byte>
 {
-    public static StringUtf8Parser Instance { get; } = new();
-
     public bool TryParse(ReadOnlySpan<byte> span, out string value)
     {
         if (!span.IsEmpty)
@@ -73,5 +72,10 @@ public sealed class StringUtf8Parser :
             || resultType == typeof(char[])
             || resultType == typeof(Memory<char>)
             || resultType == typeof(ReadOnlyMemory<char>);
+    }
+
+    ICsvParser<byte> ICsvParserFactory<byte>.Create(Type resultType, CsvReaderOptions<byte> options)
+    {
+        return this;
     }
 }

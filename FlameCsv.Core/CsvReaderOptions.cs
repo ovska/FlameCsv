@@ -19,10 +19,11 @@ namespace FlameCsv;
 public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
-    /// Initializes an options-instance with default options and no parsers defined.
+    /// Initializes an options-instance with default configuration.
     /// </summary>
     protected CsvReaderOptions()
     {
+        _parsers = new ParserList<T>(this, defaultValues: null);
     }
 
     protected CsvReaderOptions(CsvReaderOptions<T> other)
@@ -34,10 +35,9 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
         _exceptionHandler = other._exceptionHandler;
         _hasHeader = other._hasHeader;
         _allowContentInExceptions = other._allowContentInExceptions;
+        _useDefaultParsers = other._useDefaultParsers;
         _arrayPool = other._arrayPool;
-
-        // copy collections
-        _parsers = new(this, other.Parsers);
+        _parsers = new(this, other.Parsers); // copy collection
     }
 
     /// <summary>
@@ -50,19 +50,21 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
     /// Seals the instance from modifications.
     /// </summary>
     /// <returns><see langword="true"/> if the instance was made readonly, <see langword="false"/> if it already was.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), MemberNotNull(nameof(_parserCache))]
     public bool MakeReadOnly()
     {
-        return !IsReadOnly && MakeReadOnlyCore(this);
+        bool retVal = !IsReadOnly && MakeReadOnlyCore(this);
+        Debug.Assert(_parserCache is not null);
+        return retVal;
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         static bool MakeReadOnlyCore(CsvReaderOptions<T> _this)
         {
-            lock (_this._parserCache)
+            lock (_this._parsers)
             {
                 if (!_this.IsReadOnly)
                 {
-                    _this.GetOrInitParsers();
+                    _this._parserCache = new ConcurrentDictionary<Type, ICsvParser<T>>();
                     return _this.IsReadOnly = true;
                 }
             }
@@ -99,12 +101,18 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
     /// </remarks>
     public abstract IDictionary<Type, string?> NullTokens { get; }
 
+    /// <summary>
+    /// Returns the default parsers that are used to initialize <see cref="Parsers"/> in derived types.
+    /// </summary>
+    protected abstract ReadOnlySpan<ICsvParserFactory<T>> GetDefaultParsers();
+
     private StringComparison _stringComparison = StringComparison.OrdinalIgnoreCase;
     private CsvCallback<T, bool>? _shouldSkipRow;
     private CsvExceptionHandler<T>? _exceptionHandler;
     private bool _hasHeader;
     private bool _validateFieldCount;
     private bool _allowContentInExceptions;
+    private bool _useDefaultParsers = true;
     private ArrayPool<T>? _arrayPool = ArrayPool<T>.Shared;
 
     /// <summary>
@@ -177,6 +185,15 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
     }
 
     /// <summary>
+    /// Whether to use the library's built-in parsers. Default is <see langword="true"/>.
+    /// </summary>
+    public bool UseDefaultParsers
+    {
+        get => _useDefaultParsers;
+        set => this.SetValue(ref _useDefaultParsers, value);
+    }
+
+    /// <summary>
     /// Pool used to create reusable buffers when needed. Default is <see cref="ArrayPool{T}.Shared"/>.
     /// Set to <see langword="null"/> to disable pooling and always allocate.
     /// </summary>
@@ -193,26 +210,10 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
     /// Modifying the collection after the options instance is used (<see cref="IsReadOnly"/> is <see langword="true"/>)
     /// results in an exception.
     /// </remarks>
-    public IList<ICsvParser<T>> Parsers => _parsers ?? GetOrInitParsers();
+    public IList<ICsvParser<T>> Parsers => _parsers;
 
-    private SealableList<ICsvParser<T>>? _parsers;
-    private readonly ConcurrentDictionary<Type, ICsvParser<T>> _parserCache = new();
-
-    /// <summary>
-    /// Returns the default parsers that are used to initialize <see cref="Parsers"/> in derived types.
-    /// </summary>
-    protected virtual IEnumerable<ICsvParser<T>> GetDefaultParsers() => Enumerable.Empty<ICsvParser<T>>();
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    [MemberNotNull(nameof(_parsers))]
-    private SealableList<ICsvParser<T>> GetOrInitParsers()
-    {
-        if (_parsers is not null)
-            return _parsers;
-
-        var parserList = new SealableList<ICsvParser<T>>(this, GetDefaultParsers());
-        return Interlocked.CompareExchange(ref _parsers, parserList, null) ?? parserList;
-    }
+    private readonly ParserList<T> _parsers;
+    private ConcurrentDictionary<Type, ICsvParser<T>>? _parserCache;
 
     /// <summary>
     /// Returns a parser for parsing <typeparamref name="TResult"/>.
@@ -252,7 +253,7 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
             return cached;
         }
 
-        ReadOnlySpan<ICsvParser<T>> parsers = (_parsers ?? GetOrInitParsers()).Span;
+        ReadOnlySpan<ICsvParser<T>> parsers = _parsers.Span;
 
         // Read parsers in reverse order so parser added last has the highest priority
         for (int i = parsers.Length - 1; i >= 0; i--)
@@ -265,12 +266,27 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
             }
         }
 
+        if (UseDefaultParsers)
+        {
+            foreach (var builtinFactory in EnumerateBuiltinParsers())
+            {
+                if (builtinFactory.CanParse(resultType))
+                {
+                    var parser = builtinFactory.GetParserOrFromFactory(resultType, this);
+                    _parserCache.TryAdd(resultType, parser);
+                    return parser;
+                }
+            }
+        }
+
         return null;
     }
+
+    internal ReadOnlySpan<ICsvParserFactory<T>> EnumerateBuiltinParsers() => GetDefaultParsers();
 
     internal ReadOnlySpan<ICsvParser<T>> EnumerateParsers()
     {
         MakeReadOnly();
-        return (_parsers ?? GetOrInitParsers()).Span;
+        return _parsers.Span;
     }
 }

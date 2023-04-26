@@ -8,7 +8,9 @@ internal class PoolingStringUtf8Parser :
     ICsvParser<byte, string>,
     ICsvParser<byte, ReadOnlyMemory<char>>
 {
-    public StringPool StringPool { get; }
+    public static PoolingStringUtf8Parser Instance { get; } = new();
+
+    public StringPool Pool { get; }
 
     public PoolingStringUtf8Parser() : this(StringPool.Shared)
     {
@@ -17,7 +19,7 @@ internal class PoolingStringUtf8Parser :
     public PoolingStringUtf8Parser(StringPool stringPool)
     {
         ArgumentNullException.ThrowIfNull(stringPool);
-        StringPool = stringPool;
+        Pool = stringPool;
     }
 
     public bool TryParse(ReadOnlySpan<byte> span, [MaybeNullWhen(false)] out string value)
@@ -45,9 +47,9 @@ internal class PoolingStringUtf8Parser :
         {
             Span<char> buffer = stackalloc char[maxLength];
             int written = Encoding.UTF8.GetChars(span, buffer);
-            return StringPool.GetOrAdd(buffer[..written]);
+            return Pool.GetOrAdd(buffer[..written]);
         }
 
-        return StringPool.GetOrAdd(span, Encoding.UTF8);
+        return Pool.GetOrAdd(span, Encoding.UTF8);
     }
 }

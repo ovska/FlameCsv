@@ -1,4 +1,5 @@
 using System.Globalization;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Parsers.Text;
 
@@ -7,7 +8,8 @@ namespace FlameCsv.Parsers.Text;
 /// </summary>
 public sealed class DateTimeTextParser :
     ICsvParser<char, DateTime>,
-    ICsvParser<char, DateTimeOffset>
+    ICsvParser<char, DateTimeOffset>,
+    ICsvParserFactory<char>
 {
     public string? Format { get; }
     public IFormatProvider? FormatProvider { get; }
@@ -50,17 +52,13 @@ public sealed class DateTimeTextParser :
 
     public bool CanParse(Type resultType) => resultType == typeof(DateTime) || resultType == typeof(DateTimeOffset);
 
-    /// <summary>Thread-safe singleton instance initialized to default values.</summary>
-    public static DateTimeTextParser Instance { get; } = new DateTimeTextParser();
-
-    internal static DateTimeTextParser GetOrCreate(
-        string? format,
-        DateTimeStyles styles,
-        IFormatProvider? formatProvider)
+    ICsvParser<char> ICsvParserFactory<char>.Create(Type resultType, CsvReaderOptions<char> options)
     {
-        if (format is null && styles == DateTimeStyles.None && formatProvider == CultureInfo.InvariantCulture)
-            return Instance;
+        var o = GuardEx.IsType<CsvTextReaderOptions>(options);
 
-        return new(format, styles, formatProvider);
+        if (o.DateTimeFormat == null && o.DateTimeStyles == DateTimeStyles.None && o.FormatProvider == CultureInfo.InvariantCulture)
+            return this;
+
+        return new DateTimeTextParser(o.DateTimeFormat, o.DateTimeStyles, o.FormatProvider);
     }
 }

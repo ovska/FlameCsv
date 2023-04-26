@@ -286,33 +286,9 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
         set => this.SetValue(ref _booleanValues, value);
     }
 
-    /// <inheritdoc/>
-    protected override IEnumerable<ICsvParser<char>> GetDefaultParsers()
-    {
-        // sorted in assumed reverse order of usefulness
-        return new ICsvParser<char>[]
-        {
-            TimeOnlyTextParser.GetOrCreate(TimeOnlyFormat, DateTimeStyles, FormatProvider),
-            DateOnlyTextParser.GetOrCreate(DateOnlyFormat, DateTimeStyles, FormatProvider),
-            GuidTextParser.GetOrCreate(GuidFormat),
-            Base64TextParser.Instance,
-            TimeSpanTextParser.GetOrCreate(TimeSpanFormat,  TimeSpanStyles, FormatProvider),
-            NullableParserFactory<char>.Instance,
-            new EnumTextParserFactory(AllowUndefinedEnumValues, IgnoreEnumCase),
-            DateTimeTextParser.GetOrCreate(DateTimeFormat, DateTimeStyles, FormatProvider),
-            DecimalTextParser.GetOrCreate(FormatProvider, DecimalNumberStyles),
-            BooleanTextParser.GetOrCreate(BooleanValues),
-            IntegerTextParser.GetOrCreate(FormatProvider, IntegerNumberStyles),
-            StringPool is null
-                ? StringTextParser.GetOrCreate(ReadEmptyStringsAsNull)
-                : PoolingStringTextParser.GetOrCreate(StringPool, ReadEmptyStringsAsNull),
-        };
-    }
+    protected override ReadOnlySpan<ICsvParserFactory<char>> GetDefaultParsers() => _builtinParsers;
 
-    public override IHeaderBinder<char> GetHeaderBinder()
-    {
-        return new DefaultHeaderBinder<char>(this);
-    }
+    public override IHeaderBinder<char> GetHeaderBinder() => new DefaultHeaderBinder<char>(this);
 
     public override string GetAsString(ReadOnlySpan<char> field) => field.ToString();
 
@@ -323,4 +299,20 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
 
         return Null.AsMemory();
     }
+
+    private static readonly ICsvParserFactory<char>[] _builtinParsers =
+    {
+        new StringTextParser(),
+        new IntegerTextParser(),
+        new BooleanTextParser(),
+        new DecimalTextParser(),
+        new EnumTextParserFactory(),
+        new DateTimeTextParser(),
+        new NullableParserFactory<char>(),
+        new TimeSpanTextParser(),
+        new Base64TextParser(),
+        new GuidTextParser(),
+        new DateOnlyTextParser(),
+        new TimeOnlyTextParser(),
+    };
 }

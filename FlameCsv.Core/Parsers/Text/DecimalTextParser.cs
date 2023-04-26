@@ -1,4 +1,5 @@
 using System.Globalization;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Parsers.Text;
 
@@ -9,7 +10,8 @@ public sealed class DecimalTextParser :
     ICsvParser<char, double>,
     ICsvParser<char, float>,
     ICsvParser<char, Half>,
-    ICsvParser<char, decimal>
+    ICsvParser<char, decimal>,
+    ICsvParserFactory<char>
 {
     /// <summary>
     /// Number styles passed to <c>TryParse</c>.
@@ -81,16 +83,13 @@ public sealed class DecimalTextParser :
             || resultType == typeof(decimal);
     }
 
-    /// <summary>Thread-safe singleton instance initialized to default values.</summary>
-    public static DecimalTextParser Instance { get; } = new();
-
-    internal static DecimalTextParser GetOrCreate(
-        IFormatProvider? formatProvider,
-        NumberStyles styles)
+    ICsvParser<char> ICsvParserFactory<char>.Create(Type resultType, CsvReaderOptions<char> options)
     {
-        if (styles == NumberStyles.Float && formatProvider == CultureInfo.InvariantCulture)
-            return Instance;
+        var o = GuardEx.IsType<CsvTextReaderOptions>(options);
 
-        return new(formatProvider, styles);
+        if (o.DecimalNumberStyles == NumberStyles.Float && o.FormatProvider == CultureInfo.InvariantCulture)
+            return this;
+
+        return new DecimalTextParser(o.FormatProvider, o.DecimalNumberStyles);
     }
 }

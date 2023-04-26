@@ -29,7 +29,21 @@ public sealed class EnumTextParserFactory : ICsvParserFactory<char>
 
     public ICsvParser<char> Create(Type resultType, CsvReaderOptions<char> options)
     {
+        bool allowUndefinedValues;
+        bool ignoreCase;
+
+        if (options is CsvTextReaderOptions o)
+        {
+            allowUndefinedValues = o.AllowUndefinedEnumValues;
+            ignoreCase = o.IgnoreEnumCase;
+        }
+        else
+        {
+            allowUndefinedValues = AllowUndefinedValues;
+            ignoreCase = IgnoreCase;
+        }
+
         return typeof(EnumTextParser<>).MakeGenericType(resultType)
-            .CreateInstance<ICsvParser<char>>(AllowUndefinedValues, IgnoreCase);
+            .CreateInstance<ICsvParser<char>>(allowUndefinedValues, ignoreCase);
     }
 }

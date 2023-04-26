@@ -194,22 +194,7 @@ public sealed class CsvUtf8ReaderOptions : CsvReaderOptions<byte>
     }
 
     /// <inheritdoc/>
-    protected override IEnumerable<ICsvParser<byte>> GetDefaultParsers()
-    {
-        return new ICsvParser<byte>[]
-        {
-            Base64Utf8Parser.Instance,
-            new TimeSpanUtf8Parser(TimeSpanFormat),
-            new GuidUtf8Parser(GuidFormat),
-            new EnumUtf8ParserFactory(AllowUndefinedEnumValues, IgnoreEnumCase),
-            new NullableParserFactory<byte>(),
-            new DateTimeUtf8Parser(DateTimeFormat),
-            new DecimalUtf8Parser(DecimalFormat),
-            new BooleanUtf8Parser(BooleanValues),
-            new IntegerUtf8Parser(IntegerFormat),
-            StringUtf8Parser.Instance,
-        };
-    }
+    protected override ReadOnlySpan<ICsvParserFactory<byte>> GetDefaultParsers() => _defaultParsers;
 
     public override IHeaderBinder<byte> GetHeaderBinder() => new DefaultHeaderBinder<byte>(this);
 
@@ -222,4 +207,18 @@ public sealed class CsvUtf8ReaderOptions : CsvReaderOptions<byte>
 
         return Null;
     }
+
+    private static readonly ICsvParserFactory<byte>[] _defaultParsers =
+    {
+        new StringUtf8Parser(),
+        new IntegerUtf8Parser(),
+        new BooleanUtf8Parser(),
+        new DecimalUtf8Parser(),
+        new DateTimeUtf8Parser(),
+        new NullableParserFactory<byte>(),
+        new EnumUtf8ParserFactory(),
+        new GuidUtf8Parser(),
+        new TimeSpanUtf8Parser(),
+        new Base64Utf8Parser(),
+    };
 }

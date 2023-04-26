@@ -12,13 +12,9 @@ public sealed class Base64Utf8Parser :
     ICsvParser<byte, byte[]>,
     ICsvParser<byte, ArraySegment<byte>>,
     ICsvParser<byte, Memory<byte>>,
-    ICsvParser<byte, ReadOnlyMemory<byte>>
+    ICsvParser<byte, ReadOnlyMemory<byte>>,
+    ICsvParserFactory<byte>
 {
-    /// <summary>
-    /// A thread-safe singleton instance of <see cref="Base64Utf8Parser"/>.
-    /// </summary>
-    public static Base64Utf8Parser Instance { get; } = new();
-
     /// <inheritdoc/>
     public bool TryParse(ReadOnlySpan<byte> span, out byte[] value)
     {
@@ -86,5 +82,10 @@ public sealed class Base64Utf8Parser :
         }
 
         return output[..bytesWritten].ToArray();
+    }
+
+    ICsvParser<byte> ICsvParserFactory<byte>.Create(Type resultType, CsvReaderOptions<byte> options)
+    {
+        return this;
     }
 }
