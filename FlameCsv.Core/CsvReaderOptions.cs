@@ -37,7 +37,7 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
         _allowContentInExceptions = other._allowContentInExceptions;
         _useDefaultParsers = other._useDefaultParsers;
         _arrayPool = other._arrayPool;
-        _parsers = new(this, other.Parsers); // copy collection
+        _parsers = new(this, other._parsers); // copy collection
     }
 
     /// <summary>
@@ -289,4 +289,6 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
         MakeReadOnly();
         return _parsers.Span;
     }
+
+    internal CsvReadingContext<T> ToContext() => new(this, overrides: default);
 }

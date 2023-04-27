@@ -38,7 +38,7 @@ public sealed class CsvEnumerationTests : IDisposable
     [Fact]
     public void Should_Enumerate_Csv()
     {
-        using var enumerator = new CsvFieldEnumerator<char>("1,\"Test\",true".AsMemory(), CsvTextReaderOptions.Default);
+        using var enumerator = new CsvFieldEnumerator<char>("1,\"Test\",true".AsMemory(), CsvTextReaderOptions.Default.ToContext());
 
         Assert.True(enumerator.MoveNext());
         Assert.Equal("1", enumerator.Current.ToString());
@@ -58,7 +58,7 @@ public sealed class CsvEnumerationTests : IDisposable
         // dispose throws if no return
         using var pool = new ReturnTrackingArrayPool<char>();
 
-        using (var enumerator = new CsvFieldEnumerator<char>("\"xyz\"".AsMemory(), CsvTextReaderOptions.Default))
+        using (var enumerator = new CsvFieldEnumerator<char>("\"xyz\"".AsMemory(), CsvTextReaderOptions.Default.ToContext()))
         {
             Assert.True(enumerator.MoveNext());
             Assert.False(enumerator.MoveNext());

@@ -39,11 +39,11 @@ public static class EscapeModeTests
             ArrayPool = pool,
         };
 
-        var context = new CsvReadingContext<char>(options);
+        var context = new CsvReadingContext<char>(options, default);
 
         char[]? buffer = null;
 
-        using (CsvEnumerationStateRefLifetime<char>.Create(in context, input.AsMemory(), ref buffer, out var state))
+        using (CsvEnumerationStateRef<char>.CreateTemporary(in context, input.AsMemory(), ref buffer, out var state))
         {
             List<string> actual = new();
 
@@ -179,7 +179,7 @@ public static class EscapeModeTests
             AllowContentInExceptions = true,
             ArrayPool = pool,
         };
-        var context = new CsvReadingContext<char>(options);
+        var context = new CsvReadingContext<char>(options, default);
 
         var originalData = MemorySegment<char>.AsSequence(fullLine.AsMemory(), segmentSize, emptyFrequency);
         var originalWithoutNewline = MemorySegment<char>.AsSequence(noNewline.AsMemory(), segmentSize, emptyFrequency);

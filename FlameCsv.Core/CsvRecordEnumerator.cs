@@ -8,12 +8,24 @@ public sealed class CsvRecordEnumerator<T> : CsvEnumeratorBase<T> where T : unma
 {
     private ReadOnlySequence<T> _data;
 
-    public CsvRecordEnumerator(ReadOnlyMemory<T> data, CsvReaderOptions<T> options) : base(options)
+    public CsvRecordEnumerator(
+        ReadOnlyMemory<T> data,
+        CsvReaderOptions<T> options,
+        CsvContextOverride<T> overrides = default)
+        : this(new ReadOnlySequence<T>(data), options, overrides)
     {
-        _data = new ReadOnlySequence<T>(data);
     }
 
-    public CsvRecordEnumerator(in ReadOnlySequence<T> data, CsvReaderOptions<T> options) : base(options)
+    public CsvRecordEnumerator(
+        in ReadOnlySequence<T> data,
+        CsvReaderOptions<T> options,
+        CsvContextOverride<T> overrides = default)
+        : base(new CsvReadingContext<T>(options, overrides))
+    {
+        _data = data;
+    }
+
+    internal CsvRecordEnumerator(in ReadOnlySequence<T> data, in CsvReadingContext<T> context) : base(in context)
     {
         _data = data;
     }

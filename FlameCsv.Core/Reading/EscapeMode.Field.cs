@@ -28,12 +28,12 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
     public static ReadOnlyMemory<T> ReadNextField(ref CsvEnumerationStateRef<T> state)
     {
         Debug.Assert(!state.remaining.IsEmpty);
-        Debug.Assert(state._context.dialect.Escape.HasValue);
+        Debug.Assert(state._context.Dialect.Escape.HasValue);
 
         ReadOnlySpan<T> remaining = state.remaining.Span;
-        T delimiter = state._context.dialect.Delimiter;
-        T quote = state._context.dialect.Quote;
-        T escape = state._context.dialect.Escape.Value;
+        T delimiter = state._context.Dialect.Delimiter;
+        T quote = state._context.Dialect.Quote;
+        T escape = state._context.Dialect.Escape.Value;
 
         // If not the first column, validate that the first character is a delimiter
         if (!state.isAtStart)

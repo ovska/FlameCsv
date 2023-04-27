@@ -4,24 +4,6 @@ using CommunityToolkit.Diagnostics;
 
 namespace FlameCsv.Utilities;
 
-internal sealed class TypeStringDictionary : TypeDictionary<string?, string?>
-{
-    public TypeStringDictionary(ISealable owner, TypeStringDictionary? source = null) : base(owner, source)
-    {
-    }
-
-    protected override string? InitializeValue(string? value) => value;
-}
-
-internal sealed class TypeByteDictionary : TypeDictionary<string?, ReadOnlyMemory<byte>>
-{
-    public TypeByteDictionary(ISealable owner, TypeByteDictionary? source = null) : base(owner, source)
-    {
-    }
-
-    protected override ReadOnlyMemory<byte> InitializeValue(string? value) => CsvDialectStatic.AsBytes(value);
-}
-
 internal abstract class TypeDictionary<TValue, TResult> : IDictionary<Type, TValue>
 {
     public bool TryGetInternalValue(Type key, out TResult result)
@@ -65,8 +47,8 @@ internal abstract class TypeDictionary<TValue, TResult> : IDictionary<Type, TVal
     public int Count => _dictionary.Count;
     public bool IsReadOnly => _owner.IsReadOnly;
 
-    ICollection<Type> IDictionary<Type, TValue>.Keys => throw new NotSupportedException();
-    ICollection<TValue> IDictionary<Type, TValue>.Values => throw new NotSupportedException();
+    ICollection<Type> IDictionary<Type, TValue>.Keys => _dictionary.Keys;
+    ICollection<TValue> IDictionary<Type, TValue>.Values => _dictionary.Values;
 
     public void Add(Type key, TValue value)
     {

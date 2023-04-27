@@ -10,15 +10,13 @@ namespace FlameCsv.Reading;
 internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     where T : unmanaged, IEquatable<T>
 {
-    private readonly CsvReaderOptions<T> _options;
     private readonly CsvReadingContext<T> _context;
 
     private CsvProcessor<T, TValue>? _inner;
 
-    public CsvHeaderProcessor(CsvReaderOptions<T> options)
+    public CsvHeaderProcessor(in CsvReadingContext<T> context)
     {
-        _options = options;
-        _context = new CsvReadingContext<T>(options);
+        _context = context;
         _inner = default;
     }
 
@@ -56,24 +54,24 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     [MemberNotNull(nameof(_inner))]
     private void ReadHeader(in ReadOnlySequence<T> line)
     {
-        using var view = new SequenceView<T>(in line, _options.ArrayPool);
+        using var view = new SequenceView<T>(in line, _context.ArrayPool);
 
         CsvBindingCollection<TValue> bindings;
         T[]? buffer = null;
 
-        using (CsvEnumerationStateRefLifetime<T>.Create(in _context, view.Memory, ref buffer, out var state))
+        using (CsvEnumerationStateRef<T>.CreateTemporary(in _context, view.Memory, ref buffer, out var state))
         {
             List<string> values = new(16);
 
             while (_context.TryGetField(ref state, out ReadOnlyMemory<T> field))
             {
-                values.Add(_options.GetAsString(field.Span));
+                values.Add(_context.Options.GetAsString(field.Span));
             }
 
-            bindings = _options.GetHeaderBinder().Bind<TValue>(values);
+            bindings = _context.Options.GetHeaderBinder().Bind<TValue>(values);
         }
 
-        var materializer = _options.CreateMaterializerFrom(bindings);
+        var materializer = _context.Options.CreateMaterializerFrom(bindings);
         _inner = new CsvProcessor<T, TValue>(in _context, materializer);
     }
 

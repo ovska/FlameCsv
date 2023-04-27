@@ -5,16 +5,17 @@ namespace FlameCsv;
 public readonly struct CsvFieldEnumerable<T> where T : unmanaged, IEquatable<T>
 {
     private readonly ReadOnlyMemory<T> _record;
-    private readonly CsvReaderOptions<T> _options;
+    private readonly CsvReadingContext<T>? _context;
     private readonly CsvEnumerationState<T>? _state;
 
     public CsvFieldEnumerable(
         ReadOnlyMemory<T> value,
-        CsvReaderOptions<T> options)
+        CsvReaderOptions<T> options,
+        CsvContextOverride<T> overrides = default)
     {
         ArgumentNullException.ThrowIfNull(options);
         _record = value;
-        _options = options;
+        _context = new CsvReadingContext<T>(options, overrides);
     }
 
     internal CsvFieldEnumerable(CsvEnumerationState<T> state, CsvReaderOptions<T> options)
@@ -22,18 +23,18 @@ public readonly struct CsvFieldEnumerable<T> where T : unmanaged, IEquatable<T>
         ArgumentNullException.ThrowIfNull(options);
         options.MakeReadOnly();
         _state = state;
-        _options = options;
     }
 
     public CsvFieldEnumerator<T> GetEnumerator()
     {
         if (_state is null)
         {
-            return new(_record, new CsvReadingContext<T>(_options));
+            Throw.IfDefaultStruct<CsvFieldEnumerable<T>>(_context);
+            return new CsvFieldEnumerator<T>(_record, _context.Value);
         }
         else
         {
-            return new(_record, _state);
+            return new CsvFieldEnumerator<T>(_record, _state);
         }
     }
 

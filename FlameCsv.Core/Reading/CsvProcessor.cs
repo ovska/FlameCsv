@@ -18,10 +18,10 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     private T[]? _unescapeBuffer; // string unescaping
     private T[]? _multisegmentBuffer; // long fragmented lines
 
-    public CsvProcessor(in CsvReadingContext<T> context, IMaterializer<T, TValue> materializer)
+    public CsvProcessor(in CsvReadingContext<T> context, IMaterializer<T, TValue>? materializer = null)
     {
         _context = context;
-        _materializer = materializer;
+        _materializer = materializer ?? context.Options.GetMaterializer<T, TValue>();
 
         // Two buffers are needed, as the span being manipulated by string escaping in the enumerator
         // might originate from the multisegment buffer
@@ -39,7 +39,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
             return false;
         }
 
-        ReadOnlyMemory<T> line = lineSeq.AsMemory(ref _multisegmentBuffer, _context.arrayPool);
+        ReadOnlyMemory<T> line = lineSeq.AsMemory(ref _multisegmentBuffer, _context.ArrayPool);
 
         if (meta.quoteCount % 2 != 0)
         {
@@ -87,7 +87,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
 
     public void Dispose()
     {
-        _context.arrayPool.EnsureReturned(ref _unescapeBuffer);
-        _context.arrayPool.EnsureReturned(ref _multisegmentBuffer);
+        _context.ArrayPool.EnsureReturned(ref _unescapeBuffer);
+        _context.ArrayPool.EnsureReturned(ref _multisegmentBuffer);
     }
 }

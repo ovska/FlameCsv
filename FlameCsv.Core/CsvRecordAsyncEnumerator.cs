@@ -18,9 +18,9 @@ public sealed class CsvRecordAsyncEnumerator<T> : CsvEnumeratorBase<T>, IAsyncDi
 
     internal CsvRecordAsyncEnumerator(
         ICsvPipeReader<T> reader,
-        CsvReaderOptions<T> options,
+        in CsvReadingContext<T> context,
         CancellationToken cancellationToken)
-        : base(options)
+        : base(in context)
     {
         _reader = reader;
         _cancellationToken = cancellationToken;

@@ -8,42 +8,10 @@ using System.Text;
 using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
+using FlameCsv.Extensions;
 using FlameCsv.Parsers;
 
 namespace FlameCsv.Reading;
-
-internal readonly ref struct CsvEnumerationStateRefLifetime<T> where T : unmanaged, IEquatable<T>
-{
-    private readonly ArrayPool<T> _arrayPool;
-    private readonly Span<T[]?> _rentedBuffer;
-
-    public static CsvEnumerationStateRefLifetime<T> Create(
-        in CsvReadingContext<T> context,
-        ReadOnlyMemory<T> record,
-        ref T[]? array,
-        out CsvEnumerationStateRef<T> state)
-    {
-        state = new CsvEnumerationStateRef<T>(in context, record, ref array);
-        return new CsvEnumerationStateRefLifetime<T>(context.arrayPool, ref array);
-    }
-
-    public void Dispose()
-    {
-        ref T[]? array = ref _rentedBuffer[0];
-
-        if (array is not null)
-        {
-            _arrayPool.Return(array);
-            _rentedBuffer[0] = null;
-        }
-    }
-
-    private CsvEnumerationStateRefLifetime(ArrayPool<T> arrayPool, ref T[]? array)
-    {
-        _arrayPool = arrayPool;
-        _rentedBuffer = MemoryMarshal.CreateSpan(ref array, 1);
-    }
-}
 
 internal struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
 {
@@ -80,12 +48,12 @@ internal struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
         RecordMeta meta,
         ref T[]? array)
     {
-        context.dialect.DebugValidate();
+        context.Dialect.DebugValidate();
         Debug.Assert(meta.quoteCount % 2 == 0);
         Debug.Assert(!isAtStart || record.Span.SequenceEqual(remaining.Span));
         Debug.Assert(remaining.IsEmpty || record.Span.Overlaps(remaining.Span));
         Debug.Assert(!Unsafe.IsNullRef(ref array));
-        Debug.Assert(context.arrayPool is not null);
+        Debug.Assert(context.ArrayPool is not null);
 
         _context = context;
         _record = record;
@@ -97,7 +65,7 @@ internal struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
 
         if (meta.HasSpecialCharacters)
         {
-            context.arrayPool.EnsureCapacity(ref array, meta.GetMaxUnescapedLength(remaining.Length));
+            context.ArrayPool.EnsureCapacity(ref array, meta.GetMaxUnescapedLength(remaining.Length));
             buffer = array;
         }
     }
@@ -172,5 +140,36 @@ internal struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
         sb.Append(CultureInfo.InvariantCulture, $"Record: {_context.AsPrintableString(_record)}");
 
         throw new CsvFormatException(sb.ToString());
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="CsvEnumerationStateRef{T}"/> from the given <paramref name="record"/>
+    /// and returns a disposable that ensures the <paramref name="array"/> is returned to the context's pool.
+    /// </summary>
+    public static Lifetime CreateTemporary(
+        in CsvReadingContext<T> context,
+        ReadOnlyMemory<T> record,
+        ref T[]? array,
+        out CsvEnumerationStateRef<T> state)
+    {
+        state = new CsvEnumerationStateRef<T>(in context, record, ref array);
+        return new Lifetime(context.ArrayPool, ref array);
+    }
+
+    public readonly ref struct Lifetime
+    {
+        private readonly ArrayPool<T> _arrayPool;
+        private readonly Span<T[]?> _rentedBuffer;
+
+        public void Dispose()
+        {
+            _arrayPool.EnsureReturned(ref _rentedBuffer[0]);
+        }
+
+        internal Lifetime(ArrayPool<T> arrayPool, ref T[]? array)
+        {
+            _arrayPool = arrayPool;
+            _rentedBuffer = MemoryMarshal.CreateSpan(ref array, 1);
+        }
     }
 }

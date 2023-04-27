@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Buffers.Text;
+using System.Text;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Binding;
 using FlameCsv.Parsers;
@@ -115,7 +116,11 @@ public sealed class CsvUtf8ReaderOptions : CsvReaderOptions<byte>
     public char IntegerFormat
     {
         get => _integerFormat;
-        set => this.SetValue(ref _integerFormat, value);
+        set
+        {
+            _ = Utf8Parser.TryParse(default, out int _, out _, value); // validate
+            this.SetValue(ref _integerFormat, value);
+        }
     }
 
     /// <summary>
@@ -124,7 +129,11 @@ public sealed class CsvUtf8ReaderOptions : CsvReaderOptions<byte>
     public char DecimalFormat
     {
         get => _decimalFormat;
-        set => this.SetValue(ref _decimalFormat, value);
+        set
+        {
+            _ = Utf8Parser.TryParse(default, out double _, out _, value); // validate
+            this.SetValue(ref _decimalFormat, value);
+        }
     }
 
     /// <summary>
@@ -133,7 +142,11 @@ public sealed class CsvUtf8ReaderOptions : CsvReaderOptions<byte>
     public char DateTimeFormat
     {
         get => _dateTimeFormat;
-        set => this.SetValue(ref _dateTimeFormat, value);
+        set
+        {
+            _ = Utf8Parser.TryParse(default, out DateTime _, out _, value); // validate
+            this.SetValue(ref _dateTimeFormat, value);
+        }
     }
 
     /// <summary>
@@ -142,7 +155,11 @@ public sealed class CsvUtf8ReaderOptions : CsvReaderOptions<byte>
     public char TimeSpanFormat
     {
         get => _timeSpanFormat;
-        set => this.SetValue(ref _timeSpanFormat, value);
+        set
+        {
+            _ = Utf8Parser.TryParse(default, out TimeSpan _, out _, value); // validate
+            this.SetValue(ref _timeSpanFormat, value);
+        }
     }
 
     /// <summary>
@@ -151,7 +168,11 @@ public sealed class CsvUtf8ReaderOptions : CsvReaderOptions<byte>
     public char GuidFormat
     {
         get => _guidFormat;
-        set => this.SetValue(ref _guidFormat, value);
+        set
+        {
+            _ = Utf8Parser.TryParse(default, out Guid _, out _, value); // validate
+            this.SetValue(ref _guidFormat, value);
+        }
     }
 
     /// <summary>

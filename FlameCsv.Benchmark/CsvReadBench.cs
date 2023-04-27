@@ -34,7 +34,7 @@ public class CsvReadBench
     [Benchmark]
     public async Task FlameText()
     {
-        await foreach (var record in CsvReader.ReadAsync<Entry>(GetFileStream(), CsvTextReaderOptions.Default, Encoding.UTF8))
+        await foreach (var record in CsvReader.ReadAsync<Entry>(GetFileStream(), CsvTextReaderOptions.Default, encoding: Encoding.UTF8))
         {
             _ = record;
         }

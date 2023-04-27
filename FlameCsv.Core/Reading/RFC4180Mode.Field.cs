@@ -34,8 +34,8 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
         Debug.Assert(!state.remaining.IsEmpty);
 
         ReadOnlySpan<T> remaining = state.remaining.Span;
-        T delimiter = state._context.dialect.Delimiter;
-        T quote = state._context.dialect.Quote;
+        T delimiter = state._context.Dialect.Delimiter;
+        T quote = state._context.Dialect.Quote;
 
         // If not the first column, validate that the first character is a delimiter
         if (!state.isAtStart)
