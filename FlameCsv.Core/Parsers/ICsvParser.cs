@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace FlameCsv.Parsers;
 
 /// <summary>
-/// Base interface for parsing CSV columns.
+/// Base interface for parsing CSV fields.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 public interface ICsvParser<T> where T : unmanaged, IEquatable<T>
@@ -28,9 +28,9 @@ public interface ICsvParser<T> where T : unmanaged, IEquatable<T>
 public interface ICsvParser<T, TValue> : ICsvParser<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
-    /// Attempts to parse <paramref name="value"/> from the column.
+    /// Attempts to parse <paramref name="value"/> from the field.
     /// </summary>
-    /// <param name="span">Column tokens</param>
+    /// <param name="span">Field tokens</param>
     /// <param name="value">Parsed value</param>
     /// <returns><see langword="true"/> if the value was successfully parsed.</returns>
     bool TryParse(ReadOnlySpan<T> span, [MaybeNullWhen(false)] out TValue value);

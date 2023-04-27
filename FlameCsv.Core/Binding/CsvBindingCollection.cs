@@ -9,7 +9,7 @@ using FlameCsv.Exceptions;
 namespace FlameCsv.Binding;
 
 /// <summary>
-/// Represents a validated collection of CSV columns bound to properties, fields, or constructor parameters.
+/// Represents a validated collection of CSV fields bound to properties, fields, or constructor parameters.
 /// </summary>
 /// <typeparam name="TValue">Type represented by the CSV</typeparam>
 [DebuggerDisplay("CsvBindingCollection<{typeof(TValue).Name,nq}>[{_allBindings.Count}]")]
@@ -57,7 +57,7 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
     /// <summary>
     /// Initializes a new binding collection.
     /// </summary>
-    /// <param name="bindings">Column bindings</param>
+    /// <param name="bindings">Field bindings</param>
     /// <exception cref="CsvBindingException">Bindings are invalid</exception>
     public CsvBindingCollection(IEnumerable<CsvBinding<TValue>> bindings)
         : this(bindings?.ToList() ?? throw new ArgumentNullException(nameof(bindings)), true)
@@ -75,7 +75,7 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
         Span<CsvBinding<TValue>> bindings = bindingsList.AsSpan();
         bindings.Sort(); // sort by index
 
-        int currentColumnIndex = 0;
+        int index = 0;
 
         List<MemberCsvBinding<TValue>> memberBindings = new(bindings.Length);
         List<ParameterCsvBinding<TValue>> ctorBindings = new();
@@ -83,7 +83,7 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
 
         foreach (var binding in bindings)
         {
-            int expectedIndex = currentColumnIndex++;
+            int expectedIndex = index++;
 
             // Indices should be gapless and start from zero
             if (binding.Index != expectedIndex)

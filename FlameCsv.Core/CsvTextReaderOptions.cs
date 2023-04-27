@@ -274,7 +274,7 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
 
     /// <summary>
     /// Used by <see cref="StringTextParser"/> and <see cref="PoolingStringTextParser"/> to return nulls when a
-    /// string column is empty. Default is <see langword="false"/>.
+    /// string field is empty. Default is <see langword="false"/>.
     /// </summary>
     public bool ReadEmptyStringsAsNull
     {
@@ -284,7 +284,7 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
 
     /// <summary>
     /// Used by <see cref="NullableParser{T,TValue}"/> when parsing nullable value types. Default is null/empty,
-    /// which will return null for supported types on empty columns, or columns that are all whitespace.
+    /// which will return null for supported types on empty fields, or fields that are all whitespace.
     /// </summary>
     public string? Null
     {

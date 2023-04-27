@@ -25,7 +25,7 @@ public class CsvBindingException : CsvConfigurationException
 }
 
 /// <summary>
-/// Represents errors in CSV member binding configuration, such as invalid member types or columns.
+/// Represents errors in CSV member binding configuration, such as invalid member types or fields.
 /// </summary>
 public sealed class CsvBindingException<T> : CsvBindingException
 {

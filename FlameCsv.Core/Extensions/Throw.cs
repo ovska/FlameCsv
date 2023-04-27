@@ -107,23 +107,23 @@ internal static class Throw
     public static void Argument_FieldIndex<T>(int index, CsvEnumerationState<T>? state = null)
             where T : unmanaged, IEquatable<T>
     {
-        string? knownColumn = null;
+        string? knownFieldCount = null;
         Exception? inner = null;
 
         if (state is not null)
         {
             try
             {
-                knownColumn = $" (there were {state.GetFieldCount()} fields in the record)";
+                knownFieldCount = $" (there were {state.GetFieldCount()} fields in the record)";
             }
             catch (Exception e)
             {
-                knownColumn = " (could not determine the number of fields in the record, see inner exception for details)";
+                knownFieldCount = " (could not determine the number of fields in the record, see inner exception for details)";
                 inner = e;
             }
         }
 
-        throw new ArgumentOutOfRangeException($"Could not get column at index {index}{knownColumn}.", inner);
+        throw new ArgumentOutOfRangeException($"Could not get field at index {index}{knownFieldCount}.", inner);
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
@@ -131,7 +131,7 @@ internal static class Throw
     {
         throw new ArgumentOutOfRangeException(
             nameof(index),
-            $"Could not get column at index {index} (there were {count} fields in the record).");
+            $"Could not get field at index {index} (there were {count} fields in the record).");
 
     }
 }

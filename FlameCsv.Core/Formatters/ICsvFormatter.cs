@@ -3,7 +3,7 @@ using FlameCsv.Writers;
 namespace FlameCsv.Formatters;
 
 /// <summary>
-/// Base interface for formatting types to CSV columns.
+/// Base interface for formatting types to CSV fields.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 public interface ICsvFormatter<T> where T : unmanaged, IEquatable<T>

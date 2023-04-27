@@ -21,7 +21,7 @@ public abstract class CsvBinding<T> :
     public abstract Type Type { get; }
 
     /// <summary>
-    /// Returns the custom attributes on the binding, or empty if not applicable (e.g. ignored column).
+    /// Returns the custom attributes on the binding, or empty if not applicable (e.g. ignored field).
     /// </summary>
     protected abstract ReadOnlySpan<object> Attributes { get; }
 
@@ -62,7 +62,7 @@ public abstract class CsvBinding<T> :
     /// <inheritdoc/>
     public static bool operator !=(CsvBinding<T> left, CsvBinding<T> right) => !(left == right);
 
-    /// <summary>Returns the column index and member name.</summary>
+    /// <summary>Returns the field index and member name.</summary>
     [ExcludeFromCodeCoverage]
     public override string ToString()
     {

@@ -28,7 +28,7 @@ public static class EscapeModeTests
     [InlineData("ASD,'ASD, DEF',A^,D", new[] { "ASD", "ASD, DEF", "A,D" })]
     [InlineData(",,", new[] { "", "", "" })]
     [InlineData("^,", new[] { "," })]
-    public static void Should_Read_Columns(string input, string[] expected)
+    public static void Should_Read_Fields(string input, string[] expected)
     {
         using var pool = new ReturnTrackingArrayPool<char>();
         var options = new CsvTextReaderOptions

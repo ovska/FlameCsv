@@ -72,7 +72,7 @@ internal static class MaterializerExtensions
         var parameters = typeof(TTuple).GetConstructors()[0].GetParameters();
         var bindingsList = new List<CsvBinding<TTuple>>(parameters.Length);
 
-        // TODO: add support for ignored columns via a special type, e.g. struct CsvIgnore { }
+        // TODO: add support for ignored fields via a special type, e.g. struct CsvIgnore { }
         for (int i = 0; i < parameters.Length; i++)
         {
             var parameter = parameters[i];

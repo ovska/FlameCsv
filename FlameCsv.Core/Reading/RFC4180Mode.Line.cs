@@ -34,7 +34,7 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
     /// The line without trailing newline tokens. Should be ignored if the method returns <see langword="false"/>.
     /// </param>
     /// <param name="meta">
-    /// Count of string delimiters in <paramref name="line"/>, used when parsing the columns later on.
+    /// Count of string delimiters in <paramref name="line"/>, used when parsing the fields later on.
     /// Should be ignored if the method returns <see langword="false"/>.
     /// </param>
     /// <returns>

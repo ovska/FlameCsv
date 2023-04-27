@@ -13,17 +13,17 @@ namespace FlameCsv.Binding;
 public abstract class CsvBinding : IComparable<CsvBinding>
 {
     /// <summary>
-    /// The CSV column index of this binding.
+    /// The CSV field index of this binding.
     /// </summary>
     public int Index { get; }
 
     /// <summary>
-    /// Returns whether the binding is on an ignored column.
+    /// Returns whether the binding is on an ignored field.
     /// </summary>
     public bool IsIgnored => ReferenceEquals(Sentinel, Type.Missing);
 
     /// <summary>
-    /// The target of the binding (member or parameter), or <see cref="Type.Missing"/> if ignored column.
+    /// The target of the binding (member or parameter), or <see cref="Type.Missing"/> if ignored field.
     /// </summary>
     protected abstract object Sentinel { get; }
 
@@ -34,7 +34,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     }
 
     /// <summary>
-    /// Returns a binding that ignores the column at <paramref name="index"/>.
+    /// Returns a binding that ignores the field at <paramref name="index"/>.
     /// </summary>
     public static CsvBinding<T> Ignore<T>(int index)
     {
@@ -110,7 +110,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
 
     /// <summary>
     /// Returns whether the binding targets the same property/field/parameter,
-    /// or both bindings are ignored columns.
+    /// or both bindings are ignored fields.
     /// </summary>
     public bool TargetEquals(CsvBinding? other) => AreSame(Sentinel, other?.Sentinel);
 

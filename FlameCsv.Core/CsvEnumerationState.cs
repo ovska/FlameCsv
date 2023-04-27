@@ -23,7 +23,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     internal readonly CsvReadingContext<T> _context;
     private T[]? _unescapeBuffer; // rented array for unescaping
 
-    private ReadOnlyMemory<T>[] _values; // cached column values by index
+    private ReadOnlyMemory<T>[] _values; // cached field values by index
     private int _index; // how many values have been read
 
     public Dictionary<string, int>? Header { get; set; }
@@ -93,27 +93,27 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetAtIndex(int index, out ReadOnlyMemory<T> column)
+    public bool TryGetAtIndex(int index, out ReadOnlyMemory<T> field)
     {
         Throw.IfEnumerationDisposed(_disposed);
 
         while (_index <= index)
         {
-            if (!TryReadNextColumn())
+            if (!TryReadNextField())
             {
-                column = default;
+                field = default;
                 return false;
             }
         }
 
-        column = _values[index];
+        field = _values[index];
         return true;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int GetFieldCount()
     {
-        while (TryReadNextColumn())
+        while (TryReadNextField())
         { }
 
         return _index;
@@ -134,7 +134,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
         _expectedFieldCount ??= Header.Count;
     }
 
-    private bool TryReadNextColumn()
+    private bool TryReadNextField()
     {
         Throw.IfEnumerationDisposed(_disposed);
 
@@ -163,7 +163,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
 
     private void ValidateFieldCountForCurrent()
     {
-        while (TryReadNextColumn())
+        while (TryReadNextField())
         {
         }
 

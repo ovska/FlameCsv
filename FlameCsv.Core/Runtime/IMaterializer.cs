@@ -16,7 +16,7 @@ internal interface IMaterializer<T, out TResult> where T : unmanaged, IEquatable
     /// <param name="state">State containing the enumerated record</param>
     /// <returns>Parsed value</returns>
     /// <exception cref="Exceptions.CsvFormatException">
-    /// Thrown if the data is invalid (e.g. wrong column count)
+    /// Thrown if the data is invalid (e.g. wrong field count)
     /// </exception>
     /// <exception cref="Exceptions.CsvParseException">Thrown if a value cannot be parsed</exception>
     TResult Parse(ref CsvEnumerationStateRef<T> state);

@@ -29,7 +29,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
     private static readonly ConditionalWeakTable<Type, HeaderData> _candidateCache = new();
 
     /// <summary>
-    /// Columns that could not be matched are ignored.
+    /// Fields that could not be matched are ignored.
     /// </summary>
     public bool IgnoreUnmatched { get; }
 

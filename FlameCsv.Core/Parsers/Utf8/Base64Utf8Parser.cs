@@ -6,7 +6,7 @@ using CommunityToolkit.HighPerformance.Buffers;
 namespace FlameCsv.Parsers.Utf8;
 
 /// <summary>
-/// Parses Base64 columns into byte arrays or its' derivatives.
+/// Parses Base64 fields into byte arrays or its' derivatives.
 /// </summary>
 public sealed class Base64Utf8Parser :
     ICsvParser<byte, byte[]>,

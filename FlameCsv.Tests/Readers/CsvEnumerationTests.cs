@@ -92,8 +92,8 @@ public sealed class CsvEnumerationTests : IDisposable
         var expected = new[] { "1", "Test", "true" };
         var actual = new List<string>();
 
-        foreach (var column in record)
-            actual.Add(column.ToString());
+        foreach (var field in record)
+            actual.Add(field.ToString());
 
         Assert.Equal(expected, actual);
     }
