@@ -1,5 +1,8 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using System.Text;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 
@@ -12,14 +15,12 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
 
     public virtual long Position { get; protected set; }
     public virtual int Line { get; protected set; }
-    public virtual CsvDialect<T> Dialect { get; }
+    public virtual CsvDialect<T> Dialect => _context.Dialect;
+    public CsvReaderOptions<T> Options => _context.Options;
+    public bool HasHeader => _context.HasHeader;
     public virtual ReadOnlyMemory<T> RawRecord { get; }
-    public CsvReaderOptions<T> Options { get; }
-    public bool HasHeader => _header is not null;
 
-    int IReadOnlyCollection<ReadOnlyMemory<T>>.Count => GetFieldCount();
-    ReadOnlyMemory<T> IReadOnlyList<ReadOnlyMemory<T>>.this[int index] => this[index];
-
+    private readonly CsvReadingContext<T> _context;
     private readonly ArraySegment<ReadOnlyMemory<T>> _values;
     private readonly Dictionary<string, int>? _header;
 
@@ -27,8 +28,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     {
         Throw.IfDefaultStruct<CsvValueRecord<T>>(record._options);
 
-        Options = record._options;
-        Dialect = record._state.Dialect;
+        _context = record._state._context;
         _header = record._state.Header;
         (RawRecord, _values) = Initialize(record);
 
@@ -41,14 +41,41 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         }
     }
 
-    public CsvRecord(ReadOnlyMemory<T> record, CsvReaderOptions<T> options)
+    public CsvRecord(
+        string record,
+        CsvReaderOptions<T> options,
+        CsvContextOverride<T> context = default)
+        : this(
+              typeof(T) == typeof(char) ? (ReadOnlyMemory<T>)(object)record.AsMemory() :
+              typeof(T) == typeof(byte) ? (ReadOnlyMemory<T>)(object)Encoding.UTF8.GetBytes(record) :
+              throw new NotSupportedException(),
+              options,
+              context)
+    {
+    }
+
+    public IEnumerable<string> GetHeaderRecord()
+    {
+        if (!_context.HasHeader)
+            Throw.NotSupported_CsvHasNoHeader();
+
+        if (_header is null)
+            Throw.InvalidOperation_HeaderNotRead();
+
+        return _header.Keys;
+    }
+
+    public CsvRecord(ReadOnlyMemory<T> record, CsvReaderOptions<T> options, CsvContextOverride<T> context = default)
     {
         ArgumentNullException.ThrowIfNull(options);
         options.MakeReadOnly();
 
-        Options = options;
-        (RawRecord, _values) = InitializeFromValues(record, options, false);
+        _context = new CsvReadingContext<T>(options, context);
+        (RawRecord, _values) = InitializeFromValues(record, in _context);
     }
+
+    int IReadOnlyCollection<ReadOnlyMemory<T>>.Count => GetFieldCount();
+    ReadOnlyMemory<T> IReadOnlyList<ReadOnlyMemory<T>>.this[int index] => this[index];
 
     public TRecord ParseRecord<TRecord>()
     {
@@ -69,9 +96,11 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     {
         var field = GetField(index);
 
-        if (!Options.GetParser<TValue>().TryParse(field.Span, out TValue? value))
-            throw new InvalidOperationException();
+        var parser = Options.GetParser<TValue>();
 
+        if (!parser.TryParse(field.Span, out TValue? value))
+            Throw.ParseFailed<T,TValue>(field, parser, in _context);
+        
         return value;
     }
 
@@ -79,8 +108,10 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     {
         var field = GetField(name);
 
-        if (!Options.GetParser<TValue>().TryParse(field.Span, out TValue? value))
-            throw new InvalidOperationException();
+        var parser = Options.GetParser<TValue>();
+
+        if (!parser.TryParse(field.Span, out TValue? value))
+            Throw.ParseFailed<T, TValue>(field, parser, in _context);
 
         return value;
     }
@@ -89,22 +120,38 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
 
     public virtual bool TryGetValue<TValue>(int index, [MaybeNullWhen(false)] out TValue value)
     {
-        throw new NotImplementedException();
-    }
+        if ((uint)index > _values.Count)
+        {
+            Throw.Argument_FieldIndex(index, _values.Count);
+        }
 
-    public virtual bool TryGetValue<TValue>(int index, [MaybeNullWhen(false)] out TValue value, out CsvGetValueReason reason)
-    {
-        throw new NotImplementedException();
+        if (!Options.GetParser<TValue>().TryParse(_values[index].Span, out value))
+        {
+            value = default;
+            return false;
+        }
+
+        return true;
     }
 
     public virtual bool TryGetValue<TValue>(string name, [MaybeNullWhen(false)] out TValue value)
     {
-        throw new NotImplementedException();
-    }
+        if (!HasHeader)
+        {
+            Throw.NotSupported_CsvHasNoHeader();
+        }
 
-    public virtual bool TryGetValue<TValue>(string name, [MaybeNullWhen(false)] out TValue value, out CsvGetValueReason reason)
-    {
-        throw new NotImplementedException();
+        if (_header is null)
+        {
+            Throw.InvalidOperation_HeaderNotRead();
+        }
+
+        if (!_header.TryGetValue(name, out int index))
+        {
+            Throw.Argument_HeaderNameNotFound(name, _context.ExposeContent, _header.Keys);
+        }
+
+        return TryGetValue<TValue>(index, out value);
     }
 
     private static PreservedValues Initialize(CsvValueRecord<T> record)
@@ -151,29 +198,17 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
 
     private static PreservedValues InitializeFromValues(
         ReadOnlyMemory<T> record,
-        CsvReaderOptions<T> options,
-        bool recordPreserved)
+        in CsvReadingContext<T> context)
     {
-        CsvReadingContext<T> context = new(options, default); // TODO
-
         //if (!Token<T>.LargeObjectHeapAllocates(record.Length * 2))
         //{
         //    T[]? buffer = null;
-        //    ArrayPool<T> arrayPool = options.ArrayPool.AllocatingIfNull();
+        //    ArrayPool<T> arrayPool = context.ArrayPool;
 
         //    // use a single buffer for everything
-        //    Memory<T> remaining;
-
-        //    if (recordPreserved)
-        //    {
-        //        remaining = new T[record.Length];
-        //    }
-        //    else
-        //    {
-        //        remaining = new T[record.Length * 2];
-        //        record.CopyTo(remaining);
-        //        remaining = remaining.Slice(record.Length);
-        //    }
+        //    Memory<T> remaining = new T[record.Length * 2];
+        //    record.CopyTo(remaining);
+        //    remaining = remaining.Slice(record.Length);
 
         //    try
         //    {
@@ -186,8 +221,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         //            remaining = remaining.Slice(field.Length);
         //        }
 
-        //        return new PreservedValues(
-        //            recordPreserved ? record : record.SafeCopy(),
+        //        return new PreservedValues(record.SafeCopy(),
         //            values.AsMemory(0, index));
         //    }
         //    finally
@@ -213,7 +247,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
                 }
 
                 return new PreservedValues(
-                    recordPreserved ? record : record.SafeCopy(),
+                    record.SafeCopy(),
                     new ArraySegment<ReadOnlyMemory<T>>(values, 0, index));
             }
         }

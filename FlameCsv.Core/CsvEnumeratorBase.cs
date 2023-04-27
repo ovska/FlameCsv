@@ -38,6 +38,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IE
 
     internal CsvEnumeratorBase(in CsvReadingContext<T> context)
     {
+        context.EnsureValid();
         _context = context;
         _state = new CsvEnumerationState<T>(in _context);
     }

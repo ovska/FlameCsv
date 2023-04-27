@@ -83,9 +83,6 @@ public interface ICsvRecord<T> where T : unmanaged, IEquatable<T>
     /// </remarks>
     int GetFieldCount();
 
-    /// <inheritdoc cref="TryGetValue{TValue}(int, out TValue, out CsvGetValueReason)"/>
-    bool TryGetValue<TValue>(int index, [MaybeNullWhen(false)] out TValue value);
-
     /// <summary>
     /// Attempts to parse a <typeparamref name="TValue"/> from field at <paramref name="index"/>.
     /// </summary>
@@ -93,12 +90,8 @@ public interface ICsvRecord<T> where T : unmanaged, IEquatable<T>
     /// <typeparam name="TValue">Value parsed</typeparam>
     /// <param name="index">0-based field index</param>
     /// <param name="value">Parsed value, if successful</param>
-    /// <param name="reason">Reason for the failure</param>
     /// <returns><see langword="true"/> if the value was successfully parsed</returns>
-    bool TryGetValue<TValue>(int index, [MaybeNullWhen(false)] out TValue value, out CsvGetValueReason reason);
-
-    /// <inheritdoc cref="TryGetValue{TValue}(string, out TValue, out CsvGetValueReason)"/>
-    bool TryGetValue<TValue>(string name, [MaybeNullWhen(false)] out TValue value);
+    bool TryGetValue<TValue>(int index, [MaybeNullWhen(false)] out TValue value);
 
     /// <summary>
     /// Attempts to parse a <typeparamref name="TValue"/> from field at the specified column.
@@ -107,9 +100,8 @@ public interface ICsvRecord<T> where T : unmanaged, IEquatable<T>
     /// <typeparam name="TValue">Value parsed</typeparam>
     /// <param name="name">Header name to get the field for</param>
     /// <param name="value">Parsed value, if successful</param>
-    /// <param name="reason">Reason for the failure</param>
     /// <returns><see langword="true"/> if the value was successfully parsed</returns>
-    bool TryGetValue<TValue>(string name, [MaybeNullWhen(false)] out TValue value, out CsvGetValueReason reason);
+    bool TryGetValue<TValue>(string name, [MaybeNullWhen(false)] out TValue value);
 
     /// <summary>
     /// Parses a value of type <typeparamref name="TValue"/> from field at <paramref name="index"/>.

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Parsers;
 
@@ -11,6 +12,8 @@ internal static class InfrastructureExtensions
         CsvReaderOptions<T> readerOptions)
         where T : unmanaged, IEquatable<T>
     {
+        Debug.Assert(parserOrFactory.CanParse(targetType));
+
         if (parserOrFactory is not ICsvParserFactory<T> factory)
         {
             return parserOrFactory;
@@ -19,9 +22,12 @@ internal static class InfrastructureExtensions
         if (targetType.IsGenericTypeDefinition)
             throw new ArgumentException($"Cannot create a parser for generic type {targetType.ToTypeString()}");
 
-        return factory.Create(targetType, readerOptions)
+        ICsvParser<T> createdParser = factory.Create(targetType, readerOptions)
             ?? throw new InvalidOperationException(
                 $"Factory {factory.GetType().ToTypeString()} returned null " +
                 $"when creating parser for type {targetType.ToTypeString()}");
+
+        Debug.Assert(createdParser.CanParse(targetType));
+        return createdParser;
     }
 }

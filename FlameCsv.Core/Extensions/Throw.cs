@@ -2,6 +2,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
+using FlameCsv.Exceptions;
+using FlameCsv.Parsers;
 
 namespace FlameCsv.Extensions;
 
@@ -92,14 +94,14 @@ internal static class Throw
         throw new ArgumentException(msg, nameof(name));
     }
 
-    //[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
-    //public static void ParseFailed<T, TValue>(ReadOnlyMemory<T> field, ICsvParser<T> parser, CsvEnumerationState<T> state)
-    //        where T : unmanaged, IEquatable<T>
-    //{
-    //    throw new CsvParseException(
-    //        $"Failed to parse {typeof(TValue).FullName} using {parser.GetType().FullName} " +
-    //        $"from {field.Span.AsPrintableString(state._options.AllowContentInExceptions, state.Dialect)}");
-    //}
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+    public static void ParseFailed<T, TValue>(ReadOnlyMemory<T> field, ICsvParser<T> parser, in CsvReadingContext<T> context)
+            where T : unmanaged, IEquatable<T>
+    {
+        throw new CsvParseException(
+            $"Failed to parse {typeof(TValue).FullName} using {parser.GetType().FullName} " +
+            $"from {context.AsPrintableString(field)}");
+    }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
     public static void Argument_FieldIndex<T>(int index, CsvEnumerationState<T>? state = null)
