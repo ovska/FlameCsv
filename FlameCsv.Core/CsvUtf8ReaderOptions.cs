@@ -196,7 +196,7 @@ public sealed class CsvUtf8ReaderOptions : CsvReaderOptions<byte>
 
     /// <summary>
     /// Used by <see cref="NullableParser{T,TValue}"/> when parsing nullable value types.
-    /// Default is empty, which will return null for empty columns or columns that are all whitespace.
+    /// Default is empty, which will return null for empty fields or fields that are all whitespace.
     /// </summary>
     public ReadOnlyMemory<byte> Null
     {

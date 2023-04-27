@@ -23,7 +23,7 @@ await foreach (var record in records)
 }
 ```
 
-## Binding column indexes to classes
+## Binding field indexes to classes
 ```csv
 1,Bob
 2,Alice
@@ -68,7 +68,7 @@ await foreach (User record in CsvReader.ReadAsync<User>(File.OpenRead("/home/ovs
 }
 ```
 
-## Column index binding
+## Field index binding
 ```csharp
 [CsvIndexIgnore(2)]
 record User(

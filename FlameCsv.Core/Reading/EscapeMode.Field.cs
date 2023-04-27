@@ -35,11 +35,11 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
         T quote = state._context.Dialect.Quote;
         T escape = state._context.Dialect.Escape.Value;
 
-        // If not the first column, validate that the first character is a delimiter
+        // If not the first field, validate that the first character is a delimiter
         if (!state.isAtStart)
         {
-            // Since column count may not be known in advance, we leave the delimiter at the head after each column
-            // so we can differentiate between an empty last column and end of the data in general
+            // Since field count may not be known in advance, we leave the delimiter at the head after each field
+            // so we can differentiate between an empty last field and end of the data in general
             if (!remaining[0].Equals(delimiter))
                 state.ThrowNoDelimiterAtHead();
 
@@ -51,7 +51,7 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
             state.isAtStart = false;
         }
 
-        // keep track of how many quotes the current column has
+        // keep track of how many quotes the current field has
         uint quotesConsumed = 0;
         uint escapesConsumed = 0;
         ref uint quotesRemaining = ref state.quotesRemaining;
@@ -69,7 +69,7 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
 
         while (index >= 0)
         {
-            // Hit a comma, either found end of column or more columns than expected
+            // Hit a comma, either found end of field or more fields than expected
             if (remaining[index].Equals(delimiter))
             {
                 field = state.remaining.Slice(0, index);

@@ -108,7 +108,7 @@ internal struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
     public readonly void ThrowNoDelimiterAtHead()
     {
         throw new UnreachableException(
-            "The CSV record was in an invalid state (no delimiter at head after first column), " +
+            "The CSV record was in an invalid state (no delimiter at head after the first field), " +
             $"Remaining: {_context.AsPrintableString(remaining)}, " +
             $"Record: {_context.AsPrintableString(_record)}");
     }

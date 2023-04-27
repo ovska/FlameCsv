@@ -48,18 +48,18 @@ public class Temp
         var parser = new IntegerTextParser();
         var parsed = new List<int>();
 
-        while (reader.TryReadTo(out ReadOnlySequence<char> column, ',', '\\'))
+        while (reader.TryReadTo(out ReadOnlySequence<char> field, ',', '\\'))
         {
-            ReadValue(in column);
+            ReadValue(in field);
         }
 
         ReadValue(reader.UnreadSequence);
 
         Assert.Equal(new[] { 1, 2, 3, 4, 5, 6 }, parsed);
 
-        void ReadValue(in ReadOnlySequence<char> column)
+        void ReadValue(in ReadOnlySequence<char> field)
         {
-            _ = parser.TryParse(column.FirstSpan, out int value);
+            _ = parser.TryParse(field.FirstSpan, out int value);
             parsed.Add(value);
         }
     }

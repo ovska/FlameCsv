@@ -47,7 +47,7 @@ internal abstract class DelegateGenerator<T> where T : unmanaged, IEquatable<T>
         {
             if (binding.IsIgnored)
             {
-                return IgnoredColumnParser<T>.Instance;
+                return IgnoredFieldParser<T>.Instance;
             }
 
             if (binding.TryGetAttribute<CsvParserOverrideAttribute>(out var @override))

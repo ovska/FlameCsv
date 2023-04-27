@@ -1,5 +1,4 @@
-﻿#if false
-namespace FlameCsv.Tests.Readers;
+﻿namespace FlameCsv.Tests.Readers;
 
 public static class CsvReaderFuncTests
 {
@@ -15,7 +14,7 @@ public static class CsvReaderFuncTests
         var enumerable = CsvReader.ReadRecordsAsync(
             reader,
             new CsvTextReaderOptions(),
-            (int id, bool enabled, string name) => new { id, enabled, name });
+            static (int id, bool enabled, string name) => new { id, enabled, name });
 
         var results = new List<(int id, bool enabled, string name)>();
 
@@ -29,4 +28,3 @@ public static class CsvReaderFuncTests
         Assert.Equal((2, false, "Alice"), results[1]);
     }
 }
-#endif

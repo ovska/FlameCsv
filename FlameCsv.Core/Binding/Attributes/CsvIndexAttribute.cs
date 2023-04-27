@@ -3,19 +3,19 @@ using CommunityToolkit.Diagnostics;
 namespace FlameCsv.Binding.Attributes;
 
 /// <summary>
-/// Binds the property, field or constructor parameter to CSV column at <see cref="Index"/>.
+/// Binds the property, field or constructor parameter to CSV field at <see cref="Index"/>.
 /// </summary>
 /// <remarks>
-/// Column indexes start at zero.
+/// Field indexes start at zero.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
 public sealed class CsvIndexAttribute : Attribute
 {
-    /// <summary>CSV column index.</summary>
+    /// <summary>CSV field index.</summary>
     public int Index { get; }
 
     /// <inheritdoc cref="CsvIndexAttribute"/>
-    /// <param name="index">CSV column index</param>
+    /// <param name="index">CSV field index</param>
     public CsvIndexAttribute(int index)
     {
         Guard.IsGreaterThanOrEqualTo(index, 0);

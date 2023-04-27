@@ -19,7 +19,7 @@ namespace FlameCsv;
     "Roslynator",
     "RCS1047:Non-asynchronous method name should not end with 'Async'.",
     Justification = "Method returns a duck typed IAsyncEnumerable")]
-public static class CsvReader
+public static partial class CsvReader
 {
     /// <summary>
     /// Default buffer size used by the <see cref="CsvReader"/> when creating a <see cref="PipeReader"/>

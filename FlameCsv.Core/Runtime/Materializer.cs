@@ -19,7 +19,7 @@ internal abstract partial class Materializer<T> where T : unmanaged, IEquatable<
     protected abstract Type RecordType { get; }
 
     /// <summary>
-    /// Parses the next column from the <paramref name="enumerator"/>.
+    /// Parses the next field from the <paramref name="enumerator"/>.
     /// </summary>
     /// <param name="parser">Parser instance</param>
     /// <typeparam name="TValue">Parsed value</typeparam>

@@ -3,18 +3,18 @@ using CommunityToolkit.Diagnostics;
 namespace FlameCsv.Binding.Attributes;
 
 /// <summary>
-/// Marks the column at indexes as ignored.
+/// Marks the field at indexes as ignored.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true)]
 public sealed class CsvIndexIgnoreAttribute : Attribute
 {
-    /// <summary>Ignored column indexes.</summary>
+    /// <summary>Ignored field indexes.</summary>
     public ReadOnlySpan<int> Indexes => _indexes;
 
     private readonly int[] _indexes;
 
     /// <inheritdoc cref="CsvIndexIgnoreAttribute"/>
-    /// <param name="indexes">CSV column indexes</param>
+    /// <param name="indexes">CSV field indexes</param>
     public CsvIndexIgnoreAttribute(params int[] indexes)
     {
         ArgumentNullException.ThrowIfNull(indexes);

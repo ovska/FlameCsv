@@ -204,7 +204,7 @@ public static class RFC4180ModeTests
     [InlineData(",jklsadklasdW,laskdjlksad,,1231")]
     [InlineData("A,\"B\",C,D,E")]
     [InlineData("A,\"B\",C,D,\"E\"")]
-    public static void Should_Enumerate_Columns(string line)
+    public static void Should_Enumerate_Fields(string line)
     {
         using var pool = new ReturnTrackingArrayPool<char>();
         var options = new CsvTextReaderOptions

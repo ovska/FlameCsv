@@ -55,8 +55,8 @@ public interface ICsvRecord<T> where T : unmanaged, IEquatable<T>
     /// Reference to the data must not be held onto after the next record has been read.
     /// If the data is needed later, copy the data into a separate array.
     /// </remarks>
-    /// <param name="index">0-based column index, e.g. 0 for the first column</param>
-    /// <returns>Column value, unescaped and stripped of quotes when applicable</returns>
+    /// <param name="index">0-based field index, e.g. 0 for the first field</param>
+    /// <returns>Field value, unescaped and stripped of quotes when applicable</returns>
     /// <exception cref="ArgumentOutOfRangeException"/>
     ReadOnlyMemory<T> GetField(int index);
 
@@ -69,7 +69,7 @@ public interface ICsvRecord<T> where T : unmanaged, IEquatable<T>
     /// If the data is needed later, copy the data into a separate array.
     /// </remarks>
     /// <param name="name">Header name to get the field for</param>
-    /// <returns>Column value, unescaped and stripped of quotes when applicable</returns>
+    /// <returns>Field value, unescaped and stripped of quotes when applicable</returns>
     /// <exception cref="ArgumentNullException"/>
     /// <exception cref="ArgumentException"/>
     /// <exception cref="InvalidOperationException"/>
@@ -94,7 +94,7 @@ public interface ICsvRecord<T> where T : unmanaged, IEquatable<T>
     bool TryGetValue<TValue>(int index, [MaybeNullWhen(false)] out TValue value);
 
     /// <summary>
-    /// Attempts to parse a <typeparamref name="TValue"/> from field at the specified column.
+    /// Attempts to parse a <typeparamref name="TValue"/> from field at the specified field.
     /// </summary>
     /// <remarks>The CSV must have a header record.</remarks>
     /// <typeparam name="TValue">Value parsed</typeparam>
@@ -115,7 +115,7 @@ public interface ICsvRecord<T> where T : unmanaged, IEquatable<T>
     TValue GetField<TValue>(int index);
 
     /// <summary>
-    /// Parses a value of type <typeparamref name="TValue"/> from field at the specified column.
+    /// Parses a value of type <typeparamref name="TValue"/> from field at the specified field.
     /// </summary>
     /// <remarks>The CSV must have a header record.</remarks>
     /// <typeparam name="TValue">Value parsed</typeparam>
