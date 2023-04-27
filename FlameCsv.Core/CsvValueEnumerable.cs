@@ -1,6 +1,5 @@
 ﻿using System.Buffers;
 using System.Collections;
-using FlameCsv.Extensions;
 using FlameCsv.Reading;
 
 namespace FlameCsv;
@@ -8,36 +7,40 @@ namespace FlameCsv;
 public sealed class CsvValueEnumerable<T, TValue> : IEnumerable<TValue>
     where T : unmanaged, IEquatable<T>
 {
-    public CsvReaderOptions<T> Options { get; }
-    public ReadOnlySequence<T> Data { get; }
+    private readonly ReadOnlySequence<T> _data;
+    private readonly CsvReadingContext<T> _context;
 
-    public CsvValueEnumerable(CsvReaderOptions<T> options, ReadOnlyMemory<T> csv)
-        : this(options, new ReadOnlySequence<T>(csv))
+    public CsvValueEnumerable(
+        ReadOnlyMemory<T> csv,
+        CsvReaderOptions<T> options,
+        CsvContextOverride<T> overrides)
+        : this(new ReadOnlySequence<T>(csv), options, overrides)
     {
     }
 
-    public CsvValueEnumerable(CsvReaderOptions<T> options, ReadOnlySequence<T> csv)
+    public CsvValueEnumerable(
+        ReadOnlySequence<T> csv,
+        CsvReaderOptions<T> options,
+        CsvContextOverride<T> overrides)
     {
         ArgumentNullException.ThrowIfNull(options);
-        Options = options;
-        Data = csv;
+        _data = csv;
+        _context = new CsvReadingContext<T>(options, overrides);
     }
 
     public IEnumerator<TValue> GetEnumerator()
     {
-        Options.MakeReadOnly();
-
-        if (Options.HasHeader)
+        if (_context.HasHeader)
         {
             return new CsvValueEnumerator<T, TValue, CsvHeaderProcessor<T, TValue>>(
-                Data,
-                new CsvHeaderProcessor<T, TValue>(Options));
+                _data,
+                new CsvHeaderProcessor<T, TValue>(in _context));
         }
         else
         {
             return new CsvValueEnumerator<T, TValue, CsvProcessor<T, TValue>>(
-                Data,
-                new CsvProcessor<T, TValue>(new CsvReadingContext<T>(Options), Options.GetMaterializer<T, TValue>()));
+                _data,
+                new CsvProcessor<T, TValue>(in _context, materializer: null));
         }
     }
 

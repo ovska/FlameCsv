@@ -25,12 +25,12 @@ internal sealed class ReturnTrackingArrayPool<T> : ArrayPool<T>, IDisposable
 
     public override T[] Rent(int minimumLength)
     {
-        rentedCount++;
-
         if (minimumLength == 0)
         {
             return Array.Empty<T>();
         }
+
+        rentedCount++;
 
         var arr = new T[BitOperations.RoundUpToPowerOf2((uint)minimumLength)];
         _values.Add(arr, TrackStackTraces ? new StackTrace(fNeedFileInfo: true) : null);
@@ -39,11 +39,11 @@ internal sealed class ReturnTrackingArrayPool<T> : ArrayPool<T>, IDisposable
 
     public override void Return(T[] array, bool clearArray = false)
     {
-        returnedCount++;
-
         if (array.Length > 0 && !_values.Remove(array))
         {
             throw new InvalidOperationException("The returned array was not rented from the pool.");
         }
+
+        returnedCount++;
     }
 }

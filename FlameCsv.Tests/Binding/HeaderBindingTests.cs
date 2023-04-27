@@ -72,7 +72,7 @@ public static class HeaderBindingTests
 
         var options = new CsvTextReaderOptions { Comparison = StringComparison.Ordinal };
 
-        using var processor = new CsvHeaderProcessor<char, Shim>(options);
+        using var processor = new CsvHeaderProcessor<char, Shim>(options.ToContext());
         var buffer = new ReadOnlySequence<char>(data.AsMemory());
 
         Assert.True(processor.TryRead(ref buffer, out var value1, false));
@@ -96,7 +96,7 @@ public static class HeaderBindingTests
 
         var options = new CsvTextReaderOptions { Comparison = StringComparison.Ordinal };
 
-        using var processor = new CsvHeaderProcessor<char, Shim>(options);
+        using var processor = new CsvHeaderProcessor<char, Shim>(options.ToContext());
         var buffer = new ReadOnlySequence<char>(data.AsMemory());
         Assert.False(processor.TryRead(ref buffer, out _, false));
         Assert.False(processor.TryRead(ref buffer, out _, true));

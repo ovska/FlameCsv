@@ -31,14 +31,15 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
     // Mutable struct! Don't make this readonly
     private TextSegmentPool _segmentPool;
 
-    public TextPipeReader(TextReader innerReader, int bufferSize, ArrayPool<char>? arrayPool)
+    public TextPipeReader(TextReader innerReader, int bufferSize, ArrayPool<char> arrayPool)
     {
         ArgumentNullException.ThrowIfNull(innerReader);
         Guard.IsGreaterThanOrEqualTo(bufferSize, 16);
+        ArgumentNullException.ThrowIfNull(arrayPool);
 
         _innerReader = innerReader;
         _bufferSize = bufferSize;
-        _arrayPool = arrayPool.AllocatingIfNull();
+        _arrayPool = arrayPool;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

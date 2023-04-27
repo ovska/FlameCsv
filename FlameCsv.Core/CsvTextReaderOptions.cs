@@ -156,7 +156,11 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
     public NumberStyles IntegerNumberStyles
     {
         get => _integerNumberStyles;
-        set => this.SetValue(ref _integerNumberStyles, value);
+        set
+        {
+            _ = int.TryParse("", value, null, out _); // validate styles
+            this.SetValue(ref _integerNumberStyles, value);
+        }
     }
 
     /// <summary>
@@ -165,7 +169,11 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
     public NumberStyles DecimalNumberStyles
     {
         get => _decimalNumberStyles;
-        set => this.SetValue(ref _decimalNumberStyles, value);
+        set
+        {
+            _ = double.TryParse("", value, null, out _); // validate styles
+            this.SetValue(ref _decimalNumberStyles, value);
+        }
     }
 
     /// <summary>
@@ -215,7 +223,11 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
     public DateTimeStyles DateTimeStyles
     {
         get => _dateTimeStyles;
-        set => this.SetValue(ref _dateTimeStyles, value);
+        set
+        {
+            _ = DateTime.TryParse("", null, value, out _); // validate styles
+            this.SetValue(ref _dateTimeStyles, value);
+        }
     }
 
     /// <summary>
@@ -225,7 +237,11 @@ public sealed class CsvTextReaderOptions : CsvReaderOptions<char>
     public TimeSpanStyles TimeSpanStyles
     {
         get => _timeSpanStyles;
-        set => this.SetValue(ref _timeSpanStyles, value);
+        set
+        {
+            _ = TimeSpan.TryParseExact("", "", null, styles: value, out _); // validate styles
+            this.SetValue(ref _timeSpanStyles, value);
+        }
     }
 
     /// <summary>

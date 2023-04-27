@@ -217,7 +217,7 @@ public static class RFC4180ModeTests
         var expected = line.Split(',').Select(s => s.Trim('"'));
 
         var list = new List<string>();
-        var context = new CsvReadingContext<char>(options);
+        var context = new CsvReadingContext<char>(options, default);
 
         char[]? buffer = null;
 
@@ -230,7 +230,7 @@ public static class RFC4180ModeTests
 
         Assert.Equal(expected, list);
 
-        state._context.arrayPool.EnsureReturned(ref buffer);
+        state._context.ArrayPool.EnsureReturned(ref buffer);
     }
 
     [Fact]
@@ -247,7 +247,7 @@ public static class RFC4180ModeTests
         var data = new[] { options.Delimiter, options.Newline[0] }.GetPermutations();
         char[]? buffer = null;
 
-        var context = new CsvReadingContext<char>(options);
+        var context = new CsvReadingContext<char>(options, default);
 
         foreach (var chars in data)
         {
@@ -268,6 +268,6 @@ public static class RFC4180ModeTests
             Assert.Equal("test", list[1]);
         }
 
-        context.arrayPool.EnsureReturned(ref buffer);
+        context.ArrayPool.EnsureReturned(ref buffer);
     }
 }

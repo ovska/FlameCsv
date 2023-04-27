@@ -7,6 +7,45 @@ namespace FlameCsv.Tests;
 public class CsvReaderOptionsTests
 {
     [Fact]
+    public static void Should_Validate_Text_ParseParams()
+    {
+        Do(o => o.IntegerNumberStyles = (NumberStyles)int.MaxValue);
+        Do(o => o.DecimalNumberStyles = (NumberStyles)int.MaxValue);
+        Do(o => o.DateTimeStyles = (DateTimeStyles)int.MaxValue);
+        Do(o => o.TimeSpanStyles = (TimeSpanStyles)int.MaxValue);
+
+        static void Do(Action<CsvTextReaderOptions> action)
+        {
+            Assert.ThrowsAny<ArgumentException>(() => action(new CsvTextReaderOptions()));
+        }
+    }
+
+    [Fact]
+    public static void Should_Validate_Utf8_Formats()
+    {
+        Do(o => o.DateTimeFormat = '^');
+        Do(o => o.TimeSpanFormat = '^');
+        Do(o => o.IntegerFormat = '^');
+        Do(o => o.DecimalFormat = '^');
+        Do(o => o.GuidFormat = '^');
+
+        // no ex
+        _ = new CsvUtf8ReaderOptions
+        {
+            DateTimeFormat = '\0',
+            TimeSpanFormat = '\0',
+            IntegerFormat = '\0',
+            DecimalFormat = '\0',
+            GuidFormat = '\0',
+        };
+
+        static void Do(Action<CsvUtf8ReaderOptions> action)
+        {
+            Assert.ThrowsAny<FormatException>(() => action(new CsvUtf8ReaderOptions()));
+        }
+    }
+
+    [Fact]
     public static void Should_Validate_NullToken()
     {
         var to = new CsvTextReaderOptions();

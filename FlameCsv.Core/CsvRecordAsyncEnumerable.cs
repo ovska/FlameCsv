@@ -1,5 +1,4 @@
-﻿using FlameCsv.Extensions;
-using FlameCsv.Reading;
+﻿using FlameCsv.Reading;
 
 namespace FlameCsv;
 
@@ -13,23 +12,23 @@ namespace FlameCsv;
 public readonly struct CsvRecordAsyncEnumerable<T> where T : unmanaged, IEquatable<T>
 {
     private readonly ICsvPipeReader<T> _reader;
-    private readonly CsvReaderOptions<T> _options;
+    private readonly CsvReadingContext<T> _context;
 
-    internal CsvRecordAsyncEnumerable(ICsvPipeReader<T> reader, CsvReaderOptions<T> options)
+    internal CsvRecordAsyncEnumerable(ICsvPipeReader<T> reader, in CsvReadingContext<T> context)
     {
         _reader = reader;
-        _options = options;
+        _context = context;
     }
 
     public CsvRecordAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
-        Throw.IfDefaultStruct<CsvRecordAsyncEnumerable<T>>(_options);
-        return new(_reader, _options, cancellationToken);
+        _context.EnsureValid();
+        return new(_reader, _context, cancellationToken);
     }
 
     public IAsyncEnumerable<CsvRecord<T>> AsAsyncEnumerable()
     {
-        Throw.IfDefaultStruct<CsvRecordAsyncEnumerable<T>>(_options);
+        _context.EnsureValid();
         return new CopyingRecordAsyncEnumerable<T>(this);
     }
 }

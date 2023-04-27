@@ -1,5 +1,4 @@
-﻿using FlameCsv.Extensions;
-using FlameCsv.Reading;
+﻿using FlameCsv.Reading;
 
 namespace FlameCsv;
 
@@ -7,34 +6,32 @@ internal sealed class CsvValueAsyncEnumerable<T, TValue, TReader> : IAsyncEnumer
     where T : unmanaged, IEquatable<T>
     where TReader : struct, ICsvPipeReader<T>
 {
-    private readonly CsvReaderOptions<T> _options;
+    private readonly CsvReadingContext<T> _context;
     private readonly TReader _reader;
 
-    public CsvValueAsyncEnumerable(CsvReaderOptions<T> options, TReader reader)
+
+    public CsvValueAsyncEnumerable(
+        TReader reader,
+        in CsvReadingContext<T> context)
     {
-        _options = options;
         _reader = reader;
+        _context = context;
     }
 
     public IAsyncEnumerator<TValue> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
-        _options.MakeReadOnly();
-
-        if (_options.HasHeader)
+        if (_context.HasHeader)
         {
-            // TODO!!!!
             return new CsvValueAsyncEnumerator<T, TValue, TReader, CsvHeaderProcessor<T, TValue>>(
                 _reader,
-                new CsvHeaderProcessor<T, TValue>(_options),
+                new CsvHeaderProcessor<T, TValue>(in _context),
                 cancellationToken);
         }
         else
         {
-            CsvReadingContext<T> context = new(_options);
-
             return new CsvValueAsyncEnumerator<T, TValue, TReader, CsvProcessor<T, TValue>>(
                 _reader,
-                new CsvProcessor<T, TValue>(in context, _options.GetMaterializer<T, TValue>()),
+                new CsvProcessor<T, TValue>(in _context, materializer: null),
                 cancellationToken);
         }
     }

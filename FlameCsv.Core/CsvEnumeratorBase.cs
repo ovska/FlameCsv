@@ -27,11 +27,8 @@ public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IE
     public int Line { get; protected set; }
     public long Position { get; protected set; }
 
-    private readonly CsvReaderOptions<T> _options;
     private readonly CsvReadingContext<T> _context;
     private readonly CsvEnumerationState<T> _state;
-
-    private readonly int _newlineLength;
 
     private T[]? _multisegmentBuffer; // rented array for multi-segmented lines
 
@@ -39,17 +36,10 @@ public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IE
 
     protected internal bool _disposed;
 
-    protected internal CsvEnumeratorBase(CsvReaderOptions<T> options)
+    internal CsvEnumeratorBase(in CsvReadingContext<T> context)
     {
-        ArgumentNullException.ThrowIfNull(options);
-
-        options.MakeReadOnly();
-
-        _options = options;
-        _context = new CsvReadingContext<T>(options);
+        _context = context;
         _state = new CsvEnumerationState<T>(in _context);
-
-        _newlineLength = options._newline.Length;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -61,11 +51,11 @@ public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IE
         Retry:
         if (_context.TryGetLine(ref data, out ReadOnlySequence<T> line, out RecordMeta meta, isFinalBlock))
         {
-            ReadOnlyMemory<T> memory = line.AsMemory(ref _multisegmentBuffer, _context.arrayPool);
+            ReadOnlyMemory<T> memory = line.AsMemory(ref _multisegmentBuffer, _context.ArrayPool);
 
             long oldPosition = Position;
 
-            Position += memory.Length + _newlineLength * (!isFinalBlock).ToByte();
+            Position += memory.Length + _context.Dialect.Newline.Length * (!isFinalBlock).ToByte();
             Line++;
 
             if (_context.SkipRecord(memory))
@@ -73,7 +63,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IE
                 goto Retry;
             }
 
-            CsvValueRecord<T> record = new(oldPosition, Line, memory, _options, meta, _state);
+            CsvValueRecord<T> record = new(oldPosition, Line, memory, _context.Options, meta, _state);
 
             if (_state.NeedsHeader)
             {
@@ -104,7 +94,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IE
         if (disposing)
         {
             _current = default;
-            _context.arrayPool.EnsureReturned(ref _multisegmentBuffer);
+            _context.ArrayPool.EnsureReturned(ref _multisegmentBuffer);
             _state.Dispose();
         }
     }
@@ -113,13 +103,13 @@ public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IE
     {
         Dictionary<string, int> dictionary = new(
             capacity: headerRecord.GetFieldCount(),
-            comparer: StringComparer.FromComparison(_options.Comparison));
+            comparer: StringComparer.FromComparison(_context.Options.Comparison));
 
         int index = 0;
 
         foreach (ReadOnlyMemory<T> field in headerRecord)
         {
-            string fieldString = _options.GetAsString(field.Span);
+            string fieldString = _context.Options.GetAsString(field.Span);
 
             if (!dictionary.TryAdd(fieldString, index++))
             {

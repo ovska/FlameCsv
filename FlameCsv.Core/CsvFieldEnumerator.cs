@@ -18,17 +18,12 @@ public struct CsvFieldEnumerator<T> : IDisposable where T : unmanaged, IEquatabl
 
     private CsvEnumerationStateRef<T> _state;
 
-    internal CsvFieldEnumerator(ReadOnlyMemory<T> value, CsvReaderOptions<T> options)
-        : this(value, new CsvReadingContext<T>(options))
-    {
-    }
-
     internal CsvFieldEnumerator(ReadOnlyMemory<T> value, in CsvReadingContext<T> context)
     {
-        Throw.IfDefaultStruct<CsvFieldEnumerator<T>>(context.arrayPool);
+        Throw.IfDefaultStruct<CsvFieldEnumerator<T>>(context.ArrayPool);
 
         _context = context;
-        _arrayPool = context.arrayPool;
+        _arrayPool = context.ArrayPool;
         _state = new CsvEnumerationStateRef<T>(in context, value, ref _toReturn);
     }
 

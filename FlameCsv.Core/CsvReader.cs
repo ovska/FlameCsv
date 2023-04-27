@@ -30,28 +30,31 @@ public static class CsvReader
     /// <inheritdoc cref="Read{T,TValue}(CsvReaderOptions{T},ReadOnlyMemory{T})"/>
     public static CsvValueEnumerable<char, TValue> Read<TValue>(
         string? csv,
-        CsvReaderOptions<char> options)
+        CsvReaderOptions<char> options,
+        CsvContextOverride<char> context = default)
     {
         ArgumentNullException.ThrowIfNull(options);
-        return new CsvValueEnumerable<char, TValue>(options, new ReadOnlySequence<char>(csv.AsMemory()));
+        return new CsvValueEnumerable<char, TValue>(new ReadOnlySequence<char>(csv.AsMemory()), options, context);
     }
 
     /// <inheritdoc cref="Read{T,TValue}(CsvReaderOptions{T},ReadOnlyMemory{T})"/>
     public static CsvValueEnumerable<char, TValue> Read<TValue>(
         ReadOnlyMemory<char> csv,
-        CsvReaderOptions<char> options)
+        CsvReaderOptions<char> options,
+        CsvContextOverride<char> context = default)
     {
         ArgumentNullException.ThrowIfNull(options);
-        return new CsvValueEnumerable<char, TValue>(options, new ReadOnlySequence<char>(csv));
+        return new CsvValueEnumerable<char, TValue>(new ReadOnlySequence<char>(csv), options, context);
     }
 
     /// <inheritdoc cref="Read{T,TValue}(CsvReaderOptions{T},ReadOnlyMemory{T})"/>
     public static CsvValueEnumerable<byte, TValue> Read<TValue>(
         ReadOnlyMemory<byte> csv,
-        CsvReaderOptions<byte> options)
+        CsvReaderOptions<byte> options,
+        CsvContextOverride<byte> context = default)
     {
         ArgumentNullException.ThrowIfNull(options);
-        return new CsvValueEnumerable<byte, TValue>(options, new ReadOnlySequence<byte>(csv));
+        return new CsvValueEnumerable<byte, TValue>(new ReadOnlySequence<byte>(csv), options, context);
     }
 
     /// <summary>
@@ -62,21 +65,23 @@ public static class CsvReader
     /// <returns><see cref="IEnumerable{T}"/> that reads records line-by-line from the data.</returns>
     public static CsvValueEnumerable<T, TValue> Read<T, TValue>(
         ReadOnlyMemory<T> csv,
-        CsvReaderOptions<T> options)
+        CsvReaderOptions<T> options,
+        CsvContextOverride<T> context = default)
         where T : unmanaged, IEquatable<T>
     {
         ArgumentNullException.ThrowIfNull(options);
-        return new CsvValueEnumerable<T, TValue>(options, new ReadOnlySequence<T>(csv));
+        return new CsvValueEnumerable<T, TValue>(new ReadOnlySequence<T>(csv), options, context);
     }
 
     /// <inheritdoc cref="Read{T,TValue}(CsvReaderOptions{T},ReadOnlyMemory{T})"/>
     public static CsvValueEnumerable<T, TValue> Read<T, TValue>(
         ReadOnlySequence<T> csv,
-        CsvReaderOptions<T> options)
+        CsvReaderOptions<T> options,
+        CsvContextOverride<T> context = default)
         where T : unmanaged, IEquatable<T>
     {
         ArgumentNullException.ThrowIfNull(options);
-        return new CsvValueEnumerable<T, TValue>(options, csv);
+        return new CsvValueEnumerable<T, TValue>(csv, options, context);
     }
 
     /// <summary>
@@ -97,6 +102,7 @@ public static class CsvReader
     public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
         Stream stream,
         CsvReaderOptions<char> options,
+        CsvContextOverride<char> context = default,
         Encoding? encoding = null,
         bool leaveOpen = false,
         int bufferSize = DefaultBufferSize)
@@ -105,9 +111,12 @@ public static class CsvReader
         ArgumentNullException.ThrowIfNull(options);
         Guard.CanRead(stream);
 
+        var readerContext = new CsvReadingContext<char>(options, context);
         var textReader = new StreamReader(stream, encoding: encoding, leaveOpen: leaveOpen, bufferSize: bufferSize);
-        var reader = new TextPipeReader(textReader, bufferSize, options.ArrayPool);
-        return new CsvValueAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(options, new TextPipeReaderWrapper(reader));
+        var reader = new TextPipeReader(textReader, bufferSize, readerContext.ArrayPool);
+        return new CsvValueAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(
+            new TextPipeReaderWrapper(reader),
+            in readerContext);
     }
 
     /// <summary>
@@ -124,13 +133,17 @@ public static class CsvReader
     /// <returns><see cref="IAsyncEnumerable{T}"/> that reads the CSV one record at a time from the reader.</returns>
     public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
         TextReader textReader,
-        CsvReaderOptions<char> options)
+        CsvReaderOptions<char> options,
+        CsvContextOverride<char> context = default)
     {
         ArgumentNullException.ThrowIfNull(textReader);
         ArgumentNullException.ThrowIfNull(options);
 
-        var reader = new TextPipeReader(textReader, DefaultBufferSize, options.ArrayPool);
-        return new CsvValueAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(options, new TextPipeReaderWrapper(reader));
+        var readerContext = new CsvReadingContext<char>(options, context);
+        var reader = new TextPipeReader(textReader, DefaultBufferSize, readerContext.ArrayPool);
+        return new CsvValueAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(
+            new TextPipeReaderWrapper(reader),
+            in readerContext);
     }
 
     /// <summary>
@@ -148,14 +161,18 @@ public static class CsvReader
     public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
         Stream stream,
         CsvReaderOptions<byte> options,
+        CsvContextOverride<byte> context = default,
         bool leaveOpen = false)
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(options);
         Guard.CanRead(stream);
 
-        var reader = CreatePipeReader(stream, options, leaveOpen);
-        return new CsvValueAsyncEnumerable<byte, TValue, PipeReaderWrapper>(options, new PipeReaderWrapper(reader));
+        var readingContext = new CsvReadingContext<byte>(options, context);
+        var reader = CreatePipeReader(stream, in readingContext, leaveOpen);
+        return new CsvValueAsyncEnumerable<byte, TValue, PipeReaderWrapper>(
+            new PipeReaderWrapper(reader),
+            in readingContext);
     }
 
     /// <summary>
@@ -169,12 +186,15 @@ public static class CsvReader
     /// <returns><see cref="IAsyncEnumerable{T}"/> that reads the CSV one record at a time from the reader.</returns>
     public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
         PipeReader reader,
-        CsvReaderOptions<byte> options)
+        CsvReaderOptions<byte> options,
+        CsvContextOverride<byte> context = default)
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(options);
 
-        return new CsvValueAsyncEnumerable<byte, TValue, PipeReaderWrapper>(options, new PipeReaderWrapper(reader));
+        return new CsvValueAsyncEnumerable<byte, TValue, PipeReaderWrapper>(
+            new PipeReaderWrapper(reader),
+            new CsvReadingContext<byte>(options, context));
     }
 
     /// <summary>
@@ -192,7 +212,8 @@ public static class CsvReader
     /// <param name="options">Options instance defining the dialect and parsers</param>
     public static CsvRecordEnumerable<char> Enumerate(
         string? csv,
-        CsvReaderOptions<char> options)
+        CsvReaderOptions<char> options,
+        CsvContextOverride<char> context = default)
     {
         return new CsvRecordEnumerable<char>(csv.AsMemory(), options);
     }
@@ -235,6 +256,7 @@ public static class CsvReader
     public static CsvRecordAsyncEnumerable<char> EnumerateAsync(
         Stream stream,
         CsvReaderOptions<char> options,
+        CsvContextOverride<char> context = default,
         Encoding? encoding = null,
         bool leaveOpen = false)
     {
@@ -244,7 +266,8 @@ public static class CsvReader
 
         return EnumerateAsync(
             new StreamReader(stream, encoding: encoding, leaveOpen: leaveOpen, bufferSize: 4096),
-            options);
+            options,
+            context);
     }
 
     /// <summary>
@@ -258,14 +281,16 @@ public static class CsvReader
     /// </remarks>
     public static CsvRecordAsyncEnumerable<char> EnumerateAsync(
         TextReader textReader,
-        CsvReaderOptions<char> options)
+        CsvReaderOptions<char> options,
+        CsvContextOverride<char> context = default)
     {
         ArgumentNullException.ThrowIfNull(textReader);
         ArgumentNullException.ThrowIfNull(options);
 
+        var readerContext = new CsvReadingContext<char>(options, context);
         return new CsvRecordAsyncEnumerable<char>(
-            new TextPipeReader(textReader, 4096, options.ArrayPool),
-            options);
+            new TextPipeReader(textReader, 4096, readerContext.ArrayPool),
+            in readerContext);
     }
 
     /// <summary>
@@ -280,12 +305,17 @@ public static class CsvReader
     public static CsvRecordAsyncEnumerable<byte> EnumerateAsync(
         Stream stream,
         CsvReaderOptions<byte> options,
+        CsvContextOverride<byte> context = default,
         bool leaveOpen = false)
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(options);
 
-        return EnumerateAsync(CreatePipeReader(stream, options, leaveOpen), options);
+        var readerContext = new CsvReadingContext<byte>(options, context);
+
+        return new CsvRecordAsyncEnumerable<byte>(
+            new PipeReaderWrapper(CreatePipeReader(stream, in readerContext, leaveOpen)),
+            in readerContext);
     }
 
 
@@ -300,12 +330,15 @@ public static class CsvReader
     /// </remarks>
     public static CsvRecordAsyncEnumerable<byte> EnumerateAsync(
         PipeReader reader,
-        CsvReaderOptions<byte> options)
+        CsvReaderOptions<byte> options,
+        CsvContextOverride<byte> context = default)
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(options);
 
-        return new CsvRecordAsyncEnumerable<byte>(new PipeReaderWrapper(reader), options);
+        return new CsvRecordAsyncEnumerable<byte>(
+            new PipeReaderWrapper(reader),
+            new CsvReadingContext<byte>(options, context));
     }
 
     /// <summary>
@@ -314,16 +347,16 @@ public static class CsvReader
     [StackTraceHidden]
     private static PipeReader CreatePipeReader(
         Stream stream,
-        CsvReaderOptions<byte> options,
+        in CsvReadingContext<byte> context,
         bool leaveOpen)
     {
         Guard.CanRead(stream);
 
         MemoryPool<byte>? memoryPool = null;
 
-        if (options.ArrayPool != ArrayPool<byte>.Shared)
+        if (context.ArrayPool != ArrayPool<byte>.Shared)
         {
-            memoryPool = options.ArrayPool.AllocatingIfNull().AsMemoryPool();
+            memoryPool = context.ArrayPool.AllocatingIfNull().AsMemoryPool();
         }
 
         return PipeReader.Create(

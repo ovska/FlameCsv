@@ -11,10 +11,15 @@ internal sealed class ParserList<T> : IList<ICsvParser<T>> where T : unmanaged, 
 
     public ReadOnlySpan<ICsvParser<T>> Span => _list.AsSpan();
 
-    public ParserList(CsvReaderOptions<T> owner, IEnumerable<ICsvParser<T>>? defaultValues)
+    public ParserList(CsvReaderOptions<T> owner, ParserList<T>? defaultValues)
     {
         _owner = owner;
-        _list = defaultValues is null ? new List<ICsvParser<T>>() : new List<ICsvParser<T>>(defaultValues);
+        _list = new List<ICsvParser<T>>();
+
+        if (defaultValues is { Count: > 0 })
+        {
+            _list.AddRange(defaultValues._list);
+        }
     }
 
     public ICsvParser<T> this[int index]

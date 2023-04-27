@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using System.Collections;
+﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
@@ -155,7 +154,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         CsvReaderOptions<T> options,
         bool recordPreserved)
     {
-        CsvReadingContext<T> context = new(options);
+        CsvReadingContext<T> context = new(options, default); // TODO
 
         //if (!Token<T>.LargeObjectHeapAllocates(record.Length * 2))
         //{
@@ -203,7 +202,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
             T[]? buffer = null;
 
             // TODO!!!
-            using (CsvEnumerationStateRefLifetime<T>.Create(in context, record, ref buffer, out var state))
+            using (CsvEnumerationStateRef<T>.CreateTemporary(in context, record, ref buffer, out var state))
             {
                 while (!state.remaining.IsEmpty)
                 {

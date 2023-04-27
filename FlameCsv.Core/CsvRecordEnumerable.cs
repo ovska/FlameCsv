@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using FlameCsv.Extensions;
 
 namespace FlameCsv;
 
@@ -13,30 +12,29 @@ namespace FlameCsv;
 public readonly struct CsvRecordEnumerable<T> where T : unmanaged, IEquatable<T>
 {
     private readonly ReadOnlySequence<T> _data;
-    private readonly CsvReaderOptions<T> _options;
+    private readonly CsvReadingContext<T> _context;
 
-    public CsvRecordEnumerable(ReadOnlyMemory<T> data, CsvReaderOptions<T> options)
-        : this(new ReadOnlySequence<T>(data), options)
+    public CsvRecordEnumerable(ReadOnlyMemory<T> data, CsvReaderOptions<T> options, CsvContextOverride<T> overrides = default)
+        : this(new ReadOnlySequence<T>(data), options, overrides)
     {
     }
 
-    public CsvRecordEnumerable(in ReadOnlySequence<T> data, CsvReaderOptions<T> options)
+    public CsvRecordEnumerable(in ReadOnlySequence<T> data, CsvReaderOptions<T> options, CsvContextOverride<T> overrides = default)
     {
         ArgumentNullException.ThrowIfNull(options);
-        options.MakeReadOnly();
         _data = data;
-        _options = options;
+        _context = new CsvReadingContext<T>(options, overrides);
     }
 
     public CsvRecordEnumerator<T> GetEnumerator()
     {
-        Throw.IfDefaultStruct<CsvRecordEnumerable<T>>(_options);
-        return new(in _data, _options);
+        _context.EnsureValid();
+        return new(in _data, in _context);
     }
 
     public IEnumerable<CsvRecord<T>> AsEnumerable()
     {
-        Throw.IfDefaultStruct<CsvRecordEnumerable<T>>(_options);
+        _context.EnsureValid();
         return new CopyingRecordEnumerable<T>(this);
     }
 }

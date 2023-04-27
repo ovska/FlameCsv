@@ -1,9 +1,6 @@
 ﻿using System.Globalization;
 using System.Runtime.InteropServices;
-using System.Text;
 using CommunityToolkit.Diagnostics;
-using CommunityToolkit.HighPerformance;
-using CommunityToolkit.HighPerformance.Buffers;
 
 namespace FlameCsv.Extensions;
 

@@ -10,9 +10,8 @@ namespace FlameCsv.Reading;
 /// data to a pooled buffer if it is multisegment.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-[DebuggerDisplay(@"\{ SequenceView: [{DebugString,nq}] \}")]
-internal readonly struct SequenceView<T> : IDisposable
-    where T : unmanaged, IEquatable<T>
+[DebuggerDisplay(@"\{ SequenceView: [{DebugString}] \}")]
+internal readonly struct SequenceView<T> : IDisposable where T : unmanaged, IEquatable<T>
 {
     /// <summary>
     /// Data in the parameter sequence.
@@ -30,7 +29,7 @@ internal readonly struct SequenceView<T> : IDisposable
 
     public SequenceView(
         in ReadOnlySequence<T> sequence,
-        ArrayPool<T>? arrayPool,
+        ArrayPool<T> arrayPool,
         bool clearArray = false)
     {
         if (sequence.IsSingleSegment)
@@ -40,7 +39,7 @@ internal readonly struct SequenceView<T> : IDisposable
         else
         {
             int length = (int)sequence.Length;
-            _pool = arrayPool.AllocatingIfNull();
+            _pool = arrayPool;
             _array = _pool.Rent(length);
             _clearArray = clearArray;
             sequence.CopyTo(_array);

@@ -11,14 +11,14 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     public bool NeedsHeader
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _context.hasHeader && Header is null;
+        get => _context.HasHeader && Header is null;
     }
 
     public Dictionary<Type, object> MaterializerCache => _materializerCache ??= new();
 
     public int Version { get; private set; }
     public int TotalFieldLength { get; private set; }
-    public CsvDialect<T> Dialect => _context.dialect;
+    public CsvDialect<T> Dialect => _context.Dialect;
 
     private readonly CsvReadingContext<T> _context;
     private T[]? _unescapeBuffer; // rented array for unescaping
@@ -50,7 +50,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
         _state = GetInitialStateFor(memory, meta);
         int newVersion = ++Version;
 
-        if (_context.validateFieldCount)
+        if (_context.ValidateFieldCount)
             ValidateFieldCountForCurrent();
 
         return newVersion;
@@ -73,7 +73,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
         Version = -1;
         _values = default!;
         _state = default;
-        _context.arrayPool.EnsureReturned(ref _unescapeBuffer);
+        _context.ArrayPool.EnsureReturned(ref _unescapeBuffer);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -83,7 +83,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
         ArgumentNullException.ThrowIfNull(name);
         Throw.IfEnumerationDisposed(_disposed);
 
-        if (!_context.hasHeader)
+        if (!_context.HasHeader)
             Throw.NotSupported_CsvHasNoHeader();
 
         if (Header is null)
@@ -124,7 +124,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     {
         Throw.IfEnumerationDisposed(_disposed);
 
-        if (!_context.hasHeader)
+        if (!_context.HasHeader)
             Throw.NotSupported_CsvHasNoHeader();
 
         if (Header is not null)
