@@ -3,7 +3,7 @@
 public interface ICsvDialectOptions<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
-    /// Column delimiter.
+    /// Field delimiter.
     /// </summary>
     T Delimiter { get; set; }
 

@@ -20,7 +20,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     public int TotalFieldLength { get; private set; }
     public CsvDialect<T> Dialect => _context.Dialect;
 
-    private readonly CsvReadingContext<T> _context;
+    internal readonly CsvReadingContext<T> _context;
     private T[]? _unescapeBuffer; // rented array for unescaping
 
     private ReadOnlyMemory<T>[] _values; // cached column values by index

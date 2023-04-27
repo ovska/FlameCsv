@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using System.Diagnostics;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Utilities;
 
@@ -146,44 +145,6 @@ public sealed class CsvEnumerationTests : IDisposable
         Assert.Equal("1", record.GetField("A").ToString());
         Assert.Equal("2", record.GetField("B").ToString());
         Assert.Equal("3", record.GetField("C").ToString());
-    }
-
-    [Fact]
-    public void Should_Return_Parse_Failure_Reason()
-    {
-        using var enumerator = new CsvRecordEnumerable<char>(
-            "A,B,C,D\r\n1,2,3".AsMemory(), new CsvTextReaderOptions { HasHeader = true })
-            .GetEnumerator();
-
-        CsvValueRecord<char> record = default;
-        int count = 0;
-
-        while (enumerator.MoveNext())
-        {
-            record = enumerator.Current;
-            Assert.Equal(1, ++count);
-        }
-
-        Assert.False(record.TryGetValue<Stopwatch>(4, out _, out var reason));
-        Assert.Equal(CsvGetValueReason.FieldNotFound, reason);
-
-        Assert.False(record.TryGetValue<Stopwatch>(0, out _, out reason));
-        Assert.Equal(CsvGetValueReason.NoParserFound, reason);
-
-        Assert.False(record.TryGetValue<bool>(0, out _, out reason));
-        Assert.Equal(CsvGetValueReason.UnparsableValue, reason);
-
-        Assert.False(record.TryGetValue<Stopwatch>("E", out _, out reason));
-        Assert.Equal(CsvGetValueReason.HeaderNotFound, reason);
-
-        Assert.False(record.TryGetValue<Stopwatch>("D", out _, out reason));
-        Assert.Equal(CsvGetValueReason.FieldNotFound, reason);
-
-        Assert.False(record.TryGetValue<bool>("D", out _, out reason));
-        Assert.Equal(CsvGetValueReason.FieldNotFound, reason);
-
-        Assert.False(record.TryGetValue<bool>("C", out _, out reason));
-        Assert.Equal(CsvGetValueReason.UnparsableValue, reason);
     }
 
     private CsvValueRecord<char> GetRecord()

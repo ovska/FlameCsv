@@ -103,55 +103,34 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
         return _state.GetFieldCount();
     }
 
-    public bool TryGetValue<TValue>(int index, [MaybeNullWhen(false)] out TValue value) => TryGetValue(index, out value, out _);
-
-    /// <inheritdoc cref="ICsvRecord{T}.TryGetValue{TValue}(int, out TValue, out CsvGetValueReason)"/>
-    public bool TryGetValue<TValue>(
-        int index,
-        [MaybeNullWhen(false)] out TValue value,
-        out CsvGetValueReason reason)
+    public bool TryGetValue<TValue>(int index, [MaybeNullWhen(false)] out TValue value)
     {
         _state.EnsureVersion(_version);
 
         if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> field))
         {
-            reason = CsvGetValueReason.FieldNotFound;
-            value = default;
-            return false;
+            Throw.Argument_FieldIndex(index, _state);
         }
 
-        if (_options.TryGetParser<TValue>() is not { } parser)
+        if (!_options.GetParser<TValue>().TryParse(field.Span, out value))
         {
-            reason = CsvGetValueReason.NoParserFound;
             value = default;
             return false;
         }
 
-        if (!parser.TryParse(field.Span, out value))
-        {
-            reason = CsvGetValueReason.UnparsableValue;
-            value = default;
-            return false;
-        }
-
-        reason = CsvGetValueReason.Success;
         return true;
     }
 
-    public bool TryGetValue<TValue>(string name, [MaybeNullWhen(false)] out TValue value) => TryGetValue(name, out value, out _);
-
-    public bool TryGetValue<TValue>(string name, [MaybeNullWhen(false)] out TValue value, out CsvGetValueReason reason)
+    public bool TryGetValue<TValue>(string name, [MaybeNullWhen(false)] out TValue value)
     {
         _state.EnsureVersion(_version);
 
         if (!_state.TryGetHeaderIndex(name, out int index))
         {
-            value = default;
-            reason = CsvGetValueReason.HeaderNotFound;
-            return false;
+            Throw.Argument_HeaderNameNotFound(name, _state._context.ExposeContent, _state.Header.Keys);
         }
 
-        return TryGetValue(index, out value, out reason);
+        return TryGetValue(index, out value);
     }
 
     public TValue GetField<TValue>(string name)
@@ -180,8 +159,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
 
         if (!parser.TryParse(field.Span, out var value))
         {
-            throw new UnreachableException(); // TODO
-            //Throw.ParseFailed<T, TValue>(field, parser, _state);
+            Throw.ParseFailed<T, TValue>(field, parser, in _state._context);
         }
 
         return value;

@@ -19,7 +19,6 @@ public static class CsvRecordTests
                 new CsvTextReaderOptions { ValidateFieldCount = true })
             .AsEnumerable()
             .ToList());
-
     }
 
     [Fact]
@@ -35,5 +34,29 @@ public static class CsvRecordTests
         Assert.Equal("A", record[0].ToString());
         Assert.Equal("B", record[1].ToString());
         Assert.Equal("C", record[2].ToString());
+    }
+
+    [Fact]
+    public static void Should_Parse_Fields()
+    {
+        var records = new CsvRecordEnumerable<char>(
+            "A,B,C\r\n1,2,3\r\n".AsMemory(),
+            CsvTextReaderOptions.Default,
+            new() { HasHeader = true }).AsEnumerable().ToList();
+
+        Assert.Single(records);
+
+        var record = records[0];
+
+        Assert.True(record.HasHeader);
+
+        Assert.Equal(new[] { "A", "B", "C" }, record.GetHeaderRecord());
+
+        Assert.Equal(1, record.GetField<int>(0));
+        Assert.Equal(1, record.GetField<int>("A"));
+        Assert.Equal(2, record.GetField<int>(1));
+        Assert.Equal(2, record.GetField<int>("B"));
+        Assert.Equal(3, record.GetField<int>(2));
+        Assert.Equal(3, record.GetField<int>("C"));
     }
 }

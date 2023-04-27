@@ -35,6 +35,7 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
 
     public CsvReadingContext(CsvReaderOptions<T> options, CsvContextOverride<T> overrides)
     {
+        ArgumentNullException.ThrowIfNull(options);
         options.MakeReadOnly();
 
         Options = options;
