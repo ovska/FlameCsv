@@ -2,7 +2,6 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
-using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading;
 
