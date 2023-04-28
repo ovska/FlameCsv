@@ -1,6 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
+using FlameCsv.Exceptions;
+using FlameCsv.Extensions;
 using FlameCsv.Parsers;
 using FlameCsv.Reading;
 
@@ -40,6 +42,16 @@ internal abstract partial class Materializer<T> where T : unmanaged, IEquatable<
         return default;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] // should be small enough to inline in Parse()
+    protected static TValue ParseKnown<TValue>(ReadOnlySpan<T> field, ICsvParser<T , TValue> parser)
+    {
+        if (parser.TryParse(field, out TValue? value))
+            return value;
+
+        ThrowParseFailed();
+        return default!;
+    }
+
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private void ThrowRecordEndedPrematurely(ref CsvEnumerationStateRef<T> state)
     {
@@ -50,6 +62,12 @@ internal abstract partial class Materializer<T> where T : unmanaged, IEquatable<
     private static void ThrowParseFailed(ref CsvEnumerationStateRef<T> state, ReadOnlySpan<T> field, ICsvParser<T> parser)
     {
         state.ThrowParseFailed(field, parser);
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    private static void ThrowParseFailed()
+    {
+        throw new CsvParseException();
     }
 
     public override string ToString()

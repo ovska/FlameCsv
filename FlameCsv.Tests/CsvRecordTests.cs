@@ -59,4 +59,29 @@ public static class CsvRecordTests
         Assert.Equal(3, record.GetField<int>(2));
         Assert.Equal(3, record.GetField<int>("C"));
     }
+
+    [Fact]
+    public static void Should_Parse_Record()
+    {
+        var records = new CsvRecordEnumerable<char>(
+            "A,B,C\r\n1,2,3\r\n".AsMemory(),
+            CsvTextReaderOptions.Default,
+            new() { HasHeader = true }).AsEnumerable().ToList();
+
+        Assert.Single(records);
+        var record = records[0];
+
+        var obj = record.ParseRecord<Obj>();
+
+        Assert.Equal(1, obj.A);
+        Assert.Equal(2, obj.B);
+        Assert.Equal(3, obj.C);
+    }
+
+    private sealed class Obj
+    {
+        public int A { get; set; }
+        public int B { get; set; }
+        public int C { get; set; }
+    }
 }

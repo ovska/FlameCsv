@@ -39,7 +39,7 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
         {
             ReadHeader(in line);
 
-            // read the header unless the CSV consisted of a single record without trailing newline
+            // read the first record now, unless the CSV consisted of just the header without trailing newline
             if (!isFinalBlock)
             {
                 // obs: don't use .Value here

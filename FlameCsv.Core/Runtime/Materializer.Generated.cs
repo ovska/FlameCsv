@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Binding;
+using FlameCsv.Extensions;
 using FlameCsv.Parsers;
 using FlameCsv.Reading;
 
@@ -79,9 +80,17 @@ internal sealed class Materializer<T, T0, TResult>
 
         state.EnsureFullyConsumed(FieldCount);
 
-        var result = valueFactory(v0);
+        return valueFactory(v0);
+    }
 
-        return result;
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    {
+        if (FieldCount != fields.Length)
+            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+
+        T0 v0 = ParseKnown(fields[0].Span, parser0);
+
+        return valueFactory(v0);
     }
 }
 
@@ -116,9 +125,18 @@ internal sealed class Materializer<T, T0, T1, TResult>
 
         state.EnsureFullyConsumed(FieldCount);
 
-        var result = valueFactory(v0, v1);
+        return valueFactory(v0, v1);
+    }
 
-        return result;
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    {
+        if (FieldCount != fields.Length)
+            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+
+        T0 v0 = ParseKnown(fields[0].Span, parser0);
+        T1 v1 = ParseKnown(fields[1].Span, parser1);
+
+        return valueFactory(v0, v1);
     }
 }
 
@@ -157,9 +175,19 @@ internal sealed class Materializer<T, T0, T1, T2, TResult>
 
         state.EnsureFullyConsumed(FieldCount);
 
-        var result = valueFactory(v0, v1, v2);
+        return valueFactory(v0, v1, v2);
+    }
 
-        return result;
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    {
+        if (FieldCount != fields.Length)
+            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+
+        T0 v0 = ParseKnown(fields[0].Span, parser0);
+        T1 v1 = ParseKnown(fields[1].Span, parser1);
+        T2 v2 = ParseKnown(fields[2].Span, parser2);
+
+        return valueFactory(v0, v1, v2);
     }
 }
 
@@ -202,9 +230,20 @@ internal sealed class Materializer<T, T0, T1, T2, T3, TResult>
 
         state.EnsureFullyConsumed(FieldCount);
 
-        var result = valueFactory(v0, v1, v2, v3);
+        return valueFactory(v0, v1, v2, v3);
+    }
 
-        return result;
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    {
+        if (FieldCount != fields.Length)
+            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+
+        T0 v0 = ParseKnown(fields[0].Span, parser0);
+        T1 v1 = ParseKnown(fields[1].Span, parser1);
+        T2 v2 = ParseKnown(fields[2].Span, parser2);
+        T3 v3 = ParseKnown(fields[3].Span, parser3);
+
+        return valueFactory(v0, v1, v2, v3);
     }
 }
 
@@ -251,9 +290,21 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult>
 
         state.EnsureFullyConsumed(FieldCount);
 
-        var result = valueFactory(v0, v1, v2, v3, v4);
+        return valueFactory(v0, v1, v2, v3, v4);
+    }
 
-        return result;
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    {
+        if (FieldCount != fields.Length)
+            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+
+        T0 v0 = ParseKnown(fields[0].Span, parser0);
+        T1 v1 = ParseKnown(fields[1].Span, parser1);
+        T2 v2 = ParseKnown(fields[2].Span, parser2);
+        T3 v3 = ParseKnown(fields[3].Span, parser3);
+        T4 v4 = ParseKnown(fields[4].Span, parser4);
+
+        return valueFactory(v0, v1, v2, v3, v4);
     }
 }
 
@@ -304,9 +355,22 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult>
 
         state.EnsureFullyConsumed(FieldCount);
 
-        var result = valueFactory(v0, v1, v2, v3, v4, v5);
+        return valueFactory(v0, v1, v2, v3, v4, v5);
+    }
 
-        return result;
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    {
+        if (FieldCount != fields.Length)
+            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+
+        T0 v0 = ParseKnown(fields[0].Span, parser0);
+        T1 v1 = ParseKnown(fields[1].Span, parser1);
+        T2 v2 = ParseKnown(fields[2].Span, parser2);
+        T3 v3 = ParseKnown(fields[3].Span, parser3);
+        T4 v4 = ParseKnown(fields[4].Span, parser4);
+        T5 v5 = ParseKnown(fields[5].Span, parser5);
+
+        return valueFactory(v0, v1, v2, v3, v4, v5);
     }
 }
 
@@ -361,9 +425,23 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult>
 
         state.EnsureFullyConsumed(FieldCount);
 
-        var result = valueFactory(v0, v1, v2, v3, v4, v5, v6);
+        return valueFactory(v0, v1, v2, v3, v4, v5, v6);
+    }
 
-        return result;
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    {
+        if (FieldCount != fields.Length)
+            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+
+        T0 v0 = ParseKnown(fields[0].Span, parser0);
+        T1 v1 = ParseKnown(fields[1].Span, parser1);
+        T2 v2 = ParseKnown(fields[2].Span, parser2);
+        T3 v3 = ParseKnown(fields[3].Span, parser3);
+        T4 v4 = ParseKnown(fields[4].Span, parser4);
+        T5 v5 = ParseKnown(fields[5].Span, parser5);
+        T6 v6 = ParseKnown(fields[6].Span, parser6);
+
+        return valueFactory(v0, v1, v2, v3, v4, v5, v6);
     }
 }
 
@@ -422,9 +500,24 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult>
 
         state.EnsureFullyConsumed(FieldCount);
 
-        var result = valueFactory(v0, v1, v2, v3, v4, v5, v6, v7);
+        return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7);
+    }
 
-        return result;
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    {
+        if (FieldCount != fields.Length)
+            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+
+        T0 v0 = ParseKnown(fields[0].Span, parser0);
+        T1 v1 = ParseKnown(fields[1].Span, parser1);
+        T2 v2 = ParseKnown(fields[2].Span, parser2);
+        T3 v3 = ParseKnown(fields[3].Span, parser3);
+        T4 v4 = ParseKnown(fields[4].Span, parser4);
+        T5 v5 = ParseKnown(fields[5].Span, parser5);
+        T6 v6 = ParseKnown(fields[6].Span, parser6);
+        T7 v7 = ParseKnown(fields[7].Span, parser7);
+
+        return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7);
     }
 }
 
@@ -487,9 +580,25 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
 
         state.EnsureFullyConsumed(FieldCount);
 
-        var result = valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8);
+        return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8);
+    }
 
-        return result;
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    {
+        if (FieldCount != fields.Length)
+            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+
+        T0 v0 = ParseKnown(fields[0].Span, parser0);
+        T1 v1 = ParseKnown(fields[1].Span, parser1);
+        T2 v2 = ParseKnown(fields[2].Span, parser2);
+        T3 v3 = ParseKnown(fields[3].Span, parser3);
+        T4 v4 = ParseKnown(fields[4].Span, parser4);
+        T5 v5 = ParseKnown(fields[5].Span, parser5);
+        T6 v6 = ParseKnown(fields[6].Span, parser6);
+        T7 v7 = ParseKnown(fields[7].Span, parser7);
+        T8 v8 = ParseKnown(fields[8].Span, parser8);
+
+        return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8);
     }
 }
 
@@ -556,9 +665,26 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
 
         state.EnsureFullyConsumed(FieldCount);
 
-        var result = valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9);
+        return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9);
+    }
 
-        return result;
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    {
+        if (FieldCount != fields.Length)
+            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+
+        T0 v0 = ParseKnown(fields[0].Span, parser0);
+        T1 v1 = ParseKnown(fields[1].Span, parser1);
+        T2 v2 = ParseKnown(fields[2].Span, parser2);
+        T3 v3 = ParseKnown(fields[3].Span, parser3);
+        T4 v4 = ParseKnown(fields[4].Span, parser4);
+        T5 v5 = ParseKnown(fields[5].Span, parser5);
+        T6 v6 = ParseKnown(fields[6].Span, parser6);
+        T7 v7 = ParseKnown(fields[7].Span, parser7);
+        T8 v8 = ParseKnown(fields[8].Span, parser8);
+        T9 v9 = ParseKnown(fields[9].Span, parser9);
+
+        return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9);
     }
 }
 
@@ -629,9 +755,27 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         state.EnsureFullyConsumed(FieldCount);
 
-        var result = valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10);
+        return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10);
+    }
 
-        return result;
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    {
+        if (FieldCount != fields.Length)
+            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+
+        T0 v0 = ParseKnown(fields[0].Span, parser0);
+        T1 v1 = ParseKnown(fields[1].Span, parser1);
+        T2 v2 = ParseKnown(fields[2].Span, parser2);
+        T3 v3 = ParseKnown(fields[3].Span, parser3);
+        T4 v4 = ParseKnown(fields[4].Span, parser4);
+        T5 v5 = ParseKnown(fields[5].Span, parser5);
+        T6 v6 = ParseKnown(fields[6].Span, parser6);
+        T7 v7 = ParseKnown(fields[7].Span, parser7);
+        T8 v8 = ParseKnown(fields[8].Span, parser8);
+        T9 v9 = ParseKnown(fields[9].Span, parser9);
+        T10 v10 = ParseKnown(fields[10].Span, parser10);
+
+        return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10);
     }
 }
 
@@ -706,9 +850,28 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         state.EnsureFullyConsumed(FieldCount);
 
-        var result = valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11);
+        return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11);
+    }
 
-        return result;
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    {
+        if (FieldCount != fields.Length)
+            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+
+        T0 v0 = ParseKnown(fields[0].Span, parser0);
+        T1 v1 = ParseKnown(fields[1].Span, parser1);
+        T2 v2 = ParseKnown(fields[2].Span, parser2);
+        T3 v3 = ParseKnown(fields[3].Span, parser3);
+        T4 v4 = ParseKnown(fields[4].Span, parser4);
+        T5 v5 = ParseKnown(fields[5].Span, parser5);
+        T6 v6 = ParseKnown(fields[6].Span, parser6);
+        T7 v7 = ParseKnown(fields[7].Span, parser7);
+        T8 v8 = ParseKnown(fields[8].Span, parser8);
+        T9 v9 = ParseKnown(fields[9].Span, parser9);
+        T10 v10 = ParseKnown(fields[10].Span, parser10);
+        T11 v11 = ParseKnown(fields[11].Span, parser11);
+
+        return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11);
     }
 }
 
@@ -787,9 +950,29 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         state.EnsureFullyConsumed(FieldCount);
 
-        var result = valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12);
+        return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12);
+    }
 
-        return result;
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    {
+        if (FieldCount != fields.Length)
+            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+
+        T0 v0 = ParseKnown(fields[0].Span, parser0);
+        T1 v1 = ParseKnown(fields[1].Span, parser1);
+        T2 v2 = ParseKnown(fields[2].Span, parser2);
+        T3 v3 = ParseKnown(fields[3].Span, parser3);
+        T4 v4 = ParseKnown(fields[4].Span, parser4);
+        T5 v5 = ParseKnown(fields[5].Span, parser5);
+        T6 v6 = ParseKnown(fields[6].Span, parser6);
+        T7 v7 = ParseKnown(fields[7].Span, parser7);
+        T8 v8 = ParseKnown(fields[8].Span, parser8);
+        T9 v9 = ParseKnown(fields[9].Span, parser9);
+        T10 v10 = ParseKnown(fields[10].Span, parser10);
+        T11 v11 = ParseKnown(fields[11].Span, parser11);
+        T12 v12 = ParseKnown(fields[12].Span, parser12);
+
+        return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12);
     }
 }
 
@@ -872,9 +1055,30 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         state.EnsureFullyConsumed(FieldCount);
 
-        var result = valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13);
+        return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13);
+    }
 
-        return result;
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    {
+        if (FieldCount != fields.Length)
+            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+
+        T0 v0 = ParseKnown(fields[0].Span, parser0);
+        T1 v1 = ParseKnown(fields[1].Span, parser1);
+        T2 v2 = ParseKnown(fields[2].Span, parser2);
+        T3 v3 = ParseKnown(fields[3].Span, parser3);
+        T4 v4 = ParseKnown(fields[4].Span, parser4);
+        T5 v5 = ParseKnown(fields[5].Span, parser5);
+        T6 v6 = ParseKnown(fields[6].Span, parser6);
+        T7 v7 = ParseKnown(fields[7].Span, parser7);
+        T8 v8 = ParseKnown(fields[8].Span, parser8);
+        T9 v9 = ParseKnown(fields[9].Span, parser9);
+        T10 v10 = ParseKnown(fields[10].Span, parser10);
+        T11 v11 = ParseKnown(fields[11].Span, parser11);
+        T12 v12 = ParseKnown(fields[12].Span, parser12);
+        T13 v13 = ParseKnown(fields[13].Span, parser13);
+
+        return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13);
     }
 }
 
@@ -961,9 +1165,31 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         state.EnsureFullyConsumed(FieldCount);
 
-        var result = valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14);
+        return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14);
+    }
 
-        return result;
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    {
+        if (FieldCount != fields.Length)
+            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+
+        T0 v0 = ParseKnown(fields[0].Span, parser0);
+        T1 v1 = ParseKnown(fields[1].Span, parser1);
+        T2 v2 = ParseKnown(fields[2].Span, parser2);
+        T3 v3 = ParseKnown(fields[3].Span, parser3);
+        T4 v4 = ParseKnown(fields[4].Span, parser4);
+        T5 v5 = ParseKnown(fields[5].Span, parser5);
+        T6 v6 = ParseKnown(fields[6].Span, parser6);
+        T7 v7 = ParseKnown(fields[7].Span, parser7);
+        T8 v8 = ParseKnown(fields[8].Span, parser8);
+        T9 v9 = ParseKnown(fields[9].Span, parser9);
+        T10 v10 = ParseKnown(fields[10].Span, parser10);
+        T11 v11 = ParseKnown(fields[11].Span, parser11);
+        T12 v12 = ParseKnown(fields[12].Span, parser12);
+        T13 v13 = ParseKnown(fields[13].Span, parser13);
+        T14 v14 = ParseKnown(fields[14].Span, parser14);
+
+        return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14);
     }
 }
 
@@ -1054,9 +1280,32 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         state.EnsureFullyConsumed(FieldCount);
 
-        var result = valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
+        return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
+    }
 
-        return result;
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    {
+        if (FieldCount != fields.Length)
+            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+
+        T0 v0 = ParseKnown(fields[0].Span, parser0);
+        T1 v1 = ParseKnown(fields[1].Span, parser1);
+        T2 v2 = ParseKnown(fields[2].Span, parser2);
+        T3 v3 = ParseKnown(fields[3].Span, parser3);
+        T4 v4 = ParseKnown(fields[4].Span, parser4);
+        T5 v5 = ParseKnown(fields[5].Span, parser5);
+        T6 v6 = ParseKnown(fields[6].Span, parser6);
+        T7 v7 = ParseKnown(fields[7].Span, parser7);
+        T8 v8 = ParseKnown(fields[8].Span, parser8);
+        T9 v9 = ParseKnown(fields[9].Span, parser9);
+        T10 v10 = ParseKnown(fields[10].Span, parser10);
+        T11 v11 = ParseKnown(fields[11].Span, parser11);
+        T12 v12 = ParseKnown(fields[12].Span, parser12);
+        T13 v13 = ParseKnown(fields[13].Span, parser13);
+        T14 v14 = ParseKnown(fields[14].Span, parser14);
+        T15 v15 = ParseKnown(fields[15].Span, parser15);
+
+        return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
     }
 }
 

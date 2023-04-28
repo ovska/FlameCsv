@@ -20,4 +20,6 @@ internal interface IMaterializer<T, out TResult> where T : unmanaged, IEquatable
     /// </exception>
     /// <exception cref="Exceptions.CsvParseException">Thrown if a value cannot be parsed</exception>
     TResult Parse(ref CsvEnumerationStateRef<T> state);
+
+    TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields);
 }
