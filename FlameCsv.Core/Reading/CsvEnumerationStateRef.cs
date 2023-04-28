@@ -84,6 +84,15 @@ internal struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
     {
         throw new CsvFormatException(
             $"Expected the record to have {fieldCount} fields when parsing {recordType}, but it ended prematurely. " +
+            $"Remaining: {_context.AsPrintableString(remaining)}, " +
+            $"Record: {_context.AsPrintableString(_record)}");
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public readonly void ThrowFieldEndedPrematurely()
+    {
+        throw new UnreachableException(
+            $"The record ended while having {quotesRemaining} quotes remaining. " +
             $"Record: {_context.AsPrintableString(_record)}");
     }
 
