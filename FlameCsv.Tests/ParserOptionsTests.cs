@@ -5,6 +5,22 @@ namespace FlameCsv.Tests;
 public static class ParserOptionsTests
 {
     [Fact]
+    public static void Should_Return_Default_Options()
+    {
+        Assert.Equal(',', CsvDialect<char>.Default.Delimiter);
+        Assert.Equal('"', CsvDialect<char>.Default.Quote);
+        Assert.Null(CsvDialect<char>.Default.Escape);
+        Assert.Equal("\r\n", CsvDialect<char>.Default.Newline.ToArray());
+
+        Assert.Equal((byte)',', CsvDialect<byte>.Default.Delimiter);
+        Assert.Equal((byte)'"', CsvDialect<byte>.Default.Quote);
+        Assert.Null(CsvDialect<byte>.Default.Escape);
+        Assert.Equal("\r\n"u8.ToArray(), CsvDialect<byte>.Default.Newline.ToArray());
+
+        Assert.Throws<NotSupportedException>(() => CsvDialect<int>.Default);
+    }
+
+    [Fact]
     public static void Should_Validate()
     {
         Assert.Throws<CsvConfigurationException>(() => default(CsvDialect<char>).EnsureValid());
@@ -24,15 +40,6 @@ public static class ParserOptionsTests
                 _ = new CsvDialect<char>(d.Delimiter, d.Quote, d.Newline, d.Escape);
             });
         }
-    }
-
-    [Fact]
-    public static void Should_Return_Default_Options()
-    {
-        Assert.Equal("\r\n", CsvDialect<char>.Default.Newline.ToArray());
-        Assert.Equal("\r\n"u8.ToArray(), CsvDialect<byte>.Default.Newline.ToArray());
-        Assert.Throws<NotSupportedException>(() => CsvDialect<int>.Default);
-        Assert.Throws<NotSupportedException>(() => CsvDialect<long>.Default);
     }
 
     [Fact]

@@ -31,13 +31,8 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         _header = record._state.Header;
         (RawRecord, _values) = Initialize(record);
 
-        if (Options.ValidateFieldCount && (_values.Count != record._state._expectedFieldCount))
-        {
-            if (!record._state._expectedFieldCount.HasValue)
-                Throw.InvalidOp_DefaultStruct(record.GetType());
-
-            Throw.InvalidData_FieldCount(_values.Count, record._state._expectedFieldCount ?? -1);
-        }
+        // we don't need to validate field count here, as a non-default CsvValueRecord
+        // validates it on initialization
     }
 
     public CsvRecord(
@@ -90,7 +85,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
             materializer = _context.Options.GetMaterializer<T, TRecord>();
         }
 
-        return materializer.Parse(_values);
+        return materializer.Parse(_values, in _context);
     }
 
     public virtual ReadOnlyMemory<T> GetField(int index) => _values.AsSpan()[index];
@@ -110,8 +105,8 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         var parser = Options.GetParser<TValue>();
 
         if (!parser.TryParse(field.Span, out TValue? value))
-            Throw.ParseFailed<T,TValue>(field, parser, in _context);
-        
+            Throw.ParseFailed<T, TValue>(field, parser, in _context);
+
         return value;
     }
 

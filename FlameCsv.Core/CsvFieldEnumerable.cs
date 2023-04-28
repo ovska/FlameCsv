@@ -6,7 +6,6 @@ public readonly struct CsvFieldEnumerable<T> where T : unmanaged, IEquatable<T>
 {
     private readonly ReadOnlyMemory<T> _record;
     private readonly CsvReadingContext<T>? _context;
-    private readonly CsvEnumerationState<T>? _state;
 
     public CsvFieldEnumerable(
         ReadOnlyMemory<T> value,
@@ -18,24 +17,10 @@ public readonly struct CsvFieldEnumerable<T> where T : unmanaged, IEquatable<T>
         _context = new CsvReadingContext<T>(options, overrides);
     }
 
-    internal CsvFieldEnumerable(CsvEnumerationState<T> state, CsvReaderOptions<T> options)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        options.MakeReadOnly();
-        _state = state;
-    }
-
     public CsvFieldEnumerator<T> GetEnumerator()
     {
-        if (_state is null)
-        {
-            Throw.IfDefaultStruct<CsvFieldEnumerable<T>>(_context);
-            return new CsvFieldEnumerator<T>(_record, _context.Value);
-        }
-        else
-        {
-            return new CsvFieldEnumerator<T>(_record, _state);
-        }
+        Throw.IfDefaultStruct<CsvFieldEnumerable<T>>(_context);
+        return new CsvFieldEnumerator<T>(_record, _context.Value);
     }
 
     /// <summary>

@@ -96,9 +96,7 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
 
         if (!sequence.IsEmpty)
         {
-            line = sequence;
-            meta = GetRecordMeta(in sequence);
-            sequence = default;
+            meta = GetRecordMeta(ref sequence, out line);
             return true;
         }
 
@@ -153,40 +151,49 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public RecordMeta GetRecordMeta(in ReadOnlySequence<T> sequence)
+    public RecordMeta GetRecordMeta(ref ReadOnlySequence<T> sequence, out ReadOnlySequence<T> line)
     {
+        RecordMeta meta;
+
         if (sequence.IsSingleSegment)
-            return GetRecordMeta(sequence.First);
-
-        RecordMeta meta = default;
-
-        if (_dialect.IsRFC4188Mode)
         {
-            foreach (var segment in sequence)
+            meta = GetRecordMeta(sequence.First);
+        }
+        else
+        {
+            meta = default;
+
+            if (_dialect.IsRFC4188Mode)
             {
-                meta.quoteCount += (uint)segment.Span.Count(Dialect.Quote);
+                foreach (var segment in sequence)
+                {
+                    meta.quoteCount += (uint)segment.Span.Count(Dialect.Quote);
+                }
+
+                if (meta.quoteCount % 2 != 0)
+                    ThrowForUnevenQuotes(in sequence);
             }
+            else
+            {
 
-            if (meta.quoteCount % 2 != 0)
-                ThrowForUnevenQuotes(in sequence);
+                bool skipNext = false;
 
-            return meta;
+                foreach (var segment in sequence)
+                {
+                    if (!segment.IsEmpty)
+                        CountTokensEscape(segment.Span, ref meta, ref skipNext);
+                }
+
+                if (skipNext)
+                    ThrowForInvalidLastEscape(in sequence);
+
+                if (meta.quoteCount == 1)
+                    ThrowForInvalidEscapeQuotes(in sequence);
+            }
         }
 
-        bool skipNext = false;
-
-        foreach (var segment in sequence)
-        {
-            if (!segment.IsEmpty)
-                CountTokensEscape(segment.Span, ref meta, ref skipNext);
-        }
-
-        if (skipNext)
-            ThrowForInvalidLastEscape(in sequence);
-
-        if (meta.quoteCount == 1)
-            ThrowForInvalidEscapeQuotes(in sequence);
-
+        line = sequence;
+        sequence = default;
         return meta;
     }
 

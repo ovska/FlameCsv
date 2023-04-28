@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using System.Globalization;
 using System.Text;
 using FlameCsv.Extensions;
 
@@ -8,6 +7,7 @@ namespace FlameCsv.Benchmark;
 [SimpleJob]
 [MemoryDiagnoser]
 [HideColumns("Error", "StdDev")]
+//[BenchmarkDotNet.Diagnostics.Windows.Configs.EtwProfiler]
 public class CsvEnumerateBench
 {
     private static readonly byte[] _bytes
@@ -22,7 +22,7 @@ public class CsvEnumerateBench
     {
         using var reader = new StringReader(_chars);
 
-        var config = new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)
+        var config = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture)
         {
             NewLine = Environment.NewLine,
             HasHeaderRecord = false,
@@ -45,7 +45,7 @@ public class CsvEnumerateBench
         await using var stream = GetFileStream();
         using var reader = new StreamReader(stream, Encoding.ASCII, false);
 
-        var config = new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)
+        var config = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture)
         {
             NewLine = Environment.NewLine,
             HasHeaderRecord = false,
@@ -65,7 +65,7 @@ public class CsvEnumerateBench
     [Benchmark]
     public void Flame_Utf8()
     {
-        foreach (var record in new CsvRecordEnumerable<byte>(_byteSeq, CsvUtf8ReaderOptions.Default))
+        foreach (var record in new CsvRecordEnumerable<byte>(in _byteSeq, CsvUtf8ReaderOptions.Default))
         {
             foreach (var field in record)
             {
@@ -73,7 +73,6 @@ public class CsvEnumerateBench
             }
         }
     }
-
 
     [Benchmark]
     public async ValueTask Flame_Utf8_Async()

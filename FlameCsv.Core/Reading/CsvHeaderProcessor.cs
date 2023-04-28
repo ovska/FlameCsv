@@ -77,9 +77,6 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
 
     public void Dispose()
     {
-        if (_inner.HasValue)
-        {
-            _inner.DangerousGetValueOrDefaultReference().Dispose();
-        }
+        _inner.DangerousGetValueOrDefaultReference().Dispose();
     }
 }

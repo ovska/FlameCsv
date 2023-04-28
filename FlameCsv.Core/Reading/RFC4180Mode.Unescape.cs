@@ -58,7 +58,6 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
     /// <summary>
     /// Unescapes inner quotes from the input. Wrapping quotes have been trimmed at this point.
     /// </summary>
-    [MethodImpl(MethodImplOptions.NoInlining)] // encourage inlining common case above
     private static ReadOnlyMemory<T> UnescapeRare(
         ReadOnlyMemory<T> sourceMemory,
         T quote,

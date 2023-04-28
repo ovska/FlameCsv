@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -39,8 +40,6 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
 
     public ReadOnlyMemory<T> this[int index] => GetField(index);
     public ReadOnlyMemory<T> this[string name] => GetField(name);
-
-    internal int TotalFieldLength => _state.TotalFieldLength;
 
     internal readonly CsvEnumerationState<T> _state;
     internal readonly CsvReaderOptions<T> _options;
@@ -166,8 +165,12 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public CsvFieldEnumerator<T> GetEnumerator() => new(value: RawRecord, state: _state, meta: _meta);
+    public Enumerator GetEnumerator() => new(_version, _state);
 
+    /// <summary>
+    /// Copies the fields 
+    /// </summary>
+    /// <returns></returns>
     public List<ReadOnlyMemory<T>> ToList()
     {
         List<ReadOnlyMemory<T>> list = new();
@@ -192,9 +195,44 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
         }
 
         IMaterializer<T, TRecord> materializer = (IMaterializer<T, TRecord>)cached;
-        CsvEnumerationStateRef<T> state = _state.GetInitialStateFor(RawRecord, _meta);
 
-        return materializer.Parse(ref state);
+        return materializer.Parse(_state.GetFields(), in _state._context);
+    }
+
+    public struct Enumerator
+    {
+        public ReadOnlyMemory<T> Current { get; private set; }
+
+        private readonly int _version;
+        private readonly ArraySegment<ReadOnlyMemory<T>> _fields;
+        private readonly CsvEnumerationState<T> _state;
+        private int _index;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal Enumerator(int version, CsvEnumerationState<T> state)
+        {
+            state.EnsureVersion(version);
+            state.FullyConsume();
+
+            _version = version;
+            _state = state;
+            _fields = state.GetFields();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool MoveNext()
+        {
+            _state.EnsureVersion(_version);
+
+            if (_index < _fields.Count)
+            {
+                Current = _fields[_index++];
+                return true;
+            }
+
+            Current = default;
+            return false;
+        }
     }
 
     private sealed class CsvRecordDebugView

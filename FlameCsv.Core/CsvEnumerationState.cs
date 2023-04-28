@@ -1,8 +1,9 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
+using FlameCsv.Utilities;
 
 namespace FlameCsv;
 
@@ -17,14 +18,13 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     public Dictionary<Type, object> MaterializerCache => _materializerCache ??= new();
 
     public int Version { get; private set; }
-    public int TotalFieldLength { get; private set; }
     public CsvDialect<T> Dialect => _context.Dialect;
 
     internal readonly CsvReadingContext<T> _context;
     private T[]? _unescapeBuffer; // rented array for unescaping
 
-    private ReadOnlyMemory<T>[] _values; // cached field values by index
-    private int _index; // how many values have been read
+    private ReadOnlyMemory<T>[] _fields; // cached field values by index
+    private int _index;
 
     public Dictionary<string, int>? Header { get; set; }
 
@@ -32,12 +32,12 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     private bool _disposed;
 
     private Dictionary<Type, object>? _materializerCache;
-    internal int? _expectedFieldCount;
+    private int? _expectedFieldCount;
 
     public CsvEnumerationState(in CsvReadingContext<T> context)
     {
         _context = context;
-        _values = new ReadOnlyMemory<T>[32];
+        _fields = new ReadOnlyMemory<T>[16];
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -46,14 +46,12 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
         Throw.IfEnumerationDisposed(_disposed);
 
         _index = 0;
-        _values.AsSpan().Clear();
         _state = GetInitialStateFor(memory, meta);
-        int newVersion = ++Version;
 
         if (_context.ValidateFieldCount)
-            ValidateFieldCountForCurrent();
+            ValidateFieldCount();
 
-        return newVersion;
+        return ++Version;
     }
 
     public CsvEnumerationStateRef<T> GetInitialStateFor(ReadOnlyMemory<T> memory, RecordMeta? meta = null)
@@ -71,9 +69,13 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
 
         _disposed = true;
         Version = -1;
-        _values = default!;
+        _fields = default!;
         _state = default;
         _context.ArrayPool.EnsureReturned(ref _unescapeBuffer);
+
+#if DEBUG
+        GC.SuppressFinalize(this);
+#endif
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -106,16 +108,14 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
             }
         }
 
-        field = _values[index];
+        field = _fields[index];
         return true;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int GetFieldCount()
     {
-        while (TryReadNextField())
-        { }
-
+        FullyConsume();
         return _index;
     }
 
@@ -140,18 +140,29 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
 
         if (_context.TryGetField(ref _state, out ReadOnlyMemory<T> field))
         {
-            if (_index >= _values.Length)
-                Array.Resize(ref _values, _values.Length * 2);
+            if (_fields.Length <= _index)
+            {
+                Array.Resize(ref _fields, _fields.Length * 2);
+            }
 
-            _values[_index] = field;
-            _index++;
-            TotalFieldLength += field.Length;
+            _fields[_index++] = field;
             return true;
         }
 
-        //ThrowHelper.ThrowCsvException("The CSV record has an invalid number of fields.", _state.Meta)
-
         return false;
+    }
+
+    public void FullyConsume()
+    {
+        while (TryReadNextField())
+        {
+        }
+    }
+
+    public ArraySegment<ReadOnlyMemory<T>> GetFields()
+    {
+        FullyConsume();
+        return new(_fields, 0, _index);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -161,16 +172,28 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
         Throw.IfEnumerationChanged(version, Version);
     }
 
-    private void ValidateFieldCountForCurrent()
+    private void ValidateFieldCount()
     {
-        while (TryReadNextField())
+        FullyConsume();
+
+        if (_expectedFieldCount is null)
         {
+            _expectedFieldCount = _index;
         }
-
-        if (_index != (_expectedFieldCount ??= _index))
+        else if (_index != _expectedFieldCount.Value)
+        {
             Throw.InvalidData_FieldCount(_expectedFieldCount.Value, _index);
-
-        _expectedFieldCount = _index;
+        }
     }
+
+#if DEBUG
+    ~CsvEnumerationState()
+    {
+        if (!_disposed)
+        {
+            throw new UnreachableException("CsvEnumerationState was not disposed");
+        }
+    }
+#endif
 }
 
