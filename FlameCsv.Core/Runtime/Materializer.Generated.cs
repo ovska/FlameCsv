@@ -83,12 +83,12 @@ internal sealed class Materializer<T, T0, TResult>
         return valueFactory(v0);
     }
 
-    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields, in CsvReadingContext<T> context)
     {
-        if (FieldCount != fields.Length)
-            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        if (FieldCount != fields.Length) Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        _ = fields[0]; // elide bounds checks
 
-        T0 v0 = ParseKnown(fields[0].Span, parser0);
+        if (!parser0.TryParse(fields[0].Span, out T0 v0)) Throw.ParseFailed(fields[0], typeof(T0), in context);
 
         return valueFactory(v0);
     }
@@ -128,13 +128,13 @@ internal sealed class Materializer<T, T0, T1, TResult>
         return valueFactory(v0, v1);
     }
 
-    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields, in CsvReadingContext<T> context)
     {
-        if (FieldCount != fields.Length)
-            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        if (FieldCount != fields.Length) Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        _ = fields[1]; // elide bounds checks
 
-        T0 v0 = ParseKnown(fields[0].Span, parser0);
-        T1 v1 = ParseKnown(fields[1].Span, parser1);
+        if (!parser0.TryParse(fields[0].Span, out T0 v0)) Throw.ParseFailed(fields[0], typeof(T0), in context);
+        if (!parser1.TryParse(fields[1].Span, out T1 v1)) Throw.ParseFailed(fields[1], typeof(T1), in context);
 
         return valueFactory(v0, v1);
     }
@@ -178,14 +178,14 @@ internal sealed class Materializer<T, T0, T1, T2, TResult>
         return valueFactory(v0, v1, v2);
     }
 
-    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields, in CsvReadingContext<T> context)
     {
-        if (FieldCount != fields.Length)
-            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        if (FieldCount != fields.Length) Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        _ = fields[2]; // elide bounds checks
 
-        T0 v0 = ParseKnown(fields[0].Span, parser0);
-        T1 v1 = ParseKnown(fields[1].Span, parser1);
-        T2 v2 = ParseKnown(fields[2].Span, parser2);
+        if (!parser0.TryParse(fields[0].Span, out T0 v0)) Throw.ParseFailed(fields[0], typeof(T0), in context);
+        if (!parser1.TryParse(fields[1].Span, out T1 v1)) Throw.ParseFailed(fields[1], typeof(T1), in context);
+        if (!parser2.TryParse(fields[2].Span, out T2 v2)) Throw.ParseFailed(fields[2], typeof(T2), in context);
 
         return valueFactory(v0, v1, v2);
     }
@@ -233,15 +233,15 @@ internal sealed class Materializer<T, T0, T1, T2, T3, TResult>
         return valueFactory(v0, v1, v2, v3);
     }
 
-    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields, in CsvReadingContext<T> context)
     {
-        if (FieldCount != fields.Length)
-            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        if (FieldCount != fields.Length) Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        _ = fields[3]; // elide bounds checks
 
-        T0 v0 = ParseKnown(fields[0].Span, parser0);
-        T1 v1 = ParseKnown(fields[1].Span, parser1);
-        T2 v2 = ParseKnown(fields[2].Span, parser2);
-        T3 v3 = ParseKnown(fields[3].Span, parser3);
+        if (!parser0.TryParse(fields[0].Span, out T0 v0)) Throw.ParseFailed(fields[0], typeof(T0), in context);
+        if (!parser1.TryParse(fields[1].Span, out T1 v1)) Throw.ParseFailed(fields[1], typeof(T1), in context);
+        if (!parser2.TryParse(fields[2].Span, out T2 v2)) Throw.ParseFailed(fields[2], typeof(T2), in context);
+        if (!parser3.TryParse(fields[3].Span, out T3 v3)) Throw.ParseFailed(fields[3], typeof(T3), in context);
 
         return valueFactory(v0, v1, v2, v3);
     }
@@ -293,16 +293,16 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult>
         return valueFactory(v0, v1, v2, v3, v4);
     }
 
-    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields, in CsvReadingContext<T> context)
     {
-        if (FieldCount != fields.Length)
-            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        if (FieldCount != fields.Length) Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        _ = fields[4]; // elide bounds checks
 
-        T0 v0 = ParseKnown(fields[0].Span, parser0);
-        T1 v1 = ParseKnown(fields[1].Span, parser1);
-        T2 v2 = ParseKnown(fields[2].Span, parser2);
-        T3 v3 = ParseKnown(fields[3].Span, parser3);
-        T4 v4 = ParseKnown(fields[4].Span, parser4);
+        if (!parser0.TryParse(fields[0].Span, out T0 v0)) Throw.ParseFailed(fields[0], typeof(T0), in context);
+        if (!parser1.TryParse(fields[1].Span, out T1 v1)) Throw.ParseFailed(fields[1], typeof(T1), in context);
+        if (!parser2.TryParse(fields[2].Span, out T2 v2)) Throw.ParseFailed(fields[2], typeof(T2), in context);
+        if (!parser3.TryParse(fields[3].Span, out T3 v3)) Throw.ParseFailed(fields[3], typeof(T3), in context);
+        if (!parser4.TryParse(fields[4].Span, out T4 v4)) Throw.ParseFailed(fields[4], typeof(T4), in context);
 
         return valueFactory(v0, v1, v2, v3, v4);
     }
@@ -358,17 +358,17 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult>
         return valueFactory(v0, v1, v2, v3, v4, v5);
     }
 
-    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields, in CsvReadingContext<T> context)
     {
-        if (FieldCount != fields.Length)
-            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        if (FieldCount != fields.Length) Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        _ = fields[5]; // elide bounds checks
 
-        T0 v0 = ParseKnown(fields[0].Span, parser0);
-        T1 v1 = ParseKnown(fields[1].Span, parser1);
-        T2 v2 = ParseKnown(fields[2].Span, parser2);
-        T3 v3 = ParseKnown(fields[3].Span, parser3);
-        T4 v4 = ParseKnown(fields[4].Span, parser4);
-        T5 v5 = ParseKnown(fields[5].Span, parser5);
+        if (!parser0.TryParse(fields[0].Span, out T0 v0)) Throw.ParseFailed(fields[0], typeof(T0), in context);
+        if (!parser1.TryParse(fields[1].Span, out T1 v1)) Throw.ParseFailed(fields[1], typeof(T1), in context);
+        if (!parser2.TryParse(fields[2].Span, out T2 v2)) Throw.ParseFailed(fields[2], typeof(T2), in context);
+        if (!parser3.TryParse(fields[3].Span, out T3 v3)) Throw.ParseFailed(fields[3], typeof(T3), in context);
+        if (!parser4.TryParse(fields[4].Span, out T4 v4)) Throw.ParseFailed(fields[4], typeof(T4), in context);
+        if (!parser5.TryParse(fields[5].Span, out T5 v5)) Throw.ParseFailed(fields[5], typeof(T5), in context);
 
         return valueFactory(v0, v1, v2, v3, v4, v5);
     }
@@ -428,18 +428,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult>
         return valueFactory(v0, v1, v2, v3, v4, v5, v6);
     }
 
-    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields, in CsvReadingContext<T> context)
     {
-        if (FieldCount != fields.Length)
-            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        if (FieldCount != fields.Length) Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        _ = fields[6]; // elide bounds checks
 
-        T0 v0 = ParseKnown(fields[0].Span, parser0);
-        T1 v1 = ParseKnown(fields[1].Span, parser1);
-        T2 v2 = ParseKnown(fields[2].Span, parser2);
-        T3 v3 = ParseKnown(fields[3].Span, parser3);
-        T4 v4 = ParseKnown(fields[4].Span, parser4);
-        T5 v5 = ParseKnown(fields[5].Span, parser5);
-        T6 v6 = ParseKnown(fields[6].Span, parser6);
+        if (!parser0.TryParse(fields[0].Span, out T0 v0)) Throw.ParseFailed(fields[0], typeof(T0), in context);
+        if (!parser1.TryParse(fields[1].Span, out T1 v1)) Throw.ParseFailed(fields[1], typeof(T1), in context);
+        if (!parser2.TryParse(fields[2].Span, out T2 v2)) Throw.ParseFailed(fields[2], typeof(T2), in context);
+        if (!parser3.TryParse(fields[3].Span, out T3 v3)) Throw.ParseFailed(fields[3], typeof(T3), in context);
+        if (!parser4.TryParse(fields[4].Span, out T4 v4)) Throw.ParseFailed(fields[4], typeof(T4), in context);
+        if (!parser5.TryParse(fields[5].Span, out T5 v5)) Throw.ParseFailed(fields[5], typeof(T5), in context);
+        if (!parser6.TryParse(fields[6].Span, out T6 v6)) Throw.ParseFailed(fields[6], typeof(T6), in context);
 
         return valueFactory(v0, v1, v2, v3, v4, v5, v6);
     }
@@ -503,19 +503,19 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult>
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7);
     }
 
-    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields, in CsvReadingContext<T> context)
     {
-        if (FieldCount != fields.Length)
-            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        if (FieldCount != fields.Length) Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        _ = fields[7]; // elide bounds checks
 
-        T0 v0 = ParseKnown(fields[0].Span, parser0);
-        T1 v1 = ParseKnown(fields[1].Span, parser1);
-        T2 v2 = ParseKnown(fields[2].Span, parser2);
-        T3 v3 = ParseKnown(fields[3].Span, parser3);
-        T4 v4 = ParseKnown(fields[4].Span, parser4);
-        T5 v5 = ParseKnown(fields[5].Span, parser5);
-        T6 v6 = ParseKnown(fields[6].Span, parser6);
-        T7 v7 = ParseKnown(fields[7].Span, parser7);
+        if (!parser0.TryParse(fields[0].Span, out T0 v0)) Throw.ParseFailed(fields[0], typeof(T0), in context);
+        if (!parser1.TryParse(fields[1].Span, out T1 v1)) Throw.ParseFailed(fields[1], typeof(T1), in context);
+        if (!parser2.TryParse(fields[2].Span, out T2 v2)) Throw.ParseFailed(fields[2], typeof(T2), in context);
+        if (!parser3.TryParse(fields[3].Span, out T3 v3)) Throw.ParseFailed(fields[3], typeof(T3), in context);
+        if (!parser4.TryParse(fields[4].Span, out T4 v4)) Throw.ParseFailed(fields[4], typeof(T4), in context);
+        if (!parser5.TryParse(fields[5].Span, out T5 v5)) Throw.ParseFailed(fields[5], typeof(T5), in context);
+        if (!parser6.TryParse(fields[6].Span, out T6 v6)) Throw.ParseFailed(fields[6], typeof(T6), in context);
+        if (!parser7.TryParse(fields[7].Span, out T7 v7)) Throw.ParseFailed(fields[7], typeof(T7), in context);
 
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7);
     }
@@ -583,20 +583,20 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8);
     }
 
-    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields, in CsvReadingContext<T> context)
     {
-        if (FieldCount != fields.Length)
-            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        if (FieldCount != fields.Length) Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        _ = fields[8]; // elide bounds checks
 
-        T0 v0 = ParseKnown(fields[0].Span, parser0);
-        T1 v1 = ParseKnown(fields[1].Span, parser1);
-        T2 v2 = ParseKnown(fields[2].Span, parser2);
-        T3 v3 = ParseKnown(fields[3].Span, parser3);
-        T4 v4 = ParseKnown(fields[4].Span, parser4);
-        T5 v5 = ParseKnown(fields[5].Span, parser5);
-        T6 v6 = ParseKnown(fields[6].Span, parser6);
-        T7 v7 = ParseKnown(fields[7].Span, parser7);
-        T8 v8 = ParseKnown(fields[8].Span, parser8);
+        if (!parser0.TryParse(fields[0].Span, out T0 v0)) Throw.ParseFailed(fields[0], typeof(T0), in context);
+        if (!parser1.TryParse(fields[1].Span, out T1 v1)) Throw.ParseFailed(fields[1], typeof(T1), in context);
+        if (!parser2.TryParse(fields[2].Span, out T2 v2)) Throw.ParseFailed(fields[2], typeof(T2), in context);
+        if (!parser3.TryParse(fields[3].Span, out T3 v3)) Throw.ParseFailed(fields[3], typeof(T3), in context);
+        if (!parser4.TryParse(fields[4].Span, out T4 v4)) Throw.ParseFailed(fields[4], typeof(T4), in context);
+        if (!parser5.TryParse(fields[5].Span, out T5 v5)) Throw.ParseFailed(fields[5], typeof(T5), in context);
+        if (!parser6.TryParse(fields[6].Span, out T6 v6)) Throw.ParseFailed(fields[6], typeof(T6), in context);
+        if (!parser7.TryParse(fields[7].Span, out T7 v7)) Throw.ParseFailed(fields[7], typeof(T7), in context);
+        if (!parser8.TryParse(fields[8].Span, out T8 v8)) Throw.ParseFailed(fields[8], typeof(T8), in context);
 
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8);
     }
@@ -668,21 +668,21 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9);
     }
 
-    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields, in CsvReadingContext<T> context)
     {
-        if (FieldCount != fields.Length)
-            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        if (FieldCount != fields.Length) Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        _ = fields[9]; // elide bounds checks
 
-        T0 v0 = ParseKnown(fields[0].Span, parser0);
-        T1 v1 = ParseKnown(fields[1].Span, parser1);
-        T2 v2 = ParseKnown(fields[2].Span, parser2);
-        T3 v3 = ParseKnown(fields[3].Span, parser3);
-        T4 v4 = ParseKnown(fields[4].Span, parser4);
-        T5 v5 = ParseKnown(fields[5].Span, parser5);
-        T6 v6 = ParseKnown(fields[6].Span, parser6);
-        T7 v7 = ParseKnown(fields[7].Span, parser7);
-        T8 v8 = ParseKnown(fields[8].Span, parser8);
-        T9 v9 = ParseKnown(fields[9].Span, parser9);
+        if (!parser0.TryParse(fields[0].Span, out T0 v0)) Throw.ParseFailed(fields[0], typeof(T0), in context);
+        if (!parser1.TryParse(fields[1].Span, out T1 v1)) Throw.ParseFailed(fields[1], typeof(T1), in context);
+        if (!parser2.TryParse(fields[2].Span, out T2 v2)) Throw.ParseFailed(fields[2], typeof(T2), in context);
+        if (!parser3.TryParse(fields[3].Span, out T3 v3)) Throw.ParseFailed(fields[3], typeof(T3), in context);
+        if (!parser4.TryParse(fields[4].Span, out T4 v4)) Throw.ParseFailed(fields[4], typeof(T4), in context);
+        if (!parser5.TryParse(fields[5].Span, out T5 v5)) Throw.ParseFailed(fields[5], typeof(T5), in context);
+        if (!parser6.TryParse(fields[6].Span, out T6 v6)) Throw.ParseFailed(fields[6], typeof(T6), in context);
+        if (!parser7.TryParse(fields[7].Span, out T7 v7)) Throw.ParseFailed(fields[7], typeof(T7), in context);
+        if (!parser8.TryParse(fields[8].Span, out T8 v8)) Throw.ParseFailed(fields[8], typeof(T8), in context);
+        if (!parser9.TryParse(fields[9].Span, out T9 v9)) Throw.ParseFailed(fields[9], typeof(T9), in context);
 
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9);
     }
@@ -758,22 +758,22 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10);
     }
 
-    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields, in CsvReadingContext<T> context)
     {
-        if (FieldCount != fields.Length)
-            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        if (FieldCount != fields.Length) Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        _ = fields[10]; // elide bounds checks
 
-        T0 v0 = ParseKnown(fields[0].Span, parser0);
-        T1 v1 = ParseKnown(fields[1].Span, parser1);
-        T2 v2 = ParseKnown(fields[2].Span, parser2);
-        T3 v3 = ParseKnown(fields[3].Span, parser3);
-        T4 v4 = ParseKnown(fields[4].Span, parser4);
-        T5 v5 = ParseKnown(fields[5].Span, parser5);
-        T6 v6 = ParseKnown(fields[6].Span, parser6);
-        T7 v7 = ParseKnown(fields[7].Span, parser7);
-        T8 v8 = ParseKnown(fields[8].Span, parser8);
-        T9 v9 = ParseKnown(fields[9].Span, parser9);
-        T10 v10 = ParseKnown(fields[10].Span, parser10);
+        if (!parser0.TryParse(fields[0].Span, out T0 v0)) Throw.ParseFailed(fields[0], typeof(T0), in context);
+        if (!parser1.TryParse(fields[1].Span, out T1 v1)) Throw.ParseFailed(fields[1], typeof(T1), in context);
+        if (!parser2.TryParse(fields[2].Span, out T2 v2)) Throw.ParseFailed(fields[2], typeof(T2), in context);
+        if (!parser3.TryParse(fields[3].Span, out T3 v3)) Throw.ParseFailed(fields[3], typeof(T3), in context);
+        if (!parser4.TryParse(fields[4].Span, out T4 v4)) Throw.ParseFailed(fields[4], typeof(T4), in context);
+        if (!parser5.TryParse(fields[5].Span, out T5 v5)) Throw.ParseFailed(fields[5], typeof(T5), in context);
+        if (!parser6.TryParse(fields[6].Span, out T6 v6)) Throw.ParseFailed(fields[6], typeof(T6), in context);
+        if (!parser7.TryParse(fields[7].Span, out T7 v7)) Throw.ParseFailed(fields[7], typeof(T7), in context);
+        if (!parser8.TryParse(fields[8].Span, out T8 v8)) Throw.ParseFailed(fields[8], typeof(T8), in context);
+        if (!parser9.TryParse(fields[9].Span, out T9 v9)) Throw.ParseFailed(fields[9], typeof(T9), in context);
+        if (!parser10.TryParse(fields[10].Span, out T10 v10)) Throw.ParseFailed(fields[10], typeof(T10), in context);
 
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10);
     }
@@ -853,23 +853,23 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11);
     }
 
-    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields, in CsvReadingContext<T> context)
     {
-        if (FieldCount != fields.Length)
-            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        if (FieldCount != fields.Length) Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        _ = fields[11]; // elide bounds checks
 
-        T0 v0 = ParseKnown(fields[0].Span, parser0);
-        T1 v1 = ParseKnown(fields[1].Span, parser1);
-        T2 v2 = ParseKnown(fields[2].Span, parser2);
-        T3 v3 = ParseKnown(fields[3].Span, parser3);
-        T4 v4 = ParseKnown(fields[4].Span, parser4);
-        T5 v5 = ParseKnown(fields[5].Span, parser5);
-        T6 v6 = ParseKnown(fields[6].Span, parser6);
-        T7 v7 = ParseKnown(fields[7].Span, parser7);
-        T8 v8 = ParseKnown(fields[8].Span, parser8);
-        T9 v9 = ParseKnown(fields[9].Span, parser9);
-        T10 v10 = ParseKnown(fields[10].Span, parser10);
-        T11 v11 = ParseKnown(fields[11].Span, parser11);
+        if (!parser0.TryParse(fields[0].Span, out T0 v0)) Throw.ParseFailed(fields[0], typeof(T0), in context);
+        if (!parser1.TryParse(fields[1].Span, out T1 v1)) Throw.ParseFailed(fields[1], typeof(T1), in context);
+        if (!parser2.TryParse(fields[2].Span, out T2 v2)) Throw.ParseFailed(fields[2], typeof(T2), in context);
+        if (!parser3.TryParse(fields[3].Span, out T3 v3)) Throw.ParseFailed(fields[3], typeof(T3), in context);
+        if (!parser4.TryParse(fields[4].Span, out T4 v4)) Throw.ParseFailed(fields[4], typeof(T4), in context);
+        if (!parser5.TryParse(fields[5].Span, out T5 v5)) Throw.ParseFailed(fields[5], typeof(T5), in context);
+        if (!parser6.TryParse(fields[6].Span, out T6 v6)) Throw.ParseFailed(fields[6], typeof(T6), in context);
+        if (!parser7.TryParse(fields[7].Span, out T7 v7)) Throw.ParseFailed(fields[7], typeof(T7), in context);
+        if (!parser8.TryParse(fields[8].Span, out T8 v8)) Throw.ParseFailed(fields[8], typeof(T8), in context);
+        if (!parser9.TryParse(fields[9].Span, out T9 v9)) Throw.ParseFailed(fields[9], typeof(T9), in context);
+        if (!parser10.TryParse(fields[10].Span, out T10 v10)) Throw.ParseFailed(fields[10], typeof(T10), in context);
+        if (!parser11.TryParse(fields[11].Span, out T11 v11)) Throw.ParseFailed(fields[11], typeof(T11), in context);
 
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11);
     }
@@ -953,24 +953,24 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12);
     }
 
-    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields, in CsvReadingContext<T> context)
     {
-        if (FieldCount != fields.Length)
-            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        if (FieldCount != fields.Length) Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        _ = fields[12]; // elide bounds checks
 
-        T0 v0 = ParseKnown(fields[0].Span, parser0);
-        T1 v1 = ParseKnown(fields[1].Span, parser1);
-        T2 v2 = ParseKnown(fields[2].Span, parser2);
-        T3 v3 = ParseKnown(fields[3].Span, parser3);
-        T4 v4 = ParseKnown(fields[4].Span, parser4);
-        T5 v5 = ParseKnown(fields[5].Span, parser5);
-        T6 v6 = ParseKnown(fields[6].Span, parser6);
-        T7 v7 = ParseKnown(fields[7].Span, parser7);
-        T8 v8 = ParseKnown(fields[8].Span, parser8);
-        T9 v9 = ParseKnown(fields[9].Span, parser9);
-        T10 v10 = ParseKnown(fields[10].Span, parser10);
-        T11 v11 = ParseKnown(fields[11].Span, parser11);
-        T12 v12 = ParseKnown(fields[12].Span, parser12);
+        if (!parser0.TryParse(fields[0].Span, out T0 v0)) Throw.ParseFailed(fields[0], typeof(T0), in context);
+        if (!parser1.TryParse(fields[1].Span, out T1 v1)) Throw.ParseFailed(fields[1], typeof(T1), in context);
+        if (!parser2.TryParse(fields[2].Span, out T2 v2)) Throw.ParseFailed(fields[2], typeof(T2), in context);
+        if (!parser3.TryParse(fields[3].Span, out T3 v3)) Throw.ParseFailed(fields[3], typeof(T3), in context);
+        if (!parser4.TryParse(fields[4].Span, out T4 v4)) Throw.ParseFailed(fields[4], typeof(T4), in context);
+        if (!parser5.TryParse(fields[5].Span, out T5 v5)) Throw.ParseFailed(fields[5], typeof(T5), in context);
+        if (!parser6.TryParse(fields[6].Span, out T6 v6)) Throw.ParseFailed(fields[6], typeof(T6), in context);
+        if (!parser7.TryParse(fields[7].Span, out T7 v7)) Throw.ParseFailed(fields[7], typeof(T7), in context);
+        if (!parser8.TryParse(fields[8].Span, out T8 v8)) Throw.ParseFailed(fields[8], typeof(T8), in context);
+        if (!parser9.TryParse(fields[9].Span, out T9 v9)) Throw.ParseFailed(fields[9], typeof(T9), in context);
+        if (!parser10.TryParse(fields[10].Span, out T10 v10)) Throw.ParseFailed(fields[10], typeof(T10), in context);
+        if (!parser11.TryParse(fields[11].Span, out T11 v11)) Throw.ParseFailed(fields[11], typeof(T11), in context);
+        if (!parser12.TryParse(fields[12].Span, out T12 v12)) Throw.ParseFailed(fields[12], typeof(T12), in context);
 
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12);
     }
@@ -1058,25 +1058,25 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13);
     }
 
-    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields, in CsvReadingContext<T> context)
     {
-        if (FieldCount != fields.Length)
-            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        if (FieldCount != fields.Length) Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        _ = fields[13]; // elide bounds checks
 
-        T0 v0 = ParseKnown(fields[0].Span, parser0);
-        T1 v1 = ParseKnown(fields[1].Span, parser1);
-        T2 v2 = ParseKnown(fields[2].Span, parser2);
-        T3 v3 = ParseKnown(fields[3].Span, parser3);
-        T4 v4 = ParseKnown(fields[4].Span, parser4);
-        T5 v5 = ParseKnown(fields[5].Span, parser5);
-        T6 v6 = ParseKnown(fields[6].Span, parser6);
-        T7 v7 = ParseKnown(fields[7].Span, parser7);
-        T8 v8 = ParseKnown(fields[8].Span, parser8);
-        T9 v9 = ParseKnown(fields[9].Span, parser9);
-        T10 v10 = ParseKnown(fields[10].Span, parser10);
-        T11 v11 = ParseKnown(fields[11].Span, parser11);
-        T12 v12 = ParseKnown(fields[12].Span, parser12);
-        T13 v13 = ParseKnown(fields[13].Span, parser13);
+        if (!parser0.TryParse(fields[0].Span, out T0 v0)) Throw.ParseFailed(fields[0], typeof(T0), in context);
+        if (!parser1.TryParse(fields[1].Span, out T1 v1)) Throw.ParseFailed(fields[1], typeof(T1), in context);
+        if (!parser2.TryParse(fields[2].Span, out T2 v2)) Throw.ParseFailed(fields[2], typeof(T2), in context);
+        if (!parser3.TryParse(fields[3].Span, out T3 v3)) Throw.ParseFailed(fields[3], typeof(T3), in context);
+        if (!parser4.TryParse(fields[4].Span, out T4 v4)) Throw.ParseFailed(fields[4], typeof(T4), in context);
+        if (!parser5.TryParse(fields[5].Span, out T5 v5)) Throw.ParseFailed(fields[5], typeof(T5), in context);
+        if (!parser6.TryParse(fields[6].Span, out T6 v6)) Throw.ParseFailed(fields[6], typeof(T6), in context);
+        if (!parser7.TryParse(fields[7].Span, out T7 v7)) Throw.ParseFailed(fields[7], typeof(T7), in context);
+        if (!parser8.TryParse(fields[8].Span, out T8 v8)) Throw.ParseFailed(fields[8], typeof(T8), in context);
+        if (!parser9.TryParse(fields[9].Span, out T9 v9)) Throw.ParseFailed(fields[9], typeof(T9), in context);
+        if (!parser10.TryParse(fields[10].Span, out T10 v10)) Throw.ParseFailed(fields[10], typeof(T10), in context);
+        if (!parser11.TryParse(fields[11].Span, out T11 v11)) Throw.ParseFailed(fields[11], typeof(T11), in context);
+        if (!parser12.TryParse(fields[12].Span, out T12 v12)) Throw.ParseFailed(fields[12], typeof(T12), in context);
+        if (!parser13.TryParse(fields[13].Span, out T13 v13)) Throw.ParseFailed(fields[13], typeof(T13), in context);
 
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13);
     }
@@ -1168,26 +1168,26 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14);
     }
 
-    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields, in CsvReadingContext<T> context)
     {
-        if (FieldCount != fields.Length)
-            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        if (FieldCount != fields.Length) Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        _ = fields[14]; // elide bounds checks
 
-        T0 v0 = ParseKnown(fields[0].Span, parser0);
-        T1 v1 = ParseKnown(fields[1].Span, parser1);
-        T2 v2 = ParseKnown(fields[2].Span, parser2);
-        T3 v3 = ParseKnown(fields[3].Span, parser3);
-        T4 v4 = ParseKnown(fields[4].Span, parser4);
-        T5 v5 = ParseKnown(fields[5].Span, parser5);
-        T6 v6 = ParseKnown(fields[6].Span, parser6);
-        T7 v7 = ParseKnown(fields[7].Span, parser7);
-        T8 v8 = ParseKnown(fields[8].Span, parser8);
-        T9 v9 = ParseKnown(fields[9].Span, parser9);
-        T10 v10 = ParseKnown(fields[10].Span, parser10);
-        T11 v11 = ParseKnown(fields[11].Span, parser11);
-        T12 v12 = ParseKnown(fields[12].Span, parser12);
-        T13 v13 = ParseKnown(fields[13].Span, parser13);
-        T14 v14 = ParseKnown(fields[14].Span, parser14);
+        if (!parser0.TryParse(fields[0].Span, out T0 v0)) Throw.ParseFailed(fields[0], typeof(T0), in context);
+        if (!parser1.TryParse(fields[1].Span, out T1 v1)) Throw.ParseFailed(fields[1], typeof(T1), in context);
+        if (!parser2.TryParse(fields[2].Span, out T2 v2)) Throw.ParseFailed(fields[2], typeof(T2), in context);
+        if (!parser3.TryParse(fields[3].Span, out T3 v3)) Throw.ParseFailed(fields[3], typeof(T3), in context);
+        if (!parser4.TryParse(fields[4].Span, out T4 v4)) Throw.ParseFailed(fields[4], typeof(T4), in context);
+        if (!parser5.TryParse(fields[5].Span, out T5 v5)) Throw.ParseFailed(fields[5], typeof(T5), in context);
+        if (!parser6.TryParse(fields[6].Span, out T6 v6)) Throw.ParseFailed(fields[6], typeof(T6), in context);
+        if (!parser7.TryParse(fields[7].Span, out T7 v7)) Throw.ParseFailed(fields[7], typeof(T7), in context);
+        if (!parser8.TryParse(fields[8].Span, out T8 v8)) Throw.ParseFailed(fields[8], typeof(T8), in context);
+        if (!parser9.TryParse(fields[9].Span, out T9 v9)) Throw.ParseFailed(fields[9], typeof(T9), in context);
+        if (!parser10.TryParse(fields[10].Span, out T10 v10)) Throw.ParseFailed(fields[10], typeof(T10), in context);
+        if (!parser11.TryParse(fields[11].Span, out T11 v11)) Throw.ParseFailed(fields[11], typeof(T11), in context);
+        if (!parser12.TryParse(fields[12].Span, out T12 v12)) Throw.ParseFailed(fields[12], typeof(T12), in context);
+        if (!parser13.TryParse(fields[13].Span, out T13 v13)) Throw.ParseFailed(fields[13], typeof(T13), in context);
+        if (!parser14.TryParse(fields[14].Span, out T14 v14)) Throw.ParseFailed(fields[14], typeof(T14), in context);
 
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14);
     }
@@ -1283,27 +1283,27 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
     }
 
-    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields, in CsvReadingContext<T> context)
     {
-        if (FieldCount != fields.Length)
-            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        if (FieldCount != fields.Length) Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        _ = fields[15]; // elide bounds checks
 
-        T0 v0 = ParseKnown(fields[0].Span, parser0);
-        T1 v1 = ParseKnown(fields[1].Span, parser1);
-        T2 v2 = ParseKnown(fields[2].Span, parser2);
-        T3 v3 = ParseKnown(fields[3].Span, parser3);
-        T4 v4 = ParseKnown(fields[4].Span, parser4);
-        T5 v5 = ParseKnown(fields[5].Span, parser5);
-        T6 v6 = ParseKnown(fields[6].Span, parser6);
-        T7 v7 = ParseKnown(fields[7].Span, parser7);
-        T8 v8 = ParseKnown(fields[8].Span, parser8);
-        T9 v9 = ParseKnown(fields[9].Span, parser9);
-        T10 v10 = ParseKnown(fields[10].Span, parser10);
-        T11 v11 = ParseKnown(fields[11].Span, parser11);
-        T12 v12 = ParseKnown(fields[12].Span, parser12);
-        T13 v13 = ParseKnown(fields[13].Span, parser13);
-        T14 v14 = ParseKnown(fields[14].Span, parser14);
-        T15 v15 = ParseKnown(fields[15].Span, parser15);
+        if (!parser0.TryParse(fields[0].Span, out T0 v0)) Throw.ParseFailed(fields[0], typeof(T0), in context);
+        if (!parser1.TryParse(fields[1].Span, out T1 v1)) Throw.ParseFailed(fields[1], typeof(T1), in context);
+        if (!parser2.TryParse(fields[2].Span, out T2 v2)) Throw.ParseFailed(fields[2], typeof(T2), in context);
+        if (!parser3.TryParse(fields[3].Span, out T3 v3)) Throw.ParseFailed(fields[3], typeof(T3), in context);
+        if (!parser4.TryParse(fields[4].Span, out T4 v4)) Throw.ParseFailed(fields[4], typeof(T4), in context);
+        if (!parser5.TryParse(fields[5].Span, out T5 v5)) Throw.ParseFailed(fields[5], typeof(T5), in context);
+        if (!parser6.TryParse(fields[6].Span, out T6 v6)) Throw.ParseFailed(fields[6], typeof(T6), in context);
+        if (!parser7.TryParse(fields[7].Span, out T7 v7)) Throw.ParseFailed(fields[7], typeof(T7), in context);
+        if (!parser8.TryParse(fields[8].Span, out T8 v8)) Throw.ParseFailed(fields[8], typeof(T8), in context);
+        if (!parser9.TryParse(fields[9].Span, out T9 v9)) Throw.ParseFailed(fields[9], typeof(T9), in context);
+        if (!parser10.TryParse(fields[10].Span, out T10 v10)) Throw.ParseFailed(fields[10], typeof(T10), in context);
+        if (!parser11.TryParse(fields[11].Span, out T11 v11)) Throw.ParseFailed(fields[11], typeof(T11), in context);
+        if (!parser12.TryParse(fields[12].Span, out T12 v12)) Throw.ParseFailed(fields[12], typeof(T12), in context);
+        if (!parser13.TryParse(fields[13].Span, out T13 v13)) Throw.ParseFailed(fields[13], typeof(T13), in context);
+        if (!parser14.TryParse(fields[14].Span, out T14 v14)) Throw.ParseFailed(fields[14], typeof(T14), in context);
+        if (!parser15.TryParse(fields[15].Span, out T15 v15)) Throw.ParseFailed(fields[15], typeof(T15), in context);
 
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
     }

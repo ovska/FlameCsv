@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Diagnostics;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Tests.Utilities;
@@ -20,38 +21,28 @@ public static class RFC4180ModeTests
     [InlineData("\"James \"\"007\"\" Bond\"", "James \"007\" Bond")]
     public static void Should_Unescape(string input, string expected)
     {
+        using var pool = new ReturnTrackingArrayPool<char>();
+        var context = new CsvReadingContext<char>(CsvTextReaderOptions.Default, new() { ArrayPool = pool });
+
+        char[]? unescapeArray = null;
+        var state = new CsvEnumerationStateRef<char>(in context, input.AsMemory(), ref unescapeArray);
+
         var delimiterCount = input.Count(c => c == '"');
 
-        char[] unescapeArray = new char[input.Length * 2];
-        unescapeArray.AsSpan().Fill('\0');
-        Memory<char> unescapeBuffer = unescapeArray;
-        ReadOnlyMemory<char> actualMemory = RFC4180Mode<char>.Unescape(input.AsMemory(), '\"', (uint)delimiterCount, ref unescapeBuffer);
-        Assert.Equal(expected, new string(actualMemory.Span));
+        var actual = RFC4180Mode<char>.ReadNextField(ref state);
 
-        if (actualMemory.Span.Overlaps(unescapeArray))
+        Assert.Equal(expected, new string(actual.Span));
+
+        if (actual.Span.Overlaps(unescapeArray))
         {
-            Assert.Equal(unescapeArray.Length - actualMemory.Length, unescapeBuffer.Length);
-            Assert.Equal(actualMemory.ToArray(), unescapeArray.AsMemory(0, actualMemory.Length).ToArray());
-            Assert.All(unescapeArray.AsMemory(actualMemory.Length).ToArray(), c => Assert.Equal('\0', c));
+            Assert.NotNull(unescapeArray);
+            Assert.Equal(unescapeArray.Length - actual.Length, state.buffer.Length);
+            Assert.Equal(actual.ToArray(), unescapeArray.AsMemory(0, actual.Length).ToArray());
+            Assert.All(unescapeArray.AsMemory(actual.Length).ToArray(), c => Assert.Equal('\0', c));
         }
-    }
 
-    [Theory]
-    [InlineData("")]
-    [InlineData("test")]
-    [InlineData("\"")]
-    [InlineData("\"test")]
-    [InlineData("test\"")]
-    [InlineData("\"te\"st\"")]
-    [InlineData("\"\"test\"")]
-    [InlineData("\"test\"\"")]
-    public static void Should_Throw_UnreachableException_On_Invalid(string input)
-    {
-        Assert.Throws<UnreachableException>(() =>
-        {
-            Memory<char> unused = Array.Empty<char>();
-            return RFC4180Mode<char>.Unescape(input.AsMemory(), '\"', 4, ref unused);
-        });
+        if (unescapeArray != null)
+            pool.Return(unescapeArray);
     }
 
     [Fact]

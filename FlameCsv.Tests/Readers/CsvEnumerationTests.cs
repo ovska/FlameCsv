@@ -13,6 +13,26 @@ public sealed class CsvEnumerationTests : IDisposable
     }
 
     [Fact]
+    public void Should_Enumerate_Lines()
+    {
+        const string data = "1,\"Test\",true\r\n2,\"Asd\",false\r\n";
+
+        using var enumerator = new CsvRecordEnumerator<char>(data.ToArray(), CsvTextReaderOptions.Default);
+
+        Assert.True(enumerator.MoveNext());
+        Assert.Equal("1,\"Test\",true", enumerator.Current.RawRecord.ToString());
+        Assert.Equal(1, enumerator.Current.GetField<int>(0));
+        Assert.Equal("Test", enumerator.Current.GetField<string>(1));
+        Assert.True(enumerator.Current.GetField<bool>(2));
+
+        Assert.True(enumerator.MoveNext());
+        Assert.Equal("2,\"Asd\",false", enumerator.Current.RawRecord.ToString());
+        Assert.Equal(2, enumerator.Current.GetField<int>(0));
+        Assert.Equal("Asd", enumerator.Current.GetField<string>(1));
+        Assert.False(enumerator.Current.GetField<bool>(2));
+    }
+
+    [Fact]
     public void Should_Parse_Record()
     {
         const string data = "1,Bob\r\n2,Alice";
@@ -35,7 +55,7 @@ public sealed class CsvEnumerationTests : IDisposable
     }
 
     [Fact]
-    public void Should_Enumerate_Csv()
+    public void Should_Enumerate_Fields()
     {
         using var enumerator = new CsvFieldEnumerator<char>("1,\"Test\",true".AsMemory(), CsvTextReaderOptions.Default.ToContext());
 

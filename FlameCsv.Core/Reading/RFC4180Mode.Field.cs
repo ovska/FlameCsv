@@ -33,7 +33,7 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
     {
         Debug.Assert(!state.remaining.IsEmpty);
 
-        ReadOnlySpan<T> remaining = state.remaining.Span;
+        ReadOnlySpan<T> span = state.remaining.Span;
         T delimiter = state._context.Dialect.Delimiter;
         T quote = state._context.Dialect.Quote;
 
@@ -42,11 +42,11 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
         {
             // Since field count may not be known in advance, we leave the delimiter at the head after each field
             // so we can differentiate between an empty last field and end of the data in general
-            if (!remaining[0].Equals(delimiter))
+            if (!span[0].Equals(delimiter))
                 state.ThrowNoDelimiterAtHead();
 
             state.remaining = state.remaining.Slice(1);
-            remaining = remaining.Slice(1);
+            span = span.Slice(1);
         }
         else
         {
@@ -59,21 +59,20 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
 
         // If the remaining row has no quotes seek the next comma directly
         int index = quotesRemaining == 0
-            ? remaining.IndexOf(delimiter)
-            : remaining.IndexOfAny(delimiter, quote);
+            ? span.IndexOf(delimiter)
+            : span.IndexOfAny(delimiter, quote);
 
         ReadOnlyMemory<T> field;
 
         while (index >= 0)
         {
             // Hit a comma, either found end of field or more fields than expected
-            if (remaining[index].Equals(delimiter))
+            if (span[index].Equals(delimiter))
             {
                 field = state.remaining.Slice(0, index);
+                span = span.Slice(0, index);
                 state.remaining = state.remaining.Slice(index); // note: leave the comma in
-                return quotesConsumed > 0
-                    ? Unescape(field, quote, quotesConsumed, ref state.buffer)
-                    : field;
+                goto UnescapeAndReturn;
             }
 
             // Token found but was not delimiter, must be a quote. This branch is never taken if quotesRemaining is 0
@@ -81,10 +80,10 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
             index++; // move index past the quote
 
             int nextIndex = --quotesRemaining == 0
-                ? remaining.Slice(index).IndexOf(delimiter)
+                ? span.Slice(index).IndexOf(delimiter)
                 : quotesConsumed % 2 == 0 // uneven quotes, only need to find the next one
-                    ? remaining.Slice(index).IndexOfAny(delimiter, quote)
-                    : remaining.Slice(index).IndexOf(quote);
+                    ? span.Slice(index).IndexOfAny(delimiter, quote)
+                    : span.Slice(index).IndexOf(quote);
 
             if (nextIndex < 0)
                 break;
@@ -97,8 +96,28 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
 
         state.EnsureFullyConsumed(-1);
 
-        return quotesConsumed != 0
-            ? Unescape(field, quote, quotesConsumed, ref state.buffer)
-            : field;
+        UnescapeAndReturn:
+        if (quotesConsumed == 0)
+            return field; // no unescaping needed
+
+        if (span.Length >= 2 &&
+            span.DangerousGetReference().Equals(quote) &&
+            span.DangerousGetReferenceAt(span.Length - 1).Equals(quote))
+        {
+            // Trim trailing and leading quotes
+            field = field.Slice(1, field.Length - 2);
+
+            if (quotesConsumed != 2)
+            {
+                Debug.Assert(quotesConsumed >= 4);
+                return UnescapeRare(field, quote, quotesConsumed - 2, ref state.buffer);
+            }
+        }
+        else
+        {
+            ThrowInvalidUnescape(span, quote, quotesConsumed);
+        }
+
+        return field;
     }
 }

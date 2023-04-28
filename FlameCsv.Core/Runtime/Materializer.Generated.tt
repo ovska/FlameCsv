@@ -143,24 +143,29 @@ internal sealed class Materializer<T, <#= generics #>>
 #>
     }
 
-    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields, in CsvReadingContext<T> context)
     {
-        if (FieldCount != fields.Length)
-            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        if (FieldCount != fields.Length) Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+        _ = fields[<#= current - 1 #>]; // elide bounds checks
 
 <#
         for (var i = 0; i < current; i++)
         {
-            var iStr = i.ToString();
-            Write("        ");
+            string iStr = i.ToString();
+            string parser = "parser" + iStr;
+            Write("        if (!");
+            Write(parser);
+            Write(".TryParse(fields[");
+            Write(iStr);
+            Write("].Span, out ");
             Write(genericTypes[i]);
             Write(" ");
             Write(values[i]);
-            Write(" = ParseKnown(fields[");
+            Write(")) Throw.ParseFailed(fields[");
             Write(iStr);
-            Write("].Span, parser");
-            Write(iStr);
-            WriteLine(");");
+            Write("], typeof(");
+            Write(genericTypes[i]);
+            WriteLine("), in context);");
         }
 #>
 

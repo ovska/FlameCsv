@@ -30,9 +30,11 @@ internal abstract partial class Materializer<T> where T : unmanaged, IEquatable<
     {
         if (!state.remaining.IsEmpty)
         {
-            ReadOnlySpan<T> field = state._context.ReadNextField(ref state).Span;
+            ReadOnlyMemory<T> field = !state._context.Dialect.Escape.HasValue
+                ? RFC4180Mode<T>.ReadNextField(ref state)
+                : EscapeMode<T>.ReadNextField(ref state);
 
-            if (parser.TryParse(field, out TValue? value))
+            if (parser.TryParse(field.Span, out TValue? value))
                 return value;
 
             ThrowParseFailed(ref state, field, parser);
@@ -59,9 +61,9 @@ internal abstract partial class Materializer<T> where T : unmanaged, IEquatable<
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowParseFailed(ref CsvEnumerationStateRef<T> state, ReadOnlySpan<T> field, ICsvParser<T> parser)
+    private static void ThrowParseFailed(ref CsvEnumerationStateRef<T> state, ReadOnlyMemory<T> field, ICsvParser<T> parser)
     {
-        state.ThrowParseFailed(field, parser);
+        state.ThrowParseFailed(field.Span, parser);
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]

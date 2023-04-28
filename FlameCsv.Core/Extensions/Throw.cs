@@ -95,6 +95,14 @@ internal static class Throw
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+    public static void ParseFailed<T>(ReadOnlyMemory<T> field, Type parsedType, in CsvReadingContext<T> context)
+        where T : unmanaged, IEquatable<T>
+    {
+        throw new CsvParseException(
+            $"Failed to parse {parsedType.FullName} using from {context.AsPrintableString(field)}");
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
     public static void ParseFailed<T, TValue>(ReadOnlyMemory<T> field, ICsvParser<T> parser, in CsvReadingContext<T> context)
             where T : unmanaged, IEquatable<T>
     {
