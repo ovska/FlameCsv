@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using System.Text;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
+using FlameCsv.Runtime;
 
 namespace FlameCsv;
 
@@ -79,7 +78,19 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
 
     public TRecord ParseRecord<TRecord>()
     {
-        throw new NotImplementedException();
+        IMaterializer<T, TRecord> materializer;
+
+        if (_header is not null)
+        {
+            var bindings = _context.Options.GetHeaderBinder().Bind<TRecord>(_header.Keys);
+            materializer = _context.Options.CreateMaterializerFrom(bindings);
+        }
+        else
+        {
+            materializer = _context.Options.GetMaterializer<T, TRecord>();
+        }
+
+        return materializer.Parse(_values);
     }
 
     public virtual ReadOnlyMemory<T> GetField(int index) => _values.AsSpan()[index];

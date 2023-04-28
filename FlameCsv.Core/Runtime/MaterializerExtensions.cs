@@ -8,14 +8,17 @@ namespace FlameCsv.Runtime;
 
 internal static class MaterializerExtensions
 {
-    private static class Cache<T, TResult> where T : unmanaged, IEquatable<T>
+    private static class ForType<T, TResult> where T : unmanaged, IEquatable<T>
     {
+        /// <summary>
+        /// Generator instance to create delegates through reflection.
+        /// </summary>
         public static readonly DelegateGenerator<T> Generator = new ExpressionDelegateGenerator<T>();
 
         /// <summary>
-        /// Cached headerless bindings.
+        /// Cached bindings for headerless CSV.
         /// </summary>
-        public static DelegateGenerator<T>.MaterializerFactory<TResult>? Value;
+        public static DelegateGenerator<T>.MaterializerFactory<TResult>? Cached;
     }
 
     /// <summary>
@@ -26,7 +29,7 @@ internal static class MaterializerExtensions
         CsvBindingCollection<TResult> bindingCollection)
         where T : unmanaged, IEquatable<T>
     {
-        return Cache<T, TResult>.Generator.GetMaterializerFactory(bindingCollection)(options);
+        return ForType<T, TResult>.Generator.GetMaterializerFactory(bindingCollection)(options);
     }
 
     /// <summary>
@@ -35,14 +38,14 @@ internal static class MaterializerExtensions
     public static IMaterializer<T, TResult> GetMaterializer<T, TResult>(this CsvReaderOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
-        DelegateGenerator<T>.MaterializerFactory<TResult>? factory = Cache<T, TResult>.Value;
+        DelegateGenerator<T>.MaterializerFactory<TResult>? factory = ForType<T, TResult>.Cached;
 
         if (factory is null)
         {
             if (TryGetTupleBindings<T, TResult>(out var bindings) ||
                 IndexAttributeBinder<TResult>.TryGetBindings(out bindings))
             {
-                factory = Cache<T, TResult>.Generator.GetMaterializerFactory(bindings);
+                factory = ForType<T, TResult>.Generator.GetMaterializerFactory(bindings);
             }
             else
             {
@@ -53,7 +56,7 @@ internal static class MaterializerExtensions
             }
 
             factory =
-                Interlocked.CompareExchange(ref Cache<T, TResult>.Value, factory, null)
+                Interlocked.CompareExchange(ref ForType<T, TResult>.Cached, factory, null)
                 ?? factory;
         }
 

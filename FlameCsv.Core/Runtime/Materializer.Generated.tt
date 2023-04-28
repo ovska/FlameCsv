@@ -15,6 +15,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Binding;
+using FlameCsv.Extensions;
 using FlameCsv.Parsers;
 using FlameCsv.Reading;
 
@@ -131,7 +132,7 @@ internal sealed class Materializer<T, <#= generics #>>
         state.EnsureFullyConsumed(FieldCount);
 
 <#
-        Write("        var result = valueFactory(");
+        Write("        return valueFactory(");
         for (var i = 0; i < current; i++)
         {
             if (i != 0)
@@ -140,8 +141,39 @@ internal sealed class Materializer<T, <#= generics #>>
         }
         WriteLine(");");
 #>
+    }
 
-        return result;
+    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields)
+    {
+        if (FieldCount != fields.Length)
+            Throw.InvalidData_FieldCount(FieldCount, fields.Length);
+
+<#
+        for (var i = 0; i < current; i++)
+        {
+            var iStr = i.ToString();
+            Write("        ");
+            Write(genericTypes[i]);
+            Write(" ");
+            Write(values[i]);
+            Write(" = ParseKnown(fields[");
+            Write(iStr);
+            Write("].Span, parser");
+            Write(iStr);
+            WriteLine(");");
+        }
+#>
+
+<#
+        Write("        return valueFactory(");
+        for (var i = 0; i < current; i++)
+        {
+            if (i != 0)
+                Write(", ");
+            Write(values[i]);
+        }
+        WriteLine(");");
+#>
     }
 }
 
