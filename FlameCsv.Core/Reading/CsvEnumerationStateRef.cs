@@ -91,8 +91,9 @@ internal struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public readonly void ThrowFieldEndedPrematurely()
     {
+        string escapeStr = _context.Dialect.IsRFC4188Mode ? "" : $"and {escapesRemaining} escapes ";
         throw new UnreachableException(
-            $"The record ended while having {quotesRemaining} quotes remaining. " +
+            $"The record ended while having {quotesRemaining} quotes {escapeStr}remaining. " +
             $"Record: {_context.AsPrintableString(_record)}");
     }
 
