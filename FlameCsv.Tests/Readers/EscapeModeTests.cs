@@ -28,6 +28,7 @@ public static class EscapeModeTests
     [InlineData("ASD,'ASD, DEF',A^,D", new[] { "ASD", "ASD, DEF", "A,D" })]
     [InlineData(",,", new[] { "", "", "" })]
     [InlineData("^,", new[] { "," })]
+    [InlineData("'Test ^'Xyz^' Test'", new[] { "Test 'Xyz' Test" })]
     public static void Should_Read_Fields(string input, string[] expected)
     {
         using var pool = new ReturnTrackingArrayPool<char>();

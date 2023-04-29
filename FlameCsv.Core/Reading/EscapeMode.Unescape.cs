@@ -86,7 +86,7 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
 
             sourceMemory.Slice(index, next).CopyTo(destination.Slice(written));
             written += next;
-            destinationSpan[written++] = source[++next];
+            destinationSpan[written++] = source[++next + index];
             index += next + 1; // advance past the escaped value
 
             // Found all quotes, copy remaining data
