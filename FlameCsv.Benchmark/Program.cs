@@ -1,4 +1,6 @@
-﻿BenchmarkRunner.Run<CsvReadBench>();
+﻿BenchmarkRunner.Run<ModeBench>();
+
+//new ModeBench2().Old();
 
 // Console.WriteLine("Process started: {0}", Environment.ProcessId);
 //

@@ -58,7 +58,7 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
     /// <summary>
     /// Unescapes inner quotes from the input. Wrapping quotes have been trimmed at this point.
     /// </summary>
-    private static ReadOnlyMemory<T> UnescapeRare(
+    internal static ReadOnlyMemory<T> UnescapeRare(
         ReadOnlyMemory<T> sourceMemory,
         T quote,
         uint quoteCount,
@@ -119,7 +119,7 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
     /// The data and/or the supplied quote count parameter were invalid. 
     /// </exception>
     [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowInvalidUnescape(
+    internal static void ThrowInvalidUnescape(
         ReadOnlySpan<T> source,
         T quote,
         uint quoteCount)
