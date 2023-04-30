@@ -58,6 +58,8 @@ public class ModeBench
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static ReadOnlyMemory<T> RFCNEW<T>(ref CsvEnumerationStateRef<T> state) where T : unmanaged, IEquatable<T>
     {
+        Debug.Assert(!state.remaining.IsEmpty);
+
         ReadOnlyMemory<T> field;
         ReadOnlySpan<T> span = state.remaining.Span;
         T quote = state._context.Dialect.Quote;
@@ -77,7 +79,7 @@ public class ModeBench
         ContinueReadUnknown:
         while (consumed < span.Length)
         {
-            T token = span[consumed++];
+            T token = span.DangerousGetReferenceAt(consumed++);
 
             if (token.Equals(delimiter))
             {
@@ -91,10 +93,12 @@ public class ModeBench
             }
         }
 
+        goto EOL;
+
         ContinueReadInsideQuotes:
         while (consumed < span.Length)
         {
-            if (span[consumed++].Equals(quote))
+            if (span.DangerousGetReferenceAt(consumed++).Equals(quote))
             {
                 quotesConsumed++;
                 quotesRemaining--;
@@ -106,30 +110,31 @@ public class ModeBench
             }
         }
 
-        ThrowHelper.ThrowInvalidDataException("Ended prematurely");
+        goto EOL;
 
         ContinueReadNoQuotes:
         while (consumed < span.Length)
         {
-            if (span[consumed++].Equals(delimiter))
+            if (span.DangerousGetReferenceAt(consumed++).Equals(delimiter))
             {
                 goto Done;
             }
         }
 
+        EOL:
         if (quotesRemaining != 0)
-            ThrowHelper.ThrowInvalidDataException("Leftover quotes");
+            state.ThrowFieldEndedPrematurely();
 
-        // whole line was consumed
-        field = state.remaining.Slice(1);
+        // whole line was consumed, skip the delimiter if it wasn't the first field
+        field = state.remaining.Slice((!state.isAtStart).ToByte());
         state.remaining = default;
         goto Return;
 
         Done:
-        int sliceStart = state.isAtStart ? 0 : 1;
+        int sliceStart = (!state.isAtStart).ToByte();
         int length = consumed - sliceStart - 1;
         field = state.remaining.Slice(sliceStart, length);
-        state.remaining = state.remaining.Slice(length + sliceStart);
+        state.remaining = state.remaining.Slice(consumed - 1);
 
         Return:
         state.isAtStart = false;

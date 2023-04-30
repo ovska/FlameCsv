@@ -37,7 +37,7 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
             }
             else
             {
-                ThrowInvalidUnescape(span, quote, escape, quoteCount, escapeCount);
+                return ThrowInvalidUnescape(span, quote, escape, quoteCount, escapeCount);
             }
         }
 
@@ -82,7 +82,7 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
                 break;
 
             if (next - index == source.Length)
-                ThrowInvalidUnescape(source, null, escape, 0, escapeCount);
+                goto Invalid;
 
             sourceMemory.Slice(index, next).CopyTo(destination.Slice(written));
             written += next;
@@ -99,8 +99,7 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
         }
 
         Invalid:
-        ThrowInvalidUnescape(sourceMemory.Span, null, escape, 0, escapeCount);
-        return default; // unreachable
+        return ThrowInvalidUnescape(sourceMemory.Span, null, escape, 0, escapeCount);
     }
 
     [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -111,7 +110,7 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
     }
 
     [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowInvalidUnescape(
+    private static ReadOnlyMemory<T> ThrowInvalidUnescape(
         ReadOnlySpan<T> source,
         T? quote,
         T escape,

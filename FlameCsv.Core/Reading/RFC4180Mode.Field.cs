@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
 
 namespace FlameCsv.Reading;
@@ -53,7 +52,7 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
         ContinueReadUnknown:
         while (consumed < span.Length)
         {
-            T token = span[consumed++];
+            T token = span.DangerousGetReferenceAt(consumed++);
 
             if (token.Equals(delimiter))
             {
@@ -67,10 +66,12 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
             }
         }
 
+        goto EOL;
+
         ContinueReadInsideQuotes:
         while (consumed < span.Length)
         {
-            if (span[consumed++].Equals(quote))
+            if (span.DangerousGetReferenceAt(consumed++).Equals(quote))
             {
                 quotesConsumed++;
                 quotesRemaining--;
@@ -82,15 +83,18 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
             }
         }
 
+        goto EOL;
+
         ContinueReadNoQuotes:
         while (consumed < span.Length)
         {
-            if (span[consumed++].Equals(delimiter))
+            if (span.DangerousGetReferenceAt(consumed++).Equals(delimiter))
             {
                 goto Done;
             }
         }
 
+        EOL:
         if (quotesRemaining != 0)
             state.ThrowFieldEndedPrematurely();
 
@@ -100,7 +104,7 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
         goto Return;
 
         Done:
-        int sliceStart = state.isAtStart ? 0 : 1;
+        int sliceStart = (!state.isAtStart).ToByte();
         int length = consumed - sliceStart - 1;
         field = state.remaining.Slice(sliceStart, length);
         state.remaining = state.remaining.Slice(consumed - 1);
