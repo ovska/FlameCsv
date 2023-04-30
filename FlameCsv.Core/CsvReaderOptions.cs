@@ -109,7 +109,7 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
     private StringComparison _stringComparison = StringComparison.OrdinalIgnoreCase;
     private CsvCallback<T, bool>? _shouldSkipRow;
     private CsvExceptionHandler<T>? _exceptionHandler;
-    private bool _hasHeader;
+    private bool _hasHeader = true;
     private bool _validateFieldCount;
     private bool _allowContentInExceptions;
     private bool _useDefaultParsers = true;
@@ -161,7 +161,7 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
     }
 
     /// <summary>
-    /// Whether the read CSV has a header record.
+    /// Whether the read CSV has a header record. The default is <see langword="true"/>.
     /// </summary>
     /// <seealso cref="HeaderBinder"/>
     public bool HasHeader

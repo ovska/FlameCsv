@@ -8,7 +8,7 @@ public static class BuiltinBindingTests
     public static void Should_Bind_To_ValueTuple()
     {
         var items = CsvReader
-            .Read<(int, bool, string)>(data, CsvTextReaderOptions.Default)
+            .Read<(int, bool, string)>(data, CsvTextReaderOptions.Default, new() { HasHeader = false })
             .ToList();
 
         Assert.Equal(2, items.Count);
@@ -20,7 +20,7 @@ public static class BuiltinBindingTests
     public static void Should_Bind_To_Tuple()
     {
         var items = CsvReader
-            .Read<Tuple<int, bool, string>>(data, CsvTextReaderOptions.Default)
+            .Read<Tuple<int, bool, string>>(data, CsvTextReaderOptions.Default, new() { HasHeader = false })
             .ToList();
 
         Assert.Equal(2, items.Count);

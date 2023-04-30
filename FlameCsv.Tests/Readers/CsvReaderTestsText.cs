@@ -52,7 +52,7 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
 
         await using var ms = new MemoryStream(Encoding.UTF8.GetBytes(data));
         using var reader = new StreamReader(ms, bufferSize: 128);
-        var options = CsvTextReaderOptions.Default;
+        var options = new CsvTextReaderOptions { HasHeader = false };
 
         await foreach (var item in CsvReader.ReadAsync<Obj>(reader, options))
         {
