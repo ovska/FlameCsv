@@ -127,9 +127,6 @@ public static partial class CsvReader
     /// </remarks>
     /// <param name="textReader">Text reader to read the records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
-    /// <param name="leaveOpen">
-    /// If <see langword="true"/>, the writer is not disposed at the end of the enumeration
-    /// </param>
     /// <returns><see cref="IAsyncEnumerable{T}"/> that reads the CSV one record at a time from the reader.</returns>
     public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
         TextReader textReader,
@@ -215,7 +212,7 @@ public static partial class CsvReader
         CsvReaderOptions<char> options,
         CsvContextOverride<char> context = default)
     {
-        return new CsvRecordEnumerable<char>(csv.AsMemory(), options);
+        return new CsvRecordEnumerable<char>(csv.AsMemory(), options, context);
     }
 
     /// <summary>
@@ -226,10 +223,11 @@ public static partial class CsvReader
     /// <param name="options"><inheritdoc cref="Enumerate(string?, CsvReaderOptions{char})" path="/param[@name='options']"/></param>
     public static CsvRecordEnumerable<T> Enumerate<T>(
         ReadOnlyMemory<T> csv,
-        CsvReaderOptions<T> options)
+        CsvReaderOptions<T> options,
+        CsvContextOverride<T> context = default)
         where T : unmanaged, IEquatable<T>
     {
-        return new CsvRecordEnumerable<T>(csv, options);
+        return new CsvRecordEnumerable<T>(csv, options, context);
     }
 
     /// <summary>
@@ -240,10 +238,11 @@ public static partial class CsvReader
     /// <param name="options"><inheritdoc cref="Enumerate(string?, CsvReaderOptions{char})" path="/param[@name='options']"/></param>
     public static CsvRecordEnumerable<T> Enumerate<T>(
         in ReadOnlySequence<T> csv,
-        CsvReaderOptions<T> options)
+        CsvReaderOptions<T> options,
+        CsvContextOverride<T> context = default)
         where T : unmanaged, IEquatable<T>
     {
-        return new CsvRecordEnumerable<T>(in csv, options);
+        return new CsvRecordEnumerable<T>(in csv, options, context);
     }
 
     /// <summary>

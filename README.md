@@ -10,11 +10,11 @@
 
 # Examples
 
-## Reading records
+## Reading records with a lambda function
 ```csharp
 var records = CsvReader.ReadRecordsAsync(
     new StringReader("1,true,Bob\r\n2,false,Alice\r\n"),
-    new CsvTextReaderOptions(),
+    CsvTextReaderOptions.Default,
     (int id, bool enabled, string name) => new { id, enabled, name });
 
 await foreach (var record in records)
@@ -37,7 +37,8 @@ class User
 ```
 ```csharp
 var options = CsvUtf8ReaderOptions.Default;
-await foreach (User record in CsvReader.ReadAsync<User>(File.OpenRead("/home/ovska/test.csv"), options))
+var file = File.OpenRead("/home/ovska/test.csv");
+await foreach (var record in CsvReader.ReadAsync<User>(file, options))
 {
     // ...
 }
@@ -61,8 +62,9 @@ var options = new CsvUtf8ReaderOptions
 {
     options.HasHeader = true;
 }
+var file = File.OpenRead("/home/ovska/test.csv");
 
-await foreach (User record in CsvReader.ReadAsync<User>(File.OpenRead("/home/ovska/test.csv"), options))
+await foreach (User record in CsvReader.ReadAsync<User>(file, options))
 {
     // ...
 }
