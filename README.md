@@ -104,3 +104,20 @@ foreach (CsvRecord<char> record in CsvReader.Enumerate(csv, options))
     };
 }
 ```
+
+# Performance
+
+Note: CsvHelper was chosen because it is the most popular CSV library for C#. This library isn't meant to be a replacement for CsvHelper.
+Example CSV file used in th benchmarks is found in the `TestData` folder in the tests-project.
+
+---
+
+![image](https://user-images.githubusercontent.com/68028366/235344076-a82ccca6-b3a1-4a00-9509-dcf261aaad06.png)
+
+![image](https://user-images.githubusercontent.com/68028366/235345259-87c1013b-91b4-4d60-bcaf-5924ed467df4.png)
+
+---
+
+![image](https://user-images.githubusercontent.com/68028366/235345278-67fef09b-b742-442b-a680-0e8675e8309c.png)
+
+![image](https://user-images.githubusercontent.com/68028366/235345292-c77d3870-9fc6-456e-9e6b-05effd1300f5.png)
