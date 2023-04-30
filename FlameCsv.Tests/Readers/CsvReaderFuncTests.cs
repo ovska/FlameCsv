@@ -14,7 +14,8 @@ public static class CsvReaderFuncTests
         var enumerable = CsvReader.ReadRecordsAsync(
             reader,
             new CsvTextReaderOptions(),
-            static (int id, bool enabled, string name) => new { id, enabled, name });
+            static (int id, bool enabled, string name) => new { id, enabled, name },
+            new() { HasHeader = false });
 
         var results = new List<(int id, bool enabled, string name)>();
 

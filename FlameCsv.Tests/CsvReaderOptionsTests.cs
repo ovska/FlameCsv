@@ -215,11 +215,24 @@ public class CsvReaderOptionsTests
     {
         const string data = "1,1,1\r\n1,1,1\r\n1,1,1,1\r\n";
 
-        var options = new CsvTextReaderOptions { ValidateFieldCount = true };
+        var options = new CsvTextReaderOptions { ValidateFieldCount = true, HasHeader = false };
 
         using var enumerator = CsvReader.Enumerate(data, options).GetEnumerator();
 
         Assert.True(enumerator.MoveNext());
+        Assert.True(enumerator.MoveNext());
+        Assert.Throws<InvalidDataException>(() => enumerator.MoveNext());
+    }
+
+    [Fact]
+    public void Should_Validate_Field_Count_With_Header()
+    {
+        const string data = "A,B,C\r\n1,1,1\r\n1,1,1,1\r\n";
+
+        var options = new CsvTextReaderOptions { ValidateFieldCount = true, HasHeader = true };
+
+        using var enumerator = CsvReader.Enumerate(data, options).GetEnumerator();
+
         Assert.True(enumerator.MoveNext());
         Assert.Throws<InvalidDataException>(() => enumerator.MoveNext());
     }
