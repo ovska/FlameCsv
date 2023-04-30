@@ -102,7 +102,7 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
             {
                 (0, 0) => notYetRead.IndexOf(delimiter),
                 (0, _) => notYetRead.IndexOfAny(delimiter, escape),
-                (_, 0) => quotesConsumed % 2 != 0 ? notYetRead.IndexOf(quote) : notYetRead.IndexOfAny(quote, escape),
+                (_, 0) => quotesConsumed % 2 != 0 ? notYetRead.IndexOf(quote) : notYetRead.IndexOfAny(quote, delimiter),
                 (_, _) => quotesConsumed % 2 != 0 ? notYetRead.IndexOfAny(quote, escape) : notYetRead.IndexOfAny(quote, escape, delimiter),
             };
 
