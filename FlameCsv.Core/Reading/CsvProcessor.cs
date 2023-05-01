@@ -12,8 +12,14 @@ namespace FlameCsv.Reading;
 internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     where T : unmanaged, IEquatable<T>
 {
+    public int Line => _line;
+    public long Position => _position;
+
     private readonly CsvReadingContext<T> _context;
     private readonly IMaterializer<T, TValue> _materializer;
+
+    private long _position;
+    private int _line;
 
     private T[]? _unescapeBuffer; // string unescaping
     private T[]? _multisegmentBuffer; // long fragmented lines
@@ -39,21 +45,24 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
             return false;
         }
 
-        ReadOnlyMemory<T> line = lineSeq.AsMemory(ref _multisegmentBuffer, _context.ArrayPool);
+        ReadOnlyMemory<T> record = lineSeq.AsMemory(ref _multisegmentBuffer, _context.ArrayPool);
 
         if (meta.quoteCount % 2 != 0)
         {
-            _context.ThrowForUnevenQuotes(line);
+            _context.ThrowForUnevenQuotes(record);
         }
 
-        if (_context.SkipRecord(line))
+        _line++;
+        _position += record.Length + (!isFinalBlock).ToByte() * _context.Dialect.Newline.Length;
+
+        if (_context.SkipRecord(record, _line))
         {
             goto ReadNextRecord;
         }
 
         try
         {
-            CsvEnumerationStateRef<T> state = new(in _context, line, ref _unescapeBuffer, meta);
+            CsvEnumerationStateRef<T> state = new(in _context, record, ref _unescapeBuffer, meta);
 
             value = _materializer.Parse(ref state);
             return true;
@@ -63,25 +72,37 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
             // this is treated as an unrecoverable exception
             if (ex is CsvFormatException)
             {
-                ThrowInvalidFormatException(ex, line);
+                ThrowInvalidFormatException(ex, record);
             }
 
-            if (_context.ExceptionIsHandled(line, ex))
+            if (_context.ExceptionIsHandled(record, _line, ex))
             {
                 goto ReadNextRecord;
             }
+
+            if (ex is not CsvParseException)
+                ThrowUnhandledException(ex, record);
 
             throw;
         }
     }
 
     [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private readonly void ThrowInvalidFormatException(
-        Exception innerException,
-        ReadOnlyMemory<T> line)
+    private readonly void ThrowInvalidFormatException(Exception innerException, ReadOnlyMemory<T> line)
     {
         throw new CsvFormatException(
-            $"The CSV was in an invalid format: {_context.AsPrintableString(line)}",
+            $"The CSV was in an invalid format, line {_line}, token position {_position}: " +
+            _context.AsPrintableString(line),
+            innerException);
+    }
+
+    [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    private readonly void ThrowUnhandledException(Exception innerException, ReadOnlyMemory<T> line)
+    {
+        throw new CsvUnhandledException(
+            $"Unhandled exception while parsing {typeof(TValue)} from the CSV. {_context.AsPrintableString(line)}",
+            _line,
+            _position,
             innerException);
     }
 

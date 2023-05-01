@@ -1,5 +1,23 @@
 namespace FlameCsv;
 
+public readonly struct CsvRowSkipArgs<T> where T : unmanaged, IEquatable<T>
+{
+    public ReadOnlyMemory<T> Record { get; init; }
+    public CsvDialect<T> Dialect { get; init; }
+    public int Line { get; init; }
+}
+
+public delegate bool RowSkipCallback<T>(CsvRowSkipArgs<T> args)
+    where T : unmanaged, IEquatable<T>;
+
+public readonly struct CsvExceptionHandlerArgs<T> where T : unmanaged, IEquatable<T>
+{
+    public ReadOnlyMemory<T> Record { get; init; }
+    public CsvDialect<T> Dialect { get; init; }
+    public int Line { get; init; }
+    public Exception Exception { get; init; }
+}
+
 /// <summary>
 /// Callback for a CSV record or a single field.
 /// </summary>
@@ -16,12 +34,9 @@ public delegate TReturn CsvCallback<T, out TReturn>(
 /// Callback for custom handling of parsing errors.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-/// <param name="data">Data being parsed</param>
-/// <param name="exception">Thrown exception</param>
 /// <returns><see langword="true"/> if the exception can be ignored.</returns>
-public delegate bool CsvExceptionHandler<T>(
-    ReadOnlyMemory<T> data,
-    Exception exception);
+public delegate bool CsvExceptionHandler<T>(CsvExceptionHandlerArgs<T> args)
+    where T : unmanaged, IEquatable<T>;
 
 /// <summary>
 /// Callback that returns a boolean value for a given span.
