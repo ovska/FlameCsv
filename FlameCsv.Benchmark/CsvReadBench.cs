@@ -34,7 +34,11 @@ public class CsvReadBench
     [Benchmark]
     public async Task FlameText()
     {
-        await foreach (var record in CsvReader.ReadAsync<Entry>(GetFileStream(), CsvTextReaderOptions.Default, encoding: Encoding.UTF8))
+        await foreach (var record in CsvReader.ReadAsync<Entry>(
+            GetFileStream(),
+            CsvTextReaderOptions.Default,
+            context: new() { HasHeader = false },
+            encoding: Encoding.UTF8))
         {
             _ = record;
         }
@@ -43,7 +47,10 @@ public class CsvReadBench
     [Benchmark]
     public async Task FlameUtf8()
     {
-        await foreach (var record in CsvReader.ReadAsync<Entry>(GetFileStream(), CsvUtf8ReaderOptions.Default))
+        await foreach (var record in CsvReader.ReadAsync<Entry>(
+            GetFileStream(),
+            CsvUtf8ReaderOptions.Default,
+            context: new() { HasHeader = false }))
         {
             _ = record;
         }

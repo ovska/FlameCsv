@@ -14,7 +14,7 @@ public readonly struct CsvContextOverride<T> where T : unmanaged, IEquatable<T>
     public bool ExposeContent { get => _exposeContent; init => _exposeContent = value; }
     public bool ValidateFieldCount { get => _validateFieldCount; init => _validateFieldCount = value; }
     public CsvExceptionHandler<T>? ExceptionHandler { get => _exceptionHandler; init => _exceptionHandler = value; }
-    public CsvCallback<T, bool>? ShouldSkipRow { get => _shouldSkipRow; init => _shouldSkipRow = value; }
+    public RowSkipCallback<T>? ShouldSkipRow { get => _shouldSkipRow; init => _shouldSkipRow = value; }
 
     internal readonly ValueHolder<T> _delimiter;
     internal readonly ValueHolder<T> _quote;
@@ -25,7 +25,7 @@ public readonly struct CsvContextOverride<T> where T : unmanaged, IEquatable<T>
     internal readonly ValueHolder<bool> _exposeContent;
     internal readonly ValueHolder<bool> _validateFieldCount;
     internal readonly ValueHolder<CsvExceptionHandler<T>?> _exceptionHandler;
-    internal readonly ValueHolder<CsvCallback<T, bool>?> _shouldSkipRow;
+    internal readonly ValueHolder<RowSkipCallback<T>?> _shouldSkipRow;
 
     internal readonly struct ValueHolder<TValue>
     {
@@ -72,6 +72,6 @@ public interface ICsvReaderOptions<T> where T : unmanaged, IEquatable<T>
     bool MakeReadOnly();
 
     StringComparison Comparison { get; }
-    CsvCallback<T, bool>? ShouldSkipRow { get; }
+    RowSkipCallback<T>? ShouldSkipRow { get; }
     bool ValidateFieldCount { get; }
 }

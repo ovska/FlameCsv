@@ -9,6 +9,10 @@ namespace FlameCsv.Reading;
 /// <typeparam name="TValue">Parsed value</typeparam>
 internal interface ICsvProcessor<T, TValue> : IDisposable where T : unmanaged, IEquatable<T>
 {
+    int Line { get; }
+
+    long Position { get; }
+
     /// <summary>
     /// Consumes (slices) the buffer and attempts to parse instances of <typeparamref name="TValue"/> from it.
     /// </summary>

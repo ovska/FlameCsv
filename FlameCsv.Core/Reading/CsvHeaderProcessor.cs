@@ -10,9 +10,15 @@ namespace FlameCsv.Reading;
 internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     where T : unmanaged, IEquatable<T>
 {
+    public int Line => _line + _inner.DangerousGetValueOrDefaultReference().Line;
+    public long Position => _position + _inner.DangerousGetValueOrDefaultReference().Position;
+
     private readonly CsvReadingContext<T> _context;
 
     private CsvProcessor<T, TValue>? _inner;
+
+    private int _line;
+    private long _position;
 
     public CsvHeaderProcessor(in CsvReadingContext<T> context)
     {
@@ -35,9 +41,20 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     [MethodImpl(MethodImplOptions.NoInlining)] // encourage inlining more common paths
     private bool ParseHeaderAndTryRead(ref ReadOnlySequence<T> buffer, out TValue value, bool isFinalBlock)
     {
+        ReadHeader:
         if (_context.TryGetLine(ref buffer, out var line, out _, isFinalBlock))
         {
-            ReadHeader(in line);
+            using var view = new SequenceView<T>(in line, _context.ArrayPool);
+
+            _line++;
+            _position += line.Length + (!isFinalBlock).ToByte() * _context.Dialect.Newline.Length;
+
+            if (_context.SkipRecord(view.Memory, _line))
+            {
+                goto ReadHeader;
+            }
+
+            ReadHeader(view.Memory);
 
             // read the first record now, unless the CSV consisted of just the header without trailing newline
             if (!isFinalBlock)
@@ -52,14 +69,12 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     }
 
     [MemberNotNull(nameof(_inner))]
-    private void ReadHeader(in ReadOnlySequence<T> line)
+    private void ReadHeader(ReadOnlyMemory<T> record)
     {
-        using var view = new SequenceView<T>(in line, _context.ArrayPool);
-
         CsvBindingCollection<TValue> bindings;
         T[]? buffer = null;
 
-        using (CsvEnumerationStateRef<T>.CreateTemporary(in _context, view.Memory, ref buffer, out var state))
+        using (CsvEnumerationStateRef<T>.CreateTemporary(in _context, record, ref buffer, out var state))
         {
             List<string> values = new(16);
 

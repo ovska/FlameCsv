@@ -107,7 +107,7 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
     protected abstract ReadOnlySpan<ICsvParserFactory<T>> GetDefaultParsers();
 
     private StringComparison _stringComparison = StringComparison.OrdinalIgnoreCase;
-    private CsvCallback<T, bool>? _shouldSkipRow;
+    private RowSkipCallback<T>? _shouldSkipRow;
     private CsvExceptionHandler<T>? _exceptionHandler;
     private bool _hasHeader = true;
     private bool _validateFieldCount;
@@ -132,7 +132,7 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
     /// Delegate that determines whether a row should be skipped.
     /// Default is <see langword="null"/>, which means all rows are processed.
     /// </summary>
-    public CsvCallback<T, bool>? ShouldSkipRow
+    public RowSkipCallback<T>? ShouldSkipRow
     {
         get => _shouldSkipRow;
         set => this.SetValue(ref _shouldSkipRow, value);

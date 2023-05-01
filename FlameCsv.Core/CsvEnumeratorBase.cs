@@ -59,7 +59,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IE
             Position += memory.Length + _context.Dialect.Newline.Length * (!isFinalBlock).ToByte();
             Line++;
 
-            if (_context.SkipRecord(memory))
+            if (_context.SkipRecord(memory, Line))
             {
                 goto Retry;
             }

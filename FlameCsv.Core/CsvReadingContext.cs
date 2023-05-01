@@ -30,7 +30,7 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
     public bool ValidateFieldCount { get; }
 
     private readonly CsvDialect<T> _dialect;
-    private readonly CsvCallback<T, bool>? _skipCallback;
+    private readonly RowSkipCallback<T>? _skipCallback;
     private readonly CsvExceptionHandler<T>? _exceptionHandler;
 
     public CsvReadingContext(CsvReaderOptions<T> options, in CsvContextOverride<T> overrides)
@@ -53,10 +53,26 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool SkipRecord(ReadOnlyMemory<T> value) => _skipCallback?.Invoke(value, in _dialect) ?? false;
+    public bool SkipRecord(ReadOnlyMemory<T> record, int line)
+    {
+        var fn = _skipCallback;
+        if (fn is null)
+            return false;
+
+        return fn(new CsvRowSkipArgs<T> { Dialect = _dialect, Line = line, Record = record });
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool ExceptionIsHandled(ReadOnlyMemory<T> value, Exception exception) => (_exceptionHandler?.Invoke(value, exception)) ?? false;
+    public bool ExceptionIsHandled(ReadOnlyMemory<T> record, int line, Exception exception)
+    {
+        return (_exceptionHandler?.Invoke(new CsvExceptionHandlerArgs<T>
+        {
+            Dialect = Dialect,
+            Line = line,
+            Record = record,
+            Exception = exception,
+        })) ?? false;
+    }
 
     /// <summary>
     /// Seeks the sequence for a <see cref="CsvDialect{T}.Newline"/>.
