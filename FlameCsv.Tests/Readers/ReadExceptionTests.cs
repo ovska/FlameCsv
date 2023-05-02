@@ -1,5 +1,6 @@
 ﻿using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
+using FlameCsv.Parsers.Text;
 
 namespace FlameCsv.Tests.Readers;
 
@@ -21,7 +22,7 @@ public class ReadExceptionTests
             ExceptionHandler = null,
             HasHeader = false,
         };
-        Assert.Throws<CsvParseException>(() => Run(opts));
+        Assert.Throws<CsvUnhandledException>(() => Run(opts));
     }
 
     [Fact]
@@ -32,7 +33,7 @@ public class ReadExceptionTests
             ExceptionHandler = _ => false,
             HasHeader = false,
         };
-        Assert.Throws<CsvParseException>(() => Run(opts));
+        Assert.Throws<CsvUnhandledException>(() => Run(opts));
     }
 
     [Fact]
@@ -65,6 +66,45 @@ public class ReadExceptionTests
             HasHeader = false,
         };
         Assert.Throws<AggregateException>(() => Run(opts));
+    }
+
+    [Fact]
+    public void Should_Report_Line_And_Position_With_Header()
+    {
+        var ex = Record.Exception(() =>
+        {
+            foreach (var _ in CsvReader.Read<Obj>("id,name\r\ntest,test", CsvTextReaderOptions.Default))
+            {
+            }
+        });
+
+        Assert.IsType<CsvUnhandledException>(ex);
+        Assert.Equal(2, ((CsvUnhandledException)ex).Line);
+        Assert.Equal("id,name\r\n".Length, ((CsvUnhandledException)ex).Position);
+
+        Assert.IsType<CsvParseException>(ex.InnerException);
+        Assert.IsType<IntegerTextParser>(((CsvParseException)ex.InnerException).Parser);
+    }
+
+    [Fact]
+    public void Should_Report_Line_And_Position_Without_Header()
+    {
+        var ex = Record.Exception(() =>
+        {
+            foreach (var _ in CsvReader.Read<Obj>(
+                "1,Bob\r\ntest,test",
+                CsvTextReaderOptions.Default,
+                new() { HasHeader = false }))
+            {
+            }
+        });
+
+        Assert.IsType<CsvUnhandledException>(ex);
+        Assert.Equal(2, ((CsvUnhandledException)ex).Line);
+        Assert.Equal("1,Bob\r\n".Length, ((CsvUnhandledException)ex).Position);
+
+        Assert.IsType<CsvParseException>(ex.InnerException);
+        Assert.IsType<IntegerTextParser>(((CsvParseException)ex.InnerException).Parser);
     }
 
     private static List<Obj> Run(CsvReaderOptions<char> opts) => new(CsvReader.Read<Obj>(Data, opts));
