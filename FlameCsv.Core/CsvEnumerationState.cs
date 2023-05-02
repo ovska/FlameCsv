@@ -3,7 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
-using FlameCsv.Utilities;
 
 namespace FlameCsv;
 
@@ -26,11 +25,20 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     private ReadOnlyMemory<T>[] _fields; // cached field values by index
     private int _index;
 
-    public Dictionary<string, int>? Header { get; set; }
+    public Dictionary<string, int>? Header
+    {
+        get => _header;
+        set
+        {
+            _header = value;
+            _materializerCache?.Clear();
+        }
+    }
 
     private CsvEnumerationStateRef<T> _state;
     private bool _disposed;
 
+    private Dictionary<string, int>? _header;
     private Dictionary<Type, object>? _materializerCache;
     private int? _expectedFieldCount;
 
