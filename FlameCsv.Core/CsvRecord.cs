@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using System.Text;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Runtime;
@@ -35,36 +34,12 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         // validates it on initialization
     }
 
-    public CsvRecord(
-        string record,
-        CsvReaderOptions<T> options,
-        CsvContextOverride<T> context = default)
-        : this(
-              typeof(T) == typeof(char) ? (ReadOnlyMemory<T>)(object)record.AsMemory() :
-              typeof(T) == typeof(byte) ? (ReadOnlyMemory<T>)(object)Encoding.UTF8.GetBytes(record) :
-              throw new NotSupportedException(),
-              options,
-              context)
-    {
-    }
-
-    public IEnumerable<string> GetHeaderRecord()
-    {
-        if (!_context.HasHeader)
-            Throw.NotSupported_CsvHasNoHeader();
-
-        if (_header is null)
-            Throw.InvalidOperation_HeaderNotRead();
-
-        return _header.Keys;
-    }
-
     public CsvRecord(ReadOnlyMemory<T> record, CsvReaderOptions<T> options, CsvContextOverride<T> context = default)
     {
         ArgumentNullException.ThrowIfNull(options);
         options.MakeReadOnly();
 
-        _context = new CsvReadingContext<T>(options, context);
+        _context = new CsvReadingContext<T>(options, in context);
         (RawRecord, _values) = InitializeFromValues(record, in _context);
     }
 
@@ -158,6 +133,17 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         }
 
         return TryGetValue<TValue>(index, out value);
+    }
+
+    public IEnumerable<string> GetHeaderRecord()
+    {
+        if (!_context.HasHeader)
+            Throw.NotSupported_CsvHasNoHeader();
+
+        if (_header is null)
+            Throw.InvalidOperation_HeaderNotRead();
+
+        return _header.Keys;
     }
 
     private static PreservedValues Initialize(CsvValueRecord<T> record)

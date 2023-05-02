@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -36,15 +35,23 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
         }
     }
 
+    /// <summary>
+    /// Whether the current CSV enumeration has a header.
+    /// </summary>
     public bool HasHeader => _state.Header is not null;
+
+    /// <summary>
+    /// Whether the record has no fields.
+    /// </summary>
+    public bool IsEmpty => _record.IsEmpty;
 
     public ReadOnlyMemory<T> this[int index] => GetField(index);
     public ReadOnlyMemory<T> this[string name] => GetField(name);
 
     internal readonly CsvEnumerationState<T> _state;
     internal readonly CsvReaderOptions<T> _options;
-    internal readonly int _version;
-    internal readonly RecordMeta _meta;
+
+    private readonly int _version;
     private readonly ReadOnlyMemory<T> _record;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -61,7 +68,6 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
         _record = data;
         _options = options;
         _state = state;
-        _meta = meta;
         _version = _state.Initialize(data, meta);
     }
 
@@ -165,12 +171,11 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void ResetHeader() => _state.Header = null;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Enumerator GetEnumerator() => new(_version, _state);
 
-    /// <summary>
-    /// Copies the fields 
-    /// </summary>
-    /// <returns></returns>
     public List<ReadOnlyMemory<T>> ToList()
     {
         List<ReadOnlyMemory<T>> list = new();
@@ -189,12 +194,24 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
 
         var cache = _state.MaterializerCache;
 
-        if (!cache.TryGetValue(typeof(TRecord), out object? cached))
+        if (!cache.TryGetValue(typeof(TRecord), out object? obj))
         {
-            cache[typeof(TRecord)] = cached = _options.GetMaterializer<T, TRecord>();
+            var header = _state.Header;
+
+            if (header is not null)
+            {
+                var bindings = _options.GetHeaderBinder().Bind<TRecord>(header.Keys);
+                obj = _state._context.Options.CreateMaterializerFrom(bindings);
+            }
+            else
+            {
+                obj = _options.GetMaterializer<T, TRecord>();
+            }
+
+            cache[typeof(TRecord)] = obj;
         }
 
-        IMaterializer<T, TRecord> materializer = (IMaterializer<T, TRecord>)cached;
+        IMaterializer<T, TRecord> materializer = (IMaterializer<T, TRecord>)obj;
 
         return materializer.Parse(_state.GetFields(), in _state._context);
     }

@@ -13,6 +13,33 @@ public sealed class CsvEnumerationTests : IDisposable
     }
 
     [Fact]
+    public void Should_Reset_Header()
+    {
+        const string data =
+            "id,name\r\n" +
+            "1,Bob\r\n" +
+            "\r\n" +
+            "name,id\r\n" +
+            "Alice,2\r\n";
+
+        using var enumerator = new CsvRecordEnumerator<char>(data.ToArray(), CsvTextReaderOptions.Default, new() { HasHeader = true });
+
+        Assert.True(enumerator.MoveNext());
+        var record1 = enumerator.Current.ParseRecord<Shim>();
+        Assert.Equal(1, record1.Id);
+        Assert.Equal("Bob", record1.Name);
+
+        Assert.True(enumerator.MoveNext());
+        Assert.True(enumerator.Current.IsEmpty);
+        enumerator.Current.ResetHeader();
+
+        Assert.True(enumerator.MoveNext());
+        var record2 = enumerator.Current.ParseRecord<Shim>();
+        Assert.Equal(2, record2.Id);
+        Assert.Equal("Alice", record2.Name);
+    }
+
+    [Fact]
     public void Should_Enumerate_Lines()
     {
         const string data = "1,\"Test\",true\r\n2,\"Asd\",false\r\n";
