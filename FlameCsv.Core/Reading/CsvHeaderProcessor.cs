@@ -46,15 +46,38 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
         {
             using var view = new SequenceView<T>(in line, _context.ArrayPool);
 
+            var currentLine = _line;
+            var currentPosition = _position;
+
             _line++;
             _position += line.Length + (!isFinalBlock).ToByte() * _context.Dialect.Newline.Length;
 
-            if (_context.SkipRecord(view.Memory, _line))
+            if (_context.SkipRecord(view.Memory, currentLine))
             {
                 goto ReadHeader;
             }
 
-            ReadHeader(view.Memory);
+            CsvBindingCollection<TValue> bindings;
+            T[]? array = null;
+
+            using (CsvEnumerationStateRef<T>.CreateTemporary(in _context, view.Memory, ref array, out var state))
+            {
+                List<string> values = new(16);
+
+                while (_context.TryGetField(ref state, out ReadOnlyMemory<T> field))
+                {
+                    values.Add(_context.Options.GetAsString(field.Span));
+                }
+
+                bindings = _context.Options.GetHeaderBinder().Bind<TValue>(values);
+            }
+
+            var materializer = _context.Options.CreateMaterializerFrom(bindings);
+            _inner = new CsvProcessor<T, TValue>(
+                context: in _context,
+                materializer: materializer,
+                line: _line,
+                position: _position);
 
             // read the first record now, unless the CSV consisted of just the header without trailing newline
             if (!isFinalBlock)
@@ -66,28 +89,6 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
 
         value = default!;
         return false;
-    }
-
-    [MemberNotNull(nameof(_inner))]
-    private void ReadHeader(ReadOnlyMemory<T> record)
-    {
-        CsvBindingCollection<TValue> bindings;
-        T[]? buffer = null;
-
-        using (CsvEnumerationStateRef<T>.CreateTemporary(in _context, record, ref buffer, out var state))
-        {
-            List<string> values = new(16);
-
-            while (_context.TryGetField(ref state, out ReadOnlyMemory<T> field))
-            {
-                values.Add(_context.Options.GetAsString(field.Span));
-            }
-
-            bindings = _context.Options.GetHeaderBinder().Bind<TValue>(values);
-        }
-
-        var materializer = _context.Options.CreateMaterializerFrom(bindings);
-        _inner = new CsvProcessor<T, TValue>(in _context, materializer);
     }
 
     public void Dispose()

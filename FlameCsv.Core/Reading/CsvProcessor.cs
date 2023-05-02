@@ -24,7 +24,11 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     private T[]? _unescapeBuffer; // string unescaping
     private T[]? _multisegmentBuffer; // long fragmented lines
 
-    public CsvProcessor(in CsvReadingContext<T> context, IMaterializer<T, TValue>? materializer = null)
+    public CsvProcessor(
+        in CsvReadingContext<T> context,
+        IMaterializer<T, TValue>? materializer = null,
+        int line = 0,
+        long position = 0)
     {
         _context = context;
         _materializer = materializer ?? context.Options.GetMaterializer<T, TValue>();
@@ -33,6 +37,9 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
         // might originate from the multisegment buffer
         _unescapeBuffer = null;
         _multisegmentBuffer = null;
+
+        _line = line;
+        _position = position;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -52,6 +59,7 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
             _context.ThrowForUnevenQuotes(record);
         }
 
+        var recordStartPosition = _position;
         _line++;
         _position += record.Length + (!isFinalBlock).ToByte() * _context.Dialect.Newline.Length;
 
@@ -80,10 +88,8 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
                 goto ReadNextRecord;
             }
 
-            if (ex is not CsvParseException)
-                ThrowUnhandledException(ex, record);
-
-            throw;
+            ThrowUnhandledException(ex, record, recordStartPosition);
+            throw; // unreachable
         }
     }
 
@@ -91,18 +97,22 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
     private readonly void ThrowInvalidFormatException(Exception innerException, ReadOnlyMemory<T> line)
     {
         throw new CsvFormatException(
-            $"The CSV was in an invalid format, line {_line}, token position {_position}: " +
-            _context.AsPrintableString(line),
+            $"The CSV was in an invalid format. The record was on line {_line} at character " +
+            $"position {_position} in the CSV. Record: {_context.AsPrintableString(line)}",
             innerException);
     }
 
     [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private readonly void ThrowUnhandledException(Exception innerException, ReadOnlyMemory<T> line)
+    private readonly void ThrowUnhandledException(
+        Exception innerException,
+        ReadOnlyMemory<T> record,
+        long position)
     {
         throw new CsvUnhandledException(
-            $"Unhandled exception while parsing {typeof(TValue)} from the CSV. {_context.AsPrintableString(line)}",
+            $"Unhandled exception while reading records of type {typeof(TValue)} from the CSV. The record was on " +
+            $"line {_line} at character position {position} in the CSV. Record: {_context.AsPrintableString(record)}",
             _line,
-            _position,
+            position,
             innerException);
     }
 
