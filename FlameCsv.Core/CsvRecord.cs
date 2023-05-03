@@ -46,7 +46,8 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     int IReadOnlyCollection<ReadOnlyMemory<T>>.Count => GetFieldCount();
     ReadOnlyMemory<T> IReadOnlyList<ReadOnlyMemory<T>>.this[int index] => this[index];
 
-    public TRecord ParseRecord<TRecord>()
+    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
+    public TRecord ParseRecord<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] TRecord>()
     {
         IMaterializer<T, TRecord> materializer;
 

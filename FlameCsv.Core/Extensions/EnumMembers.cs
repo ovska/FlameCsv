@@ -1,10 +1,12 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 
 namespace FlameCsv.Extensions;
 
-internal static class EnumMembers<TEnum> where TEnum : struct, Enum
+internal static class EnumMembers<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] TEnum>
+    where TEnum : struct, Enum
 {
     public readonly struct EnumValue
     {

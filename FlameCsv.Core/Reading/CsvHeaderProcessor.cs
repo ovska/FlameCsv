@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
@@ -7,7 +8,7 @@ using FlameCsv.Runtime;
 
 namespace FlameCsv.Reading;
 
-internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
+internal struct CsvHeaderProcessor<T, [DynamicallyAccessedMembers(Trimming.ReflectionBound)] TValue> : ICsvProcessor<T, TValue>
     where T : unmanaged, IEquatable<T>
 {
     public int Line => _line + _inner.DangerousGetValueOrDefaultReference().Line;
@@ -38,7 +39,9 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
         return ParseHeaderAndTryRead(ref buffer, out value, isFinalBlock);
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)] // encourage inlining more common paths
+    [MethodImpl(MethodImplOptions.NoInlining)] // encourage inlining common path
+    // we don't want to annotate ICsvProcessor.TryRead because a headerless processor does not use dynamic code
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = Trimming.HeaderProcessorSuppressionMessage)]
     private bool ParseHeaderAndTryRead(ref ReadOnlySequence<T> buffer, out TValue value, bool isFinalBlock)
     {
         ReadHeader:

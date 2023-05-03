@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding.Attributes;
@@ -45,7 +46,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
         IgnoreUnmatched = ignoreUnmatched;
     }
 
-    public CsvBindingCollection<TValue> Bind<TValue>(IEnumerable<string> headerFields)
+    public CsvBindingCollection<TValue> Bind<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] TValue>(IEnumerable<string> headerFields)
     {
         _options.MakeReadOnly();
 
@@ -97,7 +98,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
     /// </summary>
     /// <seealso cref="CsvHeaderAttribute"/>
     /// <seealso cref="CsvHeaderExcludeAttribute"/>
-    private static HeaderData GetHeaderDataFor<TValue>()
+    private static HeaderData GetHeaderDataFor<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] TValue>()
     {
         if (!_candidateCache.TryGetValue(typeof(TValue), out var headerData))
         {

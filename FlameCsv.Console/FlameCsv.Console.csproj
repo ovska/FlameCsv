@@ -5,12 +5,19 @@
     <NoWarn>CS1591</NoWarn>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimmerDefaultAction>link</TrimmerDefaultAction>
+    <TrimmerSingleWarn>false</TrimmerSingleWarn>
+  </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="CsvHelper" Version="30.0.1" />
+    <!--<PackageReference Include="CsvHelper" Version="30.0.1" />-->
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FlameCsv.Core\FlameCsv.Core.csproj" />
+    <TrimmerRootAssembly Include="FlameCsv.Core" />
   </ItemGroup>
 
 </Project>

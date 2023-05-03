@@ -16,6 +16,12 @@ public sealed class EnumTextParser<TEnum> : ICsvParser<char, TEnum>
     /// </summary>
     public bool IgnoreCase { get; }
 
+    internal EnumTextParser(CsvTextReaderOptions options) : this(
+        allowUndefinedValues: options.AllowUndefinedEnumValues,
+        ignoreCase: options.IgnoreEnumCase)
+    {
+    }
+
     public EnumTextParser(
         bool allowUndefinedValues = false,
         bool ignoreCase = true)

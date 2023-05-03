@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace FlameCsv.Binding;
 
 /// <summary>
@@ -12,5 +14,5 @@ public interface IHeaderBinder<T> where T : unmanaged, IEquatable<T>
     /// <param name="headerFields">CSV header record</param>
     /// <typeparam name="TValue">Value being bound</typeparam>
     /// <returns>Validated bindings</returns>
-    CsvBindingCollection<TValue> Bind<TValue>(IEnumerable<string> headerFields);
+    CsvBindingCollection<TValue> Bind<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] TValue>(IEnumerable<string> headerFields);
 }

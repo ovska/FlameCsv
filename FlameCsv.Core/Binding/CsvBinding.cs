@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
@@ -9,7 +10,7 @@ using FlameCsv.Reflection;
 
 namespace FlameCsv.Binding;
 
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1036:Override methods on comparable types", Justification = "<Pending>")]
+[SuppressMessage("Design", "CA1036:Override methods on comparable types", Justification = "<Pending>")]
 public abstract class CsvBinding : IComparable<CsvBinding>
 {
     /// <summary>
@@ -45,7 +46,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// <summary>
     /// Returns a binding for the specified member.
     /// </summary>
-    public static CsvBinding<T> For<T>(int index, Expression<Func<T, object?>> memberExpression)
+    public static CsvBinding<T> For<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] T>(int index, Expression<Func<T, object?>> memberExpression)
     {
         ArgumentNullException.ThrowIfNull(memberExpression);
         CsvBinding<T>.ThrowIfInvalid();
@@ -58,7 +59,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <exception cref="CsvBindingException{T}"></exception>
-    public static CsvBinding<T> ForMember<T>(int index, MemberInfo member)
+    public static CsvBinding<T> ForMember<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] T>(int index, MemberInfo member)
     {
         ArgumentNullException.ThrowIfNull(member);
         CsvBinding<T>.ThrowIfInvalid();
@@ -78,7 +79,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// Returns a binding for the specified parameter.
     /// </summary>
     /// <exception cref="CsvBindingException{T}"></exception>
-    public static CsvBinding<T> ForParameter<T>(int index, ParameterInfo parameter)
+    public static CsvBinding<T> ForParameter<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] T>(int index, ParameterInfo parameter)
     {
         ArgumentNullException.ThrowIfNull(parameter);
         CsvBinding<T>.ThrowIfInvalid();
@@ -96,7 +97,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// <summary>
     /// Returns a binding targeting the specified header binding match.
     /// </summary>
-    internal static CsvBinding<T> FromHeaderBinding<T>(object target, int index)
+    internal static CsvBinding<T> FromHeaderBinding<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] T>(object target, int index)
     {
         CsvBinding<T>.ThrowIfInvalid();
 

@@ -9,7 +9,8 @@ using FlameCsv.Runtime;
 
 namespace FlameCsv.Reading;
 
-internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
+internal struct CsvProcessor<T, TValue>
+    : ICsvProcessor<T, TValue>
     where T : unmanaged, IEquatable<T>
 {
     public int Line => _line;
@@ -26,12 +27,12 @@ internal struct CsvProcessor<T, TValue> : ICsvProcessor<T, TValue>
 
     public CsvProcessor(
         in CsvReadingContext<T> context,
-        IMaterializer<T, TValue>? materializer = null,
+        IMaterializer<T, TValue> materializer,
         int line = 0,
         long position = 0)
     {
         _context = context;
-        _materializer = materializer ?? context.Options.GetMaterializer<T, TValue>();
+        _materializer = materializer;
 
         // Two buffers are needed, as the span being manipulated by string escaping in the enumerator
         // might originate from the multisegment buffer
