@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
 
@@ -21,7 +22,10 @@ internal static class UtilityExtensions
         return data.ToArray();
     }
 
-    public static T CreateInstance<T>(this Type type, params object?[] parameters) where T : class
+    public static T CreateInstance<T>(
+        [DynamicallyAccessedMembers(Trimming.Ctors)]
+        this Type type,
+        params object?[] parameters) where T : class
     {
         try
         {

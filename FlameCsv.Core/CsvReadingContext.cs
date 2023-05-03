@@ -124,7 +124,7 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryGetField(ref CsvEnumerationStateRef<T> state, out ReadOnlyMemory<T> line)
     {
-        return !_dialect.Escape.HasValue
+        return _dialect.IsRFC4188Mode
             ? RFC4180Mode<T>.TryGetField(ref state, out line)
             : EscapeMode<T>.TryGetField(ref state, out line);
     }
@@ -133,7 +133,7 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
     public ReadOnlyMemory<T> ReadNextField(ref CsvEnumerationStateRef<T> state)
     {
         Debug.Assert(!state.remaining.IsEmpty);
-        return !_dialect.Escape.HasValue
+        return _dialect.IsRFC4188Mode
             ? RFC4180Mode<T>.ReadNextField(ref state)
             : EscapeMode<T>.ReadNextField(ref state);
     }
@@ -278,6 +278,7 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
         throw new CsvFormatException(
             $"The entry had an invalid amount of quotes for escaped CSV: {AsPrintableString(line)}");
     }
+
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private void ThrowForUnevenQuotes(in ReadOnlySequence<T> line)
     {

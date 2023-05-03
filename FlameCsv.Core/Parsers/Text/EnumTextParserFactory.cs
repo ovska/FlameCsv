@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using FlameCsv.Extensions;
 
@@ -43,7 +44,10 @@ public sealed class EnumTextParserFactory : ICsvParserFactory<char>
             ignoreCase = IgnoreCase;
         }
 
-        return typeof(EnumTextParser<>).MakeGenericType(resultType)
-            .CreateInstance<ICsvParser<char>>(allowUndefinedValues, ignoreCase);
+        return GetParserType(resultType).CreateInstance<ICsvParser<char>>(allowUndefinedValues, ignoreCase);
     }
+
+    [return: DynamicallyAccessedMembers(Trimming.Ctors)]
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2070", Justification = Trimming.StructFactorySuppressionMessage)]
+    private static Type GetParserType(Type resultType) => typeof(EnumTextParser<>).MakeGenericType(resultType);
 }

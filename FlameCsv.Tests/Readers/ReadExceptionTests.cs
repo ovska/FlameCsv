@@ -12,7 +12,8 @@ public class ReadExceptionTests
         [CsvIndex(1)] public string? Name { get; set; }
     }
 
-    private const string Data = "0,A\r\n1,B\r\nX,C\r\n3,D";
+    private static List<Obj> Run(CsvReaderOptions<char> opts)
+        => new(CsvReader.Read<Obj>("0,A\r\n1,B\r\nX,C\r\n3,D", opts));
 
     [Fact]
     public void Should_Throw_On_Unhandled()
@@ -39,10 +40,21 @@ public class ReadExceptionTests
     [Fact]
     public void Should_Handle()
     {
+        var exceptions = new List<CsvParseException>();
+
         var opts = new CsvTextReaderOptions
         {
-            ExceptionHandler = args => args.Exception is CsvParseException,
             HasHeader = false,
+            ExceptionHandler = args =>
+            {
+                if (args.Exception is CsvParseException pe)
+                {
+                    exceptions.Add(pe);
+                    return true;
+                }
+
+                return false;
+            },
         };
 
         var list = Run(opts);
@@ -55,6 +67,9 @@ public class ReadExceptionTests
                 (3, "D"),
             },
             list.Select(o => (o.Id, o.Name)));
+
+        Assert.Single(exceptions);
+        Assert.IsType<IntegerTextParser>(exceptions[0].Parser);
     }
 
     [Fact]
@@ -106,6 +121,4 @@ public class ReadExceptionTests
         Assert.IsType<CsvParseException>(ex.InnerException);
         Assert.IsType<IntegerTextParser>(((CsvParseException)ex.InnerException).Parser);
     }
-
-    private static List<Obj> Run(CsvReaderOptions<char> opts) => new(CsvReader.Read<Obj>(Data, opts));
 }

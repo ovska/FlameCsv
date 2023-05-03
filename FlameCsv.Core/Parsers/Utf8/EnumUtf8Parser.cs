@@ -1,10 +1,12 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using CommunityToolkit.HighPerformance.Helpers;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Parsers.Utf8;
 
-public sealed class EnumUtf8Parser<TEnum> : ICsvParser<byte, TEnum> where TEnum : struct, Enum
+public sealed class EnumUtf8Parser<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] TEnum>
+    : ICsvParser<byte, TEnum> where TEnum : struct, Enum
 {
     private static readonly Lazy<KnownValues> _knownValues = new(KnownValuesFactory);
 

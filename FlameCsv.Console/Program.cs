@@ -1,30 +1,42 @@
 ﻿using System.Globalization;
-using CsvHelper;
-using CsvHelper.Configuration;
+using FlameCsv;
+//using CsvHelper;
+//using CsvHelper.Configuration;
 
+//id,name,isadmin,favouriteday
 const string data = """
-id,name,isadmin,favouriteday
 123,Bob,true,Friday
 456,Alice,false,Sunday
 789,Mallory,,Monday
 """;
 
-var textWriter = new StringWriter();
-var config = new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = ";"};
-var csvwriter = new CsvWriter(textWriter, config);
-csvwriter.WriteRecord(data);
+//var textWriter = new StringWriter();
+//var config = new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = ";"};
+//var csvwriter = new CsvWriter(textWriter, config);
+//csvwriter.WriteRecord(data);
 
-//using var reader = new StringReader(data);
-//var options = new CsvTextReaderOptions
-//{
-//    Newline = "\n".AsMemory(),
-//    HasHeader = true,
-//};
+using var reader = new StringReader(data);
+var options = new CsvTextReaderOptions
+{
+    Newline = "\n",
+    HasHeader = true,
+};
 
-//await foreach (var user in CsvReader.ReadAsync<User>(reader, options))
-//{
-//    Console.WriteLine(user);
-//}
+await foreach (var user in CsvReader.ReadRecordsAsync(
+    reader,
+    options,
+    (int id, string? name, bool? isAdmin, DayOfWeek dof) => new User
+    {
+        Id = id,
+        Name = name,
+        IsAdmin = isAdmin,
+        FavouriteDay = dof,
+    }))
+{
+    Console.WriteLine(user);
+}
+
+Console.ReadLine();
 
 public record class User
 {

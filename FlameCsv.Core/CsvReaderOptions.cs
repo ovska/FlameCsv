@@ -50,23 +50,18 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
     /// Seals the instance from modifications.
     /// </summary>
     /// <returns><see langword="true"/> if the instance was made readonly, <see langword="false"/> if it already was.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining), MemberNotNull(nameof(_parserCache))]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool MakeReadOnly()
     {
-        bool retVal = !IsReadOnly && MakeReadOnlyCore(this);
-        Debug.Assert(_parserCache is not null);
-        return retVal;
+        return !IsReadOnly && MakeReadOnlyCore(this);
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         static bool MakeReadOnlyCore(CsvReaderOptions<T> _this)
         {
-            lock (_this._parsers)
+            lock (_this._parserCache)
             {
                 if (!_this.IsReadOnly)
-                {
-                    _this._parserCache = new ConcurrentDictionary<Type, ICsvParser<T>>();
                     return _this.IsReadOnly = true;
-                }
             }
 
             return false;
@@ -139,11 +134,16 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
     }
 
     /// <summary>
-    /// Delegate that is called when an exception is thrown while parsing values. If null (the default), or the
+    /// Delegate that is called when an exception is thrown while parsing class records. If null (the default), or the
     /// delegate returns false, the exception is considered unhandled and is thrown.<para/>For example, to ignore
     /// unparseable values return <see langword="true"/> if the exception is <see cref="CsvParseException"/>. In
     /// this case, rows with invalid data are skipped, see also: <see cref="ShouldSkipRow"/>.
     /// </summary>
+    /// <remarks>
+    /// <see cref="CsvFormatException"/> is not handled, as it represents an invalid CSV.<br/>
+    /// This handler is not used in the enumerators that return <see cref="CsvValueRecord{T}"/>, you can catch
+    /// exceptions thrown manually when handling the record.
+    /// </remarks>
     public CsvExceptionHandler<T>? ExceptionHandler
     {
         get => _exceptionHandler;
@@ -213,7 +213,7 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
     public IList<ICsvParser<T>> Parsers => _parsers;
 
     private readonly ParserList<T> _parsers;
-    private ConcurrentDictionary<Type, ICsvParser<T>>? _parserCache;
+    private readonly ConcurrentDictionary<Type, ICsvParser<T>> _parserCache = new();
 
     /// <summary>
     /// Returns a parser for parsing <typeparamref name="TResult"/>.

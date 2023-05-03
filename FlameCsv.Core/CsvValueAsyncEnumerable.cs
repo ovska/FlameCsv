@@ -1,14 +1,16 @@
-﻿using FlameCsv.Reading;
+﻿using System.Diagnostics.CodeAnalysis;
+using FlameCsv.Reading;
+using FlameCsv.Runtime;
 
 namespace FlameCsv;
 
-internal sealed class CsvValueAsyncEnumerable<T, TValue, TReader> : IAsyncEnumerable<TValue>
+[RequiresUnreferencedCode(Trimming.CompiledExpressions)]
+internal sealed class CsvValueAsyncEnumerable<T, [DynamicallyAccessedMembers(Trimming.ReflectionBound)] TValue, TReader> : IAsyncEnumerable<TValue>
     where T : unmanaged, IEquatable<T>
     where TReader : struct, ICsvPipeReader<T>
 {
     private readonly CsvReadingContext<T> _context;
     private readonly TReader _reader;
-
 
     public CsvValueAsyncEnumerable(
         TReader reader,
@@ -31,7 +33,7 @@ internal sealed class CsvValueAsyncEnumerable<T, TValue, TReader> : IAsyncEnumer
         {
             return new CsvValueAsyncEnumerator<T, TValue, TReader, CsvProcessor<T, TValue>>(
                 _reader,
-                new CsvProcessor<T, TValue>(in _context, materializer: null),
+                new CsvProcessor<T, TValue>(in _context, _context.Options.GetMaterializer<T, TValue>()),
                 cancellationToken);
         }
     }

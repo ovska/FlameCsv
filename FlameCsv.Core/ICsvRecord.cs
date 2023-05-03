@@ -131,6 +131,7 @@ public interface ICsvRecord<T> where T : unmanaged, IEquatable<T>
     /// <summary>
     /// Parses the current record into an instance of <typeparamref name="TRecord"/>.
     /// </summary>
-    TRecord ParseRecord<TRecord>();
+    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
+    TRecord ParseRecord<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] TRecord>();
 }
 

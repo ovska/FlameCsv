@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding.Attributes;
@@ -6,7 +7,7 @@ using FlameCsv.Exceptions;
 
 namespace FlameCsv.Reflection;
 
-internal sealed class CsvTypeInfo<T>
+internal sealed class CsvTypeInfo<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] T>
 {
     public static CsvTypeInfo<T> Instance => _instance ?? GetOrInitInstance();
 
@@ -40,7 +41,8 @@ internal sealed class CsvTypeInfo<T>
     private MemberData[] GetOrInitPropertiesAndFields()
     {
         var members = typeof(T)
-            .GetMembers(BindingFlags.Instance | BindingFlags.Public)
+            .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+            .Concat<MemberInfo>(typeof(T).GetFields(BindingFlags.Instance | BindingFlags.Public))
             .Where(static m => m is PropertyInfo or FieldInfo)
             .Select(static m => (MemberData)m)
             .ToArray();

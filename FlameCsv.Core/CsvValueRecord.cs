@@ -188,7 +188,8 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
         return list;
     }
 
-    public TRecord ParseRecord<TRecord>()
+    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
+    public TRecord ParseRecord<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] TRecord>()
     {
         _state.EnsureVersion(_version);
 

@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using FastExpressionCompiler;
 
@@ -26,13 +27,11 @@ internal static class ExpressionExtensions
         {
             asString = expression.ToString();
         }
-#pragma warning disable CA1031 // Do not catch general exception types
         catch (Exception e)
         {
             asString = "<failed to get string>";
             inner = e;
         }
-#pragma warning restore CA1031 // Do not catch general exception types
 
         throw new UnreachableException($"Expected lambda to have no closure, but compiling it failed: {asString}", inner);
     }
@@ -40,9 +39,12 @@ internal static class ExpressionExtensions
     /// <summary>
     /// Compiles a lambda expression into a delegate using FastExpressionCompiler.
     /// </summary>
+    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
     public static TDelegate CompileLambda<TDelegate>(this LambdaExpression lambda, bool throwIfClosure = false)
         where TDelegate : Delegate
     {
+        Guard.IsTrue(RuntimeFeature.IsDynamicCodeSupported);
+
         TDelegate? fn = lambda.TryCompileWithoutClosure<TDelegate>(flags: DefaultCompilerFlags);
 
         if (fn is null && throwIfClosure)
@@ -54,9 +56,12 @@ internal static class ExpressionExtensions
     /// <summary>
     /// Compiles a lambda expression with a closure (not static) into a delegate using FastExpressionCompiler.
     /// </summary>
+    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
     public static TDelegate CompileLambdaWithClosure<TDelegate>(this LambdaExpression lambda)
         where TDelegate : Delegate
     {
+        Guard.IsTrue(RuntimeFeature.IsDynamicCodeSupported);
+
         Debug.Assert(lambda.TryCompileWithoutClosure<TDelegate>(flags: DefaultCompilerFlags) is null);
         return lambda.CompileFast<TDelegate>(flags: DefaultCompilerFlags);
     }

@@ -7,6 +7,8 @@
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <AnalysisLevel>6.0-recommended</AnalysisLevel>
+    
+    <IsTrimmable>true</IsTrimmable>
 
     <!--This setting is broken for structs that use the in-modified-->
     <NoWarn>RCS1085</NoWarn>

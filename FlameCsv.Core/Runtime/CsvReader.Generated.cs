@@ -9,6 +9,10 @@ namespace FlameCsv;
 
 public static partial class CsvReader
 {
+    [UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2091",
+        Justification = "Header binding is not used")]
     internal sealed class CsvRecordFactoryAsyncEnumerable<T, TValue, TReader> : IAsyncEnumerable<TValue>
         where T : unmanaged, IEquatable<T>
         where TReader : struct, ICsvPipeReader<T>

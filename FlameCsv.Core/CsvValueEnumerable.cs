@@ -1,10 +1,13 @@
 ﻿using System.Buffers;
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Reading;
+using FlameCsv.Runtime;
 
 namespace FlameCsv;
 
-public sealed class CsvValueEnumerable<T, TValue> : IEnumerable<TValue>
+[RequiresUnreferencedCode(Trimming.CompiledExpressions)]
+public sealed class CsvValueEnumerable<T, [DynamicallyAccessedMembers(Trimming.ReflectionBound)] TValue> : IEnumerable<TValue>
     where T : unmanaged, IEquatable<T>
 {
     private readonly ReadOnlySequence<T> _data;
@@ -40,7 +43,7 @@ public sealed class CsvValueEnumerable<T, TValue> : IEnumerable<TValue>
         {
             return new CsvValueEnumerator<T, TValue, CsvProcessor<T, TValue>>(
                 _data,
-                new CsvProcessor<T, TValue>(in _context, materializer: null));
+                new CsvProcessor<T, TValue>(in _context, _context.Options.GetMaterializer<T, TValue>()));
         }
     }
 

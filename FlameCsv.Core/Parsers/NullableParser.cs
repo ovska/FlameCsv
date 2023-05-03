@@ -5,7 +5,7 @@ namespace FlameCsv.Parsers;
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 /// <typeparam name="TValue">Parsed value and the type parameter of <see cref="Nullable{T}"/></typeparam>
-public sealed class NullableParser<T, TValue> :
+public class NullableParser<T, TValue> :
     ICsvParser<T, TValue?>
     where TValue : struct
     where T : unmanaged, IEquatable<T>

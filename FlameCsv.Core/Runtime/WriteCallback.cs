@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 using System.Reflection;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Internal;
@@ -23,6 +24,7 @@ internal static class WriteTest<T, TWriter, TValue>
     where T : unmanaged, IEquatable<T>
     where TWriter : struct, IAsyncBufferWriter<T>
 {
+    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
     public static async Task WriteRecords(
         CsvWriteOperation<T, TWriter> writer,
         CsvBindingCollection<TValue> bindingCollection,
@@ -76,6 +78,7 @@ internal static class WriteTest<T, TWriter, TValue>
         writer.WriteNewline();
     }
 
+    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
     private static WriteCallback<T, TWriter, TValue> CreateWriteCallback(
         CsvBindingCollection<TValue> bindingCollection,
         CsvWriterOptions<T> options)
