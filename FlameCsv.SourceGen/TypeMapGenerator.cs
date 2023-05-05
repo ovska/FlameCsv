@@ -1,9 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Text;
-using Microsoft.CodeAnalysis.Text;
-
-namespace FlameCsv.SourceGen;
+﻿namespace FlameCsv.SourceGen;
 
 [Generator]
 public partial class TypeMapGenerator : ISourceGenerator
@@ -52,18 +47,19 @@ public partial class TypeMapGenerator : ISourceGenerator
     private string CreateTypeMap(TypeMapSymbol typeMap)
     {
         return $@"#nullable enable
+using FlameCsv.Exceptions;
 using FlameCsv.Parsers;
 using FlameCsv.Binding;
 
 namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
 {{
-    partial class {typeMap.ContainingClass.Name} : CsvTypeMap<{typeMap.Type.ToDisplayString()}>
+    partial class {typeMap.ContainingClass.Name} : CsvTypeMap<{typeMap.TokenName}, {typeMap.ResultName}>
     {{
         protected override bool IgnoreUnparsable => {(typeMap.IgnoreUnparsable ? "true" : "false")};
         protected override bool IgnoreUnmatched => {(typeMap.IgnoreUnmatched ? "true" : "false")};
         protected override bool IgnoreDuplicate => {(typeMap.IgnoreDuplicate ? "true" : "false")};
 {WriteCreateInstance(typeMap)}
-        protected override TryParseHandler<T>? BindMember<T>(string name, CsvReaderOptions<T> options, ref ulong fieldMask)
+        protected override TryParseHandler? BindMember(string name, CsvReaderOptions<{typeMap.TokenName}> options, ref ulong fieldMask)
         {{
 {string.Join(@"
 ", WriteParsers(typeMap))}
@@ -82,7 +78,7 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
         if (!HasCreateInstanceMethod(typeMap))
         {
             return $@"        
-        protected override {typeMap.Type.ToDisplayString()} CreateInstance() => new {typeMap.Type.ToDisplayString()}();
+        protected override {typeMap.ResultName} CreateInstance() => new {typeMap.ResultName}();
 ";
         }
 
@@ -146,7 +142,7 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
 
                 var parser = {ResolveParser(propertyOrField, type)};
 
-                return (ref {typeMap.Type.ToDisplayString()} instance, ReadOnlySpan<T> field) =>
+                return (ref {typeMap.ResultName} instance, ReadOnlySpan<{typeMap.TokenName}> field) =>
                 {{
                     if (parser.TryParse(field, out var value))
                     {{
@@ -161,13 +157,17 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
 
         string ResolveParser(ISymbol propertyOrField, ITypeSymbol type)
         {
-            var overrides = string.Join(" ", GetParserOverrides(propertyOrField, type));
-            var fromOptions = $"options.GetParser<{type.ToDisplayString()}>()";
+            foreach (var attributeData in propertyOrField.GetAttributes())
+            {
+                if (attributeData.AttributeClass is { IsGenericType: true } attribute &&
+                    SymbolEqualityComparer.Default.Equals(typeMap.Token, attribute.TypeArguments[0]) &&
+                    SymbolEqualityComparer.Default.Equals(attribute.ConstructUnboundGenericType(), _csvParserOverrideOfTAttribute))
+                {
+                    return GetParserInitializer(typeMap.Token, type, attribute.TypeArguments[1]);
+                }
+            }
 
-            return string.IsNullOrEmpty(overrides)
-                ? fromOptions
-                : $@"{overrides}
-                        {fromOptions}";
+            return $"options.GetParser<{type.ToDisplayString()}>()";
         }
     }
 
@@ -238,29 +238,13 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
         yield return symbol.Name;
     }
 
-    private IEnumerable<string> GetParserOverrides(ISymbol symbol, ITypeSymbol type)
-    {
-        foreach (var attributeData in symbol.GetAttributes())
-        {
-            if (attributeData.AttributeClass is { IsGenericType: true } attribute &&
-                SymbolEqualityComparer.Default.Equals(attribute.ConstructUnboundGenericType(), _csvParserOverrideOfTAttribute))
-            {
-                var tokenType = attributeData.AttributeClass.TypeArguments[0];
-                var parserType = attributeData.AttributeClass.TypeArguments[1];
-
-                yield return $@"
-                        typeof(T) == typeof({tokenType.ToDisplayString()}) ? {GetParserInitializer(tokenType, type, parserType)} :";
-            }
-        }
-    }
-
     [MemberNotNull(nameof(_typeMapAttribute))]
     [MemberNotNull(nameof(_csvHeaderIgnoreAttribute))]
     [MemberNotNull(nameof(_csvHeaderAttribute))]
     private void InitAttributes(Compilation compilation)
     {
         _csvReaderOptions = Init("FlameCsv.CsvReaderOptions`1").ConstructUnboundGenericType();
-        _typeMapAttribute = Init("FlameCsv.Binding.CsvTypeMapAttribute`1").ConstructUnboundGenericType();
+        _typeMapAttribute = Init("FlameCsv.Binding.CsvTypeMapAttribute`2").ConstructUnboundGenericType();
         _icsvParserFactory = Init("FlameCsv.Parsers.ICsvParserFactory`1").ConstructUnboundGenericType();
         _csvHeaderIgnoreAttribute = Init("FlameCsv.Binding.Attributes.CsvHeaderIgnoreAttribute");
         _csvHeaderAttribute = Init("FlameCsv.Binding.Attributes.CsvHeaderAttribute");

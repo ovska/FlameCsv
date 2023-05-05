@@ -15,14 +15,14 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     public long Position => _position + _inner.DangerousGetValueOrDefaultReference().Position;
 
     private readonly CsvReadingContext<T> _context;
-    private readonly CsvTypeMap<TValue>? _typeMap;
+    private readonly CsvTypeMap<T, TValue>? _typeMap;
 
     private CsvProcessor<T, TValue>? _inner;
 
     private int _line;
     private long _position;
 
-    public CsvHeaderProcessor(in CsvReadingContext<T> context, CsvTypeMap<TValue>? typeMap = null)
+    public CsvHeaderProcessor(in CsvReadingContext<T> context, CsvTypeMap<T, TValue>? typeMap = null)
     {
         _context = context;
         _typeMap = typeMap;

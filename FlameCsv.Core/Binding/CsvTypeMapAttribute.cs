@@ -1,7 +1,7 @@
 ﻿namespace FlameCsv.Binding;
 
 [AttributeUsage(AttributeTargets.Class)]
-public sealed class CsvTypeMapAttribute<TValue> : Attribute
+public sealed class CsvTypeMapAttribute<T, TValue> : Attribute where T : unmanaged, IEquatable<T>
 {
     /// <summary>
     /// If <see langword="true"/>, headers that cannot be matched to a member are ignored.

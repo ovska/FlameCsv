@@ -5,16 +5,9 @@ using FlameCsv.Runtime;
 
 namespace FlameCsv.Binding;
 
-public abstract class CsvTypeMap<TValue>
+public abstract class CsvTypeMap<T, TValue> where T : unmanaged, IEquatable<T>
 {
-    protected delegate bool TryParseHandler<T>(ref TValue value, ReadOnlySpan<T> data)
-        where T : unmanaged, IEquatable<T>;
-
-    protected readonly struct Binding<T> where T : unmanaged, IEquatable<T>
-    {
-        public TryParseHandler<T>? Handler { get; init; }
-        public uint Index { get; init; }
-    }
+    protected delegate bool TryParseHandler(ref TValue value, ReadOnlySpan<T> data);
 
     [Flags]
     private enum BindingSupport : byte
@@ -34,23 +27,18 @@ public abstract class CsvTypeMap<TValue>
     /// </summary>
     protected abstract TValue CreateInstance();
 
-    protected abstract TryParseHandler<T>? BindMember<T>(string name, CsvReaderOptions<T> options, ref ulong fieldMask)
-        where T : unmanaged, IEquatable<T>;
+    protected abstract TryParseHandler? BindMember(string name, CsvReaderOptions<T> options, ref ulong fieldMask);
 
     protected abstract void ValidateRequiredMembers(ICollection<string> headers, ulong fieldMask);
 
-    internal IMaterializer<T, TValue> GetMaterializer<T>(in CsvReadingContext<T> context)
-        where T : unmanaged, IEquatable<T>
+    internal IMaterializer<T, TValue> GetMaterializer(in CsvReadingContext<T> context)
     {
         throw new NotImplementedException();
     }
 
-    internal IMaterializer<T, TValue> GetMaterializer<T>(
-        ICollection<string> headers,
-        in CsvReadingContext<T> context)
-        where T : unmanaged, IEquatable<T>
+    internal IMaterializer<T, TValue> GetMaterializer(ICollection<string> headers, in CsvReadingContext<T> context)
     {
-        var handlers = new TryParseHandler<T>?[headers.Count];
+        var handlers = new TryParseHandler?[headers.Count];
         int index = 0;
         ulong fieldMask = 0;
 
@@ -63,12 +51,12 @@ public abstract class CsvTypeMap<TValue>
                 throw new CsvBindingException<TValue>("TODO");
             }
 
-            handlers[index++] = handler;
+            handlers[index++] = BindMember(header, context.Options, ref fieldMask);
         }
 
         ValidateRequiredMembers(headers, fieldMask);
 
-        return new TypeMapMaterializer<T>(CreateInstance, handlers);
+        return new TypeMapMaterializer(CreateInstance, handlers);
     }
 
     protected static bool SetFlag(ref ulong value, byte index)
@@ -80,30 +68,28 @@ public abstract class CsvTypeMap<TValue>
         return false;
     }
 
-    protected TryParseHandler<T>? HandleDuplicate<T>(string member, string field, CsvReaderOptions<T> options)
-        where T : unmanaged, IEquatable<T>
+    protected TryParseHandler? HandleDuplicate(string member, string field, CsvReaderOptions<T> options)
     {
         if (IgnoreDuplicate)
             return null;
 
-        throw new CsvBindingException();
+        throw new CsvBindingException<TValue>();
     }
 
     protected void ThrowRequiredNotRead(string member)
     {
     }
 
-    private sealed class TypeMapMaterializer<T> : IMaterializer<T, TValue>
-        where T : unmanaged, IEquatable<T>
+    private sealed class TypeMapMaterializer : IMaterializer<T, TValue>
     {
         public int FieldCount => _handlers.Length;
 
         private readonly Func<TValue> _valueFactory;
-        private readonly TryParseHandler<T>?[] _handlers;
+        private readonly TryParseHandler?[] _handlers;
 
         public TypeMapMaterializer(
             Func<TValue> valueFactory,
-            TryParseHandler<T>?[] handlers)
+            TryParseHandler?[] handlers)
         {
             _valueFactory = valueFactory;
             _handlers = handlers;
