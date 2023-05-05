@@ -19,7 +19,7 @@ namespace FlameCsv.Console
     } 
 
      
-    [CsvTypeMap<Obj>(IgnoreUnparsable = true)]
+    [CsvTypeMap<char, Obj>(IgnoreUnparsable = true)]
     partial class ObjTypeMap
     {
     }
@@ -29,6 +29,7 @@ namespace FlameCsv.Console
         public int Id { get; set; }
 
         [CsvHeaderRequired]
+        [CsvParserOverride<char, StringTextParser>]
         public string? Name { get; set; }
 
         [CsvHeader("isenabled", "is_enabled")] public bool IsEnabled { get; set; }

@@ -20,7 +20,11 @@ public sealed class StringTextParser :
 
     private readonly string? _empty;
 
-    public StringTextParser(bool readEmptyAsNull = false)
+    public StringTextParser() : this(false)
+    {
+    }
+
+    public StringTextParser(bool readEmptyAsNull)
     {
         ReadEmptyAsNull = readEmptyAsNull;
 

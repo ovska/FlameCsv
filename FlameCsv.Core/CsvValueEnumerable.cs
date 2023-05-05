@@ -12,7 +12,7 @@ public sealed class CsvValueEnumerable<T, [DynamicallyAccessedMembers(Trimming.R
 {
     private readonly ReadOnlySequence<T> _data;
     private readonly CsvReadingContext<T> _context;
-    private readonly CsvTypeMap<TValue>? _typeMap;
+    private readonly CsvTypeMap<T, TValue>? _typeMap;
 
     [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
     public CsvValueEnumerable(
@@ -29,7 +29,7 @@ public sealed class CsvValueEnumerable<T, [DynamicallyAccessedMembers(Trimming.R
         in ReadOnlySequence<T> csv,
         CsvReaderOptions<T> options,
         CsvContextOverride<T> overrides,
-        CsvTypeMap<TValue> typeMap)
+        CsvTypeMap<T, TValue> typeMap)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(typeMap);

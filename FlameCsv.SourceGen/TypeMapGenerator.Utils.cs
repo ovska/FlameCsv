@@ -1,6 +1,4 @@
-﻿using System.Linq;
-
-namespace FlameCsv.SourceGen;
+﻿namespace FlameCsv.SourceGen;
 
 public partial class TypeMapGenerator
 {
@@ -82,12 +80,12 @@ public partial class TypeMapGenerator
             }
         }
 
-        var init = $"(ICsvParser<T, {memberType.ToDisplayString()}>)(object)new {parser.ToDisplayString()}()";
+        var init = $"new {parser.ToDisplayString()}()";
 
         if (!isFactory)
             return init;
 
-        return $"{init}.Create<{memberType.ToDisplayString()}>(options)";
+        return $"((ICsvParserFactory<{token.ToDisplayString()}>){init}).Create<{memberType.ToDisplayString()}>(options)";
     }
 
     private string GetAccessModifier(INamedTypeSymbol classSymbol)

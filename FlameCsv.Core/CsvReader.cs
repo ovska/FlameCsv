@@ -32,7 +32,7 @@ public static partial class CsvReader
 #pragma warning disable IL2091 // Target generic argument does not satisfy 'DynamicallyAccessedMembersAttribute' in target method or type. The generic parameter of the source method or type does not have matching annotations.
     public static CsvValueEnumerable<char, TValue> Read<TValue>(
         string? csv,
-        CsvTypeMap<TValue> typeMap,
+        CsvTypeMap<char, TValue> typeMap,
         CsvReaderOptions<char> options,
         CsvContextOverride<char> context = default)
     {

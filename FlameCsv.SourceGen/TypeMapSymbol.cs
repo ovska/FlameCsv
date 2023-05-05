@@ -8,8 +8,11 @@ public readonly struct TypeMapSymbol
         GeneratorExecutionContext context)
     {
         ContainingClass = containingClass;
-        Type = attribute.AttributeClass!.TypeArguments[0];
+        Token = attribute.AttributeClass!.TypeArguments[0];
+        Type = attribute.AttributeClass.TypeArguments[1];
         Context = context;
+        TokenName = Token.ToDisplayString();
+        ResultName = Type.ToDisplayString();
 
         foreach (var arg in attribute.NamedArguments)
         {
@@ -37,6 +40,14 @@ public readonly struct TypeMapSymbol
     /// Parsed type of the type map.
     /// </summary>
     public ITypeSymbol Type { get; }
+
+    /// <summary>
+    /// Parsed token type.
+    /// </summary>
+    public ITypeSymbol Token { get; }
+
+    public string TokenName { get; }
+    public string ResultName { get; }
 
     /// <summary>
     /// Current context.
