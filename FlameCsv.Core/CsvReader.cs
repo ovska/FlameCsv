@@ -6,6 +6,7 @@ using FlameCsv.Extensions;
 using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using FlameCsv.Binding;
 
 namespace FlameCsv;
 
@@ -27,6 +28,18 @@ public static partial class CsvReader
     /// or a <see cref="TextReader"/>.
     /// </summary>
     public const int DefaultBufferSize = 4096;
+
+#pragma warning disable IL2091 // Target generic argument does not satisfy 'DynamicallyAccessedMembersAttribute' in target method or type. The generic parameter of the source method or type does not have matching annotations.
+    public static CsvValueEnumerable<char, TValue> Read<TValue>(
+        string? csv,
+        CsvTypeMap<TValue> typeMap,
+        CsvReaderOptions<char> options,
+        CsvContextOverride<char> context = default)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        return new CsvValueEnumerable<char, TValue>(new ReadOnlySequence<char>(csv.AsMemory()), options, context, typeMap);
+    }
+#pragma warning restore IL2091 // Target generic argument does not satisfy 'DynamicallyAccessedMembersAttribute' in target method or type. The generic parameter of the source method or type does not have matching annotations.
 
     /// <inheritdoc cref="Read{T,TValue}(CsvReaderOptions{T},ReadOnlyMemory{T})"/>
     [RequiresUnreferencedCode(Trimming.CompiledExpressions)]

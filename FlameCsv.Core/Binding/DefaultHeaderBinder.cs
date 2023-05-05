@@ -62,7 +62,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
 
             foreach (var value in IgnoredValues)
             {
-                if (string.Equals(value, field, _options.Comparison))
+                if (_options.Comparer.Equals(value, field))
                 {
                     binding = CsvBinding.Ignore<TValue>(index);
                     break;
@@ -73,7 +73,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
             {
                 foreach (ref readonly var candidate in headerData.Candidates)
                 {
-                    if (string.Equals(candidate.Value, field, _options.Comparison))
+                    if (_options.Comparer.Equals(candidate.Value, field))
                     {
                         binding = CsvBinding.FromHeaderBinding<TValue>(candidate.Target, index);
                         break;

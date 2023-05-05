@@ -1,4 +1,6 @@
+using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance.Buffers;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Parsers.Text;
 
@@ -7,7 +9,7 @@ namespace FlameCsv.Parsers.Text;
 /// data has small entropy for string values.
 /// </summary>
 /// <seealso cref="CommunityToolkit.HighPerformance.Buffers.StringPool"/>
-public sealed class PoolingStringTextParser : ParserBase<char, string?>
+public sealed class PoolingStringTextParser : ParserBase<char, string?>, ICsvParserFactory<char>
 {
     /// <inheritdoc cref="StringTextParser.ReadEmptyAsNull"/>
     public bool ReadEmptyAsNull { get; }
@@ -43,6 +45,13 @@ public sealed class PoolingStringTextParser : ParserBase<char, string?>
     {
         value = !span.IsEmpty ? StringPool.GetOrAdd(span) : _empty;
         return true;
+    }
+
+    ICsvParser<char> ICsvParserFactory<char>.Create(Type resultType, CsvReaderOptions<char> options)
+    {
+        var o = GuardEx.IsType<CsvTextReaderOptions>(options);
+        Guard.IsNotNull(o.StringPool);
+        return o.StringPool == StringPool ? this : new PoolingStringTextParser(o.StringPool, o.ReadEmptyStringsAsNull);
     }
 
     /// <summary>Thread-safe singleton instance initialized to default values.</summary>

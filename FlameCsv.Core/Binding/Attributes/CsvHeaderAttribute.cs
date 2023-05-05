@@ -26,7 +26,7 @@ public sealed class CsvHeaderAttribute : CsvHeaderConfigurationAttribute
     public CsvHeaderAttribute(params string[] values)
     {
         Guard.IsNotNull(values);
-        Guard.IsNotEmpty(values);
+        //Guard.IsNotEmpty(values);
         Values = values;
     }
 }

@@ -101,7 +101,7 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
     /// </summary>
     protected abstract ReadOnlySpan<ICsvParserFactory<T>> GetDefaultParsers();
 
-    private StringComparison _stringComparison = StringComparison.OrdinalIgnoreCase;
+    private IEqualityComparer<string> _stringComparison = StringComparer.OrdinalIgnoreCase;
     private RowSkipCallback<T>? _shouldSkipRow;
     private CsvExceptionHandler<T>? _exceptionHandler;
     private bool _hasHeader = true;
@@ -113,12 +113,12 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
     /// <summary>
     /// Text comparison used to match header names.
     /// </summary>
-    public StringComparison Comparison
+    public IEqualityComparer<string> Comparer
     {
         get => _stringComparison;
         set
         {
-            "".Equals("", comparisonType: value);
+            ArgumentNullException.ThrowIfNull(value);
             this.SetValue(ref _stringComparison, value);
         }
     }

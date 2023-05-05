@@ -102,9 +102,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IE
 
     private Dictionary<string, int> CreateHeaderDictionary(CsvValueRecord<T> headerRecord)
     {
-        Dictionary<string, int> dictionary = new(
-            capacity: headerRecord.GetFieldCount(),
-            comparer: StringComparer.FromComparison(_context.Options.Comparison));
+        Dictionary<string, int> dictionary = new(capacity: headerRecord.GetFieldCount(), comparer: _context.Options.Comparer);
 
         int index = 0;
 

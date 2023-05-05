@@ -71,7 +71,7 @@ public interface ICsvReaderOptions<T> where T : unmanaged, IEquatable<T>
     bool IsReadOnly { get; }
     bool MakeReadOnly();
 
-    StringComparison Comparison { get; }
+    IEqualityComparer<string> Comparer { get; }
     RowSkipCallback<T>? ShouldSkipRow { get; }
     bool ValidateFieldCount { get; }
 }

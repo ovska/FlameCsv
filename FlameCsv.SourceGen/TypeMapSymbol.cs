@@ -1,0 +1,51 @@
+﻿namespace FlameCsv.SourceGen;
+
+public readonly struct TypeMapSymbol
+{
+    public TypeMapSymbol(
+        INamedTypeSymbol containingClass,
+        AttributeData attribute,
+        GeneratorExecutionContext context)
+    {
+        ContainingClass = containingClass;
+        Type = attribute.AttributeClass!.TypeArguments[0];
+        Context = context;
+
+        foreach (var arg in attribute.NamedArguments)
+        {
+            if (arg.Key.Equals("IgnoreUnmatched", StringComparison.OrdinalIgnoreCase))
+            {
+                IgnoreUnmatched = (bool)arg.Value.Value!;
+            }
+            else if (arg.Key.Equals("IgnoreUnparsable", StringComparison.OrdinalIgnoreCase))
+            {
+                IgnoreUnparsable = (bool)arg.Value.Value!;
+            }
+            else if (arg.Key.Equals("IgnoreDuplicate", StringComparison.OrdinalIgnoreCase))
+            {
+                IgnoreDuplicate = (bool)arg.Value.Value!;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Class annotated with the CsvTypeMapAttribute<>
+    /// </summary>
+    public INamedTypeSymbol ContainingClass { get; }
+
+    /// <summary>
+    /// Parsed type of the type map.
+    /// </summary>
+    public ITypeSymbol Type { get; }
+
+    /// <summary>
+    /// Current context.
+    /// </summary>
+    public GeneratorExecutionContext Context { get; }
+
+    public bool IgnoreUnmatched { get; }
+
+    public bool IgnoreUnparsable { get; }
+
+    public bool IgnoreDuplicate { get; }
+}
