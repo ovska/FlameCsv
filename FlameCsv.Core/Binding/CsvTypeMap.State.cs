@@ -64,10 +64,10 @@ public abstract partial class CsvTypeMap<T, TValue>
         {
             if (BitHelper.HasFlag(_fieldMask, index))
             {
-                _count++;
                 return true;
             }
 
+                _count++;
             BitHelper.SetFlag(ref _fieldMask, index, true);
             return false;
         }
