@@ -14,9 +14,9 @@ public partial class TypeMapGenerator
             defaultSeverity: DiagnosticSeverity.Warning,
             isEnabledByDefault: false);
 
-        public static Diagnostic EmptyHeaderValuesAttribute(ITypeSymbol type, ISymbol symbol)
+        public static Diagnostic EmptyHeaderValuesAttribute(ITypeSymbol type, ISymbol member)
         {
-            return Diagnostic.Create(_emptyHeaderValuesAttribute, null, type.ToDisplayString(), symbol.ToDisplayString());
+            return Diagnostic.Create(_emptyHeaderValuesAttribute, null, type.ToDisplayString(), member.ToDisplayString());
         }
     }
 }

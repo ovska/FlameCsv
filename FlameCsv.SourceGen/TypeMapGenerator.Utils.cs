@@ -29,7 +29,7 @@ public partial class TypeMapGenerator
     {
         foreach (var attribute in symbol.GetAttributes())
         {
-            if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, _csvHeaderIgnoreAttribute))
+            if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, _symbols.CsvHeaderIgnoreAttribute))
                 return true;
         }
 
@@ -68,7 +68,7 @@ public partial class TypeMapGenerator
         if (!parser.GetMembers().Any(m => m is IMethodSymbol { MethodKind: MethodKind.Constructor, Parameters.Length: 0 }))
             throw new Exception("No empty constructor found for " + parser.ToDisplayString()); // TODO
 
-        var parserFactory = _icsvParserFactory!.ConstructedFrom.Construct(token);
+        var parserFactory = _symbols.ICsvParserFactory.ConstructedFrom.Construct(token);
         bool isFactory = false;
 
         foreach (var iface in parser.AllInterfaces)
@@ -85,7 +85,7 @@ public partial class TypeMapGenerator
         if (!isFactory)
             return init;
 
-        return $"((ICsvParserFactory<{token.ToDisplayString()}>){init}).Create<{memberType.ToDisplayString()}>(options)";
+        return $"((ICsvParserFactory<{token.ToDisplayString()}>){init}).Create<{memberType.ToDisplayString()}>(state.Options)";
     }
 
     private string GetAccessModifier(INamedTypeSymbol classSymbol)

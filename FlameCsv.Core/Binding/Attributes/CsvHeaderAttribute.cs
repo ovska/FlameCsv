@@ -4,6 +4,7 @@ namespace FlameCsv.Binding.Attributes;
 
 /// <summary>
 /// Defines the value(s) for header name matching to use instead of member name in built-in header binding providers.
+/// To just affect the order, leave the values empty to default to member name.
 /// </summary>
 /// <remarks>
 /// The provider determines case sensitivity, <see cref="HeaderTextBinder"/> or <see cref="HeaderUtf8Binder"/>
@@ -26,7 +27,6 @@ public sealed class CsvHeaderAttribute : CsvHeaderConfigurationAttribute
     public CsvHeaderAttribute(params string[] values)
     {
         Guard.IsNotNull(values);
-        //Guard.IsNotEmpty(values);
         Values = values;
     }
 }
