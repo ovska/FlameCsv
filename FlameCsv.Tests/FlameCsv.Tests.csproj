@@ -3,6 +3,9 @@
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <NoWarn>CS1591</NoWarn>
+
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FlameCsv.Core\FlameCsv.Core.csproj" />
+    <ProjectReference Include="..\FlameCsv.SourceGen\FlameCsv.SourceGen.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PackAsAnalyzer="true" />
   </ItemGroup>
 
 </Project>

@@ -13,8 +13,15 @@ public abstract partial class CsvTypeMap<T, TValue> where T : unmanaged, IEquata
     /// </summary>
     protected abstract TValue CreateInstance();
 
+    /// <summary>
+    /// Binds header field with the specified name to a member of <typeparamref name="TValue"/>.
+    /// </summary>
+    /// <remarks>Source generated.</remarks>
     protected abstract TryParseHandler? BindMember(string name, ref BindingState state);
 
+    /// <summary>
+    /// Validates that all required fields have been read.
+    /// </summary>
     protected abstract void ValidateFields(ICollection<string> headers, BindingState state);
 
     internal IMaterializer<T, TValue> GetMaterializer(in CsvReadingContext<T> context)
@@ -32,6 +39,11 @@ public abstract partial class CsvTypeMap<T, TValue> where T : unmanaged, IEquata
         foreach (var header in headers)
         {
             handlers[index++] = BindMember(header, ref state);
+        }
+
+        if (state.Count == 0)
+        {
+            ThrowNoFieldsBound(headers, context.ExposeContent);
         }
 
         ValidateFields(headers, state);

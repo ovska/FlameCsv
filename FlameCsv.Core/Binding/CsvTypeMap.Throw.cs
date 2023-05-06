@@ -30,17 +30,17 @@ public abstract partial class CsvTypeMap<T, TValue>
             throw new CsvBindingException<TValue>($"Required member '{member}' was not matched to any header field.");
 
         throw new CsvBindingException<TValue>(
-            $"Required member '{member}' was not matched to any header field: {FormatHeaders(headers)}");
+            $"Required member '{member}' was not matched to any header field: [{FormatHeaders(headers)}]");
     }
 
     [DoesNotReturn]
     protected void ThrowNoFieldsBound(ICollection<string> headers, bool exposeContent)
     {
         if (!exposeContent)
-            throw new CsvBindingException<TValue>("No header fields were matched to the member.");
+            throw new CsvBindingException<TValue>("No header fields were matched to a member.");
 
         throw new CsvBindingException<TValue>(
-                       $"No header fields were matched to the member: {FormatHeaders(headers)}");
+            $"No header fields were matched to a member: [{FormatHeaders(headers)}]");
     }
 
     private static string FormatHeaders(ICollection<string> headers) => string.Join(", ", headers.Select(x => $"\"{x}\""));

@@ -21,7 +21,6 @@ namespace FlameCsv.Console
         }
     }
 
-
     [CsvTypeMap<char, Obj>(ThrowOnDuplicate = false)]
     partial class ObjTypeMap
     {

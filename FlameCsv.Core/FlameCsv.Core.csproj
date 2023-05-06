@@ -21,6 +21,13 @@
     <PackageReference Include="System.IO.Pipelines" Version="7.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference
+      Include="..\FlameCsv.SourceGen\FlameCsv.SourceGen.csproj"
+      ReferenceOutputAssembly="false"
+      PackAsAnalyzer="true" />
+  </ItemGroup>
+
   <!--Can be enabled intermittently-->
   <ItemGroup Condition="false">
     <PackageReference Include="ErrorProne.NET.Structs" Version="0.4.0-beta.1">
