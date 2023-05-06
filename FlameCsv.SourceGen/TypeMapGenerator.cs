@@ -15,23 +15,16 @@ public partial class TypeMapGenerator : ISourceGenerator
         public const string CsvHeaderIgnoreAttribute = "CsvHeaderIgnoreAttribute";
     }
 
-    private INamedTypeSymbol? _csvReaderOptions;
-    private INamedTypeSymbol? _icsvParserFactory;
-    private INamedTypeSymbol? _typeMapAttribute;
-    private INamedTypeSymbol? _csvHeaderIgnoreAttribute;
-    private INamedTypeSymbol? _csvHeaderAttribute;
-    private INamedTypeSymbol? _csvHeaderRequiredAttribute;
-    private INamedTypeSymbol? _csvParserOverrideAttribute;
-    private INamedTypeSymbol? _csvParserOverrideOfTAttribute;
 
-    private readonly List<(int id, string name)> _requiredMembers = new();
+    private KnownSymbols _symbols;
+    private List<Binding> _members = null!;
 
     public void Execute(GeneratorExecutionContext context)
     {
         if (context.SyntaxReceiver is not SyntaxReceiver receiver)
             return;
 
-        InitAttributes(context.Compilation);
+        _symbols = new KnownSymbols(context.Compilation);
 
         foreach (var typeMapSymbol in GetTypeMapSymbols(context, receiver))
         {
@@ -46,6 +39,8 @@ public partial class TypeMapGenerator : ISourceGenerator
 
     private string CreateTypeMap(TypeMapSymbol typeMap)
     {
+        _members = ResolveMembers(typeMap);
+
         return $@"#nullable enable
 using FlameCsv.Exceptions;
 using FlameCsv.Parsers;
@@ -55,20 +50,28 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
 {{
     partial class {typeMap.ContainingClass.Name} : CsvTypeMap<{typeMap.TokenName}, {typeMap.ResultName}>
     {{
+{string.Join(@"
+", WriteFieldConstants())}
+
         protected override bool IgnoreUnparsable => {(typeMap.IgnoreUnparsable ? "true" : "false")};
-        protected override bool IgnoreUnmatched => {(typeMap.IgnoreUnmatched ? "true" : "false")};
-        protected override bool IgnoreDuplicate => {(typeMap.IgnoreDuplicate ? "true" : "false")};
 {WriteCreateInstance(typeMap)}
-        protected override TryParseHandler? BindMember(string name, CsvReaderOptions<{typeMap.TokenName}> options, ref ulong fieldMask)
+        protected override TryParseHandler? BindMember(string name, ref BindingState state)
         {{
 {string.Join(@"
 ", WriteParsers(typeMap))}
-            return null;
+            return {(typeMap.IgnoreUnmatched ? "null" : "ThrowUnmatched(name, state.Count, state.ExposeContent)")};
         }}
 
-        protected override void ValidateRequiredMembers(ICollection<string> headers, ulong fieldMask)
-        {{{WriteRequiredCheck(typeMap)}
+        protected override void ValidateFields(ICollection<string> headers, BindingState state)
+        {{{WriteRequiredCheck()}
         }}
+
+/*
+        protected struct State
+        {{
+{string.Join(@"
+", _members.Select(x => $"            public bool {x.Name};"))}
+        }} */
     }}
 }}";
     }
@@ -85,68 +88,100 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
         return "";
     }
 
-    private string WriteRequiredCheck(TypeMapSymbol typeMap)
+    private string WriteRequiredCheck()
     {
-        if (_requiredMembers.Count == 0)
-            return "";
+        var sb = new StringBuilder();
 
-        var sb = new StringBuilder(64);
-
-        foreach (var (id, name) in _requiredMembers)
+        foreach (var binding in _members.Where(b => b.IsRequired))
         {
             sb.Append($@"
-            if (!SetFlag(ref fieldMask, {id}))
-                ThrowRequiredNotRead({Stringify(name)});
+            if (!state.IsFieldRead({binding.IdName}))
+                ThrowRequiredNotRead({Stringify(binding.Name)}, headers, state.ExposeContent);
 ");
         }
+
+        if (sb.Length == 0)
+            return "";
 
         sb.Length--;
         return sb.ToString();
     }
 
-    private IEnumerable<string> WriteParsers(TypeMapSymbol typeMap)
+    private List<Binding> ResolveMembers(TypeMapSymbol typeMap)
     {
-        int count = 0;
+        int id = 0;
+        List<Binding> members = new();
 
         foreach (var member in typeMap.Type.GetMembers())
         {
+            bool isRequired;
+            int order;
+            IEnumerable<string> names;
+
             if (member is IPropertySymbol property && IsValidProperty(property))
             {
-                yield return FormatString(property, property.Type);
-                AddRequiredMember(count, member);
-                count++;
+                GetMemberOptions(typeMap, member, out isRequired, out order, out names);
+                members.Add(new Binding(member, property.Type, isRequired, id++, order, names));
+
             }
             else if (member is IFieldSymbol field && IsValidField(field))
             {
-                yield return FormatString(field, field.Type);
-                AddRequiredMember(count, member);
-                count++;
+                GetMemberOptions(typeMap, member, out isRequired, out order, out names);
+                members.Add(new Binding(member, field.Type, isRequired, id++, order, names));
             }
         }
 
-        if (count == 0)
+        if (id == 0)
         {
             // TODO: add diagnostic
             throw new InvalidOperationException("No writable members on type " + typeMap.Type.ToDisplayString());
         }
 
-        string FormatString(ISymbol propertyOrField, ITypeSymbol type)
+        members.Sort();
+        return members;
+    }
+
+    private IEnumerable<string> WriteFieldConstants()
+    {
+        foreach (var binding in _members.OrderBy(b => b.Id))
         {
+            yield return $"        private const byte {binding.IdName} = {binding.Id};";
+        }
+    }
+
+    private IEnumerable<string> WriteParsers(TypeMapSymbol typeMap)
+    {
+        foreach (var binding in _members)
+        {
+            string skipDuplicate = "";
+            string checkDuplicate = "";
+
+            if (!typeMap.ThrowOnDuplicate)
+            {
+                skipDuplicate = $@"!state.IsFieldRead({binding.IdName}) &&
+                ";
+                checkDuplicate = $"state.SetFieldRead({binding.IdName});";
+            }
+            else
+            {
+                checkDuplicate = $@"if (state.SetFieldRead({binding.IdName}))
+                    ThrowDuplicate({Stringify(binding.Name)}, name, state.ExposeContent);";
+            }
+
             var names = string.Join(@" ||
-                ", GetMemberHeaderNames(propertyOrField, typeMap).Select(n => $"options.Comparer.Equals({Stringify(n)}, name)"));
+                ", binding.Names.Select(n => $"state.FieldMatches(name, {Stringify(n)})"));
 
-            return $@"            if ({names})
+            yield return $@"            if ({skipDuplicate}{names}) {(binding.Order == 0 ? "// default order" : $"// order: {binding.Order}")}
             {{
-                if (SetFlag(ref fieldMask, {count}))
-                    return HandleDuplicate(member: {Stringify(propertyOrField.Name)}, name, options);
+                {checkDuplicate}
 
-                var parser = {ResolveParser(propertyOrField, type)};
+                ICsvParser<{typeMap.TokenName}, {binding.MemberType.ToDisplayString()}> parser = {ResolveParser(binding.Symbol, binding.MemberType)};
 
                 return (ref {typeMap.ResultName} instance, ReadOnlySpan<{typeMap.TokenName}> field) =>
                 {{
                     if (parser.TryParse(field, out var value))
                     {{
-                        instance.{propertyOrField.Name} = value;
+                        instance.{binding.Name} = value;
                         return true;
                     }}
                     return false;
@@ -161,26 +196,63 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
             {
                 if (attributeData.AttributeClass is { IsGenericType: true } attribute &&
                     SymbolEqualityComparer.Default.Equals(typeMap.Token, attribute.TypeArguments[0]) &&
-                    SymbolEqualityComparer.Default.Equals(attribute.ConstructUnboundGenericType(), _csvParserOverrideOfTAttribute))
+                    SymbolEqualityComparer.Default.Equals(attribute.ConstructUnboundGenericType(), _symbols.CsvParserOverrideOfTAttribute))
                 {
                     return GetParserInitializer(typeMap.Token, type, attribute.TypeArguments[1]);
                 }
             }
 
-            return $"options.GetParser<{type.ToDisplayString()}>()";
+            return $"state.Options.GetParser<{type.ToDisplayString()}>()";
         }
     }
 
-    private void AddRequiredMember(int id, ISymbol member)
+    private void GetMemberOptions(
+        TypeMapSymbol typeMap,
+        ISymbol member,
+        out bool isRequired,
+        out int order,
+        [NotNull] out IEnumerable<string>? names)
     {
+        order = default;
+        isRequired = default;
+        names = null;
+        bool foundHeader = false;
+        bool foundRequired = false;
+
         foreach (var attributeData in member.GetAttributes())
         {
-            if (SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, _csvHeaderRequiredAttribute))
+            if (!isRequired &&
+                SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, _symbols.CsvHeaderRequiredAttribute))
             {
-                _requiredMembers.Add((id, member.Name));
-                return;
+                isRequired = true;
+                foundRequired = true;
+            }
+
+            if (!foundHeader &&
+                SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, _symbols.CsvHeaderAttribute))
+            {
+                var arg = attributeData.ConstructorArguments[0];
+
+                if (arg.Values.IsDefaultOrEmpty)
+                {
+                    typeMap.Context.ReportDiagnostic(Diagnostics.EmptyHeaderValuesAttribute(typeMap.Type, member));
+                }
+                else
+                {
+                    names = arg.Values.Select(v => v.Value?.ToString() ?? "");
+                }
+
+                order = attributeData.NamedArguments.FirstOrDefault(x => x.Key == "Order").Value.Value is int _order ? _order : 1;
+                foundHeader = true;
+            }
+
+            if (foundHeader && foundRequired)
+            {
+                break;
             }
         }
+
+        names ??= names = new[] { member.Name };
     }
 
     private IEnumerable<TypeMapSymbol> GetTypeMapSymbols(
@@ -197,8 +269,9 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
                 foreach (var attributeData in classSymbol.GetAttributes())
                 {
                     if (attributeData.AttributeClass is { IsGenericType: true } attribute &&
-                        SymbolEqualityComparer.Default.Equals(attribute.ConstructUnboundGenericType(), _typeMapAttribute))
+                        SymbolEqualityComparer.Default.Equals(attribute.ConstructUnboundGenericType(), _symbols.CsvTypeMapAttribute))
                     {
+
                         yield return new TypeMapSymbol(
                             containingClass: (INamedTypeSymbol)classSymbol,
                             attribute: attributeData,
@@ -206,55 +279,6 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
                     }
                 }
             }
-        }
-    }
-
-    private IEnumerable<string?> GetMemberHeaderNames(ISymbol symbol, TypeMapSymbol typeMap)
-    {
-        foreach (var attributeData in symbol.GetAttributes())
-        {
-            if (SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, _csvHeaderAttribute))
-            {
-                foreach (var arg in attributeData.ConstructorArguments)
-                {
-                    if (arg.Values.IsDefaultOrEmpty)
-                    {
-                        typeMap.Context.ReportDiagnostic(Diagnostics.EmptyHeaderValuesAttribute(typeMap.Type, symbol));
-                        yield return symbol.Name;
-                    }
-                    else
-                    {
-                        foreach (var value in arg.Values)
-                        {
-                            yield return (string?)value.Value;
-                        }
-                    }
-
-                    yield break;
-                }
-            }
-        }
-
-        yield return symbol.Name;
-    }
-
-    [MemberNotNull(nameof(_typeMapAttribute))]
-    [MemberNotNull(nameof(_csvHeaderIgnoreAttribute))]
-    [MemberNotNull(nameof(_csvHeaderAttribute))]
-    private void InitAttributes(Compilation compilation)
-    {
-        _csvReaderOptions = Init("FlameCsv.CsvReaderOptions`1").ConstructUnboundGenericType();
-        _typeMapAttribute = Init("FlameCsv.Binding.CsvTypeMapAttribute`2").ConstructUnboundGenericType();
-        _icsvParserFactory = Init("FlameCsv.Parsers.ICsvParserFactory`1").ConstructUnboundGenericType();
-        _csvHeaderIgnoreAttribute = Init("FlameCsv.Binding.Attributes.CsvHeaderIgnoreAttribute");
-        _csvHeaderAttribute = Init("FlameCsv.Binding.Attributes.CsvHeaderAttribute");
-        _csvHeaderRequiredAttribute = Init("FlameCsv.Binding.Attributes.CsvHeaderRequiredAttribute");
-        _csvParserOverrideAttribute = Init("FlameCsv.Binding.Attributes.CsvParserOverrideAttribute");
-        _csvParserOverrideOfTAttribute = Init("FlameCsv.Binding.Attributes.CsvParserOverrideAttribute`2").ConstructUnboundGenericType();
-
-        INamedTypeSymbol Init(string name)
-        {
-            return compilation.GetTypeByMetadataName(name) ?? throw new Exception($"Couldn't find type {name}");
         }
     }
 }

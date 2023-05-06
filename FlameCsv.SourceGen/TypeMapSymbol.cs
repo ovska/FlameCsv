@@ -24,9 +24,9 @@ public readonly struct TypeMapSymbol
             {
                 IgnoreUnparsable = (bool)arg.Value.Value!;
             }
-            else if (arg.Key.Equals("IgnoreDuplicate", StringComparison.OrdinalIgnoreCase))
+            else if (arg.Key.Equals("ThrowOnDuplicate", StringComparison.OrdinalIgnoreCase))
             {
-                IgnoreDuplicate = (bool)arg.Value.Value!;
+                ThrowOnDuplicate = (bool)arg.Value.Value!;
             }
         }
     }
@@ -58,5 +58,5 @@ public readonly struct TypeMapSymbol
 
     public bool IgnoreUnparsable { get; }
 
-    public bool IgnoreDuplicate { get; }
+    public bool ThrowOnDuplicate { get; }
 }
