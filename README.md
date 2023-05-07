@@ -8,6 +8,15 @@
   <p align="center">High-performance RFC 4180-compliant CSV parsing library for .NET 6+</p>
 </p>
 
+# Features
+
+- Designed with performance in mind, minimizing copies and allocations
+- Flexible class binding and manual record/field reading
+- Supports both RFC 4180 / Excel and Unix (escaped) styles
+- Read CSV from `char` or `byte`, e.g. `TextReader`, `Stream`, `PipeReader`, `ReadOnlySequence`, `string`
+- Nearly allocation free enumeration to "peek" unescaped and tokenized fields and records
+- Source generator for class bindings to completely avoid reflection and dynamic code generation
+
 # Examples
 
 ## Reading records with a lambda function
