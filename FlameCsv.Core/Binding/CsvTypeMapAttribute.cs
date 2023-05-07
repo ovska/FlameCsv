@@ -28,4 +28,9 @@ public sealed class CsvTypeMapAttribute<T, TValue> : Attribute where T : unmanag
     /// The default behavior does not attempt to match already matched members.
     /// </summary>
     public bool ThrowOnDuplicate { get; set; }
+
+    /// <summary>
+    /// Don't create a static <c>Instance</c>-property to avoid allocations when reusing the type map.
+    /// </summary>
+    public bool SkipStaticInstance { get; set; }
 }

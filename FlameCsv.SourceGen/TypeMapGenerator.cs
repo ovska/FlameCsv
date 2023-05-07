@@ -38,7 +38,7 @@ using FlameCsv.Binding;
 namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
 {{
     partial class {typeMap.ContainingClass.Name} : CsvTypeMap<{typeMap.TokenName}, {typeMap.ResultName}>
-    {{
+    {{{WriteStaticInstance(typeMap)}
 {string.Join(@"
 ", WriteFieldConstants())}
 
@@ -56,6 +56,18 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
         }}
     }}
 }}";
+    }
+
+    private string WriteStaticInstance(TypeMapSymbol typeMap)
+    {
+        if (!typeMap.SkipStaticInstance)
+        {
+            return $@"        
+        public static {typeMap.ContainingClass.Name} Instance {{ get; }} = new {typeMap.ContainingClass.Name}();
+";
+        }
+
+        return "";
     }
 
     private string WriteCreateInstance(TypeMapSymbol typeMap)
