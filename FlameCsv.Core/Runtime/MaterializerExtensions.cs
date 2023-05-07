@@ -8,7 +8,7 @@ namespace FlameCsv.Runtime;
 
 internal static class MaterializerExtensions
 {
-    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
+    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
     private static class ForType<T, TResult> where T : unmanaged, IEquatable<T>
     {
         /// <summary>
@@ -25,8 +25,8 @@ internal static class MaterializerExtensions
     /// <summary>
     /// Creates a materializer from the bindings.
     /// </summary>
-    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
-    public static IMaterializer<T, TResult> CreateMaterializerFrom<T, [DynamicallyAccessedMembers(Trimming.ReflectionBound)] TResult>(
+    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+    public static IMaterializer<T, TResult> CreateMaterializerFrom<T, [DynamicallyAccessedMembers(Messages.ReflectionBound)] TResult>(
         this CsvReaderOptions<T> options,
         CsvBindingCollection<TResult> bindingCollection)
         where T : unmanaged, IEquatable<T>
@@ -37,8 +37,8 @@ internal static class MaterializerExtensions
     /// <summary>
     /// Binds the options using built-in or index binding.
     /// </summary>
-    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
-    public static IMaterializer<T, TResult> GetMaterializer<T, [DynamicallyAccessedMembers(Trimming.ReflectionBound)] TResult>(
+    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+    public static IMaterializer<T, TResult> GetMaterializer<T, [DynamicallyAccessedMembers(Messages.ReflectionBound)] TResult>(
         this CsvReaderOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
@@ -68,7 +68,7 @@ internal static class MaterializerExtensions
     }
 
     private static bool TryGetTupleBindings<T,
-        [DynamicallyAccessedMembers(Trimming.Ctors)] TTuple>(
+        [DynamicallyAccessedMembers(Messages.Ctors)] TTuple>(
         [NotNullWhen(true)] out CsvBindingCollection<TTuple>? bindingCollection)
         where T : unmanaged, IEquatable<T>
     {

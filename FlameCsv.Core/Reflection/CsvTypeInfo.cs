@@ -7,7 +7,7 @@ using FlameCsv.Exceptions;
 
 namespace FlameCsv.Reflection;
 
-internal sealed class CsvTypeInfo<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] T>
+internal sealed class CsvTypeInfo<[DynamicallyAccessedMembers(Messages.ReflectionBound)] T>
 {
     public static CsvTypeInfo<T> Instance => _instance ?? GetOrInitInstance();
 

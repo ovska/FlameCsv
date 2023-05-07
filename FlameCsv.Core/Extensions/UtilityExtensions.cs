@@ -23,7 +23,7 @@ internal static class UtilityExtensions
     }
 
     public static T CreateInstance<T>(
-        [DynamicallyAccessedMembers(Trimming.Ctors)]
+        [DynamicallyAccessedMembers(Messages.Ctors)]
         this Type type,
         params object?[] parameters) where T : class
     {

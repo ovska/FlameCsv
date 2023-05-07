@@ -13,11 +13,11 @@ namespace FlameCsv;
 /// <summary>
 /// Provides static methods for reading CSV records as objects or structs.
 /// </summary>
-[System.Diagnostics.CodeAnalysis.SuppressMessage(
+[SuppressMessage(
     "Reliability",
     "CA2000:Dispose objects before losing scope",
     Justification = "Readers are passed to an enumerable whose enumerator disposes the reader")]
-[System.Diagnostics.CodeAnalysis.SuppressMessage(
+[SuppressMessage(
     "Roslynator",
     "RCS1047:Non-asynchronous method name should not end with 'Async'.",
     Justification = "Method returns a duck typed IAsyncEnumerable")]
@@ -29,21 +29,9 @@ public static partial class CsvReader
     /// </summary>
     public const int DefaultBufferSize = 4096;
 
-#pragma warning disable IL2091 // Target generic argument does not satisfy 'DynamicallyAccessedMembersAttribute' in target method or type. The generic parameter of the source method or type does not have matching annotations.
-    public static CsvValueEnumerable<char, TValue> Read<TValue>(
-        string? csv,
-        CsvTypeMap<char, TValue> typeMap,
-        CsvReaderOptions<char> options,
-        CsvContextOverride<char> context = default)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        return new CsvValueEnumerable<char, TValue>(new ReadOnlySequence<char>(csv.AsMemory()), options, context, typeMap);
-    }
-#pragma warning restore IL2091 // Target generic argument does not satisfy 'DynamicallyAccessedMembersAttribute' in target method or type. The generic parameter of the source method or type does not have matching annotations.
-
     /// <inheritdoc cref="Read{T,TValue}(CsvReaderOptions{T},ReadOnlyMemory{T})"/>
-    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
-    public static CsvValueEnumerable<char, TValue> Read<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] TValue>(
+    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+    public static CsvValueEnumerable<char, TValue> Read<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue>(
         string? csv,
         CsvReaderOptions<char> options,
         CsvContextOverride<char> context = default)
@@ -53,8 +41,8 @@ public static partial class CsvReader
     }
 
     /// <inheritdoc cref="Read{T,TValue}(CsvReaderOptions{T},ReadOnlyMemory{T})"/>
-    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
-    public static CsvValueEnumerable<char, TValue> Read<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] TValue>(
+    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+    public static CsvValueEnumerable<char, TValue> Read<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue>(
         ReadOnlyMemory<char> csv,
         CsvReaderOptions<char> options,
         CsvContextOverride<char> context = default)
@@ -64,8 +52,8 @@ public static partial class CsvReader
     }
 
     /// <inheritdoc cref="Read{T,TValue}(CsvReaderOptions{T},ReadOnlyMemory{T})"/>
-    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
-    public static CsvValueEnumerable<byte, TValue> Read<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] TValue>(
+    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+    public static CsvValueEnumerable<byte, TValue> Read<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue>(
         ReadOnlyMemory<byte> csv,
         CsvReaderOptions<byte> options,
         CsvContextOverride<byte> context = default)
@@ -80,8 +68,8 @@ public static partial class CsvReader
     /// <param name="csv">Data to read the records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <returns><see cref="IEnumerable{T}"/> that reads records line-by-line from the data.</returns>
-    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
-    public static CsvValueEnumerable<T, TValue> Read<T, [DynamicallyAccessedMembers(Trimming.ReflectionBound)] TValue>(
+    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+    public static CsvValueEnumerable<T, TValue> Read<T, [DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue>(
         ReadOnlyMemory<T> csv,
         CsvReaderOptions<T> options,
         CsvContextOverride<T> context = default)
@@ -92,8 +80,8 @@ public static partial class CsvReader
     }
 
     /// <inheritdoc cref="Read{T,TValue}(CsvReaderOptions{T},ReadOnlyMemory{T})"/>
-    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
-    public static CsvValueEnumerable<T, TValue> Read<T, [DynamicallyAccessedMembers(Trimming.ReflectionBound)] TValue>(
+    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+    public static CsvValueEnumerable<T, TValue> Read<T, [DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue>(
         ReadOnlySequence<T> csv,
         CsvReaderOptions<T> options,
         CsvContextOverride<T> context = default)
@@ -118,8 +106,8 @@ public static partial class CsvReader
     /// If <see langword="true"/>, the stream and writer are not disposed at the end of the enumeration
     /// </param>
     /// <returns><see cref="IAsyncEnumerable{T}"/> that reads the CSV one record at a time from the reader.</returns>
-    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
-    public static IAsyncEnumerable<TValue> ReadAsync<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] TValue>(
+    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+    public static IAsyncEnumerable<TValue> ReadAsync<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue>(
         Stream stream,
         CsvReaderOptions<char> options,
         CsvContextOverride<char> context = default,
@@ -148,8 +136,8 @@ public static partial class CsvReader
     /// <param name="textReader">Text reader to read the records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <returns><see cref="IAsyncEnumerable{T}"/> that reads the CSV one record at a time from the reader.</returns>
-    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
-    public static IAsyncEnumerable<TValue> ReadAsync<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] TValue>(
+    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+    public static IAsyncEnumerable<TValue> ReadAsync<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue>(
         TextReader textReader,
         CsvReaderOptions<char> options,
         CsvContextOverride<char> context = default)
@@ -176,8 +164,8 @@ public static partial class CsvReader
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <param name="leaveOpen">Whether to leave the stream open after it has been read</param>
     /// <returns><see cref="IAsyncEnumerable{T}"/> that reads the CSV one record at a time from the stream.</returns>
-    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
-    public static IAsyncEnumerable<TValue> ReadAsync<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] TValue>(
+    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+    public static IAsyncEnumerable<TValue> ReadAsync<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue>(
         Stream stream,
         CsvReaderOptions<byte> options,
         CsvContextOverride<byte> context = default,
@@ -203,8 +191,8 @@ public static partial class CsvReader
     /// <param name="reader">Pipe reader to read the records from</param>
     /// <param name="options">Options instance containing tokens and parsers</param>
     /// <returns><see cref="IAsyncEnumerable{T}"/> that reads the CSV one record at a time from the reader.</returns>
-    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
-    public static IAsyncEnumerable<TValue> ReadAsync<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] TValue>(
+    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+    public static IAsyncEnumerable<TValue> ReadAsync<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
         CsvContextOverride<byte> context = default)

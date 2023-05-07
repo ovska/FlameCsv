@@ -8,10 +8,10 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Runtime;
 
-[RequiresUnreferencedCode(Trimming.CompiledExpressions)]
+[RequiresUnreferencedCode(Messages.CompiledExpressions)]
 internal sealed class ExpressionDelegateGenerator<T> : DelegateGenerator<T> where T : unmanaged, IEquatable<T>
 {
-    protected override Func<object[], IMaterializer<T, TResult>> GetMaterializerInit<[DynamicallyAccessedMembers(Trimming.Ctors)] TResult>(CsvBindingCollection<TResult> bc)
+    protected override Func<object[], IMaterializer<T, TResult>> GetMaterializerInit<[DynamicallyAccessedMembers(Messages.Ctors)] TResult>(CsvBindingCollection<TResult> bc)
     {
         ConstructorInfo ctor = Materializer<T>.GetConstructor(bc.Bindings);
 
@@ -31,7 +31,7 @@ internal sealed class ExpressionDelegateGenerator<T> : DelegateGenerator<T> wher
         return lambda.CompileLambda<Func<object[], IMaterializer<T, TResult>>>(throwIfClosure: true);
     }
 
-    protected override Delegate GetValueFactory<[DynamicallyAccessedMembers(Trimming.Ctors)] TResult>(CsvBindingCollection<TResult> bc)
+    protected override Delegate GetValueFactory<[DynamicallyAccessedMembers(Messages.Ctors)] TResult>(CsvBindingCollection<TResult> bc)
     {
         ParameterExpression[] parameters = GetParametersByBindingIndex();
         NewExpression newExpr = GetObjectInitialization();

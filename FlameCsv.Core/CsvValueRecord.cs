@@ -188,8 +188,8 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
         return list;
     }
 
-    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
-    public TRecord ParseRecord<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] TRecord>()
+    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+    public TRecord ParseRecord<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TRecord>()
     {
         _state.EnsureVersion(_version);
 
@@ -197,11 +197,11 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
 
         if (!cache.TryGetValue(typeof(TRecord), out object? obj))
         {
-            var header = _state.Header;
+            var headers = _state._headerNames;
 
-            if (header is not null)
+            if (headers is not null)
             {
-                var bindings = _options.GetHeaderBinder().Bind<TRecord>(header.Keys);
+                var bindings = _options.GetHeaderBinder().Bind<TRecord>(headers);
                 obj = _state._context.Options.CreateMaterializerFrom(bindings);
             }
             else

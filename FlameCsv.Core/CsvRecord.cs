@@ -21,6 +21,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     private readonly CsvReadingContext<T> _context;
     private readonly ArraySegment<ReadOnlyMemory<T>> _values;
     private readonly Dictionary<string, int>? _header;
+    private readonly string[]? _headerNames;
 
     public CsvRecord(CsvValueRecord<T> record)
     {
@@ -28,6 +29,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
 
         _context = record._state._context;
         _header = record._state.Header;
+        _headerNames = record._state._headerNames;
         (RawRecord, _values) = Initialize(record);
 
         // we don't need to validate field count here, as a non-default CsvValueRecord
@@ -46,14 +48,14 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     int IReadOnlyCollection<ReadOnlyMemory<T>>.Count => GetFieldCount();
     ReadOnlyMemory<T> IReadOnlyList<ReadOnlyMemory<T>>.this[int index] => this[index];
 
-    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
-    public TRecord ParseRecord<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] TRecord>()
+    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+    public TRecord ParseRecord<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TRecord>()
     {
         IMaterializer<T, TRecord> materializer;
 
         if (_header is not null)
         {
-            var bindings = _context.Options.GetHeaderBinder().Bind<TRecord>(_header.Keys);
+            var bindings = _context.Options.GetHeaderBinder().Bind<TRecord>(_headerNames);
             materializer = _context.Options.CreateMaterializerFrom(bindings);
         }
         else

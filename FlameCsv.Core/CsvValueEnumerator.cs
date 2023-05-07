@@ -8,7 +8,7 @@ namespace FlameCsv;
 [SuppressMessage(
     "Style", "IDE0044:Add readonly modifier",
     Justification = "TProcessor is a mutable struct with non-readonly methods")]
-internal sealed class CsvValueEnumerator<T, [DynamicallyAccessedMembers(Trimming.ReflectionBound)] TValue, TProcessor> : IEnumerator<TValue>
+internal sealed class CsvValueEnumerator<T, TValue, TProcessor> : IEnumerator<TValue>
     where T : unmanaged, IEquatable<T>
     where TProcessor : struct, ICsvProcessor<T, TValue>
 {

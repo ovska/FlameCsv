@@ -24,7 +24,7 @@ internal static class WriteTest<T, TWriter, TValue>
     where T : unmanaged, IEquatable<T>
     where TWriter : struct, IAsyncBufferWriter<T>
 {
-    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
+    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
     public static async Task WriteRecords(
         CsvWriteOperation<T, TWriter> writer,
         CsvBindingCollection<TValue> bindingCollection,
@@ -78,7 +78,7 @@ internal static class WriteTest<T, TWriter, TValue>
         writer.WriteNewline();
     }
 
-    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
+    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
     private static WriteCallback<T, TWriter, TValue> CreateWriteCallback(
         CsvBindingCollection<TValue> bindingCollection,
         CsvWriterOptions<T> options)

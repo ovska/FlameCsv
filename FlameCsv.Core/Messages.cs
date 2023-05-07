@@ -2,7 +2,7 @@
 
 namespace FlameCsv;
 
-internal static class Trimming
+internal static class Messages
 {
     public const DynamicallyAccessedMemberTypes Ctors = DynamicallyAccessedMemberTypes.PublicConstructors;
 
