@@ -1,9 +1,10 @@
 using System.Buffers;
 using System.Linq.Expressions;
 using System.Reflection;
-using FlameCsv.Binding.Attributes;
+using FlameCsv.Binding;
 using FlameCsv.Parsers;
 using FlameCsv.Parsers.Text;
+using FlameCsv.Tests.TestData;
 
 namespace FlameCsv.Tests;
 
@@ -21,8 +22,8 @@ public class Temp
     class Obj
     {
         public int A { get; init; }
-        public int B { get; set; }
-        [CsvParserOverride(typeof(Nakki))] public DateTime C { get; set; }
+        public string? Name { get; set; }
+        public bool IsEnabled { get; set; }
     }
 
     class Testii

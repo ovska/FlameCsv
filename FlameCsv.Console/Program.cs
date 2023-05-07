@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Parsers.Text;
@@ -21,7 +22,7 @@ namespace FlameCsv.Console
         }
     }
 
-    [CsvTypeMap<char, Obj>(ThrowOnDuplicate = false)]
+    [CsvTypeMap<char, Obj>(ThrowOnDuplicate = true, IgnoreUnmatched = true)]
     partial class ObjTypeMap
     {
     }

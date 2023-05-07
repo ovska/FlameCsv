@@ -15,7 +15,7 @@ public abstract partial class CsvTypeMap<T, TValue>
     }
 
     [DoesNotReturn]
-    protected TryParseHandler? ThrowUnmatched(string field, int index, bool exposeContent)
+    protected void ThrowUnmatched(string field, int index, bool exposeContent)
     {
         if (!exposeContent)
             throw new CsvBindingException<TValue>($"Unmatched header field at index {index}.");
