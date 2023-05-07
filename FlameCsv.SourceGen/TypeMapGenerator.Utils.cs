@@ -85,7 +85,8 @@ public partial class TypeMapGenerator
         if (!isFactory)
             return init;
 
-        return $"((ICsvParserFactory<{token.ToDisplayString()}>){init}).Create<{memberType.ToDisplayString()}>(state.Options)";
+        // Cast in case its explicitly implemented
+        return $"((ICsvParserFactory<{token.ToDisplayString()}>){init}).Create<{memberType.ToDisplayString()}>(options)";
     }
 
     private string GetAccessModifier(INamedTypeSymbol classSymbol)

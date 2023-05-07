@@ -13,6 +13,7 @@ public readonly struct TypeMapSymbol
         Context = context;
         TokenName = Token.ToDisplayString();
         ResultName = Type.ToDisplayString();
+        HandlerArgs = $"(ref TypeMapState state, ref {ResultName} value, ReadOnlySpan<{TokenName}> field)";
 
         foreach (var arg in attribute.NamedArguments)
         {
@@ -51,7 +52,10 @@ public readonly struct TypeMapSymbol
     public ITypeSymbol Token { get; }
 
     public string TokenName { get; }
+
     public string ResultName { get; }
+
+    public string HandlerArgs { get; }
 
     /// <summary>
     /// Current context.

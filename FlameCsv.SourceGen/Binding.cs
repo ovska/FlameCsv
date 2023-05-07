@@ -8,26 +8,25 @@ internal readonly struct Binding : IComparable<Binding>
     public ISymbol Symbol { get; }
     public ITypeSymbol MemberType { get; }
     public bool IsRequired { get; }
-    public int Id { get; }
-    public string IdName { get; }
+    public string ParserId { get; }
+    public string HandlerId { get; }
     public int Order { get; }
 
     public Binding(
         ISymbol symbol,
         ITypeSymbol type,
         bool isRequired,
-        int id,
         int order,
         IEnumerable<string> names)
     {
         Symbol = symbol;
         MemberType = type;
         IsRequired = isRequired;
-        Id = id;
         Order = order;
         Names = names;
-        IdName = $"@__Field_{Name}";
+        ParserId = $"@__Parser_{Name}";
+        HandlerId = $"@s__Handler_{Name}";
     }
 
-    public int CompareTo(Binding other) => other.Id.CompareTo(Id); // reverse sort so higher order is first
+    public int CompareTo(Binding other) => other.Order.CompareTo(Order); // reverse sort so higher order is first
 }

@@ -13,7 +13,11 @@ namespace FlameCsv.Binding;
 /// <typeparam name="TValue">Record type</typeparam>
 public abstract partial class CsvTypeMap<T, TValue> where T : unmanaged, IEquatable<T>
 {
-    protected delegate bool TryParseHandler(ref TValue value, ReadOnlySpan<T> data);
+    protected interface ITypeMapState
+    {
+        int Count { get; }
+        bool TryParse(int index, ref TValue value, ReadOnlySpan<T> field);
+    }
 
     protected abstract bool IgnoreUnparsable { get; }
 
@@ -26,12 +30,10 @@ public abstract partial class CsvTypeMap<T, TValue> where T : unmanaged, IEquata
     /// Binds header field with the specified name to a member of <typeparamref name="TValue"/>.
     /// </summary>
     /// <remarks>Source generated.</remarks>
-    protected abstract TryParseHandler? BindMember(string name, ref BindingState state);
-
-    /// <summary>
-    /// Validates that all required fields have been read.
-    /// </summary>
-    protected abstract void ValidateFields(ReadOnlySpan<string> headers, BindingState state);
+    protected abstract object BindMembers(
+        ReadOnlySpan<string> headers,
+        bool exposeContent,
+        CsvReaderOptions<T> options);
 
     internal IMaterializer<T, TValue> GetMaterializer(in CsvReadingContext<T> context)
     {
@@ -40,23 +42,6 @@ public abstract partial class CsvTypeMap<T, TValue> where T : unmanaged, IEquata
 
     internal IMaterializer<T, TValue> GetMaterializer(ReadOnlySpan<string> headers, in CsvReadingContext<T> context)
     {
-        var handlers = new TryParseHandler?[headers.Length];
-        int index = 0;
-
-        BindingState state = new(in context);
-
-        foreach (var header in headers)
-        {
-            handlers[index++] = BindMember(header, ref state);
-        }
-
-        if (state.Count == 0)
-        {
-            ThrowNoFieldsBound(headers, context.ExposeContent);
-        }
-
-        ValidateFields(headers, state);
-
-        return new TypeMapMaterializer(CreateInstance, handlers);
+        return (IMaterializer<T, TValue>)BindMembers(headers, context.ExposeContent, context.Options);
     }
 }

@@ -62,7 +62,7 @@ public abstract partial class CsvTypeMap<T, TValue>
                 return true;
             }
 
-                _count++;
+            _count++;
             BitHelper.SetFlag(ref _fieldMask, index, true);
             return false;
         }
