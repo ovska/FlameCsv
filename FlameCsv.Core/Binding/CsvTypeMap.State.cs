@@ -24,7 +24,7 @@ public abstract partial class CsvTypeMap<T, TValue>
         /// </summary>
         public CsvReaderOptions<T> Options { get; }
 
-        private readonly IEqualityComparer<string>? _stringComparer;
+        private readonly IEqualityComparer<string> _stringComparer;
         private ulong _fieldMask;
         private int _count;
 
@@ -33,12 +33,7 @@ public abstract partial class CsvTypeMap<T, TValue>
             Options = context.Options;
             ExposeContent = context.ExposeContent;
 
-            var comparer = context.Options.Comparer;
-
-            if (!ReferenceEquals(comparer, StringComparer.OrdinalIgnoreCase))
-            {
-                _stringComparer = comparer;
-            }
+            _stringComparer = context.Options.Comparer;
         }
 
         /// <summary>
@@ -46,7 +41,7 @@ public abstract partial class CsvTypeMap<T, TValue>
         /// </summary>
         public readonly bool FieldMatches(string? first, string? second)
         {
-            return (_stringComparer ?? StringComparer.OrdinalIgnoreCase).Equals(first, second);
+            return _stringComparer.Equals(first, second);
         }
 
         /// <summary>

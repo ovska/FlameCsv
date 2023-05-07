@@ -26,13 +26,13 @@ public class CsvParserOverrideAttribute : Attribute
     /// <summary>
     /// Parser or factory to use for this member.
     /// </summary>
-    [DynamicallyAccessedMembers(Trimming.Ctors)]
+    [DynamicallyAccessedMembers(Messages.Ctors)]
     public virtual Type? ParserType { get; }
 
     /// <inheritdoc cref="CsvParserOverrideAttribute"/>
     /// <param name="parserType">Parser or factory to use</param>
     public CsvParserOverrideAttribute(
-        [DynamicallyAccessedMembers(Trimming.Ctors)] Type parserType)
+        [DynamicallyAccessedMembers(Messages.Ctors)] Type parserType)
     {
         ArgumentNullException.ThrowIfNull(parserType);
         ParserType = parserType;

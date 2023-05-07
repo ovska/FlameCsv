@@ -2,6 +2,15 @@
 
 namespace FlameCsv.Binding;
 
+/// <summary>
+/// Provides compile-time mapping to parse <typeparamref name="TValue"/> records from CSV.
+/// </summary>
+/// <remarks>
+/// Decorate a non-generic <see langword="partial"/> <see langword="class"/> with <see cref="CsvTypeMapAttribute{T, TValue}"/>
+/// to generate the implementation.
+/// </remarks>
+/// <typeparam name="T">Token type</typeparam>
+/// <typeparam name="TValue">Record type</typeparam>
 public abstract partial class CsvTypeMap<T, TValue> where T : unmanaged, IEquatable<T>
 {
     protected delegate bool TryParseHandler(ref TValue value, ReadOnlySpan<T> data);
@@ -22,16 +31,16 @@ public abstract partial class CsvTypeMap<T, TValue> where T : unmanaged, IEquata
     /// <summary>
     /// Validates that all required fields have been read.
     /// </summary>
-    protected abstract void ValidateFields(ICollection<string> headers, BindingState state);
+    protected abstract void ValidateFields(ReadOnlySpan<string> headers, BindingState state);
 
     internal IMaterializer<T, TValue> GetMaterializer(in CsvReadingContext<T> context)
     {
         throw new NotImplementedException();
     }
 
-    internal IMaterializer<T, TValue> GetMaterializer(ICollection<string> headers, in CsvReadingContext<T> context)
+    internal IMaterializer<T, TValue> GetMaterializer(ReadOnlySpan<string> headers, in CsvReadingContext<T> context)
     {
-        var handlers = new TryParseHandler?[headers.Count];
+        var handlers = new TryParseHandler?[headers.Length];
         int index = 0;
 
         BindingState state = new(in context);

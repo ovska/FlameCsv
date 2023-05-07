@@ -1,23 +1,24 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using FlameCsv.Binding;
 using FlameCsv.Reading;
-using FlameCsv.Runtime;
 
 namespace FlameCsv;
 
-[RequiresUnreferencedCode(Messages.CompiledExpressions)]
-internal sealed class CsvValueAsyncEnumerable<T, [DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue, TReader> : IAsyncEnumerable<TValue>
+internal sealed class CsvTypeMapAsyncEnumerable<T, TValue, TReader> : IAsyncEnumerable<TValue>
     where T : unmanaged, IEquatable<T>
     where TReader : struct, ICsvPipeReader<T>
 {
     private readonly CsvReadingContext<T> _context;
     private readonly TReader _reader;
+    private readonly CsvTypeMap<T, TValue> _typeMap;
 
-    public CsvValueAsyncEnumerable(
+    public CsvTypeMapAsyncEnumerable(
         TReader reader,
-        in CsvReadingContext<T> context)
+        in CsvReadingContext<T> context,
+        CsvTypeMap<T, TValue> typeMap)
     {
         _reader = reader;
         _context = context;
+        _typeMap = typeMap;
     }
 
     public IAsyncEnumerator<TValue> GetAsyncEnumerator(CancellationToken cancellationToken = default)
@@ -26,15 +27,12 @@ internal sealed class CsvValueAsyncEnumerable<T, [DynamicallyAccessedMembers(Mes
         {
             return new CsvValueAsyncEnumerator<T, TValue, TReader, CsvHeaderProcessor<T, TValue>>(
                 _reader,
-                new CsvHeaderProcessor<T, TValue>(in _context),
+                new CsvHeaderProcessor<T, TValue>(in _context, _typeMap),
                 cancellationToken);
         }
         else
         {
-            return new CsvValueAsyncEnumerator<T, TValue, TReader, CsvProcessor<T, TValue>>(
-                _reader,
-                new CsvProcessor<T, TValue>(in _context, _context.Options.GetMaterializer<T, TValue>()),
-                cancellationToken);
+            throw new NotSupportedException();
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using FlameCsv.Reading;
+﻿using FlameCsv.Extensions;
+using FlameCsv.Reading;
 using FlameCsv.Runtime;
 
 namespace FlameCsv.Binding;
@@ -30,7 +31,7 @@ public abstract partial class CsvTypeMap<T, TValue>
             {
                 if (index >= _handlers.Length)
                 {
-                    // TODO
+                    Throw.InvalidData_FieldCount();
                 }
 
                 var field = state._context.ReadNextField(ref state);
@@ -44,7 +45,7 @@ public abstract partial class CsvTypeMap<T, TValue>
 
             if (index < _handlers.Length)
             {
-                // TODO
+                Throw.InvalidData_FieldCount(_handlers.Length, index);
             }
 
             return obj;
@@ -54,7 +55,7 @@ public abstract partial class CsvTypeMap<T, TValue>
         {
             if (fields.Length != FieldCount)
             {
-                // TODO
+                Throw.InvalidData_FieldCount(FieldCount, fields.Length);
             }
 
             TValue obj = _valueFactory();

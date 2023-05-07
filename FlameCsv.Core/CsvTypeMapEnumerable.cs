@@ -1,26 +1,28 @@
 ﻿using System.Buffers;
 using System.Collections;
-using System.Diagnostics.CodeAnalysis;
+using FlameCsv.Binding;
 using FlameCsv.Reading;
-using FlameCsv.Runtime;
 
 namespace FlameCsv;
 
-[RequiresUnreferencedCode(Messages.CompiledExpressions)]
-public sealed class CsvValueEnumerable<T, [DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue> : IEnumerable<TValue>
-    where T : unmanaged, IEquatable<T>
+public sealed class CsvTypeMapEnumerable<T, TValue> : IEnumerable<TValue> where T : unmanaged, IEquatable<T>
 {
     private readonly ReadOnlySequence<T> _data;
     private readonly CsvReadingContext<T> _context;
+    private readonly CsvTypeMap<T, TValue> _typeMap;
 
-    public CsvValueEnumerable(
+    public CsvTypeMapEnumerable(
         in ReadOnlySequence<T> csv,
         CsvReaderOptions<T> options,
-        CsvContextOverride<T> overrides)
+        CsvContextOverride<T> overrides,
+        CsvTypeMap<T, TValue> typeMap)
     {
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(typeMap);
+
         _data = csv;
         _context = new CsvReadingContext<T>(options, overrides);
+        _typeMap = typeMap;
     }
 
     public IEnumerator<TValue> GetEnumerator()
@@ -29,13 +31,11 @@ public sealed class CsvValueEnumerable<T, [DynamicallyAccessedMembers(Messages.R
         {
             return new CsvValueEnumerator<T, TValue, CsvHeaderProcessor<T, TValue>>(
                 _data,
-                new CsvHeaderProcessor<T, TValue>(in _context));
+                new CsvHeaderProcessor<T, TValue>(in _context, _typeMap));
         }
         else
         {
-            return new CsvValueEnumerator<T, TValue, CsvProcessor<T, TValue>>(
-                _data,
-                new CsvProcessor<T, TValue>(in _context, _context.Options.GetMaterializer<T, TValue>()));
+            throw new NotSupportedException("TODO");
         }
     }
 

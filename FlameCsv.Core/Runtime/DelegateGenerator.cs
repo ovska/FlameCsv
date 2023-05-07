@@ -5,18 +5,18 @@ using FlameCsv.Parsers;
 
 namespace FlameCsv.Runtime;
 
-[RequiresUnreferencedCode(Trimming.CompiledExpressions)]
+[RequiresUnreferencedCode(Messages.CompiledExpressions)]
 internal abstract class DelegateGenerator<T> where T : unmanaged, IEquatable<T>
 {
     public delegate IMaterializer<T, TResult> MaterializerFactory<TResult>(CsvReaderOptions<T> options);
 
-    protected abstract Func<object[], IMaterializer<T, TResult>> GetMaterializerInit<[DynamicallyAccessedMembers(Trimming.Ctors)] TResult>(
+    protected abstract Func<object[], IMaterializer<T, TResult>> GetMaterializerInit<[DynamicallyAccessedMembers(Messages.Ctors)] TResult>(
         CsvBindingCollection<TResult> bc);
 
-    protected abstract Delegate GetValueFactory<[DynamicallyAccessedMembers(Trimming.Ctors)] TResult>(
+    protected abstract Delegate GetValueFactory<[DynamicallyAccessedMembers(Messages.Ctors)] TResult>(
         CsvBindingCollection<TResult> bc);
 
-    public MaterializerFactory<TResult> GetMaterializerFactory<[DynamicallyAccessedMembers(Trimming.Ctors)] TResult>(
+    public MaterializerFactory<TResult> GetMaterializerFactory<[DynamicallyAccessedMembers(Messages.Ctors)] TResult>(
         CsvBindingCollection<TResult> bc)
     {
         ArgumentNullException.ThrowIfNull(bc);

@@ -7,7 +7,7 @@ using FlameCsv.Reflection;
 
 namespace FlameCsv.Binding;
 
-internal static class IndexAttributeBinder<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] TValue>
+internal static class IndexAttributeBinder<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue>
 {
     private static readonly Lazy<CsvBindingCollection<TValue>?> _bindingsLazy = new(CreateBindingCollection);
 

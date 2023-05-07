@@ -51,7 +51,7 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
             return {(typeMap.IgnoreUnmatched ? "null" : "ThrowUnmatched(name, state.Count, state.ExposeContent)")};
         }}
 
-        protected override void ValidateFields(ICollection<string> headers, BindingState state)
+        protected override void ValidateFields(ReadOnlySpan<string> headers, BindingState state)
         {{{WriteRequiredCheck()}
         }}
     }}

@@ -31,6 +31,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
         set
         {
             _header = value;
+            _headerNames = value?.Keys.ToArray();
             _materializerCache?.Clear();
         }
     }
@@ -39,6 +40,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     private bool _disposed;
 
     private Dictionary<string, int>? _header;
+    internal string[]? _headerNames;
     private Dictionary<Type, object>? _materializerCache;
     private int? _expectedFieldCount;
 

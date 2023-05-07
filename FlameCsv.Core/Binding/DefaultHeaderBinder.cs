@@ -46,13 +46,13 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
         IgnoreUnmatched = ignoreUnmatched;
     }
 
-    public CsvBindingCollection<TValue> Bind<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] TValue>(IEnumerable<string> headerFields)
+    public CsvBindingCollection<TValue> Bind<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue>(ReadOnlySpan<string> headerFields)
     {
         _options.MakeReadOnly();
 
         HeaderData headerData = DefaultHeaderBinder<T>.GetHeaderDataFor<TValue>();
         ReadOnlySpan<string> IgnoredValues = headerData.IgnoredValues.Span;
-        List<CsvBinding<TValue>> foundBindings = headerFields.TryGetNonEnumeratedCount(out int count) ? new(count) : new();
+        List<CsvBinding<TValue>> foundBindings = new(headerFields.Length);
 
         foreach (var field in headerFields)
         {
@@ -77,7 +77,6 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
                     {
                         binding = CsvBinding.FromHeaderBinding<TValue>(candidate.Target, index);
                         break;
-
                     }
                 }
             }
@@ -98,7 +97,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
     /// </summary>
     /// <seealso cref="CsvHeaderAttribute"/>
     /// <seealso cref="CsvHeaderExcludeAttribute"/>
-    private static HeaderData GetHeaderDataFor<[DynamicallyAccessedMembers(Trimming.ReflectionBound)] TValue>()
+    private static HeaderData GetHeaderDataFor<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue>()
     {
         if (!_candidateCache.TryGetValue(typeof(TValue), out var headerData))
         {

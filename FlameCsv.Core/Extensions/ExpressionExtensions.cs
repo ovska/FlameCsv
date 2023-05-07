@@ -39,7 +39,7 @@ internal static class ExpressionExtensions
     /// <summary>
     /// Compiles a lambda expression into a delegate using FastExpressionCompiler.
     /// </summary>
-    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
+    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
     public static TDelegate CompileLambda<TDelegate>(this LambdaExpression lambda, bool throwIfClosure = false)
         where TDelegate : Delegate
     {
@@ -56,7 +56,7 @@ internal static class ExpressionExtensions
     /// <summary>
     /// Compiles a lambda expression with a closure (not static) into a delegate using FastExpressionCompiler.
     /// </summary>
-    [RequiresUnreferencedCode(Trimming.CompiledExpressions)]
+    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
     public static TDelegate CompileLambdaWithClosure<TDelegate>(this LambdaExpression lambda)
         where TDelegate : Delegate
     {

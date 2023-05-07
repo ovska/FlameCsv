@@ -4,7 +4,7 @@ using FlameCsv.Parsers;
 namespace FlameCsv.Binding.Attributes;
 
 /// <inheritdoc/>
-public sealed class CsvParserOverrideAttribute<T, [DynamicallyAccessedMembers(Trimming.Ctors)] TParser>
+public sealed class CsvParserOverrideAttribute<T, [DynamicallyAccessedMembers(Messages.Ctors)] TParser>
     : CsvParserOverrideAttribute
     where T : unmanaged, IEquatable<T>
     where TParser : ICsvParser<T>

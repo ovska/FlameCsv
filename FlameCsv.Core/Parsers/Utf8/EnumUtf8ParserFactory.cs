@@ -45,7 +45,7 @@ public class EnumUtf8ParserFactory : ICsvParserFactory<byte>
         return GetParserType(resultType).CreateInstance<ICsvParser<byte>>(allowUndefinedValues, ignoreCase);
     }
 
-    [return: DynamicallyAccessedMembers(Trimming.Ctors)]
-    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2070", Justification = Trimming.StructFactorySuppressionMessage)]
+    [return: DynamicallyAccessedMembers(Messages.Ctors)]
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2070", Justification = Messages.StructFactorySuppressionMessage)]
     private static Type GetParserType(Type resultType) => typeof(EnumUtf8Parser<>).MakeGenericType(resultType);
 }

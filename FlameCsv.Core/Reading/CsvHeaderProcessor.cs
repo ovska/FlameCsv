@@ -22,11 +22,16 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     private int _line;
     private long _position;
 
-    public CsvHeaderProcessor(in CsvReadingContext<T> context, CsvTypeMap<T, TValue>? typeMap = null)
+    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+    public CsvHeaderProcessor(in CsvReadingContext<T> context)
+    {
+        _context = context;
+    }
+
+    public CsvHeaderProcessor(in CsvReadingContext<T> context, CsvTypeMap<T, TValue>? typeMap)
     {
         _context = context;
         _typeMap = typeMap;
-        _inner = default;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -42,9 +47,8 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)] // encourage inlining common path
-    // we don't want to annotate ICsvProcessor.TryRead because a headerless processor does not use dynamic code
-    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = Trimming.HeaderProcessorSuppressionMessage)]
-    [UnconditionalSuppressMessage("Trimming", "IL2091", Justification = Trimming.HeaderProcessorSuppressionMessage)]
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = Messages.HeaderProcessorSuppressionMessage)]
+    [UnconditionalSuppressMessage("Trimming", "IL2091", Justification = Messages.HeaderProcessorSuppressionMessage)]
     private bool ParseHeaderAndTryRead(ref ReadOnlySequence<T> buffer, out TValue value, bool isFinalBlock)
     {
         Debug.Assert(RuntimeFeature.IsDynamicCodeSupported || _typeMap is not null, "Invalid TypeMap state");
@@ -76,9 +80,11 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
                     values.Add(_context.Options.GetAsString(field.Span));
                 }
 
+                ReadOnlySpan<string> headers = values.AsSpan();
+
                 IMaterializer<T, TValue> materializer = _typeMap is null
-                    ? _context.Options.CreateMaterializerFrom(_context.Options.GetHeaderBinder().Bind<TValue>(values))
-                    : _typeMap.GetMaterializer(values, in _context);
+                    ? _context.Options.CreateMaterializerFrom(_context.Options.GetHeaderBinder().Bind<TValue>(headers))
+                    : _typeMap.GetMaterializer(headers, in _context);
 
                 _inner = new CsvProcessor<T, TValue>(
                     context: in _context,

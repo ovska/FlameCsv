@@ -194,7 +194,7 @@ public class CsvReaderOptionsTests
         Run(o => o.Newline = "");
         Run(o => o.ShouldSkipRow = default);
         Run(o => o.HasHeader = default);
-        Run(o => o.Comparer = default!);
+        Run(o => o.Comparer = StringComparer.Ordinal);
         Run(o => o.ExceptionHandler = default);
         Run(o => o.AllowContentInExceptions = default);
         Run(o => o.Parsers[0] = new IntegerTextParser());

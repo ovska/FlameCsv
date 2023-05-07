@@ -24,7 +24,7 @@ public sealed class NullableParserFactory<T> : ICsvParserFactory<T>
 
     public static NullableParserFactory<T> Instance { get; } = new();
 
-    [return: DynamicallyAccessedMembers(Trimming.Ctors)]
-    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2070", Justification = Trimming.StructFactorySuppressionMessage)]
+    [return: DynamicallyAccessedMembers(Messages.Ctors)]
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2070", Justification = Messages.StructFactorySuppressionMessage)]
     private static Type GetParserType(Type resultType) => typeof(NullableParser<,>).MakeGenericType(typeof(T), resultType);
 }
