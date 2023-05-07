@@ -28,6 +28,10 @@ public readonly struct TypeMapSymbol
             {
                 ThrowOnDuplicate = (bool)arg.Value.Value!;
             }
+            else if (arg.Key.Equals("SkipStaticInstance", StringComparison.OrdinalIgnoreCase))
+            {
+                SkipStaticInstance = (bool)arg.Value.Value!;
+            }
         }
     }
 
@@ -59,4 +63,6 @@ public readonly struct TypeMapSymbol
     public bool IgnoreUnparsable { get; }
 
     public bool ThrowOnDuplicate { get; }
+
+    public bool SkipStaticInstance { get; }
 }

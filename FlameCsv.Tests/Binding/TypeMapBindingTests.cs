@@ -10,7 +10,7 @@ public static class TypeMapBindingTests
     {
         Assert.ThrowsAny<CsvBindingException>(() =>
         {
-            CsvReader.Read("a,b,c\r\n", new ObjTypeMap_Simple(), CsvTextReaderOptions.Default).ToList();
+            CsvReader.Read("a,b,c\r\n", ObjTypeMap_Simple.Instance, CsvTextReaderOptions.Default).ToList();
         });
     }
 
@@ -19,7 +19,7 @@ public static class TypeMapBindingTests
     {
         Assert.ThrowsAny<CsvBindingException>(() =>
         {
-            CsvReader.Read("id,name,id\r\n", new ObjTypeMap_ThrowDuplicate(), CsvTextReaderOptions.Default).ToList();
+            CsvReader.Read("id,name,id\r\n", ObjTypeMap_ThrowDuplicate.Instance, CsvTextReaderOptions.Default).ToList();
         });
     }
 
@@ -31,7 +31,7 @@ public static class TypeMapBindingTests
             "1,Bob,This value is ignored,true\r\n" +
             "2,Alice,This as well!,false\r\n";
 
-        var items = CsvReader.Read(data, new ObjTypeMap_Simple(), CsvTextReaderOptions.Default).ToList();
+        var items = CsvReader.Read(data, ObjTypeMap_Simple.Instance, CsvTextReaderOptions.Default).ToList();
         AssertItems(items);
     }
 
@@ -45,7 +45,7 @@ public static class TypeMapBindingTests
 
         Assert.ThrowsAny<CsvBindingException>(() =>
         {
-            CsvReader.Read(data, new ObjTypeMap_ThrowUnmatched(), CsvTextReaderOptions.Default).ToList();
+            CsvReader.Read(data, ObjTypeMap_ThrowUnmatched.Instance, CsvTextReaderOptions.Default).ToList();
         });
     }
 
@@ -57,11 +57,9 @@ public static class TypeMapBindingTests
             "1,Bob,true\r\n" +
             "2,Alice,false\r\n";
 
-        var items = CsvReader.Read(data, new ObjTypeMap_Simple(), CsvTextReaderOptions.Default).ToList();
+        var items = CsvReader.Read(data, ObjTypeMap_Simple.Instance, CsvTextReaderOptions.Default).ToList();
         AssertItems(items);
     }
-
-    
 
     private static void AssertItems(List<Obj> items)
     {
