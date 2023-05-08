@@ -19,17 +19,14 @@ public abstract partial class CsvTypeMap<T, TValue> where T : unmanaged, IEquata
         bool TryParse(int index, ref TValue value, ReadOnlySpan<T> field);
     }
 
-    protected abstract bool IgnoreUnparsable { get; }
-
     /// <summary>
     /// Creates an instance of <typeparamref name="TValue"/> that is hydrated from CSV records.
     /// </summary>
     protected abstract TValue CreateInstance();
 
     /// <summary>
-    /// Binds header field with the specified name to a member of <typeparamref name="TValue"/>.
+    /// Returns bindings for <typeparamref name="TValue"/> for the headers.
     /// </summary>
-    /// <remarks>Source generated.</remarks>
     protected abstract object BindMembers(
         ReadOnlySpan<string> headers,
         bool exposeContent,

@@ -43,9 +43,7 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
     partial class {typeMap.ContainingClass.Name} : CsvTypeMap<{typeMap.TokenName}, {typeMap.ResultName}>
     {{
         private delegate bool TryParseHandler{typeMap.HandlerArgs};
-{WriteStaticInstance(typeMap)}
-        protected override bool IgnoreUnparsable => {(typeMap.IgnoreUnparsable ? "true" : "false")};
-{WriteCreateInstance(typeMap)}
+{WriteStaticInstance(typeMap)}{WriteCreateInstance(typeMap)}
         protected override object BindMembers(ReadOnlySpan<string> headers, bool exposeContent, CsvReaderOptions<{typeMap.TokenName}> options)
         {{
             TypeMapState state = new TypeMapState(headers.Length);
@@ -80,12 +78,15 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
                 _handlers = new TryParseHandler[length];
             }}
 
-            readonly int ITypeMapState.Count => _handlers.Length;
+            readonly int ITypeMapState.Count
+            {{
+                [MethodImpl(MethodImplOptions.AggressiveInlining)] get => _handlers.Length;
+            }}
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            bool ITypeMapState.TryParse(int index, ref {typeMap.ResultName} value, ReadOnlySpan<{typeMap.TokenName}> data)
+            bool ITypeMapState.TryParse(int index, ref {typeMap.ResultName} value, ReadOnlySpan<{typeMap.TokenName}> field)
             {{
-                return _handlers[index](ref this, ref value, data);
+                return _handlers[index](ref this, ref value, field);
             }}
 
             {string.Join(@"

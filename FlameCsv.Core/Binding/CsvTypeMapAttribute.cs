@@ -19,11 +19,6 @@ public sealed class CsvTypeMapAttribute<T, TValue> : Attribute where T : unmanag
     public bool IgnoreUnmatched { get; set; }
 
     /// <summary>
-    /// If <see langword="true"/>, records that have unparsable values are ignored instead of throwing.
-    /// </summary>
-    public bool IgnoreUnparsable { get; set; }
-
-    /// <summary>
     /// If <see langword="true"/>, multiple header field matches to a single member throw an exception.
     /// The default behavior does not attempt to match already matched members.
     /// </summary>
