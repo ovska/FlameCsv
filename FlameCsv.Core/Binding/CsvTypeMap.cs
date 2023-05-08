@@ -17,6 +17,7 @@ public abstract partial class CsvTypeMap<T, TValue> where T : unmanaged, IEquata
     {
         int Count { get; }
         bool TryParse(int index, ref TValue value, ReadOnlySpan<T> field);
+        IEnumerable<string> GetMissingRequiredFields();
     }
 
     /// <summary>

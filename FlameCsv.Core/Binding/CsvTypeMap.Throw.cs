@@ -6,12 +6,13 @@ namespace FlameCsv.Binding;
 public abstract partial class CsvTypeMap<T, TValue>
 {
     [DoesNotReturn]
-    protected void ThrowDuplicate(string member, string field, bool exposeContent)
+    protected void ThrowDuplicate(string member, string field, ReadOnlySpan<string> headers, bool exposeContent)
     {
         if (!exposeContent)
-            throw new CsvBindingException<TValue>($"Member '{member}' was matched multiple times.");
+            throw new CsvBindingException<TValue>($"Member '{member}' was matched multiple times out of {headers.Length} headers.");
 
-        throw new CsvBindingException<TValue>($"Already matched member '{member}' also matched to field '{field}'.");
+        throw new CsvBindingException<TValue>(
+            $"Already matched member '{member}' also matched to field '{field}' in headers [{FormatHeaders(headers)}].");
     }
 
     [DoesNotReturn]
@@ -24,13 +25,15 @@ public abstract partial class CsvTypeMap<T, TValue>
     }
 
     [DoesNotReturn]
-    protected void ThrowRequiredNotRead(string member, ReadOnlySpan<string> headers, bool exposeContent)
+    protected void ThrowRequiredNotRead(IEnumerable<string> members, ReadOnlySpan<string> headers, bool exposeContent)
     {
+        string missingMembers = string.Join(", ", members.Select(x => $"\"{x}\""));
+
         if (!exposeContent)
-            throw new CsvBindingException<TValue>($"Required member '{member}' was not matched to any header field.");
+            throw new CsvBindingException<TValue>($"Required members [{missingMembers}] were not matched to any header field.");
 
         throw new CsvBindingException<TValue>(
-            $"Required member '{member}' was not matched to any header field: [{FormatHeaders(headers)}]");
+            $"Required members [{missingMembers}] were not matched to any header field: [{FormatHeaders(headers)}]");
     }
 
     [DoesNotReturn]
