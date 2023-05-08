@@ -12,6 +12,11 @@ public abstract partial class CsvTypeMap<T, TValue>
         public int FieldCount => _state.Count;
 
         private readonly Func<TValue> _valueFactory;
+        
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Style",
+            "IDE0044:Add readonly modifier",
+            Justification = "Mutable struct")]
         private TState _state;
 
         public TypeMapMaterializer(

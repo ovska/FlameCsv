@@ -21,10 +21,6 @@ public readonly struct TypeMapSymbol
             {
                 IgnoreUnmatched = (bool)arg.Value.Value!;
             }
-            else if (arg.Key.Equals("IgnoreUnparsable", StringComparison.OrdinalIgnoreCase))
-            {
-                IgnoreUnparsable = (bool)arg.Value.Value!;
-            }
             else if (arg.Key.Equals("ThrowOnDuplicate", StringComparison.OrdinalIgnoreCase))
             {
                 ThrowOnDuplicate = (bool)arg.Value.Value!;
@@ -63,8 +59,6 @@ public readonly struct TypeMapSymbol
     public GeneratorExecutionContext Context { get; }
 
     public bool IgnoreUnmatched { get; }
-
-    public bool IgnoreUnparsable { get; }
 
     public bool ThrowOnDuplicate { get; }
 
