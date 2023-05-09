@@ -44,25 +44,6 @@ public partial class TypeMapGenerator
         return $"\"{name.Replace("\"", "\\\"")}\"";
     }
 
-    private static bool HasCreateInstanceMethod(TypeMapSymbol typeMap)
-    {
-        foreach (var member in typeMap.ContainingClass.GetMembers("CreateInstance"))
-        {
-            if (member is IMethodSymbol { MethodKind: MethodKind.Ordinary, CanBeReferencedByName: true } method)
-            {
-                if (method.Parameters.Length != 0)
-                    throw new Exception("Not parameterless"); // TODO
-
-                if (!SymbolEqualityComparer.Default.Equals(method.ReturnType, typeMap.Type))
-                    throw new Exception("Invalid type");
-
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private string GetParserInitializer(ITypeSymbol token, ITypeSymbol memberType, ITypeSymbol parser)
     {
         if (!parser.GetMembers().Any(m => m is IMethodSymbol { MethodKind: MethodKind.Constructor, Parameters.Length: 0 }))

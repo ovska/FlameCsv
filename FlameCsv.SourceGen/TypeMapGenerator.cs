@@ -17,7 +17,9 @@ public partial class TypeMapGenerator : ISourceGenerator
 
         foreach (var typeMapSymbol in GetTypeMapSymbols(context, receiver))
         {
-            context.AddSource($"{typeMapSymbol.ContainingClass.Name}.G.cs", SourceText.From(CreateTypeMap(typeMapSymbol), Encoding.UTF8));
+            context.AddSource(
+                $"{typeMapSymbol.ContainingClass.Name}.G.cs",
+                SourceText.From(CreateTypeMap(typeMapSymbol), Encoding.UTF8));
         }
     }
 
@@ -276,18 +278,6 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
         return "";
     }
 
-    private string WriteCreateInstance(TypeMapSymbol typeMap)
-    {
-        if (!HasCreateInstanceMethod(typeMap))
-        {
-            return $@"        
-        protected override {typeMap.ResultName} CreateInstance() => new {typeMap.ResultName}();
-";
-        }
-
-        return "";
-    }
-
     private string WriteRequiredCheck()
     {
         if (_bindings.RequiredMembers.Length == 0 && _bindings.Parameters.Length == 0)
@@ -343,26 +333,32 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
 
             if (member is IPropertySymbol property && IsValidProperty(property))
             {
-                if (property.IsRequired)
-                    throw new Exception("Property was required " + property.ToDisplayString());
-                GetSymbolOptions(typeMap, member, out isRequired, out order, out names);
-                members.Add(new MemberBinding(member, property.Type, isRequired, order, names));
+                GetSymbolOptions(member, out isRequired, out order, out names);
+                members.Add(new MemberBinding(member, property.Type, isRequired || property.IsRequired, order, names));
 
             }
             else if (member is IFieldSymbol field && IsValidField(field))
             {
-                GetSymbolOptions(typeMap, member, out isRequired, out order, out names);
+                GetSymbolOptions(member, out isRequired, out order, out names);
                 members.Add(new MemberBinding(member, field.Type, isRequired, order, names));
             }
-            else if (constructor is null
-                && member is IMethodSymbol { MethodKind: MethodKind.Constructor } ctor)
+            else if (member is IMethodSymbol { MethodKind: MethodKind.Constructor } ctor)
             {
                 foreach (var attr in ctor.GetAttributes())
                 {
                     if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, _symbols.CsvConstructorAttribute))
                     {
+                        if (constructor is not null)
+                        {
+                            typeMap.Fail(Diagnostics.TwoConstructorsFound(typeMap.Type));
+                        }
+
+                        if (ctor.DeclaredAccessibility == Accessibility.Private)
+                        {
+                            typeMap.Fail(Diagnostics.PrivateConstructorFound(typeMap.Type));
+                        }
+
                         constructor = ctor;
-                        break;
                     }
                 }
 
@@ -377,29 +373,28 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
 
         if (constructor is null)
         {
-            throw new Exception("No constructor found for type " + typeMap.Type.ToDisplayString());
+            typeMap.Fail(Diagnostics.NoConstructorFound(typeMap.Type));
         }
 
         foreach (var parameter in constructor.Parameters)
         {
-            if (parameter.RefKind is not RefKind.None and not RefKind.In)
-            {
-                throw new Exception($"RefKind {parameter.RefKind} is not supported (parameter: {parameter.ToDisplayString()})");
-            }
-
             if (parameter.Type.IsRefLikeType)
             {
-                throw new Exception($"ref-like types are not supported ({parameter.ToDisplayString()})");
+                typeMap.Fail(Diagnostics.RefLikeConstructorParameterFound(typeMap.Type, parameter));
             }
 
-            GetSymbolOptions(typeMap, parameter, out bool isRequired, out int order, out var names);
+            if (parameter.RefKind is not RefKind.None and not RefKind.In)
+            {
+                typeMap.Fail(Diagnostics.RefConstructorParameterFound(typeMap.Type, parameter));
+            }
+
+            GetSymbolOptions(parameter, out bool isRequired, out int order, out var names);
             parameters.Add(new ParameterBinding(parameter, parameter.Type, order, isRequired, names));
         }
 
         if (members.Count == 0 && parameters.Count == 0)
         {
-            // TODO: add diagnostic
-            throw new InvalidOperationException("No writable members on type " + typeMap.Type.ToDisplayString());
+            typeMap.Fail(Diagnostics.NoWritableMembersOrParametersFound(typeMap.Type));
         }
 
         parameters.Sort((a, b) => a.ParameterPosition.CompareTo(b.ParameterPosition));
@@ -484,7 +479,6 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
     }
 
     private void GetSymbolOptions(
-        TypeMapSymbol typeMap,
         ISymbol symbol,
         out bool isRequired,
         out int order,
@@ -510,11 +504,7 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
             {
                 var arg = attributeData.ConstructorArguments[0];
 
-                if (arg.Values.IsDefaultOrEmpty)
-                {
-                    typeMap.Context.ReportDiagnostic(Diagnostics.EmptyHeaderValuesAttribute(typeMap.Type, symbol));
-                }
-                else
+                if (!arg.Values.IsDefaultOrEmpty)
                 {
                     names = arg.Values.Select(v => v.Value?.ToString() ?? "");
                 }
