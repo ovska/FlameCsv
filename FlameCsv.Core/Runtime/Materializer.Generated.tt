@@ -114,8 +114,10 @@ internal sealed class Materializer<T, <#= generics #>>
         }
 #>
 
-    public TResult Parse(ref CsvEnumerationStateRef<T> state)
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
     {
+        reader.TryEnsureFieldCount(FieldCount);
+
 <#
         for (var i = 0; i < current; i++)
         {
@@ -123,51 +125,13 @@ internal sealed class Materializer<T, <#= generics #>>
             Write(genericTypes[i]);
             Write(" ");
             Write(values[i]);
-            Write(" = ParseNext(ref state, parser");
+            Write(" = ParseNext(ref reader, parser");
             Write(i.ToString());
             WriteLine(");");
         }
 #>
 
-        state.EnsureFullyConsumed(FieldCount);
-
-<#
-        Write("        return valueFactory(");
-        for (var i = 0; i < current; i++)
-        {
-            if (i != 0)
-                Write(", ");
-            Write(values[i]);
-        }
-        WriteLine(");");
-#>
-    }
-
-    public TResult Parse(ReadOnlySpan<ReadOnlyMemory<T>> fields, in CsvReadingContext<T> context)
-    {
-        if (FieldCount != fields.Length) Throw.InvalidData_FieldCount(FieldCount, fields.Length);
-        _ = fields[<#= current - 1 #>]; // elide bounds checks
-
-<#
-        for (var i = 0; i < current; i++)
-        {
-            string iStr = i.ToString();
-            string parser = "parser" + iStr;
-            Write("        if (!");
-            Write(parser);
-            Write(".TryParse(fields[");
-            Write(iStr);
-            Write("].Span, out ");
-            Write(genericTypes[i]);
-            Write(" ");
-            Write(values[i]);
-            Write(")) Throw.ParseFailed(fields[");
-            Write(iStr);
-            Write("], typeof(");
-            Write(genericTypes[i]);
-            WriteLine("), in context);");
-        }
-#>
+        reader.EnsureFullyConsumed(FieldCount);
 
 <#
         Write("        return valueFactory(");

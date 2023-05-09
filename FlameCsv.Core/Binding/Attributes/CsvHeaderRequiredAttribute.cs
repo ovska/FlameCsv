@@ -4,9 +4,9 @@
 /// Marks the member as being required when matching to header fields.
 /// </summary>
 /// <remarks>
-/// Constructor parameters are always required, and this attribute not usable on them.
+/// Constructor parameters without default values are always required.
 /// </remarks>
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
 public sealed class CsvHeaderRequiredAttribute : Attribute
 {
 }

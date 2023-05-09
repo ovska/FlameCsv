@@ -2,6 +2,7 @@
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Parsers;
+using FlameCsv.Reading;
 
 namespace FlameCsv.Runtime;
 

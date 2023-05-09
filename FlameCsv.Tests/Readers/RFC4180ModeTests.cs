@@ -213,9 +213,9 @@ public static class RFC4180ModeTests
 
         CsvEnumerationStateRef<char> state = new(in context, line.AsMemory(), ref buffer);
 
-        while (RFC4180Mode<char>.TryGetField(ref state, out ReadOnlyMemory<char> field))
+        while (!state.remaining.IsEmpty)
         {
-            list.Add(field.ToString());
+            list.Add(RFC4180Mode<char>.ReadNextField(ref state).ToString());
         }
 
         Assert.Equal(expected, list);
@@ -248,9 +248,9 @@ public static class RFC4180ModeTests
 
             var list = new List<string>();
 
-            while (RFC4180Mode<char>.TryGetField(ref state, out ReadOnlyMemory<char> field))
+            while (!state.remaining.IsEmpty)
             {
-                list.Add(field.ToString());
+                list.Add(RFC4180Mode<char>.ReadNextField(ref state).ToString());
             }
 
             Assert.Equal(2, list.Count);

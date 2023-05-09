@@ -1,5 +1,4 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 
@@ -7,25 +6,6 @@ namespace FlameCsv.Reading;
 
 internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
 {
-    /// <summary>
-    /// Reads the next field from the state if it is not empty.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryGetField(
-        ref CsvEnumerationStateRef<T> state,
-        out ReadOnlyMemory<T> field)
-    {
-        if (!state.remaining.IsEmpty)
-        {
-            field = ReadNextField(ref state);
-            return true;
-        }
-
-        state.EnsureFullyConsumed(-1);
-        field = default;
-        return false;
-    }
-
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static ReadOnlyMemory<T> ReadNextField(ref CsvEnumerationStateRef<T> state)
     {

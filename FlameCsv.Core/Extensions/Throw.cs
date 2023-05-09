@@ -112,7 +112,7 @@ internal static class Throw
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
-    public static void Argument_FieldIndex<T>(int index, CsvEnumerationState<T>? state = null)
+    public static void Argument_FieldIndex<T>(int index, EnumeratorState<T>? state = null)
             where T : unmanaged, IEquatable<T>
     {
         string? knownFieldCount = null;

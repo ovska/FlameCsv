@@ -28,7 +28,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IE
     public long Position { get; protected set; }
 
     private readonly CsvReadingContext<T> _context;
-    private readonly CsvEnumerationState<T> _state;
+    private readonly EnumeratorState<T> _state;
 
     private T[]? _multisegmentBuffer; // rented array for multi-segmented lines
 
@@ -40,7 +40,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IE
     {
         context.EnsureValid();
         _context = context;
-        _state = new CsvEnumerationState<T>(in _context);
+        _state = new EnumeratorState<T>(in _context);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

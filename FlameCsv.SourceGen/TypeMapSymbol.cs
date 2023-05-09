@@ -4,18 +4,18 @@ public readonly struct TypeMapSymbol
 {
     public TypeMapSymbol(
         INamedTypeSymbol containingClass,
-        AttributeData attribute,
+        AttributeData csvTypeMapAttribute,
         GeneratorExecutionContext context)
     {
         ContainingClass = containingClass;
-        Token = attribute.AttributeClass!.TypeArguments[0];
-        Type = attribute.AttributeClass.TypeArguments[1];
+        TokenSymbol = csvTypeMapAttribute.AttributeClass!.TypeArguments[0];
+        Type = csvTypeMapAttribute.AttributeClass.TypeArguments[1];
         Context = context;
-        TokenName = Token.ToDisplayString();
+        Token = TokenSymbol.ToDisplayString();
         ResultName = Type.ToDisplayString();
-        HandlerArgs = $"(ref TypeMapState state, ref {ResultName} value, ReadOnlySpan<{TokenName}> field)";
+        HandlerArgs = $"(ref TypeMapMaterializer materializer, ref ParseState state, ReadOnlySpan<{Token}> field)";
 
-        foreach (var arg in attribute.NamedArguments)
+        foreach (var arg in csvTypeMapAttribute.NamedArguments)
         {
             if (arg.Key.Equals("IgnoreUnmatched", StringComparison.OrdinalIgnoreCase))
             {
@@ -28,6 +28,26 @@ public readonly struct TypeMapSymbol
             else if (arg.Key.Equals("SkipStaticInstance", StringComparison.OrdinalIgnoreCase))
             {
                 SkipStaticInstance = (bool)arg.Value.Value!;
+            }
+        }
+
+        TargetedHeaders = new();
+
+        foreach (var attribute in Type.GetAttributes())
+        {
+            if (attribute.AttributeClass?.MetadataName == "FlameCsv.Binding.Attributes.CsvHeaderTargetAttribute")
+            {
+                var member = attribute.ConstructorArguments[0].Value as string;
+
+                if (!TargetedHeaders.TryGetValue(member!, out var set))
+                {
+                    TargetedHeaders[member!] = set = new HashSet<string>();
+                }
+
+                foreach (var value in attribute.ConstructorArguments[1].Values)
+                {
+                    set.Add((string)value.Value!);
+                }
             }
         }
     }
@@ -45,13 +65,15 @@ public readonly struct TypeMapSymbol
     /// <summary>
     /// Parsed token type.
     /// </summary>
-    public ITypeSymbol Token { get; }
+    public ITypeSymbol TokenSymbol { get; }
 
-    public string TokenName { get; }
+    public string Token { get; }
 
     public string ResultName { get; }
 
     public string HandlerArgs { get; }
+
+    public Dictionary<string, HashSet<string>> TargetedHeaders { get; }
 
     /// <summary>
     /// Current context.

@@ -12,6 +12,7 @@
   <PropertyGroup>
     <TieredCompilation>false</TieredCompilation>
     <TieredPGO>true</TieredPGO>
+    <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
   <ItemGroup>

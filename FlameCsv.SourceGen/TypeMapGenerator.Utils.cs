@@ -89,6 +89,26 @@ public partial class TypeMapGenerator
         return $"((ICsvParserFactory<{token.ToDisplayString()}>){init}).Create<{memberType.ToDisplayString()}>(options)";
     }
 
+    private bool IsReferenceOrContainsReferences(ITypeSymbol symbol)
+    {
+        if (symbol.IsUnmanagedType)
+            return false;
+
+        if (symbol.IsReferenceType)
+            return true;
+
+        foreach (var member in symbol.GetMembers())
+        {
+            if (member is IFieldSymbol field && !field.IsStatic && IsReferenceOrContainsReferences(field.Type))
+                return true;
+
+            if (member is IPropertySymbol property && !property.IsStatic && IsReferenceOrContainsReferences(property.Type))
+                return true;
+        }
+
+        return false;
+    }
+
     private string GetAccessModifier(INamedTypeSymbol classSymbol)
     {
         return classSymbol.DeclaredAccessibility switch

@@ -1,5 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-
 namespace FlameCsv;
 
 public readonly struct CsvRowSkipArgs<T> where T : unmanaged, IEquatable<T>
