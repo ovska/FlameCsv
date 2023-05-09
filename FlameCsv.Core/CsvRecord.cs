@@ -1,6 +1,9 @@
 ﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using FlameCsv.Binding;
+using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
+using FlameCsv.Parsers;
 using FlameCsv.Reading;
 using FlameCsv.Runtime;
 
@@ -63,7 +66,20 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
             materializer = _context.Options.GetMaterializer<T, TRecord>();
         }
 
-        return materializer.Parse(_values, in _context);
+        CsvRecordFieldReader<T> reader = new(_values, in _context);
+        return materializer.Parse(ref reader);
+    }
+
+    public TRecord ParseRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap)
+    {
+        ArgumentNullException.ThrowIfNull(typeMap);
+        
+        IMaterializer<T, TRecord> materializer = _header is not null
+            ? typeMap.GetMaterializer(_headerNames, in _context)
+            : typeMap.GetMaterializer(in _context);
+
+        CsvRecordFieldReader<T> reader = new(_values, in _context);
+        return materializer.Parse(ref reader);
     }
 
     public virtual ReadOnlyMemory<T> GetField(int index) => _values.AsSpan()[index];
@@ -195,6 +211,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         ReadOnlyMemory<T> record,
         in CsvReadingContext<T> context)
     {
+        throw new NotImplementedException();
         //if (!Token<T>.LargeObjectHeapAllocates(record.Length * 2))
         //{
         //    T[]? buffer = null;
@@ -225,27 +242,27 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         //    }
         //}
         //else
-        {
-            ReadOnlyMemory<T>[] values = new ReadOnlyMemory<T>[16];
-            int index = 0;
-            T[]? buffer = null;
+        //{
+        //    ReadOnlyMemory<T>[] values = new ReadOnlyMemory<T>[16];
+        //    int index = 0;
+        //    T[]? buffer = null;
 
-            // TODO!!!
-            using (CsvEnumerationStateRef<T>.CreateTemporary(in context, record, ref buffer, out var state))
-            {
-                while (!state.remaining.IsEmpty)
-                {
-                    if (index >= values.Length)
-                        Array.Resize(ref values, values.Length * 2);
+        //    // TODO!!!
+        //    using (CsvEnumerationStateRef<T>.CreateTemporary(in context, record, ref buffer, out var state))
+        //    {
+        //        while (!state.remaining.IsEmpty)
+        //        {
+        //            if (index >= values.Length)
+        //                Array.Resize(ref values, values.Length * 2);
 
-                    values[index++] = context.ReadNextField(ref state).SafeCopy();
-                }
+        //            values[index++] = context.ReadNextField(ref state).SafeCopy();
+        //        }
 
-                return new PreservedValues(
-                    record.SafeCopy(),
-                    new ArraySegment<ReadOnlyMemory<T>>(values, 0, index));
-            }
-        }
+        //        return new PreservedValues(
+        //            record.SafeCopy(),
+        //            new ArraySegment<ReadOnlyMemory<T>>(values, 0, index));
+        //    }
+        //}
     }
 
     IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator()
@@ -274,6 +291,54 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
             record = Record;
             fields = Fields;
         }
+    }
+}
+
+internal struct CsvRecordFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IEquatable<T>
+{
+    private readonly ArraySegment<ReadOnlyMemory<T>> _values;
+    private readonly CsvReadingContext<T> _context;
+    private int _index;
+
+    public CsvRecordFieldReader(ArraySegment<ReadOnlyMemory<T>> values, in CsvReadingContext<T> context)
+    {
+        _values = values;
+        _context = context;
+    }
+
+    public void EnsureFullyConsumed(int fieldCount)
+    {
+        if (_index != _values.Count)
+            Throw.InvalidData_FieldCount(fieldCount, _values.Count);
+    }
+
+    [DoesNotReturn]
+    public void ThrowParseFailed(ReadOnlyMemory<T> field, ICsvParser<T>? parser)
+    {
+        string withStr = parser is null ? "" : $" with {parser.GetType()}";
+
+        throw new CsvParseException(
+            $"Failed to parse{withStr} from {_context.AsPrintableString(field.Span)}.")
+        { Parser = parser };
+    }
+
+    public void TryEnsureFieldCount(int fieldCount)
+    {
+        if (_values.Count != fieldCount)
+            Throw.InvalidData_FieldCount(fieldCount, _values.Count);
+    }
+
+    public bool TryReadNext(out ReadOnlyMemory<T> field)
+    {
+        if ((uint)_index < (uint)_values.Count)
+        {
+            field = _values[_index++];
+            return true;
+        }
+
+        _index = -1;
+        field = default;
+        return false;
     }
 }
 

@@ -7,25 +7,6 @@ namespace FlameCsv.Reading;
 internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
-    /// Reads the next field from the state if it is not empty.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryGetField(
-        ref CsvEnumerationStateRef<T> state,
-        out ReadOnlyMemory<T> field)
-    {
-        if (!state.remaining.IsEmpty)
-        {
-            field = ReadNextField(ref state);
-            return true;
-        }
-
-        state.EnsureFullyConsumed(-1);
-        field = default;
-        return false;
-    }
-
-    /// <summary>
     /// Reads the next field from a <strong>non-empty</strong> state.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]

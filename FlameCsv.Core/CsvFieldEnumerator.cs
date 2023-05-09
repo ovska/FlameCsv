@@ -12,14 +12,12 @@ public struct CsvFieldEnumerator<T> : IDisposable where T : unmanaged, IEquatabl
     private readonly ArrayPool<T>? _arrayPool;
     private T[]? _toReturn;
 
-    private readonly CsvReadingContext<T> _context;
     private CsvEnumerationStateRef<T> _state;
 
     internal CsvFieldEnumerator(ReadOnlyMemory<T> value, in CsvReadingContext<T> context)
     {
         Throw.IfDefaultStruct<CsvFieldEnumerator<T>>(context.ArrayPool);
 
-        _context = context;
         _arrayPool = context.ArrayPool;
         _state = new CsvEnumerationStateRef<T>(in context, value, ref _toReturn);
     }
@@ -27,7 +25,7 @@ public struct CsvFieldEnumerator<T> : IDisposable where T : unmanaged, IEquatabl
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool MoveNext()
     {
-        if (_context.TryGetField(ref _state, out ReadOnlyMemory<T> field))
+        if (((ICsvFieldReader<T>)_state).TryReadNext(out ReadOnlyMemory<T> field))
         {
             Current = field;
             return true;

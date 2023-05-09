@@ -75,7 +75,7 @@ internal struct CsvHeaderProcessor<T, TValue> : ICsvProcessor<T, TValue>
             {
                 List<string> values = new(16);
 
-                while (_context.TryGetField(ref state, out ReadOnlyMemory<T> field))
+                while (state.TryReadNext(out ReadOnlyMemory<T> field))
                 {
                     values.Add(_context.Options.GetAsString(field.Span));
                 }

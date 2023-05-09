@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -119,23 +118,6 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
         line = default;
         meta = default;
         return false;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetField(ref CsvEnumerationStateRef<T> state, out ReadOnlyMemory<T> line)
-    {
-        return _dialect.IsRFC4188Mode
-            ? RFC4180Mode<T>.TryGetField(ref state, out line)
-            : EscapeMode<T>.TryGetField(ref state, out line);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ReadOnlyMemory<T> ReadNextField(ref CsvEnumerationStateRef<T> state)
-    {
-        Debug.Assert(!state.remaining.IsEmpty);
-        return _dialect.IsRFC4188Mode
-            ? RFC4180Mode<T>.ReadNextField(ref state)
-            : EscapeMode<T>.ReadNextField(ref state);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

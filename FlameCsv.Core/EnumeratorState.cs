@@ -6,7 +6,7 @@ using FlameCsv.Reading;
 
 namespace FlameCsv;
 
-internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, IEquatable<T>
+internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEquatable<T>
 {
     public bool NeedsHeader
     {
@@ -44,7 +44,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     private Dictionary<Type, object>? _materializerCache;
     private int? _expectedFieldCount;
 
-    public CsvEnumerationState(in CsvReadingContext<T> context)
+    public EnumeratorState(in CsvReadingContext<T> context)
     {
         _context = context;
         _fields = new ReadOnlyMemory<T>[16];
@@ -148,7 +148,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     {
         Throw.IfEnumerationDisposed(_disposed);
 
-        if (_context.TryGetField(ref _state, out ReadOnlyMemory<T> field))
+        if (_state.TryReadNext(out ReadOnlyMemory<T> field))
         {
             if (_fields.Length <= _index)
             {
@@ -197,7 +197,7 @@ internal sealed class CsvEnumerationState<T> : IDisposable where T : unmanaged, 
     }
 
 #if DEBUG
-    ~CsvEnumerationState()
+    ~EnumeratorState()
     {
         if (!_disposed)
         {

@@ -5,7 +5,6 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -13,7 +12,7 @@ using FlameCsv.Parsers;
 
 namespace FlameCsv.Reading;
 
-internal struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
+internal struct CsvEnumerationStateRef<T> : ICsvFieldReader<T> where T : unmanaged, IEquatable<T>
 {
     public readonly CsvReadingContext<T> _context;
     private readonly ReadOnlyMemory<T> _record;
@@ -37,6 +36,7 @@ internal struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
             meta: meta ?? context.GetRecordMeta(record),
             array: ref array)
     {
+
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -70,13 +70,40 @@ internal struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryReadNext(out ReadOnlyMemory<T> field)
+    {
+        if (!remaining.IsEmpty)
+        {
+            field = _context.Dialect.IsRFC4188Mode
+                ? RFC4180Mode<T>.ReadNextField(ref this)
+                : EscapeMode<T>.ReadNextField(ref this);
+            return true;
+        }
+
+        Unsafe.SkipInit(out field);
+        return false;
+    }
+
+    readonly void ICsvFieldReader<T>.TryEnsureFieldCount(int fieldCount)
+    {
+    }
+
     public readonly void EnsureFullyConsumed(int fieldCount)
     {
         if (((uint)remaining.Length | quotesRemaining | escapesRemaining) == 0)
             return;
 
         ThrowNotFullyConsumed(fieldCount);
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public readonly void ThrowParseFailed(ReadOnlyMemory<T> field, ICsvParser<T>? parser)
+    {
+        string withStr = parser is null ? "" : $" with {parser.GetType()}";
+
+        throw new CsvParseException(
+            $"Failed to parse{withStr} from {_context.AsPrintableString(field.Span)}.")
+        { Parser = parser };
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -98,16 +125,6 @@ internal struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public readonly void ThrowParseFailed(ReadOnlySpan<T> field, ICsvParser<T>? parser)
-    {
-        string withStr = parser is null ? "" : $" with {parser.GetType()}";
-
-        throw new CsvParseException(
-            $"Failed to parse{withStr} from {_context.AsPrintableString(field)} in {GetType().ToTypeString()}.")
-        { Parser = parser };
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public readonly void ThrowEscapeAtEnd()
     {
         throw new UnreachableException(
@@ -126,7 +143,7 @@ internal struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private readonly void ThrowNotFullyConsumed(int fieldCount)
+    public readonly void ThrowNotFullyConsumed(int fieldCount)
     {
         StringBuilder sb = new(capacity: 128);
 
@@ -158,7 +175,7 @@ internal struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
     /// Creates a new <see cref="CsvEnumerationStateRef{T}"/> from the given <paramref name="record"/>
     /// and returns a disposable that ensures the <paramref name="array"/> is returned to the context's pool.
     /// </summary>
-    public static Lifetime CreateTemporary(
+    internal static Lifetime CreateTemporary(
         in CsvReadingContext<T> context,
         ReadOnlyMemory<T> record,
         ref T[]? array,
@@ -168,7 +185,7 @@ internal struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
         return new Lifetime(context.ArrayPool, ref array);
     }
 
-    public readonly ref struct Lifetime
+    internal readonly ref struct Lifetime
     {
         private readonly ArrayPool<T> _arrayPool;
         private readonly Span<T[]?> _rentedBuffer;

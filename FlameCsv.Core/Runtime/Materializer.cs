@@ -2,7 +2,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Exceptions;
-using FlameCsv.Extensions;
 using FlameCsv.Parsers;
 using FlameCsv.Reading;
 
@@ -26,21 +25,18 @@ internal abstract partial class Materializer<T> where T : unmanaged, IEquatable<
     /// <param name="parser">Parser instance</param>
     /// <typeparam name="TValue">Parsed value</typeparam>
     [MethodImpl(MethodImplOptions.AggressiveInlining)] // should be small enough to inline in Parse()
-    protected TValue ParseNext<TValue>(ref CsvEnumerationStateRef<T> state, ICsvParser<T, TValue> parser)
+    protected TValue ParseNext<TReader, TValue>(ref TReader reader, ICsvParser<T, TValue> parser)
+        where TReader : ICsvFieldReader<T>
     {
-        if (!state.remaining.IsEmpty)
+        if (reader.TryReadNext(out ReadOnlyMemory<T> field))
         {
-            ReadOnlyMemory<T> field = !state._context.Dialect.Escape.HasValue
-                ? RFC4180Mode<T>.ReadNextField(ref state)
-                : EscapeMode<T>.ReadNextField(ref state);
-
             if (parser.TryParse(field.Span, out TValue? value))
                 return value;
 
-            ThrowParseFailed(ref state, field, parser);
+            ThrowParseFailed(field, parser);
         }
 
-        ThrowRecordEndedPrematurely(ref state);
+        ThrowRecordEndedPrematurely();
         return default;
     }
 
@@ -55,15 +51,17 @@ internal abstract partial class Materializer<T> where T : unmanaged, IEquatable<
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private void ThrowRecordEndedPrematurely(ref CsvEnumerationStateRef<T> state)
+    private void ThrowRecordEndedPrematurely(/*ref CsvEnumerationStateRef<T> state*/)
     {
-        state.ThrowRecordEndedPrematurely(FieldCount, RecordType);
+        throw new NotImplementedException();
+        //state.ThrowRecordEndedPrematurely(FieldCount, RecordType);
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowParseFailed(ref CsvEnumerationStateRef<T> state, ReadOnlyMemory<T> field, ICsvParser<T> parser)
+    private static void ThrowParseFailed(/*ref CsvEnumerationStateRef<T> state, */ReadOnlyMemory<T> field, ICsvParser<T> parser)
     {
-        state.ThrowParseFailed(field.Span, parser);
+        throw new NotImplementedException();
+        //state.ThrowParseFailed(field.Span, parser);
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]

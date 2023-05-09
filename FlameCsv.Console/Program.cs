@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text.Json.Serialization;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Parsers.Text;
@@ -22,20 +24,51 @@ namespace FlameCsv.Console
         }
     }
 
-    [CsvTypeMap<char, Obj>(ThrowOnDuplicate = true, IgnoreUnmatched = true)]
+
+    [CsvTypeMap<char, Obj>(ThrowOnDuplicate = false, IgnoreUnmatched = false)]
     partial class ObjTypeMap
     {
     }
 
     public class Obj
     {
-        [CsvHeader(Order = -1)] public int Id { get; set; }
+        [CsvConstructor]
+        public Obj(
+            long position = 0,
+            [CsvHeaderRequired, CsvHeader(Order = -1)] in int id = -1)
+        {
+            Id = id;
+            Position = position;
+        }
+
+        public long Position { get; }
+
+        public int Id { get; }
 
         [CsvHeaderRequired]
         [CsvParserOverride<char, StringTextParser>]
-        public string? Name { get; set; }
+        public string Name { get; init; }
 
         [CsvHeader("isenabled", "is_enabled", Order = 5)] public bool IsEnabled { get; set; }
+    }
+
+    [StructLayoutAttribute(LayoutKind.Sequential)]
+    public struct StructWithoutReferences
+    {
+        public int a, b, c;
+    }
+
+    [StructLayoutAttribute(LayoutKind.Sequential)]
+    public struct StructWithReferences
+    {
+        public int a, b, c;
+        public object d;
+    }
+
+    public struct StructWithReferences2
+    {
+        public int a, b, c;
+        public object d { get; }
     }
 }
 

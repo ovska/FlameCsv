@@ -1,4 +1,18 @@
-﻿BenchmarkRunner.Run<BindingBench>();
+﻿//BenchmarkRunner.Run<BindingBench>();
+
+var bb = new BindingBench();
+
+// Repeat 10 times
+for (var i = 0; i < 10; i++)
+{
+    bb.FlameTypeMap();
+}
+
+Console.ReadLine();
+
+bb.FlameTypeMap();
+
+Console.ReadLine();
 
 //new ModeBench2().Old();
 

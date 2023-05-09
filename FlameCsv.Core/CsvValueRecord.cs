@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using FlameCsv.Binding;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Runtime;
@@ -26,6 +27,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
             return _record;
         }
     }
+
     public CsvDialect<T> Dialect
     {
         get
@@ -48,7 +50,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
     public ReadOnlyMemory<T> this[int index] => GetField(index);
     public ReadOnlyMemory<T> this[string name] => GetField(name);
 
-    internal readonly CsvEnumerationState<T> _state;
+    internal readonly EnumeratorState<T> _state;
     internal readonly CsvReaderOptions<T> _options;
 
     private readonly int _version;
@@ -61,7 +63,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
         ReadOnlyMemory<T> data,
         CsvReaderOptions<T> options,
         RecordMeta meta,
-        CsvEnumerationState<T> state)
+        EnumeratorState<T> state)
     {
         Position = position;
         Line = line;
@@ -213,8 +215,20 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
         }
 
         IMaterializer<T, TRecord> materializer = (IMaterializer<T, TRecord>)obj;
+        CsvRecordFieldReader<T> reader = new(_state.GetFields(), in _state._context);
+        return materializer.Parse(ref reader);
+    }
 
-        return materializer.Parse(_state.GetFields(), in _state._context);
+    public TRecord ParseRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap)
+    {
+        ArgumentNullException.ThrowIfNull(typeMap);
+
+        IMaterializer<T, TRecord> materializer = _state._headerNames is not null
+            ? typeMap.GetMaterializer(_state._headerNames, in _state._context)
+            : typeMap.GetMaterializer(in _state._context);
+
+        CsvRecordFieldReader<T> reader = new(_state.GetFields(), in _state._context);
+        return materializer.Parse(ref reader);
     }
 
     public struct Enumerator
@@ -223,11 +237,11 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
 
         private readonly int _version;
         private readonly ArraySegment<ReadOnlyMemory<T>> _fields;
-        private readonly CsvEnumerationState<T> _state;
+        private readonly EnumeratorState<T> _state;
         private int _index;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Enumerator(int version, CsvEnumerationState<T> state)
+        internal Enumerator(int version, EnumeratorState<T> state)
         {
             state.EnsureVersion(version);
             state.FullyConsume();

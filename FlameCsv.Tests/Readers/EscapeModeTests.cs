@@ -50,8 +50,10 @@ public static class EscapeModeTests
         {
             List<string> actual = new();
 
-            while (EscapeMode<char>.TryGetField(ref state, out ReadOnlyMemory<char> field))
-                actual.Add(field.ToString());
+            while (!state.remaining.IsEmpty)
+            {
+                actual.Add(EscapeMode<char>.ReadNextField(ref state).ToString());
+            }
 
             Assert.Equal(expected, actual);
         }
