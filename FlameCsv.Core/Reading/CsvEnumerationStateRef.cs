@@ -100,8 +100,10 @@ internal struct CsvEnumerationStateRef<T> where T : unmanaged, IEquatable<T>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public readonly void ThrowParseFailed(ReadOnlySpan<T> field, ICsvParser<T>? parser)
     {
+        string withStr = parser is null ? "" : $" with {parser.GetType()}";
+
         throw new CsvParseException(
-            $"Failed to parse with {parser.GetType()} from {_context.AsPrintableString(field)} in {GetType().ToTypeString()}.")
+            $"Failed to parse{withStr} from {_context.AsPrintableString(field)} in {GetType().ToTypeString()}.")
         { Parser = parser };
     }
 
