@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 
 namespace FlameCsv.Benchmark;
@@ -11,7 +12,11 @@ public class CsvReadBench
 {
     private static readonly byte[] _bytes
         = File.ReadAllBytes("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv");
-    private static Stream GetFileStream() => new MemoryStream(_bytes);
+    private static readonly byte[] _bytes_h
+        = "Index,Name,Contact,Count,Latitude,Longitude,Height,Location,Category,Popularity"u8.ToArray().Concat(_bytes).ToArray();
+    private Stream GetFileStream() =>  new MemoryStream(Header ? _bytes_h : _bytes);
+
+    [Params(true, false)] public bool Header { get; set; }
 
     [Benchmark(Baseline = true)]
     public async Task Helper()
@@ -19,7 +24,7 @@ public class CsvReadBench
         var config = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture)
         {
             NewLine = Environment.NewLine,
-            HasHeaderRecord = false,
+            HasHeaderRecord = Header,
         };
 
         using var reader = new StreamReader(GetFileStream(), Encoding.UTF8);
@@ -37,7 +42,7 @@ public class CsvReadBench
         await foreach (var record in CsvReader.ReadAsync<Entry>(
             GetFileStream(),
             CsvTextReaderOptions.Default,
-            context: new() { HasHeader = false },
+            context: new() { HasHeader = Header },
             encoding: Encoding.UTF8))
         {
             _ = record;
@@ -50,7 +55,34 @@ public class CsvReadBench
         await foreach (var record in CsvReader.ReadAsync<Entry>(
             GetFileStream(),
             CsvUtf8ReaderOptions.Default,
-            context: new() { HasHeader = false }))
+            context: new() { HasHeader = Header }))
+        {
+            _ = record;
+        }
+    }
+
+    [Benchmark]
+    public async Task FlameText_SG()
+    {
+        await foreach (var record in CsvReader.ReadAsync<Entry>(
+            GetFileStream(),
+            EntryTypeMap_Text.Instance,
+            CsvTextReaderOptions.Default,
+            context: new() { HasHeader = Header },
+            encoding: Encoding.UTF8))
+        {
+            _ = record;
+        }
+    }
+
+    [Benchmark]
+    public async Task FlameUtf8_SG()
+    {
+        await foreach (var record in CsvReader.ReadAsync<Entry>(
+            GetFileStream(),
+            EntryTypeMap_Utf8.Instance,
+            CsvUtf8ReaderOptions.Default,
+            context: new() { HasHeader = Header }))
         {
             _ = record;
         }
@@ -79,4 +111,16 @@ public class CsvReadBench
         [CsvHelper.Configuration.Attributes.Index(9), CsvIndex(9)]
         public double? Popularity { get; set; }
     }
+}
+
+[CsvTypeMap<char, CsvReadBench.Entry>]
+internal partial class EntryTypeMap_Text
+{
+
+}
+
+[CsvTypeMap<byte, CsvReadBench.Entry>]
+internal partial class EntryTypeMap_Utf8
+{
+
 }

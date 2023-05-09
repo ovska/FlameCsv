@@ -195,9 +195,8 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
     {
         _state.EnsureVersion(_version);
 
-        var cache = _state.MaterializerCache;
 
-        if (!cache.TryGetValue(typeof(TRecord), out object? obj))
+        if (!_state.MaterializerCache.TryGetValue(typeof(TRecord), out object? obj))
         {
             var headers = _state._headerNames;
 
@@ -211,7 +210,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
                 obj = _options.GetMaterializer<T, TRecord>();
             }
 
-            cache[typeof(TRecord)] = obj;
+            _state.MaterializerCache[typeof(TRecord)] = obj;
         }
 
         IMaterializer<T, TRecord> materializer = (IMaterializer<T, TRecord>)obj;
@@ -223,10 +222,16 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
     {
         ArgumentNullException.ThrowIfNull(typeMap);
 
-        IMaterializer<T, TRecord> materializer = _state._headerNames is not null
-            ? typeMap.GetMaterializer(_state._headerNames, in _state._context)
-            : typeMap.GetMaterializer(in _state._context);
+        if (!_state.MaterializerCache.TryGetValue(typeMap, out object? obj))
+        {
+            obj = _state._headerNames is not null
+                ? typeMap.GetMaterializer(_state._headerNames, in _state._context)
+                : typeMap.GetMaterializer(in _state._context);
 
+            _state.MaterializerCache[typeMap] = obj;
+        }
+
+        IMaterializer<T, TRecord> materializer = (IMaterializer<T, TRecord>)obj;
         CsvRecordFieldReader<T> reader = new(_state.GetFields(), in _state._context);
         return materializer.Parse(ref reader);
     }
