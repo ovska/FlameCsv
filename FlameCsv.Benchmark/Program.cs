@@ -1,18 +1,18 @@
-﻿//BenchmarkRunner.Run<BindingBench>();
+﻿BenchmarkRunner.Run<CsvReadBench>();
 
-var bb = new BindingBench();
+//var bb = new BindingBench();
 
-// Repeat 10 times
-for (var i = 0; i < 10; i++)
-{
-    bb.FlameTypeMap();
-}
+//// Repeat 10 times
+//for (var i = 0; i < 10; i++)
+//{
+//    bb.FlameTypeMap();
+//}
 
-Console.ReadLine();
+//Console.ReadLine();
 
-bb.FlameTypeMap();
+//bb.FlameTypeMap();
 
-Console.ReadLine();
+//Console.ReadLine();
 
 //new ModeBench2().Old();
 
