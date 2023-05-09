@@ -85,4 +85,12 @@ public readonly struct TypeMapSymbol
     public bool ThrowOnDuplicate { get; }
 
     public bool SkipStaticInstance { get; }
+
+    /// <exception cref="DiagnosticException" />
+    [DoesNotReturn]
+    public void Fail(Diagnostic diagnostic)
+    {
+        Context.ReportDiagnostic(diagnostic);
+        throw new DiagnosticException($"Source generation failed: {diagnostic}");
+    }
 }

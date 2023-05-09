@@ -24,4 +24,9 @@ namespace System.Diagnostics.CodeAnalysis
     internal sealed class NotNullAttribute : Attribute
     {
     }
+
+    [AttributeUsage(AttributeTargets.Method, Inherited = false)]
+    internal sealed class DoesNotReturnAttribute : Attribute
+    {
+    }
 }
