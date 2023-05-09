@@ -5,6 +5,6 @@
 /// Unnecessary for parameterless constructors.
 /// </summary>
 [AttributeUsage(AttributeTargets.Constructor, AllowMultiple = false, Inherited = false)]
-public sealed class CsvConstuctorAttribute : Attribute
+public sealed class CsvConstructorAttribute : Attribute
 {
 }

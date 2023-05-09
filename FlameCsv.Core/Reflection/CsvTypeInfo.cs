@@ -85,7 +85,7 @@ internal sealed class CsvTypeInfo<[DynamicallyAccessedMembers(Messages.Reflectio
 
                 foreach (var attribute in ctor.GetCustomAttributes(inherit: false))
                 {
-                    if (attribute is CsvConstuctorAttribute)
+                    if (attribute is CsvConstructorAttribute)
                         return Array.ConvertAll(parameters, p => (ParameterData)p);
                 }
 

@@ -8,7 +8,7 @@ namespace FlameCsv.Binding.Attributes;
 /// </summary>
 /// <remarks>
 /// Not applicable for constructor parameters. Instead, create another constructor in the partial file with
-/// <see cref="CsvConstuctorAttribute"/>, and add an unused parameter with <see cref="CsvHeaderExcludeAttribute"/>
+/// <see cref="CsvConstructorAttribute"/>, and add an unused parameter with <see cref="CsvHeaderExcludeAttribute"/>
 /// or change the parameter order.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true)]
