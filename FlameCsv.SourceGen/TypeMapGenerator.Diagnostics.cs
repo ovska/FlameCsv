@@ -54,32 +54,37 @@ public partial class TypeMapGenerator
 
         public static Diagnostic NoConstructorFound(ITypeSymbol type)
         {
-            return Diagnostic.Create(_noCtor, null, type.ToDisplayString());
+            return Diagnostic.Create(_noCtor, GetLocation(type), type.ToDisplayString());
         }
 
-        public static Diagnostic TwoConstructorsFound(ITypeSymbol type)
+        public static Diagnostic TwoConstructorsFound(ITypeSymbol type, IMethodSymbol constructor)
         {
-            return Diagnostic.Create(_duplicateCtor, null, type.ToDisplayString());
+            return Diagnostic.Create(_duplicateCtor, GetLocation(constructor), type.ToDisplayString());
         }
 
-        public static Diagnostic PrivateConstructorFound(ITypeSymbol type)
+        public static Diagnostic PrivateConstructorFound(ITypeSymbol type, IMethodSymbol constructor)
         {
-            return Diagnostic.Create(_privateCtor, null, type.ToDisplayString());
+            return Diagnostic.Create(_privateCtor, GetLocation(constructor), type.ToDisplayString());
         }
 
         public static Diagnostic RefConstructorParameterFound(ITypeSymbol type, IParameterSymbol parameter)
         {
-            return Diagnostic.Create(_refCtorParam, null, type.ToDisplayString(), parameter.RefKind, parameter.ToDisplayString());
+            return Diagnostic.Create(_refCtorParam, GetLocation(parameter), type.ToDisplayString(), parameter.RefKind, parameter.ToDisplayString());
         }
 
         public static Diagnostic RefLikeConstructorParameterFound(ITypeSymbol type, IParameterSymbol parameter)
         {
-            return Diagnostic.Create(_refStructParam, null, type.ToDisplayString(), parameter.ToDisplayString());
+            return Diagnostic.Create(_refStructParam, GetLocation(parameter), type.ToDisplayString(), parameter.ToDisplayString());
         }
 
         public static Diagnostic NoWritableMembersOrParametersFound(ITypeSymbol type)
         {
-            return Diagnostic.Create(_noWritableMembersOrParams, null, type.ToDisplayString());
+            return Diagnostic.Create(_noWritableMembersOrParams, GetLocation(type), type.ToDisplayString());
+        }
+
+        private static Location? GetLocation(ISymbol symbol)
+        {
+            return symbol.Locations.Length == 0 ? null : symbol.Locations[0];
         }
     }
 }

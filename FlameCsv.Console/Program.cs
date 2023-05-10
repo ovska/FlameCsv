@@ -41,6 +41,7 @@ namespace FlameCsv.Console
             Position = position;
         }
 
+
         public long Position { get; }
 
         public int Id { get; }
