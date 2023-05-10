@@ -17,9 +17,15 @@ public partial class TypeMapGenerator : ISourceGenerator
 
         foreach (var typeMapSymbol in GetTypeMapSymbols(context, receiver))
         {
-            context.AddSource(
-                $"{typeMapSymbol.ContainingClass.Name}.G.cs",
-                SourceText.From(CreateTypeMap(typeMapSymbol), Encoding.UTF8));
+            try
+            {
+                context.AddSource(
+                    $"{typeMapSymbol.ContainingClass.Name}.G.cs",
+                    SourceText.From(CreateTypeMap(typeMapSymbol), Encoding.UTF8));
+            }
+            catch (DiagnosticException)
+            {
+            }
         }
     }
 
@@ -327,6 +333,9 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
 
         foreach (var member in typeMap.Type.GetMembers())
         {
+            if (member.DeclaredAccessibility == Accessibility.Private)
+                continue;
+
             bool isRequired;
             int order;
             IEnumerable<string> names;
@@ -350,12 +359,12 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
                     {
                         if (constructor is not null)
                         {
-                            typeMap.Fail(Diagnostics.TwoConstructorsFound(typeMap.Type));
+                            typeMap.Fail(Diagnostics.TwoConstructorsFound(typeMap.Type, constructor));
                         }
 
                         if (ctor.DeclaredAccessibility == Accessibility.Private)
                         {
-                            typeMap.Fail(Diagnostics.PrivateConstructorFound(typeMap.Type));
+                            typeMap.Fail(Diagnostics.PrivateConstructorFound(typeMap.Type, ctor));
                         }
 
                         constructor = ctor;
@@ -432,7 +441,10 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
 
     private IEnumerable<string> WriteMatchers(TypeMapSymbol typeMap)
     {
-        foreach (var binding in _bindings.AllBindings)
+        foreach (var binding in _bindings.AllBindings
+            .OrderByDescending(b => b.Order)
+            .ThenByDescending(b => b is ParameterBinding)
+            .ThenByDescending(b => b.IsRequired))
         {
             string skipDuplicate = "";
             string checkDuplicate = "";
@@ -535,10 +547,9 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
             {
                 foreach (var attributeData in classSymbol.GetAttributes())
                 {
-                    if (attributeData.AttributeClass is { IsGenericType: true } attribute &&
+                    if (attributeData.AttributeClass is { IsGenericType: true, Arity: 2 } attribute &&
                         SymbolEqualityComparer.Default.Equals(attribute.ConstructUnboundGenericType(), _symbols.CsvTypeMapAttribute))
                     {
-
                         yield return new TypeMapSymbol(
                             containingClass: (INamedTypeSymbol)classSymbol,
                             csvTypeMapAttribute: attributeData,
