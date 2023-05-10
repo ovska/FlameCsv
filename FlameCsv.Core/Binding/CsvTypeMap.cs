@@ -44,10 +44,10 @@ public abstract class CsvTypeMap<T, TValue> where T : unmanaged, IEquatable<T>
     protected void ThrowDuplicate(string member, string field, ReadOnlySpan<string> headers, bool exposeContent)
     {
         if (!exposeContent)
-            throw new CsvBindingException<TValue>($"Member '{member}' was matched multiple times out of {headers.Length} headers.");
+            throw new CsvBindingException<TValue>($"'{member}' matched to multiple of the {headers.Length} headers.");
 
         throw new CsvBindingException<TValue>(
-            $"Already matched member '{member}' also matched to field '{field}' in headers [{FormatHeaders(headers)}].");
+            $"\"{member}\" matched to multiple headers, including '{field}' in [{FormatHeaders(headers)}].");
     }
 
     [DoesNotReturn]
@@ -65,20 +65,20 @@ public abstract class CsvTypeMap<T, TValue> where T : unmanaged, IEquatable<T>
         string missingMembers = string.Join(", ", members.Select(x => $"\"{x}\""));
 
         if (!exposeContent)
-            throw new CsvBindingException<TValue>($"Required members [{missingMembers}] were not matched to any header field.");
+            throw new CsvBindingException<TValue>($"Required members/parameters [{missingMembers}] were not matched to any header field.");
 
         throw new CsvBindingException<TValue>(
-            $"Required members [{missingMembers}] were not matched to any header field: [{FormatHeaders(headers)}]");
+            $"Required members/parameters [{missingMembers}] were not matched to any header field: [{FormatHeaders(headers)}]");
     }
 
     [DoesNotReturn]
     protected void ThrowNoFieldsBound(ReadOnlySpan<string> headers, bool exposeContent)
     {
         if (!exposeContent)
-            throw new CsvBindingException<TValue>("No header fields were matched to a member.");
+            throw new CsvBindingException<TValue>("No header fields were matched to a member or parameter.");
 
         throw new CsvBindingException<TValue>(
-            $"No header fields were matched to a member: [{FormatHeaders(headers)}]");
+            $"No header fields were matched to a member or parameter: [{FormatHeaders(headers)}]");
     }
 
     private static string FormatHeaders(ReadOnlySpan<string> headers) => string.Join(", ", headers.ToArray().Select(x => $"\"{x}\""));
