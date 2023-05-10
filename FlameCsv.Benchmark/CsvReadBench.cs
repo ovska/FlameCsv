@@ -10,10 +10,19 @@ namespace FlameCsv.Benchmark;
 //[BenchmarkDotNet.Diagnostics.Windows.Configs.EtwProfiler]
 public class CsvReadBench
 {
-    private static readonly byte[] _bytes
-        = File.ReadAllBytes("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv");
-    private static readonly byte[] _bytes_h
-        = "Index,Name,Contact,Count,Latitude,Longitude,Height,Location,Category,Popularity"u8.ToArray().Concat(_bytes).ToArray();
+    static CsvReadBench()
+    {
+        _bytes = File.ReadAllBytes("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv");
+
+        var header = "Index,Name,Contact,Count,Latitude,Longitude,Height,Location,Category,Popularity\r\n"u8;
+        _bytes_h = new byte[header.Length + _bytes.Length];
+        header.CopyTo(_bytes_h);
+        _bytes.CopyTo(_bytes_h, header.Length);
+    }
+
+    private static readonly byte[] _bytes;
+    private static readonly byte[] _bytes_h;
+
     private Stream GetFileStream() =>  new MemoryStream(Header ? _bytes_h : _bytes);
 
     [Params(true, false)] public bool Header { get; set; }
