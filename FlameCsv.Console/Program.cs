@@ -48,7 +48,7 @@ namespace FlameCsv.Console
 
         [CsvHeaderRequired]
         [CsvParserOverride<char, StringTextParser>]
-        public string Name { get; init; }
+        public string Name { get; init; } = "";
 
         [CsvHeader("isenabled", "is_enabled", Order = 5)] public bool IsEnabled { get; set; }
     }

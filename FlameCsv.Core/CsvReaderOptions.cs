@@ -23,6 +23,10 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
     protected CsvReaderOptions()
     {
         _parsers = new ParserList<T>(this, defaultValues: null);
+
+#if DEBUG
+        _allowContentInExceptions = true;
+#endif
     }
 
     protected CsvReaderOptions(CsvReaderOptions<T> other)
