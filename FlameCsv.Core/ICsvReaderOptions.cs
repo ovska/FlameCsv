@@ -1,5 +1,5 @@
 ﻿using System.Buffers;
-using FlameCsv.Writers;
+using FlameCsv.Writing;
 
 namespace FlameCsv;
 

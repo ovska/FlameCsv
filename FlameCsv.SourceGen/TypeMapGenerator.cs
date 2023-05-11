@@ -499,20 +499,10 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
         order = default;
         isRequired = default;
         names = null;
-        bool foundHeader = false;
-        bool foundRequired = false;
 
         foreach (var attributeData in symbol.GetAttributes())
         {
-            if (!isRequired &&
-                SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, _symbols.CsvHeaderRequiredAttribute))
-            {
-                isRequired = true;
-                foundRequired = true;
-            }
-
-            if (!foundHeader &&
-                SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, _symbols.CsvHeaderAttribute))
+            if (SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, _symbols.CsvHeaderAttribute))
             {
                 var arg = attributeData.ConstructorArguments[0];
 
@@ -521,12 +511,8 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
                     names = arg.Values.Select(v => v.Value?.ToString() ?? "");
                 }
 
-                order = attributeData.NamedArguments.FirstOrDefault(x => x.Key == "Order").Value.Value is int _order ? _order : 1;
-                foundHeader = true;
-            }
-
-            if (foundHeader && foundRequired)
-            {
+                isRequired = attributeData.NamedArguments.FindValueOrDefault(x => x.Key == "Required").Value.Value is bool b && b;
+                order = attributeData.NamedArguments.FindValueOrDefault(x => x.Key == "Order").Value.Value is int _order ? _order : 1;
                 break;
             }
         }

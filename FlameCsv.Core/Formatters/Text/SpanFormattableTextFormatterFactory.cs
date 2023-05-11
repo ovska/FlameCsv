@@ -1,4 +1,4 @@
-using FlameCsv.Writers;
+using FlameCsv.Writing;
 
 namespace FlameCsv.Formatters.Text;
 

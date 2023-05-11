@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 
-namespace FlameCsv.Writers;
+namespace FlameCsv.Writing;
 
 internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
 {
@@ -11,12 +11,13 @@ internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
     /// Returns whether the value contains a delimiter, quote or newline characters.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool NeedsQuoting(
+    public static bool NeedsQuotingRFC4188(
         scoped ReadOnlySpan<T> value,
         in CsvDialect<T> dialect,
         out int quoteCount)
     {
         Debug.Assert(!value.IsEmpty);
+        Debug.Assert(dialect.IsRFC4188Mode);
 
         int index;
         ReadOnlySpan<T> newLine = dialect.Newline.Span;
@@ -52,6 +53,8 @@ internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
         return true;
     }
 
+    // TODO: escaped CSV support
+
     /// <summary>
     /// Escapes <paramref name="source"/> into <paramref name="destination"/> by wrapping it in quotes and escaping
     /// possible quotes in the value.
@@ -59,15 +62,16 @@ internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
     /// <param name="source">Data that needs escaping</param>
     /// <param name="destination">Destination buffer, can be the same memory region as source</param>
     /// <param name="quote">Quote token</param>
-    /// <param name="quoteCount">Amount of quotes in the source</param>
+    /// <param name="specialCount">Amount of quotes/escapes in the source</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Escape(
+    public static void Escape<TEscaper>(
+        in TEscaper escaper,
         scoped ReadOnlySpan<T> source,
         scoped Span<T> destination,
-        T quote,
-        int quoteCount)
+        int specialCount)
+        where TEscaper : struct, IEscaper<T>
     {
-        Debug.Assert(destination.Length >= source.Length + quoteCount + 2, "Destination buffer is too small");
+        Debug.Assert(destination.Length >= source.Length + specialCount + 2, "Destination buffer is too small");
         Debug.Assert(
             !source.Overlaps(destination, out int elementOffset) || elementOffset == 0,
             "If src and dst overlap, they must have the same starting point in memory");
@@ -76,21 +80,21 @@ internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
         int dstIndex = destination.Length - 1;
         int srcIndex = source.Length - 1;
 
-        destination[dstIndex--] = quote;
+        destination[dstIndex--] = escaper.Quote;
 
-        while (quoteCount > 0)
+        while (specialCount > 0)
         {
-            if (quote.Equals(source[srcIndex]))
+            if (escaper.NeedsEscaping(source[srcIndex]))
             {
-                destination[dstIndex--] = quote;
-                quoteCount--;
+                destination[dstIndex--] = escaper.Escape;
+                specialCount--;
             }
 
             destination[dstIndex--] = source[srcIndex--];
         }
 
         source.Slice(0, srcIndex + 1).CopyTo(destination.Slice(1));
-        destination[0] = quote;
+        destination[0] = escaper.Quote;
     }
 
     /// <summary>
@@ -105,13 +109,14 @@ internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
     /// <param name="arrayPool">Pool to </param>
     /// <returns>A memory wrapping around the parts in the overflow buffer that were written to</returns>
     [MethodImpl(MethodImplOptions.NoInlining)] // rare-ish, doesn't need to be inlined
-    public static ReadOnlySpan<T> EscapeWithOverflow(
+    public static ReadOnlySpan<T> EscapeWithOverflow<TEscaper>(
+        in TEscaper escaper,
         scoped ReadOnlySpan<T> source,
         scoped Span<T> destination,
-        T quote,
         int quoteCount,
         ref T[]? overflowBuffer,
         ArrayPool<T> arrayPool)
+        where TEscaper :struct, IEscaper<T>
     {
         Debug.Assert(
             !source.Overlaps(destination, out int elementOffset) || elementOffset == 0,
@@ -124,12 +129,12 @@ internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
         int srcIndex = source.Length - 1;
         int ovrIndex = requiredLength - destination.Length - 1;
         int dstIndex = destination.Length - 1;
-        bool needQuote = false;
+        bool needEscape = false;
 
         int overflowLength = requiredLength - destination.Length;
         arrayPool.EnsureCapacity(ref overflowBuffer, overflowLength);
         Span<T> overflow = new(overflowBuffer, 0, overflowLength);
-        overflow[ovrIndex--] = quote; // write closing quote
+        overflow[ovrIndex--] = escaper.Quote; // write closing quote
 
         // Short circuit to faster impl if there are no quotes in the source data
         if (quoteCount == 0)
@@ -138,19 +143,19 @@ internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
         // Copy tokens one-at-a-time until all quotes have been escaped and use the faster impl after
         while (ovrIndex >= 0)
         {
-            if (needQuote)
+            if (needEscape)
             {
-                overflow[ovrIndex--] = quote;
-                needQuote = false;
+                overflow[ovrIndex--] = escaper.Escape;
+                needEscape = false;
 
                 if (--quoteCount == 0)
                     goto CopyTo;
             }
-            else if (source[srcIndex].Equals(quote))
+            else if (escaper.NeedsEscaping(source[srcIndex]))
             {
-                overflow[ovrIndex--] = quote;
+                overflow[ovrIndex--] = escaper.Escape;
                 srcIndex--;
-                needQuote = true;
+                needEscape = true;
             }
             else
             {
@@ -160,19 +165,19 @@ internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
 
         while (srcIndex >= 0)
         {
-            if (needQuote)
+            if (needEscape)
             {
-                destination[dstIndex--] = quote;
-                needQuote = false;
+                destination[dstIndex--] = escaper.Escape;
+                needEscape = false;
 
                 if (--quoteCount == 0)
                     goto CopyTo;
             }
-            else if (source[srcIndex].Equals(quote))
+            else if (escaper.NeedsEscaping(source[srcIndex]))
             {
-                destination[dstIndex--] = quote;
+                destination[dstIndex--] = escaper.Escape;
                 srcIndex--;
-                needQuote = true;
+                needEscape = true;
             }
             else
             {
@@ -181,9 +186,9 @@ internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
         }
 
         // true if the first token in the source is a quote
-        if (needQuote)
+        if (needEscape)
         {
-            destination[dstIndex--] = quote;
+            destination[dstIndex--] = escaper.Escape;
             quoteCount--;
         }
 
@@ -204,7 +209,7 @@ internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
             }
         }
 
-        destination[dstIndex] = quote; // write opening quote
+        destination[dstIndex] = escaper.Quote; // write opening quote
 
         Debug.Assert(dstIndex == 0);
         Debug.Assert(quoteCount == 0);

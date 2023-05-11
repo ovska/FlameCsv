@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 
-namespace FlameCsv.Writers;
+namespace FlameCsv.Writing;
 
 [DebuggerDisplay(
     @"\{ CsvPipeWriter, Unflushed: {Unflushed} \}")]

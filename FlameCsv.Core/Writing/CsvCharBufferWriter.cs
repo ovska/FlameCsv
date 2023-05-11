@@ -6,7 +6,7 @@ using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 
-namespace FlameCsv.Writers;
+namespace FlameCsv.Writing;
 
 [DebuggerDisplay("[CsvTextWriter] Written: {Unflushed} / {_buffer.Length} (inner: {_writer.GetType().Name})")]
 internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>

@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 using FlameCsv.Extensions;
-using FlameCsv.Writers;
+using FlameCsv.Writing;
 
 namespace FlameCsv.Tests.Writing;
 

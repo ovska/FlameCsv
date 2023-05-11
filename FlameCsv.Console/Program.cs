@@ -35,7 +35,7 @@ namespace FlameCsv.Console
         [CsvConstructor]
         public Obj(
             long position = 0,
-            [CsvHeaderRequired, CsvHeader(Order = -1)] in int id = -1)
+            [CsvHeader(Order = -1, Required = true)] in int id = -1)
         {
             Id = id;
             Position = position;
@@ -46,7 +46,7 @@ namespace FlameCsv.Console
 
         public int Id { get; }
 
-        [CsvHeaderRequired]
+        [CsvHeader(Required = true)]
         [CsvParserOverride<char, StringTextParser>]
         public string Name { get; init; } = "";
 

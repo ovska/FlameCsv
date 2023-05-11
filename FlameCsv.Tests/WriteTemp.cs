@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.Extensions;
 using FlameCsv.Formatters;
-using FlameCsv.Writers;
+using FlameCsv.Writing;
 
 namespace FlameCsv.Tests;
 
@@ -46,7 +46,7 @@ public static class WriteTemp
         var textPipe = new CsvCharBufferWriter(stringWriter, AllocatingArrayPool<char>.Instance);
 
         var opts = new CsvWriterOptions<char> { ArrayPool = AllocatingArrayPool<char>.Instance };
-        await using (var writer = new CsvWriteOperation<char, CsvCharBufferWriter>(textPipe, opts))
+        await using (var writer = new CsvRecordWriter<char, CsvCharBufferWriter>(textPipe, opts))
         {
             try
             {

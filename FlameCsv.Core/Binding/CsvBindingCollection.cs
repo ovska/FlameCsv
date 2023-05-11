@@ -70,7 +70,7 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
     internal CsvBindingCollection(List<CsvBinding<TValue>> bindingsList, bool isInternalCall)
     {
         Debug.Assert(isInternalCall);
-        Guard.IsNotEmpty(bindingsList, "bindings");
+        Guard.IsNotEmpty(bindingsList);
 
         Span<CsvBinding<TValue>> bindings = bindingsList.AsSpan();
         bindings.Sort(); // sort by index

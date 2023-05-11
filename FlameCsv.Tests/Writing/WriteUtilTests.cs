@@ -1,14 +1,12 @@
 using System.Buffers;
-using FlameCsv.Writers;
+using FlameCsv.Writing;
 
 namespace FlameCsv.Tests.Writing;
 
 public static class WriteUtilTests
 {
-    private static readonly CsvDialect<char> _tokens = new(
-        delimiter: ',',
-        quote: '|',
-        newline: "\r\n".AsMemory());
+    private static readonly CsvDialect<char> _dialect = new(delimiter: ',', quote: '|', newline: "\r\n".AsMemory());
+    private static readonly RFC4188Escaper<char> _escaper = new(in _dialect);
 
     [Fact]
     public static void Should_Partial_Escape_Larger_Destination()
@@ -16,7 +14,7 @@ public static class WriteUtilTests
         ReadOnlySpan<char> input = "|t|e|s|t|";
         Span<char> destination = stackalloc char[14];
 
-        Assert.True(WriteUtil<char>.NeedsQuoting(input, in _tokens, out int quoteCount));
+        Assert.True(_escaper.NeedsEscaping(input, out int quoteCount));
         Assert.Equal(5, quoteCount);
 
         input.CopyTo(destination);
@@ -24,9 +22,9 @@ public static class WriteUtilTests
         char[]? array = originalArrayRef;
 
         WriteUtil<char>.EscapeWithOverflow(
+            escaper: in _escaper,
             source: destination[..input.Length],
             destination: destination,
-            quote: '|',
             quoteCount: quoteCount,
             overflowBuffer: ref array,
             arrayPool: ArrayPool<char>.Shared);
@@ -45,7 +43,7 @@ public static class WriteUtilTests
     [InlineData("|t", "||", "|t|")]
     public static void Should_Partial_Escape(string input, string first, string second)
     {
-        Assert.True(WriteUtil<char>.NeedsQuoting(input, in _tokens, out int quoteCount));
+        Assert.True(_escaper.NeedsEscaping(input, out int quoteCount));
 
         // The escape is designed to work despite src and dst sharing a memory region
         Assert.Equal(input.Length, first.Length);
@@ -55,9 +53,9 @@ public static class WriteUtilTests
         char[]? array = null;
 
         WriteUtil<char>.EscapeWithOverflow(
+            escaper: in _escaper,
             source: firstBuffer,
             destination: firstBuffer,
-            quote: '|',
             quoteCount: quoteCount,
             overflowBuffer: ref array,
             arrayPool: ArrayPool<char>.Shared);
@@ -85,7 +83,7 @@ public static class WriteUtilTests
         Span<char> buffer = stackalloc char[expected.Length];
         input.CopyTo(buffer);
 
-        WriteUtil<char>.Escape(buffer[..input.Length], buffer, '|', 0);
+        WriteUtil<char>.Escape(in _escaper, buffer[..input.Length], buffer, 0);
         Assert.Equal(expected, buffer.ToString());
     }
 
@@ -100,7 +98,7 @@ public static class WriteUtilTests
     [InlineData("a|a", "|a||a|")]
     public static void Should_Escape(string input, string expected)
     {
-        Assert.True(WriteUtil<char>.NeedsQuoting(input, in _tokens, out int quoteCount));
+        Assert.True(_escaper.NeedsEscaping(input, out int quoteCount));
 
         int expectedLength = input.Length + quoteCount + 2;
         Assert.Equal(expected.Length, expectedLength);
@@ -109,7 +107,7 @@ public static class WriteUtilTests
         var sharedBuffer = new char[expectedLength].AsSpan();
         input.CopyTo(sharedBuffer);
 
-        WriteUtil<char>.Escape(sharedBuffer[..input.Length], sharedBuffer, '|', quoteCount);
+        WriteUtil<char>.Escape(in _escaper, sharedBuffer[..input.Length], sharedBuffer, quoteCount);
         Assert.Equal(expected, new string(sharedBuffer));
 
         // Last sanity check
@@ -125,7 +123,8 @@ public static class WriteUtilTests
     [InlineData("\n", "|\n|")]
     public static void Should_Escape_1Char_Newline(string input, string expected)
     {
-        Assert.True(WriteUtil<char>.NeedsQuoting(input, _tokens with { Newline = "\n".AsMemory() }, out int quoteCount));
+        var escaper = new RFC4188Escaper<char>(_dialect with { Newline = "\n".AsMemory() });
+        Assert.True(escaper.NeedsEscaping(input, out int quoteCount));
 
         int expectedLength = input.Length + quoteCount + 2;
         Assert.Equal(expected.Length, expectedLength);
@@ -134,7 +133,7 @@ public static class WriteUtilTests
         var sharedBuffer = new char[expectedLength].AsSpan();
         input.CopyTo(sharedBuffer);
 
-        WriteUtil<char>.Escape(sharedBuffer[..input.Length], sharedBuffer, '|', quoteCount);
+        WriteUtil<char>.Escape(in _escaper, sharedBuffer[..input.Length], sharedBuffer, quoteCount);
         Assert.Equal(expected, new string(sharedBuffer));
 
         // Last sanity check
@@ -167,16 +166,16 @@ public static class WriteUtilTests
     [Theory, MemberData(nameof(NeedsEscapingData))]
     public static void Should_Check_Needs_Escaping(string newline, int? quotes, string input)
     {
-        var tokens = _tokens with { Newline = newline.AsMemory() };
+        var escaper = new RFC4188Escaper<char>(_dialect with { Newline = newline.AsMemory() });
         input = input.Replace("\r\n", newline);
 
         if (!quotes.HasValue)
         {
-            Assert.False(WriteUtil<char>.NeedsQuoting(input, in tokens, out _));
+            Assert.False(escaper.NeedsEscaping(input, out _));
         }
         else
         {
-            Assert.True(WriteUtil<char>.NeedsQuoting(input, in tokens, out var quoteCount));
+            Assert.True(escaper.NeedsEscaping(input, out var quoteCount));
             Assert.Equal(quotes.Value, quoteCount);
         }
     }

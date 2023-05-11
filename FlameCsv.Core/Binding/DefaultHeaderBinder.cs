@@ -25,6 +25,39 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
             IgnoredValues = ignoredValues;
             _candidates = candidates;
         }
+
+        public void ThrowIfRequiredNotBound<TValue>(ReadOnlySpan<CsvBinding<TValue>> bindings)
+        {
+            List<string>? notBound = null;
+
+            foreach (var candidate in _candidates)
+            {
+                if (candidate.IsRequired)
+                {
+                    bool bound = false;
+
+                    foreach (var binding in bindings)
+                    {
+                        if (ReferenceEquals(candidate.Target, binding.Sentinel))
+                        {
+                            bound = true;
+                            break;
+                        }
+                    }
+
+                    if (!bound)
+                    {
+                        (notBound ??= new()).Add(candidate.Value);
+                    }
+                }
+            }
+
+            if (notBound is { Count: > 0 })
+            {
+                throw new CsvBindingException<TValue>(
+                    "One or more required bindings were not bound");
+            }
+        }
     }
 
     private static readonly ConditionalWeakTable<Type, HeaderData> _candidateCache = new();
@@ -83,13 +116,13 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
 
             if (binding is null && !IgnoreUnmatched)
             {
-                throw new CsvBindingException();
+                throw new CsvBindingException(); // TODO
             }
 
             foundBindings.Add(binding ?? CsvBinding.Ignore<TValue>(index: foundBindings.Count));
         }
 
-        return new CsvBindingCollection<TValue>(foundBindings);
+        return new CsvBindingCollection<TValue>(foundBindings, isInternalCall: true);
     }
 
     /// <summary>
@@ -136,14 +169,22 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
                 if (attr is not null)
                 {
                     candidates.EnsureCapacity(candidates.Count + attr.Values.Length);
-                    foreach (var value in attr.Values)
+
+                    if (attr.Values.Length == 0)
                     {
-                        candidates.Add(new HeaderBindingCandidate(value, member.Value, attr.Order));
+                        candidates.Add(new HeaderBindingCandidate(member.Value.Name, member.Value, default, attr.Required));
+                    }
+                    else
+                    {
+                        foreach (var value in attr.Values)
+                        {
+                            candidates.Add(new HeaderBindingCandidate(value, member.Value, attr.Order, attr.Required));
+                        }
                     }
                 }
                 else
                 {
-                    candidates.Add(new HeaderBindingCandidate(member.Value.Name, member.Value, default));
+                    candidates.Add(new HeaderBindingCandidate(member.Value.Name, member.Value, default, isRequired: false));
                 }
             }
 
@@ -158,7 +199,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
 
                     foreach (var value in attr.Values)
                     {
-                        candidates.Add(new HeaderBindingCandidate(value, member.Value, attr.Order));
+                        candidates.Add(new HeaderBindingCandidate(value, member.Value, attr.Order, attr.IsRequired));
                     }
                 }
                 else
@@ -185,12 +226,17 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
                     candidates.EnsureCapacity(candidates.Count + attr.Values.Length);
                     foreach (var value in attr.Values)
                     {
-                        candidates.Add(new HeaderBindingCandidate(value, parameter.Value, attr.Order));
+                        candidates.Add(new HeaderBindingCandidate(value, parameter.Value, attr.Order, attr.Required));
                     }
                 }
                 else
                 {
-                    candidates.Add(new HeaderBindingCandidate(parameter.Value.Name!, parameter.Value, default));
+                    candidates.Add(
+                        new HeaderBindingCandidate(
+                            parameter.Value.Name!,
+                            parameter.Value,
+                            default,
+                            isRequired: !parameter.Value.HasDefaultValue));
                 }
             }
 

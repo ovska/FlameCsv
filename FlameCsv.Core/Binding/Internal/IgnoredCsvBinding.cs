@@ -10,7 +10,7 @@ internal sealed class IgnoredCsvBinding<T> : CsvBinding<T>
 
     public override Type Type => typeof(object);
 
-    protected override object Sentinel => Type.Missing;
+    internal protected override object Sentinel => Type.Missing;
 
     protected override ReadOnlySpan<object> Attributes => default;
 

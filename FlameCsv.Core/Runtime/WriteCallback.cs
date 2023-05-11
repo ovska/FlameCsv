@@ -5,7 +5,7 @@ using FlameCsv.Binding;
 using FlameCsv.Binding.Internal;
 using FlameCsv.Extensions;
 using FlameCsv.Formatters;
-using FlameCsv.Writers;
+using FlameCsv.Writing;
 
 namespace FlameCsv.Runtime;
 
@@ -16,7 +16,7 @@ namespace FlameCsv.Runtime;
 /// <typeparam name="TValue">Record type</typeparam>
 /// <param name="writer">Writer instance</param>
 /// <param name="value">Record instance</param>
-internal delegate void WriteCallback<T, TWriter, TValue>(CsvWriteOperation<T, TWriter> writer, TValue value)
+internal delegate void WriteCallback<T, TWriter, TValue>(CsvRecordWriter<T, TWriter> writer, TValue value)
     where T : unmanaged, IEquatable<T>
     where TWriter : struct, IAsyncBufferWriter<T>;
 
@@ -26,7 +26,7 @@ internal static class WriteTest<T, TWriter, TValue>
 {
     [RequiresUnreferencedCode(Messages.CompiledExpressions)]
     public static async Task WriteRecords(
-        CsvWriteOperation<T, TWriter> writer,
+        CsvRecordWriter<T, TWriter> writer,
         CsvBindingCollection<TValue> bindingCollection,
         CsvWriterOptions<T> options,
         IEnumerable<TValue> records,
@@ -65,7 +65,7 @@ internal static class WriteTest<T, TWriter, TValue>
         }
     }
 
-    private static void WriteHeader(CsvWriteOperation<T, TWriter> writer, CsvBindingCollection<TValue> bindingCollection)
+    private static void WriteHeader(CsvRecordWriter<T, TWriter> writer, CsvBindingCollection<TValue> bindingCollection)
     {
         writer.WriteString(bindingCollection.MemberBindings[0].Member.Name);
 
@@ -97,7 +97,7 @@ internal static class WriteTest<T, TWriter, TValue>
 
         var bindings = bindingCollection.Bindings;
 
-        var writerParam = Expression.Parameter(typeof(CsvWriteOperation<T, TWriter>), "writer");
+        var writerParam = Expression.Parameter(typeof(CsvRecordWriter<T, TWriter>), "writer");
         var valueParam = Expression.Parameter(typeof(TValue), "value");
 
         var methodBody = new List<Expression>(bindings.Length * 2);
@@ -127,7 +127,7 @@ internal static class WriteTest<T, TWriter, TValue>
         return lambda.CompileLambdaWithClosure<WriteCallback<T, TWriter, TValue>>();
     }
 
-    private static readonly MethodInfo _writeValueMethod = (typeof(CsvWriteOperation<T, TWriter>).GetMethod("WriteValue"))!;
-    private static readonly MethodInfo _writeDelimiterMethod = (typeof(CsvWriteOperation<T, TWriter>).GetMethod("WriteDelimiter"))!;
-    private static readonly MethodInfo _writeNewlineMethod = (typeof(CsvWriteOperation<T, TWriter>).GetMethod("WriteNewline"))!;
+    private static readonly MethodInfo _writeValueMethod = (typeof(CsvRecordWriter<T, TWriter>).GetMethod("WriteValue"))!;
+    private static readonly MethodInfo _writeDelimiterMethod = (typeof(CsvRecordWriter<T, TWriter>).GetMethod("WriteDelimiter"))!;
+    private static readonly MethodInfo _writeNewlineMethod = (typeof(CsvRecordWriter<T, TWriter>).GetMethod("WriteNewline"))!;
 }

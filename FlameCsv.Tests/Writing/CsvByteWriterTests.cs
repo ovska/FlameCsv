@@ -6,13 +6,13 @@ using System.Text;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Extensions;
 using FlameCsv.Formatters;
-using FlameCsv.Writers;
+using FlameCsv.Writing;
 
 namespace FlameCsv.Tests.Writing;
 
 public sealed class CsvByteWriterTests : IAsyncDisposable
 {
-    private CsvWriteOperation<byte, CsvByteBufferWriter>? _writer;
+    private CsvRecordWriter<byte, CsvByteBufferWriter>? _writer;
     private MemoryStream? _stream;
 
     private string Written => _stream is not null && _stream.TryGetBuffer(out var buffer)
@@ -134,7 +134,7 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
         int bufferSize = 1024)
     {
         _stream = new MemoryStream();
-        _writer = new CsvWriteOperation<byte, CsvByteBufferWriter>(
+        _writer = new CsvRecordWriter<byte, CsvByteBufferWriter>(
             new CsvByteBufferWriter(PipeWriter.Create(_stream, new StreamPipeWriterOptions(minimumBufferSize: bufferSize, pool: new AllocatingMemoryPool()))),
             new CsvWriterOptions<byte> { FieldQuoting = quoting, Null = "null"u8.ToArray() });
     }

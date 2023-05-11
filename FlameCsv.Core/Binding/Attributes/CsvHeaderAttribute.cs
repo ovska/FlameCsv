@@ -23,6 +23,11 @@ public sealed class CsvHeaderAttribute : CsvHeaderConfigurationAttribute
     /// </summary>
     public int Order { get; set; } = 1;
 
+    /// <summary>
+    /// Whether the member must be matched. Default is <see langword="false"/>.
+    /// </summary>
+    public bool Required { get; set; }
+
     /// <inheritdoc cref="CsvHeaderAttribute"/>
     public CsvHeaderAttribute(params string[] values)
     {
