@@ -1,13 +1,13 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Extensions;
 using FlameCsv.Formatters;
-using FlameCsv.Writers;
+using FlameCsv.Writing;
 
 namespace FlameCsv.Tests.Writing;
 
 public sealed class CsvCharWriterTests : IAsyncDisposable
 {
-    private CsvWriteOperation<char, CsvCharBufferWriter>? _writer;
+    private CsvRecordWriter<char, CsvCharBufferWriter>? _writer;
     private StringWriter? _textWriter;
 
     private string Written => _textWriter?.ToString() ?? string.Empty;
@@ -127,7 +127,7 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
         int bufferSize = 1024)
     {
         _textWriter = new StringWriter();
-        _writer = new CsvWriteOperation<char, CsvCharBufferWriter>(
+        _writer = new CsvRecordWriter<char, CsvCharBufferWriter>(
             new CsvCharBufferWriter(_textWriter, AllocatingArrayPool<char>.Instance, bufferSize),
             new CsvWriterOptions<char> { FieldQuoting = quoting, Null = "null".AsMemory() });
     }

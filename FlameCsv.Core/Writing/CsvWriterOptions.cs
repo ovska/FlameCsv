@@ -1,10 +1,12 @@
 using System.Buffers;
+using CommunityToolkit.HighPerformance;
+using System.Text;
 using FlameCsv.Formatters;
 using FlameCsv.Formatters.Text;
 using FlameCsv.Utilities;
 using static FlameCsv.Utilities.SealableUtil;
 
-namespace FlameCsv.Writers;
+namespace FlameCsv.Writing;
 
 public class CsvWriterOptions<T> : ICsvDialectOptions<T>, ISealable
     where T : unmanaged, IEquatable<T>
@@ -93,5 +95,28 @@ public class CsvWriterOptions<T> : ICsvDialectOptions<T>, ISealable
     {
         get => _escape;
         set => this.SetValue(ref _escape, value);
+    }
+
+    public virtual void WriteChars<TWriter>(TWriter writer, ReadOnlySpan<char> value) where TWriter : IBufferWriter<T>
+    {
+        if (value.IsEmpty)
+            return;
+
+        if (typeof(T) == typeof(char))
+        {
+            Span<T> destination = writer.GetSpan(value.Length);
+            value.CopyTo(destination.Cast<T, char>());
+            writer.Advance(value.Length);
+        }
+        else if (typeof(T) == typeof(byte))
+        {
+            Span<T> destination = writer.GetSpan(Encoding.UTF8.GetMaxByteCount(value.Length));
+            int written = Encoding.UTF8.GetBytes(value, destination.Cast<T, byte>());
+            writer.Advance(written);
+        }
+        else
+        {
+            Token<T>.ThrowNotSupportedException();
+        }
     }
 }

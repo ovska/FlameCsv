@@ -1,4 +1,4 @@
-﻿namespace FlameCsv.Writers;
+﻿namespace FlameCsv.Writing;
 
 /// <summary>
 /// Enumeration that determines field quoting behavior when writing CSV.

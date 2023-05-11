@@ -26,7 +26,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// <summary>
     /// The target of the binding (member or parameter), or <see cref="Type.Missing"/> if ignored field.
     /// </summary>
-    protected abstract object Sentinel { get; }
+    internal protected abstract object Sentinel { get; }
 
     internal protected CsvBinding(int index)
     {

@@ -10,7 +10,7 @@ internal sealed class MemberCsvBinding<T> : CsvBinding<T>
 
     public override Type Type => _member.MemberType;
 
-    protected override object Sentinel => _member.Value;
+    internal protected override object Sentinel => _member.Value;
     protected override ReadOnlySpan<object> Attributes => _member.Attributes;
 
     private readonly MemberData _member;

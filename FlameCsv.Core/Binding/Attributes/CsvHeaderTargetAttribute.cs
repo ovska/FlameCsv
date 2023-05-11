@@ -23,6 +23,9 @@ public sealed class CsvHeaderTargetAttribute : Attribute
     /// <inheritdoc cref="CsvHeaderAttribute.Order"/>
     public int Order { get; set; } = 1;
 
+    /// <inheritdoc cref="CsvHeaderAttribute.Required"/>
+    public bool IsRequired { get; set; }
+
     /// <inheritdoc cref="CsvHeaderTargetAttribute"/>
     /// <param name="memberName">Name of the property or field</param>
     /// <param name="values">Header fields value(s)</param>

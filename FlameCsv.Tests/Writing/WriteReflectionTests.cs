@@ -2,7 +2,7 @@
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Runtime;
 using FlameCsv.Utilities;
-using FlameCsv.Writers;
+using FlameCsv.Writing;
 
 namespace FlameCsv.Tests.Writing;
 
@@ -15,26 +15,26 @@ public class WriteReflectionTests
         [CsvIndex(2)] public bool IsEnabled { get; set; }
     }
 
-    [Theory(Skip = "Broken"), InlineData(true), InlineData(false)]
-    public async Task Should_Write_ValueTuple(bool header)
-    {
-        var data = new (int Id, string Name, bool IsEnabled)[]
-        {
-            (1, "Bob", true),
-            (2, "Alice", false),
-        };
+    //[Theory(Skip = "Broken"), InlineData(true), InlineData(false)]
+    //public async Task Should_Write_ValueTuple(bool header)
+    //{
+    //    var data = new (int Id, string Name, bool IsEnabled)[]
+    //    {
+    //        (1, "Bob", true),
+    //        (2, "Alice", false),
+    //    };
 
-        var opts = new CsvWriterOptions<char> { WriteHeader = header };
-        using var writer = new StringWriter();
+    //    var opts = new CsvWriterOptions<char> { WriteHeader = header };
+    //    using var writer = new StringWriter();
 
-        await WriteTestGen<char, CsvCharBufferWriter>.WriteAsync(
-            WriteOpHelpers.Create(writer, opts),
-            opts,
-            new AsyncIEnumerable<(int Id, string Name, bool IsEnabled)>(data),
-            default);
+    //    await WriteTestGen<char, CsvCharBufferWriter>.WriteAsync(
+    //        WriteOpHelpers.Create(writer, opts),
+    //        opts,
+    //        new AsyncIEnumerable<(int Id, string Name, bool IsEnabled)>(data),
+    //        default);
 
-        AssertValue(header, writer.ToString());
-    }
+    //    AssertValue(header, writer.ToString());
+    //}
 
     [Theory, InlineData(true), InlineData(false)]
     public async Task Should_Write(bool header)
@@ -51,7 +51,7 @@ public class WriteReflectionTests
         using var writer = new StringWriter();
 
         await WriteTest<char, CsvCharBufferWriter, Obj>.WriteRecords(
-            WriteOpHelpers.Create(writer, opts),
+            WriteHelpers.Create(writer, opts),
             bc,
             opts,
             data,

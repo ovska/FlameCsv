@@ -40,6 +40,9 @@ public abstract class CsvTypeMap<T, TValue> where T : unmanaged, IEquatable<T>
         return BindMembers(headers, context.ExposeContent, context.Options);
     }
 
+    //protected abstract void WriteValue<TWriter>(TWriter writer, TValue value)
+    //    where TWriter : struct, FlameCsv.Writing.ICsvFieldWriter<T>;
+
     [DoesNotReturn]
     protected void ThrowDuplicate(string member, string field, ReadOnlySpan<string> headers, bool exposeContent)
     {

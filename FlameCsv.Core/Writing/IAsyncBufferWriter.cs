@@ -1,6 +1,6 @@
 using System.Buffers;
 
-namespace FlameCsv.Writers;
+namespace FlameCsv.Writing;
 
 internal interface IAsyncBufferWriter<T> : IBufferWriter<T> where T : unmanaged
 {
