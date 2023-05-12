@@ -31,4 +31,9 @@ public interface ICsvFieldReader<T> where T : unmanaged, IEquatable<T>
     /// <param name="field">Parsed field</param>
     /// <param name="parser">Parser instance, may be null</param>
     [DoesNotReturn] void ThrowParseFailed(ReadOnlyMemory<T> field, ICsvParser<T>? parser);
+
+    /// <summary>
+    /// Throws an exception for the record ending prematurely.
+    /// </summary>
+    [DoesNotReturn] void ThrowForInvalidEOF();
 }

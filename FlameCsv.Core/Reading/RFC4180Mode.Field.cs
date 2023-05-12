@@ -77,7 +77,7 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
 
         EOL:
         if (quotesRemaining != 0)
-            state.ThrowFieldEndedPrematurely();
+            state.ThrowForInvalidEOF();
 
         // whole line was consumed, skip the delimiter if it wasn't the first field
         field = state.remaining.Slice((!state.isAtStart).ToByte());
