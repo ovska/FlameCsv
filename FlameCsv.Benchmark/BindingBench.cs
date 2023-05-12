@@ -9,38 +9,45 @@ namespace FlameCsv.Benchmark;
 [HideColumns("Error", "StdDev")]
 public class BindingBench
 {
-    private const string CSV = "id,name,is_enabled,age,height\r\n1,Bob,true,40,182.57";
+    private const string CSV = "id,ticks,is_enabled,age,height\r\n1,1234567,true,40,182.57";
+
+    private readonly CsvHelper.Configuration.CsvConfiguration _helperCfg = new(CultureInfo.InvariantCulture)
+    {
+        PrepareHeaderForMatch = args => args.Header.Replace("_", "").ToLowerInvariant(),
+    };
 
     [Benchmark(Baseline = true)]
     public void Helper()
     {
-        var cfg = new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)
-        {
-            PrepareHeaderForMatch = args => args.Header.Replace("_", "").ToLowerInvariant(),
-        };
-
         using var reader = new StringReader(CSV);
-        using var csv = new CsvHelper.CsvReader(reader, cfg);
-        _ = csv.GetRecords<Obj>().ToList();
+        using var csv = new CsvHelper.CsvReader(reader, _helperCfg);
+
+        foreach (var _ in csv.GetRecords<Obj>())
+        {
+        }
     }
 
     [Benchmark]
     public void FlameReflect()
     {
-        _ = CsvReader.Read<Obj>(CSV, CsvTextReaderOptions.Default).ToList();
+        foreach (var _ in CsvReader.Read<Obj>(CSV, CsvTextReaderOptions.Default))
+        {
+        }
     }
 
     [Benchmark]
     public void FlameTypeMap()
     {
-        _ = CsvReader.Read(CSV, typeMap: TestTypeMap.Instance, CsvTextReaderOptions.Default).ToList();
+        foreach (var _ in CsvReader.Read(CSV, TestTypeMap.Instance, CsvTextReaderOptions.Default))
+        {
+        }
 
     }
 
-    internal class Obj
+    internal struct Obj
     {
         public int Id { get; set; }
-        public string? Name { get; set; }
+        public long Ticks { get; set; }
         [CsvHeader("is_enabled")] public bool IsEnabled { get; set; }
         public int Age { get; set; }
         public double Height { get; set; }
