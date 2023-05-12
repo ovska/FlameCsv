@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Text;
+using FlameCsv.Enumeration;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Benchmark;

@@ -264,7 +264,7 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
             sb.Append(binding.Name);
             sb.Append(" = state.");
             sb.Append(binding.Name);
-            sb.Append(@";
+            sb.Append(@"!;
 ");
         }
 

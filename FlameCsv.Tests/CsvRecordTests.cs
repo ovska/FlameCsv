@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+﻿using FlameCsv.Enumeration;
 
 namespace FlameCsv.Tests;
 

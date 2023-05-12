@@ -22,27 +22,31 @@ namespace FlameCsv;
 
 public static partial class CsvReader
 {
-    internal sealed class CsvRecordFactoryAsyncEnumerable<T, TValue, TReader> : IAsyncEnumerable<TValue>
+    public sealed class CsvRecordFactoryAsyncEnumerable<T, TValue> : IAsyncEnumerable<TValue>
         where T : unmanaged, IEquatable<T>
-        where TReader : struct, ICsvPipeReader<T>
     {
         private readonly CsvReadingContext<T> _context;
-        private readonly TReader _reader;
+        private readonly ICsvPipeReader<T> _reader;
         private readonly IMaterializer<T, TValue> _materializer;
 
-        public CsvRecordFactoryAsyncEnumerable(in CsvReadingContext<T> context, TReader reader, IMaterializer<T, TValue> materializer)
+        internal CsvRecordFactoryAsyncEnumerable(in CsvReadingContext<T> context, ICsvPipeReader<T> reader, IMaterializer<T, TValue> materializer)
         {
             _context = context;
             _reader = reader;
             _materializer = materializer;
         }
 
-        public IAsyncEnumerator<TValue> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+        public CsvValueAsyncEnumerator<T, TValue> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
-            return new CsvValueAsyncEnumerator<T, TValue, TReader, CsvProcessor<T, TValue>>(
+            return new CsvValueAsyncEnumerator<T, TValue>(
+                in _context,
                 _reader,
-                new CsvProcessor<T, TValue>(in _context, _materializer),
                 cancellationToken);
+        }
+
+        IAsyncEnumerator<TValue> IAsyncEnumerable<TValue>.GetAsyncEnumerator(CancellationToken cancellationToken)
+        {
+            return GetAsyncEnumerator(cancellationToken);
         }
     }
 
@@ -79,7 +83,6 @@ for (var _tokenType = 0; _tokenType < 2; _tokenType++)
     string tokenType = _tokenType == 0 ? "char" : "byte";
     string parameterReaderType = _tokenType == 0 ? "TextReader" : "PipeReader";
     string readerType = _tokenType == 0 ? "TextPipeReader" : "CsvBytePipeReader";
-    string readerStructType =_tokenType == 0 ? "TextPipeReaderWrapper" : "PipeReaderWrapper";
 #>
 <#
     for (var current = 1; current <= TotalCount; current++)
@@ -94,7 +97,7 @@ for (var _tokenType = 0; _tokenType < 2; _tokenType++)
     /// The CSV records must have <#= current #> field<# if (current != 1) Write("s"); #>.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> <#= methodName #><<#= generics #>>(
+    public static CsvRecordFactoryAsyncEnumerable<<#= tokenType #>, TValue> <#= methodName #><<#= generics #>>(
         <#= parameterReaderType #> reader,
         CsvReaderOptions<<#= tokenType #>> options,
         Func<<#= generics #>> recordFactory,
@@ -110,17 +113,14 @@ for (var _tokenType = 0; _tokenType < 2; _tokenType++)
                 Write(">()");
             }
         #>);
-        CsvProcessor<<#= tokenType #>, TValue> processor = new(in readerContext, materializer);
 
-<# if (tokenType == "char") { #>
-        var pipeReader = new TextPipeReaderWrapper(new <#= readerType #>(reader, DefaultBufferSize, readerContext.ArrayPool));
-<# } else { #>
-        var pipeReader = new PipeReaderWrapper(reader);
-<# } #>
-
-        return new CsvRecordFactoryAsyncEnumerable<<#= tokenType #>, TValue, <#= readerStructType #>>(
+        return new CsvRecordFactoryAsyncEnumerable<<#= tokenType #>, TValue>(
             in readerContext,
-            pipeReader,
+<# if (tokenType == "char") { #>
+            new <#= readerType #>(reader, DefaultBufferSize, readerContext.ArrayPool),
+<# } else { #>
+            new PipeReaderWrapper(reader),
+<# } #>
             materializer);
     }
 

@@ -1,10 +1,8 @@
 ﻿using System.Buffers;
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using FlameCsv.Reading;
-using FlameCsv.Runtime;
 
-namespace FlameCsv;
+namespace FlameCsv.Enumeration;
 
 [RequiresUnreferencedCode(Messages.CompiledExpressions)]
 public sealed class CsvValueEnumerable<T, [DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue> : IEnumerable<TValue>
@@ -23,21 +21,12 @@ public sealed class CsvValueEnumerable<T, [DynamicallyAccessedMembers(Messages.R
         _context = new CsvReadingContext<T>(options, overrides);
     }
 
-    public IEnumerator<TValue> GetEnumerator()
+    public CsvValueEnumerator<T, TValue> GetEnumerator()
     {
-        if (_context.HasHeader)
-        {
-            return new CsvValueEnumerator<T, TValue, CsvHeaderProcessor<T, TValue>>(
-                _data,
-                new CsvHeaderProcessor<T, TValue>(in _context));
-        }
-        else
-        {
-            return new CsvValueEnumerator<T, TValue, CsvProcessor<T, TValue>>(
-                _data,
-                new CsvProcessor<T, TValue>(in _context, _context.Options.GetMaterializer<T, TValue>()));
-        }
+        return new CsvValueEnumerator<T, TValue>(_data, in _context, materializer: null);
     }
+
+    IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator() => GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

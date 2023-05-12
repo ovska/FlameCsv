@@ -3,7 +3,7 @@ using System.Collections;
 using FlameCsv.Binding;
 using FlameCsv.Reading;
 
-namespace FlameCsv;
+namespace FlameCsv.Enumeration;
 
 public sealed class CsvTypeMapEnumerable<T, TValue> : IEnumerable<TValue> where T : unmanaged, IEquatable<T>
 {
@@ -25,19 +25,12 @@ public sealed class CsvTypeMapEnumerable<T, TValue> : IEnumerable<TValue> where 
         _typeMap = typeMap;
     }
 
-    public IEnumerator<TValue> GetEnumerator()
+    public CsvValueEnumerator<T, TValue> GetEnumerator()
     {
-        if (_context.HasHeader)
-        {
-            return new CsvValueEnumerator<T, TValue, CsvHeaderProcessor<T, TValue>>(
-                _data,
-                new CsvHeaderProcessor<T, TValue>(in _context, _typeMap));
-        }
-        else
-        {
-            throw new NotSupportedException("TODO");
-        }
+        return new CsvValueEnumerator<T, TValue>(_data, in _context, _typeMap);
     }
+
+    IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator() => GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

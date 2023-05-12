@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 namespace FlameCsv.Reading;
 
 // wrap pipereader to use as ICsvPipeReader<> to avoid duplicate code
-internal readonly struct PipeReaderWrapper : ICsvPipeReader<byte>
+internal sealed class PipeReaderWrapper : ICsvPipeReader<byte>
 {
     private readonly PipeReader _inner;
 

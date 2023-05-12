@@ -4,6 +4,7 @@ using System.IO.Pipelines;
 using System.Text;
 using FlameCsv.Binding;
 using FlameCsv.Reading;
+using FlameCsv.Enumeration;
 
 namespace FlameCsv;
 
@@ -66,7 +67,7 @@ public static partial class CsvReader
         return new CsvTypeMapEnumerable<T, TValue>(in csv, options, context, typeMap);
     }
 
-    public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
+    public static CsvTypeMapAsyncEnumerable<char, TValue> ReadAsync<TValue>(
         Stream stream,
         CsvTypeMap<char, TValue> typeMap,
         CsvReaderOptions<char> options,
@@ -83,13 +84,13 @@ public static partial class CsvReader
         var readerContext = new CsvReadingContext<char>(options, context);
         var textReader = new StreamReader(stream, encoding: encoding, leaveOpen: leaveOpen, bufferSize: bufferSize);
         var reader = new TextPipeReader(textReader, bufferSize, readerContext.ArrayPool);
-        return new CsvTypeMapAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(
-            new TextPipeReaderWrapper(reader),
+        return new CsvTypeMapAsyncEnumerable<char, TValue>(
+            reader,
             in readerContext,
             typeMap);
     }
 
-    public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
+    public static CsvTypeMapAsyncEnumerable<char, TValue> ReadAsync<TValue>(
         TextReader textReader,
         CsvTypeMap<char, TValue> typeMap,
         CsvReaderOptions<char> options,
@@ -101,13 +102,10 @@ public static partial class CsvReader
 
         var readerContext = new CsvReadingContext<char>(options, context);
         var reader = new TextPipeReader(textReader, DefaultBufferSize, readerContext.ArrayPool);
-        return new CsvTypeMapAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(
-            new TextPipeReaderWrapper(reader),
-            in readerContext,
-            typeMap);
+        return new CsvTypeMapAsyncEnumerable<char, TValue>(reader, in readerContext, typeMap);
     }
 
-    public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
+    public static CsvTypeMapAsyncEnumerable<byte, TValue> ReadAsync<TValue>(
         Stream stream,
         CsvTypeMap<byte, TValue> typeMap,
         CsvReaderOptions<byte> options,
@@ -121,13 +119,10 @@ public static partial class CsvReader
 
         var readingContext = new CsvReadingContext<byte>(options, context);
         var reader = CreatePipeReader(stream, in readingContext, leaveOpen);
-        return new CsvTypeMapAsyncEnumerable<byte, TValue, PipeReaderWrapper>(
-            new PipeReaderWrapper(reader),
-            in readingContext,
-            typeMap);
+        return new CsvTypeMapAsyncEnumerable<byte, TValue>(new PipeReaderWrapper(reader), in readingContext, typeMap);
     }
 
-    public static IAsyncEnumerable<TValue> ReadAsync<TValue>(
+    public static CsvTypeMapAsyncEnumerable<byte, TValue> ReadAsync<TValue>(
         PipeReader reader,
         CsvTypeMap<byte, TValue> typeMap,
         CsvReaderOptions<byte> options,
@@ -137,9 +132,6 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(typeMap);
         ArgumentNullException.ThrowIfNull(options);
 
-        return new CsvTypeMapAsyncEnumerable<byte, TValue, PipeReaderWrapper>(
-            new PipeReaderWrapper(reader),
-            new CsvReadingContext<byte>(options, context),
-            typeMap);
+        return new CsvTypeMapAsyncEnumerable<byte, TValue>(new PipeReaderWrapper(reader), new CsvReadingContext<byte>(options, context), typeMap);
     }
 }
