@@ -2,10 +2,10 @@
 using System.Runtime.CompilerServices;
 using FlameCsv.Reading;
 
-namespace FlameCsv;
+namespace FlameCsv.Enumeration;
 
-/// <inheritdoc cref="CsvEnumeratorBase{T}"/>
-public sealed class CsvRecordAsyncEnumerator<T> : CsvEnumeratorBase<T>, IAsyncDisposable where T : unmanaged, IEquatable<T>
+/// <inheritdoc cref="CsvRecordEnumeratorBase{T}"/>
+public sealed class CsvRecordAsyncEnumerator<T> : CsvRecordEnumeratorBase<T>, IAsyncDisposable where T : unmanaged, IEquatable<T>
 {
     private readonly ICsvPipeReader<T> _reader;
     private readonly CancellationToken _cancellationToken;

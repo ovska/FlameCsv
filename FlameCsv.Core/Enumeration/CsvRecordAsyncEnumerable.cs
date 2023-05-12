@@ -1,6 +1,6 @@
 ﻿using FlameCsv.Reading;
 
-namespace FlameCsv;
+namespace FlameCsv.Enumeration;
 
 /// <summary>
 /// Asynchronously reads data from a source into CSV records, use <see cref="CsvReader"/> to create.

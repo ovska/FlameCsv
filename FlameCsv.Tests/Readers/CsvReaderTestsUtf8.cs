@@ -1,5 +1,6 @@
 ﻿using System.IO.Pipelines;
 using CommunityToolkit.HighPerformance.Buffers;
+using FlameCsv.Enumeration;
 using FlameCsv.Tests.TestData;
 
 // ReSharper disable ConvertIfStatementToSwitchStatement

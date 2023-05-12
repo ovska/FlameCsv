@@ -2,6 +2,7 @@
 #nullable enable
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
+using FlameCsv.Enumeration;
 using FlameCsv.Reading;
 using FlameCsv.Runtime;
 
@@ -9,31 +10,32 @@ namespace FlameCsv;
 
 public static partial class CsvReader
 {
-    [UnconditionalSuppressMessage(
-        "Trimming",
-        "IL2091",
-        Justification = "Header binding is not used")]
-    internal sealed class CsvRecordFactoryAsyncEnumerable<T, TValue, TReader> : IAsyncEnumerable<TValue>
+    public sealed class CsvRecordFactoryAsyncEnumerable<T, TValue> : IAsyncEnumerable<TValue>
         where T : unmanaged, IEquatable<T>
-        where TReader : struct, ICsvPipeReader<T>
     {
         private readonly CsvReadingContext<T> _context;
-        private readonly TReader _reader;
+        private readonly ICsvPipeReader<T> _reader;
         private readonly IMaterializer<T, TValue> _materializer;
 
-        public CsvRecordFactoryAsyncEnumerable(in CsvReadingContext<T> context, TReader reader, IMaterializer<T, TValue> materializer)
+        internal CsvRecordFactoryAsyncEnumerable(in CsvReadingContext<T> context, ICsvPipeReader<T> reader, IMaterializer<T, TValue> materializer)
         {
             _context = context;
             _reader = reader;
             _materializer = materializer;
         }
 
-        public IAsyncEnumerator<TValue> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+        public CsvValueAsyncEnumerator<T, TValue> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
-            return new CsvValueAsyncEnumerator<T, TValue, TReader, CsvProcessor<T, TValue>>(
+            return new CsvValueAsyncEnumerator<T, TValue>(
+                in _context,
+                _materializer,
                 _reader,
-                new CsvProcessor<T, TValue>(in _context, _materializer),
                 cancellationToken);
+        }
+
+        IAsyncEnumerator<TValue> IAsyncEnumerable<TValue>.GetAsyncEnumerator(CancellationToken cancellationToken)
+        {
+            return GetAsyncEnumerator(cancellationToken);
         }
     }
 
@@ -72,7 +74,7 @@ public static partial class CsvReader
     /// The CSV records must have 1 field.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
         Func<T0, TValue> recordFactory,
@@ -81,13 +83,10 @@ public static partial class CsvReader
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<char, T0, TValue> materializer = new(recordFactory, options.GetParser<T0>());
-        CsvProcessor<char, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool));
-
-        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
-            pipeReader,
+            new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool),
             materializer);
     }
 
@@ -99,7 +98,7 @@ public static partial class CsvReader
     /// The CSV records must have 2 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
         Func<T0, T1, TValue> recordFactory,
@@ -108,13 +107,10 @@ public static partial class CsvReader
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<char, T0, T1, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>());
-        CsvProcessor<char, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool));
-
-        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
-            pipeReader,
+            new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool),
             materializer);
     }
 
@@ -126,7 +122,7 @@ public static partial class CsvReader
     /// The CSV records must have 3 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
         Func<T0, T1, T2, TValue> recordFactory,
@@ -135,13 +131,10 @@ public static partial class CsvReader
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<char, T0, T1, T2, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>());
-        CsvProcessor<char, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool));
-
-        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
-            pipeReader,
+            new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool),
             materializer);
     }
 
@@ -153,7 +146,7 @@ public static partial class CsvReader
     /// The CSV records must have 4 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
         Func<T0, T1, T2, T3, TValue> recordFactory,
@@ -162,13 +155,10 @@ public static partial class CsvReader
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<char, T0, T1, T2, T3, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>());
-        CsvProcessor<char, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool));
-
-        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
-            pipeReader,
+            new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool),
             materializer);
     }
 
@@ -180,7 +170,7 @@ public static partial class CsvReader
     /// The CSV records must have 5 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
         Func<T0, T1, T2, T3, T4, TValue> recordFactory,
@@ -189,13 +179,10 @@ public static partial class CsvReader
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<char, T0, T1, T2, T3, T4, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>());
-        CsvProcessor<char, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool));
-
-        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
-            pipeReader,
+            new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool),
             materializer);
     }
 
@@ -207,7 +194,7 @@ public static partial class CsvReader
     /// The CSV records must have 6 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, TValue> recordFactory,
@@ -216,13 +203,10 @@ public static partial class CsvReader
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>());
-        CsvProcessor<char, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool));
-
-        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
-            pipeReader,
+            new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool),
             materializer);
     }
 
@@ -234,7 +218,7 @@ public static partial class CsvReader
     /// The CSV records must have 7 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, TValue> recordFactory,
@@ -243,13 +227,10 @@ public static partial class CsvReader
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>());
-        CsvProcessor<char, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool));
-
-        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
-            pipeReader,
+            new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool),
             materializer);
     }
 
@@ -261,7 +242,7 @@ public static partial class CsvReader
     /// The CSV records must have 8 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, TValue> recordFactory,
@@ -270,13 +251,10 @@ public static partial class CsvReader
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>());
-        CsvProcessor<char, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool));
-
-        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
-            pipeReader,
+            new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool),
             materializer);
     }
 
@@ -288,7 +266,7 @@ public static partial class CsvReader
     /// The CSV records must have 9 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> recordFactory,
@@ -297,13 +275,10 @@ public static partial class CsvReader
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>());
-        CsvProcessor<char, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool));
-
-        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
-            pipeReader,
+            new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool),
             materializer);
     }
 
@@ -315,7 +290,7 @@ public static partial class CsvReader
     /// The CSV records must have 10 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> recordFactory,
@@ -324,13 +299,10 @@ public static partial class CsvReader
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>());
-        CsvProcessor<char, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool));
-
-        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
-            pipeReader,
+            new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool),
             materializer);
     }
 
@@ -342,7 +314,7 @@ public static partial class CsvReader
     /// The CSV records must have 11 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> recordFactory,
@@ -351,13 +323,10 @@ public static partial class CsvReader
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>());
-        CsvProcessor<char, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool));
-
-        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
-            pipeReader,
+            new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool),
             materializer);
     }
 
@@ -369,7 +338,7 @@ public static partial class CsvReader
     /// The CSV records must have 12 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> recordFactory,
@@ -378,13 +347,10 @@ public static partial class CsvReader
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>());
-        CsvProcessor<char, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool));
-
-        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
-            pipeReader,
+            new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool),
             materializer);
     }
 
@@ -396,7 +362,7 @@ public static partial class CsvReader
     /// The CSV records must have 13 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> recordFactory,
@@ -405,13 +371,10 @@ public static partial class CsvReader
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>());
-        CsvProcessor<char, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool));
-
-        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
-            pipeReader,
+            new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool),
             materializer);
     }
 
@@ -423,7 +386,7 @@ public static partial class CsvReader
     /// The CSV records must have 14 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> recordFactory,
@@ -432,13 +395,10 @@ public static partial class CsvReader
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>(), options.GetParser<T13>());
-        CsvProcessor<char, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool));
-
-        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
-            pipeReader,
+            new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool),
             materializer);
     }
 
@@ -450,7 +410,7 @@ public static partial class CsvReader
     /// The CSV records must have 15 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> recordFactory,
@@ -459,13 +419,10 @@ public static partial class CsvReader
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>(), options.GetParser<T13>(), options.GetParser<T14>());
-        CsvProcessor<char, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool));
-
-        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
-            pipeReader,
+            new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool),
             materializer);
     }
 
@@ -477,7 +434,7 @@ public static partial class CsvReader
     /// The CSV records must have 16 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue>(
         TextReader reader,
         CsvReaderOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> recordFactory,
@@ -486,13 +443,10 @@ public static partial class CsvReader
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>(), options.GetParser<T13>(), options.GetParser<T14>(), options.GetParser<T15>());
-        CsvProcessor<char, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new TextPipeReaderWrapper(new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool));
-
-        return new CsvRecordFactoryAsyncEnumerable<char, TValue, TextPipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
-            pipeReader,
+            new TextPipeReader(reader, DefaultBufferSize, readerContext.ArrayPool),
             materializer);
     }
 
@@ -504,7 +458,7 @@ public static partial class CsvReader
     /// The CSV records must have 1 field.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
         Func<T0, TValue> recordFactory,
@@ -513,13 +467,10 @@ public static partial class CsvReader
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<byte, T0, TValue> materializer = new(recordFactory, options.GetParser<T0>());
-        CsvProcessor<byte, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new PipeReaderWrapper(reader);
-
-        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
-            pipeReader,
+            new PipeReaderWrapper(reader),
             materializer);
     }
 
@@ -531,7 +482,7 @@ public static partial class CsvReader
     /// The CSV records must have 2 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
         Func<T0, T1, TValue> recordFactory,
@@ -540,13 +491,10 @@ public static partial class CsvReader
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<byte, T0, T1, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>());
-        CsvProcessor<byte, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new PipeReaderWrapper(reader);
-
-        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
-            pipeReader,
+            new PipeReaderWrapper(reader),
             materializer);
     }
 
@@ -558,7 +506,7 @@ public static partial class CsvReader
     /// The CSV records must have 3 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
         Func<T0, T1, T2, TValue> recordFactory,
@@ -567,13 +515,10 @@ public static partial class CsvReader
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<byte, T0, T1, T2, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>());
-        CsvProcessor<byte, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new PipeReaderWrapper(reader);
-
-        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
-            pipeReader,
+            new PipeReaderWrapper(reader),
             materializer);
     }
 
@@ -585,7 +530,7 @@ public static partial class CsvReader
     /// The CSV records must have 4 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
         Func<T0, T1, T2, T3, TValue> recordFactory,
@@ -594,13 +539,10 @@ public static partial class CsvReader
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<byte, T0, T1, T2, T3, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>());
-        CsvProcessor<byte, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new PipeReaderWrapper(reader);
-
-        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
-            pipeReader,
+            new PipeReaderWrapper(reader),
             materializer);
     }
 
@@ -612,7 +554,7 @@ public static partial class CsvReader
     /// The CSV records must have 5 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
         Func<T0, T1, T2, T3, T4, TValue> recordFactory,
@@ -621,13 +563,10 @@ public static partial class CsvReader
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<byte, T0, T1, T2, T3, T4, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>());
-        CsvProcessor<byte, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new PipeReaderWrapper(reader);
-
-        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
-            pipeReader,
+            new PipeReaderWrapper(reader),
             materializer);
     }
 
@@ -639,7 +578,7 @@ public static partial class CsvReader
     /// The CSV records must have 6 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, TValue> recordFactory,
@@ -648,13 +587,10 @@ public static partial class CsvReader
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>());
-        CsvProcessor<byte, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new PipeReaderWrapper(reader);
-
-        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
-            pipeReader,
+            new PipeReaderWrapper(reader),
             materializer);
     }
 
@@ -666,7 +602,7 @@ public static partial class CsvReader
     /// The CSV records must have 7 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, TValue> recordFactory,
@@ -675,13 +611,10 @@ public static partial class CsvReader
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>());
-        CsvProcessor<byte, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new PipeReaderWrapper(reader);
-
-        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
-            pipeReader,
+            new PipeReaderWrapper(reader),
             materializer);
     }
 
@@ -693,7 +626,7 @@ public static partial class CsvReader
     /// The CSV records must have 8 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, TValue> recordFactory,
@@ -702,13 +635,10 @@ public static partial class CsvReader
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>());
-        CsvProcessor<byte, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new PipeReaderWrapper(reader);
-
-        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
-            pipeReader,
+            new PipeReaderWrapper(reader),
             materializer);
     }
 
@@ -720,7 +650,7 @@ public static partial class CsvReader
     /// The CSV records must have 9 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> recordFactory,
@@ -729,13 +659,10 @@ public static partial class CsvReader
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>());
-        CsvProcessor<byte, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new PipeReaderWrapper(reader);
-
-        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
-            pipeReader,
+            new PipeReaderWrapper(reader),
             materializer);
     }
 
@@ -747,7 +674,7 @@ public static partial class CsvReader
     /// The CSV records must have 10 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> recordFactory,
@@ -756,13 +683,10 @@ public static partial class CsvReader
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>());
-        CsvProcessor<byte, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new PipeReaderWrapper(reader);
-
-        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
-            pipeReader,
+            new PipeReaderWrapper(reader),
             materializer);
     }
 
@@ -774,7 +698,7 @@ public static partial class CsvReader
     /// The CSV records must have 11 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> recordFactory,
@@ -783,13 +707,10 @@ public static partial class CsvReader
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>());
-        CsvProcessor<byte, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new PipeReaderWrapper(reader);
-
-        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
-            pipeReader,
+            new PipeReaderWrapper(reader),
             materializer);
     }
 
@@ -801,7 +722,7 @@ public static partial class CsvReader
     /// The CSV records must have 12 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> recordFactory,
@@ -810,13 +731,10 @@ public static partial class CsvReader
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>());
-        CsvProcessor<byte, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new PipeReaderWrapper(reader);
-
-        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
-            pipeReader,
+            new PipeReaderWrapper(reader),
             materializer);
     }
 
@@ -828,7 +746,7 @@ public static partial class CsvReader
     /// The CSV records must have 13 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> recordFactory,
@@ -837,13 +755,10 @@ public static partial class CsvReader
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>());
-        CsvProcessor<byte, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new PipeReaderWrapper(reader);
-
-        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
-            pipeReader,
+            new PipeReaderWrapper(reader),
             materializer);
     }
 
@@ -855,7 +770,7 @@ public static partial class CsvReader
     /// The CSV records must have 14 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> recordFactory,
@@ -864,13 +779,10 @@ public static partial class CsvReader
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>(), options.GetParser<T13>());
-        CsvProcessor<byte, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new PipeReaderWrapper(reader);
-
-        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
-            pipeReader,
+            new PipeReaderWrapper(reader),
             materializer);
     }
 
@@ -882,7 +794,7 @@ public static partial class CsvReader
     /// The CSV records must have 15 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> recordFactory,
@@ -891,13 +803,10 @@ public static partial class CsvReader
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>(), options.GetParser<T13>(), options.GetParser<T14>());
-        CsvProcessor<byte, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new PipeReaderWrapper(reader);
-
-        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
-            pipeReader,
+            new PipeReaderWrapper(reader),
             materializer);
     }
 
@@ -909,7 +818,7 @@ public static partial class CsvReader
     /// The CSV records must have 16 fields.<br/>Possible binding attributes placed
     /// on the parameter factory are ignored, and parameter position is always used to determine the field index.
     /// </remarks>
-    public static IAsyncEnumerable<TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue>(
+    public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue>(
         PipeReader reader,
         CsvReaderOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> recordFactory,
@@ -918,13 +827,10 @@ public static partial class CsvReader
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>(), options.GetParser<T13>(), options.GetParser<T14>(), options.GetParser<T15>());
-        CsvProcessor<byte, TValue> processor = new(in readerContext, materializer);
 
-        var pipeReader = new PipeReaderWrapper(reader);
-
-        return new CsvRecordFactoryAsyncEnumerable<byte, TValue, PipeReaderWrapper>(
+        return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
-            pipeReader,
+            new PipeReaderWrapper(reader),
             materializer);
     }
 

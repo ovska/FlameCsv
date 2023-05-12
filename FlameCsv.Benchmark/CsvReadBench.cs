@@ -25,7 +25,8 @@ public class CsvReadBench
 
     private Stream GetFileStream() =>  new MemoryStream(Header ? _bytes_h : _bytes);
 
-    [Params(true, false)] public bool Header { get; set; }
+    //[Params(true, false)] public bool Header { get; set; }
+    bool Header => true;
 
     [Benchmark(Baseline = true)]
     public async Task Helper()

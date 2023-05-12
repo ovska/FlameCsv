@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Internal;
@@ -43,6 +44,8 @@ internal static class MaterializerExtensions
         this CsvReaderOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
+        Debug.Assert(System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported, "Dynamic code is not supported");
+
         DelegateGenerator<T>.MaterializerFactory<TResult>? factory = ForType<T, TResult>.Cached;
 
         if (factory is null)

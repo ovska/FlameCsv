@@ -1,10 +1,10 @@
 using System.Buffers;
 using System.Runtime.CompilerServices;
 
-namespace FlameCsv;
+namespace FlameCsv.Enumeration;
 
-/// <inheritdoc cref="CsvEnumeratorBase{T}"/>
-public sealed class CsvRecordEnumerator<T> : CsvEnumeratorBase<T> where T : unmanaged, IEquatable<T>
+/// <inheritdoc cref="CsvRecordEnumeratorBase{T}"/>
+public sealed class CsvRecordEnumerator<T> : CsvRecordEnumeratorBase<T> where T : unmanaged, IEquatable<T>
 {
     private ReadOnlySequence<T> _data;
 

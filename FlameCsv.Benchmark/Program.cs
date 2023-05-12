@@ -1,4 +1,4 @@
-﻿BenchmarkRunner.Run<BindingBench>();
+﻿BenchmarkRunner.Run<CsvReadBench>();
 
 //var bb = new BindingBench();
 

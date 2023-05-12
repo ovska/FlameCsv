@@ -22,10 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference
-      Include="..\FlameCsv.SourceGen\FlameCsv.SourceGen.csproj"
-      ReferenceOutputAssembly="false"
-      PackAsAnalyzer="true" />
+    <ProjectReference Include="..\FlameCsv.SourceGen\FlameCsv.SourceGen.csproj" ReferenceOutputAssembly="false" PackAsAnalyzer="true" />
   </ItemGroup>
 
   <!--Can be enabled intermittently-->

@@ -1,6 +1,6 @@
 ﻿using System.Buffers;
 
-namespace FlameCsv;
+namespace FlameCsv.Enumeration;
 
 /// <summary>
 /// Enumerates known data into CSV records.

@@ -6,7 +6,7 @@ using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 
-namespace FlameCsv;
+namespace FlameCsv.Enumeration;
 
 /// <summary>
 /// An enumerator that parses CSV records.
@@ -20,7 +20,7 @@ namespace FlameCsv;
     "Design",
     "CA1051:Do not declare visible instance fields",
     Justification = "The constructor is internal so this type cannot be inherited outside the library")]
-public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IEquatable<T>
+public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanaged, IEquatable<T>
 {
     public CsvValueRecord<T> Current => _current._options is not null ? _current : ThrowInvalidCurrentAccess();
 
@@ -36,7 +36,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable where T : unmanaged, IE
 
     protected internal bool _disposed;
 
-    internal CsvEnumeratorBase(in CsvReadingContext<T> context)
+    internal CsvRecordEnumeratorBase(in CsvReadingContext<T> context)
     {
         context.EnsureValid();
         _context = context;
