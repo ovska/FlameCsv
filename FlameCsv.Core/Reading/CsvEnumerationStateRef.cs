@@ -107,16 +107,7 @@ internal struct CsvEnumerationStateRef<T> : ICsvFieldReader<T> where T : unmanag
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public readonly void ThrowRecordEndedPrematurely(int fieldCount, Type recordType)
-    {
-        throw new CsvFormatException(
-            $"Expected the record to have {fieldCount} fields when parsing {recordType}, but it ended prematurely. " +
-            $"Remaining: {_context.AsPrintableString(remaining)}, " +
-            $"Record: {_context.AsPrintableString(_record)}");
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public readonly void ThrowFieldEndedPrematurely()
+    public readonly void ThrowForInvalidEOF()
     {
         string escapeStr = _context.Dialect.IsRFC4188Mode ? "" : $"and {escapesRemaining} escapes ";
         throw new UnreachableException(

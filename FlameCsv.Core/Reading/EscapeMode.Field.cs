@@ -185,7 +185,7 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
 
         EOL:
         if ((quotesRemaining | escapesRemaining) != 0)
-            state.ThrowFieldEndedPrematurely();
+            state.ThrowForInvalidEOF();
 
         // whole line was consumed, skip the delimiter if it wasn't the first field
         field = state.remaining.Slice((!state.isAtStart).ToByte());

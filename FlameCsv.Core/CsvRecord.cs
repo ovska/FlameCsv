@@ -301,10 +301,16 @@ internal struct CsvRecordFieldReader<T> : ICsvFieldReader<T> where T : unmanaged
         _context = context;
     }
 
-    public void EnsureFullyConsumed(int fieldCount)
+    public readonly void EnsureFullyConsumed(int fieldCount)
     {
         if (_index != _values.Count)
             Throw.InvalidData_FieldCount(fieldCount, _values.Count);
+    }
+
+    [DoesNotReturn]
+    public readonly void ThrowForInvalidEOF()
+    {
+        Throw.InvalidData_FieldCount();
     }
 
     [DoesNotReturn]
@@ -317,7 +323,7 @@ internal struct CsvRecordFieldReader<T> : ICsvFieldReader<T> where T : unmanaged
         { Parser = parser };
     }
 
-    public void TryEnsureFieldCount(int fieldCount)
+    public readonly void TryEnsureFieldCount(int fieldCount)
     {
         if (_values.Count != fieldCount)
             Throw.InvalidData_FieldCount(fieldCount, _values.Count);
