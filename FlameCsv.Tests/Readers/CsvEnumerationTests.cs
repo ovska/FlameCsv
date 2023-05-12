@@ -115,17 +115,6 @@ public sealed class CsvEnumerationTests : IDisposable
         }
     }
 
-    //[Fact]
-    //public  void Should_Work_On_Empty_Data()
-    //{
-    //    using var enumerator = new CsvFieldEnumerator<char>(ReadOnlyMemory<char>.Empty, CsvTextReaderOptions.Default);
-    //    Assert.False(enumerator.MoveNext());
-
-    //    var record = new CsvValueRecord<char>("".AsMemory(), CsvTextReaderOptions.Default);
-    //    Assert.Equal(0, record.GetFieldCount());
-    //    Assert.ThrowsAny<ArgumentException>(() => record.GetField(0));
-    //}
-
     [Fact]
     public void Should_Return_Field_Count()
     {
