@@ -25,7 +25,7 @@ public struct CsvFieldEnumerator<T> : IDisposable where T : unmanaged, IEquatabl
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool MoveNext()
     {
-        if (((ICsvFieldReader<T>)_state).TryReadNext(out ReadOnlyMemory<T> field))
+        if (_state.TryReadNext(out ReadOnlyMemory<T> field))
         {
             Current = field;
             return true;

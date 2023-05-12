@@ -5,12 +5,6 @@ namespace FlameCsv.Tests;
 public static class CsvRecordTests
 {
     [Fact]
-    public static void Should_Preserve_Chars_As_Strings()
-    {
-        Assert.True(MemoryMarshal.TryGetString(new CsvRecord<char>("Abc".AsMemory(), CsvTextReaderOptions.Default)[0], out _, out _, out _));
-    }
-
-    [Fact]
     public static void Should_Validate_FieldCount()
     {
         Assert.Throws<InvalidDataException>(

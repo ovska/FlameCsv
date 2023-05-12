@@ -1,4 +1,6 @@
-﻿using System.Collections;
+﻿using System;
+using System.Buffers;
+using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
@@ -73,7 +75,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     public TRecord ParseRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap)
     {
         ArgumentNullException.ThrowIfNull(typeMap);
-        
+
         IMaterializer<T, TRecord> materializer = _header is not null
             ? typeMap.GetMaterializer(_headerNames, in _context)
             : typeMap.GetMaterializer(in _context);
@@ -151,7 +153,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
             Throw.Argument_HeaderNameNotFound(name, _context.ExposeContent, _header.Keys);
         }
 
-        return TryGetValue<TValue>(index, out value);
+        return TryGetValue(index, out value);
     }
 
     public IEnumerable<string> GetHeaderRecord()
@@ -211,58 +213,51 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         ReadOnlyMemory<T> record,
         in CsvReadingContext<T> context)
     {
-        throw new NotImplementedException();
-        //if (!Token<T>.LargeObjectHeapAllocates(record.Length * 2))
-        //{
-        //    T[]? buffer = null;
-        //    ArrayPool<T> arrayPool = context.ArrayPool;
+        if (!Token<T>.LargeObjectHeapAllocates(record.Length * 2))
+        {
+            // use a single buffer for everything
+            Memory<T> remaining = new T[record.Length * 2];
+            record.CopyTo(remaining);
+            ReadOnlyMemory<T> copiedRecord = remaining.Slice(0, record.Length);
+            remaining = remaining.Slice(record.Length);
 
-        //    // use a single buffer for everything
-        //    Memory<T> remaining = new T[record.Length * 2];
-        //    record.CopyTo(remaining);
-        //    remaining = remaining.Slice(record.Length);
+            ReadOnlyMemory<T>[] values = new ReadOnlyMemory<T>[16];
+            int index = 0;
+            T[]? buffer = null;
 
-        //    try
-        //    {
-        //        CsvEnumerationStateRef<T> state = new(in context, record, ref buffer);
+            using (CsvEnumerationStateRef<T>.CreateTemporary(in context, record, ref buffer, out var state))
+            {
+                while (state.TryReadNext(out ReadOnlyMemory<T> field))
+                {
+                    field.CopyTo(remaining);
+                    values[index++] = remaining.Slice(0, field.Length);
+                    remaining = remaining.Slice(field.Length);
+                }
 
-        //        while (!state.remaining.IsEmpty)
-        //        {
-        //            var field = context.ReadNextField(ref state);
-        //            field.CopyTo(remaining);
-        //            remaining = remaining.Slice(field.Length);
-        //        }
+                return new PreservedValues(copiedRecord, new ArraySegment<ReadOnlyMemory<T>>(values, 0, index));
+            }
+        }
+        else
+        {
+            ReadOnlyMemory<T>[] values = new ReadOnlyMemory<T>[16];
+            int index = 0;
+            T[]? buffer = null;
 
-        //        return new PreservedValues(record.SafeCopy(),
-        //            values.AsMemory(0, index));
-        //    }
-        //    finally
-        //    {
-        //        arrayPool.EnsureReturned(ref buffer);
-        //    }
-        //}
-        //else
-        //{
-        //    ReadOnlyMemory<T>[] values = new ReadOnlyMemory<T>[16];
-        //    int index = 0;
-        //    T[]? buffer = null;
+            using (CsvEnumerationStateRef<T>.CreateTemporary(in context, record, ref buffer, out var state))
+            {
+                while (state.TryReadNext(out ReadOnlyMemory<T> field))
+                {
+                    if (index >= values.Length)
+                        Array.Resize(ref values, values.Length * 2);
 
-        //    // TODO!!!
-        //    using (CsvEnumerationStateRef<T>.CreateTemporary(in context, record, ref buffer, out var state))
-        //    {
-        //        while (!state.remaining.IsEmpty)
-        //        {
-        //            if (index >= values.Length)
-        //                Array.Resize(ref values, values.Length * 2);
+                    values[index++] = field.SafeCopy();
+                }
 
-        //            values[index++] = context.ReadNextField(ref state).SafeCopy();
-        //        }
-
-        //        return new PreservedValues(
-        //            record.SafeCopy(),
-        //            new ArraySegment<ReadOnlyMemory<T>>(values, 0, index));
-        //    }
-        //}
+                return new PreservedValues(
+                    record.SafeCopy(),
+                    new ArraySegment<ReadOnlyMemory<T>>(values, 0, index));
+            }
+        }
     }
 
     IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator()
