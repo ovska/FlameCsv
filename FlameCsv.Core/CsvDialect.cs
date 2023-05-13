@@ -46,8 +46,12 @@ public readonly struct CsvDialect<T> : IEquatable<CsvDialect<T>> where T : unman
     }
 
     // perf: use the fields directly internally instead of through iface
-    internal CsvDialect(CsvReaderOptions<T> options)
-        : this(options._delimiter, options._quote, options._newline, options._escape)
+    internal CsvDialect(CsvReaderOptions<T> options, in CsvContextOverride<T> context = default)
+        : this(
+            delimiter: context._delimiter.Resolve(options._delimiter),
+            quote: context._quote.Resolve(options._quote),
+            newline: context._newline.Resolve(options._newline),
+            escape: context._escape.Resolve(options._escape))
     {
     }
 
