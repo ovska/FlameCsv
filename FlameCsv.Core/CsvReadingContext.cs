@@ -38,15 +38,10 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
         options.MakeReadOnly();
 
         Options = options;
-        _dialect = new CsvDialect<T>(
-            delimiter: overrides._delimiter.Resolve(options._delimiter),
-            quote: overrides._quote.Resolve(options._quote),
-            newline: overrides._newline.Resolve(options._newline),
-            escape: overrides._escape.Resolve(options._escape));
         ArrayPool = overrides._arrayPool.Resolve(options.ArrayPool).AllocatingIfNull();
-        HasHeader = overrides._hasHeader.Resolve(options.HasHeader);
         ExposeContent = overrides._exposeContent.Resolve(options.AllowContentInExceptions);
         ValidateFieldCount = overrides._validateFieldCount.Resolve(options.ValidateFieldCount);
+        _dialect = new CsvDialect<T>(options, in overrides);
         _skipCallback = overrides._shouldSkipRow.Resolve(options.ShouldSkipRow);
         _exceptionHandler = overrides._exceptionHandler.Resolve(options.ExceptionHandler);
     }
@@ -104,7 +99,7 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
     {
         if (!isFinalBlock)
         {
-            return !_dialect.Escape.HasValue
+            return _dialect.IsRFC4188Mode
                 ? RFC4180Mode<T>.TryGetLine(in _dialect, ref sequence, out line, out meta)
                 : EscapeMode<T>.TryGetLine(in _dialect, ref sequence, out line, out meta);
         }
@@ -115,8 +110,8 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
             return true;
         }
 
-        line = default;
-        meta = default;
+        Unsafe.SkipInit(out line);
+        Unsafe.SkipInit(out meta);
         return false;
     }
 
@@ -243,8 +238,7 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private void ThrowForInvalidLastEscape(ReadOnlyMemory<T> line)
     {
-        throw new CsvFormatException(
-            $"The final entry ended on a escape character: {AsPrintableString(line)}");
+        throw new CsvFormatException($"The record ended with an escape character: {AsPrintableString(line)}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
