@@ -1,6 +1,6 @@
 using System.Globalization;
 using System.Runtime.InteropServices;
-using FlameCsv.Parsers.Text;
+using FlameCsv.Converters;
 
 namespace FlameCsv.Tests;
 
@@ -14,9 +14,9 @@ public class CsvReaderOptionsTests
         Do(o => o.DateTimeStyles = (DateTimeStyles)int.MaxValue);
         Do(o => o.TimeSpanStyles = (TimeSpanStyles)int.MaxValue);
 
-        static void Do(Action<CsvTextReaderOptions> action)
+        static void Do(Action<CsvTextOptions> action)
         {
-            Assert.ThrowsAny<ArgumentException>(() => action(new CsvTextReaderOptions()));
+            Assert.ThrowsAny<ArgumentException>(() => action(new CsvTextOptions()));
         }
     }
 
@@ -30,7 +30,7 @@ public class CsvReaderOptionsTests
         Do(o => o.GuidFormat = '^');
 
         // no ex
-        _ = new CsvUtf8ReaderOptions
+        _ = new CsvUtf8Options
         {
             DateTimeFormat = '\0',
             TimeSpanFormat = '\0',
@@ -39,22 +39,22 @@ public class CsvReaderOptionsTests
             GuidFormat = '\0',
         };
 
-        static void Do(Action<CsvUtf8ReaderOptions> action)
+        static void Do(Action<CsvUtf8Options> action)
         {
-            Assert.ThrowsAny<FormatException>(() => action(new CsvUtf8ReaderOptions()));
+            Assert.ThrowsAny<FormatException>(() => action(new CsvUtf8Options()));
         }
     }
 
     [Fact]
     public static void Should_Validate_NullToken()
     {
-        var to = new CsvTextReaderOptions();
+        var to = new CsvTextOptions();
         Assert.Throws<ArgumentException>(() => to.NullTokens[typeof(int)] = default);
         Assert.Throws<ArgumentException>(() => to.NullTokens[typeof(int*)] = default);
         Assert.Throws<ArgumentException>(() => to.NullTokens[typeof(Span<>)] = default);
         Assert.Throws<ArgumentException>(() => to.NullTokens[typeof(Span<int>)] = default);
 
-        var bo = new CsvUtf8ReaderOptions();
+        var bo = new CsvUtf8Options();
         Assert.Throws<ArgumentException>(() => bo.NullTokens[typeof(int)] = default);
         Assert.Throws<ArgumentException>(() => bo.NullTokens[typeof(int*)] = default);
         Assert.Throws<ArgumentException>(() => bo.NullTokens[typeof(Span<>)] = default);
@@ -62,59 +62,41 @@ public class CsvReaderOptionsTests
     }
 
     [Fact]
-    public void Should_Prioritize_Parsers_Added_Last()
-    {
-        var c1 = new CultureInfo("fi");
-        var c2 = new CultureInfo("se");
-
-        var options = new CsvTextReaderOptions
-        {
-            Parsers =
-            {
-                new IntegerTextParser(formatProvider: c1),
-                new IntegerTextParser(formatProvider: c2),
-            },
-        };
-
-        Assert.Equal(c2, ((IntegerTextParser)options.GetParser<int>()).FormatProvider);
-    }
-
-    [Fact]
     public void Should_Not_Use_Builtin_Parsers()
     {
-        var options = new CsvTextReaderOptions { UseDefaultParsers = false };
-        Assert.Null(options.TryGetParser<int>());
+        var options = new CsvTextOptions { UseDefaultConverters = false };
+        Assert.Null(options.TryGetConverter<int>());
     }
 
     [Fact]
     public void Should_Return_Text_Defaults()
     {
-        var options = CsvTextReaderOptions.Default;
+        var options = CsvTextOptions.Default;
         Assert.True(options.IsReadOnly);
 
         Assert.Equal("\r\n", options.Newline.ToArray());
 
-        var boolParser = options.GetParser<bool>();
+        var boolParser = options.GetConverter<bool>();
         Assert.True(boolParser.TryParse("true", out var bValue));
         Assert.True(bValue);
 
-        var intParser = options.GetParser<ushort>();
+        var intParser = options.GetConverter<ushort>();
         Assert.True(intParser.TryParse("1234", out var iValue));
         Assert.Equal(1234, iValue);
 
-        var nullEnumParser = options.GetParser<DayOfWeek>();
+        var nullEnumParser = options.GetConverter<DayOfWeek>();
         Assert.True(nullEnumParser.TryParse("Monday", out var mndy));
         Assert.Equal(DayOfWeek.Monday, mndy);
 
-        Assert.Null(options.TryGetParser(typeof(Type)));
+        Assert.Null(options.TryGetConverter(typeof(Type)));
 
-        Assert.Same(options, CsvTextReaderOptions.Default);
+        Assert.Same(options, CsvTextOptions.Default);
     }
 
     [Fact]
     public void Should_Reuse_Common_Strings()
     {
-        var options = new CsvUtf8ReaderOptions { Newline = "\r\n" };
+        var options = new CsvUtf8Options { Newline = "\r\n" };
         Assert.True(MemoryMarshal.TryGetArray(((ICsvDialectOptions<byte>)options).Newline, out var segment1));
         Assert.True(MemoryMarshal.TryGetArray(CsvDialectStatic._crlf, out var segment2));
 
@@ -140,42 +122,42 @@ public class CsvReaderOptionsTests
     [Fact]
     public void Should_Return_Utf8_Defaults()
     {
-        var options = CsvUtf8ReaderOptions.Default;
+        var options = CsvUtf8Options.Default;
         Assert.True(options.IsReadOnly);
 
         Assert.Equal("\r\n"u8.ToArray(), ((ICsvDialectOptions<byte>)options).Newline.ToArray());
         Assert.Equal("\r\n", options.Newline);
 
-        var boolParser = options.GetParser<bool>();
+        var boolParser = options.GetConverter<bool>();
         Assert.True(boolParser.TryParse("true"u8, out var bValue));
         Assert.True(bValue);
 
-        var intParser = options.GetParser<ushort>();
+        var intParser = options.GetConverter<ushort>();
         Assert.True(intParser.TryParse("1234"u8, out var iValue));
         Assert.Equal(1234, iValue);
 
-        var nullEnumParser = options.GetParser<DayOfWeek>();
+        var nullEnumParser = options.GetConverter<DayOfWeek>();
         Assert.True(nullEnumParser.TryParse("Monday"u8, out var mndy));
         Assert.Equal(DayOfWeek.Monday, mndy);
 
-        Assert.Null(options.TryGetParser(typeof(Type)));
+        Assert.Null(options.TryGetConverter(typeof(Type)));
 
-        Assert.Same(options, CsvUtf8ReaderOptions.Default);
+        Assert.Same(options, CsvUtf8Options.Default);
     }
 
     [Fact]
     public void Should_Return_Skip_Callback()
     {
-        Assert.Throws<ArgumentException>(() => CsvReaderOptions<char>.SkipIfStartsWith(default));
+        Assert.Throws<ArgumentException>(() => CsvOptions<char>.SkipIfStartsWith(default));
 
         var tokens = CsvDialect<char>.Default;
-        var commentfn = CsvReaderOptions<char>.SkipIfStartsWith("#", skipEmptyOrWhitespace: false);
+        var commentfn = CsvOptions<char>.SkipIfStartsWith("#", skipEmptyOrWhitespace: false);
         Assert.True(commentfn("#test".AsMemory(), in tokens));
         Assert.False(commentfn("t#est".AsMemory(), in tokens));
         Assert.False(commentfn("".AsMemory(), in tokens));
         Assert.False(commentfn(" ".AsMemory(), in tokens));
 
-        var commentOrEmpty = CsvReaderOptions<char>.SkipIfStartsWith("#", skipEmptyOrWhitespace: true);
+        var commentOrEmpty = CsvOptions<char>.SkipIfStartsWith("#", skipEmptyOrWhitespace: true);
         Assert.True(commentOrEmpty("#test".AsMemory(), in tokens));
         Assert.False(commentOrEmpty("t#est".AsMemory(), in tokens));
         Assert.True(commentOrEmpty("".AsMemory(), in tokens));
@@ -185,7 +167,7 @@ public class CsvReaderOptionsTests
     [Fact]
     public void Should_Throw_On_ReadOnly_Modified()
     {
-        var options = new CsvTextReaderOptions();
+        var options = new CsvTextOptions();
         Assert.True(options.MakeReadOnly());
         Assert.False(options.MakeReadOnly());
 
@@ -197,14 +179,14 @@ public class CsvReaderOptionsTests
         Run(o => o.Comparer = StringComparer.Ordinal);
         Run(o => o.ExceptionHandler = default);
         Run(o => o.AllowContentInExceptions = default);
-        Run(o => o.Parsers[0] = new IntegerTextParser());
-        Run(o => o.Parsers.Add(new IntegerTextParser()));
-        Run(o => o.Parsers.Insert(0, new IntegerTextParser()));
-        Run(o => o.Parsers.Remove(new IntegerTextParser()));
-        Run(o => o.Parsers.RemoveAt(0));
-        Run(o => o.Parsers.Clear());
+        Run(o => o.Converters[0] = new BooleanTextConverter());
+        Run(o => o.Converters.Add(new BooleanTextConverter()));
+        Run(o => o.Converters.Insert(0, new BooleanTextConverter()));
+        Run(o => o.Converters.Remove(new BooleanTextConverter()));
+        Run(o => o.Converters.RemoveAt(0));
+        Run(o => o.Converters.Clear());
 
-        void Run(Action<CsvTextReaderOptions> action)
+        void Run(Action<CsvTextOptions> action)
         {
             Assert.Throws<InvalidOperationException>(() => action(options));
         }
@@ -215,7 +197,7 @@ public class CsvReaderOptionsTests
     {
         const string data = "1,1,1\r\n1,1,1\r\n1,1,1,1\r\n";
 
-        var options = new CsvTextReaderOptions { ValidateFieldCount = true, HasHeader = false };
+        var options = new CsvTextOptions { ValidateFieldCount = true, HasHeader = false };
 
         using var enumerator = CsvReader.Enumerate(data, options).GetEnumerator();
 
@@ -229,7 +211,7 @@ public class CsvReaderOptionsTests
     {
         const string data = "A,B,C\r\n1,1,1\r\n1,1,1,1\r\n";
 
-        var options = new CsvTextReaderOptions { ValidateFieldCount = true, HasHeader = true };
+        var options = new CsvTextOptions { ValidateFieldCount = true, HasHeader = true };
 
         using var enumerator = CsvReader.Enumerate(data, options).GetEnumerator();
 

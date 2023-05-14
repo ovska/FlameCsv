@@ -34,7 +34,7 @@ public static class EscapeModeTests
     public static void Should_Read_Fields(string input, string[] expected)
     {
         using var pool = new ReturnTrackingArrayPool<char>();
-        var options = new CsvTextReaderOptions
+        var options = new CsvTextOptions
         {
             Escape = '^',
             Quote = '\'',
@@ -177,7 +177,7 @@ public static class EscapeModeTests
         string noNewline)
     {
         using var pool = new ReturnTrackingArrayPool<char>();
-        var options = new CsvTextReaderOptions
+        var options = new CsvTextOptions
         {
             Escape = '^',
             Quote = '\'',

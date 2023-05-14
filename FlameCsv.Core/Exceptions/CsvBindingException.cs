@@ -99,8 +99,8 @@ public sealed class CsvBindingException<T> : CsvBindingException
     /// </summary>
     internal CsvBindingException(
         CsvBinding<T> binding,
-        CsvParserOverrideAttribute first,
-        CsvParserOverrideAttribute second)
+        Attribute first,
+        Attribute second)
         : base($"Multiple parser overrides defined for {binding}: {first.GetType()} and {second.GetType()}")
     {
         Bindings = new[] { binding };

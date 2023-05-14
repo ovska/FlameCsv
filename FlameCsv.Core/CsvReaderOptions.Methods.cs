@@ -3,7 +3,7 @@ using CommunityToolkit.Diagnostics;
 namespace FlameCsv;
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "<Pending>")]
-public partial class CsvReaderOptions<T>
+public partial class CsvOptions<T>
 {
     /// <summary>
     /// Returns true if the row is empty or entirely whitespace (as defined in <paramref name="dialect"/>).

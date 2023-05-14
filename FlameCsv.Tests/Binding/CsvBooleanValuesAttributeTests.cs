@@ -2,7 +2,7 @@ using System.Text;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
-using FlameCsv.Parsers;
+using FlameCsv.Converters;
 
 // ReSharper disable UnusedMember.Local
 
@@ -10,15 +10,6 @@ namespace FlameCsv.Tests.Binding;
 
 public static class CsvBooleanValuesAttributeTests
 {
-    private sealed class IntOptions : CsvReaderOptions<int>
-    {
-        public override IDictionary<Type, string?> NullTokens => throw new NotImplementedException();
-        public override string GetAsString(ReadOnlySpan<int> field) => throw new NotImplementedException();
-        public override IHeaderBinder<int> GetHeaderBinder() => throw new NotImplementedException();
-        public override ReadOnlyMemory<int> GetNullToken(Type resultType) => throw new NotImplementedException();
-        protected override ReadOnlySpan<ICsvParserFactory<int>> GetDefaultParsers() => throw new NotImplementedException();
-    }
-
     public static IEnumerable<object?[]> NonNullableTestData()
     {
         yield return new object?[] { "1", true, true };
@@ -43,20 +34,28 @@ public static class CsvBooleanValuesAttributeTests
 
     private class Shim
     {
-        [CsvBooleanValues(
+        [CsvBooleanTextValues(
+            TrueValues = new[] { "1", "Y" },
+            FalseValues = new[] { "0", "N" })]
+        [CsvBooleanUtf8Values(
             TrueValues = new[] { "1", "Y" },
             FalseValues = new[] { "0", "N" })]
         public bool IsEnabled { get; set; }
 
-        [CsvBooleanValues(
+        [CsvBooleanTextValues(
+            TrueValues = new[] { "1", "Y" },
+            FalseValues = new[] { "0", "N" })]
+        [CsvBooleanUtf8Values(
             TrueValues = new[] { "1", "Y" },
             FalseValues = new[] { "0", "N" })]
         public bool? IsEnabledN { get; set; }
 
-        [CsvBooleanValues(TrueValues = new[] { "1" })]
+        [CsvBooleanTextValues(TrueValues = new[] { "1" })]
+        [CsvBooleanUtf8Values(TrueValues = new[] { "1" })]
         public int InvalidType { get; set; }
 
-        [CsvBooleanValues]
+        [CsvBooleanTextValues]
+        [CsvBooleanUtf8Values]
         public bool NoValues { get; set; }
     }
 
@@ -67,33 +66,21 @@ public static class CsvBooleanValuesAttributeTests
             () =>
             {
                 var binding = CsvBinding.ForMember<Shim>(0, typeof(Shim).GetProperty(property)!);
-                Assert.True(binding.TryGetAttribute<CsvParserOverrideAttribute>(out var @override));
-                _ = @override!.CreateParser(typeof(bool), CsvTextReaderOptions.Default);
-            });
-    }
-
-    [Fact]
-    public static void Should_Throw_On_Unsupported_Type()
-    {
-        Assert.Throws<NotSupportedException>(
-            () =>
-            {
-                var binding = CsvBinding.ForMember<Shim>(0, typeof(Shim).GetProperty("IsEnabled")!);
-                Assert.True(binding.TryGetAttribute<CsvParserOverrideAttribute>(out var @override));
-                _ = @override!.CreateParser(typeof(bool), new IntOptions());
+                Assert.True(binding.TryGetAttribute<CsvConverterAttribute<char>>(out var @override));
+                _ = @override!.CreateParser(typeof(bool), CsvTextOptions.Default);
             });
     }
 
     [Theory, MemberData(nameof(NonNullableTestData))]
     public static void Should_Override_Bool_Text_Parser(string input, bool success, bool? expected)
     {
-        var options = CsvTextReaderOptions.Default;
+        var options = CsvTextOptions.Default;
 
         var binding = CsvBinding.ForMember<Shim>(0, typeof(Shim).GetProperty("IsEnabled")!);
 
-        Assert.True(binding.TryGetAttribute<CsvParserOverrideAttribute>(out var @override));
+        Assert.True(binding.TryGetAttribute<CsvConverterAttribute<char>>(out var @override));
 
-        var parser = (ICsvParser<char, bool>)@override!.CreateParser(typeof(bool), options);
+        var parser = (FlameCsv.CsvConverter<char, bool>)@override!.CreateParser(typeof(bool), options);
 
         if (success)
         {
@@ -113,12 +100,12 @@ public static class CsvBooleanValuesAttributeTests
         bool? expected,
         string nullToken)
     {
-        var options = new CsvTextReaderOptions { Null = nullToken };
+        var options = new CsvTextOptions { Null = nullToken };
         var binding = CsvBinding.ForMember<Shim>(0, typeof(Shim).GetProperty("IsEnabledN")!);
 
-        Assert.True(binding.TryGetAttribute<CsvParserOverrideAttribute>(out var @override));
+        Assert.True(binding.TryGetAttribute<CsvConverterAttribute<char>>(out var @override));
 
-        var parser = (ICsvParser<char, bool?>)@override!.CreateParser(typeof(bool?), options);
+        var parser = (CsvConverter<char, bool?>)@override!.CreateParser(typeof(bool?), options);
 
         if (success)
         {
@@ -134,13 +121,13 @@ public static class CsvBooleanValuesAttributeTests
     [Theory, MemberData(nameof(NonNullableTestData))]
     public static void Should_Override_Bool_Utf8_Parser(string input, bool success, bool? expected)
     {
-        var options = CsvUtf8ReaderOptions.Default;
+        var options = CsvUtf8Options.Default;
 
         var binding = CsvBinding.ForMember<Shim>(0, typeof(Shim).GetProperty("IsEnabled")!);
 
-        Assert.True(binding.TryGetAttribute<CsvParserOverrideAttribute>(out var @override));
+        Assert.True(binding.TryGetAttribute<CsvConverterAttribute<byte>>(out var @override));
 
-        var parser = (ICsvParser<byte, bool>)@override!.CreateParser(typeof(bool), options);
+        var parser = (CsvConverter<byte, bool>)@override!.CreateParser(typeof(bool), options);
         var inputBytes = Encoding.UTF8.GetBytes(input);
 
         if (success)
@@ -161,12 +148,12 @@ public static class CsvBooleanValuesAttributeTests
         bool? expected,
         string nullToken)
     {
-        var options = new CsvUtf8ReaderOptions { Null = Encoding.UTF8.GetBytes(nullToken) };
+        var options = new CsvUtf8Options { Null = Encoding.UTF8.GetBytes(nullToken) };
         var binding = CsvBinding.ForMember<Shim>(0, typeof(Shim).GetProperty("IsEnabledN")!);
 
-        Assert.True(binding.TryGetAttribute<CsvParserOverrideAttribute>(out var @override));
+        Assert.True(binding.TryGetAttribute<CsvConverterAttribute<byte>>(out var @override));
 
-        var parser = (ICsvParser<byte, bool?>)@override!.CreateParser(typeof(bool?), options);
+        var parser = (FlameCsv.CsvConverter<byte, bool?>)@override!.CreateParser(typeof(bool?), options);
         var inputBytes = Encoding.UTF8.GetBytes(input);
 
         if (success)
@@ -183,13 +170,14 @@ public static class CsvBooleanValuesAttributeTests
     [Fact]
     public static void Should_Use_Empty_Null_If_None_Defined()
     {
-        var options = CsvTextReaderOptions.Default;
+        var options = CsvTextOptions.Default;
 
         var binding = CsvBinding.ForMember<Shim>(0, typeof(Shim).GetProperty("IsEnabledN")!);
 
-        Assert.True(binding.TryGetAttribute<CsvParserOverrideAttribute>(out var @override));
+        Assert.True(binding.TryGetAttribute<CsvConverterAttribute<char>>(out var @override));
 
-        var parser = (NullableParser<char, bool>)@override!.CreateParser(typeof(bool?), options);
-        Assert.Equal(default, parser.NullToken);
+        var parser = (NullableConverter<char, bool>)@override!.CreateParser(typeof(bool?), options);
+        Assert.True(parser.TryParse("", out bool? parsed));
+        Assert.False(parsed.HasValue);
     }
 }

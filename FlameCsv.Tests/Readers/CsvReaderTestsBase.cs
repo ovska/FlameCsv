@@ -26,15 +26,15 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
 
     private ReturnTrackingArrayPool<T>? _pool;
 
-    protected abstract CsvReaderOptions<T> CreateOptions(string newline, char? escape);
+    protected abstract CsvOptions<T> CreateOptions(string newline, char? escape);
     protected abstract IDisposable? GetMemory(ArrayPoolBufferWriter<char> writer, out ReadOnlyMemory<T> memory);
     protected abstract CsvRecordAsyncEnumerable<T> GetRecords(
         Stream stream,
-        CsvReaderOptions<T> options,
+        CsvOptions<T> options,
         int bufferSize);
     protected abstract IAsyncEnumerable<Obj> GetObjects(
         Stream stream,
-        CsvReaderOptions<T> options,
+        CsvOptions<T> options,
         int bufferSize);
 
     public static IEnumerable<object[]> SyncTypeParams
@@ -66,7 +66,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         Mode escaping)
     {
         newline = newline == "LF" ? "\n" : "\r\n";
-        CsvReaderOptions<T> options = PrepareOptions(newline, header, escaping);
+        CsvOptions<T> options = PrepareOptions(newline, header, escaping);
 
         List<Obj> items = new(1000);
 
@@ -90,7 +90,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         Mode escaping)
     {
         newline = newline == "LF" ? "\n" : "\r\n";
-        CsvReaderOptions<T> options = PrepareOptions(newline, header, escaping);
+        CsvOptions<T> options = PrepareOptions(newline, header, escaping);
 
         List<Obj> items;
 
@@ -119,7 +119,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         Mode escaping)
     {
         newline = newline == "LF" ? "\n" : "\r\n";
-        CsvReaderOptions<T> options = PrepareOptions(newline, header, escaping);
+        CsvOptions<T> options = PrepareOptions(newline, header, escaping);
 
         List<Obj> items = new(1000);
 
@@ -145,7 +145,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         Mode escaping)
     {
         newline = newline == "LF" ? "\n" : "\r\n";
-        CsvReaderOptions<T> options = PrepareOptions(newline, header, escaping);
+        CsvOptions<T> options = PrepareOptions(newline, header, escaping);
 
         List<Obj> items;
 
@@ -224,9 +224,9 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         return items;
     }
 
-    private CsvReaderOptions<T> PrepareOptions(string newline, bool header, Mode escaping)
+    private CsvOptions<T> PrepareOptions(string newline, bool header, Mode escaping)
     {
-        CsvReaderOptions<T> options = CreateOptions(
+        CsvOptions<T> options = CreateOptions(
             newline,
             escaping == Mode.Escape ? '^' : null);
 

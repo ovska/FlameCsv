@@ -10,9 +10,9 @@ namespace FlameCsv.Tests.Readers;
 
 public sealed class CsvReaderTestsUtf8 : CsvReaderTestsBase<byte>
 {
-    protected override CsvReaderOptions<byte> CreateOptions(string newline, char? escape)
+    protected override CsvOptions<byte> CreateOptions(string newline, char? escape)
     {
-        return new CsvUtf8ReaderOptions
+        return new CsvUtf8Options
         {
             DateTimeFormat = 'O',
             Newline = newline,
@@ -27,7 +27,7 @@ public sealed class CsvReaderTestsUtf8 : CsvReaderTestsBase<byte>
         return owner;
     }
 
-    protected override IAsyncEnumerable<Obj> GetObjects(Stream stream, CsvReaderOptions<byte> options, int bufferSize)
+    protected override IAsyncEnumerable<Obj> GetObjects(Stream stream, CsvOptions<byte> options, int bufferSize)
     {
         return CsvReader.ReadAsync<Obj>(
             PipeReader.Create(stream, new StreamPipeReaderOptions(bufferSize: bufferSize)),
@@ -36,7 +36,7 @@ public sealed class CsvReaderTestsUtf8 : CsvReaderTestsBase<byte>
 
     protected override CsvRecordAsyncEnumerable<byte> GetRecords(
         Stream stream,
-        CsvReaderOptions<byte> options,
+        CsvOptions<byte> options,
         int bufferSize)
     {
         return CsvReader.EnumerateAsync(

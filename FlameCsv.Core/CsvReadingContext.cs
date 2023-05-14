@@ -22,7 +22,7 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
     }
 
     public CsvDialect<T> Dialect => _dialect;
-    public CsvReaderOptions<T> Options { get; }
+    public CsvOptions<T> Options { get; }
     public ArrayPool<T> ArrayPool { get; }
     public bool HasHeader { get; }
     public bool ExposeContent { get; }
@@ -32,7 +32,7 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
     private readonly RowSkipCallback<T>? _skipCallback;
     private readonly CsvExceptionHandler<T>? _exceptionHandler;
 
-    public CsvReadingContext(CsvReaderOptions<T> options, in CsvContextOverride<T> overrides)
+    public CsvReadingContext(CsvOptions<T> options, in CsvContextOverride<T> overrides)
     {
         ArgumentNullException.ThrowIfNull(options);
         options.MakeReadOnly();
@@ -41,6 +41,7 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
         ArrayPool = overrides._arrayPool.Resolve(options.ArrayPool).AllocatingIfNull();
         ExposeContent = overrides._exposeContent.Resolve(options.AllowContentInExceptions);
         ValidateFieldCount = overrides._validateFieldCount.Resolve(options.ValidateFieldCount);
+        HasHeader = overrides._hasHeader.Resolve(options.HasHeader);
         _dialect = new CsvDialect<T>(options, in overrides);
         _skipCallback = overrides._shouldSkipRow.Resolve(options.ShouldSkipRow);
         _exceptionHandler = overrides._exceptionHandler.Resolve(options.ExceptionHandler);

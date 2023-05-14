@@ -51,7 +51,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
     public ReadOnlyMemory<T> this[string name] => GetField(name);
 
     internal readonly EnumeratorState<T> _state;
-    internal readonly CsvReaderOptions<T> _options;
+    internal readonly CsvOptions<T> _options;
 
     private readonly int _version;
     private readonly ReadOnlyMemory<T> _record;
@@ -61,7 +61,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
         long position,
         int line,
         ReadOnlyMemory<T> data,
-        CsvReaderOptions<T> options,
+        CsvOptions<T> options,
         RecordMeta meta,
         EnumeratorState<T> state)
     {
@@ -119,7 +119,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
             Throw.Argument_FieldIndex(index, _state);
         }
 
-        if (!_options.GetParser<TValue>().TryParse(field.Span, out value))
+        if (!_options.GetConverter<TValue>().TryParse(field.Span, out value))
         {
             value = default;
             return false;
@@ -162,7 +162,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
             Throw.Argument_FieldIndex(index, _state);
         }
 
-        var parser = _options.GetParser<TValue>();
+        var parser = _options.GetConverter<TValue>();
 
         if (!parser.TryParse(field.Span, out var value))
         {

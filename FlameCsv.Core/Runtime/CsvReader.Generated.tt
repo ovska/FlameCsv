@@ -7,7 +7,7 @@
     const int TotalCount = 16;
     var indexes = Enumerable.Range(0, TotalCount);
     var genericTypes = indexes.Select(i => $"T{i}").ToArray();
-    var parsers = indexes.Select(i => $"ICsvParser<T, T{i}> parser{i}").ToArray();
+    var converters = indexes.Select(i => $"CsvConverter<T, T{i}> converter{i}").ToArray();
     var values = indexes.Select(i => $"v{i}").ToArray();
     var methodName = "ReadRecordsAsync";
 #>
@@ -15,6 +15,7 @@
 #nullable enable
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
+using FlameCsv.Enumeration;
 using FlameCsv.Reading;
 using FlameCsv.Runtime;
 
@@ -53,7 +54,7 @@ public static partial class CsvReader
     [System.Diagnostics.StackTraceHidden]
     private static CsvReadingContext<T> ValidateReadRecordsArgs<T>(
         [NotNull] object? reader,
-        [NotNull] CsvReaderOptions<T>? options,
+        [NotNull] CsvOptions<T>? options,
         [NotNull] object? recordFactory,
         in CsvContextOverride<T> contextOverride)
         where T : unmanaged, IEquatable<T>
@@ -91,7 +92,7 @@ for (var _tokenType = 0; _tokenType < 2; _tokenType++)
 #>
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have <#= current #> field<# if (current != 1) Write("s"); #>.<br/>Possible binding attributes placed
@@ -99,7 +100,7 @@ for (var _tokenType = 0; _tokenType < 2; _tokenType++)
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<<#= tokenType #>, TValue> <#= methodName #><<#= generics #>>(
         <#= parameterReaderType #> reader,
-        CsvReaderOptions<<#= tokenType #>> options,
+        CsvOptions<<#= tokenType #>> options,
         Func<<#= generics #>> recordFactory,
         CsvContextOverride<<#= tokenType #>> context = default)
     {
@@ -108,7 +109,7 @@ for (var _tokenType = 0; _tokenType < 2; _tokenType++)
         Materializer<<#= tokenType #>, <#= generics #>> materializer = new(recordFactory<#
             for (int i = 0; i < current; i++)
             {
-                Write(", options.GetParser<");
+                Write(", options.GetConverter<");
                 Write(genericTypes[i]);
                 Write(">()");
             }

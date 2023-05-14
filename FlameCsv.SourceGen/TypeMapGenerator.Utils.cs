@@ -49,7 +49,7 @@ public partial class TypeMapGenerator
         if (!parser.GetMembers().Any(m => m is IMethodSymbol { MethodKind: MethodKind.Constructor, Parameters.Length: 0 }))
             throw new Exception("No empty constructor found for " + parser.ToDisplayString()); // TODO
 
-        var parserFactory = _symbols.ICsvParserFactory.ConstructedFrom.Construct(token);
+        var parserFactory = _symbols.CsvConverterFactory.ConstructedFrom.Construct(token);
         bool isFactory = false;
 
         foreach (var iface in parser.AllInterfaces)
@@ -67,7 +67,7 @@ public partial class TypeMapGenerator
             return init;
 
         // Cast in case its explicitly implemented
-        return $"((ICsvParserFactory<{token.ToDisplayString()}>){init}).Create<{memberType.ToDisplayString()}>(options)";
+        return $"((CsvConverterFactory<{token.ToDisplayString()}>){init}).Create<{memberType.ToDisplayString()}>(options)";
     }
 
     private bool IsReferenceOrContainsReferences(ITypeSymbol symbol)

@@ -8,7 +8,6 @@ using System.Text;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
-using FlameCsv.Parsers;
 
 namespace FlameCsv.Reading;
 
@@ -97,7 +96,7 @@ internal struct CsvEnumerationStateRef<T> : ICsvFieldReader<T> where T : unmanag
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public readonly void ThrowParseFailed(ReadOnlyMemory<T> field, ICsvParser<T>? parser)
+    public readonly void ThrowParseFailed(ReadOnlyMemory<T> field, CsvConverter<T>? parser)
     {
         string withStr = parser is null ? "" : $" with {parser.GetType()}";
 

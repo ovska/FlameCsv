@@ -13,7 +13,7 @@ public static partial class CsvReader
     public static CsvTypeMapEnumerable<char, TValue> Read<TValue>(
         string? csv,
         CsvTypeMap<char, TValue> typeMap,
-        CsvReaderOptions<char> options,
+        CsvOptions<char> options,
         CsvContextOverride<char> context = default)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -24,7 +24,7 @@ public static partial class CsvReader
     public static CsvTypeMapEnumerable<char, TValue> Read<TValue>(
         ReadOnlyMemory<char> csv,
         CsvTypeMap<char, TValue> typeMap,
-        CsvReaderOptions<char> options,
+        CsvOptions<char> options,
         CsvContextOverride<char> context = default)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -35,7 +35,7 @@ public static partial class CsvReader
     public static CsvTypeMapEnumerable<byte, TValue> Read<TValue>(
         ReadOnlyMemory<byte> csv,
         CsvTypeMap<byte, TValue> typeMap,
-        CsvReaderOptions<byte> options,
+        CsvOptions<byte> options,
         CsvContextOverride<byte> context = default)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -46,7 +46,7 @@ public static partial class CsvReader
     public static CsvTypeMapEnumerable<T, TValue> Read<T, TValue>(
         ReadOnlyMemory<T> csv,
         CsvTypeMap<T, TValue> typeMap,
-        CsvReaderOptions<T> options,
+        CsvOptions<T> options,
         CsvContextOverride<T> context = default)
         where T : unmanaged, IEquatable<T>
     {
@@ -58,7 +58,7 @@ public static partial class CsvReader
     public static CsvTypeMapEnumerable<T, TValue> Read<T, TValue>(
         ReadOnlySequence<T> csv,
         CsvTypeMap<T, TValue> typeMap,
-        CsvReaderOptions<T> options,
+        CsvOptions<T> options,
         CsvContextOverride<T> context = default)
         where T : unmanaged, IEquatable<T>
     {
@@ -70,7 +70,7 @@ public static partial class CsvReader
     public static CsvTypeMapAsyncEnumerable<char, TValue> ReadAsync<TValue>(
         Stream stream,
         CsvTypeMap<char, TValue> typeMap,
-        CsvReaderOptions<char> options,
+        CsvOptions<char> options,
         CsvContextOverride<char> context = default,
         Encoding? encoding = null,
         bool leaveOpen = false,
@@ -93,7 +93,7 @@ public static partial class CsvReader
     public static CsvTypeMapAsyncEnumerable<char, TValue> ReadAsync<TValue>(
         TextReader textReader,
         CsvTypeMap<char, TValue> typeMap,
-        CsvReaderOptions<char> options,
+        CsvOptions<char> options,
         CsvContextOverride<char> context = default)
     {
         ArgumentNullException.ThrowIfNull(textReader);
@@ -108,7 +108,7 @@ public static partial class CsvReader
     public static CsvTypeMapAsyncEnumerable<byte, TValue> ReadAsync<TValue>(
         Stream stream,
         CsvTypeMap<byte, TValue> typeMap,
-        CsvReaderOptions<byte> options,
+        CsvOptions<byte> options,
         CsvContextOverride<byte> context = default,
         bool leaveOpen = false)
     {
@@ -125,7 +125,7 @@ public static partial class CsvReader
     public static CsvTypeMapAsyncEnumerable<byte, TValue> ReadAsync<TValue>(
         PipeReader reader,
         CsvTypeMap<byte, TValue> typeMap,
-        CsvReaderOptions<byte> options,
+        CsvOptions<byte> options,
         CsvContextOverride<byte> context = default)
     {
         ArgumentNullException.ThrowIfNull(reader);

@@ -21,14 +21,14 @@ public abstract class CsvTypeMap<T, TValue> where T : unmanaged, IEquatable<T>
     protected abstract IMaterializer<T, TValue> BindMembers(
         ReadOnlySpan<string> headers,
         bool exposeContent,
-        CsvReaderOptions<T> options);
+        CsvOptions<T> options);
 
     /// <summary>
     /// Returns bindings for <typeparamref name="TValue"/> for indexes.
     /// </summary>
     protected abstract IMaterializer<T, TValue> BindMembers(
         bool exposeContent,
-        CsvReaderOptions<T> options);
+        CsvOptions<T> options);
 
     internal IMaterializer<T, TValue> GetMaterializer(in CsvReadingContext<T> context)
     {

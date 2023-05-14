@@ -2,7 +2,7 @@
 
 namespace FlameCsv;
 
-public partial class CsvReaderOptions<T> : ICsvDialectOptions<T>
+public partial class CsvOptions<T> : ICsvDialectOptions<T>
 {
     internal T _delimiter;
     internal T _quote;

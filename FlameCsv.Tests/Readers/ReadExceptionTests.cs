@@ -1,6 +1,6 @@
 ﻿using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
-using FlameCsv.Parsers.Text;
+using FlameCsv.Converters;
 
 namespace FlameCsv.Tests.Readers;
 
@@ -12,13 +12,13 @@ public class ReadExceptionTests
         [CsvIndex(1)] public string? Name { get; set; }
     }
 
-    private static List<Obj> Run(CsvReaderOptions<char> opts)
+    private static List<Obj> Run(CsvOptions<char> opts)
         => new(CsvReader.Read<Obj>("0,A\r\n1,B\r\nX,C\r\n3,D", opts));
 
     [Fact]
     public void Should_Throw_On_Unhandled()
     {
-        var opts = new CsvTextReaderOptions
+        var opts = new CsvTextOptions
         {
             ExceptionHandler = null,
             HasHeader = false,
@@ -29,7 +29,7 @@ public class ReadExceptionTests
     [Fact]
     public void Should_Throw_If_Returns_False()
     {
-        var opts = new CsvTextReaderOptions
+        var opts = new CsvTextOptions
         {
             ExceptionHandler = _ => false,
             HasHeader = false,
@@ -42,7 +42,7 @@ public class ReadExceptionTests
     {
         var exceptions = new List<CsvParseException>();
 
-        var opts = new CsvTextReaderOptions
+        var opts = new CsvTextOptions
         {
             HasHeader = false,
             ExceptionHandler = args =>
@@ -69,13 +69,13 @@ public class ReadExceptionTests
             list.Select(o => (o.Id, o.Name)));
 
         Assert.Single(exceptions);
-        Assert.IsType<IntegerTextParser>(exceptions[0].Parser);
+        Assert.IsType<Int32TextConverter>(exceptions[0].Parser);
     }
 
     [Fact]
     public void Should_Throw_Inner()
     {
-        var opts = new CsvTextReaderOptions
+        var opts = new CsvTextOptions
         {
             ExceptionHandler = args => throw new AggregateException(args.Exception),
             HasHeader = false,
@@ -88,7 +88,7 @@ public class ReadExceptionTests
     {
         var ex = Record.Exception(() =>
         {
-            foreach (var _ in CsvReader.Read<Obj>("id,name\r\ntest,test", CsvTextReaderOptions.Default))
+            foreach (var _ in CsvReader.Read<Obj>("id,name\r\ntest,test", CsvTextOptions.Default))
             {
             }
         });
@@ -98,7 +98,7 @@ public class ReadExceptionTests
         Assert.Equal("id,name\r\n".Length, ((CsvUnhandledException)ex).Position);
 
         Assert.IsType<CsvParseException>(ex.InnerException);
-        Assert.IsType<IntegerTextParser>(((CsvParseException)ex.InnerException).Parser);
+        Assert.IsType<Int32TextConverter>(((CsvParseException)ex.InnerException).Parser);
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public class ReadExceptionTests
         {
             foreach (var _ in CsvReader.Read<Obj>(
                 "1,Bob\r\ntest,test",
-                CsvTextReaderOptions.Default,
+                CsvTextOptions.Default,
                 new() { HasHeader = false }))
             {
             }
@@ -119,6 +119,6 @@ public class ReadExceptionTests
         Assert.Equal("1,Bob\r\n".Length, ((CsvUnhandledException)ex).Position);
 
         Assert.IsType<CsvParseException>(ex.InnerException);
-        Assert.IsType<IntegerTextParser>(((CsvParseException)ex.InnerException).Parser);
+        Assert.IsType<Int32TextConverter>(((CsvParseException)ex.InnerException).Parser);
     }
 }

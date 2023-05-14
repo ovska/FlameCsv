@@ -1,11 +1,8 @@
-﻿using System;
-using System.Buffers;
-using System.Collections;
+﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
-using FlameCsv.Parsers;
 using FlameCsv.Reading;
 using FlameCsv.Runtime;
 
@@ -19,7 +16,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     public virtual long Position { get; protected set; }
     public virtual int Line { get; protected set; }
     public virtual CsvDialect<T> Dialect => _context.Dialect;
-    public CsvReaderOptions<T> Options => _context.Options;
+    public CsvOptions<T> Options => _context.Options;
     public bool HasHeader => _context.HasHeader;
     public virtual ReadOnlyMemory<T> RawRecord { get; }
 
@@ -41,7 +38,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         // validates it on initialization
     }
 
-    public CsvRecord(ReadOnlyMemory<T> record, CsvReaderOptions<T> options, CsvContextOverride<T> context = default)
+    public CsvRecord(ReadOnlyMemory<T> record, CsvOptions<T> options, CsvContextOverride<T> context = default)
     {
         ArgumentNullException.ThrowIfNull(options);
         options.MakeReadOnly();
@@ -98,7 +95,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     {
         var field = GetField(index);
 
-        var parser = Options.GetParser<TValue>();
+        var parser = Options.GetConverter<TValue>();
 
         if (!parser.TryParse(field.Span, out TValue? value))
             Throw.ParseFailed<T, TValue>(field, parser, in _context);
@@ -110,7 +107,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     {
         var field = GetField(name);
 
-        var parser = Options.GetParser<TValue>();
+        var parser = Options.GetConverter<TValue>();
 
         if (!parser.TryParse(field.Span, out TValue? value))
             Throw.ParseFailed<T, TValue>(field, parser, in _context);
@@ -127,7 +124,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
             Throw.Argument_FieldIndex(index, _values.Count);
         }
 
-        if (!Options.GetParser<TValue>().TryParse(_values[index].Span, out value))
+        if (!Options.GetConverter<TValue>().TryParse(_values[index].Span, out value))
         {
             value = default;
             return false;
@@ -314,7 +311,7 @@ internal struct CsvRecordFieldReader<T> : ICsvFieldReader<T> where T : unmanaged
     }
 
     [DoesNotReturn]
-    public void ThrowParseFailed(ReadOnlyMemory<T> field, ICsvParser<T>? parser)
+    public void ThrowParseFailed(ReadOnlyMemory<T> field, CsvConverter<T>? parser)
     {
         string withStr = parser is null ? "" : $" with {parser.GetType()}";
 
