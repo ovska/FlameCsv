@@ -45,7 +45,7 @@ public partial class TypeMapGenerator : ISourceGenerator
 #nullable enable
 using FlameCsv.Exceptions;
 using FlameCsv.Binding;
-using FlameCsv.Parsers;
+using FlameCsv.Converters;
 using FlameCsv.Reading;
 
 namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
@@ -60,7 +60,7 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
         protected override IMaterializer<{typeMap.Token}, {typeMap.ResultName}> BindMembers(
             ReadOnlySpan<string> headers,
             bool exposeContent,
-            CsvReaderOptions<{typeMap.Token}> options)
+            CsvOptions<{typeMap.Token}> options)
         {{
             TypeMapMaterializer materializer = new TypeMapMaterializer(headers.Length);
             bool anyFieldBound = false;
@@ -84,7 +84,7 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
 
         protected override IMaterializer<{typeMap.Token}, {typeMap.ResultName}> BindMembers(
             bool exposeContent,
-            CsvReaderOptions<{typeMap.Token}> options)
+            CsvOptions<{typeMap.Token}> options)
         {{
             throw new NotSupportedException(""{typeMap.ContainingClass.MetadataName} does not support index binding."");
         }}
@@ -414,12 +414,12 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
     {
         foreach (var binding in _bindings.Members)
         {
-            yield return $"public ICsvParser<{symbol.Token}, {binding.Type.ToDisplayString()}>? {binding.ParserId};";
+            yield return $"public CsvConverter<{symbol.Token}, {binding.Type.ToDisplayString()}>? {binding.ParserId};";
         }
 
         foreach (var binding in _bindings.Parameters)
         {
-            yield return $"public ICsvParser<{symbol.Token}, {binding.Type.ToDisplayString()}>? {binding.ParserId};";
+            yield return $"public CsvConverter<{symbol.Token}, {binding.Type.ToDisplayString()}>? {binding.ParserId};";
         }
     }
 
@@ -480,13 +480,13 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
             {
                 if (attributeData.AttributeClass is { IsGenericType: true } attribute &&
                     SymbolEqualityComparer.Default.Equals(typeMap.TokenSymbol, attribute.TypeArguments[0]) &&
-                    SymbolEqualityComparer.Default.Equals(attribute.ConstructUnboundGenericType(), _symbols.CsvParserOverrideOfTAttribute))
+                    SymbolEqualityComparer.Default.Equals(attribute.ConstructUnboundGenericType(), _symbols.CsvConverterOfTAttribute))
                 {
                     return GetParserInitializer(typeMap.TokenSymbol, type, attribute.TypeArguments[1]);
                 }
             }
 
-            return $"options.GetParser<{type.ToDisplayString()}>()";
+            return $"options.GetConverter<{type.ToDisplayString()}>()";
         }
     }
 

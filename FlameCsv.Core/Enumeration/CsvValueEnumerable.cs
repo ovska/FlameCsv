@@ -13,7 +13,7 @@ public sealed class CsvValueEnumerable<T, [DynamicallyAccessedMembers(Messages.R
 
     public CsvValueEnumerable(
         in ReadOnlySequence<T> csv,
-        CsvReaderOptions<T> options,
+        CsvOptions<T> options,
         CsvContextOverride<T> overrides)
     {
         ArgumentNullException.ThrowIfNull(options);

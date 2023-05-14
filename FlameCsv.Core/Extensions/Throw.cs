@@ -3,7 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Exceptions;
-using FlameCsv.Parsers;
 
 namespace FlameCsv.Extensions;
 
@@ -103,7 +102,7 @@ internal static class Throw
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
-    public static void ParseFailed<T, TValue>(ReadOnlyMemory<T> field, ICsvParser<T> parser, in CsvReadingContext<T> context)
+    public static void ParseFailed<T, TValue>(ReadOnlyMemory<T> field, CsvConverter<T> parser, in CsvReadingContext<T> context)
             where T : unmanaged, IEquatable<T>
     {
         throw new CsvParseException(

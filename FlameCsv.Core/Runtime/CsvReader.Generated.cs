@@ -42,7 +42,7 @@ public static partial class CsvReader
     [System.Diagnostics.StackTraceHidden]
     private static CsvReadingContext<T> ValidateReadRecordsArgs<T>(
         [NotNull] object? reader,
-        [NotNull] CsvReaderOptions<T>? options,
+        [NotNull] CsvOptions<T>? options,
         [NotNull] object? recordFactory,
         in CsvContextOverride<T> contextOverride)
         where T : unmanaged, IEquatable<T>
@@ -68,7 +68,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 1 field.<br/>Possible binding attributes placed
@@ -76,13 +76,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, TValue>(
         TextReader reader,
-        CsvReaderOptions<char> options,
+        CsvOptions<char> options,
         Func<T0, TValue> recordFactory,
         CsvContextOverride<char> context = default)
     {
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<char, T0, TValue> materializer = new(recordFactory, options.GetParser<T0>());
+        Materializer<char, T0, TValue> materializer = new(recordFactory, options.GetConverter<T0>());
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
@@ -92,7 +92,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 2 fields.<br/>Possible binding attributes placed
@@ -100,13 +100,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, TValue>(
         TextReader reader,
-        CsvReaderOptions<char> options,
+        CsvOptions<char> options,
         Func<T0, T1, TValue> recordFactory,
         CsvContextOverride<char> context = default)
     {
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<char, T0, T1, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>());
+        Materializer<char, T0, T1, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>());
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
@@ -116,7 +116,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 3 fields.<br/>Possible binding attributes placed
@@ -124,13 +124,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, TValue>(
         TextReader reader,
-        CsvReaderOptions<char> options,
+        CsvOptions<char> options,
         Func<T0, T1, T2, TValue> recordFactory,
         CsvContextOverride<char> context = default)
     {
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<char, T0, T1, T2, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>());
+        Materializer<char, T0, T1, T2, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>());
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
@@ -140,7 +140,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 4 fields.<br/>Possible binding attributes placed
@@ -148,13 +148,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, TValue>(
         TextReader reader,
-        CsvReaderOptions<char> options,
+        CsvOptions<char> options,
         Func<T0, T1, T2, T3, TValue> recordFactory,
         CsvContextOverride<char> context = default)
     {
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<char, T0, T1, T2, T3, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>());
+        Materializer<char, T0, T1, T2, T3, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>());
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
@@ -164,7 +164,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 5 fields.<br/>Possible binding attributes placed
@@ -172,13 +172,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, TValue>(
         TextReader reader,
-        CsvReaderOptions<char> options,
+        CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, TValue> recordFactory,
         CsvContextOverride<char> context = default)
     {
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<char, T0, T1, T2, T3, T4, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>());
+        Materializer<char, T0, T1, T2, T3, T4, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>());
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
@@ -188,7 +188,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 6 fields.<br/>Possible binding attributes placed
@@ -196,13 +196,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, TValue>(
         TextReader reader,
-        CsvReaderOptions<char> options,
+        CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, TValue> recordFactory,
         CsvContextOverride<char> context = default)
     {
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<char, T0, T1, T2, T3, T4, T5, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>());
+        Materializer<char, T0, T1, T2, T3, T4, T5, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>());
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
@@ -212,7 +212,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 7 fields.<br/>Possible binding attributes placed
@@ -220,13 +220,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, TValue>(
         TextReader reader,
-        CsvReaderOptions<char> options,
+        CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, TValue> recordFactory,
         CsvContextOverride<char> context = default)
     {
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<char, T0, T1, T2, T3, T4, T5, T6, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>());
+        Materializer<char, T0, T1, T2, T3, T4, T5, T6, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>());
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
@@ -236,7 +236,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 8 fields.<br/>Possible binding attributes placed
@@ -244,13 +244,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, TValue>(
         TextReader reader,
-        CsvReaderOptions<char> options,
+        CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, TValue> recordFactory,
         CsvContextOverride<char> context = default)
     {
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>());
+        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>());
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
@@ -260,7 +260,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 9 fields.<br/>Possible binding attributes placed
@@ -268,13 +268,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue>(
         TextReader reader,
-        CsvReaderOptions<char> options,
+        CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> recordFactory,
         CsvContextOverride<char> context = default)
     {
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>());
+        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>());
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
@@ -284,7 +284,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 10 fields.<br/>Possible binding attributes placed
@@ -292,13 +292,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue>(
         TextReader reader,
-        CsvReaderOptions<char> options,
+        CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> recordFactory,
         CsvContextOverride<char> context = default)
     {
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>());
+        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>());
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
@@ -308,7 +308,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 11 fields.<br/>Possible binding attributes placed
@@ -316,13 +316,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue>(
         TextReader reader,
-        CsvReaderOptions<char> options,
+        CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> recordFactory,
         CsvContextOverride<char> context = default)
     {
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>());
+        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>());
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
@@ -332,7 +332,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 12 fields.<br/>Possible binding attributes placed
@@ -340,13 +340,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue>(
         TextReader reader,
-        CsvReaderOptions<char> options,
+        CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> recordFactory,
         CsvContextOverride<char> context = default)
     {
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>());
+        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>());
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
@@ -356,7 +356,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 13 fields.<br/>Possible binding attributes placed
@@ -364,13 +364,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue>(
         TextReader reader,
-        CsvReaderOptions<char> options,
+        CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> recordFactory,
         CsvContextOverride<char> context = default)
     {
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>());
+        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>());
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
@@ -380,7 +380,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 14 fields.<br/>Possible binding attributes placed
@@ -388,13 +388,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue>(
         TextReader reader,
-        CsvReaderOptions<char> options,
+        CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> recordFactory,
         CsvContextOverride<char> context = default)
     {
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>(), options.GetParser<T13>());
+        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>());
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
@@ -404,7 +404,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 15 fields.<br/>Possible binding attributes placed
@@ -412,13 +412,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue>(
         TextReader reader,
-        CsvReaderOptions<char> options,
+        CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> recordFactory,
         CsvContextOverride<char> context = default)
     {
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>(), options.GetParser<T13>(), options.GetParser<T14>());
+        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>(), options.GetConverter<T14>());
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
@@ -428,7 +428,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 16 fields.<br/>Possible binding attributes placed
@@ -436,13 +436,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue>(
         TextReader reader,
-        CsvReaderOptions<char> options,
+        CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> recordFactory,
         CsvContextOverride<char> context = default)
     {
         CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>(), options.GetParser<T13>(), options.GetParser<T14>(), options.GetParser<T15>());
+        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>(), options.GetConverter<T14>(), options.GetConverter<T15>());
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             in readerContext,
@@ -452,7 +452,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 1 field.<br/>Possible binding attributes placed
@@ -460,13 +460,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, TValue>(
         PipeReader reader,
-        CsvReaderOptions<byte> options,
+        CsvOptions<byte> options,
         Func<T0, TValue> recordFactory,
         CsvContextOverride<byte> context = default)
     {
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<byte, T0, TValue> materializer = new(recordFactory, options.GetParser<T0>());
+        Materializer<byte, T0, TValue> materializer = new(recordFactory, options.GetConverter<T0>());
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
@@ -476,7 +476,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 2 fields.<br/>Possible binding attributes placed
@@ -484,13 +484,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, TValue>(
         PipeReader reader,
-        CsvReaderOptions<byte> options,
+        CsvOptions<byte> options,
         Func<T0, T1, TValue> recordFactory,
         CsvContextOverride<byte> context = default)
     {
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<byte, T0, T1, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>());
+        Materializer<byte, T0, T1, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>());
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
@@ -500,7 +500,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 3 fields.<br/>Possible binding attributes placed
@@ -508,13 +508,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, TValue>(
         PipeReader reader,
-        CsvReaderOptions<byte> options,
+        CsvOptions<byte> options,
         Func<T0, T1, T2, TValue> recordFactory,
         CsvContextOverride<byte> context = default)
     {
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<byte, T0, T1, T2, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>());
+        Materializer<byte, T0, T1, T2, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>());
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
@@ -524,7 +524,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 4 fields.<br/>Possible binding attributes placed
@@ -532,13 +532,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, TValue>(
         PipeReader reader,
-        CsvReaderOptions<byte> options,
+        CsvOptions<byte> options,
         Func<T0, T1, T2, T3, TValue> recordFactory,
         CsvContextOverride<byte> context = default)
     {
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<byte, T0, T1, T2, T3, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>());
+        Materializer<byte, T0, T1, T2, T3, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>());
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
@@ -548,7 +548,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 5 fields.<br/>Possible binding attributes placed
@@ -556,13 +556,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, TValue>(
         PipeReader reader,
-        CsvReaderOptions<byte> options,
+        CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, TValue> recordFactory,
         CsvContextOverride<byte> context = default)
     {
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<byte, T0, T1, T2, T3, T4, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>());
+        Materializer<byte, T0, T1, T2, T3, T4, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>());
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
@@ -572,7 +572,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 6 fields.<br/>Possible binding attributes placed
@@ -580,13 +580,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, TValue>(
         PipeReader reader,
-        CsvReaderOptions<byte> options,
+        CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, TValue> recordFactory,
         CsvContextOverride<byte> context = default)
     {
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<byte, T0, T1, T2, T3, T4, T5, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>());
+        Materializer<byte, T0, T1, T2, T3, T4, T5, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>());
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
@@ -596,7 +596,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 7 fields.<br/>Possible binding attributes placed
@@ -604,13 +604,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, TValue>(
         PipeReader reader,
-        CsvReaderOptions<byte> options,
+        CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, TValue> recordFactory,
         CsvContextOverride<byte> context = default)
     {
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>());
+        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>());
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
@@ -620,7 +620,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 8 fields.<br/>Possible binding attributes placed
@@ -628,13 +628,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, TValue>(
         PipeReader reader,
-        CsvReaderOptions<byte> options,
+        CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, TValue> recordFactory,
         CsvContextOverride<byte> context = default)
     {
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>());
+        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>());
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
@@ -644,7 +644,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 9 fields.<br/>Possible binding attributes placed
@@ -652,13 +652,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue>(
         PipeReader reader,
-        CsvReaderOptions<byte> options,
+        CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> recordFactory,
         CsvContextOverride<byte> context = default)
     {
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>());
+        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>());
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
@@ -668,7 +668,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 10 fields.<br/>Possible binding attributes placed
@@ -676,13 +676,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue>(
         PipeReader reader,
-        CsvReaderOptions<byte> options,
+        CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> recordFactory,
         CsvContextOverride<byte> context = default)
     {
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>());
+        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>());
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
@@ -692,7 +692,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 11 fields.<br/>Possible binding attributes placed
@@ -700,13 +700,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue>(
         PipeReader reader,
-        CsvReaderOptions<byte> options,
+        CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> recordFactory,
         CsvContextOverride<byte> context = default)
     {
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>());
+        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>());
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
@@ -716,7 +716,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 12 fields.<br/>Possible binding attributes placed
@@ -724,13 +724,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue>(
         PipeReader reader,
-        CsvReaderOptions<byte> options,
+        CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> recordFactory,
         CsvContextOverride<byte> context = default)
     {
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>());
+        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>());
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
@@ -740,7 +740,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 13 fields.<br/>Possible binding attributes placed
@@ -748,13 +748,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue>(
         PipeReader reader,
-        CsvReaderOptions<byte> options,
+        CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> recordFactory,
         CsvContextOverride<byte> context = default)
     {
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>());
+        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>());
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
@@ -764,7 +764,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 14 fields.<br/>Possible binding attributes placed
@@ -772,13 +772,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue>(
         PipeReader reader,
-        CsvReaderOptions<byte> options,
+        CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> recordFactory,
         CsvContextOverride<byte> context = default)
     {
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>(), options.GetParser<T13>());
+        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>());
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
@@ -788,7 +788,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 15 fields.<br/>Possible binding attributes placed
@@ -796,13 +796,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue>(
         PipeReader reader,
-        CsvReaderOptions<byte> options,
+        CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> recordFactory,
         CsvContextOverride<byte> context = default)
     {
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>(), options.GetParser<T13>(), options.GetParser<T14>());
+        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>(), options.GetConverter<T14>());
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,
@@ -812,7 +812,7 @@ public static partial class CsvReader
 
     /// <summary>Asynchronously reads <typeparamref name="TValue"/> from the reader.</summary>
     /// <param name="reader">Reader to read the CSV records from</param>
-    /// <param name="options">Options instance containing tokens and parsers</param>
+    /// <param name="options">Options instance containing tokens and converters</param>
     /// <param name="recordFactory">Function to create the record from parsed field values</param>
     /// <remarks>
     /// The CSV records must have 16 fields.<br/>Possible binding attributes placed
@@ -820,13 +820,13 @@ public static partial class CsvReader
     /// </remarks>
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue>(
         PipeReader reader,
-        CsvReaderOptions<byte> options,
+        CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> recordFactory,
         CsvContextOverride<byte> context = default)
     {
         CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
 
-        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> materializer = new(recordFactory, options.GetParser<T0>(), options.GetParser<T1>(), options.GetParser<T2>(), options.GetParser<T3>(), options.GetParser<T4>(), options.GetParser<T5>(), options.GetParser<T6>(), options.GetParser<T7>(), options.GetParser<T8>(), options.GetParser<T9>(), options.GetParser<T10>(), options.GetParser<T11>(), options.GetParser<T12>(), options.GetParser<T13>(), options.GetParser<T14>(), options.GetParser<T15>());
+        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>(), options.GetConverter<T14>(), options.GetConverter<T15>());
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             in readerContext,

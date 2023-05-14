@@ -1,10 +1,8 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text.Json.Serialization;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
-using FlameCsv.Parsers.Text;
+using FlameCsv.Converters;
 
 #pragma warning disable IDE0161 // Convert to file-scoped namespace
 namespace FlameCsv.Console
@@ -14,7 +12,7 @@ namespace FlameCsv.Console
         static void Main([NotNull] string[] args)
         {
             var test = CsvReader.Read<Obj>(
-                "id,name,is_enabled\r\n1,Bob,true", new ObjTypeMap(), CsvTextReaderOptions.Default).ToList();
+                "id,name,is_enabled\r\n1,Bob,true", new ObjTypeMap(), CsvTextOptions.Default).ToList();
             _ = 1;
         }
 
@@ -47,7 +45,7 @@ namespace FlameCsv.Console
         public int Id { get; }
 
         [CsvHeader(Required = true)]
-        [CsvParserOverride<char, StringTextParser>]
+        [CsvConverter<char, StringTextConverter>]
         public string Name { get; init; } = "";
 
         [CsvHeader("isenabled", "is_enabled", Order = 5)] public bool IsEnabled { get; set; }

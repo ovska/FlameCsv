@@ -1,6 +1,5 @@
 ﻿using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
-using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 using FlameCsv.Formatters;

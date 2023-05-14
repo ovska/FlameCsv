@@ -10,7 +10,7 @@ public static class CsvRecordTests
         Assert.Throws<InvalidDataException>(
             () => new CsvRecordEnumerable<char>(
                 "1,2,3\r\n1,2,3,4\r\n".AsMemory(),
-                new CsvTextReaderOptions { ValidateFieldCount = true })
+                new CsvTextOptions { ValidateFieldCount = true })
             .AsEnumerable()
             .ToList());
     }
@@ -18,7 +18,7 @@ public static class CsvRecordTests
     [Fact]
     public static void Should_Return_Field()
     {
-        var record = new CsvRecord<char>("A,B,C".AsMemory(), CsvTextReaderOptions.Default);
+        var record = new CsvRecord<char>("A,B,C".AsMemory(), CsvTextOptions.Default);
 
         Assert.Equal(3, record.GetFieldCount());
         Assert.Equal("A", record.GetField(0).ToString());
@@ -35,7 +35,7 @@ public static class CsvRecordTests
     {
         var records = new CsvRecordEnumerable<char>(
             "A,B,C\r\n1,2,3\r\n".AsMemory(),
-            CsvTextReaderOptions.Default,
+            CsvTextOptions.Default,
             new() { HasHeader = true }).AsEnumerable().ToList();
 
         Assert.Single(records);
@@ -59,7 +59,7 @@ public static class CsvRecordTests
     {
         var records = new CsvRecordEnumerable<char>(
             "A,B,C\r\n1,2,3\r\n".AsMemory(),
-            CsvTextReaderOptions.Default,
+            CsvTextOptions.Default,
             new() { HasHeader = true }).AsEnumerable().ToList();
 
         Assert.Single(records);

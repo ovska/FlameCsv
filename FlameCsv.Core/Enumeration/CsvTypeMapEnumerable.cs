@@ -1,7 +1,6 @@
 ﻿using System.Buffers;
 using System.Collections;
 using FlameCsv.Binding;
-using FlameCsv.Reading;
 
 namespace FlameCsv.Enumeration;
 
@@ -13,7 +12,7 @@ public sealed class CsvTypeMapEnumerable<T, TValue> : IEnumerable<TValue> where 
 
     public CsvTypeMapEnumerable(
         in ReadOnlySequence<T> csv,
-        CsvReaderOptions<T> options,
+        CsvOptions<T> options,
         CsvContextOverride<T> overrides,
         CsvTypeMap<T, TValue> typeMap)
     {

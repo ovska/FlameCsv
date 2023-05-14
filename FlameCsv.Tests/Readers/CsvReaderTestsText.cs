@@ -10,9 +10,9 @@ namespace FlameCsv.Tests.Readers;
 
 public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
 {
-    protected override CsvReaderOptions<char> CreateOptions(string newline, char? escape)
+    protected override CsvOptions<char> CreateOptions(string newline, char? escape)
     {
-        return new CsvTextReaderOptions
+        return new CsvTextOptions
         {
             DateTimeFormat = "O",
             Newline = newline,
@@ -28,7 +28,7 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
 
     protected override CsvRecordAsyncEnumerable<char> GetRecords(
         Stream stream,
-        CsvReaderOptions<char> options,
+        CsvOptions<char> options,
         int bufferSize)
     {
         return CsvReader.EnumerateAsync(
@@ -36,7 +36,7 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
             options);
     }
 
-    protected override IAsyncEnumerable<Obj> GetObjects(Stream stream, CsvReaderOptions<char> options, int bufferSize)
+    protected override IAsyncEnumerable<Obj> GetObjects(Stream stream, CsvOptions<char> options, int bufferSize)
     {
         return CsvReader.ReadAsync<Obj>(
             new StreamReader(stream, Encoding.UTF8, bufferSize: bufferSize),
@@ -53,7 +53,7 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
 
         await using var ms = new MemoryStream(Encoding.UTF8.GetBytes(data));
         using var reader = new StreamReader(ms, bufferSize: 128);
-        var options = new CsvTextReaderOptions { HasHeader = false };
+        var options = new CsvTextOptions { HasHeader = false };
 
         await foreach (var item in CsvReader.ReadAsync<Obj>(reader, options))
         {

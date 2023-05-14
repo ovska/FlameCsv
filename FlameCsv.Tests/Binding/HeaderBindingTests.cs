@@ -1,9 +1,6 @@
-using System.Buffers;
-using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Binding.Internal;
-using FlameCsv.Reading;
 
 // ReSharper disable UnusedType.Local
 // ReSharper disable UnusedMember.Local
@@ -40,7 +37,7 @@ public static class HeaderBindingTests
     [Fact]
     public static void Should_Bind_To_Ctor_Parameter()
     {
-        var binder = new DefaultHeaderBinder<char>(new CsvTextReaderOptions { Comparer = StringComparer.Ordinal });
+        var binder = new DefaultHeaderBinder<char>(new CsvTextOptions { Comparer = StringComparer.Ordinal });
         var bindingCollection = binder.Bind<ShimWithCtor>(new[] { "Name", "_targeted" });
         var byIndex = bindingCollection.Bindings.ToArray().ToDictionary(b => b.Index);
         Assert.Equal(2, byIndex.Count);
@@ -51,7 +48,7 @@ public static class HeaderBindingTests
     [Fact]
     public static void Should_Bind_To_Properties()
     {
-        var binder = new DefaultHeaderBinder<char>(new CsvTextReaderOptions { Comparer = StringComparer.Ordinal });
+        var binder = new DefaultHeaderBinder<char>(new CsvTextOptions { Comparer = StringComparer.Ordinal });
 
         var bindingCollection = binder.Bind<Shim>(new[] { "IsEnabled", "Name", "_targeted" });
         Assert.Equal(3, bindingCollection.Bindings.Length);

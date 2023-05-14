@@ -29,7 +29,7 @@ internal static class MaterializerExtensions
     /// </summary>
     [RequiresUnreferencedCode(Messages.CompiledExpressions)]
     public static IMaterializer<T, TResult> CreateMaterializerFrom<T, [DynamicallyAccessedMembers(Messages.ReflectionBound)] TResult>(
-        this CsvReaderOptions<T> options,
+        this CsvOptions<T> options,
         CsvBindingCollection<TResult> bindingCollection)
         where T : unmanaged, IEquatable<T>
     {
@@ -41,7 +41,7 @@ internal static class MaterializerExtensions
     /// </summary>
     [RequiresUnreferencedCode(Messages.CompiledExpressions)]
     public static IMaterializer<T, TResult> GetMaterializer<T, [DynamicallyAccessedMembers(Messages.ReflectionBound)] TResult>(
-        this CsvReaderOptions<T> options)
+        this CsvOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
         Debug.Assert(System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported, "Dynamic code is not supported");

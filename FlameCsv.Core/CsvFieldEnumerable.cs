@@ -9,7 +9,7 @@ public readonly struct CsvFieldEnumerable<T> where T : unmanaged, IEquatable<T>
 
     public CsvFieldEnumerable(
         ReadOnlyMemory<T> value,
-        CsvReaderOptions<T> options,
+        CsvOptions<T> options,
         CsvContextOverride<T> overrides = default)
     {
         ArgumentNullException.ThrowIfNull(options);

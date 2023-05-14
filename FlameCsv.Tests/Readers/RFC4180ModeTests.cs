@@ -21,7 +21,7 @@ public static class RFC4180ModeTests
     public static void Should_Unescape(string input, string expected)
     {
         using var pool = new ReturnTrackingArrayPool<char>();
-        var context = new CsvReadingContext<char>(CsvTextReaderOptions.Default, new() { ArrayPool = pool });
+        var context = new CsvReadingContext<char>(CsvTextOptions.Default, new() { ArrayPool = pool });
 
         char[]? unescapeArray = null;
         var state = new CsvEnumerationStateRef<char>(in context, input.AsMemory(), ref unescapeArray);
@@ -96,7 +96,7 @@ public static class RFC4180ModeTests
     [InlineData(data: new object[] { "\n", new[] { "abc", "\n", "xyz" } })]
     public static void Should_Find_Segment_With_Only_Newline(string newline, string[] segments)
     {
-        var options = new CsvTextReaderOptions { Newline = newline };
+        var options = new CsvTextOptions { Newline = newline };
 
         var first = new MemorySegment<char>(segments[0].AsMemory());
         var last = first
@@ -114,7 +114,7 @@ public static class RFC4180ModeTests
     public static void Should_Handle_Line_With_Uneven_Quotes_No_Newline()
     {
         const string data = "\"testxyz\",\"broken";
-        var options = new CsvTextReaderOptions();
+        var options = new CsvTextOptions();
         var seq = new ReadOnlySequence<char>(data.AsMemory());
 
         Assert.False(RFC4180Mode<char>.TryGetLine(new CsvDialect<char>(options), ref seq, out _, out _));
@@ -197,7 +197,7 @@ public static class RFC4180ModeTests
     public static void Should_Enumerate_Fields(string line)
     {
         using var pool = new ReturnTrackingArrayPool<char>();
-        var options = new CsvTextReaderOptions
+        var options = new CsvTextOptions
         {
             Newline = "|",
             ArrayPool = pool,
@@ -227,7 +227,7 @@ public static class RFC4180ModeTests
     public static void Should_Enumerate_With_Comma2()
     {
         using var pool = new ReturnTrackingArrayPool<char>();
-        var options = new CsvTextReaderOptions
+        var options = new CsvTextOptions
         {
             Newline = "|",
             ArrayPool = pool,

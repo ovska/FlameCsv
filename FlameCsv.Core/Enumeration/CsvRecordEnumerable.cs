@@ -14,12 +14,12 @@ public readonly struct CsvRecordEnumerable<T> where T : unmanaged, IEquatable<T>
     private readonly ReadOnlySequence<T> _data;
     private readonly CsvReadingContext<T> _context;
 
-    public CsvRecordEnumerable(ReadOnlyMemory<T> data, CsvReaderOptions<T> options, CsvContextOverride<T> overrides = default)
+    public CsvRecordEnumerable(ReadOnlyMemory<T> data, CsvOptions<T> options, CsvContextOverride<T> overrides = default)
         : this(new ReadOnlySequence<T>(data), options, overrides)
     {
     }
 
-    public CsvRecordEnumerable(in ReadOnlySequence<T> data, CsvReaderOptions<T> options, CsvContextOverride<T> overrides = default)
+    public CsvRecordEnumerable(in ReadOnlySequence<T> data, CsvOptions<T> options, CsvContextOverride<T> overrides = default)
     {
         ArgumentNullException.ThrowIfNull(options);
         _data = data;

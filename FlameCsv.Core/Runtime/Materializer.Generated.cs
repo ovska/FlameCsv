@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using FlameCsv.Binding;
 using FlameCsv.Extensions;
-using FlameCsv.Parsers;
+using FlameCsv.Converters;
 using FlameCsv.Reading;
 
 namespace FlameCsv.Runtime;
@@ -66,19 +66,19 @@ internal sealed class Materializer<T, T0, TResult>
 
     public Materializer(
         Func<T0, TResult> valueFactory,
-        ICsvParser<T, T0> parser0)
+        CsvConverter<T, T0> converter0)
     {
         this.valueFactory = valueFactory;
-        this.parser0 = parser0;
+        this.converter0 = converter0;
     }
 
-    private readonly ICsvParser<T, T0> parser0;
+    private readonly CsvConverter<T, T0> converter0;
 
     public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
-        T0 v0 = ParseNext(ref reader, parser0);
+        T0 v0 = ParseNext(ref reader, converter0);
 
         reader.EnsureFullyConsumed(FieldCount);
 
@@ -99,23 +99,23 @@ internal sealed class Materializer<T, T0, T1, TResult>
 
     public Materializer(
         Func<T0, T1, TResult> valueFactory,
-        ICsvParser<T, T0> parser0,
-        ICsvParser<T, T1> parser1)
+        CsvConverter<T, T0> converter0,
+        CsvConverter<T, T1> converter1)
     {
         this.valueFactory = valueFactory;
-        this.parser0 = parser0;
-        this.parser1 = parser1;
+        this.converter0 = converter0;
+        this.converter1 = converter1;
     }
 
-    private readonly ICsvParser<T, T0> parser0;
-    private readonly ICsvParser<T, T1> parser1;
+    private readonly CsvConverter<T, T0> converter0;
+    private readonly CsvConverter<T, T1> converter1;
 
     public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
-        T0 v0 = ParseNext(ref reader, parser0);
-        T1 v1 = ParseNext(ref reader, parser1);
+        T0 v0 = ParseNext(ref reader, converter0);
+        T1 v1 = ParseNext(ref reader, converter1);
 
         reader.EnsureFullyConsumed(FieldCount);
 
@@ -136,27 +136,27 @@ internal sealed class Materializer<T, T0, T1, T2, TResult>
 
     public Materializer(
         Func<T0, T1, T2, TResult> valueFactory,
-        ICsvParser<T, T0> parser0,
-        ICsvParser<T, T1> parser1,
-        ICsvParser<T, T2> parser2)
+        CsvConverter<T, T0> converter0,
+        CsvConverter<T, T1> converter1,
+        CsvConverter<T, T2> converter2)
     {
         this.valueFactory = valueFactory;
-        this.parser0 = parser0;
-        this.parser1 = parser1;
-        this.parser2 = parser2;
+        this.converter0 = converter0;
+        this.converter1 = converter1;
+        this.converter2 = converter2;
     }
 
-    private readonly ICsvParser<T, T0> parser0;
-    private readonly ICsvParser<T, T1> parser1;
-    private readonly ICsvParser<T, T2> parser2;
+    private readonly CsvConverter<T, T0> converter0;
+    private readonly CsvConverter<T, T1> converter1;
+    private readonly CsvConverter<T, T2> converter2;
 
     public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
-        T0 v0 = ParseNext(ref reader, parser0);
-        T1 v1 = ParseNext(ref reader, parser1);
-        T2 v2 = ParseNext(ref reader, parser2);
+        T0 v0 = ParseNext(ref reader, converter0);
+        T1 v1 = ParseNext(ref reader, converter1);
+        T2 v2 = ParseNext(ref reader, converter2);
 
         reader.EnsureFullyConsumed(FieldCount);
 
@@ -177,31 +177,31 @@ internal sealed class Materializer<T, T0, T1, T2, T3, TResult>
 
     public Materializer(
         Func<T0, T1, T2, T3, TResult> valueFactory,
-        ICsvParser<T, T0> parser0,
-        ICsvParser<T, T1> parser1,
-        ICsvParser<T, T2> parser2,
-        ICsvParser<T, T3> parser3)
+        CsvConverter<T, T0> converter0,
+        CsvConverter<T, T1> converter1,
+        CsvConverter<T, T2> converter2,
+        CsvConverter<T, T3> converter3)
     {
         this.valueFactory = valueFactory;
-        this.parser0 = parser0;
-        this.parser1 = parser1;
-        this.parser2 = parser2;
-        this.parser3 = parser3;
+        this.converter0 = converter0;
+        this.converter1 = converter1;
+        this.converter2 = converter2;
+        this.converter3 = converter3;
     }
 
-    private readonly ICsvParser<T, T0> parser0;
-    private readonly ICsvParser<T, T1> parser1;
-    private readonly ICsvParser<T, T2> parser2;
-    private readonly ICsvParser<T, T3> parser3;
+    private readonly CsvConverter<T, T0> converter0;
+    private readonly CsvConverter<T, T1> converter1;
+    private readonly CsvConverter<T, T2> converter2;
+    private readonly CsvConverter<T, T3> converter3;
 
     public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
-        T0 v0 = ParseNext(ref reader, parser0);
-        T1 v1 = ParseNext(ref reader, parser1);
-        T2 v2 = ParseNext(ref reader, parser2);
-        T3 v3 = ParseNext(ref reader, parser3);
+        T0 v0 = ParseNext(ref reader, converter0);
+        T1 v1 = ParseNext(ref reader, converter1);
+        T2 v2 = ParseNext(ref reader, converter2);
+        T3 v3 = ParseNext(ref reader, converter3);
 
         reader.EnsureFullyConsumed(FieldCount);
 
@@ -222,35 +222,35 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult>
 
     public Materializer(
         Func<T0, T1, T2, T3, T4, TResult> valueFactory,
-        ICsvParser<T, T0> parser0,
-        ICsvParser<T, T1> parser1,
-        ICsvParser<T, T2> parser2,
-        ICsvParser<T, T3> parser3,
-        ICsvParser<T, T4> parser4)
+        CsvConverter<T, T0> converter0,
+        CsvConverter<T, T1> converter1,
+        CsvConverter<T, T2> converter2,
+        CsvConverter<T, T3> converter3,
+        CsvConverter<T, T4> converter4)
     {
         this.valueFactory = valueFactory;
-        this.parser0 = parser0;
-        this.parser1 = parser1;
-        this.parser2 = parser2;
-        this.parser3 = parser3;
-        this.parser4 = parser4;
+        this.converter0 = converter0;
+        this.converter1 = converter1;
+        this.converter2 = converter2;
+        this.converter3 = converter3;
+        this.converter4 = converter4;
     }
 
-    private readonly ICsvParser<T, T0> parser0;
-    private readonly ICsvParser<T, T1> parser1;
-    private readonly ICsvParser<T, T2> parser2;
-    private readonly ICsvParser<T, T3> parser3;
-    private readonly ICsvParser<T, T4> parser4;
+    private readonly CsvConverter<T, T0> converter0;
+    private readonly CsvConverter<T, T1> converter1;
+    private readonly CsvConverter<T, T2> converter2;
+    private readonly CsvConverter<T, T3> converter3;
+    private readonly CsvConverter<T, T4> converter4;
 
     public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
-        T0 v0 = ParseNext(ref reader, parser0);
-        T1 v1 = ParseNext(ref reader, parser1);
-        T2 v2 = ParseNext(ref reader, parser2);
-        T3 v3 = ParseNext(ref reader, parser3);
-        T4 v4 = ParseNext(ref reader, parser4);
+        T0 v0 = ParseNext(ref reader, converter0);
+        T1 v1 = ParseNext(ref reader, converter1);
+        T2 v2 = ParseNext(ref reader, converter2);
+        T3 v3 = ParseNext(ref reader, converter3);
+        T4 v4 = ParseNext(ref reader, converter4);
 
         reader.EnsureFullyConsumed(FieldCount);
 
@@ -271,39 +271,39 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult>
 
     public Materializer(
         Func<T0, T1, T2, T3, T4, T5, TResult> valueFactory,
-        ICsvParser<T, T0> parser0,
-        ICsvParser<T, T1> parser1,
-        ICsvParser<T, T2> parser2,
-        ICsvParser<T, T3> parser3,
-        ICsvParser<T, T4> parser4,
-        ICsvParser<T, T5> parser5)
+        CsvConverter<T, T0> converter0,
+        CsvConverter<T, T1> converter1,
+        CsvConverter<T, T2> converter2,
+        CsvConverter<T, T3> converter3,
+        CsvConverter<T, T4> converter4,
+        CsvConverter<T, T5> converter5)
     {
         this.valueFactory = valueFactory;
-        this.parser0 = parser0;
-        this.parser1 = parser1;
-        this.parser2 = parser2;
-        this.parser3 = parser3;
-        this.parser4 = parser4;
-        this.parser5 = parser5;
+        this.converter0 = converter0;
+        this.converter1 = converter1;
+        this.converter2 = converter2;
+        this.converter3 = converter3;
+        this.converter4 = converter4;
+        this.converter5 = converter5;
     }
 
-    private readonly ICsvParser<T, T0> parser0;
-    private readonly ICsvParser<T, T1> parser1;
-    private readonly ICsvParser<T, T2> parser2;
-    private readonly ICsvParser<T, T3> parser3;
-    private readonly ICsvParser<T, T4> parser4;
-    private readonly ICsvParser<T, T5> parser5;
+    private readonly CsvConverter<T, T0> converter0;
+    private readonly CsvConverter<T, T1> converter1;
+    private readonly CsvConverter<T, T2> converter2;
+    private readonly CsvConverter<T, T3> converter3;
+    private readonly CsvConverter<T, T4> converter4;
+    private readonly CsvConverter<T, T5> converter5;
 
     public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
-        T0 v0 = ParseNext(ref reader, parser0);
-        T1 v1 = ParseNext(ref reader, parser1);
-        T2 v2 = ParseNext(ref reader, parser2);
-        T3 v3 = ParseNext(ref reader, parser3);
-        T4 v4 = ParseNext(ref reader, parser4);
-        T5 v5 = ParseNext(ref reader, parser5);
+        T0 v0 = ParseNext(ref reader, converter0);
+        T1 v1 = ParseNext(ref reader, converter1);
+        T2 v2 = ParseNext(ref reader, converter2);
+        T3 v3 = ParseNext(ref reader, converter3);
+        T4 v4 = ParseNext(ref reader, converter4);
+        T5 v5 = ParseNext(ref reader, converter5);
 
         reader.EnsureFullyConsumed(FieldCount);
 
@@ -324,43 +324,43 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult>
 
     public Materializer(
         Func<T0, T1, T2, T3, T4, T5, T6, TResult> valueFactory,
-        ICsvParser<T, T0> parser0,
-        ICsvParser<T, T1> parser1,
-        ICsvParser<T, T2> parser2,
-        ICsvParser<T, T3> parser3,
-        ICsvParser<T, T4> parser4,
-        ICsvParser<T, T5> parser5,
-        ICsvParser<T, T6> parser6)
+        CsvConverter<T, T0> converter0,
+        CsvConverter<T, T1> converter1,
+        CsvConverter<T, T2> converter2,
+        CsvConverter<T, T3> converter3,
+        CsvConverter<T, T4> converter4,
+        CsvConverter<T, T5> converter5,
+        CsvConverter<T, T6> converter6)
     {
         this.valueFactory = valueFactory;
-        this.parser0 = parser0;
-        this.parser1 = parser1;
-        this.parser2 = parser2;
-        this.parser3 = parser3;
-        this.parser4 = parser4;
-        this.parser5 = parser5;
-        this.parser6 = parser6;
+        this.converter0 = converter0;
+        this.converter1 = converter1;
+        this.converter2 = converter2;
+        this.converter3 = converter3;
+        this.converter4 = converter4;
+        this.converter5 = converter5;
+        this.converter6 = converter6;
     }
 
-    private readonly ICsvParser<T, T0> parser0;
-    private readonly ICsvParser<T, T1> parser1;
-    private readonly ICsvParser<T, T2> parser2;
-    private readonly ICsvParser<T, T3> parser3;
-    private readonly ICsvParser<T, T4> parser4;
-    private readonly ICsvParser<T, T5> parser5;
-    private readonly ICsvParser<T, T6> parser6;
+    private readonly CsvConverter<T, T0> converter0;
+    private readonly CsvConverter<T, T1> converter1;
+    private readonly CsvConverter<T, T2> converter2;
+    private readonly CsvConverter<T, T3> converter3;
+    private readonly CsvConverter<T, T4> converter4;
+    private readonly CsvConverter<T, T5> converter5;
+    private readonly CsvConverter<T, T6> converter6;
 
     public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
-        T0 v0 = ParseNext(ref reader, parser0);
-        T1 v1 = ParseNext(ref reader, parser1);
-        T2 v2 = ParseNext(ref reader, parser2);
-        T3 v3 = ParseNext(ref reader, parser3);
-        T4 v4 = ParseNext(ref reader, parser4);
-        T5 v5 = ParseNext(ref reader, parser5);
-        T6 v6 = ParseNext(ref reader, parser6);
+        T0 v0 = ParseNext(ref reader, converter0);
+        T1 v1 = ParseNext(ref reader, converter1);
+        T2 v2 = ParseNext(ref reader, converter2);
+        T3 v3 = ParseNext(ref reader, converter3);
+        T4 v4 = ParseNext(ref reader, converter4);
+        T5 v5 = ParseNext(ref reader, converter5);
+        T6 v6 = ParseNext(ref reader, converter6);
 
         reader.EnsureFullyConsumed(FieldCount);
 
@@ -381,47 +381,47 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult>
 
     public Materializer(
         Func<T0, T1, T2, T3, T4, T5, T6, T7, TResult> valueFactory,
-        ICsvParser<T, T0> parser0,
-        ICsvParser<T, T1> parser1,
-        ICsvParser<T, T2> parser2,
-        ICsvParser<T, T3> parser3,
-        ICsvParser<T, T4> parser4,
-        ICsvParser<T, T5> parser5,
-        ICsvParser<T, T6> parser6,
-        ICsvParser<T, T7> parser7)
+        CsvConverter<T, T0> converter0,
+        CsvConverter<T, T1> converter1,
+        CsvConverter<T, T2> converter2,
+        CsvConverter<T, T3> converter3,
+        CsvConverter<T, T4> converter4,
+        CsvConverter<T, T5> converter5,
+        CsvConverter<T, T6> converter6,
+        CsvConverter<T, T7> converter7)
     {
         this.valueFactory = valueFactory;
-        this.parser0 = parser0;
-        this.parser1 = parser1;
-        this.parser2 = parser2;
-        this.parser3 = parser3;
-        this.parser4 = parser4;
-        this.parser5 = parser5;
-        this.parser6 = parser6;
-        this.parser7 = parser7;
+        this.converter0 = converter0;
+        this.converter1 = converter1;
+        this.converter2 = converter2;
+        this.converter3 = converter3;
+        this.converter4 = converter4;
+        this.converter5 = converter5;
+        this.converter6 = converter6;
+        this.converter7 = converter7;
     }
 
-    private readonly ICsvParser<T, T0> parser0;
-    private readonly ICsvParser<T, T1> parser1;
-    private readonly ICsvParser<T, T2> parser2;
-    private readonly ICsvParser<T, T3> parser3;
-    private readonly ICsvParser<T, T4> parser4;
-    private readonly ICsvParser<T, T5> parser5;
-    private readonly ICsvParser<T, T6> parser6;
-    private readonly ICsvParser<T, T7> parser7;
+    private readonly CsvConverter<T, T0> converter0;
+    private readonly CsvConverter<T, T1> converter1;
+    private readonly CsvConverter<T, T2> converter2;
+    private readonly CsvConverter<T, T3> converter3;
+    private readonly CsvConverter<T, T4> converter4;
+    private readonly CsvConverter<T, T5> converter5;
+    private readonly CsvConverter<T, T6> converter6;
+    private readonly CsvConverter<T, T7> converter7;
 
     public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
-        T0 v0 = ParseNext(ref reader, parser0);
-        T1 v1 = ParseNext(ref reader, parser1);
-        T2 v2 = ParseNext(ref reader, parser2);
-        T3 v3 = ParseNext(ref reader, parser3);
-        T4 v4 = ParseNext(ref reader, parser4);
-        T5 v5 = ParseNext(ref reader, parser5);
-        T6 v6 = ParseNext(ref reader, parser6);
-        T7 v7 = ParseNext(ref reader, parser7);
+        T0 v0 = ParseNext(ref reader, converter0);
+        T1 v1 = ParseNext(ref reader, converter1);
+        T2 v2 = ParseNext(ref reader, converter2);
+        T3 v3 = ParseNext(ref reader, converter3);
+        T4 v4 = ParseNext(ref reader, converter4);
+        T5 v5 = ParseNext(ref reader, converter5);
+        T6 v6 = ParseNext(ref reader, converter6);
+        T7 v7 = ParseNext(ref reader, converter7);
 
         reader.EnsureFullyConsumed(FieldCount);
 
@@ -442,51 +442,51 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
 
     public Materializer(
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, TResult> valueFactory,
-        ICsvParser<T, T0> parser0,
-        ICsvParser<T, T1> parser1,
-        ICsvParser<T, T2> parser2,
-        ICsvParser<T, T3> parser3,
-        ICsvParser<T, T4> parser4,
-        ICsvParser<T, T5> parser5,
-        ICsvParser<T, T6> parser6,
-        ICsvParser<T, T7> parser7,
-        ICsvParser<T, T8> parser8)
+        CsvConverter<T, T0> converter0,
+        CsvConverter<T, T1> converter1,
+        CsvConverter<T, T2> converter2,
+        CsvConverter<T, T3> converter3,
+        CsvConverter<T, T4> converter4,
+        CsvConverter<T, T5> converter5,
+        CsvConverter<T, T6> converter6,
+        CsvConverter<T, T7> converter7,
+        CsvConverter<T, T8> converter8)
     {
         this.valueFactory = valueFactory;
-        this.parser0 = parser0;
-        this.parser1 = parser1;
-        this.parser2 = parser2;
-        this.parser3 = parser3;
-        this.parser4 = parser4;
-        this.parser5 = parser5;
-        this.parser6 = parser6;
-        this.parser7 = parser7;
-        this.parser8 = parser8;
+        this.converter0 = converter0;
+        this.converter1 = converter1;
+        this.converter2 = converter2;
+        this.converter3 = converter3;
+        this.converter4 = converter4;
+        this.converter5 = converter5;
+        this.converter6 = converter6;
+        this.converter7 = converter7;
+        this.converter8 = converter8;
     }
 
-    private readonly ICsvParser<T, T0> parser0;
-    private readonly ICsvParser<T, T1> parser1;
-    private readonly ICsvParser<T, T2> parser2;
-    private readonly ICsvParser<T, T3> parser3;
-    private readonly ICsvParser<T, T4> parser4;
-    private readonly ICsvParser<T, T5> parser5;
-    private readonly ICsvParser<T, T6> parser6;
-    private readonly ICsvParser<T, T7> parser7;
-    private readonly ICsvParser<T, T8> parser8;
+    private readonly CsvConverter<T, T0> converter0;
+    private readonly CsvConverter<T, T1> converter1;
+    private readonly CsvConverter<T, T2> converter2;
+    private readonly CsvConverter<T, T3> converter3;
+    private readonly CsvConverter<T, T4> converter4;
+    private readonly CsvConverter<T, T5> converter5;
+    private readonly CsvConverter<T, T6> converter6;
+    private readonly CsvConverter<T, T7> converter7;
+    private readonly CsvConverter<T, T8> converter8;
 
     public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
-        T0 v0 = ParseNext(ref reader, parser0);
-        T1 v1 = ParseNext(ref reader, parser1);
-        T2 v2 = ParseNext(ref reader, parser2);
-        T3 v3 = ParseNext(ref reader, parser3);
-        T4 v4 = ParseNext(ref reader, parser4);
-        T5 v5 = ParseNext(ref reader, parser5);
-        T6 v6 = ParseNext(ref reader, parser6);
-        T7 v7 = ParseNext(ref reader, parser7);
-        T8 v8 = ParseNext(ref reader, parser8);
+        T0 v0 = ParseNext(ref reader, converter0);
+        T1 v1 = ParseNext(ref reader, converter1);
+        T2 v2 = ParseNext(ref reader, converter2);
+        T3 v3 = ParseNext(ref reader, converter3);
+        T4 v4 = ParseNext(ref reader, converter4);
+        T5 v5 = ParseNext(ref reader, converter5);
+        T6 v6 = ParseNext(ref reader, converter6);
+        T7 v7 = ParseNext(ref reader, converter7);
+        T8 v8 = ParseNext(ref reader, converter8);
 
         reader.EnsureFullyConsumed(FieldCount);
 
@@ -507,55 +507,55 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
 
     public Materializer(
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TResult> valueFactory,
-        ICsvParser<T, T0> parser0,
-        ICsvParser<T, T1> parser1,
-        ICsvParser<T, T2> parser2,
-        ICsvParser<T, T3> parser3,
-        ICsvParser<T, T4> parser4,
-        ICsvParser<T, T5> parser5,
-        ICsvParser<T, T6> parser6,
-        ICsvParser<T, T7> parser7,
-        ICsvParser<T, T8> parser8,
-        ICsvParser<T, T9> parser9)
+        CsvConverter<T, T0> converter0,
+        CsvConverter<T, T1> converter1,
+        CsvConverter<T, T2> converter2,
+        CsvConverter<T, T3> converter3,
+        CsvConverter<T, T4> converter4,
+        CsvConverter<T, T5> converter5,
+        CsvConverter<T, T6> converter6,
+        CsvConverter<T, T7> converter7,
+        CsvConverter<T, T8> converter8,
+        CsvConverter<T, T9> converter9)
     {
         this.valueFactory = valueFactory;
-        this.parser0 = parser0;
-        this.parser1 = parser1;
-        this.parser2 = parser2;
-        this.parser3 = parser3;
-        this.parser4 = parser4;
-        this.parser5 = parser5;
-        this.parser6 = parser6;
-        this.parser7 = parser7;
-        this.parser8 = parser8;
-        this.parser9 = parser9;
+        this.converter0 = converter0;
+        this.converter1 = converter1;
+        this.converter2 = converter2;
+        this.converter3 = converter3;
+        this.converter4 = converter4;
+        this.converter5 = converter5;
+        this.converter6 = converter6;
+        this.converter7 = converter7;
+        this.converter8 = converter8;
+        this.converter9 = converter9;
     }
 
-    private readonly ICsvParser<T, T0> parser0;
-    private readonly ICsvParser<T, T1> parser1;
-    private readonly ICsvParser<T, T2> parser2;
-    private readonly ICsvParser<T, T3> parser3;
-    private readonly ICsvParser<T, T4> parser4;
-    private readonly ICsvParser<T, T5> parser5;
-    private readonly ICsvParser<T, T6> parser6;
-    private readonly ICsvParser<T, T7> parser7;
-    private readonly ICsvParser<T, T8> parser8;
-    private readonly ICsvParser<T, T9> parser9;
+    private readonly CsvConverter<T, T0> converter0;
+    private readonly CsvConverter<T, T1> converter1;
+    private readonly CsvConverter<T, T2> converter2;
+    private readonly CsvConverter<T, T3> converter3;
+    private readonly CsvConverter<T, T4> converter4;
+    private readonly CsvConverter<T, T5> converter5;
+    private readonly CsvConverter<T, T6> converter6;
+    private readonly CsvConverter<T, T7> converter7;
+    private readonly CsvConverter<T, T8> converter8;
+    private readonly CsvConverter<T, T9> converter9;
 
     public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
-        T0 v0 = ParseNext(ref reader, parser0);
-        T1 v1 = ParseNext(ref reader, parser1);
-        T2 v2 = ParseNext(ref reader, parser2);
-        T3 v3 = ParseNext(ref reader, parser3);
-        T4 v4 = ParseNext(ref reader, parser4);
-        T5 v5 = ParseNext(ref reader, parser5);
-        T6 v6 = ParseNext(ref reader, parser6);
-        T7 v7 = ParseNext(ref reader, parser7);
-        T8 v8 = ParseNext(ref reader, parser8);
-        T9 v9 = ParseNext(ref reader, parser9);
+        T0 v0 = ParseNext(ref reader, converter0);
+        T1 v1 = ParseNext(ref reader, converter1);
+        T2 v2 = ParseNext(ref reader, converter2);
+        T3 v3 = ParseNext(ref reader, converter3);
+        T4 v4 = ParseNext(ref reader, converter4);
+        T5 v5 = ParseNext(ref reader, converter5);
+        T6 v6 = ParseNext(ref reader, converter6);
+        T7 v7 = ParseNext(ref reader, converter7);
+        T8 v8 = ParseNext(ref reader, converter8);
+        T9 v9 = ParseNext(ref reader, converter9);
 
         reader.EnsureFullyConsumed(FieldCount);
 
@@ -576,59 +576,59 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
     public Materializer(
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TResult> valueFactory,
-        ICsvParser<T, T0> parser0,
-        ICsvParser<T, T1> parser1,
-        ICsvParser<T, T2> parser2,
-        ICsvParser<T, T3> parser3,
-        ICsvParser<T, T4> parser4,
-        ICsvParser<T, T5> parser5,
-        ICsvParser<T, T6> parser6,
-        ICsvParser<T, T7> parser7,
-        ICsvParser<T, T8> parser8,
-        ICsvParser<T, T9> parser9,
-        ICsvParser<T, T10> parser10)
+        CsvConverter<T, T0> converter0,
+        CsvConverter<T, T1> converter1,
+        CsvConverter<T, T2> converter2,
+        CsvConverter<T, T3> converter3,
+        CsvConverter<T, T4> converter4,
+        CsvConverter<T, T5> converter5,
+        CsvConverter<T, T6> converter6,
+        CsvConverter<T, T7> converter7,
+        CsvConverter<T, T8> converter8,
+        CsvConverter<T, T9> converter9,
+        CsvConverter<T, T10> converter10)
     {
         this.valueFactory = valueFactory;
-        this.parser0 = parser0;
-        this.parser1 = parser1;
-        this.parser2 = parser2;
-        this.parser3 = parser3;
-        this.parser4 = parser4;
-        this.parser5 = parser5;
-        this.parser6 = parser6;
-        this.parser7 = parser7;
-        this.parser8 = parser8;
-        this.parser9 = parser9;
-        this.parser10 = parser10;
+        this.converter0 = converter0;
+        this.converter1 = converter1;
+        this.converter2 = converter2;
+        this.converter3 = converter3;
+        this.converter4 = converter4;
+        this.converter5 = converter5;
+        this.converter6 = converter6;
+        this.converter7 = converter7;
+        this.converter8 = converter8;
+        this.converter9 = converter9;
+        this.converter10 = converter10;
     }
 
-    private readonly ICsvParser<T, T0> parser0;
-    private readonly ICsvParser<T, T1> parser1;
-    private readonly ICsvParser<T, T2> parser2;
-    private readonly ICsvParser<T, T3> parser3;
-    private readonly ICsvParser<T, T4> parser4;
-    private readonly ICsvParser<T, T5> parser5;
-    private readonly ICsvParser<T, T6> parser6;
-    private readonly ICsvParser<T, T7> parser7;
-    private readonly ICsvParser<T, T8> parser8;
-    private readonly ICsvParser<T, T9> parser9;
-    private readonly ICsvParser<T, T10> parser10;
+    private readonly CsvConverter<T, T0> converter0;
+    private readonly CsvConverter<T, T1> converter1;
+    private readonly CsvConverter<T, T2> converter2;
+    private readonly CsvConverter<T, T3> converter3;
+    private readonly CsvConverter<T, T4> converter4;
+    private readonly CsvConverter<T, T5> converter5;
+    private readonly CsvConverter<T, T6> converter6;
+    private readonly CsvConverter<T, T7> converter7;
+    private readonly CsvConverter<T, T8> converter8;
+    private readonly CsvConverter<T, T9> converter9;
+    private readonly CsvConverter<T, T10> converter10;
 
     public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
-        T0 v0 = ParseNext(ref reader, parser0);
-        T1 v1 = ParseNext(ref reader, parser1);
-        T2 v2 = ParseNext(ref reader, parser2);
-        T3 v3 = ParseNext(ref reader, parser3);
-        T4 v4 = ParseNext(ref reader, parser4);
-        T5 v5 = ParseNext(ref reader, parser5);
-        T6 v6 = ParseNext(ref reader, parser6);
-        T7 v7 = ParseNext(ref reader, parser7);
-        T8 v8 = ParseNext(ref reader, parser8);
-        T9 v9 = ParseNext(ref reader, parser9);
-        T10 v10 = ParseNext(ref reader, parser10);
+        T0 v0 = ParseNext(ref reader, converter0);
+        T1 v1 = ParseNext(ref reader, converter1);
+        T2 v2 = ParseNext(ref reader, converter2);
+        T3 v3 = ParseNext(ref reader, converter3);
+        T4 v4 = ParseNext(ref reader, converter4);
+        T5 v5 = ParseNext(ref reader, converter5);
+        T6 v6 = ParseNext(ref reader, converter6);
+        T7 v7 = ParseNext(ref reader, converter7);
+        T8 v8 = ParseNext(ref reader, converter8);
+        T9 v9 = ParseNext(ref reader, converter9);
+        T10 v10 = ParseNext(ref reader, converter10);
 
         reader.EnsureFullyConsumed(FieldCount);
 
@@ -649,63 +649,63 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
     public Materializer(
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TResult> valueFactory,
-        ICsvParser<T, T0> parser0,
-        ICsvParser<T, T1> parser1,
-        ICsvParser<T, T2> parser2,
-        ICsvParser<T, T3> parser3,
-        ICsvParser<T, T4> parser4,
-        ICsvParser<T, T5> parser5,
-        ICsvParser<T, T6> parser6,
-        ICsvParser<T, T7> parser7,
-        ICsvParser<T, T8> parser8,
-        ICsvParser<T, T9> parser9,
-        ICsvParser<T, T10> parser10,
-        ICsvParser<T, T11> parser11)
+        CsvConverter<T, T0> converter0,
+        CsvConverter<T, T1> converter1,
+        CsvConverter<T, T2> converter2,
+        CsvConverter<T, T3> converter3,
+        CsvConverter<T, T4> converter4,
+        CsvConverter<T, T5> converter5,
+        CsvConverter<T, T6> converter6,
+        CsvConverter<T, T7> converter7,
+        CsvConverter<T, T8> converter8,
+        CsvConverter<T, T9> converter9,
+        CsvConverter<T, T10> converter10,
+        CsvConverter<T, T11> converter11)
     {
         this.valueFactory = valueFactory;
-        this.parser0 = parser0;
-        this.parser1 = parser1;
-        this.parser2 = parser2;
-        this.parser3 = parser3;
-        this.parser4 = parser4;
-        this.parser5 = parser5;
-        this.parser6 = parser6;
-        this.parser7 = parser7;
-        this.parser8 = parser8;
-        this.parser9 = parser9;
-        this.parser10 = parser10;
-        this.parser11 = parser11;
+        this.converter0 = converter0;
+        this.converter1 = converter1;
+        this.converter2 = converter2;
+        this.converter3 = converter3;
+        this.converter4 = converter4;
+        this.converter5 = converter5;
+        this.converter6 = converter6;
+        this.converter7 = converter7;
+        this.converter8 = converter8;
+        this.converter9 = converter9;
+        this.converter10 = converter10;
+        this.converter11 = converter11;
     }
 
-    private readonly ICsvParser<T, T0> parser0;
-    private readonly ICsvParser<T, T1> parser1;
-    private readonly ICsvParser<T, T2> parser2;
-    private readonly ICsvParser<T, T3> parser3;
-    private readonly ICsvParser<T, T4> parser4;
-    private readonly ICsvParser<T, T5> parser5;
-    private readonly ICsvParser<T, T6> parser6;
-    private readonly ICsvParser<T, T7> parser7;
-    private readonly ICsvParser<T, T8> parser8;
-    private readonly ICsvParser<T, T9> parser9;
-    private readonly ICsvParser<T, T10> parser10;
-    private readonly ICsvParser<T, T11> parser11;
+    private readonly CsvConverter<T, T0> converter0;
+    private readonly CsvConverter<T, T1> converter1;
+    private readonly CsvConverter<T, T2> converter2;
+    private readonly CsvConverter<T, T3> converter3;
+    private readonly CsvConverter<T, T4> converter4;
+    private readonly CsvConverter<T, T5> converter5;
+    private readonly CsvConverter<T, T6> converter6;
+    private readonly CsvConverter<T, T7> converter7;
+    private readonly CsvConverter<T, T8> converter8;
+    private readonly CsvConverter<T, T9> converter9;
+    private readonly CsvConverter<T, T10> converter10;
+    private readonly CsvConverter<T, T11> converter11;
 
     public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
-        T0 v0 = ParseNext(ref reader, parser0);
-        T1 v1 = ParseNext(ref reader, parser1);
-        T2 v2 = ParseNext(ref reader, parser2);
-        T3 v3 = ParseNext(ref reader, parser3);
-        T4 v4 = ParseNext(ref reader, parser4);
-        T5 v5 = ParseNext(ref reader, parser5);
-        T6 v6 = ParseNext(ref reader, parser6);
-        T7 v7 = ParseNext(ref reader, parser7);
-        T8 v8 = ParseNext(ref reader, parser8);
-        T9 v9 = ParseNext(ref reader, parser9);
-        T10 v10 = ParseNext(ref reader, parser10);
-        T11 v11 = ParseNext(ref reader, parser11);
+        T0 v0 = ParseNext(ref reader, converter0);
+        T1 v1 = ParseNext(ref reader, converter1);
+        T2 v2 = ParseNext(ref reader, converter2);
+        T3 v3 = ParseNext(ref reader, converter3);
+        T4 v4 = ParseNext(ref reader, converter4);
+        T5 v5 = ParseNext(ref reader, converter5);
+        T6 v6 = ParseNext(ref reader, converter6);
+        T7 v7 = ParseNext(ref reader, converter7);
+        T8 v8 = ParseNext(ref reader, converter8);
+        T9 v9 = ParseNext(ref reader, converter9);
+        T10 v10 = ParseNext(ref reader, converter10);
+        T11 v11 = ParseNext(ref reader, converter11);
 
         reader.EnsureFullyConsumed(FieldCount);
 
@@ -726,67 +726,67 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
     public Materializer(
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TResult> valueFactory,
-        ICsvParser<T, T0> parser0,
-        ICsvParser<T, T1> parser1,
-        ICsvParser<T, T2> parser2,
-        ICsvParser<T, T3> parser3,
-        ICsvParser<T, T4> parser4,
-        ICsvParser<T, T5> parser5,
-        ICsvParser<T, T6> parser6,
-        ICsvParser<T, T7> parser7,
-        ICsvParser<T, T8> parser8,
-        ICsvParser<T, T9> parser9,
-        ICsvParser<T, T10> parser10,
-        ICsvParser<T, T11> parser11,
-        ICsvParser<T, T12> parser12)
+        CsvConverter<T, T0> converter0,
+        CsvConverter<T, T1> converter1,
+        CsvConverter<T, T2> converter2,
+        CsvConverter<T, T3> converter3,
+        CsvConverter<T, T4> converter4,
+        CsvConverter<T, T5> converter5,
+        CsvConverter<T, T6> converter6,
+        CsvConverter<T, T7> converter7,
+        CsvConverter<T, T8> converter8,
+        CsvConverter<T, T9> converter9,
+        CsvConverter<T, T10> converter10,
+        CsvConverter<T, T11> converter11,
+        CsvConverter<T, T12> converter12)
     {
         this.valueFactory = valueFactory;
-        this.parser0 = parser0;
-        this.parser1 = parser1;
-        this.parser2 = parser2;
-        this.parser3 = parser3;
-        this.parser4 = parser4;
-        this.parser5 = parser5;
-        this.parser6 = parser6;
-        this.parser7 = parser7;
-        this.parser8 = parser8;
-        this.parser9 = parser9;
-        this.parser10 = parser10;
-        this.parser11 = parser11;
-        this.parser12 = parser12;
+        this.converter0 = converter0;
+        this.converter1 = converter1;
+        this.converter2 = converter2;
+        this.converter3 = converter3;
+        this.converter4 = converter4;
+        this.converter5 = converter5;
+        this.converter6 = converter6;
+        this.converter7 = converter7;
+        this.converter8 = converter8;
+        this.converter9 = converter9;
+        this.converter10 = converter10;
+        this.converter11 = converter11;
+        this.converter12 = converter12;
     }
 
-    private readonly ICsvParser<T, T0> parser0;
-    private readonly ICsvParser<T, T1> parser1;
-    private readonly ICsvParser<T, T2> parser2;
-    private readonly ICsvParser<T, T3> parser3;
-    private readonly ICsvParser<T, T4> parser4;
-    private readonly ICsvParser<T, T5> parser5;
-    private readonly ICsvParser<T, T6> parser6;
-    private readonly ICsvParser<T, T7> parser7;
-    private readonly ICsvParser<T, T8> parser8;
-    private readonly ICsvParser<T, T9> parser9;
-    private readonly ICsvParser<T, T10> parser10;
-    private readonly ICsvParser<T, T11> parser11;
-    private readonly ICsvParser<T, T12> parser12;
+    private readonly CsvConverter<T, T0> converter0;
+    private readonly CsvConverter<T, T1> converter1;
+    private readonly CsvConverter<T, T2> converter2;
+    private readonly CsvConverter<T, T3> converter3;
+    private readonly CsvConverter<T, T4> converter4;
+    private readonly CsvConverter<T, T5> converter5;
+    private readonly CsvConverter<T, T6> converter6;
+    private readonly CsvConverter<T, T7> converter7;
+    private readonly CsvConverter<T, T8> converter8;
+    private readonly CsvConverter<T, T9> converter9;
+    private readonly CsvConverter<T, T10> converter10;
+    private readonly CsvConverter<T, T11> converter11;
+    private readonly CsvConverter<T, T12> converter12;
 
     public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
-        T0 v0 = ParseNext(ref reader, parser0);
-        T1 v1 = ParseNext(ref reader, parser1);
-        T2 v2 = ParseNext(ref reader, parser2);
-        T3 v3 = ParseNext(ref reader, parser3);
-        T4 v4 = ParseNext(ref reader, parser4);
-        T5 v5 = ParseNext(ref reader, parser5);
-        T6 v6 = ParseNext(ref reader, parser6);
-        T7 v7 = ParseNext(ref reader, parser7);
-        T8 v8 = ParseNext(ref reader, parser8);
-        T9 v9 = ParseNext(ref reader, parser9);
-        T10 v10 = ParseNext(ref reader, parser10);
-        T11 v11 = ParseNext(ref reader, parser11);
-        T12 v12 = ParseNext(ref reader, parser12);
+        T0 v0 = ParseNext(ref reader, converter0);
+        T1 v1 = ParseNext(ref reader, converter1);
+        T2 v2 = ParseNext(ref reader, converter2);
+        T3 v3 = ParseNext(ref reader, converter3);
+        T4 v4 = ParseNext(ref reader, converter4);
+        T5 v5 = ParseNext(ref reader, converter5);
+        T6 v6 = ParseNext(ref reader, converter6);
+        T7 v7 = ParseNext(ref reader, converter7);
+        T8 v8 = ParseNext(ref reader, converter8);
+        T9 v9 = ParseNext(ref reader, converter9);
+        T10 v10 = ParseNext(ref reader, converter10);
+        T11 v11 = ParseNext(ref reader, converter11);
+        T12 v12 = ParseNext(ref reader, converter12);
 
         reader.EnsureFullyConsumed(FieldCount);
 
@@ -807,71 +807,71 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
     public Materializer(
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TResult> valueFactory,
-        ICsvParser<T, T0> parser0,
-        ICsvParser<T, T1> parser1,
-        ICsvParser<T, T2> parser2,
-        ICsvParser<T, T3> parser3,
-        ICsvParser<T, T4> parser4,
-        ICsvParser<T, T5> parser5,
-        ICsvParser<T, T6> parser6,
-        ICsvParser<T, T7> parser7,
-        ICsvParser<T, T8> parser8,
-        ICsvParser<T, T9> parser9,
-        ICsvParser<T, T10> parser10,
-        ICsvParser<T, T11> parser11,
-        ICsvParser<T, T12> parser12,
-        ICsvParser<T, T13> parser13)
+        CsvConverter<T, T0> converter0,
+        CsvConverter<T, T1> converter1,
+        CsvConverter<T, T2> converter2,
+        CsvConverter<T, T3> converter3,
+        CsvConverter<T, T4> converter4,
+        CsvConverter<T, T5> converter5,
+        CsvConverter<T, T6> converter6,
+        CsvConverter<T, T7> converter7,
+        CsvConverter<T, T8> converter8,
+        CsvConverter<T, T9> converter9,
+        CsvConverter<T, T10> converter10,
+        CsvConverter<T, T11> converter11,
+        CsvConverter<T, T12> converter12,
+        CsvConverter<T, T13> converter13)
     {
         this.valueFactory = valueFactory;
-        this.parser0 = parser0;
-        this.parser1 = parser1;
-        this.parser2 = parser2;
-        this.parser3 = parser3;
-        this.parser4 = parser4;
-        this.parser5 = parser5;
-        this.parser6 = parser6;
-        this.parser7 = parser7;
-        this.parser8 = parser8;
-        this.parser9 = parser9;
-        this.parser10 = parser10;
-        this.parser11 = parser11;
-        this.parser12 = parser12;
-        this.parser13 = parser13;
+        this.converter0 = converter0;
+        this.converter1 = converter1;
+        this.converter2 = converter2;
+        this.converter3 = converter3;
+        this.converter4 = converter4;
+        this.converter5 = converter5;
+        this.converter6 = converter6;
+        this.converter7 = converter7;
+        this.converter8 = converter8;
+        this.converter9 = converter9;
+        this.converter10 = converter10;
+        this.converter11 = converter11;
+        this.converter12 = converter12;
+        this.converter13 = converter13;
     }
 
-    private readonly ICsvParser<T, T0> parser0;
-    private readonly ICsvParser<T, T1> parser1;
-    private readonly ICsvParser<T, T2> parser2;
-    private readonly ICsvParser<T, T3> parser3;
-    private readonly ICsvParser<T, T4> parser4;
-    private readonly ICsvParser<T, T5> parser5;
-    private readonly ICsvParser<T, T6> parser6;
-    private readonly ICsvParser<T, T7> parser7;
-    private readonly ICsvParser<T, T8> parser8;
-    private readonly ICsvParser<T, T9> parser9;
-    private readonly ICsvParser<T, T10> parser10;
-    private readonly ICsvParser<T, T11> parser11;
-    private readonly ICsvParser<T, T12> parser12;
-    private readonly ICsvParser<T, T13> parser13;
+    private readonly CsvConverter<T, T0> converter0;
+    private readonly CsvConverter<T, T1> converter1;
+    private readonly CsvConverter<T, T2> converter2;
+    private readonly CsvConverter<T, T3> converter3;
+    private readonly CsvConverter<T, T4> converter4;
+    private readonly CsvConverter<T, T5> converter5;
+    private readonly CsvConverter<T, T6> converter6;
+    private readonly CsvConverter<T, T7> converter7;
+    private readonly CsvConverter<T, T8> converter8;
+    private readonly CsvConverter<T, T9> converter9;
+    private readonly CsvConverter<T, T10> converter10;
+    private readonly CsvConverter<T, T11> converter11;
+    private readonly CsvConverter<T, T12> converter12;
+    private readonly CsvConverter<T, T13> converter13;
 
     public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
-        T0 v0 = ParseNext(ref reader, parser0);
-        T1 v1 = ParseNext(ref reader, parser1);
-        T2 v2 = ParseNext(ref reader, parser2);
-        T3 v3 = ParseNext(ref reader, parser3);
-        T4 v4 = ParseNext(ref reader, parser4);
-        T5 v5 = ParseNext(ref reader, parser5);
-        T6 v6 = ParseNext(ref reader, parser6);
-        T7 v7 = ParseNext(ref reader, parser7);
-        T8 v8 = ParseNext(ref reader, parser8);
-        T9 v9 = ParseNext(ref reader, parser9);
-        T10 v10 = ParseNext(ref reader, parser10);
-        T11 v11 = ParseNext(ref reader, parser11);
-        T12 v12 = ParseNext(ref reader, parser12);
-        T13 v13 = ParseNext(ref reader, parser13);
+        T0 v0 = ParseNext(ref reader, converter0);
+        T1 v1 = ParseNext(ref reader, converter1);
+        T2 v2 = ParseNext(ref reader, converter2);
+        T3 v3 = ParseNext(ref reader, converter3);
+        T4 v4 = ParseNext(ref reader, converter4);
+        T5 v5 = ParseNext(ref reader, converter5);
+        T6 v6 = ParseNext(ref reader, converter6);
+        T7 v7 = ParseNext(ref reader, converter7);
+        T8 v8 = ParseNext(ref reader, converter8);
+        T9 v9 = ParseNext(ref reader, converter9);
+        T10 v10 = ParseNext(ref reader, converter10);
+        T11 v11 = ParseNext(ref reader, converter11);
+        T12 v12 = ParseNext(ref reader, converter12);
+        T13 v13 = ParseNext(ref reader, converter13);
 
         reader.EnsureFullyConsumed(FieldCount);
 
@@ -892,75 +892,75 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
     public Materializer(
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TResult> valueFactory,
-        ICsvParser<T, T0> parser0,
-        ICsvParser<T, T1> parser1,
-        ICsvParser<T, T2> parser2,
-        ICsvParser<T, T3> parser3,
-        ICsvParser<T, T4> parser4,
-        ICsvParser<T, T5> parser5,
-        ICsvParser<T, T6> parser6,
-        ICsvParser<T, T7> parser7,
-        ICsvParser<T, T8> parser8,
-        ICsvParser<T, T9> parser9,
-        ICsvParser<T, T10> parser10,
-        ICsvParser<T, T11> parser11,
-        ICsvParser<T, T12> parser12,
-        ICsvParser<T, T13> parser13,
-        ICsvParser<T, T14> parser14)
+        CsvConverter<T, T0> converter0,
+        CsvConverter<T, T1> converter1,
+        CsvConverter<T, T2> converter2,
+        CsvConverter<T, T3> converter3,
+        CsvConverter<T, T4> converter4,
+        CsvConverter<T, T5> converter5,
+        CsvConverter<T, T6> converter6,
+        CsvConverter<T, T7> converter7,
+        CsvConverter<T, T8> converter8,
+        CsvConverter<T, T9> converter9,
+        CsvConverter<T, T10> converter10,
+        CsvConverter<T, T11> converter11,
+        CsvConverter<T, T12> converter12,
+        CsvConverter<T, T13> converter13,
+        CsvConverter<T, T14> converter14)
     {
         this.valueFactory = valueFactory;
-        this.parser0 = parser0;
-        this.parser1 = parser1;
-        this.parser2 = parser2;
-        this.parser3 = parser3;
-        this.parser4 = parser4;
-        this.parser5 = parser5;
-        this.parser6 = parser6;
-        this.parser7 = parser7;
-        this.parser8 = parser8;
-        this.parser9 = parser9;
-        this.parser10 = parser10;
-        this.parser11 = parser11;
-        this.parser12 = parser12;
-        this.parser13 = parser13;
-        this.parser14 = parser14;
+        this.converter0 = converter0;
+        this.converter1 = converter1;
+        this.converter2 = converter2;
+        this.converter3 = converter3;
+        this.converter4 = converter4;
+        this.converter5 = converter5;
+        this.converter6 = converter6;
+        this.converter7 = converter7;
+        this.converter8 = converter8;
+        this.converter9 = converter9;
+        this.converter10 = converter10;
+        this.converter11 = converter11;
+        this.converter12 = converter12;
+        this.converter13 = converter13;
+        this.converter14 = converter14;
     }
 
-    private readonly ICsvParser<T, T0> parser0;
-    private readonly ICsvParser<T, T1> parser1;
-    private readonly ICsvParser<T, T2> parser2;
-    private readonly ICsvParser<T, T3> parser3;
-    private readonly ICsvParser<T, T4> parser4;
-    private readonly ICsvParser<T, T5> parser5;
-    private readonly ICsvParser<T, T6> parser6;
-    private readonly ICsvParser<T, T7> parser7;
-    private readonly ICsvParser<T, T8> parser8;
-    private readonly ICsvParser<T, T9> parser9;
-    private readonly ICsvParser<T, T10> parser10;
-    private readonly ICsvParser<T, T11> parser11;
-    private readonly ICsvParser<T, T12> parser12;
-    private readonly ICsvParser<T, T13> parser13;
-    private readonly ICsvParser<T, T14> parser14;
+    private readonly CsvConverter<T, T0> converter0;
+    private readonly CsvConverter<T, T1> converter1;
+    private readonly CsvConverter<T, T2> converter2;
+    private readonly CsvConverter<T, T3> converter3;
+    private readonly CsvConverter<T, T4> converter4;
+    private readonly CsvConverter<T, T5> converter5;
+    private readonly CsvConverter<T, T6> converter6;
+    private readonly CsvConverter<T, T7> converter7;
+    private readonly CsvConverter<T, T8> converter8;
+    private readonly CsvConverter<T, T9> converter9;
+    private readonly CsvConverter<T, T10> converter10;
+    private readonly CsvConverter<T, T11> converter11;
+    private readonly CsvConverter<T, T12> converter12;
+    private readonly CsvConverter<T, T13> converter13;
+    private readonly CsvConverter<T, T14> converter14;
 
     public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
-        T0 v0 = ParseNext(ref reader, parser0);
-        T1 v1 = ParseNext(ref reader, parser1);
-        T2 v2 = ParseNext(ref reader, parser2);
-        T3 v3 = ParseNext(ref reader, parser3);
-        T4 v4 = ParseNext(ref reader, parser4);
-        T5 v5 = ParseNext(ref reader, parser5);
-        T6 v6 = ParseNext(ref reader, parser6);
-        T7 v7 = ParseNext(ref reader, parser7);
-        T8 v8 = ParseNext(ref reader, parser8);
-        T9 v9 = ParseNext(ref reader, parser9);
-        T10 v10 = ParseNext(ref reader, parser10);
-        T11 v11 = ParseNext(ref reader, parser11);
-        T12 v12 = ParseNext(ref reader, parser12);
-        T13 v13 = ParseNext(ref reader, parser13);
-        T14 v14 = ParseNext(ref reader, parser14);
+        T0 v0 = ParseNext(ref reader, converter0);
+        T1 v1 = ParseNext(ref reader, converter1);
+        T2 v2 = ParseNext(ref reader, converter2);
+        T3 v3 = ParseNext(ref reader, converter3);
+        T4 v4 = ParseNext(ref reader, converter4);
+        T5 v5 = ParseNext(ref reader, converter5);
+        T6 v6 = ParseNext(ref reader, converter6);
+        T7 v7 = ParseNext(ref reader, converter7);
+        T8 v8 = ParseNext(ref reader, converter8);
+        T9 v9 = ParseNext(ref reader, converter9);
+        T10 v10 = ParseNext(ref reader, converter10);
+        T11 v11 = ParseNext(ref reader, converter11);
+        T12 v12 = ParseNext(ref reader, converter12);
+        T13 v13 = ParseNext(ref reader, converter13);
+        T14 v14 = ParseNext(ref reader, converter14);
 
         reader.EnsureFullyConsumed(FieldCount);
 
@@ -981,79 +981,79 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
     public Materializer(
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TResult> valueFactory,
-        ICsvParser<T, T0> parser0,
-        ICsvParser<T, T1> parser1,
-        ICsvParser<T, T2> parser2,
-        ICsvParser<T, T3> parser3,
-        ICsvParser<T, T4> parser4,
-        ICsvParser<T, T5> parser5,
-        ICsvParser<T, T6> parser6,
-        ICsvParser<T, T7> parser7,
-        ICsvParser<T, T8> parser8,
-        ICsvParser<T, T9> parser9,
-        ICsvParser<T, T10> parser10,
-        ICsvParser<T, T11> parser11,
-        ICsvParser<T, T12> parser12,
-        ICsvParser<T, T13> parser13,
-        ICsvParser<T, T14> parser14,
-        ICsvParser<T, T15> parser15)
+        CsvConverter<T, T0> converter0,
+        CsvConverter<T, T1> converter1,
+        CsvConverter<T, T2> converter2,
+        CsvConverter<T, T3> converter3,
+        CsvConverter<T, T4> converter4,
+        CsvConverter<T, T5> converter5,
+        CsvConverter<T, T6> converter6,
+        CsvConverter<T, T7> converter7,
+        CsvConverter<T, T8> converter8,
+        CsvConverter<T, T9> converter9,
+        CsvConverter<T, T10> converter10,
+        CsvConverter<T, T11> converter11,
+        CsvConverter<T, T12> converter12,
+        CsvConverter<T, T13> converter13,
+        CsvConverter<T, T14> converter14,
+        CsvConverter<T, T15> converter15)
     {
         this.valueFactory = valueFactory;
-        this.parser0 = parser0;
-        this.parser1 = parser1;
-        this.parser2 = parser2;
-        this.parser3 = parser3;
-        this.parser4 = parser4;
-        this.parser5 = parser5;
-        this.parser6 = parser6;
-        this.parser7 = parser7;
-        this.parser8 = parser8;
-        this.parser9 = parser9;
-        this.parser10 = parser10;
-        this.parser11 = parser11;
-        this.parser12 = parser12;
-        this.parser13 = parser13;
-        this.parser14 = parser14;
-        this.parser15 = parser15;
+        this.converter0 = converter0;
+        this.converter1 = converter1;
+        this.converter2 = converter2;
+        this.converter3 = converter3;
+        this.converter4 = converter4;
+        this.converter5 = converter5;
+        this.converter6 = converter6;
+        this.converter7 = converter7;
+        this.converter8 = converter8;
+        this.converter9 = converter9;
+        this.converter10 = converter10;
+        this.converter11 = converter11;
+        this.converter12 = converter12;
+        this.converter13 = converter13;
+        this.converter14 = converter14;
+        this.converter15 = converter15;
     }
 
-    private readonly ICsvParser<T, T0> parser0;
-    private readonly ICsvParser<T, T1> parser1;
-    private readonly ICsvParser<T, T2> parser2;
-    private readonly ICsvParser<T, T3> parser3;
-    private readonly ICsvParser<T, T4> parser4;
-    private readonly ICsvParser<T, T5> parser5;
-    private readonly ICsvParser<T, T6> parser6;
-    private readonly ICsvParser<T, T7> parser7;
-    private readonly ICsvParser<T, T8> parser8;
-    private readonly ICsvParser<T, T9> parser9;
-    private readonly ICsvParser<T, T10> parser10;
-    private readonly ICsvParser<T, T11> parser11;
-    private readonly ICsvParser<T, T12> parser12;
-    private readonly ICsvParser<T, T13> parser13;
-    private readonly ICsvParser<T, T14> parser14;
-    private readonly ICsvParser<T, T15> parser15;
+    private readonly CsvConverter<T, T0> converter0;
+    private readonly CsvConverter<T, T1> converter1;
+    private readonly CsvConverter<T, T2> converter2;
+    private readonly CsvConverter<T, T3> converter3;
+    private readonly CsvConverter<T, T4> converter4;
+    private readonly CsvConverter<T, T5> converter5;
+    private readonly CsvConverter<T, T6> converter6;
+    private readonly CsvConverter<T, T7> converter7;
+    private readonly CsvConverter<T, T8> converter8;
+    private readonly CsvConverter<T, T9> converter9;
+    private readonly CsvConverter<T, T10> converter10;
+    private readonly CsvConverter<T, T11> converter11;
+    private readonly CsvConverter<T, T12> converter12;
+    private readonly CsvConverter<T, T13> converter13;
+    private readonly CsvConverter<T, T14> converter14;
+    private readonly CsvConverter<T, T15> converter15;
 
     public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
-        T0 v0 = ParseNext(ref reader, parser0);
-        T1 v1 = ParseNext(ref reader, parser1);
-        T2 v2 = ParseNext(ref reader, parser2);
-        T3 v3 = ParseNext(ref reader, parser3);
-        T4 v4 = ParseNext(ref reader, parser4);
-        T5 v5 = ParseNext(ref reader, parser5);
-        T6 v6 = ParseNext(ref reader, parser6);
-        T7 v7 = ParseNext(ref reader, parser7);
-        T8 v8 = ParseNext(ref reader, parser8);
-        T9 v9 = ParseNext(ref reader, parser9);
-        T10 v10 = ParseNext(ref reader, parser10);
-        T11 v11 = ParseNext(ref reader, parser11);
-        T12 v12 = ParseNext(ref reader, parser12);
-        T13 v13 = ParseNext(ref reader, parser13);
-        T14 v14 = ParseNext(ref reader, parser14);
-        T15 v15 = ParseNext(ref reader, parser15);
+        T0 v0 = ParseNext(ref reader, converter0);
+        T1 v1 = ParseNext(ref reader, converter1);
+        T2 v2 = ParseNext(ref reader, converter2);
+        T3 v3 = ParseNext(ref reader, converter3);
+        T4 v4 = ParseNext(ref reader, converter4);
+        T5 v5 = ParseNext(ref reader, converter5);
+        T6 v6 = ParseNext(ref reader, converter6);
+        T7 v7 = ParseNext(ref reader, converter7);
+        T8 v8 = ParseNext(ref reader, converter8);
+        T9 v9 = ParseNext(ref reader, converter9);
+        T10 v10 = ParseNext(ref reader, converter10);
+        T11 v11 = ParseNext(ref reader, converter11);
+        T12 v12 = ParseNext(ref reader, converter12);
+        T13 v13 = ParseNext(ref reader, converter13);
+        T14 v14 = ParseNext(ref reader, converter14);
+        T15 v15 = ParseNext(ref reader, converter15);
 
         reader.EnsureFullyConsumed(FieldCount);
 

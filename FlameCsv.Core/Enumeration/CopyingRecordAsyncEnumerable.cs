@@ -1,6 +1,4 @@
-﻿using FlameCsv.Extensions;
-
-namespace FlameCsv.Enumeration;
+﻿namespace FlameCsv.Enumeration;
 
 internal sealed class CopyingRecordAsyncEnumerable<T> : IAsyncEnumerable<CsvRecord<T>>
     where T : unmanaged, IEquatable<T>

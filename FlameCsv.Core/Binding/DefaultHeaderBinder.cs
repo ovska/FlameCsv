@@ -67,10 +67,10 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
     /// </summary>
     public bool IgnoreUnmatched { get; }
 
-    private readonly CsvReaderOptions<T> _options;
+    private readonly CsvOptions<T> _options;
 
     public DefaultHeaderBinder(
-        CsvReaderOptions<T> options,
+        CsvOptions<T> options,
         bool ignoreUnmatched = false)
     {
         ArgumentNullException.ThrowIfNull(options);

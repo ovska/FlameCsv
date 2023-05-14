@@ -1,35 +1,37 @@
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
-using FlameCsv.Parsers;
+using FlameCsv.Converters;
 using FlameCsv.Utilities;
+using FlameCsv.Writing;
 using static FlameCsv.Utilities.SealableUtil;
 
 namespace FlameCsv;
 
 /// <summary>
-/// Represents a base class for configuration used to read and parse CSV data.
+/// Represents a base class for configuration used to read and write CSV data.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions<T> where T : unmanaged, IEquatable<T>
+public abstract partial class CsvOptions<T> : ISealable, ICsvReaderOptions<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
     /// Initializes an options-instance with default configuration.
     /// </summary>
-    protected CsvReaderOptions()
+    protected CsvOptions()
     {
-        _parsers = new ParserList<T>(this, defaultValues: null);
+        _converters = new ConverterList<T>(this, defaultValues: null);
 
 #if DEBUG
         _allowContentInExceptions = true;
 #endif
     }
 
-    protected CsvReaderOptions(CsvReaderOptions<T> other)
+    protected CsvOptions(CsvOptions<T> other)
     {
         ArgumentNullException.ThrowIfNull(other);
 
@@ -38,9 +40,9 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
         _exceptionHandler = other._exceptionHandler;
         _hasHeader = other._hasHeader;
         _allowContentInExceptions = other._allowContentInExceptions;
-        _useDefaultParsers = other._useDefaultParsers;
+        _useDefaultConverters = other._useDefaultConverters;
         _arrayPool = other._arrayPool;
-        _parsers = new(this, other._parsers); // copy collection
+        _converters = new(this, other._converters); // copy collection
     }
 
     /// <summary>
@@ -59,9 +61,9 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
         return !IsReadOnly && MakeReadOnlyCore(this);
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        static bool MakeReadOnlyCore(CsvReaderOptions<T> _this)
+        static bool MakeReadOnlyCore(CsvOptions<T> _this)
         {
-            lock (_this._parserCache)
+            lock (_this._converterCache)
             {
                 if (!_this.IsReadOnly)
                     return _this.IsReadOnly = true;
@@ -81,7 +83,7 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
     public abstract IHeaderBinder<T> GetHeaderBinder();
 
     /// <summary>
-    /// Returns the value used to match to <see langword="null"/> for the parameter type.
+    /// Returns the <see langword="null"/> value for parsing and formatting for the parameter type.
     /// </summary>
     public abstract ReadOnlyMemory<T> GetNullToken(Type resultType);
 
@@ -89,6 +91,14 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
     /// Returns a <see langword="string"/> representation of the value.
     /// </summary>
     public abstract string GetAsString(ReadOnlySpan<T> field);
+
+    /// <summary>
+    /// Writes the characters to the token writer.
+    /// </summary>
+    /// <typeparam name="TWriter">Writer to write to</typeparam>
+    /// <param name="writer">Buffer writer instance</param>
+    /// <param name="value">Value to write</param>
+    public abstract void WriteChars<TWriter>(TWriter writer, ReadOnlySpan<char> value) where TWriter : IBufferWriter<T>;
 
     /// <summary>
     /// Overridden values that match to null when parsing <see cref="Nullable{T}"/> instead of the default, <see cref="Null"/>.
@@ -100,17 +110,18 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
     public abstract IDictionary<Type, string?> NullTokens { get; }
 
     /// <summary>
-    /// Returns the default parsers that are used to initialize <see cref="Parsers"/> in derived types.
+    /// Returns the default parsers that are used to initialize <see cref="Converters"/> in derived types.
     /// </summary>
-    protected abstract ReadOnlySpan<ICsvParserFactory<T>> GetDefaultParsers();
+    internal protected abstract bool TryGetDefaultConverter(Type type, [NotNullWhen(true)] out CsvConverter<T>? converter);
 
     private IEqualityComparer<string> _stringComparison = StringComparer.OrdinalIgnoreCase;
     private RowSkipCallback<T>? _shouldSkipRow;
     private CsvExceptionHandler<T>? _exceptionHandler;
     private bool _hasHeader = true;
     private bool _validateFieldCount;
+    private CsvFieldQuoting _fieldQuoting;
     private bool _allowContentInExceptions;
-    private bool _useDefaultParsers = true;
+    private bool _useDefaultConverters = true;
     private ArrayPool<T>? _arrayPool = ArrayPool<T>.Shared;
 
     /// <summary>
@@ -188,12 +199,25 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
     }
 
     /// <summary>
-    /// Whether to use the library's built-in parsers. Default is <see langword="true"/>.
+    /// Defines the quoting behavior when writing values. Default is <see cref="CsvFieldQuoting.Auto"/>.
     /// </summary>
-    public bool UseDefaultParsers
+    public CsvFieldQuoting FieldQuoting
     {
-        get => _useDefaultParsers;
-        set => this.SetValue(ref _useDefaultParsers, value);
+        get => _fieldQuoting;
+        set
+        {
+            GuardEx.IsDefined(value);
+            this.SetValue(ref _fieldQuoting, value);
+        }
+    }
+
+    /// <summary>
+    /// Whether to use the library's built-in converters. Default is <see langword="true"/>.
+    /// </summary>
+    public bool UseDefaultConverters
+    {
+        get => _useDefaultConverters;
+        set => this.SetValue(ref _useDefaultConverters, value);
     }
 
     /// <summary>
@@ -207,91 +231,100 @@ public abstract partial class CsvReaderOptions<T> : ISealable, ICsvReaderOptions
     }
 
     /// <summary>
-    /// Collection of all parsers and factories of the options instance.
+    /// Collection of all converters and factories of the options instance.
     /// </summary>
     /// <remarks>
     /// Modifying the collection after the options instance is used (<see cref="IsReadOnly"/> is <see langword="true"/>)
     /// results in an exception.
     /// </remarks>
-    public IList<ICsvParser<T>> Parsers => _parsers;
+    public IList<CsvConverter<T>> Converters => _converters;
 
-    private readonly ParserList<T> _parsers;
-    private readonly ConcurrentDictionary<Type, ICsvParser<T>> _parserCache = new();
+    private readonly ConverterList<T> _converters;
+    private readonly ConcurrentDictionary<Type, CsvConverter<T>> _converterCache = new();
 
     /// <summary>
-    /// Returns a parser for parsing <typeparamref name="TResult"/>.
+    /// Returns a converter for <typeparamref name="TResult"/>.
     /// </summary>
-    /// <typeparam name="TResult">Type to parse</typeparam>
+    /// <typeparam name="TResult">Type to convert</typeparam>
     /// <exception cref="CsvParserMissingException"/>
-    public ICsvParser<T, TResult> GetParser<TResult>()
+    public CsvConverter<T, TResult> GetConverter<TResult>()
     {
-        return (ICsvParser<T, TResult>)GetParser(typeof(TResult));
+        return (CsvConverter<T, TResult>)GetConverter(typeof(TResult));
     }
 
     /// <summary>
-    /// Returns a parser for parsing values of the parameter type.
+    /// Returns a converter for values of the parameter type.
     /// </summary>
-    /// <param name="resultType">Type to parse</param>
+    /// <param name="resultType">Type to convert</param>
     /// <exception cref="CsvParserMissingException"/>
-    public ICsvParser<T> GetParser(Type resultType)
+    public CsvConverter<T> GetConverter(Type resultType)
     {
-        return TryGetParser(resultType) ?? throw new CsvParserMissingException(typeof(T), resultType);
+        return TryGetConverter(resultType) ?? throw new CsvParserMissingException(typeof(T), resultType);
     }
 
-    public ICsvParser<T, TResult>? TryGetParser<TResult>() => (ICsvParser<T, TResult>?)TryGetParser(typeof(TResult));
+    public CsvConverter<T, TResult>? TryGetConverter<TResult>() => (CsvConverter<T, TResult>?)TryGetConverter(typeof(TResult));
 
     /// <summary>
-    /// Returns a parser for parsing values of the parameter type, or null if there is no
-    /// parser registered for <paramref name="resultType"/>.
+    /// Returns a converter for values of the parameter type, or null if there is no
+    /// converter registered for <paramref name="resultType"/>.
     /// </summary>
-    /// <param name="resultType">Type to parse</param>
-    public ICsvParser<T>? TryGetParser(Type resultType)
+    /// <param name="resultType">Type to convert</param>
+    public CsvConverter<T>? TryGetConverter(Type resultType)
     {
         ArgumentNullException.ThrowIfNull(resultType);
         MakeReadOnly();
 
-        if (_parserCache.TryGetValue(resultType, out var cached))
+        if (_converterCache.TryGetValue(resultType, out var cached))
         {
-            Debug.Assert(cached.CanParse(resultType));
+            Debug.Assert(cached.CanConvert(resultType));
             return cached;
         }
 
-        ReadOnlySpan<ICsvParser<T>> parsers = _parsers.Span;
+        CsvConverter<T>? converter = TryGetConverterCore(resultType);
+
+        if (converter is not null)
+        {
+            _converterCache.TryAdd(resultType, converter);
+        }
+
+        return converter;
+    }
+
+    internal protected CsvConverter<T>? TryGetConverterCore(Type resultType)
+    {
+        ArgumentNullException.ThrowIfNull(resultType);
+        MakeReadOnly();
+
+        ReadOnlySpan<CsvConverter<T>> converters = _converters.Span;
 
         // Read parsers in reverse order so parser added last has the highest priority
-        for (int i = parsers.Length - 1; i >= 0; i--)
+        for (int i = converters.Length - 1; i >= 0; i--)
         {
-            if (parsers[i].CanParse(resultType))
+            if (converters[i].CanConvert(resultType))
             {
-                var parser = parsers[i].GetParserOrFromFactory(resultType, this);
-                _parserCache.TryAdd(resultType, parser);
-                return parser;
+                return converters[i].GetParserOrFromFactory(resultType, this);
             }
         }
 
-        if (UseDefaultParsers)
+        if (UseDefaultConverters)
         {
-            foreach (var builtinFactory in EnumerateBuiltinParsers())
+            if (TryGetDefaultConverter(resultType, out var builtin))
             {
-                if (builtinFactory.CanParse(resultType))
-                {
-                    var parser = builtinFactory.GetParserOrFromFactory(resultType, this);
-                    _parserCache.TryAdd(resultType, parser);
-                    return parser;
-                }
+                Debug.Assert(builtin.CanConvert(resultType));
+                return builtin.GetParserOrFromFactory(resultType, this);
+            }
+            else if (NullableConverterFactory<T>.Instance.CanConvert(resultType))
+            {
+                return NullableConverterFactory<T>.Instance.Create(resultType, this);
             }
         }
 
         return null;
     }
 
-    internal ReadOnlySpan<ICsvParserFactory<T>> EnumerateBuiltinParsers() => GetDefaultParsers();
-
-    internal ReadOnlySpan<ICsvParser<T>> EnumerateParsers()
+    internal ReadOnlySpan<CsvConverter<T>> EnumerateConverters()
     {
         MakeReadOnly();
-        return _parsers.Span;
+        return _converters.Span;
     }
-
-    internal CsvReadingContext<T> ToContext() => new(this, overrides: default);
 }
