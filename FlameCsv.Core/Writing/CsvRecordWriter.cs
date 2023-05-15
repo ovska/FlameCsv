@@ -1,8 +1,6 @@
 ﻿using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
-using FlameCsv.Formatters;
 
 namespace FlameCsv.Writing;
 
@@ -25,12 +23,12 @@ internal sealed class CsvRecordWriter<T, TWriter> : IAsyncDisposable
     private readonly CsvDialect<T> _dialect;
     private readonly ArrayPool<T> _arrayPool;
     private readonly CsvFieldQuoting _fieldQuoting;
-    private readonly CsvWriterOptions<T> _options;
+    private readonly CsvOptions<T> _options;
     private T[]? _array;
 
     public CsvRecordWriter(
         TWriter writer,
-        CsvWriterOptions<T> options)
+        CsvOptions<T> options)
     {
         _writer = writer;
         _dialect = new CsvDialect<T>(options);
@@ -39,7 +37,7 @@ internal sealed class CsvRecordWriter<T, TWriter> : IAsyncDisposable
         _options = options;
     }
 
-    public void WriteValue<TValue>(ICsvFormatter<T, TValue> formatter, [AllowNull] TValue value)
+    public void WriteValue<TValue>(CsvConverter<T, TValue> formatter, TValue value)
     {
         int tokensWritten;
         scoped Span<T> destination;
@@ -56,7 +54,7 @@ internal sealed class CsvRecordWriter<T, TWriter> : IAsyncDisposable
         {
             destination = _writer.GetSpan();
 
-            while (!formatter.TryFormat(value!, destination, out tokensWritten))
+            while (!formatter.TryFormat(destination, value, out tokensWritten))
             {
                 destination = _writer.GetSpan(destination.Length * 2);
             }

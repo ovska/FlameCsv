@@ -67,7 +67,7 @@ public static class CsvBooleanValuesAttributeTests
             {
                 var binding = CsvBinding.ForMember<Shim>(0, typeof(Shim).GetProperty(property)!);
                 Assert.True(binding.TryGetAttribute<CsvConverterAttribute<char>>(out var @override));
-                _ = @override!.CreateParser(typeof(bool), CsvTextOptions.Default);
+                _ = @override!.CreateConverter(typeof(bool), CsvTextOptions.Default);
             });
     }
 
@@ -80,7 +80,7 @@ public static class CsvBooleanValuesAttributeTests
 
         Assert.True(binding.TryGetAttribute<CsvConverterAttribute<char>>(out var @override));
 
-        var parser = (FlameCsv.CsvConverter<char, bool>)@override!.CreateParser(typeof(bool), options);
+        var parser = (FlameCsv.CsvConverter<char, bool>)@override!.CreateConverter(typeof(bool), options);
 
         if (success)
         {
@@ -105,7 +105,7 @@ public static class CsvBooleanValuesAttributeTests
 
         Assert.True(binding.TryGetAttribute<CsvConverterAttribute<char>>(out var @override));
 
-        var parser = (CsvConverter<char, bool?>)@override!.CreateParser(typeof(bool?), options);
+        var parser = (CsvConverter<char, bool?>)@override!.CreateConverter(typeof(bool?), options);
 
         if (success)
         {
@@ -127,7 +127,7 @@ public static class CsvBooleanValuesAttributeTests
 
         Assert.True(binding.TryGetAttribute<CsvConverterAttribute<byte>>(out var @override));
 
-        var parser = (CsvConverter<byte, bool>)@override!.CreateParser(typeof(bool), options);
+        var parser = (CsvConverter<byte, bool>)@override!.CreateConverter(typeof(bool), options);
         var inputBytes = Encoding.UTF8.GetBytes(input);
 
         if (success)
@@ -153,7 +153,7 @@ public static class CsvBooleanValuesAttributeTests
 
         Assert.True(binding.TryGetAttribute<CsvConverterAttribute<byte>>(out var @override));
 
-        var parser = (FlameCsv.CsvConverter<byte, bool?>)@override!.CreateParser(typeof(bool?), options);
+        var parser = (FlameCsv.CsvConverter<byte, bool?>)@override!.CreateConverter(typeof(bool?), options);
         var inputBytes = Encoding.UTF8.GetBytes(input);
 
         if (success)
@@ -176,7 +176,7 @@ public static class CsvBooleanValuesAttributeTests
 
         Assert.True(binding.TryGetAttribute<CsvConverterAttribute<char>>(out var @override));
 
-        var parser = (NullableConverter<char, bool>)@override!.CreateParser(typeof(bool?), options);
+        var parser = (NullableConverter<char, bool>)@override!.CreateConverter(typeof(bool?), options);
         Assert.True(parser.TryParse("", out bool? parsed));
         Assert.False(parsed.HasValue);
     }

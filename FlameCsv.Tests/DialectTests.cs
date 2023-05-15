@@ -2,7 +2,7 @@ using FlameCsv.Exceptions;
 
 namespace FlameCsv.Tests;
 
-public static class ParserOptionsTests
+public static class DialectTests
 {
     [Fact]
     public static void Should_Return_Default_Options()
@@ -31,13 +31,14 @@ public static class ParserOptionsTests
         AssertInvalid(o => o with { Newline = "\"".AsMemory() });
         AssertInvalid(o => o with { Delimiter = '\n' });
         AssertInvalid(o => o with { Escape = ',' });
+        AssertInvalid(o => o with { Whitespace = ",".AsMemory() });
 
         static void AssertInvalid(Func<CsvDialect<char>, CsvDialect<char>> action)
         {
             Assert.Throws<CsvConfigurationException>(() =>
             {
                 var d = action(CsvDialect<char>.Default);
-                _ = new CsvDialect<char>(d.Delimiter, d.Quote, d.Newline, d.Escape);
+                _ = new CsvDialect<char>(d.Delimiter, d.Quote, d.Newline, d.Whitespace, d.Escape);
             });
         }
     }

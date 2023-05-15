@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using FlameCsv.Formatters;
 
 namespace FlameCsv.Writing;
 
@@ -41,8 +40,8 @@ internal readonly struct CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WriteField<TValue>(ICsvFormatter<T, TValue> formatter, [AllowNull] TValue value)
+    public void WriteField<TValue>(CsvConverter<T, TValue> converter, [AllowNull] TValue value)
     {
-        _impl.WriteValue(formatter!, value);
+        _impl.WriteValue(converter!, value);
     }
 }

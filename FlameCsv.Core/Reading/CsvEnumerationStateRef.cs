@@ -101,7 +101,7 @@ internal struct CsvEnumerationStateRef<T> : ICsvFieldReader<T> where T : unmanag
         string withStr = parser is null ? "" : $" with {parser.GetType()}";
 
         throw new CsvParseException(
-            $"Failed to parse{withStr} from {_context.AsPrintableString(field.Span)}.")
+            $"Failed to parse{withStr} from {_context.AsPrintableString(field)}.")
         { Parser = parser };
     }
 

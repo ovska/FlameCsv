@@ -18,6 +18,12 @@ public interface ICsvDialectOptions<T> where T : unmanaged, IEquatable<T>
     ReadOnlyMemory<T> Newline { get; set; }
 
     /// <summary>
+    /// Whitespace tokens. When writing, values with trailing or leading whitespace are quoted.
+    /// When reading, leading and trailing whitespace characters are trimmed.
+    /// </summary>
+    ReadOnlyMemory<T> Whitespace { get; set; }
+
+    /// <summary>
     /// Escape character. If null, RFC 4180 mode is used. Otherwise, the escape character is used to
     /// escape the following character.
     /// </summary>

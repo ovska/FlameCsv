@@ -511,8 +511,18 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
                     names = arg.Values.Select(v => v.Value?.ToString() ?? "");
                 }
 
-                isRequired = attributeData.NamedArguments.FindValueOrDefault(x => x.Key == "Required").Value.Value is bool b && b;
-                order = attributeData.NamedArguments.FindValueOrDefault(x => x.Key == "Order").Value.Value is int _order ? _order : 1;
+                foreach (var argument in attributeData.NamedArguments)
+                {
+                    if (argument.Key == "Required" && argument.Value.Value is bool _required)
+                    {
+                        isRequired = _required;
+                    }
+                    else if (argument.Key == "Order" && argument.Value.Value is int _order)
+                    {
+                        order = _order;
+                    }
+                }
+
                 break;
             }
         }

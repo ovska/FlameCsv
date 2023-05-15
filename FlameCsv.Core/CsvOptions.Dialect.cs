@@ -7,6 +7,7 @@ public partial class CsvOptions<T> : ICsvDialectOptions<T>
     internal T _delimiter;
     internal T _quote;
     internal ReadOnlyMemory<T> _newline;
+    internal ReadOnlyMemory<T> _whitespace;
     internal T? _escape;
 
     T ICsvDialectOptions<T>.Delimiter
@@ -25,6 +26,12 @@ public partial class CsvOptions<T> : ICsvDialectOptions<T>
     {
         get => _newline;
         set => this.SetValue(ref _newline, value);
+    }
+
+    ReadOnlyMemory<T> ICsvDialectOptions<T>.Whitespace
+    {
+        get => _whitespace;
+        set => this.SetValue(ref _whitespace, value);
     }
 
     T? ICsvDialectOptions<T>.Escape

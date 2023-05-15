@@ -7,14 +7,14 @@ namespace FlameCsv.Writing;
 
 internal static class WriteHelpers
 {
-    public static CsvRecordWriter<char, CsvCharBufferWriter> Create(TextWriter textWriter, CsvWriterOptions<char> options)
+    public static CsvRecordWriter<char, CsvCharBufferWriter> Create(TextWriter textWriter, CsvOptions<char> options)
     {
         return new CsvRecordWriter<char, CsvCharBufferWriter>(
             new CsvCharBufferWriter(textWriter, options.ArrayPool),
             options);
     }
 
-    public static CsvRecordWriter<byte, CsvByteBufferWriter> Create(PipeWriter pipeWriter, CsvWriterOptions<byte> options)
+    public static CsvRecordWriter<byte, CsvByteBufferWriter> Create(PipeWriter pipeWriter, CsvOptions<byte> options)
     {
         return new CsvRecordWriter<byte, CsvByteBufferWriter>(
             new CsvByteBufferWriter(pipeWriter),

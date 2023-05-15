@@ -6,10 +6,7 @@ using FlameCsv.Extensions;
 namespace FlameCsv.Binding.Attributes;
 
 /// <summary>
-/// Overrides the default parser for the target member.<para/>A parser or factory of the exact type is used if
-/// present in the configuration. Otherwise a new instance of the parameter parser or factory is created. For
-/// example, <c>[CsvParserOverride(typeof(MyParser))]</c> will first attempt to use a parser from the configuration
-/// with the exact type <c>MyParser</c> before creating it using reflection.
+/// Overrides the default converter for the target member.
 /// </summary>
 /// <remarks>
 /// Parsers created this way are not cached in <see cref="CsvOptions{T}"/>,
@@ -22,25 +19,25 @@ public class CsvConverterAttribute<T> : Attribute where T : unmanaged, IEquatabl
     /// Parser or factory to use for this member.
     /// </summary>
     [DynamicallyAccessedMembers(Messages.Ctors)]
-    public virtual Type? ParserType { get; }
+    public virtual Type? ConverterType { get; }
 
     /// <inheritdoc cref="CsvConverterAttribute"/>
-    /// <param name="parserType">Parser or factory to use</param>
+    /// <param name="converterType">Converter or factory to use</param>
     public CsvConverterAttribute(
-        [DynamicallyAccessedMembers(Messages.Ctors)] Type parserType)
+        [DynamicallyAccessedMembers(Messages.Ctors)] Type converterType)
     {
-        ArgumentNullException.ThrowIfNull(parserType);
+        ArgumentNullException.ThrowIfNull(converterType);
 
-        if (!typeof(CsvConverter<T>).IsAssignableFrom(parserType))
+        if (!typeof(CsvConverter<T>).IsAssignableFrom(converterType))
         {
-            ThrowHelper.ThrowArgumentException("Parser type must be assignable to CsvConverter<T>!");
+            ThrowHelper.ThrowArgumentException("Converter type must be assignable to CsvConverter<T>!");
         }
 
-        ParserType = parserType;
+        ConverterType = converterType;
     }
 
     /// <inheritdoc cref="CsvConverterAttribute"/>
-    public CsvConverterAttribute()
+    protected CsvConverterAttribute()
     {
     }
 
@@ -49,48 +46,53 @@ public class CsvConverterAttribute<T> : Attribute where T : unmanaged, IEquatabl
     /// </summary>
     /// <param name="targetType"></param>
     /// <param name="options">Current configuration instance</param>
-    /// <typeparam name="T">Token type</typeparam>
-    /// <returns>Parser instance</returns>
-    /// <exception cref="CsvConfigurationException">Thrown if <see cref="ParserType"/> is not valid for the member,
+    /// <returns>Converter instance</returns>
+    /// <exception cref="CsvConfigurationException">Thrown if <see cref="ConverterType"/> is not valid for the member,
     /// or is not present in the configuration and has no parameterless constructor.</exception>
-    public virtual CsvConverter<T> CreateParser(Type targetType, CsvOptions<T> options)
+    public virtual CsvConverter<T> CreateConverter(Type targetType, CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(targetType);
 
-        if (ParserType is null)
+        if (ConverterType is null)
         {
             ThrowHelper.ThrowInvalidOperationException(
-                "Default implementation of CreateParser requires ParserType (was null)");
+                $"Default implementation of {nameof(CreateConverter)} requires {nameof(ConverterType)} (was null)");
         }
 
-        CsvConverter<T> parserOrFactory;
+        if (GetType() != typeof(CsvConverterAttribute<T>) &&
+            !typeof(CsvConverter<T>).IsAssignableFrom(ConverterType))
+        {
+            ThrowHelper.ThrowArgumentException("Converter type must be assignable to CsvConverter<T>!");
+        }
 
-        if (ParserType.GetConstructor(new[] { options.GetType() }) is { } exactCtor)
+        CsvConverter<T> instanceOrFactory;
+
+        if (ConverterType.GetConstructor(new[] { options.GetType() }) is { } exactCtor)
         {
-            parserOrFactory = (CsvConverter<T>)exactCtor.Invoke(new object[] { options });
+            instanceOrFactory = (CsvConverter<T>)exactCtor.Invoke(new object[] { options });
         }
-        else if (ParserType.GetConstructor(new[] { typeof(CsvOptions<T>) }) is { } baseTypeCtor)
+        else if (ConverterType.GetConstructor(new[] { typeof(CsvOptions<T>) }) is { } baseTypeCtor)
         {
-            parserOrFactory = (CsvConverter<T>)baseTypeCtor.Invoke(new object[] { options });
+            instanceOrFactory = (CsvConverter<T>)baseTypeCtor.Invoke(new object[] { options });
         }
-        else if (ParserType.GetConstructor(Type.EmptyTypes) is { } emptyCtor)
+        else if (ConverterType.GetConstructor(Type.EmptyTypes) is { } emptyCtor)
         {
-            parserOrFactory = (CsvConverter<T>)emptyCtor.Invoke(Array.Empty<object>());
+            instanceOrFactory = (CsvConverter<T>)emptyCtor.Invoke(Array.Empty<object>());
         }
         else
         {
             throw new CsvConfigurationException(
-                $"Parser type {ParserType.ToTypeString()} has no valid constructor!");
+                $"Parser type {ConverterType.ToTypeString()} has no valid constructor!");
         }
 
-        if (!parserOrFactory.CanConvert(targetType))
+        if (!instanceOrFactory.CanConvert(targetType))
         {
             throw new CsvConfigurationException(
-                $"Dynamically created instance of parser override for {ParserType.ToTypeString()} " +
+                $"Dynamically created instance of parser override for {ConverterType.ToTypeString()} " +
                 $"can not parse the member type: {targetType.ToTypeString()}");
         }
 
-        return parserOrFactory.GetParserOrFromFactory(targetType, options);
+        return instanceOrFactory.GetParserOrFromFactory(targetType, options);
     }
 }

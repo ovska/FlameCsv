@@ -12,7 +12,7 @@ internal static class Messages
         DynamicallyAccessedMemberTypes.PublicFields;
 
     public const string CompiledExpressions =
-        "This code path may use reflection and compiled expression trees.";
+        "This code path uses reflection and compiled expressions.";
 
     public const string StructFactorySuppressionMessage =
         "TODO";

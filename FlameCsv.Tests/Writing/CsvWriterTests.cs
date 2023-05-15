@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Extensions;
-using FlameCsv.Formatters;
 using FlameCsv.Writing;
 
 namespace FlameCsv.Tests.Writing;
@@ -129,33 +128,42 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
         _textWriter = new StringWriter();
         _writer = new CsvRecordWriter<char, CsvCharBufferWriter>(
             new CsvCharBufferWriter(_textWriter, AllocatingArrayPool<char>.Instance, bufferSize),
-            new CsvWriterOptions<char> { FieldQuoting = quoting, Null = "null".AsMemory() });
+            new CsvTextOptions { FieldQuoting = quoting, Null = "null" });
     }
 
-    private sealed class Formatter : ICsvFormatter<char, string>
+    private sealed class Formatter : CsvConverter<char, string>
     {
         public static readonly Formatter Instance = new();
 
-        public bool CanFormat(Type valueType)
-            => throw new NotImplementedException();
+        public override bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out string value)
+        {
+            throw new NotImplementedException();
+        }
 
-        public bool TryFormat(string value, Span<char> destination, out int tokensWritten)
-            => value.AsSpan().TryWriteTo(destination, out tokensWritten);
+        public override bool TryFormat(Span<char> destination, string value, out int charsWritten)
+        {
+            return value.AsSpan().TryWriteTo(destination, out charsWritten);
+        }
 
-        public bool HandleNull => false;
+        protected internal override bool HandleNull => false;
     }
 
-    private sealed class BrokenFormatter : ICsvFormatter<char, string>
+    private sealed class BrokenFormatter : CsvConverter<char, string>
     {
         public int Write { get; set; }
 
         public bool CanFormat(Type valueType)
             => throw new NotImplementedException();
 
-        public bool TryFormat(string value, Span<char> destination, out int tokensWritten)
+        public override bool TryFormat(Span<char> destination, string value, out int charsWritten)
         {
-            tokensWritten = Write;
+            charsWritten = Write;
             return true;
+        }
+
+        public override bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out string value)
+        {
+            throw new NotImplementedException();
         }
     }
 }

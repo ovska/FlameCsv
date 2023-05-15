@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Binding;
 using FlameCsv.Converters;
 using FlameCsv.Converters.Text;
@@ -8,26 +7,6 @@ using FlameCsv.Utilities;
 
 namespace FlameCsv;
 
-/// <summary>
-/// A configurable reader options with common built-in parsers.
-/// </summary>
-/// <remarks>
-/// Initialized with the following parsers:
-/// <list type="bullet">
-/// <item><see cref="StringTextParser"/> or <see cref="PoolingStringTextParser"/></item>
-/// <item><see cref="IntegerTextParser"/></item>
-/// <item><see cref="BooleanTextConverter"/></item>
-/// <item><see cref="DateTimeTextParser"/></item>
-/// <item><see cref="EnumTextConverterFactory"/></item>
-/// <item><see cref="NullableConverterFactory{T}"/></item>
-/// <item><see cref="DecimalTextParser"/></item>
-/// <item><see cref="GuidTextConverter"/></item>
-/// <item><see cref="TimeSpanTextConverter"/></item>
-/// <item><see cref="Base64TextParser"/></item>
-/// <item><see cref="DateOnlyTextParser"/></item>
-/// <item><see cref="TimeOnlyTextParser"/></item>
-/// </list>
-/// </remarks>
 public sealed class CsvTextOptions : CsvOptions<char>
 {
     private static readonly Lazy<CsvTextOptions> _default = new(() => new(isReadOnly: true));
@@ -36,7 +15,6 @@ public sealed class CsvTextOptions : CsvOptions<char>
     /// <remarks>Create a new instance if you need to configure the options or parsers.</remarks>
     public static CsvTextOptions Default => _default.Value;
 
-    private StringPool? _stringPool;
     private IFormatProvider? _formatProvider;
     private NumberStyles _integerNumberStyles;
     private NumberStyles _decimalNumberStyles;
@@ -51,9 +29,7 @@ public sealed class CsvTextOptions : CsvOptions<char>
     private string? _guidFormat;
     private bool _readEmptyStringsAsNull;
     private string? _null;
-    private IReadOnlyCollection<(string text, bool value)>? _booleanValues;
-    private TypeStringDictionary? _nullTokens;
-    private TypeStringDictionary? _formats;
+    private TypeDictionary<string?>? _nullTokens;
 
     /// <inheritdoc cref="CsvTextOptions"/>
     public CsvTextOptions() : this(false)
@@ -64,7 +40,6 @@ public sealed class CsvTextOptions : CsvOptions<char>
     {
         ArgumentNullException.ThrowIfNull(other);
 
-        _stringPool = other._stringPool;
         _formatProvider = other._formatProvider;
         _integerNumberStyles = other._integerNumberStyles;
         _decimalNumberStyles = other._decimalNumberStyles;
@@ -83,7 +58,6 @@ public sealed class CsvTextOptions : CsvOptions<char>
         // copy collections
         _booleanValues = other._booleanValues?.ToList();
         _nullTokens = new(this, other._nullTokens);
-        _formats = new(this, other._formats);
     }
 
     private CsvTextOptions(bool isReadOnly)
@@ -120,31 +94,20 @@ public sealed class CsvTextOptions : CsvOptions<char>
         set => ((ICsvDialectOptions<char>)this).Newline = value.AsMemory();
     }
 
+    public string? Whitespace
+    {
+        get => _whitespace.ToString();
+        set => ((ICsvDialectOptions<char>)this).Whitespace = value.AsMemory();
+    }
+
     public char? Escape
     {
         get => _escape;
         set => ((ICsvDialectOptions<char>)this).Escape = value;
     }
 
-    public override IDictionary<Type, string?> NullTokens => _nullTokens ??= new(this);
-
-    /// <summary>
-    /// Overridden values for the 
-    /// </summary>
-    public IDictionary<Type, string?> Formats => _formats ??= new(this);
-
-    /// <summary>
-    /// String pool to use when parsing strings. Default is <see langword="null"/>, which results in no pooling.
-    /// </summary>
-    /// <remarks>
-    /// Pooling reduces raw throughput, but can have profound impact on allocations
-    /// if the data has a lot of repeating strings.
-    /// </remarks>
-    public StringPool? StringPool
-    {
-        get => _stringPool;
-        set => this.SetValue(ref _stringPool, value);
-    }
+    /// <inheritdoc/>
+    public IDictionary<Type, string?> NullTokens => _nullTokens ??= new TypeDictionary<string?>(this);
 
     /// <summary>
     /// Format provider passed by default to multiple parsers.
@@ -291,16 +254,6 @@ public sealed class CsvTextOptions : CsvOptions<char>
         set => this.SetValue(ref _null, value);
     }
 
-    /// <summary>
-    /// Optional custom boolean value mapping. Empty and null are equivalent. Default is <see langword="null"/>,
-    /// which defers parsing to <see cref="bool.TryParse(ReadOnlySpan{char},out bool)"/>.
-    /// </summary>
-    public IReadOnlyCollection<(string text, bool value)>? BooleanValues
-    {
-        get => _booleanValues;
-        set => this.SetValue(ref _booleanValues, value);
-    }
-
     internal protected override bool TryGetDefaultConverter(Type type, [NotNullWhen(true)] out CsvConverter<char>? converter)
     {
         if (DefaultConverters.Text.TryGetValue(type, out var factory))
@@ -325,7 +278,7 @@ public sealed class CsvTextOptions : CsvOptions<char>
 
     public override ReadOnlyMemory<char> GetNullToken(Type resultType)
     {
-        if (_nullTokens is not null && _nullTokens.TryGetInternalValue(resultType, out string? value))
+        if (_nullTokens is not null && _nullTokens.TryGetValue(resultType, out string? value))
             return value.AsMemory();
 
         return Null.AsMemory();

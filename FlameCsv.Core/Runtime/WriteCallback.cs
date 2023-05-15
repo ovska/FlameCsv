@@ -4,7 +4,6 @@ using System.Reflection;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Internal;
 using FlameCsv.Extensions;
-using FlameCsv.Formatters;
 using FlameCsv.Writing;
 
 namespace FlameCsv.Runtime;
@@ -28,7 +27,7 @@ internal static class WriteTest<T, TWriter, TValue>
     public static async Task WriteRecords(
         CsvRecordWriter<T, TWriter> writer,
         CsvBindingCollection<TValue> bindingCollection,
-        CsvWriterOptions<T> options,
+        CsvOptions<T> options,
         IEnumerable<TValue> records,
         CancellationToken cancellationToken)
     {
@@ -36,7 +35,7 @@ internal static class WriteTest<T, TWriter, TValue>
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (options.WriteHeader)
+            if (options.HasHeader)
                 WriteHeader(writer, bindingCollection);
 
             using var enumerator = records.GetEnumerator();
@@ -81,7 +80,7 @@ internal static class WriteTest<T, TWriter, TValue>
     [RequiresUnreferencedCode(Messages.CompiledExpressions)]
     private static WriteCallback<T, TWriter, TValue> CreateWriteCallback(
         CsvBindingCollection<TValue> bindingCollection,
-        CsvWriterOptions<T> options)
+        CsvOptions<T> options)
     {
         /*
         * (writer, value) =>
@@ -107,7 +106,7 @@ internal static class WriteTest<T, TWriter, TValue>
             var binding = (MemberCsvBinding<TValue>)bindings[i];
 
             var (memberExpression, memberType) = binding.Member.GetAsMemberExpression(valueParam);
-            var formatter = Expression.Constant(options.GetFormatter(memberType), typeof(ICsvFormatter<,>).MakeGenericType(typeof(T), memberType));
+            var formatter = Expression.Constant(options.GetConverter(memberType), typeof(CsvConverter<,>).MakeGenericType(typeof(T), memberType));
 
             var writeValueCall = Expression.Call(
                 writerParam,

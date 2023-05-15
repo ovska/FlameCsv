@@ -3,12 +3,33 @@ using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Tests.Utilities;
-using FlameCsv.Utilities;
 
 namespace FlameCsv.Tests.Readers;
 
 public static class EscapeModeTests
 {
+    [Theory]
+    [InlineData("test", "test")]
+    [InlineData(" test", "test")]
+    [InlineData("test ", "test")]
+    [InlineData(" test ", "test")]
+    [InlineData("\" test\"", "test")]
+    [InlineData("\"test \"", "test")]
+    [InlineData("\" test \"", "test")]
+    public static void Should_Trim_Fields(string input, string expected)
+    {
+        var context = new CsvReadingContext<char>(new CsvTextOptions { Whitespace = " ", Escape = '\\' }, default);
+
+        char[]? buffer = null;
+
+        using (CsvEnumerationStateRef<char>.CreateTemporary(in context, input.AsMemory(), ref buffer, out var state))
+        {
+            Assert.True(state.TryReadNext(out var field));
+            Assert.Equal(expected, field.ToString());
+            Assert.False(state.TryReadNext(out _));
+        }
+    }
+
     [Theory]
     [InlineData("'test'", 2, 0, "test")]
     [InlineData("te^'st", 0, 1, "te'st")]

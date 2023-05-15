@@ -9,13 +9,18 @@ public abstract class CsvConverter<T> where T : unmanaged, IEquatable<T>
     /// created if this is a factory instance.
     /// </summary>
     /// <param name="type">Type to check</param>
-    /// <returns><see langword="true"/> if the type can be parsed</returns>
+    /// <returns><see langword="true"/> if the converter is suitable for <paramref name="type"/></returns>
     public abstract bool CanConvert(Type type);
 }
 
 public abstract class CsvConverter<T, TValue> : CsvConverter<T> where T : unmanaged, IEquatable<T>
 {
-    public override bool CanConvert(Type type) => type == typeof(TValue);
+    /// <summary>
+    /// Returns whether the type can be handled by this converter.
+    /// </summary>
+    /// <param name="type">Type to check</param>
+    /// <returns><see langword="true"/> if the converter is suitable for <paramref name="type"/></returns>
+    public sealed override bool CanConvert(Type type) => type == typeof(TValue);
 
     /// <summary>
     /// Attempts to parse <paramref name="value"/> from the field.
@@ -37,7 +42,7 @@ public abstract class CsvConverter<T, TValue> : CsvConverter<T> where T : unmana
     /// <summary>
     /// Whether the converter formats null values.
     /// </summary>
-    internal protected virtual bool HandleNull => false;
+    protected internal virtual bool HandleNull => false;
 }
 
 public abstract class CsvConverterFactory<T> : CsvConverter<T> where T : unmanaged, IEquatable<T>

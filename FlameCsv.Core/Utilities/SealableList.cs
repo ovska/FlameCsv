@@ -3,20 +3,17 @@ using CommunityToolkit.HighPerformance;
 
 namespace FlameCsv.Utilities;
 
-internal sealed class ConverterList<T> : IList<CsvConverter<T>> where T : unmanaged, IEquatable<T>
+internal sealed class SealableList<T> : IList<T> where T : class
 {
     private readonly ISealable _owner;
-    private readonly List<CsvConverter<T>> _list;
+    private readonly List<T> _list;
 
-    public ReadOnlySpan<CsvConverter<T>> Span => _list.AsSpan();
+    public ReadOnlySpan<T> Span => _list.AsSpan();
 
-    public ConverterList(CsvOptions<T> owner, ConverterList<T>? defaultValues)
+    public SealableList(ISealable owner, SealableList<T>? defaultValues)
     {
-        nint a = IntPtr.Zero;
-        nuint b = UIntPtr.Zero;
-
         _owner = owner;
-        _list = new List<CsvConverter<T>>();
+        _list = new List<T>();
 
         if (defaultValues is { Count: > 0 })
         {
@@ -24,7 +21,7 @@ internal sealed class ConverterList<T> : IList<CsvConverter<T>> where T : unmana
         }
     }
 
-    public CsvConverter<T> this[int index]
+    public T this[int index]
     {
         get => _list[index];
         set
@@ -38,7 +35,7 @@ internal sealed class ConverterList<T> : IList<CsvConverter<T>> where T : unmana
     public int Count => _list.Count;
     public bool IsReadOnly => _owner.IsReadOnly;
 
-    public void Add(CsvConverter<T> item)
+    public void Add(T item)
     {
         ArgumentNullException.ThrowIfNull(item);
         _owner.ThrowIfReadOnly();
@@ -51,23 +48,23 @@ internal sealed class ConverterList<T> : IList<CsvConverter<T>> where T : unmana
         _list.Clear();
     }
 
-    public bool Contains(CsvConverter<T> item) => _list.Contains(item);
+    public bool Contains(T item) => _list.Contains(item);
 
-    public void CopyTo(CsvConverter<T>[] array, int arrayIndex) => _list.CopyTo(array, arrayIndex);
+    public void CopyTo(T[] array, int arrayIndex) => _list.CopyTo(array, arrayIndex);
 
-    public IEnumerator<CsvConverter<T>> GetEnumerator() => _list.GetEnumerator();
+    public IEnumerator<T> GetEnumerator() => _list.GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => _list.GetEnumerator();
 
-    public int IndexOf(CsvConverter<T> item) => _list.IndexOf(item);
+    public int IndexOf(T item) => _list.IndexOf(item);
 
-    public void Insert(int index, CsvConverter<T> item)
+    public void Insert(int index, T item)
     {
         ArgumentNullException.ThrowIfNull(item);
         _owner.ThrowIfReadOnly();
         _list.Insert(index, item);
     }
 
-    public bool Remove(CsvConverter<T> item)
+    public bool Remove(T item)
     {
         ArgumentNullException.ThrowIfNull(item);
         _owner.ThrowIfReadOnly();
@@ -80,7 +77,7 @@ internal sealed class ConverterList<T> : IList<CsvConverter<T>> where T : unmana
         _list.RemoveAt(index);
     }
 
-    public int RemoveAll(Predicate<CsvConverter<T>> match)
+    public int RemoveAll(Predicate<T> match)
     {
         ArgumentNullException.ThrowIfNull(match);
         _owner.ThrowIfReadOnly();

@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using FlameCsv.Formatters;
 
 namespace FlameCsv.Writing;
 
@@ -9,9 +8,9 @@ public interface ICsvFieldWriter<T> where T : unmanaged, IEquatable<T>
     /// Writes a field to the CSV record.
     /// </summary>
     /// <typeparam name="TValue">Value written</typeparam>
-    /// <param name="formatter">Formatter to write the value with</param>
+    /// <param name="converter">Converter to write the value with</param>
     /// <param name="value">Value to write</param>
-    void WriteField<TValue>(ICsvFormatter<T, TValue> formatter, [AllowNull] TValue value);
+    void WriteField<TValue>(CsvConverter<T, TValue> converter, [AllowNull] TValue value);
 
     /// <summary>
     /// Writes a delimiter to the CSV record.

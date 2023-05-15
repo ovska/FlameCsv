@@ -7,7 +7,6 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
 
-[DynamicallyAccessedMembers(Messages.Ctors)]
 internal sealed class EnumUtf8Converter<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] TEnum>
     : CsvConverter<byte, TEnum> where TEnum : struct, Enum
 {

@@ -236,7 +236,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
                             parameter.Value.Name!,
                             parameter.Value,
                             default,
-                            isRequired: !parameter.Value.HasDefaultValue));
+                            isRequired: false));
                 }
             }
 

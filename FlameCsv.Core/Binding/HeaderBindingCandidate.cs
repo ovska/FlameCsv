@@ -19,7 +19,7 @@ internal readonly struct HeaderBindingCandidate : IComparable<HeaderBindingCandi
         Value = value;
         Target = target;
         Order = order;
-        IsRequired = isRequired;
+        IsRequired = isRequired || !target.HasDefaultValue;
     }
 
     public string Value { get; }

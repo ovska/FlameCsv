@@ -200,9 +200,13 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
 
         Return:
         state.isAtStart = false;
-        return (quotesConsumed | escapesConsumed) == 0
+
+        if ((quotesConsumed | escapesConsumed) != 0)
+            field = EscapeMode<T>.Unescape(field, quote, escape, quotesConsumed, escapesConsumed, ref state.buffer);
+
+        return state._context.Dialect.Whitespace.IsEmpty
             ? field
-            : EscapeMode<T>.Unescape(field, quote, escape, quotesConsumed, escapesConsumed, ref state.buffer);
+            : field.Trim(state._context.Dialect.Whitespace.Span);
     }
 }
 

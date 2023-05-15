@@ -4,7 +4,6 @@ using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Enumeration;
 using FlameCsv.Tests.TestData;
 using FlameCsv.Tests.Utilities;
-using FlameCsv.Utilities;
 
 // ReSharper disable ConvertIfStatementToSwitchStatement
 // ReSharper disable LoopCanBeConvertedToQuery

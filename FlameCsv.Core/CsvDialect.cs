@@ -14,16 +14,19 @@ public readonly struct CsvDialect<T> : IEquatable<CsvDialect<T>> where T : unman
     public static CsvDialect<T> Default => CsvDialectStatic.GetDefault<T>();
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Delimiter"/>
-    public T Delimiter { get; internal init; }
+    public T Delimiter { get; init; }
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Quote"/>
-    public T Quote { get; internal init; }
+    public T Quote { get; init; }
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Newline"/>
-    public ReadOnlyMemory<T> Newline { get; internal init; }
+    public ReadOnlyMemory<T> Newline { get; init; }
+
+    /// <inheritdoc cref="ICsvDialectOptions{T}.Whitespace"/>
+    public ReadOnlyMemory<T> Whitespace { get; init; }
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Escape"/>
-    public T? Escape { get; internal init; }
+    public T? Escape { get; init; }
 
     [MemberNotNullWhen(false, nameof(Escape))]
     public bool IsRFC4188Mode => !Escape.HasValue;
@@ -35,9 +38,10 @@ public readonly struct CsvDialect<T> : IEquatable<CsvDialect<T>> where T : unman
         var delimiter = options.Delimiter;
         var quote = options.Quote;
         var newline = options.Newline;
+        var whitespace = options.Whitespace;
         var escape = options.Escape;
 
-        ThrowIfInvalid(delimiter, quote, newline.Span, escape);
+        ThrowIfInvalid(delimiter, quote, newline.Span, whitespace.Span, escape);
 
         Delimiter = delimiter;
         Quote = quote;
@@ -51,6 +55,7 @@ public readonly struct CsvDialect<T> : IEquatable<CsvDialect<T>> where T : unman
             delimiter: context._delimiter.Resolve(options._delimiter),
             quote: context._quote.Resolve(options._quote),
             newline: context._newline.Resolve(options._newline),
+            whitespace: context._whitespace.Resolve(options._whitespace),
             escape: context._escape.Resolve(options._escape))
     {
     }
@@ -60,23 +65,26 @@ public readonly struct CsvDialect<T> : IEquatable<CsvDialect<T>> where T : unman
         T delimiter,
         T quote,
         ReadOnlyMemory<T> newline,
-        T? escape = null)
+        ReadOnlyMemory<T> whitespace,
+        T? escape)
     {
-        ThrowIfInvalid(delimiter, quote, newline.Span, escape);
+        ThrowIfInvalid(delimiter, quote, newline.Span, whitespace.Span, escape);
 
         Delimiter = delimiter;
         Quote = quote;
         Newline = newline;
+        Whitespace = whitespace;
         Escape = escape;
     }
 
-    public void EnsureValid() => ThrowIfInvalid(Delimiter, Quote, Newline.Span, Escape);
+    public void EnsureValid() => ThrowIfInvalid(Delimiter, Quote, Newline.Span, Whitespace.Span, Escape);
 
     public bool Equals(CsvDialect<T> other)
     {
         return Delimiter.Equals(other.Delimiter)
             && Quote.Equals(other.Quote)
             && Newline.Span.SequenceEqual(other.Newline.Span)
+            && Whitespace.Equals(other.Whitespace)
             && Escape.HasValue.Equals(other.Escape.HasValue)
             && Escape.GetValueOrDefault().Equals(other.Escape.GetValueOrDefault());
     }
@@ -86,7 +94,8 @@ public readonly struct CsvDialect<T> : IEquatable<CsvDialect<T>> where T : unman
         return HashCode.Combine(
             Delimiter,
             Quote,
-            HashCode<T>.Combine(Newline.Span),
+            Whitespace.IsEmpty ? 0 : HashCode<T>.Combine(Whitespace.Span),
+            Newline.IsEmpty ? 0 : HashCode<T>.Combine(Newline.Span),
             Escape);
     }
 
@@ -102,11 +111,16 @@ public readonly struct CsvDialect<T> : IEquatable<CsvDialect<T>> where T : unman
         T delimiter,
         T quote,
         ReadOnlySpan<T> newline,
+        ReadOnlySpan<T> whitespace,
         T? escape)
     {
         List<string>? errors = null;
 
-        if (delimiter.Equals(default) && quote.Equals(default) && newline.IsEmpty && !escape.HasValue)
+        if (delimiter.Equals(default) &&
+            quote.Equals(default) &&
+            newline.IsEmpty &&
+            whitespace.IsEmpty &&
+            !escape.HasValue)
         {
             CsvDialectStatic.ThrowForDefault();
         }
@@ -139,6 +153,21 @@ public readonly struct CsvDialect<T> : IEquatable<CsvDialect<T>> where T : unman
 
             if (escape.HasValue && newline.Contains(escape.GetValueOrDefault()))
                 AddError("Newline must not contain Escape.");
+        }
+
+        if (!whitespace.IsEmpty)
+        {
+            if (whitespace.Contains(delimiter))
+                AddError("Whitespace must not contain Delimiter.");
+
+            if (whitespace.Contains(quote))
+                AddError("Whitespace must not contain Quote.");
+
+            if (escape.HasValue && whitespace.Contains(escape.GetValueOrDefault()))
+                AddError("Whitespace must not contain Escape.");
+
+            if (whitespace.IndexOfAny(newline) >= 0)
+                AddError("Whitespace must not contain Newline.");
         }
 
         if (errors is not null)

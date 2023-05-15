@@ -5,6 +5,7 @@ public readonly struct CsvRowSkipArgs<T> where T : unmanaged, IEquatable<T>
     public ReadOnlyMemory<T> Record { get; init; }
     public CsvDialect<T> Dialect { get; init; }
     public int Line { get; init; }
+    public bool HeaderRead { get; init; }
 }
 
 public delegate bool RowSkipCallback<T>(CsvRowSkipArgs<T> args)

@@ -10,6 +10,7 @@ using FlameCsv.Converters;
 using FlameCsv.Utilities;
 using FlameCsv.Writing;
 using static FlameCsv.Utilities.SealableUtil;
+using CommunityToolkit.HighPerformance.Buffers;
 
 namespace FlameCsv;
 
@@ -17,14 +18,14 @@ namespace FlameCsv;
 /// Represents a base class for configuration used to read and write CSV data.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-public abstract partial class CsvOptions<T> : ISealable, ICsvReaderOptions<T> where T : unmanaged, IEquatable<T>
+public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T>
 {
     /// <summary>
     /// Initializes an options-instance with default configuration.
     /// </summary>
     protected CsvOptions()
     {
-        _converters = new ConverterList<T>(this, defaultValues: null);
+        _converters = new SealableList<CsvConverter<T>>(this, defaultValues: null);
 
 #if DEBUG
         _allowContentInExceptions = true;
@@ -44,6 +45,7 @@ public abstract partial class CsvOptions<T> : ISealable, ICsvReaderOptions<T> wh
         _ignoreEnumCase = other._ignoreEnumCase;
         _allowUndefinedEnumValues = other._allowUndefinedEnumValues;
         _arrayPool = other._arrayPool;
+        _stringPool = other._stringPool;
         _converters = new(this, other._converters); // copy collection
     }
 
@@ -60,19 +62,7 @@ public abstract partial class CsvOptions<T> : ISealable, ICsvReaderOptions<T> wh
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool MakeReadOnly()
     {
-        return !IsReadOnly && MakeReadOnlyCore(this);
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        static bool MakeReadOnlyCore(CsvOptions<T> _this)
-        {
-            lock (_this._converterCache)
-            {
-                if (!_this.IsReadOnly)
-                    return _this.IsReadOnly = true;
-            }
-
-            return false;
-        }
+        return !IsReadOnly && (IsReadOnly = true);
     }
 
     /// <summary>
@@ -103,15 +93,6 @@ public abstract partial class CsvOptions<T> : ISealable, ICsvReaderOptions<T> wh
     public abstract void WriteChars<TWriter>(TWriter writer, ReadOnlySpan<char> value) where TWriter : IBufferWriter<T>;
 
     /// <summary>
-    /// Overridden values that match to null when parsing <see cref="Nullable{T}"/> instead of the default, <see cref="Null"/>.
-    /// </summary>
-    /// <remarks>
-    /// Modifying the collection after the options instance is used (<see cref="IsReadOnly"/> is <see langword="true"/>)
-    /// results in an exception.
-    /// </remarks>
-    public abstract IDictionary<Type, string?> NullTokens { get; }
-
-    /// <summary>
     /// Returns the default parsers that are used to initialize <see cref="Converters"/> in derived types.
     /// </summary>
     internal protected abstract bool TryGetDefaultConverter(Type type, [NotNullWhen(true)] out CsvConverter<T>? converter);
@@ -127,6 +108,8 @@ public abstract partial class CsvOptions<T> : ISealable, ICsvReaderOptions<T> wh
     private bool _ignoreEnumCase = true;
     private bool _allowUndefinedEnumValues;
     private ArrayPool<T>? _arrayPool = ArrayPool<T>.Shared;
+    private StringPool? _stringPool;
+    internal IList<(string text, bool value)>? _booleanValues;
 
     /// <summary>
     /// Text comparison used to match header names.
@@ -166,6 +149,18 @@ public abstract partial class CsvOptions<T> : ISealable, ICsvReaderOptions<T> wh
     {
         get => _exceptionHandler;
         set => this.SetValue(ref _exceptionHandler, value);
+    }
+
+    /// <summary>
+    /// String pool to use when parsing strings. Default is <see langword="null"/>, which results in no pooling.
+    /// </summary>
+    /// <remarks>
+    /// Pooling reduces raw throughput, but can have profound impact on allocations if the data has a lot of repeating strings.
+    /// </remarks>
+    public StringPool? StringPool
+    {
+        get => _stringPool;
+        set => this.SetValue(ref _stringPool, value);
     }
 
     /// <summary>
@@ -254,6 +249,20 @@ public abstract partial class CsvOptions<T> : ISealable, ICsvReaderOptions<T> wh
     }
 
     /// <summary>
+    /// Optional custom boolean value mapping. If not empty, must contain at least one value for both
+    /// <see langword="true"/> and <see langword="false"/>. Default is empty.
+    /// </summary>
+    public IList<(string text, bool value)> BooleanValues
+    {
+        get => _booleanValues ??= new List<(string, bool)>();
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            this.SetValue(ref _booleanValues, value);
+        }
+    }
+
+    /// <summary>
     /// Collection of all converters and factories of the options instance.
     /// </summary>
     /// <remarks>
@@ -262,7 +271,7 @@ public abstract partial class CsvOptions<T> : ISealable, ICsvReaderOptions<T> wh
     /// </remarks>
     public IList<CsvConverter<T>> Converters => _converters;
 
-    private readonly ConverterList<T> _converters;
+    private readonly SealableList<CsvConverter<T>> _converters;
     private readonly ConcurrentDictionary<Type, CsvConverter<T>> _converterCache = new();
 
     /// <summary>

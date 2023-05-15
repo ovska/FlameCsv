@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Numerics;
 
-namespace FlameCsv.Utilities;
+namespace FlameCsv.Tests.Utilities;
 
 internal sealed class ReturnTrackingArrayPool<T> : ArrayPool<T>, IDisposable
 {

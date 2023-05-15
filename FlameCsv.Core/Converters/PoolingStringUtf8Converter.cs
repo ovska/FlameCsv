@@ -5,17 +5,22 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
 
-internal sealed class PoolingStringUtf8Converter : CsvConverter<byte, string>
+internal sealed class PoolingStringUtf8Converter : CsvConverter<byte, string?>
 {
+    protected internal override bool HandleNull => true;
+
     private readonly StringPool _stringPool;
 
-    public PoolingStringUtf8Converter(StringPool stringPool)
+    public PoolingStringUtf8Converter(CsvOptions<byte> options) : this(options.StringPool)
     {
-        ArgumentNullException.ThrowIfNull(stringPool);
-        _stringPool = stringPool;
     }
 
-    public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out string value)
+    public PoolingStringUtf8Converter(StringPool? stringPool)
+    {
+        _stringPool = stringPool ?? StringPool.Shared;
+    }
+
+    public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out string? value)
     {
         int maxLength = Encoding.UTF8.GetMaxCharCount(source.Length);
 
@@ -33,7 +38,7 @@ internal sealed class PoolingStringUtf8Converter : CsvConverter<byte, string>
         return true;
     }
 
-    public override bool TryFormat(Span<byte> destination, string value, out int charsWritten)
+    public override bool TryFormat(Span<byte> destination, string? value, out int charsWritten)
     {
         return value.AsSpan().TryWriteUtf8To(destination, out charsWritten);
     }
