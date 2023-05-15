@@ -4,34 +4,18 @@ using CommunityToolkit.Diagnostics;
 
 namespace FlameCsv.Utilities;
 
-internal abstract class TypeDictionary<TValue, TResult> : IDictionary<Type, TValue>
+internal sealed class TypeDictionary<TValue> : IDictionary<Type, TValue>
 {
-    public bool TryGetInternalValue(Type key, out TResult result)
-    {
-        _owner.MakeReadOnly();
-
-        if (_dictionary.TryGetValue(key, out TValue? value))
-        {
-            result = InitializeValue(value);
-            return true;
-        }
-
-        result = default!;
-        return false;
-    }
-
     private readonly ISealable _owner;
     private readonly Dictionary<Type, TValue> _dictionary;
 
-    protected TypeDictionary(
+    public TypeDictionary(
         ISealable owner,
-        TypeDictionary<TValue, TResult>? source = null)
+        TypeDictionary<TValue>? source = null)
     {
         _owner = owner;
         _dictionary = source is null ? new() : new(source._dictionary);
     }
-
-    protected abstract TResult InitializeValue(TValue value);
 
     public TValue this[Type key]
     {

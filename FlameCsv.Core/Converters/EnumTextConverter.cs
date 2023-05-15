@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters.Text;
@@ -7,7 +6,6 @@ namespace FlameCsv.Converters.Text;
 /// <summary>
 /// Parser for non-flags enums.
 /// </summary>
-[DynamicallyAccessedMembers(Messages.Ctors)]
 internal sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
     where TEnum : struct, Enum
 {

@@ -1,9 +1,7 @@
 ﻿using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Text;
 using CommunityToolkit.HighPerformance;
-using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
@@ -48,13 +46,19 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool SkipRecord(ReadOnlyMemory<T> record, int line)
+    public bool SkipRecord(ReadOnlyMemory<T> record, int line, bool headerRead)
     {
         var fn = _skipCallback;
         if (fn is null)
             return false;
 
-        return fn(new CsvRowSkipArgs<T> { Dialect = _dialect, Line = line, Record = record });
+        return fn(new CsvRowSkipArgs<T>
+        {
+            Dialect = _dialect,
+            Line = line,
+            Record = record,
+            HeaderRead = headerRead,
+        });
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -271,24 +275,14 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public string AsPrintableString(ReadOnlyMemory<T> value) => AsPrintableString(value.Span);
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    public string AsPrintableString(ReadOnlySpan<T> value)
+    public string AsPrintableString(ReadOnlyMemory<T> value)
     {
-        string? content =
-            !ExposeContent ? null :
-            typeof(T) == typeof(char) ? value.ToString() :
-            typeof(T) == typeof(byte) ? Encoding.UTF8.GetString(value.Cast<T, byte>()) :
-            null;
-
-        using var memoryOwner = MemoryOwner<T>.Allocate(value.Length);
-        value.CopyTo(memoryOwner.Span);
+        string? content = ExposeContent ? Options.GetAsString(value.Span) : null;
 
         string structure = string.Create(
-            value.Length,
-            (_dialect, memoryOwner.Memory),
-            static (destination, state) =>
+            length: value.Length,
+            state: (_dialect, value),
+            action: static (destination, state) =>
             {
                 (CsvDialect<T> dialect, ReadOnlyMemory<T> memory) = state;
                 var source = memory.Span;

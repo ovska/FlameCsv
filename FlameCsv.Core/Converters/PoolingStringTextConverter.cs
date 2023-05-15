@@ -4,22 +4,27 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
 
-internal sealed class PoolingStringTextConverter : CsvConverter<char, string>
+internal sealed class PoolingStringTextConverter : CsvConverter<char, string?>
 {
+    protected internal override bool HandleNull => true;
+
     private readonly StringPool _stringPool;
 
-    public PoolingStringTextConverter(StringPool stringPool)
+    public PoolingStringTextConverter(CsvOptions<char> options) : this(options.StringPool)
     {
-        ArgumentNullException.ThrowIfNull(stringPool);
-        _stringPool = stringPool;
     }
 
-    public override bool TryFormat(Span<char> destination, string value, out int charsWritten)
+    public PoolingStringTextConverter(StringPool? stringPool)
+    {
+        _stringPool = stringPool ?? StringPool.Shared;
+    }
+
+    public override bool TryFormat(Span<char> destination, string? value, out int charsWritten)
     {
         return value.AsSpan().TryWriteTo(destination, out charsWritten);
     }
 
-    public override bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out string value)
+    public override bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out string? value)
     {
         value = _stringPool.GetOrAdd(source);
         return true;

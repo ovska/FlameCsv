@@ -195,7 +195,6 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
     {
         _state.EnsureVersion(_version);
 
-
         if (!_state.MaterializerCache.TryGetValue(typeof(TRecord), out object? obj))
         {
             var headers = _state._headerNames;
@@ -234,6 +233,11 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
         IMaterializer<T, TRecord> materializer = (IMaterializer<T, TRecord>)obj;
         CsvRecordFieldReader<T> reader = new(_state.GetFields(), in _state._context);
         return materializer.Parse(ref reader);
+    }
+
+    public override string ToString()
+    {
+        return $"{{ CsvValueRecord [{_state._context.Options.GetAsString(RawRecord.Span)}] }}";
     }
 
     public struct Enumerator

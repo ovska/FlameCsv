@@ -17,9 +17,9 @@ internal sealed class TimeSpanUtf8Converter : CsvConverter<byte, TimeSpan>
         return Utf8Formatter.TryFormat(value, destination, out charsWritten, _standardFormat);
     }
 
-    public override bool TryParse(ReadOnlySpan<byte> readOnlySpan, [MaybeNullWhen(false)] out TimeSpan value)
+    public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out TimeSpan value)
     {
-        return Utf8Parser.TryParse(readOnlySpan, out value, out int bytesConsumed, _standardFormat)
-            && bytesConsumed == readOnlySpan.Length;
+        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat)
+            && bytesConsumed == source.Length;
     }
 }

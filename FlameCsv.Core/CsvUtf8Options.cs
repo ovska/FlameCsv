@@ -2,31 +2,12 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using CommunityToolkit.Diagnostics;
-using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Binding;
 using FlameCsv.Converters;
 using FlameCsv.Utilities;
 
 namespace FlameCsv;
 
-/// <summary>
-/// A configurable reader options with common built-in parsers.
-/// </summary>
-/// <remarks>
-/// Initialized with the following parsers:
-/// <list type="bullet">
-/// <item><see cref="StringUtf8Converter"/></item>
-/// <item><see cref="IntegerUtf8Parser"/></item>
-/// <item><see cref="BooleanUtf8Parser"/></item>
-/// <item><see cref="DateTimeUtf8Parser"/></item>
-/// <item><see cref="DecimalUtf8Parser"/></item>
-/// <item><see cref="EnumUtf8ConverterFactory"/></item>
-/// <item><see cref="NullableConverterFactory{T}"/></item>
-/// <item><see cref="GuidUtf8Converter"/></item>
-/// <item><see cref="TimeSpanUtf8Parser"/></item>
-/// <item><see cref="Base64Utf8Parser"/></item>
-/// </list>
-/// </remarks>
 public sealed class CsvUtf8Options : CsvOptions<byte>
 {
     private static readonly Lazy<CsvUtf8Options> _default = new(() => new(isReadOnly: true));
@@ -35,16 +16,14 @@ public sealed class CsvUtf8Options : CsvOptions<byte>
     /// <remarks>Create a new instance if you need to configure the options or parsers.</remarks>
     public static CsvUtf8Options Default => _default.Value;
 
-    private StringPool? _stringPool;
     private char _booleanFormat;
     private char _integerFormat;
     private char _decimalFormat;
     private char _dateTimeFormat;
     private char _timeSpanFormat;
     private char _guidFormat;
-    private ReadOnlyMemory<byte> _null;
-    private IReadOnlyCollection<(ReadOnlyMemory<byte> bytes, bool value)>? _booleanValues;
-    private TypeByteDictionary? _nullTokens;
+    private Utf8String _null;
+    private TypeDictionary<Utf8String>? _nullTokens;
 
     /// <inheritdoc cref="CsvTextOptions"/>
     public CsvUtf8Options() : this(false)
@@ -55,7 +34,6 @@ public sealed class CsvUtf8Options : CsvOptions<byte>
     {
         ArgumentNullException.ThrowIfNull(other);
 
-        _stringPool = other._stringPool;
         _booleanFormat = other._booleanFormat;
         _integerFormat = other._integerFormat;
         _decimalFormat = other._decimalFormat;
@@ -71,9 +49,9 @@ public sealed class CsvUtf8Options : CsvOptions<byte>
 
     private CsvUtf8Options(bool isReadOnly)
     {
-        _delimiter = (byte)',';
-        _quote = (byte)'"';
-        _newline = CsvDialectStatic._crlf;
+        _delimiter = new Utf8Char(',');
+        _quote = new Utf8Char('"');
+        _newline = Utf8String.CRLF;
 
         if (isReadOnly)
             MakeReadOnly();
@@ -81,48 +59,41 @@ public sealed class CsvUtf8Options : CsvOptions<byte>
 
     public CsvUtf8Options Clone() => new(this);
 
-    public char Delimiter
+    public Utf8Char Delimiter
     {
         get => (char)_delimiter;
-        set => ((ICsvDialectOptions<byte>)this).Delimiter = CsvDialectStatic.AsByte(value);
+        set => ((ICsvDialectOptions<byte>)this).Delimiter = value;
     }
 
-    public char Quote
+    public Utf8Char Quote
     {
         get => (char)_quote;
-        set => ((ICsvDialectOptions<byte>)this).Quote = CsvDialectStatic.AsByte(value);
+        set => ((ICsvDialectOptions<byte>)this).Quote = value;
     }
 
-    public string Newline
+    public Utf8String Newline
     {
-        get => CsvDialectStatic.AsString(_newline);
+        get => _newline;
         set
         {
             Guard.IsNotNullOrEmpty(value, nameof(Newline));
-            ((ICsvDialectOptions<byte>)this).Newline = CsvDialectStatic.AsBytes(value);
+            ((ICsvDialectOptions<byte>)this).Newline = value;
         }
     }
 
-    public char? Escape
+    public Utf8String Whitespace
     {
-        get => _escape.HasValue ? (char)_escape.Value : null;
-        set => ((ICsvDialectOptions<byte>)this).Escape = value.HasValue ? CsvDialectStatic.AsByte(value.Value) : null;
+        get => _newline;
+        set => ((ICsvDialectOptions<byte>)this).Whitespace = value;
     }
 
-    public override IDictionary<Type, string?> NullTokens => _nullTokens ??= new(this);
-
-    /// <summary>
-    /// String pool to use when parsing strings. Default is <see langword="null"/>, which results in no pooling.
-    /// </summary>
-    /// <remarks>
-    /// Pooling reduces raw throughput, but can have profound impact on allocations
-    /// if the data has a lot of repeating strings.
-    /// </remarks>
-    public StringPool? StringPool
+    public Utf8Char? Escape
     {
-        get => _stringPool;
-        set => this.SetValue(ref _stringPool, value);
+        get => _escape.HasValue ? (Utf8Char)_escape.Value : null;
+        set => ((ICsvDialectOptions<byte>)this).Escape = value;
     }
+
+    public IDictionary<Type, Utf8String> NullTokens => _nullTokens ??= new TypeDictionary<Utf8String>(this);
 
     /// <summary>
     /// Used by <see cref="BooleanUtf8Converter"/> when writing booleans.
@@ -210,20 +181,10 @@ public sealed class CsvUtf8Options : CsvOptions<byte>
     /// Used by <see cref="NullableConverter{T,TValue}"/> when parsing nullable value types.
     /// Default is empty, which will return null for empty fields or fields that are all whitespace.
     /// </summary>
-    public ReadOnlyMemory<byte> Null
+    public Utf8String Null
     {
         get => _null;
         set => this.SetValue(ref _null, value);
-    }
-
-    /// <summary>
-    /// Optional custom boolean value mapping. Empty and null are equivalent.
-    /// Default is <see langword="null"/>, which defers parsing to <see cref="System.Buffers.Text.Utf8Parser"/>.
-    /// </summary>
-    public IReadOnlyCollection<(ReadOnlyMemory<byte> bytes, bool value)>? BooleanValues
-    {
-        get => _booleanValues;
-        set => this.SetValue(ref _booleanValues, value);
     }
 
     /// <inheritdoc/>
@@ -251,7 +212,7 @@ public sealed class CsvUtf8Options : CsvOptions<byte>
 
     public override ReadOnlyMemory<byte> GetNullToken(Type resultType)
     {
-        if (_nullTokens is not null && _nullTokens.TryGetInternalValue(resultType, out ReadOnlyMemory<byte> value))
+        if (_nullTokens is not null && _nullTokens.TryGetValue(resultType, out Utf8String value))
             return value;
 
         return Null;

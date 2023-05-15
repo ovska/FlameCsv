@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
@@ -8,11 +7,12 @@ namespace FlameCsv.Converters;
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 /// <typeparam name="TValue">Parsed value and the type parameter of <see cref="Nullable{T}"/></typeparam>
-[DynamicallyAccessedMembers(Messages.Ctors)]
 internal sealed class NullableConverter<T, TValue> : CsvConverter<T, TValue?>
     where T : unmanaged, IEquatable<T>
     where TValue : struct
 {
+    protected internal override bool HandleNull => true;
+
     private readonly CsvConverter<T, TValue> _converter;
     private readonly ReadOnlyMemory<T> _null;
 
@@ -27,8 +27,6 @@ internal sealed class NullableConverter<T, TValue> : CsvConverter<T, TValue?>
         _converter = inner;
         _null = nullToken;
     }
-
-    public override bool CanConvert(Type type) => Nullable.GetUnderlyingType(type) == typeof(TValue);
 
     public override bool TryParse(ReadOnlySpan<T> source, out TValue? value)
     {

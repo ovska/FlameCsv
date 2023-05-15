@@ -3,6 +3,7 @@ using FlameCsv.Converters;
 
 namespace FlameCsv.Binding.Attributes;
 
+/// <inheritdoc cref="CsvBooleanTextValuesAttribute"/>
 public sealed class CsvBooleanUtf8ValuesAttribute : CsvConverterAttribute<byte>
 {
     /// <summary>
@@ -16,7 +17,7 @@ public sealed class CsvBooleanUtf8ValuesAttribute : CsvConverterAttribute<byte>
     public string[] FalseValues { get; set; } = Array.Empty<string>();
 
     /// <inheritdoc/>
-    public override CsvConverter<byte> CreateParser(Type targetType, CsvOptions<byte> options)
+    public override CsvConverter<byte> CreateConverter(Type targetType, CsvOptions<byte> options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
@@ -25,8 +26,7 @@ public sealed class CsvBooleanUtf8ValuesAttribute : CsvConverterAttribute<byte>
             throw new CsvConfigurationException($"Null/empty true/false values defined for {nameof(CsvBooleanTextValuesAttribute)}");
         }
 
-        BooleanUtf8Converter converter = new(
-            standardFormat: (options as CsvUtf8Options)?.BooleanFormat ?? default,
+        CustomBooleanUtf8Converter converter = new(
             trueValues: TrueValues,
             falseValues: FalseValues);
 

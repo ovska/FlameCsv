@@ -4,12 +4,11 @@ using FlameCsv.Converters;
 namespace FlameCsv.Binding.Attributes;
 
 /// <summary>
-/// Overrides the default parser for the target member. Applicable for <c>bool</c> and <c>bool?</c>
-/// when parsing text or UTF8 bytes.<br/>
+/// Overrides the converter for <c>bool</c> and <c>bool?</c>.
 /// For nullable booleans, attempts to fetch user defined null token from the options via
-/// <see cref="ICsvNullTokenConfiguration{T}"/>.
+/// <see cref="CsvOptions{T}.NullTokens"/>.
 /// </summary>
-public sealed class CsvBooleanTextValuesAttribute : CsvConverterAttribute<char> // TODO: make generic by T
+public sealed class CsvBooleanTextValuesAttribute : CsvConverterAttribute<char>
 {
     /// <summary>
     /// Values that represent <see langword="true"/>.
@@ -22,16 +21,11 @@ public sealed class CsvBooleanTextValuesAttribute : CsvConverterAttribute<char> 
     public string[] FalseValues { get; set; } = Array.Empty<string>();
 
     /// <inheritdoc/>
-    public override CsvConverter<char> CreateParser(Type targetType, CsvOptions<char> options)
+    public override CsvConverter<char> CreateConverter(Type targetType, CsvOptions<char> options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        if (!(TrueValues?.Length > 0 && FalseValues?.Length > 0))
-        {
-            throw new CsvConfigurationException($"Null/empty true/false values defined for {nameof(CsvBooleanTextValuesAttribute)}");
-        }
-
-        BooleanTextConverter converter = new(
+        CustomBooleanTextConverter converter = new(
             trueValues: TrueValues,
             falseValues: FalseValues);
 
@@ -46,6 +40,6 @@ public sealed class CsvBooleanTextValuesAttribute : CsvConverterAttribute<char> 
         }
 
         throw new CsvConfigurationException(
-            $"{nameof(CsvBooleanTextValuesAttribute)} was applied on a member with invalid type: {targetType}");
+            $"{nameof(CsvBooleanTextValuesAttribute)} is valid on bool and bool?, but was on type {targetType.FullName}");
     }
 }

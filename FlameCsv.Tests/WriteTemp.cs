@@ -1,33 +1,32 @@
-using System.Runtime.CompilerServices;
-using System.Text;
+using System.Diagnostics.CodeAnalysis;
+using FlameCsv.Converters;
 using FlameCsv.Extensions;
-using FlameCsv.Formatters;
 using FlameCsv.Writing;
 
 namespace FlameCsv.Tests;
 
 public static class WriteTemp
 {
-    private sealed class HelloWorldFormatter : ICsvFormatter<char, string>
+    private sealed class HelloWorldFormatter : CsvConverter<char, string>
     {
         public const string HelloWorld = "Hello, World!";
 
-        public bool TryFormat(string value, Span<char> destination, out int tokensWritten)
+        public override bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out string value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool TryFormat(Span<char> destination, string value, out int charsWritten)
         {
             if (destination.Length >= HelloWorld.Length)
             {
                 HelloWorld.CopyTo(destination);
-                tokensWritten = HelloWorld.Length;
+                charsWritten = HelloWorld.Length;
                 return true;
             }
 
-            tokensWritten = 0;
+            charsWritten = 0;
             return false;
-        }
-
-        public bool CanFormat(Type resultType)
-        {
-            throw new NotImplementedException();
         }
     }
 
@@ -41,11 +40,11 @@ public static class WriteTemp
     [Fact]
     public static async Task SHOULD_WRITE_TEST()
     {
-        var formatter = new StringFormatter();
+        var formatter = new StringTextConverter();
         var stringWriter = new StringWriter();
         var textPipe = new CsvCharBufferWriter(stringWriter, AllocatingArrayPool<char>.Instance);
 
-        var opts = new CsvWriterOptions<char> { ArrayPool = AllocatingArrayPool<char>.Instance };
+        var opts = new CsvTextOptions { ArrayPool = AllocatingArrayPool<char>.Instance };
         await using (var writer = new CsvRecordWriter<char, CsvCharBufferWriter>(textPipe, opts))
         {
             try
@@ -67,68 +66,5 @@ public static class WriteTemp
 
         var result = stringWriter.ToString();
         Assert.Equal(string.Join(',', Enumerable.Range(0, 1000)), result);
-    }
-
-    private static bool TryWrite<TWriter>(ICsvFormatter<char, string> formatter, ref TWriter writer)
-        where TWriter : IAsyncBufferWriter<char>
-    {
-        Span<char> span = writer.GetMemory().Span;
-
-        if (formatter.TryFormat("", span, out var written))
-        {
-            writer.Advance(written);
-            return true;
-        }
-
-        return false;
-    }
-
-    public sealed class StringUtf8Formatter : ICsvFormatter<byte, string?>
-    {
-        public bool TryFormat(string? value, Span<byte> destination, out int tokensWritten)
-        {
-            var span = value.AsSpan();
-            if (Encoding.UTF8.GetMaxByteCount(span.Length) <= destination.Length
-                || Encoding.UTF8.GetByteCount(span) <= destination.Length)
-            {
-                tokensWritten = Encoding.UTF8.GetBytes(span, destination);
-                return true;
-            }
-
-            Unsafe.SkipInit(out tokensWritten);
-            return false;
-        }
-
-        public bool CanFormat(Type resultType)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    public sealed class StringFormatter : ICsvFormatter<char, string?>
-    {
-        public bool TryFormat(string? value, Span<char> destination, out int tokensWritten)
-        {
-            if (value is null)
-            {
-                tokensWritten = 0;
-                return true;
-            }
-
-            if (destination.Length >= value.Length)
-            {
-                value.CopyTo(destination);
-                tokensWritten = value.Length;
-                return true;
-            }
-
-            Unsafe.SkipInit(out tokensWritten);
-            return false;
-        }
-
-        public bool CanFormat(Type resultType)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

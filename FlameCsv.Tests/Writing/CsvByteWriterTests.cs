@@ -5,7 +5,6 @@ using System.IO.Pipelines;
 using System.Text;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Extensions;
-using FlameCsv.Formatters;
 using FlameCsv.Writing;
 
 namespace FlameCsv.Tests.Writing;
@@ -136,33 +135,42 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
         _stream = new MemoryStream();
         _writer = new CsvRecordWriter<byte, CsvByteBufferWriter>(
             new CsvByteBufferWriter(PipeWriter.Create(_stream, new StreamPipeWriterOptions(minimumBufferSize: bufferSize, pool: new AllocatingMemoryPool()))),
-            new CsvWriterOptions<byte> { FieldQuoting = quoting, Null = "null"u8.ToArray() });
+            new CsvUtf8Options { FieldQuoting = quoting, Null = "null"u8.ToArray() });
     }
 
-    private sealed class Formatter : ICsvFormatter<byte, string>
+    private sealed class Formatter : CsvConverter<byte, string>
     {
         public static readonly Formatter Instance = new();
 
-        public bool CanFormat(Type valueType)
-            => throw new NotImplementedException();
+        public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out string value)
+        {
+            throw new NotImplementedException();
+        }
 
-        public bool TryFormat(string value, Span<byte> destination, out int tokensWritten)
-            => value.AsSpan().TryWriteUtf8To(destination, out tokensWritten);
+        public override bool TryFormat(Span<byte> destination, string value, out int charsWritten)
+        {
+            return value.AsSpan().TryWriteUtf8To(destination, out charsWritten);
+        }
 
-        public bool HandleNull => false;
+        protected internal override bool HandleNull => false;
     }
 
-    private sealed class BrokenFormatter : ICsvFormatter<byte, string>
+    private sealed class BrokenFormatter : CsvConverter<byte, string>
     {
         public int Write { get; set; }
 
         public bool CanFormat(Type valueType)
             => throw new NotImplementedException();
 
-        public bool TryFormat(string value, Span<byte> destination, out int tokensWritten)
+        public override bool TryFormat(Span<byte> destination, string value, out int charsWritten)
         {
-            tokensWritten = Write;
+            charsWritten = Write;
             return true;
+        }
+
+        public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out string value)
+        {
+            throw new NotImplementedException();
         }
     }
 

@@ -139,6 +139,13 @@ internal static class Throw
         throw new ArgumentOutOfRangeException(
             nameof(index),
             $"Could not get field at index {index} (there were {count} fields in the record).");
+    }
 
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+    public static void Config_TrueOrFalseBooleanValues(bool which)
+    {
+        throw new CsvConfigurationException(
+            $"If {nameof(CsvOptions<byte>.BooleanValues)} it not empty, it must contain at least one value " +
+            $"for both true and false ({which.ToString().ToLowerInvariant()} was missing).");
     }
 }

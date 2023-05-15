@@ -92,6 +92,12 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
 
         Return:
         state.isAtStart = false;
-        return quotesConsumed == 0 ? field : RFC4180Mode<T>.Unescape(field, quote, quotesConsumed, ref state.buffer);
+
+        if (quotesConsumed != 0)
+            field = Unescape(field, quote, quotesConsumed, ref state.buffer);
+
+        return state._context.Dialect.Whitespace.IsEmpty
+            ? field
+            : field.Trim(state._context.Dialect.Whitespace.Span);
     }
 }

@@ -46,7 +46,7 @@ public class WriteReflectionTests
             new() { Id = 2, Name = "Alice", IsEnabled = false },
         };
 
-        var opts = new CsvWriterOptions<char> { WriteHeader = header };
+        var opts = new CsvTextOptions { HasHeader = header };
         using var writer = new StringWriter();
 
         await WriteTest<char, CsvCharBufferWriter, Obj>.WriteRecords(

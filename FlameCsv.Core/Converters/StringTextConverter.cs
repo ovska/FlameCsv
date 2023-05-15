@@ -5,6 +5,8 @@ namespace FlameCsv.Converters;
 
 internal sealed class StringTextConverter : CsvConverter<char, string>
 {
+    protected internal override bool HandleNull => true;
+
     public static StringTextConverter Instance { get; } = new();
 
     public override bool TryFormat(Span<char> destination, string value, out int charsWritten)

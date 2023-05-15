@@ -98,24 +98,24 @@ public class CsvReaderOptionsTests
     {
         var options = new CsvUtf8Options { Newline = "\r\n" };
         Assert.True(MemoryMarshal.TryGetArray(((ICsvDialectOptions<byte>)options).Newline, out var segment1));
-        Assert.True(MemoryMarshal.TryGetArray(CsvDialectStatic._crlf, out var segment2));
+        Assert.True(MemoryMarshal.TryGetArray((ReadOnlyMemory<byte>)Utf8String.CRLF, out var segment2));
 
         Assert.Equal(segment1.Count, segment2.Count);
         Assert.Equal(segment1.Offset, segment2.Offset);
         Assert.Same(segment1.Array, segment1.Array);
 
-        var s1 = options.Newline;
-        var s2 = options.Newline;
+        var s1 = (string)options.Newline;
+        var s2 = (string)options.Newline;
         Assert.Same(s1, s2);
 
         options.Newline = "\n";
-        s1 = options.Newline;
-        s2 = options.Newline;
+        s1 = (string)options.Newline;
+        s2 = (string)options.Newline;
         Assert.Same(s1, s2);
 
         options.Newline = "\r";
-        s1 = options.Newline;
-        s2 = options.Newline;
+        s1 = (string)options.Newline;
+        s2 = (string)options.Newline;
         Assert.NotSame(s1, s2);
     }
 
@@ -143,25 +143,6 @@ public class CsvReaderOptionsTests
         Assert.Null(options.TryGetConverter(typeof(Type)));
 
         Assert.Same(options, CsvUtf8Options.Default);
-    }
-
-    [Fact]
-    public void Should_Return_Skip_Callback()
-    {
-        Assert.Throws<ArgumentException>(() => CsvOptions<char>.SkipIfStartsWith(default));
-
-        var tokens = CsvDialect<char>.Default;
-        var commentfn = CsvOptions<char>.SkipIfStartsWith("#", skipEmptyOrWhitespace: false);
-        Assert.True(commentfn("#test".AsMemory(), in tokens));
-        Assert.False(commentfn("t#est".AsMemory(), in tokens));
-        Assert.False(commentfn("".AsMemory(), in tokens));
-        Assert.False(commentfn(" ".AsMemory(), in tokens));
-
-        var commentOrEmpty = CsvOptions<char>.SkipIfStartsWith("#", skipEmptyOrWhitespace: true);
-        Assert.True(commentOrEmpty("#test".AsMemory(), in tokens));
-        Assert.False(commentOrEmpty("t#est".AsMemory(), in tokens));
-        Assert.True(commentOrEmpty("".AsMemory(), in tokens));
-        Assert.False(commentOrEmpty(" ".AsMemory(), in tokens));
     }
 
     [Fact]
@@ -217,5 +198,62 @@ public class CsvReaderOptionsTests
 
         Assert.True(enumerator.MoveNext());
         Assert.Throws<InvalidDataException>(() => enumerator.MoveNext());
+    }
+
+    [Fact]
+    public void Should_Skip_CsvRecord_Rows()
+    {
+        const string data =
+            "sep=,\r\n" +
+            "A,B,C\r\n" +
+            "1,2,3\r\n" +
+            "#4,5,6\r\n" +
+            "7,8,9\r\n";
+
+        var options = new CsvTextOptions
+        {
+            ShouldSkipRow = args => args.Line == 1 || args.Record.Span[0] == '#',
+        };
+
+        using var enumerator = CsvReader.Enumerate(data, options).GetEnumerator();
+
+        Assert.True(enumerator.MoveNext());
+        Assert.Equal("1,2,3", enumerator.Current.RawRecord.ToString());
+
+        Assert.True(enumerator.MoveNext());
+        Assert.Equal("7,8,9", enumerator.Current.RawRecord.ToString());
+    }
+
+    [Fact]
+    public void Should_Skip_Value_Rows()
+    {
+        const string data =
+            "sep=,\r\n" +
+            "A,B,C\r\n" +
+            "1,2,3\r\n" +
+            "#4,5,6\r\n" +
+            "7,8,9\r\n";
+
+        var options = new CsvTextOptions
+        {
+            ShouldSkipRow = args => args.Line == 1 || args.Record.Span[0] == '#',
+        };
+
+        var values = CsvReader.Read<Skippable>(data, options).ToList();
+
+        Assert.Equal(2, values.Count);
+        Assert.Equal(1, values[0].A);
+        Assert.Equal(2, values[0].B);
+        Assert.Equal(3, values[0].C);
+        Assert.Equal(7, values[1].A);
+        Assert.Equal(8, values[1].B);
+        Assert.Equal(9, values[1].C);
+    }
+
+    private sealed class Skippable
+    {
+        public int A { get; set; }
+        public int B { get; set; }
+        public int C { get; set; }
     }
 }

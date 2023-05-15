@@ -5,7 +5,13 @@ namespace FlameCsv.Tests.Writing;
 
 public static class WriteUtilTests
 {
-    private static readonly CsvDialect<char> _dialect = new(delimiter: ',', quote: '|', newline: "\r\n".AsMemory());
+    private static readonly CsvDialect<char> _dialect = new(
+        delimiter: ',',
+        quote: '|',
+        newline: "\r\n".AsMemory(),
+        whitespace: default,
+        escape: default);
+
     private static readonly RFC4188Escaper<char> _escaper = new(in _dialect);
 
     [Fact]

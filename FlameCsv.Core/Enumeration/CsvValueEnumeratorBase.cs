@@ -80,22 +80,23 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
             _context.ThrowForUnevenQuotes(record);
         }
 
-        if (_materializer is null && TryReadHeader(record, isFinalBlock, out _materializer))
+        long position = _position;
+
+        _line++;
+        _position += record.Length + (!isFinalBlock).ToByte() * _context.Dialect.Newline.Length;
+
+        if (_context.SkipRecord(record, _line, _context.HasHeader && _materializer is not null))
+        {
+            goto ReadNextRecord;
+        }
+
+        if (_materializer is null && TryReadHeader(record, out _materializer))
         {
             if (isFinalBlock)
             {
                 return false;
             }
 
-            goto ReadNextRecord;
-        }
-
-        var recordStartPosition = _position;
-        _line++;
-        _position += record.Length + (!isFinalBlock).ToByte() * _context.Dialect.Newline.Length;
-
-        if (_context.SkipRecord(record, _line))
-        {
             goto ReadNextRecord;
         }
 
@@ -119,14 +120,14 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
                 goto ReadNextRecord;
             }
 
-            ThrowUnhandledException(ex, record, recordStartPosition);
+            ThrowUnhandledException(ex, record, position);
             throw; // unreachable
         }
     }
 
     [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = Messages.HeaderProcessorSuppressionMessage)]
     [UnconditionalSuppressMessage("Trimming", "IL2091", Justification = Messages.HeaderProcessorSuppressionMessage)]
-    private bool TryReadHeader(ReadOnlyMemory<T> record, bool isFinalBlock, [NotNull] out IMaterializer<T, TValue>? materializer)
+    private bool TryReadHeader(ReadOnlyMemory<T> record, [NotNull] out IMaterializer<T, TValue>? materializer)
     {
         if (!_context.HasHeader)
         {
@@ -135,9 +136,6 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
                 : _typeMap.GetMaterializer(in _context);
             return false;
         }
-
-        _line++;
-        _position += record.Length + (!isFinalBlock).ToByte() * _context.Dialect.Newline.Length;
 
         T[]? array = null;
 
