@@ -37,6 +37,7 @@ dotnet_diagnostic.RCS1209.severity = none # Order type parameter constraints.
 dotnet_diagnostic.RCS1196.severity = none # Call extension method as instance method.
 dotnet_diagnostic.RCS1205.severity = none # Order named arguments according to the order of parameters.
 dotnet_diagnostic.IDE0063.severity = none # 'using' statement can be simplified
+dotnet_diagnostic.RCS1168.severity = suggestion # Parameter name differs from base name
 
 [*.cs]
 #### Naming styles ####

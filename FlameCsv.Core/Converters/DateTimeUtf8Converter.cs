@@ -12,13 +12,13 @@ internal sealed class DateTimeUtf8Converter : CsvConverter<byte, DateTime>
         _standardFormat = options.DateTimeFormat;
     }
 
-    public override bool TryFormat(Span<byte> buffer, DateTime value, out int charsWritten)
+    public override bool TryFormat(Span<byte> destination, DateTime value, out int charsWritten)
     {
-        return Utf8Formatter.TryFormat(value, buffer, out charsWritten, _standardFormat);
+        return Utf8Formatter.TryFormat(value, destination, out charsWritten, _standardFormat);
     }
 
-    public override bool TryParse(ReadOnlySpan<byte> field, [MaybeNullWhen(false)] out DateTime value)
+    public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out DateTime value)
     {
-        return Utf8Parser.TryParse(field, out value, out int bytesConsumed, _standardFormat) && bytesConsumed == field.Length;
+        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat) && bytesConsumed == source.Length;
     }
 }

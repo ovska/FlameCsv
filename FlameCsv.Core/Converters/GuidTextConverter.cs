@@ -11,15 +11,15 @@ internal sealed class GuidTextConverter : CsvConverter<char, Guid>
         _format = options.GuidFormat;
     }
 
-    public override bool TryFormat(Span<char> buffer, Guid value, out int charsWritten)
+    public override bool TryFormat(Span<char> destination, Guid value, out int charsWritten)
     {
-        return value.TryFormat(buffer, out charsWritten, _format);
+        return value.TryFormat(destination, out charsWritten, _format);
     }
 
-    public override bool TryParse(ReadOnlySpan<char> field, [MaybeNullWhen(false)] out Guid value)
+    public override bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out Guid value)
     {
         return _format is null
-            ? Guid.TryParse(field, out value)
-            : Guid.TryParseExact(field, _format, out value);
+            ? Guid.TryParse(source, out value)
+            : Guid.TryParseExact(source, _format, out value);
     }
 }

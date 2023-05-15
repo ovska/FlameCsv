@@ -1,6 +1,6 @@
 namespace FlameCsv;
 
-internal static class CsvReaderOptionsDefaults
+internal static class CsvOptionsDefaults
 {
     public static CsvTextOptions Text => _textLazy.Value;
     public static CsvUtf8Options Utf8 => _utf8Lazy.Value;

@@ -3,28 +3,31 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
 
-public sealed class StringUtf8Converter : CsvConverter<byte, string>
+internal sealed class StringUtf8Converter : CsvConverter<byte, string>
 {
-    public override bool TryFormat(Span<byte> buffer, string value, out int charsWritten)
+    public static StringUtf8Converter Instance { get; } = new();
+
+    public override bool TryFormat(Span<byte> destination, string value, out int charsWritten)
     {
-        return value.AsSpan().TryWriteUtf8To(buffer, out charsWritten);
+        return value.AsSpan().TryWriteUtf8To(destination, out charsWritten);
     }
 
-    public override bool TryParse(ReadOnlySpan<byte> span, out string value)
+    public override bool TryParse(ReadOnlySpan<byte> source, out string value)
     {
-        if (!span.IsEmpty)
+        if (!source.IsEmpty)
         {
-            int maxLength = Encoding.UTF8.GetMaxCharCount(span.Length);
+            int maxLength = Encoding.UTF8.GetMaxCharCount(source.Length);
 
+            // If possible, traverse the bytes only once
             if (Token<byte>.CanStackalloc(maxLength))
             {
                 Span<char> charSpan = stackalloc char[maxLength];
-                int charCount = Encoding.UTF8.GetChars(span, charSpan);
+                int charCount = Encoding.UTF8.GetChars(source, charSpan);
                 value = new string(charSpan.Slice(0, charCount));
             }
             else
             {
-                value = Encoding.UTF8.GetString(span);
+                value = Encoding.UTF8.GetString(source);
             }
         }
         else

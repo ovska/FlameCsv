@@ -7,13 +7,13 @@ internal sealed class IgnoredConverter<T> : CsvConverter<T, object?> where T : u
 {
     public static IgnoredConverter<T> Instance { get; } = new IgnoredConverter<T>();
 
-    public override bool TryFormat(Span<T> buffer, object? value, out int charsWritten)
+    public override bool TryFormat(Span<T> destination, object? value, out int charsWritten)
     {
         charsWritten = 0;
         return true;
     }
 
-    public override bool TryParse(ReadOnlySpan<T> field, [MaybeNullWhen(false)] out object? value)
+    public override bool TryParse(ReadOnlySpan<T> source, [MaybeNullWhen(false)] out object? value)
     {
         value = null;
         return true;

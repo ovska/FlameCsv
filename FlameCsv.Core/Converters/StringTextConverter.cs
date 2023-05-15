@@ -5,14 +5,16 @@ namespace FlameCsv.Converters;
 
 internal sealed class StringTextConverter : CsvConverter<char, string>
 {
-    public override bool TryFormat(Span<char> buffer, string value, out int charsWritten)
+    public static StringTextConverter Instance { get; } = new();
+
+    public override bool TryFormat(Span<char> destination, string value, out int charsWritten)
     {
-        return value.AsSpan().TryWriteTo(buffer, out charsWritten);
+        return value.AsSpan().TryWriteTo(destination, out charsWritten);
     }
 
-    public override bool TryParse(ReadOnlySpan<char> field, [MaybeNullWhen(false)] out string value)
+    public override bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out string value)
     {
-        value = new string(field);
+        value = new string(source);
         return true;
     }
 }

@@ -1,111 +1,99 @@
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using CommunityToolkit.HighPerformance.Buffers;
 using CommunityToolkit.HighPerformance.Helpers;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
 
+[DynamicallyAccessedMembers(Messages.Ctors)]
 internal sealed class EnumUtf8Converter<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] TEnum>
     : CsvConverter<byte, TEnum> where TEnum : struct, Enum
 {
-    private static readonly Lazy<KnownValues> _knownValues = new(KnownValuesFactory);
+    private readonly bool _allowUndefinedValues;
+    private readonly bool _ignoreCase;
 
-    public bool AllowUndefinedValues { get; }
-    public bool IgnoreCase { get; }
+    private readonly ConcurrentDictionary<int, (ReadOnlyMemory<byte> bytes, TEnum value)> _readCache;
+    private readonly ConcurrentDictionary<TEnum, ReadOnlyMemory<byte>> _writeCache;
 
-    public EnumUtf8Converter(CsvUtf8Options options)
+    public EnumUtf8Converter(CsvOptions<byte> options)
     {
-        AllowUndefinedValues = options.AllowUndefinedEnumValues;
-        IgnoreCase = options.IgnoreEnumCase;
+        _allowUndefinedValues = options.AllowUndefinedEnumValues;
+        _ignoreCase = options.IgnoreEnumCase;
+        _readCache = new();
+        _writeCache = new();
     }
 
-    public override bool TryParse(ReadOnlySpan<byte> span, out TEnum value)
+    public override bool TryParse(ReadOnlySpan<byte> source, out TEnum value)
     {
-        var knownValues = _knownValues.Value;
-        var hash = HashCode<byte>.Combine(span);
+        int hashCode = HashCode<byte>.Combine(source);
+        bool skipCache = false;
 
-        if ((knownValues.Numeric?.TryGetValue(hash, out var known) ?? false)
-            || (knownValues.Text?.TryGetValue(hash, out known) ?? false)
-            || (knownValues.Attribute?.TryGetValue(hash, out known) ?? false))
+        if (_readCache.TryGetValue(hashCode, out var cached))
         {
-            // check value as well for possible hash collisions or duplicate [EnumMember]s
-            if (span.SequenceEqual(known.Bytes))
+            var (bytes, _value) = cached;
+
+            if (source.SequenceEqual(bytes.Span))
             {
-                value = known.Value;
+                value = _value;
                 return true;
             }
+
+            skipCache = true; // key already exists
         }
 
-        return TryParseViaStrings(span, out value);
-    }
+        int maxLength = Encoding.UTF8.GetMaxCharCount(source.Length);
 
-    private bool TryParseViaStrings(ReadOnlySpan<byte> span, out TEnum value)
-    {
-        var stringLength = Encoding.UTF8.GetMaxCharCount(span.Length);
-        var buffer = stringLength > 64
-            ? new char[stringLength]
-            : stackalloc char[stringLength];
-
-        var written = Encoding.UTF8.GetChars(span, buffer);
-
-        return Enum.TryParse(buffer[..written], IgnoreCase, out value) && (AllowUndefinedValues || Enum.IsDefined(value));
-    }
-
-    private static KnownValues KnownValuesFactory()
-    {
-        Dictionary<int, KnownValue> numericValues = new();
-        Dictionary<int, KnownValue> stringValues = new();
-        Dictionary<int, KnownValue> attributeValues = new();
-
-        foreach (var (value, name, enumMember) in EnumMembers<TEnum>.Value)
+        if (Token<char>.CanStackalloc(maxLength))
         {
-            var asNumber = Encoding.UTF8.GetBytes(value.ToString("D"));
-            numericValues.TryAdd(
-                HashCode<byte>.Combine(asNumber),
-                new KnownValue { Value = value, Bytes = asNumber });
+            Span<char> chars = stackalloc char[maxLength];
+            int written = Encoding.UTF8.GetChars(source, chars);
+            return TryParseCore(hashCode, source, chars[..written], out value, skipCache);
+        }
+        else
+        {
+            using var owner = SpanOwner<char>.Allocate(maxLength);
+            Span<char> chars = owner.Span;
+            int written = Encoding.UTF8.GetChars(source, chars);
+            return TryParseCore(hashCode, source, chars[..written], out value, skipCache);
+        }
+    }
 
-            var asString = Encoding.UTF8.GetBytes(name);
-            stringValues.TryAdd(
-                HashCode<byte>.Combine(asString),
-                new KnownValue { Value = value, Bytes = asString });
+    public override bool TryFormat(Span<byte> destination, TEnum value, out int charsWritten)
+    {
+        if (!_writeCache.TryGetValue(value, out ReadOnlyMemory<byte> name))
+        {
+            name = Encoding.UTF8.GetBytes(value.ToString());
 
-            if (!string.IsNullOrEmpty(enumMember))
+            if (_writeCache.Count <= 64)
             {
-                var bytes = Encoding.UTF8.GetBytes(enumMember);
-                attributeValues.TryAdd(
-                    HashCode<byte>.Combine(bytes),
-                    new KnownValue { Value = value, Bytes = bytes });
+                _writeCache.TryAdd(value, name);
             }
         }
 
-        return new KnownValues
+        return name.Span.TryWriteTo(destination, out charsWritten);
+    }
+
+    private bool TryParseCore(
+        int hashCode,
+        ReadOnlySpan<byte> sourceBytes,
+        ReadOnlySpan<char> sourceChars,
+        out TEnum value,
+        bool skipCache)
+    {
+        if (Enum.TryParse(sourceChars, _ignoreCase, out value) &&
+            (_allowUndefinedValues || Enum.IsDefined(value)))
         {
-            Numeric = numericValues.Count != 0 ? numericValues : null,
-            Attribute = attributeValues.Count != 0 ? attributeValues : null,
-            Text = stringValues.Count != 0 ? stringValues : null,
-        };
-    }
+            if (!skipCache && _readCache.Count <= 64)
+            {
+                _readCache.TryAdd(hashCode, (sourceBytes.ToArray(), value));
+            }
 
-    public override bool TryFormat(Span<byte> buffer, TEnum value, out int charsWritten)
-    {
-        throw new NotImplementedException();
-    }
+            return true;
+        }
 
-    private sealed class KnownValues
-    {
-        public Dictionary<int, KnownValue>? Numeric { get; init; }
-        public Dictionary<int, KnownValue>? Attribute { get; init; }
-        public Dictionary<int, KnownValue>? Text { get; init; }
+        value = default;
+        return false;
     }
-
-#pragma warning disable CS8618
-    private sealed class KnownValue
-    {
-        /// <summary>Enum value used to compare against hash collisions.</summary>
-        public TEnum Value { get; init; }
-
-        /// <summary>Name of the enum as UTF8 bytes.</summary>
-        public byte[] Bytes { get; init; }
-    }
-#pragma warning restore CS8618
 }

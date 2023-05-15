@@ -16,15 +16,15 @@ internal sealed class DateTimeOffsetTextConverter : CsvConverter<char, DateTimeO
         _format = options.DateTimeFormat;
     }
 
-    public override bool TryFormat(Span<char> buffer, DateTimeOffset value, out int charsWritten)
+    public override bool TryFormat(Span<char> destination, DateTimeOffset value, out int charsWritten)
     {
-        return value.TryFormat(buffer, out charsWritten, _format, _provider);
+        return value.TryFormat(destination, out charsWritten, _format, _provider);
     }
 
-    public override bool TryParse(ReadOnlySpan<char> field, [MaybeNullWhen(false)] out DateTimeOffset value)
+    public override bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out DateTimeOffset value)
     {
         return _format is null
-            ? DateTimeOffset.TryParse(field, _provider, _styles, out value)
-            : DateTimeOffset.TryParseExact(field, _format, _provider, _styles, out value);
+            ? DateTimeOffset.TryParse(source, _provider, _styles, out value)
+            : DateTimeOffset.TryParseExact(source, _format, _provider, _styles, out value);
     }
 }

@@ -13,9 +13,9 @@ internal static partial class DefaultConverters
 
     private static Dictionary<Type, TextConverterFactory> InitText()
     {
-        Dictionary<Type, TextConverterFactory> value = new();
+        Dictionary<Type, TextConverterFactory> value = new(32);
         RegisterNumberConverters(value);
-        value.Add(typeof(string), o => o.StringPool is { } pool ? new PoolingStringTextConverter(pool) : new StringTextConverter());
+        value.Add(typeof(string), o => o.StringPool is { } pool ? new PoolingStringTextConverter(pool) : StringTextConverter.Instance);
         value.Add(typeof(bool), o => new BooleanTextConverter(o.BooleanValues));
         value.Add(typeof(DateTime), o => new DateTimeTextConverter(o));
         value.Add(typeof(DateTimeOffset), o => new DateTimeOffsetTextConverter(o));
@@ -27,9 +27,9 @@ internal static partial class DefaultConverters
 
     private static Dictionary<Type, Utf8ConverterFactory> InitUtf8()
     {
-        Dictionary<Type, Utf8ConverterFactory> value = new();
+        Dictionary<Type, Utf8ConverterFactory> value = new(32);
         RegisterNumberConverters(value);
-        value.Add(typeof(string), o => o.StringPool is { } pool ? new PoolingStringUtf8Converter(pool) : new StringUtf8Converter());
+        value.Add(typeof(string), o => o.StringPool is { } pool ? new PoolingStringUtf8Converter(pool) : StringUtf8Converter.Instance);
         value.Add(typeof(bool), o => new BooleanUtf8Converter(o.BooleanFormat, o.BooleanValues));
         value.Add(typeof(DateTime), o => new DateTimeUtf8Converter(o));
         value.Add(typeof(DateTimeOffset), o => new DateTimeOffsetUtf8Converter(o));

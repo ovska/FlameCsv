@@ -16,15 +16,15 @@ internal sealed class TimeSpanTextConverter : CsvConverter<char, TimeSpan>
         _format = options.TimeSpanFormat;
     }
 
-    public override bool TryFormat(Span<char> buffer, TimeSpan value, out int charsWritten)
+    public override bool TryFormat(Span<char> destination, TimeSpan value, out int charsWritten)
     {
-        return value.TryFormat(buffer, out charsWritten, _format, _provider);
+        return value.TryFormat(destination, out charsWritten, _format, _provider);
     }
 
-    public override bool TryParse(ReadOnlySpan<char> field, [MaybeNullWhen(false)] out TimeSpan value)
+    public override bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out TimeSpan value)
     {
         return _format is null
-            ? TimeSpan.TryParse(field, _provider, out value)
-            : TimeSpan.TryParseExact(field, _format, _provider, _styles, out value);
+            ? TimeSpan.TryParse(source, _provider, out value)
+            : TimeSpan.TryParseExact(source, _format, _provider, _styles, out value);
     }
 }

@@ -6,20 +6,13 @@ namespace FlameCsv.Converters;
 /// <summary>
 /// Parser for booleans.
 /// </summary>
-public sealed class BooleanTextConverter : CsvConverter<char, bool>
+internal sealed class BooleanTextConverter : CsvConverter<char, bool>
 {
     private readonly (string text, bool value)[]? _values;
     private readonly string? _trueText;
     private readonly string? _falseText;
 
-    /// <summary>
-    /// Initializes an instance of <see cref="BooleanTextConverter"/>.
-    /// </summary>
-    /// <param name="values">
-    /// Optional overrides for true/false values. If null or empty, <see cref="bool.TryParse(ReadOnlySpan{char}, out bool)"/>
-    /// is used.
-    /// </param>
-    public BooleanTextConverter(
+    internal BooleanTextConverter(
         IReadOnlyCollection<(string text, bool value)>? values = null)
     {
         if (values is { Count: > 0 })
@@ -46,34 +39,34 @@ public sealed class BooleanTextConverter : CsvConverter<char, bool>
         InitTrueFalseText(out _trueText, out _falseText);
     }
 
-    public override bool TryFormat(Span<char> buffer, bool value, out int charsWritten)
+    public override bool TryFormat(Span<char> destination, bool value, out int charsWritten)
     {
         if (_values is not null)
         {
             if (value)
             {
                 if (_trueText is not null)
-                    return _trueText.AsSpan().TryWriteTo(buffer, out charsWritten);
+                    return _trueText.AsSpan().TryWriteTo(destination, out charsWritten);
             }
             else
             {
                 if (_falseText is not null)
-                    return _falseText.AsSpan().TryWriteTo(buffer, out charsWritten);
+                    return _falseText.AsSpan().TryWriteTo(destination, out charsWritten);
             }
         }
 
-        return value.TryFormat(buffer, out charsWritten);
+        return value.TryFormat(destination, out charsWritten);
     }
 
     /// <inheritdoc/>
-    public override bool TryParse(ReadOnlySpan<char> span, out bool value)
+    public override bool TryParse(ReadOnlySpan<char> source, out bool value)
     {
         if (_values is null)
-            return bool.TryParse(span, out value);
+            return bool.TryParse(source, out value);
 
         foreach (ref var tuple in _values.AsSpan())
         {
-            if (span.SequenceEqual(tuple.text.AsSpan()))
+            if (source.SequenceEqual(tuple.text.AsSpan()))
             {
                 value = tuple.value;
                 return true;
