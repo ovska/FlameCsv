@@ -8,14 +8,14 @@ internal sealed class EnumUtf8ConverterFactory : CsvConverterFactory<byte>
 {
     public static EnumUtf8ConverterFactory Instance { get; } = new();
 
-    public override bool CanConvert(Type resultType)
+    public override bool CanConvert(Type type)
     {
-        return resultType.IsEnum && resultType.GetCustomAttribute<FlagsAttribute>(inherit: false) is null;
+        return type.IsEnum && type.GetCustomAttribute<FlagsAttribute>(inherit: false) is null;
     }
 
-    public override CsvConverter<byte> Create(Type resultType, CsvOptions<byte> options)
+    public override CsvConverter<byte> Create(Type type, CsvOptions<byte> options)
     {
-        return GetParserType(resultType).CreateInstance<CsvConverter<byte>>(options as CsvUtf8Options);
+        return GetParserType(type).CreateInstance<CsvConverter<byte>>(options);
     }
 
     [return: DynamicallyAccessedMembers(Messages.Ctors)]

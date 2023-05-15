@@ -20,19 +20,19 @@ public abstract class CsvConverter<T, TValue> : CsvConverter<T> where T : unmana
     /// <summary>
     /// Attempts to parse <paramref name="value"/> from the field.
     /// </summary>
-    /// <param name="field">Parsed field</param>
+    /// <param name="source">CSV field</param>
     /// <param name="value">Parsed value</param>
     /// <returns><see langword="true"/> if the value was successfully parsed.</returns>
-    public abstract bool TryParse(ReadOnlySpan<T> field, [MaybeNullWhen(false)] out TValue value);
+    public abstract bool TryParse(ReadOnlySpan<T> source, [MaybeNullWhen(false)] out TValue value);
 
     /// <summary>
     /// Attempts to format <paramref name="value"/> into the field.
     /// </summary>
-    /// <param name="buffer">Buffer to format the value to</param>
+    /// <param name="destination">Buffer to format the value to</param>
     /// <param name="value">Value to format</param>
-    /// <param name="charsWritten">If successful, how many characters were written to <paramref name="buffer"/></param>
+    /// <param name="charsWritten">If successful, how many characters were written to <paramref name="destination"/></param>
     /// <returns><see langword="true"/> if the value was successfully formatted.</returns>
-    public abstract bool TryFormat(Span<T> buffer, TValue value, out int charsWritten);
+    public abstract bool TryFormat(Span<T> destination, TValue value, out int charsWritten);
 
     /// <summary>
     /// Whether the converter formats null values.

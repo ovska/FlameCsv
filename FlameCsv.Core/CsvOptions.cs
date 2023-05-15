@@ -41,6 +41,8 @@ public abstract partial class CsvOptions<T> : ISealable, ICsvReaderOptions<T> wh
         _hasHeader = other._hasHeader;
         _allowContentInExceptions = other._allowContentInExceptions;
         _useDefaultConverters = other._useDefaultConverters;
+        _ignoreEnumCase = other._ignoreEnumCase;
+        _allowUndefinedEnumValues = other._allowUndefinedEnumValues;
         _arrayPool = other._arrayPool;
         _converters = new(this, other._converters); // copy collection
     }
@@ -122,6 +124,8 @@ public abstract partial class CsvOptions<T> : ISealable, ICsvReaderOptions<T> wh
     private CsvFieldQuoting _fieldQuoting;
     private bool _allowContentInExceptions;
     private bool _useDefaultConverters = true;
+    private bool _ignoreEnumCase = true;
+    private bool _allowUndefinedEnumValues;
     private ArrayPool<T>? _arrayPool = ArrayPool<T>.Shared;
 
     /// <summary>
@@ -218,6 +222,25 @@ public abstract partial class CsvOptions<T> : ISealable, ICsvReaderOptions<T> wh
     {
         get => _useDefaultConverters;
         set => this.SetValue(ref _useDefaultConverters, value);
+    }
+
+    /// <summary>
+    /// Whether to ignore case when parsing enum values. Default is <see langword="true"/>.
+    /// </summary>
+    public bool IgnoreEnumCase
+    {
+        get => _ignoreEnumCase;
+        set => this.SetValue(ref _ignoreEnumCase, value);
+    }
+
+    /// <summary>
+    /// Whether to allow enum values that are not defined in the enum type.
+    /// Default is <see langword="false"/>.
+    /// </summary>
+    public bool AllowUndefinedEnumValues
+    {
+        get => _allowUndefinedEnumValues;
+        set => this.SetValue(ref _allowUndefinedEnumValues, value);
     }
 
     /// <summary>

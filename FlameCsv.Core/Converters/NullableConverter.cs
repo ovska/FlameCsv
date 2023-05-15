@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
@@ -7,6 +8,7 @@ namespace FlameCsv.Converters;
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 /// <typeparam name="TValue">Parsed value and the type parameter of <see cref="Nullable{T}"/></typeparam>
+[DynamicallyAccessedMembers(Messages.Ctors)]
 internal sealed class NullableConverter<T, TValue> : CsvConverter<T, TValue?>
     where T : unmanaged, IEquatable<T>
     where TValue : struct
@@ -26,27 +28,27 @@ internal sealed class NullableConverter<T, TValue> : CsvConverter<T, TValue?>
         _null = nullToken;
     }
 
-    public override bool CanConvert(Type resultType) => Nullable.GetUnderlyingType(resultType) == typeof(TValue);
+    public override bool CanConvert(Type type) => Nullable.GetUnderlyingType(type) == typeof(TValue);
 
-    public override bool TryParse(ReadOnlySpan<T> span, out TValue? value)
+    public override bool TryParse(ReadOnlySpan<T> source, out TValue? value)
     {
-        if (_converter.TryParse(span, out var _value))
+        if (_converter.TryParse(source, out var _value))
         {
             value = _value;
             return true;
         }
 
         value = default;
-        return _null.Span.SequenceEqual(span);
+        return _null.Span.SequenceEqual(source);
     }
 
-    public override bool TryFormat(Span<T> buffer, TValue? value, out int charsWritten)
+    public override bool TryFormat(Span<T> destination, TValue? value, out int charsWritten)
     {
         if (value.HasValue)
         {
-            return _converter.TryFormat(buffer, value.GetValueOrDefault(), out charsWritten);
+            return _converter.TryFormat(destination, value.GetValueOrDefault(), out charsWritten);
         }
 
-        return _null.Span.TryWriteTo(buffer, out charsWritten);
+        return _null.Span.TryWriteTo(destination, out charsWritten);
     }
 }

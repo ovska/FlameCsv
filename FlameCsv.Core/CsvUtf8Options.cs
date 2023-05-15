@@ -42,8 +42,6 @@ public sealed class CsvUtf8Options : CsvOptions<byte>
     private char _dateTimeFormat;
     private char _timeSpanFormat;
     private char _guidFormat;
-    private bool _ignoreEnumCase;
-    private bool _allowUndefinedEnumValues;
     private ReadOnlyMemory<byte> _null;
     private IReadOnlyCollection<(ReadOnlyMemory<byte> bytes, bool value)>? _booleanValues;
     private TypeByteDictionary? _nullTokens;
@@ -64,8 +62,6 @@ public sealed class CsvUtf8Options : CsvOptions<byte>
         _dateTimeFormat = other._dateTimeFormat;
         _timeSpanFormat = other._timeSpanFormat;
         _guidFormat = other._guidFormat;
-        _ignoreEnumCase = other._ignoreEnumCase;
-        _allowUndefinedEnumValues = other._allowUndefinedEnumValues;
         _null = other._null;
 
         // copy collections
@@ -208,25 +204,6 @@ public sealed class CsvUtf8Options : CsvOptions<byte>
             _ = Utf8Parser.TryParse(default, out Guid _, out _, value); // validate
             this.SetValue(ref _guidFormat, value);
         }
-    }
-
-    /// <summary>
-    /// Used by <see cref="EnumUtf8Converter{TEnum}"/>. Default is <see langword="true"/>.
-    /// </summary>
-    public bool IgnoreEnumCase
-    {
-        get => _ignoreEnumCase;
-        set => this.SetValue(ref _ignoreEnumCase, value);
-    }
-
-    /// <summary>
-    /// Used by <see cref="EnumUtf8Converter{TEnum}"/> to optionally skip validating that the parsed value is defined.
-    /// Default is <see langword="false"/>.
-    /// </summary>
-    public bool AllowUndefinedEnumValues
-    {
-        get => _allowUndefinedEnumValues;
-        set => this.SetValue(ref _allowUndefinedEnumValues, value);
     }
 
     /// <summary>

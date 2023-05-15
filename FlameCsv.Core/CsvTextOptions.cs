@@ -49,8 +49,6 @@ public sealed class CsvTextOptions : CsvOptions<char>
     private DateTimeStyles _dateTimeStyles;
     private TimeSpanStyles _timeSpanStyles;
     private string? _guidFormat;
-    private bool _ignoreEnumCase;
-    private bool _allowUndefinedEnumValues;
     private bool _readEmptyStringsAsNull;
     private string? _null;
     private IReadOnlyCollection<(string text, bool value)>? _booleanValues;
@@ -79,8 +77,6 @@ public sealed class CsvTextOptions : CsvOptions<char>
         _dateTimeStyles = other._dateTimeStyles;
         _timeSpanStyles = other._timeSpanStyles;
         _guidFormat = other._guidFormat;
-        _ignoreEnumCase = other._ignoreEnumCase;
-        _allowUndefinedEnumValues = other._allowUndefinedEnumValues;
         _readEmptyStringsAsNull = other._readEmptyStringsAsNull;
         _null = other._null;
 
@@ -273,25 +269,6 @@ public sealed class CsvTextOptions : CsvOptions<char>
     {
         get => _guidFormat;
         set => this.SetValue(ref _guidFormat, value);
-    }
-
-    /// <summary>
-    /// Used by <see cref="EnumTextConverter{TEnum}"/>. Default is <see langword="true"/>.
-    /// </summary>
-    public bool IgnoreEnumCase
-    {
-        get => _ignoreEnumCase;
-        set => this.SetValue(ref _ignoreEnumCase, value);
-    }
-
-    /// <summary>
-    /// Used by <see cref="Converters.Utf8.EnumUtf8Parser{TEnum}"/> to optionally skip validating that the parsed value is defined.
-    /// Default is <see langword="false"/>.
-    /// </summary>
-    public bool AllowUndefinedEnumValues
-    {
-        get => _allowUndefinedEnumValues;
-        set => this.SetValue(ref _allowUndefinedEnumValues, value);
     }
 
     /// <summary>

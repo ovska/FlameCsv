@@ -15,26 +15,26 @@ internal sealed class PoolingStringUtf8Converter : CsvConverter<byte, string>
         _stringPool = stringPool;
     }
 
-    public override bool TryParse(ReadOnlySpan<byte> span, [MaybeNullWhen(false)] out string value)
+    public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out string value)
     {
-        int maxLength = Encoding.UTF8.GetMaxCharCount(span.Length);
+        int maxLength = Encoding.UTF8.GetMaxCharCount(source.Length);
 
         if (Token<char>.CanStackalloc(maxLength))
         {
             Span<char> buffer = stackalloc char[maxLength];
-            int written = Encoding.UTF8.GetChars(span, buffer);
+            int written = Encoding.UTF8.GetChars(source, buffer);
             value = _stringPool.GetOrAdd(buffer[..written]);
         }
         else
         {
-            value = _stringPool.GetOrAdd(span, Encoding.UTF8);
+            value = _stringPool.GetOrAdd(source, Encoding.UTF8);
         }
 
         return true;
     }
 
-    public override bool TryFormat(Span<byte> buffer, string value, out int charsWritten)
+    public override bool TryFormat(Span<byte> destination, string value, out int charsWritten)
     {
-        return value.AsSpan().TryWriteUtf8To(buffer, out charsWritten);
+        return value.AsSpan().TryWriteUtf8To(destination, out charsWritten);
     }
 }

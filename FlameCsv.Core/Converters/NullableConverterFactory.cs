@@ -11,19 +11,19 @@ internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
 {
     public static NullableConverterFactory<T> Instance { get; } = new();
 
-    public override bool CanConvert(Type resultType)
+    public override bool CanConvert(Type type)
     {
-        return resultType.IsGenericType && resultType.GetGenericTypeDefinition() == typeof(Nullable<>);
+        return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>);
     }
 
-    public override CsvConverter<T> Create(Type resultType, CsvOptions<T> options)
+    public override CsvConverter<T> Create(Type type, CsvOptions<T> options)
     {
-        var innerType = Nullable.GetUnderlyingType(resultType)!;
+        var innerType = Nullable.GetUnderlyingType(type)!;
         var inner = options.GetConverter(innerType);
-        return GetParserType(innerType).CreateInstance<CsvConverter<T>>(inner, options.GetNullToken(resultType));
+        return GetParserType(innerType).CreateInstance<CsvConverter<T>>(inner, options.GetNullToken(type));
     }
 
     [return: DynamicallyAccessedMembers(Messages.Ctors)]
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2070", Justification = Messages.StructFactorySuppressionMessage)]
-    private static Type GetParserType(Type resultType) => typeof(NullableConverter<,>).MakeGenericType(typeof(T), resultType);
+    private static Type GetParserType(Type type) => typeof(NullableConverter<,>).MakeGenericType(typeof(T), type);
 }

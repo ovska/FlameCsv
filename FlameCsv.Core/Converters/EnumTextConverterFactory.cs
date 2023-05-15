@@ -11,14 +11,14 @@ internal sealed class EnumTextConverterFactory : CsvConverterFactory<char>
 {
     public static EnumTextConverterFactory Instance { get; } = new();
 
-    public override bool CanConvert(Type resultType)
+    public override bool CanConvert(Type type)
     {
-        return resultType.IsEnum && resultType.GetCustomAttribute<FlagsAttribute>(inherit: false) is null;
+        return type.IsEnum && type.GetCustomAttribute<FlagsAttribute>(inherit: false) is null;
     }
 
-    public override CsvConverter<char> Create(Type resultType, CsvOptions<char> options)
+    public override CsvConverter<char> Create(Type type, CsvOptions<char> options)
     {
-        return GetParserType(resultType).CreateInstance<CsvConverter<char>>(options as CsvTextOptions);
+        return GetParserType(type).CreateInstance<CsvConverter<char>>(options);
     }
 
     [return: DynamicallyAccessedMembers(Messages.Ctors)]

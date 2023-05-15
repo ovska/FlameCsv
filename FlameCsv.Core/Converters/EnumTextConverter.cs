@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters.Text;
@@ -5,38 +7,39 @@ namespace FlameCsv.Converters.Text;
 /// <summary>
 /// Parser for non-flags enums.
 /// </summary>
+[DynamicallyAccessedMembers(Messages.Ctors)]
 internal sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
     where TEnum : struct, Enum
 {
     private readonly bool _allowUndefinedValues;
     private readonly bool _ignoreCase;
-    private readonly Dictionary<TEnum, string> _values;
 
-    public EnumTextConverter(CsvTextOptions? options)
+    private readonly ConcurrentDictionary<TEnum, string> _writeCache;
+
+    public EnumTextConverter(CsvOptions<char> options)
     {
-        _allowUndefinedValues = options?.AllowUndefinedEnumValues ?? false;
-        _ignoreCase = options?.IgnoreEnumCase ?? true;
-
-        _values = new Dictionary<TEnum, string>();
-
-        foreach (var value in Enum.GetValues<TEnum>())
-        {
-            _values.TryAdd(value, value.ToString());
-        }
+        _allowUndefinedValues = options.AllowUndefinedEnumValues;
+        _ignoreCase = options.IgnoreEnumCase;
+        _writeCache = new();
     }
 
-    public override bool TryFormat(Span<char> buffer, TEnum value, out int charsWritten)
+    public override bool TryFormat(Span<char> destination, TEnum value, out int charsWritten)
     {
-        if (!_values.TryGetValue(value, out string? name))
+        if (!_writeCache.TryGetValue(value, out string? name))
         {
             name = value.ToString();
+
+            if (_writeCache.Count <= 64)
+            {
+                _writeCache.TryAdd(value, name);
+            }
         }
 
-        return name.AsSpan().TryWriteTo(buffer, out charsWritten);
+        return name.AsSpan().TryWriteTo(destination, out charsWritten);
     }
 
-    public override bool TryParse(ReadOnlySpan<char> span, out TEnum value)
+    public override bool TryParse(ReadOnlySpan<char> source, out TEnum value)
     {
-        return Enum.TryParse(span, _ignoreCase, out value) && (_allowUndefinedValues || Enum.IsDefined(value));
+        return Enum.TryParse(source, _ignoreCase, out value) && (_allowUndefinedValues || Enum.IsDefined(value));
     }
 }

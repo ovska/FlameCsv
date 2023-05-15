@@ -14,12 +14,12 @@ internal sealed class GuidUtf8Converter : CsvConverter<byte, Guid>
         _standardFormat = standardFormat;
     }
 
-    public override bool TryParse(ReadOnlySpan<byte> span, out Guid value)
+    public override bool TryParse(ReadOnlySpan<byte> source, out Guid value)
     {
-        return Utf8Parser.TryParse(span, out value, out int bytesConsumed, _standardFormat) && bytesConsumed == span.Length;
+        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat) && bytesConsumed == source.Length;
     }
-    public override bool TryFormat(Span<byte> buffer, Guid value, out int charsWritten)
+    public override bool TryFormat(Span<byte> destination, Guid value, out int charsWritten)
     {
-        return Utf8Formatter.TryFormat(value, buffer, out charsWritten, _standardFormat);
+        return Utf8Formatter.TryFormat(value, destination, out charsWritten, _standardFormat);
     }
 }
