@@ -13,343 +13,303 @@ namespace FlameCsv.Benchmark;
 [SimpleJob]
 public class ModeBench2
 {
-    private static readonly CsvReadingContext<char> _context = new(CsvTextReaderOptions.Default, new() { Escape = '\\', ExposeContent = true });
-    private static readonly (ReadOnlyMemory<char> data, RecordMeta meta)[] _bytes
-        = File.ReadAllLines(
-            "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv",
-            Encoding.UTF8)
-        .Select(b => b.Replace(",\"\"\"", ",\"\\\"").Replace("\"\"", "\\\"").AsMemory())
-        .Select(b => ((ReadOnlyMemory<char>)b, _context.GetRecordMeta(b)))
-        .ToArray();
+    private static readonly CsvReadingContext<char> _context = new(CsvTextOptions.Default, new() { Escape = '\\', ExposeContent = true });
+    private static readonly ReadOnlySequence<char> _data = new ReadOnlySequence<char>(
+        Encoding.UTF8.GetChars(File.ReadAllBytes("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv")));
 
     [Benchmark(Baseline = true)]
     public void Old()
     {
-        char[]? array = null;
+        ReadOnlySequence<char> data = _data;
+        CsvDialect<char> dialect = _context.Dialect;
 
-        foreach (ref readonly var tuple in _bytes.AsSpan())
+        while (OLD(in dialect, ref data, out _, out _))
         {
-            CsvEnumerationStateRef<char> state = new(in _context, tuple.data, ref array, tuple.meta);
-
-            while (!state.remaining.IsEmpty)
-                _ = RFCOLD<char>(ref state);
         }
-
-        _context.ArrayPool.EnsureReturned(ref array);
     }
 
     [Benchmark(Baseline = false)]
     public void New()
     {
-        char[]? array = null;
+        ReadOnlySequence<char> data = _data;
+        CsvDialect<char> dialect = _context.Dialect;
 
-        foreach (ref readonly var tuple in _bytes.AsSpan())
+        while (NEW(in dialect, ref data, out _, out _))
         {
-            CsvEnumerationStateRef<char> state = new(in _context, tuple.data, ref array, tuple.meta);
-
-            while (!state.remaining.IsEmpty)
-                _ = RFCNEW<char>(ref state);
         }
-
-        _context.ArrayPool.EnsureReturned(ref array);
     }
-
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static ReadOnlyMemory<T> RFCNEW<T>(ref CsvEnumerationStateRef<T> state) where T : unmanaged, IEquatable<T>
+    private static bool NEW<T>(
+        in CsvDialect<T> dialect,
+        ref ReadOnlySequence<T> sequence,
+        out ReadOnlySequence<T> line,
+        out RecordMeta meta)
+        where T : unmanaged, IEquatable<T>
     {
-        Debug.Assert(!state.remaining.IsEmpty);
-        Debug.Assert(state._context.Dialect.Escape.HasValue);
+        ReadOnlySpan<T> newLine = dialect.Newline.Span;
+        T quote = dialect.Quote;
+        meta = default;
+        ref uint quoteCount = ref meta.quoteCount;
 
-        ReadOnlyMemory<T> field;
-        ReadOnlySpan<T> span = state.remaining.Span;
-        T quote = state._context.Dialect.Quote;
-        T escape = state._context.Dialect.Escape.Value;
-        T delimiter = state._context.Dialect.Delimiter;
-        int consumed = 0;
-        uint quotesConsumed = 0;
-        uint escapesConsumed = 0;
-        ref uint quotesRemaining = ref state.quotesRemaining;
-        ref uint escapesRemaining = ref state.escapesRemaining;
+        // keep track of read newline tokens and quotes in the read data
+        State state = default;
 
-        if (!state.isAtStart && !span[consumed++].Equals(delimiter))
+        // for iterating the sequence
+        SequencePosition position = sequence.Start;
+        SequencePosition current = position;
+
+        while (sequence.TryGet(ref position, out ReadOnlyMemory<T> memory))
         {
-            state.ThrowNoDelimiterAtHead();
-        }
+            ReadOnlySpan<T> span = memory.Span;
+            ref T first = ref MemoryMarshal.GetReference(span);
 
-        T token;
+            int consumed = 0;
 
-        if (quotesRemaining == 0)
-        {
-            if (escapesRemaining == 0)
-                goto NoQuotesNoEscapes;
+            if (state.count == 0)
+                goto MainLoop;
 
-            goto NoQuotesHasEscapes;
-        }
-        else
-        {
-            if (quotesConsumed % 2 == 0)
+            goto SeekNewline;
+
+            FoundNewline:
+            SequencePosition newlinePos = sequence.GetPosition(state.offset, state.start);
+            line = sequence.Slice(0, newlinePos);
+            sequence = sequence.Slice(sequence.GetPosition(newLine.Length, newlinePos));
+            return true;
+
+            SeekNewline:
+            while (consumed < span.Length)
             {
-                if (escapesRemaining == 0)
-                    goto HasQuotesNoEscapes;
-                goto HasQuotesAndEscapes;
+                T token = Unsafe.Add(ref first, consumed);
+
+                if (token.Equals(newLine[state.count]))
+                {
+                    state.count++;
+                    consumed++;
+
+                    if (state.count == newLine.Length)
+                    {
+                        goto FoundNewline;
+                    }
+
+                    continue;
+                }
+
+                if (token.Equals(quote))
+                {
+                    quoteCount++;
+                }
+
+                state = default;
+                consumed++;
+
             }
-            else
+
+            MainLoop:
+            while (consumed < span.Length)
             {
-                if (escapesRemaining == 0)
-                    goto InStringNoEscapes;
-                goto InStringWithEscapes;
-            }
-        }
+                int index = span.Slice(consumed).IndexOf(newLine[0]);
 
-        NoQuotesNoEscapes:
-        while (consumed < span.Length)
-        {
-            if (span.DangerousGetReferenceAt(consumed++).Equals(delimiter))
-            {
-                goto Done;
-            }
-        }
+                // quote count goes here
+                {
+                    nint remaining = index == -1 ? span.Length - consumed : index;
+                    nint offset = consumed;
 
-        goto EOL;
+                    nint res0 = 0;
+                    nint res1 = 0;
+                    nint res2 = 0;
+                    nint res3 = 0;
+                    nint res4 = 0;
+                    nint res5 = 0;
+                    nint res6 = 0;
+                    nint res7 = 0;
 
-        NoQuotesHasEscapes:
-        while (consumed < span.Length)
-        {
-            token = span.DangerousGetReferenceAt(consumed++);
+                    // Main loop with 8 unrolled iterations
+                    while (remaining >= 8)
+                    {
+                        res0 += Unsafe.Add(ref first, offset + 0).Equals(quote).ToByte();
+                        res1 += Unsafe.Add(ref first, offset + 1).Equals(quote).ToByte();
+                        res2 += Unsafe.Add(ref first, offset + 2).Equals(quote).ToByte();
+                        res3 += Unsafe.Add(ref first, offset + 3).Equals(quote).ToByte();
+                        res4 += Unsafe.Add(ref first, offset + 4).Equals(quote).ToByte();
+                        res5 += Unsafe.Add(ref first, offset + 5).Equals(quote).ToByte();
+                        res6 += Unsafe.Add(ref first, offset + 6).Equals(quote).ToByte();
+                        res7 += Unsafe.Add(ref first, offset + 7).Equals(quote).ToByte();
 
-            if (token.Equals(delimiter))
-            {
-                goto Done;
-            }
-            else if (token.Equals(escape))
-            {
-                if (consumed++ >= span.Length)
-                    state.ThrowEscapeAtEnd();
+                        remaining -= 8;
+                        offset += 8;
+                    }
 
-                escapesConsumed++;
+                    if (remaining >= 4)
+                    {
+                        res0 += Unsafe.Add(ref first, offset + 0).Equals(quote).ToByte();
+                        res1 += Unsafe.Add(ref first, offset + 1).Equals(quote).ToByte();
+                        res2 += Unsafe.Add(ref first, offset + 2).Equals(quote).ToByte();
+                        res3 += Unsafe.Add(ref first, offset + 3).Equals(quote).ToByte();
 
-                if (--escapesRemaining == 0)
-                    goto NoQuotesNoEscapes;
+                        remaining -= 4;
+                        offset += 4;
+                    }
 
-                goto NoQuotesHasEscapes;
-            }
-        }
+                    // Iterate over the remaining values and count those that match
+                    while (remaining > 0)
+                    {
+                        res0 += Unsafe.Add(ref first, offset).Equals(quote).ToByte();
 
-        goto EOL;
+                        remaining -= 1;
+                        offset += 1;
+                    }
 
-        HasQuotesNoEscapes:
-        while (consumed < span.Length)
-        {
-            token = span.DangerousGetReferenceAt(consumed++);
+                    quoteCount += (uint)(res0 + res1 + res2 + res3 + res4 + res5 + res6 + res7);
+                }
 
-            if (token.Equals(delimiter))
-            {
-                goto Done;
-            }
-            else if (token.Equals(quote))
-            {
-                quotesConsumed++;
-                quotesRemaining--;
-                goto InStringNoEscapes;
-            }
-        }
-
-        goto EOL;
-
-        HasQuotesAndEscapes:
-        while (consumed < span.Length)
-        {
-            token = span.DangerousGetReferenceAt(consumed++);
-
-            if (token.Equals(delimiter))
-            {
-                goto Done;
-            }
-            else if (token.Equals(quote))
-            {
-                quotesConsumed++;
-                quotesRemaining--;
-                goto InStringWithEscapes;
-            }
-            else if (token.Equals(escape))
-            {
-                if (consumed++ >= span.Length)
-                    state.ThrowEscapeAtEnd();
-
-                escapesConsumed++;
-
-                if (--escapesRemaining == 0)
-                    goto HasQuotesNoEscapes;
-
-                goto HasQuotesAndEscapes;
-            }
-        }
-
-        goto EOL;
-
-        InStringNoEscapes:
-        while (consumed < span.Length)
-        {
-            if (span.DangerousGetReferenceAt(consumed++).Equals(quote))
-            {
-                quotesConsumed++;
-
-                if (--quotesRemaining == 0)
-                    goto NoQuotesNoEscapes;
-
-                goto HasQuotesNoEscapes;
-            }
-        }
-
-        goto EOL;
-
-        InStringWithEscapes:
-        while (consumed < span.Length)
-        {
-            token = span.DangerousGetReferenceAt(consumed++);
-
-            if (token.Equals(quote))
-            {
-                quotesConsumed++;
-
-                if (--quotesRemaining == 0)
-                    goto NoQuotesHasEscapes;
-
-                goto HasQuotesAndEscapes;
-            }
-            else if (token.Equals(escape))
-            {
-                if (consumed++ >= span.Length)
-                    state.ThrowEscapeAtEnd();
-
-                escapesConsumed++;
-
-                if (--escapesRemaining == 0)
-                    goto InStringNoEscapes;
-
-                goto InStringWithEscapes;
-            }
-        }
-
-        EOL:
-        if ((quotesRemaining | escapesRemaining) != 0)
-            state.ThrowFieldEndedPrematurely();
-
-        // whole line was consumed, skip the delimiter if it wasn't the first field
-        field = state.remaining.Slice((!state.isAtStart).ToByte());
-        state.remaining = default;
-        goto Return;
-
-        Done:
-        int sliceStart = (!state.isAtStart).ToByte();
-        int length = consumed - sliceStart - 1;
-        field = state.remaining.Slice(sliceStart, length);
-        state.remaining = state.remaining.Slice(consumed - 1);
-
-        Return:
-        state.isAtStart = false;
-        return (quotesConsumed | escapesConsumed) == 0
-            ? field
-            : EscapeMode<T>.Unescape(field, quote, escape, quotesConsumed, escapesConsumed, ref state.buffer);
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static ReadOnlyMemory<T> RFCOLD<T>(ref CsvEnumerationStateRef<T> state) where T : unmanaged, IEquatable<T>
-    {
-        Debug.Assert(!state.remaining.IsEmpty);
-        Debug.Assert(state._context.Dialect.Escape.HasValue);
-
-        ReadOnlySpan<T> remaining = state.remaining.Span;
-        T delimiter = state._context.Dialect.Delimiter;
-        T quote = state._context.Dialect.Quote;
-        T escape = state._context.Dialect.Escape.Value;
-
-        // If not the first field, validate that the first character is a delimiter
-        if (!state.isAtStart)
-        {
-            // Since field count may not be known in advance, we leave the delimiter at the head after each field
-            // so we can differentiate between an empty last field and end of the data in general
-            if (!remaining[0].Equals(delimiter))
-                state.ThrowNoDelimiterAtHead();
-
-            state.remaining = state.remaining.Slice(1);
-            remaining = remaining.Slice(1);
-        }
-        else
-        {
-            state.isAtStart = false;
-        }
-
-        // keep track of how many quotes the current field has
-        uint quotesConsumed = 0;
-        uint escapesConsumed = 0;
-        ref uint quotesRemaining = ref state.quotesRemaining;
-        ref uint escapesRemaining = ref state.escapesRemaining;
-
-        int index = (quotesRemaining, escapesRemaining) switch
-        {
-            (0, 0) => remaining.IndexOf(delimiter),
-            (0, _) => remaining.IndexOfAny(delimiter, escape),
-            (_, 0) => remaining.IndexOfAny(delimiter, quote),
-            (_, _) => remaining.IndexOfAny(delimiter, escape, quote)
-        };
-
-        ReadOnlyMemory<T> field;
-
-        while (index >= 0)
-        {
-            // Hit a comma, either found end of field or more fields than expected
-            if (remaining[index].Equals(delimiter))
-            {
-                field = state.remaining.Slice(0, index);
-                state.remaining = state.remaining.Slice(index); // note: leave the comma in
-                goto UnescapeAndReturn;
-            }
-            else if (remaining[index].Equals(escape))
-            {
-                escapesRemaining--;
-                escapesConsumed++;
-
-                if (++index >= remaining.Length)
-                    state.ThrowEscapeAtEnd();
-
-                // Move past the next character, break if it was the last one
-                if (++index >= remaining.Length)
+                if (index == -1)
+                {
+                    state = default;
                     break;
+                }
+
+                // Not inside a string
+                if (quoteCount % 2 == 0)
+                {
+                    // init the newline state if this was the first token
+                    if (state.count == 0)
+                    {
+                        state.offset = consumed + index;
+                        state.start = current;
+                    }
+
+                    state.count++;
+
+                    if (state.count == newLine.Length)
+                    {
+                        goto FoundNewline;
+                    }
+
+                    consumed += index + 1;
+                    goto SeekNewline;
+                }
+
+                // Move the cursor past the current token and exit if we hit the end of the segment
+                consumed += index + 1;
             }
-            else
-            {
-                // Token found but was not delimiter, must be a quote. This branch is never taken if quotesRemaining is 0
-                quotesConsumed++;
-                quotesRemaining--;
-                index++; // move index past the quote
-            }
 
-            ReadOnlySpan<T> notYetRead = remaining.Slice(index);
-
-            int nextIndex = (quotesRemaining, escapesRemaining) switch
-            {
-                (0, 0) => notYetRead.IndexOf(delimiter),
-                (0, _) => notYetRead.IndexOfAny(delimiter, escape),
-                (_, 0) => quotesConsumed % 2 != 0 ? notYetRead.IndexOf(quote) : notYetRead.IndexOfAny(quote, delimiter),
-                (_, _) => quotesConsumed % 2 != 0 ? notYetRead.IndexOfAny(quote, escape) : notYetRead.IndexOfAny(quote, escape, delimiter),
-            };
-
-            if (nextIndex < 0)
+            if (position.GetObject() is null)
                 break;
 
-            index += nextIndex;
+            current = position;
         }
 
-        field = state.remaining;
-        state.remaining = default; // consume all data
+        Unsafe.SkipInit(out line); // keep this at the bottom to ensure successful returns actually set it
+        return false;
+    }
 
-        state.EnsureFullyConsumed(-1);
+    private static bool OLD<T>(
+        in CsvDialect<T> dialect,
+        ref ReadOnlySequence<T> sequence,
+        out ReadOnlySequence<T> line,
+        out RecordMeta meta)
+        where T : unmanaged, IEquatable<T>
+    {
+        ReadOnlySpan<T> newLine = dialect.Newline.Span;
+        T quote = dialect.Quote;
+        meta = default;
+        ref uint quoteCount = ref meta.quoteCount;
 
-        UnescapeAndReturn:
-        return (quotesConsumed | escapesConsumed) != 0
-            ? EscapeMode<T>.Unescape(field, quote, escape, quotesConsumed, escapesConsumed, ref state.buffer)
-            : field;
+        // keep track of read newline tokens and quotes in the read data
+        State state = default;
+
+        // for iterating the sequence
+        SequencePosition position = sequence.Start;
+        SequencePosition current = position;
+
+        while (sequence.TryGet(ref position, out ReadOnlyMemory<T> memory))
+        {
+            ReadOnlySpan<T> span = memory.Span;
+
+            // Find the next relevant token. Uneven quotes mean the current index is 100% inside a string,
+            // so we can skip everything until the next quote
+            int index = quoteCount % 2 == 0
+                ? span.IndexOfAny(newLine[state.count], quote)
+                : span.IndexOf(quote);
+
+            // Found a newline token or a string delimiter
+            while (index >= 0)
+            {
+                // Found token was a string delimiter
+                if (span[index].Equals(quote))
+                {
+                    quoteCount++;
+                    state = default; // zero out possible newline state such as \r"
+                }
+                // The match was for newline token
+                else
+                {
+                    // We are 100% not inside a string as newline tokens are ignored by IndexOf in that case
+                    Debug.Assert(quoteCount % 2 == 0);
+
+                    // init the newline state if this was the first token
+                    if (state.count == 0)
+                    {
+                        state.offset = index;
+                        state.start = current;
+                    }
+
+                    // The conditions are:
+                    // - All of newline read, e.g. single LF or the CR was in previous segment
+                    // - Fast path check for common 2-token newline such as CRLF once CR was found
+                    // - Edge case of rest of a longer newline in a single segment
+                    // Even if 2&3 fail the line can still be valid if rest of the newline is in the next segment
+                    if (++state.count == newLine.Length
+                        || (newLine.Length == 2 && index + 1 < span.Length && span[index + 1].Equals(newLine[1]))
+                        || span.Slice(index).StartsWith(newLine))
+                    {
+                        SequencePosition newlinePos = sequence.GetPosition(state.offset, state.start);
+                        line = sequence.Slice(0, newlinePos);
+                        sequence = sequence.Slice(sequence.GetPosition(newLine.Length, newlinePos));
+                        return true;
+                    }
+                }
+
+                // Move the cursor past the current token and exit if we hit the end of the segment
+                if (++index >= span.Length)
+                    break;
+
+                // Find the next relevant token
+                int next = quoteCount % 2 == 0
+                    ? span.Slice(index).IndexOfAny(newLine[state.count], quote)
+                    : span.Slice(index).IndexOf(quote);
+
+                // The segment still contains something of interest
+                if (next >= 0)
+                {
+                    index += next;
+                }
+                // No string or newline tokens in the segment, try to move to next
+                else
+                {
+                    break;
+                }
+            }
+
+            if (position.GetObject() is null)
+                break;
+
+            current = position;
+        }
+
+        Unsafe.SkipInit(out line); // keep this at the bottom to ensure successful returns actually set it
+        return false;
+    }
+
+    /// <summary>Linefeed read state.</summary>
+    private ref struct State
+    {
+        /// <summary>Count of newline tokens parsed before current index</summary>
+        public int count;
+
+        /// <summary>Index at <see cref="start"/> where the first newline token was found</summary>
+        public int offset;
+
+        /// <summary>Sequence position that was active when the first newline token was found</summary>
+        public SequencePosition start;
     }
 }

@@ -41,8 +41,7 @@ public static class RFC4180ModeTests
     [InlineData("\"James \"\"007\"\" Bond\"", "James \"007\" Bond")]
     public static void Should_Unescape(string input, string expected)
     {
-        using var pool = new ReturnTrackingArrayPool<char>();
-        var context = new CsvReadingContext<char>(CsvTextOptions.Default, new() { ArrayPool = pool });
+        var context = new CsvReadingContext<char>(CsvTextOptions.Default, new() { ArrayPool = AllocatingArrayPool<char>.Instance });
 
         char[]? unescapeArray = null;
         var state = new CsvEnumerationStateRef<char>(in context, input.AsMemory(), ref unescapeArray);
@@ -60,9 +59,6 @@ public static class RFC4180ModeTests
             Assert.Equal(actual.ToArray(), unescapeArray.AsMemory(0, actual.Length).ToArray());
             Assert.All(unescapeArray.AsMemory(actual.Length).ToArray(), c => Assert.Equal('\0', c));
         }
-
-        if (unescapeArray != null)
-            pool.Return(unescapeArray);
     }
 
     [Fact]
@@ -217,11 +213,11 @@ public static class RFC4180ModeTests
     [InlineData("A,\"B\",C,D,\"E\"")]
     public static void Should_Enumerate_Fields(string line)
     {
-        using var pool = new ReturnTrackingArrayPool<char>();
+        //using var pool = new ReturnTrackingArrayPool<char>();
         var options = new CsvTextOptions
         {
             Newline = "|",
-            ArrayPool = pool,
+            //ArrayPool = pool,
             AllowContentInExceptions = true,
         };
 

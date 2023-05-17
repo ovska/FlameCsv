@@ -13,6 +13,7 @@ internal readonly struct UnixEscaper<T> : IEscaper<T> where T : unmanaged, IEqua
     private readonly T _quote;
     private readonly T _escape;
     private readonly ReadOnlyMemory<T> _newline;
+    private readonly ReadOnlyMemory<T> _whitespace;
 
     public UnixEscaper(in CsvDialect<T> dialect)
     {
@@ -23,17 +24,24 @@ internal readonly struct UnixEscaper<T> : IEscaper<T> where T : unmanaged, IEqua
         _quote = dialect.Quote;
         _escape = dialect.Escape.Value;
         _newline = dialect.Newline;
+        _whitespace = dialect.Whitespace;
     }
 
     public bool NeedsEscaping(T value) => value.Equals(_quote) || value.Equals(_escape);
 
     public bool NeedsEscaping(ReadOnlySpan<T> value, out int specialCount)
     {
+        if (value.IsEmpty)
+        {
+            specialCount = 0;
+            return false;
+        }
+
         int index = value.IndexOfAny(_delimiter, _quote, _escape);
 
         if (index >= 0)
         {
-            goto Found;
+            goto FoundSpecial;
         }
 
         ReadOnlySpan<T> newLine = _newline.Span;
@@ -43,13 +51,28 @@ internal readonly struct UnixEscaper<T> : IEscaper<T> where T : unmanaged, IEqua
         if (index >= 0)
         {
             index += newLine.Length;
-            goto Found;
+            goto FoundSpecial;
         }
 
-        Unsafe.SkipInit(out specialCount);
+        specialCount = 0;
+
+        if (!_whitespace.IsEmpty)
+        {
+            ref T first = ref value.DangerousGetReference();
+            ref T last = ref Unsafe.Add(ref first, value.Length - 1);
+
+            foreach (T token in _whitespace.Span)
+            {
+                if (first.Equals(token) || last.Equals(token))
+                {
+                    return true;
+                }
+            }
+        }
+
         return false;
 
-        Found:
+        FoundSpecial:
         specialCount = CountEscapable(value.Slice(index));
         return true;
     }

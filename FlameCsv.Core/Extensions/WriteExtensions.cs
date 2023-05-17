@@ -1,10 +1,27 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace FlameCsv.Extensions;
 
 internal static class WriteExtensions
 {
+    public static bool TryGetFirstLast<T>(this ReadOnlySpan<T> value, out T first, out T last)
+        where T : unmanaged, IEquatable<T>
+    {
+        if (!value.IsEmpty)
+        {
+            ref T r = ref MemoryMarshal.GetReference(value);
+            first = r;
+            last = Unsafe.Add(ref r, value.Length - 1);
+            return true;
+        }
+
+        Unsafe.SkipInit(out first);
+        Unsafe.SkipInit(out last);
+        return false;
+    }
+
     /// <summary>
     /// Attempts to copy the contents of <paramref name="value"/> to <paramref name="buffer"/>.
     /// </summary>

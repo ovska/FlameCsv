@@ -31,16 +31,20 @@ public static class EscapeModeTests
     }
 
     [Theory]
-    [InlineData("'test'", 2, 0, "test")]
-    [InlineData("te^'st", 0, 1, "te'st")]
-    [InlineData("te^^st", 0, 1, "te^st")]
-    public static void Should_Unescape(string input, uint quoteCount, uint escapeCount, string expected)
+    [InlineData("'test'", "test")]
+    [InlineData("te^'st", "te'st")]
+    [InlineData("te^^st", "te^st")]
+    public static void Should_Unescape(string input, string expected)
     {
-        Memory<char> buffer = new char[128];
+        char[]? buffer = null;
 
-        Assert.Equal(
-            expected,
-            EscapeMode<char>.Unescape(input.AsMemory(), '\'', '^', quoteCount, escapeCount, ref buffer).ToString());
+        var context = new CsvReadingContext<char>(new CsvTextOptions { Escape = '^', Quote = '\'' }, default);
+
+        using (CsvEnumerationStateRef<char>.CreateTemporary(in context, input.AsMemory(), ref buffer, out var state))
+        {
+            var field = EscapeMode<char>.ReadNextField(ref state);
+            Assert.Equal(expected, field.ToString());
+        }
     }
 
     [Theory]

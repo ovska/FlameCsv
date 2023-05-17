@@ -115,6 +115,14 @@ internal struct CsvEnumerationStateRef<T> : ICsvFieldReader<T> where T : unmanag
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public readonly void ThrowForInvalidEndOfString()
+    {
+        throw new UnreachableException(
+            "The record had a string that ended in the middle without the next character being a delimiter. " +
+            $"Record: {_context.AsPrintableString(_record)}");
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public readonly void ThrowEscapeAtEnd()
     {
         throw new UnreachableException(

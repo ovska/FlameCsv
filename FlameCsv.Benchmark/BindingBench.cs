@@ -30,7 +30,7 @@ public class BindingBench
     [Benchmark]
     public void FlameReflect()
     {
-        foreach (var _ in CsvReader.Read<Obj>(CSV, CsvTextReaderOptions.Default))
+        foreach (var _ in CsvReader.Read<Obj>(CSV, CsvTextOptions.Default))
         {
         }
     }
@@ -38,7 +38,7 @@ public class BindingBench
     [Benchmark]
     public void FlameTypeMap()
     {
-        foreach (var _ in CsvReader.Read(CSV, TestTypeMap.Instance, CsvTextReaderOptions.Default))
+        foreach (var _ in CsvReader.Read(CSV, TestTypeMap.Instance, CsvTextOptions.Default))
         {
         }
 

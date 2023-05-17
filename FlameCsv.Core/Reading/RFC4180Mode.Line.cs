@@ -11,7 +11,7 @@ namespace FlameCsv.Reading;
 internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>Linefeed read state.</summary>
-    private struct State
+    private ref struct State
     {
         /// <summary>Count of newline tokens parsed before current index</summary>
         public int count;
