@@ -59,18 +59,21 @@ public sealed class CsvUtf8Options : CsvOptions<byte>
 
     public CsvUtf8Options Clone() => new(this);
 
+    /// <inheritdoc cref="ICsvDialectOptions{T}.Delimiter"/>
     public Utf8Char Delimiter
     {
         get => (char)_delimiter;
         set => ((ICsvDialectOptions<byte>)this).Delimiter = value;
     }
 
+    /// <inheritdoc cref="ICsvDialectOptions{T}.Quote"/>
     public Utf8Char Quote
     {
         get => (char)_quote;
         set => ((ICsvDialectOptions<byte>)this).Quote = value;
     }
 
+    /// <inheritdoc cref="ICsvDialectOptions{T}.Newline"/>
     public Utf8String Newline
     {
         get => _newline;
@@ -81,12 +84,14 @@ public sealed class CsvUtf8Options : CsvOptions<byte>
         }
     }
 
+    /// <inheritdoc cref="ICsvDialectOptions{T}.Whitespace"/>
     public Utf8String Whitespace
     {
         get => _newline;
         set => ((ICsvDialectOptions<byte>)this).Whitespace = value;
     }
 
+    /// <inheritdoc cref="ICsvDialectOptions{T}.Escape"/>
     public Utf8Char? Escape
     {
         get => _escape.HasValue ? (Utf8Char)_escape.Value : null;

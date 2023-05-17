@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
@@ -11,6 +12,16 @@ namespace FlameCsv.Console
     {
         static void Main([NotNull] string[] args)
         {
+            Span<char> src = stackalloc char[] { 'x', 'y', 'z', '_' };
+            Span<char> dst = stackalloc char[] { 'a','b','c','d' };
+
+            ref byte srcRef = ref Unsafe.As<char, byte>(ref MemoryMarshal.GetReference(src));
+            ref byte dstRef = ref Unsafe.As<char, byte>(ref MemoryMarshal.GetReference(dst));
+
+            Unsafe.CopyBlockUnaligned(ref dstRef, ref srcRef, (uint)Unsafe.SizeOf<char>() * (uint)dst.Length / (uint)Unsafe.SizeOf<byte>());
+
+
+
             var test = CsvReader.Read<Obj>(
                 "id,name,is_enabled\r\n1,Bob,true", new ObjTypeMap(), CsvTextOptions.Default).ToList();
             _ = 1;

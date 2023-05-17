@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
 
 namespace FlameCsv.Reading;
@@ -13,19 +14,26 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
         Debug.Assert(state._context.Dialect.Escape.HasValue);
 
         ReadOnlyMemory<T> field;
-        ReadOnlySpan<T> span = state.remaining.Span;
         T quote = state._context.Dialect.Quote;
         T escape = state._context.Dialect.Escape.Value;
         T delimiter = state._context.Dialect.Delimiter;
-        int consumed = 0;
+        nuint consumed = 0;
         uint quotesConsumed = 0;
         uint escapesConsumed = 0;
         ref uint quotesRemaining = ref state.quotesRemaining;
         ref uint escapesRemaining = ref state.escapesRemaining;
 
-        if (!state.isAtStart && !span[consumed++].Equals(delimiter))
+        ref T first = ref MemoryMarshal.GetReference(state.remaining.Span);
+        nuint len = (uint)state.remaining.Length;
+
+        if (!state.isAtStart)
         {
-            state.ThrowNoDelimiterAtHead();
+            if (!first.Equals(delimiter))
+            {
+                state.ThrowNoDelimiterAtHead();
+            }
+
+            consumed++;
         }
 
         T token;
@@ -54,9 +62,9 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
         }
 
         NoQuotesNoEscapes:
-        while (consumed < span.Length)
+        while (consumed < len)
         {
-            if (span.DangerousGetReferenceAt(consumed++).Equals(delimiter))
+            if (Unsafe.Add(ref first, consumed++).Equals(delimiter))
             {
                 goto Done;
             }
@@ -65,9 +73,9 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
         goto EOL;
 
         NoQuotesHasEscapes:
-        while (consumed < span.Length)
+        while (consumed < len)
         {
-            token = span.DangerousGetReferenceAt(consumed++);
+            token = Unsafe.Add(ref first, consumed++);
 
             if (token.Equals(delimiter))
             {
@@ -75,7 +83,7 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
             }
             else if (token.Equals(escape))
             {
-                if (consumed++ >= span.Length)
+                if (consumed++ >= len)
                     state.ThrowEscapeAtEnd();
 
                 escapesConsumed++;
@@ -90,9 +98,9 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
         goto EOL;
 
         HasQuotesNoEscapes:
-        while (consumed < span.Length)
+        while (consumed < len)
         {
-            token = span.DangerousGetReferenceAt(consumed++);
+            token = Unsafe.Add(ref first, consumed++);
 
             if (token.Equals(delimiter))
             {
@@ -109,9 +117,9 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
         goto EOL;
 
         HasQuotesAndEscapes:
-        while (consumed < span.Length)
+        while (consumed < len)
         {
-            token = span.DangerousGetReferenceAt(consumed++);
+            token = Unsafe.Add(ref first, consumed++);
 
             if (token.Equals(delimiter))
             {
@@ -125,7 +133,7 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
             }
             else if (token.Equals(escape))
             {
-                if (consumed++ >= span.Length)
+                if (consumed++ >= len)
                     state.ThrowEscapeAtEnd();
 
                 escapesConsumed++;
@@ -140,9 +148,9 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
         goto EOL;
 
         InStringNoEscapes:
-        while (consumed < span.Length)
+        while (consumed < len)
         {
-            if (span.DangerousGetReferenceAt(consumed++).Equals(quote))
+            if (Unsafe.Add(ref first, consumed++).Equals(quote))
             {
                 quotesConsumed++;
 
@@ -156,9 +164,9 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
         goto EOL;
 
         InStringWithEscapes:
-        while (consumed < span.Length)
+        while (consumed < len)
         {
-            token = span.DangerousGetReferenceAt(consumed++);
+            token = Unsafe.Add(ref first, consumed++);
 
             if (token.Equals(quote))
             {
@@ -171,7 +179,7 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
             }
             else if (token.Equals(escape))
             {
-                if (consumed++ >= span.Length)
+                if (consumed++ >= len)
                     state.ThrowEscapeAtEnd();
 
                 escapesConsumed++;
@@ -194,9 +202,9 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
 
         Done:
         int sliceStart = (!state.isAtStart).ToByte();
-        int length = consumed - sliceStart - 1;
+        int length = (int)consumed - sliceStart - 1;
         field = state.remaining.Slice(sliceStart, length);
-        state.remaining = state.remaining.Slice(consumed - 1);
+        state.remaining = state.remaining.Slice((int)consumed - 1);
 
         Return:
         state.isAtStart = false;

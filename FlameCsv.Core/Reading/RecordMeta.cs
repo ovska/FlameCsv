@@ -55,7 +55,7 @@ internal struct RecordMeta
         return value;
     }
 
-    public bool HasSpecialCharacters
+    public readonly bool HasSpecialCharacters
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => (quoteCount | escapeCount) != 0;

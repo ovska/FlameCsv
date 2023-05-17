@@ -25,8 +25,8 @@ public class CsvReadBench
 
     private Stream GetFileStream() =>  new MemoryStream(Header ? _bytes_h : _bytes);
 
-    //[Params(true, false)] public bool Header { get; set; }
-    bool Header => true;
+    /*[Params(true, false)]*/
+    public bool Header { get; set; } = true;
 
     [Benchmark(Baseline = true)]
     public async Task Helper()
@@ -51,7 +51,7 @@ public class CsvReadBench
     {
         await foreach (var record in CsvReader.ReadAsync<Entry>(
             GetFileStream(),
-            CsvTextReaderOptions.Default,
+            CsvTextOptions.Default,
             context: new() { HasHeader = Header },
             encoding: Encoding.UTF8))
         {
@@ -64,7 +64,7 @@ public class CsvReadBench
     {
         await foreach (var record in CsvReader.ReadAsync<Entry>(
             GetFileStream(),
-            CsvUtf8ReaderOptions.Default,
+            CsvUtf8Options.Default,
             context: new() { HasHeader = Header }))
         {
             _ = record;
@@ -77,7 +77,7 @@ public class CsvReadBench
         await foreach (var record in CsvReader.ReadAsync<Entry>(
             GetFileStream(),
             EntryTypeMap_Text.Instance,
-            CsvTextReaderOptions.Default,
+            CsvTextOptions.Default,
             context: new() { HasHeader = Header },
             encoding: Encoding.UTF8))
         {
@@ -91,7 +91,7 @@ public class CsvReadBench
         await foreach (var record in CsvReader.ReadAsync<Entry>(
             GetFileStream(),
             EntryTypeMap_Utf8.Instance,
-            CsvUtf8ReaderOptions.Default,
+            CsvUtf8Options.Default,
             context: new() { HasHeader = Header }))
         {
             _ = record;

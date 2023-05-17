@@ -1,6 +1,9 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
@@ -11,9 +14,10 @@ namespace FlameCsv.Benchmark;
 
 [HideColumns("Error", "StdDev")]
 [SimpleJob]
+//[BenchmarkDotNet.Diagnostics.Windows.Configs.EtwProfiler]
 public class ModeBench
 {
-    private static readonly CsvReadingContext<byte> _context = new(CsvUtf8ReaderOptions.Default, default);
+    private static readonly CsvReadingContext<byte> _context = new(CsvUtf8Options.Default, default);
     private static readonly (ReadOnlyMemory<byte> data, RecordMeta meta)[] _bytes
         = File.ReadAllLines(
             "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv",
@@ -21,6 +25,38 @@ public class ModeBench
         .Select(Encoding.UTF8.GetBytes)
         .Select(b => (new ReadOnlyMemory<byte>(b), _context.GetRecordMeta(b)))
         .ToArray();
+
+    //[Benchmark(Baseline = true)]
+    //public void Run()
+    //{
+    //    byte[]? array = null;
+
+    //    foreach (ref readonly var tuple in _bytes.AsSpan())
+    //    {
+    //        CsvEnumerationStateRef<byte> state = new(in _context, tuple.data, ref array, tuple.meta);
+
+    //        while (!state.remaining.IsEmpty)
+    //            _ = RFCOLD<byte>(ref state);
+    //    }
+
+    //    _context.ArrayPool.EnsureReturned(ref array);
+    //}
+
+    //[Benchmark(Baseline = true)]
+    //public void Old()
+    //{
+    //    byte[]? array = null;
+
+    //    foreach (ref readonly var tuple in _bytes.AsSpan())
+    //    {
+    //        CsvEnumerationStateRef<byte> state = new(in _context, tuple.data, ref array, tuple.meta);
+
+    //        while (!state.remaining.IsEmpty)
+    //            _ = RFCOLD<byte>(ref state);
+    //    }
+
+    //    _context.ArrayPool.EnsureReturned(ref array);
+    //}
 
     [Benchmark(Baseline = true)]
     public void Old()
@@ -32,7 +68,7 @@ public class ModeBench
             CsvEnumerationStateRef<byte> state = new(in _context, tuple.data, ref array, tuple.meta);
 
             while (!state.remaining.IsEmpty)
-                _ = RFCOLD<byte>(ref state);
+                _ = RFC4180ModeOld<byte>.ReadNextField(ref state);
         }
 
         _context.ArrayPool.EnsureReturned(ref array);
@@ -48,15 +84,20 @@ public class ModeBench
             CsvEnumerationStateRef<byte> state = new(in _context, tuple.data, ref array, tuple.meta);
 
             while (!state.remaining.IsEmpty)
-                _ = RFCNEW<byte>(ref state);
+                _ = RFC4180Mode<byte>.ReadNextField(ref state);
         }
 
         _context.ArrayPool.EnsureReturned(ref array);
     }
+}
 
-
+internal static partial class RFC4180ModeOld<T> where T : unmanaged, IEquatable<T>
+{
+    /// <summary>
+    /// Reads the next field from a <strong>non-empty</strong> state.
+    /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static ReadOnlyMemory<T> RFCNEW<T>(ref CsvEnumerationStateRef<T> state) where T : unmanaged, IEquatable<T>
+    public static ReadOnlyMemory<T> ReadNextField(ref CsvEnumerationStateRef<T> state)
     {
         Debug.Assert(!state.remaining.IsEmpty);
 
@@ -123,7 +164,7 @@ public class ModeBench
 
         EOL:
         if (quotesRemaining != 0)
-            state.ThrowFieldEndedPrematurely();
+            state.ThrowForInvalidEOF();
 
         // whole line was consumed, skip the delimiter if it wasn't the first field
         field = state.remaining.Slice((!state.isAtStart).ToByte());
@@ -138,99 +179,154 @@ public class ModeBench
 
         Return:
         state.isAtStart = false;
-        return quotesConsumed == 0 ? field : RFC4180Mode<T>.Unescape(field, quote, quotesConsumed, ref state.buffer);
+
+        if (!state._context.Dialect.Whitespace.IsEmpty)
+            field = field.Trim(state._context.Dialect.Whitespace.Span);
+
+        return quotesConsumed == 0 ? field : Unescape(field, quote, quotesConsumed, ref state.buffer);
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static ReadOnlyMemory<T> RFCOLD<T>(ref CsvEnumerationStateRef<T> state) where T : unmanaged, IEquatable<T>
+    /// <summary>
+    /// Unescapes wrapping and inner double quotes from the input.
+    /// The input must be wrapped in quotes, and other quotes in the input must be in pairs
+    /// </summary>
+    /// <remarks>
+    /// Examples:
+    /// [<c>"abc"</c>] unescapes into [<c>abc</c>], [<c>"A ""B"" C"</c>] unescapes into [<c>A "B" C</c>]
+    /// </remarks>
+    /// <param name="source">Data to unescape</param>
+    /// <param name="quote">Double quote token</param>
+    /// <param name="quoteCount">Known quote count in the data, must be over 0 and divisible by 2</param>
+    /// <param name="unescapeBuffer">Buffer used if the data has quotes in-between the wrapping quotes</param>
+    /// <returns>Unescaped tokens, might be a slice of the original input</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ReadOnlyMemory<T> Unescape(
+        ReadOnlyMemory<T> source,
+        T quote,
+        uint quoteCount,
+        ref Memory<T> unescapeBuffer)
     {
-        Debug.Assert(!state.remaining.IsEmpty);
+        Debug.Assert(quoteCount != 0 && quoteCount % 2 == 0);
 
-        ReadOnlySpan<T> span = state.remaining.Span;
-        T delimiter = state._context.Dialect.Delimiter;
-        T quote = state._context.Dialect.Quote;
-
-        // If not the first field, validate that the first character is a delimiter
-        if (!state.isAtStart)
-        {
-            // Since field count may not be known in advance, we leave the delimiter at the head after each field
-            // so we can differentiate between an empty last field and end of the data in general
-            if (!span[0].Equals(delimiter))
-                state.ThrowNoDelimiterAtHead();
-
-            state.remaining = state.remaining.Slice(1);
-            span = span.Slice(1);
-        }
-        else
-        {
-            state.isAtStart = false;
-        }
-
-        // keep track of how many quotes the current field has
-        uint quotesConsumed = 0;
-        ref uint quotesRemaining = ref state.quotesRemaining;
-
-        // If the remaining row has no quotes seek the next comma directly
-        int index = quotesRemaining == 0
-            ? span.IndexOf(delimiter)
-            : span.IndexOfAny(delimiter, quote);
-
-        ReadOnlyMemory<T> field;
-
-        while (index >= 0)
-        {
-            // Hit a comma, either found end of field or more fields than expected
-            if (span[index].Equals(delimiter))
-            {
-                field = state.remaining.Slice(0, index);
-                span = span.Slice(0, index);
-                state.remaining = state.remaining.Slice(index); // note: leave the comma in
-                goto UnescapeAndReturn;
-            }
-
-            // Token found but was not delimiter, must be a quote. This branch is never taken if quotesRemaining is 0
-            quotesConsumed++;
-            index++; // move index past the quote
-
-            int nextIndex = --quotesRemaining == 0
-                ? span.Slice(index).IndexOf(delimiter)
-                : quotesConsumed % 2 == 0 // uneven quotes, only need to find the next one
-                    ? span.Slice(index).IndexOfAny(delimiter, quote)
-                    : span.Slice(index).IndexOf(quote);
-
-            if (nextIndex < 0)
-                break;
-
-            index += nextIndex;
-        }
-
-        field = state.remaining;
-        state.remaining = default; // consume all data
-
-        state.EnsureFullyConsumed(-1);
-
-        UnescapeAndReturn:
-        if (quotesConsumed == 0)
-            return field; // no unescaping needed
+        ReadOnlySpan<T> span = source.Span;
 
         if (span.Length >= 2 &&
             span.DangerousGetReference().Equals(quote) &&
             span.DangerousGetReferenceAt(span.Length - 1).Equals(quote))
         {
             // Trim trailing and leading quotes
-            field = field.Slice(1, field.Length - 2);
+            source = source.Slice(1, source.Length - 2);
 
-            if (quotesConsumed != 2)
+            if (quoteCount != 2)
             {
-                Debug.Assert(quotesConsumed >= 4);
-                return RFC4180Mode<T>.UnescapeRare(field, quote, quotesConsumed - 2, ref state.buffer);
+                Debug.Assert(quoteCount >= 4);
+                return UnescapeRare(source, quote, quoteCount - 2, ref unescapeBuffer);
             }
         }
         else
         {
-            RFC4180Mode<T>.ThrowInvalidUnescape(span, quote, quotesConsumed);
+            ThrowInvalidUnescape(span, quote, quoteCount);
         }
 
-        return field;
+        return source;
+    }
+
+    /// <summary>
+    /// Unescapes inner quotes from the input. Wrapping quotes have been trimmed at this point.
+    /// </summary>
+    internal static ReadOnlyMemory<T> UnescapeRare(
+        ReadOnlyMemory<T> sourceMemory,
+        T quote,
+        uint quoteCount,
+        ref Memory<T> unescapeBuffer)
+    {
+        Debug.Assert(quoteCount >= 2);
+        Debug.Assert(quoteCount % 2 == 0);
+        Debug.Assert(!unescapeBuffer.Span.Overlaps(sourceMemory.Span), "Source and unescape buffer must not overlap");
+
+        int written = 0;
+        int index = 0;
+        uint quotesLeft = quoteCount;
+
+        ReadOnlySpan<T> source = sourceMemory.Span;
+        ReadOnlySpan<T> needle = stackalloc T[] { quote, quote };
+
+        int unescapedLength = sourceMemory.Length - (int)(quoteCount / 2);
+
+        if (unescapedLength > unescapeBuffer.Length)
+            ThrowUnescapeBufferTooSmall(unescapedLength, unescapeBuffer.Length);
+
+        Memory<T> buffer = unescapeBuffer.Slice(0, unescapedLength);
+        unescapeBuffer = unescapeBuffer.Slice(unescapedLength); // "consume" the buffer
+
+        while (index < sourceMemory.Length)
+        {
+            int next = source.Slice(index).IndexOf(needle);
+
+            if (next < 0)
+                break;
+
+            int toCopy = next + 1;
+            sourceMemory.Slice(index, toCopy).CopyTo(buffer.Slice(written));
+            written += toCopy;
+            index += toCopy + 1; // advance past the second quote
+
+            // Found all quotes, copy remaining data
+            if ((quotesLeft -= 2) == 0)
+            {
+                sourceMemory.Slice(index).CopyTo(buffer.Slice(written));
+                written += sourceMemory.Length - index;
+                return buffer.Slice(0, written);
+            }
+        }
+
+        ThrowInvalidUnescape(sourceMemory.Span, quote, quoteCount);
+        return default; // unreachable
+    }
+
+    [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    private static void ThrowUnescapeBufferTooSmall(int requiredLength, int bufferLength)
+    {
+        throw new UnreachableException(
+            $"Internal error, failed to unescape: required {requiredLength} but got buffer with length {bufferLength}.");
+    }
+
+    /// <exception cref="UnreachableException">
+    /// The data and/or the supplied quote count parameter were invalid. 
+    /// </exception>
+    [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    internal static void ThrowInvalidUnescape(
+        ReadOnlySpan<T> source,
+        T quote,
+        uint quoteCount)
+    {
+        int actualCount = source.Count(quote);
+
+        var error = new StringBuilder(64);
+
+        if (source.Length < 2)
+        {
+            error.Append(CultureInfo.InvariantCulture, $"Source is too short (length: {source.Length}). ");
+        }
+
+        if (actualCount != quoteCount)
+        {
+            error.Append(CultureInfo.InvariantCulture, $"String delimiter count {quoteCount} was invalid (actual was {actualCount}). ");
+        }
+
+        if (error.Length != 0)
+            error.Length--;
+
+        error.Append("The data structure was: [");
+
+        foreach (var token in source)
+        {
+            error.Append(token.Equals(quote) ? '"' : 'x');
+        }
+
+        error.Append(']');
+
+        throw new UnreachableException(
+            $"Internal error, failed to unescape (token: {typeof(T).ToTypeString()}): {error}");
     }
 }

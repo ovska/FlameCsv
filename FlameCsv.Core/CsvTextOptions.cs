@@ -76,30 +76,35 @@ public sealed class CsvTextOptions : CsvOptions<char>
 
     public CsvTextOptions Clone() => new(this);
 
+    /// <inheritdoc cref="ICsvDialectOptions{T}.Delimiter"/>
     public char Delimiter
     {
         get => _delimiter;
         set => ((ICsvDialectOptions<char>)this).Delimiter = value;
     }
 
+    /// <inheritdoc cref="ICsvDialectOptions{T}.Quote"/>
     public char Quote
     {
         get => _quote;
         set => ((ICsvDialectOptions<char>)this).Quote = value;
     }
 
+    /// <inheritdoc cref="ICsvDialectOptions{T}.Newline"/>
     public string Newline
     {
         get => _newline.ToString();
         set => ((ICsvDialectOptions<char>)this).Newline = value.AsMemory();
     }
 
+    /// <inheritdoc cref="ICsvDialectOptions{T}.Whitespace"/>
     public string? Whitespace
     {
         get => _whitespace.ToString();
         set => ((ICsvDialectOptions<char>)this).Whitespace = value.AsMemory();
     }
 
+    /// <inheritdoc cref="ICsvDialectOptions{T}.Escape"/>
     public char? Escape
     {
         get => _escape;

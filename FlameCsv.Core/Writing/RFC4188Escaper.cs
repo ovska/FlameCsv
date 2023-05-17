@@ -13,6 +13,7 @@ internal readonly struct RFC4188Escaper<T> : IEscaper<T> where T : unmanaged, IE
     private readonly T _delimiter;
     private readonly T _quote;
     private readonly ReadOnlyMemory<T> _newline;
+    private readonly ReadOnlyMemory<T> _whitespace;
 
     public RFC4188Escaper(in CsvDialect<T> dialect)
     {
@@ -22,22 +23,29 @@ internal readonly struct RFC4188Escaper<T> : IEscaper<T> where T : unmanaged, IE
         _delimiter = dialect.Delimiter;
         _quote = dialect.Quote;
         _newline = dialect.Newline;
+        _whitespace = dialect.Whitespace;
     }
 
     public bool NeedsEscaping(T value) => value.Equals(_quote);
 
     public bool NeedsEscaping(ReadOnlySpan<T> value, out int specialCount)
     {
+        if (value.IsEmpty)
+        {
+            specialCount = 0;
+            return false;
+        }
+
         int index;
         ReadOnlySpan<T> newLine = _newline.Span;
 
-        if (newLine.Length > 1)
+        if (newLine.Length != 1)
         {
             index = value.IndexOfAny(_delimiter, _quote);
 
             if (index >= 0)
             {
-                goto Found;
+                goto FoundQuoteOrDelimiter;
             }
 
             specialCount = 0;
@@ -50,15 +58,30 @@ internal readonly struct RFC4188Escaper<T> : IEscaper<T> where T : unmanaged, IE
 
             if (index >= 0)
             {
-                goto Found;
+                goto FoundQuoteOrDelimiter;
             }
         }
 
-        Unsafe.SkipInit(out specialCount);
+        specialCount = 0;
+
+        if (!_whitespace.IsEmpty)
+        {
+            ref T first = ref value.DangerousGetReference();
+            ref T last = ref Unsafe.Add(ref first, value.Length - 1);
+
+            foreach (T token in _whitespace.Span)
+            {
+                if (first.Equals(token) || last.Equals(token))
+                {
+                    return true;
+                }
+            }
+        }
+
         return false;
 
-        Found:
-        specialCount = value.Slice(index).Count(_quote);
+        FoundQuoteOrDelimiter:
+        specialCount = CountEscapable(value.Slice(index));
         return true;
     }
 
