@@ -1,14 +1,47 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using CommunityToolkit.Diagnostics;
+using FlameCsv.Converters;
+using FlameCsv.Exceptions;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Binding.Attributes;
 
-/// <inheritdoc/>
-public sealed class CsvConverterAttribute<T, [DynamicallyAccessedMembers(Messages.Ctors)] TParser> : CsvConverterAttribute<T>
+/// <summary>
+/// Overrides the converter for the target member or parameter.
+/// </summary>
+/// <remarks>
+/// Converter created this way are not cached in <see cref="CsvOptions{T}"/>,
+/// and a new instance is created for every overridden property if necessary.
+/// </remarks>
+/// <typeparam name="T"></typeparam>
+/// <typeparam name="TConverter"></typeparam>
+public sealed class CsvConverterAttribute<T, [DynamicallyAccessedMembers(Messages.Ctors)] TConverter> : CsvConverterAttribute<T>
     where T : unmanaged, IEquatable<T>
-    where TParser : CsvConverter<T>
+    where TConverter : CsvConverter<T>
 {
-    /// <inheritdoc/>
-    public CsvConverterAttribute() : base(typeof(TParser))
+    /// <inheritdoc cref="CsvConverterAttribute{T, TParser}"/>
+    public CsvConverterAttribute()
     {
+    }
+
+    protected override CsvConverter<T> CreateConverterOrFactory(Type targetType, CsvOptions<T> options)
+    {
+        if (typeof(TConverter).GetConstructor(new[] { options.GetType() }) is { } exactCtor)
+        {
+            return (CsvConverter<T>)exactCtor.Invoke(new object[] { options });
+        }
+
+        if (typeof(TConverter).GetConstructor(new[] { typeof(CsvOptions<T>) }) is { } baseTypeCtor)
+        {
+            return (CsvConverter<T>)baseTypeCtor.Invoke(new object[] { options });
+        }
+
+        if (typeof(TConverter).GetConstructor(Type.EmptyTypes) is { } emptyCtor)
+        {
+            return (CsvConverter<T>)emptyCtor.Invoke(Array.Empty<object>());
+        }
+
+        throw new CsvConfigurationException(
+            $"Parser type {typeof(TConverter).ToTypeString()} has no valid constructor!");
     }
 }

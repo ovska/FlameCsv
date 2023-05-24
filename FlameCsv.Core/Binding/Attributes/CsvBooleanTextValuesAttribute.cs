@@ -21,10 +21,8 @@ public sealed class CsvBooleanTextValuesAttribute : CsvConverterAttribute<char>
     public string[] FalseValues { get; set; } = Array.Empty<string>();
 
     /// <inheritdoc/>
-    public override CsvConverter<char> CreateConverter(Type targetType, CsvOptions<char> options)
+    protected override CsvConverter<char> CreateConverterOrFactory(Type targetType, CsvOptions<char> options)
     {
-        ArgumentNullException.ThrowIfNull(options);
-
         CustomBooleanTextConverter converter = new(
             trueValues: TrueValues,
             falseValues: FalseValues);
