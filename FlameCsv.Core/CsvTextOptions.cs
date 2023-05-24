@@ -27,7 +27,6 @@ public sealed class CsvTextOptions : CsvOptions<char>
     private DateTimeStyles _dateTimeStyles;
     private TimeSpanStyles _timeSpanStyles;
     private string? _guidFormat;
-    private bool _readEmptyStringsAsNull;
     private string? _null;
     private TypeDictionary<string?>? _nullTokens;
 
@@ -52,7 +51,6 @@ public sealed class CsvTextOptions : CsvOptions<char>
         _dateTimeStyles = other._dateTimeStyles;
         _timeSpanStyles = other._timeSpanStyles;
         _guidFormat = other._guidFormat;
-        _readEmptyStringsAsNull = other._readEmptyStringsAsNull;
         _null = other._null;
 
         // copy collections
@@ -237,16 +235,6 @@ public sealed class CsvTextOptions : CsvOptions<char>
     {
         get => _guidFormat;
         set => this.SetValue(ref _guidFormat, value);
-    }
-
-    /// <summary>
-    /// Used by <see cref="StringTextParser"/> and <see cref="PoolingStringTextParser"/> to return nulls when a
-    /// string field is empty. Default is <see langword="false"/>.
-    /// </summary>
-    public bool ReadEmptyStringsAsNull
-    {
-        get => _readEmptyStringsAsNull;
-        set => this.SetValue(ref _readEmptyStringsAsNull, value);
     }
 
     /// <summary>
