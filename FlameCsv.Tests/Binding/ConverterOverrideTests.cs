@@ -1,20 +1,11 @@
 using System.Globalization;
 using FlameCsv.Binding.Attributes;
 
-// ReSharper disable UnusedAutoPropertyAccessor.Local
-// ReSharper disable ClassNeverInstantiated.Local
-
 namespace FlameCsv.Tests.Binding;
 
-public static class ParserOverrideTests
+public static class ConverterOverrideTests
 {
     private class TestObj
-    {
-        [CsvConverter<char>(typeof(CurrencyConverter))]
-        public double Dollars { get; set; }
-    }
-
-    private class TestObj2
     {
         [CsvConverter<char, CurrencyConverter>]
         public double Dollars { get; set; }
@@ -24,19 +15,19 @@ public static class ParserOverrideTests
     {
         private readonly NumberFormatInfo _nfi = new CultureInfo("en-US").NumberFormat;
 
-        public override bool TryFormat(Span<char> buffer, double value, out int charsWritten)
+        public override bool TryFormat(Span<char> destination, double value, out int charsWritten)
         {
             throw new NotImplementedException();
         }
 
-        public override bool TryParse(ReadOnlySpan<char> span, out double value)
+        public override bool TryParse(ReadOnlySpan<char> source, out double value)
         {
-            return double.TryParse(span, NumberStyles.Currency, _nfi, out value);
+            return double.TryParse(source, NumberStyles.Currency, _nfi, out value);
         }
     }
 
     [Fact]
-    public static void Should_Use_Custom_Parser()
+    public static void Should_Use_Custom_Converter()
     {
         const string data = "Dollars\n\"$ 8,042.15\"\n$ 123.45\n";
         var options = new CsvTextOptions
@@ -48,10 +39,5 @@ public static class ParserOverrideTests
         Assert.Equal(2, objs.Count);
         Assert.Equal(8042.15, objs[0].Dollars);
         Assert.Equal(123.45, objs[1].Dollars);
-
-        var objs2 = CsvReader.Read<TestObj2>(data, options).ToList();
-        Assert.Equal(2, objs2.Count);
-        Assert.Equal(8042.15, objs2[0].Dollars);
-        Assert.Equal(123.45, objs2[1].Dollars);
     }
 }
