@@ -6,6 +6,23 @@ namespace FlameCsv.SourceGen;
 
 internal static class Extensions
 {
+    public static TTo FindValueOrDefault<TFrom, TTo>(
+        this SyntaxList<TFrom> syntaxList,
+        Func<TFrom, bool> predicate,
+        Func<TFrom, TTo> valueSelector)
+        where TFrom : SyntaxNode
+    {
+        foreach (var node in syntaxList)
+        {
+            if (predicate(node))
+            {
+                return valueSelector(node);
+            }
+        }
+
+        return default!;
+    }
+
     public static T FindValueOrDefault<T>(this ImmutableArray<T> array, Func<T, bool> predicate)
     {
         foreach (var item in array)

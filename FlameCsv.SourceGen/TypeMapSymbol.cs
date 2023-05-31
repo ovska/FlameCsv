@@ -1,33 +1,50 @@
-﻿namespace FlameCsv.SourceGen;
+﻿using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+
+namespace FlameCsv.SourceGen;
 
 public readonly struct TypeMapSymbol
 {
     public TypeMapSymbol(
         INamedTypeSymbol containingClass,
-        AttributeData csvTypeMapAttribute,
-        GeneratorExecutionContext context)
+        AttributeSyntax csvTypeMapAttribute,
+        INamedTypeSymbol attributeSymbol,
+        SourceProductionContext context)
     {
         ContainingClass = containingClass;
-        TokenSymbol = csvTypeMapAttribute.AttributeClass!.TypeArguments[0];
-        Type = csvTypeMapAttribute.AttributeClass.TypeArguments[1];
+        TokenSymbol = attributeSymbol.TypeArguments[0];
+        Type = attributeSymbol.TypeArguments[1];
         Context = context;
         Token = TokenSymbol.ToDisplayString();
         ResultName = Type.ToDisplayString();
         HandlerArgs = $"(ref TypeMapMaterializer materializer, ref ParseState state, ReadOnlySpan<{Token}> field)";
 
-        foreach (var arg in csvTypeMapAttribute.NamedArguments)
+        if (csvTypeMapAttribute.ArgumentList is { } arguments)
         {
-            if (arg.Key.Equals("IgnoreUnmatched", StringComparison.OrdinalIgnoreCase))
+            foreach (var arg in arguments.Arguments)
             {
-                IgnoreUnmatched = (bool)arg.Value.Value!;
-            }
-            else if (arg.Key.Equals("ThrowOnDuplicate", StringComparison.OrdinalIgnoreCase))
-            {
-                ThrowOnDuplicate = (bool)arg.Value.Value!;
-            }
-            else if (arg.Key.Equals("SkipStaticInstance", StringComparison.OrdinalIgnoreCase))
-            {
-                SkipStaticInstance = (bool)arg.Value.Value!;
+                IEnumerable<SyntaxNode> childNodes = arg.ChildNodes();
+
+                if (childNodes.First() is not NameEqualsSyntax propertyNameNode ||
+                    childNodes.ElementAtOrDefault(1) is not SyntaxNode propertyValueNode)
+                {
+                    continue;
+                }
+
+                string propertyName = propertyNameNode.Name.Identifier.ValueText;
+
+                if (propertyName.Equals("IgnoreUnmatched", StringComparison.OrdinalIgnoreCase))
+                {
+                    IgnoreUnmatched = propertyValueNode.IsKind(SyntaxKind.TrueLiteralExpression);
+                }
+                else if (propertyName.Equals("ThrowOnDuplicate", StringComparison.OrdinalIgnoreCase))
+                {
+                    ThrowOnDuplicate = propertyValueNode.IsKind(SyntaxKind.TrueLiteralExpression);
+                }
+                else if (propertyName.Equals("SkipStaticInstance", StringComparison.OrdinalIgnoreCase))
+                {
+                    SkipStaticInstance = propertyValueNode.IsKind(SyntaxKind.TrueLiteralExpression);
+                }
             }
         }
 
@@ -78,13 +95,15 @@ public readonly struct TypeMapSymbol
     /// <summary>
     /// Current context.
     /// </summary>
-    public GeneratorExecutionContext Context { get; }
+    public SourceProductionContext Context { get; }
 
     public bool IgnoreUnmatched { get; }
 
     public bool ThrowOnDuplicate { get; }
 
     public bool SkipStaticInstance { get; }
+
+    public void ThrowIfCancellationRequested() => Context.CancellationToken.ThrowIfCancellationRequested();
 
     /// <exception cref="DiagnosticException" />
     [DoesNotReturn]

@@ -1,40 +1,81 @@
 ﻿using System.Collections.Immutable;
 using FlameCsv.SourceGen.Bindings;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace FlameCsv.SourceGen;
 
-[Generator]
-public partial class TypeMapGenerator : ISourceGenerator
+[Generator(LanguageNames.CSharp)]
+public partial class TypeMapGenerator : IIncrementalGenerator
 {
     private KnownSymbols _symbols;
     private TypeBindings _bindings = null!;
 
-    public void Execute(GeneratorExecutionContext context)
+    public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        if (context.SyntaxReceiver is not SyntaxReceiver receiver)
+        IncrementalValuesProvider<ClassDeclarationSyntax> classDeclarations = context.SyntaxProvider
+               .CreateSyntaxProvider(
+                    static (s, _) => IsSyntaxTargetForGeneration(s),
+                    static (s, ct) => GetSemanticTargetForGeneration(s, ct))
+               .Where(static c => c is not null)!;
+
+        IncrementalValueProvider<(Compilation, ImmutableArray<ClassDeclarationSyntax>)> compilationAndClasses =
+               context.CompilationProvider.Combine(classDeclarations.Collect());
+
+        context.RegisterSourceOutput(compilationAndClasses, (spc, source) => Execute(source.Item1, source.Item2, spc));
+    }
+
+    private void Execute(Compilation compilation, ImmutableArray<ClassDeclarationSyntax> matches, SourceProductionContext context)
+    {
+        if (matches.IsDefaultOrEmpty || context.CancellationToken.IsCancellationRequested)
             return;
 
-        _symbols = new KnownSymbols(context.Compilation);
+        _symbols = new KnownSymbols(compilation);
 
-        foreach (var typeMapSymbol in GetTypeMapSymbols(context, receiver))
+        foreach (var classDeclaration in matches)
         {
+            var model = compilation.GetSemanticModel(classDeclaration.SyntaxTree);
+            var classSymbol = model.GetDeclaredSymbol(classDeclaration, context.CancellationToken);
+
+            if (classSymbol is null)
+                continue;
+
+            AttributeSyntax? attributeSyntax1 = null;
+            INamedTypeSymbol? attributeSymbol = null;
+
+            foreach (AttributeListSyntax attributeListSyntax in classDeclaration.AttributeLists)
+            {
+                foreach (AttributeSyntax attributeSyntax in attributeListSyntax.Attributes)
+                {
+                    if (model.GetSymbolInfo(attributeSyntax, context.CancellationToken).Symbol is IMethodSymbol
+                        { ContainingType: INamedTypeSymbol { Arity: 2, IsGenericType: true } attributeType } &&
+                        SymbolEqualityComparer.Default.Equals(_symbols.CsvTypeMapAttribute, attributeType.ConstructUnboundGenericType()))
+                    {
+                        attributeSyntax1 = attributeSyntax;
+                        attributeSymbol = attributeType;
+                        break;
+                    }
+                }
+
+                if (attributeSyntax1 != null && attributeSymbol != null)
+                    break;
+            }
+
+            if (attributeSyntax1 is null || attributeSymbol is null)
+                continue;
+
+            TypeMapSymbol typeMap = new(classSymbol, attributeSyntax1, attributeSymbol, context);
+
             try
             {
                 context.AddSource(
-                    $"{typeMapSymbol.ContainingClass.Name}.G.cs",
-                    SourceText.From(CreateTypeMap(typeMapSymbol), Encoding.UTF8));
+                    $"{typeMap.ContainingClass.Name}.G.cs",
+                    SourceText.From(CreateTypeMap(typeMap), Encoding.UTF8));
             }
             catch (DiagnosticException)
             {
             }
         }
-    }
-
-    public void Initialize(GeneratorInitializationContext context)
-    {
-        context.RegisterForSyntaxNotifications(() => new SyntaxReceiver());
     }
 
     private string CreateTypeMap(TypeMapSymbol typeMap)
@@ -193,6 +234,8 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
 
     private string WriteSetters(TypeMapSymbol typeMap)
     {
+        typeMap.ThrowIfCancellationRequested();
+
         var sb = new StringBuilder(256);
 
         sb.Append('(');
@@ -352,6 +395,8 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
 
         foreach (var member in typeMap.Type.GetPublicMembersRecursive())
         {
+            typeMap.ThrowIfCancellationRequested();
+
             if (member.DeclaredAccessibility == Accessibility.Private)
                 continue;
 
@@ -406,6 +451,8 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
 
         foreach (var parameter in constructor.Parameters)
         {
+            typeMap.ThrowIfCancellationRequested();
+
             if (parameter.Type.IsRefLikeType)
             {
                 typeMap.Fail(Diagnostics.RefLikeConstructorParameterFound(typeMap.Type, parameter));
@@ -429,24 +476,28 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
         return new TypeBindings(members.ToImmutable(), parameters.ToImmutable());
     }
 
-    private IEnumerable<string> WriteParserMembers(TypeMapSymbol symbol)
+    private IEnumerable<string> WriteParserMembers(TypeMapSymbol typeMap)
     {
+        typeMap.ThrowIfCancellationRequested();
+
         foreach (var binding in _bindings.Members)
         {
-            yield return $"public CsvConverter<{symbol.Token}, {binding.Type.ToDisplayString()}>? {binding.ParserId};";
+            yield return $"public CsvConverter<{typeMap.Token}, {binding.Type.ToDisplayString()}>? {binding.ParserId};";
         }
 
         foreach (var binding in _bindings.Parameters)
         {
-            yield return $"public CsvConverter<{symbol.Token}, {binding.Type.ToDisplayString()}>? {binding.ParserId};";
+            yield return $"public CsvConverter<{typeMap.Token}, {binding.Type.ToDisplayString()}>? {binding.ParserId};";
         }
     }
 
-    private IEnumerable<string> WriteParserHandlers(TypeMapSymbol symbol)
+    private IEnumerable<string> WriteParserHandlers(TypeMapSymbol typeMap)
     {
+        typeMap.ThrowIfCancellationRequested();
+
         foreach (var binding in _bindings.AllBindings)
         {
-            yield return $@"private static readonly TryParseHandler {binding.HandlerId} = {symbol.HandlerArgs} =>
+            yield return $@"private static readonly TryParseHandler {binding.HandlerId} = {typeMap.HandlerArgs} =>
         {{
             if (materializer.{binding.ParserId}!.TryParse(field, out var result))
             {{
@@ -460,6 +511,8 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
 
     private IEnumerable<string> WriteMatchers(TypeMapSymbol typeMap)
     {
+        typeMap.ThrowIfCancellationRequested();
+
         foreach (var binding in _bindings.AllBindings
             .OrderByDescending(b => b.Order)
             .ThenByDescending(b => b is ParameterBinding)
@@ -549,29 +602,31 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
         names ??= names = new[] { symbol.Name };
     }
 
-    private IEnumerable<TypeMapSymbol> GetTypeMapSymbols(
-        GeneratorExecutionContext context,
-        SyntaxReceiver receiver)
+    private static bool IsSyntaxTargetForGeneration(SyntaxNode node)
     {
-        foreach (var candidate in receiver.Candidates)
-        {
-            var model = context.Compilation.GetSemanticModel(candidate.SyntaxTree);
-            var classSymbol = model.GetDeclaredSymbol(candidate, context.CancellationToken);
+        return node is ClassDeclarationSyntax { AttributeLists.Count: > 0 };
+    }
 
-            if (classSymbol is { IsAbstract: false, IsGenericType: false })
+    private static ClassDeclarationSyntax? GetSemanticTargetForGeneration(
+        GeneratorSyntaxContext context,
+        CancellationToken token)
+    {
+        var classDeclarationSyntax = (ClassDeclarationSyntax)context.Node;
+
+        foreach (AttributeListSyntax attributeListSyntax in classDeclarationSyntax.AttributeLists)
+        {
+            foreach (AttributeSyntax attributeSyntax in attributeListSyntax.Attributes)
             {
-                foreach (var attributeData in classSymbol.GetAttributes())
+                if (context.SemanticModel.GetSymbolInfo(attributeSyntax, token).Symbol is IMethodSymbol
+                    { ContainingType: INamedTypeSymbol { Arity: 2, IsGenericType: true } attributeType } &&
+                        attributeType.ConstructUnboundGenericType().ToDisplayString()
+                            == "FlameCsv.Binding.CsvTypeMapAttribute<,>")
                 {
-                    if (attributeData.AttributeClass is { IsGenericType: true, Arity: 2 } attribute &&
-                        SymbolEqualityComparer.Default.Equals(attribute.ConstructUnboundGenericType(), _symbols.CsvTypeMapAttribute))
-                    {
-                        yield return new TypeMapSymbol(
-                            containingClass: (INamedTypeSymbol)classSymbol,
-                            csvTypeMapAttribute: attributeData,
-                            context: context);
-                    }
+                    return classDeclarationSyntax;
                 }
             }
         }
+
+        return default;
     }
 }
