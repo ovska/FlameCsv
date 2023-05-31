@@ -3,7 +3,7 @@ using FlameCsv.Exceptions;
 
 namespace FlameCsv.Tests.Binding;
 
-public static class TypeMapBindingTests
+public static partial class TypeMapBindingTests
 {
     [Fact]
     public static void Should_Require_At_Least_One_Field()

@@ -93,4 +93,41 @@ public readonly struct TypeMapSymbol
         Context.ReportDiagnostic(diagnostic);
         throw new DiagnosticException($"Source generation failed: {diagnostic}");
     }
+
+    public string GetWrappedTypes(out int wrappedCount)
+    {
+        if (ContainingClass.ContainingType is null)
+        {
+            wrappedCount = 0;
+            return "";
+        }
+
+        var sb = new StringBuilder();
+        List<string> wrappers = new();
+
+        INamedTypeSymbol? type = ContainingClass.ContainingType;
+
+        while (type is not null)
+        {
+            sb.Append("\n    partial ");
+            sb.Append(type.IsValueType ? "struct " : "class ");
+            sb.Append(type.ToDisplayString(new SymbolDisplayFormat(typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameOnly)));
+            sb.Append("  {");
+            wrappers.Add(sb.ToString());
+            sb.Clear();
+
+            type = type.ContainingType;
+        }
+
+        wrappedCount = wrappers.Count;
+
+        wrappers.Reverse();
+
+        foreach (var wrapper in wrappers)
+        {
+            sb.Append(wrapper);
+        }
+
+        return sb.ToString();
+    }
 }
