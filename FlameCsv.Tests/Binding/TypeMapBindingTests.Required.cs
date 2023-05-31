@@ -6,7 +6,6 @@ namespace FlameCsv.Tests.Binding;
 public static partial class TypeMapBindingTests
 {
 
-
     private class _Obj : ISomething
     {
         [CsvConstructor]
@@ -20,7 +19,7 @@ public static partial class TypeMapBindingTests
         bool ISomething.Xyzz { get; set; }
     }
 
-    [CsvTypeMap<char, _Obj>]
+    [CsvTypeMap<char, _Obj>()]
     private partial class Test
     {
     }
