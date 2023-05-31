@@ -98,7 +98,7 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     internal protected abstract bool TryGetDefaultConverter(Type type, [NotNullWhen(true)] out CsvConverter<T>? converter);
 
     private IEqualityComparer<string> _stringComparison = StringComparer.OrdinalIgnoreCase;
-    private RowSkipCallback<T>? _shouldSkipRow;
+    private CsvRecordSkipPredicate<T>? _shouldSkipRow;
     private CsvExceptionHandler<T>? _exceptionHandler;
     private bool _hasHeader = true;
     private bool _validateFieldCount;
@@ -128,7 +128,7 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     /// Delegate that determines whether a row should be skipped.
     /// Default is <see langword="null"/>, which means all rows are processed.
     /// </summary>
-    public RowSkipCallback<T>? ShouldSkipRow
+    public CsvRecordSkipPredicate<T>? ShouldSkipRow
     {
         get => _shouldSkipRow;
         set => this.SetValue(ref _shouldSkipRow, value);

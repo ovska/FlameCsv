@@ -64,7 +64,6 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         _current = default!;
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
     protected bool TryRead(ref ReadOnlySequence<T> buffer, bool isFinalBlock)
     {
         ReadNextRecord:
