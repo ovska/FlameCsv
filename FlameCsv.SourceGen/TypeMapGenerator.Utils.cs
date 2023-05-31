@@ -1,49 +1,8 @@
-﻿namespace FlameCsv.SourceGen;
+﻿
+namespace FlameCsv.SourceGen;
 
 public partial class TypeMapGenerator
 {
-    private static bool IsValidMember(ISymbol member)
-    {
-        return !member.IsStatic && member.CanBeReferencedByName;
-    }
-
-    private bool IsValidProperty(IPropertySymbol p)
-    {
-        if (!IsValidMember(p) || p.IsReadOnly || p.IsIndexer)
-        {
-            return false;
-        }
-
-        return !HasIgnoreAttribute(p);
-    }
-
-    private bool IsValidField(IFieldSymbol f)
-    {
-        if (!IsValidMember(f) || f.IsReadOnly)
-            return false;
-
-        return !HasIgnoreAttribute(f);
-    }
-
-    private bool HasIgnoreAttribute(ISymbol symbol)
-    {
-        foreach (var attribute in symbol.GetAttributes())
-        {
-            if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, _symbols.CsvHeaderIgnoreAttribute))
-                return true;
-        }
-
-        return false;
-    }
-
-    private static string Stringify(string? name)
-    {
-        if (name is null)
-            return "null";
-
-        return $"\"{name.Replace("\"", "\\\"")}\"";
-    }
-
     private string GetParserInitializer(ITypeSymbol token, ITypeSymbol memberType, ITypeSymbol parser)
     {
         if (!parser.GetMembers().Any(m => m is IMethodSymbol { MethodKind: MethodKind.Constructor, Parameters.Length: 0 }))

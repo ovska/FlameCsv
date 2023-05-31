@@ -1,4 +1,7 @@
 ﻿using System.Collections.Immutable;
+using FlameCsv.SourceGen.Bindings;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace FlameCsv.SourceGen;
 
@@ -49,7 +52,7 @@ using FlameCsv.Converters;
 using FlameCsv.Reading;
 
 namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
-{{
+{{{typeMap.GetWrappedTypes(out int wrappedCount)}
     partial class {typeMap.ContainingClass.Name} : CsvTypeMap<{typeMap.Token}, {typeMap.ResultName}>
     {{
         /// <summary>
@@ -87,12 +90,7 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
             CsvOptions<{typeMap.Token}> options)
         {{
             throw new NotSupportedException(""{typeMap.ContainingClass.MetadataName} does not support index binding."");
-        }}
-
-        private static IEnumerable<string> GetMissingRequiredFields(TypeMapMaterializer materializer)
-        {{
-            {WriteMissingRequiredFields()}
-        }}
+        }}{WriteMissingRequiredFields()}
 
         private struct ParseState
         {{
@@ -138,15 +136,15 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
 
                 // Create the value from parsed values. Required members are validated when creating the materializer,
                 // optional members are assigned only if parsed to not overwrite possible default values.
-                {typeMap.ResultName} obj = new {typeMap.ResultName}{WriteSetters()}
+                {typeMap.ResultName} obj = new {typeMap.ResultName}{WriteSetters(typeMap)}
                 return obj;
             }}
-
-            {string.Join(@"
-
-            ", WriteParserHandlers(typeMap))}
         }}
-    }}
+
+        {string.Join(@"
+
+        ", WriteParserHandlers(typeMap))}
+    }}{(wrappedCount == 0 ? "" : "\n    " + new string('}', wrappedCount))}
 }}";
     }
 
@@ -183,14 +181,7 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
             sb.Append("                state.");
             sb.Append(binding.Name);
             sb.Append(" = ");
-            sb.Append(binding.DefaultValue switch
-            {
-                null => "default", // should be handled above
-                string s => Stringify(s),
-                bool b => b ? "true" : "false",
-                IFormattable f => f.ToString(null, System.Globalization.CultureInfo.InvariantCulture),
-                _ => binding.DefaultValue.ToString()
-            });
+            sb.Append(binding.DefaultValue.ToLiteral());
             sb.Append(@";
 ");
         }
@@ -200,7 +191,7 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
         return sb.ToString();
     }
 
-    private string WriteSetters()
+    private string WriteSetters(TypeMapSymbol typeMap)
     {
         var sb = new StringBuilder(256);
 
@@ -260,7 +251,19 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
             sb.Append("                if (");
             sb.Append(binding.ParserId);
             sb.Append(" != null) ");
-            sb.Append("obj.");
+
+            if (binding.Symbol.ContainingType.TypeKind == TypeKind.Interface &&
+                !SymbolEqualityComparer.Default.Equals(binding.Symbol.ContainingType, typeMap.Type))
+            {
+                sb.Append("((");
+                sb.Append(binding.Symbol.OriginalDefinition.ContainingType.ToDisplayString());
+                sb.Append(")obj).");
+            }
+            else
+            {
+                sb.Append("obj.");
+            }
+
             sb.Append(binding.Name);
             sb.Append(" = state.");
             sb.Append(binding.Name);
@@ -286,8 +289,10 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
 
     private string WriteRequiredCheck()
     {
-        if (_bindings.RequiredMembers.Length == 0 && _bindings.Parameters.Length == 0)
-            return "";
+        if (_bindings.RequiredBindings.Length == 0)
+            return @"
+            // No check for required members, the type has none.
+";
 
         var sb = new StringBuilder(128);
 
@@ -314,13 +319,27 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
 
     private string WriteMissingRequiredFields()
     {
-        string result = string.Join(@"
-            ", _bindings.RequiredBindings.Select(b => $"if (materializer.{b.ParserId} == null) yield return {Stringify(b.Name)};"));
+        if (_bindings.RequiredBindings.Length == 0)
+            return "";
 
-        if (result.Length == 0)
-            return "return System.Array.Empty<string>();";
+        var sb = new StringBuilder(128);
 
-        return result;
+        sb.Append(@"
+
+        private static IEnumerable<string> GetMissingRequiredFields(TypeMapMaterializer materializer)
+        {");
+
+        foreach (var b in _bindings.RequiredBindings)
+        {
+            sb.Append($@"
+            if (materializer.{b.ParserId} == null) yield return {b.Name.ToStringLiteral()};");
+        }
+
+        sb.Append(@"
+        }
+");
+
+        return sb.ToString();
     }
 
     private TypeBindings ResolveMembers(TypeMapSymbol typeMap)
@@ -331,7 +350,7 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
         IMethodSymbol? constructor = null;
         IMethodSymbol? parameterlessCtor = null;
 
-        foreach (var member in typeMap.Type.GetMembers())
+        foreach (var member in typeMap.Type.GetPublicMembersRecursive())
         {
             if (member.DeclaredAccessibility == Accessibility.Private)
                 continue;
@@ -340,13 +359,13 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
             int order;
             IEnumerable<string> names;
 
-            if (member is IPropertySymbol property && IsValidProperty(property))
+            if (member is IPropertySymbol property && property.IsSerializerWritable(in _symbols))
             {
                 GetSymbolOptions(member, out isRequired, out order, out names);
                 members.Add(new MemberBinding(member, property.Type, isRequired || property.IsRequired, order, names));
 
             }
-            else if (member is IFieldSymbol field && IsValidField(field))
+            else if (member is IFieldSymbol field && field.IsSerializerWritable(in _symbols))
             {
                 GetSymbolOptions(member, out isRequired, out order, out names);
                 members.Add(new MemberBinding(member, field.Type, isRequired, order, names));
@@ -427,15 +446,15 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
     {
         foreach (var binding in _bindings.AllBindings)
         {
-            yield return $@"public static readonly TryParseHandler {binding.HandlerId} = {symbol.HandlerArgs} =>
+            yield return $@"private static readonly TryParseHandler {binding.HandlerId} = {symbol.HandlerArgs} =>
+        {{
+            if (materializer.{binding.ParserId}!.TryParse(field, out var result))
             {{
-                if (materializer.{binding.ParserId}!.TryParse(field, out var result))
-                {{
-                    state.{binding.Name} = result;
-                    return true;
-                }}
-                return false;
-            }};";
+                state.{binding.Name} = result;
+                return true;
+            }}
+            return false;
+        }};";
         }
     }
 
@@ -457,17 +476,17 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
             else
             {
                 checkDuplicate = $@"
-                    if (materializer.{binding.ParserId} != null) ThrowDuplicate({Stringify(binding.Name)}, name, headers, exposeContent);
+                    if (materializer.{binding.ParserId} != null) ThrowDuplicate({binding.Name.ToLiteral()}, name, headers, exposeContent);
 ";
             }
 
             var names = string.Join(@" ||
-                    ", binding.Names.Select(n => $"options.Comparer.Equals(name, {Stringify(n)})"));
+                    ", binding.Names.Select(n => $"options.Comparer.Equals(name, {n.ToLiteral()})"));
 
             yield return $@"                if ({skipDuplicate}{names}) {(binding.Order == 0 ? "// default order" : $"// order: {binding.Order}")}
                 {{{checkDuplicate}
                     materializer.{binding.ParserId} = {ResolveParser(binding.Symbol, binding.Type)};
-                    materializer.Handlers[index] = TypeMapMaterializer.{binding.HandlerId};
+                    materializer.Handlers[index] = {binding.HandlerId};
                     anyFieldBound = true;
                     continue;
                 }}
@@ -539,7 +558,7 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
             var model = context.Compilation.GetSemanticModel(candidate.SyntaxTree);
             var classSymbol = model.GetDeclaredSymbol(candidate, context.CancellationToken);
 
-            if (classSymbol is not null)
+            if (classSymbol is { IsAbstract: false, IsGenericType: false })
             {
                 foreach (var attributeData in classSymbol.GetAttributes())
                 {
