@@ -27,7 +27,7 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
     public bool ValidateFieldCount { get; }
 
     private readonly CsvDialect<T> _dialect;
-    private readonly RowSkipCallback<T>? _skipCallback;
+    private readonly CsvRecordSkipPredicate<T>? _skipCallback;
     private readonly CsvExceptionHandler<T>? _exceptionHandler;
 
     public CsvReadingContext(CsvOptions<T> options, in CsvContextOverride<T> overrides)
@@ -52,7 +52,7 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
         if (fn is null)
             return false;
 
-        return fn(new CsvRowSkipArgs<T>
+        return fn(new CsvRecordSkipArgs<T>
         {
             Dialect = _dialect,
             Line = line,

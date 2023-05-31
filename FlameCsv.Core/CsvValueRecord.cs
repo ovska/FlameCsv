@@ -221,6 +221,8 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
     {
         ArgumentNullException.ThrowIfNull(typeMap);
 
+        _state.EnsureVersion(_version);
+
         if (!_state.MaterializerCache.TryGetValue(typeMap, out object? obj))
         {
             obj = _state._headerNames is not null
