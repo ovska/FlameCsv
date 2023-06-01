@@ -27,7 +27,7 @@ public partial class TypeMapGenerator : IIncrementalGenerator
 
     private void Execute(Compilation compilation, ImmutableArray<ClassDeclarationSyntax> matches, SourceProductionContext context)
     {
-        if (matches.IsDefaultOrEmpty || context.CancellationToken.IsCancellationRequested)
+        if (matches.IsDefaultOrEmpty)
             return;
 
         _symbols = new KnownSymbols(compilation);
@@ -40,8 +40,7 @@ public partial class TypeMapGenerator : IIncrementalGenerator
             if (classSymbol is null)
                 continue;
 
-            AttributeSyntax? attributeSyntax1 = null;
-            INamedTypeSymbol? attributeSymbol = null;
+            TypeMapSymbol? typeMap = default;
 
             foreach (AttributeListSyntax attributeListSyntax in classDeclaration.AttributeLists)
             {
@@ -51,26 +50,23 @@ public partial class TypeMapGenerator : IIncrementalGenerator
                         { ContainingType: INamedTypeSymbol { Arity: 2, IsGenericType: true } attributeType } &&
                         SymbolEqualityComparer.Default.Equals(_symbols.CsvTypeMapAttribute, attributeType.ConstructUnboundGenericType()))
                     {
-                        attributeSyntax1 = attributeSyntax;
-                        attributeSymbol = attributeType;
+                        typeMap = new(classSymbol, attributeSyntax, attributeType, context);
                         break;
                     }
                 }
 
-                if (attributeSyntax1 != null && attributeSymbol != null)
+                if (typeMap.HasValue)
                     break;
             }
 
-            if (attributeSyntax1 is null || attributeSymbol is null)
+            if (typeMap is null)
                 continue;
-
-            TypeMapSymbol typeMap = new(classSymbol, attributeSyntax1, attributeSymbol, context);
 
             try
             {
                 context.AddSource(
-                    $"{typeMap.ContainingClass.Name}.G.cs",
-                    SourceText.From(CreateTypeMap(typeMap), Encoding.UTF8));
+                    $"{typeMap.Value.ContainingClass.Name}.G.cs",
+                    SourceText.From(CreateTypeMap(typeMap.Value), Encoding.UTF8));
             }
             catch (DiagnosticException)
             {
@@ -529,12 +525,12 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
             else
             {
                 checkDuplicate = $@"
-                    if (materializer.{binding.ParserId} != null) ThrowDuplicate({binding.Name.ToLiteral()}, name, headers, exposeContent);
+                    if (materializer.{binding.ParserId} != null) ThrowDuplicate({binding.Name.ToStringLiteral()}, name, headers, exposeContent);
 ";
             }
 
             var names = string.Join(@" ||
-                    ", binding.Names.Select(n => $"options.Comparer.Equals(name, {n.ToLiteral()})"));
+                    ", binding.Names.Select(n => $"options.Comparer.Equals(name, {n.ToStringLiteral()})"));
 
             yield return $@"                if ({skipDuplicate}{names}) {(binding.Order == 0 ? "// default order" : $"// order: {binding.Order}")}
                 {{{checkDuplicate}
@@ -558,7 +554,47 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
                 }
             }
 
-            return $"options.GetConverter<{type.ToDisplayString()}>()";
+            bool wrapInNullable = false;
+
+            if (type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
+            {
+                wrapInNullable = true;
+                type = ((INamedTypeSymbol)type).TypeArguments[0];
+            }
+
+            string typeName = type.ToDisplayString();
+
+            string converter = TryGetEnumConverter(type, out var converterInit)
+                ? converterInit!
+                : $"options.GetConverter<{typeName}>()";
+
+            if (!wrapInNullable)
+                return converter;
+
+            return $"new NullableConverter<{typeMap.TokenSymbol}, {typeName}>(" +
+                $"{converter}, options.GetNullToken(typeof({typeName})))";
+        }
+
+        bool TryGetEnumConverter(ITypeSymbol type, out string? converterInit)
+        {
+            if (type.TypeKind == TypeKind.Enum)
+            {
+                converterInit = typeMap.TokenSymbol.SpecialType switch
+                {
+                    SpecialType.System_Char => "EnumTextConverter",
+                    SpecialType.System_Byte => "EnumByteConverter",
+                    _ => null,
+                };
+
+                if (converterInit != null)
+                {
+                    converterInit = $"new {converterInit}<{type.ToDisplayString()}>(options)";
+                    return true;
+                }
+            }
+
+            converterInit = null;
+            return false;
         }
     }
 
@@ -619,8 +655,7 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
             {
                 if (context.SemanticModel.GetSymbolInfo(attributeSyntax, token).Symbol is IMethodSymbol
                     { ContainingType: INamedTypeSymbol { Arity: 2, IsGenericType: true } attributeType } &&
-                        attributeType.ConstructUnboundGenericType().ToDisplayString()
-                            == "FlameCsv.Binding.CsvTypeMapAttribute<,>")
+                        attributeType.ToDisplayString().StartsWith("FlameCsv.Binding.CsvTypeMapAttribute<"))
                 {
                     return classDeclarationSyntax;
                 }
