@@ -7,7 +7,7 @@ namespace FlameCsv.Converters;
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 /// <typeparam name="TValue">Parsed value and the type parameter of <see cref="Nullable{T}"/></typeparam>
-internal sealed class NullableConverter<T, TValue> : CsvConverter<T, TValue?>
+public sealed class NullableConverter<T, TValue> : CsvConverter<T, TValue?>
     where T : unmanaged, IEquatable<T>
     where TValue : struct
 {

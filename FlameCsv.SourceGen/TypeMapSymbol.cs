@@ -5,6 +5,27 @@ namespace FlameCsv.SourceGen;
 
 public readonly struct TypeMapSymbol
 {
+    /// <summary>
+    /// Class annotated with the CsvTypeMapAttribute<>
+    /// </summary>
+    public INamedTypeSymbol ContainingClass { get; }
+
+    /// <summary>
+    /// Parsed type of the type map.
+    /// </summary>
+    public ITypeSymbol Type { get; }
+
+    /// <summary>
+    /// Parsed token type.
+    /// </summary>
+    public ITypeSymbol TokenSymbol { get; }
+
+    public string Token { get; }
+
+    public string ResultName { get; }
+
+    public string HandlerArgs { get; }
+
     public TypeMapSymbol(
         INamedTypeSymbol containingClass,
         AttributeSyntax csvTypeMapAttribute,
@@ -23,13 +44,20 @@ public readonly struct TypeMapSymbol
         {
             foreach (var arg in arguments.Arguments)
             {
-                IEnumerable<SyntaxNode> childNodes = arg.ChildNodes();
+                NameEqualsSyntax? propertyNameNode = null;
+                SyntaxNode? propertyValueNode = null;
 
-                if (childNodes.First() is not NameEqualsSyntax propertyNameNode ||
-                    childNodes.ElementAtOrDefault(1) is not SyntaxNode propertyValueNode)
+                using (var enumerator = arg.ChildNodes().GetEnumerator())
                 {
-                    continue;
+                    if (enumerator.MoveNext())
+                        propertyNameNode = enumerator.Current as NameEqualsSyntax;
+
+                    if (enumerator.MoveNext())
+                        propertyValueNode = enumerator.Current;
                 }
+
+                if (propertyNameNode is null || propertyValueNode is null)
+                    continue;
 
                 string propertyName = propertyNameNode.Name.Identifier.ValueText;
 
@@ -68,27 +96,6 @@ public readonly struct TypeMapSymbol
             }
         }
     }
-
-    /// <summary>
-    /// Class annotated with the CsvTypeMapAttribute<>
-    /// </summary>
-    public INamedTypeSymbol ContainingClass { get; }
-
-    /// <summary>
-    /// Parsed type of the type map.
-    /// </summary>
-    public ITypeSymbol Type { get; }
-
-    /// <summary>
-    /// Parsed token type.
-    /// </summary>
-    public ITypeSymbol TokenSymbol { get; }
-
-    public string Token { get; }
-
-    public string ResultName { get; }
-
-    public string HandlerArgs { get; }
 
     public Dictionary<string, HashSet<string>> TargetedHeaders { get; }
 

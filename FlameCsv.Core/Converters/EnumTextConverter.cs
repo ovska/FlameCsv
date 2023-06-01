@@ -1,12 +1,12 @@
 using System.Collections.Concurrent;
 using FlameCsv.Extensions;
 
-namespace FlameCsv.Converters.Text;
+namespace FlameCsv.Converters;
 
 /// <summary>
 /// Parser for non-flags enums.
 /// </summary>
-internal sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
+public sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
     where TEnum : struct, Enum
 {
     private readonly bool _allowUndefinedValues;
@@ -16,6 +16,7 @@ internal sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
 
     public EnumTextConverter(CsvOptions<char> options)
     {
+        ArgumentNullException.ThrowIfNull(options);
         _allowUndefinedValues = options.AllowUndefinedEnumValues;
         _ignoreCase = options.IgnoreEnumCase;
         _writeCache = new();
