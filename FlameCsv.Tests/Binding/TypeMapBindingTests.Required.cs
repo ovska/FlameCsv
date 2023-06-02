@@ -9,7 +9,7 @@ public static partial class TypeMapBindingTests
     private class _Obj : ISomething
     {
         [CsvConstructor]
-        public _Obj(string? name = "\\test")
+        public _Obj(string? name = "\\test", DayOfWeek dof = DayOfWeek.Tuesday, DayOfWeek? dof2 = DayOfWeek.Wednesday)
         {
             Name = name;
         }

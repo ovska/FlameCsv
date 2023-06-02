@@ -6,6 +6,23 @@ namespace FlameCsv.SourceGen;
 
 internal static class Extensions
 {
+    public static ITypeSymbol UnwrapNullable(this ITypeSymbol type, out bool isNullable)
+    {
+        if (type is { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T })
+        {
+            isNullable = true;
+            return ((INamedTypeSymbol)type).TypeArguments[0];
+        }
+
+        isNullable = false;
+        return type;
+    }
+
+    public static bool IsEnumOrNullableEnum(this ITypeSymbol type)
+    {
+        return type.UnwrapNullable(out _) is { BaseType.SpecialType: SpecialType.System_Enum };
+    }
+
     public static TTo FindValueOrDefault<TFrom, TTo>(
         this SyntaxList<TFrom> syntaxList,
         Func<TFrom, bool> predicate,
