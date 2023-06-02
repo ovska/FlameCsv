@@ -218,6 +218,15 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
             sb.Append("                state.");
             sb.Append(binding.Name);
             sb.Append(" = ");
+
+            // Enum values are resolved as their underlying type so they need to be cast back to the enum type
+            if (binding.Type.IsEnumOrNullableEnum())
+            {
+                sb.Append('(');
+                sb.Append(binding.Type.ToDisplayString());
+                sb.Append(')');
+            }
+
             sb.Append(binding.DefaultValue.ToLiteral());
             sb.Append(@";
 ");
@@ -554,13 +563,7 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
                 }
             }
 
-            bool wrapInNullable = false;
-
-            if (type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
-            {
-                wrapInNullable = true;
-                type = ((INamedTypeSymbol)type).TypeArguments[0];
-            }
+            type = type.UnwrapNullable(out bool isNullable);
 
             string typeName = type.ToDisplayString();
 
@@ -568,7 +571,7 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
                 ? converterInit!
                 : $"options.GetConverter<{typeName}>()";
 
-            if (!wrapInNullable)
+            if (!isNullable)
                 return converter;
 
             return $"new NullableConverter<{typeMap.TokenSymbol}, {typeName}>(" +
@@ -616,7 +619,7 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
 
                 if (!arg.Values.IsDefaultOrEmpty)
                 {
-                    names = arg.Values.Select(v => v.Value?.ToString() ?? "");
+                    names = arg.Values.Select(v => v.Value as string ?? "");
                 }
 
                 foreach (var argument in attributeData.NamedArguments)
