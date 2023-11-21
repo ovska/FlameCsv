@@ -17,11 +17,11 @@ namespace FlameCsv.Tests.Readers;
 public abstract class CsvReaderTestsBase<T> : IDisposable
     where T : unmanaged, IEquatable<T>
 {
-    private static readonly int[] _bufferSizes = { -1, 17, 128, 1024, 8096 };
-    private static readonly int[] _emptySegmentsEvery = { 0, 1, 7 };
-    private static readonly string[] _crlf = { "CRLF", "LF" };
-    private static readonly bool[] _booleans = { true, false };
-    private static readonly Mode[] _escaping = { Mode.None, Mode.RFC, Mode.Escape };
+    private static readonly int[] _bufferSizes = [-1, 17, 128, 1024, 8096];
+    private static readonly int[] _emptySegmentsEvery = [0, 1, 7];
+    private static readonly string[] _crlf = ["CRLF", "LF"];
+    private static readonly bool[] _booleans = [true, false];
+    private static readonly Mode[] _escaping = [Mode.None, Mode.RFC, Mode.Escape];
 
     private ReturnTrackingArrayPool<T>? _pool;
 

@@ -4,27 +4,20 @@ using FlameCsv.Reflection;
 
 namespace FlameCsv.Binding.Internal;
 
-internal sealed class MemberCsvBinding<T> : CsvBinding<T>
+internal sealed class MemberCsvBinding<T>(int index, MemberData member) : CsvBinding<T>(index)
 {
-    public MemberInfo Member => _member.Value;
+    public MemberInfo Member => member.Value;
 
-    public override Type Type => _member.MemberType;
+    public override Type Type => member.MemberType;
 
-    internal protected override object Sentinel => _member.Value;
-    protected override ReadOnlySpan<object> Attributes => _member.Attributes;
-
-    private readonly MemberData _member;
-
-    public MemberCsvBinding(int index, MemberData member) : base(index)
-    {
-        _member = member;
-    }
+    internal protected override object Sentinel => member.Value;
+    protected override ReadOnlySpan<object> Attributes => member.Attributes;
 
     protected override void PrintDetails(StringBuilder sb)
     {
-        sb.Append(_member.IsProperty ? "Property: " : "Field: ");
+        sb.Append(member.IsProperty ? "Property: " : "Field: ");
         sb.Append(Type.Name);
         sb.Append(' ');
-        sb.Append(_member.Value.Name);
+        sb.Append(member.Value.Name);
     }
 }

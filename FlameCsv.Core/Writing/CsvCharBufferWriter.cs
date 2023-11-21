@@ -11,12 +11,10 @@ namespace FlameCsv.Writing;
 [DebuggerDisplay("[CsvTextWriter] Written: {Unflushed} / {_buffer.Length} (inner: {_writer.GetType().Name})")]
 internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>
 {
-    private sealed class State
+    private sealed class State(char[] buffer)
     {
         public int Unflushed;
-        public char[] Buffer;
-
-        public State(char[] buffer) => Buffer = buffer;
+        public char[] Buffer = buffer;
 
         public int Remaining
         {
@@ -96,10 +94,6 @@ internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>
         }
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Design",
-        "CA1031:Do not catch general exception types",
-        Justification = "Exception is caught and rethrown later")]
     public async ValueTask CompleteAsync(
         Exception? exception,
         CancellationToken cancellationToken = default)

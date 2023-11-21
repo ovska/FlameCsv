@@ -4,7 +4,7 @@ namespace FlameCsv.SourceGen;
 
 internal sealed class SyntaxReceiver : ISyntaxReceiver
 {
-    public List<ClassDeclarationSyntax> Candidates { get; } = new();
+    public List<ClassDeclarationSyntax> Candidates { get; } = [];
 
     public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
     {

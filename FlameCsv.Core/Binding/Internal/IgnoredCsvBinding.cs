@@ -2,12 +2,8 @@
 
 namespace FlameCsv.Binding.Internal;
 
-internal sealed class IgnoredCsvBinding<T> : CsvBinding<T>
+internal sealed class IgnoredCsvBinding<T>(int index) : CsvBinding<T>(index)
 {
-    public IgnoredCsvBinding(int index) : base(index)
-    {
-    }
-
     public override Type Type => typeof(object);
 
     internal protected override object Sentinel => Type.Missing;

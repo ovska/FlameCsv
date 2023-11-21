@@ -149,7 +149,7 @@ public static class WriteUtilTests
     }
 
     private static readonly (int? quoteCount, string data)[] _needsEscapingData =
-    {
+    [
         (null, "foobar"),
         (null, "foo bar"),
         (null, "\r \r"),
@@ -162,7 +162,7 @@ public static class WriteUtilTests
         (0, "Really, really long input"),
         (2, "| test |"),
         (3, "||\r\n test |"),
-    };
+    ];
 
     public static IEnumerable<object?[]> NeedsEscapingData() =>
         from x in _needsEscapingData

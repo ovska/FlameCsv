@@ -55,10 +55,6 @@ internal readonly struct CsvByteBufferWriter : IAsyncBufferWriter<byte>
         }
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Design",
-        "CA1031:Do not catch general exception types",
-        Justification = "Exception is used to complete the PipeWriter")]
     public async ValueTask CompleteAsync(
         Exception? exception,
         CancellationToken cancellationToken = default)

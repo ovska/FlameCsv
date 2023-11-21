@@ -8,7 +8,7 @@ internal sealed class ReturnTrackingArrayPool<T> : ArrayPool<T>, IDisposable
 {
     public bool TrackStackTraces { get; set; }
 
-    private readonly Dictionary<T[], StackTrace?> _values = new();
+    private readonly Dictionary<T[], StackTrace?> _values = [];
     private int rentedCount;
     private int returnedCount;
 

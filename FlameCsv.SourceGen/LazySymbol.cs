@@ -1,10 +1,8 @@
 ﻿namespace FlameCsv.SourceGen;
 
-internal sealed class LazySymbol : Lazy<INamedTypeSymbol>
-{
-    public LazySymbol(Compilation compilation, string name, bool unboundGeneric = false)
-        : base(
-            () =>
+internal sealed class LazySymbol(Compilation compilation, string name, bool unboundGeneric = false)
+    : Lazy<INamedTypeSymbol>(
+        () =>
             {
                 try
                 {
@@ -23,7 +21,6 @@ internal sealed class LazySymbol : Lazy<INamedTypeSymbol>
                     throw new Exception("Error, could not find " + name, e);
                 }
             },
-            LazyThreadSafetyMode.ExecutionAndPublication)
-    {
-    }
+        LazyThreadSafetyMode.ExecutionAndPublication)
+{
 }
