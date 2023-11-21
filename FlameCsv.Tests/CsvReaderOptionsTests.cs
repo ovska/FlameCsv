@@ -74,7 +74,7 @@ public class CsvReaderOptionsTests
         var options = CsvTextOptions.Default;
         Assert.True(options.IsReadOnly);
 
-        Assert.Equal("\r\n", options.Newline.ToArray());
+        Assert.Equal("\r\n", options.Newline);
 
         var boolParser = options.GetConverter<bool>();
         Assert.True(boolParser.TryParse("true", out var bValue));

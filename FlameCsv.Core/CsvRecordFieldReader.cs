@@ -30,7 +30,7 @@ internal struct CsvRecordFieldReader<T> : ICsvFieldReader<T> where T : unmanaged
     }
 
     [DoesNotReturn]
-    public void ThrowParseFailed(ReadOnlyMemory<T> field, CsvConverter<T>? parser)
+    public readonly void ThrowParseFailed(ReadOnlyMemory<T> field, CsvConverter<T>? parser)
     {
         string withStr = parser is null ? "" : $" with {parser.GetType()}";
 

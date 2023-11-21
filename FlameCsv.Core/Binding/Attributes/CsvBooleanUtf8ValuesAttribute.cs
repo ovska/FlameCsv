@@ -9,12 +9,12 @@ public sealed class CsvBooleanUtf8ValuesAttribute : CsvConverterAttribute<byte>
     /// <summary>
     /// Values that represent <see langword="true"/>.
     /// </summary>
-    public string[] TrueValues { get; set; } = Array.Empty<string>();
+    public string[] TrueValues { get; set; } = [];
 
     /// <summary>
     /// Values that represent <see langword="false"/>.
     /// </summary>
-    public string[] FalseValues { get; set; } = Array.Empty<string>();
+    public string[] FalseValues { get; set; } = [];
 
     /// <inheritdoc/>
     protected override CsvConverter<byte> CreateConverterOrFactory(Type targetType, CsvOptions<byte> options)

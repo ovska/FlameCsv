@@ -26,8 +26,8 @@ internal sealed class CustomBooleanTextConverter : CsvConverter<char, bool>
         if (falses.Count == 0)
             Throw.Config_TrueOrFalseBooleanValues(false);
 
-        _trueValues = trues.ToArray();
-        _falseValues = falses.ToArray();
+        _trueValues = [.. trues];
+        _falseValues = [.. falses];
     }
 
     internal CustomBooleanTextConverter(string[] trueValues, string[] falseValues)

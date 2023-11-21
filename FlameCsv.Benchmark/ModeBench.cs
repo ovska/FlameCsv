@@ -300,7 +300,7 @@ internal static partial class RFC4180ModeOld<T> where T : unmanaged, IEquatable<
         T quote,
         uint quoteCount)
     {
-        int actualCount = source.Count(quote);
+        int actualCount = System.MemoryExtensions.Count(source, quote);
 
         var error = new StringBuilder(64);
 

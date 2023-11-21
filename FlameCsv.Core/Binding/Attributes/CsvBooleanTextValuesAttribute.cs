@@ -13,12 +13,12 @@ public sealed class CsvBooleanTextValuesAttribute : CsvConverterAttribute<char>
     /// <summary>
     /// Values that represent <see langword="true"/>.
     /// </summary>
-    public string[] TrueValues { get; set; } = Array.Empty<string>();
+    public string[] TrueValues { get; set; } = [];
 
     /// <summary>
     /// Values that represent <see langword="false"/>.
     /// </summary>
-    public string[] FalseValues { get; set; } = Array.Empty<string>();
+    public string[] FalseValues { get; set; } = [];
 
     /// <inheritdoc/>
     protected override CsvConverter<char> CreateConverterOrFactory(Type targetType, CsvOptions<char> options)

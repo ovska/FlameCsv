@@ -8,40 +8,42 @@ namespace FlameCsv.Converters;
 
 internal static partial class DefaultConverters
 {
-    private static void RegisterNumberConverters(Dictionary<Type, TextConverterFactory> dict)
+    private static void RegisterNumberConverters(List<KeyValuePair<Type, TextConverterFactory>> list)
     {
-        dict.Add(typeof(byte), static options => new ByteTextConverter(options));
-        dict.Add(typeof(sbyte), static options => new SByteTextConverter(options));
-        dict.Add(typeof(short), static options => new Int16TextConverter(options));
-        dict.Add(typeof(ushort), static options => new UInt16TextConverter(options));
-        dict.Add(typeof(int), static options => new Int32TextConverter(options));
-        dict.Add(typeof(uint), static options => new UInt32TextConverter(options));
-        dict.Add(typeof(long), static options => new Int64TextConverter(options));
-        dict.Add(typeof(ulong), static options => new UInt64TextConverter(options));
-        dict.Add(typeof(nint), static options => new IntPtrTextConverter(options));
-        dict.Add(typeof(nuint), static options => new UIntPtrTextConverter(options));
-        dict.Add(typeof(float), static options => new FloatTextConverter(options));
-        dict.Add(typeof(double), static options => new DoubleTextConverter(options));
-        dict.Add(typeof(decimal), static options => new DecimalTextConverter(options));
-        dict.Add(typeof(Half), static options => new HalfTextConverter(options));
+        list.EnsureCapacity(list.Count + 14);
+        list.Add(new(typeof(byte), static options => new ByteTextConverter(options)));
+        list.Add(new(typeof(sbyte), static options => new SByteTextConverter(options)));
+        list.Add(new(typeof(short), static options => new Int16TextConverter(options)));
+        list.Add(new(typeof(ushort), static options => new UInt16TextConverter(options)));
+        list.Add(new(typeof(int), static options => new Int32TextConverter(options)));
+        list.Add(new(typeof(uint), static options => new UInt32TextConverter(options)));
+        list.Add(new(typeof(long), static options => new Int64TextConverter(options)));
+        list.Add(new(typeof(ulong), static options => new UInt64TextConverter(options)));
+        list.Add(new(typeof(nint), static options => new IntPtrTextConverter(options)));
+        list.Add(new(typeof(nuint), static options => new UIntPtrTextConverter(options)));
+        list.Add(new(typeof(float), static options => new FloatTextConverter(options)));
+        list.Add(new(typeof(double), static options => new DoubleTextConverter(options)));
+        list.Add(new(typeof(decimal), static options => new DecimalTextConverter(options)));
+        list.Add(new(typeof(Half), static options => new HalfTextConverter(options)));
     }
 
-    private static void RegisterNumberConverters(Dictionary<Type, Utf8ConverterFactory> dict)
+    private static void RegisterNumberConverters(List<KeyValuePair<Type, Utf8ConverterFactory>> list)
     {
-        dict.Add(typeof(byte), static options => new ByteUtf8Converter(options));
-        dict.Add(typeof(sbyte), static options => new SByteUtf8Converter(options));
-        dict.Add(typeof(short), static options => new Int16Utf8Converter(options));
-        dict.Add(typeof(ushort), static options => new UInt16Utf8Converter(options));
-        dict.Add(typeof(int), static options => new Int32Utf8Converter(options));
-        dict.Add(typeof(uint), static options => new UInt32Utf8Converter(options));
-        dict.Add(typeof(long), static options => new Int64Utf8Converter(options));
-        dict.Add(typeof(ulong), static options => new UInt64Utf8Converter(options));
-        dict.Add(typeof(nint), static options => new IntPtrUtf8Converter(options));
-        dict.Add(typeof(nuint), static options => new UIntPtrUtf8Converter(options));
-        dict.Add(typeof(float), static options => new FloatUtf8Converter(options));
-        dict.Add(typeof(double), static options => new DoubleUtf8Converter(options));
-        dict.Add(typeof(decimal), static options => new DecimalUtf8Converter(options));
-        dict.Add(typeof(Half), static options => new HalfUtf8Converter(options));
+        list.EnsureCapacity(list.Count + 14);
+        list.Add(new(typeof(byte), static options => new ByteUtf8Converter(options)));
+        list.Add(new(typeof(sbyte), static options => new SByteUtf8Converter(options)));
+        list.Add(new(typeof(short), static options => new Int16Utf8Converter(options)));
+        list.Add(new(typeof(ushort), static options => new UInt16Utf8Converter(options)));
+        list.Add(new(typeof(int), static options => new Int32Utf8Converter(options)));
+        list.Add(new(typeof(uint), static options => new UInt32Utf8Converter(options)));
+        list.Add(new(typeof(long), static options => new Int64Utf8Converter(options)));
+        list.Add(new(typeof(ulong), static options => new UInt64Utf8Converter(options)));
+        list.Add(new(typeof(nint), static options => new IntPtrUtf8Converter(options)));
+        list.Add(new(typeof(nuint), static options => new UIntPtrUtf8Converter(options)));
+        list.Add(new(typeof(float), static options => new FloatUtf8Converter(options)));
+        list.Add(new(typeof(double), static options => new DoubleUtf8Converter(options)));
+        list.Add(new(typeof(decimal), static options => new DecimalUtf8Converter(options)));
+        list.Add(new(typeof(Half), static options => new HalfUtf8Converter(options)));
     }
 }
 

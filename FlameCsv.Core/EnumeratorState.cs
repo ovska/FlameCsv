@@ -14,7 +14,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
         get => _context.HasHeader && Header is null;
     }
 
-    public Dictionary<object, object> MaterializerCache => _materializerCache ??= new();
+    public Dictionary<object, object> MaterializerCache => _materializerCache ??= [];
 
     public int Version { get; private set; }
     public CsvDialect<T> Dialect => _context.Dialect;

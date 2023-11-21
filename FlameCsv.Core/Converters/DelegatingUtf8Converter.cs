@@ -46,7 +46,7 @@ public sealed class DelegatingUtf8Converter<TValue> : CsvConverter<byte, TValue>
     {
         if (source.IsEmpty)
         {
-            return _converter.TryParse(ReadOnlySpan<char>.Empty, out value);
+            return _converter.TryParse([], out value);
         }
 
         int maxLength = Encoding.UTF8.GetMaxCharCount(source.Length);

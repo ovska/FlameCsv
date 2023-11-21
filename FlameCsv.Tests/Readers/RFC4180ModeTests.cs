@@ -135,7 +135,7 @@ public static class RFC4180ModeTests
         var seq = new ReadOnlySequence<char>(data.AsMemory());
 
         Assert.False(RFC4180Mode<char>.TryGetLine(new CsvDialect<char>(options), ref seq, out _, out _));
-        Assert.Equal(data, seq.ToArray());
+        Assert.Equal(data.AsSpan(), seq.ToArray());
     }
 
     [Theory]

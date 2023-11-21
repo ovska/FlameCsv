@@ -286,7 +286,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
 
         public int Line => _record.Line;
         public long Position => _record.Position;
-        public string[] Headers => _record._state.Header?.Keys.ToArray() ?? Array.Empty<string>();
+        public string[] Headers => _record._state.Header?.Keys.ToArray() ?? [];
         public ReadOnlyMemory<T>[] Fields => _record.ToList().ToArray();
         public string[] FieldValues => Fields.Select(f => _record._options.GetAsString(f.Span)).ToArray();
     }

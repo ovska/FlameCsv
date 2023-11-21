@@ -49,7 +49,7 @@ internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
         return false;
 
         Found:
-        quoteCount = value.Slice(index).Count(dialect.Quote);
+        quoteCount = System.MemoryExtensions.Count(value.Slice(index), dialect.Quote);
         return true;
     }
 

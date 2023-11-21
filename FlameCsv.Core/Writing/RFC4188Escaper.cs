@@ -85,5 +85,5 @@ internal readonly struct RFC4188Escaper<T> : IEscaper<T> where T : unmanaged, IE
         return true;
     }
 
-    public int CountEscapable(ReadOnlySpan<T> value) => value.Count(_quote);
+    public int CountEscapable(ReadOnlySpan<T> value) => System.MemoryExtensions.Count(value, _quote);
 }
