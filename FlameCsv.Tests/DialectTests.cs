@@ -10,12 +10,12 @@ public static class DialectTests
         Assert.Equal(',', CsvDialect<char>.Default.Delimiter);
         Assert.Equal('"', CsvDialect<char>.Default.Quote);
         Assert.Null(CsvDialect<char>.Default.Escape);
-        Assert.Equal("\r\n", CsvDialect<char>.Default.Newline.ToArray());
+        Assert.Equal("\r\n", CsvDialect<char>.Default.Newline.Span);
 
         Assert.Equal((byte)',', CsvDialect<byte>.Default.Delimiter);
         Assert.Equal((byte)'"', CsvDialect<byte>.Default.Quote);
         Assert.Null(CsvDialect<byte>.Default.Escape);
-        Assert.Equal("\r\n"u8.ToArray(), CsvDialect<byte>.Default.Newline.ToArray());
+        Assert.Equal("\r\n"u8, CsvDialect<byte>.Default.Newline.Span);
 
         Assert.Throws<NotSupportedException>(() => CsvDialect<int>.Default);
     }

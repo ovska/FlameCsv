@@ -249,7 +249,7 @@ public sealed class CsvTextOptions : CsvOptions<char>
 
     internal protected override bool TryGetDefaultConverter(Type type, [NotNullWhen(true)] out CsvConverter<char>? converter)
     {
-        if (DefaultConverters.Text.TryGetValue(type, out var factory))
+        if (DefaultConverters.Text.Value.TryGetValue(type, out var factory))
         {
             converter = factory(this);
             return true;

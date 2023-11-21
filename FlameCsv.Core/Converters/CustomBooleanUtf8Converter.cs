@@ -28,8 +28,8 @@ internal sealed class CustomBooleanUtf8Converter : CsvConverter<byte, bool>
         if (falses.Count == 0)
             Throw.Config_TrueOrFalseBooleanValues(false);
 
-        _trueValues = trues.ToArray();
-        _falseValues = falses.ToArray();
+        _trueValues = [.. trues];
+        _falseValues = [.. falses];
     }
 
     internal CustomBooleanUtf8Converter(string[] trueValues, string[] falseValues)

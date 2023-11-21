@@ -112,7 +112,7 @@ public sealed class CsvUtf8Options : CsvOptions<byte>
         get => _booleanFormat;
         set
         {
-            _ = Utf8Formatter.TryFormat(false, Span<byte>.Empty, out _, format: value); // validate
+            _ = Utf8Formatter.TryFormat(false, [], out _, format: value); // validate
             this.SetValue(ref _booleanFormat, value);
         }
     }
@@ -195,7 +195,7 @@ public sealed class CsvUtf8Options : CsvOptions<byte>
     /// <inheritdoc/>
     internal protected override bool TryGetDefaultConverter(Type type, [NotNullWhen(true)] out CsvConverter<byte>? converter)
     {
-        if (DefaultConverters.Utf8.TryGetValue(type, out var factory))
+        if (DefaultConverters.Utf8.Value.TryGetValue(type, out var factory))
         {
             converter = factory(this);
             return true;

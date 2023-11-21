@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 
 namespace FlameCsv.Reading;
@@ -131,14 +130,14 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
 
         if (quote.HasValue)
         {
-            int actualQuoteCount = source.Count(quote.Value);
+            int actualQuoteCount = System.MemoryExtensions.Count(source, quote.Value);
             if (actualQuoteCount != quoteCount)
             {
                 error.Append(CultureInfo.InvariantCulture, $"String delimiter count {quoteCount} was invalid (actual was {actualQuoteCount}). ");
             }
         }
 
-        int actualEscapeCount = source.Count(escape);
+        int actualEscapeCount = System.MemoryExtensions.Count(source, escape);
         if (actualEscapeCount != escapeCount)
         {
             error.Append(CultureInfo.InvariantCulture, $"Escape character count {escapeCount} was invalid (actual was {actualEscapeCount}). ");

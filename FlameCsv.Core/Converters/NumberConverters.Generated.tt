@@ -33,17 +33,19 @@ namespace FlameCsv.Converters;
 
 internal static partial class DefaultConverters
 {
-    private static void RegisterNumberConverters(Dictionary<Type, TextConverterFactory> dict)
+    private static void RegisterNumberConverters(List<KeyValuePair<Type, TextConverterFactory>> list)
     {
+        list.EnsureCapacity(list.Count + <#= types.Length #>);
 <# foreach (var (typeName, keyWord, _) in types) { #>
-        dict.Add(typeof(<#= keyWord #>), static options => new <#= typeName #>TextConverter(options));
+        list.Add(new(typeof(<#= keyWord #>), static options => new <#= typeName #>TextConverter(options)));
 <# } #>
     }
 
-    private static void RegisterNumberConverters(Dictionary<Type, Utf8ConverterFactory> dict)
+    private static void RegisterNumberConverters(List<KeyValuePair<Type, Utf8ConverterFactory>> list)
     {
+        list.EnsureCapacity(list.Count + <#= types.Length #>);
 <# foreach (var (typeName, keyWord, _) in types) { #>
-        dict.Add(typeof(<#= keyWord #>), static options => new <#= typeName #>Utf8Converter(options));
+        list.Add(new(typeof(<#= keyWord #>), static options => new <#= typeName #>Utf8Converter(options)));
 <# } #>
     }
 }

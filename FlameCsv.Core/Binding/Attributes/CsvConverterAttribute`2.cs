@@ -38,7 +38,7 @@ public sealed class CsvConverterAttribute<T, [DynamicallyAccessedMembers(Message
 
         if (typeof(TConverter).GetConstructor(Type.EmptyTypes) is { } emptyCtor)
         {
-            return (CsvConverter<T>)emptyCtor.Invoke(Array.Empty<object>());
+            return (CsvConverter<T>)emptyCtor.Invoke([]);
         }
 
         throw new CsvConfigurationException(

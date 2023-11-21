@@ -27,7 +27,7 @@ internal sealed class ReturnTrackingArrayPool<T> : ArrayPool<T>, IDisposable
     {
         if (minimumLength == 0)
         {
-            return Array.Empty<T>();
+            return [];
         }
 
         rentedCount++;
