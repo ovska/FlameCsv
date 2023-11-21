@@ -26,12 +26,12 @@ public sealed class CsvConverterAttribute<T, [DynamicallyAccessedMembers(Message
 
     protected override CsvConverter<T> CreateConverterOrFactory(Type targetType, CsvOptions<T> options)
     {
-        if (typeof(TConverter).GetConstructor(new[] { options.GetType() }) is { } exactCtor)
+        if (typeof(TConverter).GetConstructor([options.GetType()]) is { } exactCtor)
         {
             return (CsvConverter<T>)exactCtor.Invoke(new object[] { options });
         }
 
-        if (typeof(TConverter).GetConstructor(new[] { typeof(CsvOptions<T>) }) is { } baseTypeCtor)
+        if (typeof(TConverter).GetConstructor([typeof(CsvOptions<T>)]) is { } baseTypeCtor)
         {
             return (CsvConverter<T>)baseTypeCtor.Invoke(new object[] { options });
         }

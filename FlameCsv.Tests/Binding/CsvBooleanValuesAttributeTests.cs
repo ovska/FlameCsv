@@ -12,46 +12,38 @@ public static class CsvBooleanValuesAttributeTests
 {
     public static IEnumerable<object?[]> NonNullableTestData()
     {
-        yield return new object?[] { "1", true, true };
-        yield return new object?[] { "Y", true, true };
-        yield return new object?[] { "0", true, false };
-        yield return new object?[] { "N", true, false };
-        yield return new object?[] { "true", false, null };
-        yield return new object?[] { "false", false, null };
+        yield return ["1", true, true];
+        yield return ["Y", true, true];
+        yield return ["0", true, false];
+        yield return ["N", true, false];
+        yield return ["true", false, null];
+        yield return ["false", false, null];
     }
 
     public static IEnumerable<object?[]> NullableTestData()
     {
-        yield return new object?[] { "1", true, true, "" };
-        yield return new object?[] { "Y", true, true, "" };
-        yield return new object?[] { "0", true, false, "" };
-        yield return new object?[] { "N", true, false, "" };
-        yield return new object?[] { "true", false, null, "" };
-        yield return new object?[] { "false", false, null, "" };
-        yield return new object?[] { "null", true, null, "null" };
-        yield return new object?[] { "null", false, null, "" };
+        yield return ["1", true, true, ""];
+        yield return ["Y", true, true, ""];
+        yield return ["0", true, false, ""];
+        yield return ["N", true, false, ""];
+        yield return ["true", false, null, ""];
+        yield return ["false", false, null, ""];
+        yield return ["null", true, null, "null"];
+        yield return ["null", false, null, ""];
     }
 
     private class Shim
     {
-        [CsvBooleanTextValues(
-            TrueValues = new[] { "1", "Y" },
-            FalseValues = new[] { "0", "N" })]
-        [CsvBooleanUtf8Values(
-            TrueValues = new[] { "1", "Y" },
-            FalseValues = new[] { "0", "N" })]
+        [CsvBooleanTextValues(TrueValues = ["1", "Y"], FalseValues = ["0", "N"])]
+        [CsvBooleanUtf8Values(TrueValues = ["1", "Y"], FalseValues = ["0", "N"])]
         public bool IsEnabled { get; set; }
 
-        [CsvBooleanTextValues(
-            TrueValues = new[] { "1", "Y" },
-            FalseValues = new[] { "0", "N" })]
-        [CsvBooleanUtf8Values(
-            TrueValues = new[] { "1", "Y" },
-            FalseValues = new[] { "0", "N" })]
+        [CsvBooleanTextValues(TrueValues = ["1", "Y"], FalseValues = ["0", "N"])]
+        [CsvBooleanUtf8Values(TrueValues = ["1", "Y"], FalseValues = ["0", "N"])]
         public bool? IsEnabledN { get; set; }
 
-        [CsvBooleanTextValues(TrueValues = new[] { "1" })]
-        [CsvBooleanUtf8Values(TrueValues = new[] { "1" })]
+        [CsvBooleanTextValues(TrueValues = ["1"])]
+        [CsvBooleanUtf8Values(TrueValues = ["1"])]
         public int InvalidType { get; set; }
 
         [CsvBooleanTextValues]
@@ -80,7 +72,7 @@ public static class CsvBooleanValuesAttributeTests
 
         Assert.True(binding.TryGetAttribute<CsvConverterAttribute<char>>(out var @override));
 
-        var parser = (FlameCsv.CsvConverter<char, bool>)@override!.CreateConverter(typeof(bool), options);
+        var parser = (CsvConverter<char, bool>)@override!.CreateConverter(typeof(bool), options);
 
         if (success)
         {

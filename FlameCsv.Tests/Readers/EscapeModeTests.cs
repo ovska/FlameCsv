@@ -73,7 +73,7 @@ public static class EscapeModeTests
 
         using (CsvEnumerationStateRef<char>.CreateTemporary(in context, input.AsMemory(), ref buffer, out var state))
         {
-            List<string> actual = new();
+            List<string> actual = [];
 
             while (!state.remaining.IsEmpty)
             {
@@ -170,14 +170,14 @@ public static class EscapeModeTests
     public static void Should_Find_Multitoken_Newlines(string newline)
     {
         string[] data =
-        {
+        [
             "aaaa",
             "\"xyz\"",
             "\"James ^\"007^\" Bond\"",
             "",
             "textwith^\r^\nnewline",
             "bb",
-        };
+        ];
 
         var dialect = CsvDialect<char>.Default with { Newline = newline.AsMemory(), Escape = '^' };
         var seq = new ReadOnlySequence<char>(string.Join(newline, data).AsMemory());
@@ -249,10 +249,10 @@ public static class EscapeModeTests
     }
 
     private static readonly string[] _escapeTestData =
-    {
+    [
         "Test,Es^,caped,Es^\r\ncaped\r\n",
         "^,^'^\r\r\n",
         "^^\r\n",
         "A^,B^'^C^\r^\n\r\n",
-    };
+    ];
 }

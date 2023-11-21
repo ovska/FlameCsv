@@ -22,7 +22,7 @@ internal static class TestDataGenerator
 {
     public const string Header = "Id,Name,IsEnabled,LastLogin,Token";
 
-    internal static readonly byte[] _guidbytes = { 0, 1, 2, 3, 4, 5, 6, 7 };
+    internal static readonly byte[] _guidbytes = [0, 1, 2, 3, 4, 5, 6, 7];
 
     public static void Generate(
         ArrayPoolBufferWriter<char> writer,

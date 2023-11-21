@@ -76,7 +76,7 @@ public readonly struct TypeMapSymbol
             }
         }
 
-        TargetedHeaders = new();
+        TargetedHeaders = [];
 
         foreach (var attribute in Type.GetAttributes())
         {
@@ -86,7 +86,7 @@ public readonly struct TypeMapSymbol
 
                 if (!TargetedHeaders.TryGetValue(member!, out var set))
                 {
-                    TargetedHeaders[member!] = set = new HashSet<string>();
+                    TargetedHeaders[member!] = set = [];
                 }
 
                 foreach (var value in attribute.ConstructorArguments[1].Values)
@@ -129,7 +129,7 @@ public readonly struct TypeMapSymbol
         }
 
         var sb = new StringBuilder();
-        List<string> wrappers = new();
+        List<string> wrappers = [];
 
         INamedTypeSymbol? type = ContainingClass.ContainingType;
 

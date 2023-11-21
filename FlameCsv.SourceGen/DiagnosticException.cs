@@ -1,6 +1,5 @@
 ﻿namespace FlameCsv.SourceGen;
 
-internal sealed class DiagnosticException : Exception
+internal sealed class DiagnosticException(string message) : Exception(message)
 {
-    public DiagnosticException(string message) : base(message) { }
 }

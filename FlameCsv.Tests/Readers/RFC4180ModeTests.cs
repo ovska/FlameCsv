@@ -146,14 +146,14 @@ public static class RFC4180ModeTests
     public static void Should_Find_Multitoken_Newlines(string newline)
     {
         string[] data =
-        {
+        [
             "aaaa",
             "\"xyz\"",
             "\"James \"\"007\"\" Bond\"",
             "",
             "\"textwith\r\nnewline\"",
             "bb",
-        };
+        ];
 
         var dialect = CsvDialect<char>.Default with { Newline = newline.AsMemory() };
         var seq = new ReadOnlySequence<char>(string.Join(newline, data).AsMemory());

@@ -14,7 +14,7 @@ namespace FlameCsv.Benchmark;
 public class UnescapeTests
 {
     private static readonly string[] _data =
-    {
+    [
         "\"Wilson Jones 1\"\" Hanging DublLock® Ring Binders\"",
         "\"GBC Pre-Punched Binding Paper, Plastic, White, 8-1/2\"\" x 11\"\"\"",
         "\"GBC Twin Loop™ Wire Binding Elements, 9/16\"\" Spine, Black\"",
@@ -24,7 +24,7 @@ public class UnescapeTests
         "\"Executive Impressions 14\"\" Contract Wall Clock\"",
         "\"Acme Design Line 8\"\" Stainless Steel Bent Scissors w/Champagne Handles, 3-1/8\"\" Cut\"",
         "\"GE 48\"\" Fluorescent Tube, Cool White Energy Saver, 34 Watts, 30/Box\"",
-    };
+    ];
 
     private static readonly (ReadOnlyMemory<char> value, uint quoteCount)[] _testData = _data
         .Select(s => s[1..^1])
