@@ -384,8 +384,7 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
         }
 
         sb.Append(@"
-        }
-");
+        }");
 
         return sb.ToString();
     }

@@ -41,7 +41,7 @@ public abstract class CsvTypeMap<T, TValue> where T : unmanaged, IEquatable<T>
     }
 
     [DoesNotReturn]
-    protected void ThrowDuplicate(string member, string field, ReadOnlySpan<string> headers, bool exposeContent)
+    protected static void ThrowDuplicate(string member, string field, ReadOnlySpan<string> headers, bool exposeContent)
     {
         if (!exposeContent)
             throw new CsvBindingException<TValue>($"'{member}' matched to multiple of the {headers.Length} headers.");
@@ -51,7 +51,7 @@ public abstract class CsvTypeMap<T, TValue> where T : unmanaged, IEquatable<T>
     }
 
     [DoesNotReturn]
-    protected void ThrowUnmatched(string field, int index, bool exposeContent)
+    protected static void ThrowUnmatched(string field, int index, bool exposeContent)
     {
         if (!exposeContent)
             throw new CsvBindingException<TValue>($"Unmatched header field at index {index}.");
@@ -60,7 +60,7 @@ public abstract class CsvTypeMap<T, TValue> where T : unmanaged, IEquatable<T>
     }
 
     [DoesNotReturn]
-    protected void ThrowRequiredNotRead(IEnumerable<string> members, ReadOnlySpan<string> headers, bool exposeContent)
+    protected static void ThrowRequiredNotRead(IEnumerable<string> members, ReadOnlySpan<string> headers, bool exposeContent)
     {
         string missingMembers = string.Join(", ", members.Select(x => $"\"{x}\""));
 
@@ -72,7 +72,7 @@ public abstract class CsvTypeMap<T, TValue> where T : unmanaged, IEquatable<T>
     }
 
     [DoesNotReturn]
-    protected void ThrowNoFieldsBound(ReadOnlySpan<string> headers, bool exposeContent)
+    protected static void ThrowNoFieldsBound(ReadOnlySpan<string> headers, bool exposeContent)
     {
         if (!exposeContent)
             throw new CsvBindingException<TValue>("No header fields were matched to a member or parameter.");

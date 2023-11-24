@@ -57,6 +57,7 @@ internal static class Extensions
     {
         ITypeSymbol? current = typeSymbol;
 
+        // keep track of properties to not duplicate them for interfaces
         HashSet<ISymbol> properties = new(SymbolEqualityComparer.Default);
 
         while (current is not null)
@@ -101,7 +102,7 @@ internal static class Extensions
     public static string ToStringLiteral(this string? value)
     {
         if (value is null)
-            return "default(string)";
+            return "null";
 
         return SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(value)).ToFullString();
     }
@@ -141,18 +142,18 @@ internal static class Extensions
 
     public static bool IsSerializerWritable(this IFieldSymbol f, in KnownSymbols knownSymbols)
     {
-        return !f.IsStatic
-            && f.CanBeReferencedByName
+        return f.CanBeReferencedByName
+            && !f.IsStatic
             && !f.IsReadOnly
             && !f.HasAttribute(knownSymbols.CsvHeaderIgnoreAttribute);
     }
 
     public static bool IsSerializerWritable(this IPropertySymbol p, in KnownSymbols knownSymbols)
     {
-        return !p.IsStatic
+        return p.CanBeReferencedByName
+            && !p.IsStatic
             && !p.IsReadOnly
             && !p.IsIndexer
-            && p.CanBeReferencedByName
             && !p.HasAttribute(knownSymbols.CsvHeaderIgnoreAttribute);
     }
 
