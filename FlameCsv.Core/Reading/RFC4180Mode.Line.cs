@@ -139,37 +139,4 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
         Unsafe.SkipInit(out line); // keep this at the bottom to ensure successful returns actually set it
         return false;
     }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    public static bool TryGetFinalLine(
-        in CsvDialect<T> tokens,
-        ref ReadOnlySequence<T> sequence,
-        out ReadOnlySequence<T> line,
-        out RecordMeta meta)
-    {
-        meta = default;
-
-        if (sequence.IsEmpty)
-        {
-            line = default;
-            return false;
-        }
-
-        line = sequence;
-
-        if (line.IsSingleSegment)
-        {
-            meta.quoteCount = (uint)line.FirstSpan.Count(tokens.Quote);
-        }
-        else
-        {
-            foreach (var segment in sequence)
-            {
-                meta.quoteCount += (uint)segment.Span.Count(tokens.Quote);
-            }
-        }
-
-        sequence = default;
-        return true;
-    }
 }

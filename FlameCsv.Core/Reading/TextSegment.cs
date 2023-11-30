@@ -8,18 +8,13 @@ namespace FlameCsv.Reading;
 // based HEAVILY on the .NET runtime BufferSegment code
 [DebuggerDisplay(
     @"\{ TextSegment, Memory Length: {AvailableMemory.Length}, Index: {RunningIndex}, IsLast: {_next == null} \}")]
-internal sealed class TextSegment : ReadOnlySequenceSegment<char>
+internal sealed class TextSegment(ArrayPool<char> arrayPool) : ReadOnlySequenceSegment<char>
 {
-    private readonly ArrayPool<char> _arrayPool;
+    private readonly ArrayPool<char> _arrayPool = arrayPool;
 
     internal char[]? _array;
     private TextSegment? _next;
     private int _end;
-
-    public TextSegment(ArrayPool<char> arrayPool)
-    {
-        _arrayPool = arrayPool;
-    }
 
     /// <summary>
     /// The End represents the offset into AvailableMemory where the range of "active" bytes ends. At the point when the block is leased

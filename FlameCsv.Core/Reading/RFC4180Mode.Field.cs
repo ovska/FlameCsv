@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using CommunityToolkit.HighPerformance;
 
 namespace FlameCsv.Reading;
 
@@ -26,7 +25,7 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
         nuint remaining = (uint)state.remaining.Length;
         T lookUp;
 
-        int sliceStart = (!state.isAtStart).ToByte();
+        int sliceStart;
 
         if (!state.isAtStart)
         {
@@ -38,6 +37,11 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
             // delimiter is left at the start of data after the first field has been read
             consumed++;
             remaining--;
+            sliceStart = 1;
+        }
+        else
+        {
+            sliceStart = 0;
         }
 
         if (quotesRemaining == 0 || !quote.Equals(Unsafe.Add(ref first, consumed)))

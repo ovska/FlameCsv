@@ -24,13 +24,13 @@ internal static class EnumMembers<[DynamicallyAccessedMembers(DynamicallyAccesse
 
     private static EnumValue[]? _value;
 
-    public static ReadOnlySpan<EnumValue> Value => _value ?? Initialize();
+    public static ReadOnlySpan<EnumValue> Value => _value ??= Initialize();
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static EnumValue[] Initialize()
     {
         var fields = typeof(TEnum).GetFields();
-        var result = Enum.GetNames<TEnum>()
+        return Enum.GetNames<TEnum>()
             .Select(name => new EnumValue
             {
 
@@ -39,7 +39,5 @@ internal static class EnumMembers<[DynamicallyAccessedMembers(DynamicallyAccesse
                 MemberName = fields.First(f => f.Name.Equals(name, StringComparison.Ordinal)).GetCustomAttribute<EnumMemberAttribute>()?.Value
             })
             .ToArray();
-
-        return Interlocked.CompareExchange(ref _value, result, null) ?? result;
     }
 }

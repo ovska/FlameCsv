@@ -4,22 +4,18 @@ using System.Runtime.CompilerServices;
 namespace FlameCsv.Reading;
 
 // wrap pipereader to use as ICsvPipeReader<> to avoid duplicate code
-internal sealed class PipeReaderWrapper : ICsvPipeReader<byte>
+internal sealed class PipeReaderWrapper(PipeReader inner) : ICsvPipeReader<byte>
 {
-    private readonly PipeReader _inner;
-
-    public PipeReaderWrapper(PipeReader inner) => _inner = inner;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void AdvanceTo(SequencePosition consumed, SequencePosition examined) => inner.AdvanceTo(consumed, examined);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AdvanceTo(SequencePosition consumed, SequencePosition examined) => _inner.AdvanceTo(consumed, examined);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ValueTask DisposeAsync() => _inner.CompleteAsync(exception: null);
+    public ValueTask DisposeAsync() => inner.CompleteAsync(exception: null);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask<CsvReadResult<byte>> ReadAsync(CancellationToken cancellationToken = default)
     {
-        var readTask = _inner.ReadAsync(cancellationToken);
+        var readTask = inner.ReadAsync(cancellationToken);
 
         if (readTask.IsCompletedSuccessfully)
         {
