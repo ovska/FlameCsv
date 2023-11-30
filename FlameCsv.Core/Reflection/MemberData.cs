@@ -1,5 +1,4 @@
 ﻿using System.Reflection;
-using System.Runtime.CompilerServices;
 
 namespace FlameCsv.Reflection;
 
@@ -9,7 +8,7 @@ internal sealed class MemberData
     public Type MemberType { get; }
     public bool IsReadOnly { get; }
     public bool IsProperty { get; }
-    public ReadOnlySpan<object> Attributes => _attributes ?? GetOrInitMemberAttributes();
+    public ReadOnlySpan<object> Attributes => _attributes ??= Value.GetCustomAttributes(inherit: true);
 
     private object[]? _attributes;
 
@@ -22,13 +21,6 @@ internal sealed class MemberData
             FieldInfo f => (false, f.FieldType, f.IsInitOnly),
             _ => throw new InvalidOperationException("Invalid member type"),
         };
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private object[] GetOrInitMemberAttributes()
-    {
-        var attributes = Value.GetCustomAttributes(inherit: true);
-        return Interlocked.CompareExchange(ref _attributes, attributes, null) ?? attributes;
     }
 
     public static explicit operator MemberData(MemberInfo member) => new(member);
