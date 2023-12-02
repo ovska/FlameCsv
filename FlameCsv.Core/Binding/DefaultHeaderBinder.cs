@@ -47,7 +47,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
 
                     if (!bound)
                     {
-                        (notBound ??= new()).Add(candidate.Value);
+                        (notBound ??= []).Add(candidate.Value);
                     }
                 }
             }
@@ -60,7 +60,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
         }
     }
 
-    private static readonly ConditionalWeakTable<Type, HeaderData> _candidateCache = new();
+    private static readonly ConditionalWeakTable<Type, HeaderData> _candidateCache = [];
 
     /// <summary>
     /// Fields that could not be matched are ignored.
@@ -136,7 +136,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
         {
             var typeInfo = CsvTypeInfo<TValue>.Instance;
 
-            List<HeaderBindingCandidate> candidates = new();
+            List<HeaderBindingCandidate> candidates = [];
 
             foreach (var member in typeInfo.Members)
             {

@@ -78,7 +78,7 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
         int index = 0;
 
         List<MemberCsvBinding<TValue>> memberBindings = new(bindings.Length);
-        List<ParameterCsvBinding<TValue>> ctorBindings = new();
+        List<ParameterCsvBinding<TValue>> ctorBindings = [];
         ConstructorInfo? ctor = null;
 
         foreach (var binding in bindings)

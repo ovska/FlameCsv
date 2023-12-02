@@ -1,19 +1,21 @@
-﻿using CommunityToolkit.Diagnostics;
+﻿using System.Collections.Immutable;
+using CommunityToolkit.Diagnostics;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
 
 internal sealed class CustomBooleanTextConverter : CsvConverter<char, bool>
 {
-    private readonly string[] _trueValues;
-    private readonly string[] _falseValues;
+    private readonly ImmutableArray<string> _trueValues;
+    private readonly ImmutableArray<string> _falseValues;
+    private readonly StringComparison _comparison;
 
     internal CustomBooleanTextConverter(IList<(string text, bool value)> values)
     {
         Guard.IsNotEmpty(values);
 
-        List<string> trues = new(values.Count / 2 + 1);
-        List<string> falses = new(values.Count / 2 + 1);
+        var trues = ImmutableArray.CreateBuilder<string>(values.Count);
+        var falses = ImmutableArray.CreateBuilder<string>(values.Count);
 
         foreach ((string text, bool value) in values)
         {
@@ -26,11 +28,12 @@ internal sealed class CustomBooleanTextConverter : CsvConverter<char, bool>
         if (falses.Count == 0)
             Throw.Config_TrueOrFalseBooleanValues(false);
 
-        _trueValues = [.. trues];
-        _falseValues = [.. falses];
+        _trueValues = trues.ToImmutable();
+        _falseValues = falses.ToImmutable();
+        _comparison = StringComparison.OrdinalIgnoreCase;
     }
 
-    internal CustomBooleanTextConverter(string[] trueValues, string[] falseValues)
+    internal CustomBooleanTextConverter(string[] trueValues, string[] falseValues, StringComparison comparison)
     {
         ArgumentNullException.ThrowIfNull(trueValues);
         ArgumentNullException.ThrowIfNull(falseValues);
@@ -41,8 +44,9 @@ internal sealed class CustomBooleanTextConverter : CsvConverter<char, bool>
         if (falseValues.Length == 0)
             Throw.Config_TrueOrFalseBooleanValues(false);
 
-        _trueValues = trueValues;
-        _falseValues = falseValues;
+        _trueValues = [.. trueValues];
+        _falseValues = [.. falseValues];
+        _comparison = comparison;
     }
 
     public override bool TryFormat(Span<char> destination, bool value, out int charsWritten)
@@ -55,7 +59,7 @@ internal sealed class CustomBooleanTextConverter : CsvConverter<char, bool>
     {
         foreach (string v in _trueValues.AsSpan())
         {
-            if (source.SequenceEqual(v.AsSpan()))
+            if (source.Equals(v.AsSpan(), _comparison))
             {
                 value = true;
                 return true;
@@ -64,7 +68,7 @@ internal sealed class CustomBooleanTextConverter : CsvConverter<char, bool>
 
         foreach (string v in _falseValues.AsSpan())
         {
-            if (source.SequenceEqual(v.AsSpan()))
+            if (source.Equals(v.AsSpan(), _comparison))
             {
                 value = false;
                 return true;

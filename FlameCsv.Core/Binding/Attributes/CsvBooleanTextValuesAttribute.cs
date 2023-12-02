@@ -20,12 +20,18 @@ public sealed class CsvBooleanTextValuesAttribute : CsvConverterAttribute<char>
     /// </summary>
     public string[] FalseValues { get; set; } = [];
 
+    /// <summary>
+    /// Comparison type to use, default is <see cref="StringComparison.OrdinalIgnoreCase"/>.
+    /// </summary>
+    public StringComparison Comparison { get; set; } = StringComparison.OrdinalIgnoreCase;
+
     /// <inheritdoc/>
     protected override CsvConverter<char> CreateConverterOrFactory(Type targetType, CsvOptions<char> options)
     {
         CustomBooleanTextConverter converter = new(
             trueValues: TrueValues,
-            falseValues: FalseValues);
+            falseValues: FalseValues,
+            comparison: Comparison);
 
         if (targetType == typeof(bool))
         {

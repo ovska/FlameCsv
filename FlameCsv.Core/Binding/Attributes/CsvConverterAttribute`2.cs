@@ -1,8 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.Diagnostics;
-using FlameCsv.Converters;
 using FlameCsv.Exceptions;
-using FlameCsv.Extensions;
 
 namespace FlameCsv.Binding.Attributes;
 
@@ -26,7 +24,8 @@ public sealed class CsvConverterAttribute<T, [DynamicallyAccessedMembers(Message
 
     protected override CsvConverter<T> CreateConverterOrFactory(Type targetType, CsvOptions<T> options)
     {
-        if (typeof(TConverter).GetConstructor([options.GetType()]) is { } exactCtor)
+        if (options.GetType() != typeof(CsvOptions<T>) &&
+            typeof(TConverter).GetConstructor([options.GetType()]) is { } exactCtor)
         {
             return (CsvConverter<T>)exactCtor.Invoke(new object[] { options });
         }

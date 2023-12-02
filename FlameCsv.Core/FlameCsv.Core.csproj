@@ -7,8 +7,8 @@
     <WarningsAsErrors>true</WarningsAsErrors>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <AnalysisLevel>6.0-recommended</AnalysisLevel>
-    
+    <AnalysisLevel>latest</AnalysisLevel>
+
     <IsTrimmable>true</IsTrimmable>
 
     <!--This setting is broken for structs that use the in-modified-->
@@ -18,7 +18,7 @@
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Diagnostics" Version="8.2.2" />
     <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.2.2" />
-    <PackageReference Include="FastExpressionCompiler" Version="4.0.0" />
+    <PackageReference Include="FastExpressionCompiler" Version="4.0.1" />
     <PackageReference Include="System.IO.Pipelines" Version="8.0.0" />
   </ItemGroup>
 

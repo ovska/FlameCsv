@@ -266,16 +266,10 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
 
     IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<ReadOnlyMemory<T>>)this).GetEnumerator();
 
-    private readonly struct PreservedValues
+    private readonly struct PreservedValues(ReadOnlyMemory<T> record, ArraySegment<ReadOnlyMemory<T>> fields)
     {
-        public PreservedValues(ReadOnlyMemory<T> record, ArraySegment<ReadOnlyMemory<T>> fields)
-        {
-            Record = record;
-            Fields = fields;
-        }
-
-        public ReadOnlyMemory<T> Record { get; }
-        public ArraySegment<ReadOnlyMemory<T>> Fields { get; }
+        public ReadOnlyMemory<T> Record => record;
+        public ArraySegment<ReadOnlyMemory<T>> Fields => fields;
 
         public void Deconstruct(out ReadOnlyMemory<T> record, out ArraySegment<ReadOnlyMemory<T>> fields)
         {

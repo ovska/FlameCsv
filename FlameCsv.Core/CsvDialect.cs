@@ -174,6 +174,6 @@ public readonly struct CsvDialect<T> : IEquatable<CsvDialect<T>> where T : unman
             CsvDialectStatic.ThrowForInvalid(errors);
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        void AddError(string message) => (errors ??= new()).Add(message);
+        void AddError(string message) => (errors ??= []).Add(message);
     }
 }
