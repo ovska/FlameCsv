@@ -19,7 +19,7 @@ internal static class IndexAttributeBinder<[DynamicallyAccessedMembers(Messages.
     private static CsvBindingCollection<TValue>? CreateBindingCollection()
     {
         var typeInfo = CsvTypeInfo<TValue>.Instance;
-        List<CsvBinding<TValue>> list = new();
+        List<CsvBinding<TValue>> list = [];
 
         foreach (var attr in typeInfo.Attributes)
         {

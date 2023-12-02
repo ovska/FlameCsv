@@ -17,10 +17,6 @@ namespace FlameCsv;
     "Reliability",
     "CA2000:Dispose objects before losing scope",
     Justification = "Readers are passed to an enumerable whose enumerator disposes the reader")]
-[SuppressMessage(
-    "Roslynator",
-    "RCS1047:Non-asynchronous method name should not end with 'Async'.",
-    Justification = "Method returns a duck typed IAsyncEnumerable")]
 public static partial class CsvReader
 {
     /// <summary>

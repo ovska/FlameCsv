@@ -28,7 +28,7 @@ public readonly struct CsvFieldEnumerable<T> where T : unmanaged, IEquatable<T>
     /// </summary>
     public List<ReadOnlyMemory<T>> ToList()
     {
-        List<ReadOnlyMemory<T>> list = new();
+        List<ReadOnlyMemory<T>> list = [];
 
         foreach (ReadOnlyMemory<T> field in this)
         {
