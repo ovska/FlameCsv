@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Internal;
 using FlameCsv.Exceptions;
@@ -72,7 +73,10 @@ internal static class MaterializerExtensions
     }
 
     private static bool TryGetTupleBindings<T,
-        [DynamicallyAccessedMembers(Messages.Ctors)] TTuple>(
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicConstructors |
+            DynamicallyAccessedMemberTypes.PublicFields)]
+    TTuple>(
         bool write,
         [NotNullWhen(true)] out CsvBindingCollection<TTuple>? bindingCollection)
         where T : unmanaged, IEquatable<T>
@@ -83,19 +87,47 @@ internal static class MaterializerExtensions
             return false;
         }
 
-        var parameters = typeof(TTuple).GetConstructors()[0].GetParameters();
-        var bindingsList = new List<CsvBinding<TTuple>>(parameters.Length);
+        List<CsvBinding<TTuple>> bindingsList;
 
-        for (int i = 0; i < parameters.Length; i++)
+        if (write)
         {
-            var parameter = parameters[i];
-            bindingsList.Add(
-                parameter.GetType() == typeof(object)
-                    ? new IgnoredCsvBinding<TTuple>(index: parameter.Position)
-                    : new ParameterCsvBinding<TTuple>(index: parameter.Position, parameter));
+
+            var fields = typeof(TTuple).GetFields();
+            fields.AsSpan().Sort(FieldInfoNameComparer.Instance); // ensure order Item1, Item2 etc.
+
+            bindingsList = new(fields.Length);
+
+            for (int i = 0; i < fields.Length; i++)
+            {
+                System.Reflection.FieldInfo? field = fields[i];
+                bindingsList.Add(
+                    field.FieldType == typeof(CsvIgnored)
+                        ? new IgnoredCsvBinding<TTuple>(index: i)
+                        : new MemberCsvBinding<TTuple>(index: i, (MemberData)field));
+            }
+        }
+        else
+        {
+            var parameters = typeof(TTuple).GetConstructors()[0].GetParameters();
+            bindingsList = new(parameters.Length);
+
+            foreach (var parameter in parameters)
+            {
+                bindingsList.Add(
+                    parameter.ParameterType == typeof(CsvIgnored)
+                        ? new IgnoredCsvBinding<TTuple>(index: parameter.Position)
+                        : new ParameterCsvBinding<TTuple>(index: parameter.Position, parameter));
+            }
         }
 
         bindingCollection = new CsvBindingCollection<TTuple>(bindingsList, write, isInternalCall: true);
         return true;
+    }
+
+    private sealed class FieldInfoNameComparer : IComparer<FieldInfo>
+    {
+        public static readonly FieldInfoNameComparer Instance = new();
+        private FieldInfoNameComparer() { }
+        public int Compare(FieldInfo? x, FieldInfo? y) => StringComparer.Ordinal.Compare(x!.Name, y!.Name);
     }
 }
