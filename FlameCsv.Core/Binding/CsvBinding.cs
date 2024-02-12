@@ -21,10 +21,11 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// <summary>
     /// Returns whether the binding is on an ignored field.
     /// </summary>
-    public bool IsIgnored => ReferenceEquals(Sentinel, Type.Missing);
+    public bool IsIgnored => ReferenceEquals(Sentinel, typeof(CsvIgnored));
 
     /// <summary>
-    /// The target of the binding (member or parameter), or <see cref="Type.Missing"/> if ignored field.
+    /// The target of the binding (member or parameter), or
+    /// <see langword="typeof"/> <see cref="CsvIgnored"/> if ignored field.
     /// </summary>
     internal protected abstract object Sentinel { get; }
 
