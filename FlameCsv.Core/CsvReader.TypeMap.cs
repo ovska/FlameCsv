@@ -80,6 +80,7 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(typeMap);
         ArgumentNullException.ThrowIfNull(options);
         Guard.CanRead(stream);
+        ArgumentOutOfRangeException.ThrowIfLessThan(bufferSize, 1);
 
         var readerContext = new CsvReadingContext<char>(options, context);
         var textReader = new StreamReader(stream, encoding: encoding, leaveOpen: leaveOpen, bufferSize: bufferSize);
