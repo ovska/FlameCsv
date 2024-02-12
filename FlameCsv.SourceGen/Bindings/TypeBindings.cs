@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using Microsoft.CodeAnalysis;
 
 namespace FlameCsv.SourceGen.Bindings;
 
@@ -26,3 +27,4 @@ internal sealed class TypeBindings
         RequiredBindings = AllBindings.Where(x => x.IsRequired).ToImmutableArray();
     }
 }
+

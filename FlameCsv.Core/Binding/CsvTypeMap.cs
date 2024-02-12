@@ -16,7 +16,7 @@ namespace FlameCsv.Binding;
 public abstract class CsvTypeMap<T, TValue> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
-    /// Returns bindings for <typeparamref name="TValue"/> for the headers.
+    /// Returns a materializer for <typeparamref name="TValue"/> bound to CSV header.
     /// </summary>
     protected abstract IMaterializer<T, TValue> BindMembers(
         ReadOnlySpan<string> headers,
@@ -24,7 +24,7 @@ public abstract class CsvTypeMap<T, TValue> where T : unmanaged, IEquatable<T>
         CsvOptions<T> options);
 
     /// <summary>
-    /// Returns bindings for <typeparamref name="TValue"/> for indexes.
+    /// Returns a materializer for <typeparamref name="TValue"/> bound to column indexes.
     /// </summary>
     protected abstract IMaterializer<T, TValue> BindMembers(
         bool exposeContent,

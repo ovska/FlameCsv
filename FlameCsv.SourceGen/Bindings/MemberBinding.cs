@@ -1,6 +1,6 @@
 ﻿namespace FlameCsv.SourceGen.Bindings;
 
-internal readonly struct MemberBinding : IComparable<MemberBinding>, IBinding
+internal sealed class MemberBinding : IComparable<MemberBinding>, IBinding
 {
     public string Name => Symbol.Name;
     public IEnumerable<string> Names { get; }
@@ -11,22 +11,22 @@ internal readonly struct MemberBinding : IComparable<MemberBinding>, IBinding
     public string ParserId { get; }
     public string HandlerId { get; }
     public int Order { get; }
+    public BindingScope Scope { get; }
 
     public MemberBinding(
         ISymbol symbol,
         ITypeSymbol type,
-        bool isRequired,
-        int order,
-        IEnumerable<string> names)
+        in SymbolMetadata meta)
     {
         Symbol = symbol;
         Type = type;
-        IsRequired = isRequired
+        IsRequired = meta.IsRequired
             || symbol is IPropertySymbol { IsRequired: true }
             || symbol is IFieldSymbol { IsRequired: true }
-            || symbol is IPropertySymbol { SetMethod.IsInitOnly: true }; // TODO: read
-        Order = order;
-        Names = names;
+            || symbol is IPropertySymbol { SetMethod.IsInitOnly: true };
+        Order = meta.Order;
+        Names = meta.Names;
+        Scope = meta.Scope;
         ParserId = $"@__Parser_{symbol.Name}";
         HandlerId = $"@s__Handler_{symbol.Name}";
     }

@@ -1,26 +1,37 @@
 ﻿namespace FlameCsv.SourceGen.Bindings;
 
-internal readonly struct ParameterBinding(
-    IParameterSymbol symbol,
-    ITypeSymbol type,
-    int order,
-    bool explicitRequired,
-    IEnumerable<string> names) : IComparable<ParameterBinding>, IBinding
-{
-    public string Name { get; } = $"@p_{symbol.Name}";
-    public string ParameterName => symbol.Name;
-    public IEnumerable<string> Names => names;
+#pragma warning disable IDE0290 // Use primary constructor
 
-    ISymbol IBinding.Symbol => symbol;
-    public IParameterSymbol Symbol => symbol;
-    public ITypeSymbol Type => type;
-    public string ParserId { get; } = $"@__Parser_p_{symbol.Name}";
-    public string HandlerId { get; } = $"@s__Handler_p_{symbol.Name}";
-    public int Order => order;
-    public bool IsRequired => explicitRequired || !symbol.HasExplicitDefaultValue;
-    public int ParameterPosition => symbol.Ordinal;
-    public bool HasInModifier => symbol.RefKind == RefKind.In;
-    public object? DefaultValue => symbol.ExplicitDefaultValue;
+internal sealed class ParameterBinding : IComparable<ParameterBinding>, IBinding
+{
+    public string Name { get; }
+    public string ParameterName => Symbol.Name;
+    public IEnumerable<string> Names { get; }
+    public BindingScope Scope => BindingScope.Read;
+
+    ISymbol IBinding.Symbol => Symbol;
+    public IParameterSymbol Symbol { get; }
+    public ITypeSymbol Type => Symbol.Type;
+    public string ParserId { get; }
+    public string HandlerId { get; }
+    public int Order { get; }
+    public bool IsRequired { get; }
+    public int ParameterPosition => Symbol.Ordinal;
+    public bool HasInModifier => Symbol.RefKind == RefKind.In;
+    public object? DefaultValue => Symbol.ExplicitDefaultValue;
+
+    public ParameterBinding(
+        IParameterSymbol symbol,
+        in SymbolMetadata meta)
+    {
+        Name = $"@p_{symbol.Name}";
+        Symbol = symbol;
+        ParserId = $"@__Parser_p_{symbol.Name}";
+        HandlerId = $"@s__Handler_p_{symbol.Name}";
+        Order = meta.Order;
+        IsRequired = meta.IsRequired || !symbol.HasExplicitDefaultValue;
+        Names = meta.Names;
+    }
 
     public int CompareTo(ParameterBinding other) => other.Order.CompareTo(Order); // reverse sort so higher order is first
 }

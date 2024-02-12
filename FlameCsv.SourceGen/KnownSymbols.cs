@@ -1,4 +1,7 @@
-﻿namespace FlameCsv.SourceGen;
+﻿using System.Diagnostics.SymbolStore;
+using Microsoft.CodeAnalysis;
+
+namespace FlameCsv.SourceGen;
 
 internal readonly struct KnownSymbols(Compilation compilation)
 {
@@ -15,4 +18,52 @@ internal readonly struct KnownSymbols(Compilation compilation)
     private readonly LazySymbol _csvHeaderAttribute = new(compilation, "FlameCsv.Binding.Attributes.CsvHeaderAttribute");
     private readonly LazySymbol _csvConverterOfTAttribute = new(compilation, "FlameCsv.Binding.Attributes.CsvConverterAttribute`2", true);
     private readonly LazySymbol _csvConstructorAttribute = new(compilation, "FlameCsv.Binding.Attributes.CsvConstructorAttribute");
+}
+
+internal readonly struct SymbolMetadata
+{
+    public ISymbol Symbol { get; }
+    public IEnumerable<string> Names { get; }
+    public bool IsRequired { get; }
+    public int Order { get; }
+    public BindingScope Scope { get; }
+
+    public SymbolMetadata(ISymbol symbol, in KnownSymbols knownSymbols)
+    {
+        Symbol = symbol;
+
+        foreach (var attributeData in symbol.GetAttributes())
+        {
+            if (SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, knownSymbols.CsvHeaderAttribute))
+            {
+                var arg = attributeData.ConstructorArguments[0];
+
+                // params-array
+                if (!arg.Values.IsDefaultOrEmpty)
+                {
+                    Names = arg.Values.Select(v => v.Value as string ?? "");
+                }
+
+                foreach (var argument in attributeData.NamedArguments)
+                {
+                    switch (argument)
+                    {
+                        case { Key: "Required", Value.Value: bool _required }:
+                            IsRequired = _required;
+                            break;
+                        case { Key: "Order", Value.Value: int _order }:
+                            Order = _order;
+                            break;
+                        case { Key: "Scope", Value.Value: int _scope }:
+                            Scope = (BindingScope)_scope;
+                            break;
+                    }
+                }
+
+                break;
+            }
+        }
+
+        Names ??= new[] { symbol.Name };
+    }
 }
