@@ -63,7 +63,7 @@ internal static class IndexAttributeBinder<[DynamicallyAccessedMembers(Messages.
             }
         }
 
-        if (write)
+        if (!write)
         {
             foreach (var parameter in typeInfo.ConstructorParameters)
             {
@@ -93,7 +93,7 @@ internal static class IndexAttributeBinder<[DynamicallyAccessedMembers(Messages.
 
         bool IsValid(ICsvBindingAttribute attribute)
         {
-            return attribute.Scope == CsvBindingScope.Default
+            return attribute.Scope == CsvBindingScope.All
                 || (write && attribute.Scope == CsvBindingScope.Write)
                 || (!write && attribute.Scope == CsvBindingScope.Read);
 

@@ -140,7 +140,7 @@ internal static class Extensions
         }
     }
 
-    public static bool IsSerializerWritable(this IFieldSymbol f, in KnownSymbols knownSymbols)
+    public static bool ValidForReading(this IFieldSymbol f, in KnownSymbols knownSymbols)
     {
         return f.CanBeReferencedByName
             && !f.IsStatic
@@ -148,7 +148,7 @@ internal static class Extensions
             && !f.HasAttribute(knownSymbols.CsvHeaderIgnoreAttribute);
     }
 
-    public static bool IsSerializerWritable(this IPropertySymbol p, in KnownSymbols knownSymbols)
+    public static bool ValidForReading(this IPropertySymbol p, in KnownSymbols knownSymbols)
     {
         return p.CanBeReferencedByName
             && !p.IsStatic

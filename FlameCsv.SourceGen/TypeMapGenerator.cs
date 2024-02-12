@@ -1,4 +1,6 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Reflection.Metadata;
 using FlameCsv.SourceGen.Bindings;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -211,7 +213,7 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
             {
                 commentWritten = true;
                 sb.Append(@"
-                // Preassign compile time defaults for optional parameters in case they don't get parsed
+                // Preassign compile time defaults for optional parameter(s) in case they don't get parsed
 ");
             }
 
@@ -404,22 +406,21 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
             if (member.DeclaredAccessibility == Accessibility.Private)
                 continue;
 
-            bool isRequired;
-            int order;
-            IEnumerable<string> names;
-
-            if (member is IPropertySymbol property && property.IsSerializerWritable(in _symbols))
+            // TODO: write only
+            if (member is IPropertySymbol property && property.ValidForReading(in _symbols))
             {
-                GetSymbolOptions(member, out isRequired, out order, out names);
-                members.Add(new MemberBinding(member, property.Type, isRequired || property.IsRequired, order, names));
+                var meta = new SymbolMetadata(property, in _symbols);
+                members.Add(new MemberBinding(member, property.Type, in meta));
 
             }
-            else if (member is IFieldSymbol field && field.IsSerializerWritable(in _symbols))
+            else if (member is IFieldSymbol field && field.ValidForReading(in _symbols))
             {
-                GetSymbolOptions(member, out isRequired, out order, out names);
-                members.Add(new MemberBinding(member, field.Type, isRequired, order, names));
+                var meta = new SymbolMetadata(field, in _symbols);
+                members.Add(new MemberBinding(member, field.Type, in meta));
             }
-            else if (member is IMethodSymbol { MethodKind: MethodKind.Constructor } ctor)
+            else if (
+                !typeMap.SkipConstructor &&
+                member is IMethodSymbol { MethodKind: MethodKind.Constructor } ctor)
             {
                 foreach (var attr in ctor.GetAttributes())
                 {
@@ -446,29 +447,32 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
             }
         }
 
-        constructor ??= parameterlessCtor;
-
-        if (constructor is null)
+        if (!typeMap.SkipConstructor)
         {
-            typeMap.Fail(Diagnostics.NoConstructorFound(typeMap.Type));
-        }
-
-        foreach (var parameter in constructor.Parameters)
-        {
-            typeMap.ThrowIfCancellationRequested();
-
-            if (parameter.Type.IsRefLikeType)
+            constructor ??= parameterlessCtor;
+            if (constructor is null)
             {
-                typeMap.Fail(Diagnostics.RefLikeConstructorParameterFound(typeMap.Type, parameter));
+                typeMap.Fail(Diagnostics.NoConstructorFound(typeMap.Type));
             }
 
-            if (parameter.RefKind is not RefKind.None and not RefKind.In)
+            foreach (var parameter in constructor.Parameters)
             {
-                typeMap.Fail(Diagnostics.RefConstructorParameterFound(typeMap.Type, parameter));
-            }
+                typeMap.ThrowIfCancellationRequested();
 
-            GetSymbolOptions(parameter, out bool isRequired, out int order, out var names);
-            parameters.Add(new ParameterBinding(parameter, parameter.Type, order, isRequired, names));
+                if (parameter.Type.IsRefLikeType)
+                {
+                    typeMap.Fail(Diagnostics.RefLikeConstructorParameterFound(typeMap.Type, parameter));
+                }
+
+                if (parameter.RefKind is not RefKind.None and not RefKind.In)
+                {
+                    typeMap.Fail(Diagnostics.RefConstructorParameterFound(typeMap.Type, parameter));
+                }
+
+                var meta = new SymbolMetadata(parameter, in _symbols);
+                Debug.Assert(meta.Scope != BindingScope.Write);
+                parameters.Add(new ParameterBinding(parameter, in meta));
+            }
         }
 
         if (members.Count == 0 && parameters.Count == 0)
@@ -515,13 +519,28 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
 
     private IEnumerable<string> WriteMatchers(TypeMapSymbol typeMap)
     {
-        typeMap.ThrowIfCancellationRequested();
+        var allBindingsSorted = _bindings.AllBindings.ToArray();
 
-        foreach (var binding in _bindings.AllBindings
-            .OrderByDescending(b => b.Order)
-            .ThenByDescending(b => b is ParameterBinding)
-            .ThenByDescending(b => b.IsRequired))
+        Array.Sort(allBindingsSorted, (b1, b2) =>
         {
+            if (b1.Order != b2.Order)
+            {
+                return b2.Order.CompareTo(b1.Order);
+            }
+            else if ((b1 is ParameterBinding) != (b2 is ParameterBinding))
+            {
+                return (b2 is ParameterBinding).CompareTo(b1 is ParameterBinding);
+            }
+            else
+            {
+                return b2.IsRequired.CompareTo(b1.IsRequired);
+            }
+        });
+
+        foreach (var binding in allBindingsSorted)
+        {
+            typeMap.ThrowIfCancellationRequested();
+
             string skipDuplicate = "";
             string checkDuplicate = "";
 
@@ -598,46 +617,6 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
             converterInit = null;
             return false;
         }
-    }
-
-    private void GetSymbolOptions(
-        ISymbol symbol,
-        out bool isRequired,
-        out int order,
-        [NotNull] out IEnumerable<string>? names)
-    {
-        order = default;
-        isRequired = default;
-        names = null;
-
-        foreach (var attributeData in symbol.GetAttributes())
-        {
-            if (SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, _symbols.CsvHeaderAttribute))
-            {
-                var arg = attributeData.ConstructorArguments[0];
-
-                if (!arg.Values.IsDefaultOrEmpty)
-                {
-                    names = arg.Values.Select(v => v.Value as string ?? "");
-                }
-
-                foreach (var argument in attributeData.NamedArguments)
-                {
-                    if (argument.Key == "Required" && argument.Value.Value is bool _required)
-                    {
-                        isRequired = _required;
-                    }
-                    else if (argument.Key == "Order" && argument.Value.Value is int _order)
-                    {
-                        order = _order;
-                    }
-                }
-
-                break;
-            }
-        }
-
-        names ??= names = new[] { symbol.Name };
     }
 
     private static bool IsSyntaxTargetForGeneration(SyntaxNode node)

@@ -10,4 +10,5 @@ internal interface IBinding
     string ParserId { get; }
     string HandlerId { get; }
     int Order { get; }
+    BindingScope Scope { get; }
 }

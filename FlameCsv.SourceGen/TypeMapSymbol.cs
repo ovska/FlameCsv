@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace FlameCsv.SourceGen;
 
-public readonly struct TypeMapSymbol
+internal readonly struct TypeMapSymbol
 {
     /// <summary>
     /// Class annotated with the CsvTypeMapAttribute<>
@@ -25,6 +25,10 @@ public readonly struct TypeMapSymbol
     public string ResultName { get; }
 
     public string HandlerArgs { get; }
+
+    public BindingScope Scope { get; }
+
+    public bool SkipConstructor => Scope == BindingScope.Write;
 
     public TypeMapSymbol(
         INamedTypeSymbol containingClass,
@@ -61,17 +65,43 @@ public readonly struct TypeMapSymbol
 
                 string propertyName = propertyNameNode.Name.Identifier.ValueText;
 
-                if (propertyName.Equals("IgnoreUnmatched", StringComparison.OrdinalIgnoreCase))
+                if (propertyName.Equals("IgnoreUnmatched", StringComparison.Ordinal))
                 {
                     IgnoreUnmatched = propertyValueNode.IsKind(SyntaxKind.TrueLiteralExpression);
                 }
-                else if (propertyName.Equals("ThrowOnDuplicate", StringComparison.OrdinalIgnoreCase))
+                else if (propertyName.Equals("ThrowOnDuplicate", StringComparison.Ordinal))
                 {
                     ThrowOnDuplicate = propertyValueNode.IsKind(SyntaxKind.TrueLiteralExpression);
                 }
-                else if (propertyName.Equals("SkipStaticInstance", StringComparison.OrdinalIgnoreCase))
+                else if (propertyName.Equals("SkipStaticInstance", StringComparison.Ordinal))
                 {
                     SkipStaticInstance = propertyValueNode.IsKind(SyntaxKind.TrueLiteralExpression);
+                }
+                else if (propertyName.Equals("Scope", StringComparison.Ordinal))
+                {
+                    if (propertyValueNode.IsKind(SyntaxKind.DefaultLiteralExpression))
+                    {
+                        Scope = default;
+                    }
+                    else if (propertyValueNode is MemberAccessExpressionSyntax
+                    {
+                        Expression: IdentifierNameSyntax { Identifier.ValueText: "CsvBindingScope" }
+                    } maes)
+                    {
+                        Scope = maes.Name.Identifier.ValueText.AsSpan().Trim() switch
+                        {
+                            "All" => BindingScope.All,
+                            "Read" => BindingScope.Read,
+                            "Write" => BindingScope.Write,
+                            _ => throw new NotSupportedException(
+                                    "Unrecognized binding scope: " + propertyValueNode.ToFullString()),
+                        };
+                    }
+                    else
+                    {
+                        throw new NotSupportedException(
+                            $"Unsupported assignment to \"Scope\": {propertyValueNode.ToFullString()}");
+                    }
                 }
             }
         }
