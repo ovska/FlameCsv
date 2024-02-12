@@ -12,7 +12,7 @@ namespace FlameCsv.Binding.Attributes;
 /// or change the parameter order.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true)]
-public sealed class CsvHeaderTargetAttribute : Attribute
+public sealed class CsvHeaderTargetAttribute : Attribute, ICsvBindingAttribute
 {
     /// <summary>Header values to match.</summary>
     public string[] Values { get; }
@@ -25,6 +25,9 @@ public sealed class CsvHeaderTargetAttribute : Attribute
 
     /// <inheritdoc cref="CsvHeaderAttribute.Required"/>
     public bool IsRequired { get; set; }
+
+    /// <inheritdoc cref="ICsvBindingAttribute.Scope"/>
+    public CsvBindingScope Scope { get; set; }
 
     /// <inheritdoc cref="CsvHeaderTargetAttribute"/>
     /// <param name="memberName">Name of the property or field</param>

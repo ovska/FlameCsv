@@ -9,46 +9,46 @@ namespace FlameCsv.Tests.Binding;
 
 public static class IndexAttributeBinderTests
 {
-    [Fact]
-    public static void Should_Bind_To_Members()
+    [Theory, InlineData(true), InlineData(false)]
+    public static void Should_Bind_To_Members(bool write)
     {
-        Assert.True(IndexAttributeBinder<Members>.TryGetBindings(out var result));
+        Assert.True(IndexAttributeBinder<Members>.TryGetBindings(write, out var result));
         Assert.Equal(3, result!.Bindings.Length);
         Assert.Equal(
             new[] { (0, "A"), (1, "B"), (2, "C") },
             result.Bindings.ToArray().Select(b => (b.Index, ((MemberCsvBinding<Members>)b).Member.Name)));
     }
 
-    [Fact]
-    public static void Should_Bind_To_Targets()
+    [Theory, InlineData(true), InlineData(false)]
+    public static void Should_Bind_To_Targets(bool write)
     {
-        Assert.True(IndexAttributeBinder<Class>.TryGetBindings(out var result));
+        Assert.True(IndexAttributeBinder<Class>.TryGetBindings(write, out var result));
         Assert.Equal(3, result!.Bindings.Length);
         Assert.Equal(
             new[] { (0, "A"), (1, "B"), (2, "C") },
             result.Bindings.ToArray().Select(b => (b.Index, ((MemberCsvBinding<Class>)b).Member.Name)));
     }
 
-    [Fact]
-    public static void Should_Bind_To_Mixed()
+    [Theory, InlineData(true), InlineData(false)]
+    public static void Should_Bind_To_Mixed(bool write)
     {
-        Assert.True(IndexAttributeBinder<Mixed>.TryGetBindings(out var result));
+        Assert.True(IndexAttributeBinder<Mixed>.TryGetBindings(write, out var result));
         Assert.Equal(3, result!.Bindings.Length);
         Assert.Equal(
             new[] { (0, "A"), (1, "B"), (2, "C") },
             result.Bindings.ToArray().Select(b => (b.Index, ((MemberCsvBinding<Mixed>)b).Member.Name)));
     }
 
-    [Fact]
-    public static void Should_Handle_No_Bindings()
+    [Theory, InlineData(true), InlineData(false)]
+    public static void Should_Handle_No_Bindings(bool write)
     {
-        Assert.False(IndexAttributeBinder<None>.TryGetBindings(out _));
+        Assert.False(IndexAttributeBinder<None>.TryGetBindings(write, out _));
     }
 
-    [Fact]
-    public static void Should_Handle_Ignores()
+    [Theory, InlineData(true), InlineData(false)]
+    public static void Should_Handle_Ignores(bool write)
     {
-        Assert.True(IndexAttributeBinder<Ignored>.TryGetBindings(out var result));
+        Assert.True(IndexAttributeBinder<Ignored>.TryGetBindings(write, out var result));
         Assert.Equal(3, result!.Bindings.Length);
         Assert.Equal("A", ((MemberCsvBinding<Ignored>)result.Bindings[0]).Member.Name);
         Assert.True(result.Bindings[1].IsIgnored);

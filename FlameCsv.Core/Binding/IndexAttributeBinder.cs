@@ -9,14 +9,20 @@ namespace FlameCsv.Binding;
 
 internal static class IndexAttributeBinder<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue>
 {
-    private static readonly Lazy<CsvBindingCollection<TValue>?> _bindingsLazy = new(CreateBindingCollection);
+    private static readonly Lazy<CsvBindingCollection<TValue>?> _read
+        = new(() => CreateBindingCollection(false));
 
-    public static bool TryGetBindings([NotNullWhen(true)] out CsvBindingCollection<TValue>? bindings)
+    private static readonly Lazy<CsvBindingCollection<TValue>?> _write
+        = new(() => CreateBindingCollection(true));
+
+    public static bool TryGetBindings(
+        bool write,
+        [NotNullWhen(true)] out CsvBindingCollection<TValue>? bindings)
     {
-        return (bindings = _bindingsLazy.Value) is not null;
+        return (bindings = (write ? _write : _read).Value) is not null;
     }
 
-    private static CsvBindingCollection<TValue>? CreateBindingCollection()
+    private static CsvBindingCollection<TValue>? CreateBindingCollection(bool write)
     {
         var typeInfo = CsvTypeInfo<TValue>.Instance;
         List<CsvBinding<TValue>> list = [];
@@ -25,10 +31,16 @@ internal static class IndexAttributeBinder<[DynamicallyAccessedMembers(Messages.
         {
             if (attr is CsvIndexTargetAttribute target)
             {
+                if (!IsValid(target))
+                    continue;
+
                 list.Add(new MemberCsvBinding<TValue>(target.Index, typeInfo.GetPropertyOrField(target.MemberName)));
             }
-            else if (attr is CsvIndexIgnoreAttribute { Indexes: var ignoredIndices })
+            else if (attr is CsvIndexIgnoreAttribute { Indexes: var ignoredIndices } ignoreAttr)
             {
+                if (!IsValid(ignoreAttr))
+                    continue;
+
                 foreach (var index in ignoredIndices)
                 {
                     // Ensure no duplicate ignores since its not really harmful to have them
@@ -40,9 +52,10 @@ internal static class IndexAttributeBinder<[DynamicallyAccessedMembers(Messages.
 
         foreach (var member in typeInfo.Members)
         {
-            foreach (var attribute in member.Attributes)
+            foreach (var attr in member.Attributes)
             {
-                if (attribute is CsvIndexAttribute { Index: var index })
+                if (attr is CsvIndexAttribute { Index: var index } indexAttr &&
+                    IsValid(indexAttr))
                 {
                     list.Add(new MemberCsvBinding<TValue>(index, member));
                     break;
@@ -50,29 +63,41 @@ internal static class IndexAttributeBinder<[DynamicallyAccessedMembers(Messages.
             }
         }
 
-        foreach (var parameter in typeInfo.ConstructorParameters)
+        if (write)
         {
-            bool found = false;
-
-            foreach (var attr in parameter.Attributes)
+            foreach (var parameter in typeInfo.ConstructorParameters)
             {
-                if (attr is CsvIndexAttribute { Index: var index })
+                bool found = false;
+
+                foreach (var attr in parameter.Attributes)
                 {
-                    list.Add(new ParameterCsvBinding<TValue>(index, parameter));
-                    found = true;
-                    break;
+                    if (attr is CsvIndexAttribute { Index: var index } indexAttr &&
+                        IsValid(indexAttr))
+                    {
+                        list.Add(new ParameterCsvBinding<TValue>(index, parameter));
+                        found = true;
+                        break;
+                    }
                 }
-            }
 
-            if (!found && !parameter.Value.HasDefaultValue)
-            {
-                throw new CsvBindingException<TValue>(parameter.Value, Array.Empty<CsvBinding>());
+                if (!found && !parameter.Value.HasDefaultValue)
+                {
+                    throw new CsvBindingException<TValue>(parameter.Value, Array.Empty<CsvBinding>());
+                }
             }
         }
 
         return list.Count > 0
-            ? new CsvBindingCollection<TValue>(list, isInternalCall: true)
+            ? new CsvBindingCollection<TValue>(list, write, isInternalCall: true)
             : null;
+
+        bool IsValid(ICsvBindingAttribute attribute)
+        {
+            return attribute.Scope == CsvBindingScope.Default
+                || (write && attribute.Scope == CsvBindingScope.Write)
+                || (!write && attribute.Scope == CsvBindingScope.Read);
+
+        }
 
         static bool HasIgnoredIndex(int index, List<CsvBinding<TValue>> list)
         {

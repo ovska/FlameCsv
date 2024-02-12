@@ -1,6 +1,5 @@
 ﻿using FlameCsv.Exceptions;
 using FlameCsv.Converters;
-using System.Text.Unicode;
 
 namespace FlameCsv.Binding.Attributes;
 

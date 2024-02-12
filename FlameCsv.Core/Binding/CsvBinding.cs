@@ -121,8 +121,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected static bool AreSame(object? a, object? b)
     {
-        return ReferenceEquals(a, b)
-            || (a is MemberInfo ma && b is MemberInfo mb && AreSameMember(ma, mb));
+        return ReferenceEquals(a, b) || AreSameMember(a, b);
     }
 
     /// <summary>
@@ -130,9 +129,12 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// another type in the inheritance chain.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static bool AreSameMember(MemberInfo a, MemberInfo b)
+    private static bool AreSameMember(object? a, object? b)
     {
-        return a.MetadataToken == b.MetadataToken && a.Module == b.Module;
+        return a is MemberInfo ma
+            && b is MemberInfo mb
+            && ma.MetadataToken == mb.MetadataToken
+            && ma.Module == mb.Module;
     }
 
     /// <inheritdoc/>

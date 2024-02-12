@@ -13,11 +13,14 @@ namespace FlameCsv.Binding.Attributes;
     AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter,
     AllowMultiple = true,
     Inherited = true)]
-public abstract class CsvConverterAttribute<T> : Attribute where T : unmanaged, IEquatable<T>
+public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute where T : unmanaged, IEquatable<T>
 {
     protected CsvConverterAttribute()
     {
     }
+
+    /// <inheritdoc cref="CsvHeaderAttribute.Scope"/>
+    public CsvBindingScope Scope { get; set; }
 
     public CsvConverter<T> CreateConverter(Type targetType, CsvOptions<T> options)
     {

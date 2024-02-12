@@ -13,14 +13,14 @@ public sealed class CsvTypeMapEnumerable<T, TValue> : IEnumerable<TValue> where 
     public CsvTypeMapEnumerable(
         in ReadOnlySequence<T> csv,
         CsvOptions<T> options,
-        CsvContextOverride<T> overrides,
+        in CsvContextOverride<T> overrides,
         CsvTypeMap<T, TValue> typeMap)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(typeMap);
 
         _data = csv;
-        _context = new CsvReadingContext<T>(options, overrides);
+        _context = new CsvReadingContext<T>(options, in overrides);
         _typeMap = typeMap;
     }
 
