@@ -7,6 +7,7 @@
 /// If omitted, the parameterless constructor is used.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Constructor, AllowMultiple = false, Inherited = false)]
-public sealed class CsvConstructorAttribute : Attribute
+public sealed class CsvConstructorAttribute : Attribute, ICsvBindingAttribute
 {
+    public CsvBindingScope Scope => CsvBindingScope.Read;
 }

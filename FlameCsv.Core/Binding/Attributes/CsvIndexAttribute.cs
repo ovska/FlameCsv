@@ -9,10 +9,13 @@ namespace FlameCsv.Binding.Attributes;
 /// Field indexes start at zero.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
-public sealed class CsvIndexAttribute : Attribute
+public sealed class CsvIndexAttribute : Attribute, ICsvBindingAttribute
 {
     /// <summary>CSV field index.</summary>
     public int Index { get; }
+
+    /// <inheritdoc cref="ICsvBindingAttribute.Scope"/>
+    public CsvBindingScope Scope { get; set; }
 
     /// <inheritdoc cref="CsvIndexAttribute"/>
     /// <param name="index">CSV field index</param>

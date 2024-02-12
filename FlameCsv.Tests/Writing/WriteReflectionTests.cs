@@ -38,7 +38,7 @@ public class WriteReflectionTests
     [Theory, InlineData(true), InlineData(false)]
     public async Task Should_Write(bool header)
     {
-        Assert.True(IndexAttributeBinder<Obj>.TryGetBindings(out var bc));
+        Assert.True(IndexAttributeBinder<Obj>.TryGetBindings(write: true, out var bc));
 
         var data = new Obj[]
         {

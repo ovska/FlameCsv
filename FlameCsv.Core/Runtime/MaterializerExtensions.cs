@@ -50,8 +50,8 @@ internal static class MaterializerExtensions
 
         if (factory is null)
         {
-            if (TryGetTupleBindings<T, TResult>(out var bindings) ||
-                IndexAttributeBinder<TResult>.TryGetBindings(out bindings))
+            if (TryGetTupleBindings<T, TResult>(write: false, out var bindings) ||
+                IndexAttributeBinder<TResult>.TryGetBindings(write: false, out bindings))
             {
                 factory = ForType<T, TResult>.Generator.GetMaterializerFactory(bindings);
             }
@@ -73,6 +73,7 @@ internal static class MaterializerExtensions
 
     private static bool TryGetTupleBindings<T,
         [DynamicallyAccessedMembers(Messages.Ctors)] TTuple>(
+        bool write,
         [NotNullWhen(true)] out CsvBindingCollection<TTuple>? bindingCollection)
         where T : unmanaged, IEquatable<T>
     {
@@ -85,14 +86,16 @@ internal static class MaterializerExtensions
         var parameters = typeof(TTuple).GetConstructors()[0].GetParameters();
         var bindingsList = new List<CsvBinding<TTuple>>(parameters.Length);
 
-        // TODO: add support for ignored fields via a special type, e.g. struct CsvIgnore { }
         for (int i = 0; i < parameters.Length; i++)
         {
             var parameter = parameters[i];
-            bindingsList.Add(new ParameterCsvBinding<TTuple>(index: parameter.Position, parameter));
+            bindingsList.Add(
+                parameter.GetType() == typeof(object)
+                    ? new IgnoredCsvBinding<TTuple>(index: parameter.Position)
+                    : new ParameterCsvBinding<TTuple>(index: parameter.Position, parameter));
         }
 
-        bindingCollection = new CsvBindingCollection<TTuple>(bindingsList, isInternalCall: true);
+        bindingCollection = new CsvBindingCollection<TTuple>(bindingsList, write, isInternalCall: true);
         return true;
     }
 }

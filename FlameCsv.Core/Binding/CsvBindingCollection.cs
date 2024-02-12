@@ -59,15 +59,21 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
     /// </summary>
     /// <param name="bindings">Field bindings</param>
     /// <exception cref="CsvBindingException">Bindings are invalid</exception>
-    public CsvBindingCollection(IEnumerable<CsvBinding<TValue>> bindings)
-        : this(bindings?.ToList() ?? throw new ArgumentNullException(nameof(bindings)), true)
+    public CsvBindingCollection(IEnumerable<CsvBinding<TValue>> bindings, bool write)
+        : this(
+              bindings?.ToList() ?? throw new ArgumentNullException(nameof(bindings)),
+              write,
+              isInternalCall: true)
     {
     }
 
     /// <summary>
     /// Internal use only. The parameter list is modified and retained.
     /// </summary>
-    internal CsvBindingCollection(List<CsvBinding<TValue>> bindingsList, bool isInternalCall)
+    internal CsvBindingCollection(
+        List<CsvBinding<TValue>> bindingsList,
+        bool write,
+        bool isInternalCall)
     {
         Debug.Assert(isInternalCall);
         Guard.IsNotEmpty(bindingsList);
@@ -103,7 +109,7 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
                 ThrowIfDuplicate(memberBindings, memberBinding);
                 memberBindings.Add(memberBinding);
             }
-            else if (binding is ParameterCsvBinding<TValue> parameterBinding)
+            else if (!write && binding is ParameterCsvBinding<TValue> parameterBinding)
             {
                 if (ctor is null)
                 {
@@ -133,7 +139,7 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
         _allBindings = bindingsList;
         _memberBindings = memberBindings;
         _ctor = ctor;
-        _ctorParameters = GetConstructorParameters(ctorBindings, ctor!);
+        _ctorParameters = GetConstructorParameters(ctorBindings, ctor);
 
         static void ThrowIfDuplicate<TBinding>(List<TBinding> existing, TBinding binding)
             where TBinding : CsvBinding<TValue>
@@ -156,13 +162,13 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
 
     private static List<(ParameterCsvBinding<TValue>? binding, ParameterInfo param)>? GetConstructorParameters(
         List<ParameterCsvBinding<TValue>> bindingsList,
-        ConstructorInfo ctor)
+        ConstructorInfo? ctor)
     {
-        if (bindingsList.Count == 0)
+        if (ctor is null || bindingsList.Count == 0)
             return null;
 
         var bindings = bindingsList.AsSpan();
-        ReadOnlySpan<ParameterInfo> parameters = ctor!.GetParameters();
+        ReadOnlySpan<ParameterInfo> parameters = ctor.GetParameters();
 
         // Guard against some weirdness possible by custom header binders
         if (bindings.Length > parameters.Length)

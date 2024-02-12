@@ -31,6 +31,9 @@ public sealed class CsvHeaderAttribute : CsvHeaderConfigurationAttribute
     /// </remarks>
     public bool Required { get; set; }
 
+    /// <inheritdoc cref="ICsvBindingAttribute.Scope"/>
+    public CsvBindingScope Scope { get; set; }
+
     /// <inheritdoc cref="CsvHeaderAttribute"/>
     /// <param name="values">
     /// Values to match against the header. Leave empty to configure only order and whether the member is required.

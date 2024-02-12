@@ -122,7 +122,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
             foundBindings.Add(binding ?? CsvBinding.Ignore<TValue>(index: foundBindings.Count));
         }
 
-        return new CsvBindingCollection<TValue>(foundBindings, isInternalCall: true);
+        return new CsvBindingCollection<TValue>(foundBindings, write: false, isInternalCall: true);
     }
 
     /// <summary>
