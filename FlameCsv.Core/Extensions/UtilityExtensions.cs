@@ -2,11 +2,17 @@
 using System.Globalization;
 using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
+using FlameCsv.Binding;
 
 namespace FlameCsv.Extensions;
 
 internal static class UtilityExtensions
 {
+    public static bool IsValidFor(this CsvBindingScope scope, bool write)
+    {
+        return scope != (write ? CsvBindingScope.Read : CsvBindingScope.Write);
+    }
+
     public static ReadOnlyMemory<T> SafeCopy<T>(this ReadOnlyMemory<T> data)
     {
         if (data.IsEmpty)
