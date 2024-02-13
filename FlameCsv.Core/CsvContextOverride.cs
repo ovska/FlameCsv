@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using FlameCsv.Writing;
 
 namespace FlameCsv;
 
@@ -15,6 +16,7 @@ public readonly struct CsvContextOverride<T> where T : unmanaged, IEquatable<T>
     public bool ValidateFieldCount { get => _validateFieldCount; init => _validateFieldCount = value; }
     public CsvExceptionHandler<T>? ExceptionHandler { get => _exceptionHandler; init => _exceptionHandler = value; }
     public CsvRecordSkipPredicate<T>? ShouldSkipRow { get => _shouldSkipRow; init => _shouldSkipRow = value; }
+    public CsvFieldQuoting FieldQuoting { get => _fieldQuoting; init => _fieldQuoting = value; }
 
     internal readonly ValueHolder<T> _delimiter;
     internal readonly ValueHolder<T> _quote;
@@ -27,17 +29,12 @@ public readonly struct CsvContextOverride<T> where T : unmanaged, IEquatable<T>
     internal readonly ValueHolder<bool> _validateFieldCount;
     internal readonly ValueHolder<CsvExceptionHandler<T>?> _exceptionHandler;
     internal readonly ValueHolder<CsvRecordSkipPredicate<T>?> _shouldSkipRow;
+    internal readonly ValueHolder<CsvFieldQuoting> _fieldQuoting;
 
-    internal readonly struct ValueHolder<TValue>
+    internal readonly struct ValueHolder<TValue>(TValue value)
     {
-        private readonly TValue _value;
-        private readonly bool _hasValue;
-
-        public ValueHolder(TValue value)
-        {
-            _value = value;
-            _hasValue = true;
-        }
+        private readonly TValue _value = value;
+        private readonly bool _hasValue = true;
 
         public static implicit operator ValueHolder<TValue>(TValue value) => new(value);
         public static implicit operator TValue(ValueHolder<TValue> holder) => holder._value;

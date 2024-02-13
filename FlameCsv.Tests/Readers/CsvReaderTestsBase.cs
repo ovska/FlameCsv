@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Text;
 using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Buffers;
@@ -124,7 +125,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
 
         using (var writer = CsvReaderTestsBase<T>.GetWriter(newline, header, trailingLF, escaping))
         using (var owner = GetMemoryOwner(writer))
-        using (var stream = owner.AsStream())
+        await using (var stream = owner.AsStream())
         {
             await foreach (var obj in GetObjects(stream, options, bufferSize))
             {
@@ -150,11 +151,11 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
 
         using (var writer = CsvReaderTestsBase<T>.GetWriter(newline, header, trailingLF, escaping))
         using (var owner = GetMemoryOwner(writer))
-        using (var stream = owner.AsStream())
+        await using (var stream = owner.AsStream())
         {
             CsvRecordAsyncEnumerable<T> enumerable = GetRecords(stream, options, bufferSize);
 
-            using (var enumerator = enumerable.GetAsyncEnumerator())
+            await using (var enumerator = enumerable.GetAsyncEnumerator())
             {
                 items = await GetItems(async () => await enumerator.MoveNextAsync() ? enumerator.Current : null, header);
             }

@@ -25,7 +25,7 @@ internal static class TestDataGenerator
     internal static readonly byte[] _guidbytes = [0, 1, 2, 3, 4, 5, 6, 7];
 
     public static void Generate(
-        ArrayPoolBufferWriter<char> writer,
+        IBufferWriter<char> writer,
         string newLine,
         bool writeHeader,
         bool writeTrailingNewline,
