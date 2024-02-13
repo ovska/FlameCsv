@@ -9,7 +9,7 @@ public abstract class CsvBinding<T> :
     IEquatable<CsvBinding>,
     IEquatable<CsvBinding<T>>
 {
-    protected internal CsvBinding(int index) : base(index)
+    protected internal CsvBinding(int index, string? header) : base(index, header)
     {
     }
 
@@ -69,6 +69,10 @@ public abstract class CsvBinding<T> :
         var sb = new StringBuilder(64);
         sb.Append(CultureInfo.InvariantCulture, $"{{ [{nameof(CsvBinding<T>)}] Index: {Index}, ");
         PrintDetails(sb);
+
+        if (!string.IsNullOrEmpty(Header))
+            sb.Append($", Header: \"{Header}\"");
+
         sb.Append(" }");
         return sb.ToString();
     }

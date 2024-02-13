@@ -10,7 +10,7 @@ namespace FlameCsv.Binding.Attributes;
 /// The provider determines case sensitivity, <see cref="HeaderTextBinder"/> or <see cref="HeaderUtf8Binder"/>
 /// for the default implementations.
 /// </remarks>
-public sealed class CsvHeaderAttribute : CsvHeaderConfigurationAttribute, ICsvBindingAttribute
+public sealed class CsvHeaderAttribute : CsvHeaderConfigurationAttribute
 {
     /// <summary>
     /// Value(s) to match to header.
@@ -30,9 +30,6 @@ public sealed class CsvHeaderAttribute : CsvHeaderConfigurationAttribute, ICsvBi
     /// Constructor parameters without a default value are always required.
     /// </remarks>
     public bool Required { get; set; }
-
-    /// <inheritdoc cref="ICsvBindingAttribute.Scope"/>
-    public CsvBindingScope Scope { get; set; }
 
     /// <inheritdoc cref="CsvHeaderAttribute"/>
     /// <param name="values">

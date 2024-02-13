@@ -1,7 +1,10 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding.Attributes;
+using FlameCsv.Binding.Internal;
 using FlameCsv.Exceptions;
 using FlameCsv.Reflection;
 
@@ -109,7 +112,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
                 {
                     if (_options.Comparer.Equals(candidate.Value, field))
                     {
-                        binding = CsvBinding.FromHeaderBinding<TValue>(candidate.Target, index);
+                        binding = CsvBinding.FromHeaderBinding<TValue>(index, in candidate);
                         break;
                     }
                 }
@@ -124,6 +127,29 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
         }
 
         return new CsvBindingCollection<TValue>(foundBindings, write: false, isInternalCall: true);
+    }
+
+    public CsvBindingCollection<TValue> Bind<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)] TValue>()
+    {
+        _options.MakeReadOnly();
+
+        var candidates = DefaultHeaderBinder<T>.GetHeaderDataFor<TValue>(write: true).Candidates;
+
+        List<CsvBinding<TValue>> result = new(candidates.Length);
+        HashSet<object> handledMembers = [];
+        int index = 0;
+
+        foreach (var candidate in candidates)
+        {
+            Debug.Assert(candidate.Target is not ParameterInfo);
+
+            if (handledMembers.Add(candidate.Target))
+                result.Add(CsvBinding.FromHeaderBinding<TValue>(index++, in candidate));
+        }
+
+        return new CsvBindingCollection<TValue>(result, write: true, isInternalCall: true);
+
+        throw new NotImplementedException();
     }
 
     /// <summary>
@@ -259,21 +285,5 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
         {
             return write ? attr.Scope != CsvBindingScope.Read : attr.Scope != CsvBindingScope.Write;
         }
-    }
-
-    public CsvBindingCollection<TValue> Bind<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)] TValue>()
-    {
-        if (!_options.HasHeader)
-        {
-            if (IndexAttributeBinder<TValue>.TryGetBindings(write: true, out var bindings))
-            {
-                return bindings;
-            }
-
-            throw new CsvBindingException<TValue>(
-                $"Could not bind to index attributes of {typeof(TValue).FullName}");
-        }
-
-        throw new NotImplementedException();
     }
 }

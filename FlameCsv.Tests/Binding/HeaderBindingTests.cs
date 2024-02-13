@@ -59,43 +59,11 @@ public static class HeaderBindingTests
         Assert.Equal(typeof(Shim).GetProperty(nameof(Shim.Targeted)), byIndex[2]);
     }
 
-    //[Fact]
-    //public static void Should_Parse_Bound_Object()
-    //{
-    //    const string data =
-    //        "IsEnabled,Name,_targeted\r\n"
-    //        + "true,Bob,1\r\n"
-    //        + "false,Alice,2\r\n";
+    [Fact]
+    public static void Should_Bind_To_Writable()
+    {
+        var binder = new DefaultHeaderBinder<char>(new CsvTextOptions { Comparer = StringComparer.Ordinal });
 
-    //    var options = new CsvTextReaderOptions { Comparer = StringComparer.Ordinal };
-
-    //    using var processor = new CsvHeaderProcessor<char, Shim>(options.ToContext());
-    //    var buffer = new ReadOnlySequence<char>(data.AsMemory());
-
-    //    Assert.True(processor.TryRead(ref buffer, out var value1, false));
-    //    Assert.True(processor.TryRead(ref buffer, out var value2, false));
-    //    Assert.False(processor.TryRead(ref buffer, out _, false));
-    //    Assert.True(buffer.IsEmpty);
-
-    //    Assert.True(value1.IsEnabled);
-    //    Assert.Equal("Bob", value1.DisplayName);
-    //    Assert.Equal(1, value1.Targeted);
-
-    //    Assert.False(value2.IsEnabled);
-    //    Assert.Equal("Alice", value2.DisplayName);
-    //    Assert.Equal(2, value2.Targeted);
-    //}
-
-    //[Fact]
-    //public static void Should_Bind_To_Only_Header()
-    //{
-    //    const string data = "IsEnabled,Name,_targeted";
-
-    //    var options = new CsvTextReaderOptions { Comparer = StringComparer.Ordinal };
-
-    //    using var processor = new CsvHeaderProcessor<char, Shim>(options.ToContext());
-    //    var buffer = new ReadOnlySequence<char>(data.AsMemory());
-    //    Assert.False(processor.TryRead(ref buffer, out _, false));
-    //    Assert.False(processor.TryRead(ref buffer, out _, true));
-    //}
+        var bindings = binder.Bind<Shim>();
+    }
 }
