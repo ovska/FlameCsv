@@ -1,4 +1,5 @@
-﻿using FlameCsv.Binding;
+﻿using System.IO;
+using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Runtime;
 using FlameCsv.Writing;
@@ -46,11 +47,15 @@ public class WriteReflectionTests
             new() { Id = 2, Name = "Alice", IsEnabled = false },
         };
 
-        var opts = new CsvTextOptions { HasHeader = header };
-        using var writer = new StringWriter();
+        var opts = new CsvTextOptions { HasHeader = header, ArrayPool = null };
+        await using var writer = new StringWriter();
+
+        await using var csvWriter = new CsvRecordWriter<char, CsvCharBufferWriter>(
+            new CsvCharBufferWriter(writer, opts.ArrayPool),
+            new CsvWritingContext<char>(opts, default));
 
         await WriteTest<char, CsvCharBufferWriter, Obj>.WriteRecords(
-            WriteHelpers.Create(writer, opts),
+            csvWriter,
             bc,
             opts,
             data,

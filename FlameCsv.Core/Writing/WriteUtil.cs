@@ -103,7 +103,6 @@ internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
     /// </summary>
     /// <param name="source">Data that needs escaping</param>
     /// <param name="destination">Destination buffer, can be the same memory region as source</param>
-    /// <param name="quote">Quote token</param>
     /// <param name="quoteCount">Amount of quotes in the source</param>
     /// <param name="overflowBuffer">Buffer to write the overlowing part to</param>
     /// <param name="arrayPool">Pool to </param>
@@ -116,7 +115,7 @@ internal static class WriteUtil<T> where T : unmanaged, IEquatable<T>
         int quoteCount,
         ref T[]? overflowBuffer,
         ArrayPool<T> arrayPool)
-        where TEscaper :struct, IEscaper<T>
+        where TEscaper : struct, IEscaper<T>
     {
         Debug.Assert(
             !source.Overlaps(destination, out int elementOffset) || elementOffset == 0,

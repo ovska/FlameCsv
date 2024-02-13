@@ -15,4 +15,9 @@ public interface IHeaderBinder<T> where T : unmanaged, IEquatable<T>
     /// <typeparam name="TValue">Value being bound</typeparam>
     /// <returns>Validated bindings</returns>
     CsvBindingCollection<TValue> Bind<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue>(ReadOnlySpan<string> headerFields);
+
+    /// <summary>
+    /// Returns bindings to write CSV.
+    /// </summary>
+    CsvBindingCollection<TValue> Bind<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue>();
 }

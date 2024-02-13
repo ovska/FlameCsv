@@ -3,7 +3,7 @@ using System.Reflection;
 
 namespace FlameCsv.Binding;
 
-internal readonly struct HeaderBindingCandidate : IComparable<HeaderBindingCandidate>
+internal readonly record struct HeaderBindingCandidate : IComparable<HeaderBindingCandidate>
 {
     public HeaderBindingCandidate(string value, MemberInfo target, int order, bool isRequired)
     {
