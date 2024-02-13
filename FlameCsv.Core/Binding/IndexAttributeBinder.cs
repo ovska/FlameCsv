@@ -3,6 +3,7 @@ using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Binding.Internal;
 using FlameCsv.Exceptions;
+using FlameCsv.Extensions;
 using FlameCsv.Reflection;
 
 namespace FlameCsv.Binding;
@@ -31,14 +32,14 @@ internal static class IndexAttributeBinder<[DynamicallyAccessedMembers(Messages.
         {
             if (attr is CsvIndexTargetAttribute target)
             {
-                if (!IsValid(target))
+                if (!target.Scope.IsValidFor(write))
                     continue;
 
                 list.Add(new MemberCsvBinding<TValue>(target.Index, typeInfo.GetPropertyOrField(target.MemberName)));
             }
             else if (attr is CsvIndexIgnoreAttribute { Indexes: var ignoredIndices } ignoreAttr)
             {
-                if (!IsValid(ignoreAttr))
+                if (!ignoreAttr.Scope.IsValidFor(write))
                     continue;
 
                 foreach (var index in ignoredIndices)
@@ -55,7 +56,7 @@ internal static class IndexAttributeBinder<[DynamicallyAccessedMembers(Messages.
             foreach (var attr in member.Attributes)
             {
                 if (attr is CsvIndexAttribute { Index: var index } indexAttr &&
-                    IsValid(indexAttr))
+                    indexAttr.Scope.IsValidFor(write))
                 {
                     list.Add(new MemberCsvBinding<TValue>(index, member));
                     break;
@@ -71,8 +72,7 @@ internal static class IndexAttributeBinder<[DynamicallyAccessedMembers(Messages.
 
                 foreach (var attr in parameter.Attributes)
                 {
-                    if (attr is CsvIndexAttribute { Index: var index } indexAttr &&
-                        IsValid(indexAttr))
+                    if (attr is CsvIndexAttribute { Index: var index } indexAttr)
                     {
                         list.Add(new ParameterCsvBinding<TValue>(index, parameter));
                         found = true;
@@ -90,14 +90,6 @@ internal static class IndexAttributeBinder<[DynamicallyAccessedMembers(Messages.
         return list.Count > 0
             ? new CsvBindingCollection<TValue>(list, write, isInternalCall: true)
             : null;
-
-        bool IsValid(ICsvBindingAttribute attribute)
-        {
-            return attribute.Scope == CsvBindingScope.All
-                || (write && attribute.Scope == CsvBindingScope.Write)
-                || (!write && attribute.Scope == CsvBindingScope.Read);
-
-        }
 
         static bool HasIgnoredIndex(int index, List<CsvBinding<TValue>> list)
         {

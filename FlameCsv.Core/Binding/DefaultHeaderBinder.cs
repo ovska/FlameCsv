@@ -6,6 +6,7 @@ using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Binding.Internal;
 using FlameCsv.Exceptions;
+using FlameCsv.Extensions;
 using FlameCsv.Reflection;
 
 namespace FlameCsv.Binding;
@@ -170,39 +171,27 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
 
             foreach (var member in typeInfo.Members)
             {
-                if (member.IsReadOnly)
+                if (!write && member.IsReadOnly)
                     continue;
 
-                bool isExcluded = false;
-                CsvHeaderAttribute? attr = null;
+                if (member.IsExcluded(write))
+                    continue;
+
+                bool found = false;
 
                 foreach (var attribute in member.Attributes)
                 {
-                    if (attribute is CsvHeaderExcludeAttribute hea && IsValid(hea))
+                    if (attribute is not CsvHeaderAttribute attr ||
+                        !attr.Scope.IsValidFor(write))
                     {
-                        isExcluded = true;
-                        break;
+                        continue;
                     }
 
-                    if (attribute is CsvHeaderAttribute match && IsValid(match))
-                    {
-                        attr = match;
-                        break;
-                    }
-                }
-
-                if (isExcluded)
-                {
-                    continue;
-                }
-
-                if (attr is not null)
-                {
-                    candidates.EnsureCapacity(candidates.Count + attr.Values.Length);
+                    found = true;
 
                     if (attr.Values.Length == 0)
                     {
-                        candidates.Add(new HeaderBindingCandidate(member.Value.Name, member.Value, default, attr.Required));
+                        candidates.Add(new HeaderBindingCandidate(member.Value.Name, member.Value, attr.Order, attr.Required));
                     }
                     else
                     {
@@ -212,7 +201,8 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
                         }
                     }
                 }
-                else
+
+                if (!found)
                 {
                     candidates.Add(new HeaderBindingCandidate(member.Value.Name, member.Value, default, isRequired: false));
                 }
@@ -222,7 +212,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
 
             foreach (var attribute in typeInfo.Attributes)
             {
-                if (attribute is CsvHeaderTargetAttribute attr && IsValid(attr))
+                if (attribute is CsvHeaderTargetAttribute attr && attr.Scope.IsValidFor(write))
                 {
                     var member = typeInfo.GetPropertyOrField(attr.MemberName);
                     candidates.EnsureCapacity(candidates.Count + attr.Values.Length);
@@ -234,19 +224,19 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
                 }
                 else if (ignoreAttribute is null
                     && attribute is CsvHeaderIgnoreAttribute hia
-                    && IsValid(hia))
+                    && hia.Scope.IsValidFor(write))
                 {
                     ignoreAttribute = hia;
                 }
             }
 
-            foreach (var parameter in typeInfo.ConstructorParameters)
+            foreach (var parameter in !write ? typeInfo.ConstructorParameters : default)
             {
                 CsvHeaderAttribute? attr = null;
 
                 foreach (var attribute in parameter.Attributes)
                 {
-                    if (attribute is CsvHeaderAttribute match && IsValid(match))
+                    if (attribute is CsvHeaderAttribute match && match.Scope.IsValidFor(write))
                     {
                         attr = match;
                         break;
@@ -255,10 +245,16 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
 
                 if (attr is not null)
                 {
-                    candidates.EnsureCapacity(candidates.Count + attr.Values.Length);
-                    foreach (var value in attr.Values)
+                    if (attr.Values.Length == 0)
                     {
-                        candidates.Add(new HeaderBindingCandidate(value, parameter.Value, attr.Order, attr.Required));
+                        candidates.Add(new HeaderBindingCandidate(parameter.Value.Name!, parameter.Value, attr.Order, attr.Required));
+                    }
+                    else
+                    {
+                        foreach (var value in attr.Values)
+                        {
+                            candidates.Add(new HeaderBindingCandidate(value, parameter.Value, attr.Order, attr.Required));
+                        }
                     }
                 }
                 else
@@ -280,10 +276,5 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
         }
 
         return headerData;
-
-        bool IsValid(ICsvBindingAttribute attr)
-        {
-            return write ? attr.Scope != CsvBindingScope.Read : attr.Scope != CsvBindingScope.Write;
-        }
     }
 }

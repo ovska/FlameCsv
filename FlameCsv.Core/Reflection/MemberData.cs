@@ -2,13 +2,13 @@
 
 namespace FlameCsv.Reflection;
 
-internal sealed class MemberData
+internal sealed class MemberData : ReflectionData
 {
     public MemberInfo Value { get; }
     public Type MemberType { get; }
     public bool IsReadOnly { get; }
     public bool IsProperty { get; }
-    public ReadOnlySpan<object> Attributes => _attributes ??= Value.GetCustomAttributes(inherit: true);
+    public override ReadOnlySpan<object> Attributes => _attributes ??= Value.GetCustomAttributes(inherit: true);
 
     private object[]? _attributes;
 
