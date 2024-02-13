@@ -19,6 +19,11 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     public int Index { get; }
 
     /// <summary>
+    /// The CSV field header of this binding (optional).
+    /// </summary>
+    public string? Header { get; }
+
+    /// <summary>
     /// Returns whether the binding is on an ignored field.
     /// </summary>
     public bool IsIgnored => ReferenceEquals(Sentinel, typeof(CsvIgnored));
@@ -29,10 +34,11 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// </summary>
     internal protected abstract object Sentinel { get; }
 
-    internal protected CsvBinding(int index)
+    internal protected CsvBinding(int index, string? header)
     {
         Guard.IsGreaterThanOrEqualTo(index, 0);
         Index = index;
+        Header = header;
     }
 
     /// <summary>
@@ -60,7 +66,10 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <exception cref="CsvBindingException{T}"></exception>
-    public static CsvBinding<T> ForMember<[DynamicallyAccessedMembers(Messages.ReflectionBound)] T>(int index, MemberInfo member)
+    public static CsvBinding<T> ForMember<[DynamicallyAccessedMembers(Messages.ReflectionBound)] T>(
+        int index,
+        MemberInfo member,
+        string? name = null)
     {
         ArgumentNullException.ThrowIfNull(member);
         CsvBinding<T>.ThrowIfInvalid();
@@ -69,7 +78,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
         {
             if (ReferenceEquals(data.Value, member) || AreSameMember(data.Value, member))
             {
-                return new MemberCsvBinding<T>(index, data);
+                return new MemberCsvBinding<T>(index, data, name ?? data.Value.Name);
             }
         }
 
@@ -98,13 +107,15 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// <summary>
     /// Returns a binding targeting the specified header binding match.
     /// </summary>
-    internal static CsvBinding<T> FromHeaderBinding<[DynamicallyAccessedMembers(Messages.ReflectionBound)] T>(object target, int index)
+    internal static CsvBinding<T> FromHeaderBinding<[DynamicallyAccessedMembers(Messages.ReflectionBound)] T>(
+        int index,
+        in HeaderBindingCandidate candidate)
     {
         CsvBinding<T>.ThrowIfInvalid();
 
-        return target switch
+        return candidate.Target switch
         {
-            MemberInfo m => ForMember<T>(index, m),
+            MemberInfo m => ForMember<T>(index, m, candidate.Value),
             ParameterInfo p => ForParameter<T>(index, p),
             _ => ThrowHelper.ThrowInvalidOperationException<CsvBinding<T>>("Invalid HeaderBindingArgs"),
         };

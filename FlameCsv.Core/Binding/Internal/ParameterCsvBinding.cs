@@ -16,12 +16,12 @@ internal sealed class ParameterCsvBinding<T> : CsvBinding<T>
 
     private readonly ParameterData? _parameterData;
 
-    public ParameterCsvBinding(int index, ParameterInfo parameter) : base(index)
+    public ParameterCsvBinding(int index, ParameterInfo parameter) : base(index, parameter.Name)
     {
         Parameter = parameter;
     }
 
-    public ParameterCsvBinding(int index, ParameterData parameter) : base(index)
+    public ParameterCsvBinding(int index, ParameterData parameter) : base(index, parameter.Value.Name)
     {
         Parameter = parameter.Value;
         _parameterData = parameter;

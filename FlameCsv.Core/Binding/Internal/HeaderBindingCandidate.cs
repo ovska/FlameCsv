@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Reflection;
 
-namespace FlameCsv.Binding;
+namespace FlameCsv.Binding.Internal;
 
 internal readonly record struct HeaderBindingCandidate : IComparable<HeaderBindingCandidate>
 {
@@ -27,5 +27,5 @@ internal readonly record struct HeaderBindingCandidate : IComparable<HeaderBindi
     public int Order { get; }
     public bool IsRequired { get; }
 
-    public int CompareTo(HeaderBindingCandidate other) => Order.CompareTo(other.Order);
+    public int CompareTo(HeaderBindingCandidate other) => other.Order.CompareTo(Order);
 }

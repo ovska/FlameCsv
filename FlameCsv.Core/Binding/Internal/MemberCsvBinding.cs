@@ -4,8 +4,12 @@ using FlameCsv.Reflection;
 
 namespace FlameCsv.Binding.Internal;
 
-internal sealed class MemberCsvBinding<T>(int index, MemberData member) : CsvBinding<T>(index)
+internal sealed class MemberCsvBinding<T>(int index, MemberData member, string header) : CsvBinding<T>(index, header)
 {
+    public MemberCsvBinding(int index, MemberData member) : this(index, member, member.Value.Name)
+    {
+    }
+
     public MemberInfo Member => member.Value;
 
     public override Type Type => member.MemberType;

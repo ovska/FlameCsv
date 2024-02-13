@@ -2,7 +2,7 @@
 
 namespace FlameCsv.Binding.Internal;
 
-internal sealed class IgnoredCsvBinding<T>(int index) : CsvBinding<T>(index)
+internal sealed class IgnoredCsvBinding<T>(int index) : CsvBinding<T>(index, null)
 {
     public override Type Type => typeof(CsvIgnored);
 
