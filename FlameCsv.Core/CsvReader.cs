@@ -356,7 +356,7 @@ public static partial class CsvReader
 
         if (context.ArrayPool != ArrayPool<byte>.Shared)
         {
-            memoryPool = context.ArrayPool.AllocatingIfNull().AsMemoryPool();
+            memoryPool = context.ArrayPool.AsMemoryPool();
         }
 
         return PipeReader.Create(

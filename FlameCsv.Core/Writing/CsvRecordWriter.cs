@@ -1,12 +1,50 @@
 ﻿using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
+using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Writing;
 
-internal sealed class CsvRecordWriter<T, TWriter> : IAsyncDisposable
+internal static class CsvRecordWriter
+{
+    public static CsvRecordWriter<char, CsvCharBufferWriter> Create(
+        TextWriter textWriter,
+        in CsvWritingContext<char> context)
+    {
+        return new CsvRecordWriter<char, CsvCharBufferWriter>(
+            new CsvCharBufferWriter(textWriter, context.ArrayPool),
+            in context);
+    }
+
+    public static CsvRecordWriter<byte, CsvByteBufferWriter> Create(
+        PipeWriter pipeWriter,
+        in CsvWritingContext<byte> context)
+    {
+        return new CsvRecordWriter<byte, CsvByteBufferWriter>(
+            new CsvByteBufferWriter(pipeWriter),
+            in context);
+    }
+
+    public static CsvRecordWriter<byte, CsvByteBufferWriter> Create(
+        Stream stream,
+        in CsvWritingContext<byte> context,
+        int bufferSize = -1,
+        bool leaveOpen = false)
+    {
+        StreamPipeWriterOptions options = new(
+            pool: context.ArrayPool == ArrayPool<byte>.Shared ? MemoryPool<byte>.Shared : context.ArrayPool.AsMemoryPool(),
+            minimumBufferSize: bufferSize,
+            leaveOpen: leaveOpen);
+
+        return new CsvRecordWriter<byte, CsvByteBufferWriter>(
+            new CsvByteBufferWriter(PipeWriter.Create(stream, options)),
+            in context);
+    }
+}
+
+internal sealed class CsvRecordWriter<T, TWriter> : IAsyncDisposable, ICsvFieldWriter<T>
     where T : unmanaged, IEquatable<T>
     where TWriter : struct, IAsyncBufferWriter<T>
 {
@@ -21,15 +59,14 @@ internal sealed class CsvRecordWriter<T, TWriter> : IAsyncDisposable
     /// </summary>
     public Exception? Exception { get; set; }
 
+    public bool WriteHeader { get; }
+
     private readonly TWriter _writer;
     private readonly CsvDialect<T> _dialect;
     private readonly ArrayPool<T> _arrayPool;
     private readonly CsvFieldQuoting _fieldQuoting;
     private readonly CsvOptions<T> _options;
     private T[]? _array;
-
-    public CsvRecordWriter(TWriter writer, CsvOptions<T> options)
-        : this(writer, new CsvWritingContext<T>(options, default)) { }
 
     public CsvRecordWriter(
         TWriter writer,
@@ -40,15 +77,16 @@ internal sealed class CsvRecordWriter<T, TWriter> : IAsyncDisposable
         _arrayPool = context.ArrayPool;
         _fieldQuoting = context.FieldQuoting;
         _options = context.Options;
+        WriteHeader = context.HasHeader;
     }
 
-    public void WriteValue<TValue>(CsvConverter<T, TValue> formatter, TValue value)
+    public void WriteField<TValue>(CsvConverter<T, TValue> converter, [AllowNull] TValue value)
     {
         int tokensWritten;
         scoped Span<T> destination;
 
         // this whole branch is JITed out for value types
-        if (value is null && !formatter.HandleNull)
+        if (value is null && !converter.HandleNull)
         {
             ReadOnlySpan<T> nullValue = _options.GetNullToken(typeof(TValue)).Span;
             destination = _writer.GetSpan(nullValue.Length);
@@ -59,7 +97,7 @@ internal sealed class CsvRecordWriter<T, TWriter> : IAsyncDisposable
         {
             destination = _writer.GetSpan();
 
-            while (!formatter.TryFormat(destination, value, out tokensWritten))
+            while (!converter.TryFormat(destination, value!, out tokensWritten))
             {
                 destination = _writer.GetSpan(destination.Length * 2);
             }
@@ -68,7 +106,7 @@ internal sealed class CsvRecordWriter<T, TWriter> : IAsyncDisposable
         // validate negative or too large tokensWritten in case of broken user-defined formatters
         if ((uint)tokensWritten > (uint)destination.Length)
         {
-            ThrowForInvalidTokensWritten(formatter, tokensWritten, destination.Length);
+            ThrowForInvalidTokensWritten(converter, tokensWritten, destination.Length);
         }
 
         // early exit for empty writes, like nulls or empty strings
@@ -178,7 +216,15 @@ internal sealed class CsvRecordWriter<T, TWriter> : IAsyncDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WriteString(ReadOnlySpan<char> value) => _options.WriteChars(_writer, value);
+    public void WriteText(ReadOnlySpan<char> value) => _options.WriteChars(_writer, value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void WriteRaw(ReadOnlySpan<T> span)
+    {
+        var dst = _writer.GetSpan(span.Length);
+        span.CopyTo(dst);
+        _writer.Advance(span.Length);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask FlushAsync(CancellationToken cancellationToken = default)

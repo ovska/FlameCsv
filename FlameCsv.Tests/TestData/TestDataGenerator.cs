@@ -1,8 +1,11 @@
 using System.Buffers;
-using CommunityToolkit.HighPerformance.Buffers;
+using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 
 namespace FlameCsv.Tests.TestData;
+
+[CsvTypeMap<char, Obj>] public partial class ObjCharTypeMap;
+[CsvTypeMap<byte, Obj>] public partial class ObjByteTypeMap;
 
 public class Obj
 {

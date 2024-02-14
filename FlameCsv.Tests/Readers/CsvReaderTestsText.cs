@@ -1,5 +1,5 @@
 ﻿using System.Text;
-using CommunityToolkit.HighPerformance.Buffers;
+using FlameCsv.Binding;
 using FlameCsv.Enumeration;
 using FlameCsv.Tests.TestData;
 
@@ -10,6 +10,8 @@ namespace FlameCsv.Tests.Readers;
 
 public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
 {
+    protected override CsvTypeMap<char, Obj> TypeMap => ObjCharTypeMap.Instance;
+
     protected override CsvOptions<char> CreateOptions(string newline, char? escape)
     {
         return new CsvTextOptions
@@ -20,10 +22,9 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
         };
     }
 
-    protected override IDisposable? GetMemory(ArrayPoolBufferWriter<char> writer, out ReadOnlyMemory<char> memory)
+    protected override ReadOnlyMemory<char> GetMemory(ReadOnlyMemory<char> text)
     {
-        memory = writer.WrittenMemory;
-        return null;
+        return text;
     }
 
     protected override CsvRecordAsyncEnumerable<char> GetRecords(
@@ -36,8 +37,20 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
             options);
     }
 
-    protected override IAsyncEnumerable<Obj> GetObjects(Stream stream, CsvOptions<char> options, int bufferSize)
+    protected override IAsyncEnumerable<Obj> GetObjects(
+        Stream stream,
+        CsvOptions<char> options,
+        int bufferSize,
+        bool sourceGen)
     {
+        if (sourceGen)
+        {
+            return CsvReader.ReadAsync(
+                new StreamReader(stream, Encoding.UTF8, bufferSize: bufferSize),
+                TypeMap,
+                options);
+        }
+
         return CsvReader.ReadAsync<Obj>(
             new StreamReader(stream, Encoding.UTF8, bufferSize: bufferSize),
             options);

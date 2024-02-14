@@ -43,7 +43,6 @@ internal sealed class CsvTypeInfo<[DynamicallyAccessedMembers(Messages.Reflectio
         var members = typeof(T)
             .GetProperties(BindingFlags.Instance | BindingFlags.Public)
             .Concat<MemberInfo>(typeof(T).GetFields(BindingFlags.Instance | BindingFlags.Public))
-            .Where(static m => m is PropertyInfo or FieldInfo)
             .Select(static m => (MemberData)m)
             .ToArray();
 
@@ -112,7 +111,8 @@ internal sealed class CsvTypeInfo<[DynamicallyAccessedMembers(Messages.Reflectio
 
     private static ParameterData[] ThrowExceptionForNoPrimaryConstructor()
     {
-        throw new CsvBindingException(typeof(T), $"No [CsvConstructor] or an empty constructor found for type {typeof(T)}");
+        throw new CsvBindingException(
+            typeof(T), $"No empty constructor or constructor with [CsvConstructor] found for type {typeof(T)}");
     }
 
     private static MemberData ThrowMemberNotFound(string memberName)

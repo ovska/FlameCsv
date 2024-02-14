@@ -1,5 +1,7 @@
-﻿using System.IO.Pipelines;
-using CommunityToolkit.HighPerformance.Buffers;
+﻿using System.Buffers;
+using System.IO.Pipelines;
+using System.Text;
+using FlameCsv.Binding;
 using FlameCsv.Enumeration;
 using FlameCsv.Tests.TestData;
 
@@ -10,6 +12,8 @@ namespace FlameCsv.Tests.Readers;
 
 public sealed class CsvReaderTestsUtf8 : CsvReaderTestsBase<byte>
 {
+    protected override CsvTypeMap<byte, Obj> TypeMap => ObjByteTypeMap.Instance;
+
     protected override CsvOptions<byte> CreateOptions(string newline, char? escape)
     {
         return new CsvUtf8Options
@@ -20,15 +24,25 @@ public sealed class CsvReaderTestsUtf8 : CsvReaderTestsBase<byte>
         };
     }
 
-    protected override IDisposable? GetMemory(ArrayPoolBufferWriter<char> writer, out ReadOnlyMemory<byte> memory)
+    protected override ReadOnlyMemory<byte> GetMemory(ReadOnlyMemory<char> text)
     {
-        var owner = GetMemoryOwner(writer);
-        memory = owner.Memory;
-        return owner;
+        return Encoding.UTF8.GetBytes(new ReadOnlySequence<char>(text));
     }
 
-    protected override IAsyncEnumerable<Obj> GetObjects(Stream stream, CsvOptions<byte> options, int bufferSize)
+    protected override IAsyncEnumerable<Obj> GetObjects(
+        Stream stream,
+        CsvOptions<byte> options,
+        int bufferSize,
+        bool sourceGen)
     {
+        if (sourceGen)
+        {
+            return CsvReader.ReadAsync(
+                PipeReader.Create(stream, new StreamPipeReaderOptions(bufferSize: bufferSize)),
+                TypeMap,
+                options);
+        }
+
         return CsvReader.ReadAsync<Obj>(
             PipeReader.Create(stream, new StreamPipeReaderOptions(bufferSize: bufferSize)),
             options);

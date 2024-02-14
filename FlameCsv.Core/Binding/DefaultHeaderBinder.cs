@@ -149,8 +149,6 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
         }
 
         return new CsvBindingCollection<TValue>(result, write: true, isInternalCall: true);
-
-        throw new NotImplementedException();
     }
 
     /// <summary>
