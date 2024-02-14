@@ -3,6 +3,7 @@ using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Runtime;
 using FlameCsv.Writing;
+using Newtonsoft.Json.Linq;
 
 namespace FlameCsv.Tests.Writing;
 
@@ -15,32 +16,9 @@ public class WriteReflectionTests
         [CsvIndex(2)] public bool IsEnabled { get; set; }
     }
 
-    //[Theory(Skip = "Broken"), InlineData(true), InlineData(false)]
-    //public async Task Should_Write_ValueTuple(bool header)
-    //{
-    //    var data = new (int Id, string Name, bool IsEnabled)[]
-    //    {
-    //        (1, "Bob", true),
-    //        (2, "Alice", false),
-    //    };
-
-    //    var opts = new CsvWriterOptions<char> { WriteHeader = header };
-    //    using var writer = new StringWriter();
-
-    //    await WriteTestGen<char, CsvCharBufferWriter>.WriteAsync(
-    //        WriteOpHelpers.Create(writer, opts),
-    //        opts,
-    //        new AsyncIEnumerable<(int Id, string Name, bool IsEnabled)>(data),
-    //        default);
-
-    //    AssertValue(header, writer.ToString());
-    //}
-
     [Theory, InlineData(true), InlineData(false)]
     public async Task Should_Write(bool header)
     {
-        Assert.True(IndexAttributeBinder<Obj>.TryGetBindings(write: true, out var bc));
-
         var data = new Obj[]
         {
             new() { Id = 1, Name = "Bob", IsEnabled = true },
@@ -48,31 +26,11 @@ public class WriteReflectionTests
         };
 
         var opts = new CsvTextOptions { HasHeader = header, ArrayPool = null };
-        await using var writer = new StringWriter();
+        var sb = await CsvWriter.WriteToStringAsync(data, opts);
 
-        await using var csvWriter = new CsvRecordWriter<char, CsvCharBufferWriter>(
-            new CsvCharBufferWriter(writer, opts.ArrayPool),
-            new CsvWritingContext<char>(opts, default));
-
-        await WriteTest<char, CsvCharBufferWriter, Obj>.WriteRecords(
-            csvWriter,
-            bc,
-            opts,
-            data,
-            default);
-
-        AssertValue(header, writer.ToString());
-    }
-
-    private static void AssertValue(bool header, string value)
-    {
-        if (header)
-        {
-            Assert.Equal("Id,Name,IsEnabled\r\n1,Bob,true\r\n2,Alice,false\r\n", value);
-        }
-        else
-        {
-            Assert.Equal("1,Bob,true\r\n2,Alice,false\r\n", value);
-        }
+        var expected =
+            (header ? "Id,Name,IsEnabled\r\n" : "") +
+            "1,Bob,true\r\n2,Alice,false\r\n";
+        Assert.Equal(expected, sb.ToString());
     }
 }

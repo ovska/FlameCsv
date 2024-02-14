@@ -2,29 +2,43 @@
 
 namespace FlameCsv.Writing;
 
-public interface ICsvFieldWriter<T> where T : unmanaged, IEquatable<T>
+public interface ICsvFieldWriter<T> : IAsyncDisposable where T : unmanaged, IEquatable<T>
 {
     /// <summary>
-    /// Writes a field to the CSV record.
+    /// Whether the writer's internal buffer is nearly full.
     /// </summary>
-    /// <typeparam name="TValue">Value written</typeparam>
-    /// <param name="converter">Converter to write the value with</param>
+    bool NeedsFlush { get; }
+
+    /// <summary>
+    /// Flushes the writer's internal buffer.
+    /// </summary>
+    ValueTask FlushAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Writes a single CSV field to the writer.
+    /// </summary>
+    /// <typeparam name="TValue">Value type</typeparam>
+    /// <param name="converter">Converter to format the value with</param>
     /// <param name="value">Value to write</param>
     void WriteField<TValue>(CsvConverter<T, TValue> converter, [AllowNull] TValue value);
 
     /// <summary>
-    /// Writes a delimiter to the CSV record.
+    /// Writes the delimiter token.
     /// </summary>
     void WriteDelimiter();
 
     /// <summary>
-    /// Writes a new line to the CSV record.
+    /// Writes the newline token.
     /// </summary>
     void WriteNewline();
 
     /// <summary>
-    /// Flushes the underlying writer if the internal buffer is above the flush threshold.
+    /// Writes <paramref name="text"/>.
     /// </summary>
-    /// <param name="cancellationToken">Token to cancel the operation</param>
-    ValueTask TryFlushAsync(CancellationToken cancellationToken = default);
+    void WriteText(ReadOnlySpan<char> text);
+
+    /// <summary>
+    /// Writes the <paramref name="span"/> contents unvalidated to the writer.
+    /// </summary>
+    void WriteRaw(ReadOnlySpan<T> span);
 }

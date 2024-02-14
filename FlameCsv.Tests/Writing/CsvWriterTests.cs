@@ -47,8 +47,8 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
     {
         Initialize();
 
-        _writer.WriteString("Test");
-        _writer.WriteString("");
+        _writer.WriteText("Test");
+        _writer.WriteText("");
 
         await _writer.DisposeAsync();
 
@@ -60,7 +60,7 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
     {
         Initialize();
 
-        _writer.WriteValue(Formatter.Instance!, null);
+        _writer.WriteField(Formatter.Instance!, null);
         await _writer.DisposeAsync();
 
         Assert.Equal("null", Written);
@@ -73,7 +73,7 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
 
         var value = new string('x', 500);
 
-        _writer.WriteValue(Formatter.Instance, value);
+        _writer.WriteField(Formatter.Instance, value);
         await _writer.DisposeAsync();
 
         Assert.Equal(value, Written);
@@ -87,7 +87,7 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
         // 126, raw value can be written but escaped is 130 long
         var value = $"Test \"{new string('x', 114)}\" test";
 
-        _writer.WriteValue(Formatter.Instance, value);
+        _writer.WriteField(Formatter.Instance, value);
         await _writer.DisposeAsync();
 
         Assert.Equal($"\"Test \"\"{new string('x', 114)}\"\" test\"", Written);
@@ -100,7 +100,7 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
 
         var formatter = new BrokenFormatter { Write = tokensWritten };
 
-        Assert.Throws<InvalidOperationException>(() => _writer.WriteValue(formatter, ""));
+        Assert.Throws<InvalidOperationException>(() => _writer.WriteField(formatter, ""));
     }
 
     [Theory]
@@ -114,7 +114,7 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
     {
         Initialize(quoting);
 
-        _writer.WriteValue(Formatter.Instance, input);
+        _writer.WriteField(Formatter.Instance, input);
         await _writer.DisposeAsync();
 
         Assert.Equal(expected, Written);

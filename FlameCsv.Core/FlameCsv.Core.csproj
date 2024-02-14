@@ -43,6 +43,10 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>CsvReader.Generated.cs</LastGenOutput>
     </None>
+    <None Update="Runtime\Dematerializer.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Dematerializer.Generated.cs</LastGenOutput>
+    </None>
     <None Update="Runtime\Materializer.Generated.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Materializer.Generated.cs</LastGenOutput>
@@ -63,6 +67,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>CsvReader.Generated.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Runtime\Dematerializer.Generated.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Dematerializer.Generated.tt</DependentUpon>
     </Compile>
     <Compile Update="Runtime\Materializer.Generated.cs">
       <AutoGen>True</AutoGen>
