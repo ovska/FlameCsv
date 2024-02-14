@@ -116,6 +116,7 @@ dotnet_diagnostic.CA1815.severity = silent
 
 # CA1032: Implement standard exception constructors
 dotnet_diagnostic.CA1032.severity = none
+csharp_style_prefer_primary_constructors = true:silent
 
 [*.{cs,vb}]
 #### Naming styles ####
@@ -200,6 +201,7 @@ dotnet_style_qualification_for_field = false:silent
 dotnet_style_qualification_for_property = false:silent
 dotnet_style_qualification_for_method = false:silent
 dotnet_style_qualification_for_event = false:silent
+dotnet_style_prefer_collection_expression = true:suggestion
 
 [*.Generated.*]
 end_of_line = crlf
