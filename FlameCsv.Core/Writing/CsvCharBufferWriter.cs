@@ -8,7 +8,7 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Writing;
 
-[DebuggerDisplay("[CsvTextWriter] Written: {Unflushed} / {_buffer.Length} (inner: {_writer.GetType().Name})")]
+[DebuggerDisplay("[CsvCharBufferWriter] Written: {_state.Unflushed} / {_state.Buffer.Length})")]
 internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>
 {
     private sealed class State(char[] buffer)
@@ -42,7 +42,7 @@ internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>
     public CsvCharBufferWriter(
         TextWriter writer,
         ArrayPool<char>? arrayPool,
-        int initialBufferSize = 1024)
+        int initialBufferSize = 4 * 1024)
     {
         ArgumentNullException.ThrowIfNull(writer);
         Guard.IsGreaterThan(initialBufferSize, 0);
@@ -55,8 +55,6 @@ internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Span<char> GetSpan(int sizeHint = 0)
     {
-        sizeHint = Math.Max(1, sizeHint); // ensure non empty buffer
-
         if (_state.Remaining < sizeHint)
             EnsureCapacityRare(sizeHint);
 
@@ -67,8 +65,6 @@ internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Memory<char> GetMemory(int sizeHint = 0)
     {
-        sizeHint = Math.Max(1, sizeHint); // ensure non empty buffer
-
         if (_state.Remaining < sizeHint)
             EnsureCapacityRare(sizeHint);
 
@@ -124,6 +120,8 @@ internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void EnsureCapacityRare(int sizeHint)
     {
+        Debug.Assert(sizeHint > 0);
+
         // check if there is need to copy values
         if (_state.Unflushed == 0)
         {
