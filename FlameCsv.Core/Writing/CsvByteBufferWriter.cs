@@ -7,7 +7,7 @@ using FlameCsv.Exceptions;
 namespace FlameCsv.Writing;
 
 [DebuggerDisplay(
-    @"\{ CsvPipeWriter, Unflushed: {Unflushed} \}")]
+    @"\{ CsvByteBufferWriter, Unflushed: {Unflushed} \}")]
 internal readonly struct CsvByteBufferWriter : IAsyncBufferWriter<byte>
 {
     public const int InternalFlushThreshold = (int)(4096d * 15d / 16d);
@@ -15,10 +15,12 @@ internal readonly struct CsvByteBufferWriter : IAsyncBufferWriter<byte>
     private readonly PipeWriter _pipeWriter;
     private readonly Box<int> _unflushed = 0;
 
+    private ref int Unflushed => ref _unflushed.GetReference();
+
     public bool NeedsFlush
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _unflushed >= InternalFlushThreshold;
+        get => Unflushed >= InternalFlushThreshold;
     }
 
     public CsvByteBufferWriter(PipeWriter pipeWriter)
@@ -43,15 +45,15 @@ internal readonly struct CsvByteBufferWriter : IAsyncBufferWriter<byte>
     public void Advance(int length)
     {
         _pipeWriter.Advance(length);
-        _unflushed.GetReference() += length;
+        Unflushed += length;
     }
 
     public async ValueTask FlushAsync(CancellationToken cancellationToken = default)
     {
-        if (_unflushed > 0)
+        if (Unflushed > 0)
         {
             await _pipeWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
-            _unflushed.GetReference() = 0;
+            Unflushed = 0;
         }
     }
 
@@ -62,12 +64,12 @@ internal readonly struct CsvByteBufferWriter : IAsyncBufferWriter<byte>
         if (cancellationToken.IsCancellationRequested)
             exception ??= new OperationCanceledException(cancellationToken);
 
-        if (exception is null && _unflushed > 0)
+        if (exception is null && Unflushed > 0)
         {
             try
             {
                 await _pipeWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
-                _unflushed.GetReference() = -1;
+                Unflushed = -1;
             }
             catch (Exception e)
             {
