@@ -37,7 +37,9 @@ public readonly struct Utf8String : IEquatable<Utf8String>, IEquatable<string>, 
         else
         {
             _string = value ?? string.Empty;
-            _bytes = _string.Length == 0 ? default : Encoding.UTF8.GetBytes(_string);
+
+            if (_string.Length != 0)
+                _bytes = Encoding.UTF8.GetBytes(_string);
         }
     }
 
@@ -77,16 +79,19 @@ public readonly struct Utf8String : IEquatable<Utf8String>, IEquatable<string>, 
     }
 
     public bool Equals(ReadOnlyMemory<byte> other) => _bytes.Span.SequenceEqual(other.Span);
-    public bool Equals(string? other) => string.Equals(other, _string, StringComparison.Ordinal);
-    public bool Equals(Utf8String other) => Equals(other._string);
+    public bool Equals(string? other) => string.Equals(other, _string ?? "", StringComparison.Ordinal);
+    public bool Equals(Utf8String other) => Equals(other._string ?? "");
 
     public static implicit operator Utf8String(string? value) => new(value);
     public static implicit operator Utf8String(byte[]? value) => new(value);
     public static implicit operator Utf8String(Memory<byte> value) => new(value);
     public static implicit operator Utf8String(ReadOnlyMemory<byte> value) => new(value);
 
-    public static implicit operator string(in Utf8String value) => value._string;
+    public static implicit operator string(in Utf8String value) => value._string ?? "";
     public static implicit operator ReadOnlyMemory<byte>(in Utf8String value) => value._bytes;
+    public static implicit operator ReadOnlyMemory<char>(in Utf8String value) => value._string.AsMemory();
+    public static implicit operator ReadOnlySpan<byte>(in Utf8String value) => value._bytes.Span;
+    public static implicit operator ReadOnlySpan<char>(in Utf8String value) => value._string;
 
     public override bool Equals(object? obj)
     {
@@ -95,10 +100,12 @@ public readonly struct Utf8String : IEquatable<Utf8String>, IEquatable<string>, 
             Utf8String utf8String => Equals(utf8String),
             string stringValue => Equals(stringValue),
             ReadOnlyMemory<byte> byteValue => Equals(byteValue),
+            ReadOnlyMemory<char> charValue => Equals(charValue),
             _ => false,
         };
     }
 
+    public override string ToString() => _string ?? "";
     public override int GetHashCode() => _string?.GetHashCode() ?? 0;
     public static bool operator ==(Utf8String left, Utf8String right) => left.Equals(right);
     public static bool operator !=(Utf8String left, Utf8String right) => !left.Equals(right);

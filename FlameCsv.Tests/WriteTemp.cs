@@ -45,7 +45,8 @@ public static class WriteTemp
         var textPipe = new CsvCharBufferWriter(stringWriter, AllocatingArrayPool<char>.Instance);
 
         var opts = new CsvTextOptions { ArrayPool = AllocatingArrayPool<char>.Instance };
-        await using (var writer = new CsvRecordWriter<char, CsvCharBufferWriter>(textPipe, opts))
+        var ctx = new CsvWritingContext<char>(opts, default);
+        await using (var writer = new CsvRecordWriter<char, CsvCharBufferWriter>(textPipe, in ctx))
         {
             try
             {
