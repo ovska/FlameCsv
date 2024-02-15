@@ -20,14 +20,26 @@ internal readonly struct TypeMapSymbol
     /// </summary>
     public ITypeSymbol TokenSymbol { get; }
 
+    /// <summary>
+    /// Token type name, e.g. <c>char</c>
+    /// </summary>
     public string Token { get; }
 
+    /// <summary>
+    /// Name of the parsed type.
+    /// </summary>
     public string ResultName { get; }
 
+    /// <summary>
+    /// <c>(ref TypeMapMaterializer, ParseState, ReadOnlySpan&lt;Token&gt;)</c>
+    /// </summary>
     public string HandlerArgs { get; }
 
     public BindingScope Scope { get; }
 
+    /// <summary>
+    /// Whether to skip checking for a valid constructor (only used for writing).
+    /// </summary>
     public bool SkipConstructor => Scope == BindingScope.Write;
 
     public TypeMapSymbol(
@@ -72,10 +84,6 @@ internal readonly struct TypeMapSymbol
                 else if (propertyName.Equals("ThrowOnDuplicate", StringComparison.Ordinal))
                 {
                     ThrowOnDuplicate = propertyValueNode.IsKind(SyntaxKind.TrueLiteralExpression);
-                }
-                else if (propertyName.Equals("SkipStaticInstance", StringComparison.Ordinal))
-                {
-                    SkipStaticInstance = propertyValueNode.IsKind(SyntaxKind.TrueLiteralExpression);
                 }
                 else if (propertyName.Equals("Scope", StringComparison.Ordinal))
                 {
@@ -137,8 +145,6 @@ internal readonly struct TypeMapSymbol
     public bool IgnoreUnmatched { get; }
 
     public bool ThrowOnDuplicate { get; }
-
-    public bool SkipStaticInstance { get; }
 
     public void ThrowIfCancellationRequested() => Context.CancellationToken.ThrowIfCancellationRequested();
 

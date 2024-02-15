@@ -49,6 +49,35 @@ public partial class TypeMapGenerator
         return false;
     }
 
+    private bool CreateStaticInstance(INamedTypeSymbol classSymbol)
+    {
+        bool hasEmptyCtor = false;
+
+        foreach (var ctor in classSymbol.Constructors)
+        {
+            if (ctor.Parameters.IsDefaultOrEmpty)
+            {
+                hasEmptyCtor = true;
+                break;
+            }
+        }
+
+        if (!hasEmptyCtor)
+            return false;
+        
+        foreach (var symbol in classSymbol.GetMembers("Instance"))
+        {
+            if (symbol.IsStatic &&
+                symbol.CanBeReferencedByName &&
+                symbol.Kind is SymbolKind.Field or SymbolKind.Property or SymbolKind.Method)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private string GetAccessModifier(INamedTypeSymbol classSymbol)
     {
         return classSymbol.DeclaredAccessibility switch

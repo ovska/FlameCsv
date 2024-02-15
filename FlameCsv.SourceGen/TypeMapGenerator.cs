@@ -327,7 +327,7 @@ namespace {typeMap.ContainingClass.ContainingNamespace.ToDisplayString()}
 
     private string WriteStaticInstance(TypeMapSymbol typeMap)
     {
-        if (!typeMap.SkipStaticInstance)
+        if (CreateStaticInstance(typeMap.ContainingClass))
         {
             return $@"        
         public static {typeMap.ContainingClass.Name} Instance {{ get; }} = new {typeMap.ContainingClass.Name}();

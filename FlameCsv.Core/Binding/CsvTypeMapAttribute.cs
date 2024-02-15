@@ -7,6 +7,8 @@
 /// <see cref="CsvTypeMap{T, TValue}"/> instances should be stateless and immutable.
 /// <br/>To use custom value creation logic, create a parameterless instance or static method <c>CreateInstance()</c>
 /// that returns <typeparamref name="TValue"/> or a subtype.
+/// <br/>Automatically creates a <c>Instance</c>-property if the type has a parameterless constructor,
+/// and no member with that name already exists.
 /// </remarks>
 /// <typeparam name="T"></typeparam>
 /// <typeparam name="TValue"></typeparam>
@@ -28,9 +30,4 @@ public sealed class CsvTypeMapAttribute<T, TValue> : Attribute where T : unmanag
     /// The default behavior does not attempt to match already matched members.
     /// </summary>
     public bool ThrowOnDuplicate { get; set; }
-
-    /// <summary>
-    /// Don't create a static <c>Instance</c>-property to avoid allocations when reusing the type map.
-    /// </summary>
-    public bool SkipStaticInstance { get; set; }
 }
