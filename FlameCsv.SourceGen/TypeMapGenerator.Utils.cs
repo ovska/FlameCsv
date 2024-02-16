@@ -3,7 +3,8 @@ namespace FlameCsv.SourceGen;
 
 public partial class TypeMapGenerator
 {
-    private string GetParserInitializer(
+    private static void GetParserInitializer(
+        StringBuilder sb,
         ITypeSymbol token,
         ITypeSymbol memberType,
         ITypeSymbol parser,
@@ -35,13 +36,24 @@ public partial class TypeMapGenerator
             }
         }
 
-        var init = $"new {parser.ToDisplayString()}()";
+        if (isFactory)
+        {
+            // Cast in case its explicitly implemented
+            sb.Append("((CsvConverterFactory>");
+            sb.Append(token.ToDisplayString());
+            sb.Append(">)");
+        }
 
-        if (!isFactory)
-            return init;
+        sb.Append("new ");
+        sb.Append(parser.ToDisplayString());
+        sb.Append("()");
 
-        // Cast in case its explicitly implemented
-        return $"((CsvConverterFactory<{token.ToDisplayString()}>){init}).Create<{memberType.ToDisplayString()}>(options)";
+        if (isFactory)
+        {
+            sb.Append(").Create<");
+            sb.Append(memberType.ToDisplayString());
+            sb.Append(">(options)");
+        }
     }
 
     private bool IsReferenceOrContainsReferences(ITypeSymbol symbol)

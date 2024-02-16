@@ -1,4 +1,6 @@
-﻿using Microsoft.CodeAnalysis.CSharp;
+﻿using System.Collections.Immutable;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace FlameCsv.SourceGen;
@@ -113,28 +115,7 @@ internal readonly struct TypeMapSymbol
                 }
             }
         }
-
-        TargetedHeaders = [];
-
-        foreach (var attribute in Type.GetAttributes())
-        {
-            if (attribute.AttributeClass?.MetadataName == "FlameCsv.Binding.Attributes.CsvHeaderTargetAttribute"
-                && attribute.ConstructorArguments[0].Value is string member)
-            {
-                if (!TargetedHeaders.TryGetValue(member, out var set))
-                {
-                    TargetedHeaders[member] = set = [];
-                }
-
-                foreach (var value in attribute.ConstructorArguments[1].Values)
-                {
-                    set.Add((string)value.Value!);
-                }
-            }
-        }
     }
-
-    public Dictionary<string, HashSet<string>> TargetedHeaders { get; }
 
     /// <summary>
     /// Current context.
@@ -155,15 +136,14 @@ internal readonly struct TypeMapSymbol
         throw new DiagnosticException($"Source generation failed: {diagnostic}");
     }
 
-    public string GetWrappedTypes(out int wrappedCount)
+    public void WriteWrappedTypes(StringBuilder sb, out int wrappedCount)
     {
         if (ContainingClass.ContainingType is null)
         {
             wrappedCount = 0;
-            return "";
+            return;
         }
 
-        var sb = new StringBuilder();
         List<string> wrappers = [];
 
         INamedTypeSymbol? type = ContainingClass.ContainingType;
@@ -190,14 +170,21 @@ internal readonly struct TypeMapSymbol
         }
 
         wrappedCount = wrappers.Count;
-
         wrappers.Reverse();
 
         foreach (var wrapper in wrappers)
         {
             sb.Append(wrapper);
         }
+    }
 
-        return sb.ToString();
+    public string? GetEnumConverterOrNull()
+    {
+        return TokenSymbol.SpecialType switch
+        {
+            SpecialType.System_Char => "EnumTextConverter",
+            SpecialType.System_Byte => "EnumByteConverter",
+            _ => null,
+        };
     }
 }
