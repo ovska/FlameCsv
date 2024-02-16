@@ -6,7 +6,7 @@ namespace FlameCsv.Converters;
 
 internal sealed class PoolingStringTextConverter : CsvConverter<char, string?>
 {
-    protected internal override bool HandleNull => true;
+    public override bool HandleNull => true;
 
     private readonly StringPool _stringPool;
 

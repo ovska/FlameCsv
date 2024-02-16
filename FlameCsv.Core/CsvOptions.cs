@@ -294,7 +294,10 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
         return TryGetConverter(resultType) ?? throw new CsvParserMissingException(typeof(T), resultType);
     }
 
-    public CsvConverter<T, TResult>? TryGetConverter<TResult>() => (CsvConverter<T, TResult>?)TryGetConverter(typeof(TResult));
+    public CsvConverter<T, TResult>? TryGetConverter<TResult>()
+    {
+        return TryGetConverter(typeof(TResult)) as CsvConverter<T, TResult>;
+    }
 
     /// <summary>
     /// Returns a converter for values of the parameter type, or null if there is no
@@ -323,7 +326,7 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
         return converter;
     }
 
-    internal protected CsvConverter<T>? TryGetConverterCore(Type resultType)
+    private CsvConverter<T>? TryGetConverterCore(Type resultType)
     {
         ArgumentNullException.ThrowIfNull(resultType);
         MakeReadOnly();
@@ -353,11 +356,5 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
         }
 
         return null;
-    }
-
-    internal ReadOnlySpan<CsvConverter<T>> EnumerateConverters()
-    {
-        MakeReadOnly();
-        return _converters.Span;
     }
 }

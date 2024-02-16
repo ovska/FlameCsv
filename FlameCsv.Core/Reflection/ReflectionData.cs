@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using FlameCsv.Binding.Attributes;
+﻿using FlameCsv.Binding.Attributes;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Reflection;

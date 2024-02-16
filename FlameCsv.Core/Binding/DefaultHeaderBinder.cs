@@ -130,7 +130,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
         return new CsvBindingCollection<TValue>(foundBindings, write: false, isInternalCall: true);
     }
 
-    public CsvBindingCollection<TValue> Bind<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)] TValue>()
+    public CsvBindingCollection<TValue> Bind<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue>()
     {
         _options.MakeReadOnly();
 

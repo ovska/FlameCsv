@@ -5,7 +5,7 @@ namespace FlameCsv.Converters;
 
 internal sealed class StringUtf8Converter : CsvConverter<byte, string>
 {
-    protected internal override bool HandleNull => true;
+    public override bool HandleNull => true;
 
     public static StringUtf8Converter Instance { get; } = new();
 

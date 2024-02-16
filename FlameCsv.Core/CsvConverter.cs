@@ -42,7 +42,7 @@ public abstract class CsvConverter<T, TValue> : CsvConverter<T> where T : unmana
     /// <summary>
     /// Whether the converter formats null values.
     /// </summary>
-    protected internal virtual bool HandleNull => false;
+    public virtual bool HandleNull => false;
 }
 
 public abstract class CsvConverterFactory<T> : CsvConverter<T> where T : unmanaged, IEquatable<T>
