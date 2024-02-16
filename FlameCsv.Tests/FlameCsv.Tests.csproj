@@ -4,8 +4,10 @@
     <IsPackable>false</IsPackable>
     <NoWarn>CS1591</NoWarn>
 
+    <!--Sourcegen stuff-->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>
+    <ReportAnalyzer>true</ReportAnalyzer>
   </PropertyGroup>
 
   <ItemGroup>

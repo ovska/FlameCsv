@@ -6,6 +6,20 @@ namespace FlameCsv.SourceGen;
 
 internal static class Extensions
 {
+    public static bool IsExplicitInterfaceImplementation(this IPropertySymbol propertySymbol)
+    {
+        foreach (var implementation in propertySymbol.ExplicitInterfaceImplementations)
+        {
+            if (SymbolEqualityComparer.Default.Equals(propertySymbol, implementation))
+            {
+                throw new Exception(propertySymbol.ToDisplayString() + " || " + implementation.ToDisplayString());
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static ITypeSymbol UnwrapNullable(this ITypeSymbol type, out bool isNullable)
     {
         if (type is { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T })
@@ -51,6 +65,21 @@ internal static class Extensions
         }
 
         return default!;
+    }
+
+    public static bool Inherits(this ITypeSymbol type, ITypeSymbol baseClass)
+    {
+        ITypeSymbol? baseType = type;
+
+        while ((baseType = type.BaseType) != null)
+        {
+            if (SymbolEqualityComparer.Default.Equals(baseType, baseClass))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static IEnumerable<ISymbol> GetPublicMembersRecursive(this ITypeSymbol typeSymbol)

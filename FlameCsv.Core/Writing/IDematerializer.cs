@@ -7,10 +7,12 @@ public interface IDematerializer<T, in TValue> where T : unmanaged, IEquatable<T
     /// <summary>
     /// Formats <typeparamref name="TValue"/> into a CSV record, including the trailing newline.
     /// </summary>
-    void Write(ICsvFieldWriter<T> writer, [AllowNull] TValue value);
+    void Write<TWriter>(CsvFieldWriter<T, TWriter> writer, [AllowNull] TValue value)
+        where TWriter : struct, IAsyncBufferWriter<T>;
 
     /// <summary>
     /// Writes a header if needed, including the trailing newline.
     /// </summary>
-    void WriteHeader(ICsvFieldWriter<T> writer);
+    void WriteHeader<TWriter>(CsvFieldWriter<T, TWriter> writer)
+        where TWriter : struct, IAsyncBufferWriter<T>;
 }

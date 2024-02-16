@@ -35,7 +35,7 @@ internal readonly struct TypeMapSymbol
     /// <summary>
     /// <c>(ref TypeMapMaterializer, ParseState, ReadOnlySpan&lt;Token&gt;)</c>
     /// </summary>
-    public string HandlerArgs { get; }
+    public string ParseHandlerArgs { get; }
 
     public BindingScope Scope { get; }
 
@@ -56,7 +56,7 @@ internal readonly struct TypeMapSymbol
         Context = context;
         Token = TokenSymbol.ToDisplayString();
         ResultName = Type.ToDisplayString();
-        HandlerArgs = $"(ref TypeMapMaterializer materializer, ref ParseState state, ReadOnlySpan<{Token}> field)";
+        ParseHandlerArgs = $"(ref TypeMapMaterializer materializer, ref ParseState state, ReadOnlySpan<{Token}> field)";
 
         if (csvTypeMapAttribute.ArgumentList is { } arguments)
         {

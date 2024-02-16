@@ -1,9 +1,4 @@
-﻿using System.IO;
-using FlameCsv.Binding;
-using FlameCsv.Binding.Attributes;
-using FlameCsv.Runtime;
-using FlameCsv.Writing;
-using Newtonsoft.Json.Linq;
+﻿using FlameCsv.Binding.Attributes;
 
 namespace FlameCsv.Tests.Writing;
 

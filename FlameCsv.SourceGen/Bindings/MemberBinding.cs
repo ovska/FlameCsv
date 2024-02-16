@@ -10,6 +10,7 @@ internal sealed class MemberBinding : IComparable<MemberBinding>, IBinding
     public bool IsRequired { get; }
     public string ParserId { get; }
     public string HandlerId { get; }
+    public string FormatterId { get; }
     public int Order { get; }
     public BindingScope Scope { get; }
 
@@ -29,7 +30,23 @@ internal sealed class MemberBinding : IComparable<MemberBinding>, IBinding
         Scope = meta.Scope;
         ParserId = $"@__Parser_{symbol.Name}";
         HandlerId = $"@s__Handler_{symbol.Name}";
+        FormatterId = $"@__Formatter_{symbol.Name}";
     }
 
     public int CompareTo(MemberBinding other) => other.Order.CompareTo(Order); // reverse sort so higher order is first
+
+    public bool IsExplicitInterfaceDefinition(
+        ITypeSymbol expectedParent,
+        out INamedTypeSymbol interfaceSymbol)
+    {
+        if (Symbol.ContainingType.TypeKind == TypeKind.Interface &&
+            !SymbolEqualityComparer.Default.Equals(Symbol.ContainingType, expectedParent))
+        {
+            interfaceSymbol = Symbol.OriginalDefinition.ContainingType;
+            return true;
+        }
+
+        interfaceSymbol = null!;
+        return false;
+    }
 }
