@@ -1,6 +1,4 @@
-﻿using System.Xml.Linq;
-using FlameCsv.SourceGen.Bindings;
-using Microsoft.CodeAnalysis;
+﻿using FlameCsv.SourceGen.Bindings;
 
 namespace FlameCsv.SourceGen;
 
@@ -10,13 +8,16 @@ public partial class TypeMapGenerator
         StringBuilder sb,
         in TypeMapSymbol typeMap)
     {
+        if (typeMap.Scope == BindingScope.Write)
+            return;
+
         typeMap.ThrowIfCancellationRequested();
 
         sb.Append(@"        /// <summary>
-        /// Callback for parsing a single field and writing the value to the object.
-        /// </summary>
+                            /// Callback for parsing a single field and writing the value to the object.
+                            /// </summary>
         private delegate bool TryParseHandler");
-        sb.Append(typeMap.HandlerArgs);
+        sb.Append(typeMap.ParseHandlerArgs);
         sb.Append(@";
 
         protected override IMaterializer<");
@@ -45,7 +46,7 @@ public partial class TypeMapGenerator
         if (typeMap.IgnoreUnmatched)
         {
             sb.Append("materializer.Handlers[index] = ");
-            sb.Append(typeMap.HandlerArgs);
+            sb.Append(typeMap.ParseHandlerArgs);
             sb.Append(" => true; // ignored");
         }
         else
@@ -270,11 +271,10 @@ public partial class TypeMapGenerator
             sb.Append(binding.ParserId);
             sb.Append(" != null) ");
 
-            if (binding.Symbol.ContainingType.TypeKind == TypeKind.Interface &&
-                !SymbolEqualityComparer.Default.Equals(binding.Symbol.ContainingType, typeMap.Type))
+            if (binding.IsExplicitInterfaceDefinition(typeMap.Type, out var ifaceSymbol))
             {
                 sb.Append("((");
-                sb.Append(binding.Symbol.OriginalDefinition.ContainingType.ToDisplayString());
+                sb.Append(ifaceSymbol.ToDisplayString());
                 sb.Append(")obj).");
             }
             else
@@ -377,7 +377,7 @@ public partial class TypeMapGenerator
             sb.Append("private static readonly TryParseHandler ");
             sb.Append(binding.HandlerId);
             sb.Append(" = ");
-            sb.Append(typeMap.HandlerArgs);
+            sb.Append(typeMap.ParseHandlerArgs);
             sb.Append(@" =>
         {
             if (materializer.");
@@ -494,7 +494,7 @@ public partial class TypeMapGenerator
                     materializer.");
             sb.Append(binding.ParserId);
             sb.Append(" = ");
-            ResolveParser(in typeMap, binding.Symbol, binding.Type);
+            ResolveParser(sb, in typeMap, binding.Symbol, binding.Type, converterFactorySymbol);
             sb.Append(@";
                     materializer.Handlers[index] = ");
             sb.Append(binding.HandlerId);
@@ -521,63 +521,65 @@ public partial class TypeMapGenerator
                 sb.Append(')');
             }
         }
+    }
 
-        void ResolveParser(
-            in TypeMapSymbol typeMap,
-            ISymbol propertyOrField,
-            ITypeSymbol type)
+    private void ResolveParser(
+        StringBuilder sb,
+        in TypeMapSymbol typeMap,
+        ISymbol propertyOrField,
+        ITypeSymbol type,
+        INamedTypeSymbol converterFactorySymbol)
+    {
+        foreach (var attributeData in propertyOrField.GetAttributes())
         {
-            foreach (var attributeData in propertyOrField.GetAttributes())
+            if (attributeData.AttributeClass is { IsGenericType: true } attribute &&
+                SymbolEqualityComparer.Default.Equals(typeMap.TokenSymbol, attribute.TypeArguments[0]) &&
+                SymbolEqualityComparer.Default.Equals(attribute.ConstructUnboundGenericType(), _symbols.CsvConverterOfTAttribute))
             {
-                if (attributeData.AttributeClass is { IsGenericType: true } attribute &&
-                    SymbolEqualityComparer.Default.Equals(typeMap.TokenSymbol, attribute.TypeArguments[0]) &&
-                    SymbolEqualityComparer.Default.Equals(attribute.ConstructUnboundGenericType(), _symbols.CsvConverterOfTAttribute))
-                {
-                    GetParserInitializer(
-                        sb,
-                        typeMap.TokenSymbol,
-                        type,
-                        attribute.TypeArguments[1],
-                        converterFactorySymbol);
-                    return;
-                }
+                GetParserInitializer(
+                    sb,
+                    typeMap.TokenSymbol,
+                    type,
+                    attribute.TypeArguments[1],
+                    converterFactorySymbol);
+                return;
             }
+        }
 
-            type = type.UnwrapNullable(out bool isNullable);
+        type = type.UnwrapNullable(out bool isNullable);
 
-            string typeName = type.ToDisplayString();
+        string typeName = type.ToDisplayString();
 
-            if (isNullable)
-            {
-                sb.Append("new NullableConverter<");
-                sb.Append(typeMap.Token);
-                sb.Append(", ");
-                sb.Append(typeName);
-                sb.Append(">(");
-            }
+        if (isNullable)
+        {
+            sb.Append("new NullableConverter<");
+            sb.Append(typeMap.Token);
+            sb.Append(", ");
+            sb.Append(typeName);
+            sb.Append(">(");
+        }
 
-            if (type.TypeKind == TypeKind.Enum &&
-                typeMap.GetEnumConverterOrNull() is string enumConverter)
-            {
-                sb.Append("new ");
-                sb.Append(enumConverter);
-                sb.Append('<');
-                sb.Append(typeName);
-                sb.Append(">(options)");
-            }
-            else
-            {
-                sb.Append("options.GetConverter<");
-                sb.Append(typeName);
-                sb.Append(">()");
-            }
+        if (type.TypeKind == TypeKind.Enum &&
+            typeMap.GetEnumConverterOrNull() is string enumConverter)
+        {
+            sb.Append("new ");
+            sb.Append(enumConverter);
+            sb.Append('<');
+            sb.Append(typeName);
+            sb.Append(">(options)");
+        }
+        else
+        {
+            sb.Append("options.GetConverter<");
+            sb.Append(typeName);
+            sb.Append(">()");
+        }
 
-            if (isNullable)
-            {
-                sb.Append(", options.GetNullToken(typeof(");
-                sb.Append(typeName);
-                sb.Append(")))");
-            }
+        if (isNullable)
+        {
+            sb.Append(", options.GetNullToken(typeof(");
+            sb.Append(typeName);
+            sb.Append(")))");
         }
     }
 }

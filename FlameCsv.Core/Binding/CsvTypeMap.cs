@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Reading;
 using System.Diagnostics;
+using FlameCsv.Writing;
 
 namespace FlameCsv.Binding;
 
@@ -30,6 +31,14 @@ public abstract class CsvTypeMap<T, TValue> where T : unmanaged, IEquatable<T>
     protected abstract IMaterializer<T, TValue> BindMembers(
         bool exposeContent,
         CsvOptions<T> options);
+
+    /// <summary>
+    /// Returns a dematerializer for <typeparamref name="TValue"/>.
+    /// </summary>
+    /// <exception cref="CsvBindingException">
+    /// Options is configured not to write a header, but <typeparamref name="TValue"/> has no index binding.
+    /// </exception>
+    public abstract IDematerializer<T, TValue> GetDematerializer(CsvOptions<T> options);
 
     internal IMaterializer<T, TValue> GetMaterializer(in CsvReadingContext<T> context)
     {

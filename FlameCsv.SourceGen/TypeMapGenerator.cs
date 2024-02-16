@@ -95,8 +95,20 @@ public partial class TypeMapGenerator : IIncrementalGenerator
 using FlameCsv.Exceptions;
 using FlameCsv.Binding;
 using FlameCsv.Converters;
-using FlameCsv.Reading;
+");
+        if (typeMap.Scope is BindingScope.All or BindingScope.Read)
+        {
+            sb.Append(@"using FlameCsv.Reading;
+");
+        }
 
+        if (typeMap.Scope is BindingScope.All or BindingScope.Write)
+        {
+            sb.Append(@"using FlameCsv.Writing;
+");
+        }
+
+        sb.Append(@"
 namespace ");
         sb.Append(typeMap.ContainingClass.ContainingNamespace.ToDisplayString());
         sb.Append(@"
@@ -114,6 +126,7 @@ namespace ");
     ");
         WriteStaticInstance(sb, in typeMap);
         GetReadCode(sb, in typeMap);
+        GetWriteCode(sb, in typeMap);
         sb.Append(@"
     }");
 
@@ -132,16 +145,25 @@ namespace ");
 
     private void WriteStaticInstance(StringBuilder sb, in TypeMapSymbol typeMap)
     {
-        if (CreateStaticInstance(typeMap.ContainingClass))
+        // check if there is no "Instance" member, and a parameterless exists ctor.
+        foreach (var ctor in typeMap.ContainingClass.InstanceConstructors)
         {
-            sb.Append(@"        
+            if (ctor.Parameters.IsDefaultOrEmpty)
+            {
+                if (!typeMap.ContainingClass.MemberNames.Contains("Instance"))
+                {
+                    sb.Append(@"        
         public static ");
-            sb.Append(typeMap.ContainingClass.Name);
-            sb.Append(" Instance { get; } = new ");
-            sb.Append(typeMap.ContainingClass.Name);
-            sb.Append(@"();
+                    sb.Append(typeMap.ContainingClass.Name);
+                    sb.Append(" Instance { get; } = new ");
+                    sb.Append(typeMap.ContainingClass.Name);
+                    sb.Append(@"();
 
 ");
+                }
+
+                return;
+            }
         }
     }
 

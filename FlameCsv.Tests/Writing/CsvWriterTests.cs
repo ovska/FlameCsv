@@ -6,7 +6,7 @@ namespace FlameCsv.Tests.Writing;
 
 public sealed class CsvCharWriterTests : IAsyncDisposable
 {
-    private CsvRecordWriter<char, CsvCharBufferWriter>? _writer;
+    private CsvFieldWriter<char, CsvCharBufferWriter>? _writer;
     private StringWriter? _textWriter;
 
     private string Written => _textWriter?.ToString() ?? string.Empty;
@@ -126,7 +126,7 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
         int bufferSize = 1024)
     {
         _textWriter = new StringWriter();
-        _writer = new CsvRecordWriter<char, CsvCharBufferWriter>(
+        _writer = new CsvFieldWriter<char, CsvCharBufferWriter>(
             new CsvCharBufferWriter(_textWriter, AllocatingArrayPool<char>.Instance, bufferSize),
             new CsvWritingContext<char>(new CsvTextOptions { FieldQuoting = quoting, Null = "null" }, default));
     }

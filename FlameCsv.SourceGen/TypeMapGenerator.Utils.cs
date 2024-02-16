@@ -3,106 +3,63 @@ namespace FlameCsv.SourceGen;
 
 public partial class TypeMapGenerator
 {
-    private static void GetParserInitializer(
+    private void GetParserInitializer(
         StringBuilder sb,
         ITypeSymbol token,
         ITypeSymbol memberType,
         ITypeSymbol parser,
         INamedTypeSymbol converterFactorySymbol)
     {
-        bool found = false;
+        string? foundArgs = null;
+        var csvOptionsSymbol = _symbols.GetCsvOptionsType(token);
 
-        // TODO: find ctor that accepts CsvOptions<T>
         foreach (var member in parser.GetMembers())
         {
-            if (member is IMethodSymbol { MethodKind: MethodKind.Constructor, Parameters.IsDefaultOrEmpty: true })
+            if (member.Kind == SymbolKind.Method &&
+                member is IMethodSymbol { MethodKind: MethodKind.Constructor } method)
             {
-                found = true;
-                break;
+                if (method.Parameters.Length == 1 &&
+                    SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, csvOptionsSymbol))
+                {
+                    foundArgs = "options";
+                    break;
+                }
+                else if (method.Parameters.IsEmpty)
+                {
+                    foundArgs = "";
+                }
             }
         }
 
-        if (!found)
+        if (foundArgs is null)
             throw new Exception("No empty constructor found for " + parser.ToDisplayString()); // TODO
-
-        bool isFactory = false;
-
-        foreach (var iface in parser.AllInterfaces)
-        {
-            if (SymbolEqualityComparer.Default.Equals(iface, converterFactorySymbol))
-            {
-                isFactory = true;
-                break;
-            }
-        }
-
-        if (isFactory)
-        {
-            // Cast in case its explicitly implemented
-            sb.Append("((CsvConverterFactory>");
-            sb.Append(token.ToDisplayString());
-            sb.Append(">)");
-        }
 
         sb.Append("new ");
         sb.Append(parser.ToDisplayString());
-        sb.Append("()");
+        sb.Append('(');
+        sb.Append(foundArgs);
+        sb.Append(')');
 
-        if (isFactory)
+        if (parser.Inherits(converterFactorySymbol))
         {
-            sb.Append(").Create<");
+            sb.Append(".Create<");
             sb.Append(memberType.ToDisplayString());
             sb.Append(">(options)");
         }
     }
 
-    private bool IsReferenceOrContainsReferences(ITypeSymbol symbol)
-    {
-        if (symbol.IsUnmanagedType)
-            return false;
-
-        if (symbol.IsReferenceType)
-            return true;
-
-        foreach (var member in symbol.GetMembers())
-        {
-            if (member is IFieldSymbol field && !field.IsStatic && IsReferenceOrContainsReferences(field.Type))
-                return true;
-
-            if (member is IPropertySymbol property && !property.IsStatic && IsReferenceOrContainsReferences(property.Type))
-                return true;
-        }
-
-        return false;
-    }
-
     private bool CreateStaticInstance(INamedTypeSymbol classSymbol)
     {
-        bool hasEmptyCtor = false;
-
-        foreach (var ctor in classSymbol.Constructors)
+        // check if there is no "Instance" member, and a parameterless exists ctor.
+        foreach (var ctor in classSymbol.InstanceConstructors)
         {
             if (ctor.Parameters.IsDefaultOrEmpty)
             {
-                hasEmptyCtor = true;
-                break;
+                return !classSymbol.MemberNames.Contains("Instance");
             }
         }
 
-        if (!hasEmptyCtor)
-            return false;
-
-        foreach (var symbol in classSymbol.GetMembers("Instance"))
-        {
-            if (symbol.IsStatic &&
-                symbol.CanBeReferencedByName &&
-                symbol.Kind is SymbolKind.Field or SymbolKind.Property or SymbolKind.Method)
-            {
-                return false;
-            }
-        }
-
-        return true;
+        return false;
     }
 
     private string GetAccessModifier(INamedTypeSymbol classSymbol)

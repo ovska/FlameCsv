@@ -70,7 +70,7 @@ internal sealed class Dematerializer<T, T0, TValue>
     private readonly CsvConverter<T, T0> converter0;
     private readonly Func<TValue, T0> getter0;
 
-    public void Write(ICsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public void Write<TWriter>(CsvFieldWriter<T, TWriter> writer, [AllowNull] TValue value) where TWriter : struct, IAsyncBufferWriter<T>
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteNewline();
@@ -99,7 +99,7 @@ internal sealed class Dematerializer<T, T0, T1, TValue>
     private readonly Func<TValue, T0> getter0;
     private readonly Func<TValue, T1> getter1;
 
-    public void Write(ICsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public void Write<TWriter>(CsvFieldWriter<T, TWriter> writer, [AllowNull] TValue value) where TWriter : struct, IAsyncBufferWriter<T>
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -135,7 +135,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, TValue>
     private readonly Func<TValue, T1> getter1;
     private readonly Func<TValue, T2> getter2;
 
-    public void Write(ICsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public void Write<TWriter>(CsvFieldWriter<T, TWriter> writer, [AllowNull] TValue value) where TWriter : struct, IAsyncBufferWriter<T>
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -178,7 +178,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, TValue>
     private readonly Func<TValue, T2> getter2;
     private readonly Func<TValue, T3> getter3;
 
-    public void Write(ICsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public void Write<TWriter>(CsvFieldWriter<T, TWriter> writer, [AllowNull] TValue value) where TWriter : struct, IAsyncBufferWriter<T>
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -228,7 +228,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, TValue>
     private readonly Func<TValue, T3> getter3;
     private readonly Func<TValue, T4> getter4;
 
-    public void Write(ICsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public void Write<TWriter>(CsvFieldWriter<T, TWriter> writer, [AllowNull] TValue value) where TWriter : struct, IAsyncBufferWriter<T>
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -285,7 +285,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, TValue>
     private readonly Func<TValue, T4> getter4;
     private readonly Func<TValue, T5> getter5;
 
-    public void Write(ICsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public void Write<TWriter>(CsvFieldWriter<T, TWriter> writer, [AllowNull] TValue value) where TWriter : struct, IAsyncBufferWriter<T>
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -349,7 +349,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, TValue>
     private readonly Func<TValue, T5> getter5;
     private readonly Func<TValue, T6> getter6;
 
-    public void Write(ICsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public void Write<TWriter>(CsvFieldWriter<T, TWriter> writer, [AllowNull] TValue value) where TWriter : struct, IAsyncBufferWriter<T>
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -420,7 +420,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TValue>
     private readonly Func<TValue, T6> getter6;
     private readonly Func<TValue, T7> getter7;
 
-    public void Write(ICsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public void Write<TWriter>(CsvFieldWriter<T, TWriter> writer, [AllowNull] TValue value) where TWriter : struct, IAsyncBufferWriter<T>
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -498,7 +498,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TVal
     private readonly Func<TValue, T7> getter7;
     private readonly Func<TValue, T8> getter8;
 
-    public void Write(ICsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public void Write<TWriter>(CsvFieldWriter<T, TWriter> writer, [AllowNull] TValue value) where TWriter : struct, IAsyncBufferWriter<T>
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -583,7 +583,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     private readonly Func<TValue, T8> getter8;
     private readonly Func<TValue, T9> getter9;
 
-    public void Write(ICsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public void Write<TWriter>(CsvFieldWriter<T, TWriter> writer, [AllowNull] TValue value) where TWriter : struct, IAsyncBufferWriter<T>
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -675,7 +675,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     private readonly Func<TValue, T9> getter9;
     private readonly Func<TValue, T10> getter10;
 
-    public void Write(ICsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public void Write<TWriter>(CsvFieldWriter<T, TWriter> writer, [AllowNull] TValue value) where TWriter : struct, IAsyncBufferWriter<T>
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -774,7 +774,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     private readonly Func<TValue, T10> getter10;
     private readonly Func<TValue, T11> getter11;
 
-    public void Write(ICsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public void Write<TWriter>(CsvFieldWriter<T, TWriter> writer, [AllowNull] TValue value) where TWriter : struct, IAsyncBufferWriter<T>
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -880,7 +880,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     private readonly Func<TValue, T11> getter11;
     private readonly Func<TValue, T12> getter12;
 
-    public void Write(ICsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public void Write<TWriter>(CsvFieldWriter<T, TWriter> writer, [AllowNull] TValue value) where TWriter : struct, IAsyncBufferWriter<T>
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -993,7 +993,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     private readonly Func<TValue, T12> getter12;
     private readonly Func<TValue, T13> getter13;
 
-    public void Write(ICsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public void Write<TWriter>(CsvFieldWriter<T, TWriter> writer, [AllowNull] TValue value) where TWriter : struct, IAsyncBufferWriter<T>
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -1113,7 +1113,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     private readonly Func<TValue, T13> getter13;
     private readonly Func<TValue, T14> getter14;
 
-    public void Write(ICsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public void Write<TWriter>(CsvFieldWriter<T, TWriter> writer, [AllowNull] TValue value) where TWriter : struct, IAsyncBufferWriter<T>
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -1240,7 +1240,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     private readonly Func<TValue, T14> getter14;
     private readonly Func<TValue, T15> getter15;
 
-    public void Write(ICsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public void Write<TWriter>(CsvFieldWriter<T, TWriter> writer, [AllowNull] TValue value) where TWriter : struct, IAsyncBufferWriter<T>
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
