@@ -6,7 +6,7 @@ namespace FlameCsv.Converters;
 
 public sealed class DelegatingUtf8Converter<TValue> : CsvConverter<byte, TValue>
 {
-    protected internal override bool HandleNull => _converter.HandleNull;
+    public override bool HandleNull => _converter.HandleNull;
 
     private readonly CsvConverter<char, TValue> _converter;
 

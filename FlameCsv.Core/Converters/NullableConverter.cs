@@ -11,7 +11,7 @@ public sealed class NullableConverter<T, TValue> : CsvConverter<T, TValue?>
     where T : unmanaged, IEquatable<T>
     where TValue : struct
 {
-    protected internal override bool HandleNull => true;
+    public override bool HandleNull => true;
 
     private readonly CsvConverter<T, TValue> _converter;
     private readonly ReadOnlyMemory<T> _null;

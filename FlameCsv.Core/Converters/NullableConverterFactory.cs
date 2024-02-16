@@ -13,7 +13,9 @@ internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
 
     public override bool CanConvert(Type type)
     {
-        return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>);
+        return type.IsValueType
+            && type.IsGenericType
+            && type.GetGenericTypeDefinition() == typeof(Nullable<>);
     }
 
     public override CsvConverter<T> Create(Type type, CsvOptions<T> options)

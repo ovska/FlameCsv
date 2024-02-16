@@ -145,7 +145,7 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
             return value.AsSpan().TryWriteTo(destination, out charsWritten);
         }
 
-        protected internal override bool HandleNull => false;
+        public override bool HandleNull => false;
     }
 
     private sealed class BrokenFormatter : CsvConverter<char, string>

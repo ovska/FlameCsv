@@ -152,7 +152,7 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
             return value.AsSpan().TryWriteUtf8To(destination, out charsWritten);
         }
 
-        protected internal override bool HandleNull => false;
+        public override bool HandleNull => false;
     }
 
     private sealed class BrokenFormatter : CsvConverter<byte, string>

@@ -1,6 +1,7 @@
 ﻿using FlameCsv.Exceptions;
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Reading;
+using System.Diagnostics;
 
 namespace FlameCsv.Binding;
 
@@ -40,7 +41,7 @@ public abstract class CsvTypeMap<T, TValue> where T : unmanaged, IEquatable<T>
         return BindMembers(headers, context.ExposeContent, context.Options);
     }
 
-    [DoesNotReturn]
+    [DoesNotReturn, StackTraceHidden]
     protected static void ThrowDuplicate(string member, string field, ReadOnlySpan<string> headers, bool exposeContent)
     {
         if (!exposeContent)
@@ -50,7 +51,7 @@ public abstract class CsvTypeMap<T, TValue> where T : unmanaged, IEquatable<T>
             $"\"{member}\" matched to multiple headers, including '{field}' in [{FormatHeaders(headers)}].");
     }
 
-    [DoesNotReturn]
+    [DoesNotReturn, StackTraceHidden]
     protected static void ThrowUnmatched(string field, int index, bool exposeContent)
     {
         if (!exposeContent)
@@ -59,7 +60,7 @@ public abstract class CsvTypeMap<T, TValue> where T : unmanaged, IEquatable<T>
         throw new CsvBindingException<TValue>($"Unmatched header field '{field}' at index {index}.");
     }
 
-    [DoesNotReturn]
+    [DoesNotReturn, StackTraceHidden]
     protected static void ThrowRequiredNotRead(IEnumerable<string> members, ReadOnlySpan<string> headers, bool exposeContent)
     {
         string missingMembers = string.Join(", ", members.Select(x => $"\"{x}\""));
@@ -71,7 +72,7 @@ public abstract class CsvTypeMap<T, TValue> where T : unmanaged, IEquatable<T>
             $"Required members/parameters [{missingMembers}] were not matched to any header field: [{FormatHeaders(headers)}]");
     }
 
-    [DoesNotReturn]
+    [DoesNotReturn, StackTraceHidden]
     protected static void ThrowNoFieldsBound(ReadOnlySpan<string> headers, bool exposeContent)
     {
         if (!exposeContent)
