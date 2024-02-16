@@ -5,7 +5,7 @@ namespace FlameCsv.Tests.Binding;
 
 public static partial class TypeMapBindingTests
 {
-
+    [CsvHeaderTarget("Id", "__id__")]
     private class _Obj : ISomething
     {
         [CsvConstructor]

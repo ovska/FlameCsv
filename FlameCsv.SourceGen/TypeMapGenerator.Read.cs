@@ -1,113 +1,175 @@
-﻿using FlameCsv.SourceGen.Bindings;
+﻿using System.Xml.Linq;
+using FlameCsv.SourceGen.Bindings;
+using Microsoft.CodeAnalysis;
 
 namespace FlameCsv.SourceGen;
 
 public partial class TypeMapGenerator
 {
-    private string GetReadCode(in TypeMapSymbol typeMap)
+    private void GetReadCode(
+        StringBuilder sb,
+        in TypeMapSymbol typeMap)
     {
-        return @$"        /// <summary>
+        typeMap.ThrowIfCancellationRequested();
+
+        sb.Append(@"        /// <summary>
         /// Callback for parsing a single field and writing the value to the object.
         /// </summary>
-        private delegate bool TryParseHandler{typeMap.HandlerArgs};
+        private delegate bool TryParseHandler");
+        sb.Append(typeMap.HandlerArgs);
+        sb.Append(@";
 
-        protected override IMaterializer<{typeMap.Token}, {typeMap.ResultName}> BindMembers(
+        protected override IMaterializer<");
+        sb.Append(typeMap.Token);
+        sb.Append(", ");
+        sb.Append(typeMap.ResultName);
+        sb.Append(@"> BindMembers(
             ReadOnlySpan<string> headers,
             bool exposeContent,
-            CsvOptions<{typeMap.Token}> options)
-        {{
+            CsvOptions<");
+        sb.Append(typeMap.Token);
+        sb.Append(@"> options)
+        {
             TypeMapMaterializer materializer = new TypeMapMaterializer(headers.Length);
             bool anyFieldBound = false;
 
             for (int index = 0; index < headers.Length; index++)
-            {{
+            {
                 string name = headers[index];
+");
+        WriteMatchers(sb, in typeMap);
 
-{string.Join(@"
-", WriteMatchers(typeMap))}
-                {(typeMap.IgnoreUnmatched
-                    ? $"materializer.Handlers[index] = {typeMap.HandlerArgs} => true; // ignored"
-                    : "ThrowUnmatched(name, index, exposeContent);")}
-            }}
+        sb.Append(@"
+                ");
+
+        if (typeMap.IgnoreUnmatched)
+        {
+            sb.Append("materializer.Handlers[index] = ");
+            sb.Append(typeMap.HandlerArgs);
+            sb.Append(" => true; // ignored");
+        }
+        else
+        {
+            sb.Append("ThrowUnmatched(name, index, exposeContent);");
+        }
+
+        sb.Append(@"
+            }
 
             if (!anyFieldBound)
-                ThrowNoFieldsBound(headers, exposeContent);
-{WriteRequiredCheck()}
-            return materializer;
-        }}
+                ThrowNoFieldsBound(headers, exposeContent);");
 
-        protected override IMaterializer<{typeMap.Token}, {typeMap.ResultName}> BindMembers(
+        WriteRequiredCheck(sb, in typeMap);
+
+        sb.Append(@"
+            return materializer;
+        }
+
+        protected override IMaterializer<");
+        sb.Append(typeMap.Token);
+        sb.Append(", ");
+        sb.Append(typeMap.ResultName);
+        sb.Append(@"> BindMembers(
             bool exposeContent,
-            CsvOptions<{typeMap.Token}> options)
-        {{
-            throw new NotSupportedException(""{typeMap.ContainingClass.MetadataName} does not support index binding."");
-        }}{WriteMissingRequiredFields()}
+            CsvOptions<");
+        sb.Append(typeMap.Token);
+        sb.Append(@"> options)
+        {
+            throw new NotSupportedException($""{GetType().FullName} does not support index binding."");
+        }");
+
+        WriteMissingRequiredFields(sb);
+
+        sb.Append(@"
 
         private struct ParseState
-        {{
-            
-        {string.Join(@"
-            ", _bindings.AllBindings.Select(b => $"public {b.Type.ToDisplayString()} {b.Name};"))}
-        }}
+        {
+");
 
-        private struct TypeMapMaterializer : IMaterializer<{typeMap.Token}, {typeMap.ResultName}>
-        {{
-            {string.Join(@"
-            ", WriteParserMembers(typeMap))}
+        foreach (var binding in _bindings.AllBindings)
+        {
+            sb.Append("            public ");
+            sb.Append(binding.Type.ToDisplayString());
+            sb.Append(' ');
+            sb.Append(binding.Name);
+            sb.Append(@";
+");
+        }
+
+        sb.Append(@"        }
+
+        private struct TypeMapMaterializer : IMaterializer<");
+        sb.Append(typeMap.Token);
+        sb.Append(", ");
+        sb.Append(typeMap.ResultName);
+        sb.Append(@">
+        {");
+
+        foreach (var binding in _bindings.AllBindings)
+            WriteParserMember(sb, in typeMap, binding);
+
+        sb.Append(@"
 
             public readonly TryParseHandler[] Handlers;
 
             public TypeMapMaterializer(int length)
-            {{
+            {
                 Handlers = new TryParseHandler[length];
-            }}
+            }
 
             public int FieldCount => Handlers.Length;
 
-            public {typeMap.ResultName} Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<{typeMap.Token}>
-            {{
+            public ");
+        sb.Append(typeMap.ResultName);
+        sb.Append(" Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<");
+        sb.Append(typeMap.Token);
+        sb.Append(@">
+            {
                 // If possible, throw early if there are an invalid amount of fields
                 reader.TryEnsureFieldCount(fieldCount: Handlers.Length);
 
-                ParseState state = default;{WriteDefaultParameterValues()}
-                
-                int index = 0;
+                ParseState state = default;");
+        WriteDefaultParameterValues(sb, in typeMap);
+        sb.Append(@"int index = 0;
 
-                while (reader.TryReadNext(out ReadOnlyMemory<{typeMap.Token}> field))
-                {{
+                while (reader.TryReadNext(out ReadOnlyMemory<");
+        sb.Append(typeMap.Token);
+        sb.Append(@"> field))
+                {
                     if (Handlers[index++](ref this, ref state, field.Span))
-                    {{
+                    {
                         continue;
-                    }}
+                    }
 
                     reader.ThrowParseFailed(field, null);
-                }}
+                }
 
                 // Ensure there were no leftover fields
                 reader.EnsureFullyConsumed(fieldCount: Handlers.Length);
 
                 // Create the value from parsed values. Required members are validated when creating the materializer,
                 // optional members are assigned only if parsed to not overwrite possible default values.
-                {typeMap.ResultName} obj = new {typeMap.ResultName}{WriteSetters(typeMap)}
+                ");
+        sb.Append(typeMap.ResultName);
+        sb.Append(" obj = new ");
+        sb.Append(typeMap.ResultName);
+        WriteSetters(sb, in typeMap);
+        sb.Append(@"
                 return obj;
-            }}
-        }}
+            }
+        }
 
-        {string.Join(@"
-
-        ", WriteParserHandlers(typeMap))}"; 
+        ");
+        WriteParserHandlers(sb, in typeMap);
     }
 
-    private string WriteDefaultParameterValues()
+    private void WriteDefaultParameterValues(StringBuilder sb, in TypeMapSymbol typeMap)
     {
+        typeMap.ThrowIfCancellationRequested();
+
         // we always write these; they are always compile time constants
         if (_bindings.Parameters.Length == 0)
-            return "";
-
-        var sb = new StringBuilder(64);
-
-        sb.Append(@"
-");
+            return;
 
         bool commentWritten = false;
 
@@ -128,11 +190,13 @@ public partial class TypeMapGenerator
 ");
             }
 
-            sb.Append("                state.");
+            sb.Append(@"
+                state.");
             sb.Append(binding.Name);
             sb.Append(" = ");
 
             // Enum values are resolved as their underlying type so they need to be cast back to the enum type
+            // e.g. DayOfWeek.Friday would be "state.arg = (System.DayOfWeek)5;"
             if (binding.Type.IsEnumOrNullableEnum())
             {
                 sb.Append('(');
@@ -141,20 +205,13 @@ public partial class TypeMapGenerator
             }
 
             sb.Append(binding.DefaultValue.ToLiteral());
-            sb.Append(@";
-");
+            sb.Append(';');
         }
-
-        sb.Length--;
-
-        return sb.ToString();
     }
 
-    private string WriteSetters(TypeMapSymbol typeMap)
+    private void WriteSetters(StringBuilder sb, in TypeMapSymbol typeMap)
     {
         typeMap.ThrowIfCancellationRequested();
-
-        var sb = new StringBuilder(256);
 
         sb.Append('(');
 
@@ -233,17 +290,17 @@ public partial class TypeMapGenerator
         }
 
         sb.Length--;
-        return sb.ToString();
     }
 
-    private string WriteRequiredCheck()
+    private void WriteRequiredCheck(StringBuilder sb, in TypeMapSymbol typeMap)
     {
         if (_bindings.RequiredBindings.Length == 0)
-            return @"
+        {
+            sb.Append(@"
             // No check for required members, the type has none.
-";
-
-        var sb = new StringBuilder(128);
+");
+            return;
+        }
 
         sb.Append(@"
             if (");
@@ -261,17 +318,15 @@ public partial class TypeMapGenerator
             sb.Append(" == null");
         }
 
-        return sb.Append(@")
+        sb.Append(@")
                 ThrowRequiredNotRead(GetMissingRequiredFields(materializer), headers, exposeContent);
-").ToString();
+");
     }
 
-    private string WriteMissingRequiredFields()
+    private void WriteMissingRequiredFields(StringBuilder sb)
     {
         if (_bindings.RequiredBindings.Length == 0)
-            return "";
-
-        var sb = new StringBuilder(128);
+            return;
 
         sb.Append(@"
 
@@ -286,44 +341,62 @@ public partial class TypeMapGenerator
 
         sb.Append(@"
         }");
-
-        return sb.ToString();
     }
 
-    private IEnumerable<string> WriteParserMembers(TypeMapSymbol typeMap)
+    private void WriteParserMember(StringBuilder sb, in TypeMapSymbol typeMap, IBinding binding)
     {
         typeMap.ThrowIfCancellationRequested();
 
-        foreach (var binding in _bindings.Members)
-        {
-            yield return $"public CsvConverter<{typeMap.Token}, {binding.Type.ToDisplayString()}>? {binding.ParserId};";
-        }
-
-        foreach (var binding in _bindings.Parameters)
-        {
-            yield return $"public CsvConverter<{typeMap.Token}, {binding.Type.ToDisplayString()}>? {binding.ParserId};";
-        }
+        sb.Append(@"
+            public CsvConverter<");
+        sb.Append(typeMap.Token);
+        sb.Append(", ");
+        sb.Append(binding.Type.ToDisplayString());
+        sb.Append(">? ");
+        sb.Append(binding.ParserId);
+        sb.Append(';');
     }
 
-    private IEnumerable<string> WriteParserHandlers(TypeMapSymbol typeMap)
+    private void WriteParserHandlers(
+        StringBuilder sb,
+        in TypeMapSymbol typeMap)
     {
         typeMap.ThrowIfCancellationRequested();
+
+        bool first = true;
 
         foreach (var binding in _bindings.AllBindings)
         {
-            yield return $@"private static readonly TryParseHandler {binding.HandlerId} = {typeMap.HandlerArgs} =>
-        {{
-            if (materializer.{binding.ParserId}!.TryParse(field, out var result))
-            {{
-                state.{binding.Name} = result;
+            if (!first)
+            {
+                sb.Append(@"
+
+        ");
+            }
+
+            sb.Append("private static readonly TryParseHandler ");
+            sb.Append(binding.HandlerId);
+            sb.Append(" = ");
+            sb.Append(typeMap.HandlerArgs);
+            sb.Append(@" =>
+        {
+            if (materializer.");
+            sb.Append(binding.ParserId);
+            sb.Append(@"!.TryParse(field, out var result))
+            {
+                state.");
+            sb.Append(binding.Name);
+            sb.Append(@" = result;
                 return true;
-            }}
+            }
             return false;
-        }};";
+        };");
+
+            first = false;
         }
     }
 
-    private IEnumerable<string> WriteMatchers(TypeMapSymbol typeMap)
+    private void WriteMatchers(StringBuilder sb, in TypeMapSymbol typeMap)
     {
         var allBindingsSorted = _bindings.AllBindings.ToArray();
 
@@ -345,39 +418,114 @@ public partial class TypeMapGenerator
 
         var converterFactorySymbol = _symbols.CsvConverterFactory.ConstructedFrom.Construct(typeMap.TokenSymbol);
 
+        foreach (var x in typeMap.Type.GetAttributes())
+        {
+            sb.AppendLine($"/* {x.AttributeClass?.MetadataName} */");
+        }
+
+        HashSet<string> writtenNames = [];
+
         foreach (var binding in allBindingsSorted)
         {
             typeMap.ThrowIfCancellationRequested();
 
-            string skipDuplicate = "";
-            string checkDuplicate = "";
+            sb.Append(@"
+                if (");
 
             if (!typeMap.ThrowOnDuplicate)
             {
-                skipDuplicate = $@"materializer.{binding.ParserId} == null &&
-                    ";
+                // add check to ignore already handled members
+                sb.Append("null == materializer.");
+                sb.Append(binding.ParserId);
+                sb.Append(@" &&
+                    ");
+            }
+
+            bool firstName = true;
+
+            foreach (string name in binding.Names)
+            {
+                if (writtenNames.Add(name))
+                    WriteComparison(name);
+            }
+
+            foreach (var attribute in typeMap.Type.GetAttributes())
+            {
+                if (SymbolEqualityComparer.Default.Equals(_symbols.CsvHeaderTargetAttribute, attribute.AttributeClass)
+                    && binding.Name.Equals(attribute.ConstructorArguments[0].Value as string))
+                {
+                    foreach (var value in attribute.ConstructorArguments[1].Values)
+                    {
+                        if (value.Value is string name && writtenNames.Add(name))
+                            WriteComparison(name);
+                    }
+                }
+            }
+
+            writtenNames.Clear();
+
+            sb.Append(") // ");
+
+            if (binding.Order == 0)
+            {
+                sb.Append("default order");
             }
             else
             {
-                checkDuplicate = $@"
-                    if (materializer.{binding.ParserId} != null) ThrowDuplicate({binding.Name.ToStringLiteral()}, name, headers, exposeContent);
-";
+                sb.Append("order: ");
+                sb.Append(binding.Order);
             }
 
-            var names = string.Join(@" ||
-                    ", binding.Names.Select(n => $"options.Comparer.Equals(name, {n.ToStringLiteral()})"));
+            sb.Append(@"
+                {");
 
-            yield return $@"                if ({skipDuplicate}{names}) {(binding.Order == 0 ? "// default order" : $"// order: {binding.Order}")}
-                {{{checkDuplicate}
-                    materializer.{binding.ParserId} = {ResolveParser(binding.Symbol, binding.Type)};
-                    materializer.Handlers[index] = {binding.HandlerId};
+            if (typeMap.ThrowOnDuplicate)
+            {
+                sb.Append(@"
+                    if (null != materializer.");
+                sb.Append(binding.ParserId);
+                sb.Append(") ThrowDuplicate(");
+                sb.Append(binding.Name.ToStringLiteral());
+                sb.Append(@", name, headers, exposeContent);
+");
+            }
+
+            sb.Append(@"
+                    materializer.");
+            sb.Append(binding.ParserId);
+            sb.Append(" = ");
+            ResolveParser(in typeMap, binding.Symbol, binding.Type);
+            sb.Append(@";
+                    materializer.Handlers[index] = ");
+            sb.Append(binding.HandlerId);
+            sb.Append(@";
                     anyFieldBound = true;
                     continue;
-                }}
-";
+                }
+");
+
+            void WriteComparison(string name)
+            {
+                if (firstName)
+                {
+                    firstName = false;
+                }
+                else
+                {
+                    sb.Append(@" ||
+                    ");
+                }
+
+                sb.Append("options.Comparer.Equals(name, ");
+                sb.Append(name.ToStringLiteral());
+                sb.Append(')');
+            }
         }
 
-        string ResolveParser(ISymbol propertyOrField, ITypeSymbol type)
+        void ResolveParser(
+            in TypeMapSymbol typeMap,
+            ISymbol propertyOrField,
+            ITypeSymbol type)
         {
             foreach (var attributeData in propertyOrField.GetAttributes())
             {
@@ -385,11 +533,13 @@ public partial class TypeMapGenerator
                     SymbolEqualityComparer.Default.Equals(typeMap.TokenSymbol, attribute.TypeArguments[0]) &&
                     SymbolEqualityComparer.Default.Equals(attribute.ConstructUnboundGenericType(), _symbols.CsvConverterOfTAttribute))
                 {
-                    return GetParserInitializer(
+                    GetParserInitializer(
+                        sb,
                         typeMap.TokenSymbol,
                         type,
                         attribute.TypeArguments[1],
                         converterFactorySymbol);
+                    return;
                 }
             }
 
@@ -397,37 +547,37 @@ public partial class TypeMapGenerator
 
             string typeName = type.ToDisplayString();
 
-            string converter = TryGetEnumConverter(type, out var converterInit)
-                ? converterInit!
-                : $"options.GetConverter<{typeName}>()";
-
-            if (!isNullable)
-                return converter;
-
-            return $"new NullableConverter<{typeMap.TokenSymbol}, {typeName}>(" +
-                $"{converter}, options.GetNullToken(typeof({typeName})))";
-        }
-
-        bool TryGetEnumConverter(ITypeSymbol type, out string? converterInit)
-        {
-            if (type.TypeKind == TypeKind.Enum)
+            if (isNullable)
             {
-                converterInit = typeMap.TokenSymbol.SpecialType switch
-                {
-                    SpecialType.System_Char => "EnumTextConverter",
-                    SpecialType.System_Byte => "EnumByteConverter",
-                    _ => null,
-                };
-
-                if (converterInit != null)
-                {
-                    converterInit = $"new {converterInit}<{type.ToDisplayString()}>(options)";
-                    return true;
-                }
+                sb.Append("new NullableConverter<");
+                sb.Append(typeMap.Token);
+                sb.Append(", ");
+                sb.Append(typeName);
+                sb.Append(">(");
             }
 
-            converterInit = null;
-            return false;
+            if (type.TypeKind == TypeKind.Enum &&
+                typeMap.GetEnumConverterOrNull() is string enumConverter)
+            {
+                sb.Append("new ");
+                sb.Append(enumConverter);
+                sb.Append('<');
+                sb.Append(typeName);
+                sb.Append(">(options)");
+            }
+            else
+            {
+                sb.Append("options.GetConverter<");
+                sb.Append(typeName);
+                sb.Append(">()");
+            }
+
+            if (isNullable)
+            {
+                sb.Append(", options.GetNullToken(typeof(");
+                sb.Append(typeName);
+                sb.Append(")))");
+            }
         }
     }
 }
