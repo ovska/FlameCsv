@@ -314,9 +314,10 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
 
         CsvConverter<T>? converter = TryGetConverterCore(resultType);
 
-        if (converter is not null)
+        if (converter is not null && !_converterCache.TryAdd(resultType, converter))
         {
-            _converterCache.TryAdd(resultType, converter);
+            // ensure we return the same instance that was cached
+            converter = _converterCache[resultType];
         }
 
         return converter;
