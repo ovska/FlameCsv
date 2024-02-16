@@ -118,13 +118,12 @@ internal readonly struct TypeMapSymbol
 
         foreach (var attribute in Type.GetAttributes())
         {
-            if (attribute.AttributeClass?.MetadataName == "FlameCsv.Binding.Attributes.CsvHeaderTargetAttribute")
+            if (attribute.AttributeClass?.MetadataName == "FlameCsv.Binding.Attributes.CsvHeaderTargetAttribute"
+                && attribute.ConstructorArguments[0].Value is string member)
             {
-                var member = attribute.ConstructorArguments[0].Value as string;
-
-                if (!TargetedHeaders.TryGetValue(member!, out var set))
+                if (!TargetedHeaders.TryGetValue(member, out var set))
                 {
-                    TargetedHeaders[member!] = set = [];
+                    TargetedHeaders[member] = set = [];
                 }
 
                 foreach (var value in attribute.ConstructorArguments[1].Values)
@@ -171,10 +170,19 @@ internal readonly struct TypeMapSymbol
 
         while (type is not null)
         {
-            sb.Append("\n    partial ");
+            sb.Append("\n    ");
+
+            if (type.IsReadOnly)
+                sb.Append("readonly ");
+            if (type.IsRefLikeType)
+                sb.Append("ref ");
+            if (type.IsAbstract)
+                sb.Append("abstract ");
+
+            sb.Append("partial ");
             sb.Append(type.IsValueType ? "struct " : "class ");
-            sb.Append(type.ToDisplayString(new SymbolDisplayFormat(typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameOnly)));
-            sb.Append("  {");
+            sb.Append(type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
+            sb.Append(" {");
             wrappers.Add(sb.ToString());
             sb.Clear();
 
