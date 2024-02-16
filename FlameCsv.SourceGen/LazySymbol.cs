@@ -7,7 +7,7 @@ internal sealed class LazySymbol(Compilation compilation, string name, bool unbo
                 try
                 {
                     var symbol = compilation.GetTypeByMetadataName(name)
-                        ?? throw new Exception($"Type '{name}' not found from metadata.");
+                        ?? throw new InvalidOperationException($"Type '{name}' not found from metadata.");
 
                     if (unboundGeneric)
                     {
@@ -16,9 +16,9 @@ internal sealed class LazySymbol(Compilation compilation, string name, bool unbo
 
                     return symbol;
                 }
-                catch (Exception e)
+                catch (Exception e) when (e is not InvalidOperationException)
                 {
-                    throw new Exception("Error, could not find " + name, e);
+                    throw new InvalidOperationException("Error, could not find " + name, e);
                 }
             },
         LazyThreadSafetyMode.ExecutionAndPublication)

@@ -3,17 +3,32 @@ namespace FlameCsv.SourceGen;
 
 public partial class TypeMapGenerator
 {
-    private string GetParserInitializer(ITypeSymbol token, ITypeSymbol memberType, ITypeSymbol parser)
+    private string GetParserInitializer(
+        ITypeSymbol token,
+        ITypeSymbol memberType,
+        ITypeSymbol parser,
+        INamedTypeSymbol converterFactorySymbol)
     {
-        if (!parser.GetMembers().Any(m => m is IMethodSymbol { MethodKind: MethodKind.Constructor, Parameters.Length: 0 }))
+        bool found = false;
+
+        // TODO: find ctor that accepts CsvOptions<T>
+        foreach (var member in parser.GetMembers())
+        {
+            if (member is IMethodSymbol { MethodKind: MethodKind.Constructor, Parameters.IsDefaultOrEmpty: true })
+            {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
             throw new Exception("No empty constructor found for " + parser.ToDisplayString()); // TODO
 
-        var parserFactory = _symbols.CsvConverterFactory.ConstructedFrom.Construct(token);
         bool isFactory = false;
 
         foreach (var iface in parser.AllInterfaces)
         {
-            if (SymbolEqualityComparer.Default.Equals(iface, parserFactory))
+            if (SymbolEqualityComparer.Default.Equals(iface, converterFactorySymbol))
             {
                 isFactory = true;
                 break;
@@ -64,7 +79,7 @@ public partial class TypeMapGenerator
 
         if (!hasEmptyCtor)
             return false;
-        
+
         foreach (var symbol in classSymbol.GetMembers("Instance"))
         {
             if (symbol.IsStatic &&

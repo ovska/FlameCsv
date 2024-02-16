@@ -1,7 +1,4 @@
-﻿using System.Diagnostics.SymbolStore;
-using Microsoft.CodeAnalysis;
-
-namespace FlameCsv.SourceGen;
+﻿namespace FlameCsv.SourceGen;
 
 internal readonly struct KnownSymbols(Compilation compilation)
 {
@@ -36,12 +33,15 @@ internal readonly struct SymbolMetadata
         {
             if (SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, knownSymbols.CsvHeaderAttribute))
             {
-                var arg = attributeData.ConstructorArguments[0];
-
                 // params-array
-                if (!arg.Values.IsDefaultOrEmpty)
+                if (attributeData.ConstructorArguments[0].Values is { IsDefaultOrEmpty: false } namesArray)
                 {
-                    Names = arg.Values.Select(v => v.Value as string ?? "");
+                    var names = new string[namesArray.Length];
+
+                    for (int i = 0; i < namesArray.Length; i++)
+                        names[i] = namesArray[i].Value as string ?? "";
+
+                    Names = names;
                 }
 
                 foreach (var argument in attributeData.NamedArguments)
