@@ -343,6 +343,8 @@ public partial class TypeMapGenerator
             }
         });
 
+        var converterFactorySymbol = _symbols.CsvConverterFactory.ConstructedFrom.Construct(typeMap.TokenSymbol);
+
         foreach (var binding in allBindingsSorted)
         {
             typeMap.ThrowIfCancellationRequested();
@@ -383,7 +385,11 @@ public partial class TypeMapGenerator
                     SymbolEqualityComparer.Default.Equals(typeMap.TokenSymbol, attribute.TypeArguments[0]) &&
                     SymbolEqualityComparer.Default.Equals(attribute.ConstructUnboundGenericType(), _symbols.CsvConverterOfTAttribute))
                 {
-                    return GetParserInitializer(typeMap.TokenSymbol, type, attribute.TypeArguments[1]);
+                    return GetParserInitializer(
+                        typeMap.TokenSymbol,
+                        type,
+                        attribute.TypeArguments[1],
+                        converterFactorySymbol);
                 }
             }
 
