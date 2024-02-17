@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using CommunityToolkit.HighPerformance.Buffers;
 using CommunityToolkit.HighPerformance.Helpers;
@@ -7,7 +6,7 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
 
-internal sealed class EnumUtf8Converter<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] TEnum>
+public sealed class EnumUtf8Converter<TEnum>
     : CsvConverter<byte, TEnum> where TEnum : struct, Enum
 {
     private readonly bool _allowUndefinedValues;
@@ -18,6 +17,7 @@ internal sealed class EnumUtf8Converter<[DynamicallyAccessedMembers(DynamicallyA
 
     public EnumUtf8Converter(CsvOptions<byte> options)
     {
+        ArgumentNullException.ThrowIfNull(options);
         _allowUndefinedValues = options.AllowUndefinedEnumValues;
         _ignoreCase = options.IgnoreEnumCase;
         _readCache = new();
