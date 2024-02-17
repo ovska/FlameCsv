@@ -67,13 +67,11 @@ internal static class Extensions
         return default!;
     }
 
-    public static bool Inherits(this ITypeSymbol type, ITypeSymbol baseClass)
+    public static bool Inherits(this ITypeSymbol? type, ITypeSymbol baseClass)
     {
-        ITypeSymbol? baseType = type;
-
-        while ((baseType = type.BaseType) != null)
+        while ((type = type?.BaseType) != null)
         {
-            if (SymbolEqualityComparer.Default.Equals(baseType, baseClass))
+            if (SymbolEqualityComparer.Default.Equals(type, baseClass))
             {
                 return true;
             }
