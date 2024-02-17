@@ -46,7 +46,7 @@ public static class WriteTemp
 
         var opts = new CsvTextOptions { ArrayPool = AllocatingArrayPool<char>.Instance };
         var ctx = new CsvWritingContext<char>(opts, default);
-        await using (var writer = new CsvFieldWriter<char, CsvCharBufferWriter>(textPipe, in ctx))
+        using (var writer = new CsvFieldWriter<char, CsvCharBufferWriter>(textPipe, in ctx))
         {
             try
             {
@@ -57,10 +57,12 @@ public static class WriteTemp
                     if (i < 999)
                         writer.WriteDelimiter();
                 }
+
+                await writer.Writer.CompleteAsync(null);
             }
             catch (Exception e)
             {
-                writer.Exception = e;
+                await writer.Writer.CompleteAsync(e);
                 throw;
             }
         }
