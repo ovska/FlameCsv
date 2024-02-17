@@ -1,5 +1,6 @@
 ﻿namespace FlameCsv.SourceGen;
 
+// TODO: common lib for this?
 internal enum BindingScope
 {
     All = 0,

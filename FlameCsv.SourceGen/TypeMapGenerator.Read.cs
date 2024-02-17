@@ -60,7 +60,7 @@ public partial class TypeMapGenerator
             if (!anyFieldBound)
                 ThrowNoFieldsBound(headers, exposeContent);");
 
-        WriteRequiredCheck(sb, in typeMap);
+        WriteRequiredCheck(sb);
 
         sb.Append(@"
             return materializer;
@@ -131,7 +131,9 @@ public partial class TypeMapGenerator
 
                 ParseState state = default;");
         WriteDefaultParameterValues(sb, in typeMap);
-        sb.Append(@"int index = 0;
+        sb.Append(@"
+
+                int index = 0;
 
                 while (reader.TryReadNext(out ReadOnlyMemory<");
         sb.Append(typeMap.Token);
@@ -168,10 +170,6 @@ public partial class TypeMapGenerator
     {
         typeMap.ThrowIfCancellationRequested();
 
-        // we always write these; they are always compile time constants
-        if (_bindings.Parameters.Length == 0)
-            return;
-
         bool commentWritten = false;
 
         foreach (var binding in _bindings.Parameters)
@@ -187,8 +185,8 @@ public partial class TypeMapGenerator
             {
                 commentWritten = true;
                 sb.Append(@"
-                // Preassign compile time defaults for optional parameter(s) in case they don't get parsed
-");
+
+                // write compile-time defaults for optional parameter(s) in case they don't get parsed");
             }
 
             sb.Append(@"
@@ -292,7 +290,7 @@ public partial class TypeMapGenerator
         sb.Length--;
     }
 
-    private void WriteRequiredCheck(StringBuilder sb, in TypeMapSymbol typeMap)
+    private void WriteRequiredCheck(StringBuilder sb)
     {
         if (_bindings.RequiredBindings.Length == 0)
         {
@@ -494,7 +492,7 @@ public partial class TypeMapGenerator
                     materializer.");
             sb.Append(binding.ParserId);
             sb.Append(" = ");
-            ResolveParser(sb, in typeMap, binding.Symbol, binding.Type, converterFactorySymbol);
+            ResolveConverter(sb, in typeMap, binding.Symbol, binding.Type, converterFactorySymbol);
             sb.Append(@";
                     materializer.Handlers[index] = ");
             sb.Append(binding.HandlerId);
@@ -520,66 +518,6 @@ public partial class TypeMapGenerator
                 sb.Append(name.ToStringLiteral());
                 sb.Append(')');
             }
-        }
-    }
-
-    private void ResolveParser(
-        StringBuilder sb,
-        in TypeMapSymbol typeMap,
-        ISymbol propertyOrField,
-        ITypeSymbol type,
-        INamedTypeSymbol converterFactorySymbol)
-    {
-        foreach (var attributeData in propertyOrField.GetAttributes())
-        {
-            if (attributeData.AttributeClass is { IsGenericType: true } attribute &&
-                SymbolEqualityComparer.Default.Equals(typeMap.TokenSymbol, attribute.TypeArguments[0]) &&
-                SymbolEqualityComparer.Default.Equals(attribute.ConstructUnboundGenericType(), _symbols.CsvConverterOfTAttribute))
-            {
-                GetParserInitializer(
-                    sb,
-                    typeMap.TokenSymbol,
-                    type,
-                    attribute.TypeArguments[1],
-                    converterFactorySymbol);
-                return;
-            }
-        }
-
-        type = type.UnwrapNullable(out bool isNullable);
-
-        string typeName = type.ToDisplayString();
-
-        if (isNullable)
-        {
-            sb.Append("new NullableConverter<");
-            sb.Append(typeMap.Token);
-            sb.Append(", ");
-            sb.Append(typeName);
-            sb.Append(">(");
-        }
-
-        if (type.TypeKind == TypeKind.Enum &&
-            typeMap.GetEnumConverterOrNull() is string enumConverter)
-        {
-            sb.Append("new ");
-            sb.Append(enumConverter);
-            sb.Append('<');
-            sb.Append(typeName);
-            sb.Append(">(options)");
-        }
-        else
-        {
-            sb.Append("options.GetConverter<");
-            sb.Append(typeName);
-            sb.Append(">()");
-        }
-
-        if (isNullable)
-        {
-            sb.Append(", options.GetNullToken(typeof(");
-            sb.Append(typeName);
-            sb.Append(")))");
         }
     }
 }

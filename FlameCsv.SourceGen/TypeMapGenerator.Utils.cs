@@ -3,15 +3,81 @@ namespace FlameCsv.SourceGen;
 
 public partial class TypeMapGenerator
 {
-    private void GetParserInitializer(
+    private void ResolveConverter(
         StringBuilder sb,
-        ITypeSymbol token,
+        in TypeMapSymbol typeMap,
+        ISymbol propertyOrField,
+        ITypeSymbol type,
+        INamedTypeSymbol converterFactorySymbol)
+    {
+        foreach (var attributeData in propertyOrField.GetAttributes())
+        {
+            if (attributeData.AttributeClass is { IsGenericType: true } attribute &&
+                SymbolEqualityComparer.Default.Equals(typeMap.TokenSymbol, attribute.TypeArguments[0]) &&
+                SymbolEqualityComparer.Default.Equals(attribute.ConstructUnboundGenericType(), _symbols.CsvConverterOfTAttribute))
+            {
+                ResolveExplicitConverter(
+                    in typeMap,
+                    sb,
+                    type,
+                    attribute.TypeArguments[1],
+                    converterFactorySymbol);
+                return;
+            }
+        }
+
+        bool isNullable = false;
+
+        if (typeMap.UseBuiltinConverters)
+        {
+            type = type.UnwrapNullable(out isNullable);
+        }
+
+        string typeName = type.ToDisplayString();
+
+        if (isNullable)
+        {
+            sb.Append("new NullableConverter<");
+            sb.Append(typeMap.Token);
+            sb.Append(", ");
+            sb.Append(typeName);
+            sb.Append(">(");
+        }
+
+        if (typeMap.UseBuiltinConverters &&
+            type.TypeKind == TypeKind.Enum &&
+            typeMap.GetEnumConverterOrNull() is string enumConverter)
+        {
+            sb.Append("new ");
+            sb.Append(enumConverter);
+            sb.Append('<');
+            sb.Append(typeName);
+            sb.Append(">(options)");
+        }
+        else
+        {
+            sb.Append("options.GetConverter<");
+            sb.Append(typeName);
+            sb.Append(">()");
+        }
+
+        if (isNullable)
+        {
+            sb.Append(", options.GetNullToken(typeof(");
+            sb.Append(typeName);
+            sb.Append(")))");
+        }
+    }
+
+    private void ResolveExplicitConverter(
+        in TypeMapSymbol typeMap,
+        StringBuilder sb,
         ITypeSymbol memberType,
         ITypeSymbol parser,
         INamedTypeSymbol converterFactorySymbol)
     {
         string? foundArgs = null;
-        var csvOptionsSymbol = _symbols.GetCsvOptionsType(token);
+        var csvOptionsSymbol = _symbols.GetCsvOptionsType(typeMap.TokenSymbol);
 
         foreach (var member in parser.GetMembers())
         {
@@ -32,7 +98,7 @@ public partial class TypeMapGenerator
         }
 
         if (foundArgs is null)
-            throw new Exception("No empty constructor found for " + parser.ToDisplayString()); // TODO
+            typeMap.Fail(Diagnostics.NoCsvFactoryConstructorFound(parser));
 
         sb.Append("new ");
         sb.Append(parser.ToDisplayString());

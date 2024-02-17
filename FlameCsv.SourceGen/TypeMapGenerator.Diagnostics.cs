@@ -52,6 +52,14 @@ public partial class TypeMapGenerator
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: false);
 
+        private static readonly DiagnosticDescriptor _factoryNoCtorFound = new(
+            id: "FLAMESG007",
+            title: "CsvConverterFactory with no valid constructor",
+            messageFormat: "{0} has no empty constructor, or a constructor accepting CsvOptions<T>",
+            category: "Usage",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: false);
+
         public static Diagnostic NoConstructorFound(ITypeSymbol type)
         {
             return Diagnostic.Create(_noCtor, GetLocation(type), type.ToDisplayString());
@@ -80,6 +88,11 @@ public partial class TypeMapGenerator
         public static Diagnostic NoWritableMembersOrParametersFound(ITypeSymbol type)
         {
             return Diagnostic.Create(_noWritableMembersOrParams, GetLocation(type), type.ToDisplayString());
+        }
+
+        public static Diagnostic NoCsvFactoryConstructorFound(ITypeSymbol factoryType)
+        {
+            return Diagnostic.Create(_factoryNoCtorFound, GetLocation(factoryType), factoryType.ToDisplayString());
         }
 
         private static Location? GetLocation(ISymbol symbol)
