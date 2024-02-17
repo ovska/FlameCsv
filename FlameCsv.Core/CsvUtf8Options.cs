@@ -223,7 +223,7 @@ public sealed class CsvUtf8Options : CsvOptions<byte>
         return Null;
     }
 
-    public override void WriteChars<TWriter>(TWriter writer, ReadOnlySpan<char> value)
+    public override void WriteText<TWriter>(TWriter writer, ReadOnlySpan<char> value)
     {
         if (!value.IsEmpty)
         {
