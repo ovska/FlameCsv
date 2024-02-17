@@ -11,6 +11,8 @@ namespace FlameCsv.Writing;
 [DebuggerDisplay("[CsvCharBufferWriter] Written: {_state.Unflushed} / {_state.Buffer.Length})")]
 internal readonly struct CsvCharBufferWriter : IDisposable, IAsyncBufferWriter<char>
 {
+    // this nested class is used to satisfy the struct-constraint for writer in CsvFieldWriter,
+    // as a mutable struct doesn't play nice with async methods
     private sealed class State(char[] buffer)
     {
         public int Unflushed;
@@ -106,12 +108,11 @@ internal readonly struct CsvCharBufferWriter : IDisposable, IAsyncBufferWriter<c
         if (cancellationToken.IsCancellationRequested)
             exception ??= new OperationCanceledException(cancellationToken);
 
-        if (exception is null && _state.HasUnflushedData)
+        if (exception is null)
         {
             try
             {
-                await _writer.WriteAsync(_state.Buffer.AsMemory(0, _state.Unflushed), cancellationToken).ConfigureAwait(false);
-                _state.Unflushed = -1;
+                await FlushAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {

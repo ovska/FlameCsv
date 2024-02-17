@@ -1,13 +1,16 @@
 ﻿using System.Buffers;
+using System.Collections;
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 
 namespace FlameCsv;
 
-public struct CsvFieldEnumerator<T> : IDisposable where T : unmanaged, IEquatable<T>
+public struct CsvFieldEnumerator<T> : IDisposable, IEnumerator<ReadOnlyMemory<T>> where T : unmanaged, IEquatable<T>
 {
     public ReadOnlyMemory<T> Current { get; private set; }
+
+    readonly object IEnumerator.Current => Current;
 
     private readonly ArrayPool<T>? _arrayPool;
     private T[]? _toReturn;
@@ -35,7 +38,7 @@ public struct CsvFieldEnumerator<T> : IDisposable where T : unmanaged, IEquatabl
         return false;
     }
 
-    public void Reset() => throw new NotSupportedException();
+    public readonly void Reset() => throw new NotSupportedException();
 
     public void Dispose()
     {

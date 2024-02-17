@@ -178,11 +178,10 @@ public sealed class CsvFieldWriter<T, TWriter> : IDisposable
             // to avoid having to call the formatter again after growing the buffer
             if (escapedLength > destination.Length)
             {
-                ReadOnlySpan<T> overflow = WriteUtil<T>.EscapeWithOverflow(
-                    in escaper,
+                ReadOnlySpan<T> overflow = escaper.EscapeField(
                     source: written,
                     destination: destination,
-                    quoteCount: specialCount,
+                    specialCount: specialCount,
                     overflowBuffer: ref _array,
                     arrayPool: _arrayPool);
 
@@ -195,7 +194,7 @@ public sealed class CsvFieldWriter<T, TWriter> : IDisposable
             }
 
             // escape directly to the destination buffer and adjust the tokens written accordingly
-            WriteUtil<T>.Escape(in escaper, written, destination[..escapedLength], specialCount);
+            escaper.EscapeField(written, destination[..escapedLength], specialCount);
             _writer.Advance(escapedLength);
             return true;
         }
