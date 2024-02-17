@@ -82,4 +82,9 @@ internal readonly struct CsvByteBufferWriter : IAsyncBufferWriter<byte>
         if (exception is not null)
             throw exception;
     }
+
+    public void Flush() => throw new NotSupportedException(NotSupported);
+    public void Complete(Exception? exception) => throw new NotSupportedException(NotSupported);
+
+    private const string NotSupported = $"{nameof(CsvByteBufferWriter)} does not support synchronous flushing.";
 }
