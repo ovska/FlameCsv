@@ -30,7 +30,7 @@ public partial class TypeMapGenerator
                 ");
             sb.Append(binding.FormatterId);
             sb.Append(" = ");
-            ResolveParser(sb, in typeMap, binding.Symbol, binding.Type, converterFactorySymbol);
+            ResolveConverter(sb, in typeMap, binding.Symbol, binding.Type, converterFactorySymbol);
             sb.Append(',');
         }
 

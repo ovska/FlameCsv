@@ -1,6 +1,4 @@
-﻿using System.Collections.Immutable;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
+﻿using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace FlameCsv.SourceGen;
@@ -33,11 +31,13 @@ internal readonly struct TypeMapSymbol
     public string ResultName { get; }
 
     /// <summary>
-    /// <c>(ref TypeMapMaterializer, ParseState, ReadOnlySpan&lt;Token&gt;)</c>
+    /// <c>(ref TypeMapMaterializer, ref ParseState, ReadOnlySpan&lt;Token&gt;)</c>
     /// </summary>
     public string ParseHandlerArgs { get; }
 
     public BindingScope Scope { get; }
+
+    public bool UseBuiltinConverters { get; }
 
     /// <summary>
     /// Whether to skip checking for a valid constructor (only used for writing).
@@ -57,6 +57,7 @@ internal readonly struct TypeMapSymbol
         Token = TokenSymbol.ToDisplayString();
         ResultName = Type.ToDisplayString();
         ParseHandlerArgs = $"(ref TypeMapMaterializer materializer, ref ParseState state, ReadOnlySpan<{Token}> field)";
+        UseBuiltinConverters = true;
 
         if (csvTypeMapAttribute.ArgumentList is { } arguments)
         {
@@ -86,6 +87,10 @@ internal readonly struct TypeMapSymbol
                 else if (propertyName.Equals("ThrowOnDuplicate", StringComparison.Ordinal))
                 {
                     ThrowOnDuplicate = propertyValueNode.IsKind(SyntaxKind.TrueLiteralExpression);
+                }
+                else if (propertyName.Equals("UseBuiltinConverters", StringComparison.Ordinal))
+                {
+                    UseBuiltinConverters = !propertyValueNode.IsKind(SyntaxKind.FalseLiteralExpression);
                 }
                 else if (propertyName.Equals("Scope", StringComparison.Ordinal))
                 {

@@ -30,4 +30,10 @@ public sealed class CsvTypeMapAttribute<T, TValue> : Attribute where T : unmanag
     /// The default behavior does not attempt to match already matched members.
     /// </summary>
     public bool ThrowOnDuplicate { get; set; }
+
+    /// <summary>
+    /// If <see langword="true"/> (the default), built-in converters are used for <see cref="Enum"/>
+    /// and <see cref="Nullable{T}"/> unless specified on the member explicitly.
+    /// </summary>
+    public bool UseBuiltinConverters { get; set; } = true;
 }

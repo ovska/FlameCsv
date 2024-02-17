@@ -21,6 +21,4 @@ internal sealed class LazySymbol(Compilation compilation, string name, bool unbo
                     throw new InvalidOperationException("Error, could not find " + name, e);
                 }
             },
-        LazyThreadSafetyMode.ExecutionAndPublication)
-{
-}
+        LazyThreadSafetyMode.ExecutionAndPublication);

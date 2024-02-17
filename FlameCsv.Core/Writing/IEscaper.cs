@@ -38,7 +38,7 @@ internal interface IEscaper<T> where T : unmanaged, IEquatable<T>
     /// <param name="destination">Destination buffer, can be the same memory region as source</param>
     /// <param name="specialCount">Amount of quotes/escapes in the source</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    void EscapeField(
+    sealed void EscapeField(
         scoped ReadOnlySpan<T> source,
         scoped Span<T> destination,
         int specialCount)
@@ -70,7 +70,7 @@ internal interface IEscaper<T> where T : unmanaged, IEquatable<T>
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)] // rare-ish, doesn't need to be inlined
-    ReadOnlySpan<T> EscapeField(
+    sealed ReadOnlySpan<T> EscapeField(
         scoped ReadOnlySpan<T> source,
         scoped Span<T> destination,
         int specialCount,
