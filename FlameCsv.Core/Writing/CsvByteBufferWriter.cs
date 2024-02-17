@@ -13,9 +13,13 @@ internal readonly struct CsvByteBufferWriter : IAsyncBufferWriter<byte>
     public const int InternalFlushThreshold = (int)(4096d * 15d / 16d);
 
     private readonly PipeWriter _pipeWriter;
-    private readonly Box<int> _unflushed = 0;
+    private readonly Box<int> _unflushed = 0; // see explanation in CsvCharBufferWriter
 
-    private ref int Unflushed => ref _unflushed.GetReference();
+    private ref int Unflushed
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => ref _unflushed.GetReference();
+    }
 
     public bool NeedsFlush
     {
@@ -64,12 +68,11 @@ internal readonly struct CsvByteBufferWriter : IAsyncBufferWriter<byte>
         if (cancellationToken.IsCancellationRequested)
             exception ??= new OperationCanceledException(cancellationToken);
 
-        if (exception is null && Unflushed > 0)
+        if (exception is null)
         {
             try
             {
-                await _pipeWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
-                Unflushed = -1;
+                await FlushAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e)
             {

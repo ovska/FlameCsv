@@ -26,6 +26,7 @@ internal readonly struct RFC4188Escaper<T> : IEscaper<T> where T : unmanaged, IE
         _whitespace = dialect.Whitespace;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool NeedsEscaping(T value) => value.Equals(_quote);
 
     public bool NeedsEscaping(ReadOnlySpan<T> value, out int specialCount)

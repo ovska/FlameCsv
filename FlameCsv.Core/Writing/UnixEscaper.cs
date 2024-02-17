@@ -27,6 +27,7 @@ internal readonly struct UnixEscaper<T> : IEscaper<T> where T : unmanaged, IEqua
         _whitespace = dialect.Whitespace;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool NeedsEscaping(T value) => value.Equals(_quote) || value.Equals(_escape);
 
     public bool NeedsEscaping(ReadOnlySpan<T> value, out int specialCount)

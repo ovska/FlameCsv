@@ -3,7 +3,7 @@ using FlameCsv.Writing;
 
 namespace FlameCsv.Tests.Writing;
 
-public static class WriteUtilTests
+public static class EscapeTests
 {
     private static readonly CsvDialect<char> _dialect = new(
         delimiter: ',',
@@ -20,18 +20,17 @@ public static class WriteUtilTests
         ReadOnlySpan<char> input = "|t|e|s|t|";
         Span<char> destination = stackalloc char[14];
 
-        Assert.True(_escaper.NeedsEscaping(input, out int quoteCount));
-        Assert.Equal(5, quoteCount);
+        Assert.True(_escaper.NeedsEscaping(input, out int specialCount));
+        Assert.Equal(5, specialCount);
 
         input.CopyTo(destination);
         char[] originalArrayRef = new char[2];
         char[]? array = originalArrayRef;
 
-        WriteUtil<char>.EscapeWithOverflow(
-            escaper: in _escaper,
+        ((IEscaper<char>)_escaper).EscapeField(
             source: destination[..input.Length],
             destination: destination,
-            quoteCount: quoteCount,
+            specialCount: specialCount,
             overflowBuffer: ref array,
             arrayPool: ArrayPool<char>.Shared);
 
@@ -49,7 +48,7 @@ public static class WriteUtilTests
     [InlineData("|t", "||", "|t|")]
     public static void Should_Partial_Escape(string input, string first, string second)
     {
-        Assert.True(_escaper.NeedsEscaping(input, out int quoteCount));
+        Assert.True(_escaper.NeedsEscaping(input, out int specialCount));
 
         // The escape is designed to work despite src and dst sharing a memory region
         Assert.Equal(input.Length, first.Length);
@@ -58,15 +57,14 @@ public static class WriteUtilTests
 
         char[]? array = null;
 
-        WriteUtil<char>.EscapeWithOverflow(
-            escaper: in _escaper,
+        ((IEscaper<char>)_escaper).EscapeField(
             source: firstBuffer,
             destination: firstBuffer,
-            quoteCount: quoteCount,
+            specialCount: specialCount,
             overflowBuffer: ref array,
             arrayPool: ArrayPool<char>.Shared);
 
-        int overflowLength = quoteCount + 2;
+        int overflowLength = specialCount + 2;
 
         Assert.NotNull(array);
         Assert.Equal(first, firstBuffer.ToString());
@@ -89,7 +87,7 @@ public static class WriteUtilTests
         Span<char> buffer = stackalloc char[expected.Length];
         input.CopyTo(buffer);
 
-        WriteUtil<char>.Escape(in _escaper, buffer[..input.Length], buffer, 0);
+        ((IEscaper<char>)_escaper).EscapeField(buffer[..input.Length], buffer, 0);
         Assert.Equal(expected, buffer.ToString());
     }
 
@@ -113,7 +111,7 @@ public static class WriteUtilTests
         var sharedBuffer = new char[expectedLength].AsSpan();
         input.CopyTo(sharedBuffer);
 
-        WriteUtil<char>.Escape(in _escaper, sharedBuffer[..input.Length], sharedBuffer, quoteCount);
+        ((IEscaper<char>)_escaper).EscapeField(sharedBuffer[..input.Length], sharedBuffer, quoteCount);
         Assert.Equal(expected, new string(sharedBuffer));
 
         // Last sanity check
@@ -139,7 +137,7 @@ public static class WriteUtilTests
         var sharedBuffer = new char[expectedLength].AsSpan();
         input.CopyTo(sharedBuffer);
 
-        WriteUtil<char>.Escape(in _escaper, sharedBuffer[..input.Length], sharedBuffer, quoteCount);
+        ((IEscaper<char>)_escaper).EscapeField(sharedBuffer[..input.Length], sharedBuffer, quoteCount);
         Assert.Equal(expected, new string(sharedBuffer));
 
         // Last sanity check
