@@ -82,15 +82,17 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     /// <summary>
     /// Returns a <see langword="string"/> representation of the value.
     /// </summary>
+    /// <seealso cref="WriteText{TWriter}(TWriter, ReadOnlySpan{char})"/>
     public abstract string GetAsString(ReadOnlySpan<T> field);
 
     /// <summary>
-    /// Writes the characters to the token writer.
+    /// Writes the text to <paramref name="writer"/>.
     /// </summary>
-    /// <typeparam name="TWriter">Writer to write to</typeparam>
+    /// <typeparam name="TWriter">Buffer writer type</typeparam>
     /// <param name="writer">Buffer writer instance</param>
-    /// <param name="value">Value to write</param>
-    public abstract void WriteChars<TWriter>(TWriter writer, ReadOnlySpan<char> value) where TWriter : IBufferWriter<T>;
+    /// <param name="value">Text to write</param>
+    /// <seealso cref="GetAsString(ReadOnlySpan{T})"/>
+    public abstract void WriteText<TWriter>(TWriter writer, ReadOnlySpan<char> value) where TWriter : IBufferWriter<T>;
 
     /// <summary>
     /// Returns the default parsers that are used to initialize <see cref="Converters"/> in derived types.
@@ -114,6 +116,9 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     /// <summary>
     /// Text comparison used to match header names.
     /// </summary>
+    /// <remarks>
+    /// Header names are converted to strings using <see cref="GetAsString(ReadOnlySpan{T})"/>.
+    /// </remarks>
     public IEqualityComparer<string> Comparer
     {
         get => _stringComparison;
@@ -315,21 +320,7 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
             return cached;
         }
 
-        CsvConverter<T>? converter = TryGetConverterCore(resultType);
-
-        if (converter is not null && !_converterCache.TryAdd(resultType, converter))
-        {
-            // ensure we return the same instance that was cached
-            converter = _converterCache[resultType];
-        }
-
-        return converter;
-    }
-
-    private CsvConverter<T>? TryGetConverterCore(Type resultType)
-    {
-        ArgumentNullException.ThrowIfNull(resultType);
-        MakeReadOnly();
+        CsvConverter<T>? converter = null;
 
         ReadOnlySpan<CsvConverter<T>> converters = _converters.Span;
 
@@ -338,23 +329,30 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
         {
             if (converters[i].CanConvert(resultType))
             {
-                return converters[i].GetParserOrFromFactory(resultType, this);
+                converter = converters[i].GetParserOrFromFactory(resultType, this);
+                break;
             }
         }
 
-        if (UseDefaultConverters)
+        if (converter is null && UseDefaultConverters)
         {
             if (TryGetDefaultConverter(resultType, out var builtin))
             {
                 Debug.Assert(builtin.CanConvert(resultType));
-                return builtin.GetParserOrFromFactory(resultType, this);
+                converter = builtin.GetParserOrFromFactory(resultType, this);
             }
             else if (NullableConverterFactory<T>.Instance.CanConvert(resultType))
             {
-                return NullableConverterFactory<T>.Instance.Create(resultType, this);
+                converter = NullableConverterFactory<T>.Instance.Create(resultType, this);
             }
         }
 
-        return null;
+        if (converter is not null && !_converterCache.TryAdd(resultType, converter))
+        {
+            // ensure we return the same instance that was cached
+            converter = _converterCache[resultType];
+        }
+
+        return converter;
     }
 }

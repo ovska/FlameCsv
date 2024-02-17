@@ -136,7 +136,7 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
 
     private async ValueTask FlushAsync(Exception? exception = null)
     {
-        await _writer.Writer.CompleteAsync(exception);
+        await _writer!.Writer.CompleteAsync(exception);
         _writer.Dispose();
     }
 

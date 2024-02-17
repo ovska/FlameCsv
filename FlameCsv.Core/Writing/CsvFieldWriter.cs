@@ -219,7 +219,7 @@ public sealed class CsvFieldWriter<T, TWriter> : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WriteText(ReadOnlySpan<char> value) => _options.WriteChars(_writer, value);
+    public void WriteText(ReadOnlySpan<char> value) => _options.WriteText(_writer, value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
