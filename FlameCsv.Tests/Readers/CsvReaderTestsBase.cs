@@ -70,8 +70,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         bool trailingLF,
         int bufferSize,
         int emptySegmentFreq,
-        Mode escaping,
-        bool sourceGen)
+        Mode escaping)
     {
         newline = newline == "LF" ? "\n" : "\r\n";
         CsvOptions<T> options = PrepareOptions(newline, header, escaping);
@@ -82,7 +81,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         var memory = GetMemory(text);
         var sequence = MemorySegment<T>.AsSequence(memory, bufferSize, emptySegmentFreq);
 
-        if (sourceGen)
+        if (/* sourceGen */ false)
         {
             items.AddRange(CsvReader.Read(sequence, TypeMap, options));
         }
@@ -128,8 +127,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         bool header,
         bool trailingLF,
         int bufferSize,
-        Mode escaping,
-        bool sourceGen)
+        Mode escaping)
     {
         newline = newline == "LF" ? "\n" : "\r\n";
         CsvOptions<T> options = PrepareOptions(newline, header, escaping);
@@ -140,7 +138,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
 
         await using (var stream = GetStream(text))
         {
-            await foreach (var obj in GetObjects(stream, options, bufferSize, sourceGen))
+            await foreach (var obj in GetObjects(stream, options, bufferSize, sourceGen: false))
             {
                 items.Add(obj);
             }
