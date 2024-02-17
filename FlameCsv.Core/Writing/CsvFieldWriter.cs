@@ -223,14 +223,6 @@ public sealed class CsvFieldWriter<T, TWriter> : IDisposable
     public void WriteText(ReadOnlySpan<char> value) => _options.WriteChars(_writer, value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WriteRaw(ReadOnlySpan<T> span)
-    {
-        var dst = _writer.GetSpan(span.Length);
-        span.CopyTo(dst);
-        _writer.Advance(span.Length);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         _arrayPool.EnsureReturned(ref _array);
