@@ -13,7 +13,7 @@ internal abstract class Dematerializer<T, TValue> : Dematerializer<T> where T : 
         _bindings = bindings;
     }
 
-    public void WriteHeader<TWriter>(CsvFieldWriter<T, TWriter> writer) where TWriter : struct, IAsyncBufferWriter<T>
+    public void WriteHeader<TWriter>(CsvFieldWriter<T, TWriter> writer) where TWriter : struct, System.Buffers.IBufferWriter<T>
     {
         writer.WriteText(_bindings.MemberBindings[0].Header);
 

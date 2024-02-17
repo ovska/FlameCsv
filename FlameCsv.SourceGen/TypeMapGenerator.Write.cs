@@ -63,7 +63,7 @@ public partial class TypeMapGenerator
         sb.Append(typeMap.Token);
         sb.Append(", TWriter> writer, ");
         sb.Append(typeMap.Type.ToDisplayString());
-        sb.Append(" obj) where TWriter : struct, IAsyncBufferWriter<");
+        sb.Append(" obj) where TWriter : struct, System.Buffers.IBufferWriter<");
         sb.Append(typeMap.Token);
         sb.Append(@">
             {");
@@ -105,7 +105,7 @@ public partial class TypeMapGenerator
 
             public void WriteHeader<TWriter>(CsvFieldWriter<");
         sb.Append(typeMap.Token);
-        sb.Append(", TWriter> writer) where TWriter : struct, IAsyncBufferWriter<");
+        sb.Append(", TWriter> writer) where TWriter : struct, System.Buffers.IBufferWriter<");
         sb.Append(typeMap.Token);
         sb.Append(@">
             {");

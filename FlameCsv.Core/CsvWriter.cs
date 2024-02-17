@@ -169,6 +169,8 @@ public static partial class CsvWriter
         where T : unmanaged, IEquatable<T>
         where TWriter : struct, IAsyncBufferWriter<T>
     {
+        Exception? exception = null;
+
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -178,8 +180,8 @@ public static partial class CsvWriter
 
             foreach (var value in values)
             {
-                if (writer.NeedsFlush)
-                    await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                if (writer.Writer.NeedsFlush)
+                    await writer.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
 
                 dematerializer.Write(writer, value);
             }
@@ -187,16 +189,16 @@ public static partial class CsvWriter
         catch (Exception e)
         {
             // store exception so the writer knows not to flush when disposing
-            writer.Exception = e;
+            exception = e;
         }
         finally
         {
             // Don't flush if canceled
-            if (writer.Exception is null && cancellationToken.IsCancellationRequested)
-                writer.Exception = new OperationCanceledException(cancellationToken);
+            if (exception is null && cancellationToken.IsCancellationRequested)
+                exception = new OperationCanceledException(cancellationToken);
 
             // this re-throws possible exceptions after disposing its internals
-            await writer.DisposeAsync().ConfigureAwait(false);
+            await writer.Writer.CompleteAsync(exception, cancellationToken);
         }
     }
 }

@@ -14,7 +14,10 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
         if (_writer is not null)
-            await _writer.DisposeAsync();
+        {
+            await _writer.Writer.CompleteAsync(null);
+            _writer.Dispose();
+        }
 
         if (_textWriter is not null)
             await _textWriter.DisposeAsync();
@@ -26,7 +29,7 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
         Initialize();
 
         _writer.WriteDelimiter();
-        await _writer.DisposeAsync();
+        await FlushAsync();
 
         Assert.Equal(",", Written);
     }
@@ -37,7 +40,7 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
         Initialize();
 
         _writer.WriteNewline();
-        await _writer.DisposeAsync();
+        await FlushAsync();
 
         Assert.Equal("\r\n", Written);
     }
@@ -50,7 +53,7 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
         _writer.WriteText("Test");
         _writer.WriteText("");
 
-        await _writer.DisposeAsync();
+        await FlushAsync();
 
         Assert.Equal("Test", Written);
     }
@@ -61,7 +64,7 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
         Initialize();
 
         _writer.WriteField(Formatter.Instance!, null);
-        await _writer.DisposeAsync();
+        await FlushAsync();
 
         Assert.Equal("null", Written);
     }
@@ -74,7 +77,7 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
         var value = new string('x', 500);
 
         _writer.WriteField(Formatter.Instance, value);
-        await _writer.DisposeAsync();
+        await FlushAsync();
 
         Assert.Equal(value, Written);
     }
@@ -88,7 +91,7 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
         var value = $"Test \"{new string('x', 114)}\" test";
 
         _writer.WriteField(Formatter.Instance, value);
-        await _writer.DisposeAsync();
+        await FlushAsync();
 
         Assert.Equal($"\"Test \"\"{new string('x', 114)}\"\" test\"", Written);
     }
@@ -115,7 +118,7 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
         Initialize(quoting);
 
         _writer.WriteField(Formatter.Instance, input);
-        await _writer.DisposeAsync();
+        await FlushAsync();
 
         Assert.Equal(expected, Written);
     }
@@ -129,6 +132,12 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
         _writer = new CsvFieldWriter<char, CsvCharBufferWriter>(
             new CsvCharBufferWriter(_textWriter, AllocatingArrayPool<char>.Instance, bufferSize),
             new CsvWritingContext<char>(new CsvTextOptions { FieldQuoting = quoting, Null = "null" }, default));
+    }
+
+    private async ValueTask FlushAsync(Exception? exception = null)
+    {
+        await _writer.Writer.CompleteAsync(exception);
+        _writer.Dispose();
     }
 
     private sealed class Formatter : CsvConverter<char, string>

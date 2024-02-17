@@ -44,22 +44,13 @@ internal static class CsvFieldWriter
     }
 }
 
-public sealed class CsvFieldWriter<T, TWriter> : IAsyncDisposable
+public sealed class CsvFieldWriter<T, TWriter> : IDisposable
     where T : unmanaged, IEquatable<T>
-    where TWriter : struct, IAsyncBufferWriter<T>
+    where TWriter : struct, IBufferWriter<T>
 {
-    public bool NeedsFlush
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _writer.NeedsFlush;
-    }
-
-    /// <summary>
-    /// Observed exception when reading the data.
-    /// </summary>
-    public Exception? Exception { get; set; }
-
     internal bool WriteHeader { get; }
+
+    public TWriter Writer => _writer;
 
     private readonly TWriter _writer;
     private readonly CsvDialect<T> _dialect;
@@ -240,16 +231,9 @@ public sealed class CsvFieldWriter<T, TWriter> : IAsyncDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ValueTask FlushAsync(CancellationToken cancellationToken = default)
-    {
-        return _writer.FlushAsync(cancellationToken);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ValueTask DisposeAsync()
+    public void Dispose()
     {
         _arrayPool.EnsureReturned(ref _array);
-        return _writer.CompleteAsync(Exception);
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]

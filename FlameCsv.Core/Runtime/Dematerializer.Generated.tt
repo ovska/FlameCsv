@@ -125,7 +125,7 @@ internal sealed class Dematerializer<T, <#= generics #>>
         }
 #>
 
-    public void Write<TWriter>(CsvFieldWriter<T, TWriter> writer, [AllowNull] TValue value) where TWriter : struct, IAsyncBufferWriter<T>
+    public void Write<TWriter>(CsvFieldWriter<T, TWriter> writer, [AllowNull] TValue value) where TWriter : struct, System.Buffers.IBufferWriter<T>
     {
 <#
         for (var i = 0; i < current; i++)
