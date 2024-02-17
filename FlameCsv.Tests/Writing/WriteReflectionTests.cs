@@ -12,7 +12,7 @@ public class WriteReflectionTests
     }
 
     [Theory, InlineData(true), InlineData(false)]
-    public async Task Should_Write(bool header)
+    public void Should_Write(bool header)
     {
         var data = new Obj[]
         {
@@ -21,7 +21,7 @@ public class WriteReflectionTests
         };
 
         var opts = new CsvTextOptions { HasHeader = header, ArrayPool = null };
-        var sb = await CsvWriter.WriteToStringAsync(data, opts);
+        var sb = CsvWriter.WriteToString(data, opts);
 
         var expected =
             (header ? "Id,Name,IsEnabled\r\n" : "") +

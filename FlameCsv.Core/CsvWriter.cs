@@ -3,6 +3,7 @@ using FlameCsv.Runtime;
 using FlameCsv.Writing;
 using System.IO.Pipelines;
 using System.Text;
+using System.Threading;
 using DAM = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute;
 using RUF = System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute;
 
@@ -119,6 +120,51 @@ public static partial class CsvWriter
             cancellationToken);
     }
 
+    [RUF(Messages.CompiledExpressions)]
+    public static Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
+        IEnumerable<TValue> values,
+        TextWriter textWriter,
+        CsvOptions<char> options,
+        CsvContextOverride<char> context = default,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+        ArgumentNullException.ThrowIfNull(textWriter);
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (cancellationToken.IsCancellationRequested)
+            return Task.FromCanceled(cancellationToken);
+
+        var _context = new CsvWritingContext<char>(options, in context);
+        var dematerializer = ReflectionDematerializer.Create<char, TValue>(in _context);
+
+        return WriteAsyncCore(
+            values,
+            CsvFieldWriter.Create(textWriter, in _context),
+            dematerializer,
+            cancellationToken);
+    }
+
+    [RUF(Messages.CompiledExpressions)]
+    public static void Write<[DAM(Messages.ReflectionBound)] TValue>(
+        IEnumerable<TValue> values,
+        TextWriter textWriter,
+        CsvOptions<char> options,
+        CsvContextOverride<char> context = default)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+        ArgumentNullException.ThrowIfNull(textWriter);
+        ArgumentNullException.ThrowIfNull(options);
+
+        var _context = new CsvWritingContext<char>(options, in context);
+        var dematerializer = ReflectionDematerializer.Create<char, TValue>(in _context);
+
+        WriteCore(
+            values,
+            CsvFieldWriter.Create(textWriter, in _context),
+            dematerializer);
+    }
+
     /// <summary>
     /// Writes the CSV records to a string.
     /// </summary>
@@ -127,38 +173,27 @@ public static partial class CsvWriter
     /// <param name="options"></param>
     /// <param name="context"></param>
     /// <param name="initialCapacity">Initial capacity of the string builder</param>
-    /// <param name="cancellationToken">Token to cancel the operation</param>
     /// <returns>A <see cref="StringBuilder"/> containing the CSV</returns>
     [RUF(Messages.CompiledExpressions)]
-    public static Task<StringBuilder> WriteToStringAsync<[DAM(Messages.ReflectionBound)] TValue>(
+    public static StringBuilder WriteToString<[DAM(Messages.ReflectionBound)] TValue>(
         IEnumerable<TValue> values,
         CsvOptions<char> options,
         CsvContextOverride<char> context = default,
-        int initialCapacity = 1024,
-        CancellationToken cancellationToken = default)
+        int initialCapacity = 1024)
     {
         ArgumentNullException.ThrowIfNull(values);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentOutOfRangeException.ThrowIfNegative(initialCapacity);
 
-        if (cancellationToken.IsCancellationRequested)
-            return Task.FromCanceled<StringBuilder>(cancellationToken);
+        var _context = new CsvWritingContext<char>(options, in context);
+        var dematerializer = ReflectionDematerializer.Create<char, TValue>(in _context);
 
-        return Core();
-
-        async Task<StringBuilder> Core()
-        {
-            var _context = new CsvWritingContext<char>(options, in context);
-            var dematerializer = ReflectionDematerializer.Create<char, TValue>(in _context);
-
-            var sb = new StringBuilder(capacity: 1024);
-            await WriteAsyncCore(
-                values,
-                CsvFieldWriter.Create(new StringWriter(sb), in _context),
-                dematerializer,
-                cancellationToken);
-            return sb;
-        }
+        var sb = new StringBuilder(capacity: 1024);
+        WriteCore(
+            values,
+            CsvFieldWriter.Create(new StringWriter(sb), in _context),
+            dematerializer);
+        return sb;
     }
 
     private static async Task WriteAsyncCore<T, TWriter, TValue>(
@@ -199,6 +234,40 @@ public static partial class CsvWriter
 
             // this re-throws possible exceptions after disposing its internals
             await writer.Writer.CompleteAsync(exception, cancellationToken);
+        }
+    }
+
+    private static void WriteCore<T, TWriter, TValue>(
+        IEnumerable<TValue> values,
+        CsvFieldWriter<T, TWriter> writer,
+        IDematerializer<T, TValue> dematerializer)
+        where T : unmanaged, IEquatable<T>
+        where TWriter : struct, IAsyncBufferWriter<T>
+    {
+        Exception? exception = null;
+
+        try
+        {
+            if (writer.WriteHeader)
+                dematerializer.WriteHeader(writer);
+
+            foreach (var value in values)
+            {
+                if (writer.Writer.NeedsFlush)
+                    writer.Writer.Flush();
+
+                dematerializer.Write(writer, value);
+            }
+        }
+        catch (Exception e)
+        {
+            // store exception so the writer knows not to flush when disposing
+            exception = e;
+        }
+        finally
+        {
+            // this re-throws possible exceptions after disposing its internals
+            writer.Writer.Complete(exception);
         }
     }
 }

@@ -9,7 +9,7 @@ using FlameCsv.Extensions;
 namespace FlameCsv.Writing;
 
 [DebuggerDisplay("[CsvCharBufferWriter] Written: {_state.Unflushed} / {_state.Buffer.Length})")]
-internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>
+internal readonly struct CsvCharBufferWriter : IDisposable, IAsyncBufferWriter<char>
 {
     private sealed class State(char[] buffer)
     {
@@ -90,6 +90,15 @@ internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>
         }
     }
 
+    public void Flush()
+    {
+        if (_state.HasUnflushedData)
+        {
+            _writer.Write(_state.Buffer.AsMemory(0, _state.Unflushed));
+            _state.Unflushed = 0;
+        }
+    }
+
     public async ValueTask CompleteAsync(
         Exception? exception,
         CancellationToken cancellationToken = default)
@@ -117,6 +126,28 @@ internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>
             throw exception;
     }
 
+    public void Complete(Exception? exception)
+    {
+        if (exception is null && _state.HasUnflushedData)
+        {
+            try
+            {
+                _writer.WriteAsync(_state.Buffer.AsMemory(0, _state.Unflushed));
+                _state.Unflushed = -1;
+            }
+            catch (Exception e)
+            {
+                exception = new CsvWriteException("Exception occured while flushing the writer for the final time.", e);
+            }
+        }
+
+        _arrayPool.Return(_state.Buffer);
+        _writer.Dispose();
+
+        if (exception is not null)
+            throw exception;
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void EnsureCapacityRare(int sizeHint)
     {
@@ -131,5 +162,10 @@ internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>
         {
             _arrayPool.Resize(ref _state.Buffer, sizeHint + _state.Unflushed);
         }
+    }
+
+    public void Dispose()
+    {
+        throw new NotImplementedException();
     }
 }
