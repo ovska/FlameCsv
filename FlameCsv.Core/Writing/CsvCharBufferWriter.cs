@@ -9,7 +9,7 @@ using FlameCsv.Extensions;
 namespace FlameCsv.Writing;
 
 [DebuggerDisplay("[CsvCharBufferWriter] Written: {_state.Unflushed} / {_state.Buffer.Length})")]
-internal readonly struct CsvCharBufferWriter : IDisposable, IAsyncBufferWriter<char>
+internal readonly struct CsvCharBufferWriter : IAsyncBufferWriter<char>
 {
     // this nested class is used to satisfy the struct-constraint for writer in CsvFieldWriter,
     // as a mutable struct doesn't play nice with async methods
@@ -163,10 +163,5 @@ internal readonly struct CsvCharBufferWriter : IDisposable, IAsyncBufferWriter<c
         {
             _arrayPool.Resize(ref _state.Buffer, sizeHint + _state.Unflushed);
         }
-    }
-
-    public void Dispose()
-    {
-        throw new NotImplementedException();
     }
 }

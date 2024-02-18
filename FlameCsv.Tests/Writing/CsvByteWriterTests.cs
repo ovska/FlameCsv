@@ -23,7 +23,6 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
         if (_writer is not null)
         {
             await _writer.Writer.CompleteAsync(null);
-            _writer.Dispose();
         }
 
         if (_stream is not null)
@@ -37,7 +36,6 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
 
         _writer.WriteDelimiter();
         await _writer.Writer.CompleteAsync(null);
-        _writer.Dispose();
 
         Assert.Equal(",", Written);
     }
@@ -49,7 +47,6 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
 
         _writer.WriteNewline();
         await _writer.Writer.CompleteAsync(null);
-        _writer.Dispose();
 
         Assert.Equal("\r\n", Written);
     }
@@ -63,7 +60,6 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
         _writer.WriteText("");
 
         await _writer.Writer.CompleteAsync(null);
-        _writer.Dispose();
 
         Assert.Equal("Test", Written);
     }
@@ -75,7 +71,6 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
 
         _writer.WriteField(Formatter.Instance!, null);
         await _writer.Writer.CompleteAsync(null);
-        _writer.Dispose();
 
         Assert.Equal("null", Written);
     }
@@ -89,7 +84,6 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
 
         _writer.WriteField(Formatter.Instance, value);
         await _writer.Writer.CompleteAsync(null);
-        _writer.Dispose();
 
         Assert.Equal(value, Written);
     }
@@ -104,7 +98,6 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
 
         _writer.WriteField(Formatter.Instance, value);
         await _writer.Writer.CompleteAsync(null);
-        _writer.Dispose();
 
         Assert.Equal($"\"Test \"\"{new string('x', 114)}\"\" test\"", Written);
     }
@@ -132,7 +125,6 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
 
         _writer.WriteField(Formatter.Instance, input);
         await _writer.Writer.CompleteAsync(null);
-        _writer.Dispose();
 
         Assert.Equal(expected, Written);
     }
