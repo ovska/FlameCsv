@@ -103,7 +103,7 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
     {
         if (!isFinalBlock)
         {
-            return _dialect.IsRFC4188Mode
+            return _dialect.IsRFC4180Mode
                 ? RFC4180Mode<T>.TryGetLine(in _dialect, ref sequence, out line, out meta)
                 : EscapeMode<T>.TryGetLine(in _dialect, ref sequence, out line, out meta);
         }
@@ -124,7 +124,7 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
     {
         RecordMeta meta = default;
 
-        if (_dialect.IsRFC4188Mode)
+        if (_dialect.IsRFC4180Mode)
         {
             meta.quoteCount = (uint)memory.Span.Count(Dialect.Quote);
 
@@ -160,7 +160,7 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
         {
             meta = default;
 
-            if (_dialect.IsRFC4188Mode)
+            if (_dialect.IsRFC4180Mode)
             {
                 foreach (var segment in sequence)
                 {

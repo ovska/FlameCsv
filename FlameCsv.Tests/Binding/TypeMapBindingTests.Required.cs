@@ -20,7 +20,7 @@ public static partial class TypeMapBindingTests
         public int Id { get; set; }
         public string? Name { get; set; }
 
-        [CsvConverter<char, EnumTextConverterFactory>]
+        [CsvConverter<char, EnumTextConverter<DayOfWeek>>]
         public DayOfWeek DOF { get; set; }
         public int? NullableInt { get; set; }
         public DayOfWeek? NullableDOF { get; set; }

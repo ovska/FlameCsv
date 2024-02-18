@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
@@ -84,6 +85,9 @@ public sealed class CsvFieldWriter<T, TWriter> : IDisposable
         WriteHeader = context.HasHeader;
     }
 
+    /// <summary>
+    /// Writes <paramref name="value"/> to the writer using <paramref name="converter"/>.
+    /// </summary>
     public void WriteField<TValue>(CsvConverter<T, TValue> converter, [AllowNull] TValue value)
     {
         int tokensWritten;
@@ -113,7 +117,7 @@ public sealed class CsvFieldWriter<T, TWriter> : IDisposable
             ThrowForInvalidTokensWritten(converter, tokensWritten, destination.Length);
         }
 
-        // early exit for empty writes, like nulls or empty strings
+        // empty writes don't need escaping, like nulls or empty strings
         if (tokensWritten == 0)
         {
             if (_fieldQuoting == CsvFieldQuoting.Always)
@@ -133,14 +137,14 @@ public sealed class CsvFieldWriter<T, TWriter> : IDisposable
         // Value formatted, check if it needs to be wrapped in quotes
         if (_fieldQuoting != CsvFieldQuoting.Never)
         {
-            if (_dialect.IsRFC4188Mode)
+            if (_dialect.IsRFC4180Mode)
             {
-                if (Escape(new RFC4188Escaper<T>(in _dialect), destination, tokensWritten))
+                if (TryEscapeAndAdvance(new RFC4180Escaper<T>(in _dialect), destination, tokensWritten))
                     return;
             }
             else
             {
-                if (Escape(new UnixEscaper<T>(in _dialect), destination, tokensWritten))
+                if (TryEscapeAndAdvance(new UnixEscaper<T>(in _dialect), destination, tokensWritten))
                     return;
             }
         }
@@ -148,12 +152,19 @@ public sealed class CsvFieldWriter<T, TWriter> : IDisposable
         _writer.Advance(tokensWritten);
     }
 
-    private bool Escape<TEscaper>(
+    /// <summary>
+    /// Attempts to escape the value written in the first <paramref name="tokensWritten"/> characters
+    /// of <paramref name="destination"/>. Returns <see langword="false"/> if no escaping is done,
+    /// and the writer has not been advanced.
+    /// </summary>
+    private bool TryEscapeAndAdvance<TEscaper>(
         in TEscaper escaper,
         Span<T> destination,
         int tokensWritten)
         where TEscaper : struct, IEscaper<T>
     {
+        Debug.Assert(_fieldQuoting != CsvFieldQuoting.Never);
+
         ReadOnlySpan<T> written = destination[..tokensWritten];
 
         bool shouldQuote;

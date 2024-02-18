@@ -5,7 +5,7 @@ using CommunityToolkit.HighPerformance;
 
 namespace FlameCsv.Writing;
 
-internal readonly struct RFC4188Escaper<T> : IEscaper<T> where T : unmanaged, IEquatable<T>
+internal readonly struct RFC4180Escaper<T> : IEscaper<T> where T : unmanaged, IEquatable<T>
 {
     public T Quote => _quote;
     public T Escape => _quote;
@@ -15,10 +15,10 @@ internal readonly struct RFC4188Escaper<T> : IEscaper<T> where T : unmanaged, IE
     private readonly ReadOnlyMemory<T> _newline;
     private readonly ReadOnlyMemory<T> _whitespace;
 
-    public RFC4188Escaper(in CsvDialect<T> dialect)
+    public RFC4180Escaper(in CsvDialect<T> dialect)
     {
         dialect.DebugValidate();
-        Debug.Assert(dialect.IsRFC4188Mode);
+        Debug.Assert(dialect.IsRFC4180Mode);
 
         _delimiter = dialect.Delimiter;
         _quote = dialect.Quote;

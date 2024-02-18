@@ -73,7 +73,7 @@ internal struct CsvEnumerationStateRef<T> : ICsvFieldReader<T> where T : unmanag
     {
         if (!remaining.IsEmpty)
         {
-            field = _context.Dialect.IsRFC4188Mode
+            field = _context.Dialect.IsRFC4180Mode
                 ? RFC4180Mode<T>.ReadNextField(ref this)
                 : EscapeMode<T>.ReadNextField(ref this);
             return true;
@@ -108,7 +108,7 @@ internal struct CsvEnumerationStateRef<T> : ICsvFieldReader<T> where T : unmanag
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public readonly void ThrowForInvalidEOF()
     {
-        string escapeStr = _context.Dialect.IsRFC4188Mode ? "" : $"and {escapesRemaining} escapes ";
+        string escapeStr = _context.Dialect.IsRFC4180Mode ? "" : $"and {escapesRemaining} escapes ";
         throw new UnreachableException(
             $"The record ended while having {quotesRemaining} quotes {escapeStr}remaining. " +
             $"Record: {_context.AsPrintableString(_record)}");
