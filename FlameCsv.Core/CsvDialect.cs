@@ -28,8 +28,12 @@ public readonly struct CsvDialect<T> : IEquatable<CsvDialect<T>> where T : unman
     /// <inheritdoc cref="ICsvDialectOptions{T}.Escape"/>
     public T? Escape { get; init; }
 
+    /// <summary>
+    /// Returns <see langword="true"/> if the dialect is using RFC 4180 mode, which doesn't use an escape character.
+    /// </summary>
+    /// <seealso cref="Escape"/>
     [MemberNotNullWhen(false, nameof(Escape))]
-    public bool IsRFC4188Mode => !Escape.HasValue;
+    public bool IsRFC4180Mode => !Escape.HasValue;
 
     public CsvDialect(ICsvDialectOptions<T> options)
     {

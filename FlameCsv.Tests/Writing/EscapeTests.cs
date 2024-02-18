@@ -12,7 +12,7 @@ public static class EscapeTests
         whitespace: default,
         escape: default);
 
-    private static readonly RFC4188Escaper<char> _escaper = new(in _dialect);
+    private static readonly RFC4180Escaper<char> _escaper = new(in _dialect);
 
     [Fact]
     public static void Should_Partial_Escape_Larger_Destination()
@@ -127,7 +127,7 @@ public static class EscapeTests
     [InlineData("\n", "|\n|")]
     public static void Should_Escape_1Char_Newline(string input, string expected)
     {
-        var escaper = new RFC4188Escaper<char>(_dialect with { Newline = "\n".AsMemory() });
+        var escaper = new RFC4180Escaper<char>(_dialect with { Newline = "\n".AsMemory() });
         Assert.True(escaper.NeedsEscaping(input, out int quoteCount));
 
         int expectedLength = input.Length + quoteCount + 2;
@@ -170,7 +170,7 @@ public static class EscapeTests
     [Theory, MemberData(nameof(NeedsEscapingData))]
     public static void Should_Check_Needs_Escaping(string newline, int? quotes, string input)
     {
-        var escaper = new RFC4188Escaper<char>(_dialect with { Newline = newline.AsMemory() });
+        var escaper = new RFC4180Escaper<char>(_dialect with { Newline = newline.AsMemory() });
         input = input.Replace("\r\n", newline);
 
         if (!quotes.HasValue)

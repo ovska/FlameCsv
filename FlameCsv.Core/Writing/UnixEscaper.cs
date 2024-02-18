@@ -18,7 +18,7 @@ internal readonly struct UnixEscaper<T> : IEscaper<T> where T : unmanaged, IEqua
     public UnixEscaper(in CsvDialect<T> dialect)
     {
         dialect.DebugValidate();
-        Debug.Assert(!dialect.IsRFC4188Mode);
+        Debug.Assert(!dialect.IsRFC4180Mode);
 
         _delimiter = dialect.Delimiter;
         _quote = dialect.Quote;
