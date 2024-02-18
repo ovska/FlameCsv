@@ -35,7 +35,7 @@ internal static class CsvFieldWriter
         bool leaveOpen = false)
     {
         StreamPipeWriterOptions options = new(
-            pool: context.ArrayPool == ArrayPool<byte>.Shared ? MemoryPool<byte>.Shared : context.ArrayPool.AsMemoryPool(),
+            pool: context.ArrayPool.AsMemoryPool(),
             minimumBufferSize: bufferSize,
             leaveOpen: leaveOpen);
 
