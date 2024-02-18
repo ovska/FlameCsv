@@ -1,6 +1,6 @@
 ﻿namespace FlameCsv.Binding.Attributes;
 
-public interface ICsvBindingAttribute
+internal interface ICsvBindingAttribute
 {
     /// <summary>
     /// Whether the attribute is only valid for reading.
