@@ -45,7 +45,7 @@ internal static class CsvFieldWriter
     }
 }
 
-public sealed class CsvFieldWriter<T, TWriter> : IDisposable
+public sealed class CsvFieldWriter<T, TWriter>
     where T : unmanaged, IEquatable<T>
     where TWriter : struct, IBufferWriter<T>
 {
@@ -58,7 +58,6 @@ public sealed class CsvFieldWriter<T, TWriter> : IDisposable
     private readonly ArrayPool<T> _arrayPool;
     private readonly CsvFieldQuoting _fieldQuoting;
     private readonly CsvOptions<T> _options;
-    private T[]? _array;
 
     public CsvFieldWriter(TWriter writer, CsvOptions<T> options)
     {
@@ -185,28 +184,23 @@ public sealed class CsvFieldWriter<T, TWriter> : IDisposable
         {
             int escapedLength = tokensWritten + 2 + specialCount;
 
-            // If there isn't enough space to escape, escape partially to the overflow buffer
-            // to avoid having to call the formatter again after growing the buffer
-            if (escapedLength > destination.Length)
+            if (escapedLength <= destination.Length)
             {
-                ReadOnlySpan<T> overflow = escaper.EscapeField(
+                // Common case: escape directly to the destination buffer
+                escaper.EscapeField(written, destination[..escapedLength], specialCount);
+                _writer.Advance(escapedLength);
+            }
+            else
+            {
+                // Rare case: not enough space, escape as much as possible to
+                // destination, then advance and write the leftovers
+                escaper.EscapeField(
+                    writer: in _writer,
                     source: written,
                     destination: destination,
                     specialCount: specialCount,
-                    overflowBuffer: ref _array,
                     arrayPool: _arrayPool);
-
-                // The whole of the span is filled, with the leftovers being written to the overflow
-                _writer.Advance(destination.Length);
-
-                overflow.CopyTo(_writer.GetSpan(overflow.Length));
-                _writer.Advance(overflow.Length);
-                return true;
             }
-
-            // escape directly to the destination buffer and adjust the tokens written accordingly
-            escaper.EscapeField(written, destination[..escapedLength], specialCount);
-            _writer.Advance(escapedLength);
             return true;
         }
 
@@ -231,12 +225,6 @@ public sealed class CsvFieldWriter<T, TWriter> : IDisposable
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteText(ReadOnlySpan<char> value) => _options.WriteText(_writer, value);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Dispose()
-    {
-        _arrayPool.EnsureReturned(ref _array);
-    }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private static void ThrowForInvalidTokensWritten(CsvConverter<T> converter, int tokensWritten, int destinationLength)

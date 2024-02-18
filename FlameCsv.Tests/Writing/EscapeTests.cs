@@ -1,4 +1,4 @@
-using System.Buffers;
+using FlameCsv.Tests.Utilities;
 using FlameCsv.Writing;
 
 namespace FlameCsv.Tests.Writing;
@@ -18,64 +18,50 @@ public static class EscapeTests
     public static void Should_Partial_Escape_Larger_Destination()
     {
         ReadOnlySpan<char> input = "|t|e|s|t|";
-        Span<char> destination = stackalloc char[14];
 
         Assert.True(_escaper.NeedsEscaping(input, out int specialCount));
         Assert.Equal(5, specialCount);
 
+        using var arrayPool = new ReturnTrackingArrayPool<char>();
+        var writer = new ValueBufferWriter<char>();
+        var destination = writer.GetSpan(14);
         input.CopyTo(destination);
-        char[] originalArrayRef = new char[2];
-        char[]? array = originalArrayRef;
 
         ((IEscaper<char>)_escaper).EscapeField(
+            in writer,
             source: destination[..input.Length],
             destination: destination,
             specialCount: specialCount,
-            overflowBuffer: ref array,
-            arrayPool: ArrayPool<char>.Shared);
+            arrayPool: arrayPool);
 
-        Assert.Equal("|||t||e||s||t|", destination.ToString());
-        Assert.Equal("||", array.AsSpan().ToString());
-        Assert.Same(originalArrayRef, array);
+        Assert.Equal("|||t||e||s||t|||", writer.Writer.WrittenSpan.ToString());
     }
 
     [Theory]
-    [InlineData(",test ", "|,test", " |")]
-    [InlineData("test,", "|test", ",|")]
-    [InlineData(",test", "|,tes", "t|")]
-    [InlineData(" te|st ", "| te||s", "t |")]
-    [InlineData("|", "|", "|||")]
-    [InlineData("|t", "||", "|t|")]
-    public static void Should_Partial_Escape(string input, string first, string second)
+    [InlineData(",test ", "|,test |")]
+    [InlineData("test,", "|test,|")]
+    [InlineData(",test", "|,test|")]
+    [InlineData(" te|st ", "| te||st |")]
+    [InlineData("|", "||||")]
+    [InlineData("|t", "|||t|")]
+    public static void Should_Partial_Escape(string input, string expected)
     {
         Assert.True(_escaper.NeedsEscaping(input, out int specialCount));
 
-        // The escape is designed to work despite src and dst sharing a memory region
-        Assert.Equal(input.Length, first.Length);
-        Span<char> firstBuffer = stackalloc char[first.Length];
+        var writer = new ValueBufferWriter<char>();
+        Span<char> firstBuffer = writer.GetSpan(input.Length);
         input.CopyTo(firstBuffer);
 
-        char[]? array = null;
+        using var arrayPool = new ReturnTrackingArrayPool<char>();
 
         ((IEscaper<char>)_escaper).EscapeField(
+            in writer,
             source: firstBuffer,
             destination: firstBuffer,
             specialCount: specialCount,
-            overflowBuffer: ref array,
-            arrayPool: ArrayPool<char>.Shared);
+            arrayPool: arrayPool);
 
-        int overflowLength = specialCount + 2;
-
-        Assert.NotNull(array);
-        Assert.Equal(first, firstBuffer.ToString());
-        Assert.Equal(second, array.AsSpan(0, overflowLength).ToString());
-
-        // Last sanity check
-        Assert.Equal(
-            $"|{input.Replace("|", "||")}|",
-            firstBuffer.ToString() + array.AsSpan(0, overflowLength).ToString());
-
-        ArrayPool<char>.Shared.Return(array!);
+        Assert.Equal(expected, writer.Writer.WrittenSpan.ToString());
     }
 
     [Theory]

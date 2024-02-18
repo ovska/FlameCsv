@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Writing;
 
@@ -69,13 +70,13 @@ internal interface IEscaper<T> where T : unmanaged, IEquatable<T>
         destination[0] = Quote;
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)] // rare-ish, doesn't need to be inlined
-    sealed ReadOnlySpan<T> EscapeField(
+    sealed void EscapeField<TWriter>(
+        in TWriter writer,
         scoped ReadOnlySpan<T> source,
         scoped Span<T> destination,
         int specialCount,
-        ref T[]? overflowBuffer,
         ArrayPool<T> arrayPool)
+        where TWriter : struct, IBufferWriter<T>
     {
         Debug.Assert(
             destination.Length < source.Length + specialCount + 2,
@@ -95,8 +96,19 @@ internal interface IEscaper<T> where T : unmanaged, IEquatable<T>
         bool needEscape = false;
 
         int overflowLength = requiredLength - destination.Length;
-        arrayPool.EnsureCapacity(ref overflowBuffer, overflowLength);
-        Span<T> overflow = new(overflowBuffer, 0, overflowLength);
+        scoped Span<T> overflow;
+        T[]? overflowArray = null;
+
+        if (Token<T>.CanStackalloc(overflowLength))
+        {
+            overflow = stackalloc T[overflowLength];
+        }
+        else
+        {
+            overflowArray = arrayPool.Rent(overflowLength);
+            overflow = overflowArray.AsSpan(0, overflowLength);
+        }
+
         overflow[ovrIndex--] = Quote; // write closing quote
 
         // Short circuit to faster impl if there are no quotes in the source data
@@ -177,6 +189,13 @@ internal interface IEscaper<T> where T : unmanaged, IEquatable<T>
         Debug.Assert(dstIndex == 0);
         Debug.Assert(specialCount == 0);
 
-        return overflow;
+        // the whole of the destination is filled, with the leftovers being written to the overflow
+        writer.Advance(destination.Length);
+
+        // copy leftovers and advance
+        overflow.CopyTo(writer.GetSpan(overflow.Length));
+        writer.Advance(overflow.Length);
+
+        arrayPool.EnsureReturned(ref overflowArray);
     }
 }
