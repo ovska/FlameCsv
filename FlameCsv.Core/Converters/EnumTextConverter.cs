@@ -1,6 +1,3 @@
-using System.Collections.Concurrent;
-using FlameCsv.Extensions;
-
 namespace FlameCsv.Converters;
 
 /// <summary>
@@ -11,30 +8,21 @@ public sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
 {
     private readonly bool _allowUndefinedValues;
     private readonly bool _ignoreCase;
-
-    private readonly ConcurrentDictionary<TEnum, string> _writeCache;
+    private readonly string? _format;
+    private readonly IFormatProvider? _formatProvider;
 
     public EnumTextConverter(CsvOptions<char> options)
     {
         ArgumentNullException.ThrowIfNull(options);
         _allowUndefinedValues = options.AllowUndefinedEnumValues;
         _ignoreCase = options.IgnoreEnumCase;
-        _writeCache = new();
+        _formatProvider = (options as CsvTextOptions)?.FormatProvider;
+        _format = (options as CsvTextOptions)?.EnumFormat;
     }
 
     public override bool TryFormat(Span<char> destination, TEnum value, out int charsWritten)
     {
-        if (!_writeCache.TryGetValue(value, out string? name))
-        {
-            name = value.ToString();
-
-            if (_writeCache.Count <= 64)
-            {
-                _writeCache.TryAdd(value, name);
-            }
-        }
-
-        return name.AsSpan().TryWriteTo(destination, out charsWritten);
+        return ((ISpanFormattable)value).TryFormat(destination, out charsWritten, _format, _formatProvider);
     }
 
     public override bool TryParse(ReadOnlySpan<char> source, out TEnum value)
