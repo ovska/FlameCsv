@@ -92,7 +92,6 @@ public sealed class CsvFieldWriter<T, TWriter>
         int tokensWritten;
         scoped Span<T> destination;
 
-        // this whole branch is JITed out for value types
         if (value is not null || converter.HandleNull)
         {
             destination = _writer.GetSpan();
@@ -152,9 +151,38 @@ public sealed class CsvFieldWriter<T, TWriter>
     }
 
     /// <summary>
+    /// Writes <see cref="ICsvDialectOptions{T}.Delimiter"/> to the writer.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void WriteDelimiter()
+    {
+        Span<T> destination = _writer.GetSpan(1);
+        destination[0] = _dialect.Delimiter;
+        _writer.Advance(1);
+    }
+
+    /// <summary>
+    /// Writes <see cref="ICsvDialectOptions{T}.Newline"/> to the writer.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void WriteNewline()
+    {
+        Span<T> destination = _writer.GetSpan(_dialect.Newline.Length);
+        _dialect.Newline.Span.CopyTo(destination);
+        _writer.Advance(_dialect.Newline.Length);
+    }
+
+    /// <summary>
+    /// Writes the text to the writer.
+    /// </summary>
+    /// <param name="value">Text to write</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void WriteText(ReadOnlySpan<char> value) => _options.WriteText(_writer, value);
+
+    /// <summary>
     /// Attempts to escape the value written in the first <paramref name="tokensWritten"/> characters
-    /// of <paramref name="destination"/>. Returns <see langword="false"/> if no escaping is done,
-    /// and the writer has not been advanced.
+    /// of <paramref name="destination"/>. Returns <see langword="false"/> if no escaping is needed
+    /// and the writer was not advanced.
     /// </summary>
     private bool TryEscapeAndAdvance<TEscaper>(
         in TEscaper escaper,
@@ -206,25 +234,6 @@ public sealed class CsvFieldWriter<T, TWriter>
 
         return false;
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WriteDelimiter()
-    {
-        Span<T> destination = _writer.GetSpan(1);
-        destination[0] = _dialect.Delimiter;
-        _writer.Advance(1);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WriteNewline()
-    {
-        Span<T> destination = _writer.GetSpan(_dialect.Newline.Length);
-        _dialect.Newline.Span.CopyTo(destination);
-        _writer.Advance(_dialect.Newline.Length);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WriteText(ReadOnlySpan<char> value) => _options.WriteText(_writer, value);
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private static void ThrowForInvalidTokensWritten(CsvConverter<T> converter, int tokensWritten, int destinationLength)
