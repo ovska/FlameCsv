@@ -352,17 +352,10 @@ public static partial class CsvReader
     {
         Guard.CanRead(stream);
 
-        MemoryPool<byte>? memoryPool = null;
-
-        if (context.ArrayPool != ArrayPool<byte>.Shared)
-        {
-            memoryPool = context.ArrayPool.AsMemoryPool();
-        }
-
         return PipeReader.Create(
             stream,
-            memoryPool is null && !leaveOpen
-                ? null
-                : new StreamPipeReaderOptions(pool: memoryPool, leaveOpen: leaveOpen));
+            new StreamPipeReaderOptions(
+                pool: context.ArrayPool.AsMemoryPool(),
+                leaveOpen: leaveOpen));
     }
 }
