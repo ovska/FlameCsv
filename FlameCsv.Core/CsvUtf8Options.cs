@@ -60,43 +60,19 @@ public sealed class CsvUtf8Options : CsvOptions<byte>
     public CsvUtf8Options Clone() => new(this);
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Delimiter"/>
-    public Utf8Char Delimiter
-    {
-        get => (char)_delimiter;
-        set => ((ICsvDialectOptions<byte>)this).Delimiter = value;
-    }
+    public Utf8Char Delimiter { get => _delimiter; set => _delimiter = value; }
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Quote"/>
-    public Utf8Char Quote
-    {
-        get => (char)_quote;
-        set => ((ICsvDialectOptions<byte>)this).Quote = value;
-    }
+    public Utf8Char Quote { get => _quote; set => _quote = value; }
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Newline"/>
-    public Utf8String Newline
-    {
-        get => _newline;
-        set
-        {
-            Guard.IsNotNullOrEmpty(value, nameof(Newline));
-            ((ICsvDialectOptions<byte>)this).Newline = value;
-        }
-    }
+    public Utf8String Newline { get => _newline; set => _newline = value; }
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Whitespace"/>
-    public Utf8String Whitespace
-    {
-        get => _newline;
-        set => ((ICsvDialectOptions<byte>)this).Whitespace = value;
-    }
+    public Utf8String Whitespace { get => _whitespace; set => _whitespace = value; }
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Escape"/>
-    public Utf8Char? Escape
-    {
-        get => _escape.HasValue ? (Utf8Char)_escape.Value : null;
-        set => ((ICsvDialectOptions<byte>)this).Escape = value;
-    }
+    public Utf8Char? Escape { get => _escape; set => _escape = value; }
 
     public IDictionary<Type, Utf8String> NullTokens => _nullTokens ??= new TypeDictionary<Utf8String>(this);
 

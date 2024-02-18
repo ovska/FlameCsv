@@ -24,6 +24,7 @@ public sealed class CsvTextOptions : CsvOptions<char>
     private string? _timeSpanFormat;
     private string? _dateOnlyFormat;
     private string? _timeOnlyFormat;
+    private string? _enumFormat;
     private DateTimeStyles _dateTimeStyles;
     private TimeSpanStyles _timeSpanStyles;
     private string? _guidFormat;
@@ -75,39 +76,19 @@ public sealed class CsvTextOptions : CsvOptions<char>
     public CsvTextOptions Clone() => new(this);
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Delimiter"/>
-    public char Delimiter
-    {
-        get => _delimiter;
-        set => ((ICsvDialectOptions<char>)this).Delimiter = value;
-    }
+    public char Delimiter { get => _delimiter; set => _delimiter = value; }
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Quote"/>
-    public char Quote
-    {
-        get => _quote;
-        set => ((ICsvDialectOptions<char>)this).Quote = value;
-    }
+    public char Quote { get => _quote; set => _quote = value; }
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Newline"/>
-    public string Newline
-    {
-        get => _newline.ToString();
-        set => ((ICsvDialectOptions<char>)this).Newline = value.AsMemory();
-    }
+    public string Newline { get => _newline.ToString(); set => _newline = value.AsMemory(); }
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Whitespace"/>
-    public string? Whitespace
-    {
-        get => _whitespace.ToString();
-        set => ((ICsvDialectOptions<char>)this).Whitespace = value.AsMemory();
-    }
+    public string? Whitespace { get => _whitespace.ToString(); set => _whitespace = value.AsMemory(); }
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Escape"/>
-    public char? Escape
-    {
-        get => _escape;
-        set => ((ICsvDialectOptions<char>)this).Escape = value;
-    }
+    public char? Escape { get => _escape; set => _escape = value; }
 
     /// <inheritdoc/>
     public IDictionary<Type, string?> NullTokens => _nullTokens ??= new TypeDictionary<string?>(this);
@@ -198,6 +179,16 @@ public sealed class CsvTextOptions : CsvOptions<char>
     {
         get => _timeOnlyFormat;
         set => this.SetValue(ref _timeOnlyFormat, value);
+    }
+
+    /// <summary>
+    /// Used by <see cref="EnumTextConverter{TEnum}"/>.
+    /// Default is <see langword="null"/>.
+    /// </summary>
+    public string? EnumFormat
+    {
+        get => _enumFormat;
+        set => this.SetValue(ref _enumFormat, value);
     }
 
     /// <summary>
