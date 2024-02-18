@@ -2,17 +2,31 @@
 
 namespace FlameCsv;
 
+/// <summary>
+/// Base class used for registering custom converters. User implemented <see cref="CsvConverter{T}"/> instances
+/// must be thread safe.
+/// </summary>
+/// <remarks>
+/// Do not inherit this type directly, but either <see cref="CsvConverter{T, TValue}"/>
+/// or <see cref="CsvConverterFactory{T}"/>.
+/// </remarks>
+/// <typeparam name="T">Token type</typeparam>
 public abstract class CsvConverter<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
     /// Returns whether the type can be handled by this converter, or a suitable converter can be
-    /// created if this is a factory instance.
+    /// created from this factory instance.
     /// </summary>
     /// <param name="type">Type to check</param>
     /// <returns><see langword="true"/> if the converter is suitable for <paramref name="type"/></returns>
     public abstract bool CanConvert(Type type);
 }
 
+/// <summary>
+/// Parses and formats <typeparamref name="TValue"/> to/from CSV fields.
+/// </summary>
+/// <typeparam name="T">Token type</typeparam>
+/// <typeparam name="TValue">Parsed/formatted value</typeparam>
 public abstract class CsvConverter<T, TValue> : CsvConverter<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
@@ -45,6 +59,11 @@ public abstract class CsvConverter<T, TValue> : CsvConverter<T> where T : unmana
     public virtual bool HandleNull => false;
 }
 
+/// <summary>
+/// Creates instances of <see cref="CsvConverterFactory{T}"/>. Used to resolve converters for things such
+/// as open generics (like <see cref="List{T}"/>), <see cref="Enum"/>, and <see cref="Nullable{T}"/>.
+/// </summary>
+/// <typeparam name="T">Token type</typeparam>
 public abstract class CsvConverterFactory<T> : CsvConverter<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
@@ -55,11 +74,6 @@ public abstract class CsvConverterFactory<T> : CsvConverter<T> where T : unmanag
     /// </remarks>
     /// <param name="type">Value type of the returned <see cref="CsvConverter{T,TValue}"/></param>
     /// <param name="options">Current options instance</param>
-    /// <returns>Parser instance</returns>
+    /// <returns>Converter instance</returns>
     public abstract CsvConverter<T> Create(Type type, CsvOptions<T> options);
-
-    public virtual CsvConverter<T, TValue> Create<TValue>(CsvOptions<T> options)
-    {
-        return (CsvConverter<T, TValue>)Create(typeof(TValue), options);
-    }
 }
