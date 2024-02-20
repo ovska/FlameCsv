@@ -77,19 +77,19 @@ public sealed class CsvTextOptions : CsvOptions<char>
     public CsvTextOptions Clone() => new(this);
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Delimiter"/>
-    public char Delimiter { get => _delimiter; set => _delimiter = value; }
+    public char Delimiter { get => _delimiter; set => this.SetValue(ref _delimiter, value); }
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Quote"/>
-    public char Quote { get => _quote; set => _quote = value; }
+    public char Quote { get => _quote; set => this.SetValue(ref _quote, value); }
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Newline"/>
-    public string Newline { get => _newline.ToString(); set => _newline = value.AsMemory(); }
+    public string Newline { get => _newline.ToString(); set => this.SetValue(ref _newline, value.AsMemory()); }
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Whitespace"/>
-    public string? Whitespace { get => _whitespace.ToString(); set => _whitespace = value.AsMemory(); }
+    public string? Whitespace { get => _whitespace.ToString(); set => this.SetValue(ref _whitespace, value.AsMemory()); }
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Escape"/>
-    public char? Escape { get => _escape; set => _escape = value; }
+    public char? Escape { get => _escape; set => this.SetValue(ref _escape, value); }
 
     /// <inheritdoc/>
     public IDictionary<Type, string?> NullTokens => _nullTokens ??= new TypeDictionary<string?>(this);

@@ -89,7 +89,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
             goto ReadNextRecord;
         }
 
-        if (_materializer is null && TryReadHeader(record, out _materializer))
+        if (_materializer is null && TryReadHeader(record))
         {
             if (isFinalBlock)
             {
@@ -124,13 +124,14 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         }
     }
 
+    [MemberNotNull(nameof(_materializer))]
     [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = Messages.HeaderProcessorSuppressionMessage)]
     [UnconditionalSuppressMessage("Trimming", "IL2091", Justification = Messages.HeaderProcessorSuppressionMessage)]
-    private bool TryReadHeader(ReadOnlyMemory<T> record, [NotNull] out IMaterializer<T, TValue>? materializer)
+    private bool TryReadHeader(ReadOnlyMemory<T> record)
     {
         if (!_context.HasHeader)
         {
-            materializer = _typeMap is null
+            _materializer = _typeMap is null
                 ? _context.Options.GetMaterializer<T, TValue>()
                 : _typeMap.GetMaterializer(in _context);
             return false;
@@ -149,12 +150,11 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
 
             ReadOnlySpan<string> headers = values.AsSpan();
 
-            materializer = _typeMap is null
+            _materializer = _typeMap is null
                 ? _context.Options.CreateMaterializerFrom(_context.Options.GetHeaderBinder().Bind<TValue>(headers))
                 : _typeMap.GetMaterializer(headers, in _context);
+            return true;
         }
-
-        return true;
     }
 
     [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]

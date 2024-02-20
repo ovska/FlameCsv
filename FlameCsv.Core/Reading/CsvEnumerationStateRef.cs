@@ -26,41 +26,29 @@ internal struct CsvEnumerationStateRef<T> : ICsvFieldReader<T> where T : unmanag
     internal CsvEnumerationStateRef(
         in CsvReadingContext<T> context,
         ReadOnlyMemory<T> record,
-        ref T[]? array,
-        RecordMeta? meta = null) : this(
-            context: in context,
-            record: record,
-            remaining: record,
-            isAtStart: true,
-            meta: meta ?? context.GetRecordMeta(record),
-            array: ref array)
+        ref T[]? array) : this(in context, record, ref array, context.GetRecordMeta(record))
     {
-
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvEnumerationStateRef(
         in CsvReadingContext<T> context,
         ReadOnlyMemory<T> record,
-        ReadOnlyMemory<T> remaining,
-        bool isAtStart,
-        RecordMeta meta,
-        ref T[]? array)
+        ref T[]? array,
+        RecordMeta meta)
     {
         context.Dialect.DebugValidate();
         Debug.Assert(meta.quoteCount % 2 == 0);
-        Debug.Assert(!isAtStart || record.Span.SequenceEqual(remaining.Span));
         Debug.Assert(remaining.IsEmpty || record.Span.Overlaps(remaining.Span));
         Debug.Assert(!Unsafe.IsNullRef(ref array));
         Debug.Assert(context.ArrayPool is not null);
 
         _context = context;
         _record = record;
+        remaining = record;
 
+        isAtStart = true;
         quotesRemaining = meta.quoteCount;
         escapesRemaining = meta.escapeCount;
-        this.remaining = remaining;
-        this.isAtStart = isAtStart;
 
         if (meta.HasSpecialCharacters)
         {
@@ -186,17 +174,17 @@ internal struct CsvEnumerationStateRef<T> : ICsvFieldReader<T> where T : unmanag
     internal readonly ref struct Lifetime
     {
         private readonly ArrayPool<T> _arrayPool;
-        private readonly Span<T[]?> _rentedBuffer;
+        private readonly ref T[]? _rentedBuffer;
 
         public void Dispose()
         {
-            _arrayPool.EnsureReturned(ref _rentedBuffer[0]);
+            _arrayPool.EnsureReturned(ref _rentedBuffer);
         }
 
         internal Lifetime(ArrayPool<T> arrayPool, ref T[]? array)
         {
             _arrayPool = arrayPool;
-            _rentedBuffer = MemoryMarshal.CreateSpan(ref array, 1);
+            _rentedBuffer = ref array;
         }
     }
 }
