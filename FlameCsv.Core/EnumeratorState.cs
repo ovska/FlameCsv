@@ -64,7 +64,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
         return ++Version;
     }
 
-    public CsvEnumerationStateRef<T> GetInitialStateFor(ReadOnlyMemory<T> memory, RecordMeta? meta = null)
+    public CsvEnumerationStateRef<T> GetInitialStateFor(ReadOnlyMemory<T> memory, RecordMeta meta)
     {
         Throw.IfEnumerationDisposed(_disposed);
 

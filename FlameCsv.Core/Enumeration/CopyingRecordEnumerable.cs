@@ -42,7 +42,7 @@ internal sealed class CopyingRecordEnumerable<T> : IEnumerable<CsvRecord<T>>
 
         public void Dispose() => _source.Dispose();
 
-        public void Reset() => throw new NotImplementedException();
+        public void Reset() => throw new NotSupportedException();
     }
 }
 

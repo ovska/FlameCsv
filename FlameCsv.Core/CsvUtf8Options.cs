@@ -60,19 +60,19 @@ public sealed class CsvUtf8Options : CsvOptions<byte>
     public CsvUtf8Options Clone() => new(this);
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Delimiter"/>
-    public Utf8Char Delimiter { get => _delimiter; set => _delimiter = value; }
+    public Utf8Char Delimiter { get => _delimiter; set => this.SetValue(ref _delimiter, value); }
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Quote"/>
-    public Utf8Char Quote { get => _quote; set => _quote = value; }
+    public Utf8Char Quote { get => _quote; set => this.SetValue(ref _quote, value); }
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Newline"/>
-    public Utf8String Newline { get => _newline; set => _newline = value; }
+    public Utf8String Newline { get => _newline; set => this.SetValue(ref _newline, value); }
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Whitespace"/>
-    public Utf8String Whitespace { get => _whitespace; set => _whitespace = value; }
+    public Utf8String Whitespace { get => _whitespace; set => this.SetValue(ref _whitespace, value); }
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Escape"/>
-    public Utf8Char? Escape { get => _escape; set => _escape = value; }
+    public Utf8Char? Escape { get => _escape; set => this.SetValue(ref _escape, value); }
 
     public IDictionary<Type, Utf8String> NullTokens => _nullTokens ??= new TypeDictionary<Utf8String>(this);
 
