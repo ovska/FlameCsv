@@ -11,6 +11,7 @@ using FlameCsv.Utilities;
 using FlameCsv.Writing;
 using static FlameCsv.Utilities.SealableUtil;
 using CommunityToolkit.HighPerformance.Buffers;
+using CommunityToolkit.Diagnostics;
 
 namespace FlameCsv;
 
@@ -294,6 +295,9 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     /// <summary>
     /// Returns a converter for values of the parameter type.
     /// </summary>
+    /// <remarks>
+    /// Never returns a factory.
+    /// </remarks>
     /// <param name="resultType">Type to convert</param>
     /// <exception cref="CsvParserMissingException"/>
     public CsvConverter<T> GetConverter(Type resultType)
@@ -354,6 +358,10 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
             // ensure we return the same instance that was cached
             converter = _converterCache[resultType];
         }
+
+        Debug.Assert(
+            converter is not CsvConverterFactory<T>,
+            $"TryGetConverter returned a factory: {converter?.GetType().ToTypeString()}");
 
         return converter;
     }

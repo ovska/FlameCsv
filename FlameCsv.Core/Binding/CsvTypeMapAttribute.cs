@@ -10,8 +10,6 @@
 /// <br/>Automatically creates a <c>Instance</c>-property if the type has a parameterless constructor,
 /// and no member with that name already exists.
 /// </remarks>
-/// <typeparam name="T"></typeparam>
-/// <typeparam name="TValue"></typeparam>
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class CsvTypeMapAttribute<T, TValue> : Attribute where T : unmanaged, IEquatable<T>
 {

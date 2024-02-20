@@ -14,6 +14,11 @@ namespace FlameCsv;
 public abstract class CsvConverter<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
+    /// Type the converter can convert, or <see langword="null"/> if the converter is a factory.
+    /// </summary>
+    public abstract Type? Type { get; }
+
+    /// <summary>
     /// Returns whether the type can be handled by this converter, or a suitable converter can be
     /// created from this factory instance.
     /// </summary>
@@ -29,6 +34,8 @@ public abstract class CsvConverter<T> where T : unmanaged, IEquatable<T>
 /// <typeparam name="TValue">Parsed/formatted value</typeparam>
 public abstract class CsvConverter<T, TValue> : CsvConverter<T> where T : unmanaged, IEquatable<T>
 {
+    public sealed override Type? Type => typeof(TValue);
+
     /// <summary>
     /// Returns whether the type can be handled by this converter.
     /// </summary>
@@ -66,6 +73,8 @@ public abstract class CsvConverter<T, TValue> : CsvConverter<T> where T : unmana
 /// <typeparam name="T">Token type</typeparam>
 public abstract class CsvConverterFactory<T> : CsvConverter<T> where T : unmanaged, IEquatable<T>
 {
+    public sealed override Type? Type => null;
+
     /// <summary>
     /// Creates an instance capable of converting values of the specified type.
     /// </summary>

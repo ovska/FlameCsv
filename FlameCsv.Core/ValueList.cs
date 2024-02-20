@@ -59,10 +59,10 @@ public struct ValueList<T> : IReadOnlyList<T> where T : class
         Size++;
     }
 
-    public Enumerator GetEnumerator() => new(_inliner, _array, Size);
+    public readonly Enumerator GetEnumerator() => new(_inliner, _array, Size);
 
-    IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    readonly IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
+    readonly IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     public struct Enumerator : IEnumerator<T>
     {
