@@ -1,9 +1,9 @@
 ﻿using System.Buffers.Text;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using CommunityToolkit.Diagnostics;
 using FlameCsv.Binding;
 using FlameCsv.Converters;
+using FlameCsv.Extensions;
 using FlameCsv.Utilities;
 
 namespace FlameCsv;
@@ -207,5 +207,10 @@ public sealed class CsvUtf8Options : CsvOptions<byte>
             int bytesWritten = Encoding.UTF8.GetBytes(value, destination);
             writer.Advance(bytesWritten);
         }
+    }
+
+    public override bool TryGetChars(ReadOnlySpan<byte> field, Span<char> destination, out int charsWritten)
+    {
+        return Encoding.UTF8.TryGetChars(field, destination, out charsWritten);
     }
 }

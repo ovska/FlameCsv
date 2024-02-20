@@ -3,6 +3,7 @@ using System.Globalization;
 using FlameCsv.Binding;
 using FlameCsv.Converters;
 using FlameCsv.Converters.Text;
+using FlameCsv.Extensions;
 using FlameCsv.Utilities;
 
 namespace FlameCsv;
@@ -275,5 +276,10 @@ public sealed class CsvTextOptions : CsvOptions<char>
             value.CopyTo(writer.GetSpan(value.Length));
             writer.Advance(value.Length);
         }
+    }
+
+    public override bool TryGetChars(ReadOnlySpan<char> field, Span<char> destination, out int charsWritten)
+    {
+        return field.TryWriteTo(destination, out charsWritten);
     }
 }
