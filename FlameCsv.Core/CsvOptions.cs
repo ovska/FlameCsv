@@ -85,6 +85,8 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     /// <seealso cref="WriteText{TWriter}(TWriter, ReadOnlySpan{char})"/>
     public abstract string GetAsString(ReadOnlySpan<T> field);
 
+    public abstract bool TryGetChars(ReadOnlySpan<T> field, Span<char> destination, out int charsWritten);
+
     /// <summary>
     /// Writes the text to <paramref name="writer"/>.
     /// </summary>
