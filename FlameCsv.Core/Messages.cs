@@ -12,10 +12,11 @@ internal static class Messages
         DynamicallyAccessedMemberTypes.PublicFields;
 
     public const string CompiledExpressions =
-        "This code path uses reflection and compiled expressions.";
+        "This code path uses reflection and compiled expressions. Use SourceGen and overloads accepting " +
+        "CsvTypeMap to avoid them.";
 
     public const string StructFactorySuppressionMessage =
-        "TODO";
+        "Constructors of the used struct are not actually used.";
 
     public const string HeaderProcessorSuppressionMessage =
         "All code paths that initialize this internal type are already annotated";
