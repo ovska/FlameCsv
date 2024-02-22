@@ -11,7 +11,7 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
     public static ReadOnlyMemory<T> ReadNextField(ref CsvEnumerationStateRef<T> state)
     {
         Debug.Assert(!state.remaining.IsEmpty);
-        Debug.Assert(state._context.Dialect.Escape.HasValue);
+        Debug.Assert(!state._context.Dialect.IsRFC4180Mode);
 
         ReadOnlyMemory<T> field;
         T quote = state._context.Dialect.Quote;

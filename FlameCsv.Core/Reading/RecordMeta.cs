@@ -6,26 +6,6 @@ namespace FlameCsv.Reading;
 [DebuggerDisplay(@"\{ RecordMeta, QuoteCount: {quoteCount}, EscapeCount: {escapeCount} \}")]
 internal struct RecordMeta
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetMaxUnescapedLength(int valueLength, uint quoteCount, uint escapeCount)
-    {
-        int value;
-        if (escapeCount == 0)
-        {
-            value = valueLength - (int)(quoteCount / 2);
-        }
-        else
-        {
-            // If there are quotes and escapes, either there are no quotes or there whole field is
-            // wrapped between two quotes. Escaped quotes aren't counted.
-            Debug.Assert(quoteCount == 0 || quoteCount == 2);
-            value = valueLength - (int)escapeCount - (int)quoteCount;
-        }
-
-        Debug.Assert(value >= 0);
-        return value;
-    }
-
     /// <summary>
     /// Amount of quotes-tokens not preceded with an escape character found in the line.
     /// </summary>

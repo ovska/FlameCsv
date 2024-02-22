@@ -89,8 +89,7 @@ public readonly struct CsvDialect<T> : IEquatable<CsvDialect<T>> where T : unman
             && Quote.Equals(other.Quote)
             && Newline.Span.SequenceEqual(other.Newline.Span)
             && Whitespace.Equals(other.Whitespace)
-            && Escape.HasValue.Equals(other.Escape.HasValue)
-            && Escape.GetValueOrDefault().Equals(other.Escape.GetValueOrDefault());
+            && Nullable.Equals(Escape, other.Escape);
     }
 
     public override int GetHashCode()
