@@ -47,13 +47,9 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool SkipRecord(ReadOnlyMemory<T> record, int line, bool headerRead)
     {
-        var fn = _skipCallback;
-        if (fn is null)
-            return false;
-
-        return fn(new CsvRecordSkipArgs<T>
+        return _skipCallback != null && _skipCallback(new CsvRecordSkipArgs<T>
         {
-            Dialect = _dialect,
+            Options = Options,
             Line = line,
             Record = record,
             HeaderRead = headerRead,

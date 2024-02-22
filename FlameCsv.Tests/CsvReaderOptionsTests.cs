@@ -212,7 +212,7 @@ public class CsvReaderOptionsTests
 
         var options = new CsvTextOptions
         {
-            ShouldSkipRow = args => args.Line == 1 || args.Record.Span[0] == '#',
+            ShouldSkipRow = (in CsvRecordSkipArgs<char> args) => args.Line == 1 || args.Record.Span[0] == '#',
         };
 
         using var enumerator = CsvReader.Enumerate(data, options).GetEnumerator();
@@ -236,7 +236,7 @@ public class CsvReaderOptionsTests
 
         var options = new CsvTextOptions
         {
-            ShouldSkipRow = args => args.Line == 1 || args.Record.Span[0] == '#',
+            ShouldSkipRow = (in CsvRecordSkipArgs<char> args) => args.Line == 1 || args.Record.Span[0] == '#',
         };
 
         var values = CsvReader.Read<Skippable>(data, options).ToList();
