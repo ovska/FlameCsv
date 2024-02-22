@@ -5,7 +5,7 @@ namespace FlameCsv;
 public readonly struct CsvFieldEnumerable<T> where T : unmanaged, IEquatable<T>
 {
     private readonly ReadOnlyMemory<T> _record;
-    private readonly CsvReadingContext<T>? _context;
+    private readonly CsvReadingContext<T> _context;
 
     public CsvFieldEnumerable(
         ReadOnlyMemory<T> value,
@@ -19,8 +19,8 @@ public readonly struct CsvFieldEnumerable<T> where T : unmanaged, IEquatable<T>
 
     public CsvFieldEnumerator<T> GetEnumerator()
     {
-        Throw.IfDefaultStruct<CsvFieldEnumerable<T>>(_context);
-        return new CsvFieldEnumerator<T>(_record, _context.Value);
+        Throw.IfDefaultStruct<CsvFieldEnumerable<T>>(_context.Options);
+        return new CsvFieldEnumerator<T>(_record, _context);
     }
 
     /// <summary>
