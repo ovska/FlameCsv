@@ -12,9 +12,9 @@ public readonly struct CsvRecordSkipArgs<T> where T : unmanaged, IEquatable<T>
     public ReadOnlyMemory<T> Record { get; init; }
 
     /// <summary>
-    /// Current dialect.
+    /// Options instance.
     /// </summary>
-    public CsvDialect<T> Dialect { get; init; }
+    public CsvOptions<T> Options { get; init; }
 
     /// <summary>
     /// 1-based line number.
@@ -32,5 +32,5 @@ public readonly struct CsvRecordSkipArgs<T> where T : unmanaged, IEquatable<T>
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 /// <returns><see langword="true"/> if the record should be skipped</returns>
-public delegate bool CsvRecordSkipPredicate<T>(CsvRecordSkipArgs<T> args) where T : unmanaged, IEquatable<T>;
+public delegate bool CsvRecordSkipPredicate<T>(in CsvRecordSkipArgs<T> args) where T : unmanaged, IEquatable<T>;
 
