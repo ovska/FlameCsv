@@ -23,7 +23,7 @@ public readonly struct CsvRecordEnumerable<T> where T : unmanaged, IEquatable<T>
     {
         ArgumentNullException.ThrowIfNull(options);
         _data = data;
-        _context = new CsvReadingContext<T>(options, overrides);
+        _context = new CsvReadingContext<T>(options, in overrides);
     }
 
     public CsvRecordEnumerator<T> GetEnumerator()

@@ -38,7 +38,7 @@ public static class HeaderBindingTests
     public static void Should_Bind_To_Ctor_Parameter()
     {
         var binder = new DefaultHeaderBinder<char>(new CsvTextOptions { Comparer = StringComparer.Ordinal });
-        var bindingCollection = binder.Bind<ShimWithCtor>(new[] { "Name", "_targeted" });
+        var bindingCollection = binder.Bind<ShimWithCtor>(["Name", "_targeted"]);
         var byIndex = bindingCollection.Bindings.ToArray().ToDictionary(b => b.Index);
         Assert.Equal(2, byIndex.Count);
         Assert.Equal("Name", ((MemberCsvBinding<ShimWithCtor>)byIndex[0]).Member.Name);
@@ -50,7 +50,7 @@ public static class HeaderBindingTests
     {
         var binder = new DefaultHeaderBinder<char>(new CsvTextOptions { Comparer = StringComparer.Ordinal });
 
-        var bindingCollection = binder.Bind<Shim>(new[] { "IsEnabled", "Name", "_targeted" });
+        var bindingCollection = binder.Bind<Shim>(["IsEnabled", "Name", "_targeted"]);
         Assert.Equal(3, bindingCollection.Bindings.Length);
         var byIndex = bindingCollection.MemberBindings.ToArray().ToDictionary(b => b.Index, b => b.Member);
         Assert.Equal(3, byIndex.Count);

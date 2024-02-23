@@ -15,7 +15,7 @@ internal readonly struct RFC4180Escaper<T> : IEscaper<T> where T : unmanaged, IE
     private readonly ReadOnlyMemory<T> _newline;
     private readonly ReadOnlyMemory<T> _whitespace;
 
-    public RFC4180Escaper(in CsvDialect<T> dialect)
+    public RFC4180Escaper(ref readonly CsvDialect<T> dialect)
     {
         dialect.DebugValidate();
         Debug.Assert(dialect.IsRFC4180Mode);

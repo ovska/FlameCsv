@@ -56,6 +56,7 @@ internal struct CsvEnumerationStateRef<T> : ICsvFieldReader<T> where T : unmanag
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryReadNext(out ReadOnlyMemory<T> field)
     {
         if (!remaining.IsEmpty)

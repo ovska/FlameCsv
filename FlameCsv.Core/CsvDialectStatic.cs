@@ -7,6 +7,31 @@ namespace FlameCsv;
 // separate class to keep statics and throw helpers from generic type
 internal static class CsvDialectStatic
 {
+    public static CsvDialect<char> Text(
+        char delimiter = ',',
+        char quote = '"',
+        string newline = "\r\n",
+        string whitespace = "",
+        char? escape = null)
+    {
+        return new(delimiter, quote, newline.AsMemory(), whitespace.AsMemory(), escape);
+    }
+
+    public static CsvDialect<byte> Utf8(
+        char delimiter = ',',
+        char quote = '"',
+        string newline = "\r\n",
+        string whitespace = "",
+        char? escape = null)
+    {
+        return new(
+            (Utf8Char)delimiter,
+            (Utf8Char)quote,
+            (Utf8String)newline,
+            (Utf8String)whitespace,
+            (Utf8Char?)escape);
+    }
+
     private static readonly CsvDialect<char> _charCRLF = new(
         delimiter: ',',
         quote: '"',

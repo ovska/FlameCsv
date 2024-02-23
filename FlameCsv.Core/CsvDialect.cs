@@ -14,19 +14,19 @@ public readonly struct CsvDialect<T> : IEquatable<CsvDialect<T>> where T : unman
     public static CsvDialect<T> Default => CsvDialectStatic.GetDefault<T>();
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Delimiter"/>
-    public T Delimiter { get; init; }
+    public readonly T Delimiter;
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Quote"/>
-    public T Quote { get; init; }
+    public readonly T Quote;
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Newline"/>
-    public ReadOnlyMemory<T> Newline { get; init; }
+    public readonly ReadOnlyMemory<T> Newline;
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Whitespace"/>
-    public ReadOnlyMemory<T> Whitespace { get; init; }
+    public readonly ReadOnlyMemory<T> Whitespace;
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Escape"/>
-    public T? Escape { get; init; }
+    public readonly T? Escape;
 
     /// <summary>
     /// Returns <see langword="true"/> if the dialect is using RFC 4180 mode, which doesn't use an escape character.
@@ -54,7 +54,7 @@ public readonly struct CsvDialect<T> : IEquatable<CsvDialect<T>> where T : unman
     }
 
     // perf: use the fields directly internally instead of through iface
-    internal CsvDialect(CsvOptions<T> options, in CsvContextOverride<T> context = default)
+    internal CsvDialect(CsvOptions<T> options, in CsvContextOverride<T> context)
         : this(
             delimiter: context._delimiter.Resolve(options._delimiter),
             quote: context._quote.Resolve(options._quote),

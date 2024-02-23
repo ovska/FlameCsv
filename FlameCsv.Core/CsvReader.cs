@@ -117,7 +117,7 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(options);
         Guard.CanRead(stream);
 
-        var readerContext = new CsvReadingContext<char>(options, context);
+        var readerContext = new CsvReadingContext<char>(options, in context);
         var textReader = new StreamReader(stream, encoding: encoding, leaveOpen: leaveOpen, bufferSize: bufferSize);
         var reader = new TextPipeReader(textReader, bufferSize, readerContext.ArrayPool);
         return new CsvValueAsyncEnumerable<char, TValue>(reader, in readerContext);
@@ -141,7 +141,7 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(textReader);
         ArgumentNullException.ThrowIfNull(options);
 
-        var readerContext = new CsvReadingContext<char>(options, context);
+        var readerContext = new CsvReadingContext<char>(options, in context);
         var reader = new TextPipeReader(textReader, DefaultBufferSize, readerContext.ArrayPool);
         return new CsvValueAsyncEnumerable<char, TValue>(reader, in readerContext);
     }
@@ -169,7 +169,7 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(options);
         Guard.CanRead(stream);
 
-        var readingContext = new CsvReadingContext<byte>(options, context);
+        var readingContext = new CsvReadingContext<byte>(options, in context);
         var reader = CreatePipeReader(stream, in readingContext, leaveOpen);
         return new CsvValueAsyncEnumerable<byte, TValue>(new PipeReaderWrapper(reader), in readingContext);
     }
@@ -192,7 +192,7 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(options);
 
-        return new CsvValueAsyncEnumerable<byte, TValue>(new PipeReaderWrapper(reader), new CsvReadingContext<byte>(options, context));
+        return new CsvValueAsyncEnumerable<byte, TValue>(new PipeReaderWrapper(reader), new CsvReadingContext<byte>(options, in context));
     }
 
     /// <summary>
@@ -287,7 +287,7 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(textReader);
         ArgumentNullException.ThrowIfNull(options);
 
-        var readerContext = new CsvReadingContext<char>(options, context);
+        var readerContext = new CsvReadingContext<char>(options, in context);
         return new CsvRecordAsyncEnumerable<char>(
             new TextPipeReader(textReader, 4096, readerContext.ArrayPool),
             in readerContext);
@@ -311,7 +311,7 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(options);
 
-        var readerContext = new CsvReadingContext<byte>(options, context);
+        var readerContext = new CsvReadingContext<byte>(options, in context);
 
         return new CsvRecordAsyncEnumerable<byte>(
             new PipeReaderWrapper(CreatePipeReader(stream, in readerContext, leaveOpen)),
@@ -338,7 +338,7 @@ public static partial class CsvReader
 
         return new CsvRecordAsyncEnumerable<byte>(
             new PipeReaderWrapper(reader),
-            new CsvReadingContext<byte>(options, context));
+            new CsvReadingContext<byte>(options, in context));
     }
 
     /// <summary>

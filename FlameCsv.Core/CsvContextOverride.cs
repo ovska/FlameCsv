@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Diagnostics;
 using FlameCsv.Writing;
 
 namespace FlameCsv;
@@ -31,6 +32,7 @@ public readonly struct CsvContextOverride<T> where T : unmanaged, IEquatable<T>
     internal readonly ValueHolder<CsvRecordSkipPredicate<T>?> _shouldSkipRow;
     internal readonly ValueHolder<CsvFieldQuoting> _fieldQuoting;
 
+    [DebuggerDisplay("{DebugString,nq}")]
     internal readonly struct ValueHolder<TValue>(TValue value)
     {
         private readonly TValue _value = value;
@@ -40,5 +42,7 @@ public readonly struct CsvContextOverride<T> where T : unmanaged, IEquatable<T>
         public static implicit operator TValue(ValueHolder<TValue> holder) => holder._value;
 
         public TValue Resolve(TValue defaultValue) => _hasValue ? _value : defaultValue;
+
+        internal string DebugString => $"ValueHolder: {(_hasValue ? $"Value: {_value}" : "No value")}";
     }
 }

@@ -14,13 +14,13 @@ public readonly struct CsvFieldEnumerable<T> where T : unmanaged, IEquatable<T>
     {
         ArgumentNullException.ThrowIfNull(options);
         _record = value;
-        _context = new CsvReadingContext<T>(options, overrides);
+        _context = new CsvReadingContext<T>(options, in overrides);
     }
 
     public CsvFieldEnumerator<T> GetEnumerator()
     {
         Throw.IfDefaultStruct<CsvFieldEnumerable<T>>(_context.Options);
-        return new CsvFieldEnumerator<T>(_record, _context);
+        return new CsvFieldEnumerator<T>(_record, in _context);
     }
 
     /// <summary>

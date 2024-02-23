@@ -121,7 +121,7 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
 
         if (source.Length < 2)
         {
-            error.Append(CultureInfo.InvariantCulture, $"Source is too short (length: {source.Length}). ");
+            error.Append($"Source is too short (length: {source.Length}). ");
         }
         else if (source[^1].Equals(escape))
         {
@@ -133,14 +133,14 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
             int actualQuoteCount = System.MemoryExtensions.Count(source, quote.Value);
             if (actualQuoteCount != quoteCount)
             {
-                error.Append(CultureInfo.InvariantCulture, $"String delimiter count {quoteCount} was invalid (actual was {actualQuoteCount}). ");
+                error.Append($"String delimiter count {quoteCount} was invalid (actual was {actualQuoteCount}). ");
             }
         }
 
         int actualEscapeCount = System.MemoryExtensions.Count(source, escape);
         if (actualEscapeCount != escapeCount)
         {
-            error.Append(CultureInfo.InvariantCulture, $"Escape character count {escapeCount} was invalid (actual was {actualEscapeCount}). ");
+            error.Append($"Escape character count {escapeCount} was invalid (actual was {actualEscapeCount}). ");
         }
 
         if (error.Length != 0)

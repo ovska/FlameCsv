@@ -15,7 +15,7 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
 
         ReadOnlyMemory<T> field;
         T quote = state._context.Dialect.Quote;
-        T escape = state._context.Dialect.Escape.Value;
+        T escape = state._context.Dialect.Escape.GetValueOrDefault();
         T delimiter = state._context.Dialect.Delimiter;
         nuint consumed = 0;
         uint quotesConsumed = 0;
@@ -62,6 +62,52 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
         }
 
         NoQuotesNoEscapes:
+        while (consumed + 8 < len)
+        {
+            if (delimiter.Equals(Unsafe.Add(ref first, consumed)))
+                goto Done1;
+
+            if (delimiter.Equals(Unsafe.Add(ref first, consumed + 1)))
+                goto Done2;
+
+            if (delimiter.Equals(Unsafe.Add(ref first, consumed + 2)))
+                goto Done3;
+
+            if (delimiter.Equals(Unsafe.Add(ref first, consumed + 3)))
+                goto Done4;
+
+            if (delimiter.Equals(Unsafe.Add(ref first, consumed + 4)))
+                goto Done5;
+
+            if (delimiter.Equals(Unsafe.Add(ref first, consumed + 5)))
+                goto Done6;
+
+            if (delimiter.Equals(Unsafe.Add(ref first, consumed + 6)))
+                goto Done7;
+
+            if (delimiter.Equals(Unsafe.Add(ref first, consumed + 7)))
+                goto Done8;
+
+            consumed += 8;
+        }
+
+        while (consumed + 4 < len)
+        {
+            if (delimiter.Equals(Unsafe.Add(ref first, consumed)))
+                goto Done1;
+
+            if (delimiter.Equals(Unsafe.Add(ref first, consumed + 1)))
+                goto Done2;
+
+            if (delimiter.Equals(Unsafe.Add(ref first, consumed + 2)))
+                goto Done3;
+
+            if (delimiter.Equals(Unsafe.Add(ref first, consumed + 3)))
+                goto Done4;
+
+            consumed += 4;
+        }
+
         while (consumed < len)
         {
             if (Unsafe.Add(ref first, consumed++).Equals(delimiter))
@@ -71,6 +117,31 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
         }
 
         goto EOL;
+
+        Done1:
+        consumed += 1;
+        goto Done;
+        Done2:
+        consumed += 2;
+        goto Done;
+        Done3:
+        consumed += 3;
+        goto Done;
+        Done4:
+        consumed += 4;
+        goto Done;
+        Done5:
+        consumed += 5;
+        goto Done;
+        Done6:
+        consumed += 6;
+        goto Done;
+        Done7:
+        consumed += 7;
+        goto Done;
+        Done8:
+        consumed += 8;
+        goto Done;
 
         NoQuotesHasEscapes:
         while (consumed < len)
