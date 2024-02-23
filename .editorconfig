@@ -38,6 +38,8 @@ dotnet_diagnostic.RCS1196.severity = none # Call extension method as instance me
 dotnet_diagnostic.RCS1205.severity = none # Order named arguments according to the order of parameters.
 dotnet_diagnostic.IDE0063.severity = none # 'using' statement can be simplified
 dotnet_diagnostic.RCS1168.severity = suggestion # Parameter name differs from base name
+dotnet_diagnostic.CS9192.severity = error # Argument should be a variable because it is passed to a ref readonly parameter
+dotnet_diagnostic.CS9195.severity = error # Argument should be passed with the in keyword
 
 [*.cs]
 #### Naming styles ####

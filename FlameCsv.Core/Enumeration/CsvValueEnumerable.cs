@@ -18,7 +18,7 @@ public sealed class CsvValueEnumerable<T, [DynamicallyAccessedMembers(Messages.R
     {
         ArgumentNullException.ThrowIfNull(options);
         _data = csv;
-        _context = new CsvReadingContext<T>(options, overrides);
+        _context = new CsvReadingContext<T>(options, in overrides);
     }
 
     public CsvValueEnumerator<T, TValue> GetEnumerator()

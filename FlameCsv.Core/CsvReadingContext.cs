@@ -18,14 +18,13 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
             Throw.InvalidOp_DefaultStruct(typeof(CsvReadingContext<T>));
     }
 
-    public CsvDialect<T> Dialect => _dialect;
-    public CsvOptions<T> Options { get; }
-    public ArrayPool<T> ArrayPool { get; }
-    public bool HasHeader { get; }
-    public bool ExposeContent { get; }
-    public bool ValidateFieldCount { get; }
+    public readonly CsvDialect<T> Dialect;
+    public readonly CsvOptions<T> Options;
+    public readonly ArrayPool<T> ArrayPool;
+    public readonly bool HasHeader;
+    public readonly bool ExposeContent;
+    public readonly bool ValidateFieldCount;
 
-    private readonly CsvDialect<T> _dialect;
     private readonly CsvRecordSkipPredicate<T>? _skipCallback;
     private readonly CsvExceptionHandler<T>? _exceptionHandler;
 
@@ -39,7 +38,7 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
         ExposeContent = overrides._exposeContent.Resolve(options.AllowContentInExceptions);
         ValidateFieldCount = overrides._validateFieldCount.Resolve(options.ValidateFieldCount);
         HasHeader = overrides._hasHeader.Resolve(options.HasHeader);
-        _dialect = new CsvDialect<T>(options, in overrides);
+        Dialect = new CsvDialect<T>(options, in overrides);
         _skipCallback = overrides._shouldSkipRow.Resolve(options.ShouldSkipRow);
         _exceptionHandler = overrides._exceptionHandler.Resolve(options.ExceptionHandler);
     }
@@ -99,9 +98,9 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
     {
         if (!isFinalBlock)
         {
-            return _dialect.IsRFC4180Mode
-                ? RFC4180Mode<T>.TryGetLine(in _dialect, ref sequence, out line, out meta)
-                : EscapeMode<T>.TryGetLine(in _dialect, ref sequence, out line, out meta);
+            return Dialect.IsRFC4180Mode
+                ? RFC4180Mode<T>.TryGetLine(in Dialect, ref sequence, out line, out meta)
+                : EscapeMode<T>.TryGetLine(in Dialect, ref sequence, out line, out meta);
         }
 
         if (!sequence.IsEmpty)
@@ -120,7 +119,7 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
     {
         RecordMeta meta = default;
 
-        if (_dialect.IsRFC4180Mode)
+        if (Dialect.IsRFC4180Mode)
         {
             meta.quoteCount = (uint)memory.Span.Count(Dialect.Quote);
 
@@ -156,7 +155,7 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
         {
             meta = default;
 
-            if (_dialect.IsRFC4180Mode)
+            if (Dialect.IsRFC4180Mode)
             {
                 foreach (var segment in sequence)
                 {
@@ -195,8 +194,8 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
         ref RecordMeta meta,
         ref bool skipNext)
     {
-        T quote = _dialect.Quote;
-        T escape = _dialect.Escape.GetValueOrDefault();
+        T quote = Dialect.Quote;
+        T escape = Dialect.Escape.GetValueOrDefault();
 
         int index = span.IndexOfAny(quote, escape);
 
@@ -276,7 +275,7 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
 
         string structure = string.Create(
             length: value.Length,
-            state: (_dialect, value),
+            state: (Dialect, value),
             action: static (destination, state) =>
             {
                 (CsvDialect<T> dialect, ReadOnlyMemory<T> memory) = state;

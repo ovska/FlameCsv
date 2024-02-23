@@ -82,7 +82,7 @@ public static partial class CsvReader
         Guard.CanRead(stream);
         ArgumentOutOfRangeException.ThrowIfLessThan(bufferSize, 1);
 
-        var readerContext = new CsvReadingContext<char>(options, context);
+        var readerContext = new CsvReadingContext<char>(options, in context);
         var textReader = new StreamReader(stream, encoding: encoding, leaveOpen: leaveOpen, bufferSize: bufferSize);
         var reader = new TextPipeReader(textReader, bufferSize, readerContext.ArrayPool);
         return new CsvTypeMapAsyncEnumerable<char, TValue>(
@@ -101,7 +101,7 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(typeMap);
         ArgumentNullException.ThrowIfNull(options);
 
-        var readerContext = new CsvReadingContext<char>(options, context);
+        var readerContext = new CsvReadingContext<char>(options, in context);
         var reader = new TextPipeReader(textReader, DefaultBufferSize, readerContext.ArrayPool);
         return new CsvTypeMapAsyncEnumerable<char, TValue>(reader, in readerContext, typeMap);
     }
@@ -118,7 +118,7 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(options);
         Guard.CanRead(stream);
 
-        var readingContext = new CsvReadingContext<byte>(options, context);
+        var readingContext = new CsvReadingContext<byte>(options, in context);
         var reader = CreatePipeReader(stream, in readingContext, leaveOpen);
         return new CsvTypeMapAsyncEnumerable<byte, TValue>(new PipeReaderWrapper(reader), in readingContext, typeMap);
     }
@@ -133,6 +133,6 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(typeMap);
         ArgumentNullException.ThrowIfNull(options);
 
-        return new CsvTypeMapAsyncEnumerable<byte, TValue>(new PipeReaderWrapper(reader), new CsvReadingContext<byte>(options, context), typeMap);
+        return new CsvTypeMapAsyncEnumerable<byte, TValue>(new PipeReaderWrapper(reader), new CsvReadingContext<byte>(options, in context), typeMap);
     }
 }

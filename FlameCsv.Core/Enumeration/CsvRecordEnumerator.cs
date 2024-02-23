@@ -12,15 +12,16 @@ public sealed class CsvRecordEnumerator<T> : CsvRecordEnumeratorBase<T> where T 
         ReadOnlyMemory<T> data,
         CsvOptions<T> options,
         CsvContextOverride<T> overrides = default)
-        : this(new ReadOnlySequence<T>(data), options, overrides)
+        : base(new CsvReadingContext<T>(options, in overrides))
     {
+        _data = new ReadOnlySequence<T>(data);
     }
 
     public CsvRecordEnumerator(
         in ReadOnlySequence<T> data,
         CsvOptions<T> options,
         CsvContextOverride<T> overrides = default)
-        : base(new CsvReadingContext<T>(options, overrides))
+        : base(new CsvReadingContext<T>(options, in overrides))
     {
         _data = data;
     }

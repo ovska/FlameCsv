@@ -15,7 +15,7 @@ internal readonly struct UnixEscaper<T> : IEscaper<T> where T : unmanaged, IEqua
     private readonly ReadOnlyMemory<T> _newline;
     private readonly ReadOnlyMemory<T> _whitespace;
 
-    public UnixEscaper(in CsvDialect<T> dialect)
+    public UnixEscaper(ref readonly CsvDialect<T> dialect)
     {
         dialect.DebugValidate();
         Debug.Assert(!dialect.IsRFC4180Mode);

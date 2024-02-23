@@ -92,7 +92,7 @@ public static class EscapeModeTests
         var first = new MemorySegment<char>(start.AsMemory());
         var last = first.Append(end.AsMemory());
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
-        var dialect = CsvDialect<char>.Default with { Escape = '^' };
+        var dialect = CsvDialectStatic.Text(escape: '^');
 
         Assert.True(EscapeMode<char>.TryGetLine(in dialect, ref seq, out var line, out _));
 
@@ -118,7 +118,7 @@ public static class EscapeModeTests
 
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
 
-        var dialect = CsvDialect<char>.Default with { Escape = '^' };
+        var dialect = CsvDialectStatic.Text(escape: '^');
 
         var results = new List<string>();
 
@@ -133,11 +133,11 @@ public static class EscapeModeTests
     }
 
     [Theory]
-    [InlineData(data: new object[] { "\r\n", new[] { "abc", "\r\n", "xyz" } })]
-    [InlineData(data: new object[] { "\n", new[] { "abc", "\n", "xyz" } })]
+    [InlineData(data: ["\r\n", new[] { "abc", "\r\n", "xyz" }])]
+    [InlineData(data: ["\n", new[] { "abc", "\n", "xyz" }])]
     public static void Should_Find_Segment_With_Only_Newline(string newline, string[] segments)
     {
-        var dialect = CsvDialect<char>.Default with { Newline = newline.AsMemory(), Escape = '^' };
+        var dialect = CsvDialectStatic.Text(newline: newline, escape: '^');
 
         var first = new MemorySegment<char>(segments[0].AsMemory());
         var last = first
@@ -156,7 +156,7 @@ public static class EscapeModeTests
     {
         const string data = "\"testxyz\",\"broken";
         var seq = new ReadOnlySequence<char>(data.AsMemory());
-        var dialect = CsvDialect<char>.Default with { Escape = '^' };
+        var dialect = CsvDialectStatic.Text(escape: '^');
 
         Assert.False(EscapeMode<char>.TryGetLine(in dialect, ref seq, out _, out _));
         Assert.Equal(data, seq.ToString());
@@ -179,7 +179,7 @@ public static class EscapeModeTests
             "bb",
         ];
 
-        var dialect = CsvDialect<char>.Default with { Newline = newline.AsMemory(), Escape = '^' };
+        var dialect = CsvDialectStatic.Text(newline: newline, escape: '^');
         var seq = new ReadOnlySequence<char>(string.Join(newline, data).AsMemory());
 
         var found = new List<string>();

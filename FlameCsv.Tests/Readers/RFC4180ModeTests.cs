@@ -109,8 +109,8 @@ public static class RFC4180ModeTests
     }
 
     [Theory]
-    [InlineData(data: new object[] { "\r\n", new[] { "abc", "\r\n", "xyz" } })]
-    [InlineData(data: new object[] { "\n", new[] { "abc", "\n", "xyz" } })]
+    [InlineData(data: ["\r\n", new[] { "abc", "\r\n", "xyz" }])]
+    [InlineData(data: ["\n", new[] { "abc", "\n", "xyz" }])]
     public static void Should_Find_Segment_With_Only_Newline(string newline, string[] segments)
     {
         var options = new CsvTextOptions { Newline = newline };
@@ -155,7 +155,7 @@ public static class RFC4180ModeTests
             "bb",
         ];
 
-        var dialect = CsvDialect<char>.Default with { Newline = newline.AsMemory() };
+        var dialect = CsvDialectStatic.Text(newline: newline);
         var seq = new ReadOnlySequence<char>(string.Join(newline, data).AsMemory());
 
         var found = new List<string>();
@@ -183,7 +183,7 @@ public static class RFC4180ModeTests
     [InlineData("\"James \"\"007\"\" Bond\"|Agent", "\"James \"\"007\"\" Bond\"", 6)]
     public static void Should_Find_Lines(string data, string expected, uint quoteCount)
     {
-        var dialect = CsvDialect<char>.Default with { Newline = "|".AsMemory() };
+        var dialect = CsvDialectStatic.Text(newline: "|");
 
         var seq = new ReadOnlySequence<char>(data.AsMemory());
 
