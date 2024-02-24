@@ -33,11 +33,14 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
     public TextPipeReader(TextReader innerReader, int bufferSize, ArrayPool<char> arrayPool)
     {
         ArgumentNullException.ThrowIfNull(innerReader);
-        Guard.IsGreaterThanOrEqualTo(bufferSize, 16);
+
+        if (bufferSize != -1)
+            ArgumentOutOfRangeException.ThrowIfLessThan(bufferSize, 1);
+
         ArgumentNullException.ThrowIfNull(arrayPool);
 
         _innerReader = innerReader;
-        _bufferSize = bufferSize;
+        _bufferSize = bufferSize == -1 ? CsvReader.DefaultBufferSize : bufferSize;
         _arrayPool = arrayPool;
     }
 
@@ -45,7 +48,9 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
     public ValueTask<CsvReadResult<char>> ReadAsync(CancellationToken cancellationToken = default)
     {
         if (_disposed)
-            ThrowHelper.ThrowObjectDisposedException(nameof(TextPipeReader));
+        {
+            return ThrowObjectDisposedException();
+        }
 
         if (cancellationToken.IsCancellationRequested)
         {
@@ -223,5 +228,10 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
         Debug.Assert(segment != _readHead, "Returning _readHead segment that's in use!");
         Debug.Assert(segment != _readTail, "Returning _readTail segment that's in use!");
         _segmentPool.Push(segment);
+    }
+
+    private static ValueTask<CsvReadResult<char>> ThrowObjectDisposedException()
+    {
+        return ValueTask.FromException<CsvReadResult<char>>(new ObjectDisposedException(nameof(TextPipeReader)));
     }
 }
