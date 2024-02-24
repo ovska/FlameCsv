@@ -4,7 +4,7 @@ using FlameCsv.Converters;
 
 namespace FlameCsv.Tests;
 
-public class CsvReaderOptionsTests
+public class CsvOptionsTests
 {
     [Fact]
     public static void Should_Validate_Text_ParseParams()

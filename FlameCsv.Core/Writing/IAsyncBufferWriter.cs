@@ -20,7 +20,6 @@ internal interface IAsyncBufferWriter<T> : IBufferWriter<T> where T : unmanaged
     /// <param name="exception">
     /// Exception observed when writing the data. If null, pending unflushed data does not get flushed.
     /// </param>
-    /// <param name="cancellationToken"></param>
     ValueTask CompleteAsync(
         Exception? exception,
         CancellationToken cancellationToken = default);
