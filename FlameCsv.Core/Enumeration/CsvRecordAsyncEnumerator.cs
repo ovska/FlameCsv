@@ -85,7 +85,7 @@ public sealed class CsvRecordAsyncEnumerator<T> : CsvRecordEnumeratorBase<T>, IA
     {
         if (!_disposed)
         {
-            Dispose(true);
+            base.Dispose(true);
             await _reader.DisposeAsync().ConfigureAwait(false);
         }
     }
