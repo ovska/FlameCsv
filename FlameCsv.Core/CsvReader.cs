@@ -80,13 +80,13 @@ public static partial class CsvReader
     /// <inheritdoc cref="Read{T,TValue}(CsvOptions{T},ReadOnlyMemory{T})"/>
     [RUF(Messages.CompiledExpressions)]
     public static CsvValueEnumerable<T, TValue> Read<T, [DAM(Messages.ReflectionBound)] TValue>(
-        ReadOnlySequence<T> csv,
+        in ReadOnlySequence<T> csv,
         CsvOptions<T> options,
         CsvContextOverride<T> context = default)
         where T : unmanaged, IEquatable<T>
     {
         ArgumentNullException.ThrowIfNull(options);
-        return new CsvValueEnumerable<T, TValue>(csv, options, context);
+        return new CsvValueEnumerable<T, TValue>(in csv, options, context);
     }
 
     /// <summary>

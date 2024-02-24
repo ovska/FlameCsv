@@ -56,7 +56,7 @@ public static partial class CsvReader
     }
 
     public static CsvTypeMapEnumerable<T, TValue> Read<T, TValue>(
-        ReadOnlySequence<T> csv,
+        in ReadOnlySequence<T> csv,
         CsvTypeMap<T, TValue> typeMap,
         CsvOptions<T> options,
         CsvContextOverride<T> context = default)
@@ -74,13 +74,15 @@ public static partial class CsvReader
         CsvContextOverride<char> context = default,
         Encoding? encoding = null,
         bool leaveOpen = false,
-        int bufferSize = DefaultBufferSize)
+        int bufferSize = -1)
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(typeMap);
         ArgumentNullException.ThrowIfNull(options);
         Guard.CanRead(stream);
-        ArgumentOutOfRangeException.ThrowIfLessThan(bufferSize, 1);
+
+        if (bufferSize != -1)
+            ArgumentOutOfRangeException.ThrowIfLessThan(bufferSize, 1);
 
         var readerContext = new CsvReadingContext<char>(options, in context);
         var textReader = new StreamReader(stream, encoding: encoding, leaveOpen: leaveOpen, bufferSize: bufferSize);

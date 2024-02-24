@@ -12,24 +12,10 @@ internal sealed class PipeReaderWrapper(PipeReader inner) : ICsvPipeReader<byte>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask DisposeAsync() => inner.CompleteAsync(exception: null);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ValueTask<CsvReadResult<byte>> ReadAsync(CancellationToken cancellationToken = default)
-    {
-        var readTask = inner.ReadAsync(cancellationToken);
-
-        if (readTask.IsCompletedSuccessfully)
-        {
-            var result = readTask.Result;
-            return new(new CsvReadResult<byte>(result.Buffer, result.IsCompleted));
-        }
-
-        return Core(readTask);
-    }
-
     [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))]
-    private static async ValueTask<CsvReadResult<byte>> Core(ValueTask<ReadResult> readTask)
+    public async ValueTask<CsvReadResult<byte>> ReadAsync(CancellationToken cancellationToken = default)
     {
-        var result = await readTask.ConfigureAwait(false);
+        var result = await inner.ReadAsync(cancellationToken).ConfigureAwait(false);
         return new CsvReadResult<byte>(result.Buffer, result.IsCompleted);
     }
 }
