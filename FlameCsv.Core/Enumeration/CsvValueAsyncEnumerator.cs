@@ -83,19 +83,19 @@ public sealed class CsvValueAsyncEnumerator<T, TValue> : CsvValueEnumeratorBase<
 
     public async ValueTask DisposeAsync()
     {
-        _disposed = true;
-
-        base.Dispose(true);
-        await _reader.DisposeAsync().ConfigureAwait(false);
+        if (!_disposed)
+        {
+            base.Dispose(true);
+            await _reader.DisposeAsync().ConfigureAwait(false);
+        }
     }
 
     protected override void Dispose(bool disposing)
     {
         if (!_disposed)
         {
+            base.Dispose(disposing);
             DisposeAsync().AsTask().GetAwaiter().GetResult();
         }
-
-        base.Dispose(disposing);
     }
 }

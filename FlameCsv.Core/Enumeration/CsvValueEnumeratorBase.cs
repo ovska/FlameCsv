@@ -64,6 +64,12 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         _current = default!;
     }
 
+    /// <summary>
+    /// Attempts to read a value to <see cref="Current"/> from the buffer.
+    /// </summary>
+    /// <param name="buffer">Buffer to read from</param>
+    /// <param name="isFinalBlock">Whether no more data is expected (newline can be omitted from final record)</param>
+    /// <returns></returns>
     protected bool TryRead(ref ReadOnlySequence<T> buffer, bool isFinalBlock)
     {
         ReadNextRecord:
