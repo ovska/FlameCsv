@@ -16,10 +16,6 @@ namespace FlameCsv.Enumeration;
 /// This class is not thread-safe, and should not be used concurrently.<br/>
 /// The enumerator should always be disposed after use, either explicitly or using <c>foreach</c>.
 /// </remarks>
-[System.Diagnostics.CodeAnalysis.SuppressMessage(
-    "Design",
-    "CA1051:Do not declare visible instance fields",
-    Justification = "The constructor is internal so this type cannot be inherited outside the library")]
 public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanaged, IEquatable<T>
 {
     public CsvValueRecord<T> Current => _current._options is not null ? _current : ThrowInvalidCurrentAccess();
@@ -32,8 +28,7 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
 
     private T[]? _multisegmentBuffer; // rented array for multi-segmented lines
 
-    protected CsvValueRecord<T> _current;
-
+    protected internal CsvValueRecord<T> _current;
     protected internal bool _disposed;
 
     internal CsvRecordEnumeratorBase(in CsvReadingContext<T> context)

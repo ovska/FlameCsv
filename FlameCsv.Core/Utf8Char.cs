@@ -3,7 +3,7 @@
 namespace FlameCsv;
 
 /// <summary>
-/// Represents a single UTF-8 character.
+/// Represents an ASCII UTF-8 character.
 /// </summary>
 public readonly struct Utf8Char : IEquatable<Utf8Char>, IEquatable<char>, IEquatable<byte>
 {

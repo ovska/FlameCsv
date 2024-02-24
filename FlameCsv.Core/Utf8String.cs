@@ -70,9 +70,7 @@ public readonly struct Utf8String : IEquatable<Utf8String>, IEquatable<string>, 
 
     private Utf8String(string stringValue, ReadOnlySpan<byte> byteValue)
     {
-        Debug.Assert(
-            (stringValue.Length == 0 && byteValue.IsEmpty) ||
-            stringValue == Encoding.UTF8.GetString(byteValue));
+        Debug.Assert(stringValue == Encoding.UTF8.GetString(byteValue));
 
         _string = stringValue;
         _bytes = byteValue.ToArray();

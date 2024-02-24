@@ -10,7 +10,6 @@ using FlameCsv.Reflection;
 
 namespace FlameCsv.Binding;
 
-[SuppressMessage("Design", "CA1036:Override methods on comparable types", Justification = "<Pending>")]
 public abstract class CsvBinding : IComparable<CsvBinding>
 {
     /// <summary>

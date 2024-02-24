@@ -55,7 +55,7 @@ internal readonly struct RFC4180Escaper<T> : IEscaper<T> where T : unmanaged, IE
         else
         {
             // Single token newlines can be seeked directly
-            index = value.IndexOfAny(_delimiter, _quote, MemoryMarshal.GetReference(newLine));
+            index = value.IndexOfAny(_delimiter, _quote, newLine[0]);
 
             if (index >= 0)
             {
