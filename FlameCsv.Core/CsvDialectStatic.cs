@@ -32,32 +32,19 @@ internal static class CsvDialectStatic
             (Utf8Char?)escape);
     }
 
-    private static readonly CsvDialect<char> _charCRLF = new(
+    internal static readonly CsvDialect<char> _charCRLF = new(
         delimiter: ',',
         quote: '"',
         newline: "\r\n".AsMemory(),
         whitespace: default,
         escape: default);
 
-    private static readonly CsvDialect<byte> _byteCRLF = new(
-        delimiter: new Utf8Char(','),
-        quote: new Utf8Char('"'),
+    internal static readonly CsvDialect<byte> _byteCRLF = new(
+        delimiter: (Utf8Char)',',
+        quote: (Utf8Char)'"',
         newline: Utf8String.CRLF,
         whitespace: default,
         escape: default);
-
-    public static CsvDialect<T> GetDefault<T>()
-        where T : unmanaged, IEquatable<T>
-    {
-        if (typeof(T) == typeof(char))
-            return (CsvDialect<T>)(object)_charCRLF;
-
-        if (typeof(T) == typeof(byte))
-            return (CsvDialect<T>)(object)_byteCRLF;
-
-        Token<T>.ThrowNotSupportedException();
-        return default; // unreachable
-    }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void ThrowForInvalid(IEnumerable<string> errors)

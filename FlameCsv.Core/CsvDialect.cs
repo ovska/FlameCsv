@@ -11,7 +11,35 @@ namespace FlameCsv;
 public readonly struct CsvDialect<T> : IEquatable<CsvDialect<T>> where T : unmanaged, IEquatable<T>
 {
     [SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "<Pending>")]
-    public static CsvDialect<T> Default => CsvDialectStatic.GetDefault<T>();
+    public static CsvDialect<T> Default
+    {
+        get
+        {
+            if (typeof(T) == typeof(char))
+                return (CsvDialect<T>)(object)CsvDialectStatic._charCRLF;
+
+            if (typeof(T) == typeof(byte))
+                return (CsvDialect<T>)(object)CsvDialectStatic._byteCRLF;
+
+            Token<T>.ThrowNotSupportedException();
+            return default;
+        }
+    }
+
+    public static CsvDialect<T> Environment
+    {
+        get
+        {
+            if (typeof(T) == typeof(char))
+                return (CsvDialect<T>)(object)CsvDialectStatic.Text(newline: System.Environment.NewLine);
+
+            if (typeof(T) == typeof(byte))
+                return (CsvDialect<T>)(object)CsvDialectStatic.Utf8(newline: System.Environment.NewLine);
+
+            Token<T>.ThrowNotSupportedException();
+            return default;
+        }
+    }
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Delimiter"/>
     public readonly T Delimiter;
