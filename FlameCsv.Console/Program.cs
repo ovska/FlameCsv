@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Converters;
+using FlameCsv.Reading;
 
 #pragma warning disable IDE0161 // Convert to file-scoped namespace
 namespace FlameCsv.Console
@@ -12,6 +13,11 @@ namespace FlameCsv.Console
     {
         static void Main([NotNull] string[] args)
         {
+            var s_c_b = Unsafe.SizeOf<CsvReadingContext<byte>>();
+            var s_c_c = Unsafe.SizeOf<CsvReadingContext<char>>();
+            var s_r_b = Unsafe.SizeOf<CsvFieldReader<byte>>();
+            var s_r_c = Unsafe.SizeOf<CsvFieldReader<char>>();
+
             Span<char> src = stackalloc char[] { 'x', 'y', 'z', '_' };
             Span<char> dst = stackalloc char[] { 'a','b','c','d' };
 

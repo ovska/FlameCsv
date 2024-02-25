@@ -8,13 +8,13 @@ public ref struct CsvHeaderEnumerator<T> where T : unmanaged, IEquatable<T>
 {
     private readonly Span<char> _buffer;
 
-    private ref CsvEnumerationStateRef<T> _enumerator;
+    private ref CsvFieldReader<T> _enumerator;
 
     private readonly string[]? _array;
     private int _index;
 
     internal CsvHeaderEnumerator(
-        ref CsvEnumerationStateRef<T> enumerator,
+        ref CsvFieldReader<T> enumerator,
         Span<char> buffer = default)
     {
         Guard.IsTrue(enumerator.isAtStart);

@@ -36,7 +36,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
         }
     }
 
-    private CsvEnumerationStateRef<T> _state;
+    private CsvFieldReader<T> _state;
     private bool _disposed;
 
     private Dictionary<string, int>? _header;
@@ -64,11 +64,11 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
         return ++Version;
     }
 
-    public CsvEnumerationStateRef<T> GetInitialStateFor(ReadOnlyMemory<T> memory, RecordMeta meta)
+    public CsvFieldReader<T> GetInitialStateFor(ReadOnlyMemory<T> memory, RecordMeta meta)
     {
         Throw.IfEnumerationDisposed(_disposed);
 
-        return new CsvEnumerationStateRef<T>(in _context, memory, ref _unescapeBuffer, meta);
+        return new CsvFieldReader<T>(in _context, memory, ref _unescapeBuffer, meta);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

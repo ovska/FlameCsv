@@ -65,7 +65,7 @@ public class ModeBench
 
         foreach (ref readonly var tuple in _bytes.AsSpan())
         {
-            CsvEnumerationStateRef<byte> state = new(in _context, tuple.data, ref array, tuple.meta);
+            CsvFieldReader<byte> state = new(in _context, tuple.data, ref array, tuple.meta);
 
             while (!state.remaining.IsEmpty)
                 _ = RFC4180ModeOld<byte>.ReadNextField(ref state);
@@ -81,7 +81,7 @@ public class ModeBench
 
         foreach (ref readonly var tuple in _bytes.AsSpan())
         {
-            CsvEnumerationStateRef<byte> state = new(in _context, tuple.data, ref array, tuple.meta);
+            CsvFieldReader<byte> state = new(in _context, tuple.data, ref array, tuple.meta);
 
             while (!state.remaining.IsEmpty)
                 _ = RFC4180Mode<byte>.ReadNextField(ref state);
@@ -97,7 +97,7 @@ internal static partial class RFC4180ModeOld<T> where T : unmanaged, IEquatable<
     /// Reads the next field from a <strong>non-empty</strong> state.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static ReadOnlyMemory<T> ReadNextField(ref CsvEnumerationStateRef<T> state)
+    public static ReadOnlyMemory<T> ReadNextField(ref CsvFieldReader<T> state)
     {
         Debug.Assert(!state.remaining.IsEmpty);
 

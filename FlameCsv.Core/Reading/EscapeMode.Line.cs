@@ -12,7 +12,7 @@ internal interface ICsvMode<T> where T : unmanaged, IEquatable<T>
         out ReadOnlySequence<T> line,
         out RecordMeta meta);
 
-    ReadOnlyMemory<T> ReadNextField(ref CsvEnumerationStateRef<T> state);
+    ReadOnlyMemory<T> ReadNextField(ref CsvFieldReader<T> state);
 }
 
 internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>

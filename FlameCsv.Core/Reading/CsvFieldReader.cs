@@ -10,7 +10,7 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading;
 
-internal struct CsvEnumerationStateRef<T> : ICsvFieldReader<T> where T : unmanaged, IEquatable<T>
+internal struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IEquatable<T>
 {
     public readonly CsvReadingContext<T> _context;
     private readonly ReadOnlyMemory<T> _record;
@@ -22,14 +22,14 @@ internal struct CsvEnumerationStateRef<T> : ICsvFieldReader<T> where T : unmanag
     public uint escapesRemaining;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal CsvEnumerationStateRef(
+    internal CsvFieldReader(
         in CsvReadingContext<T> context,
         ReadOnlyMemory<T> record,
         ref T[]? array) : this(in context, record, ref array, context.GetRecordMeta(record))
     {
     }
 
-    internal CsvEnumerationStateRef(
+    internal CsvFieldReader(
         in CsvReadingContext<T> context,
         ReadOnlyMemory<T> record,
         ref T[]? array,
@@ -158,16 +158,16 @@ internal struct CsvEnumerationStateRef<T> : ICsvFieldReader<T> where T : unmanag
     }
 
     /// <summary>
-    /// Creates a new <see cref="CsvEnumerationStateRef{T}"/> from the given <paramref name="record"/>
+    /// Creates a new <see cref="CsvFieldReader{T}"/> from the given <paramref name="record"/>
     /// and returns a disposable that ensures the <paramref name="array"/> is returned to the context's pool.
     /// </summary>
     internal static Lifetime CreateTemporary(
         in CsvReadingContext<T> context,
         ReadOnlyMemory<T> record,
         ref T[]? array,
-        out CsvEnumerationStateRef<T> state)
+        out CsvFieldReader<T> state)
     {
-        state = new CsvEnumerationStateRef<T>(in context, record, ref array);
+        state = new CsvFieldReader<T>(in context, record, ref array);
         return new Lifetime(context.ArrayPool, ref array);
     }
 

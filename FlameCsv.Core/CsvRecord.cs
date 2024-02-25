@@ -221,7 +221,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
             int index = 0;
             T[]? buffer = null;
 
-            using (CsvEnumerationStateRef<T>.CreateTemporary(in context, record, ref buffer, out var state))
+            using (CsvFieldReader<T>.CreateTemporary(in context, record, ref buffer, out var state))
             {
                 while (state.TryReadNext(out ReadOnlyMemory<T> field))
                 {
@@ -239,7 +239,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
             int index = 0;
             T[]? buffer = null;
 
-            using (CsvEnumerationStateRef<T>.CreateTemporary(in context, record, ref buffer, out var state))
+            using (CsvFieldReader<T>.CreateTemporary(in context, record, ref buffer, out var state))
             {
                 while (state.TryReadNext(out ReadOnlyMemory<T> field))
                 {
