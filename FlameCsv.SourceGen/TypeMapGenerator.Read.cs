@@ -122,7 +122,7 @@ public partial class TypeMapGenerator
 
             public ");
         sb.Append(typeMap.ResultName);
-        sb.Append(" Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<");
+        sb.Append(" Parse<TReader>(ref TReader reader) where TReader : struct, ICsvFieldReader<");
         sb.Append(typeMap.Token);
         sb.Append(@">
             {

@@ -72,7 +72,7 @@ internal sealed class Materializer<T, T0, TResult>
 
     private readonly CsvConverter<T, T0> converter0;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
+    public TResult Parse<TReader>(ref TReader reader) where TReader : struct, ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
@@ -108,7 +108,7 @@ internal sealed class Materializer<T, T0, T1, TResult>
     private readonly CsvConverter<T, T0> converter0;
     private readonly CsvConverter<T, T1> converter1;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
+    public TResult Parse<TReader>(ref TReader reader) where TReader : struct, ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
@@ -148,7 +148,7 @@ internal sealed class Materializer<T, T0, T1, T2, TResult>
     private readonly CsvConverter<T, T1> converter1;
     private readonly CsvConverter<T, T2> converter2;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
+    public TResult Parse<TReader>(ref TReader reader) where TReader : struct, ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
@@ -192,7 +192,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, TResult>
     private readonly CsvConverter<T, T2> converter2;
     private readonly CsvConverter<T, T3> converter3;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
+    public TResult Parse<TReader>(ref TReader reader) where TReader : struct, ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
@@ -240,7 +240,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult>
     private readonly CsvConverter<T, T3> converter3;
     private readonly CsvConverter<T, T4> converter4;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
+    public TResult Parse<TReader>(ref TReader reader) where TReader : struct, ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
@@ -292,7 +292,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult>
     private readonly CsvConverter<T, T4> converter4;
     private readonly CsvConverter<T, T5> converter5;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
+    public TResult Parse<TReader>(ref TReader reader) where TReader : struct, ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
@@ -348,7 +348,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult>
     private readonly CsvConverter<T, T5> converter5;
     private readonly CsvConverter<T, T6> converter6;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
+    public TResult Parse<TReader>(ref TReader reader) where TReader : struct, ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
@@ -408,7 +408,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult>
     private readonly CsvConverter<T, T6> converter6;
     private readonly CsvConverter<T, T7> converter7;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
+    public TResult Parse<TReader>(ref TReader reader) where TReader : struct, ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
@@ -472,7 +472,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
     private readonly CsvConverter<T, T7> converter7;
     private readonly CsvConverter<T, T8> converter8;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
+    public TResult Parse<TReader>(ref TReader reader) where TReader : struct, ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
@@ -540,7 +540,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
     private readonly CsvConverter<T, T8> converter8;
     private readonly CsvConverter<T, T9> converter9;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
+    public TResult Parse<TReader>(ref TReader reader) where TReader : struct, ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
@@ -612,7 +612,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T9> converter9;
     private readonly CsvConverter<T, T10> converter10;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
+    public TResult Parse<TReader>(ref TReader reader) where TReader : struct, ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
@@ -688,7 +688,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T10> converter10;
     private readonly CsvConverter<T, T11> converter11;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
+    public TResult Parse<TReader>(ref TReader reader) where TReader : struct, ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
@@ -768,7 +768,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T11> converter11;
     private readonly CsvConverter<T, T12> converter12;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
+    public TResult Parse<TReader>(ref TReader reader) where TReader : struct, ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
@@ -852,7 +852,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T12> converter12;
     private readonly CsvConverter<T, T13> converter13;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
+    public TResult Parse<TReader>(ref TReader reader) where TReader : struct, ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
@@ -940,7 +940,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T13> converter13;
     private readonly CsvConverter<T, T14> converter14;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
+    public TResult Parse<TReader>(ref TReader reader) where TReader : struct, ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
@@ -1032,7 +1032,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T14> converter14;
     private readonly CsvConverter<T, T15> converter15;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
+    public TResult Parse<TReader>(ref TReader reader) where TReader : struct, ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 
