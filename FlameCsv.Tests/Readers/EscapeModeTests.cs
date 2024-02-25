@@ -22,7 +22,7 @@ public static class EscapeModeTests
 
         char[]? buffer = null;
 
-        using (CsvEnumerationStateRef<char>.CreateTemporary(in context, input.AsMemory(), ref buffer, out var state))
+        using (CsvFieldReader<char>.CreateTemporary(in context, input.AsMemory(), ref buffer, out var state))
         {
             Assert.True(state.TryReadNext(out var field));
             Assert.Equal(expected, field.ToString());
@@ -40,7 +40,7 @@ public static class EscapeModeTests
 
         var context = new CsvReadingContext<char>(new CsvTextOptions { Escape = '^', Quote = '\'' }, default);
 
-        using (CsvEnumerationStateRef<char>.CreateTemporary(in context, input.AsMemory(), ref buffer, out var state))
+        using (CsvFieldReader<char>.CreateTemporary(in context, input.AsMemory(), ref buffer, out var state))
         {
             var field = EscapeMode<char>.ReadNextField(ref state);
             Assert.Equal(expected, field.ToString());
@@ -71,7 +71,7 @@ public static class EscapeModeTests
 
         char[]? buffer = null;
 
-        using (CsvEnumerationStateRef<char>.CreateTemporary(in context, input.AsMemory(), ref buffer, out var state))
+        using (CsvFieldReader<char>.CreateTemporary(in context, input.AsMemory(), ref buffer, out var state))
         {
             List<string> actual = [];
 

@@ -8,7 +8,7 @@ namespace FlameCsv.Reading;
 internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
 {
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static ReadOnlyMemory<T> ReadNextField(ref CsvEnumerationStateRef<T> state)
+    public static ReadOnlyMemory<T> ReadNextField(ref CsvFieldReader<T> state)
     {
         Debug.Assert(!state.remaining.IsEmpty);
         Debug.Assert(!state._context.Dialect.IsRFC4180Mode);

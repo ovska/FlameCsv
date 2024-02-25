@@ -10,7 +10,7 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
     /// Reads the next field from a <strong>non-empty</strong> state.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static ReadOnlyMemory<T> ReadNextField(ref CsvEnumerationStateRef<T> state)
+    public static ReadOnlyMemory<T> ReadNextField(ref CsvFieldReader<T> state)
     {
         Debug.Assert(!state.remaining.IsEmpty);
 

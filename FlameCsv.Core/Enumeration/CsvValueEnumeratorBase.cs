@@ -107,7 +107,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
 
         try
         {
-            CsvEnumerationStateRef<T> state = new(in _context, record, ref _unescapeBuffer, meta);
+            CsvFieldReader<T> state = new(in _context, record, ref _unescapeBuffer, meta);
 
             _current = _materializer.Parse(ref state);
             return true;
@@ -145,7 +145,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
 
         T[]? array = null;
 
-        using (CsvEnumerationStateRef<T>.CreateTemporary(in _context, record, ref array, out var state))
+        using (CsvFieldReader<T>.CreateTemporary(in _context, record, ref array, out var state))
         {
             List<string> values = new(16);
 

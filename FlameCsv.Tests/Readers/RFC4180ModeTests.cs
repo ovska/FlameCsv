@@ -22,7 +22,7 @@ public static class RFC4180ModeTests
 
         char[]? buffer = null;
 
-        using (CsvEnumerationStateRef<char>.CreateTemporary(in context, input.AsMemory(), ref buffer, out var state))
+        using (CsvFieldReader<char>.CreateTemporary(in context, input.AsMemory(), ref buffer, out var state))
         {
             Assert.True(state.TryReadNext(out var field));
             Assert.Equal(expected, field.ToString());
@@ -44,7 +44,7 @@ public static class RFC4180ModeTests
         var context = new CsvReadingContext<char>(CsvTextOptions.Default, new() { ArrayPool = AllocatingArrayPool<char>.Instance });
 
         char[]? unescapeArray = null;
-        var state = new CsvEnumerationStateRef<char>(in context, input.AsMemory(), ref unescapeArray);
+        var state = new CsvFieldReader<char>(in context, input.AsMemory(), ref unescapeArray);
 
         var delimiterCount = input.Count(c => c == '"');
 
@@ -228,7 +228,7 @@ public static class RFC4180ModeTests
 
         char[]? buffer = null;
 
-        CsvEnumerationStateRef<char> state = new(in context, line.AsMemory(), ref buffer);
+        CsvFieldReader<char> state = new(in context, line.AsMemory(), ref buffer);
 
         while (!state.remaining.IsEmpty)
         {
@@ -261,7 +261,7 @@ public static class RFC4180ModeTests
             var input = new string(chars.ToArray());
             var line = $"\"{input}\",test";
 
-            CsvEnumerationStateRef<char> state = new(in context, line.AsMemory(), ref buffer);
+            CsvFieldReader<char> state = new(in context, line.AsMemory(), ref buffer);
 
             var list = new List<string>();
 
