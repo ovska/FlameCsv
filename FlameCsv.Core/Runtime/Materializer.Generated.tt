@@ -112,7 +112,7 @@ internal sealed class Materializer<T, <#= generics #>>
         }
 #>
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>
+    public TResult Parse<TReader>(ref TReader reader) where TReader : struct, ICsvFieldReader<T>
     {
         reader.TryEnsureFieldCount(FieldCount);
 

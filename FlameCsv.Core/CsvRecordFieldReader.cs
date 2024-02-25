@@ -47,9 +47,11 @@ internal struct CsvRecordFieldReader<T> : ICsvFieldReader<T> where T : unmanaged
 
     public bool TryReadNext(out ReadOnlyMemory<T> field)
     {
-        if ((uint)_index < (uint)_values.Count)
+        var values = _values.AsSpan();
+
+        if ((uint)_index < (uint)values.Length)
         {
-            field = _values[_index++];
+            field = values[_index++];
             return true;
         }
 

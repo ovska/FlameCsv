@@ -23,7 +23,7 @@ internal abstract partial class Materializer<T> where T : unmanaged, IEquatable<
     /// <typeparam name="TValue">Parsed value</typeparam>
     [MethodImpl(MethodImplOptions.AggressiveInlining)] // should be small enough to inline in Parse()
     protected static TValue ParseNext<TReader, TValue>(ref TReader reader, CsvConverter<T, TValue> converter)
-        where TReader : ICsvFieldReader<T>
+        where TReader : struct, ICsvFieldReader<T>
     {
         if (reader.TryReadNext(out ReadOnlyMemory<T> field))
         {
