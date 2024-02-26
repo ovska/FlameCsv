@@ -31,8 +31,21 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
         set
         {
             _header = value;
-            _headerNames = value?.Keys.ToArray();
             _materializerCache?.Clear();
+            
+            if (value is null)
+            {
+                _headerNames = null;
+            }
+            else
+            {
+                _headerNames = new string[value.Count];
+                int ix = 0;
+                foreach (var (header, _) in value)
+                {
+                    _headerNames[ix++] = header;
+                }
+            }
         }
     }
 
