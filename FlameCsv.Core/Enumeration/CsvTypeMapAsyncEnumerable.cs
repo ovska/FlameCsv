@@ -12,6 +12,19 @@ public sealed class CsvTypeMapAsyncEnumerable<T, TValue> : IAsyncEnumerable<TVal
 
     internal CsvTypeMapAsyncEnumerable(
         ICsvPipeReader<T> reader,
+        CsvOptions<T> options,
+        CsvTypeMap<T, TValue> typeMap)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(typeMap);
+        _context = new CsvReadingContext<T>(options);
+        _reader = reader;
+        _typeMap = typeMap;
+    }
+
+    internal CsvTypeMapAsyncEnumerable(
+        ICsvPipeReader<T> reader,
         in CsvReadingContext<T> context,
         CsvTypeMap<T, TValue> typeMap)
     {

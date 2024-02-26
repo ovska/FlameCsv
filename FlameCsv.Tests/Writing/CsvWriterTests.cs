@@ -131,7 +131,7 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
         _textWriter = new StringWriter();
         _writer = new CsvFieldWriter<char, CsvCharBufferWriter>(
             new CsvCharBufferWriter(_textWriter, AllocatingArrayPool<char>.Instance, bufferSize),
-            new CsvWritingContext<char>(new CsvTextOptions { FieldQuoting = quoting, Null = "null" }, default));
+            new CsvWritingContext<char>(new CsvTextOptions { FieldQuoting = quoting, Null = "null" }));
     }
 
     private sealed class Formatter : CsvConverter<char, string>

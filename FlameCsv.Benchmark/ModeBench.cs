@@ -17,7 +17,7 @@ namespace FlameCsv.Benchmark;
 //[BenchmarkDotNet.Diagnostics.Windows.Configs.EtwProfiler]
 public class ModeBench
 {
-    private static readonly CsvReadingContext<byte> _context = new(CsvUtf8Options.Default, default);
+    private static readonly CsvReadingContext<byte> _context = new(CsvUtf8Options.Default);
     private static readonly (ReadOnlyMemory<byte> data, RecordMeta meta)[] _bytes
         = File.ReadAllLines(
             "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv",

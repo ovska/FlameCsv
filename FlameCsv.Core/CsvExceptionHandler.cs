@@ -19,9 +19,9 @@ public readonly struct CsvExceptionHandlerArgs<T> where T : unmanaged, IEquatabl
     public ReadOnlyMemory<T> Record { get; init; }
 
     /// <summary>
-    /// Current dialect.
+    /// Current options.
     /// </summary>
-    public CsvDialect<T> Dialect { get; init; }
+    public CsvOptions<T> Options { get; init; }
 
     /// <summary>
     /// 1-based line number.

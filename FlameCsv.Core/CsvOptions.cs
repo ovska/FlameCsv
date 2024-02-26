@@ -102,17 +102,17 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     /// </summary>
     internal protected abstract bool TryGetDefaultConverter(Type type, [NotNullWhen(true)] out CsvConverter<T>? converter);
 
+    internal CsvRecordSkipPredicate<T>? _shouldSkipRow;
+    internal CsvExceptionHandler<T>? _exceptionHandler;
+    internal bool _hasHeader = true;
+    internal bool _validateFieldCount;
+    internal CsvFieldQuoting _fieldQuoting;
+    internal ArrayPool<T>? _arrayPool = ArrayPool<T>.Shared;
+    internal bool _allowContentInExceptions;
     private IEqualityComparer<string> _stringComparison = StringComparer.OrdinalIgnoreCase;
-    private CsvRecordSkipPredicate<T>? _shouldSkipRow;
-    private CsvExceptionHandler<T>? _exceptionHandler;
-    private bool _hasHeader = true;
-    private bool _validateFieldCount;
-    private CsvFieldQuoting _fieldQuoting;
-    private bool _allowContentInExceptions;
     private bool _useDefaultConverters = true;
     private bool _ignoreEnumCase = true;
     private bool _allowUndefinedEnumValues;
-    private ArrayPool<T>? _arrayPool = ArrayPool<T>.Shared;
     private StringPool? _stringPool;
     internal IList<(string text, bool value)>? _booleanValues;
 

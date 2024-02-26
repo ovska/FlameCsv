@@ -41,6 +41,7 @@ public static partial class CsvReader
         {
             return new CsvValueAsyncEnumerator<T, TValue>(
                 in _context,
+                _materializer,
                 _reader,
                 cancellationToken);
         }
@@ -55,15 +56,14 @@ public static partial class CsvReader
     private static CsvReadingContext<T> ValidateReadRecordsArgs<T>(
         [NotNull] object? reader,
         [NotNull] CsvOptions<T>? options,
-        [NotNull] object? recordFactory,
-        in CsvContextOverride<T> contextOverride)
+        [NotNull] Delegate? recordFactory)
         where T : unmanaged, IEquatable<T>
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(recordFactory);
 
-        CsvReadingContext<T> context = new(options, in contextOverride);
+        CsvReadingContext<T> context = new(options);
 
         if (context.HasHeader)
             ThrowArgumentExceptionReadRecordsHasHeader();
@@ -101,10 +101,9 @@ for (var _tokenType = 0; _tokenType < 2; _tokenType++)
     public static CsvRecordFactoryAsyncEnumerable<<#= tokenType #>, TValue> <#= methodName #><<#= generics #>>(
         <#= parameterReaderType #> reader,
         CsvOptions<<#= tokenType #>> options,
-        Func<<#= generics #>> recordFactory,
-        CsvContextOverride<<#= tokenType #>> context = default)
+        Func<<#= generics #>> recordFactory)
     {
-        CsvReadingContext<<#= tokenType #>> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<<#= tokenType #>> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<<#= tokenType #>, <#= generics #>> materializer = new(recordFactory<#
             for (int i = 0; i < current; i++)

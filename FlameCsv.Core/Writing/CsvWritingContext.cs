@@ -11,24 +11,19 @@ internal readonly struct CsvWritingContext<T> where T : unmanaged, IEquatable<T>
             Throw.InvalidOp_DefaultStruct(typeof(CsvWritingContext<T>));
     }
 
-    public CsvDialect<T> Dialect => _dialect;
-    public CsvOptions<T> Options { get; }
-    public ArrayPool<T> ArrayPool { get; }
-    public bool HasHeader { get; }
-    public CsvFieldQuoting FieldQuoting { get; }
+    public readonly CsvDialect<T> Dialect;
+    public readonly CsvOptions<T> Options;
+    public ArrayPool<T> ArrayPool => Options._arrayPool.AllocatingIfNull();
+    public bool HasHeader => Options._hasHeader;
+    public CsvFieldQuoting FieldQuoting => Options._fieldQuoting;
 
-    private readonly CsvDialect<T> _dialect;
-
-    public CsvWritingContext(CsvOptions<T> options, in CsvContextOverride<T> overrides)
+    public CsvWritingContext(CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
         options.MakeReadOnly();
 
         Options = options;
-        ArrayPool = overrides._arrayPool.Resolve(options.ArrayPool).AllocatingIfNull();
-        FieldQuoting = overrides._fieldQuoting.Resolve(options.FieldQuoting);
-        HasHeader = overrides._hasHeader.Resolve(options.HasHeader);
-        _dialect = new CsvDialect<T>(options, in overrides);
+        Dialect = new CsvDialect<T>(options);
     }
 }
 

@@ -4,6 +4,7 @@ using FlameCsv.Writing;
 
 namespace FlameCsv;
 
+[Obsolete("To be deleted", error: true)]
 public readonly struct CsvContextOverride<T> where T : unmanaged, IEquatable<T>
 {
     public T Delimiter { get => _delimiter; init => _delimiter = value; }

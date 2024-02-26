@@ -26,6 +26,6 @@ public readonly struct CsvRecordAsyncEnumerable<T> where T : unmanaged, IEquatab
     public IAsyncEnumerable<CsvRecord<T>> AsAsyncEnumerable()
     {
         _context.EnsureValid();
-        return new CopyingRecordAsyncEnumerable<T>(this);
+        return new CopyingRecordAsyncEnumerable<T>(in this);
     }
 }

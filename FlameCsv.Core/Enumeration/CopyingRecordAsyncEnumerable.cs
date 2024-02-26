@@ -5,7 +5,7 @@ internal sealed class CopyingRecordAsyncEnumerable<T> : IAsyncEnumerable<CsvReco
 {
     private readonly CsvRecordAsyncEnumerable<T> _source;
 
-    public CopyingRecordAsyncEnumerable(CsvRecordAsyncEnumerable<T> source)
+    public CopyingRecordAsyncEnumerable(in CsvRecordAsyncEnumerable<T> source)
     {
         _source = source;
     }
