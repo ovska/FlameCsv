@@ -109,12 +109,13 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     internal CsvFieldQuoting _fieldQuoting;
     internal ArrayPool<T>? _arrayPool = ArrayPool<T>.Shared;
     internal bool _allowContentInExceptions;
+    internal IList<(string text, bool value)>? _booleanValues;
+
     private IEqualityComparer<string> _stringComparison = StringComparer.OrdinalIgnoreCase;
     private bool _useDefaultConverters = true;
     private bool _ignoreEnumCase = true;
     private bool _allowUndefinedEnumValues;
     private StringPool? _stringPool;
-    internal IList<(string text, bool value)>? _booleanValues;
 
     /// <summary>
     /// Text comparison used to match header names.
