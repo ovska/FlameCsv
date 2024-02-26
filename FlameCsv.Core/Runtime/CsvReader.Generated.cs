@@ -43,15 +43,14 @@ public static partial class CsvReader
     private static CsvReadingContext<T> ValidateReadRecordsArgs<T>(
         [NotNull] object? reader,
         [NotNull] CsvOptions<T>? options,
-        [NotNull] object? recordFactory,
-        in CsvContextOverride<T> contextOverride)
+        [NotNull] Delegate? recordFactory)
         where T : unmanaged, IEquatable<T>
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(recordFactory);
 
-        CsvReadingContext<T> context = new(options, in contextOverride);
+        CsvReadingContext<T> context = new(options);
 
         if (context.HasHeader)
             ThrowArgumentExceptionReadRecordsHasHeader();
@@ -77,10 +76,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, TValue>(
         TextReader reader,
         CsvOptions<char> options,
-        Func<T0, TValue> recordFactory,
-        CsvContextOverride<char> context = default)
+        Func<T0, TValue> recordFactory)
     {
-        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<char, T0, TValue> materializer = new(recordFactory, options.GetConverter<T0>());
 
@@ -101,10 +99,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, TValue>(
         TextReader reader,
         CsvOptions<char> options,
-        Func<T0, T1, TValue> recordFactory,
-        CsvContextOverride<char> context = default)
+        Func<T0, T1, TValue> recordFactory)
     {
-        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<char, T0, T1, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>());
 
@@ -125,10 +122,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, TValue>(
         TextReader reader,
         CsvOptions<char> options,
-        Func<T0, T1, T2, TValue> recordFactory,
-        CsvContextOverride<char> context = default)
+        Func<T0, T1, T2, TValue> recordFactory)
     {
-        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<char, T0, T1, T2, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>());
 
@@ -149,10 +145,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, TValue>(
         TextReader reader,
         CsvOptions<char> options,
-        Func<T0, T1, T2, T3, TValue> recordFactory,
-        CsvContextOverride<char> context = default)
+        Func<T0, T1, T2, T3, TValue> recordFactory)
     {
-        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<char, T0, T1, T2, T3, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>());
 
@@ -173,10 +168,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, TValue>(
         TextReader reader,
         CsvOptions<char> options,
-        Func<T0, T1, T2, T3, T4, TValue> recordFactory,
-        CsvContextOverride<char> context = default)
+        Func<T0, T1, T2, T3, T4, TValue> recordFactory)
     {
-        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<char, T0, T1, T2, T3, T4, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>());
 
@@ -197,10 +191,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, TValue>(
         TextReader reader,
         CsvOptions<char> options,
-        Func<T0, T1, T2, T3, T4, T5, TValue> recordFactory,
-        CsvContextOverride<char> context = default)
+        Func<T0, T1, T2, T3, T4, T5, TValue> recordFactory)
     {
-        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>());
 
@@ -221,10 +214,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, TValue>(
         TextReader reader,
         CsvOptions<char> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, TValue> recordFactory,
-        CsvContextOverride<char> context = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, TValue> recordFactory)
     {
-        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>());
 
@@ -245,10 +237,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, TValue>(
         TextReader reader,
         CsvOptions<char> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, TValue> recordFactory,
-        CsvContextOverride<char> context = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, TValue> recordFactory)
     {
-        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>());
 
@@ -269,10 +260,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue>(
         TextReader reader,
         CsvOptions<char> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> recordFactory,
-        CsvContextOverride<char> context = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> recordFactory)
     {
-        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>());
 
@@ -293,10 +283,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue>(
         TextReader reader,
         CsvOptions<char> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> recordFactory,
-        CsvContextOverride<char> context = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> recordFactory)
     {
-        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>());
 
@@ -317,10 +306,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue>(
         TextReader reader,
         CsvOptions<char> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> recordFactory,
-        CsvContextOverride<char> context = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> recordFactory)
     {
-        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>());
 
@@ -341,10 +329,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue>(
         TextReader reader,
         CsvOptions<char> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> recordFactory,
-        CsvContextOverride<char> context = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> recordFactory)
     {
-        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>());
 
@@ -365,10 +352,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue>(
         TextReader reader,
         CsvOptions<char> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> recordFactory,
-        CsvContextOverride<char> context = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> recordFactory)
     {
-        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>());
 
@@ -389,10 +375,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue>(
         TextReader reader,
         CsvOptions<char> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> recordFactory,
-        CsvContextOverride<char> context = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> recordFactory)
     {
-        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>());
 
@@ -413,10 +398,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue>(
         TextReader reader,
         CsvOptions<char> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> recordFactory,
-        CsvContextOverride<char> context = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> recordFactory)
     {
-        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>(), options.GetConverter<T14>());
 
@@ -437,10 +421,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<char, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue>(
         TextReader reader,
         CsvOptions<char> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> recordFactory,
-        CsvContextOverride<char> context = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> recordFactory)
     {
-        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<char> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>(), options.GetConverter<T14>(), options.GetConverter<T15>());
 
@@ -461,10 +444,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, TValue>(
         PipeReader reader,
         CsvOptions<byte> options,
-        Func<T0, TValue> recordFactory,
-        CsvContextOverride<byte> context = default)
+        Func<T0, TValue> recordFactory)
     {
-        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<byte, T0, TValue> materializer = new(recordFactory, options.GetConverter<T0>());
 
@@ -485,10 +467,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, TValue>(
         PipeReader reader,
         CsvOptions<byte> options,
-        Func<T0, T1, TValue> recordFactory,
-        CsvContextOverride<byte> context = default)
+        Func<T0, T1, TValue> recordFactory)
     {
-        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<byte, T0, T1, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>());
 
@@ -509,10 +490,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, TValue>(
         PipeReader reader,
         CsvOptions<byte> options,
-        Func<T0, T1, T2, TValue> recordFactory,
-        CsvContextOverride<byte> context = default)
+        Func<T0, T1, T2, TValue> recordFactory)
     {
-        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<byte, T0, T1, T2, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>());
 
@@ -533,10 +513,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, TValue>(
         PipeReader reader,
         CsvOptions<byte> options,
-        Func<T0, T1, T2, T3, TValue> recordFactory,
-        CsvContextOverride<byte> context = default)
+        Func<T0, T1, T2, T3, TValue> recordFactory)
     {
-        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<byte, T0, T1, T2, T3, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>());
 
@@ -557,10 +536,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, TValue>(
         PipeReader reader,
         CsvOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, TValue> recordFactory,
-        CsvContextOverride<byte> context = default)
+        Func<T0, T1, T2, T3, T4, TValue> recordFactory)
     {
-        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<byte, T0, T1, T2, T3, T4, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>());
 
@@ -581,10 +559,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, TValue>(
         PipeReader reader,
         CsvOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, T5, TValue> recordFactory,
-        CsvContextOverride<byte> context = default)
+        Func<T0, T1, T2, T3, T4, T5, TValue> recordFactory)
     {
-        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>());
 
@@ -605,10 +582,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, TValue>(
         PipeReader reader,
         CsvOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, TValue> recordFactory,
-        CsvContextOverride<byte> context = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, TValue> recordFactory)
     {
-        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>());
 
@@ -629,10 +605,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, TValue>(
         PipeReader reader,
         CsvOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, TValue> recordFactory,
-        CsvContextOverride<byte> context = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, TValue> recordFactory)
     {
-        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>());
 
@@ -653,10 +628,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue>(
         PipeReader reader,
         CsvOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> recordFactory,
-        CsvContextOverride<byte> context = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> recordFactory)
     {
-        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>());
 
@@ -677,10 +651,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue>(
         PipeReader reader,
         CsvOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> recordFactory,
-        CsvContextOverride<byte> context = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> recordFactory)
     {
-        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>());
 
@@ -701,10 +674,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue>(
         PipeReader reader,
         CsvOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> recordFactory,
-        CsvContextOverride<byte> context = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> recordFactory)
     {
-        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>());
 
@@ -725,10 +697,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue>(
         PipeReader reader,
         CsvOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> recordFactory,
-        CsvContextOverride<byte> context = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> recordFactory)
     {
-        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>());
 
@@ -749,10 +720,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue>(
         PipeReader reader,
         CsvOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> recordFactory,
-        CsvContextOverride<byte> context = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> recordFactory)
     {
-        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>());
 
@@ -773,10 +743,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue>(
         PipeReader reader,
         CsvOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> recordFactory,
-        CsvContextOverride<byte> context = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> recordFactory)
     {
-        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>());
 
@@ -797,10 +766,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue>(
         PipeReader reader,
         CsvOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> recordFactory,
-        CsvContextOverride<byte> context = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> recordFactory)
     {
-        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>(), options.GetConverter<T14>());
 
@@ -821,10 +789,9 @@ public static partial class CsvReader
     public static CsvRecordFactoryAsyncEnumerable<byte, TValue> ReadRecordsAsync<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue>(
         PipeReader reader,
         CsvOptions<byte> options,
-        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> recordFactory,
-        CsvContextOverride<byte> context = default)
+        Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> recordFactory)
     {
-        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory, context);
+        CsvReadingContext<byte> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>(), options.GetConverter<T14>(), options.GetConverter<T15>());
 

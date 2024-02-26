@@ -108,8 +108,7 @@ public class ReadExceptionTests
         {
             foreach (var _ in CsvReader.Read<Obj>(
                 "1,Bob\r\ntest,test",
-                CsvTextOptions.Default,
-                new() { HasHeader = false }))
+                new CsvTextOptions { HasHeader = false }))
             {
             }
         });

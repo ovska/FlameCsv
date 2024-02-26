@@ -18,7 +18,7 @@ public static class EscapeModeTests
     [InlineData("\" test \"", "test")]
     public static void Should_Trim_Fields(string input, string expected)
     {
-        var context = new CsvReadingContext<char>(new CsvTextOptions { Whitespace = " ", Escape = '\\' }, default);
+        var context = new CsvReadingContext<char>(new CsvTextOptions { Whitespace = " ", Escape = '\\' });
 
         char[]? buffer = null;
 
@@ -38,7 +38,7 @@ public static class EscapeModeTests
     {
         char[]? buffer = null;
 
-        var context = new CsvReadingContext<char>(new CsvTextOptions { Escape = '^', Quote = '\'' }, default);
+        var context = new CsvReadingContext<char>(new CsvTextOptions { Escape = '^', Quote = '\'' });
 
         using (CsvFieldReader<char>.CreateTemporary(in context, input.AsMemory(), ref buffer, out var state))
         {
@@ -67,7 +67,7 @@ public static class EscapeModeTests
             ArrayPool = pool,
         };
 
-        var context = new CsvReadingContext<char>(options, default);
+        var context = new CsvReadingContext<char>(options);
 
         char[]? buffer = null;
 
@@ -209,7 +209,7 @@ public static class EscapeModeTests
             AllowContentInExceptions = true,
             ArrayPool = pool,
         };
-        var context = new CsvReadingContext<char>(options, default);
+        var context = new CsvReadingContext<char>(options);
 
         var originalData = MemorySegment<char>.AsSequence(fullLine.AsMemory(), segmentSize, emptyFrequency);
         var originalWithoutNewline = MemorySegment<char>.AsSequence(noNewline.AsMemory(), segmentSize, emptyFrequency);

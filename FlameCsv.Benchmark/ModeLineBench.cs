@@ -10,7 +10,7 @@ namespace FlameCsv.Benchmark;
 [SimpleJob]
 public class ModeLineBench
 {
-    private static readonly CsvReadingContext<byte> _context = new(CsvUtf8Options.Default, default);
+    private static readonly CsvReadingContext<byte> _context = new(CsvUtf8Options.Default);
     private static readonly ReadOnlySequence<byte> _bytes = new(File.ReadAllBytes("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv"));
 
     [Benchmark(Baseline = true)]

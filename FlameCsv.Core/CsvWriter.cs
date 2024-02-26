@@ -16,7 +16,6 @@ public static partial class CsvWriter
         IEnumerable<TValue> values,
         string path,
         CsvOptions<byte> options,
-        CsvContextOverride<byte> context = default,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(values);
@@ -26,12 +25,12 @@ public static partial class CsvWriter
         if (cancellationToken.IsCancellationRequested)
             return Task.FromCanceled(cancellationToken);
 
-        var _context = new CsvWritingContext<byte>(options, in context);
-        var dematerializer = ReflectionDematerializer.Create<byte, TValue>(in _context);
+        var context = new CsvWritingContext<byte>(options);
+        var dematerializer = ReflectionDematerializer.Create<byte, TValue>(in context);
 
         return WriteAsyncCore(
             values,
-            CsvFieldWriter.Create(File.OpenWrite(path), in _context),
+            CsvFieldWriter.Create(File.OpenWrite(path), in context),
             dematerializer,
             cancellationToken);
     }
@@ -42,7 +41,6 @@ public static partial class CsvWriter
         string path,
         CsvOptions<char> options,
         Encoding? encoding = null,
-        CsvContextOverride<char> context = default,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(values);
@@ -52,14 +50,14 @@ public static partial class CsvWriter
         if (cancellationToken.IsCancellationRequested)
             return Task.FromCanceled(cancellationToken);
 
-        var _context = new CsvWritingContext<char>(options, in context);
-        var dematerializer = ReflectionDematerializer.Create<char, TValue>(in _context);
+        var context = new CsvWritingContext<char>(options);
+        var dematerializer = ReflectionDematerializer.Create<char, TValue>(in context);
 
         return WriteAsyncCore(
             values,
             CsvFieldWriter.Create(
                 new StreamWriter(File.OpenWrite(path), encoding: encoding, leaveOpen: false),
-                in _context),
+                in context),
             dematerializer,
             cancellationToken);
     }
@@ -69,7 +67,6 @@ public static partial class CsvWriter
         IEnumerable<TValue> values,
         PipeWriter pipeWriter,
         CsvOptions<byte> options,
-        CsvContextOverride<byte> context = default,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(values);
@@ -79,12 +76,12 @@ public static partial class CsvWriter
         if (cancellationToken.IsCancellationRequested)
             return Task.FromCanceled(cancellationToken);
 
-        var _context = new CsvWritingContext<byte>(options, in context);
-        var dematerializer = ReflectionDematerializer.Create<byte, TValue>(in _context);
+        var context = new CsvWritingContext<byte>(options);
+        var dematerializer = ReflectionDematerializer.Create<byte, TValue>(in context);
 
         return WriteAsyncCore(
             values,
-            CsvFieldWriter.Create(pipeWriter, in _context),
+            CsvFieldWriter.Create(pipeWriter, in context),
             dematerializer,
             cancellationToken);
     }
@@ -94,7 +91,6 @@ public static partial class CsvWriter
         IEnumerable<TValue> values,
         Stream stream,
         CsvOptions<byte> options,
-        CsvContextOverride<byte> context = default,
         int bufferSize = -1,
         bool leaveOpen = false,
         CancellationToken cancellationToken = default)
@@ -110,12 +106,12 @@ public static partial class CsvWriter
         if (cancellationToken.IsCancellationRequested)
             return Task.FromCanceled(cancellationToken);
 
-        var _context = new CsvWritingContext<byte>(options, in context);
-        var dematerializer = ReflectionDematerializer.Create<byte, TValue>(in _context);
+        var context = new CsvWritingContext<byte>(options);
+        var dematerializer = ReflectionDematerializer.Create<byte, TValue>(in context);
 
         return WriteAsyncCore(
             values,
-            CsvFieldWriter.Create(stream, in _context, bufferSize, leaveOpen),
+            CsvFieldWriter.Create(stream, in context, bufferSize, leaveOpen),
             dematerializer,
             cancellationToken);
     }
@@ -125,7 +121,6 @@ public static partial class CsvWriter
         IEnumerable<TValue> values,
         TextWriter textWriter,
         CsvOptions<char> options,
-        CsvContextOverride<char> context = default,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(values);
@@ -135,12 +130,12 @@ public static partial class CsvWriter
         if (cancellationToken.IsCancellationRequested)
             return Task.FromCanceled(cancellationToken);
 
-        var _context = new CsvWritingContext<char>(options, in context);
-        var dematerializer = ReflectionDematerializer.Create<char, TValue>(in _context);
+        var context = new CsvWritingContext<char>(options);
+        var dematerializer = ReflectionDematerializer.Create<char, TValue>(in context);
 
         return WriteAsyncCore(
             values,
-            CsvFieldWriter.Create(textWriter, in _context),
+            CsvFieldWriter.Create(textWriter, in context),
             dematerializer,
             cancellationToken);
     }
@@ -149,49 +144,43 @@ public static partial class CsvWriter
     public static void Write<[DAM(Messages.ReflectionBound)] TValue>(
         IEnumerable<TValue> values,
         TextWriter textWriter,
-        CsvOptions<char> options,
-        CsvContextOverride<char> context = default)
+        CsvOptions<char> options)
     {
         ArgumentNullException.ThrowIfNull(values);
         ArgumentNullException.ThrowIfNull(textWriter);
         ArgumentNullException.ThrowIfNull(options);
 
-        var _context = new CsvWritingContext<char>(options, in context);
-        var dematerializer = ReflectionDematerializer.Create<char, TValue>(in _context);
+        var context = new CsvWritingContext<char>(options);
+        var dematerializer = ReflectionDematerializer.Create<char, TValue>(in context);
 
         WriteCore(
             values,
-            CsvFieldWriter.Create(textWriter, in _context),
+            CsvFieldWriter.Create(textWriter, in context),
             dematerializer);
     }
 
     /// <summary>
     /// Writes the CSV records to a string.
     /// </summary>
-    /// <typeparam name="TValue"></typeparam>
-    /// <param name="values"></param>
-    /// <param name="options"></param>
-    /// <param name="context"></param>
     /// <param name="initialCapacity">Initial capacity of the string builder</param>
     /// <returns>A <see cref="StringBuilder"/> containing the CSV</returns>
     [RUF(Messages.CompiledExpressions)]
     public static StringBuilder WriteToString<[DAM(Messages.ReflectionBound)] TValue>(
         IEnumerable<TValue> values,
         CsvOptions<char> options,
-        CsvContextOverride<char> context = default,
         int initialCapacity = 1024)
     {
         ArgumentNullException.ThrowIfNull(values);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentOutOfRangeException.ThrowIfNegative(initialCapacity);
 
-        var _context = new CsvWritingContext<char>(options, in context);
-        var dematerializer = ReflectionDematerializer.Create<char, TValue>(in _context);
+        var context = new CsvWritingContext<char>(options);
+        var dematerializer = ReflectionDematerializer.Create<char, TValue>(in context);
 
         var sb = new StringBuilder(capacity: 1024);
         WriteCore(
             values,
-            CsvFieldWriter.Create(new StringWriter(sb), in _context),
+            CsvFieldWriter.Create(new StringWriter(sb), in context),
             dematerializer);
         return sb;
     }

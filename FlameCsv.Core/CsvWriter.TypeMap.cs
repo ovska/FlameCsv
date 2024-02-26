@@ -13,7 +13,6 @@ public static partial class CsvWriter
         string path,
         CsvTypeMap<byte, TValue> typeMap,
         CsvOptions<byte> options,
-        CsvContextOverride<byte> context = default,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(values);
@@ -25,7 +24,7 @@ public static partial class CsvWriter
             return Task.FromCanceled(cancellationToken);
 
         var dematerializer = typeMap.GetDematerializer(options);
-        var _context = new CsvWritingContext<byte>(options, in context);
+        var _context = new CsvWritingContext<byte>(options);
 
         return WriteAsyncCore(
             values,
@@ -41,7 +40,6 @@ public static partial class CsvWriter
         CsvTypeMap<char, TValue> typeMap,
         CsvOptions<char> options,
         Encoding? encoding = null,
-        CsvContextOverride<char> context = default,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(values);
@@ -53,7 +51,7 @@ public static partial class CsvWriter
             return Task.FromCanceled(cancellationToken);
 
         var dematerializer = typeMap.GetDematerializer(options);
-        var _context = new CsvWritingContext<char>(options, in context);
+        var _context = new CsvWritingContext<char>(options);
 
         return WriteAsyncCore(
             values,
@@ -70,7 +68,6 @@ public static partial class CsvWriter
         PipeWriter pipeWriter,
         CsvTypeMap<byte, TValue> typeMap,
         CsvOptions<byte> options,
-        CsvContextOverride<byte> context = default,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(values);
@@ -82,7 +79,7 @@ public static partial class CsvWriter
             return Task.FromCanceled(cancellationToken);
 
         var dematerializer = typeMap.GetDematerializer(options);
-        var _context = new CsvWritingContext<byte>(options, in context);
+        var _context = new CsvWritingContext<byte>(options);
 
         return WriteAsyncCore(
             values,
@@ -97,7 +94,6 @@ public static partial class CsvWriter
         Stream stream,
         CsvTypeMap<byte, TValue> typeMap,
         CsvOptions<byte> options,
-        CsvContextOverride<byte> context = default,
         int bufferSize = -1,
         bool leaveOpen = false,
         CancellationToken cancellationToken = default)
@@ -115,7 +111,7 @@ public static partial class CsvWriter
             return Task.FromCanceled(cancellationToken);
 
         var dematerializer = typeMap.GetDematerializer(options);
-        var _context = new CsvWritingContext<byte>(options, in context);
+        var _context = new CsvWritingContext<byte>(options);
 
         return WriteAsyncCore(
             values,
@@ -138,7 +134,6 @@ public static partial class CsvWriter
         IEnumerable<TValue> values,
         CsvTypeMap<char, TValue> typeMap,
         CsvOptions<char> options,
-        CsvContextOverride<char> context = default,
         int initialCapacity = 1024,
         CancellationToken cancellationToken = default)
     {
@@ -155,7 +150,7 @@ public static partial class CsvWriter
         async Task<StringBuilder> Core()
         {
             var dematerializer = typeMap.GetDematerializer(options);
-            var _context = new CsvWritingContext<char>(options, in context);
+            var _context = new CsvWritingContext<char>(options);
 
             var sb = new StringBuilder(capacity: initialCapacity);
             await WriteAsyncCore(

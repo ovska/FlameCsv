@@ -14,16 +14,16 @@ public readonly struct CsvRecordEnumerable<T> where T : unmanaged, IEquatable<T>
     private readonly ReadOnlySequence<T> _data;
     private readonly CsvReadingContext<T> _context;
 
-    public CsvRecordEnumerable(ReadOnlyMemory<T> data, CsvOptions<T> options, CsvContextOverride<T> overrides = default)
-        : this(new ReadOnlySequence<T>(data), options, overrides)
+    public CsvRecordEnumerable(ReadOnlyMemory<T> data, CsvOptions<T> options)
+        : this(new ReadOnlySequence<T>(data), options)
     {
     }
 
-    public CsvRecordEnumerable(in ReadOnlySequence<T> data, CsvOptions<T> options, CsvContextOverride<T> overrides = default)
+    public CsvRecordEnumerable(in ReadOnlySequence<T> data, CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
         _data = data;
-        _context = new CsvReadingContext<T>(options, in overrides);
+        _context = new CsvReadingContext<T>(options);
     }
 
     public CsvRecordEnumerator<T> GetEnumerator()
@@ -35,6 +35,6 @@ public readonly struct CsvRecordEnumerable<T> where T : unmanaged, IEquatable<T>
     public IEnumerable<CsvRecord<T>> AsEnumerable()
     {
         _context.EnsureValid();
-        return new CopyingRecordEnumerable<T>(this);
+        return new CopyingRecordEnumerable<T>(in this);
     }
 }

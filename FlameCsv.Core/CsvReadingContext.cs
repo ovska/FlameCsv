@@ -20,33 +20,25 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
 
     public readonly CsvDialect<T> Dialect;
     public readonly CsvOptions<T> Options;
-    public readonly ArrayPool<T> ArrayPool;
-    public readonly bool HasHeader;
-    public readonly bool ExposeContent;
-    public readonly bool ValidateFieldCount;
 
-    private readonly CsvRecordSkipPredicate<T>? _skipCallback;
-    private readonly CsvExceptionHandler<T>? _exceptionHandler;
+    public ArrayPool<T> ArrayPool => Options._arrayPool.AllocatingIfNull();
+    public bool HasHeader => Options._hasHeader;
+    public bool ExposeContent => Options._allowContentInExceptions;
+    public bool ValidateFieldCount => Options._validateFieldCount;
 
-    public CsvReadingContext(CsvOptions<T> options, in CsvContextOverride<T> overrides)
+    public CsvReadingContext(CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
         options.MakeReadOnly();
 
         Options = options;
-        ArrayPool = overrides._arrayPool.Resolve(options.ArrayPool).AllocatingIfNull();
-        ExposeContent = overrides._exposeContent.Resolve(options.AllowContentInExceptions);
-        ValidateFieldCount = overrides._validateFieldCount.Resolve(options.ValidateFieldCount);
-        HasHeader = overrides._hasHeader.Resolve(options.HasHeader);
-        Dialect = new CsvDialect<T>(options, in overrides);
-        _skipCallback = overrides._shouldSkipRow.Resolve(options.ShouldSkipRow);
-        _exceptionHandler = overrides._exceptionHandler.Resolve(options.ExceptionHandler);
+        Dialect = new CsvDialect<T>(options);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool SkipRecord(ReadOnlyMemory<T> record, int line, bool headerRead)
     {
-        return _skipCallback != null && _skipCallback(new CsvRecordSkipArgs<T>
+        return Options._shouldSkipRow is { } f && f(new CsvRecordSkipArgs<T>
         {
             Options = Options,
             Line = line,
@@ -58,13 +50,13 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool ExceptionIsHandled(ReadOnlyMemory<T> record, int line, Exception exception)
     {
-        return (_exceptionHandler?.Invoke(new CsvExceptionHandlerArgs<T>
+        return Options._exceptionHandler is { } f && f(new CsvExceptionHandlerArgs<T>
         {
-            Dialect = Dialect,
+            Options = Options,
             Line = line,
             Record = record,
             Exception = exception,
-        })) ?? false;
+        });
     }
 
     /// <summary>

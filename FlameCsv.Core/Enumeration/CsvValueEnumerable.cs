@@ -13,12 +13,11 @@ public sealed class CsvValueEnumerable<T, [DynamicallyAccessedMembers(Messages.R
 
     public CsvValueEnumerable(
         in ReadOnlySequence<T> csv,
-        CsvOptions<T> options,
-        CsvContextOverride<T> overrides)
+        CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
         _data = csv;
-        _context = new CsvReadingContext<T>(options, in overrides);
+        _context = new CsvReadingContext<T>(options);
     }
 
     public CsvValueEnumerator<T, TValue> GetEnumerator()

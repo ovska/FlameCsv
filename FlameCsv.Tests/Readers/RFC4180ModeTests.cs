@@ -18,7 +18,7 @@ public static class RFC4180ModeTests
     [InlineData("\" test \"", "test")]
     public static void Should_Trim_Fields(string input, string expected)
     {
-        var context = new CsvReadingContext<char>(new CsvTextOptions { Whitespace = " " }, default);
+        var context = new CsvReadingContext<char>(new CsvTextOptions { Whitespace = " " });
 
         char[]? buffer = null;
 
@@ -41,7 +41,7 @@ public static class RFC4180ModeTests
     [InlineData("\"James \"\"007\"\" Bond\"", "James \"007\" Bond")]
     public static void Should_Unescape(string input, string expected)
     {
-        var context = new CsvReadingContext<char>(CsvTextOptions.Default, new() { ArrayPool = AllocatingArrayPool<char>.Instance });
+        var context = new CsvReadingContext<char>(CsvTextOptions.Default);
 
         char[]? unescapeArray = null;
         var state = new CsvFieldReader<char>(in context, input.AsMemory(), ref unescapeArray);
@@ -224,7 +224,7 @@ public static class RFC4180ModeTests
         var expected = line.Split(',').Select(s => s.Trim('"'));
 
         var list = new List<string>();
-        var context = new CsvReadingContext<char>(options, default);
+        var context = new CsvReadingContext<char>(options);
 
         char[]? buffer = null;
 
@@ -254,7 +254,7 @@ public static class RFC4180ModeTests
         var data = new[] { options.Delimiter, options.Newline[0] }.GetPermutations();
         char[]? buffer = null;
 
-        var context = new CsvReadingContext<char>(options, default);
+        var context = new CsvReadingContext<char>(options);
 
         foreach (var chars in data)
         {

@@ -7,7 +7,7 @@ internal sealed class CopyingRecordEnumerable<T> : IEnumerable<CsvRecord<T>>
 {
     private readonly CsvRecordEnumerable<T> _source;
 
-    public CopyingRecordEnumerable(CsvRecordEnumerable<T> source)
+    public CopyingRecordEnumerable(in CsvRecordEnumerable<T> source)
     {
         _source = source;
     }

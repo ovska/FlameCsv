@@ -37,12 +37,12 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         // validates it on initialization
     }
 
-    public CsvRecord(ReadOnlyMemory<T> record, CsvOptions<T> options, CsvContextOverride<T> context = default)
+    public CsvRecord(ReadOnlyMemory<T> record, CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
         options.MakeReadOnly();
 
-        _context = new CsvReadingContext<T>(options, in context);
+        _context = new CsvReadingContext<T>(options);
         (RawRecord, _values) = InitializeFromValues(record, in _context);
     }
 

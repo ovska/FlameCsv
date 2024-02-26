@@ -13,7 +13,7 @@ namespace FlameCsv.Benchmark;
 [SimpleJob]
 public class ModeBench2
 {
-    private static readonly CsvReadingContext<char> _context = new(CsvTextOptions.Default, new() { Escape = '\\', ExposeContent = true });
+    private static readonly CsvReadingContext<char> _context = new(CsvTextOptions.Default);
     private static readonly ReadOnlySequence<char> _data = new ReadOnlySequence<char>(
         Encoding.UTF8.GetChars(File.ReadAllBytes("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv")));
 

@@ -35,8 +35,7 @@ public static class CsvRecordTests
     {
         var records = new CsvRecordEnumerable<char>(
             "A,B,C\r\n1,2,3\r\n".AsMemory(),
-            CsvTextOptions.Default,
-            new() { HasHeader = true }).AsEnumerable().ToList();
+            CsvTextOptions.Default).AsEnumerable().ToList();
 
         Assert.Single(records);
 
@@ -59,8 +58,7 @@ public static class CsvRecordTests
     {
         var records = new CsvRecordEnumerable<char>(
             "A,B,C\r\n1,2,3\r\n".AsMemory(),
-            CsvTextOptions.Default,
-            new() { HasHeader = true }).AsEnumerable().ToList();
+            CsvTextOptions.Default).AsEnumerable().ToList();
 
         Assert.Single(records);
         var record = records[0];
