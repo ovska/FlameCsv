@@ -3,6 +3,7 @@ using System.IO.Pipelines;
 using System.Text;
 using FlameCsv.Binding;
 using FlameCsv.Writing;
+using System.Threading;
 
 namespace FlameCsv;
 
@@ -123,42 +124,27 @@ public static partial class CsvWriter
     /// <summary>
     /// Writes the CSV records to a string.
     /// </summary>
-    /// <typeparam name="TValue"></typeparam>
-    /// <param name="values"></param>
-    /// <param name="options"></param>
-    /// <param name="context"></param>
     /// <param name="initialCapacity">Initial capacity of the string builder</param>
-    /// <param name="cancellationToken">Token to cancel the operation</param>
     /// <returns>A <see cref="StringBuilder"/> containing the CSV</returns>
-    public static Task<StringBuilder> WriteToStringAsync<TValue>(
+    public static StringBuilder WriteToString<TValue>(
         IEnumerable<TValue> values,
         CsvTypeMap<char, TValue> typeMap,
         CsvOptions<char> options,
-        int initialCapacity = 1024,
-        CancellationToken cancellationToken = default)
+        int initialCapacity = 1024)
     {
         ArgumentNullException.ThrowIfNull(values);
         ArgumentNullException.ThrowIfNull(typeMap);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentOutOfRangeException.ThrowIfNegative(initialCapacity);
 
-        if (cancellationToken.IsCancellationRequested)
-            return Task.FromCanceled<StringBuilder>(cancellationToken);
+        var dematerializer = typeMap.GetDematerializer(options);
+        var _context = new CsvWritingContext<char>(options);
 
-        return Core();
-
-        async Task<StringBuilder> Core()
-        {
-            var dematerializer = typeMap.GetDematerializer(options);
-            var _context = new CsvWritingContext<char>(options);
-
-            var sb = new StringBuilder(capacity: initialCapacity);
-            await WriteAsyncCore(
-                values,
-                CsvFieldWriter.Create(new StringWriter(sb), in _context),
-                dematerializer,
-                cancellationToken);
-            return sb;
-        }
+        var sb = new StringBuilder(capacity: initialCapacity);
+        WriteCore(
+            values,
+            CsvFieldWriter.Create(new StringWriter(sb), in _context),
+            dematerializer);
+        return sb;
     }
 }
