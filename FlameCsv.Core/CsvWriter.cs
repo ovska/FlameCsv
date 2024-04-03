@@ -177,7 +177,7 @@ public static partial class CsvWriter
         var context = new CsvWritingContext<char>(options);
         var dematerializer = ReflectionDematerializer.Create<char, TValue>(in context);
 
-        var sb = new StringBuilder(capacity: 1024);
+        var sb = new StringBuilder(capacity: initialCapacity);
         WriteCore(
             values,
             CsvFieldWriter.Create(new StringWriter(sb), in context),

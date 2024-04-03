@@ -167,9 +167,10 @@ public sealed class CsvFieldWriter<T, TWriter>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteNewline()
     {
-        Span<T> destination = _writer.GetSpan(_dialect.Newline.Length);
-        _dialect.Newline.Span.CopyTo(destination);
-        _writer.Advance(_dialect.Newline.Length);
+        ReadOnlySpan<T> newline = _dialect.Newline.Span;
+        Span<T> destination = _writer.GetSpan(newline.Length);
+        newline.CopyTo(destination);
+        _writer.Advance(newline.Length);
     }
 
     /// <summary>

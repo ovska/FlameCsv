@@ -1,7 +1,10 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
+using FlameCsv.Binding;
+using FlameCsv.Binding.Internal;
 using FlameCsv.Exceptions;
 
 namespace FlameCsv.Extensions;
@@ -81,6 +84,13 @@ internal static class Throw
     public static void InvalidData_FieldCount(int expected, int actual)
     {
         throw new InvalidDataException($"The CSV record has {actual} fields, but {expected} were expected.");
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+    public static void InvalidOp_NoHeader(int index, Type type, MemberInfo member)
+    {
+        throw new InvalidOperationException(
+            $"No header name found for member {member.Name} at index {index} when writing {type.FullName}.");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]

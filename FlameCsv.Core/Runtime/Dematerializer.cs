@@ -1,5 +1,6 @@
-﻿using CommunityToolkit.Diagnostics;
+﻿using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
+using FlameCsv.Extensions;
 using FlameCsv.Writing;
 
 namespace FlameCsv.Runtime;
@@ -15,19 +16,15 @@ internal abstract class Dematerializer<T, TValue> : Dematerializer<T> where T : 
 
     public void WriteHeader<TWriter>(CsvFieldWriter<T, TWriter> writer) where TWriter : struct, System.Buffers.IBufferWriter<T>
     {
-        writer.WriteText(_bindings.MemberBindings[0].Header);
-
-        for (int i = 1; i < _bindings.MemberBindings.Length; i++)
+        foreach (var item in _bindings.MemberBindings.Enumerate())
         {
-            writer.WriteDelimiter();
+            if (item.Index != 0)
+                writer.WriteDelimiter();
 
-            if (_bindings.MemberBindings[i].Header is null)
-            {
-                ThrowHelper.ThrowInvalidOperationException(
-                    $"No header name found for column index {i} when writing {typeof(TValue).FullName}");
-            }
+            if (item.Value.Header is null)
+                Throw.InvalidOp_NoHeader(item.Index, typeof(TValue), item.Value.Member);
 
-            writer.WriteText(_bindings.MemberBindings[i].Header);
+            writer.WriteText(item.Value.Header);
         }
 
         writer.WriteNewline();
