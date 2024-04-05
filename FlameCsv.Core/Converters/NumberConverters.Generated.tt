@@ -27,6 +27,7 @@
 #nullable enable
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Buffers;
 using System.Buffers.Text;
 
 namespace FlameCsv.Converters;
@@ -83,7 +84,7 @@ internal sealed class <#= typeName #>TextConverter : CsvConverter<char, <#= keyW
 #>
 internal sealed class <#= typeName #>Utf8Converter : CsvConverter<byte, <#= keyWord #>>
 {
-    private readonly char _standardFormat;
+    private readonly StandardFormat _standardFormat;
 
     public <#= typeName #>Utf8Converter(CsvUtf8Options options)
     {
@@ -106,7 +107,7 @@ internal sealed class <#= typeName #>Utf8Converter : CsvConverter<byte, <#= keyW
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out <#= keyWord #> value)
     {
 <# if (typeName == "Half") { #>
-        if (Utf8Parser.TryParse(source, out float floatValue, out int bytesConsumed, _standardFormat) &&
+        if (Utf8Parser.TryParse(source, out float floatValue, out int bytesConsumed, _standardFormat.Symbol) &&
             bytesConsumed == source.Length)
         {
             value = (<#= typeName #>)floatValue;
@@ -116,10 +117,8 @@ internal sealed class <#= typeName #>Utf8Converter : CsvConverter<byte, <#= keyW
         value = default;
         return false;
 <# } else if (typeName == "IntPtr") { #>
-        if (Utf8Parser.TryParse(source, out long longValue, out int bytesConsumed, _standardFormat) &&
-            bytesConsumed == source.Length &&
-            longValue <= nint.MaxValue &&
-            longValue >= nint.MinValue)
+        if (Utf8Parser.TryParse(source, out long longValue, out int bytesConsumed, _standardFormat.Symbol) &&
+            bytesConsumed == source.Length)
         {
             value = checked((nint)longValue);
             return true;
@@ -127,9 +126,8 @@ internal sealed class <#= typeName #>Utf8Converter : CsvConverter<byte, <#= keyW
         value = default;
         return false;
 <# } else if (typeName == "UIntPtr") { #>
-        if (Utf8Parser.TryParse(source, out ulong ulongValue, out int bytesConsumed, _standardFormat) &&
-            bytesConsumed == source.Length &&
-            ulongValue <= nuint.MaxValue)
+        if (Utf8Parser.TryParse(source, out ulong ulongValue, out int bytesConsumed, _standardFormat.Symbol) &&
+            bytesConsumed == source.Length)
         {
             value = checked((nuint)ulongValue);
             return true;
@@ -137,7 +135,7 @@ internal sealed class <#= typeName #>Utf8Converter : CsvConverter<byte, <#= keyW
         value = default;
         return false;
 <# } else { #>
-        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat) && bytesConsumed == source.Length;
+        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat.Symbol) && bytesConsumed == source.Length;
 <# } #>
     }
 }

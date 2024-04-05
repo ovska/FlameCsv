@@ -22,6 +22,7 @@ internal sealed class TypeDictionary<TValue> : IDictionary<Type, TValue>
         get => _dictionary[key];
         set
         {
+            ArgumentNullException.ThrowIfNull(value);
             ValidateKey(key);
             _owner.ThrowIfReadOnly();
             _dictionary[key] = value;
@@ -36,6 +37,7 @@ internal sealed class TypeDictionary<TValue> : IDictionary<Type, TValue>
 
     public void Add(Type key, TValue value)
     {
+        ArgumentNullException.ThrowIfNull(key);
         ValidateKey(key);
         _owner.ThrowIfReadOnly();
         _dictionary[key] = value;
@@ -49,17 +51,20 @@ internal sealed class TypeDictionary<TValue> : IDictionary<Type, TValue>
 
     public bool ContainsKey(Type key)
     {
+        ArgumentNullException.ThrowIfNull(key);
         return _dictionary.ContainsKey(key);
     }
 
     public bool Remove(Type key)
     {
+        ArgumentNullException.ThrowIfNull(key);
         _owner.ThrowIfReadOnly();
         return _dictionary.Remove(key);
     }
 
     public bool TryGetValue(Type key, [MaybeNullWhen(false)] out TValue value)
     {
+        ArgumentNullException.ThrowIfNull(key);
         return _dictionary.TryGetValue(key, out value);
     }
 
@@ -71,8 +76,7 @@ internal sealed class TypeDictionary<TValue> : IDictionary<Type, TValue>
             (type.IsValueType && !(type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))))
         {
             ThrowHelper.ThrowArgumentException(
-                $"Null tokens are only valid for concrete types that can be null (was: {type.FullName})");
-            // ^ TODO: use ToTypeString once open generics bug is fixed
+                $"Null tokens are only valid for concrete types that can be null (was: {type.ToTypeString()})");
         }
     }
 

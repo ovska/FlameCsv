@@ -1,9 +1,10 @@
-﻿using System.Buffers.Text;
+﻿using System.Buffers;
+using System.Buffers.Text;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using System.Text;
 using FlameCsv.Binding;
 using FlameCsv.Converters;
-using FlameCsv.Extensions;
 using FlameCsv.Utilities;
 
 namespace FlameCsv;
@@ -16,12 +17,12 @@ public sealed class CsvUtf8Options : CsvOptions<byte>
     /// <remarks>Create a new instance if you need to configure the options or parsers.</remarks>
     public static CsvUtf8Options Default => _default.Value;
 
-    private char _booleanFormat;
-    private char _integerFormat;
-    private char _decimalFormat;
-    private char _dateTimeFormat;
-    private char _timeSpanFormat;
-    private char _guidFormat;
+    private StandardFormat _booleanFormat = 'l';
+    private StandardFormat _integerFormat;
+    private StandardFormat _decimalFormat;
+    private StandardFormat _dateTimeFormat;
+    private StandardFormat _timeSpanFormat;
+    private StandardFormat _guidFormat;
     private Utf8String _null;
     private TypeDictionary<Utf8String>? _nullTokens;
 
@@ -78,30 +79,36 @@ public sealed class CsvUtf8Options : CsvOptions<byte>
 
     /// <summary>
     /// Used by <see cref="BooleanUtf8Converter"/> when writing booleans.
-    /// Default is <c>default(char)</c>, which writes capitalized values.
+    /// Default is <c>'l'</c>.
     /// </summary>
     /// <remarks>
     /// Ignored if <see cref="BooleanValues"/> is not empty.
     /// </remarks>
-    public char BooleanFormat
+    public StandardFormat BooleanFormat
     {
         get => _booleanFormat;
         set
         {
-            _ = Utf8Formatter.TryFormat(false, [], out _, format: value); // validate
+            // validate
+            _ = Utf8Parser.TryParse(default, out bool _, out _, value.Symbol);
+            _ = Utf8Formatter.TryFormat(default(bool), default, out _, value);
+
             this.SetValue(ref _booleanFormat, value);
         }
     }
 
     /// <summary>
-    /// Used by <see cref="IntegerUtf8Parser"/>. Default is <c>default(char)</c>.
+    /// Used by <see cref="IntegerUtf8Parser"/>.
     /// </summary>
-    public char IntegerFormat
+    public StandardFormat IntegerFormat
     {
         get => _integerFormat;
         set
         {
-            _ = Utf8Parser.TryParse(default, out int _, out _, value); // validate
+            // validate
+            _ = Utf8Parser.TryParse(default, out long _, out _, value.Symbol);
+            _ = Utf8Formatter.TryFormat(default(long), default, out _, value);
+
             this.SetValue(ref _integerFormat, value);
         }
     }
@@ -109,12 +116,15 @@ public sealed class CsvUtf8Options : CsvOptions<byte>
     /// <summary>
     /// Used by <see cref="DecimalUtf8Parser"/>. Default is <c>default(char)</c>.
     /// </summary>
-    public char DecimalFormat
+    public StandardFormat DecimalFormat
     {
         get => _decimalFormat;
         set
         {
-            _ = Utf8Parser.TryParse(default, out double _, out _, value); // validate
+            // validate
+            _ = Utf8Parser.TryParse(default, out double _, out _, value.Symbol);
+            _ = Utf8Formatter.TryFormat(default(double), default, out _, value);
+
             this.SetValue(ref _decimalFormat, value);
         }
     }
@@ -122,12 +132,15 @@ public sealed class CsvUtf8Options : CsvOptions<byte>
     /// <summary>
     /// Used by <see cref="DateTimeUtf8Parser"/>. Default is <c>default(char)</c>.
     /// </summary>
-    public char DateTimeFormat
+    public StandardFormat DateTimeFormat
     {
         get => _dateTimeFormat;
         set
         {
-            _ = Utf8Parser.TryParse(default, out DateTime _, out _, value); // validate
+            // validate
+            _ = Utf8Parser.TryParse(default, out DateTimeOffset _, out _, value.Symbol);
+            _ = Utf8Formatter.TryFormat(default(DateTimeOffset), default, out _, value);
+
             this.SetValue(ref _dateTimeFormat, value);
         }
     }
@@ -135,25 +148,31 @@ public sealed class CsvUtf8Options : CsvOptions<byte>
     /// <summary>
     /// Used by <see cref="TimeSpanUtf8Parser"/>. Default is <c>default(char)</c>.
     /// </summary>
-    public char TimeSpanFormat
+    public StandardFormat TimeSpanFormat
     {
         get => _timeSpanFormat;
         set
         {
-            _ = Utf8Parser.TryParse(default, out TimeSpan _, out _, value); // validate
+            // validate
+            _ = Utf8Parser.TryParse(default, out TimeSpan _, out _, value.Symbol);
+            _ = Utf8Formatter.TryFormat(default(TimeSpan), default, out _, value);
+
             this.SetValue(ref _timeSpanFormat, value);
         }
     }
 
     /// <summary>
-    /// Used by <see cref="GuidUtf8Converter"/>. Default is <c>default(char)</c>.
+    /// Used by <see cref="GuidUtf8Converter"/>.
     /// </summary>
-    public char GuidFormat
+    public StandardFormat GuidFormat
     {
         get => _guidFormat;
         set
         {
-            _ = Utf8Parser.TryParse(default, out Guid _, out _, value); // validate
+            // validate
+            _ = Utf8Parser.TryParse(default, out Guid _, out _, value.Symbol);
+            _ = Utf8Formatter.TryFormat(default(Guid), default, out _, value);
+
             this.SetValue(ref _guidFormat, value);
         }
     }
@@ -171,15 +190,15 @@ public sealed class CsvUtf8Options : CsvOptions<byte>
     /// <inheritdoc/>
     internal protected override bool TryGetDefaultConverter(Type type, [NotNullWhen(true)] out CsvConverter<byte>? converter)
     {
-        if (DefaultConverters.Utf8.Value.TryGetValue(type, out var factory))
-        {
-            converter = factory(this);
-            return true;
-        }
-
         if (EnumUtf8ConverterFactory.Instance.CanConvert(type))
         {
             converter = EnumUtf8ConverterFactory.Instance.Create(type, this);
+            return true;
+        }
+
+        if (DefaultConverters.Utf8.Value.TryGetValue(type, out var factory))
+        {
+            converter = factory(this);
             return true;
         }
 

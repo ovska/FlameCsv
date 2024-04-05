@@ -32,11 +32,11 @@ public class CsvOptionsTests
         // no ex
         _ = new CsvUtf8Options
         {
-            DateTimeFormat = '\0',
-            TimeSpanFormat = '\0',
-            IntegerFormat = '\0',
-            DecimalFormat = '\0',
-            GuidFormat = '\0',
+            DateTimeFormat = default,
+            TimeSpanFormat = default,
+            IntegerFormat = default,
+            DecimalFormat = default,
+            GuidFormat = default,
         };
 
         static void Do(Action<CsvUtf8Options> action)

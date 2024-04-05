@@ -343,6 +343,7 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
 
         if (converter is null && UseDefaultConverters)
         {
+            // prefer explicit nullable converter if possible
             if (TryGetDefaultConverter(resultType, out var builtin))
             {
                 Debug.Assert(builtin.CanConvert(resultType));

@@ -1,15 +1,16 @@
-﻿using System.Buffers.Text;
+﻿using System.Buffers;
+using System.Buffers.Text;
 using System.Diagnostics.CodeAnalysis;
 
 namespace FlameCsv.Converters;
 
 internal sealed class DateTimeUtf8Converter : CsvConverter<byte, DateTime>
 {
-    private readonly char _standardFormat;
+    private readonly StandardFormat _standardFormat;
 
-    public DateTimeUtf8Converter(CsvUtf8Options options)
+    public DateTimeUtf8Converter(StandardFormat standardFormat)
     {
-        _standardFormat = options.DateTimeFormat;
+        _standardFormat = standardFormat;
     }
 
     public override bool TryFormat(Span<byte> destination, DateTime value, out int charsWritten)
@@ -19,6 +20,6 @@ internal sealed class DateTimeUtf8Converter : CsvConverter<byte, DateTime>
 
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out DateTime value)
     {
-        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat) && bytesConsumed == source.Length;
+        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat.Symbol) && bytesConsumed == source.Length;
     }
 }
