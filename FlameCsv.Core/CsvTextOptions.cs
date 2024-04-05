@@ -133,13 +133,21 @@ public sealed class CsvTextOptions : CsvOptions<char>
     public string? IntegerFormat
     {
         get => _integerFormat;
-        set => this.SetValue(ref _integerFormat, value);
+        set
+        {
+            _ = 0.TryFormat(Span<char>.Empty, out _, value, null);
+            this.SetValue(ref _integerFormat, value);
+        }
     }
 
     public string? DecimalFormat
     {
         get => _decimalFormat;
-        set => this.SetValue(ref _decimalFormat, value);
+        set
+        {
+            _ = 0d.TryFormat(Span<char>.Empty, out _, value, null);
+            this.SetValue(ref _decimalFormat, value);
+        }
     }
 
     /// <summary>
@@ -149,7 +157,11 @@ public sealed class CsvTextOptions : CsvOptions<char>
     public string? DateTimeFormat
     {
         get => _dateTimeFormat;
-        set => this.SetValue(ref _dateTimeFormat, value);
+        set
+        {
+            _ = default(DateTimeOffset).TryFormat(Span<char>.Empty, out _, value, null);
+            this.SetValue(ref _dateTimeFormat, value);
+        }
     }
 
     /// <summary>
@@ -159,7 +171,11 @@ public sealed class CsvTextOptions : CsvOptions<char>
     public string? TimeSpanFormat
     {
         get => _timeSpanFormat;
-        set => this.SetValue(ref _timeSpanFormat, value);
+        set
+        {
+            _ = default(TimeSpan).TryFormat(Span<char>.Empty, out _, value, null);
+            this.SetValue(ref _timeSpanFormat, value);
+        }
     }
 
     /// <summary>
@@ -169,7 +185,11 @@ public sealed class CsvTextOptions : CsvOptions<char>
     public string? DateOnlyFormat
     {
         get => _dateOnlyFormat;
-        set => this.SetValue(ref _dateOnlyFormat, value);
+        set
+        {
+            _ = default(DateOnly).TryFormat(Span<char>.Empty, out _, value, null);
+            this.SetValue(ref _dateOnlyFormat, value);
+        }
     }
 
     /// <summary>
@@ -179,7 +199,10 @@ public sealed class CsvTextOptions : CsvOptions<char>
     public string? TimeOnlyFormat
     {
         get => _timeOnlyFormat;
-        set => this.SetValue(ref _timeOnlyFormat, value);
+        set
+        {
+            _ = default(TimeOnly).TryFormat(Span<char>.Empty, out _, value, null);
+        }
     }
 
     /// <summary>
@@ -189,7 +212,11 @@ public sealed class CsvTextOptions : CsvOptions<char>
     public string? EnumFormat
     {
         get => _enumFormat;
-        set => this.SetValue(ref _enumFormat, value);
+        set
+        {
+            _ = ((ISpanFormattable)NumberStyles.None).TryFormat(default, out _, value, null); // validate format
+            this.SetValue(ref _enumFormat, value);
+        }
     }
 
     /// <summary>
@@ -226,7 +253,11 @@ public sealed class CsvTextOptions : CsvOptions<char>
     public string? GuidFormat
     {
         get => _guidFormat;
-        set => this.SetValue(ref _guidFormat, value);
+        set
+        {
+            _ = Guid.TryParseExact(default, value, out _); // validate format
+            this.SetValue(ref _guidFormat, value);
+        }
     }
 
     /// <summary>
@@ -241,18 +272,17 @@ public sealed class CsvTextOptions : CsvOptions<char>
 
     internal protected override bool TryGetDefaultConverter(Type type, [NotNullWhen(true)] out CsvConverter<char>? converter)
     {
-        if (DefaultConverters.Text.Value.TryGetValue(type, out var factory))
-        {
-            converter = factory(this);
-            return true;
-        }
-
         if (EnumTextConverterFactory.Instance.CanConvert(type))
         {
             converter = EnumTextConverterFactory.Instance.Create(type, this);
             return true;
         }
 
+        if (DefaultConverters.Text.Value.TryGetValue(type, out var factory))
+        {
+            converter = factory(this);
+            return true;
+        }
         converter = default;
         return false;
     }

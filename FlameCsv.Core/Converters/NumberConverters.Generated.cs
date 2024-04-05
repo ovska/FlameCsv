@@ -2,6 +2,7 @@
 #nullable enable
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Buffers;
 using System.Buffers.Text;
 
 namespace FlameCsv.Converters;
@@ -385,7 +386,7 @@ internal sealed class HalfTextConverter : CsvConverter<char, Half>
 
 internal sealed class ByteUtf8Converter : CsvConverter<byte, byte>
 {
-    private readonly char _standardFormat;
+    private readonly StandardFormat _standardFormat;
 
     public ByteUtf8Converter(CsvUtf8Options options)
     {
@@ -399,13 +400,13 @@ internal sealed class ByteUtf8Converter : CsvConverter<byte, byte>
 
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out byte value)
     {
-        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat) && bytesConsumed == source.Length;
+        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat.Symbol) && bytesConsumed == source.Length;
     }
 }
 
 internal sealed class SByteUtf8Converter : CsvConverter<byte, sbyte>
 {
-    private readonly char _standardFormat;
+    private readonly StandardFormat _standardFormat;
 
     public SByteUtf8Converter(CsvUtf8Options options)
     {
@@ -419,13 +420,13 @@ internal sealed class SByteUtf8Converter : CsvConverter<byte, sbyte>
 
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out sbyte value)
     {
-        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat) && bytesConsumed == source.Length;
+        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat.Symbol) && bytesConsumed == source.Length;
     }
 }
 
 internal sealed class Int16Utf8Converter : CsvConverter<byte, short>
 {
-    private readonly char _standardFormat;
+    private readonly StandardFormat _standardFormat;
 
     public Int16Utf8Converter(CsvUtf8Options options)
     {
@@ -439,13 +440,13 @@ internal sealed class Int16Utf8Converter : CsvConverter<byte, short>
 
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out short value)
     {
-        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat) && bytesConsumed == source.Length;
+        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat.Symbol) && bytesConsumed == source.Length;
     }
 }
 
 internal sealed class UInt16Utf8Converter : CsvConverter<byte, ushort>
 {
-    private readonly char _standardFormat;
+    private readonly StandardFormat _standardFormat;
 
     public UInt16Utf8Converter(CsvUtf8Options options)
     {
@@ -459,13 +460,13 @@ internal sealed class UInt16Utf8Converter : CsvConverter<byte, ushort>
 
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out ushort value)
     {
-        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat) && bytesConsumed == source.Length;
+        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat.Symbol) && bytesConsumed == source.Length;
     }
 }
 
 internal sealed class Int32Utf8Converter : CsvConverter<byte, int>
 {
-    private readonly char _standardFormat;
+    private readonly StandardFormat _standardFormat;
 
     public Int32Utf8Converter(CsvUtf8Options options)
     {
@@ -479,13 +480,13 @@ internal sealed class Int32Utf8Converter : CsvConverter<byte, int>
 
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out int value)
     {
-        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat) && bytesConsumed == source.Length;
+        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat.Symbol) && bytesConsumed == source.Length;
     }
 }
 
 internal sealed class UInt32Utf8Converter : CsvConverter<byte, uint>
 {
-    private readonly char _standardFormat;
+    private readonly StandardFormat _standardFormat;
 
     public UInt32Utf8Converter(CsvUtf8Options options)
     {
@@ -499,13 +500,13 @@ internal sealed class UInt32Utf8Converter : CsvConverter<byte, uint>
 
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out uint value)
     {
-        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat) && bytesConsumed == source.Length;
+        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat.Symbol) && bytesConsumed == source.Length;
     }
 }
 
 internal sealed class Int64Utf8Converter : CsvConverter<byte, long>
 {
-    private readonly char _standardFormat;
+    private readonly StandardFormat _standardFormat;
 
     public Int64Utf8Converter(CsvUtf8Options options)
     {
@@ -519,13 +520,13 @@ internal sealed class Int64Utf8Converter : CsvConverter<byte, long>
 
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out long value)
     {
-        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat) && bytesConsumed == source.Length;
+        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat.Symbol) && bytesConsumed == source.Length;
     }
 }
 
 internal sealed class UInt64Utf8Converter : CsvConverter<byte, ulong>
 {
-    private readonly char _standardFormat;
+    private readonly StandardFormat _standardFormat;
 
     public UInt64Utf8Converter(CsvUtf8Options options)
     {
@@ -539,13 +540,13 @@ internal sealed class UInt64Utf8Converter : CsvConverter<byte, ulong>
 
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out ulong value)
     {
-        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat) && bytesConsumed == source.Length;
+        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat.Symbol) && bytesConsumed == source.Length;
     }
 }
 
 internal sealed class IntPtrUtf8Converter : CsvConverter<byte, nint>
 {
-    private readonly char _standardFormat;
+    private readonly StandardFormat _standardFormat;
 
     public IntPtrUtf8Converter(CsvUtf8Options options)
     {
@@ -559,10 +560,8 @@ internal sealed class IntPtrUtf8Converter : CsvConverter<byte, nint>
 
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out nint value)
     {
-        if (Utf8Parser.TryParse(source, out long longValue, out int bytesConsumed, _standardFormat) &&
-            bytesConsumed == source.Length &&
-            longValue <= nint.MaxValue &&
-            longValue >= nint.MinValue)
+        if (Utf8Parser.TryParse(source, out long longValue, out int bytesConsumed, _standardFormat.Symbol) &&
+            bytesConsumed == source.Length)
         {
             value = checked((nint)longValue);
             return true;
@@ -574,7 +573,7 @@ internal sealed class IntPtrUtf8Converter : CsvConverter<byte, nint>
 
 internal sealed class UIntPtrUtf8Converter : CsvConverter<byte, nuint>
 {
-    private readonly char _standardFormat;
+    private readonly StandardFormat _standardFormat;
 
     public UIntPtrUtf8Converter(CsvUtf8Options options)
     {
@@ -588,9 +587,8 @@ internal sealed class UIntPtrUtf8Converter : CsvConverter<byte, nuint>
 
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out nuint value)
     {
-        if (Utf8Parser.TryParse(source, out ulong ulongValue, out int bytesConsumed, _standardFormat) &&
-            bytesConsumed == source.Length &&
-            ulongValue <= nuint.MaxValue)
+        if (Utf8Parser.TryParse(source, out ulong ulongValue, out int bytesConsumed, _standardFormat.Symbol) &&
+            bytesConsumed == source.Length)
         {
             value = checked((nuint)ulongValue);
             return true;
@@ -602,7 +600,7 @@ internal sealed class UIntPtrUtf8Converter : CsvConverter<byte, nuint>
 
 internal sealed class FloatUtf8Converter : CsvConverter<byte, float>
 {
-    private readonly char _standardFormat;
+    private readonly StandardFormat _standardFormat;
 
     public FloatUtf8Converter(CsvUtf8Options options)
     {
@@ -616,13 +614,13 @@ internal sealed class FloatUtf8Converter : CsvConverter<byte, float>
 
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out float value)
     {
-        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat) && bytesConsumed == source.Length;
+        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat.Symbol) && bytesConsumed == source.Length;
     }
 }
 
 internal sealed class DoubleUtf8Converter : CsvConverter<byte, double>
 {
-    private readonly char _standardFormat;
+    private readonly StandardFormat _standardFormat;
 
     public DoubleUtf8Converter(CsvUtf8Options options)
     {
@@ -636,13 +634,13 @@ internal sealed class DoubleUtf8Converter : CsvConverter<byte, double>
 
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out double value)
     {
-        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat) && bytesConsumed == source.Length;
+        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat.Symbol) && bytesConsumed == source.Length;
     }
 }
 
 internal sealed class DecimalUtf8Converter : CsvConverter<byte, decimal>
 {
-    private readonly char _standardFormat;
+    private readonly StandardFormat _standardFormat;
 
     public DecimalUtf8Converter(CsvUtf8Options options)
     {
@@ -656,13 +654,13 @@ internal sealed class DecimalUtf8Converter : CsvConverter<byte, decimal>
 
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out decimal value)
     {
-        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat) && bytesConsumed == source.Length;
+        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat.Symbol) && bytesConsumed == source.Length;
     }
 }
 
 internal sealed class HalfUtf8Converter : CsvConverter<byte, Half>
 {
-    private readonly char _standardFormat;
+    private readonly StandardFormat _standardFormat;
 
     public HalfUtf8Converter(CsvUtf8Options options)
     {
@@ -676,7 +674,7 @@ internal sealed class HalfUtf8Converter : CsvConverter<byte, Half>
 
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out Half value)
     {
-        if (Utf8Parser.TryParse(source, out float floatValue, out int bytesConsumed, _standardFormat) &&
+        if (Utf8Parser.TryParse(source, out float floatValue, out int bytesConsumed, _standardFormat.Symbol) &&
             bytesConsumed == source.Length)
         {
             value = (Half)floatValue;

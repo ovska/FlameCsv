@@ -1,22 +1,20 @@
+using System.Buffers;
 using System.Buffers.Text;
 
 namespace FlameCsv.Converters;
 
 internal sealed class GuidUtf8Converter : CsvConverter<byte, Guid>
 {
-    private readonly char _standardFormat;
+    private readonly StandardFormat _standardFormat;
 
-    public GuidUtf8Converter(char standardFormat = '\0')
+    public GuidUtf8Converter(StandardFormat standardFormat = default)
     {
-        // validate the parameter
-        _ = Utf8Parser.TryParse(default, out Guid _, out _, standardFormat);
-
         _standardFormat = standardFormat;
     }
 
     public override bool TryParse(ReadOnlySpan<byte> source, out Guid value)
     {
-        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat) && bytesConsumed == source.Length;
+        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat.Symbol) && bytesConsumed == source.Length;
     }
     public override bool TryFormat(Span<byte> destination, Guid value, out int charsWritten)
     {

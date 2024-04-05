@@ -1,5 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
+using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
@@ -8,9 +8,10 @@ internal sealed class EnumUtf8ConverterFactory : CsvConverterFactory<byte>
 {
     public static EnumUtf8ConverterFactory Instance { get; } = new();
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override bool CanConvert(Type type)
     {
-        return type.IsEnum && type.GetCustomAttribute<FlagsAttribute>(inherit: false) is null;
+        return type.IsEnum;
     }
 
     public override CsvConverter<byte> Create(Type type, CsvOptions<byte> options)

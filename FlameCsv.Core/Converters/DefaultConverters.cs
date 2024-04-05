@@ -32,9 +32,9 @@ internal static partial class DefaultConverters
         RegisterNumberConverters(value);
         value.Add(new(typeof(string), o => o.StringPool is { } pool ? new PoolingStringUtf8Converter(pool) : StringUtf8Converter.Instance));
         value.Add(new(typeof(bool), o => o._booleanValues is { Count: > 0 } bv ? new CustomBooleanUtf8Converter(bv) : new BooleanUtf8Converter(o.BooleanFormat)));
-        value.Add(new(typeof(DateTime), o => new DateTimeUtf8Converter(o)));
-        value.Add(new(typeof(DateTimeOffset), o => new DateTimeOffsetUtf8Converter(o)));
-        value.Add(new(typeof(TimeSpan), o => new TimeSpanUtf8Converter(o)));
+        value.Add(new(typeof(DateTime), o => new DateTimeUtf8Converter(o.DateTimeFormat)));
+        value.Add(new(typeof(DateTimeOffset), o => new DateTimeOffsetUtf8Converter(o.DateTimeFormat)));
+        value.Add(new(typeof(TimeSpan), o => new TimeSpanUtf8Converter(o.TimeSpanFormat)));
         value.Add(new(typeof(Guid), o => new GuidUtf8Converter(o.GuidFormat)));
         return FrozenDictionary.ToFrozenDictionary(value);
     }

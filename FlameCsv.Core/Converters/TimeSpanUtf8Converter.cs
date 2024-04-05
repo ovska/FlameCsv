@@ -1,15 +1,16 @@
-﻿using System.Buffers.Text;
+﻿using System.Buffers;
+using System.Buffers.Text;
 using System.Diagnostics.CodeAnalysis;
 
 namespace FlameCsv.Converters;
 
 internal sealed class TimeSpanUtf8Converter : CsvConverter<byte, TimeSpan>
 {
-    private readonly char _standardFormat;
+    private readonly StandardFormat _standardFormat;
 
-    public TimeSpanUtf8Converter(CsvUtf8Options options)
+    public TimeSpanUtf8Converter(StandardFormat standardFormat)
     {
-        _standardFormat = options.TimeSpanFormat;
+        _standardFormat = standardFormat;
     }
 
     public override bool TryFormat(Span<byte> destination, TimeSpan value, out int charsWritten)
@@ -19,7 +20,7 @@ internal sealed class TimeSpanUtf8Converter : CsvConverter<byte, TimeSpan>
 
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out TimeSpan value)
     {
-        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat)
+        return Utf8Parser.TryParse(source, out value, out int bytesConsumed, _standardFormat.Symbol)
             && bytesConsumed == source.Length;
     }
 }
