@@ -5,7 +5,15 @@
     <NoWarn>CS1591</NoWarn>
   </PropertyGroup>
 
+  <!--<ItemGroup>
+    <EditorConfigFiles Include=".editorconfig" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove=".editorconfig" />
+  </ItemGroup>-->
+
   <PropertyGroup>
+    <Nullable>enable</Nullable>
     <PublishTrimmed>true</PublishTrimmed>
     <TrimmerDefaultAction>link</TrimmerDefaultAction>
     <TrimmerSingleWarn>false</TrimmerSingleWarn>

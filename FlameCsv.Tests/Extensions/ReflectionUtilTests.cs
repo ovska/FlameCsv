@@ -11,9 +11,7 @@ public static class ReflectionUtilTests
         public object? this[int index] => throw new NotImplementedException();
     }
 
-    private class FakeTuple<T> : FakeTuple
-    {
-    }
+    private class FakeTuple<T> : FakeTuple;
 
     [Theory, MemberData(nameof(TupleTestData))]
     public static void Should_Check_If_Tuple(Type type, bool expected)

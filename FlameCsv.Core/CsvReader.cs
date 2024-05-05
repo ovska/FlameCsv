@@ -4,7 +4,6 @@ using FlameCsv.Reading;
 using System.Text;
 using FlameCsv.Extensions;
 using System.Buffers;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Enumeration;
 using DAM = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute;
@@ -327,7 +326,6 @@ public static partial class CsvReader
     /// <summary>
     /// Creates a PipeReader from a Stream.
     /// </summary>
-    [StackTraceHidden]
     private static PipeReader CreatePipeReader(
         Stream stream,
         in CsvReadingContext<byte> context,

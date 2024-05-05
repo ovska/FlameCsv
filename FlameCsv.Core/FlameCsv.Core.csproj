@@ -1,5 +1,4 @@
-﻿
-  <Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <Version>0.0.1</Version>
@@ -11,7 +10,7 @@
 
     <IsTrimmable>true</IsTrimmable>
 
-    <!--This setting is broken for structs that use the in-modified-->
+    <!--This setting is broken for structs that use the in-modifier-->
     <NoWarn>RCS1085</NoWarn>
   </PropertyGroup>
 
@@ -87,6 +86,17 @@
 
   <ItemGroup>
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Roslynator.Analyzers" Version="4.12.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Roslynator.Formatting.Analyzers" Version="4.12.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
 </Project>

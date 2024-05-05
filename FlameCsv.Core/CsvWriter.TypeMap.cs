@@ -3,7 +3,6 @@ using System.IO.Pipelines;
 using System.Text;
 using FlameCsv.Binding;
 using FlameCsv.Writing;
-using System.Threading;
 
 namespace FlameCsv;
 

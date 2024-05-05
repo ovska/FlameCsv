@@ -58,12 +58,4 @@ public static class HeaderBindingTests
         Assert.Equal(typeof(Shim).GetProperty(nameof(Shim.DisplayName)), byIndex[1]);
         Assert.Equal(typeof(Shim).GetProperty(nameof(Shim.Targeted)), byIndex[2]);
     }
-
-    [Fact]
-    public static void Should_Bind_To_Writable()
-    {
-        var binder = new DefaultHeaderBinder<char>(new CsvTextOptions { Comparer = StringComparer.Ordinal });
-
-        var bindings = binder.Bind<Shim>();
-    }
 }

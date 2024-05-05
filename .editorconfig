@@ -14,7 +14,7 @@ csharp_prefer_static_local_function = true:suggestion
 ## Compiler and IDE warnings
 
 # Useless rules
-# dotnet_diagnostic.CS1591.severity = none # Missing XML comment on public member
+dotnet_diagnostic.CS1591.severity = warning # Missing XML comment on public member
 dotnet_diagnostic.RCS1001.severity = none # Add braces to if statement (when expression spans over multiple lines).
 dotnet_diagnostic.RCS1194.severity = none # Implement exception constructors.
 dotnet_diagnostic.RCS1139.severity = none # Add summary element to documentation comment.
@@ -83,7 +83,7 @@ csharp_prefer_simple_default_expression = true:suggestion
 csharp_style_prefer_local_over_anonymous_function = true:suggestion
 csharp_style_prefer_index_operator = true:suggestion
 csharp_style_prefer_range_operator = true:none
-csharp_style_implicit_object_creation_when_type_is_apparent = true:suggestion
+csharp_style_implicit_object_creation_when_type_is_apparent = true:silent
 csharp_style_prefer_tuple_swap = true:suggestion
 csharp_space_around_binary_operators = before_and_after
 csharp_style_prefer_utf8_string_literals = true:suggestion
@@ -119,6 +119,8 @@ dotnet_diagnostic.CA1815.severity = silent
 # CA1032: Implement standard exception constructors
 dotnet_diagnostic.CA1032.severity = none
 csharp_style_prefer_primary_constructors = true:silent
+csharp_style_allow_blank_line_after_token_in_conditional_expression_experimental = true:silent
+csharp_style_allow_blank_line_after_token_in_arrow_expression_clause_experimental = true:silent
 
 [*.{cs,vb}]
 #### Naming styles ####
@@ -203,7 +205,7 @@ dotnet_style_qualification_for_field = false:silent
 dotnet_style_qualification_for_property = false:silent
 dotnet_style_qualification_for_method = false:silent
 dotnet_style_qualification_for_event = false:silent
-dotnet_style_prefer_collection_expression = true:suggestion
+dotnet_style_prefer_collection_expression = when_types_exactly_match:suggestion
 
 [*.Generated.*]
 end_of_line = crlf

@@ -3,7 +3,6 @@ using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -102,14 +101,14 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
         return ThrowInvalidUnescape(sourceMemory.Span, null, escape, 0, escapeCount);
     }
 
-    [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private static void ThrowUnescapeBufferTooSmall(int requiredLength, int bufferLength)
     {
         throw new UnreachableException(
             $"Internal error, failed to unescape: required {requiredLength} but got buffer with length {bufferLength}.");
     }
 
-    [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private static ReadOnlyMemory<T> ThrowInvalidUnescape(
         ReadOnlySpan<T> source,
         T? quote,

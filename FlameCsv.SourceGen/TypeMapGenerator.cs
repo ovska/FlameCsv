@@ -91,7 +91,9 @@ public partial class TypeMapGenerator : IIncrementalGenerator
         sb.Append(assembly.Version);
         sb.Append(@"
 // </auto-generated>
-#nullable enable
+#nullable ");
+        sb.Append(_symbols.Nullable ? "enable" : "disable");
+        sb.Append(@"
 using FlameCsv.Exceptions;
 using FlameCsv.Binding;
 using FlameCsv.Converters;

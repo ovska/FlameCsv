@@ -62,7 +62,6 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
     /// <summary>
     /// Seeks the sequence for a <see cref="CsvDialect{T}.Newline"/>.
     /// </summary>
-    /// <param name="dialect">Dialect that determines the quote, newline, and escape</param>
     /// <param name="sequence">
     /// Source data, modified if a newline is found and unmodified if the method returns <see langword="false"/>.
     /// </param>

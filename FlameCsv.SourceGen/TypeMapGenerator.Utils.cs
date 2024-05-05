@@ -113,32 +113,4 @@ public partial class TypeMapGenerator
             sb.Append(">(options)");
         }
     }
-
-    private bool CreateStaticInstance(INamedTypeSymbol classSymbol)
-    {
-        // check if there is no "Instance" member, and a parameterless exists ctor.
-        foreach (var ctor in classSymbol.InstanceConstructors)
-        {
-            if (ctor.Parameters.IsDefaultOrEmpty)
-            {
-                return !classSymbol.MemberNames.Contains("Instance");
-            }
-        }
-
-        return false;
-    }
-
-    private string GetAccessModifier(INamedTypeSymbol classSymbol)
-    {
-        return classSymbol.DeclaredAccessibility switch
-        {
-            Accessibility.Public => "public",
-            Accessibility.Internal => "internal",
-            Accessibility.Protected => "protected",
-            Accessibility.ProtectedAndInternal => "protected internal",
-            Accessibility.ProtectedOrInternal => "private protected",
-            Accessibility.Private => "private",
-            _ => throw new NotSupportedException(),
-        };
-    }
 }

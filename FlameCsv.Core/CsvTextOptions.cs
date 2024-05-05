@@ -202,6 +202,7 @@ public sealed class CsvTextOptions : CsvOptions<char>
         set
         {
             _ = default(TimeOnly).TryFormat(Span<char>.Empty, out _, value, null);
+            this.SetValue(ref _timeOnlyFormat, value);
         }
     }
 

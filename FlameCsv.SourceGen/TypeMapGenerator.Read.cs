@@ -14,8 +14,8 @@ public partial class TypeMapGenerator
         typeMap.ThrowIfCancellationRequested();
 
         sb.Append(@"        /// <summary>
-                            /// Callback for parsing a single field and writing the value to the object.
-                            /// </summary>
+        /// Callback for parsing a single field and writing the value to the object.
+        /// </summary>
         private delegate bool TryParseHandler");
         sb.Append(typeMap.ParseHandlerArgs);
         sb.Append(@";
@@ -74,10 +74,12 @@ public partial class TypeMapGenerator
             bool exposeContent,
             CsvOptions<");
         sb.Append(typeMap.Token);
-        sb.Append(@"> options)
+        sb.Append("""
+> options)
         {
-            throw new NotSupportedException($""{GetType().FullName} does not support index binding."");
-        }");
+            throw new NotSupportedException($"{GetType().FullName} does not support index binding.");
+        }
+""");
 
         WriteMissingRequiredFields(sb);
 
@@ -230,7 +232,9 @@ public partial class TypeMapGenerator
 
                 sb.Append("state.");
                 sb.Append(binding.Name);
-                sb.Append("!,");
+                if (_symbols.Nullable)
+                    sb.Append('!');
+                sb.Append(",");
             }
 
             sb.Length--;
@@ -250,7 +254,9 @@ public partial class TypeMapGenerator
                 sb.Append(binding.Name);
                 sb.Append(" = state.");
                 sb.Append(binding.Name);
-                sb.Append(@"!,
+                if (_symbols.Nullable)
+                    sb.Append('!');
+                sb.Append(@",
                 ");
             }
 
@@ -283,7 +289,9 @@ public partial class TypeMapGenerator
             sb.Append(binding.Name);
             sb.Append(" = state.");
             sb.Append(binding.Name);
-            sb.Append(@"!;
+            if (_symbols.Nullable)
+                sb.Append('!');
+            sb.Append(@";
 ");
         }
 
@@ -350,7 +358,7 @@ public partial class TypeMapGenerator
         sb.Append(typeMap.Token);
         sb.Append(", ");
         sb.Append(binding.Type.ToDisplayString());
-        sb.Append(">? ");
+        sb.Append(_symbols.Nullable ? ">? " : "> ");
         sb.Append(binding.ParserId);
         sb.Append(';');
     }
@@ -368,29 +376,34 @@ public partial class TypeMapGenerator
             if (!first)
             {
                 sb.Append(@"
-
         ");
+            }
+            else
+            {
+                if (_symbols.Nullable)
+                {
+                    sb.Append(@"#nullable disable
+        ");
+                }
             }
 
             sb.Append("private static readonly TryParseHandler ");
             sb.Append(binding.HandlerId);
             sb.Append(" = ");
             sb.Append(typeMap.ParseHandlerArgs);
-            sb.Append(@" =>
-        {
-            if (materializer.");
+            sb.Append(" => materializer.");
             sb.Append(binding.ParserId);
-            sb.Append(@"!.TryParse(field, out var result))
-            {
-                state.");
+            sb.Append(".TryParse(field, out state.");
             sb.Append(binding.Name);
-            sb.Append(@" = result;
-                return true;
-            }
-            return false;
-        };");
+            sb.Append(");");
 
             first = false;
+        }
+
+        if (_symbols.Nullable)
+        {
+            sb.Append(@"
+        #nullable enable");
         }
     }
 

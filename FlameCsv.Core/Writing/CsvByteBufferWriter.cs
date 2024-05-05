@@ -8,7 +8,7 @@ namespace FlameCsv.Writing;
 
 [DebuggerDisplay(
     @"\{ CsvByteBufferWriter, Unflushed: {Unflushed} \}")]
-internal readonly struct CsvByteBufferWriter : IAsyncBufferWriter<byte>
+internal readonly struct CsvByteBufferWriter : ICsvBufferWriter<byte>
 {
     public const int InternalFlushThreshold = (int)(4096d * 15d / 16d);
 

@@ -1,8 +1,6 @@
 ﻿using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Converters;
-using FlameCsv.Converters.Text;
-using FlameCsv.Writing;
 
 namespace FlameCsv.Tests.Binding;
 

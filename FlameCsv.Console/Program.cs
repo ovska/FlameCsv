@@ -1,10 +1,9 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
+﻿using System.Buffers.Text;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Converters;
-using FlameCsv.Reading;
 
 #pragma warning disable IDE0161 // Convert to file-scoped namespace
 namespace FlameCsv.Console
@@ -13,20 +12,8 @@ namespace FlameCsv.Console
     {
         static void Main([NotNull] string[] args)
         {
-            var s_c_b = Unsafe.SizeOf<CsvReadingContext<byte>>();
-            var s_c_c = Unsafe.SizeOf<CsvReadingContext<char>>();
-            var s_r_b = Unsafe.SizeOf<CsvFieldReader<byte>>();
-            var s_r_c = Unsafe.SizeOf<CsvFieldReader<char>>();
-
-            Span<char> src = stackalloc char[] { 'x', 'y', 'z', '_' };
-            Span<char> dst = stackalloc char[] { 'a','b','c','d' };
-
-            ref byte srcRef = ref Unsafe.As<char, byte>(ref MemoryMarshal.GetReference(src));
-            ref byte dstRef = ref Unsafe.As<char, byte>(ref MemoryMarshal.GetReference(dst));
-
-            Unsafe.CopyBlockUnaligned(ref dstRef, ref srcRef, (uint)Unsafe.SizeOf<char>() * (uint)dst.Length / (uint)Unsafe.SizeOf<byte>());
-
-
+            var dst = new byte[128];
+            var res = Utf8Formatter.TryFormat((Int16)0, dst, out int written);
 
             var test = CsvReader.Read<Obj>(
                 "id,name,is_enabled\r\n1,Bob,true", new ObjTypeMap(), CsvTextOptions.Default).ToList();
@@ -41,9 +28,7 @@ namespace FlameCsv.Console
 
 
     [CsvTypeMap<char, Obj>(ThrowOnDuplicate = false, IgnoreUnmatched = false)]
-    partial class ObjTypeMap
-    {
-    }
+    partial class ObjTypeMap;
 
     public class Obj
     {
@@ -87,4 +72,3 @@ namespace FlameCsv.Console
         public object d { get; }
     }
 }
-

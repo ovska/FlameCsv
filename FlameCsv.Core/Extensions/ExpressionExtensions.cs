@@ -17,7 +17,7 @@ internal static class ExpressionExtensions
 #endif
     ;
 
-    [StackTraceHidden, DoesNotReturn]
+    [DoesNotReturn]
     private static void ThrowForClosure(Expression expression)
     {
         string asString;

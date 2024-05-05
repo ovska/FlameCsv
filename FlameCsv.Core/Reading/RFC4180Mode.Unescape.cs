@@ -176,7 +176,7 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
         }
     }
 
-    [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void ThrowUnescapeBufferTooSmall(int requiredLength, int bufferLength)
     {
         throw new UnreachableException(
@@ -186,7 +186,7 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
     /// <exception cref="UnreachableException">
     /// The data and/or the supplied quote count parameter were invalid. 
     /// </exception>
-    [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     internal static void ThrowInvalidUnescape(
         ReadOnlyMemory<T> source,
         T quote,

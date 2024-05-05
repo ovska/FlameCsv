@@ -10,7 +10,6 @@ namespace FlameCsv;
 /// <typeparam name="T">Token type</typeparam>
 public readonly struct CsvDialect<T> : IEquatable<CsvDialect<T>> where T : unmanaged, IEquatable<T>
 {
-    [SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "<Pending>")]
     public static CsvDialect<T> Default
     {
         get

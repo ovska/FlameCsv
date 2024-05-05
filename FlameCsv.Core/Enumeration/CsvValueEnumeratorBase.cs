@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
@@ -163,7 +162,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         }
     }
 
-    [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private void ThrowInvalidFormatException(Exception innerException, ReadOnlyMemory<T> line)
     {
         throw new CsvFormatException(
@@ -172,7 +171,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
             innerException);
     }
 
-    [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private void ThrowUnhandledException(
         Exception innerException,
         ReadOnlyMemory<T> record,

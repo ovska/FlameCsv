@@ -12,7 +12,7 @@ internal static class Extensions
         {
             if (SymbolEqualityComparer.Default.Equals(propertySymbol, implementation))
             {
-                throw new Exception(propertySymbol.ToDisplayString() + " || " + implementation.ToDisplayString());
+                // throw new Exception(propertySymbol.ToDisplayString() + " || " + implementation.ToDisplayString());
                 return true;
             }
         }
@@ -35,36 +35,6 @@ internal static class Extensions
     public static bool IsEnumOrNullableEnum(this ITypeSymbol type)
     {
         return type.UnwrapNullable(out _) is { BaseType.SpecialType: SpecialType.System_Enum };
-    }
-
-    public static TTo FindValueOrDefault<TFrom, TTo>(
-        this SyntaxList<TFrom> syntaxList,
-        Func<TFrom, bool> predicate,
-        Func<TFrom, TTo> valueSelector)
-        where TFrom : SyntaxNode
-    {
-        foreach (var node in syntaxList)
-        {
-            if (predicate(node))
-            {
-                return valueSelector(node);
-            }
-        }
-
-        return default!;
-    }
-
-    public static T FindValueOrDefault<T>(this ImmutableArray<T> array, Func<T, bool> predicate)
-    {
-        foreach (var item in array)
-        {
-            if (predicate(item))
-            {
-                return item;
-            }
-        }
-
-        return default!;
     }
 
     public static bool Inherits(this ITypeSymbol? type, ITypeSymbol baseClass)
@@ -130,6 +100,9 @@ internal static class Extensions
     {
         if (value is null)
             return "null";
+
+        if (value == "")
+            return "\"\"";
 
         return SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(value)).ToFullString();
     }
