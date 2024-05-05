@@ -81,16 +81,10 @@ public static partial class TypeMapBindingTests
 }
 
 [CsvTypeMap<char, TypeMapBindingTests.Obj>(IgnoreUnmatched = true)]
-public partial class ObjTypeMap_Simple
-{
-}
+public partial class ObjTypeMap_Simple;
 
 [CsvTypeMap<char, TypeMapBindingTests.Obj>(IgnoreUnmatched = false)]
-public partial class ObjTypeMap_ThrowUnmatched
-{
-}
+public partial class ObjTypeMap_ThrowUnmatched;
 
 [CsvTypeMap<char, TypeMapBindingTests.Obj>(ThrowOnDuplicate = true)]
-public partial class ObjTypeMap_ThrowDuplicate
-{
-}
+public partial class ObjTypeMap_ThrowDuplicate;

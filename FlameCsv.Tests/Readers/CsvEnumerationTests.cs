@@ -107,13 +107,12 @@ public sealed class CsvEnumerationTests : IDisposable
         // dispose throws if no return
         using var pool = new ReturnTrackingArrayPool<char>();
 
-        using (var enumerator = new CsvFieldEnumerator<char>(
+        using var enumerator = new CsvFieldEnumerator<char>(
             "\"xyz\"".AsMemory(),
-            new CsvReadingContext<char>(CsvTextOptions.Default)))
-        {
-            Assert.True(enumerator.MoveNext());
-            Assert.False(enumerator.MoveNext());
-        }
+            new CsvReadingContext<char>(CsvTextOptions.Default));
+
+        Assert.True(enumerator.MoveNext());
+        Assert.False(enumerator.MoveNext());
     }
 
     [Fact]
@@ -190,15 +189,14 @@ public sealed class CsvEnumerationTests : IDisposable
 
     private CsvValueRecord<char> GetRecord()
     {
-        var enumerator = new CsvRecordEnumerator<char>(
+        _enumerator = new CsvRecordEnumerator<char>(
             "1,\"Test\",true".AsMemory(),
             new CsvTextOptions { HasHeader = false });
-        _enumerator = enumerator;
-        enumerator.MoveNext();
-        return enumerator.Current;
+        _enumerator.MoveNext();
+        return _enumerator.Current;
     }
 
-    private IDisposable? _enumerator;
+    private CsvRecordEnumerator<char>? _enumerator;
 
     public void Dispose() => _enumerator?.Dispose();
 }

@@ -3,15 +3,13 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
-using FlameCsv.Binding;
-using FlameCsv.Binding.Internal;
 using FlameCsv.Exceptions;
 
 namespace FlameCsv.Extensions;
 
 internal static class Throw
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining), StackTraceHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void IfDefaultStruct<TCaller>([NotNull] object? signal)
     {
         if (signal is not null)
@@ -20,13 +18,13 @@ internal static class Throw
         InvalidOp_DefaultStruct(typeof(TCaller));
     }
 
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void InvalidOp_DefaultStruct(Type type)
     {
         throw new InvalidOperationException($"The struct '{type.ToTypeString()}' was uninitialized.");
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining), StackTraceHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void IfEnumerationDisposed([DoesNotReturnIf(true)] bool disposed)
     {
         if (!disposed)
@@ -35,7 +33,7 @@ internal static class Throw
         ObjectDisposed_Enumeration();
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining), StackTraceHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void IfEnumerationChanged(int version, int expected)
     {
         if (version == expected)
@@ -44,56 +42,56 @@ internal static class Throw
         InvalidOp_EnumerationChanged();
     }
 
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void InvalidOp_EnumerationChanged()
     {
         throw new InvalidOperationException("The CSV enumeration state has been modified.");
     }
 
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void ObjectDisposed_Enumeration()
     {
         throw new ObjectDisposedException(null, "The CSV enumeration has already completed.");
     }
 
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void Unreachable_AlreadyHasHeader()
     {
         throw new UnreachableException("The header record has already been read.");
     }
 
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void InvalidOperation_HeaderNotRead()
     {
         throw new InvalidOperationException("The CSV header has not been read.");
     }
 
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void NotSupported_CsvHasNoHeader()
     {
         throw new NotSupportedException("The CSV does not have a header record.");
     }
 
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void InvalidData_FieldCount()
     {
         throw new InvalidDataException("The CSV record has an invalid number of fields.");
     }
 
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void InvalidData_FieldCount(int expected, int actual)
     {
         throw new InvalidDataException($"The CSV record has {actual} fields, but {expected} were expected.");
     }
 
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void InvalidOp_NoHeader(int index, Type type, MemberInfo member)
     {
         throw new InvalidOperationException(
             $"No header name found for member {member.Name} at index {index} when writing {type.FullName}.");
     }
 
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void Argument_HeaderNameNotFound(string name, bool allowContent, IEnumerable<string> header)
     {
         string msg = allowContent
@@ -103,7 +101,7 @@ internal static class Throw
         throw new ArgumentException(msg, nameof(name));
     }
 
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void ParseFailed<T>(ReadOnlyMemory<T> field, Type parsedType, in CsvReadingContext<T> context)
         where T : unmanaged, IEquatable<T>
     {
@@ -111,7 +109,7 @@ internal static class Throw
             $"Failed to parse {parsedType.FullName} using from {context.AsPrintableString(field)}");
     }
 
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void ParseFailed<T, TValue>(ReadOnlyMemory<T> field, CsvConverter<T> parser, in CsvReadingContext<T> context)
             where T : unmanaged, IEquatable<T>
     {
@@ -120,7 +118,7 @@ internal static class Throw
             $"from {context.AsPrintableString(field)}");
     }
 
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void Argument_FieldIndex<T>(int index, EnumeratorState<T>? state = null)
             where T : unmanaged, IEquatable<T>
     {
@@ -143,7 +141,7 @@ internal static class Throw
         throw new ArgumentOutOfRangeException($"Could not get field at index {index}{knownFieldCount}.", inner);
     }
 
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void Argument_FieldIndex(int index, int count)
     {
         throw new ArgumentOutOfRangeException(
@@ -151,7 +149,7 @@ internal static class Throw
             $"Could not get field at index {index} (there were {count} fields in the record).");
     }
 
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void Config_TrueOrFalseBooleanValues(bool which)
     {
         throw new CsvConfigurationException(

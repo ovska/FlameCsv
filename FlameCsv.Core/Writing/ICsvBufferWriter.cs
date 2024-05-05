@@ -2,12 +2,18 @@ using System.Buffers;
 
 namespace FlameCsv.Writing;
 
-internal interface IAsyncBufferWriter<T> : IBufferWriter<T> where T : unmanaged
+internal interface ICsvBufferWriter<T> : IBufferWriter<T> where T : unmanaged
 {
     /// <summary>
     /// Whether the writer's buffer is nearly full and should be flushed.
     /// </summary>
     bool NeedsFlush { get; }
+
+    /// <inheritdoc cref="FlushAsync(CancellationToken)" />
+    void Flush();
+
+    /// <inheritdoc cref="CompleteAsync(Exception?, CancellationToken)" />
+    void Complete(Exception? exception);
 
     /// <summary>
     /// Flushes the writer.
@@ -23,7 +29,4 @@ internal interface IAsyncBufferWriter<T> : IBufferWriter<T> where T : unmanaged
     ValueTask CompleteAsync(
         Exception? exception,
         CancellationToken cancellationToken = default);
-
-    void Flush();
-    void Complete(Exception? exception);
 }

@@ -1,9 +1,9 @@
 ﻿using CommunityToolkit.Diagnostics;
 using FlameCsv.Runtime;
 using FlameCsv.Writing;
+using System.Buffers;
 using System.IO.Pipelines;
 using System.Text;
-using System.Threading;
 using DAM = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute;
 using RUF = System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute;
 
@@ -191,7 +191,7 @@ public static partial class CsvWriter
         IDematerializer<T, TValue> dematerializer,
         CancellationToken cancellationToken)
         where T : unmanaged, IEquatable<T>
-        where TWriter : struct, IAsyncBufferWriter<T>
+        where TWriter : struct, ICsvBufferWriter<T>
     {
         Exception? exception = null;
 
@@ -231,7 +231,7 @@ public static partial class CsvWriter
         CsvFieldWriter<T, TWriter> writer,
         IDematerializer<T, TValue> dematerializer)
         where T : unmanaged, IEquatable<T>
-        where TWriter : struct, IAsyncBufferWriter<T>
+        where TWriter : struct, ICsvBufferWriter<T>
     {
         Exception? exception = null;
 

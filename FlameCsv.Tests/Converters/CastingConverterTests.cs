@@ -7,13 +7,9 @@ namespace FlameCsv.Tests.Converters;
 
 public static class CastingConverterTests
 {
-    private class Base
-    {
-    }
+    private class Base;
 
-    private class Derived : Base
-    {
-    }
+    private class Derived : Base;
 
     private class Obj
     {

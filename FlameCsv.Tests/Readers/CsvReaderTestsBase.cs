@@ -1,12 +1,9 @@
 using System.Buffers;
 using System.Text;
-using CommunityToolkit.HighPerformance;
-using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Binding;
 using FlameCsv.Enumeration;
 using FlameCsv.Tests.TestData;
 using FlameCsv.Tests.Utilities;
-using static System.Net.Mime.MediaTypeNames;
 
 // ReSharper disable ConvertIfStatementToSwitchStatement
 // ReSharper disable LoopCanBeConvertedToQuery
@@ -81,14 +78,12 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         var memory = GetMemory(text);
         var sequence = MemorySegment<T>.AsSequence(memory, bufferSize, emptySegmentFreq);
 
+#if false
         if (/* sourceGen */ false)
-        {
             items.AddRange(CsvReader.Read(sequence, TypeMap, options));
-        }
         else
-        {
-            items.AddRange(CsvReader.Read<T, Obj>(sequence, options));
-        }
+#endif
+        items.AddRange(CsvReader.Read<T, Obj>(sequence, options));
 
         Validate(items, escaping);
     }
@@ -166,10 +161,8 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         {
             CsvRecordAsyncEnumerable<T> enumerable = GetRecords(stream, options, bufferSize);
 
-            await using (var enumerator = enumerable.GetAsyncEnumerator())
-            {
-                items = await GetItems(async () => await enumerator.MoveNextAsync() ? enumerator.Current : null, header);
-            }
+            await using var enumerator = enumerable.GetAsyncEnumerator();
+            items = await GetItems(async () => await enumerator.MoveNextAsync() ? enumerator.Current : null, header);
         }
 
         Validate(items, escaping);

@@ -48,13 +48,13 @@ public partial class TypeMapGenerator
         foreach (var binding in _bindings.Members)
         {
             sb.Append(@"
-            public CsvConverter<");
+            public required CsvConverter<");
             sb.Append(typeMap.Token);
             sb.Append(", ");
             sb.Append(binding.Type.ToDisplayString());
             sb.Append("> ");
             sb.Append(binding.FormatterId);
-            sb.Append(';');
+            sb.Append(" { get; init; }");
         }
 
         sb.Append(@"

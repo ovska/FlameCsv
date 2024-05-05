@@ -195,7 +195,7 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
         }
     }
 
-    public ValueTask DisposeAsync()
+    public void Dispose()
     {
         if (!_disposed)
         {
@@ -209,7 +209,11 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
                 returnSegment.ResetMemory();
             }
         }
+    }
 
+    public ValueTask DisposeAsync()
+    {
+        Dispose();
         return default;
     }
 

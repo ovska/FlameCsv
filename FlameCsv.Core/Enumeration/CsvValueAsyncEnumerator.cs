@@ -11,7 +11,6 @@ public sealed class CsvValueAsyncEnumerator<T, TValue> : CsvValueEnumeratorBase<
 {
     private ReadOnlySequence<T> _data;
     private bool _readerCompleted;
-    private bool _disposed;
 
     private readonly ICsvPipeReader<T> _reader;
     private readonly CancellationToken _cancellationToken;
@@ -83,19 +82,13 @@ public sealed class CsvValueAsyncEnumerator<T, TValue> : CsvValueEnumeratorBase<
 
     public async ValueTask DisposeAsync()
     {
-        if (!_disposed)
-        {
-            base.Dispose(true);
-            await _reader.DisposeAsync().ConfigureAwait(false);
-        }
+        await _reader.DisposeAsync().ConfigureAwait(false);
+        base.Dispose(true);
     }
 
     protected override void Dispose(bool disposing)
     {
-        if (!_disposed)
-        {
-            base.Dispose(disposing);
-            DisposeAsync().AsTask().GetAwaiter().GetResult();
-        }
+        _reader.Dispose();
+        base.Dispose(disposing);
     }
 }

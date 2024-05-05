@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
 
 namespace FlameCsv.Writing;

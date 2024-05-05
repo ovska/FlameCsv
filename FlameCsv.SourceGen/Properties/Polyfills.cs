@@ -21,12 +21,8 @@ namespace System.Diagnostics.CodeAnalysis
     }
 
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter | AttributeTargets.ReturnValue, Inherited = false)]
-    internal sealed class NotNullAttribute : Attribute
-    {
-    }
+    internal sealed class NotNullAttribute : Attribute;
 
     [AttributeUsage(AttributeTargets.Method, Inherited = false)]
-    internal sealed class DoesNotReturnAttribute : Attribute
-    {
-    }
+    internal sealed class DoesNotReturnAttribute : Attribute;
 }

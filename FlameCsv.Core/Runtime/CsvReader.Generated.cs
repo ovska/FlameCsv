@@ -39,7 +39,6 @@ public static partial class CsvReader
         }
     }
 
-    [System.Diagnostics.StackTraceHidden]
     private static CsvReadingContext<T> ValidateReadRecordsArgs<T>(
         [NotNull] object? reader,
         [NotNull] CsvOptions<T>? options,

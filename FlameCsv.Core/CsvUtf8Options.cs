@@ -1,7 +1,6 @@
 ﻿using System.Buffers;
 using System.Buffers.Text;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
 using System.Text;
 using FlameCsv.Binding;
 using FlameCsv.Converters;

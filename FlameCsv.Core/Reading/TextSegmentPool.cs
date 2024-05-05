@@ -35,15 +35,13 @@ internal struct TextSegmentPool
     {
         Debug.Assert(textSegment._array is null, "Segment rented memory should have been returned");
 
-#pragma warning disable IDE0074 // Use compound assignment
         if (_a is null)
         {
             _a = textSegment;
         }
-        else if (_b is null)
+        else
         {
-            _b = textSegment;
+            _b ??= textSegment;
         }
-#pragma warning restore IDE0074 // Use compound assignment
     }
 }

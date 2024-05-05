@@ -71,7 +71,7 @@ internal interface IEscaper<T> where T : unmanaged, IEquatable<T>
     }
 
     sealed void EscapeField<TWriter>(
-        in TWriter writer,
+        ref readonly TWriter writer,
         scoped ReadOnlySpan<T> source,
         scoped Span<T> destination,
         int specialCount,

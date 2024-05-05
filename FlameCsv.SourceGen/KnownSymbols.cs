@@ -2,6 +2,8 @@
 
 internal readonly struct KnownSymbols(Compilation compilation)
 {
+    public bool Nullable => compilation.Options.NullableContextOptions.AnnotationsEnabled();
+
     public INamedTypeSymbol CsvConverterFactory => _csvConverterFactory.Value;
     public INamedTypeSymbol CsvOptions => _csvOptions.Value;
     public INamedTypeSymbol CsvTypeMapAttribute => _typeMapAttribute.Value;

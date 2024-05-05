@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace FlameCsv.Utilities;
@@ -41,7 +40,7 @@ internal static class SealableUtil
             ThrowForIsReadOnly(memberName);
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining), DoesNotReturn, StackTraceHidden]
+    [MethodImpl(MethodImplOptions.NoInlining), DoesNotReturn]
     private static void ThrowForIsReadOnly(string memberName)
     {
         if (string.IsNullOrEmpty(memberName))
