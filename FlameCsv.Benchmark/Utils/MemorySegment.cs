@@ -31,14 +31,12 @@ internal class MemorySegment<T> : ReadOnlySequenceSegment<T>
         int bufferSize,
         int emptyFrequency = 0)
     {
-        if (emptyFrequency < 0)
-            throw new ArgumentOutOfRangeException(nameof(emptyFrequency));
+        ArgumentOutOfRangeException.ThrowIfNegative(emptyFrequency);
 
         if (bufferSize == -1 || data.Length <= bufferSize)
             return new ReadOnlySequence<T>(data);
 
-        if (bufferSize <= 0)
-            throw new ArgumentOutOfRangeException(nameof(bufferSize));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bufferSize);
 
         MemorySegment<T> first = new(data.Slice(0, bufferSize));
         MemorySegment<T> last = first;

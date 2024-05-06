@@ -41,8 +41,7 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
     [MethodImpl(MethodImplOptions.NoInlining)]
     protected bool MoveNextCore(ref ReadOnlySequence<T> data, bool isFinalBlock)
     {
-        if (_disposed)
-            ThrowHelper.ThrowObjectDisposedException(GetType().Name);
+        ObjectDisposedException.ThrowIf(_disposed, this);
 
         Retry:
         if (_context.TryGetLine(ref data, out ReadOnlySequence<T> line, out RecordMeta meta, isFinalBlock))

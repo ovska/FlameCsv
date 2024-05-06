@@ -26,6 +26,8 @@ public sealed class EnumUtf8Converter<TEnum>
 
     public override bool TryParse(ReadOnlySpan<byte> source, out TEnum value)
     {
+
+
         int hashCode = HashCode<byte>.Combine(source);
         bool skipCache = false;
 
@@ -61,17 +63,7 @@ public sealed class EnumUtf8Converter<TEnum>
 
     public override bool TryFormat(Span<byte> destination, TEnum value, out int charsWritten)
     {
-        if (!_writeCache.TryGetValue(value, out ReadOnlyMemory<byte> name))
-        {
-            name = Encoding.UTF8.GetBytes(value.ToString());
-
-            if (_writeCache.Count <= 64)
-            {
-                _writeCache.TryAdd(value, name);
-            }
-        }
-
-        return name.Span.TryWriteTo(destination, out charsWritten);
+        return ((IUtf8SpanFormattable)value).TryFormat(destination, out charsWritten, default, default);
     }
 
     private bool TryParseCore(
