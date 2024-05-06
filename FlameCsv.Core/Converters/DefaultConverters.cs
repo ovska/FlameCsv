@@ -1,5 +1,4 @@
 ﻿using System.Collections.Frozen;
-using System.Runtime.CompilerServices;
 
 namespace FlameCsv.Converters;
 
@@ -11,7 +10,6 @@ internal static partial class DefaultConverters
     public static readonly Lazy<FrozenDictionary<Type, TextConverterFactory>> Text = new(InitText);
     public static readonly Lazy<FrozenDictionary<Type, Utf8ConverterFactory>> Utf8 = new(InitUtf8);
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
     private static FrozenDictionary<Type, TextConverterFactory> InitText()
     {
         List<KeyValuePair<Type, TextConverterFactory>> value = new(capacity: 32);
@@ -25,7 +23,6 @@ internal static partial class DefaultConverters
         return FrozenDictionary.ToFrozenDictionary(value);
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
     private static FrozenDictionary<Type, Utf8ConverterFactory> InitUtf8()
     {
         List<KeyValuePair<Type, Utf8ConverterFactory>> value = new(capacity: 32);
