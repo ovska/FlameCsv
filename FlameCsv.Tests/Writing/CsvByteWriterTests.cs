@@ -151,7 +151,7 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
 
         public override bool TryFormat(Span<byte> destination, string value, out int charsWritten)
         {
-            return value.AsSpan().TryWriteUtf8To(destination, out charsWritten);
+            return Encoding.UTF8.TryGetBytes(value, destination, out charsWritten);
         }
 
         public override bool HandleNull => false;

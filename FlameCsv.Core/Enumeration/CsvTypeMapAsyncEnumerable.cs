@@ -28,6 +28,9 @@ public sealed class CsvTypeMapAsyncEnumerable<T, TValue> : IAsyncEnumerable<TVal
         in CsvReadingContext<T> context,
         CsvTypeMap<T, TValue> typeMap)
     {
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(typeMap);
+        context.EnsureValid();
         _reader = reader;
         _context = context;
         _typeMap = typeMap;
