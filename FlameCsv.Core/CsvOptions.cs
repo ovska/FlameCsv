@@ -37,7 +37,7 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     {
         ArgumentNullException.ThrowIfNull(other);
 
-        _stringComparison = other._stringComparison;
+        _comparer = other._comparer;
         _shouldSkipRow = other._shouldSkipRow;
         _exceptionHandler = other._exceptionHandler;
         _hasHeader = other._hasHeader;
@@ -111,7 +111,7 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     internal bool _allowContentInExceptions;
     internal IList<(string text, bool value)>? _booleanValues;
 
-    private IEqualityComparer<string> _stringComparison = StringComparer.OrdinalIgnoreCase;
+    private IEqualityComparer<string> _comparer = StringComparer.OrdinalIgnoreCase;
     private bool _useDefaultConverters = true;
     private bool _ignoreEnumCase = true;
     private bool _allowUndefinedEnumValues;
@@ -125,11 +125,11 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     /// </remarks>
     public IEqualityComparer<string> Comparer
     {
-        get => _stringComparison;
+        get => _comparer;
         set
         {
             ArgumentNullException.ThrowIfNull(value);
-            this.SetValue(ref _stringComparison, value);
+            this.SetValue(ref _comparer, value);
         }
     }
 

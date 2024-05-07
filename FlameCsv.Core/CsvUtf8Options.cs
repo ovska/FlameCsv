@@ -8,7 +8,7 @@ using FlameCsv.Utilities;
 
 namespace FlameCsv;
 
-public sealed class CsvUtf8Options : CsvOptions<byte>
+public class CsvUtf8Options : CsvOptions<byte>
 {
     private static readonly Lazy<CsvUtf8Options> _default = new(() => new(isReadOnly: true));
 

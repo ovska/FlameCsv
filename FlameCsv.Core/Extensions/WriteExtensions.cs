@@ -1,27 +1,9 @@
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
 
 namespace FlameCsv.Extensions;
 
 internal static class WriteExtensions
 {
-    public static bool TryGetFirstLast<T>(this ReadOnlySpan<T> value, out T first, out T last)
-        where T : unmanaged, IEquatable<T>
-    {
-        if (!value.IsEmpty)
-        {
-            ref T r = ref MemoryMarshal.GetReference(value);
-            first = r;
-            last = Unsafe.Add(ref r, value.Length - 1);
-            return true;
-        }
-
-        Unsafe.SkipInit(out first);
-        Unsafe.SkipInit(out last);
-        return false;
-    }
-
     /// <summary>
     /// Attempts to copy the contents of <paramref name="value"/> to <paramref name="buffer"/>.
     /// </summary>
@@ -56,22 +38,6 @@ internal static class WriteExtensions
         if (value.TryCopyTo(buffer))
         {
             tokensWritten = value.Length;
-            return true;
-        }
-
-        tokensWritten = 0;
-        return false;
-    }
-
-    public static bool TryWriteUtf8To(
-         this ReadOnlySpan<char> value,
-         Span<byte> destination,
-         out int tokensWritten)
-    {
-        if (Encoding.UTF8.GetMaxByteCount(value.Length) <= destination.Length ||
-            Encoding.UTF8.GetByteCount(value) <= destination.Length)
-        {
-            tokensWritten = Encoding.UTF8.GetBytes(value, destination);
             return true;
         }
 

@@ -40,6 +40,6 @@ internal sealed class PoolingStringUtf8Converter : CsvConverter<byte, string?>
 
     public override bool TryFormat(Span<byte> destination, string? value, out int charsWritten)
     {
-        return value.AsSpan().TryWriteUtf8To(destination, out charsWritten);
+        return Encoding.UTF8.TryGetBytes(value, destination, out charsWritten);
     }
 }

@@ -1,7 +1,10 @@
-﻿using System.Buffers;
+﻿using System;
+using System.Buffers;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Unicode;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Extensions;
 
@@ -11,79 +14,63 @@ public sealed class DelegatingUtf8Converter<TValue> : CsvConverter<byte, TValue>
 {
     public override bool HandleNull => _converter.HandleNull;
 
-    private readonly CsvOptions<char> _options;
     private readonly CsvConverter<char, TValue> _converter;
+    private readonly string? _format;
+    private readonly IFormatProvider? _provider;
+    private readonly ArrayPool<char> _arrayPool;
 
     public DelegatingUtf8Converter(
-        CsvOptions<char> options,
+        CsvTextOptions options,
         CsvConverter<char, TValue> converter)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(converter);
-        _options = options;
         _converter = converter;
+        _provider = options.FormatProvider;
+        _format = options.DateOnlyFormat;
+        _arrayPool = options.ArrayPool.AllocatingIfNull();
     }
 
     public override bool TryFormat(Span<byte> destination, TValue value, out int charsWritten)
     {
-        throw new NotImplementedException();
+        Utf8.TryWriteInterpolatedStringHandler handler = new(
+            literalLength: 0,
+            formattedCount: 1,
+            destination: destination,
+            provider: _provider,
+            shouldAppend: out bool shouldAppend);
 
-        Span<char> charBuffer = stackalloc char[Math.Min(256, destination.Length)];
-
-        if (_converter.TryFormat(charBuffer, value, out int charsWritten2))
+        if (shouldAppend)
         {
-            ReadOnlySpan<char> written = charBuffer[..charsWritten2];
-
-            OperationStatus status = Ascii.FromUtf16(written, destination, out charsWritten);
-
-            if (status == OperationStatus.Done)
-                return true;
-
-            if (status == OperationStatus.InvalidData)
-                return Encoding.UTF8.TryGetBytes(written, destination, out charsWritten);
+            handler.AppendFormatted(value, _format);
+            return Utf8.TryWrite(destination, _provider, ref handler, out charsWritten);
         }
 
-        charsWritten = default;
+        charsWritten = 0;
         return false;
     }
 
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out TValue value)
     {
-        throw new NotImplementedException();
-  
-        scoped Span<char> charBuffer = stackalloc char[Math.Min(256, source.Length)];
+        int len = Encoding.UTF8.GetMaxCharCount(source.Length);
 
-        OperationStatus status = Ascii.ToUtf16(source, charBuffer, out int charsWritten);
-
-        if (status == OperationStatus.Done)
+        if (Token<char>.CanStackalloc(len))
         {
-            return _converter.TryParse(charBuffer[..charsWritten], out value);
+            return TryParseImpl(source, stackalloc char[len], out value);
         }
 
-        return TryParseSlow(source, charBuffer, out value);
+        using var owner = SpanOwner<char>.Allocate(len, _arrayPool);
+        return TryParseImpl(source, owner.Span, out value);
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private bool TryParseSlow(
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool TryParseImpl(
         ReadOnlySpan<byte> source,
-        Span<char> charBuffer,
+        scoped Span<char> charBuffer,
         [MaybeNullWhen(false)] out TValue value)
     {
-        char[]? array = null;
-
-        int maxLength = Encoding.UTF8.GetMaxCharCount(source.Length);
-
-        Span<char> buffer = maxLength <= charBuffer.Length
-            ? charBuffer
-            : (array = _options.ArrayPool.AllocatingIfNull().Rent(maxLength)).AsSpan();
-
-        int written = Encoding.UTF8.GetChars(source, buffer);
-
-        bool success = _converter.TryParse(buffer[..written], out value);
-
-        if (array is not null)
-            _options.ArrayPool.AllocatingIfNull().Return(array);
-
-        return success;
+        int written = Encoding.UTF8.GetChars(source, charBuffer);
+        Debug.Assert(written <= charBuffer.Length);
+        return _converter.TryParse(charBuffer[..written], out value);
     }
 }
