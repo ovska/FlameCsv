@@ -5,7 +5,7 @@
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 /// <returns><see langword="true"/> if the exception can be ignored.</returns>
-public delegate bool CsvExceptionHandler<T>(CsvExceptionHandlerArgs<T> args) where T : unmanaged, IEquatable<T>;
+public delegate bool CsvExceptionHandler<T>(in CsvExceptionHandlerArgs<T> args) where T : unmanaged, IEquatable<T>;
 
 /// <summary>
 /// Arguments for <see cref="CsvExceptionHandler{T}"/>.

@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Reading;
@@ -9,7 +8,6 @@ namespace FlameCsv.Enumeration;
 public sealed class CsvValueAsyncEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TValue>, IAsyncEnumerator<TValue>
     where T : unmanaged, IEquatable<T>
 {
-    private ReadOnlySequence<T> _data;
     private bool _readerCompleted;
 
     private readonly ICsvPipeReader<T> _reader;
@@ -54,7 +52,7 @@ public sealed class CsvValueAsyncEnumerator<T, TValue> : CsvValueEnumeratorBase<
             return ValueTask.FromCanceled<bool>(_cancellationToken);
         }
 
-        if (TryRead(ref _data, isFinalBlock: false))
+        if (TryRead(isFinalBlock: false))
         {
             return new ValueTask<bool>(true);
         }
@@ -67,17 +65,20 @@ public sealed class CsvValueAsyncEnumerator<T, TValue> : CsvValueEnumeratorBase<
     {
         while (!_readerCompleted)
         {
-            _reader.AdvanceTo(_data.Start, _data.End);
+            _reader.AdvanceTo(consumed: _data.Reader.Position, examined: _data.Reader.Sequence.End);
 
-            (_data, _readerCompleted) = await _reader.ReadAsync(_cancellationToken).ConfigureAwait(false);
+            var (sequence, readerCompleted) = await _reader.ReadAsync(_cancellationToken).ConfigureAwait(false);
 
-            if (TryRead(ref _data, isFinalBlock: false))
+            _data.Reset(in sequence);
+            _readerCompleted = readerCompleted;
+
+            if (TryRead(isFinalBlock: false))
             {
                 return true;
             }
         }
 
-        return TryRead(ref _data, isFinalBlock: true);
+        return TryRead(isFinalBlock: true);
     }
 
     public async ValueTask DisposeAsync()

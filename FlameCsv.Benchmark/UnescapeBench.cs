@@ -1,17 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
-using System.Globalization;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using CommunityToolkit.HighPerformance;
+using System.Numerics;
+using FlameCsv.Reading;
+using System.Text;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Benchmark;
 
-public class UnescapeTests
+public class UnescapeBench
 {
     private static readonly string[] _data =
     [
@@ -33,7 +31,14 @@ public class UnescapeTests
 
     private readonly char[] _buffer = new char[1024];
 
-    [Benchmark(Baseline = true)]
+    private static readonly (ReadOnlyMemory<byte> value, uint quoteCount)[] _testData2 = _data
+        .Select(s => s[1..^1])
+        .Select(s => (new ReadOnlyMemory<byte>(Encoding.UTF8.GetBytes(s)), (uint)s.Count('"')))
+        .ToArray();
+
+    private readonly byte[] _buffer2 = new byte[1024];
+
+    //[Benchmark(Baseline = false)]
     public void Old()
     {
         Memory<char> buf = _buffer;
@@ -44,13 +49,27 @@ public class UnescapeTests
         }
     }
 
-    [Benchmark]
+    [Benchmark(Baseline = true)]
     public void New()
     {
         Memory<char> buf = _buffer;
         foreach (ref readonly var tuple in _testData.AsSpan())
         {
             _ = UnescapeRare(tuple.value, '"', tuple.quoteCount, ref buf);
+        }
+    }
+
+    [Benchmark]
+    public void New2()
+    {
+        Span<char> buf = _buffer;
+        foreach (ref readonly var tuple in _testData.AsSpan())
+        {
+            RFC4180Mode<ushort>.Unescape(
+                (ushort)'"',
+                buf.UnsafeCast<char, ushort>(),
+                tuple.value.Span.UnsafeCast<char, ushort>(),
+                tuple.quoteCount);
         }
     }
 
@@ -284,5 +303,184 @@ public class UnescapeTests
     internal static void ThrowInvalidUnescape()
     {
         throw new UnreachableException();
+    }
+
+    public static void Unescape2<T>(
+        T quote,
+        scoped Span<T> buffer,
+        ReadOnlySpan<T> field,
+        uint quotesConsumed)
+        where T : unmanaged, IEquatable<T>
+    {
+        Debug.Assert(quotesConsumed >= 2);
+        Debug.Assert(quotesConsumed % 2 == 0);
+
+        uint quotesLeft = quotesConsumed;
+
+        nuint srcIndex = 0;
+        nuint dstIndex = 0;
+        nint remaining = field.Length;
+
+        ref T src = ref field.DangerousGetReference();
+        ref T dst = ref buffer.DangerousGetReference();
+
+        goto ContinueRead;
+
+        Found1:
+        Copy(ref src, srcIndex, ref dst, dstIndex, 1);
+        srcIndex += 1;
+        dstIndex += 1;
+        remaining -= 1;
+        goto FoundLong;
+        Found2:
+        Copy(ref src, srcIndex, ref dst, dstIndex, 2);
+        srcIndex += 2;
+        dstIndex += 2;
+        remaining -= 2;
+        goto FoundLong;
+        Found3:
+        Copy(ref src, srcIndex, ref dst, dstIndex, 3);
+        srcIndex += 3;
+        dstIndex += 3;
+        remaining -= 3;
+        goto FoundLong;
+        Found4:
+        Copy(ref src, srcIndex, ref dst, dstIndex, 4);
+        srcIndex += 4;
+        dstIndex += 4;
+        remaining -= 4;
+        goto FoundLong;
+        Found5:
+        Copy(ref src, srcIndex, ref dst, dstIndex, 5);
+        srcIndex += 5;
+        dstIndex += 5;
+        remaining -= 5;
+        goto FoundLong;
+        Found6:
+        Copy(ref src, srcIndex, ref dst, dstIndex, 6);
+        srcIndex += 6;
+        dstIndex += 6;
+        remaining -= 6;
+        goto FoundLong;
+        Found7:
+        Copy(ref src, srcIndex, ref dst, dstIndex, 7);
+        srcIndex += 7;
+        dstIndex += 7;
+        remaining -= 7;
+        goto FoundLong;
+        Found8:
+        Copy(ref src, srcIndex, ref dst, dstIndex, 8);
+        srcIndex += 8;
+        dstIndex += 8;
+        remaining -= 8;
+        goto FoundLong;
+
+        FoundLong:
+        if (--remaining < 0 || !quote.Equals(Unsafe.Add(ref src, srcIndex)))
+            ThrowInvalidUnescape();
+
+        srcIndex++;
+
+        quotesLeft -= 2;
+
+        if (quotesLeft == 0)
+            goto NoQuotesLeft;
+
+        ContinueRead:
+        if (Vector.IsHardwareAccelerated && Vector<T>.IsSupported)
+        {
+            Vector<T> mask = new(quote);
+
+            while (remaining >= Vector<T>.Count)
+            {
+                Vector<T> current = Vector.LoadUnsafe(ref Unsafe.Add(ref src, srcIndex));
+
+                if (Vector.EqualsAny(mask, current))
+                    goto Scan;
+
+                Copy(ref src, srcIndex, ref dst, dstIndex, (uint)Vector<T>.Count);
+                srcIndex += (nuint)Vector<T>.Count;
+                dstIndex += (nuint)Vector<T>.Count;
+                remaining -= Vector<T>.Count;
+            }
+        }
+
+        Scan:
+        while (remaining >= 8)
+        {
+            if (quote.Equals(Unsafe.Add(ref src, srcIndex + 0)))
+                goto Found1;
+
+            if (quote.Equals(Unsafe.Add(ref src, srcIndex + 1)))
+                goto Found2;
+
+            if (quote.Equals(Unsafe.Add(ref src, srcIndex + 2)))
+                goto Found3;
+
+            if (quote.Equals(Unsafe.Add(ref src, srcIndex + 3)))
+                goto Found4;
+
+            if (quote.Equals(Unsafe.Add(ref src, srcIndex + 4)))
+                goto Found5;
+
+            if (quote.Equals(Unsafe.Add(ref src, srcIndex + 5)))
+                goto Found6;
+
+            if (quote.Equals(Unsafe.Add(ref src, srcIndex + 6)))
+                goto Found7;
+
+            if (quote.Equals(Unsafe.Add(ref src, srcIndex + 7)))
+                goto Found8;
+
+            srcIndex += 8;
+            dstIndex += 8;
+            remaining -= 8;
+        }
+
+        while (remaining-- > 0)
+        {
+            if (quote.Equals(Unsafe.Add(ref src, srcIndex)))
+            {
+                srcIndex++;
+
+                if (--remaining < 0 || !quote.Equals(Unsafe.Add(ref src, srcIndex)))
+                    ThrowInvalidUnescape();
+
+                Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
+                srcIndex++;
+                dstIndex++;
+
+                quotesLeft -= 2;
+
+                if (quotesLeft == 0)
+                    goto NoQuotesLeft;
+            }
+            else
+            {
+                Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
+                srcIndex++;
+                dstIndex++;
+            }
+
+        }
+
+        goto EOL;
+
+        // Copy remaining data
+        NoQuotesLeft:
+        Copy(ref src, srcIndex, ref dst, dstIndex, (uint)remaining);
+
+        EOL:
+        if (quotesLeft != 0)
+            ThrowInvalidUnescape();
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static void Copy(ref T src, nuint srcIndex, ref T dst, nuint dstIndex, uint length)
+        {
+            Unsafe.CopyBlockUnaligned(
+                destination: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref dst, dstIndex)),
+                source: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref src, srcIndex)),
+                byteCount: (uint)Unsafe.SizeOf<T>() * length / (uint)Unsafe.SizeOf<byte>());
+        }
     }
 }

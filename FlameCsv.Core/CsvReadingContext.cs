@@ -38,7 +38,7 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool SkipRecord(ReadOnlyMemory<T> record, int line, bool headerRead)
     {
-        return Options._shouldSkipRow is { } f && f(new CsvRecordSkipArgs<T>
+        return Options._shouldSkipRow is { } predicate && predicate(new CsvRecordSkipArgs<T>
         {
             Options = Options,
             Line = line,
@@ -50,7 +50,7 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool ExceptionIsHandled(ReadOnlyMemory<T> record, int line, Exception exception)
     {
-        return Options._exceptionHandler is { } f && f(new CsvExceptionHandlerArgs<T>
+        return Options._exceptionHandler is { } handler && handler(new CsvExceptionHandlerArgs<T>
         {
             Options = Options,
             Line = line,
@@ -59,45 +59,22 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
         });
     }
 
-    /// <summary>
-    /// Seeks the sequence for a <see cref="CsvDialect{T}.Newline"/>.
-    /// </summary>
-    /// <param name="sequence">
-    /// Source data, modified if a newline is found and unmodified if the method returns <see langword="false"/>.
-    /// </param>
-    /// <param name="line">
-    /// The line without trailing newline tokens. Should be ignored if the method returns <see langword="false"/>.
-    /// </param>
-    /// <param name="meta">
-    /// Line metadata useful when parsing the line later. Should be ignored if the method returns <see langword="false"/>.
-    /// </param>
-    /// <param name="isFinalBlock">
-    /// Whether no more data is expected, and the sequence is not expected to have a trailing newline.
-    /// </param>
-    /// <returns>
-    /// <see langword="true"/> if <see cref="CsvDialect{T}.Newline"/> was found, <paramref name="line"/>
-    /// and <paramref name="quoteCount"/> can be used, and the line and newline have been sliced off from
-    /// <paramref name="sequence"/>.
-    /// </returns>
-    /// <remarks>A successful result might still be invalid CSV.</remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetLine(
-        ref ReadOnlySequence<T> sequence,
-        out ReadOnlySequence<T> line,
+    public bool TryReadLine(
+        CsvDataReader<T> data,
+        out ReadOnlyMemory<T> line,
         out RecordMeta meta,
         bool isFinalBlock)
     {
         if (!isFinalBlock)
         {
-            return Dialect.IsRFC4180Mode
-                ? RFC4180Mode<T>.TryGetLine(in Dialect, ref sequence, out line, out meta)
-                : EscapeMode<T>.TryGetLine(in Dialect, ref sequence, out line, out meta);
+            LineSeekArg<T> arg = new(in this, ref data.MultisegmentBuffer);
+            return data.Reader.TryReadLine(arg, out line, out meta);
         }
 
-        if (!sequence.IsEmpty)
+        if (!data.Reader.End)
         {
-            meta = GetRecordMeta(ref sequence, out line);
-            return true;
+            return TryGetRecordMeta(data, out line, out meta);
         }
 
         Unsafe.SkipInit(out line);
@@ -178,6 +155,83 @@ internal readonly struct CsvReadingContext<T> where T : unmanaged, IEquatable<T>
         line = sequence;
         sequence = default;
         return meta;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public bool TryGetRecordMeta(CsvDataReader<T> data, out ReadOnlyMemory<T> line, out RecordMeta meta)
+    {
+        if (data.Reader.End)
+        {
+            Unsafe.SkipInit(out line);
+            Unsafe.SkipInit(out meta);
+            return false;
+        }
+
+        var sequence = data.Reader.UnreadSequence;
+
+        if (sequence.IsSingleSegment)
+        {
+            meta = GetRecordMeta(sequence.First);
+        }
+        else
+        {
+            meta = default;
+
+            if (Dialect.IsRFC4180Mode)
+            {
+                foreach (var segment in sequence)
+                {
+                    meta.quoteCount += (uint)segment.Span.Count(Dialect.Quote);
+                }
+
+                if (meta.quoteCount % 2 != 0)
+                    ThrowForUnevenQuotes(in sequence);
+            }
+            else
+            {
+
+                bool skipNext = false;
+
+                foreach (var segment in sequence)
+                {
+                    if (!segment.IsEmpty)
+                        CountTokensEscape(segment.Span, ref meta, ref skipNext);
+                }
+
+                if (skipNext)
+                    ThrowForInvalidLastEscape(in sequence);
+
+                if (meta.quoteCount == 1)
+                    ThrowForInvalidEscapeQuotes(in sequence);
+            }
+        }
+
+        line = sequence.AsMemory(ref data.MultisegmentBuffer, ArrayPool);
+        data.Reader.AdvanceToEnd();
+        return true;
+    }
+
+    public TValue Materialize<TValue>(ReadOnlyMemory<T> record, IMaterializer<T, TValue> value)
+    {
+        T[]? array = null;
+
+        try
+        {
+            var meta = GetRecordMeta(record);
+            CsvFieldReader<T> reader = new(
+                record,
+                in this,
+                stackalloc T[Token<T>.StackLength],
+                ref array,
+                meta.quoteCount,
+                meta.escapeCount);
+
+            return value.Parse(ref reader);
+        }
+        finally
+        {
+            ArrayPool.EnsureReturned(ref array);
+        }
     }
 
     private void CountTokensEscape(

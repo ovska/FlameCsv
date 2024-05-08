@@ -4,6 +4,8 @@
     <OutputType>Exe</OutputType>
     <NoWarn>CA1822;CS1591</NoWarn>
 
+    <AnalysisLevel>latest-minimum</AnalysisLevel>
+    
     <!--For ETW profiler-->
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>true</DebugSymbols>
@@ -19,11 +21,20 @@
     <PackageReference Include="BenchmarkDotNet" Version="0.13.10" />
     <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.10" />
     <PackageReference Include="CsvHelper" Version="30.0.1" />
+    <PackageReference Include="Sep" Version="0.4.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FlameCsv.Core\FlameCsv.Core.csproj" />
     <ProjectReference Include="..\FlameCsv.SourceGen\FlameCsv.SourceGen.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EditorConfigFiles Remove="C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\.editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\.editorconfig" />
   </ItemGroup>
 
 </Project>

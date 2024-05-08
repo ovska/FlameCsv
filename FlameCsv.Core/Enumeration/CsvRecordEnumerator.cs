@@ -6,8 +6,6 @@ namespace FlameCsv.Enumeration;
 /// <inheritdoc cref="CsvRecordEnumeratorBase{T}"/>
 public sealed class CsvRecordEnumerator<T> : CsvRecordEnumeratorBase<T> where T : unmanaged, IEquatable<T>
 {
-    private ReadOnlySequence<T> _data;
-
     public CsvRecordEnumerator(
         ReadOnlyMemory<T> data,
         CsvOptions<T> options)
@@ -20,19 +18,18 @@ public sealed class CsvRecordEnumerator<T> : CsvRecordEnumeratorBase<T> where T 
         CsvOptions<T> options)
         : base(new CsvReadingContext<T>(options))
     {
-        _data = data;
+        _data.Reset(in data);
     }
 
     internal CsvRecordEnumerator(in ReadOnlySequence<T> data, in CsvReadingContext<T> context) : base(in context)
     {
-        _data = data;
+        _data.Reset(in data);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool MoveNext()
     {
-        if (MoveNextCore(ref _data, isFinalBlock: false) ||
-            MoveNextCore(ref _data, isFinalBlock: true))
+        if (MoveNextCore(isFinalBlock: false) || MoveNextCore(isFinalBlock: true))
         {
             return true;
         }

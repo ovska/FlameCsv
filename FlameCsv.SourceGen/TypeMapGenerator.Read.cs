@@ -124,24 +124,23 @@ public partial class TypeMapGenerator
 
             public ");
         sb.Append(typeMap.ResultName);
-        sb.Append(" Parse<TReader>(ref TReader reader) where TReader : struct, ICsvFieldReader<");
+        sb.Append(" Parse(ref CsvFieldReader<");
         sb.Append(typeMap.Token);
-        sb.Append(@">
+        sb.Append(@"> reader)
             {
-                // If possible, throw early if there are an invalid amount of fields
-                reader.TryEnsureFieldCount(fieldCount: Handlers.Length);
-
                 ParseState state = default;");
         WriteDefaultParameterValues(sb, in typeMap);
         sb.Append(@"
 
                 int index = 0;
 
-                while (reader.TryReadNext(out ReadOnlyMemory<");
+                while (CsvFieldReader<");
+        sb.Append(typeMap.Token);
+        sb.Append(">.TryReadNext(ref reader, out ReadOnlySpan<");
         sb.Append(typeMap.Token);
         sb.Append(@"> field))
                 {
-                    if (Handlers[index++](ref this, ref state, field.Span))
+                    if (Handlers[index++](ref this, ref state, field))
                     {
                         continue;
                     }

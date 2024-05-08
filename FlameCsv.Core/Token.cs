@@ -27,6 +27,8 @@ internal static class Token<T> where T : unmanaged
         return length <= threshold;
     }
 
+    public static int StackLength => Unsafe.SizeOf<byte>() * 128 / Unsafe.SizeOf<T>();
+
     [MethodImpl(MethodImplOptions.NoInlining), DoesNotReturn]
     public static void ThrowNotSupportedException()
     {

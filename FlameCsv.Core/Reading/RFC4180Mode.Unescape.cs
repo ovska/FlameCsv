@@ -5,42 +5,30 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Runtime.Intrinsics;
 
 namespace FlameCsv.Reading;
 
-internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
+static partial class RFC4180Mode<T>
 {
-    /// <summary>
-    /// Unescapes inner quotes from the input. Wrapping quotes have been trimmed at this point.
-    /// </summary>
-    internal static ReadOnlyMemory<T> Unescape(
-        ReadOnlyMemory<T> sourceMemory,
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void Unescape(
         T quote,
-        uint quoteCount,
-        ref Memory<T> unescapeBuffer)
+        scoped Span<T> buffer,
+        ReadOnlySpan<T> field,
+        uint quotesConsumed)
     {
-        Debug.Assert(quoteCount >= 2);
-        Debug.Assert(quoteCount % 2 == 0);
-        Debug.Assert(!unescapeBuffer.Span.Overlaps(sourceMemory.Span), "Source and unescape buffer must not overlap");
+        Debug.Assert(quotesConsumed >= 2);
+        Debug.Assert(quotesConsumed % 2 == 0);
 
-        uint quotesLeft = quoteCount;
-
-        ReadOnlySpan<T> source = sourceMemory.Span;
-
-        int unescapedLength = sourceMemory.Length - (int)(quoteCount / 2);
-
-        if (unescapedLength > unescapeBuffer.Length)
-            ThrowUnescapeBufferTooSmall(unescapedLength, unescapeBuffer.Length);
-
-        Memory<T> buffer = unescapeBuffer.Slice(0, unescapedLength);
-        unescapeBuffer = unescapeBuffer.Slice(unescapedLength); // "consume" the buffer
+        uint quotesLeft = quotesConsumed;
 
         nuint srcIndex = 0;
-        nuint srcLength = (nuint)source.Length;
+        nuint srcLength = (nuint)field.Length;
         nuint dstIndex = 0;
 
-        ref T src = ref source.DangerousGetReference();
-        ref T dst = ref buffer.Span.DangerousGetReference();
+        ref T src = ref field.DangerousGetReference();
+        ref T dst = ref buffer.DangerousGetReference();
 
         goto ContinueRead;
 
@@ -87,7 +75,7 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
 
         FoundLong:
         if (srcIndex >= srcLength || !quote.Equals(Unsafe.Add(ref src, srcIndex)))
-            ThrowInvalidUnescape(sourceMemory, quote, quoteCount);
+            ThrowInvalidUnescape(field, quote, quotesConsumed);
 
         srcIndex++;
 
@@ -97,6 +85,36 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
             goto NoQuotesLeft;
 
         ContinueRead:
+        if (Vector128.IsHardwareAccelerated &&
+            Vector128<T>.IsSupported &&
+            (srcLength - srcIndex) >= (nuint)Vector128<T>.Count)
+        {
+            Vector128<T> quoteVector = Vector128.Create(quote);
+
+            do
+            {
+                Vector128<T> current = Vector128.LoadUnsafe(ref Unsafe.Add(ref src, srcIndex));
+                Vector128<T> equals = Vector128.Equals(current, quoteVector);
+
+                if (equals == Vector128<T>.Zero)
+                {
+                    Copy(ref src, srcIndex, ref dst, dstIndex, (uint)Vector128<T>.Count);
+                    srcIndex += (nuint)Vector128<T>.Count;
+                    dstIndex += (nuint)Vector128<T>.Count;
+                    continue;
+                }
+
+                uint mask = equals.ExtractMostSignificantBits();
+                uint charpos = uint.TrailingZeroCount(mask) + 1;
+
+                Copy(ref src, srcIndex, ref dst, dstIndex, charpos);
+                srcIndex += charpos;
+                dstIndex += charpos;
+                goto FoundLong;
+            }
+            while ((srcLength - srcIndex) >= (nuint)Vector128<T>.Count);
+        }
+
         while ((srcLength - srcIndex) >= 8)
         {
             if (quote.Equals(Unsafe.Add(ref src, srcIndex + 0)))
@@ -134,7 +152,7 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
                 srcIndex++;
 
                 if (srcIndex >= srcLength || !quote.Equals(Unsafe.Add(ref src, srcIndex)))
-                    ThrowInvalidUnescape(sourceMemory, quote, quoteCount);
+                    ThrowInvalidUnescape(field, quote, quotesConsumed);
 
                 Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
                 srcIndex++;
@@ -162,9 +180,7 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
 
         EOL:
         if (quotesLeft != 0)
-            ThrowInvalidUnescape(sourceMemory, quote, quoteCount);
-
-        return buffer;
+            ThrowInvalidUnescape(field, quote, quotesConsumed);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static void Copy(ref T src, nuint srcIndex, ref T dst, nuint dstIndex, uint length)
@@ -176,29 +192,22 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
         }
     }
 
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowUnescapeBufferTooSmall(int requiredLength, int bufferLength)
-    {
-        throw new UnreachableException(
-            $"Internal error, failed to unescape: required {requiredLength} but got buffer with length {bufferLength}.");
-    }
-
     /// <exception cref="UnreachableException">
     /// The data and/or the supplied quote count parameter were invalid. 
     /// </exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     internal static void ThrowInvalidUnescape(
-        ReadOnlyMemory<T> source,
+        ReadOnlySpan<T> field,
         T quote,
         uint quoteCount)
     {
-        int actualCount = System.MemoryExtensions.Count(source.Span, quote);
+        int actualCount = System.MemoryExtensions.Count(field, quote);
 
         var error = new StringBuilder(64);
 
-        if (source.Length < 2)
+        if (field.Length < 2)
         {
-            error.Append(CultureInfo.InvariantCulture, $"Source is too short (length: {source.Length}). ");
+            error.Append(CultureInfo.InvariantCulture, $"Source is too short (length: {field.Length}). ");
         }
 
         if (actualCount != quoteCount)
@@ -211,7 +220,7 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
 
         error.Append("The data structure was: [");
 
-        foreach (var token in source.Span)
+        foreach (var token in field)
         {
             error.Append(token.Equals(quote) ? '"' : 'x');
         }

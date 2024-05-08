@@ -1,4 +1,4 @@
-﻿BenchmarkRunner.Run<CsvEnumerateBench>();
+﻿BenchmarkRunner.Run<UnescapeBench>();
 
 //var bb = new BindingBench();
 

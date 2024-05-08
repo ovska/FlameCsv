@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using System.Collections;
+﻿using System.Collections;
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
@@ -12,36 +11,60 @@ public struct CsvFieldEnumerator<T> : IDisposable, IEnumerator<ReadOnlyMemory<T>
 
     readonly object IEnumerator.Current => Current;
 
-    private readonly ArrayPool<T>? _arrayPool;
+    private readonly CsvReadingContext<T> _context;
     private T[]? _toReturn;
 
-    private CsvFieldReader<T> _state;
+    private ReadOnlyMemory<T> _remaining;
+    private RecordMeta _remainingMeta;
+    private bool _isAtStart;
 
     internal CsvFieldEnumerator(ReadOnlyMemory<T> value, in CsvReadingContext<T> context)
     {
         Throw.IfDefaultStruct<CsvFieldEnumerator<T>>(context.ArrayPool);
 
-        _arrayPool = context.ArrayPool;
-        _state = new CsvFieldReader<T>(in context, value, ref _toReturn);
+        _context = context;
+        _remaining = value;
+        _isAtStart = true;
+        _remainingMeta = context.GetRecordMeta(value);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool MoveNext()
     {
-        if (_state.TryReadNext(out ReadOnlyMemory<T> field))
+        if (_remaining.IsEmpty)
         {
-            Current = field;
-            return true;
+            return false;
         }
 
-        Current = default;
-        return false;
+        var reader = new CsvFieldReader<T>(
+            _remaining,
+            in _context,
+            [],
+            ref _toReturn,
+            _remainingMeta.quoteCount,
+            _remainingMeta.escapeCount);
+
+        reader.isAtStart = _isAtStart;
+
+        if (!reader.TryReadNext(out ReadOnlyMemory<T> field))
+        {
+            _remaining = default;
+            _remainingMeta = default;
+            return false;
+        }
+
+        _remaining = _remaining.Slice(reader.Consumed);
+        _remainingMeta.quoteCount = reader.quotesRemaining;
+        _remainingMeta.escapeCount = reader.escapesRemaining;
+        _isAtStart = reader.isAtStart;
+        Current = field;
+        return true;
     }
 
     public readonly void Reset() => throw new NotSupportedException();
 
     public void Dispose()
     {
-        _arrayPool?.EnsureReturned(ref _toReturn);
+        _context.ArrayPool.EnsureReturned(ref _toReturn);
     }
 }

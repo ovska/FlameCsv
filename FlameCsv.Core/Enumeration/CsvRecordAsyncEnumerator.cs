@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using FlameCsv.Reading;
 
 namespace FlameCsv.Enumeration;
@@ -9,9 +8,6 @@ public sealed class CsvRecordAsyncEnumerator<T> : CsvRecordEnumeratorBase<T>, IA
 {
     private readonly ICsvPipeReader<T> _reader;
     private readonly CancellationToken _cancellationToken;
-
-    /// <summary>Current unadvanced buffer from reader, or empty before first call to ReadAsync</summary>
-    private ReadOnlySequence<T> _data;
 
     /// <summary>Last call to ReadAsync returned IsCompleted = true</summary>
     private bool _readerCompleted;
@@ -47,9 +43,11 @@ public sealed class CsvRecordAsyncEnumerator<T> : CsvRecordEnumeratorBase<T>, IA
     {
         while (!_readerCompleted)
         {
-            _reader.AdvanceTo(_data.Start, _data.End);
+            _reader.AdvanceTo(consumed: _data.Reader.Position, examined: _data.Reader.Sequence.End);
 
-            (_data, _readerCompleted) = await _reader.ReadAsync(_cancellationToken).ConfigureAwait(false);
+            var (sequence, completed) = await _reader.ReadAsync(_cancellationToken).ConfigureAwait(false);
+            _data.Reset(in sequence);
+            _readerCompleted = completed;
 
             if (MoveNextCore())
                 return true;
@@ -61,14 +59,14 @@ public sealed class CsvRecordAsyncEnumerator<T> : CsvRecordEnumeratorBase<T>, IA
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool MoveNextCore()
     {
-        if (MoveNextCore(ref _data, isFinalBlock: false))
+        if (MoveNextCore(isFinalBlock: false))
         {
             return true;
         }
 
         if (_readerCompleted)
         {
-            if (MoveNextCore(ref _data, isFinalBlock: true))
+            if (MoveNextCore(isFinalBlock: true))
             {
                 return true;
             }

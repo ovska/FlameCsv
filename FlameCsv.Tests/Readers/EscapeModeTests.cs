@@ -1,4 +1,6 @@
 ﻿using System.Buffers;
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
@@ -22,29 +24,45 @@ public static class EscapeModeTests
 
         char[]? buffer = null;
 
-        using (CsvFieldReader<char>.CreateTemporary(in context, input.AsMemory(), ref buffer, out var state))
-        {
-            Assert.True(state.TryReadNext(out var field));
-            Assert.Equal(expected, field.ToString());
-            Assert.False(state.TryReadNext(out _));
-        }
+        var record = new CsvFieldReader<char>(
+            input.AsMemory(),
+            in context,
+            default,
+            ref buffer,
+            (uint)input.Count('"'));
+
+        var field = UnixMode<char>.ReadNextField(ref record);
+
+        Assert.Equal(expected, field.ToString());
+        Assert.True(record.End);
+        Assert.Null(buffer);
     }
 
     [Theory]
-    [InlineData("'test'", "test")]
-    [InlineData("te^'st", "te'st")]
-    [InlineData("te^^st", "te^st")]
-    public static void Should_Unescape(string input, string expected)
+    [InlineData("'test'", "test", false)]
+    [InlineData("te^'st", "te'st", true)]
+    [InlineData("te^^st", "te^st", true)]
+    public static void Should_Unescape(string input, string expected, bool usesBuffer)
     {
         char[]? buffer = null;
 
         var context = new CsvReadingContext<char>(new CsvTextOptions { Escape = '^', Quote = '\'' });
+        var meta = context.GetRecordMeta(input.AsMemory());
+        Span<char> stackbuffer = stackalloc char[16];
 
-        using (CsvFieldReader<char>.CreateTemporary(in context, input.AsMemory(), ref buffer, out var state))
-        {
-            var field = EscapeMode<char>.ReadNextField(ref state);
-            Assert.Equal(expected, field.ToString());
-        }
+        var record = new CsvFieldReader<char>(
+            input.AsMemory(),
+            in context,
+            stackbuffer,
+            ref buffer,
+            meta.quoteCount,
+            meta.escapeCount);
+
+        var field = UnixMode<char>.ReadNextField(ref record);
+        Assert.Equal(expected, field);
+        Assert.Null(buffer);
+        Assert.Equal(usesBuffer, field.Overlaps(stackbuffer, out int elementOffset));
+        Assert.Equal(0, elementOffset);
     }
 
     [Theory]
@@ -71,17 +89,24 @@ public static class EscapeModeTests
 
         char[]? buffer = null;
 
-        using (CsvFieldReader<char>.CreateTemporary(in context, input.AsMemory(), ref buffer, out var state))
+        var meta = context.GetRecordMeta(input.AsMemory());
+
+        var state = new CsvFieldReader<char>(
+            input.AsMemory(),
+            in context,
+            stackalloc char[64],
+            ref buffer,
+            meta.quoteCount,
+            meta.escapeCount);
+
+        List<string> actual = [];
+
+        while (!state.End)
         {
-            List<string> actual = [];
-
-            while (!state.remaining.IsEmpty)
-            {
-                actual.Add(EscapeMode<char>.ReadNextField(ref state).ToString());
-            }
-
-            Assert.Equal(expected, actual);
+            actual.Add(UnixMode<char>.ReadNextField(ref state).ToString());
         }
+
+        Assert.Equal(expected, actual);
     }
 
     [Fact]
@@ -92,12 +117,18 @@ public static class EscapeModeTests
         var first = new MemorySegment<char>(start.AsMemory());
         var last = first.Append(end.AsMemory());
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
-        var dialect = CsvDialectStatic.Text(escape: '^');
+        var reader = new CsvSequenceReader<char>(seq);
 
-        Assert.True(EscapeMode<char>.TryGetLine(in dialect, ref seq, out var line, out _));
+        var context = new CsvReadingContext<char>(new CsvTextOptions { Newline = "\r\n", Escape = '^' });
+        char[]? buffer = null;
+
+        var seek = new LineSeekArg<char>(in context, ref buffer);
+
+        Assert.True(reader.TryReadLine(seek, out var line, out _));
 
         Assert.Equal("xyz", line.ToString());
-        Assert.Equal("abc", seq.ToString());
+        Assert.Equal("abc", reader.UnreadSequence.ToString());
+        Assert.Null(buffer);
     }
 
     [Theory]
@@ -117,17 +148,21 @@ public static class EscapeModeTests
         var last = joined.Chunk(segmentSize).Aggregate(first, (prev, segment) => prev.Append(segment.AsMemory()));
 
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
+        var reader = new CsvSequenceReader<char>(seq);
 
-        var dialect = CsvDialectStatic.Text(escape: '^');
+        var context = new CsvReadingContext<char>(new CsvTextOptions { Newline = "\r\n", Escape = '^' });
+        char[]? buffer = null;
+
+        var seek = new LineSeekArg<char>(in context, ref buffer);
 
         var results = new List<string>();
 
-        while (EscapeMode<char>.TryGetLine(in dialect, ref seq, out var line, out _))
+        while (reader.TryReadLine(seek, out var line, out _))
         {
             results.Add(line.ToString());
         }
 
-        results.Add(seq.ToString());
+        results.Add(reader.UnreadSequence.ToString());
 
         Assert.Equal(lines, results);
     }
@@ -137,18 +172,22 @@ public static class EscapeModeTests
     [InlineData(data: ["\n", new[] { "abc", "\n", "xyz" }])]
     public static void Should_Find_Segment_With_Only_Newline(string newline, string[] segments)
     {
-        var dialect = CsvDialectStatic.Text(newline: newline, escape: '^');
-
         var first = new MemorySegment<char>(segments[0].AsMemory());
         var last = first
             .Append(segments[1].AsMemory())
             .Append(segments[2].AsMemory());
 
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
+        var reader = new CsvSequenceReader<char>(seq);
 
-        Assert.True(EscapeMode<char>.TryGetLine(in dialect, ref seq, out var firstLine, out _));
-        Assert.Equal(segments[0], firstLine.ToString());
-        Assert.Equal(segments[2], seq.ToString());
+        var context = new CsvReadingContext<char>(new CsvTextOptions { Newline = newline, Escape = '^' });
+        char[]? buffer = null;
+
+        var seek = new LineSeekArg<char>(in context, ref buffer);
+
+        Assert.True(reader.TryReadLine(seek, out var line, out _));
+        Assert.Equal(segments[0], line.ToString());
+        Assert.Equal(segments[2], reader.UnreadSequence.ToString());
     }
 
     [Fact]
@@ -156,42 +195,15 @@ public static class EscapeModeTests
     {
         const string data = "\"testxyz\",\"broken";
         var seq = new ReadOnlySequence<char>(data.AsMemory());
-        var dialect = CsvDialectStatic.Text(escape: '^');
+        var reader = new CsvSequenceReader<char>(seq);
 
-        Assert.False(EscapeMode<char>.TryGetLine(in dialect, ref seq, out _, out _));
-        Assert.Equal(data, seq.ToString());
-    }
+        var context = new CsvReadingContext<char>(new CsvTextOptions { Escape = '^' });
+        char[]? buffer = null;
 
-    [Theory]
-    [InlineData("\r\n")]
-    [InlineData("///")]
-    [InlineData("_-_-_")]
-    [InlineData("\nnewlinex")]
-    public static void Should_Find_Multitoken_Newlines(string newline)
-    {
-        string[] data =
-        [
-            "aaaa",
-            "\"xyz\"",
-            "\"James ^\"007^\" Bond\"",
-            "",
-            "textwith^\r^\nnewline",
-            "bb",
-        ];
+        var seek = new LineSeekArg<char>(in context, ref buffer);
 
-        var dialect = CsvDialectStatic.Text(newline: newline, escape: '^');
-        var seq = new ReadOnlySequence<char>(string.Join(newline, data).AsMemory());
-
-        var found = new List<string>();
-
-        while (EscapeMode<char>.TryGetLine(in dialect, ref seq, out var line, out _))
-        {
-            found.Add(line.ToString());
-        }
-
-        found.Add(seq.ToString());
-
-        Assert.Equal(data, found);
+        Assert.False(reader.TryReadLine(seek, out _, out _));
+        Assert.Equal(data, reader.UnreadSequence.ToString());
     }
 
     [Theory, MemberData(nameof(GetEscapeTestData))]
@@ -216,21 +228,37 @@ public static class EscapeModeTests
 
         string data = originalData.ToString();
         var seq = originalData;
+        var dataReader = new CsvDataReader<char>
+        {
+            Reader = new CsvSequenceReader<char>(seq),
+        };
 
         string withoutNewline = originalWithoutNewline.ToString();
 
-        Assert.True(context.TryGetLine(ref seq, out var line, out var meta, false));
-        Assert.Equal(0, seq.Length);
+        Assert.True(context.TryReadLine(dataReader, out var line, out var meta, isFinalBlock: false));
+        Assert.True(dataReader.Reader.End);
         Assert.Equal(withoutNewline, line.ToString());
         Assert.Equal(data.Replace("^'", "").Count('\''), (int)meta.quoteCount);
         Assert.Equal(data.Replace("^^", "^").Count('^'), (int)meta.escapeCount);
 
-        seq = originalWithoutNewline;
-        Assert.True(context.TryGetLine(ref seq, out line, out meta, true));
-        Assert.Equal(0, seq.Length);
+        if (dataReader.MultisegmentBuffer != null)
+        {
+            Assert.Equal(line.Span, dataReader.MultisegmentBuffer.AsSpan(0, line.Length));
+            pool.EnsureReturned(ref dataReader.MultisegmentBuffer);
+        }
+
+        dataReader.Reader = new(originalWithoutNewline);
+        Assert.True(context.TryReadLine(dataReader, out line, out meta, isFinalBlock: true));
+        Assert.True(dataReader.Reader.End);
         Assert.Equal(withoutNewline, line.ToString());
         Assert.Equal(data.Replace("^'", "").Count('\''), (int)meta.quoteCount);
         Assert.Equal(data.Replace("^^", "^").Count('^'), (int)meta.escapeCount);
+
+        if (dataReader.MultisegmentBuffer != null)
+        {
+            Assert.Equal(line.Span, dataReader.MultisegmentBuffer.AsSpan(0, line.Length));
+            pool.EnsureReturned(ref dataReader.MultisegmentBuffer);
+        }
     }
 
     public static IEnumerable<object[]> GetEscapeTestData()

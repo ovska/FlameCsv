@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using CommunityToolkit.Diagnostics;
@@ -11,6 +12,25 @@ internal static class UtilityExtensions
     public static bool IsValidFor(this CsvBindingScope scope, bool write)
     {
         return scope != (write ? CsvBindingScope.Read : CsvBindingScope.Write);
+    }
+
+    public static bool SequenceEquals<T>(in this ReadOnlySequence<T> sequence, ReadOnlySpan<T> other)
+        where T : unmanaged, IEquatable<T>
+    {
+        if (sequence.IsSingleSegment)
+        {
+            return sequence.FirstSpan.SequenceEqual(other);
+        }
+
+        foreach (var memory in sequence)
+        {
+            if (!other.StartsWith(memory.Span))
+                return false;
+
+            other = other.Slice(memory.Length);
+        }
+
+        return true;
     }
 
     public static ReadOnlyMemory<T> SafeCopy<T>(this ReadOnlyMemory<T> data)

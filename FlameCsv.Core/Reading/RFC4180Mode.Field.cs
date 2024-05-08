@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading;
 
@@ -10,19 +11,19 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
     /// Reads the next field from a <strong>non-empty</strong> state.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static ReadOnlyMemory<T> ReadNextField(ref CsvFieldReader<T> state)
+    public static ReadOnlySpan<T> ReadNextField(ref CsvFieldReader<T> state)
     {
-        Debug.Assert(!state.remaining.IsEmpty);
+        Debug.Assert(!state.End, "ReadNextField called with empty input");
+        Debug.Assert(state.escapesRemaining == 0, "RFC4180 called with escapes in the input");
 
-        ReadOnlyMemory<T> field;
-        T quote = state._context.Dialect.Quote;
-        T delimiter = state._context.Dialect.Delimiter;
+        ReadOnlySpan<T> field;
+        T quote = state.Context.Dialect.Quote;
+        T delimiter = state.Context.Dialect.Delimiter;
         nuint consumed = 0;
         uint quotesConsumed = 0;
         ref uint quotesRemaining = ref state.quotesRemaining;
 
-        ref T first = ref MemoryMarshal.GetReference(state.remaining.Span);
-        nuint remaining = (uint)state.remaining.Length;
+        ref T first = ref state.GetRemainingRef(out nuint remaining);
         T lookUp;
 
         int sliceStart;
@@ -262,13 +263,15 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
         if (quotesRemaining != 0)
             state.ThrowForInvalidEOF();
 
-        field = state.remaining.Slice(sliceStart);
-        state.remaining = default;
+        // consume the remaining
+        field = state.Remaining.Slice(sliceStart);
+        state.Consumed = state.Record.Length;
         goto Return;
 
         Done:
-        field = state.remaining[sliceStart..(int)consumed];
-        state.remaining = state.remaining.Slice((int)consumed);
+        int consumedi = (int)consumed;
+        field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref first, sliceStart), consumedi - sliceStart);
+        state.Consumed += consumedi;
 
         Return:
         state.isAtStart = false;
@@ -281,10 +284,26 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
             {
                 field = field[1..^1];
 
-                if (quotesConsumed != 2)
+                if ((quotesConsumed -= 2) > 0)
                 {
-                    Debug.Assert(quotesConsumed >= 4);
-                    field = Unescape(field, quote, quotesConsumed - 2, ref state.buffer);
+                    Debug.Assert(quotesConsumed >= 2);
+                    int unescapedLength = GetUnescapedLength(field.Length, quotesConsumed);
+                    Span<T> unescapeBuffer = state.GetUnescapeBuffer(unescapedLength);
+
+                    if (typeof(T) == typeof(char))
+                    {
+                        RFC4180Mode<ushort>.Unescape(
+                            Unsafe.As<T, ushort>(ref quote),
+                            unescapeBuffer.UnsafeCast<T, ushort>(),
+                            field.UnsafeCast<T, ushort>(),
+                            quotesConsumed);
+                    }
+                    else
+                    {
+                        Unescape(quote, unescapeBuffer, field, quotesConsumed);
+                    }
+
+                    field = unescapeBuffer;
                 }
             }
             else
@@ -293,9 +312,15 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
             }
         }
 
-        if (!state._context.Dialect.Whitespace.IsEmpty)
-            field = field.Trim(state._context.Dialect.Whitespace.Span);
+        if (!state.Whitespace.IsEmpty)
+            field = field.Trim(state.Whitespace);
 
         return field;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int GetUnescapedLength(int fieldLength, uint quotesRemaining)
+    {
+        return fieldLength - (int)(quotesRemaining / 2);
     }
 }

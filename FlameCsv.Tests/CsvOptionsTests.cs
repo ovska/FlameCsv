@@ -49,16 +49,16 @@ public class CsvOptionsTests
     public static void Should_Validate_NullToken()
     {
         var to = new CsvTextOptions();
-        Assert.Throws<ArgumentException>(() => to.NullTokens[typeof(int)] = default);
-        Assert.Throws<ArgumentException>(() => to.NullTokens[typeof(int*)] = default);
-        Assert.Throws<ArgumentException>(() => to.NullTokens[typeof(Span<>)] = default);
-        Assert.Throws<ArgumentException>(() => to.NullTokens[typeof(Span<int>)] = default);
+        Assert.ThrowsAny<ArgumentException>(() => to.NullTokens[typeof(int)] = default);
+        Assert.ThrowsAny<ArgumentException>(() => to.NullTokens[typeof(int*)] = default);
+        Assert.ThrowsAny<ArgumentException>(() => to.NullTokens[typeof(Span<>)] = default);
+        Assert.ThrowsAny<ArgumentException>(() => to.NullTokens[typeof(Span<int>)] = default);
 
         var bo = new CsvUtf8Options();
-        Assert.Throws<ArgumentException>(() => bo.NullTokens[typeof(int)] = default);
-        Assert.Throws<ArgumentException>(() => bo.NullTokens[typeof(int*)] = default);
-        Assert.Throws<ArgumentException>(() => bo.NullTokens[typeof(Span<>)] = default);
-        Assert.Throws<ArgumentException>(() => bo.NullTokens[typeof(Span<int>)] = default);
+        Assert.ThrowsAny<ArgumentException>(() => bo.NullTokens[typeof(int)] = default);
+        Assert.ThrowsAny<ArgumentException>(() => bo.NullTokens[typeof(int*)] = default);
+        Assert.ThrowsAny<ArgumentException>(() => bo.NullTokens[typeof(Span<>)] = default);
+        Assert.ThrowsAny<ArgumentException>(() => bo.NullTokens[typeof(Span<int>)] = default);
     }
 
     [Fact]

@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
@@ -64,8 +65,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
             materializer = _context.Options.GetMaterializer<T, TRecord>();
         }
 
-        CsvRecordFieldReader<T> reader = new(_values, in _context);
-        return materializer.Parse(ref reader);
+        return _context.Materialize(RawRecord, materializer);
     }
 
     public TRecord ParseRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap)
@@ -76,8 +76,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
             ? typeMap.GetMaterializer(_headerNames, in _context)
             : typeMap.GetMaterializer(in _context);
 
-        CsvRecordFieldReader<T> reader = new(_values, in _context);
-        return materializer.Parse(ref reader);
+        return _context.Materialize(RawRecord, materializer);
     }
 
     public virtual ReadOnlyMemory<T> GetField(int index) => _values.AsSpan()[index];
@@ -209,6 +208,17 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         ReadOnlyMemory<T> record,
         in CsvReadingContext<T> context)
     {
+        T[]? buffer = null;
+        var meta = context.GetRecordMeta(record);
+        scoped CsvFieldReader<T> reader = new(
+            record,
+            in context,
+            [],
+            ref buffer,
+            meta.quoteCount,
+            meta.escapeCount);
+        int index = 0;
+
         if (!Token<T>.LargeObjectHeapAllocates(record.Length * 2))
         {
             // use a single buffer for everything
@@ -216,43 +226,32 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
             record.CopyTo(remaining);
             ReadOnlyMemory<T> copiedRecord = remaining.Slice(0, record.Length);
             remaining = remaining.Slice(record.Length);
-
             ReadOnlyMemory<T>[] values = new ReadOnlyMemory<T>[16];
-            int index = 0;
-            T[]? buffer = null;
 
-            using (CsvFieldReader<T>.CreateTemporary(in context, record, ref buffer, out var state))
+            while (reader.TryReadNext(out ReadOnlySpan<T> field))
             {
-                while (state.TryReadNext(out ReadOnlyMemory<T> field))
-                {
-                    field.CopyTo(remaining);
-                    values[index++] = remaining.Slice(0, field.Length);
-                    remaining = remaining.Slice(field.Length);
-                }
-
-                return new PreservedValues(copiedRecord, new ArraySegment<ReadOnlyMemory<T>>(values, 0, index));
+                field.CopyTo(remaining.Span);
+                values[index++] = remaining.Slice(0, field.Length);
+                remaining = remaining.Slice(field.Length);
             }
+
+            return new PreservedValues(copiedRecord, new ArraySegment<ReadOnlyMemory<T>>(values, 0, index));
         }
         else
         {
             ReadOnlyMemory<T>[] values = new ReadOnlyMemory<T>[16];
-            int index = 0;
-            T[]? buffer = null;
 
-            using (CsvFieldReader<T>.CreateTemporary(in context, record, ref buffer, out var state))
+            while (reader.TryReadNext(out ReadOnlySpan<T> field))
             {
-                while (state.TryReadNext(out ReadOnlyMemory<T> field))
-                {
-                    if (index >= values.Length)
-                        Array.Resize(ref values, values.Length * 2);
+                if (index >= values.Length)
+                    Array.Resize(ref values, values.Length * 2);
 
-                    values[index++] = field.SafeCopy();
-                }
-
-                return new PreservedValues(
-                    record.SafeCopy(),
-                    new ArraySegment<ReadOnlyMemory<T>>(values, 0, index));
+                values[index++] = field.ToArray();
             }
+
+            return new PreservedValues(
+                record.SafeCopy(),
+                new ArraySegment<ReadOnlyMemory<T>>(values, 0, index));
         }
     }
 

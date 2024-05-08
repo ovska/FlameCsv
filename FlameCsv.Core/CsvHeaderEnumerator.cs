@@ -8,7 +8,7 @@ public ref struct CsvHeaderEnumerator<T> where T : unmanaged, IEquatable<T>
 {
     private readonly Span<char> _buffer;
 
-    private ref CsvFieldReader<T> _enumerator;
+    private CsvFieldReader<T> _enumerator;
 
     private readonly string[]? _array;
     private int _index;
@@ -18,7 +18,7 @@ public ref struct CsvHeaderEnumerator<T> where T : unmanaged, IEquatable<T>
         Span<char> buffer = default)
     {
         Guard.IsTrue(enumerator.isAtStart);
-        _enumerator = ref enumerator;
+        _enumerator = enumerator;
         _buffer = buffer;
     }
 
@@ -31,17 +31,15 @@ public ref struct CsvHeaderEnumerator<T> where T : unmanaged, IEquatable<T>
     {
         if (HasEnumerator)
         {
-            if (_enumerator.TryReadNext(out ReadOnlyMemory<T> fieldMemory))
+            if (!_enumerator.TryReadNext(out ReadOnlySpan<T> field))
             {
-                ReadOnlySpan<T> field = fieldMemory.Span;
-
-                if (_enumerator._context.Options.TryGetChars(field, _buffer, out int charsWritten))
+                if (_enumerator.Context.Options.TryGetChars(field, _buffer, out int charsWritten))
                 {
                     header = _buffer[..charsWritten];
                 }
                 else
                 {
-                    header = _enumerator._context.Options.GetAsString(field);
+                    header = _enumerator.Context.Options.GetAsString(field);
                 }
 
                 return true;
