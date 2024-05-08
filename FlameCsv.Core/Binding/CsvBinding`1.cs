@@ -79,7 +79,6 @@ public abstract class CsvBinding<T> :
 
     protected abstract void PrintDetails(StringBuilder sb);
 
-#pragma warning disable RCS1158 // Static member in generic type should use a type parameter.
     internal static readonly bool _isInvalid = typeof(T).IsInterface;
 
     internal static void ThrowIfInvalid()
@@ -87,5 +86,4 @@ public abstract class CsvBinding<T> :
         if (_isInvalid)
             throw new NotSupportedException("Interface binding is not supported");
     }
-#pragma warning restore RCS1158 // Static member in generic type should use a type parameter.
 }

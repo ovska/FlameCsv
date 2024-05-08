@@ -1,30 +1,31 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using CommunityToolkit.HighPerformance;
 
 namespace FlameCsv.Reading;
 
-internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
+internal static partial class UnixMode<T> where T : unmanaged, IEquatable<T>
 {
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    public static ReadOnlyMemory<T> ReadNextField(ref CsvFieldReader<T> state)
+    public static ReadOnlySpan<T> ReadNextField(ref CsvFieldReader<T> state)
     {
-        Debug.Assert(!state.remaining.IsEmpty);
-        Debug.Assert(!state._context.Dialect.IsRFC4180Mode);
+        Debug.Assert(!state.Remaining.IsEmpty);
+        Debug.Assert(!state.Context.Dialect.IsRFC4180Mode);
 
-        ReadOnlyMemory<T> field;
-        T quote = state._context.Dialect.Quote;
-        T escape = state._context.Dialect.Escape.GetValueOrDefault();
-        T delimiter = state._context.Dialect.Delimiter;
+        ReadOnlySpan<T> field;
+        T quote = state.Context.Dialect.Quote;
+        T escape = state.Context.Dialect.Escape.GetValueOrDefault();
+        T delimiter = state.Context.Dialect.Delimiter;
         nuint consumed = 0;
         uint quotesConsumed = 0;
         uint escapesConsumed = 0;
         ref uint quotesRemaining = ref state.quotesRemaining;
         ref uint escapesRemaining = ref state.escapesRemaining;
 
-        ref T first = ref MemoryMarshal.GetReference(state.remaining.Span);
-        nuint len = (uint)state.remaining.Length;
+        // TODO
+        ref T first = ref state.GetRemainingRef(out _);
+        nuint len = (uint)(state.Record.Length - state.Consumed);
+
+        int sliceStart;
 
         if (!state.isAtStart)
         {
@@ -33,7 +34,13 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
                 state.ThrowNoDelimiterAtHead();
             }
 
+            // delimiter is left at the start of data after the first field has been read
             consumed++;
+            sliceStart = 1;
+        }
+        else
+        {
+            sliceStart = 0;
         }
 
         T token;
@@ -266,26 +273,50 @@ internal static partial class EscapeMode<T> where T : unmanaged, IEquatable<T>
         if ((quotesRemaining | escapesRemaining) != 0)
             state.ThrowForInvalidEOF();
 
-        // whole line was consumed, skip the delimiter if it wasn't the first field
-        field = state.remaining.Slice((!state.isAtStart).ToByte());
-        state.remaining = default;
+        // consume the remaining
+        field = state.Remaining.Slice(sliceStart);
+        state.Consumed = state.Record.Length;
         goto Return;
 
         Done:
-        int sliceStart = (!state.isAtStart).ToByte();
-        int length = (int)consumed - sliceStart - 1;
-        field = state.remaining.Slice(sliceStart, length);
-        state.remaining = state.remaining.Slice((int)consumed - 1);
+        int consumedi = (int)consumed - 1;
+        field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref first, sliceStart), consumedi - sliceStart);
+        state.Consumed += consumedi;
 
         Return:
         state.isAtStart = false;
 
-        if ((quotesConsumed | escapesConsumed) != 0)
-            field = EscapeMode<T>.Unescape(field, quote, escape, quotesConsumed, escapesConsumed, ref state.buffer);
+        if (quotesConsumed != 0)
+        {
+            first = ref Unsafe.Add(ref first, sliceStart);
 
-        return state._context.Dialect.Whitespace.IsEmpty
+            if (field.Length >= 2 && quote.Equals(first) && quote.Equals(Unsafe.Add(ref first, field.Length - 1)))
+            {
+                field = field[1..^1];
+            }
+            else
+            {
+                ThrowInvalidUnescape(field, quote, escape, quotesConsumed, escapesConsumed);
+            }
+        }
+
+        if (escapesConsumed > 0)
+        {
+            Debug.Assert(quotesConsumed is 0 or 2, $"Line had escapes, expected 0 or 2 quotes, had {quotesConsumed}");
+            int unescapedLength = GetUnescapedLength(field.Length, escapesConsumed);
+            Span<T> unescapeBuffer = state.GetUnescapeBuffer(unescapedLength);
+            Unescape(field, escape, escapesConsumed, unescapeBuffer);
+            field = unescapeBuffer;
+        }
+
+        return state.Whitespace.IsEmpty
             ? field
-            : field.Trim(state._context.Dialect.Whitespace.Span);
+            : field.Trim(state.Whitespace);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int GetUnescapedLength(int fieldLength, uint escapesRemaining)
+    {
+        return fieldLength - (int)escapesRemaining;
     }
 }
-

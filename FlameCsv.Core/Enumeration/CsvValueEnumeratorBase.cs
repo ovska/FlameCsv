@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
@@ -17,6 +16,8 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     public int Line => _line;
     public long Position => _position;
 
+    protected readonly CsvDataReader<T> _data;
+
     private readonly CsvReadingContext<T> _context;
     private readonly CsvTypeMap<T, TValue>? _typeMap;
     private IMaterializer<T, TValue>? _materializer;
@@ -26,7 +27,6 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     private int _line;
 
     private T[]? _unescapeBuffer; // string unescaping
-    private T[]? _multisegmentBuffer; // long fragmented lines
 
     internal CsvValueEnumeratorBase(in CsvReadingContext<T> context, CsvTypeMap<T, TValue> typeMap)
         : this(in context, null, typeMap)
@@ -58,26 +58,18 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         // Two buffers are needed, as the span being manipulated by string escaping in the enumerator
         // might originate from the multisegment buffer
         _unescapeBuffer = null;
-        _multisegmentBuffer = null;
 
+        _data = new();
         _current = default!;
     }
 
-    /// <summary>
-    /// Attempts to read a value to <see cref="Current"/> from the buffer.
-    /// </summary>
-    /// <param name="buffer">Buffer to read from</param>
-    /// <param name="isFinalBlock">Whether no more data is expected (newline can be omitted from final record)</param>
-    /// <returns></returns>
-    protected bool TryRead(ref ReadOnlySequence<T> buffer, bool isFinalBlock)
+    protected bool TryRead(bool isFinalBlock)
     {
         ReadNextRecord:
-        if (!_context.TryGetLine(ref buffer, out ReadOnlySequence<T> lineSeq, out RecordMeta meta, isFinalBlock))
+        if (!_context.TryReadLine(_data, out ReadOnlyMemory<T> record, out RecordMeta meta, isFinalBlock))
         {
             return false;
         }
-
-        ReadOnlyMemory<T> record = lineSeq.AsMemory(ref _multisegmentBuffer, _context.ArrayPool);
 
         if (meta.quoteCount % 2 != 0)
         {
@@ -106,9 +98,15 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
 
         try
         {
-            CsvFieldReader<T> state = new(in _context, record, ref _unescapeBuffer, meta);
+            CsvFieldReader<T> reader = new(
+                record,
+                in _context,
+                stackalloc T[Token<T>.StackLength],
+                ref _unescapeBuffer,
+                meta.quoteCount,
+                meta.escapeCount);
 
-            _current = _materializer.Parse(ref state);
+            _current = _materializer.Parse(ref reader);
             return true;
         }
         catch (Exception ex)
@@ -142,24 +140,28 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
             return false;
         }
 
-        T[]? array = null;
+        var meta = _context.GetRecordMeta(record);
+        var reader = new CsvFieldReader<T>(
+            record,
+            in _context,
+            stackalloc T[Token<T>.StackLength],
+            ref _unescapeBuffer,
+            meta.quoteCount,
+            meta.escapeCount);
 
-        using (CsvFieldReader<T>.CreateTemporary(in _context, record, ref array, out var state))
+        List<string> values = new(16);
+
+        while (reader.TryReadNext(out ReadOnlySpan<T> field))
         {
-            List<string> values = new(16);
-
-            while (state.TryReadNext(out ReadOnlyMemory<T> field))
-            {
-                values.Add(_context.Options.GetAsString(field.Span));
-            }
-
-            ReadOnlySpan<string> headers = values.AsSpan();
-
-            _materializer = _typeMap is null
-                ? _context.Options.CreateMaterializerFrom(_context.Options.GetHeaderBinder().Bind<TValue>(headers))
-                : _typeMap.GetMaterializer(headers, in _context);
-            return true;
+            values.Add(_context.Options.GetAsString(field));
         }
+
+        ReadOnlySpan<string> headers = values.AsSpan();
+
+        _materializer = _typeMap is null
+            ? _context.Options.CreateMaterializerFrom(_context.Options.GetHeaderBinder().Bind<TValue>(headers))
+            : _typeMap.GetMaterializer(headers, in _context);
+        return true;
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -196,7 +198,8 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         if (disposing)
         {
             _context.ArrayPool.EnsureReturned(ref _unescapeBuffer);
-            _context.ArrayPool.EnsureReturned(ref _multisegmentBuffer);
+            _context.ArrayPool.EnsureReturned(ref _data.MultisegmentBuffer);
+            _data.Reader = default;
         }
     }
 }

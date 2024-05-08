@@ -21,7 +21,6 @@ public static class HeaderBindingTests
 
     private class ShimWithCtor
     {
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Intended")]
         public object? _Targeted { get; }
 
         public string? Name { get; set; }

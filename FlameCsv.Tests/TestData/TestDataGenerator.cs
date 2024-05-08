@@ -61,7 +61,5 @@ internal static class TestDataGenerator
         }
 
         if (writeTrailingNewline) writer.Write(newLine);
-
-
     }
 }

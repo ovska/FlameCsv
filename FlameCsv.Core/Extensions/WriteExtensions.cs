@@ -1,9 +1,35 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace FlameCsv.Extensions;
 
 internal static class WriteExtensions
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Span<TTo> UnsafeCast<TFrom, TTo>(this Span<TFrom> span)
+        where TFrom : unmanaged
+        where TTo : unmanaged
+    {
+        Debug.Assert(Unsafe.SizeOf<TFrom>() == Unsafe.SizeOf<TTo>());
+
+        return MemoryMarshal.CreateSpan(
+            ref Unsafe.As<TFrom, TTo>(ref MemoryMarshal.GetReference(span)),
+            span.Length);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ReadOnlySpan<TTo> UnsafeCast<TFrom, TTo>(this ReadOnlySpan<TFrom> span)
+    where TFrom : unmanaged
+    where TTo : unmanaged
+    {
+        Debug.Assert(Unsafe.SizeOf<TFrom>() == Unsafe.SizeOf<TTo>());
+
+        return MemoryMarshal.CreateReadOnlySpan(
+            ref Unsafe.As<TFrom, TTo>(ref MemoryMarshal.GetReference(span)),
+            span.Length);
+    }
+
     /// <summary>
     /// Attempts to copy the contents of <paramref name="value"/> to <paramref name="buffer"/>.
     /// </summary>

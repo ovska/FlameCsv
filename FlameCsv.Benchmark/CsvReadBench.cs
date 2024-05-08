@@ -23,10 +23,19 @@ public class CsvReadBench
     private static readonly byte[] _bytes;
     private static readonly byte[] _bytes_h;
 
-    private Stream GetFileStream() =>  new MemoryStream(Header ? _bytes_h : _bytes);
+    private MemoryStream GetFileStream() => new MemoryStream(Header ? _bytes_h : _bytes);
 
     /*[Params(true, false)]*/
     public bool Header { get; set; } = true;
+
+    private static readonly CsvTextOptions _withHeader = new CsvTextOptions { HasHeader = true };
+    private static readonly CsvTextOptions _withoutHeader = new CsvTextOptions { HasHeader = false };
+
+    private static readonly CsvUtf8Options _bwithHeader = new CsvUtf8Options { HasHeader = true };
+    private static readonly CsvUtf8Options _bwithoutHeader = new CsvUtf8Options { HasHeader = false };
+
+    private CsvOptions<char> OptionsInstance => Header ? _withHeader : _withoutHeader;
+    private CsvOptions<byte> OptionsInstanceB => Header ? _bwithHeader : _bwithoutHeader;
 
     [Benchmark(Baseline = true)]
     public async Task Helper()
@@ -51,8 +60,7 @@ public class CsvReadBench
     {
         await foreach (var record in CsvReader.ReadAsync<Entry>(
             GetFileStream(),
-            CsvTextOptions.Default,
-            context: new() { HasHeader = Header },
+            OptionsInstance,
             encoding: Encoding.UTF8))
         {
             _ = record;
@@ -64,8 +72,7 @@ public class CsvReadBench
     {
         await foreach (var record in CsvReader.ReadAsync<Entry>(
             GetFileStream(),
-            CsvUtf8Options.Default,
-            context: new() { HasHeader = Header }))
+            OptionsInstance))
         {
             _ = record;
         }
@@ -77,8 +84,7 @@ public class CsvReadBench
         await foreach (var record in CsvReader.ReadAsync<Entry>(
             GetFileStream(),
             EntryTypeMap_Text.Instance,
-            CsvTextOptions.Default,
-            context: new() { HasHeader = Header },
+            OptionsInstance,
             encoding: Encoding.UTF8))
         {
             _ = record;
@@ -91,8 +97,7 @@ public class CsvReadBench
         await foreach (var record in CsvReader.ReadAsync<Entry>(
             GetFileStream(),
             EntryTypeMap_Utf8.Instance,
-            CsvUtf8Options.Default,
-            context: new() { HasHeader = Header }))
+            OptionsInstanceB))
         {
             _ = record;
         }
@@ -124,13 +129,7 @@ public class CsvReadBench
 }
 
 [CsvTypeMap<char, CsvReadBench.Entry>]
-internal partial class EntryTypeMap_Text
-{
-
-}
+internal partial class EntryTypeMap_Text;
 
 [CsvTypeMap<byte, CsvReadBench.Entry>]
-internal partial class EntryTypeMap_Utf8
-{
-
-}
+internal partial class EntryTypeMap_Utf8;

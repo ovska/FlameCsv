@@ -1,7 +1,6 @@
 ﻿using CommunityToolkit.Diagnostics;
 using FlameCsv.Runtime;
 using FlameCsv.Writing;
-using System.Buffers;
 using System.IO.Pipelines;
 using System.Text;
 using DAM = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute;

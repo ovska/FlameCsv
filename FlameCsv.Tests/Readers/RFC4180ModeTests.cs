@@ -1,5 +1,10 @@
+using System;
 using System.Buffers;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 using CommunityToolkit.HighPerformance;
+using FlameCsv.Converters;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Tests.Utilities;
@@ -22,12 +27,59 @@ public static class RFC4180ModeTests
 
         char[]? buffer = null;
 
-        using (CsvFieldReader<char>.CreateTemporary(in context, input.AsMemory(), ref buffer, out var state))
-        {
-            Assert.True(state.TryReadNext(out var field));
-            Assert.Equal(expected, field.ToString());
-            Assert.False(state.TryReadNext(out _));
-        }
+        var reader = new CsvFieldReader<char>(
+            input.AsMemory(),
+            in context,
+            stackalloc char[16],
+            ref buffer,
+            context.GetRecordMeta(input.AsMemory()).quoteCount);
+
+        Assert.True(reader.TryReadNext(out ReadOnlySpan<char> field));
+        Assert.Equal(expected, field.ToString());
+        Assert.True(reader.End);
+    }
+
+    [Fact]
+    public static void Should_Seek_Long_Line()
+    {
+        string input = "\"Long line with lots of content, but no quotes except the wrapping!\"";
+        var context = new CsvReadingContext<char>(CsvTextOptions.Default);
+
+        var reader = new CsvFieldReader<char>(
+            input.AsMemory(),
+            in context,
+            [],
+            ref Unsafe.NullRef<char[]?>(),
+            context.GetRecordMeta(input.AsMemory()).quoteCount);
+
+        Assert.True(reader.TryReadNext(out ReadOnlySpan<char> field));
+        Assert.Equal(input[1..^1], field.ToString());
+        Assert.True(reader.End);
+    }
+
+    [Fact]
+    public static void Should_Unescape2()
+    {
+        Span<byte> test = stackalloc byte[Vector64<byte>.Count];
+        test[7] = 123;
+        var bytes = Vector64.Create<byte>(test);
+        var mask = Vector64.Create<byte>(123);
+
+        var equals = Vector64.Equals(bytes, mask);
+        var lds = equals.ExtractMostSignificantBits();
+        var charpos = uint.TrailingZeroCount(lds);
+
+        var input = "The quick brown ''fox'' jumped over the lazy ''dog''.";
+        Span<char> buffer = stackalloc char[128];
+
+        RFC4180Mode<short>.Unescape(
+            (short)'\'',
+            buffer.Cast<char, short>().Slice(0, input.Replace("''", "'").Length),
+            input.AsSpan().Cast<char, short>(),
+            (uint)input.Count('\''));
+
+        var expected = "The quick brown 'fox' jumped over the lazy 'dog'.";
+        Assert.Equal(expected, buffer[..expected.Length].ToString());
     }
 
     [Theory]
@@ -44,164 +96,17 @@ public static class RFC4180ModeTests
         var context = new CsvReadingContext<char>(CsvTextOptions.Default);
 
         char[]? unescapeArray = null;
-        var state = new CsvFieldReader<char>(in context, input.AsMemory(), ref unescapeArray);
 
-        var delimiterCount = input.Count(c => c == '"');
+        var record = new CsvFieldReader<char>(
+            input.AsMemory(),
+            in context,
+            stackalloc char[128],
+            ref unescapeArray,
+            (uint)input.Count(c => c == '"'));
 
-        var actual = RFC4180Mode<char>.ReadNextField(ref state);
+        var field = RFC4180Mode<char>.ReadNextField(ref record);
 
-        Assert.Equal(expected, new string(actual.Span));
-
-        if (actual.Span.Overlaps(unescapeArray))
-        {
-            Assert.NotNull(unescapeArray);
-            Assert.Equal(unescapeArray.Length - actual.Length, state.buffer.Length);
-            Assert.Equal(actual.ToArray(), unescapeArray.AsMemory(0, actual.Length).ToArray());
-            Assert.All(unescapeArray.AsMemory(actual.Length).ToArray(), c => Assert.Equal('\0', c));
-        }
-    }
-
-    [Fact]
-    public static void Should_Find_Multisegment_Newlines()
-    {
-        const string start = "xyz\r";
-        const string end = "\nabc";
-        var first = new MemorySegment<char>(start.AsMemory());
-        var last = first.Append(end.AsMemory());
-        var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
-        var options = CsvDialect<char>.Default;
-
-        Assert.True(RFC4180Mode<char>.TryGetLine(in options, ref seq, out var line, out _));
-
-        Assert.Equal("xyz", new string(line.ToArray()));
-        Assert.Equal("abc", new string(seq.ToArray()));
-    }
-
-    [Theory]
-    [InlineData(1)]
-    [InlineData(2)]
-    [InlineData(4)]
-    [InlineData(17)]
-    [InlineData(128)]
-    [InlineData(8096)]
-    public static void Should_Find_Complex_Newlines(int segmentSize)
-    {
-        var lines = Enumerable.Range(0, 128).Select(i => new string('x', i)).ToArray();
-
-        var joined = string.Join("\r\n", lines);
-
-        var first = new MemorySegment<char>(lines[0].AsMemory());
-
-        var last = joined.Chunk(segmentSize).Aggregate(first, (prev, segment) => prev.Append(segment.AsMemory()));
-
-        var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
-
-        var results = new List<string>();
-
-        while (RFC4180Mode<char>.TryGetLine(CsvDialect<char>.Default, ref seq, out var line, out _))
-        {
-            results.Add(new string(line.ToArray()));
-        }
-
-        results.Add(new string(seq.ToArray()));
-
-        Assert.Equal(lines, results);
-    }
-
-    [Theory]
-    [InlineData(data: ["\r\n", new[] { "abc", "\r\n", "xyz" }])]
-    [InlineData(data: ["\n", new[] { "abc", "\n", "xyz" }])]
-    public static void Should_Find_Segment_With_Only_Newline(string newline, string[] segments)
-    {
-        var options = new CsvTextOptions { Newline = newline };
-
-        var first = new MemorySegment<char>(segments[0].AsMemory());
-        var last = first
-            .Append(segments[1].AsMemory())
-            .Append(segments[2].AsMemory());
-
-        var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
-
-        Assert.True(RFC4180Mode<char>.TryGetLine(new CsvDialect<char>(options), ref seq, out var firstLine, out _));
-        Assert.Equal(segments[0], new string(firstLine.ToArray()));
-        Assert.Equal(segments[2], new string(seq.ToArray()));
-    }
-
-    [Fact]
-    public static void Should_Handle_Line_With_Uneven_Quotes_No_Newline()
-    {
-        const string data = "\"testxyz\",\"broken";
-        var options = new CsvTextOptions();
-        var seq = new ReadOnlySequence<char>(data.AsMemory());
-
-        Assert.False(RFC4180Mode<char>.TryGetLine(new CsvDialect<char>(options), ref seq, out _, out _));
-        Assert.Equal(data.AsSpan(), seq.ToArray());
-    }
-
-    [Theory]
-    [InlineData("\r\n")]
-    [InlineData("^^^")]
-    [InlineData("_-_-_")]
-    [InlineData("\nnewlinex")]
-    public static void Should_Find_Multitoken_Newlines(string newline)
-    {
-        string[] data =
-        [
-            "aaaa",
-            "\"xyz\"",
-            "\"James \"\"007\"\" Bond\"",
-            "",
-            "\"textwith\r\nnewline\"",
-            "bb",
-        ];
-
-        var dialect = CsvDialectStatic.Text(newline: newline);
-        var seq = new ReadOnlySequence<char>(string.Join(newline, data).AsMemory());
-
-        var found = new List<string>();
-
-        while (RFC4180Mode<char>.TryGetLine(in dialect, ref seq, out var line, out _))
-        {
-            found.Add(new string(line.ToArray()));
-        }
-
-        // add remaining
-        found.Add(new string(seq.ToArray()));
-
-        Assert.Equal(data, found);
-    }
-
-    [Theory]
-    [InlineData("", "", 0)]
-    [InlineData("|", "", 0)]
-    [InlineData("a|", "a", 0)]
-    [InlineData("xyz|xyz", "xyz", 0)]
-    [InlineData("\"test\"|abc", "\"test\"", 2)]
-    [InlineData("\"test|\"|def", "\"test|\"", 2)]
-    [InlineData("\"test|\",\"test2|\"|xyz", "\"test|\",\"test2|\"", 4)]
-    [InlineData("\"a|\",\"b|\",\"c|\"|XX", "\"a|\",\"b|\",\"c|\"", 6)]
-    [InlineData("\"James \"\"007\"\" Bond\"|Agent", "\"James \"\"007\"\" Bond\"", 6)]
-    public static void Should_Find_Lines(string data, string expected, uint quoteCount)
-    {
-        var dialect = CsvDialectStatic.Text(newline: "|");
-
-        var seq = new ReadOnlySequence<char>(data.AsMemory());
-
-        if (data.Contains('|'))
-        {
-            Assert.True(RFC4180Mode<char>.TryGetLine(in dialect, ref seq, out var line, out var meta));
-            var lineStr = new string(line.ToArray());
-            Assert.Equal(expected, lineStr);
-            Assert.Equal(new string(seq.ToArray()), data[(lineStr.Length + 1)..]);
-            Assert.Equal(quoteCount, meta.quoteCount);
-        }
-        else
-        {
-            Assert.False(RFC4180Mode<char>.TryGetLine(in dialect, ref seq, out _, out _));
-
-            // original sequence is unchanged
-            Assert.Equal(data, new string(seq.ToArray()));
-        }
+        Assert.Equal(expected, field.ToString());
     }
 
     [Theory]
@@ -213,11 +118,11 @@ public static class RFC4180ModeTests
     [InlineData("A,\"B\",C,D,\"E\"")]
     public static void Should_Enumerate_Fields(string line)
     {
-        //using var pool = new ReturnTrackingArrayPool<char>();
+        using var pool = new ReturnTrackingArrayPool<char>();
         var options = new CsvTextOptions
         {
             Newline = "|",
-            //ArrayPool = pool,
+            ArrayPool = pool,
             AllowContentInExceptions = true,
         };
 
@@ -228,16 +133,20 @@ public static class RFC4180ModeTests
 
         char[]? buffer = null;
 
-        CsvFieldReader<char> state = new(in context, line.AsMemory(), ref buffer);
+        CsvFieldReader<char> reader = new(
+            line.AsMemory(),
+            in context,
+            [],
+            ref buffer,
+            context.GetRecordMeta(line.AsMemory()).quoteCount);
 
-        while (!state.remaining.IsEmpty)
+        while (!reader.End)
         {
-            list.Add(RFC4180Mode<char>.ReadNextField(ref state).ToString());
+            list.Add(RFC4180Mode<char>.ReadNextField(ref reader).ToString());
         }
 
         Assert.Equal(expected, list);
-
-        state._context.ArrayPool.EnsureReturned(ref buffer);
+        context.ArrayPool.EnsureReturned(ref buffer);
     }
 
     [Fact]
@@ -261,11 +170,16 @@ public static class RFC4180ModeTests
             var input = new string(chars.ToArray());
             var line = $"\"{input}\",test";
 
-            CsvFieldReader<char> state = new(in context, line.AsMemory(), ref buffer);
+            CsvFieldReader<char> state = new(
+                line.AsMemory(),
+                in context,
+                [],
+                ref buffer,
+                (uint)line.Count('"'));
 
             var list = new List<string>();
 
-            while (!state.remaining.IsEmpty)
+            while (!state.End)
             {
                 list.Add(RFC4180Mode<char>.ReadNextField(ref state).ToString());
             }

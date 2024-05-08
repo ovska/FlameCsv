@@ -55,6 +55,4 @@ public class BindingBench
 }
 
 [CsvTypeMap<char, BindingBench.Obj>]
-internal partial class TestTypeMap
-{
-}
+internal partial class TestTypeMap;

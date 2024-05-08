@@ -22,8 +22,9 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
     internal readonly CsvReadingContext<T> _context;
     private T[]? _unescapeBuffer; // rented array for unescaping
 
-    private ReadOnlyMemory<T>[] _fields; // cached field values by index
-    private int _index;
+    private ReadOnlyMemory<T> _record;
+    private RecordMeta _meta;
+    private List<ReadOnlyMemory<T>>? _fields;
 
     public Dictionary<string, int>? Header
     {
@@ -32,7 +33,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
         {
             _header = value;
             _materializerCache?.Clear();
-            
+
             if (value is null)
             {
                 _headerNames = null;
@@ -49,7 +50,6 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
         }
     }
 
-    private CsvFieldReader<T> _state;
     private bool _disposed;
 
     private Dictionary<string, int>? _header;
@@ -60,7 +60,6 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
     public EnumeratorState(in CsvReadingContext<T> context)
     {
         _context = context;
-        _fields = new ReadOnlyMemory<T>[16];
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -68,20 +67,14 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
     {
         Throw.IfEnumerationDisposed(_disposed);
 
-        _index = 0;
-        _state = GetInitialStateFor(memory, meta);
+        _record = memory;
+        _meta = meta;
+        _fields = null;
 
         if (_context.ValidateFieldCount)
             ValidateFieldCount();
 
         return ++Version;
-    }
-
-    public CsvFieldReader<T> GetInitialStateFor(ReadOnlyMemory<T> memory, RecordMeta meta)
-    {
-        Throw.IfEnumerationDisposed(_disposed);
-
-        return new CsvFieldReader<T>(in _context, memory, ref _unescapeBuffer, meta);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -93,7 +86,6 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
         _disposed = true;
         Version = -1;
         _fields = default!;
-        _state = default;
         _context.ArrayPool.EnsureReturned(ref _unescapeBuffer);
 
 #if DEBUG
@@ -122,24 +114,23 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
     {
         Throw.IfEnumerationDisposed(_disposed);
 
-        while (_index <= index)
+        FullyConsume();
+
+        if (index < _fields.Count)
         {
-            if (!TryReadNextField())
-            {
-                field = default;
-                return false;
-            }
+            field = _fields[index];
+            return true;
         }
 
-        field = _fields[index];
-        return true;
+        field = default;
+        return false;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int GetFieldCount()
     {
         FullyConsume();
-        return _index;
+        return _fields.Count;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -157,35 +148,49 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
         _expectedFieldCount ??= Header.Count;
     }
 
-    private bool TryReadNextField()
-    {
-        Throw.IfEnumerationDisposed(_disposed);
-
-        if (_state.TryReadNext(out ReadOnlyMemory<T> field))
-        {
-            if (_fields.Length <= _index)
-            {
-                Array.Resize(ref _fields, _fields.Length * 2);
-            }
-
-            _fields[_index++] = field;
-            return true;
-        }
-
-        return false;
-    }
-
-    public void FullyConsume()
-    {
-        while (TryReadNextField())
-        {
-        }
-    }
-
-    public ArraySegment<ReadOnlyMemory<T>> GetFields()
+    public List<ReadOnlyMemory<T>> GetFields()
     {
         FullyConsume();
-        return new(_fields, 0, _index);
+        return _fields;
+    }
+
+    [MemberNotNull(nameof(_fields))]
+    private void FullyConsume()
+    {
+        if (_fields is not null)
+            return;
+
+        _fields = [];
+
+        T[]? array = null;
+
+        try
+        {
+            var meta = _context.GetRecordMeta(_record);
+            CsvFieldReader<T> reader = new(
+                _record,
+                in _context,
+                [],
+                ref array,
+                meta.quoteCount,
+                meta.escapeCount);
+
+            while (reader.TryReadNext(out ReadOnlyMemory<T> field))
+            {
+                if (field.Span.Overlaps(array))
+                {
+                    _fields.Add(field.ToArray());
+                }
+                else
+                {
+                    _fields.Add(field);
+                }
+            }
+        }
+        finally
+        {
+            _context.ArrayPool.EnsureReturned(ref array);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -201,11 +206,11 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
 
         if (_expectedFieldCount is null)
         {
-            _expectedFieldCount = _index;
+            _expectedFieldCount = _fields.Count;
         }
-        else if (_index != _expectedFieldCount.Value)
+        else if (_fields.Count != _expectedFieldCount.Value)
         {
-            Throw.InvalidData_FieldCount(_expectedFieldCount.Value, _index);
+            Throw.InvalidData_FieldCount(_expectedFieldCount.Value, _fields.Count);
         }
     }
 

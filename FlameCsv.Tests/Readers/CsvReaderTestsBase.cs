@@ -13,7 +13,6 @@ namespace FlameCsv.Tests.Readers;
 /// <summary>
 /// A spray-and-pray tests of different APIs using various options and CSV features.
 /// </summary>
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1158:Static member in generic type should use a type parameter.", Justification = "<Pending>")]
 public abstract class CsvReaderTestsBase<T> : IDisposable
     where T : unmanaged, IEquatable<T>
 {
@@ -246,7 +245,6 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         return writer.WrittenMemory;
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA1816:Dispose methods should call SuppressFinalize", Justification = "<Pending>")]
     public void Dispose()
     {
         _pool?.Dispose();

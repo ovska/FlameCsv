@@ -1,8 +1,8 @@
-﻿using System.Buffers;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
@@ -10,86 +10,167 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading;
 
-internal struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IEquatable<T>
+internal static class CsvEnumerationExtensions
 {
-    public readonly CsvReadingContext<T> _context;
-    private readonly ReadOnlyMemory<T> _record;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryReadNext<T>(ref this CsvFieldReader<T> record, out ReadOnlySpan<T> field)
+        where T : unmanaged, IEquatable<T>
+    {
+        return CsvFieldReader<T>.TryReadNext(ref record, out field);
+    }
 
-    public ReadOnlyMemory<T> remaining;
-    public Memory<T> buffer;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryReadNext<T>(ref this CsvFieldReader<T> record, out ReadOnlyMemory<T> field)
+        where T : unmanaged, IEquatable<T>
+    {
+        if (CsvFieldReader<T>.TryReadNext(ref record, out var fieldSpan))
+        {
+            field = record.GetAsMemory(fieldSpan);
+            return true;
+        }
+
+        field = default;
+        return false;
+    }
+}
+
+public ref struct CsvFieldReader<T> where T : unmanaged, IEquatable<T>
+{
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryReadNext(ref CsvFieldReader<T> reader, out ReadOnlySpan<T> field)
+    {
+        if (!reader.End)
+        {
+            field = reader.Context.Dialect.IsRFC4180Mode
+                ? RFC4180Mode<T>.ReadNextField(ref reader)
+                : UnixMode<T>.ReadNextField(ref reader);
+            return true;
+        }
+
+        field = default;
+        return false;
+    }
+
+    internal readonly ref readonly CsvReadingContext<T> Context => ref _context;
+    private readonly ref readonly CsvReadingContext<T> _context;
+
+    public readonly ReadOnlySpan<T> Record { get; }
+    public readonly ReadOnlySpan<T> Remaining => Record.Slice(Consumed);
+    public readonly bool End => Consumed == Record.Length;
+
+    public int Consumed { get; internal set; }
+
     public bool isAtStart;
     public uint quotesRemaining;
     public uint escapesRemaining;
 
+    public readonly ReadOnlySpan<T> Whitespace { get; }
+
+    private readonly ReadOnlyMemory<T> _record;
+    private readonly Span<T> _unescapeBuffer;
+    private readonly ref T[]? _unescapeArray;
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvFieldReader(
-        in CsvReadingContext<T> context,
         ReadOnlyMemory<T> record,
-        ref T[]? array) : this(in context, record, ref array, context.GetRecordMeta(record))
+        ref readonly CsvReadingContext<T> context,
+        Span<T> unescapeBuffer,
+        ref T[]? unescapeArray,
+        uint quotesRemaining,
+        uint escapesRemaining = 0)
     {
-    }
+        Record = record.Span;
+        Whitespace = context.Dialect.Whitespace.Span;
 
-    internal CsvFieldReader(
-        in CsvReadingContext<T> context,
-        ReadOnlyMemory<T> record,
-        ref T[]? array,
-        RecordMeta meta)
-    {
-        context.Dialect.DebugValidate();
-        Debug.Assert(meta.quoteCount % 2 == 0);
-        Debug.Assert(remaining.IsEmpty || record.Span.Overlaps(remaining.Span));
-        Debug.Assert(!Unsafe.IsNullRef(ref array));
-        Debug.Assert(context.ArrayPool is not null);
-
-        _context = context;
         _record = record;
-        remaining = record;
+        _context = ref context;
+
+        _unescapeBuffer = unescapeBuffer;
+        _unescapeArray = ref unescapeArray;
 
         isAtStart = true;
-        quotesRemaining = meta.quoteCount;
-        escapesRemaining = meta.escapeCount;
+        this.quotesRemaining = quotesRemaining;
+        this.escapesRemaining = escapesRemaining;
+    }
 
-        if (meta.HasSpecialCharacters)
+    public readonly ReadOnlyMemory<T> GetAsMemory(ReadOnlySpan<T> field)
+    {
+        if (field.IsEmpty)
+            return default;
+
+        Debug.Assert(Record == _record.Span);
+
+        if (field.Overlaps(Record, out int elementOffset))
         {
-            context.ArrayPool.EnsureCapacity(ref array, meta.GetMaxUnescapedLength(remaining.Length));
-            buffer = array;
+            return _record.Slice(-elementOffset, field.Length);
         }
+
+        if (!Unsafe.IsNullRef(ref _unescapeArray) &&
+            _unescapeArray != null &&
+            field.Overlaps(_unescapeArray.AsSpan(), out elementOffset))
+        {
+            return _unescapeArray.AsMemory(elementOffset, field.Length);
+        }
+
+        return ThrowForInvalidGetAsMemory();
+    }
+
+    private readonly ReadOnlyMemory<T> ThrowForInvalidGetAsMemory()
+    {
+        string message;
+
+        if (Unsafe.IsNullRef(ref _unescapeArray))
+        {
+            message = "unescapeArray was nullref";
+        }
+        else if (_unescapeArray is null)
+        {
+            message = "unescapeArray was null";
+        }
+        else
+        {
+            message = "field was not constructed from unescapeArray";
+        }
+
+        throw new InvalidOperationException(
+            $"GetAsMemory failed, field was not from the original buffer, and {message}");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryReadNext(out ReadOnlyMemory<T> field)
+    internal readonly ref T GetRemainingRef(out nuint remaining)
     {
-        if (!remaining.IsEmpty)
-        {
-            field = _context.Dialect.IsRFC4180Mode
-                ? RFC4180Mode<T>.ReadNextField(ref this)
-                : EscapeMode<T>.ReadNextField(ref this);
-            return true;
-        }
-
-        Unsafe.SkipInit(out field);
-        return false;
+        remaining = (uint)Record.Length - (uint)Consumed;
+        return ref Unsafe.Add(ref MemoryMarshal.GetReference(Record), Consumed);
     }
 
-    readonly void ICsvFieldReader<T>.TryEnsureFieldCount(int fieldCount)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal readonly Span<T> GetUnescapeBuffer(int length)
     {
+        Debug.Assert(length != 0);
+
+        if (length <= _unescapeBuffer.Length)
+            return _unescapeBuffer.Slice(0, length);
+
+        _context.ArrayPool.EnsureCapacity(ref _unescapeArray, length);
+        return _unescapeArray.AsSpan(0, length);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly void EnsureFullyConsumed(int fieldCount)
     {
-        if (((uint)remaining.Length | quotesRemaining | escapesRemaining) == 0)
+        if ((((uint)Record.Length - (uint)Consumed) | quotesRemaining | escapesRemaining) == 0)
             return;
 
         ThrowNotFullyConsumed(fieldCount);
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public readonly void ThrowParseFailed(ReadOnlyMemory<T> field, CsvConverter<T>? parser)
+    public readonly void ThrowParseFailed(ReadOnlySpan<T> field, CsvConverter<T>? parser)
     {
         string withStr = parser is null ? "" : $" with {parser.GetType()}";
 
         throw new CsvParseException(
-            $"Failed to parse{withStr} from {_context.AsPrintableString(field)}.")
+            $"Failed to parse{withStr} from {_context.AsPrintableString(field.ToArray())}.")
         { Parser = parser };
     }
 
@@ -103,7 +184,7 @@ internal struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IEqu
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public readonly void ThrowForInvalidEndOfString()
+    internal readonly void ThrowForInvalidEndOfString()
     {
         throw new UnreachableException(
             "The record had a string that ended in the middle without the next character being a delimiter. " +
@@ -111,25 +192,25 @@ internal struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IEqu
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public readonly void ThrowEscapeAtEnd()
+    internal readonly void ThrowEscapeAtEnd()
     {
         throw new UnreachableException(
             "The CSV record was in an invalid state (escape token was the final character), " +
-            $"Remaining: {_context.AsPrintableString(remaining)}, " +
+            $"Remaining: {_context.AsPrintableString(_record.Slice(Consumed))}, " +
             $"Record: {_context.AsPrintableString(_record)}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public readonly void ThrowNoDelimiterAtHead()
+    internal readonly void ThrowNoDelimiterAtHead()
     {
         throw new UnreachableException(
             "The CSV record was in an invalid state (no delimiter at head after the first field), " +
-            $"Remaining: {_context.AsPrintableString(remaining)}, " +
+            $"Remaining: {_context.AsPrintableString(_record.Slice(Consumed))}, " +
             $"Record: {_context.AsPrintableString(_record)}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public readonly void ThrowNotFullyConsumed(int fieldCount)
+    private readonly void ThrowNotFullyConsumed(int fieldCount)
     {
         StringBuilder sb = new(capacity: 128);
 
@@ -143,48 +224,17 @@ internal struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IEqu
             sb.Append(CultureInfo.InvariantCulture, $"There were {escapesRemaining} leftover escapes in the state. ");
         }
 
-        if (!remaining.IsEmpty)
+        if (!End)
         {
             if (fieldCount != -1)
             {
                 sb.Append(CultureInfo.InvariantCulture, $"Expected the record to have {fieldCount} fields, but it had more. ");
             }
-            sb.Append(CultureInfo.InvariantCulture, $"Remaining: {_context.AsPrintableString(remaining)}, ");
+            sb.Append(CultureInfo.InvariantCulture, $"Remaining: {_context.AsPrintableString(_record.Slice(Consumed))}, ");
         }
 
         sb.Append(CultureInfo.InvariantCulture, $"Record: {_context.AsPrintableString(_record)}");
 
         throw new CsvFormatException(sb.ToString());
-    }
-
-    /// <summary>
-    /// Creates a new <see cref="CsvFieldReader{T}"/> from the given <paramref name="record"/>
-    /// and returns a disposable that ensures the <paramref name="array"/> is returned to the context's pool.
-    /// </summary>
-    internal static Lifetime CreateTemporary(
-        in CsvReadingContext<T> context,
-        ReadOnlyMemory<T> record,
-        ref T[]? array,
-        out CsvFieldReader<T> state)
-    {
-        state = new CsvFieldReader<T>(in context, record, ref array);
-        return new Lifetime(context.ArrayPool, ref array);
-    }
-
-    internal readonly ref struct Lifetime
-    {
-        private readonly ArrayPool<T> _arrayPool;
-        private readonly ref T[]? _rentedBuffer;
-
-        public void Dispose()
-        {
-            _arrayPool.EnsureReturned(ref _rentedBuffer);
-        }
-
-        internal Lifetime(ArrayPool<T> arrayPool, ref T[]? array)
-        {
-            _arrayPool = arrayPool;
-            _rentedBuffer = ref array;
-        }
     }
 }

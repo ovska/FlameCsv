@@ -31,7 +31,7 @@ public class ReadExceptionTests
     {
         var opts = new CsvTextOptions
         {
-            ExceptionHandler = _ => false,
+            ExceptionHandler = (in CsvExceptionHandlerArgs<char> _) => false,
             HasHeader = false,
         };
         Assert.Throws<CsvUnhandledException>(() => Run(opts));
@@ -45,7 +45,7 @@ public class ReadExceptionTests
         var opts = new CsvTextOptions
         {
             HasHeader = false,
-            ExceptionHandler = args =>
+            ExceptionHandler = (in CsvExceptionHandlerArgs<char> args) =>
             {
                 if (args.Exception is CsvParseException pe)
                 {
@@ -77,7 +77,7 @@ public class ReadExceptionTests
     {
         var opts = new CsvTextOptions
         {
-            ExceptionHandler = args => throw new AggregateException(args.Exception),
+            ExceptionHandler = (in CsvExceptionHandlerArgs<char> args) => throw new AggregateException(args.Exception),
             HasHeader = false,
         };
         Assert.Throws<AggregateException>(() => Run(opts));

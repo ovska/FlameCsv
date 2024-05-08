@@ -212,9 +212,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
             _state.MaterializerCache[typeof(TRecord)] = obj;
         }
 
-        IMaterializer<T, TRecord> materializer = (IMaterializer<T, TRecord>)obj;
-        CsvRecordFieldReader<T> reader = new(_state.GetFields(), in _state._context);
-        return materializer.Parse(ref reader);
+        return _state._context.Materialize(RawRecord, (IMaterializer<T, TRecord>)obj);
     }
 
     public TRecord ParseRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap)
@@ -232,9 +230,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
             _state.MaterializerCache[typeMap] = obj;
         }
 
-        IMaterializer<T, TRecord> materializer = (IMaterializer<T, TRecord>)obj;
-        CsvRecordFieldReader<T> reader = new(_state.GetFields(), in _state._context);
-        return materializer.Parse(ref reader);
+        return _state._context.Materialize(RawRecord, (IMaterializer<T, TRecord>)obj);
     }
 
     public override string ToString()
@@ -247,7 +243,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
         public ReadOnlyMemory<T> Current { get; private set; }
 
         private readonly int _version;
-        private readonly ArraySegment<ReadOnlyMemory<T>> _fields;
+        private readonly List<ReadOnlyMemory<T>> _fields;
         private readonly EnumeratorState<T> _state;
         private int _index;
 
@@ -255,7 +251,6 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
         internal Enumerator(int version, EnumeratorState<T> state)
         {
             state.EnsureVersion(version);
-            state.FullyConsume();
 
             _version = version;
             _state = state;
