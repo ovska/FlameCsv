@@ -57,13 +57,15 @@ internal interface IEscaper<T> where T : unmanaged, IEquatable<T>
 
         while (specialCount > 0)
         {
-            if (NeedsEscaping(source[srcIndex]))
+            bool needsEscaping = NeedsEscaping(source[srcIndex]);
+
+            destination[dstIndex--] = source[srcIndex--];
+
+            if (needsEscaping)
             {
                 destination[dstIndex--] = Escape;
                 specialCount--;
             }
-
-            destination[dstIndex--] = source[srcIndex--];
         }
 
         source.Slice(0, srcIndex + 1).CopyTo(destination.Slice(1));
@@ -128,8 +130,7 @@ internal interface IEscaper<T> where T : unmanaged, IEquatable<T>
             }
             else if (NeedsEscaping(source[srcIndex]))
             {
-                overflow[ovrIndex--] = Escape;
-                srcIndex--;
+                overflow[ovrIndex--] = source[srcIndex--];
                 needEscape = true;
             }
             else
@@ -150,8 +151,7 @@ internal interface IEscaper<T> where T : unmanaged, IEquatable<T>
             }
             else if (NeedsEscaping(source[srcIndex]))
             {
-                destination[dstIndex--] = Escape;
-                srcIndex--;
+                destination[dstIndex--] = source[srcIndex--];
                 needEscape = true;
             }
             else

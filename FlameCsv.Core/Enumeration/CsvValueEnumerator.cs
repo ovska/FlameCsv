@@ -10,17 +10,17 @@ public sealed class CsvValueEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TV
     where T : unmanaged, IEquatable<T>
 {
     [RequiresUnreferencedCode(Messages.CompiledExpressions)]
-    internal CsvValueEnumerator(ReadOnlySequence<T> csv, in CsvReadingContext<T> context, IMaterializer<T, TValue>? materializer)
-        : base(in context, materializer)
+    internal CsvValueEnumerator(ReadOnlySequence<T> csv, CsvOptions<T> options, IMaterializer<T, TValue>? materializer)
+        : base(options, materializer)
     {
-        _data.Reset(in csv);
+        _parser.Reset(in csv);
     }
 
-    internal CsvValueEnumerator(ReadOnlySequence<T> csv, in CsvReadingContext<T> context, CsvTypeMap<T, TValue> typeMap)
-        : base(in context, typeMap)
+    internal CsvValueEnumerator(ReadOnlySequence<T> csv, CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
+        : base(options, typeMap)
     {
         ArgumentNullException.ThrowIfNull(typeMap);
-        _data.Reset(in csv);
+        _parser.Reset(in csv);
     }
 
     public bool MoveNext()

@@ -9,23 +9,21 @@ namespace FlameCsv.Enumeration;
 public readonly struct CsvRecordAsyncEnumerable<T> where T : unmanaged, IEquatable<T>
 {
     private readonly ICsvPipeReader<T> _reader;
-    private readonly CsvReadingContext<T> _context;
+    private readonly CsvOptions<T> _options;
 
-    internal CsvRecordAsyncEnumerable(ICsvPipeReader<T> reader, in CsvReadingContext<T> context)
+    internal CsvRecordAsyncEnumerable(ICsvPipeReader<T> reader, CsvOptions<T> options)
     {
         _reader = reader;
-        _context = context;
+        _options = options;
     }
 
     public CsvRecordAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
-        _context.EnsureValid();
-        return new(_reader, _context, cancellationToken);
+        return new(_reader, _options, cancellationToken);
     }
 
     public IAsyncEnumerable<CsvRecord<T>> AsAsyncEnumerable()
     {
-        _context.EnsureValid();
         return new CopyingRecordAsyncEnumerable<T>(in this);
     }
 }

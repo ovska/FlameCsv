@@ -78,23 +78,37 @@ public partial class TypeMapGenerator
     {
         string? foundArgs = null;
         var csvOptionsSymbol = _symbols.GetCsvOptionsType(typeMap.TokenSymbol);
+        var explicitOptionsSymbol = _symbols.GetExplicitOptionsType(typeMap.TokenSymbol);
+        bool foundExplicit = false;
 
         foreach (var member in parser.GetMembers())
         {
             if (member.Kind == SymbolKind.Method &&
                 member is IMethodSymbol { MethodKind: MethodKind.Constructor } method)
             {
-                if (method.Parameters.Length == 1 &&
-                    SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, csvOptionsSymbol))
+                if (method.Parameters.Length == 1)
                 {
-                    foundArgs = "options";
-                    break;
+                    if (SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, explicitOptionsSymbol))
+                    {
+                        foundExplicit = true;
+                    }
+                    else if (SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, csvOptionsSymbol))
+                    {
+                        foundArgs = "options";
+                        break;
+                    }
                 }
                 else if (method.Parameters.IsEmpty)
                 {
                     foundArgs = "";
                 }
             }
+        }
+
+        // if no CsvOptions<T> constructor found, use CsvTextOptions or CsvUtf8Options with cast
+        if (string.IsNullOrEmpty(foundArgs) && foundExplicit && explicitOptionsSymbol is not null)
+        {
+            foundArgs = $"({explicitOptionsSymbol.ToDisplayString()})options";
         }
 
         if (foundArgs is null)

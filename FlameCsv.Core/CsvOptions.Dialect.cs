@@ -1,4 +1,6 @@
-﻿using static FlameCsv.Utilities.SealableUtil;
+﻿using System.Runtime.CompilerServices;
+using CommunityToolkit.Diagnostics;
+using static FlameCsv.Utilities.SealableUtil;
 
 namespace FlameCsv;
 
@@ -25,7 +27,11 @@ public partial class CsvOptions<T> : ICsvDialectOptions<T>
     ReadOnlyMemory<T> ICsvDialectOptions<T>.Newline
     {
         get => _newline;
-        set => this.SetValue(ref _newline, value);
+        set
+        {
+            Guard.IsBetween(value.Length, 1, 2, "Newline length");
+            this.SetValue(ref _newline, value);
+        }
     }
 
     ReadOnlyMemory<T> ICsvDialectOptions<T>.Whitespace
@@ -38,5 +44,23 @@ public partial class CsvOptions<T> : ICsvDialectOptions<T>
     {
         get => _escape;
         set => this.SetValue(ref _escape, value);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void GetNewline(out T newline1, out T newline2, out int newlineLength)
+    {
+        var span = _newline.Span;
+        newline1 = span[0];
+        
+        if (span.Length == 2)
+        {
+            newline2 = span[1];
+            newlineLength = 2;
+        }
+        else
+        {
+            newline2 = default;
+            newlineLength = 1;
+        }
     }
 }

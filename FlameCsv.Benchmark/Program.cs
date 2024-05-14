@@ -1,4 +1,19 @@
-﻿BenchmarkRunner.Run<UnescapeBench>();
+﻿using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Engines;
+using BenchmarkDotNet.Jobs;
+
+var config = DefaultConfig.Instance
+    //.AddJob(Job.Default
+    //    .WithStrategy(RunStrategy.Throughput)
+    //    .WithId("Scalar")
+    //    .WithEnvironmentVariable("DOTNET_EnableAVX2", "0")
+    //    .WithEnvironmentVariable("DOTNET_EnableAVX512F", "0")
+    //    .AsBaseline())
+    .AddJob(Job.Default
+        .WithStrategy(RunStrategy.Throughput)
+        .WithId("Vectorized"));
+
+BenchmarkRunner.Run<LineBench>(config);
 
 //var bb = new BindingBench();
 

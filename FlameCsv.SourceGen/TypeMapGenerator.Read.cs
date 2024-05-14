@@ -20,14 +20,11 @@ public partial class TypeMapGenerator
         sb.Append(typeMap.ParseHandlerArgs);
         sb.Append(@";
 
-        protected override IMaterializer<");
+        public override IMaterializer<");
         sb.Append(typeMap.Token);
         sb.Append(", ");
         sb.Append(typeMap.ResultName);
-        sb.Append(@"> BindMembers(
-            ReadOnlySpan<string> headers,
-            bool exposeContent,
-            CsvOptions<");
+        sb.Append(@"> BindMembers(ReadOnlySpan<string> headers, CsvOptions<");
         sb.Append(typeMap.Token);
         sb.Append(@"> options)
         {
@@ -51,14 +48,15 @@ public partial class TypeMapGenerator
         }
         else
         {
-            sb.Append("ThrowUnmatched(name, index, exposeContent);");
+            sb.Append("ThrowUnmatched(name, index, options);");
         }
 
         sb.Append(@"
             }
 
             if (!anyFieldBound)
-                ThrowNoFieldsBound(headers, exposeContent);");
+                ThrowNoFieldsBound(headers, options);
+");
 
         WriteRequiredCheck(sb);
 
@@ -66,13 +64,11 @@ public partial class TypeMapGenerator
             return materializer;
         }
 
-        protected override IMaterializer<");
+        public override IMaterializer<");
         sb.Append(typeMap.Token);
         sb.Append(", ");
         sb.Append(typeMap.ResultName);
-        sb.Append(@"> BindMembers(
-            bool exposeContent,
-            CsvOptions<");
+        sb.Append(@"> BindMembers(CsvOptions<");
         sb.Append(typeMap.Token);
         sb.Append("""
 > options)
@@ -270,9 +266,9 @@ public partial class TypeMapGenerator
             if (binding.IsRequired)
                 continue; // already handled
 
-            sb.Append("                if (");
-            sb.Append(binding.ParserId);
-            sb.Append(" != null) ");
+            sb.Append("                if (null != ");
+            sb.Append(binding.ConverterId);
+            sb.Append(") ");
 
             if (binding.IsExplicitInterfaceDefinition(typeMap.Type, out var ifaceSymbol))
             {
@@ -319,12 +315,12 @@ public partial class TypeMapGenerator
             }
 
             sb.Append("materializer.");
-            sb.Append(_bindings.RequiredBindings[i].ParserId);
+            sb.Append(_bindings.RequiredBindings[i].ConverterId);
             sb.Append(" == null");
         }
 
         sb.Append(@")
-                ThrowRequiredNotRead(GetMissingRequiredFields(materializer), headers, exposeContent);
+                ThrowRequiredNotRead(GetMissingRequiredFields(materializer), headers, options);
 ");
     }
 
@@ -341,7 +337,7 @@ public partial class TypeMapGenerator
         foreach (var b in _bindings.RequiredBindings)
         {
             sb.Append($@"
-            if (materializer.{b.ParserId} == null) yield return {b.Name.ToStringLiteral()};");
+            if (materializer.{b.ConverterId} == null) yield return {b.Name.ToStringLiteral()};");
         }
 
         sb.Append(@"
@@ -358,7 +354,7 @@ public partial class TypeMapGenerator
         sb.Append(", ");
         sb.Append(binding.Type.ToDisplayString());
         sb.Append(_symbols.Nullable ? ">? " : "> ");
-        sb.Append(binding.ParserId);
+        sb.Append(binding.ConverterId);
         sb.Append(';');
     }
 
@@ -391,7 +387,7 @@ public partial class TypeMapGenerator
             sb.Append(" = ");
             sb.Append(typeMap.ParseHandlerArgs);
             sb.Append(" => materializer.");
-            sb.Append(binding.ParserId);
+            sb.Append(binding.ConverterId);
             sb.Append(".TryParse(field, out state.");
             sb.Append(binding.Name);
             sb.Append(");");
@@ -446,7 +442,7 @@ public partial class TypeMapGenerator
             {
                 // add check to ignore already handled members
                 sb.Append("null == materializer.");
-                sb.Append(binding.ParserId);
+                sb.Append(binding.ConverterId);
                 sb.Append(@" &&
                     ");
             }
@@ -493,16 +489,16 @@ public partial class TypeMapGenerator
             {
                 sb.Append(@"
                     if (null != materializer.");
-                sb.Append(binding.ParserId);
+                sb.Append(binding.ConverterId);
                 sb.Append(") ThrowDuplicate(");
                 sb.Append(binding.Name.ToStringLiteral());
-                sb.Append(@", name, headers, exposeContent);
+                sb.Append(@", name, headers, options);
 ");
             }
 
             sb.Append(@"
                     materializer.");
-            sb.Append(binding.ParserId);
+            sb.Append(binding.ConverterId);
             sb.Append(" = ");
             ResolveConverter(sb, in typeMap, binding.Symbol, binding.Type, converterFactorySymbol);
             sb.Append(@";

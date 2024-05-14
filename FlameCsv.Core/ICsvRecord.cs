@@ -20,6 +20,9 @@ public interface ICsvRecord<T> where T : unmanaged, IEquatable<T>
     /// <inheritdoc cref="GetField(string)"/>
     ReadOnlyMemory<T> this[string name] { get; }
 
+    /// <summary>
+    /// Returns true if the header has been parsed from the CSV the record is from.
+    /// </summary>
     bool HasHeader { get; }
 
     /// <summary>
@@ -33,11 +36,6 @@ public interface ICsvRecord<T> where T : unmanaged, IEquatable<T>
     /// </summary>
     /// <remarks>First record's line number is always 1.</remarks>
     int Line { get; }
-
-    /// <summary>
-    /// CSV dialect used to parse the records.
-    /// </summary>
-    CsvDialect<T> Dialect { get; }
 
     /// <summary>
     /// The complete unescaped data on the line without trailing newline tokens.

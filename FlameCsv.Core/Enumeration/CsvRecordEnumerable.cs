@@ -12,7 +12,7 @@ namespace FlameCsv.Enumeration;
 public readonly struct CsvRecordEnumerable<T> where T : unmanaged, IEquatable<T>
 {
     private readonly ReadOnlySequence<T> _data;
-    private readonly CsvReadingContext<T> _context;
+    private readonly CsvOptions<T> _options;
 
     public CsvRecordEnumerable(ReadOnlyMemory<T> data, CsvOptions<T> options)
         : this(new ReadOnlySequence<T>(data), options)
@@ -23,18 +23,16 @@ public readonly struct CsvRecordEnumerable<T> where T : unmanaged, IEquatable<T>
     {
         ArgumentNullException.ThrowIfNull(options);
         _data = data;
-        _context = new CsvReadingContext<T>(options);
+        _options = options;
     }
 
     public CsvRecordEnumerator<T> GetEnumerator()
     {
-        _context.EnsureValid();
-        return new(in _data, in _context);
+        return new(in _data, _options);
     }
 
     public IEnumerable<CsvRecord<T>> AsEnumerable()
     {
-        _context.EnsureValid();
         return new CopyingRecordEnumerable<T>(in this);
     }
 }

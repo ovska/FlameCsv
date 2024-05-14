@@ -2,29 +2,11 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Buffers;
-using FlameCsv.Reading;
 
 namespace FlameCsv.Extensions;
 
 internal static class ArrayPoolExtensions
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ReadOnlyMemory<T> AsMemory<T>(in this ReadOnlySequence<T> sequence, ref LineSeekArg<T> arg)
-        where T : unmanaged, IEquatable<T>
-    {
-        if (sequence.IsSingleSegment)
-            return sequence.First;
-
-        int length = (int)sequence.Length;
-
-        if (length == 0)
-            return ReadOnlyMemory<T>.Empty;
-
-        arg.Context.ArrayPool.EnsureCapacity(ref arg.Array, length);
-        sequence.CopyTo(arg.Array);
-        return new ReadOnlyMemory<T>(arg.Array, 0, length);
-    }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ReadOnlyMemory<T> AsMemory<T>(in this ReadOnlySequence<T> sequence, ref T[]? array, ArrayPool<T> arrayPool)
     {

@@ -41,7 +41,7 @@ public ref struct CsvFieldReader<T> where T : unmanaged, IEquatable<T>
     {
         if (!reader.End)
         {
-            field = reader.Context.Dialect.IsRFC4180Mode
+            field = !reader.Escape.HasValue
                 ? RFC4180Mode<T>.ReadNextField(ref reader)
                 : UnixMode<T>.ReadNextField(ref reader);
             return true;
@@ -51,12 +51,9 @@ public ref struct CsvFieldReader<T> where T : unmanaged, IEquatable<T>
         return false;
     }
 
-    internal readonly ref readonly CsvReadingContext<T> Context => ref _context;
-    private readonly ref readonly CsvReadingContext<T> _context;
-
     public readonly ReadOnlySpan<T> Record { get; }
     public readonly ReadOnlySpan<T> Remaining => Record.Slice(Consumed);
-    public readonly bool End => Consumed == Record.Length;
+    public readonly bool End => Consumed >= Record.Length;
 
     public int Consumed { get; internal set; }
 
@@ -64,26 +61,31 @@ public ref struct CsvFieldReader<T> where T : unmanaged, IEquatable<T>
     public uint quotesRemaining;
     public uint escapesRemaining;
 
+    public readonly T Delimiter =>  _options._delimiter;
+    public readonly T Quote =>  _options._quote;
+    public readonly T? Escape =>  _options._escape;
     public readonly ReadOnlySpan<T> Whitespace { get; }
 
+    private readonly CsvOptions<T> _options;
     private readonly ReadOnlyMemory<T> _record;
     private readonly Span<T> _unescapeBuffer;
     private readonly ref T[]? _unescapeArray;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvFieldReader(
+        CsvOptions<T> options,
         ReadOnlyMemory<T> record,
-        ref readonly CsvReadingContext<T> context,
         Span<T> unescapeBuffer,
         ref T[]? unescapeArray,
         uint quotesRemaining,
         uint escapesRemaining = 0)
     {
         Record = record.Span;
-        Whitespace = context.Dialect.Whitespace.Span;
+
+        _options = options;
+        Whitespace = options._whitespace.Span;
 
         _record = record;
-        _context = ref context;
 
         _unescapeBuffer = unescapeBuffer;
         _unescapeArray = ref unescapeArray;
@@ -151,7 +153,7 @@ public ref struct CsvFieldReader<T> where T : unmanaged, IEquatable<T>
         if (length <= _unescapeBuffer.Length)
             return _unescapeBuffer.Slice(0, length);
 
-        _context.ArrayPool.EnsureCapacity(ref _unescapeArray, length);
+        _options._arrayPool.AllocatingIfNull().EnsureCapacity(ref _unescapeArray, length);
         return _unescapeArray.AsSpan(0, length);
     }
 
@@ -170,17 +172,17 @@ public ref struct CsvFieldReader<T> where T : unmanaged, IEquatable<T>
         string withStr = parser is null ? "" : $" with {parser.GetType()}";
 
         throw new CsvParseException(
-            $"Failed to parse{withStr} from {_context.AsPrintableString(field.ToArray())}.")
+            $"Failed to parse{withStr} from {_options.AsPrintableString(field.ToArray())}.")
         { Parser = parser };
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public readonly void ThrowForInvalidEOF()
     {
-        string escapeStr = _context.Dialect.IsRFC4180Mode ? "" : $"and {escapesRemaining} escapes ";
+        string escapeStr = !Escape.HasValue ? "" : $"and {escapesRemaining} escapes ";
         throw new UnreachableException(
             $"The record ended while having {quotesRemaining} quotes {escapeStr}remaining. " +
-            $"Record: {_context.AsPrintableString(_record)}");
+            $"Record: {_options.AsPrintableString(_record)}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -188,7 +190,7 @@ public ref struct CsvFieldReader<T> where T : unmanaged, IEquatable<T>
     {
         throw new UnreachableException(
             "The record had a string that ended in the middle without the next character being a delimiter. " +
-            $"Record: {_context.AsPrintableString(_record)}");
+            $"Record: {_options.AsPrintableString(_record)}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -196,8 +198,8 @@ public ref struct CsvFieldReader<T> where T : unmanaged, IEquatable<T>
     {
         throw new UnreachableException(
             "The CSV record was in an invalid state (escape token was the final character), " +
-            $"Remaining: {_context.AsPrintableString(_record.Slice(Consumed))}, " +
-            $"Record: {_context.AsPrintableString(_record)}");
+            $"Remaining: {_options.AsPrintableString(_record.Slice(Consumed))}, " +
+            $"Record: {_options.AsPrintableString(_record)}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -205,8 +207,8 @@ public ref struct CsvFieldReader<T> where T : unmanaged, IEquatable<T>
     {
         throw new UnreachableException(
             "The CSV record was in an invalid state (no delimiter at head after the first field), " +
-            $"Remaining: {_context.AsPrintableString(_record.Slice(Consumed))}, " +
-            $"Record: {_context.AsPrintableString(_record)}");
+            $"Remaining: {_options.AsPrintableString(_record.Slice(Consumed))}, " +
+            $"Record: {_options.AsPrintableString(_record)}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -230,10 +232,10 @@ public ref struct CsvFieldReader<T> where T : unmanaged, IEquatable<T>
             {
                 sb.Append(CultureInfo.InvariantCulture, $"Expected the record to have {fieldCount} fields, but it had more. ");
             }
-            sb.Append(CultureInfo.InvariantCulture, $"Remaining: {_context.AsPrintableString(_record.Slice(Consumed))}, ");
+            sb.Append(CultureInfo.InvariantCulture, $"Remaining: {_options.AsPrintableString(_record.Slice(Consumed))}, ");
         }
 
-        sb.Append(CultureInfo.InvariantCulture, $"Record: {_context.AsPrintableString(_record)}");
+        sb.Append(CultureInfo.InvariantCulture, $"Record: {_options.AsPrintableString(_record)}");
 
         throw new CsvFormatException(sb.ToString());
     }

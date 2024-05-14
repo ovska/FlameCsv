@@ -11,21 +11,21 @@ public struct CsvFieldEnumerator<T> : IDisposable, IEnumerator<ReadOnlyMemory<T>
 
     readonly object IEnumerator.Current => Current;
 
-    private readonly CsvReadingContext<T> _context;
+    private readonly CsvParser<T> _parser;
     private T[]? _toReturn;
 
     private ReadOnlyMemory<T> _remaining;
-    private RecordMeta _remainingMeta;
+    private CsvRecordMeta _remainingMeta;
     private bool _isAtStart;
 
-    internal CsvFieldEnumerator(ReadOnlyMemory<T> value, in CsvReadingContext<T> context)
+    public CsvFieldEnumerator(ReadOnlyMemory<T> value, CsvOptions<T> options)
     {
-        Throw.IfDefaultStruct<CsvFieldEnumerator<T>>(context.ArrayPool);
+        ArgumentNullException.ThrowIfNull(options);
 
-        _context = context;
+        _parser = CsvParser<T>.Create(options);
         _remaining = value;
         _isAtStart = true;
-        _remainingMeta = context.GetRecordMeta(value);
+        _remainingMeta = _parser.GetRecordMeta(value);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -37,14 +37,13 @@ public struct CsvFieldEnumerator<T> : IDisposable, IEnumerator<ReadOnlyMemory<T>
         }
 
         var reader = new CsvFieldReader<T>(
+            _parser._options,
             _remaining,
-            in _context,
             [],
             ref _toReturn,
             _remainingMeta.quoteCount,
-            _remainingMeta.escapeCount);
-
-        reader.isAtStart = _isAtStart;
+            _remainingMeta.escapeCount)
+        { isAtStart = _isAtStart };
 
         if (!reader.TryReadNext(out ReadOnlyMemory<T> field))
         {
@@ -65,6 +64,7 @@ public struct CsvFieldEnumerator<T> : IDisposable, IEnumerator<ReadOnlyMemory<T>
 
     public void Dispose()
     {
-        _context.ArrayPool.EnsureReturned(ref _toReturn);
+        _parser._arrayPool.EnsureReturned(ref _toReturn);
+        _parser.Dispose();
     }
 }

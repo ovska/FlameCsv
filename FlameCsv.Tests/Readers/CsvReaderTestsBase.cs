@@ -1,5 +1,8 @@
 using System.Buffers;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
 using FlameCsv.Enumeration;
 using FlameCsv.Tests.TestData;
@@ -13,6 +16,7 @@ namespace FlameCsv.Tests.Readers;
 /// <summary>
 /// A spray-and-pray tests of different APIs using various options and CSV features.
 /// </summary>
+[Collection("ReaderTests")]
 public abstract class CsvReaderTestsBase<T> : IDisposable
     where T : unmanaged, IEquatable<T>
 {
@@ -21,14 +25,11 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
     private static readonly string[] _crlf = ["CRLF", "LF"];
     private static readonly bool[] _booleans = [true, false];
     private static readonly Mode[] _escaping = [Mode.None, Mode.RFC, Mode.Escape];
-    private static readonly int[] _singleInt = [0];
-    private static readonly bool[] _singleBool = [false];
 
     private ReturnTrackingArrayPool<T>? _pool;
 
-    protected abstract CsvOptions<T> CreateOptions(string newline, char? escape);
-    protected abstract ReadOnlyMemory<T> GetMemory(ReadOnlyMemory<char> text);
     protected abstract CsvTypeMap<T, Obj> TypeMap { get; }
+    protected abstract CsvOptions<T> CreateOptions(string newline, char? escape);
 
     protected abstract CsvRecordAsyncEnumerable<T> GetRecords(
         Stream stream,
@@ -40,7 +41,10 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         int bufferSize,
         bool sourceGen);
 
-    public static IEnumerable<object[]> SyncTypeParams
+    public static IEnumerable<object[]> SyncObjectParams => SyncParams.Where(x => x[1] is true || x[^1] is false);
+    public static IEnumerable<object[]> SyncRecordParams => SyncParams.Where(x => x[1] is true || x[^1] is false);
+
+    private static IEnumerable<object[]> SyncParams
         =>
             from crlf in _crlf
             from writeHeader in _booleans
@@ -48,91 +52,95 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
             from bufferSize in _bufferSizes
             from emptySegmentFrequency in _emptySegmentsEvery
             from escaping in _escaping
-            select new object[] { crlf, writeHeader, writeTrailingNewline, bufferSize, emptySegmentFrequency, escaping };
+            from sourceGen in _booleans
+            select new object[] { crlf, writeHeader, writeTrailingNewline, bufferSize, emptySegmentFrequency, escaping, sourceGen };
 
-    public static IEnumerable<object[]> AsyncTypeParams
+    public static IEnumerable<object[]> AsyncObjectParams => AsyncParams.Where(x => x[1] is true || x[^1] is false);
+    public static IEnumerable<object[]> AsyncRecordParams => AsyncParams.Where(x => x[1] is true || x[^1] is false);
+
+    private static IEnumerable<object[]> AsyncParams
         =>
             from crlf in _crlf
             from writeHeader in _booleans
             from writeTrailingNewline in _booleans
             from bufferSize in _bufferSizes
             from escaping in _escaping
-            select new object[] { crlf, writeHeader, writeTrailingNewline, bufferSize, escaping };
+            from sourceGen in _booleans
+            select new object[] { crlf, writeHeader, writeTrailingNewline, bufferSize, escaping, sourceGen };
 
-    [Theory, MemberData(nameof(SyncTypeParams))]
+    [Theory, MemberData(nameof(SyncObjectParams))]
     public void Objects_Sync(
         string newline,
         bool header,
         bool trailingLF,
         int bufferSize,
         int emptySegmentFreq,
-        Mode escaping)
+        Mode escaping,
+        bool sourceGen)
     {
         newline = newline == "LF" ? "\n" : "\r\n";
         CsvOptions<T> options = PrepareOptions(newline, header, escaping);
 
         List<Obj> items = new(1000);
 
-        var text = Generate(newline, header, trailingLF, escaping);
-        var memory = GetMemory(text);
+        var memory = TestDataGenerator.Generate<T>(newline, header, trailingLF, escaping);
         var sequence = MemorySegment<T>.AsSequence(memory, bufferSize, emptySegmentFreq);
 
-#if false
-        if (/* sourceGen */ false)
+        if (sourceGen)
             items.AddRange(CsvReader.Read(sequence, TypeMap, options));
         else
-#endif
-        items.AddRange(CsvReader.Read<T, Obj>(sequence, options));
+            items.AddRange(CsvReader.Read<T, Obj>(sequence, options));
 
         Validate(items, escaping);
     }
 
-    [Theory, MemberData(nameof(SyncTypeParams))]
+    [Theory, MemberData(nameof(SyncRecordParams))]
     public async Task Records_Sync(
         string newline,
         bool header,
         bool trailingLF,
         int bufferSize,
         int emptySegmentFreq,
-        Mode escaping)
+        Mode escaping,
+        bool sourceGen)
     {
         newline = newline == "LF" ? "\n" : "\r\n";
         CsvOptions<T> options = PrepareOptions(newline, header, escaping);
 
         List<Obj> items;
 
-        var text = Generate(newline, header, trailingLF, escaping);
-        var memory = GetMemory(text);
+        var memory = TestDataGenerator.Generate<T>(newline, header, trailingLF, escaping);
         var sequence = MemorySegment<T>.AsSequence(memory, bufferSize, emptySegmentFreq);
 
         CsvRecordEnumerable<T> enumerable = CsvReader.Enumerate(sequence, options);
 
         using (var enumerator = enumerable.GetEnumerator())
         {
-            items = await GetItems(() => new(enumerator.MoveNext() ? enumerator.Current : null), header);
+            items = await GetItems(() => new(enumerator.MoveNext() ? enumerator.Current : null), sourceGen, header);
         }
 
         Validate(items, escaping);
     }
 
-    [Theory, MemberData(nameof(AsyncTypeParams))]
+    [Theory, MemberData(nameof(AsyncObjectParams))]
     public async Task Objects_Async(
         string newline,
         bool header,
         bool trailingLF,
         int bufferSize,
-        Mode escaping)
+        Mode escaping,
+        bool sourceGen)
     {
         newline = newline == "LF" ? "\n" : "\r\n";
         CsvOptions<T> options = PrepareOptions(newline, header, escaping);
 
         List<Obj> items = new(1000);
 
-        var text = Generate(newline, header, trailingLF, escaping);
+        var data = TestDataGenerator.Generate<byte>(newline, header, trailingLF, escaping);
 
-        await using (var stream = GetStream(text))
+        await using (var stream = data.AsStream())
         {
-            await foreach (var obj in GetObjects(stream, options, bufferSize, sourceGen: false))
+            await foreach (var obj in GetObjects(stream, options, bufferSize, sourceGen))
             {
                 items.Add(obj);
             }
@@ -141,27 +149,31 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         Validate(items, escaping);
     }
 
-    [Theory, MemberData(nameof(AsyncTypeParams))]
+    [Theory, MemberData(nameof(AsyncRecordParams))]
     public async Task Records_Async(
         string newline,
         bool header,
         bool trailingLF,
         int bufferSize,
-        Mode escaping)
+        Mode escaping,
+        bool sourceGen)
     {
         newline = newline == "LF" ? "\n" : "\r\n";
         CsvOptions<T> options = PrepareOptions(newline, header, escaping);
 
         List<Obj> items;
 
-        var text = Generate(newline, header, trailingLF, escaping);
+        var data = TestDataGenerator.Generate<byte>(newline, header, trailingLF, escaping);
 
-        await using (var stream = GetStream(text))
+        await using (var stream = data.AsStream())
         {
             CsvRecordAsyncEnumerable<T> enumerable = GetRecords(stream, options, bufferSize);
 
             await using var enumerator = enumerable.GetAsyncEnumerator();
-            items = await GetItems(async () => await enumerator.MoveNextAsync() ? enumerator.Current : null, header);
+            items = await GetItems(
+                async () => await enumerator.MoveNextAsync() ? enumerator.Current : null,
+                sourceGen,
+                header);
         }
 
         Validate(items, escaping);
@@ -169,6 +181,16 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
 
     private static void Validate(List<Obj> items, Mode escaping)
     {
+        if (items.Count != 1000)
+        {
+            var missing = Enumerable.Range(0, 1_000).ToHashSet();
+
+            foreach (var obj in items)
+                missing.Remove(obj.Id);
+
+            Assert.Empty(missing);
+        }
+
         Assert.Equal(1_000, items.Count);
 
         for (int i = 0; i < 1_000; i++)
@@ -182,13 +204,9 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         }
     }
 
-    protected static Stream GetStream(ReadOnlyMemory<char> text)
-    {
-        return new MemoryStream(Encoding.UTF8.GetBytes(new ReadOnlySequence<char>(text)));
-    }
-
-    private static async Task<List<Obj>> GetItems(
+    private async Task<List<Obj>> GetItems(
         Func<ValueTask<CsvValueRecord<T>?>> enumerator,
+        bool sourceGen,
         bool hasHeader)
     {
         List<Obj> items = new(1000);
@@ -200,24 +218,28 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         {
             if (tokenPosition == 0 && hasHeader)
             {
-                tokenPosition = TestDataGenerator.Header.Length + record.Dialect.Newline.Length;
+                tokenPosition = TestDataGenerator.Header.Length + record._options._newline.Length;
             }
 
             index++;
             Assert.Equal(hasHeader ? index + 1 : index, record.Line);
             Assert.Equal(tokenPosition, record.Position);
 
-            tokenPosition += record.RawRecord.Length + record.Dialect.Newline.Length;
+            tokenPosition += record.RawRecord.Length + record._options._newline.Length;
 
-            items.Add(
-                new Obj
-                {
-                    Id = record.GetField<int>(0),
-                    Name = record.GetField<string?>(1),
-                    IsEnabled = record.GetField<bool>(2),
-                    LastLogin = record.GetField<DateTimeOffset>(3),
-                    Token = record.GetField<Guid>(4),
-                });
+            Obj obj = new Obj
+            {
+                Id = record.GetField<int>(0),
+                Name = record.GetField<string?>(1),
+                IsEnabled = record.GetField<bool>(2),
+                LastLogin = record.GetField<DateTimeOffset>(3),
+                Token = record.GetField<Guid>(4),
+            };
+
+            var parsed = sourceGen ? record.ParseRecord<Obj>(TypeMap) : record.ParseRecord<Obj>();
+            Assert.Equal(obj, parsed);
+
+            items.Add(obj);
 
             Assert.Equal(5, record.GetFieldCount());
         }
@@ -234,15 +256,17 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         options.HasHeader = header;
         options.AllowContentInExceptions = true;
         options.ArrayPool = _pool = new() { TrackStackTraces = false };
+        options.ExceptionHandler = (in CsvExceptionHandlerArgs<T> args) =>
+        {
+            if (Debugger.IsAttached)
+            {
+                var str = args.Options.GetAsString(args.Record.Span);
+            }
+
+            return false;
+        };
 
         return options;
-    }
-
-    private ReadOnlyMemory<char> Generate(string newline, bool header, bool trailingLF, Mode escaping)
-    {
-        var writer = new ArrayBufferWriter<char>(ushort.MaxValue + short.MaxValue);
-        TestDataGenerator.Generate(writer, newline, header, trailingLF, escaping);
-        return writer.WrittenMemory;
     }
 
     public void Dispose()

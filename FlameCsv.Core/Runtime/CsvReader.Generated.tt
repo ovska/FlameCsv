@@ -16,6 +16,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using FlameCsv.Enumeration;
+using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Runtime;
 
@@ -26,13 +27,13 @@ public static partial class CsvReader
     public sealed class CsvRecordFactoryAsyncEnumerable<T, TValue> : IAsyncEnumerable<TValue>
         where T : unmanaged, IEquatable<T>
     {
-        private readonly CsvReadingContext<T> _context;
+        private readonly CsvOptions<T> _options;
         private readonly ICsvPipeReader<T> _reader;
         private readonly IMaterializer<T, TValue> _materializer;
 
-        internal CsvRecordFactoryAsyncEnumerable(in CsvReadingContext<T> context, ICsvPipeReader<T> reader, IMaterializer<T, TValue> materializer)
+        internal CsvRecordFactoryAsyncEnumerable(CsvOptions<T> options, ICsvPipeReader<T> reader, IMaterializer<T, TValue> materializer)
         {
-            _context = context;
+            _options = options;
             _reader = reader;
             _materializer = materializer;
         }
@@ -40,7 +41,7 @@ public static partial class CsvReader
         public CsvValueAsyncEnumerator<T, TValue> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
             return new CsvValueAsyncEnumerator<T, TValue>(
-                in _context,
+                _options,
                 _materializer,
                 _reader,
                 cancellationToken);
@@ -53,7 +54,7 @@ public static partial class CsvReader
     }
 
     [System.Diagnostics.StackTraceHidden]
-    private static CsvReadingContext<T> ValidateReadRecordsArgs<T>(
+    private static void ValidateReadRecordsArgs<T>(
         [NotNull] object? reader,
         [NotNull] CsvOptions<T>? options,
         [NotNull] Delegate? recordFactory)
@@ -63,12 +64,10 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(recordFactory);
 
-        CsvReadingContext<T> context = new(options);
-
-        if (context.HasHeader)
+        if (options.HasHeader)
             ThrowArgumentExceptionReadRecordsHasHeader();
 
-        return context;
+        options.MakeReadOnly();
 
         static void ThrowArgumentExceptionReadRecordsHasHeader()
         {
@@ -103,7 +102,7 @@ for (var _tokenType = 0; _tokenType < 2; _tokenType++)
         CsvOptions<<#= tokenType #>> options,
         Func<<#= generics #>> recordFactory)
     {
-        CsvReadingContext<<#= tokenType #>> readerContext = ValidateReadRecordsArgs(reader, options,  recordFactory);
+        ValidateReadRecordsArgs(reader, options,  recordFactory);
 
         Materializer<<#= tokenType #>, <#= generics #>> materializer = new(recordFactory<#
             for (int i = 0; i < current; i++)
@@ -115,9 +114,9 @@ for (var _tokenType = 0; _tokenType < 2; _tokenType++)
         #>);
 
         return new CsvRecordFactoryAsyncEnumerable<<#= tokenType #>, TValue>(
-            in readerContext,
+            options,
 <# if (tokenType == "char") { #>
-            new <#= readerType #>(reader, DefaultBufferSize, readerContext.ArrayPool),
+            new <#= readerType #>(reader, DefaultBufferSize, options.ArrayPool.AllocatingIfNull()),
 <# } else { #>
             new PipeReaderWrapper(reader),
 <# } #>

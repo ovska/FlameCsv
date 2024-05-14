@@ -12,12 +12,12 @@ internal sealed class ParameterBinding : IComparable<ParameterBinding>, IBinding
     ISymbol IBinding.Symbol => Symbol;
     public IParameterSymbol Symbol { get; }
     public ITypeSymbol Type => Symbol.Type;
-    public string ParserId { get; }
+    public string ConverterId { get; }
     public string HandlerId { get; }
     public int Order { get; }
     public bool IsRequired { get; }
     public int ParameterPosition => Symbol.Ordinal;
-    public bool HasInModifier => Symbol.RefKind == RefKind.In;
+    public bool HasInModifier => Symbol.RefKind is RefKind.In or RefKind.RefReadOnlyParameter;
     public object? DefaultValue => Symbol.ExplicitDefaultValue;
 
     public ParameterBinding(
@@ -26,7 +26,7 @@ internal sealed class ParameterBinding : IComparable<ParameterBinding>, IBinding
     {
         Name = $"@p_{symbol.Name}";
         Symbol = symbol;
-        ParserId = $"@__Parser_p_{symbol.Name}";
+        ConverterId = $"@__Converter_p_{symbol.Name}";
         HandlerId = $"@s__Handler_p_{symbol.Name}";
         Order = meta.Order;
         IsRequired = meta.IsRequired || !symbol.HasExplicitDefaultValue;

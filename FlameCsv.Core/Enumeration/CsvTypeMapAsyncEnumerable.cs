@@ -6,7 +6,7 @@ namespace FlameCsv.Enumeration;
 public sealed class CsvTypeMapAsyncEnumerable<T, TValue> : IAsyncEnumerable<TValue>
     where T : unmanaged, IEquatable<T>
 {
-    private readonly CsvReadingContext<T> _context;
+    private readonly CsvOptions<T> _options;
     private readonly ICsvPipeReader<T> _reader;
     private readonly CsvTypeMap<T, TValue> _typeMap;
 
@@ -18,28 +18,15 @@ public sealed class CsvTypeMapAsyncEnumerable<T, TValue> : IAsyncEnumerable<TVal
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(typeMap);
-        _context = new CsvReadingContext<T>(options);
+        _options = options;
         _reader = reader;
-        _typeMap = typeMap;
-    }
-
-    internal CsvTypeMapAsyncEnumerable(
-        ICsvPipeReader<T> reader,
-        in CsvReadingContext<T> context,
-        CsvTypeMap<T, TValue> typeMap)
-    {
-        ArgumentNullException.ThrowIfNull(reader);
-        ArgumentNullException.ThrowIfNull(typeMap);
-        context.EnsureValid();
-        _reader = reader;
-        _context = context;
         _typeMap = typeMap;
     }
 
     public CsvValueAsyncEnumerator<T, TValue> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
         return new CsvValueAsyncEnumerator<T, TValue>(
-            in _context,
+            _options,
             _typeMap,
             _reader,
             cancellationToken);

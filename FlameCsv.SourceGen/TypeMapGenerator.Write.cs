@@ -28,7 +28,7 @@ public partial class TypeMapGenerator
         {
             sb.Append(@"
                 ");
-            sb.Append(binding.FormatterId);
+            sb.Append(binding.ConverterId);
             sb.Append(" = ");
             ResolveConverter(sb, in typeMap, binding.Symbol, binding.Type, converterFactorySymbol);
             sb.Append(',');
@@ -53,7 +53,7 @@ public partial class TypeMapGenerator
             sb.Append(", ");
             sb.Append(binding.Type.ToDisplayString());
             sb.Append("> ");
-            sb.Append(binding.FormatterId);
+            sb.Append(binding.ConverterId);
             sb.Append(" { get; init; }");
         }
 
@@ -73,7 +73,7 @@ public partial class TypeMapGenerator
             var binding = _bindings.Members[i];
             sb.Append(@"
                 writer.WriteField(");
-            sb.Append(binding.FormatterId);
+            sb.Append(binding.ConverterId);
 
             if (binding.IsExplicitInterfaceDefinition(typeMap.Type, out var ifaceSymbol))
             {

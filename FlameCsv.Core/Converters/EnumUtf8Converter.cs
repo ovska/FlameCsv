@@ -22,9 +22,25 @@ public sealed class EnumUtf8Converter<TEnum>
         int maxLength = Encoding.UTF8.GetMaxCharCount(source.Length);
         char[]? toReturn = null;
 
-        scoped Span<char> chars = Token<char>.CanStackalloc(maxLength)
-            ? stackalloc char[maxLength]
-            : (toReturn = ArrayPool<char>.Shared.Rent(maxLength));
+        scoped Span<char> chars;
+
+        if (Token<char>.CanStackalloc(maxLength))
+        {
+            chars = stackalloc char[maxLength];
+        }
+        else
+        {
+            int exactLength = Encoding.UTF8.GetCharCount(source);
+
+            if (Token<char>.CanStackalloc(exactLength))
+            {
+                chars = stackalloc char[exactLength];
+            }
+            else
+            {
+                chars = toReturn = ArrayPool<char>.Shared.Rent(maxLength);
+            }
+        }
 
         int written = Encoding.UTF8.GetChars(source, chars);
 

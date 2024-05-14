@@ -15,10 +15,10 @@ public sealed class CsvValueAsyncEnumerator<T, TValue> : CsvValueEnumeratorBase<
 
     [RequiresUnreferencedCode(Messages.CompiledExpressions)]
     internal CsvValueAsyncEnumerator(
-        in CsvReadingContext<T> context,
+        CsvOptions<T> options,
         ICsvPipeReader<T> reader,
         CancellationToken cancellationToken)
-        : base(in context)
+        : base(options)
     {
         _reader = reader;
         _cancellationToken = cancellationToken;
@@ -26,20 +26,20 @@ public sealed class CsvValueAsyncEnumerator<T, TValue> : CsvValueEnumeratorBase<
 
     [RequiresUnreferencedCode(Messages.CompiledExpressions)]
     internal CsvValueAsyncEnumerator(
-        in CsvReadingContext<T> context,
+        CsvOptions<T> options,
         IMaterializer<T, TValue>? materializer,
         ICsvPipeReader<T> reader,
-        CancellationToken cancellationToken) : base(in context, materializer)
+        CancellationToken cancellationToken) : base(options, materializer)
     {
         _reader = reader;
         _cancellationToken = cancellationToken;
     }
 
     internal CsvValueAsyncEnumerator(
-        in CsvReadingContext<T> context,
+        CsvOptions<T> options,
         CsvTypeMap<T, TValue> typeMap,
         ICsvPipeReader<T> reader,
-        CancellationToken cancellationToken) : base(in context, typeMap)
+        CancellationToken cancellationToken) : base(options, typeMap)
     {
         _reader = reader;
         _cancellationToken = cancellationToken;
@@ -65,11 +65,11 @@ public sealed class CsvValueAsyncEnumerator<T, TValue> : CsvValueEnumeratorBase<
     {
         while (!_readerCompleted)
         {
-            _reader.AdvanceTo(consumed: _data.Reader.Position, examined: _data.Reader.Sequence.End);
+            _parser.Advance(_reader);
 
             var (sequence, readerCompleted) = await _reader.ReadAsync(_cancellationToken).ConfigureAwait(false);
 
-            _data.Reset(in sequence);
+            _parser.Reset(sequence);
             _readerCompleted = readerCompleted;
 
             if (TryRead(isFinalBlock: false))

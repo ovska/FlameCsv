@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -14,7 +15,7 @@ namespace FlameCsv;
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 [DebuggerTypeProxy(typeof(CsvValueRecord<>.CsvRecordDebugView))]
-public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IEquatable<T>
+public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMemory<T>> where T : unmanaged, IEquatable<T>
 {
     public long Position { get; }
     public int Line { get; }
@@ -25,15 +26,6 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
         {
             _state.EnsureVersion(_version);
             return _record;
-        }
-    }
-
-    public CsvDialect<T> Dialect
-    {
-        get
-        {
-            _state.EnsureVersion(_version);
-            return _state.Dialect;
         }
     }
 
@@ -62,7 +54,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
         int line,
         ReadOnlyMemory<T> data,
         CsvOptions<T> options,
-        RecordMeta meta,
+        CsvRecordMeta meta,
         EnumeratorState<T> state)
     {
         Position = position;
@@ -84,7 +76,12 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
             Throw.Argument_HeaderNameNotFound(name, _options.AllowContentInExceptions, _state.Header.Keys);
         }
 
-        return GetField(index);
+        if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> field))
+        {
+            Throw.Argument_FieldIndex(index, _state, name);
+        }
+
+        return field;
     }
 
     /// <inheritdoc cref="ICsvRecord{T}.GetField(int)"/>
@@ -134,7 +131,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
 
         if (!_state.TryGetHeaderIndex(name, out int index))
         {
-            Throw.Argument_HeaderNameNotFound(name, _state._context.ExposeContent, _state.Header.Keys);
+            Throw.Argument_HeaderNameNotFound(name, _options.AllowContentInExceptions, _state.Header.Keys);
         }
 
         return TryGetValue(index, out value);
@@ -166,7 +163,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
 
         if (!parser.TryParse(field.Span, out var value))
         {
-            Throw.ParseFailed<T, TValue>(field, parser, in _state._context);
+            Throw.ParseFailed<T, TValue>(field, parser, _options);
         }
 
         return value;
@@ -177,6 +174,9 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Enumerator GetEnumerator() => new(_version, _state);
+
+    IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator() => GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     public List<ReadOnlyMemory<T>> ToList()
     {
@@ -202,7 +202,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
             if (headers is not null)
             {
                 var bindings = _options.GetHeaderBinder().Bind<TRecord>(headers);
-                obj = _state._context.Options.CreateMaterializerFrom(bindings);
+                obj = _options.CreateMaterializerFrom(bindings);
             }
             else
             {
@@ -212,7 +212,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
             _state.MaterializerCache[typeof(TRecord)] = obj;
         }
 
-        return _state._context.Materialize(RawRecord, (IMaterializer<T, TRecord>)obj);
+        return _options.Materialize(RawRecord, (IMaterializer<T, TRecord>)obj);
     }
 
     public TRecord ParseRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap)
@@ -224,26 +224,25 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
         if (!_state.MaterializerCache.TryGetValue(typeMap, out object? obj))
         {
             obj = _state._headerNames is not null
-                ? typeMap.GetMaterializer(_state._headerNames, in _state._context)
-                : typeMap.GetMaterializer(in _state._context);
+                ? typeMap.BindMembers(_state._headerNames, _options)
+                : typeMap.BindMembers(_options);
 
             _state.MaterializerCache[typeMap] = obj;
         }
 
-        return _state._context.Materialize(RawRecord, (IMaterializer<T, TRecord>)obj);
+        return _options.Materialize(RawRecord, (IMaterializer<T, TRecord>)obj);
     }
 
     public override string ToString()
     {
-        return $"{{ CsvValueRecord [{_state._context.Options.GetAsString(RawRecord.Span)}] }}";
+        return $"{{ CsvValueRecord [{_options.GetAsString(RawRecord.Span)}] }}";
     }
 
-    public struct Enumerator
+    public struct Enumerator : IEnumerator<ReadOnlyMemory<T>>
     {
         public ReadOnlyMemory<T> Current { get; private set; }
 
         private readonly int _version;
-        private readonly List<ReadOnlyMemory<T>> _fields;
         private readonly EnumeratorState<T> _state;
         private int _index;
 
@@ -254,7 +253,6 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
 
             _version = version;
             _state = state;
-            _fields = state.GetFields();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -262,15 +260,23 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T> where T : unmanaged, IE
         {
             _state.EnsureVersion(_version);
 
-            if (_index < _fields.Count)
+            ref var fields = ref _state.GetFields();
+
+            if (_index < fields.Length)
             {
-                Current = _fields[_index++];
+                Current = fields[_index++];
                 return true;
             }
 
             Current = default;
             return false;
         }
+
+        bool IEnumerator.MoveNext() => MoveNext();
+        void IEnumerator.Reset() => _index = 0;
+        readonly void IDisposable.Dispose(){}
+        readonly ReadOnlyMemory<T> IEnumerator<ReadOnlyMemory<T>>.Current => Current;
+        readonly object IEnumerator.Current => Current;
     }
 
     private sealed class CsvRecordDebugView

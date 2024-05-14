@@ -17,8 +17,7 @@ public class EscapeBench
     [GlobalSetup]
     public void Setup()
     {
-        var dialect = CsvDialect<char>.Default;
-        _escaper = new RFC4180Escaper<char>(ref dialect);
+        _escaper = new RFC4180Escaper<char>(CsvTextOptions.Default);
         _escaper.NeedsEscaping(Input, out specialCount);
 
         ArgumentOutOfRangeException.ThrowIfZero(specialCount);

@@ -12,7 +12,7 @@ internal static class Token<T> where T : unmanaged
     public static bool LargeObjectHeapAllocates(int length)
     {
         // JITed to a constant
-        int threshold = Unsafe.SizeOf<byte>() * 84_000 / Unsafe.SizeOf<T>();
+        int threshold = sizeof(byte) * 84_000 / Unsafe.SizeOf<T>();
         return length > threshold;
     }
 
@@ -23,11 +23,11 @@ internal static class Token<T> where T : unmanaged
     public static bool CanStackalloc(int length)
     {
         // JITed to a constant
-        int threshold = Unsafe.SizeOf<byte>() * 512 / Unsafe.SizeOf<T>();
+        int threshold = sizeof(byte) * 512 / Unsafe.SizeOf<T>();
         return length <= threshold;
     }
 
-    public static int StackLength => Unsafe.SizeOf<byte>() * 128 / Unsafe.SizeOf<T>();
+    public static int StackLength => sizeof(byte) * 256 / Unsafe.SizeOf<T>();
 
     [MethodImpl(MethodImplOptions.NoInlining), DoesNotReturn]
     public static void ThrowNotSupportedException()

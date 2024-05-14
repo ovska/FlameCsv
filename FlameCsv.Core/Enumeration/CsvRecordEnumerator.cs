@@ -9,21 +9,17 @@ public sealed class CsvRecordEnumerator<T> : CsvRecordEnumeratorBase<T> where T 
     public CsvRecordEnumerator(
         ReadOnlyMemory<T> data,
         CsvOptions<T> options)
-        : this(new ReadOnlySequence<T>(data), options)
+        : base(options)
     {
+        _parser.Reset(new ReadOnlySequence<T>(data));
     }
 
     public CsvRecordEnumerator(
         in ReadOnlySequence<T> data,
         CsvOptions<T> options)
-        : base(new CsvReadingContext<T>(options))
+        : base(options)
     {
-        _data.Reset(in data);
-    }
-
-    internal CsvRecordEnumerator(in ReadOnlySequence<T> data, in CsvReadingContext<T> context) : base(in context)
-    {
-        _data.Reset(in data);
+        _parser.Reset(in data);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -35,7 +31,6 @@ public sealed class CsvRecordEnumerator<T> : CsvRecordEnumeratorBase<T> where T 
         }
 
         // reached end of data
-        Position += _current.RawRecord.Length;
         _current = default;
         return false;
     }

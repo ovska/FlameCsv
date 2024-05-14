@@ -1,19 +1,19 @@
 ﻿namespace FlameCsv.Writing;
 
 /// <summary>
-/// Enumeration that determines field quoting behavior when writing CSV.
+/// Enumeration that determines field escaping and quoting behavior when writing CSV.
 /// </summary>
-public enum CsvFieldQuoting
+public enum CsvFieldEscaping
 {
     /// <summary>
-    /// Only quote and escape fields that contain the delimiter, quote or newline characters.
+    /// Only quote and escape fields when needed.
     /// </summary>
     Auto = 0,
 
     /// <summary>
-    /// Always quote fields, even if they don't contain any special characters.
+    /// Always quote fields, even if they don't contain any characters that need escaping.
     /// </summary>
-    Always = 1,
+    AlwaysQuote = 1,
 
     /// <summary>
     /// Never quote fields. Can result in invalid CSV being written, as possible delimiters,

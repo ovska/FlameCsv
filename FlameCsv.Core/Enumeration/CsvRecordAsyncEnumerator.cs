@@ -14,9 +14,9 @@ public sealed class CsvRecordAsyncEnumerator<T> : CsvRecordEnumeratorBase<T>, IA
 
     internal CsvRecordAsyncEnumerator(
         ICsvPipeReader<T> reader,
-        in CsvReadingContext<T> context,
+        CsvOptions<T> options,
         CancellationToken cancellationToken)
-        : base(in context)
+        : base(options)
     {
         _reader = reader;
         _cancellationToken = cancellationToken;
@@ -43,10 +43,10 @@ public sealed class CsvRecordAsyncEnumerator<T> : CsvRecordEnumeratorBase<T>, IA
     {
         while (!_readerCompleted)
         {
-            _reader.AdvanceTo(consumed: _data.Reader.Position, examined: _data.Reader.Sequence.End);
+            _parser.Advance(_reader);
 
             var (sequence, completed) = await _reader.ReadAsync(_cancellationToken).ConfigureAwait(false);
-            _data.Reset(in sequence);
+            _parser.Reset(in sequence);
             _readerCompleted = completed;
 
             if (MoveNextCore())
@@ -71,8 +71,6 @@ public sealed class CsvRecordAsyncEnumerator<T> : CsvRecordEnumeratorBase<T>, IA
                 return true;
             }
 
-            // reached end of data
-            Position += _current.RawRecord.Length;
             _current = default;
         }
 

@@ -17,8 +17,8 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
         Debug.Assert(state.escapesRemaining == 0, "RFC4180 called with escapes in the input");
 
         ReadOnlySpan<T> field;
-        T quote = state.Context.Dialect.Quote;
-        T delimiter = state.Context.Dialect.Delimiter;
+        T quote = state.Quote;
+        T delimiter = state.Delimiter;
         nuint consumed = 0;
         uint quotesConsumed = 0;
         ref uint quotesRemaining = ref state.quotesRemaining;

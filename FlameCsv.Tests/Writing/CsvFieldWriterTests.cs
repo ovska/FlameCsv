@@ -4,7 +4,7 @@ using FlameCsv.Writing;
 
 namespace FlameCsv.Tests.Writing;
 
-public sealed class CsvCharWriterTests : IAsyncDisposable
+public sealed class CsvFieldWriterTests : IAsyncDisposable
 {
     private CsvFieldWriter<char, CsvCharBufferWriter>? _writer;
     private StringWriter? _textWriter;
@@ -71,7 +71,7 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
     [Fact]
     public async Task Should_Write_Oversized_Value()
     {
-        Initialize(quoting: CsvFieldQuoting.Never, bufferSize: 4);
+        Initialize(quoting: CsvFieldEscaping.Never, bufferSize: 4);
 
         var value = new string('x', 500);
 
@@ -81,10 +81,10 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
         Assert.Equal(value, Written);
     }
 
-    [Fact]
-    public async Task Should_Escape_To_Extra_Buffer()
+    [Theory, InlineData(true), InlineData(false)]
+    public async Task Should_Escape_To_Extra_Buffer(bool escapeMode)
     {
-        Initialize(CsvFieldQuoting.Always, bufferSize: 128);
+        Initialize(CsvFieldEscaping.AlwaysQuote, bufferSize: 128, escapeMode ? '^' : null);
 
         // 126, raw value can be written but escaped is 130 long
         var value = $"Test \"{new string('x', 114)}\" test";
@@ -92,13 +92,20 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
         _writer.WriteField(Formatter.Instance, value);
         await _writer.Writer.CompleteAsync(null);
 
-        Assert.Equal($"\"Test \"\"{new string('x', 114)}\"\" test\"", Written);
+        if (escapeMode)
+        {
+            Assert.Equal($"\"Test ^\"{new string('x', 114)}^\" test\"", Written);
+        }
+        else
+        {
+            Assert.Equal($"\"Test \"\"{new string('x', 114)}\"\" test\"", Written);
+        }
     }
 
     [Theory, InlineData(-1), InlineData(int.MaxValue)]
     public void Should_Guard_Against_Broken_Formatters(int tokensWritten)
     {
-        Initialize(CsvFieldQuoting.Always, bufferSize: 128);
+        Initialize(CsvFieldEscaping.AlwaysQuote, bufferSize: 128);
 
         var formatter = new BrokenFormatter { Write = tokensWritten };
 
@@ -106,13 +113,13 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
     }
 
     [Theory]
-    [InlineData(CsvFieldQuoting.Auto, "", "")]
-    [InlineData(CsvFieldQuoting.Auto, ",", "\",\"")]
-    [InlineData(CsvFieldQuoting.Always, "", "\"\"")]
-    [InlineData(CsvFieldQuoting.Always, ",", "\",\"")]
-    [InlineData(CsvFieldQuoting.Never, "", "")]
-    [InlineData(CsvFieldQuoting.Never, ",", ",")]
-    public async Task Should_Quote_Fields(CsvFieldQuoting quoting, string input, string expected)
+    [InlineData(CsvFieldEscaping.Auto, "", "")]
+    [InlineData(CsvFieldEscaping.Auto, ",", "\",\"")]
+    [InlineData(CsvFieldEscaping.AlwaysQuote, "", "\"\"")]
+    [InlineData(CsvFieldEscaping.AlwaysQuote, ",", "\",\"")]
+    [InlineData(CsvFieldEscaping.Never, "", "")]
+    [InlineData(CsvFieldEscaping.Never, ",", ",")]
+    public async Task Should_Quote_Fields(CsvFieldEscaping quoting, string input, string expected)
     {
         Initialize(quoting);
 
@@ -124,13 +131,14 @@ public sealed class CsvCharWriterTests : IAsyncDisposable
 
     [MemberNotNull(nameof(_writer))]
     private void Initialize(
-        CsvFieldQuoting quoting = CsvFieldQuoting.Auto,
-        int bufferSize = 1024)
+        CsvFieldEscaping quoting = CsvFieldEscaping.Auto,
+        int bufferSize = 1024,
+        char? escape = null)
     {
         _textWriter = new StringWriter();
         _writer = new CsvFieldWriter<char, CsvCharBufferWriter>(
             new CsvCharBufferWriter(_textWriter, AllocatingArrayPool<char>.Instance, bufferSize),
-            new CsvWritingContext<char>(new CsvTextOptions { FieldQuoting = quoting, Null = "null" }));
+            new CsvTextOptions { FieldEscaping = quoting, Null = "null", Escape = escape });
     }
 
     private sealed class Formatter : CsvConverter<char, string>

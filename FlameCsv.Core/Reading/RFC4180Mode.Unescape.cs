@@ -188,7 +188,7 @@ static partial class RFC4180Mode<T>
             Unsafe.CopyBlockUnaligned(
                 destination: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref dst, dstIndex)),
                 source: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref src, srcIndex)),
-                byteCount: (uint)Unsafe.SizeOf<T>() * length / (uint)Unsafe.SizeOf<byte>());
+                byteCount: (uint)Unsafe.SizeOf<T>() * length / (uint)sizeof(byte));
         }
     }
 

@@ -15,12 +15,10 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
 
     public virtual long Position { get; protected set; }
     public virtual int Line { get; protected set; }
-    public virtual CsvDialect<T> Dialect => _context.Dialect;
-    public CsvOptions<T> Options => _context.Options;
-    public bool HasHeader => _context.HasHeader;
+    public CsvOptions<T> Options { get; }
     public virtual ReadOnlyMemory<T> RawRecord { get; }
+    public bool HasHeader => _header is not null;
 
-    private readonly CsvReadingContext<T> _context;
     private readonly ArraySegment<ReadOnlyMemory<T>> _values;
     private readonly Dictionary<string, int>? _header;
     private readonly string[]? _headerNames;
@@ -29,7 +27,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     {
         Throw.IfDefaultStruct<CsvValueRecord<T>>(record._options);
 
-        _context = record._state._context;
+        Options = record._options;
         _header = record._state.Header;
         _headerNames = record._state._headerNames;
         (RawRecord, _values) = Initialize(record);
@@ -43,11 +41,12 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         ArgumentNullException.ThrowIfNull(options);
         options.MakeReadOnly();
 
-        _context = new CsvReadingContext<T>(options);
-        (RawRecord, _values) = InitializeFromValues(record, in _context);
+        Options = options;
+        (RawRecord, _values) = InitializeFromValues(record, options);
     }
 
     int IReadOnlyCollection<ReadOnlyMemory<T>>.Count => GetFieldCount();
+
     ReadOnlyMemory<T> IReadOnlyList<ReadOnlyMemory<T>>.this[int index] => this[index];
 
     [RequiresUnreferencedCode(Messages.CompiledExpressions)]
@@ -57,15 +56,15 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
 
         if (_header is not null)
         {
-            var bindings = _context.Options.GetHeaderBinder().Bind<TRecord>(_headerNames);
-            materializer = _context.Options.CreateMaterializerFrom(bindings);
+            var bindings = Options.GetHeaderBinder().Bind<TRecord>(_headerNames);
+            materializer = Options.CreateMaterializerFrom(bindings);
         }
         else
         {
-            materializer = _context.Options.GetMaterializer<T, TRecord>();
+            materializer = Options.GetMaterializer<T, TRecord>();
         }
 
-        return _context.Materialize(RawRecord, materializer);
+        return Options.Materialize(RawRecord, materializer);
     }
 
     public TRecord ParseRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap)
@@ -73,10 +72,10 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         ArgumentNullException.ThrowIfNull(typeMap);
 
         IMaterializer<T, TRecord> materializer = _header is not null
-            ? typeMap.GetMaterializer(_headerNames, in _context)
-            : typeMap.GetMaterializer(in _context);
+            ? typeMap.BindMembers(_headerNames, Options)
+            : typeMap.BindMembers(Options);
 
-        return _context.Materialize(RawRecord, materializer);
+        return Options.Materialize(RawRecord, materializer);
     }
 
     public virtual ReadOnlyMemory<T> GetField(int index) => _values.AsSpan()[index];
@@ -93,10 +92,10 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     {
         var field = GetField(index);
 
-        var parser = Options.GetConverter<TValue>();
+        var converter = Options.GetConverter<TValue>();
 
-        if (!parser.TryParse(field.Span, out TValue? value))
-            Throw.ParseFailed<T, TValue>(field, parser, in _context);
+        if (!converter.TryParse(field.Span, out TValue? value))
+            Throw.ParseFailed<T, TValue>(field, converter, Options);
 
         return value;
     }
@@ -105,10 +104,10 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     {
         var field = GetField(name);
 
-        var parser = Options.GetConverter<TValue>();
+        var converter = Options.GetConverter<TValue>();
 
-        if (!parser.TryParse(field.Span, out TValue? value))
-            Throw.ParseFailed<T, TValue>(field, parser, in _context);
+        if (!converter.TryParse(field.Span, out TValue? value))
+            Throw.ParseFailed<T, TValue>(field, converter, Options);
 
         return value;
     }
@@ -145,7 +144,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
 
         if (!_header.TryGetValue(name, out int index))
         {
-            Throw.Argument_HeaderNameNotFound(name, _context.ExposeContent, _header.Keys);
+            Throw.Argument_HeaderNameNotFound(name, Options.AllowContentInExceptions, _header.Keys);
         }
 
         return TryGetValue(index, out value);
@@ -153,7 +152,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
 
     public IEnumerable<string> GetHeaderRecord()
     {
-        if (!_context.HasHeader)
+        if (!Options.HasHeader)
             Throw.NotSupported_CsvHasNoHeader();
 
         if (_header is null)
@@ -206,13 +205,14 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
 
     private static PreservedValues InitializeFromValues(
         ReadOnlyMemory<T> record,
-        in CsvReadingContext<T> context)
+        CsvOptions<T> options)
     {
         T[]? buffer = null;
-        var meta = context.GetRecordMeta(record);
+        var meta = CsvParser<T>.GetRecordMeta(record, options);
+
         scoped CsvFieldReader<T> reader = new(
+            options,
             record,
-            in context,
             [],
             ref buffer,
             meta.quoteCount,
@@ -254,7 +254,6 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
                 new ArraySegment<ReadOnlyMemory<T>>(values, 0, index));
         }
     }
-
     IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator() => _values.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<ReadOnlyMemory<T>>)this).GetEnumerator();
