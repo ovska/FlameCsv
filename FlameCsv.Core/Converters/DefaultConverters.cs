@@ -2,13 +2,13 @@
 
 namespace FlameCsv.Converters;
 
-internal static partial class DefaultConverters
+public static partial class DefaultConverters
 {
-    public delegate CsvConverter<char> TextConverterFactory(CsvTextOptions options);
-    public delegate CsvConverter<byte> Utf8ConverterFactory(CsvUtf8Options options);
+    internal delegate CsvConverter<char> TextConverterFactory(CsvTextOptions options);
+    internal delegate CsvConverter<byte> Utf8ConverterFactory(CsvUtf8Options options);
 
-    public static readonly Lazy<FrozenDictionary<Type, TextConverterFactory>> Text = new(InitText);
-    public static readonly Lazy<FrozenDictionary<Type, Utf8ConverterFactory>> Utf8 = new(InitUtf8);
+    internal static readonly Lazy<FrozenDictionary<Type, TextConverterFactory>> Text = new(InitText);
+    internal static readonly Lazy<FrozenDictionary<Type, Utf8ConverterFactory>> Utf8 = new(InitUtf8);
 
     private static FrozenDictionary<Type, TextConverterFactory> InitText()
     {

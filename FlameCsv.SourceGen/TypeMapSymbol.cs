@@ -182,14 +182,4 @@ internal readonly struct TypeMapSymbol
             sb.Append(wrapper);
         }
     }
-
-    public string? GetEnumConverterOrNull()
-    {
-        return TokenSymbol.SpecialType switch
-        {
-            SpecialType.System_Char => "EnumTextConverter",
-            SpecialType.System_Byte => "EnumByteConverter",
-            _ => null,
-        };
-    }
 }

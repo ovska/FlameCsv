@@ -13,6 +13,11 @@ internal readonly struct KnownSymbols(Compilation compilation)
     public INamedTypeSymbol CsvConverterOfTAttribute => _csvConverterOfTAttribute.Value;
     public INamedTypeSymbol CsvConstructorAttribute => _csvConstructorAttribute.Value;
 
+    public INamedTypeSymbol DateTime => _systemDateTime.Value;
+    public INamedTypeSymbol DateTimeOffset => _systemDateTimeOffset.Value;
+    public INamedTypeSymbol TimeSpan => _systemTimeSpan.Value;
+    public INamedTypeSymbol Guid => _systemGuid.Value;
+
     private readonly LazySymbol _typeMapAttribute = new(compilation, "FlameCsv.Binding.CsvTypeMapAttribute`2", true);
     private readonly LazySymbol _csvOptions = new(compilation, "FlameCsv.CsvOptions`1", true);
     private readonly LazySymbol _csvConverterFactory = new(compilation, "FlameCsv.CsvConverterFactory`1", true);
@@ -24,6 +29,11 @@ internal readonly struct KnownSymbols(Compilation compilation)
 
     private readonly LazySymbol _csvOptionsText = new(compilation, "FlameCsv.CsvTextOptions");
     private readonly LazySymbol _csvOptionsUtf8 = new(compilation, "FlameCsv.CsvUtf8Options");
+
+    private readonly LazySymbol _systemDateTime = new(compilation, "System.DateTime");
+    private readonly LazySymbol _systemDateTimeOffset = new(compilation, "System.DateTimeOffset");
+    private readonly LazySymbol _systemTimeSpan = new(compilation, "System.TimeSpan");
+    private readonly LazySymbol _systemGuid = new(compilation, "System.Guid");
 
     private readonly Dictionary<ISymbol, INamedTypeSymbol> _optionsTypes = new(SymbolEqualityComparer.Default);
 

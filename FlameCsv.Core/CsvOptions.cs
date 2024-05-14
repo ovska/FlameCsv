@@ -13,6 +13,7 @@ using static FlameCsv.Utilities.SealableUtil;
 using CommunityToolkit.HighPerformance.Buffers;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Reading;
+using System.ComponentModel;
 
 namespace FlameCsv;
 

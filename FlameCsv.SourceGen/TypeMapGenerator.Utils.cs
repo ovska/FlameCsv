@@ -1,4 +1,6 @@
 ﻿
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+
 namespace FlameCsv.SourceGen;
 
 public partial class TypeMapGenerator
@@ -45,14 +47,14 @@ public partial class TypeMapGenerator
         }
 
         if (typeMap.UseBuiltinConverters &&
-            type.TypeKind == TypeKind.Enum &&
-            typeMap.GetEnumConverterOrNull() is string enumConverter)
+            typeMap.TokenSymbol.SpecialType is SpecialType.System_Byte or SpecialType.System_Char &&
+            IsDefaultConverterSupported(type, out string defaultName))
         {
-            sb.Append("new ");
-            sb.Append(enumConverter);
-            sb.Append('<');
-            sb.Append(typeName);
-            sb.Append(">(options)");
+            sb.Append("FlameCsv.Converters.DefaultConverters.Create");
+            sb.Append(defaultName);
+            sb.Append(typeMap.TokenSymbol.SpecialType == SpecialType.System_Byte
+                ? "((CsvUtf8Options)options)"
+                : "((CsvTextOptions)options)");
         }
         else
         {
@@ -126,5 +128,49 @@ public partial class TypeMapGenerator
             sb.Append(memberType.ToDisplayString());
             sb.Append(">(options)");
         }
+    }
+
+    private bool IsDefaultConverterSupported(ITypeSymbol type, out string name)
+    {
+        switch (type.SpecialType)
+        {
+            case SpecialType.System_String:
+            case SpecialType.System_Boolean:
+            case SpecialType.System_Byte:
+            case SpecialType.System_SByte:
+            case SpecialType.System_Char:
+            case SpecialType.System_Double:
+            case SpecialType.System_Decimal:
+            case SpecialType.System_Int16:
+            case SpecialType.System_Int32:
+            case SpecialType.System_Int64:
+            case SpecialType.System_UInt16:
+            case SpecialType.System_UInt32:
+            case SpecialType.System_UInt64:
+            case SpecialType.System_Single:
+            case SpecialType.System_IntPtr:
+            case SpecialType.System_UIntPtr:
+                name = type.Name;
+                return true;
+        }
+
+        if (type.BaseType is { SpecialType: SpecialType.System_Enum })
+        {
+            name = $"<{type.ToDisplayString()}>";
+            return true;
+        }
+
+
+        if (SymbolEqualityComparer.Default.Equals(type, _symbols.DateTime) ||
+            SymbolEqualityComparer.Default.Equals(type, _symbols.DateTimeOffset) ||
+            SymbolEqualityComparer.Default.Equals(type, _symbols.TimeSpan) ||
+            SymbolEqualityComparer.Default.Equals(type, _symbols.Guid))
+        {
+            name = type.Name;
+            return true;
+        }
+
+        name = "";
+        return false;
     }
 }
