@@ -43,6 +43,7 @@ namespace FlameCsv.Console
             Position = position;
         }
 
+        public DayOfWeek DOF { get; set; }
 
         public long Position { get; }
 

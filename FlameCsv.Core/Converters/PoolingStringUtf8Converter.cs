@@ -4,7 +4,7 @@ using CommunityToolkit.HighPerformance.Buffers;
 
 namespace FlameCsv.Converters;
 
-internal sealed class PoolingStringUtf8Converter : CsvConverter<byte, string?>
+internal sealed class PoolingStringUtf8Converter : CsvConverter<byte, string>
 {
     public override bool HandleNull => true;
 
@@ -19,11 +19,12 @@ internal sealed class PoolingStringUtf8Converter : CsvConverter<byte, string?>
         _stringPool = stringPool ?? StringPool.Shared;
     }
 
-    public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out string? value)
+    public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out string value)
     {
         int maxLength = Encoding.UTF8.GetMaxCharCount(source.Length);
 
-        if (Token<char>.CanStackalloc(maxLength))
+        if (Token<char>.CanStackalloc(maxLength) ||
+            Token<char>.CanStackalloc(maxLength = Encoding.UTF8.GetCharCount(source)))
         {
             Span<char> buffer = stackalloc char[maxLength];
             int written = Encoding.UTF8.GetChars(source, buffer);
@@ -37,7 +38,7 @@ internal sealed class PoolingStringUtf8Converter : CsvConverter<byte, string?>
         return true;
     }
 
-    public override bool TryFormat(Span<byte> destination, string? value, out int charsWritten)
+    public override bool TryFormat(Span<byte> destination, string value, out int charsWritten)
     {
         return Encoding.UTF8.TryGetBytes(value, destination, out charsWritten);
     }
