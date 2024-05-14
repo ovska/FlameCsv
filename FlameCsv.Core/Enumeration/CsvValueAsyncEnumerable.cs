@@ -7,20 +7,20 @@ namespace FlameCsv.Enumeration;
 public sealed class CsvValueAsyncEnumerable<T, [DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue> : IAsyncEnumerable<TValue>
     where T : unmanaged, IEquatable<T>
 {
-    private readonly CsvReadingContext<T> _context;
+    private readonly CsvOptions<T> _options;
     private readonly ICsvPipeReader<T> _reader;
 
     internal CsvValueAsyncEnumerable(
         ICsvPipeReader<T> reader,
-        in CsvReadingContext<T> context)
+        CsvOptions<T> options)
     {
         _reader = reader;
-        _context = context;
+        _options = options;
     }
 
     public CsvValueAsyncEnumerator<T, TValue> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
-        return new CsvValueAsyncEnumerator<T, TValue>(in _context, _reader, cancellationToken);
+        return new CsvValueAsyncEnumerator<T, TValue>(_options, _reader, cancellationToken);
     }
 
     IAsyncEnumerator<TValue> IAsyncEnumerable<TValue>.GetAsyncEnumerator(CancellationToken cancellationToken)

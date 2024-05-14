@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Buffers;
 using System.Text;
+using CsvHelper;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using nietras.SeparatedValues;
 
 namespace FlameCsv.Benchmark;
 
-[SimpleJob]
 [MemoryDiagnoser]
 [HideColumns("Error", "StdDev", "Gen0")]
 //[BenchmarkDotNet.Diagnostics.Windows.Configs.EtwProfiler]
@@ -98,29 +98,27 @@ public class CsvEnumerateBench
     [Benchmark]
     public void FlameUTF2()
     {
-        var context = new CsvReadingContext<byte>(CsvUtf8Options.Default);
-
-        var reader = new CsvSequenceReader<byte>(new(_bytes));
-        byte[]? multisegmentBuffer = null;
         byte[]? unescapeArray = null;
         Span<byte> unescapeBuffer = stackalloc byte[128];
+        using var parser = CsvParser<byte>.Create(CsvUtf8Options.Default);
+        parser.Reset(new ReadOnlySequence<byte>(_bytes));
 
-        var arg = new LineSeekArg<byte>(in context, ref multisegmentBuffer);
-
-        while (reader.TryReadLine(arg, out var line, out var meta))
+        while (parser.TryReadLine(out var line, out var meta))
         {
             CsvFieldReader<byte> state = new(
+                CsvUtf8Options.Default,
                 line,
-                in context,
                 unescapeBuffer,
                 ref unescapeArray,
                 meta.quoteCount,
                 meta.escapeCount);
 
-            while (state.TryReadNext(out ReadOnlySpan<byte> _)){ }
+            while (!state.End)
+            {
+                _ = RFC4180Mode<byte>.ReadNextField(ref state);
+            }
         }
 
-        ArrayPool<byte>.Shared.EnsureReturned(ref multisegmentBuffer);
         ArrayPool<byte>.Shared.EnsureReturned(ref unescapeArray);
     }
 

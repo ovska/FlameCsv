@@ -7,6 +7,7 @@ using CommunityToolkit.HighPerformance;
 using FlameCsv.Converters;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
+using FlameCsv.Reading.Internal;
 using FlameCsv.Tests.Utilities;
 
 namespace FlameCsv.Tests.Readers;
@@ -23,16 +24,16 @@ public static class RFC4180ModeTests
     [InlineData("\" test \"", "test")]
     public static void Should_Trim_Fields(string input, string expected)
     {
-        var context = new CsvReadingContext<char>(new CsvTextOptions { Whitespace = " " });
+        using var parser = CsvParser<char>.Create(new CsvTextOptions { Whitespace = " " });
 
         char[]? buffer = null;
 
         var reader = new CsvFieldReader<char>(
+            parser.Options,
             input.AsMemory(),
-            in context,
             stackalloc char[16],
             ref buffer,
-            context.GetRecordMeta(input.AsMemory()).quoteCount);
+            parser.GetRecordMeta(input.AsMemory()).quoteCount);
 
         Assert.True(reader.TryReadNext(out ReadOnlySpan<char> field));
         Assert.Equal(expected, field.ToString());
@@ -43,14 +44,14 @@ public static class RFC4180ModeTests
     public static void Should_Seek_Long_Line()
     {
         string input = "\"Long line with lots of content, but no quotes except the wrapping!\"";
-        var context = new CsvReadingContext<char>(CsvTextOptions.Default);
+        using var parser = CsvParser<char>.Create(CsvTextOptions.Default);
 
         var reader = new CsvFieldReader<char>(
+            parser.Options,
             input.AsMemory(),
-            in context,
             [],
             ref Unsafe.NullRef<char[]?>(),
-            context.GetRecordMeta(input.AsMemory()).quoteCount);
+            parser.GetRecordMeta(input.AsMemory()).quoteCount);
 
         Assert.True(reader.TryReadNext(out ReadOnlySpan<char> field));
         Assert.Equal(input[1..^1], field.ToString());
@@ -68,6 +69,29 @@ public static class RFC4180ModeTests
         var equals = Vector64.Equals(bytes, mask);
         var lds = equals.ExtractMostSignificantBits();
         var charpos = uint.TrailingZeroCount(lds);
+
+        var eqeq = Vector64.Equals(Vector64<byte>.Zero,equals);
+        var dot = Vector64.Dot(equals, Vector64<byte>.Zero);
+        var dot2 = Vector64.Dot(equals, Vector64<byte>.One);
+        var sum = Vector64.Sum(eqeq);
+
+        Vector64<byte> partials = Vector64<byte>.Zero;
+        var neg = -equals;
+        var zum = Vector64.Sum(neg);
+
+        var sup1 = SimdVector128<ushort>.IsValid;
+        var sup2 = SimdVector256<ushort>.IsValid;
+        var sup3 = SimdVector512<ushort>.IsValid;
+        var sap1 = SimdVector128<byte>.IsValid;
+        var sap2 = SimdVector256<byte>.IsValid;
+        var sap3 = SimdVector512<byte>.IsValid;
+
+        var xcnt = Vector<byte>.Count;
+        var ycnt = Vector< ushort>.Count;
+
+        var b64cnt = Vector64<byte>.Count;
+        var b128cnt = Vector128<byte>.Count;
+        var b256cnt = Vector256<byte>.Count;
 
         var input = "The quick brown ''fox'' jumped over the lazy ''dog''.";
         Span<char> buffer = stackalloc char[128];
@@ -93,13 +117,13 @@ public static class RFC4180ModeTests
     [InlineData("\"James \"\"007\"\" Bond\"", "James \"007\" Bond")]
     public static void Should_Unescape(string input, string expected)
     {
-        var context = new CsvReadingContext<char>(CsvTextOptions.Default);
+        using var parser = CsvParser<char>.Create(CsvTextOptions.Default);
 
         char[]? unescapeArray = null;
 
         var record = new CsvFieldReader<char>(
+            parser.Options,
             input.AsMemory(),
-            in context,
             stackalloc char[128],
             ref unescapeArray,
             (uint)input.Count(c => c == '"'));
@@ -129,16 +153,16 @@ public static class RFC4180ModeTests
         var expected = line.Split(',').Select(s => s.Trim('"'));
 
         var list = new List<string>();
-        var context = new CsvReadingContext<char>(options);
+        using var parser = CsvParser<char>.Create(options);
 
         char[]? buffer = null;
 
         CsvFieldReader<char> reader = new(
+            parser.Options,
             line.AsMemory(),
-            in context,
             [],
             ref buffer,
-            context.GetRecordMeta(line.AsMemory()).quoteCount);
+            parser.GetRecordMeta(line.AsMemory()).quoteCount);
 
         while (!reader.End)
         {
@@ -146,7 +170,7 @@ public static class RFC4180ModeTests
         }
 
         Assert.Equal(expected, list);
-        context.ArrayPool.EnsureReturned(ref buffer);
+        options.ArrayPool.EnsureReturned(ref buffer);
     }
 
     [Fact]
@@ -163,7 +187,7 @@ public static class RFC4180ModeTests
         var data = new[] { options.Delimiter, options.Newline[0] }.GetPermutations();
         char[]? buffer = null;
 
-        var context = new CsvReadingContext<char>(options);
+        using var parser = CsvParser<char>.Create(options);
 
         foreach (var chars in data)
         {
@@ -171,8 +195,8 @@ public static class RFC4180ModeTests
             var line = $"\"{input}\",test";
 
             CsvFieldReader<char> state = new(
+                parser.Options,
                 line.AsMemory(),
-                in context,
                 [],
                 ref buffer,
                 (uint)line.Count('"'));
@@ -189,6 +213,6 @@ public static class RFC4180ModeTests
             Assert.Equal("test", list[1]);
         }
 
-        context.ArrayPool.EnsureReturned(ref buffer);
+        options.ArrayPool.EnsureReturned(ref buffer);
     }
 }

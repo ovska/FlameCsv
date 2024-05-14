@@ -87,7 +87,7 @@ public sealed class CsvEnumerationTests : IDisposable
     {
         using var enumerator = new CsvFieldEnumerator<char>(
             "1,\"Test\",true".AsMemory(),
-            new CsvReadingContext<char>(CsvTextOptions.Default));
+            CsvTextOptions.Default);
 
         Assert.True(enumerator.MoveNext());
         Assert.Equal("1", enumerator.Current.ToString());
@@ -109,7 +109,7 @@ public sealed class CsvEnumerationTests : IDisposable
 
         using var enumerator = new CsvFieldEnumerator<char>(
             "\"xyz\"".AsMemory(),
-            new CsvReadingContext<char>(CsvTextOptions.Default));
+            CsvTextOptions.Default);
 
         Assert.True(enumerator.MoveNext());
         Assert.False(enumerator.MoveNext());

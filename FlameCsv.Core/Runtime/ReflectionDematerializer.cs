@@ -10,14 +10,14 @@ namespace FlameCsv.Runtime;
 internal sealed class ReflectionDematerializer
 {
     [RequiresUnreferencedCode(Messages.CompiledExpressions)]
-    public static IDematerializer<T, TValue> Create<T, TValue>(in CsvWritingContext<T> context)
+    public static IDematerializer<T, TValue> Create<T, TValue>(CsvOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
         CsvBindingCollection<TValue> bindingCollection;
 
-        if (context.HasHeader)
+        if (options.HasHeader)
         {
-            bindingCollection = context.Options.GetHeaderBinder().Bind<TValue>();
+            bindingCollection = options.GetHeaderBinder().Bind<TValue>();
         }
         else if (IndexAttributeBinder<TValue>.TryGetBindings(write: true, out var result))
         {
@@ -35,7 +35,7 @@ internal sealed class ReflectionDematerializer
 
         var parameters = new object[bindings.Length + 2];
         parameters[0] = bindingCollection;
-        parameters[1] = context.Options;
+        parameters[1] = options;
 
         var valueParam = Expression.Parameter(typeof(TValue), "value");
 

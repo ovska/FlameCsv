@@ -1,5 +1,7 @@
 ﻿using System.Buffers;
+using System.Diagnostics;
 using System.IO.Pipelines;
+using System.Runtime.InteropServices;
 using System.Text;
 using FlameCsv.Binding;
 using FlameCsv.Enumeration;
@@ -22,11 +24,6 @@ public sealed class CsvReaderTestsUtf8 : CsvReaderTestsBase<byte>
             Newline = newline,
             Escape = escape,
         };
-    }
-
-    protected override ReadOnlyMemory<byte> GetMemory(ReadOnlyMemory<char> text)
-    {
-        return Encoding.UTF8.GetBytes(new ReadOnlySequence<char>(text));
     }
 
     protected override IAsyncEnumerable<Obj> GetObjects(

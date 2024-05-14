@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 
 namespace FlameCsv.Writing;
@@ -12,19 +11,18 @@ internal readonly struct UnixEscaper<T> : IEscaper<T> where T : unmanaged, IEqua
     private readonly T _delimiter;
     private readonly T _quote;
     private readonly T _escape;
-    private readonly ReadOnlyMemory<T> _newline;
+    private readonly T _newline1;
+    private readonly T _newline2;
+    private readonly int _newlineLength;
     private readonly ReadOnlyMemory<T> _whitespace;
 
-    public UnixEscaper(ref readonly CsvDialect<T> dialect)
+    public UnixEscaper(CsvOptions<T> options)
     {
-        dialect.DebugValidate();
-        Debug.Assert(!dialect.IsRFC4180Mode);
-
-        _delimiter = dialect.Delimiter;
-        _quote = dialect.Quote;
-        _escape = dialect.Escape.Value;
-        _newline = dialect.Newline;
-        _whitespace = dialect.Whitespace;
+        _delimiter = options._delimiter;
+        _quote = options._quote;
+        _escape = options._escape.GetValueOrDefault();
+        _whitespace = options._whitespace;
+        options.GetNewline(out _newline1, out _newline2, out _newlineLength);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -45,13 +43,13 @@ internal readonly struct UnixEscaper<T> : IEscaper<T> where T : unmanaged, IEqua
             goto FoundSpecial;
         }
 
-        ReadOnlySpan<T> newLine = _newline.Span;
-
-        index = value.IndexOf(newLine);
+        index = _newlineLength == 1
+            ? value.IndexOf(_newline1)
+            : value.IndexOf([_newline1, _newline2]);
 
         if (index >= 0)
         {
-            index += newLine.Length;
+            index += _newlineLength;
             goto FoundSpecial;
         }
 

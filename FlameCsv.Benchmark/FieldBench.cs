@@ -3,16 +3,15 @@ using FlameCsv.Extensions;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Buffers;
 
 namespace FlameCsv.Benchmark;
 
 public class FieldBench
 {
-    private static readonly CsvReadingContext<char> context = new(CsvTextOptions.Default);
-
-    private static readonly (string, RecordMeta)[] _fields =
+    private static readonly (string, CsvRecordMeta)[] _fields =
         File.ReadAllLines("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv")
-        .Select(l => (l, context.GetRecordMeta(l.AsMemory())))
+        .Select(l => (l, CsvParser<char>.GetRecordMeta(l.AsMemory(), CsvTextOptions.Default)))
         .ToArray();
 
     [Benchmark(Baseline = true)]
@@ -24,8 +23,8 @@ public class FieldBench
         foreach (ref readonly var line in _fields.AsSpan())
         {
             var reader = new CsvFieldReader<char>(
+                CsvTextOptions.Default,
                 line.Item1.AsMemory(),
-                in context,
                 buffer,
                 ref array,
                 line.Item2.quoteCount);
@@ -34,7 +33,7 @@ public class FieldBench
                 _ = Older<char>.ReadNextField(ref reader);
         }
 
-        context.ArrayPool.EnsureReturned(ref array);
+        ArrayPool<char>.Shared.EnsureReturned(ref array);
     }
 
     [Benchmark(Baseline = false)]
@@ -46,8 +45,8 @@ public class FieldBench
         foreach (ref readonly var line in _fields.AsSpan())
         {
             var reader = new CsvFieldReader<char>(
+                CsvTextOptions.Default,
                 line.Item1.AsMemory(),
-                in context,
                 buffer,
                 ref array,
                 line.Item2.quoteCount);
@@ -56,7 +55,7 @@ public class FieldBench
                 _ = RFC4180Mode<char>.ReadNextField(ref reader);
         }
 
-        context.ArrayPool.EnsureReturned(ref array);
+        ArrayPool<char>.Shared.EnsureReturned(ref array);
     }
 
     static class Older<T> where T : unmanaged, IEquatable<T>
@@ -67,8 +66,8 @@ public class FieldBench
             Debug.Assert(state.escapesRemaining == 0, "RFC4180 called with escapes in the input");
 
             ReadOnlySpan<T> field;
-            T quote = state.Context.Dialect.Quote;
-            T delimiter = state.Context.Dialect.Delimiter;
+            T quote = state.Quote;
+            T delimiter = state.Delimiter;
             nuint consumed = 0;
             uint quotesConsumed = 0;
             ref uint quotesRemaining = ref state.quotesRemaining;

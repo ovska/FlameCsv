@@ -8,13 +8,13 @@ internal static partial class UnixMode<T> where T : unmanaged, IEquatable<T>
 {
     public static ReadOnlySpan<T> ReadNextField(ref CsvFieldReader<T> state)
     {
-        Debug.Assert(!state.Remaining.IsEmpty);
-        Debug.Assert(!state.Context.Dialect.IsRFC4180Mode);
+        Debug.Assert(!state.End, "ReadNextField called with empty input");
+        Debug.Assert(state.Escape.HasValue);
 
         ReadOnlySpan<T> field;
-        T quote = state.Context.Dialect.Quote;
-        T escape = state.Context.Dialect.Escape.GetValueOrDefault();
-        T delimiter = state.Context.Dialect.Delimiter;
+        T quote = state.Quote;
+        T escape = state.Escape.GetValueOrDefault();
+        T delimiter = state.Delimiter;
         nuint consumed = 0;
         uint quotesConsumed = 0;
         uint escapesConsumed = 0;

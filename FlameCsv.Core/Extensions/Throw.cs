@@ -102,27 +102,28 @@ internal static class Throw
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ParseFailed<T>(ReadOnlyMemory<T> field, Type parsedType, in CsvReadingContext<T> context)
+    public static void ParseFailed<T>(ReadOnlyMemory<T> field, Type parsedType, CsvOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
         throw new CsvParseException(
-            $"Failed to parse {parsedType.FullName} using from {context.AsPrintableString(field)}");
+            $"Failed to parse {parsedType.FullName} using from {options.AsPrintableString(field)}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ParseFailed<T, TValue>(ReadOnlyMemory<T> field, CsvConverter<T> parser, in CsvReadingContext<T> context)
+    public static void ParseFailed<T, TValue>(ReadOnlyMemory<T> field, CsvConverter<T> converter, CsvOptions<T> options)
             where T : unmanaged, IEquatable<T>
     {
         throw new CsvParseException(
-            $"Failed to parse {typeof(TValue).FullName} using {parser.GetType().FullName} " +
-            $"from {context.AsPrintableString(field)}");
+            $"Failed to parse {typeof(TValue).FullName} using {converter.GetType().FullName} " +
+            $"from {options.AsPrintableString(field)}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void Argument_FieldIndex<T>(int index, EnumeratorState<T>? state = null)
+    public static void Argument_FieldIndex<T>(int index, EnumeratorState<T>? state = null, string? name = null)
             where T : unmanaged, IEquatable<T>
     {
         string? knownFieldCount = null;
+        name = name is null ? "" : $"'{name}' ";
         Exception? inner = null;
 
         if (state is not null)
@@ -138,7 +139,7 @@ internal static class Throw
             }
         }
 
-        throw new ArgumentOutOfRangeException($"Could not get field at index {index}{knownFieldCount}.", inner);
+        throw new ArgumentOutOfRangeException($"Could not get field {name}at index {index}{knownFieldCount}.", inner);
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]

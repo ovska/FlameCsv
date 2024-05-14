@@ -12,6 +12,7 @@ using FlameCsv.Writing;
 using static FlameCsv.Utilities.SealableUtil;
 using CommunityToolkit.HighPerformance.Buffers;
 using CommunityToolkit.Diagnostics;
+using FlameCsv.Reading;
 
 namespace FlameCsv;
 
@@ -47,6 +48,7 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
         _allowUndefinedEnumValues = other._allowUndefinedEnumValues;
         _arrayPool = other._arrayPool;
         _stringPool = other._stringPool;
+        _disableBuffering = other._disableBuffering;
         _converters = new(this, other._converters); // copy collection
     }
 
@@ -63,7 +65,12 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool MakeReadOnly()
     {
-        return !IsReadOnly && (IsReadOnly = true);
+        if (IsReadOnly)
+            return false;
+
+        ValidateDialect();
+        IsReadOnly = true;
+        return true;
     }
 
     /// <summary>
@@ -106,7 +113,7 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     internal CsvExceptionHandler<T>? _exceptionHandler;
     internal bool _hasHeader = true;
     internal bool _validateFieldCount;
-    internal CsvFieldQuoting _fieldQuoting;
+    internal CsvFieldEscaping _fieldEscaping;
     internal ArrayPool<T>? _arrayPool = ArrayPool<T>.Shared;
     internal bool _allowContentInExceptions;
     internal IList<(string text, bool value)>? _booleanValues;
@@ -115,7 +122,18 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     private bool _useDefaultConverters = true;
     private bool _ignoreEnumCase = true;
     private bool _allowUndefinedEnumValues;
+    private bool _disableBuffering;
     private StringPool? _stringPool;
+
+    /// <summary>
+    /// Disables buffering newline ranges when reading. Buffering increases raw throughput,
+    /// but can in some cases raise errors later in the parsing pipeline than without.
+    /// </summary>
+    public bool NoLineBuffering
+    {
+        get => _disableBuffering;
+        set => this.SetValue(ref _disableBuffering, value);
+    }
 
     /// <summary>
     /// Text comparison used to match header names.
@@ -207,15 +225,15 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     }
 
     /// <summary>
-    /// Defines the quoting behavior when writing values. Default is <see cref="CsvFieldQuoting.Auto"/>.
+    /// Defines the quoting behavior when writing values. Default is <see cref="CsvFieldEscaping.Auto"/>.
     /// </summary>
-    public CsvFieldQuoting FieldQuoting
+    public CsvFieldEscaping FieldEscaping
     {
-        get => _fieldQuoting;
+        get => _fieldEscaping;
         set
         {
             GuardEx.IsDefined(value);
-            this.SetValue(ref _fieldQuoting, value);
+            this.SetValue(ref _fieldEscaping, value);
         }
     }
 
@@ -366,5 +384,110 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
             $"TryGetConverter returned a factory: {converter?.GetType().ToTypeString()}");
 
         return converter;
+    }
+
+    internal TValue Materialize<TValue>(ReadOnlyMemory<T> record, IMaterializer<T, TValue> materializer)
+    {
+        ArgumentNullException.ThrowIfNull(materializer);
+        MakeReadOnly();
+
+        T[]? array = null;
+
+        try
+        {
+            var meta = CsvParser<T>.GetRecordMeta(record, this);
+            CsvFieldReader<T> reader = new(
+                this,
+                record,
+                stackalloc T[Token<T>.StackLength],
+                ref array,
+                meta.quoteCount,
+                meta.escapeCount);
+
+            return materializer.Parse(ref reader);
+        }
+        finally
+        {
+            _arrayPool?.EnsureReturned(ref array);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void ValidateDialect()
+    {
+        List<string>? errors = null;
+
+        T delimiter = _delimiter;
+        T quote = _quote;
+        T? escape = _escape;
+        ReadOnlySpan<T> newline = _newline.Span;
+        ReadOnlySpan<T> whitespace = _whitespace.Span;
+
+        if (delimiter.Equals(default) &&
+            quote.Equals(default) &&
+            newline.IsEmpty &&
+            whitespace.IsEmpty &&
+            !escape.HasValue)
+        {
+            AddError("All tokens were uninitialized");
+            goto End;
+        }
+
+        if (delimiter.Equals(quote))
+        {
+            AddError("Delimiter and Quote must not be equal.");
+        }
+
+        if (escape.HasValue)
+        {
+            if (escape.GetValueOrDefault().Equals(delimiter))
+                AddError("Escape must not be equal to Delimiter.");
+
+            if (escape.GetValueOrDefault().Equals(quote))
+                AddError("Escape must not be equal to Quote.");
+        }
+
+        if (newline.IsEmpty)
+        {
+            AddError("Newline must not be empty.");
+        }
+        else
+        {
+            if (newline.Contains(delimiter))
+                AddError("Newline must not contain Delimiter.");
+
+            if (newline.Contains(quote))
+                AddError("Newline must not contain Quote.");
+
+            if (escape.HasValue && newline.Contains(escape.GetValueOrDefault()))
+                AddError("Newline must not contain Escape.");
+        }
+
+        if (!whitespace.IsEmpty)
+        {
+            if (whitespace.Contains(delimiter))
+                AddError("Whitespace must not contain Delimiter.");
+
+            if (whitespace.Contains(quote))
+                AddError("Whitespace must not contain Quote.");
+
+            if (escape.HasValue && whitespace.Contains(escape.GetValueOrDefault()))
+                AddError("Whitespace must not contain Escape.");
+
+            if (whitespace.IndexOfAny(newline) >= 0)
+                AddError("Whitespace must not contain Newline characters.");
+        }
+
+        End:
+        if (errors is not null)
+            Throw(errors);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        void AddError(string message) => (errors ??= []).Add(message);
+
+        static void Throw(List<string> errors)
+        {
+            throw new CsvConfigurationException($"Invalid CsvOptions tokens: {string.Join(" ", errors)}");
+        }
     }
 }

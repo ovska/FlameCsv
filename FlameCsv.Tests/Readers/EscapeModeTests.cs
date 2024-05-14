@@ -20,13 +20,11 @@ public static class EscapeModeTests
     [InlineData("\" test \"", "test")]
     public static void Should_Trim_Fields(string input, string expected)
     {
-        var context = new CsvReadingContext<char>(new CsvTextOptions { Whitespace = " ", Escape = '\\' });
-
         char[]? buffer = null;
 
         var record = new CsvFieldReader<char>(
+            new CsvTextOptions { Whitespace = " ", Escape = '\\' },
             input.AsMemory(),
-            in context,
             default,
             ref buffer,
             (uint)input.Count('"'));
@@ -46,13 +44,13 @@ public static class EscapeModeTests
     {
         char[]? buffer = null;
 
-        var context = new CsvReadingContext<char>(new CsvTextOptions { Escape = '^', Quote = '\'' });
-        var meta = context.GetRecordMeta(input.AsMemory());
+        using var parser = CsvParser<char>.Create  (new CsvTextOptions { Escape = '^', Quote = '\'' });
+        var meta = parser.GetRecordMeta(input.AsMemory());
         Span<char> stackbuffer = stackalloc char[16];
 
         var record = new CsvFieldReader<char>(
+            parser.Options,
             input.AsMemory(),
-            in context,
             stackbuffer,
             ref buffer,
             meta.quoteCount,
@@ -85,15 +83,14 @@ public static class EscapeModeTests
             ArrayPool = pool,
         };
 
-        var context = new CsvReadingContext<char>(options);
-
         char[]? buffer = null;
 
-        var meta = context.GetRecordMeta(input.AsMemory());
+        using var parser = CsvParser<char>.Create(options);
+        var meta = parser.GetRecordMeta(input.AsMemory());
 
         var state = new CsvFieldReader<char>(
+            parser.Options,
             input.AsMemory(),
-            in context,
             stackalloc char[64],
             ref buffer,
             meta.quoteCount,
@@ -117,18 +114,14 @@ public static class EscapeModeTests
         var first = new MemorySegment<char>(start.AsMemory());
         var last = first.Append(end.AsMemory());
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
-        var reader = new CsvSequenceReader<char>(seq);
 
-        var context = new CsvReadingContext<char>(new CsvTextOptions { Newline = "\r\n", Escape = '^' });
-        char[]? buffer = null;
+        using var parser = CsvParser<char>.Create(new CsvTextOptions { Newline = "\r\n", Escape = '^' });
+        parser.Reset(in seq);
 
-        var seek = new LineSeekArg<char>(in context, ref buffer);
-
-        Assert.True(reader.TryReadLine(seek, out var line, out _));
+        Assert.True(parser.TryReadLine(out var line, out _));
 
         Assert.Equal("xyz", line.ToString());
-        Assert.Equal("abc", reader.UnreadSequence.ToString());
-        Assert.Null(buffer);
+        Assert.Equal("abc", parser.UnreadSequence.ToString());
     }
 
     [Theory]
@@ -148,21 +141,18 @@ public static class EscapeModeTests
         var last = joined.Chunk(segmentSize).Aggregate(first, (prev, segment) => prev.Append(segment.AsMemory()));
 
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
-        var reader = new CsvSequenceReader<char>(seq);
 
-        var context = new CsvReadingContext<char>(new CsvTextOptions { Newline = "\r\n", Escape = '^' });
-        char[]? buffer = null;
-
-        var seek = new LineSeekArg<char>(in context, ref buffer);
+        using var parser = CsvParser<char>.Create(new CsvTextOptions { Newline = "\r\n", Escape = '^' });
+        parser.Reset(in seq);
 
         var results = new List<string>();
 
-        while (reader.TryReadLine(seek, out var line, out _))
+        while (parser.TryReadLine(out var line, out _))
         {
             results.Add(line.ToString());
         }
 
-        results.Add(reader.UnreadSequence.ToString());
+        results.Add(parser.UnreadSequence.ToString());
 
         Assert.Equal(lines, results);
     }
@@ -178,16 +168,12 @@ public static class EscapeModeTests
             .Append(segments[2].AsMemory());
 
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
-        var reader = new CsvSequenceReader<char>(seq);
+        using var parser = CsvParser<char>.Create(new CsvTextOptions { Newline = newline, Escape = '^' });
+        parser.Reset(in seq);
 
-        var context = new CsvReadingContext<char>(new CsvTextOptions { Newline = newline, Escape = '^' });
-        char[]? buffer = null;
-
-        var seek = new LineSeekArg<char>(in context, ref buffer);
-
-        Assert.True(reader.TryReadLine(seek, out var line, out _));
+        Assert.True(parser.TryReadLine(out var line, out _));
         Assert.Equal(segments[0], line.ToString());
-        Assert.Equal(segments[2], reader.UnreadSequence.ToString());
+        Assert.Equal(segments[2], parser.UnreadSequence.ToString());
     }
 
     [Fact]
@@ -195,15 +181,12 @@ public static class EscapeModeTests
     {
         const string data = "\"testxyz\",\"broken";
         var seq = new ReadOnlySequence<char>(data.AsMemory());
-        var reader = new CsvSequenceReader<char>(seq);
 
-        var context = new CsvReadingContext<char>(new CsvTextOptions { Escape = '^' });
-        char[]? buffer = null;
+        using var parser = CsvParser<char>.Create(new CsvTextOptions { Escape = '^' });
+        parser.Reset(in seq);
 
-        var seek = new LineSeekArg<char>(in context, ref buffer);
-
-        Assert.False(reader.TryReadLine(seek, out _, out _));
-        Assert.Equal(data, reader.UnreadSequence.ToString());
+        Assert.False(parser.TryReadLine(out _, out _));
+        Assert.Equal(data, parser.UnreadSequence.ToString());
     }
 
     [Theory, MemberData(nameof(GetEscapeTestData))]
@@ -221,44 +204,30 @@ public static class EscapeModeTests
             AllowContentInExceptions = true,
             ArrayPool = pool,
         };
-        var context = new CsvReadingContext<char>(options);
 
         var originalData = MemorySegment<char>.AsSequence(fullLine.AsMemory(), segmentSize, emptyFrequency);
         var originalWithoutNewline = MemorySegment<char>.AsSequence(noNewline.AsMemory(), segmentSize, emptyFrequency);
 
         string data = originalData.ToString();
         var seq = originalData;
-        var dataReader = new CsvDataReader<char>
-        {
-            Reader = new CsvSequenceReader<char>(seq),
-        };
+
+        using var parser = CsvParser<char>.Create(options);
+        parser.Reset(in seq);
 
         string withoutNewline = originalWithoutNewline.ToString();
 
-        Assert.True(context.TryReadLine(dataReader, out var line, out var meta, isFinalBlock: false));
-        Assert.True(dataReader.Reader.End);
+        Assert.True(parser.TryReadLine(out var line, out var meta, isFinalBlock: false));
+        Assert.True(parser.End);
         Assert.Equal(withoutNewline, line.ToString());
         Assert.Equal(data.Replace("^'", "").Count('\''), (int)meta.quoteCount);
         Assert.Equal(data.Replace("^^", "^").Count('^'), (int)meta.escapeCount);
 
-        if (dataReader.MultisegmentBuffer != null)
-        {
-            Assert.Equal(line.Span, dataReader.MultisegmentBuffer.AsSpan(0, line.Length));
-            pool.EnsureReturned(ref dataReader.MultisegmentBuffer);
-        }
-
-        dataReader.Reader = new(originalWithoutNewline);
-        Assert.True(context.TryReadLine(dataReader, out line, out meta, isFinalBlock: true));
-        Assert.True(dataReader.Reader.End);
+        parser.Reset(in originalWithoutNewline);
+        Assert.True(parser.TryReadLine(out line, out meta, isFinalBlock: true));
+        Assert.True(parser.End);
         Assert.Equal(withoutNewline, line.ToString());
         Assert.Equal(data.Replace("^'", "").Count('\''), (int)meta.quoteCount);
         Assert.Equal(data.Replace("^^", "^").Count('^'), (int)meta.escapeCount);
-
-        if (dataReader.MultisegmentBuffer != null)
-        {
-            Assert.Equal(line.Span, dataReader.MultisegmentBuffer.AsSpan(0, line.Length));
-            pool.EnsureReturned(ref dataReader.MultisegmentBuffer);
-        }
     }
 
     public static IEnumerable<object[]> GetEscapeTestData()

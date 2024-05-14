@@ -66,7 +66,7 @@ public class UnescapeBench
         foreach (ref readonly var tuple in _testData.AsSpan())
         {
             RFC4180Mode<ushort>.Unescape(
-                (ushort)'"',
+                '"',
                 buf.UnsafeCast<char, ushort>(),
                 tuple.value.Span.UnsafeCast<char, ushort>(),
                 tuple.quoteCount);
@@ -233,7 +233,7 @@ public class UnescapeBench
             Unsafe.CopyBlockUnaligned(
                 destination: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref dst, dstIndex)),
                 source: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref src, srcIndex)),
-                byteCount: (uint)Unsafe.SizeOf<T>() * length / (uint)Unsafe.SizeOf<byte>());
+                byteCount: (uint)Unsafe.SizeOf<T>() * length / sizeof(byte));
         }
     }
 
@@ -480,7 +480,7 @@ public class UnescapeBench
             Unsafe.CopyBlockUnaligned(
                 destination: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref dst, dstIndex)),
                 source: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref src, srcIndex)),
-                byteCount: (uint)Unsafe.SizeOf<T>() * length / (uint)Unsafe.SizeOf<byte>());
+                byteCount: (uint)Unsafe.SizeOf<T>() * length / sizeof(byte));
         }
     }
 }

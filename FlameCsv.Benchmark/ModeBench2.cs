@@ -12,7 +12,6 @@ namespace FlameCsv.Benchmark;
 [SimpleJob]
 public class ModeBench2
 {
-    private static readonly CsvReadingContext<char> _context = new(CsvTextOptions.Default);
     private static readonly ReadOnlySequence<char> _data = new ReadOnlySequence<char>(
         Encoding.UTF8.GetChars(File.ReadAllBytes("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv")));
 
@@ -20,9 +19,8 @@ public class ModeBench2
     public void Old()
     {
         ReadOnlySequence<char> data = _data;
-        CsvDialect<char> dialect = _context.Dialect;
 
-        while (OLD(in dialect, ref data, out _, out _))
+        while (OLD(CsvTextOptions.Default, ref data, out _, out _))
         {
         }
     }
@@ -31,21 +29,20 @@ public class ModeBench2
     public void New()
     {
         ReadOnlySequence<char> data = _data;
-        CsvDialect<char> dialect = _context.Dialect;
 
-        while (NEW(in dialect, ref data, out _, out _))
+        while (NEW(CsvTextOptions.Default, ref data, out _, out _))
         {
         }
     }
     private static bool NEW<T>(
-        in CsvDialect<T> dialect,
+        CsvOptions<T> options,
         ref ReadOnlySequence<T> sequence,
         out ReadOnlySequence<T> line,
-        out RecordMeta meta)
+        out CsvRecordMeta meta)
         where T : unmanaged, IEquatable<T>
     {
-        ReadOnlySpan<T> newLine = dialect.Newline.Span;
-        T quote = dialect.Quote;
+        ReadOnlySpan<T> newLine = options._newline.Span;
+        T quote = options._quote;
         meta = default;
         ref uint quoteCount = ref meta.quoteCount;
 
@@ -202,14 +199,14 @@ public class ModeBench2
     }
 
     private static bool OLD<T>(
-        in CsvDialect<T> dialect,
+        CsvOptions<T> options,
         ref ReadOnlySequence<T> sequence,
         out ReadOnlySequence<T> line,
-        out RecordMeta meta)
+        out CsvRecordMeta meta)
         where T : unmanaged, IEquatable<T>
     {
-        ReadOnlySpan<T> newLine = dialect.Newline.Span;
-        T quote = dialect.Quote;
+        ReadOnlySpan<T> newLine = options._newline.Span;
+        T quote = options._quote;
         meta = default;
         ref uint quoteCount = ref meta.quoteCount;
 

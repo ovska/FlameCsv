@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Buffers;
+using System.Text;
 using FlameCsv.Binding;
 using FlameCsv.Enumeration;
 using FlameCsv.Tests.TestData;
@@ -20,11 +21,6 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
             Newline = newline,
             Escape = escape,
         };
-    }
-
-    protected override ReadOnlyMemory<char> GetMemory(ReadOnlyMemory<char> text)
-    {
-        return text;
     }
 
     protected override CsvRecordAsyncEnumerable<char> GetRecords(

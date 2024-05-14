@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 
 namespace FlameCsv.Writing;
@@ -11,18 +10,17 @@ internal readonly struct RFC4180Escaper<T> : IEscaper<T> where T : unmanaged, IE
 
     private readonly T _delimiter;
     private readonly T _quote;
-    private readonly ReadOnlyMemory<T> _newline;
+    private readonly T _newline1;
+    private readonly T _newline2;
     private readonly ReadOnlyMemory<T> _whitespace;
 
-    public RFC4180Escaper(ref readonly CsvDialect<T> dialect)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public RFC4180Escaper(CsvOptions<T> options)
     {
-        dialect.DebugValidate();
-        Debug.Assert(dialect.IsRFC4180Mode);
-
-        _delimiter = dialect.Delimiter;
-        _quote = dialect.Quote;
-        _newline = dialect.Newline;
-        _whitespace = dialect.Whitespace;
+        _delimiter = options._delimiter;
+        _quote = options._quote;
+        _whitespace = options._whitespace;
+        options.GetNewline(out _newline1, out _newline2, out _);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -37,9 +35,8 @@ internal readonly struct RFC4180Escaper<T> : IEscaper<T> where T : unmanaged, IE
         }
 
         int index;
-        ReadOnlySpan<T> newLine = _newline.Span;
 
-        if (newLine.Length != 1)
+        if (!_newline2.Equals(default))
         {
             index = value.IndexOfAny(_delimiter, _quote);
 
@@ -49,12 +46,12 @@ internal readonly struct RFC4180Escaper<T> : IEscaper<T> where T : unmanaged, IE
             }
 
             specialCount = 0;
-            return value.IndexOf(newLine) >= 0;
+            return value.IndexOf([_newline1, _newline2]) >= 0;
         }
         else
         {
             // Single token newlines can be seeked directly
-            index = value.IndexOfAny(_delimiter, _quote, newLine[0]);
+            index = value.IndexOfAny(_delimiter, _quote, _newline1);
 
             if (index >= 0)
             {

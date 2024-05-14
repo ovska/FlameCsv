@@ -22,6 +22,9 @@ internal readonly struct KnownSymbols(Compilation compilation)
     private readonly LazySymbol _csvConverterOfTAttribute = new(compilation, "FlameCsv.Binding.Attributes.CsvConverterAttribute`2", true);
     private readonly LazySymbol _csvConstructorAttribute = new(compilation, "FlameCsv.Binding.Attributes.CsvConstructorAttribute");
 
+    private readonly LazySymbol _csvOptionsText = new(compilation, "FlameCsv.CsvTextOptions");
+    private readonly LazySymbol _csvOptionsUtf8 = new(compilation, "FlameCsv.CsvUtf8Options");
+
     private readonly Dictionary<ISymbol, INamedTypeSymbol> _optionsTypes = new(SymbolEqualityComparer.Default);
 
     public INamedTypeSymbol GetCsvOptionsType(ITypeSymbol tokenType)
@@ -32,6 +35,16 @@ internal readonly struct KnownSymbols(Compilation compilation)
         }
 
         return type;
+    }
+
+    public INamedTypeSymbol? GetExplicitOptionsType(ITypeSymbol tokenType)
+    {
+        return tokenType.SpecialType switch
+        {
+            SpecialType.System_Byte => _csvOptionsUtf8.Value,
+            SpecialType.System_Char => _csvOptionsText.Value,
+            _ => null
+        };
     }
 }
 

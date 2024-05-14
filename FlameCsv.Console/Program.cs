@@ -4,6 +4,8 @@ using System.Runtime.InteropServices;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Converters;
+using FlameCsv.Reading;
+using FlameCsv.Writing;
 
 #pragma warning disable IDE0161 // Convert to file-scoped namespace
 namespace FlameCsv.Console

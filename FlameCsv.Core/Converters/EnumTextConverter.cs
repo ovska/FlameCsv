@@ -11,13 +11,13 @@ public sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
     private readonly string? _format;
     private readonly IFormatProvider? _formatProvider;
 
-    public EnumTextConverter(CsvOptions<char> options)
+    public EnumTextConverter(CsvTextOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
         _allowUndefinedValues = options.AllowUndefinedEnumValues;
         _ignoreCase = options.IgnoreEnumCase;
-        _formatProvider = (options as CsvTextOptions)?.FormatProvider;
-        _format = (options as CsvTextOptions)?.EnumFormat;
+        _formatProvider = options.FormatProvider;
+        _format = options.EnumFormat;
     }
 
     public override bool TryFormat(Span<char> destination, TEnum value, out int charsWritten)

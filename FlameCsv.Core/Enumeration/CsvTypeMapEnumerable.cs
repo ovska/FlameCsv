@@ -7,7 +7,7 @@ namespace FlameCsv.Enumeration;
 public sealed class CsvTypeMapEnumerable<T, TValue> : IEnumerable<TValue> where T : unmanaged, IEquatable<T>
 {
     private readonly ReadOnlySequence<T> _data;
-    private readonly CsvReadingContext<T> _context;
+    private readonly CsvOptions<T> _options;
     private readonly CsvTypeMap<T, TValue> _typeMap;
 
     public CsvTypeMapEnumerable(
@@ -19,13 +19,13 @@ public sealed class CsvTypeMapEnumerable<T, TValue> : IEnumerable<TValue> where 
         ArgumentNullException.ThrowIfNull(typeMap);
 
         _data = csv;
-        _context = new CsvReadingContext<T>(options);
+        _options = options;
         _typeMap = typeMap;
     }
 
     public CsvValueEnumerator<T, TValue> GetEnumerator()
     {
-        return new CsvValueEnumerator<T, TValue>(_data, in _context, _typeMap);
+        return new CsvValueEnumerator<T, TValue>(_data, _options, _typeMap);
     }
 
     IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator() => GetEnumerator();

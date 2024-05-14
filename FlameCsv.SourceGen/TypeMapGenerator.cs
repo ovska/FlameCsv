@@ -154,8 +154,7 @@ namespace ");
             {
                 if (!typeMap.ContainingClass.MemberNames.Contains("Instance"))
                 {
-                    sb.Append(@"        
-        public static ");
+                    sb.Append(@"    public static ");
                     sb.Append(typeMap.ContainingClass.Name);
                     sb.Append(" Instance { get; } = new ");
                     sb.Append(typeMap.ContainingClass.Name);

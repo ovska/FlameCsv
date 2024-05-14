@@ -8,9 +8,8 @@ internal sealed class MemberBinding : IComparable<MemberBinding>, IBinding
     public ISymbol Symbol { get; }
     public ITypeSymbol Type { get; }
     public bool IsRequired { get; }
-    public string ParserId { get; }
+    public string ConverterId { get; }
     public string HandlerId { get; }
-    public string FormatterId { get; }
     public int Order { get; }
     public BindingScope Scope { get; }
 
@@ -28,9 +27,8 @@ internal sealed class MemberBinding : IComparable<MemberBinding>, IBinding
         Order = meta.Order;
         Names = meta.Names;
         Scope = meta.Scope;
-        ParserId = $"@__Parser_{symbol.Name}";
+        ConverterId = $"@__Converter_{symbol.Name}";
         HandlerId = $"@s__Handler_{symbol.Name}";
-        FormatterId = $"@__Formatter_{symbol.Name}";
     }
 
     public int CompareTo(MemberBinding other) => other.Order.CompareTo(Order); // reverse sort so higher order is first
