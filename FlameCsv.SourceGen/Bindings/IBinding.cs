@@ -11,4 +11,7 @@ internal interface IBinding
     string HandlerId { get; }
     int Order { get; }
     BindingScope Scope { get; }
+
+    bool CanRead { get; }
+    bool CanWrite { get; }
 }

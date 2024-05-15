@@ -26,6 +26,9 @@ public partial class TypeMapGenerator
 
         foreach (var binding in typeMap.Bindings.Members)
         {
+            if (!binding.CanWrite)
+                continue;
+
             sb.Append(@"
                 ");
             sb.Append(binding.ConverterId);
@@ -33,6 +36,8 @@ public partial class TypeMapGenerator
             ResolveConverter(sb, in typeMap, binding.Symbol, binding.Type, converterFactorySymbol);
             sb.Append(',');
         }
+
+        typeMap.ThrowIfCancellationRequested();
 
         sb.Append(@"
             };
@@ -47,6 +52,9 @@ public partial class TypeMapGenerator
 
         foreach (var binding in typeMap.Bindings.Members)
         {
+            if (!binding.CanWrite)
+                continue;
+
             sb.Append(@"
             public required CsvConverter<");
             sb.Append(typeMap.Token);
@@ -56,6 +64,8 @@ public partial class TypeMapGenerator
             sb.Append(binding.ConverterId);
             sb.Append(" { get; init; }");
         }
+
+        typeMap.ThrowIfCancellationRequested();
 
         sb.Append(@"
 
@@ -71,6 +81,10 @@ public partial class TypeMapGenerator
         for (int i = 0; i < typeMap.Bindings.Members.Length; i++)
         {
             var binding = typeMap.Bindings.Members[i];
+
+            if (!binding.CanWrite)
+                continue;
+
             sb.Append(@"
                 writer.WriteField(");
             sb.Append(binding.ConverterId);
@@ -100,6 +114,8 @@ public partial class TypeMapGenerator
             }
         }
 
+        typeMap.ThrowIfCancellationRequested();
+
         sb.Append(@"
             }
 
@@ -113,6 +129,10 @@ public partial class TypeMapGenerator
         for (int i = 0; i < typeMap.Bindings.Members.Length; i++)
         {
             var binding = typeMap.Bindings.Members[i];
+
+            if (!binding.CanWrite)
+                continue;
+
             sb.Append(@"
                 writer.WriteText(");
             sb.Append(binding.Name.ToStringLiteral());

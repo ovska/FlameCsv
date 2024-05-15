@@ -20,6 +20,9 @@ internal sealed class ParameterBinding : IComparable<ParameterBinding>, IBinding
     public bool HasInModifier => Symbol.RefKind is RefKind.In or RefKind.RefReadOnlyParameter;
     public object? DefaultValue => Symbol.ExplicitDefaultValue;
 
+    public bool CanRead => true;
+    public bool CanWrite => false;
+
     public ParameterBinding(
         IParameterSymbol symbol,
         in SymbolMetadata meta)

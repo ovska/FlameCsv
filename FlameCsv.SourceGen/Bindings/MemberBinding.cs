@@ -13,6 +13,9 @@ internal sealed class MemberBinding : IComparable<MemberBinding>, IBinding
     public int Order { get; }
     public BindingScope Scope { get; }
 
+    public bool CanRead { get; }
+    public bool CanWrite { get; }
+
     public MemberBinding(
         ISymbol symbol,
         ITypeSymbol type,
@@ -29,6 +32,10 @@ internal sealed class MemberBinding : IComparable<MemberBinding>, IBinding
         Scope = meta.Scope;
         ConverterId = $"@__Converter_{symbol.Name}";
         HandlerId = $"@s__Handler_{symbol.Name}";
+
+        CanRead = meta.Scope != BindingScope.Write &&
+            symbol is IPropertySymbol { IsReadOnly: false } or IFieldSymbol { IsReadOnly: false, IsConst: false };
+        CanWrite = meta.Scope != BindingScope.Read && symbol is not IPropertySymbol { IsWriteOnly: true };
     }
 
     public int CompareTo(MemberBinding other) => other.Order.CompareTo(Order); // reverse sort so higher order is first

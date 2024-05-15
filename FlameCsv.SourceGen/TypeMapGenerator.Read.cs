@@ -87,6 +87,9 @@ public partial class TypeMapGenerator
 
         foreach (var binding in typeMap.Bindings.AllBindings)
         {
+            if (!binding.CanRead)
+                continue;
+
             sb.Append("            public ");
             sb.Append(binding.Type.ToDisplayString());
             sb.Append(' ');
@@ -261,10 +264,13 @@ public partial class TypeMapGenerator
         sb.Append(@";
 ");
 
-        foreach (var binding in typeMap.Bindings.Members.OrderBy(b => b.IsRequired))
+        foreach (var binding in typeMap.Bindings.Members)
         {
             if (binding.IsRequired)
                 continue; // already handled
+
+            if (!binding.CanRead)
+                continue;
 
             sb.Append("                if (null != ");
             sb.Append(binding.ConverterId);
@@ -350,6 +356,9 @@ public partial class TypeMapGenerator
     {
         typeMap.ThrowIfCancellationRequested();
 
+        if (!binding.CanRead)
+            return;
+
         sb.Append(@"
             public CsvConverter<");
         sb.Append(typeMap.Token);
@@ -370,6 +379,9 @@ public partial class TypeMapGenerator
 
         foreach (var binding in typeMap.Bindings.AllBindings)
         {
+            if (!binding.CanRead)
+                continue;
+
             if (!first)
             {
                 sb.Append(@"
@@ -431,6 +443,9 @@ public partial class TypeMapGenerator
         foreach (var binding in allBindingsSorted)
         {
             typeMap.ThrowIfCancellationRequested();
+
+            if (!binding.CanRead)
+                continue;
 
             sb.Append(@"
                 if (");
