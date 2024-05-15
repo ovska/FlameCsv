@@ -4,36 +4,18 @@ internal readonly struct KnownSymbols(Compilation compilation)
 {
     public bool Nullable => compilation.Options.NullableContextOptions.AnnotationsEnabled();
 
-    public INamedTypeSymbol CsvConverterFactory => _csvConverterFactory.Value;
-    public INamedTypeSymbol CsvOptions => _csvOptions.Value;
-    public INamedTypeSymbol CsvTypeMapAttribute => _typeMapAttribute.Value;
-    public INamedTypeSymbol CsvHeaderIgnoreAttribute => _csvHeaderIgnoreAttribute.Value;
-    public INamedTypeSymbol CsvHeaderAttribute => _csvHeaderAttribute.Value;
-    public INamedTypeSymbol CsvHeaderTargetAttribute => _csvHeaderTargetAttribute.Value;
-    public INamedTypeSymbol CsvConverterOfTAttribute => _csvConverterOfTAttribute.Value;
-    public INamedTypeSymbol CsvConstructorAttribute => _csvConstructorAttribute.Value;
+    public INamedTypeSymbol CsvOptions { get; } = GetUnboundGeneric(compilation, "FlameCsv.CsvOptions`1");
+    public INamedTypeSymbol CsvConverterFactory { get; } = GetUnboundGeneric(compilation, "FlameCsv.CsvConverterFactory`1");
+    public INamedTypeSymbol CsvConverterOfTAttribute { get; } = GetUnboundGeneric(compilation, "FlameCsv.Binding.Attributes.CsvConverterAttribute`2");
 
-    public INamedTypeSymbol DateTime => _systemDateTime.Value;
-    public INamedTypeSymbol DateTimeOffset => _systemDateTimeOffset.Value;
-    public INamedTypeSymbol TimeSpan => _systemTimeSpan.Value;
-    public INamedTypeSymbol Guid => _systemGuid.Value;
-
-    private readonly LazySymbol _typeMapAttribute = new(compilation, "FlameCsv.Binding.CsvTypeMapAttribute`2", true);
-    private readonly LazySymbol _csvOptions = new(compilation, "FlameCsv.CsvOptions`1", true);
-    private readonly LazySymbol _csvConverterFactory = new(compilation, "FlameCsv.CsvConverterFactory`1", true);
-    private readonly LazySymbol _csvHeaderIgnoreAttribute = new(compilation, "FlameCsv.Binding.Attributes.CsvHeaderIgnoreAttribute");
-    private readonly LazySymbol _csvHeaderAttribute = new(compilation, "FlameCsv.Binding.Attributes.CsvHeaderAttribute");
-    private readonly LazySymbol _csvHeaderTargetAttribute = new(compilation, "FlameCsv.Binding.Attributes.CsvHeaderTargetAttribute");
-    private readonly LazySymbol _csvConverterOfTAttribute = new(compilation, "FlameCsv.Binding.Attributes.CsvConverterAttribute`2", true);
-    private readonly LazySymbol _csvConstructorAttribute = new(compilation, "FlameCsv.Binding.Attributes.CsvConstructorAttribute");
-
-    private readonly LazySymbol _csvOptionsText = new(compilation, "FlameCsv.CsvTextOptions");
-    private readonly LazySymbol _csvOptionsUtf8 = new(compilation, "FlameCsv.CsvUtf8Options");
-
-    private readonly LazySymbol _systemDateTime = new(compilation, "System.DateTime");
-    private readonly LazySymbol _systemDateTimeOffset = new(compilation, "System.DateTimeOffset");
-    private readonly LazySymbol _systemTimeSpan = new(compilation, "System.TimeSpan");
-    private readonly LazySymbol _systemGuid = new(compilation, "System.Guid");
+    public INamedTypeSymbol CsvHeaderIgnoreAttribute => Get(compilation, "FlameCsv.Binding.Attributes.CsvHeaderIgnoreAttribute");
+    public INamedTypeSymbol CsvHeaderAttribute => Get(compilation, "FlameCsv.Binding.Attributes.CsvHeaderAttribute");
+    public INamedTypeSymbol CsvHeaderTargetAttribute => Get(compilation, "FlameCsv.Binding.Attributes.CsvHeaderTargetAttribute");
+    public INamedTypeSymbol CsvConstructorAttribute => Get(compilation, "FlameCsv.Binding.Attributes.CsvConstructorAttribute");
+    public INamedTypeSymbol SystemDateTime => Get(compilation, "System.DateTime");
+    public INamedTypeSymbol SystemDateTimeOffset => Get(compilation, "System.DateTimeOffset");
+    public INamedTypeSymbol SystemTimeSpan => Get(compilation, "System.TimeSpan");
+    public INamedTypeSymbol SystemGuid => Get(compilation, "System.Guid");
 
     private readonly Dictionary<ISymbol, INamedTypeSymbol> _optionsTypes = new(SymbolEqualityComparer.Default);
 
@@ -54,11 +36,19 @@ internal readonly struct KnownSymbols(Compilation compilation)
     {
         return tokenType.SpecialType switch
         {
-            SpecialType.System_Byte => _csvOptionsUtf8.Value,
-            SpecialType.System_Char => _csvOptionsText.Value,
+            SpecialType.System_Byte => Get(compilation, "FlameCsv.CsvUtf8Options"),
+            SpecialType.System_Char => Get(compilation, "FlameCsv.CsvTextOptions"),
             _ => null
         };
     }
+
+    private static INamedTypeSymbol Get(Compilation compilation, string name)
+    {
+        return compilation.GetTypeByMetadataName(name)
+            ?? throw new InvalidOperationException("Type not found by metadata name: " + name);
+    }
+
+    private static INamedTypeSymbol GetUnboundGeneric(Compilation compilation, string name) => Get(compilation, name).ConstructUnboundGenericType();
 }
 
 internal readonly struct SymbolMetadata

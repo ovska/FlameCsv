@@ -174,11 +174,10 @@ public partial class TypeMapGenerator
             return true;
         }
 
-
-        if (SymbolEqualityComparer.Default.Equals(type, _symbols.DateTime) ||
-            SymbolEqualityComparer.Default.Equals(type, _symbols.DateTimeOffset) ||
-            SymbolEqualityComparer.Default.Equals(type, _symbols.TimeSpan) ||
-            SymbolEqualityComparer.Default.Equals(type, _symbols.Guid))
+        if ((type.Name == "DateTime" && SymbolEqualityComparer.Default.Equals(type, _symbols.SystemDateTime)) ||
+            (type.Name == "DateTimeOffset" && SymbolEqualityComparer.Default.Equals(type, _symbols.SystemDateTimeOffset)) ||
+            (type.Name == "TimeSpan" && SymbolEqualityComparer.Default.Equals(type, _symbols.SystemTimeSpan)) ||
+            (type.Name == "Guid" && SymbolEqualityComparer.Default.Equals(type, _symbols.SystemGuid)))
         {
             name = type.Name;
             return true;
