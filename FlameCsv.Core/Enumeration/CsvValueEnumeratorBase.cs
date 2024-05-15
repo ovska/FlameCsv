@@ -78,6 +78,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
 
         if (_materializer is null && TryReadHeader(record))
         {
+            // csv only had the header
             if (isFinalBlock)
             {
                 return false;

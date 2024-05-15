@@ -18,7 +18,7 @@ public partial class TypeMapGenerator : IIncrementalGenerator
                 "FlameCsv.Binding.CsvTypeMapAttribute`2",
                 static (syntaxNode, _) => syntaxNode is ClassDeclarationSyntax or RecordDeclarationSyntax,
                 GetSemanticTargetForGeneration)
-            .Where(static target => target.IsValid);
+            .Where(static target => target.Compilation is not null);
 
         context.RegisterSourceOutput(typeMapTargets, (spc, source) => Execute(source, spc));
     }
@@ -249,21 +249,77 @@ namespace ");
         return new CompilationTarget(compilation, context.Attributes[0], typeMapClass);
     }
 
-    readonly struct CompilationTarget
+    readonly struct CompilationTarget : IEquatable<CompilationTarget>
     {
         public CompilationTarget(Compilation compilation, AttributeData attribute, INamedTypeSymbol targetClass)
         {
             Compilation = compilation;
             Attribute = attribute;
             TargetClass = targetClass;
-            Symbols = new(compilation);
         }
 
         public Compilation Compilation { get; }
         public AttributeData Attribute { get; }
         public INamedTypeSymbol TargetClass { get; }
-        public KnownSymbols Symbols { get; }
 
-        public bool IsValid => Compilation is not null;
+        public override int GetHashCode()
+        {
+            if (Compilation is null)
+                return 0;
+
+            unchecked
+            {
+                int hash = SymbolEqualityComparer.Default.GetHashCode(TargetClass);
+                hash *= 37;
+                hash ^= SymbolEqualityComparer.Default.GetHashCode(Attribute.AttributeClass?.TypeParameters[0]);
+                hash *= 37;
+                hash ^= SymbolEqualityComparer.Default.GetHashCode(Attribute.AttributeClass?.TypeParameters[1]);
+                foreach (var kvp in Attribute.NamedArguments)
+                {
+                    hash *= 37;
+                    hash ^= kvp.Value.GetHashCode();
+                }
+                return hash;
+            }
+        }
+
+        public bool Equals(CompilationTarget other)
+        {
+            return SymbolEqualityComparer.Default.Equals(TargetClass, other.TargetClass)
+                && SymbolEqualityComparer.Default.Equals(Attribute.AttributeClass!.TypeParameters[0], other.Attribute.AttributeClass!.TypeParameters[0])
+                && SymbolEqualityComparer.Default.Equals(Attribute.AttributeClass!.TypeParameters[1], other.Attribute.AttributeClass!.TypeParameters[1])
+                && Attribute.NamedArguments.Length == other.Attribute.NamedArguments.Length
+                && ArgumentsEqual(Attribute.NamedArguments, other.Attribute.NamedArguments);
+        }
+
+        private static bool ArgumentsEqual(
+            ImmutableArray<KeyValuePair<string, TypedConstant>> a,
+            ImmutableArray<KeyValuePair<string, TypedConstant>> b)
+        {
+            if (a.Length != b.Length)
+                return false;
+
+            foreach (var argA in a)
+            {
+                bool found = false;
+
+                foreach (var argB in b)
+                {
+                    if (argA.Key == argB.Key)
+                    {
+                        if (!argA.Value.Equals(argB.Value))
+                            return false;
+
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                    return false;
+            }
+
+            return true;
+        }
     }
 }

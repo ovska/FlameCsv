@@ -1,6 +1,6 @@
 ﻿namespace FlameCsv;
 
-public interface ICsvDialectOptions<T> where T : unmanaged, IEquatable<T>
+internal interface ICsvDialectOptions<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
     /// Field delimiter.
