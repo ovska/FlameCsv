@@ -8,13 +8,11 @@ internal sealed class PoolingStringTextConverter : CsvConverter<char, string>
 {
     public override bool HandleNull => true;
 
+    public static PoolingStringTextConverter SharedInstance { get; } = new();
+
     private readonly StringPool _stringPool;
 
-    public PoolingStringTextConverter(CsvOptions<char> options) : this(options.StringPool)
-    {
-    }
-
-    public PoolingStringTextConverter(StringPool? stringPool)
+    public PoolingStringTextConverter(StringPool? stringPool = null)
     {
         _stringPool = stringPool ?? StringPool.Shared;
     }

@@ -47,6 +47,9 @@ internal readonly struct KnownSymbols(Compilation compilation)
         return type;
     }
 
+    /// <summary>
+    /// Returns CsvUtf8Options or CsvTextOptions, or null
+    /// </summary>
     public INamedTypeSymbol? GetExplicitOptionsType(ITypeSymbol tokenType)
     {
         return tokenType.SpecialType switch

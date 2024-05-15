@@ -1,7 +1,4 @@
-﻿
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-
-namespace FlameCsv.SourceGen;
+﻿namespace FlameCsv.SourceGen;
 
 public partial class TypeMapGenerator
 {
@@ -47,14 +44,14 @@ public partial class TypeMapGenerator
         }
 
         if (typeMap.UseBuiltinConverters &&
-            typeMap.TokenSymbol.SpecialType is SpecialType.System_Byte or SpecialType.System_Char &&
+            _symbols.GetExplicitOptionsType(typeMap.TokenSymbol) is { } optionsSymbol &&
             IsDefaultConverterSupported(type, out string defaultName))
         {
             sb.Append("FlameCsv.Converters.DefaultConverters.Create");
             sb.Append(defaultName);
-            sb.Append(typeMap.TokenSymbol.SpecialType == SpecialType.System_Byte
-                ? "((CsvUtf8Options)options)"
-                : "((CsvTextOptions)options)");
+            sb.Append("((");
+            sb.Append(optionsSymbol.ToDisplayString());
+            sb.Append(")options)");
         }
         else
         {
@@ -82,6 +79,7 @@ public partial class TypeMapGenerator
         var csvOptionsSymbol = _symbols.GetCsvOptionsType(typeMap.TokenSymbol);
         var explicitOptionsSymbol = _symbols.GetExplicitOptionsType(typeMap.TokenSymbol);
         bool foundExplicit = false;
+        bool foundInstance = false;
 
         foreach (var member in parser.GetMembers())
         {
@@ -105,6 +103,14 @@ public partial class TypeMapGenerator
                     foundArgs = "";
                 }
             }
+            else if (member.IsStatic
+                && member.Name == "Instance"
+                && member.CanBeReferencedByName
+                && member.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal
+                && member.Kind is SymbolKind.Field or SymbolKind.Property)
+            {
+                foundInstance |= true;
+            }
         }
 
         // if no CsvOptions<T> constructor found, use CsvTextOptions or CsvUtf8Options with cast
@@ -113,14 +119,22 @@ public partial class TypeMapGenerator
             foundArgs = $"({explicitOptionsSymbol.ToDisplayString()})options";
         }
 
-        if (foundArgs is null)
+        if (foundArgs is null && !foundInstance)
             typeMap.Fail(Diagnostics.NoCsvFactoryConstructorFound(parser));
 
-        sb.Append("new ");
-        sb.Append(parser.ToDisplayString());
-        sb.Append('(');
-        sb.Append(foundArgs);
-        sb.Append(')');
+        if (string.IsNullOrEmpty(foundArgs) && foundInstance)
+        {
+            sb.Append(parser.ToDisplayString());
+            sb.Append(".Instance");
+        }
+        else
+        {
+            sb.Append("new ");
+            sb.Append(parser.ToDisplayString());
+            sb.Append('(');
+            sb.Append(foundArgs);
+            sb.Append(')');
+        }
 
         if (parser.Inherits(converterFactorySymbol))
         {
