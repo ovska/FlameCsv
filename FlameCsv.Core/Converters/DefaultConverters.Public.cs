@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using CommunityToolkit.HighPerformance.Buffers;
 
 namespace FlameCsv.Converters;
 
@@ -33,19 +34,23 @@ static partial class DefaultConverters
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static CsvConverter<char, string> CreateString(CsvTextOptions options)
     {
-        return options.StringPool is { } pool ? new PoolingStringTextConverter(pool) : StringTextConverter.Instance;
+        return options.StringPool is { } pool
+            ? pool == StringPool.Shared ? PoolingStringTextConverter.SharedInstance : new PoolingStringTextConverter(pool)
+            : StringTextConverter.Instance;
     }
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static CsvConverter<byte, string> CreateString(CsvUtf8Options options)
     {
-        return options.StringPool is { } pool ? new PoolingStringUtf8Converter(pool) : StringUtf8Converter.Instance;
+        return options.StringPool is { } pool
+            ? pool == StringPool.Shared ? PoolingStringUtf8Converter.SharedInstance : new PoolingStringUtf8Converter(pool)
+            : StringUtf8Converter.Instance;
     }
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static CsvConverter<char, bool> CreateBoolean(CsvTextOptions options)
     {
-        return options._booleanValues is {  Count: > 0} values ? new CustomBooleanTextConverter(values) : BooleanTextConverter.Instance;
+        return options._booleanValues is { Count: > 0 } values ? new CustomBooleanTextConverter(values) : BooleanTextConverter.Instance;
     }
 
     [EditorBrowsable(EditorBrowsableState.Never)]
