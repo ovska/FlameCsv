@@ -97,7 +97,7 @@ public partial class TypeMapGenerator
 
         sb.Append(@"        }
 
-        private struct TypeMapMaterializer : IMaterializer<");
+        private sealed class TypeMapMaterializer : IMaterializer<");
         sb.Append(typeMap.Token);
         sb.Append(", ");
         sb.Append(typeMap.ResultName);
@@ -136,7 +136,7 @@ public partial class TypeMapGenerator
         sb.Append(typeMap.Token);
         sb.Append(@"> field))
                 {
-                    if (Handlers[index++](ref this, ref state, field))
+                    if (Handlers[index++](this, ref state, field))
                     {
                         continue;
                     }
@@ -423,11 +423,6 @@ public partial class TypeMapGenerator
         });
 
         var converterFactorySymbol = _symbols.CsvConverterFactory.ConstructedFrom.Construct(typeMap.TokenSymbol);
-
-        foreach (var x in typeMap.Type.GetAttributes())
-        {
-            sb.AppendLine($"/* {x.AttributeClass?.MetadataName} */");
-        }
 
         HashSet<string> writtenNames = [];
 

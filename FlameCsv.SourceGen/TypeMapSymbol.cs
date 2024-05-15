@@ -1,5 +1,4 @@
 ﻿using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace FlameCsv.SourceGen;
 
@@ -46,78 +45,42 @@ internal readonly struct TypeMapSymbol
 
     public TypeMapSymbol(
         INamedTypeSymbol containingClass,
-        AttributeSyntax csvTypeMapAttribute,
-        INamedTypeSymbol attributeSymbol,
+        AttributeData attribute,
         SourceProductionContext context)
     {
         ContainingClass = containingClass;
-        TokenSymbol = attributeSymbol.TypeArguments[0];
-        Type = attributeSymbol.TypeArguments[1];
+        TokenSymbol = attribute.AttributeClass!.TypeArguments[0];
+        Type = attribute.AttributeClass!.TypeArguments[1];
         Context = context;
         Token = TokenSymbol.ToDisplayString();
         ResultName = Type.ToDisplayString();
-        ParseHandlerArgs = $"(ref TypeMapMaterializer materializer, ref ParseState state, ReadOnlySpan<{Token}> field)";
+        ParseHandlerArgs = $"(TypeMapMaterializer materializer, ref ParseState state, ReadOnlySpan<{Token}> field)";
         UseBuiltinConverters = true;
 
-        if (csvTypeMapAttribute.ArgumentList is { } arguments)
+        foreach (var kvp in attribute.NamedArguments)
         {
-            foreach (var arg in arguments.Arguments)
+            string propertyName = kvp.Key;
+            object? value = kvp.Value.Value;
+
+            if (propertyName.Equals("IgnoreUnmatched", StringComparison.Ordinal))
             {
-                NameEqualsSyntax? propertyNameNode = null;
-                SyntaxNode? propertyValueNode = null;
-
-                using (var enumerator = arg.ChildNodes().GetEnumerator())
+                IgnoreUnmatched = value is true;
+            }
+            else if (propertyName.Equals("ThrowOnDuplicate", StringComparison.Ordinal))
+            {
+                ThrowOnDuplicate = value is true;
+            }
+            else if (propertyName.Equals("UseBuiltinConverters", StringComparison.Ordinal))
+            {
+                UseBuiltinConverters = value is not false;
+            }
+            else if (propertyName.Equals("Scope", StringComparison.Ordinal))
+            {
+                Scope = value switch
                 {
-                    if (enumerator.MoveNext())
-                        propertyNameNode = enumerator.Current as NameEqualsSyntax;
-
-                    if (enumerator.MoveNext())
-                        propertyValueNode = enumerator.Current;
-                }
-
-                if (propertyNameNode is null || propertyValueNode is null)
-                    continue;
-
-                string propertyName = propertyNameNode.Name.Identifier.ValueText;
-
-                if (propertyName.Equals("IgnoreUnmatched", StringComparison.Ordinal))
-                {
-                    IgnoreUnmatched = propertyValueNode.IsKind(SyntaxKind.TrueLiteralExpression);
-                }
-                else if (propertyName.Equals("ThrowOnDuplicate", StringComparison.Ordinal))
-                {
-                    ThrowOnDuplicate = propertyValueNode.IsKind(SyntaxKind.TrueLiteralExpression);
-                }
-                else if (propertyName.Equals("UseBuiltinConverters", StringComparison.Ordinal))
-                {
-                    UseBuiltinConverters = !propertyValueNode.IsKind(SyntaxKind.FalseLiteralExpression);
-                }
-                else if (propertyName.Equals("Scope", StringComparison.Ordinal))
-                {
-                    if (propertyValueNode.IsKind(SyntaxKind.DefaultLiteralExpression))
-                    {
-                        Scope = default;
-                    }
-                    else if (propertyValueNode is MemberAccessExpressionSyntax
-                    {
-                        Expression: IdentifierNameSyntax { Identifier.ValueText: "CsvBindingScope" }
-                    } maes)
-                    {
-                        Scope = maes.Name.Identifier.ValueText.AsSpan().Trim() switch
-                        {
-                            "All" => BindingScope.All,
-                            "Read" => BindingScope.Read,
-                            "Write" => BindingScope.Write,
-                            _ => throw new NotSupportedException(
-                                    "Unrecognized binding scope: " + propertyValueNode.ToFullString()),
-                        };
-                    }
-                    else
-                    {
-                        throw new NotSupportedException(
-                            $"Unsupported assignment to \"Scope\": {propertyValueNode.ToFullString()}");
-                    }
-                }
+                    BindingScope bs => bs,
+                    _ => throw new NotSupportedException("Unrecognized binding scope: " + kvp.Value.ToCSharpString()),
+                };
             }
         }
     }
