@@ -97,7 +97,7 @@ public partial class TypeMapGenerator
 
         private static Location? GetLocation(ISymbol symbol)
         {
-            return symbol.Locations.Length == 0 ? null : symbol.Locations[0];
+            return symbol.Locations.IsDefaultOrEmpty ? null : symbol.Locations[0];
         }
     }
 }

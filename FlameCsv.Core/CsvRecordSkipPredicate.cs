@@ -22,7 +22,7 @@ public readonly struct CsvRecordSkipArgs<T> where T : unmanaged, IEquatable<T>
     public int Line { get; init; }
 
     /// <summary>
-    /// Whether a header has been read yet.
+    /// Whether a header has been read yet. Always returns false when reading CSV without a header record.
     /// </summary>
     public bool HeaderRead { get; init; }
 }
