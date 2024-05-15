@@ -4,7 +4,7 @@ public partial class TypeMapGenerator
 {
     private void ResolveConverter(
         StringBuilder sb,
-        in TypeMapSymbol typeMap,
+        ref readonly TypeMapSymbol typeMap,
         ISymbol propertyOrField,
         ITypeSymbol type,
         INamedTypeSymbol converterFactorySymbol)
@@ -13,7 +13,7 @@ public partial class TypeMapGenerator
         {
             if (attributeData.AttributeClass is { IsGenericType: true } attribute &&
                 SymbolEqualityComparer.Default.Equals(typeMap.TokenSymbol, attribute.TypeArguments[0]) &&
-                SymbolEqualityComparer.Default.Equals(attribute.ConstructUnboundGenericType(), _symbols.CsvConverterOfTAttribute))
+                SymbolEqualityComparer.Default.Equals(attribute.ConstructUnboundGenericType(), typeMap.Symbols.CsvConverterOfTAttribute))
             {
                 ResolveExplicitConverter(
                     in typeMap,
@@ -44,8 +44,8 @@ public partial class TypeMapGenerator
         }
 
         if (typeMap.UseBuiltinConverters &&
-            _symbols.GetExplicitOptionsType(typeMap.TokenSymbol) is { } optionsSymbol &&
-            IsDefaultConverterSupported(type, out string defaultName))
+            typeMap.Symbols.GetExplicitOptionsType(typeMap.TokenSymbol) is { } optionsSymbol &&
+            IsDefaultConverterSupported(in typeMap.Symbols, type, out string defaultName))
         {
             sb.Append("FlameCsv.Converters.DefaultConverters.Create");
             sb.Append(defaultName);
@@ -69,15 +69,15 @@ public partial class TypeMapGenerator
     }
 
     private void ResolveExplicitConverter(
-        in TypeMapSymbol typeMap,
+        ref readonly TypeMapSymbol typeMap,
         StringBuilder sb,
         ITypeSymbol memberType,
         ITypeSymbol parser,
         INamedTypeSymbol converterFactorySymbol)
     {
         string? foundArgs = null;
-        var csvOptionsSymbol = _symbols.GetCsvOptionsType(typeMap.TokenSymbol);
-        var explicitOptionsSymbol = _symbols.GetExplicitOptionsType(typeMap.TokenSymbol);
+        var csvOptionsSymbol = typeMap.Symbols.GetCsvOptionsType(typeMap.TokenSymbol);
+        var explicitOptionsSymbol = typeMap.Symbols.GetExplicitOptionsType(typeMap.TokenSymbol);
         bool foundExplicit = false;
         bool foundInstance = false;
 
@@ -144,7 +144,7 @@ public partial class TypeMapGenerator
         }
     }
 
-    private bool IsDefaultConverterSupported(ITypeSymbol type, out string name)
+    private bool IsDefaultConverterSupported(in KnownSymbols symbols, ITypeSymbol  type, out string name)
     {
         switch (type.SpecialType)
         {
@@ -174,10 +174,10 @@ public partial class TypeMapGenerator
             return true;
         }
 
-        if ((type.Name == "DateTime" && SymbolEqualityComparer.Default.Equals(type, _symbols.SystemDateTime)) ||
-            (type.Name == "DateTimeOffset" && SymbolEqualityComparer.Default.Equals(type, _symbols.SystemDateTimeOffset)) ||
-            (type.Name == "TimeSpan" && SymbolEqualityComparer.Default.Equals(type, _symbols.SystemTimeSpan)) ||
-            (type.Name == "Guid" && SymbolEqualityComparer.Default.Equals(type, _symbols.SystemGuid)))
+        if ((type.Name == "DateTime" && SymbolEqualityComparer.Default.Equals(type, symbols.SystemDateTime)) ||
+            (type.Name == "DateTimeOffset" && SymbolEqualityComparer.Default.Equals(type, symbols.SystemDateTimeOffset)) ||
+            (type.Name == "TimeSpan" && SymbolEqualityComparer.Default.Equals(type, symbols.SystemTimeSpan)) ||
+            (type.Name == "Guid" && SymbolEqualityComparer.Default.Equals(type, symbols.SystemGuid)))
         {
             name = type.Name;
             return true;

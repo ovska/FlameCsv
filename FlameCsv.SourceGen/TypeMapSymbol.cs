@@ -1,8 +1,9 @@
-﻿using Microsoft.CodeAnalysis.CSharp;
+﻿using FlameCsv.SourceGen.Bindings;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace FlameCsv.SourceGen;
 
-internal readonly struct TypeMapSymbol
+internal readonly partial struct TypeMapSymbol
 {
     /// <summary>
     /// Class annotated with the CsvTypeMapAttribute<>
@@ -38,16 +39,22 @@ internal readonly struct TypeMapSymbol
 
     public bool UseBuiltinConverters { get; }
 
+    public readonly KnownSymbols Symbols;
+
+    private readonly Lazy<TypeBindings> _typeBindings;
+
     /// <summary>
     /// Whether to skip checking for a valid constructor (only used for writing).
     /// </summary>
     public bool SkipConstructor => Scope == BindingScope.Write;
 
     public TypeMapSymbol(
+        Compilation compilation,
         INamedTypeSymbol containingClass,
         AttributeData attribute,
         SourceProductionContext context)
     {
+        Symbols = new KnownSymbols(compilation);
         ContainingClass = containingClass;
         TokenSymbol = attribute.AttributeClass!.TypeArguments[0];
         Type = attribute.AttributeClass!.TypeArguments[1];
@@ -56,6 +63,8 @@ internal readonly struct TypeMapSymbol
         ResultName = Type.ToDisplayString();
         ParseHandlerArgs = $"(TypeMapMaterializer materializer, ref ParseState state, ReadOnlySpan<{Token}> field)";
         UseBuiltinConverters = true;
+
+        _typeBindings = new(ResolveMembers);
 
         foreach (var kvp in attribute.NamedArguments)
         {

@@ -2,7 +2,7 @@
 
 public partial class TypeMapGenerator
 {
-    private void GetWriteCode(StringBuilder sb, in TypeMapSymbol typeMap)
+    private void GetWriteCode(StringBuilder sb, ref readonly TypeMapSymbol typeMap)
     {
         if (typeMap.Scope == BindingScope.Read)
             return;
@@ -22,9 +22,9 @@ public partial class TypeMapGenerator
             return new Dematerializer
             {");
 
-        var converterFactorySymbol = _symbols.CsvConverterFactory.ConstructedFrom.Construct(typeMap.TokenSymbol);
+        var converterFactorySymbol = typeMap.Symbols.CsvConverterFactory.ConstructedFrom.Construct(typeMap.TokenSymbol);
 
-        foreach (var binding in _bindings.Members)
+        foreach (var binding in typeMap.Bindings.Members)
         {
             sb.Append(@"
                 ");
@@ -45,7 +45,7 @@ public partial class TypeMapGenerator
         sb.Append(@">
         {");
 
-        foreach (var binding in _bindings.Members)
+        foreach (var binding in typeMap.Bindings.Members)
         {
             sb.Append(@"
             public required CsvConverter<");
@@ -68,9 +68,9 @@ public partial class TypeMapGenerator
         sb.Append(@">
             {");
 
-        for (int i = 0; i < _bindings.Members.Length; i++)
+        for (int i = 0; i < typeMap.Bindings.Members.Length; i++)
         {
-            var binding = _bindings.Members[i];
+            var binding = typeMap.Bindings.Members[i];
             sb.Append(@"
                 writer.WriteField(");
             sb.Append(binding.ConverterId);
@@ -88,7 +88,7 @@ public partial class TypeMapGenerator
 
             sb.Append(binding.Name);
 
-            if (i < _bindings.Members.Length - 1)
+            if (i < typeMap.Bindings.Members.Length - 1)
             {
                 sb.Append(@");
                 writer.WriteDelimiter();");
@@ -110,14 +110,14 @@ public partial class TypeMapGenerator
         sb.Append(@">
             {");
 
-        for (int i = 0; i < _bindings.Members.Length; i++)
+        for (int i = 0; i < typeMap.Bindings.Members.Length; i++)
         {
-            var binding = _bindings.Members[i];
+            var binding = typeMap.Bindings.Members[i];
             sb.Append(@"
                 writer.WriteText(");
             sb.Append(binding.Name.ToStringLiteral());
 
-            if (i < _bindings.Members.Length - 1)
+            if (i < typeMap.Bindings.Members.Length - 1)
             {
                 sb.Append(@");
                 writer.WriteDelimiter();");

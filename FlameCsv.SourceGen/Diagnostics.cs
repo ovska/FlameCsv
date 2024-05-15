@@ -1,8 +1,6 @@
 ﻿namespace FlameCsv.SourceGen;
 
-public partial class TypeMapGenerator
-{
-    private static class Diagnostics
+    public static class Diagnostics
     {
         private static readonly DiagnosticDescriptor _noCtor = new(
             id: "FLAMESG001",
@@ -100,4 +98,3 @@ public partial class TypeMapGenerator
             return symbol.Locations.IsDefaultOrEmpty ? null : symbol.Locations[0];
         }
     }
-}
