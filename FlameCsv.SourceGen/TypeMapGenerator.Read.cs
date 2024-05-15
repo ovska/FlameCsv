@@ -6,7 +6,7 @@ public partial class TypeMapGenerator
 {
     private void GetReadCode(
         StringBuilder sb,
-        in TypeMapSymbol typeMap)
+        ref readonly TypeMapSymbol typeMap)
     {
         if (typeMap.Scope == BindingScope.Write)
             return;
@@ -58,7 +58,7 @@ public partial class TypeMapGenerator
                 ThrowNoFieldsBound(headers, options);
 ");
 
-        WriteRequiredCheck(sb);
+        WriteRequiredCheck(in typeMap, sb);
 
         sb.Append(@"
             return materializer;
@@ -77,7 +77,7 @@ public partial class TypeMapGenerator
         }
 """);
 
-        WriteMissingRequiredFields(sb);
+        WriteMissingRequiredFields(in typeMap, sb);
 
         sb.Append(@"
 
@@ -85,7 +85,7 @@ public partial class TypeMapGenerator
         {
 ");
 
-        foreach (var binding in _bindings.AllBindings)
+        foreach (var binding in typeMap.Bindings.AllBindings)
         {
             sb.Append("            public ");
             sb.Append(binding.Type.ToDisplayString());
@@ -104,7 +104,7 @@ public partial class TypeMapGenerator
         sb.Append(@">
         {");
 
-        foreach (var binding in _bindings.AllBindings)
+        foreach (var binding in typeMap.Bindings.AllBindings)
             WriteParserMember(sb, in typeMap, binding);
 
         sb.Append(@"
@@ -163,13 +163,13 @@ public partial class TypeMapGenerator
         WriteParserHandlers(sb, in typeMap);
     }
 
-    private void WriteDefaultParameterValues(StringBuilder sb, in TypeMapSymbol typeMap)
+    private void WriteDefaultParameterValues(StringBuilder sb, ref readonly TypeMapSymbol typeMap)
     {
         typeMap.ThrowIfCancellationRequested();
 
         bool commentWritten = false;
 
-        foreach (var binding in _bindings.Parameters)
+        foreach (var binding in typeMap.Bindings.Parameters)
         {
             // Don't write common default values
             if (binding.IsRequired ||
@@ -205,15 +205,15 @@ public partial class TypeMapGenerator
         }
     }
 
-    private void WriteSetters(StringBuilder sb, in TypeMapSymbol typeMap)
+    private void WriteSetters(StringBuilder sb, ref readonly TypeMapSymbol typeMap)
     {
         typeMap.ThrowIfCancellationRequested();
 
         sb.Append('(');
 
-        if (_bindings.Parameters.Length != 0)
+        if (typeMap.Bindings.Parameters.Length != 0)
         {
-            foreach (var binding in _bindings.Parameters)
+            foreach (var binding in typeMap.Bindings.Parameters)
             {
                 sb.Append(@"
                     ");
@@ -227,7 +227,7 @@ public partial class TypeMapGenerator
 
                 sb.Append("state.");
                 sb.Append(binding.Name);
-                if (_symbols.Nullable)
+                if (typeMap.Symbols.Nullable)
                     sb.Append('!');
                 sb.Append(",");
             }
@@ -237,19 +237,19 @@ public partial class TypeMapGenerator
 
         sb.Append(')');
 
-        if (_bindings.RequiredMembers.Length != 0)
+        if (typeMap.Bindings.RequiredMembers.Length != 0)
         {
             sb.Append(@"
                 {
                 ");
 
-            foreach (var binding in _bindings.RequiredMembers)
+            foreach (var binding in typeMap.Bindings.RequiredMembers)
             {
                 sb.Append("    ");
                 sb.Append(binding.Name);
                 sb.Append(" = state.");
                 sb.Append(binding.Name);
-                if (_symbols.Nullable)
+                if (typeMap.Symbols.Nullable)
                     sb.Append('!');
                 sb.Append(@",
                 ");
@@ -261,7 +261,7 @@ public partial class TypeMapGenerator
         sb.Append(@";
 ");
 
-        foreach (var binding in _bindings.Members.OrderBy(b => b.IsRequired))
+        foreach (var binding in typeMap.Bindings.Members.OrderBy(b => b.IsRequired))
         {
             if (binding.IsRequired)
                 continue; // already handled
@@ -284,7 +284,7 @@ public partial class TypeMapGenerator
             sb.Append(binding.Name);
             sb.Append(" = state.");
             sb.Append(binding.Name);
-            if (_symbols.Nullable)
+            if (typeMap.Symbols.Nullable)
                 sb.Append('!');
             sb.Append(@";
 ");
@@ -293,9 +293,11 @@ public partial class TypeMapGenerator
         sb.Length--;
     }
 
-    private void WriteRequiredCheck(StringBuilder sb)
+    private void WriteRequiredCheck(
+        ref readonly TypeMapSymbol typeMap,
+        StringBuilder sb)
     {
-        if (_bindings.RequiredBindings.Length == 0)
+        if (typeMap.Bindings.RequiredBindings.Length == 0)
         {
             sb.Append(@"
             // No check for required members, the type has none.
@@ -306,7 +308,7 @@ public partial class TypeMapGenerator
         sb.Append(@"
             if (");
 
-        for (int i = 0; i < _bindings.RequiredBindings.Length; i++)
+        for (int i = 0; i < typeMap.Bindings.RequiredBindings.Length; i++)
         {
             if (i != 0)
             {
@@ -315,7 +317,7 @@ public partial class TypeMapGenerator
             }
 
             sb.Append("materializer.");
-            sb.Append(_bindings.RequiredBindings[i].ConverterId);
+            sb.Append(typeMap.Bindings.RequiredBindings[i].ConverterId);
             sb.Append(" == null");
         }
 
@@ -324,9 +326,9 @@ public partial class TypeMapGenerator
 ");
     }
 
-    private void WriteMissingRequiredFields(StringBuilder sb)
+    private void WriteMissingRequiredFields(ref readonly TypeMapSymbol typeMap, StringBuilder sb)
     {
-        if (_bindings.RequiredBindings.Length == 0)
+        if (typeMap.Bindings.RequiredBindings.Length == 0)
             return;
 
         sb.Append(@"
@@ -334,7 +336,7 @@ public partial class TypeMapGenerator
         private static IEnumerable<string> GetMissingRequiredFields(TypeMapMaterializer materializer)
         {");
 
-        foreach (var b in _bindings.RequiredBindings)
+        foreach (var b in typeMap.Bindings.RequiredBindings)
         {
             sb.Append($@"
             if (materializer.{b.ConverterId} == null) yield return {b.Name.ToStringLiteral()};");
@@ -344,7 +346,7 @@ public partial class TypeMapGenerator
         }");
     }
 
-    private void WriteParserMember(StringBuilder sb, in TypeMapSymbol typeMap, IBinding binding)
+    private void WriteParserMember(StringBuilder sb, ref readonly TypeMapSymbol typeMap, IBinding binding)
     {
         typeMap.ThrowIfCancellationRequested();
 
@@ -353,20 +355,20 @@ public partial class TypeMapGenerator
         sb.Append(typeMap.Token);
         sb.Append(", ");
         sb.Append(binding.Type.ToDisplayString());
-        sb.Append(_symbols.Nullable ? ">? " : "> ");
+        sb.Append(typeMap.Symbols.Nullable ? ">? " : "> ");
         sb.Append(binding.ConverterId);
         sb.Append(';');
     }
 
     private void WriteParserHandlers(
         StringBuilder sb,
-        in TypeMapSymbol typeMap)
+        ref readonly TypeMapSymbol typeMap)
     {
         typeMap.ThrowIfCancellationRequested();
 
         bool first = true;
 
-        foreach (var binding in _bindings.AllBindings)
+        foreach (var binding in typeMap.Bindings.AllBindings)
         {
             if (!first)
             {
@@ -375,7 +377,7 @@ public partial class TypeMapGenerator
             }
             else
             {
-                if (_symbols.Nullable)
+                if (typeMap.Symbols.Nullable)
                 {
                     sb.Append(@"#nullable disable
         ");
@@ -395,16 +397,16 @@ public partial class TypeMapGenerator
             first = false;
         }
 
-        if (_symbols.Nullable)
+        if (typeMap.Symbols.Nullable)
         {
             sb.Append(@"
         #nullable enable");
         }
     }
 
-    private void WriteMatchers(StringBuilder sb, in TypeMapSymbol typeMap)
+    private void WriteMatchers(StringBuilder sb, ref readonly TypeMapSymbol typeMap)
     {
-        var allBindingsSorted = _bindings.AllBindings.ToArray();
+        var allBindingsSorted = typeMap.Bindings.AllBindings.ToArray();
 
         Array.Sort(allBindingsSorted, (b1, b2) =>
         {
@@ -422,7 +424,7 @@ public partial class TypeMapGenerator
             }
         });
 
-        var converterFactorySymbol = _symbols.CsvConverterFactory.ConstructedFrom.Construct(typeMap.TokenSymbol);
+        var converterFactorySymbol = typeMap.Symbols.CsvConverterFactory.ConstructedFrom.Construct(typeMap.TokenSymbol);
 
         HashSet<string> writtenNames = [];
 
@@ -452,7 +454,7 @@ public partial class TypeMapGenerator
 
             foreach (var attribute in typeMap.Type.GetAttributes())
             {
-                if (SymbolEqualityComparer.Default.Equals(_symbols.CsvHeaderTargetAttribute, attribute.AttributeClass)
+                if (SymbolEqualityComparer.Default.Equals(typeMap.Symbols.CsvHeaderTargetAttribute, attribute.AttributeClass)
                     && binding.Name.Equals(attribute.ConstructorArguments[0].Value as string))
                 {
                     foreach (var value in attribute.ConstructorArguments[1].Values)
