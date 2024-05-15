@@ -25,13 +25,13 @@ partial struct TypeMapSymbol
                 continue;
 
             // TODO: write only
-            if (member is IPropertySymbol property && property.ValidForReading(in Symbols))
+            if (member is IPropertySymbol property && property.ValidFor(in this))
             {
                 var meta = new SymbolMetadata(property, in Symbols);
                 members.Add(new MemberBinding(member, property.Type, in meta));
 
             }
-            else if (member is IFieldSymbol field && field.ValidForReading(in Symbols))
+            else if (member is IFieldSymbol field && field.ValidFor(in this))
             {
                 var meta = new SymbolMetadata(field, in Symbols);
                 members.Add(new MemberBinding(member, field.Type, in meta));

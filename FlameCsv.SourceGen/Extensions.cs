@@ -139,21 +139,37 @@ internal static class Extensions
         }
     }
 
-    public static bool ValidForReading(this IFieldSymbol f, in KnownSymbols knownSymbols)
+    public static bool ValidFor(this IFieldSymbol f, ref readonly TypeMapSymbol typeMap)
     {
-        return f.CanBeReferencedByName
-            && !f.IsStatic
-            && !f.IsReadOnly
-            && !f.HasAttribute(knownSymbols.CsvHeaderIgnoreAttribute);
+        if (!f.CanBeReferencedByName ||
+            f.IsStatic ||
+            f.RefKind != RefKind.None ||
+            f.HasAttribute(typeMap.Symbols.CsvHeaderIgnoreAttribute))
+        {
+            return false;
+        }
+
+        // either field must be writable, or we are generating writing code too
+        return typeMap.Scope != BindingScope.Read || (!f.IsReadOnly && !f.IsConst);
     }
 
-    public static bool ValidForReading(this IPropertySymbol p, in KnownSymbols knownSymbols)
+    public static bool ValidFor(this IPropertySymbol p, ref readonly TypeMapSymbol typeMap)
     {
-        return p.CanBeReferencedByName
-            && !p.IsStatic
-            && !p.IsReadOnly
-            && !p.IsIndexer
-            && !p.HasAttribute(knownSymbols.CsvHeaderIgnoreAttribute);
+        if (!p.CanBeReferencedByName ||
+            p.IsStatic ||
+            p.IsIndexer ||
+            p.RefKind != RefKind.None ||
+            p.HasAttribute(typeMap.Symbols.CsvHeaderIgnoreAttribute))
+        {
+            return false;
+        }
+
+        return typeMap.Scope switch
+        {
+            BindingScope.Read => !p.IsReadOnly, // only reading code, must be writable
+            BindingScope.Write => !p.IsWriteOnly, // only writing code, must be readable
+            _ => true,
+        };
     }
 
     public static bool HasAttribute(this ISymbol symbol, INamedTypeSymbol attribute)
