@@ -1,5 +1,4 @@
-﻿using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using FlameCsv.Binding;
 using FlameCsv.Converters;
@@ -301,13 +300,9 @@ public class CsvTextOptions : CsvOptions<char>
         return Null.AsMemory();
     }
 
-    public override void WriteText<TWriter>(TWriter writer, ReadOnlySpan<char> value)
+    public override bool TryWriteChars(ReadOnlySpan<char> value, Span<char> destination, out int charsWritten)
     {
-        if (!value.IsEmpty)
-        {
-            value.CopyTo(writer.GetSpan(value.Length));
-            writer.Advance(value.Length);
-        }
+        return value.TryWriteTo(destination, out charsWritten);
     }
 
     public override bool TryGetChars(ReadOnlySpan<char> field, Span<char> destination, out int charsWritten)
