@@ -4,7 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using FlameCsv.Binding;
 using FlameCsv.Converters;
-using FlameCsv.Extensions;
 using FlameCsv.Utilities;
 
 namespace FlameCsv;

@@ -10,10 +10,9 @@ var config = DefaultConfig.Instance
     //    .WithEnvironmentVariable("DOTNET_EnableAVX512F", "0")
     //    .AsBaseline())
     .AddJob(Job.Default
-        .WithStrategy(RunStrategy.Throughput)
-        .WithId("Vectorized"));
+        .WithStrategy(RunStrategy.Throughput));
 
-BenchmarkRunner.Run<LineBench>(config);
+BenchmarkRunner.Run<WriteBench>(config);
 
 //var bb = new BindingBench();
 

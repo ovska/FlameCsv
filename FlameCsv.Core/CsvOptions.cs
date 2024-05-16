@@ -210,12 +210,12 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     }
 
     /// <summary>
-    /// Whether to ensure that all records have the same number of fields. The first non-skipped row of the CSV
+    /// Whether to ensure that all records have the same number of fields. The first read or written CSV recoird
     /// is used as the source of truth for the record count, regardless of whether it was a header record or not.
     /// Object parsing always validates the field count. Default is <see langword="false"/>.
     /// </summary>
     /// <remarks>
-    /// Causes <see cref="CsvValueRecord{T}"/> instances to eagerly read the whole record when they are initialized.
+    /// Example: reading/writing a header with 5 fields ensures that every record read/written afterwards has exactly 5 fields.
     /// </remarks>
     public bool ValidateFieldCount
     {

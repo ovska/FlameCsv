@@ -83,6 +83,7 @@ internal readonly struct CsvCharBufferWriter : ICsvBufferWriter<char>
         _state.Unflushed += length;
     }
 
+    [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))]
     public async ValueTask FlushAsync(CancellationToken cancellationToken = default)
     {
         if (_state.HasUnflushedData)

@@ -57,6 +57,8 @@ internal abstract partial class Dematerializer<T>
 internal sealed class Dematerializer<T, T0, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IEquatable<T>
 {
+    public int FieldCount => 1;
+
     public Dematerializer(
         CsvBindingCollection<TValue> bindings,
         CsvOptions<T> options,
@@ -81,6 +83,8 @@ internal sealed class Dematerializer<T, T0, TValue>
 internal sealed class Dematerializer<T, T0, T1, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IEquatable<T>
 {
+    public int FieldCount => 2;
+
     public Dematerializer(
         CsvBindingCollection<TValue> bindings,
         CsvOptions<T> options,
@@ -112,6 +116,8 @@ internal sealed class Dematerializer<T, T0, T1, TValue>
 internal sealed class Dematerializer<T, T0, T1, T2, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IEquatable<T>
 {
+    public int FieldCount => 3;
+
     public Dematerializer(
         CsvBindingCollection<TValue> bindings,
         CsvOptions<T> options,
@@ -150,6 +156,8 @@ internal sealed class Dematerializer<T, T0, T1, T2, TValue>
 internal sealed class Dematerializer<T, T0, T1, T2, T3, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IEquatable<T>
 {
+    public int FieldCount => 4;
+
     public Dematerializer(
         CsvBindingCollection<TValue> bindings,
         CsvOptions<T> options,
@@ -195,6 +203,8 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, TValue>
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IEquatable<T>
 {
+    public int FieldCount => 5;
+
     public Dematerializer(
         CsvBindingCollection<TValue> bindings,
         CsvOptions<T> options,
@@ -247,6 +257,8 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, TValue>
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IEquatable<T>
 {
+    public int FieldCount => 6;
+
     public Dematerializer(
         CsvBindingCollection<TValue> bindings,
         CsvOptions<T> options,
@@ -306,6 +318,8 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, TValue>
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IEquatable<T>
 {
+    public int FieldCount => 7;
+
     public Dematerializer(
         CsvBindingCollection<TValue> bindings,
         CsvOptions<T> options,
@@ -372,6 +386,8 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, TValue>
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IEquatable<T>
 {
+    public int FieldCount => 8;
+
     public Dematerializer(
         CsvBindingCollection<TValue> bindings,
         CsvOptions<T> options,
@@ -445,6 +461,8 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TValue>
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IEquatable<T>
 {
+    public int FieldCount => 9;
+
     public Dematerializer(
         CsvBindingCollection<TValue> bindings,
         CsvOptions<T> options,
@@ -525,6 +543,8 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TVal
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IEquatable<T>
 {
+    public int FieldCount => 10;
+
     public Dematerializer(
         CsvBindingCollection<TValue> bindings,
         CsvOptions<T> options,
@@ -612,6 +632,8 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IEquatable<T>
 {
+    public int FieldCount => 11;
+
     public Dematerializer(
         CsvBindingCollection<TValue> bindings,
         CsvOptions<T> options,
@@ -706,6 +728,8 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IEquatable<T>
 {
+    public int FieldCount => 12;
+
     public Dematerializer(
         CsvBindingCollection<TValue> bindings,
         CsvOptions<T> options,
@@ -807,6 +831,8 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IEquatable<T>
 {
+    public int FieldCount => 13;
+
     public Dematerializer(
         CsvBindingCollection<TValue> bindings,
         CsvOptions<T> options,
@@ -915,6 +941,8 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IEquatable<T>
 {
+    public int FieldCount => 14;
+
     public Dematerializer(
         CsvBindingCollection<TValue> bindings,
         CsvOptions<T> options,
@@ -1030,6 +1058,8 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IEquatable<T>
 {
+    public int FieldCount => 15;
+
     public Dematerializer(
         CsvBindingCollection<TValue> bindings,
         CsvOptions<T> options,
@@ -1152,6 +1182,8 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IEquatable<T>
 {
+    public int FieldCount => 16;
+
     public Dematerializer(
         CsvBindingCollection<TValue> bindings,
         CsvOptions<T> options,
