@@ -1,4 +1,5 @@
-﻿using System.Buffers;
+﻿using System;
+using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
@@ -79,11 +80,7 @@ public sealed class CsvFieldWriter<T, TWriter>
         _delimiter = options._delimiter;
         _quote = options._quote;
         _escape = options._escape;
-
-        var newline = options._newline.Span;
-        _newline1 = newline[0];
-        _newline2 = newline.Length == 1 ? default : newline[1];
-        _newlineLength = newline.Length;
+        options.GetNewline(out _newline1, out _newline2, out _newlineLength);
     }
 
     /// <summary>
@@ -117,6 +114,63 @@ public sealed class CsvFieldWriter<T, TWriter>
             ThrowForInvalidTokensWritten(converter, tokensWritten, destination.Length);
         }
 
+        AdvanceAndHandleQuoting(destination, tokensWritten);
+    }
+
+    /// <summary>
+    /// Writes the text to the writer.
+    /// </summary>
+    /// <param name="value">Text to write</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void WriteText(ReadOnlySpan<char> value)
+    {
+        int tokensWritten;
+        scoped Span<T> destination = _writer.GetSpan();
+
+        while (!_options.TryWriteChars(value, destination, out tokensWritten))
+        {
+            destination = _writer.GetSpan(destination.Length * 2);
+        }
+
+        // validate negative or too large tokensWritten in case of broken user-defined options
+        if ((uint)tokensWritten > (uint)destination.Length)
+        {
+            ThrowForInvalidTokensWritten(_options, tokensWritten, destination.Length);
+        }
+
+        AdvanceAndHandleQuoting(destination, tokensWritten);
+    }
+
+    /// <summary>
+    /// Writes <see cref="ICsvDialectOptions{T}.Delimiter"/> to the writer.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void WriteDelimiter()
+    {
+        Span<T> destination = _writer.GetSpan(1);
+        destination[0] = _delimiter;
+        _writer.Advance(1);
+    }
+
+    /// <summary>
+    /// Writes <see cref="ICsvDialectOptions{T}.Newline"/> to the writer.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void WriteNewline()
+    {
+        Span<T> destination = _writer.GetSpan(_newlineLength);
+        destination[0] = _newline1;
+
+        if (_newlineLength == 2)
+            destination[1] = _newline2;
+
+        _writer.Advance(_newlineLength);
+    }
+
+    private void AdvanceAndHandleQuoting(
+        scoped Span<T> destination,
+        int tokensWritten)
+    {
         // empty writes don't need escaping, like nulls or empty strings
         if (tokensWritten == 0)
         {
@@ -151,39 +205,6 @@ public sealed class CsvFieldWriter<T, TWriter>
 
         _writer.Advance(tokensWritten);
     }
-
-    /// <summary>
-    /// Writes <see cref="ICsvDialectOptions{T}.Delimiter"/> to the writer.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WriteDelimiter()
-    {
-        Span<T> destination = _writer.GetSpan(1);
-        destination[0] = _delimiter;
-        _writer.Advance(1);
-    }
-
-    /// <summary>
-    /// Writes <see cref="ICsvDialectOptions{T}.Newline"/> to the writer.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WriteNewline()
-    {
-        Span<T> destination = _writer.GetSpan(_newlineLength);
-        destination[0] = _newline1; 
-
-        if (_newlineLength == 2)
-            destination[1] = _newline2;
-
-        _writer.Advance(_newlineLength);
-    }
-
-    /// <summary>
-    /// Writes the text to the writer.
-    /// </summary>
-    /// <param name="value">Text to write</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WriteText(ReadOnlySpan<char> value) => _options.WriteText(_writer, value);
 
     /// <summary>
     /// Attempts to escape the value written in the first <paramref name="tokensWritten"/> characters
@@ -242,10 +263,11 @@ public sealed class CsvFieldWriter<T, TWriter>
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowForInvalidTokensWritten(CsvConverter<T> converter, int tokensWritten, int destinationLength)
+    private static void ThrowForInvalidTokensWritten(object culprit, int tokensWritten, int destinationLength)
     {
+        string display = culprit is CsvConverter<T> ? "CsvConverter" : "CsvOptions";
         throw new InvalidOperationException(
-            $"Converter ({converter.GetType().ToTypeString()}) reported {tokensWritten} " +
+            $"{display} ({culprit.GetType().ToTypeString()}) reported {tokensWritten} " +
             $"tokens written to a buffer of length {destinationLength}.");
     }
 }

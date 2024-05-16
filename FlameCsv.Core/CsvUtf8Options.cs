@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using FlameCsv.Binding;
 using FlameCsv.Converters;
+using FlameCsv.Extensions;
 using FlameCsv.Utilities;
 
 namespace FlameCsv;
@@ -217,14 +218,9 @@ public class CsvUtf8Options : CsvOptions<byte>
         return Null;
     }
 
-    public override void WriteText<TWriter>(TWriter writer, ReadOnlySpan<char> value)
+    public override bool TryWriteChars(ReadOnlySpan<char> value, Span<byte> destination, out int charsWritten)
     {
-        if (!value.IsEmpty)
-        {
-            Span<byte> destination = writer.GetSpan(Encoding.UTF8.GetMaxByteCount(value.Length));
-            int bytesWritten = Encoding.UTF8.GetBytes(value, destination);
-            writer.Advance(bytesWritten);
-        }
+        return Encoding.UTF8.TryGetBytes(value, destination, out charsWritten);
     }
 
     public override bool TryGetChars(ReadOnlySpan<byte> field, Span<char> destination, out int charsWritten)

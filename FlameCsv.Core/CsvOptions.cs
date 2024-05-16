@@ -99,11 +99,9 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     /// <summary>
     /// Writes the text to <paramref name="writer"/>.
     /// </summary>
-    /// <typeparam name="TWriter">Buffer writer type</typeparam>
-    /// <param name="writer">Buffer writer instance</param>
     /// <param name="value">Text to write</param>
     /// <seealso cref="GetAsString(ReadOnlySpan{T})"/>
-    public abstract void WriteText<TWriter>(TWriter writer, ReadOnlySpan<char> value) where TWriter : IBufferWriter<T>;
+    public abstract bool TryWriteChars(ReadOnlySpan<char> value, Span<T> destination, out int charsWritten);
 
     /// <summary>
     /// Returns the default parsers that are used to initialize <see cref="Converters"/> in derived types.

@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using FlameCsv.Binding;
 using FlameCsv.Extensions;
 using FlameCsv.Writing;
 
@@ -69,6 +70,19 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Should_Escape_Headers()
+    {
+        Initialize();
+
+        _writer.WriteText("header1");
+        _writer.WriteDelimiter();
+        _writer.WriteText("header,withcomma");
+        await _writer.Writer.CompleteAsync(null);
+
+        Assert.Equal("header1,\"header,withcomma\"", Written);
+    }
+
+    [Fact]
     public async Task Should_Write_Oversized_Value()
     {
         Initialize(quoting: CsvFieldEscaping.Never, bufferSize: 4);
@@ -110,6 +124,17 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
         var formatter = new BrokenFormatter { Write = tokensWritten };
 
         Assert.Throws<InvalidOperationException>(() => _writer.WriteField(formatter, ""));
+    }
+
+    [Theory, InlineData(-1), InlineData((int)short.MaxValue)]
+    public void Should_Guard_Against_Broken_Options(int tokensWritten)
+    {
+        var writer = CsvFieldWriter.Create(TextWriter.Null, new BrokenOptions
+        {
+            _delimiter = ',', _quote = '"', _newline = "\n".AsMemory(), Write = tokensWritten
+        });
+        Assert.Throws<InvalidOperationException>(() => writer.WriteText("test"));
+        writer.Writer.Complete(null);
     }
 
     [Theory]
@@ -175,5 +200,22 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
         {
             throw new NotImplementedException();
         }
+    }
+
+    private class BrokenOptions : CsvOptions<char>
+    {
+        public override bool TryWriteChars(ReadOnlySpan<char> value, Span<char> destination, out int charsWritten)
+        {
+            charsWritten = Write;
+            return true;
+        }
+
+        public int Write { get; set; }
+
+        public override string GetAsString(ReadOnlySpan<char> field) => throw new NotImplementedException();
+        public override IHeaderBinder<char> GetHeaderBinder() => throw new NotImplementedException();
+        public override ReadOnlyMemory<char> GetNullToken(Type resultType) => throw new NotImplementedException();
+        public override bool TryGetChars(ReadOnlySpan<char> field, Span<char> destination, out int charsWritten) => throw new NotImplementedException();
+        protected internal override bool TryGetDefaultConverter(Type type, [NotNullWhen(true)] out CsvConverter<char>? converter) => throw new NotImplementedException();
     }
 }
