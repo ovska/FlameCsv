@@ -7,3 +7,4 @@ csharp_style_implicit_object_creation_when_type_is_apparent = false
 
 # IDE0302: Simplify collection initialization
 dotnet_style_prefer_collection_expression = false
+dotnet_diagnostic.CA2007.severity = none

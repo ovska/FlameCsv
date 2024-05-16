@@ -24,11 +24,14 @@ public partial class TypeMapGenerator
 
         var converterFactorySymbol = typeMap.Symbols.CsvConverterFactory.ConstructedFrom.Construct(typeMap.TokenSymbol);
 
+        int bindingCount = 0;
+
         foreach (var binding in typeMap.Bindings.Members)
         {
             if (!binding.CanWrite)
                 continue;
 
+            bindingCount++;
             sb.Append(@"
                 ");
             sb.Append(binding.ConverterId);
@@ -48,7 +51,10 @@ public partial class TypeMapGenerator
         sb.Append(", ");
         sb.Append(typeMap.Type.ToDisplayString());
         sb.Append(@">
-        {");
+        {
+            public int FieldCount => ");
+        sb.Append(bindingCount);
+        sb.Append(';');
 
         foreach (var binding in typeMap.Bindings.Members)
         {

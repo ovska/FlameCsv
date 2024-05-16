@@ -74,6 +74,8 @@ internal abstract partial class Dematerializer<T>
 internal sealed class Dematerializer<T, <#= generics #>>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IEquatable<T>
 {
+    public int FieldCount => <#= current #>;
+
     public Dematerializer(
         CsvBindingCollection<TValue> bindings,
         CsvOptions<T> options<#

@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 
 namespace FlameCsv.Writing;
@@ -18,6 +19,7 @@ internal readonly struct UnixEscaper<T> : IEscaper<T> where T : unmanaged, IEqua
 
     public UnixEscaper(CsvOptions<T> options)
     {
+        Debug.Assert(options._escape.HasValue);
         _delimiter = options._delimiter;
         _quote = options._quote;
         _escape = options._escape.GetValueOrDefault();

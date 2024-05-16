@@ -50,10 +50,6 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Materializer.Generated.cs</LastGenOutput>
     </None>
-    <None Update="Runtime\WriteCallback.Generated.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>WriteCallback.Generated.cs</LastGenOutput>
-    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -76,11 +72,6 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Materializer.Generated.tt</DependentUpon>
       <DesignTime>True</DesignTime>
-    </Compile>
-    <Compile Update="Runtime\WriteCallback.Generated.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>WriteCallback.Generated.tt</DependentUpon>
     </Compile>
   </ItemGroup>
 
