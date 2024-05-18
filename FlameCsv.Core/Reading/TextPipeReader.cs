@@ -124,7 +124,7 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
     private TextSegment AllocateSegment()
     {
         TextSegment nextSegment = CreateSegmentUnsynchronized();
-        nextSegment.SetOwnedMemory(_arrayPool.Rent(_bufferSize));
+        nextSegment.SetOwnedMemory(_bufferSize);
         return nextSegment;
     }
 

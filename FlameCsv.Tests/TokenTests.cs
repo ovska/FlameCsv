@@ -9,10 +9,12 @@ public static class TokenTests
         Assert.True(Token<byte>.CanStackalloc(256));
         Assert.True(Token<byte>.CanStackalloc(512));
         Assert.False(Token<byte>.CanStackalloc(513));
+        Assert.False(Token<byte>.CanStackalloc(-1));
 
         Assert.True(Token<char>.CanStackalloc(0));
         Assert.True(Token<char>.CanStackalloc(256));
         Assert.False(Token<char>.CanStackalloc(257));
+        Assert.False(Token<char>.CanStackalloc(-1));
     }
 
     [Fact]
@@ -28,11 +30,5 @@ public static class TokenTests
 
         Assert.False(Token<long>.LargeObjectHeapAllocates(10_000));
         Assert.True(Token<long>.LargeObjectHeapAllocates(20_000));
-    }
-
-    [Fact]
-    public static void Should_Throw_UnsupportedEx()
-    {
-        Assert.Throws<NotSupportedException>(Token<int>.ThrowNotSupportedException);
     }
 }
