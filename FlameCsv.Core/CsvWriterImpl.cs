@@ -16,8 +16,8 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
     private readonly CsvOptions<T> _options;
     private readonly CsvFieldWriter<T, TWriter> _inner;
     private readonly bool _autoFlush;
-    private readonly Dictionary<object, object> _dematerializerCache = [];
 
+    private readonly Dictionary<object, object> _dematerializerCache = [];
     private object? _previousKey;
     private object? _previousValue;
 

@@ -5,6 +5,9 @@ using FlameCsv.Reading;
 
 namespace FlameCsv.Enumeration;
 
+/// <summary>
+/// Reads <typeparamref name="TValue"/> records from CSV. Used through <see cref="CsvReader"/>.
+/// </summary>
 public sealed class CsvValueAsyncEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TValue>, IAsyncEnumerator<TValue>
     where T : unmanaged, IEquatable<T>
 {
@@ -69,7 +72,7 @@ public sealed class CsvValueAsyncEnumerator<T, TValue> : CsvValueEnumeratorBase<
 
             var (sequence, readerCompleted) = await _reader.ReadAsync(_cancellationToken).ConfigureAwait(false);
 
-            _parser.Reset(sequence);
+            _parser.Reset(in sequence);
             _readerCompleted = readerCompleted;
 
             if (TryRead(isFinalBlock: false))

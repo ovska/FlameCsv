@@ -11,7 +11,7 @@ public readonly struct Utf8Char : IEquatable<Utf8Char>, IEquatable<char>, IEquat
 
     public Utf8Char(char value)
     {
-        if ((uint)value >= 128)
+        if (value >= 128)
             ThrowHelper.ThrowArgumentOutOfRangeException<char>(nameof(value), value, "Cannot convert char to UTF8 byte");
 
         _value = (byte)value;
@@ -19,6 +19,9 @@ public readonly struct Utf8Char : IEquatable<Utf8Char>, IEquatable<char>, IEquat
 
     public Utf8Char(byte value)
     {
+        if (value >= 128)
+            ThrowHelper.ThrowArgumentOutOfRangeException<char>(nameof(value), value, "Cannot convert char to UTF8 byte");
+
         _value = value;
     }
 

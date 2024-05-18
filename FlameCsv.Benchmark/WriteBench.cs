@@ -71,7 +71,7 @@ public partial class WriteBench
         {
             Obj? obj = _data[i];
             writer.WriteRecord(obj);
-            await writer.NextRecordAsync();
+            await writer.NextRecordAsync().ConfigureAwait(false);
 
             if (i % 10 == 9)
                 writer.Flush();
@@ -82,7 +82,7 @@ public partial class WriteBench
     public async Task Async_CsvHelper_RecordsMany()
     {
         using var writer = new CsvHelper.CsvWriter(TextWriter.Null, CultureInfo.InvariantCulture);
-        await writer.WriteRecordsAsync(_data);
+        await writer.WriteRecordsAsync(_data).ConfigureAwait(false);
     }
 
     [Benchmark]
@@ -106,7 +106,7 @@ public partial class WriteBench
             writer.NextRecord();
 
             if (i % 10 == 9)
-                await writer.FlushAsync();
+                await writer.FlushAsync().ConfigureAwait(false);
         }
     }
 
@@ -140,7 +140,7 @@ public partial class WriteBench
         await writer.WriteHeaderAsync<Obj>();
 
         foreach (var obj in _data)
-            await writer.WriteRecordAsync(obj);
+            await writer.WriteRecordAsync(obj).ConfigureAwait(false);
     }
 
     [Benchmark]
@@ -148,10 +148,10 @@ public partial class WriteBench
     {
         using var writer = CsvWriter.Create(TextWriter.Null, autoFlush: true);
 
-        await writer.WriteHeaderAsync(ObjTypeMap.Instance);
+        await writer.WriteHeaderAsync(ObjTypeMap.Instance).ConfigureAwait(false);
 
         foreach (var obj in _data)
-            await writer.WriteRecordAsync(ObjTypeMap.Instance, obj);
+            await writer.WriteRecordAsync(ObjTypeMap.Instance, obj).ConfigureAwait(false);
     }
 
     [Benchmark(Baseline = true)]

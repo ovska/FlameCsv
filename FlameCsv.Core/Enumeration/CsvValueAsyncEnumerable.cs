@@ -3,6 +3,9 @@ using FlameCsv.Reading;
 
 namespace FlameCsv.Enumeration;
 
+/// <summary>
+/// Reads <typeparamref name="TValue"/> records from CSV. Used through <see cref="CsvReader"/>.
+/// </summary>
 [RequiresUnreferencedCode(Messages.CompiledExpressions)]
 public sealed class CsvValueAsyncEnumerable<T, [DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue> : IAsyncEnumerable<TValue>
     where T : unmanaged, IEquatable<T>

@@ -10,8 +10,6 @@ namespace FlameCsv.Reading;
     @"\{ TextSegment, Memory Length: {AvailableMemory.Length}, Index: {RunningIndex}, IsLast: {_next == null} \}")]
 internal sealed class TextSegment(ArrayPool<char> arrayPool) : ReadOnlySequenceSegment<char>
 {
-    private readonly ArrayPool<char> _arrayPool = arrayPool;
-
     internal char[]? _array;
     private TextSegment? _next;
     private int _end;
@@ -49,15 +47,14 @@ internal sealed class TextSegment(ArrayPool<char> arrayPool) : ReadOnlySequenceS
         }
     }
 
-    public void SetOwnedMemory(char[] arrayPoolBuffer)
+    public void SetOwnedMemory(int bufferSize)
     {
-        _array = arrayPoolBuffer;
-        AvailableMemory = arrayPoolBuffer;
+        AvailableMemory = _array = arrayPool.Rent(bufferSize);
     }
 
     public void ResetMemory()
     {
-        _arrayPool.EnsureReturned(ref _array);
+        arrayPool.EnsureReturned(ref _array);
 
         Next = null;
         RunningIndex = 0;
@@ -97,7 +94,6 @@ internal sealed class TextSegment(ArrayPool<char> arrayPool) : ReadOnlySequenceS
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static long GetLength(TextSegment startSegment, int startIndex, TextSegment endSegment, int endIndex)
     {
-        // ReSharper disable once ArrangeRedundantParentheses
         return endSegment.RunningIndex + (uint)endIndex - (startSegment.RunningIndex + (uint)startIndex);
     }
 }

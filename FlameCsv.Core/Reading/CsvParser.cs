@@ -114,9 +114,8 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
 
         if (!_noBuffering)
         {
-            var local = _slices;
+            _arrayPool.Return(_slices);
             _slices = [];
-            _arrayPool.Return(local);
         }
     }
 

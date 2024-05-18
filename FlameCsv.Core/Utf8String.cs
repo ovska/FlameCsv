@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text;
+using System.Text.Unicode;
+using CommunityToolkit.Diagnostics;
 
 namespace FlameCsv;
 
@@ -13,12 +15,18 @@ public readonly struct Utf8String : IEquatable<Utf8String>, IEquatable<string>, 
     public static readonly Utf8String LF = new("\n", "\n"u8);
     public static readonly Utf8String Space = new(" ", " "u8);
 
-    private readonly string _string;
+    private readonly string? _string;
     private readonly ReadOnlyMemory<byte> _bytes;
+
+    public bool IsEmpty => string.IsNullOrEmpty(_string);
 
     public Utf8String(string? value)
     {
-        if (Null.Equals(value))
+        if (string.IsNullOrEmpty(value))
+        {
+            this = default;
+        }
+        else if (Null.Equals(value))
         {
             this = Null;
         }
@@ -36,16 +44,18 @@ public readonly struct Utf8String : IEquatable<Utf8String>, IEquatable<string>, 
         }
         else
         {
-            _string = value ?? string.Empty;
-
-            if (_string.Length != 0)
-                _bytes = Encoding.UTF8.GetBytes(_string);
+            _string = value;
+            _bytes = Encoding.UTF8.GetBytes(_string);
         }
     }
 
     public Utf8String(ReadOnlyMemory<byte> value)
     {
-        if (Null.Equals(value))
+        if (value.IsEmpty)
+        {
+            this = default;
+        }
+        else if (Null.Equals(value))
         {
             this = Null;
         }
@@ -63,7 +73,10 @@ public readonly struct Utf8String : IEquatable<Utf8String>, IEquatable<string>, 
         }
         else
         {
-            _string = value.IsEmpty ? "" : Encoding.UTF8.GetString(value.Span);
+            if (!Utf8.IsValid(value.Span))
+                ThrowHelper.ThrowArgumentException(nameof(value), "Bytes were not well-formed UTF8");
+
+            _string = Encoding.UTF8.GetString(value.Span);
             _bytes = value;
         }
     }
@@ -95,8 +108,9 @@ public readonly struct Utf8String : IEquatable<Utf8String>, IEquatable<string>, 
     {
         return obj switch
         {
-            Utf8String utf8String => Equals(utf8String),
             string stringValue => Equals(stringValue),
+            null => string.IsNullOrEmpty(_string),
+            Utf8String utf8String => Equals(utf8String),
             ReadOnlyMemory<byte> byteValue => Equals(byteValue),
             ReadOnlyMemory<char> charValue => Equals(charValue),
             _ => false,

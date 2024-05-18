@@ -10,48 +10,6 @@ namespace FlameCsv;
 
 static partial class CsvWriter
 {
-    public static CsvWriter<char> Create(
-        TextWriter textWriter,
-        CsvOptions<char>? options = null,
-        bool autoFlush = false)
-    {
-        ArgumentNullException.ThrowIfNull(textWriter);
-        options ??= CsvTextOptions.Default;
-        return new CsvWriterImpl<char, CsvCharBufferWriter>(
-            options,
-            CsvFieldWriter.Create(textWriter, options),
-            autoFlush);
-    }
-
-    public static CsvWriter<byte> Create(
-        Stream stream,
-        CsvOptions<byte>? options = null,
-        bool autoFlush = false)
-    {
-        ArgumentNullException.ThrowIfNull(stream);
-        Guard.CanWrite(stream);
-
-        options ??= CsvUtf8Options.Default;
-        return new CsvWriterImpl<byte, CsvByteBufferWriter>(
-            options,
-            CsvFieldWriter.Create(stream, options),
-            autoFlush);
-    }
-
-    public static CsvWriter<byte> Create(
-        PipeWriter pipeWriter,
-        CsvOptions<byte>? options = null,
-        bool autoFlush = false)
-    {
-        ArgumentNullException.ThrowIfNull(pipeWriter);
-
-        options ??= CsvUtf8Options.Default;
-        return new CsvWriterImpl<byte, CsvByteBufferWriter>(
-            options,
-            CsvFieldWriter.Create(pipeWriter, options),
-            autoFlush);
-    }
-
     [RUF(Messages.CompiledExpressions)]
     public static Task WriteToFileAsync<[DAM(Messages.ReflectionBound)] TValue>(
         IEnumerable<TValue> values,
