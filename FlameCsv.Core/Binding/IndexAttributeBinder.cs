@@ -72,7 +72,7 @@ internal static class IndexAttributeBinder<[DynamicallyAccessedMembers(Messages.
 
                 foreach (var attr in parameter.Attributes)
                 {
-                    if (attr is CsvIndexAttribute { Index: var index } indexAttr)
+                    if (attr is CsvIndexAttribute { Index: var index })
                     {
                         list.Add(new ParameterCsvBinding<TValue>(index, parameter));
                         found = true;

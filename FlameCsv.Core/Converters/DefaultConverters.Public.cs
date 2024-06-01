@@ -8,60 +8,82 @@ namespace FlameCsv.Converters;
 static partial class DefaultConverters
 {
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<char, DateTime> CreateDateTime(CsvTextOptions options) => new DateTimeTextConverter(options);
+    public static CsvConverter<char, TValue> GetOrCreate<TValue>(
+        CsvTextOptions options,
+        Func<CsvTextOptions, CsvConverter<char, TValue>> converterFactory)
+    {
+        return options.GetOrCreate(converterFactory);
+    }
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<byte, DateTime> CreateDateTime(CsvUtf8Options options) => new DateTimeUtf8Converter(options.DateTimeFormat);
+    public static CsvConverter<byte, TValue> GetOrCreate<TValue>(
+        CsvUtf8Options options,
+        Func<CsvUtf8Options, CsvConverter<byte, TValue>> converterFactory)
+    {
+        return options.GetOrCreate(converterFactory);
+    }
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<char, DateTimeOffset> CreateDateTimeOffset(CsvTextOptions options) => new DateTimeOffsetTextConverter(options);
+    public static CsvConverter<char, DateTime> CreateDateTime(CsvTextOptions options) => options.GetOrCreate(static o => new DateTimeTextConverter(o));
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<byte, DateTimeOffset> CreateDateTimeOffset(CsvUtf8Options options) => new DateTimeOffsetUtf8Converter(options.DateTimeFormat);
+    public static CsvConverter<byte, DateTime> CreateDateTime(CsvUtf8Options options) => options.GetOrCreate(static o => new DateTimeUtf8Converter(o.DateTimeFormat));
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<char, Guid> CreateGuid(CsvTextOptions options) => new GuidTextConverter(options);
+    public static CsvConverter<char, DateTimeOffset> CreateDateTimeOffset(CsvTextOptions options) => options.GetOrCreate(static o => new DateTimeOffsetTextConverter(o));
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<byte, Guid> CreateGuid(CsvUtf8Options options) => new GuidUtf8Converter(options.GuidFormat);
+    public static CsvConverter<byte, DateTimeOffset> CreateDateTimeOffset(CsvUtf8Options options) => options.GetOrCreate(static o => new DateTimeOffsetUtf8Converter(o.DateTimeFormat));
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<char, TimeSpan> CreateTimeSpan(CsvTextOptions options) => new TimeSpanTextConverter(options);
+    public static CsvConverter<char, Guid> CreateGuid(CsvTextOptions options) => options.GetOrCreate(static o => new GuidTextConverter(o));
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<byte, TimeSpan> CreateTimeSpan(CsvUtf8Options options) => new TimeSpanUtf8Converter(options.TimeSpanFormat);
+    public static CsvConverter<byte, Guid> CreateGuid(CsvUtf8Options options) => options.GetOrCreate(static o => new GuidUtf8Converter(o.GuidFormat));
+
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static CsvConverter<char, TimeSpan> CreateTimeSpan(CsvTextOptions options) => options.GetOrCreate(static o => new TimeSpanTextConverter(o));
+
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static CsvConverter<byte, TimeSpan> CreateTimeSpan(CsvUtf8Options options) => options.GetOrCreate(static o => new TimeSpanUtf8Converter(o.TimeSpanFormat));
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static CsvConverter<char, string> CreateString(CsvTextOptions options)
     {
-        return options.StringPool is { } pool
-            ? pool == StringPool.Shared ? PoolingStringTextConverter.SharedInstance : new PoolingStringTextConverter(pool)
-            : StringTextConverter.Instance;
+        return options.GetOrCreate<string>(static o => o.StringPool is not null
+            ? new PoolingStringTextConverter(o)
+            : new StringTextConverter(o));
     }
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static CsvConverter<byte, string> CreateString(CsvUtf8Options options)
     {
-        return options.StringPool is { } pool
-            ? pool == StringPool.Shared ? PoolingStringUtf8Converter.SharedInstance : new PoolingStringUtf8Converter(pool)
-            : StringUtf8Converter.Instance;
+        return options.GetOrCreate<string>(static o => o.StringPool is not null
+            ? new PoolingStringUtf8Converter(o)
+            : new StringUtf8Converter(o));
     }
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static CsvConverter<char, bool> CreateBoolean(CsvTextOptions options)
     {
-        return options._booleanValues is { Count: > 0 } values ? new CustomBooleanTextConverter(values) : BooleanTextConverter.Instance;
+        return options.GetOrCreate<bool>(static o => o._booleanValues is { Count: > 0 } values ? new CustomBooleanTextConverter(values) : BooleanTextConverter.Instance);
     }
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static CsvConverter<byte, bool> CreateBoolean(CsvUtf8Options options)
     {
-        return options._booleanValues is { Count: > 0 } values ? new CustomBooleanUtf8Converter(values) : new BooleanUtf8Converter(options.BooleanFormat);
+        return options.GetOrCreate<bool>(static o => o._booleanValues is { Count: > 0 } values ? new CustomBooleanUtf8Converter(values) : new BooleanUtf8Converter(o.BooleanFormat));
     }
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<char, TEnum> Create<TEnum>(CsvTextOptions options) where TEnum : struct, Enum => new EnumTextConverter<TEnum>(options);
+    public static CsvConverter<char, TEnum> Create<TEnum>(CsvTextOptions options) where TEnum : struct, Enum
+    {
+        return options.GetOrCreate(static o => new EnumTextConverter<TEnum>(o));
+    }
 
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<byte, TEnum> Create<TEnum>(CsvUtf8Options options) where TEnum : struct, Enum => new EnumUtf8Converter<TEnum>(options);
+    public static CsvConverter<byte, TEnum> Create<TEnum>(CsvUtf8Options options) where TEnum : struct, Enum
+    {
+        return options.GetOrCreate(static o => new EnumUtf8Converter<TEnum>(o));
+    }
 }

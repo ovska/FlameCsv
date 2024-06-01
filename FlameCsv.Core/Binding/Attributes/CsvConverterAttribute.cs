@@ -49,7 +49,7 @@ public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute
             return casting;
         }
 
-        return instanceOrFactory.GetParserOrFromFactory(targetType, options);
+        return instanceOrFactory.GetOrCreateConverter(targetType, options);
     }
 
     /// <summary>

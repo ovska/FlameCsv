@@ -7,7 +7,6 @@ using FlameCsv.Converters;
 using FlameCsv.Reading;
 using FlameCsv.Writing;
 
-#pragma warning disable IDE0161 // Convert to file-scoped namespace
 namespace FlameCsv.Console
 {
     public static class Program
@@ -17,61 +16,25 @@ namespace FlameCsv.Console
             var dst = new byte[128];
             var res = Utf8Formatter.TryFormat((Int16)0, dst, out int written);
 
-            var test = CsvReader.Read<Obj>(
-                "id,name,is_enabled\r\n1,Bob,true", new ObjTypeMap(), CsvTextOptions.Default).ToList();
-            _ = 1;
-        }
+            var test = CsvReader.Read<Obj>("id,name,isenabled\r\n1,Bob,true", ObjTypeMap.Instance).ToList();
 
-        static void Test(bool a, bool b, bool c)
-        {
-            _ = a || b && c;
+            System.Console.WriteLine(test[0].Id);
+            System.Console.WriteLine(test[0].Name);
+            System.Console.WriteLine(test[0].IsEnabled);
+
+            var options = CsvTextOptions.Default;
+            CsvConverter<char, long?> @__Converter_Age = FlameCsv.Converters.DefaultConverters.GetOrCreate(options, static o => new NullableConverter<char, long>(FlameCsv.Converters.DefaultConverters.CreateInt64((FlameCsv.CsvTextOptions)o), o.GetNullToken(typeof(long))));
         }
     }
-
 
     [CsvTypeMap<char, Obj>(ThrowOnDuplicate = false, IgnoreUnmatched = false)]
     partial class ObjTypeMap;
 
     public class Obj
     {
-        [CsvConstructor]
-        public Obj(
-            long position = 0,
-            [CsvHeader(Order = -1, Required = true)] in int id = -1)
-        {
-            Id = id;
-            Position = position;
-        }
-
-        public DayOfWeek DOF { get; set; }
-
-        public long Position { get; }
-
-        public int Id { get; }
-
-        [CsvHeader(Required = true)]
-        [CsvConverter<char, StringTextConverter>]
-        public string Name { get; init; } = "";
-
-        [CsvHeader("isenabled", "is_enabled", Order = 5)] public bool IsEnabled { get; set; }
-    }
-
-    [StructLayoutAttribute(LayoutKind.Sequential)]
-    public struct StructWithoutReferences
-    {
-        public int a, b, c;
-    }
-
-    [StructLayoutAttribute(LayoutKind.Sequential)]
-    public struct StructWithReferences
-    {
-        public int a, b, c;
-        public object d;
-    }
-
-    public struct StructWithReferences2
-    {
-        public int a, b, c;
-        public object d { get; }
+        public int Id { get; set; }
+        public string? Name { get; set; }
+        public bool IsEnabled { get; set; }
+        [CsvConverter<char, Int64TextConverter>] public long? Age { get; set; }
     }
 }

@@ -45,7 +45,9 @@ public enum Mode
 internal static class TestDataGenerator
 {
     public const string Header = "Id,Name,IsEnabled,LastLogin,Token";
+    public const string HeaderQuoted = "'Id','Name','IsEnabled','LastLogin','Token'";
     public static ReadOnlySpan<byte> HeaderU8 => "Id,Name,IsEnabled,LastLogin,Token"u8;
+    public static ReadOnlySpan<byte> HeaderQuotedU8 => "'Id','Name','IsEnabled','LastLogin','Token'"u8;
 
     internal static readonly byte[] _guidbytes = [0, 1, 2, 3, 4, 5, 6, 7];
 

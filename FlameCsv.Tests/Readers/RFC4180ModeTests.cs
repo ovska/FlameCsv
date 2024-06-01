@@ -58,54 +58,6 @@ public static class RFC4180ModeTests
         Assert.True(reader.End);
     }
 
-    [Fact]
-    public static void Should_Unescape2()
-    {
-        Span<byte> test = stackalloc byte[Vector64<byte>.Count];
-        test[7] = 123;
-        var bytes = Vector64.Create<byte>(test);
-        var mask = Vector64.Create<byte>(123);
-
-        var equals = Vector64.Equals(bytes, mask);
-        var lds = equals.ExtractMostSignificantBits();
-        var charpos = uint.TrailingZeroCount(lds);
-
-        var eqeq = Vector64.Equals(Vector64<byte>.Zero,equals);
-        var dot = Vector64.Dot(equals, Vector64<byte>.Zero);
-        var dot2 = Vector64.Dot(equals, Vector64<byte>.One);
-        var sum = Vector64.Sum(eqeq);
-
-        Vector64<byte> partials = Vector64<byte>.Zero;
-        var neg = -equals;
-        var zum = Vector64.Sum(neg);
-
-        var sup1 = SimdVector128<ushort>.IsValid;
-        var sup2 = SimdVector256<ushort>.IsValid;
-        var sup3 = SimdVector512<ushort>.IsValid;
-        var sap1 = SimdVector128<byte>.IsValid;
-        var sap2 = SimdVector256<byte>.IsValid;
-        var sap3 = SimdVector512<byte>.IsValid;
-
-        var xcnt = Vector<byte>.Count;
-        var ycnt = Vector< ushort>.Count;
-
-        var b64cnt = Vector64<byte>.Count;
-        var b128cnt = Vector128<byte>.Count;
-        var b256cnt = Vector256<byte>.Count;
-
-        var input = "The quick brown ''fox'' jumped over the lazy ''dog''.";
-        Span<char> buffer = stackalloc char[128];
-
-        RFC4180Mode<short>.Unescape(
-            (short)'\'',
-            buffer.Cast<char, short>().Slice(0, input.Replace("''", "'").Length),
-            input.AsSpan().Cast<char, short>(),
-            (uint)input.Count('\''));
-
-        var expected = "The quick brown 'fox' jumped over the lazy 'dog'.";
-        Assert.Equal(expected, buffer[..expected.Length].ToString());
-    }
-
     [Theory]
     [InlineData("\"test\"", "test")]
     [InlineData("\"\"", "")]

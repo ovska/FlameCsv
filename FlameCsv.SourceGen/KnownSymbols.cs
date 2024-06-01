@@ -5,9 +5,13 @@ internal readonly struct KnownSymbols(Compilation compilation)
     public bool Nullable => compilation.Options.NullableContextOptions.AnnotationsEnabled();
 
     public INamedTypeSymbol CsvOptions { get; } = GetUnboundGeneric(compilation, "FlameCsv.CsvOptions`1");
+    public INamedTypeSymbol CsvConverterTTValue { get; } = GetUnboundGeneric(compilation, "FlameCsv.CsvConverter`2");
     public INamedTypeSymbol CsvConverterFactory { get; } = GetUnboundGeneric(compilation, "FlameCsv.CsvConverterFactory`1");
     public INamedTypeSymbol CsvConverterOfTAttribute { get; } = GetUnboundGeneric(compilation, "FlameCsv.Binding.Attributes.CsvConverterAttribute`2");
 
+    public INamedTypeSymbol CsvIndexTargetAttribute => Get(compilation, "FlameCsv.Binding.Attributes.CsvIndexTargetAttribute");
+    public INamedTypeSymbol CsvIndexIgnoreAttribute => Get(compilation, "FlameCsv.Binding.Attributes.CsvIndexIgnoreAttribute");
+    public INamedTypeSymbol CsvIndexAttribute => Get(compilation, "FlameCsv.Binding.Attributes.CsvIndexAttribute");
     public INamedTypeSymbol CsvHeaderIgnoreAttribute => Get(compilation, "FlameCsv.Binding.Attributes.CsvHeaderIgnoreAttribute");
     public INamedTypeSymbol CsvHeaderAttribute => Get(compilation, "FlameCsv.Binding.Attributes.CsvHeaderAttribute");
     public INamedTypeSymbol CsvHeaderTargetAttribute => Get(compilation, "FlameCsv.Binding.Attributes.CsvHeaderTargetAttribute");

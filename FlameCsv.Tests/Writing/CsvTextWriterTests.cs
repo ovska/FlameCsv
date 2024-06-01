@@ -105,7 +105,9 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             if (header && !headerRead)
             {
                 Assert.Equal(0, index);
-                Assert.Equal(TestDataGenerator.Header, line);
+                Assert.Equal(
+                    quoting == CsvFieldEscaping.AlwaysQuote ? TestDataGenerator.HeaderQuoted : TestDataGenerator.Header,
+                    line);
                 headerRead = true;
                 continue;
             }

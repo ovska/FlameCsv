@@ -73,9 +73,11 @@ public partial class TypeMapGenerator
         sb.Append("""
 > options)
         {
-            throw new NotSupportedException($"{GetType().FullName} does not support index binding.");
-        }
+            
 """);
+        WriteIndexBinding(sb, in typeMap);
+        sb.Append(@"
+        }");
 
         WriteMissingRequiredFields(in typeMap, sb);
 
@@ -537,6 +539,54 @@ public partial class TypeMapGenerator
                 sb.Append("options.Comparer.Equals(name, ");
                 sb.Append(name.ToStringLiteral());
                 sb.Append(')');
+            }
+        }
+    }
+
+    private void WriteIndexBinding(StringBuilder sb, ref readonly TypeMapSymbol typeMap)
+    {
+        List<IndexBinding>? bindings;
+        string? error;
+
+        if (typeMap.Bindings.Parameters.Length == 0)
+        {
+            bindings = null;
+            error = "No suitable constructor found";
+        }
+        else
+        {
+            (bindings, error) = IndexAttributeBinder.TryGetIndexBindings(typeMap.Type, in typeMap.Symbols, false);
+        }
+
+        if (bindings is null || error is not null)
+        {
+            sb.Append("throw new NotSupportedException(GetType().FullName + \" does not support index binding: \" + ");
+            sb.Append(error.ToStringLiteral());
+            sb.Append(");");
+            return;
+        }
+
+        sb.Append("TypeMapMaterializer materializer = new TypeMapMaterializer(");
+        sb.Append(bindings.Count);
+        sb.Append(@");
+");
+
+        foreach (var binding in bindings)
+        {
+            sb.Append("            materializer.Handlers[");
+            sb.Append(binding.Index);
+
+            if (binding.Symbol is not null)
+            {
+                sb.Append("] = @s__Handler_");
+                sb.Append(binding.Symbol.Name);
+                sb.Append(@";
+");
+            }
+            else
+            {
+                sb.Append(@"] = static (TypeMapMaterializer materializer, ref ParseState state, ReadOnlySpan<char> field) => true;
+");
             }
         }
     }

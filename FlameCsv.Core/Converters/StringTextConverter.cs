@@ -7,10 +7,20 @@ internal sealed class StringTextConverter : CsvConverter<char, string>
 {
     public override bool HandleNull => true;
 
-    public static StringTextConverter Instance { get; } = new();
+    public static StringTextConverter Instance { get; } = new(CsvTextOptions.Default);
+
+    private readonly string? _null;
+
+    public StringTextConverter(CsvTextOptions options)
+    {
+        _null = options.NullTokens.TryGetValue(typeof(string), out var value) ? value : null;
+    }
 
     public override bool TryFormat(Span<char> destination, string value, out int charsWritten)
     {
+        if (value is null)
+            return _null.AsSpan().TryWriteTo(destination, out charsWritten);
+
         return value.AsSpan().TryWriteTo(destination, out charsWritten);
     }
 

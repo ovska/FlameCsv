@@ -5,7 +5,7 @@ namespace FlameCsv.Extensions;
 
 internal static class InfrastructureExtensions
 {
-    public static CsvConverter<T> GetParserOrFromFactory<T>(
+    public static CsvConverter<T> GetOrCreateConverter<T>(
         this CsvConverter<T> parserOrFactory,
         Type targetType,
         CsvOptions<T> readerOptions)
@@ -26,7 +26,9 @@ internal static class InfrastructureExtensions
                 $"Factory {factory.GetType().ToTypeString()} returned null " +
                 $"when creating parser for type {targetType.ToTypeString()}");
 
-        Debug.Assert(createdParser.CanConvert(targetType));
+        Debug.Assert(
+            createdParser.CanConvert(targetType) && createdParser is not CsvConverterFactory<T>,
+            $"Invalid factory: {createdParser.GetType()}");
         return createdParser;
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using System.Numerics;
 using System.Text;
+using FlameCsv.Converters;
 
 namespace FlameCsv.Tests.Converters;
 
@@ -8,6 +9,56 @@ public class DefaultTextConverterTests : DefaultConverterTests<char>
 {
     protected override CsvOptions<char> Options => CsvTextOptions.Default;
     protected override ReadOnlySpan<char> AsSpan(string? value) => value.AsSpan();
+
+    [Fact]
+    public void Should_Cache_Defaults()
+    {
+        var o = new CsvTextOptions();
+
+        Check(DefaultConverters.CreateBoolean);
+        Check(DefaultConverters.CreateString);
+        Check(DefaultConverters.CreateDateTime);
+        Check(DefaultConverters.CreateDateTimeOffset);
+        Check(DefaultConverters.CreateGuid);
+        Check(DefaultConverters.CreateTimeSpan);
+        Check(DefaultConverters.Create<DayOfWeek>);
+        Check(DefaultConverters.CreateBoolean);
+        Check(DefaultConverters.CreateBoolean);
+        Check(DefaultConverters.CreateBoolean);
+        Check(DefaultConverters.CreateByte);
+        Check(DefaultConverters.CreateSByte);
+        Check(DefaultConverters.CreateInt16);
+        Check(DefaultConverters.CreateUInt16);
+        Check(DefaultConverters.CreateInt32);
+        Check(DefaultConverters.CreateUInt32);
+        Check(DefaultConverters.CreateInt64);
+        Check(DefaultConverters.CreateUInt64);
+        Check(DefaultConverters.CreateIntPtr);
+        Check(DefaultConverters.CreateUIntPtr);
+        Check(DefaultConverters.CreateFloat);
+        Check(DefaultConverters.CreateDouble);
+        Check(DefaultConverters.CreateDecimal);
+        Check(DefaultConverters.CreateHalf);
+        Check(o => DefaultConverters.GetOrCreate(o, o => new NullableConverter<char, int>(DefaultConverters.CreateInt32(o))));
+
+        void Check<T>(Func<CsvTextOptions, CsvConverter<char, T>> factory)
+        {
+            var o = new CsvTextOptions();
+            var a = factory(o);
+            var b = factory(o);
+            Assert.Same(a, b);
+
+            o = new CsvTextOptions();
+            a = factory(o);
+            b = o.GetConverter<T>();
+            Assert.Same(a, b);
+
+            o = new CsvTextOptions();
+            a = o.GetConverter<T>();
+            b = factory(o);
+            Assert.Same(a, b);
+        }
+    }
 
     [Fact(Skip = "Revisit date parsing logic")]
     public void Dates()
@@ -26,6 +77,55 @@ public class DefaultUtf8ConverterTests : DefaultConverterTests<byte>
 {
     protected override CsvOptions<byte> Options => CsvUtf8Options.Default;
     protected override ReadOnlySpan<byte> AsSpan(string? value) => Encoding.UTF8.GetBytes(value ?? "");
+
+
+    [Fact]
+    public void Should_Cache_Defaults()
+    {
+        Check(DefaultConverters.CreateBoolean);
+        Check(DefaultConverters.CreateString);
+        Check(DefaultConverters.CreateDateTime);
+        Check(DefaultConverters.CreateDateTimeOffset);
+        Check(DefaultConverters.CreateGuid);
+        Check(DefaultConverters.CreateTimeSpan);
+        Check(DefaultConverters.Create<DayOfWeek>);
+        Check(DefaultConverters.CreateBoolean);
+        Check(DefaultConverters.CreateBoolean);
+        Check(DefaultConverters.CreateBoolean);
+        Check(DefaultConverters.CreateByte);
+        Check(DefaultConverters.CreateSByte);
+        Check(DefaultConverters.CreateInt16);
+        Check(DefaultConverters.CreateUInt16);
+        Check(DefaultConverters.CreateInt32);
+        Check(DefaultConverters.CreateUInt32);
+        Check(DefaultConverters.CreateInt64);
+        Check(DefaultConverters.CreateUInt64);
+        Check(DefaultConverters.CreateIntPtr);
+        Check(DefaultConverters.CreateUIntPtr);
+        Check(DefaultConverters.CreateFloat);
+        Check(DefaultConverters.CreateDouble);
+        Check(DefaultConverters.CreateDecimal);
+        Check(DefaultConverters.CreateHalf);
+        Check(o => DefaultConverters.GetOrCreate(o, o => new NullableConverter<byte, int>(DefaultConverters.CreateInt32(o))));
+
+        void Check<T>(Func<CsvUtf8Options, CsvConverter<byte, T>> factory)
+        {
+            var o = new CsvUtf8Options();
+            var a = factory(o);
+            var b = factory(o);
+            Assert.Same(a, b);
+
+            o = new CsvUtf8Options();
+            a = factory(o);
+            b = o.GetConverter<T>();
+            Assert.Same(a, b);
+
+            o = new CsvUtf8Options();
+            a = o.GetConverter<T>();
+            b = factory(o);
+            Assert.Same(a, b);
+        }
+    }
 
     [Fact(Skip = "Revisit date parsing logic")]
     public void Dates()

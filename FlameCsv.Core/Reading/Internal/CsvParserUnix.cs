@@ -15,7 +15,7 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IEqua
         _escape = options._escape.Value;
     }
 
-    public static CsvRecordMeta GetRecordMeta(ReadOnlyMemory<T> line, CsvOptions<T> options)
+    public static new CsvRecordMeta GetRecordMeta(ReadOnlyMemory<T> line, CsvOptions<T> options)
     {
         ReadOnlySpan<T> span = line.Span;
         T quote = options._quote;

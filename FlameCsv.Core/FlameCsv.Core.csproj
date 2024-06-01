@@ -9,6 +9,7 @@
     <AnalysisLevel>latest</AnalysisLevel>
 
     <IsTrimmable>true</IsTrimmable>
+    <IsAotCompatible>true</IsAotCompatible>
 
     <!--This setting is broken for structs that use the in-modifier-->
     <NoWarn>RCS1085</NoWarn>
