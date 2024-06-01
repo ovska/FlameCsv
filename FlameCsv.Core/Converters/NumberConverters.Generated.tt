@@ -39,8 +39,9 @@ static partial class DefaultConverters
 foreach (var (tokenType, optionsType) in new (string, string)[] { ("char", "Text"), ("byte", "Utf8") }) {
 foreach (var (typeName, keyWord, _) in types) {
 #>
+    /// <summary>Returns an user-defined converter for <see cref="System.<#= typeName #>"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<<#= tokenType #>, <#= keyWord #>> Create<#= typeName #>(Csv<#= optionsType #>Options options) => new <#= typeName #><#= optionsType #>Converter(options);
+    public static CsvConverter<<#= tokenType #>, <#= keyWord #>> Create<#= typeName #>(Csv<#= optionsType #>Options options) => options.GetOrCreate(static o => new <#= typeName #><#= optionsType #>Converter(o));
 
 <# }} #>
 

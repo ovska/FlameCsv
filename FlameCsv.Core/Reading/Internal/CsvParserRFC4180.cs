@@ -11,7 +11,7 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IE
     {
     }
 
-    public static CsvRecordMeta GetRecordMeta(ReadOnlyMemory<T> line, CsvOptions<T> options)
+    public static new CsvRecordMeta GetRecordMeta(ReadOnlyMemory<T> line, CsvOptions<T> options)
     {
         CsvRecordMeta meta = new()
         {

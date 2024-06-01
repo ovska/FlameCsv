@@ -13,9 +13,15 @@ using static FlameCsv.Utilities.SealableUtil;
 using CommunityToolkit.HighPerformance.Buffers;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Reading;
-using System.ComponentModel;
 
 namespace FlameCsv;
+
+internal interface IGetOrCreate<T, TSelf>
+    where T : unmanaged, IEquatable<T>
+    where TSelf : CsvOptions<T>
+{
+    CsvConverter<T, TValue> GetOrCreate<TValue>(Func<TSelf, CsvConverter<T, TValue>> func);
+}
 
 /// <summary>
 /// Represents a base class for configuration used to read and write CSV data.
@@ -298,7 +304,7 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     public IList<CsvConverter<T>> Converters => _converters;
 
     private readonly SealableList<CsvConverter<T>> _converters;
-    private readonly ConcurrentDictionary<Type, CsvConverter<T>> _converterCache = new();
+    internal readonly ConcurrentDictionary<Type, CsvConverter<T>> _converterCache = new();
 
     /// <summary>
     /// Returns a converter for <typeparamref name="TResult"/>.
@@ -335,28 +341,7 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     /// <param name="resultType">Type to convert</param>
     public CsvConverter<T>? TryGetConverter(Type resultType)
     {
-        ArgumentNullException.ThrowIfNull(resultType);
-        MakeReadOnly();
-
-        if (_converterCache.TryGetValue(resultType, out var cached))
-        {
-            Debug.Assert(cached.CanConvert(resultType));
-            return cached;
-        }
-
-        CsvConverter<T>? converter = null;
-
-        ReadOnlySpan<CsvConverter<T>> converters = _converters.Span;
-
-        // Read parsers in reverse order so parser added last has the highest priority
-        for (int i = converters.Length - 1; i >= 0; i--)
-        {
-            if (converters[i].CanConvert(resultType))
-            {
-                converter = converters[i].GetParserOrFromFactory(resultType, this);
-                break;
-            }
-        }
+        CsvConverter<T>? converter = TryGetExistingOrExplicit(resultType, out bool created);
 
         if (converter is null && UseDefaultConverters)
         {
@@ -364,15 +349,17 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
             if (TryGetDefaultConverter(resultType, out var builtin))
             {
                 Debug.Assert(builtin.CanConvert(resultType));
-                converter = builtin.GetParserOrFromFactory(resultType, this);
+                converter = builtin.GetOrCreateConverter(resultType, this);
+                created = true;
             }
             else if (NullableConverterFactory<T>.Instance.CanConvert(resultType))
             {
                 converter = NullableConverterFactory<T>.Instance.Create(resultType, this);
+                created = true;
             }
         }
 
-        if (converter is not null && !_converterCache.TryAdd(resultType, converter))
+        if (created && converter is not null && !_converterCache.TryAdd(resultType, converter))
         {
             // ensure we return the same instance that was cached
             converter = _converterCache[resultType];
@@ -383,6 +370,38 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
             $"TryGetConverter returned a factory: {converter?.GetType().ToTypeString()}");
 
         return converter;
+    }
+
+    /// <summary>
+    /// Returns 
+    /// </summary>
+    /// <param name="created">Whether the converter was created, and was not from cache</param>
+    protected internal CsvConverter<T>? TryGetExistingOrExplicit(Type resultType, out bool created)
+    {
+        ArgumentNullException.ThrowIfNull(resultType);
+        MakeReadOnly();
+
+        if (_converterCache.TryGetValue(resultType, out var cached))
+        {
+            Debug.Assert(cached.CanConvert(resultType));
+            created = false;
+            return cached;
+        }
+
+        ReadOnlySpan<CsvConverter<T>> converters = _converters.Span;
+
+        // Read converters in reverse order so parser added last has the highest priority
+        for (int i = converters.Length - 1; i >= 0; i--)
+        {
+            if (converters[i].CanConvert(resultType))
+            {
+                created = true;
+                return converters[i].GetOrCreateConverter(resultType, this);
+            }
+        }
+
+        created = false;
+        return null;
     }
 
     internal TValue Materialize<TValue>(ReadOnlyMemory<T> record, IMaterializer<T, TValue> materializer)

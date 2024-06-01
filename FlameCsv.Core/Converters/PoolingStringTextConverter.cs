@@ -8,17 +8,22 @@ internal sealed class PoolingStringTextConverter : CsvConverter<char, string>
 {
     public override bool HandleNull => true;
 
-    public static PoolingStringTextConverter SharedInstance { get; } = new();
+    public static PoolingStringTextConverter SharedInstance { get; } = new(CsvTextOptions.Default);
 
     private readonly StringPool _stringPool;
+    private readonly string? _null;
 
-    public PoolingStringTextConverter(StringPool? stringPool = null)
+    public PoolingStringTextConverter(CsvTextOptions options)
     {
-        _stringPool = stringPool ?? StringPool.Shared;
+        _stringPool = options.StringPool ?? StringPool.Shared;
+        _null = options.NullTokens.TryGetValue(typeof(string), out var value) ? value : null;
     }
 
     public override bool TryFormat(Span<char> destination, string value, out int charsWritten)
     {
+        if (value is null)
+            return _null.AsSpan().TryWriteTo(destination, out charsWritten);
+
         return value.AsSpan().TryWriteTo(destination, out charsWritten);
     }
 

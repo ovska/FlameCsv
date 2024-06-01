@@ -72,7 +72,9 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             if (header && !headerRead)
             {
                 Assert.Equal(0, index);
-                Assert.Equal(TestDataGenerator.HeaderU8, line);
+                Assert.Equal(
+                    quoting == CsvFieldEscaping.AlwaysQuote ? TestDataGenerator.HeaderQuotedU8 : TestDataGenerator.HeaderU8,
+                    line);
                 headerRead = true;
                 continue;
             }
@@ -88,7 +90,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             foreach (var _column in line.Tokenize((byte)','))
             {
                 string column = Encoding.UTF8.GetString(_column);
-                
+
                 switch (columnIndex++)
                 {
                     case 0:

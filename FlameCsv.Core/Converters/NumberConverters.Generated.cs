@@ -10,89 +10,117 @@ namespace FlameCsv.Converters;
 
 static partial class DefaultConverters
 {
+    /// <summary>Returns an user-defined converter for <see cref="System.Byte"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<char, byte> CreateByte(CsvTextOptions options) => new ByteTextConverter(options);
+    public static CsvConverter<char, byte> CreateByte(CsvTextOptions options) => options.GetOrCreate(static o => new ByteTextConverter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.SByte"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<char, sbyte> CreateSByte(CsvTextOptions options) => new SByteTextConverter(options);
+    public static CsvConverter<char, sbyte> CreateSByte(CsvTextOptions options) => options.GetOrCreate(static o => new SByteTextConverter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.Int16"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<char, short> CreateInt16(CsvTextOptions options) => new Int16TextConverter(options);
+    public static CsvConverter<char, short> CreateInt16(CsvTextOptions options) => options.GetOrCreate(static o => new Int16TextConverter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.UInt16"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<char, ushort> CreateUInt16(CsvTextOptions options) => new UInt16TextConverter(options);
+    public static CsvConverter<char, ushort> CreateUInt16(CsvTextOptions options) => options.GetOrCreate(static o => new UInt16TextConverter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.Int32"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<char, int> CreateInt32(CsvTextOptions options) => new Int32TextConverter(options);
+    public static CsvConverter<char, int> CreateInt32(CsvTextOptions options) => options.GetOrCreate(static o => new Int32TextConverter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.UInt32"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<char, uint> CreateUInt32(CsvTextOptions options) => new UInt32TextConverter(options);
+    public static CsvConverter<char, uint> CreateUInt32(CsvTextOptions options) => options.GetOrCreate(static o => new UInt32TextConverter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.Int64"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<char, long> CreateInt64(CsvTextOptions options) => new Int64TextConverter(options);
+    public static CsvConverter<char, long> CreateInt64(CsvTextOptions options) => options.GetOrCreate(static o => new Int64TextConverter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.UInt64"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<char, ulong> CreateUInt64(CsvTextOptions options) => new UInt64TextConverter(options);
+    public static CsvConverter<char, ulong> CreateUInt64(CsvTextOptions options) => options.GetOrCreate(static o => new UInt64TextConverter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.IntPtr"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<char, nint> CreateIntPtr(CsvTextOptions options) => new IntPtrTextConverter(options);
+    public static CsvConverter<char, nint> CreateIntPtr(CsvTextOptions options) => options.GetOrCreate(static o => new IntPtrTextConverter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.UIntPtr"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<char, nuint> CreateUIntPtr(CsvTextOptions options) => new UIntPtrTextConverter(options);
+    public static CsvConverter<char, nuint> CreateUIntPtr(CsvTextOptions options) => options.GetOrCreate(static o => new UIntPtrTextConverter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.Float"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<char, float> CreateFloat(CsvTextOptions options) => new FloatTextConverter(options);
+    public static CsvConverter<char, float> CreateFloat(CsvTextOptions options) => options.GetOrCreate(static o => new FloatTextConverter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.Double"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<char, double> CreateDouble(CsvTextOptions options) => new DoubleTextConverter(options);
+    public static CsvConverter<char, double> CreateDouble(CsvTextOptions options) => options.GetOrCreate(static o => new DoubleTextConverter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.Decimal"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<char, decimal> CreateDecimal(CsvTextOptions options) => new DecimalTextConverter(options);
+    public static CsvConverter<char, decimal> CreateDecimal(CsvTextOptions options) => options.GetOrCreate(static o => new DecimalTextConverter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.Half"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<char, Half> CreateHalf(CsvTextOptions options) => new HalfTextConverter(options);
+    public static CsvConverter<char, Half> CreateHalf(CsvTextOptions options) => options.GetOrCreate(static o => new HalfTextConverter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.Byte"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<byte, byte> CreateByte(CsvUtf8Options options) => new ByteUtf8Converter(options);
+    public static CsvConverter<byte, byte> CreateByte(CsvUtf8Options options) => options.GetOrCreate(static o => new ByteUtf8Converter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.SByte"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<byte, sbyte> CreateSByte(CsvUtf8Options options) => new SByteUtf8Converter(options);
+    public static CsvConverter<byte, sbyte> CreateSByte(CsvUtf8Options options) => options.GetOrCreate(static o => new SByteUtf8Converter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.Int16"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<byte, short> CreateInt16(CsvUtf8Options options) => new Int16Utf8Converter(options);
+    public static CsvConverter<byte, short> CreateInt16(CsvUtf8Options options) => options.GetOrCreate(static o => new Int16Utf8Converter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.UInt16"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<byte, ushort> CreateUInt16(CsvUtf8Options options) => new UInt16Utf8Converter(options);
+    public static CsvConverter<byte, ushort> CreateUInt16(CsvUtf8Options options) => options.GetOrCreate(static o => new UInt16Utf8Converter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.Int32"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<byte, int> CreateInt32(CsvUtf8Options options) => new Int32Utf8Converter(options);
+    public static CsvConverter<byte, int> CreateInt32(CsvUtf8Options options) => options.GetOrCreate(static o => new Int32Utf8Converter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.UInt32"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<byte, uint> CreateUInt32(CsvUtf8Options options) => new UInt32Utf8Converter(options);
+    public static CsvConverter<byte, uint> CreateUInt32(CsvUtf8Options options) => options.GetOrCreate(static o => new UInt32Utf8Converter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.Int64"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<byte, long> CreateInt64(CsvUtf8Options options) => new Int64Utf8Converter(options);
+    public static CsvConverter<byte, long> CreateInt64(CsvUtf8Options options) => options.GetOrCreate(static o => new Int64Utf8Converter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.UInt64"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<byte, ulong> CreateUInt64(CsvUtf8Options options) => new UInt64Utf8Converter(options);
+    public static CsvConverter<byte, ulong> CreateUInt64(CsvUtf8Options options) => options.GetOrCreate(static o => new UInt64Utf8Converter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.IntPtr"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<byte, nint> CreateIntPtr(CsvUtf8Options options) => new IntPtrUtf8Converter(options);
+    public static CsvConverter<byte, nint> CreateIntPtr(CsvUtf8Options options) => options.GetOrCreate(static o => new IntPtrUtf8Converter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.UIntPtr"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<byte, nuint> CreateUIntPtr(CsvUtf8Options options) => new UIntPtrUtf8Converter(options);
+    public static CsvConverter<byte, nuint> CreateUIntPtr(CsvUtf8Options options) => options.GetOrCreate(static o => new UIntPtrUtf8Converter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.Float"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<byte, float> CreateFloat(CsvUtf8Options options) => new FloatUtf8Converter(options);
+    public static CsvConverter<byte, float> CreateFloat(CsvUtf8Options options) => options.GetOrCreate(static o => new FloatUtf8Converter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.Double"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<byte, double> CreateDouble(CsvUtf8Options options) => new DoubleUtf8Converter(options);
+    public static CsvConverter<byte, double> CreateDouble(CsvUtf8Options options) => options.GetOrCreate(static o => new DoubleUtf8Converter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.Decimal"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<byte, decimal> CreateDecimal(CsvUtf8Options options) => new DecimalUtf8Converter(options);
+    public static CsvConverter<byte, decimal> CreateDecimal(CsvUtf8Options options) => options.GetOrCreate(static o => new DecimalUtf8Converter(o));
 
+    /// <summary>Returns an user-defined converter for <see cref="System.Half"/>, or returns the built-in converter. </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static CsvConverter<byte, Half> CreateHalf(CsvUtf8Options options) => new HalfUtf8Converter(options);
+    public static CsvConverter<byte, Half> CreateHalf(CsvUtf8Options options) => options.GetOrCreate(static o => new HalfUtf8Converter(o));
 
 
     private static void RegisterNumberConverters(List<KeyValuePair<Type, TextConverterFactory>> list)

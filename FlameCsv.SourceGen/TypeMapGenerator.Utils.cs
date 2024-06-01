@@ -1,4 +1,6 @@
-﻿namespace FlameCsv.SourceGen;
+﻿using System.Linq;
+
+namespace FlameCsv.SourceGen;
 
 public partial class TypeMapGenerator
 {
@@ -34,8 +36,21 @@ public partial class TypeMapGenerator
 
         string typeName = type.ToDisplayString();
 
+        INamedTypeSymbol? optionsSymbol = typeMap.Symbols.GetExplicitOptionsType(typeMap.TokenSymbol);
+        bool canUseDefault = IsDefaultConverterSupported(in typeMap.Symbols, type, out string defaultName);
+
+        string optionsName = "options";
+
         if (isNullable)
         {
+            if (typeMap.UseBuiltinConverters && canUseDefault && optionsSymbol is not null)
+            {
+                sb.Append("FlameCsv.Converters.DefaultConverters.GetOrCreate((");
+                sb.Append(optionsSymbol.ToDisplayString());
+                sb.Append(")options, static o => ");
+                optionsName = "o";
+            }
+
             sb.Append("new NullableConverter<");
             sb.Append(typeMap.Token);
             sb.Append(", ");
@@ -43,15 +58,15 @@ public partial class TypeMapGenerator
             sb.Append(">(");
         }
 
-        if (typeMap.UseBuiltinConverters &&
-            typeMap.Symbols.GetExplicitOptionsType(typeMap.TokenSymbol) is { } optionsSymbol &&
-            IsDefaultConverterSupported(in typeMap.Symbols, type, out string defaultName))
+        if (typeMap.UseBuiltinConverters && canUseDefault && optionsSymbol is not null)
         {
             sb.Append("FlameCsv.Converters.DefaultConverters.Create");
             sb.Append(defaultName);
             sb.Append("((");
             sb.Append(optionsSymbol.ToDisplayString());
-            sb.Append(")options)");
+            sb.Append(')');
+            sb.Append(optionsName);
+            sb.Append(')');
         }
         else
         {
@@ -62,9 +77,16 @@ public partial class TypeMapGenerator
 
         if (isNullable)
         {
-            sb.Append(", options.GetNullToken(typeof(");
+            sb.Append(", ");
+            sb.Append(optionsName);
+            sb.Append(".GetNullToken(typeof(");
             sb.Append(typeName);
             sb.Append(")))");
+
+            if (typeMap.UseBuiltinConverters && canUseDefault)
+            {
+                sb.Append(")");
+            }
         }
     }
 
@@ -122,6 +144,48 @@ public partial class TypeMapGenerator
         if (foundArgs is null && !foundInstance)
             typeMap.Fail(Diagnostics.NoCsvFactoryConstructorFound(parser));
 
+        ITypeSymbol baseType = memberType.UnwrapNullable(out bool nullable);
+        bool wrapNullable = false;
+
+        if (nullable)
+        {
+            // wrap in a NullableConverter if needed, find base type
+            INamedTypeSymbol? current = parser.BaseType;
+            ITypeSymbol? resultType = null;
+
+            while (current != null)
+            {
+                if (current.IsGenericType)
+                {
+                    INamedTypeSymbol generic = current.ConstructUnboundGenericType();
+
+                    if (SymbolEqualityComparer.Default.Equals(generic, typeMap.Symbols.CsvConverterFactory))
+                    {
+                        resultType = current.TypeArguments[0];
+                        break;
+                    }
+                    else if (SymbolEqualityComparer.Default.Equals(generic, typeMap.Symbols.CsvConverterTTValue))
+                    {
+                        resultType = current.TypeArguments[1];
+                        break;
+                    }
+                }
+
+                current = current.BaseType;
+            }
+
+            wrapNullable = SymbolEqualityComparer.Default.Equals(baseType, resultType);
+        }
+
+        if (wrapNullable)
+        {
+            sb.Append("new NullableConverter<");
+            sb.Append(typeMap.Token);
+            sb.Append(", ");
+            sb.Append(baseType);
+            sb.Append(">(");
+        }
+
         if (string.IsNullOrEmpty(foundArgs) && foundInstance)
         {
             sb.Append(parser.ToDisplayString());
@@ -142,9 +206,14 @@ public partial class TypeMapGenerator
             sb.Append(memberType.ToDisplayString());
             sb.Append(">(options)");
         }
+
+        if (wrapNullable)
+        {
+            sb.Append(')');
+        }
     }
 
-    private bool IsDefaultConverterSupported(in KnownSymbols symbols, ITypeSymbol  type, out string name)
+    private bool IsDefaultConverterSupported(in KnownSymbols symbols, ITypeSymbol type, out string name)
     {
         switch (type.SpecialType)
         {

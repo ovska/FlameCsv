@@ -1,4 +1,6 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using FlameCsv.Binding;
 using FlameCsv.Converters;
@@ -8,7 +10,7 @@ using FlameCsv.Utilities;
 
 namespace FlameCsv;
 
-public class CsvTextOptions : CsvOptions<char>
+public class CsvTextOptions : CsvOptions<char>, IGetOrCreate<char, CsvTextOptions>
 {
     private static readonly Lazy<CsvTextOptions> _default = new(() => new(isReadOnly: true));
 
@@ -308,5 +310,24 @@ public class CsvTextOptions : CsvOptions<char>
     public override bool TryGetChars(ReadOnlySpan<char> field, Span<char> destination, out int charsWritten)
     {
         return field.TryWriteTo(destination, out charsWritten);
+    }
+
+    public CsvConverter<char, TValue> GetOrCreate<TValue>(Func<CsvTextOptions, CsvConverter<char, TValue>> func)
+    {
+        CsvConverter<char>? converter = TryGetExistingOrExplicit(typeof(TValue), out bool created);
+
+        if (converter is null)
+        {
+            converter = func(this);
+            created = true;
+        }
+
+        if (created && !_converterCache.TryAdd(typeof(TValue), converter))
+        {
+            // ensure we return the same instance that was cached
+            converter = (CsvConverter<char, TValue>)_converterCache[typeof(TValue)];
+        }
+
+        return (CsvConverter<char, TValue>)converter;
     }
 }
