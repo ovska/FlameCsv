@@ -37,16 +37,19 @@ public partial class TypeMapGenerator
         string typeName = type.ToDisplayString();
 
         INamedTypeSymbol? optionsSymbol = typeMap.Symbols.GetExplicitOptionsType(typeMap.TokenSymbol);
-        bool canUseDefault = IsDefaultConverterSupported(in typeMap.Symbols, type, out string defaultName);
+        bool canUseDefault =
+            IsDefaultConverterSupported(in typeMap.Symbols, type, out string defaultName) &&
+            typeMap.UseBuiltinConverters &&
+            optionsSymbol is not null;
 
         string optionsName = "options";
 
         if (isNullable)
         {
-            if (typeMap.UseBuiltinConverters && canUseDefault && optionsSymbol is not null)
+            if (canUseDefault)
             {
                 sb.Append("FlameCsv.Converters.DefaultConverters.GetOrCreate((");
-                sb.Append(optionsSymbol.ToDisplayString());
+                sb.Append(optionsSymbol!.ToDisplayString());
                 sb.Append(")options, static o => ");
                 optionsName = "o";
             }
@@ -58,15 +61,18 @@ public partial class TypeMapGenerator
             sb.Append(">(");
         }
 
-        if (typeMap.UseBuiltinConverters && canUseDefault && optionsSymbol is not null)
+        if (canUseDefault)
         {
             sb.Append("FlameCsv.Converters.DefaultConverters.Create");
             sb.Append(defaultName);
             sb.Append("((");
-            sb.Append(optionsSymbol.ToDisplayString());
+            sb.Append(optionsSymbol!.ToDisplayString());
             sb.Append(')');
             sb.Append(optionsName);
             sb.Append(')');
+
+            if (typeMap.Symbols.Nullable)
+                sb.Append('!');
         }
         else
         {
@@ -83,7 +89,7 @@ public partial class TypeMapGenerator
             sb.Append(typeName);
             sb.Append(")))");
 
-            if (typeMap.UseBuiltinConverters && canUseDefault)
+            if (canUseDefault)
             {
                 sb.Append(")");
             }
@@ -98,8 +104,8 @@ public partial class TypeMapGenerator
         INamedTypeSymbol converterFactorySymbol)
     {
         string? foundArgs = null;
-        var csvOptionsSymbol = typeMap.Symbols.GetCsvOptionsType(typeMap.TokenSymbol);
-        var explicitOptionsSymbol = typeMap.Symbols.GetExplicitOptionsType(typeMap.TokenSymbol);
+        INamedTypeSymbol csvOptionsSymbol = typeMap.Symbols.GetCsvOptionsType(typeMap.TokenSymbol);
+        INamedTypeSymbol? explicitOptions = typeMap.Symbols.GetExplicitOptionsType(typeMap.TokenSymbol);
         bool foundExplicit = false;
         bool foundInstance = false;
 
@@ -110,7 +116,7 @@ public partial class TypeMapGenerator
             {
                 if (method.Parameters.Length == 1)
                 {
-                    if (SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, explicitOptionsSymbol))
+                    if (SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, explicitOptions))
                     {
                         foundExplicit = true;
                     }
@@ -136,9 +142,9 @@ public partial class TypeMapGenerator
         }
 
         // if no CsvOptions<T> constructor found, use CsvTextOptions or CsvUtf8Options with cast
-        if (string.IsNullOrEmpty(foundArgs) && foundExplicit && explicitOptionsSymbol is not null)
+        if (string.IsNullOrEmpty(foundArgs) && foundExplicit)
         {
-            foundArgs = $"({explicitOptionsSymbol.ToDisplayString()})options";
+            foundArgs = $"({explicitOptions!.ToDisplayString()})options";
         }
 
         if (foundArgs is null && !foundInstance)
@@ -211,6 +217,9 @@ public partial class TypeMapGenerator
         {
             sb.Append(')');
         }
+
+        if (typeMap.Symbols.Nullable)
+            sb.Append('!');
     }
 
     private bool IsDefaultConverterSupported(in KnownSymbols symbols, ITypeSymbol type, out string name)

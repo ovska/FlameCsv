@@ -36,5 +36,5 @@ internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
     [return: DynamicallyAccessedMembers(Messages.Ctors)]
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL3050", Justification = Messages.StructFactorySuppressionMessage)]
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2070", Justification = Messages.StructFactorySuppressionMessage)]
-    private static Type GetParserType(Type type) => typeof(NullableConverter<,>).MakeGenericType(typeof(T), type);
+    internal static Type GetParserType(Type type) => typeof(NullableConverter<,>).MakeGenericType(typeof(T), type);
 }

@@ -137,7 +137,7 @@ public partial class WriteBench
     {
         using var writer = CsvWriter.Create(TextWriter.Null, autoFlush: true);
 
-        await writer.WriteHeaderAsync<Obj>();
+        await writer.WriteHeaderAsync<Obj>().ConfigureAwait(false);
 
         foreach (var obj in _data)
             await writer.WriteRecordAsync(obj).ConfigureAwait(false);

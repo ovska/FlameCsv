@@ -1,7 +1,5 @@
 ﻿using System.Buffers;
 using System.Buffers.Text;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using FlameCsv.Binding;
