@@ -38,15 +38,9 @@ public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute
                     $"can not parse the member type: {targetType.ToTypeString()}");
             }
 
-            if (CastingConverter<T>.TryCreate(instanceOrFactory, targetType, options) is not { } casting)
-            {
-                throw new CsvConfigurationException(
-                    $"Overridden converter {instanceOrFactory.GetType().ToTypeString()} " +
-                    $"can not parse the member type: {targetType.ToTypeString()}");
-            }
-
-            Debug.Assert(casting.CanConvert(targetType));
-            return casting;
+            throw new CsvConfigurationException(
+                $"Overridden converter {instanceOrFactory.GetType().ToTypeString()} " +
+                $"can not parse the member type: {targetType.ToTypeString()}");
         }
 
         return instanceOrFactory.GetOrCreateConverter(targetType, options);

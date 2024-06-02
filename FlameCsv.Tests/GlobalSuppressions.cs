@@ -8,3 +8,4 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("Performance", "CA1861:Avoid constant arrays as arguments")]
 [assembly: SuppressMessage("Usage", "CA1816:Dispose methods should call SuppressFinalize")]
 [assembly: SuppressMessage("Style", "IDE0018:Inline variable declaration")]
+[assembly: SuppressMessage("Design", "CA1067:Override Object.Equals(object) when implementing IEquatable<T>")]

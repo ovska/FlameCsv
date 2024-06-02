@@ -23,6 +23,7 @@ internal sealed class EnumTextConverterFactory : CsvConverterFactory<char>
     }
 
     [return: DynamicallyAccessedMembers(Messages.Ctors)]
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL3050", Justification = Messages.StructFactorySuppressionMessage)]
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2070", Justification = Messages.StructFactorySuppressionMessage)]
     private static Type GetParserType(Type resultType) => typeof(EnumTextConverter<>).MakeGenericType(resultType);
 }
