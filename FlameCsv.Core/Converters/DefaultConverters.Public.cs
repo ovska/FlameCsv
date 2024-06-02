@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel;
-using CommunityToolkit.HighPerformance.Buffers;
 
 namespace FlameCsv.Converters;
 

@@ -7,8 +7,6 @@ internal sealed class StringTextConverter : CsvConverter<char, string>
 {
     public override bool HandleNull => true;
 
-    public static StringTextConverter Instance { get; } = new(CsvTextOptions.Default);
-
     private readonly string? _null;
 
     public StringTextConverter(CsvTextOptions options)

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Converters;
 using FlameCsv.Exceptions;
@@ -31,11 +30,28 @@ public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute
 
         if (!instanceOrFactory.CanConvert(targetType))
         {
-            if (instanceOrFactory is CsvConverterFactory<T>)
+            Type? underlying = Nullable.GetUnderlyingType(targetType);
+
+            if (underlying is not null)
             {
-                throw new CsvConfigurationException(
-                    $"Overridden converter factory {instanceOrFactory.GetType().ToTypeString()} " +
-                    $"can not parse the member type: {targetType.ToTypeString()}");
+                CsvConverter<T>? converter = null;
+
+                if (instanceOrFactory is CsvConverterFactory<T> factory)
+                {
+                    if (factory.CanConvert(underlying))
+                        converter = factory.Create(underlying, options);
+                }
+                else if (instanceOrFactory.CanConvert(underlying))
+                {
+                    converter = instanceOrFactory;
+                }
+
+                if (converter is not null)
+                {
+                    return NullableConverterFactory<T>.GetParserType(underlying).CreateInstance<CsvConverter<T>>(
+                        converter,
+                        options.GetNullToken(underlying));
+                }
             }
 
             throw new CsvConfigurationException(

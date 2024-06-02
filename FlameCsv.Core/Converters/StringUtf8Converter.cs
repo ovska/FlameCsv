@@ -7,8 +7,6 @@ internal sealed class StringUtf8Converter : CsvConverter<byte, string>
 {
     public override bool HandleNull => true;
 
-    public static StringUtf8Converter Instance { get; } = new(CsvUtf8Options.Default);
-
     private readonly ReadOnlyMemory<byte> _null;
 
     public StringUtf8Converter(CsvUtf8Options options)

@@ -27,12 +27,12 @@ public sealed class CsvConverterAttribute<T, [DynamicallyAccessedMembers(Message
         if (options.GetType() != typeof(CsvOptions<T>) &&
             typeof(TConverter).GetConstructor([options.GetType()]) is { } exactCtor)
         {
-            return (CsvConverter<T>)exactCtor.Invoke(new object[] { options });
+            return (CsvConverter<T>)exactCtor.Invoke([options]);
         }
 
         if (typeof(TConverter).GetConstructor([typeof(CsvOptions<T>)]) is { } baseTypeCtor)
         {
-            return (CsvConverter<T>)baseTypeCtor.Invoke(new object[] { options });
+            return (CsvConverter<T>)baseTypeCtor.Invoke([options]);
         }
 
         if (typeof(TConverter).GetConstructor(Type.EmptyTypes) is { } emptyCtor)
