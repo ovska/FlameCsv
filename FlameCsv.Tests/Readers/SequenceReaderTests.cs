@@ -22,9 +22,6 @@ public class SequenceReaderTests
     private readonly CsvTextOptions _crlfOptions = new() { Newline = "\r\n", ArrayPool = AllocatingArrayPool<char>.Shared };
     private readonly CsvTextOptions _lfOptions = new() { Newline = "\n", ArrayPool = AllocatingArrayPool<char>.Shared };
 
-    private static readonly Lazy<string> _chars = new(() => File.ReadAllText("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv"));
-    private static readonly Lazy<byte[]> _bytes = new(() => File.ReadAllBytes("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv"));
-
     [Fact]
     public void Should_Read_LF()
     {
@@ -74,7 +71,7 @@ public class SequenceReaderTests
         Assert.True(parser.TryReadLine(out var line, out _, isFinalBlock: false));
 
         Assert.Equal("xyz", line.ToString());
-        Assert.Equal("abc", parser.UnreadSequence.ToString());
+        Assert.Equal("abc", parser._reader.UnreadSequence.ToString());
     }
 
     [Fact]
@@ -95,7 +92,7 @@ public class SequenceReaderTests
         Assert.Equal(2u, meta.quoteCount);
 
         Assert.False(parser.TryReadLine(out _, out _, isFinalBlock: false));
-        Assert.Equal(s3 + s4, parser.UnreadSequence.ToString());
+        Assert.Equal(s3 + s4, parser._reader.UnreadSequence.ToString());
     }
 
     private static readonly string[] _xxlines = [.. Enumerable.Range(0, 128).Select(i => new string('x', i))];
@@ -120,7 +117,7 @@ public class SequenceReaderTests
         }
 
         if (!parser.End)
-            results.Add(parser.UnreadSequence.ToString());
+            results.Add(parser._reader.UnreadSequence.ToString());
 
         Assert.Equal(_xxlines, results);
     }
@@ -142,7 +139,7 @@ public class SequenceReaderTests
 
         Assert.True(parser.TryReadLine(out var line, out _, isFinalBlock: false));
         Assert.Equal(segments[0], line.ToString());
-        Assert.Equal(segments[2], parser.UnreadSequence.ToString());
+        Assert.Equal(segments[2], parser._reader.UnreadSequence.ToString());
     }
 
     [Fact]
@@ -154,12 +151,12 @@ public class SequenceReaderTests
         var parser1 = CsvParser<char>.Create(_lfOptions);
         parser1.Reset(in seq);
         Assert.False(parser1.TryReadLine(out _, out _, isFinalBlock: false));
-        Assert.Equal(data, parser1.UnreadSequence.ToString());
+        Assert.Equal(data, parser1._reader.UnreadSequence.ToString());
 
         var parser2 = CsvParser<char>.Create(_crlfOptions);
         parser2.Reset(in seq);
         Assert.False(parser2.TryReadLine(out _, out _, isFinalBlock: false));
-        Assert.Equal(data, parser2.UnreadSequence.ToString());
+        Assert.Equal(data, parser2._reader.UnreadSequence.ToString());
     }
 
     [Theory]
@@ -185,7 +182,7 @@ public class SequenceReaderTests
             Assert.True(result);
             var lineStr = line.ToString();
             Assert.Equal(expected, lineStr);
-            Assert.Equal(data[(lineStr.Length + 1)..], parser.UnreadSequence.ToString());
+            Assert.Equal(data[(lineStr.Length + 1)..], parser._reader.UnreadSequence.ToString());
             Assert.Equal(quoteCount, meta.quoteCount);
         }
         else
@@ -193,7 +190,7 @@ public class SequenceReaderTests
             Assert.False(result);
 
             // original sequence is unchanged
-            Assert.Equal(data, parser.UnreadSequence.ToString());
+            Assert.Equal(data, parser._reader.UnreadSequence.ToString());
         }
     }
 }

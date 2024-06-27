@@ -173,18 +173,14 @@ public sealed class CsvEnumerationTests : IDisposable
         using var enumerator = new CsvRecordEnumerable<char>("A,B,C\r\n1,2,3".AsMemory(), new CsvTextOptions { HasHeader = true })
             .GetEnumerator();
 
-        CsvValueRecord<char> record = default;
-        int count = 0;
-
-        while (enumerator.MoveNext())
-        {
-            record = enumerator.Current;
-            Assert.Equal(1, ++count);
-        }
+        Assert.True(enumerator.MoveNext());
+        CsvValueRecord<char> record = enumerator.Current;
 
         Assert.Equal("1", record.GetField("A").ToString());
         Assert.Equal("2", record.GetField("B").ToString());
         Assert.Equal("3", record.GetField("C").ToString());
+
+        Assert.False(enumerator.MoveNext());
     }
 
     private CsvValueRecord<char> GetRecord()

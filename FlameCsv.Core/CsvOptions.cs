@@ -13,6 +13,7 @@ using static FlameCsv.Utilities.SealableUtil;
 using CommunityToolkit.HighPerformance.Buffers;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Reading;
+using CommunityToolkit.HighPerformance;
 
 namespace FlameCsv;
 
@@ -437,19 +438,7 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
         T delimiter = _delimiter;
         T quote = _quote;
         T? escape = _escape;
-        ReadOnlySpan<T> newline = _newline.Span;
         ReadOnlySpan<T> whitespace = _whitespace.Span;
-
-        if (delimiter.Equals(default) &&
-            quote.Equals(default) &&
-            newline.IsEmpty &&
-            whitespace.IsEmpty &&
-            !escape.HasValue)
-        {
-            AddError("All tokens were uninitialized");
-            Throw(errors!);
-            return;
-        }
 
         if (delimiter.Equals(quote))
         {
@@ -465,23 +454,35 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
                 AddError("Escape must not be equal to Quote.");
         }
 
-        if (newline.Length != 0)
+        ReadOnlySpan<T> newline = _newline.Span;
+
+        if (newline.Length == 0)
         {
-            if (newline.Length is not (1 or 2))
+            // use crlf if we have a known token type
+            if (typeof(T) == typeof(char))
             {
-                AddError("Newline must be empty, or 1 or 2 characters long.");
+                newline = "\r\n".AsSpan().UnsafeCast<char, T>();
             }
-            else
+            else if (typeof(T) == typeof(byte))
             {
-                if (newline.Contains(delimiter))
-                    AddError("Newline must not contain Delimiter.");
-
-                if (newline.Contains(quote))
-                    AddError("Newline must not contain Quote.");
-
-                if (escape.HasValue && newline.Contains(escape.GetValueOrDefault()))
-                    AddError("Newline must not contain Escape.");
+                newline = "\r\n"u8.UnsafeCast<byte, T>();
             }
+        }
+
+        if (newline.Length is not (1 or 2))
+        {
+            AddError("Newline must be empty, or 1 or 2 characters long.");
+        }
+        else
+        {
+            if (newline.Contains(delimiter))
+                AddError("Newline must not contain Delimiter.");
+
+            if (newline.Contains(quote))
+                AddError("Newline must not contain Quote.");
+
+            if (escape.HasValue && newline.Contains(escape.GetValueOrDefault()))
+                AddError("Newline must not contain Escape.");
         }
 
         if (!whitespace.IsEmpty)
