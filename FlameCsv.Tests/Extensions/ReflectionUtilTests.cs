@@ -30,20 +30,22 @@ public static class ReflectionUtilTests
         }
     }
 
-    public static IEnumerable<object[]> TupleTestData()
+    public static TheoryData<Type, bool> TupleTestData()
     {
-        yield return new object[] { typeof(bool), false };
-        yield return new object[] { typeof(object), false };
-        yield return new object[] { typeof(ValueTuple), false };
-        yield return new object[] { typeof(ValueTuple<>), false };
-        yield return new object[] { typeof(ValueTuple<,>), false };
-        yield return new object[] { typeof((int a, int b)), true };
-        yield return new object[] { typeof(Tuple), false };
-        yield return new object[] { typeof(Tuple<>), false };
-        yield return new object[] { typeof(Tuple<,>), false };
-        yield return new object[] { typeof(Tuple<int, int>), true };
-        yield return new object[] { typeof(FakeTuple), false };
-        yield return new object[] { typeof(FakeTuple<>), false };
-        yield return new object[] { typeof(FakeTuple<int>), false };
+        var data = new TheoryData<Type, bool>();
+        data.Add(typeof(bool), false);
+        data.Add(typeof(object), false);
+        data.Add(typeof(ValueTuple), false);
+        data.Add(typeof(ValueTuple<>), false);
+        data.Add(typeof(ValueTuple<,>), false);
+        data.Add(typeof((int a, int b)), true);
+        data.Add(typeof(Tuple), false);
+        data.Add(typeof(Tuple<>), false);
+        data.Add(typeof(Tuple<,>), false);
+        data.Add(typeof(Tuple<int, int>), true);
+        data.Add(typeof(FakeTuple), false);
+        data.Add(typeof(FakeTuple<>), false);
+        data.Add(typeof(FakeTuple<int>), false);
+        return data;
     }
 }

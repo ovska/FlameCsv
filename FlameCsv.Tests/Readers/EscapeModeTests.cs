@@ -45,7 +45,7 @@ public static class EscapeModeTests
     {
         char[]? buffer = null;
 
-        using var parser = CsvParser<char>.Create  (new CsvTextOptions { Escape = '^', Quote = '\'' });
+        using var parser = CsvParser<char>.Create(new CsvTextOptions { Escape = '^', Quote = '\'' });
         var meta = parser.GetRecordMeta(input.AsMemory());
         Span<char> stackbuffer = stackalloc char[16];
 
@@ -229,19 +229,21 @@ public static class EscapeModeTests
         Assert.Equal(data.Replace("^^", "^").Count('^'), (int)meta.escapeCount);
     }
 
-    public static IEnumerable<object[]> GetEscapeTestData()
+    public static TheoryData<int, int, string, string> GetEscapeTestData()
     {
-        return
-            from segmentSize in new[] { 1, 2, 4, 17, 128 }
-            from emptyFrequency in new[] { 0, 2, 3 }
-            from data in _escapeTestData.Select(x => (full: x, nolf: x[..^2]))
-            select new object[]
-            {
-                segmentSize,
-                emptyFrequency,
-                data.full,
-                data.nolf
-            };
+        var values = from segmentSize in new[] { 1, 2, 4, 17, 128 }
+                     from emptyFrequency in new[] { 0, 2, 3 }
+                     from tdata in _escapeTestData.Select(x => (full: x, nolf: x[..^2]))
+                     select new { segmentSize, emptyFrequency, tdata.full, tdata.nolf };
+
+        var data = new TheoryData<int, int, string, string>();
+
+        foreach (var x in values)
+        {
+            data.Add(x.segmentSize, x.emptyFrequency, x.full, x.nolf);
+        }
+
+        return data;
     }
 
     private static readonly string[] _escapeTestData =

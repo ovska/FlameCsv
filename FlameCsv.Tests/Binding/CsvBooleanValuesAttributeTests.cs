@@ -10,26 +10,30 @@ namespace FlameCsv.Tests.Binding;
 
 public static class CsvBooleanValuesAttributeTests
 {
-    public static IEnumerable<object?[]> NonNullableTestData()
+    public static TheoryData<string, bool, bool?> NonNullableTestData()
     {
-        yield return ["1", true, true];
-        yield return ["Y", true, true];
-        yield return ["0", true, false];
-        yield return ["N", true, false];
-        yield return ["true", false, null];
-        yield return ["false", false, null];
+        var data = new TheoryData<string, bool, bool?>();
+        data.Add("1", true, true);
+        data.Add("Y", true, true);
+        data.Add("0", true, false);
+        data.Add("N", true, false);
+        data.Add("true", false, null);
+        data.Add("false", false, null);
+        return data;
     }
 
-    public static IEnumerable<object?[]> NullableTestData()
+    public static TheoryData<string, bool, bool?, string> NullableTestData()
     {
-        yield return ["1", true, true, ""];
-        yield return ["Y", true, true, ""];
-        yield return ["0", true, false, ""];
-        yield return ["N", true, false, ""];
-        yield return ["true", false, null, ""];
-        yield return ["false", false, null, ""];
-        yield return ["null", true, null, "null"];
-        yield return ["null", false, null, ""];
+        var data = new TheoryData<string, bool, bool?, string>();
+        data.Add("1", true, true, "");
+        data.Add("Y", true, true, "");
+        data.Add("0", true, false, "");
+        data.Add("N", true, false, "");
+        data.Add("true", false, null, "");
+        data.Add("false", false, null, "");
+        data.Add("null", true, null, "null");
+        data.Add("null", false, null, "");
+        return data;
     }
 
     private class Shim
