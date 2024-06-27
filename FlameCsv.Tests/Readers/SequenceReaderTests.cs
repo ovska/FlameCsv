@@ -97,10 +97,23 @@ public class SequenceReaderTests
 
     private static readonly string[] _xxlines = [.. Enumerable.Range(0, 128).Select(i => new string('x', i))];
 
-    public static IEnumerable<object[]> Segments =>
-        from size in (int[])[1, 2, 4, 17, 128, 8096]
-        from freq in (int[])[0, 2, 20]
-        select (object[])[size, freq];
+    public static TheoryData<int, int> Segments
+    {
+        get
+        {
+            var values = from size in (int[])[1, 2, 4, 17, 128, 8096]
+                         from freq in (int[])[0, 2, 20]
+                         select new { size, freq };
+            var data = new TheoryData<int, int>();
+
+            foreach (var x in values)
+            {
+                data.Add(x.size, x.freq);
+            }
+
+            return data;
+        }
+    }
 
     [Theory, MemberData(nameof(Segments))]
     public void Should_Find_Complex_Newlines(int segmentSize, int emptyFrequency)

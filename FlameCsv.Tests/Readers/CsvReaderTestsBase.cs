@@ -41,34 +41,62 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         int bufferSize,
         bool sourceGen);
 
-    public static IEnumerable<object[]> SyncObjectParams => SyncParams.Where(x => x[1] is true || x[^1] is false);
-    public static IEnumerable<object[]> SyncRecordParams => SyncParams.Where(x => x[1] is true || x[^1] is false);
+    public static TheoryData<string, bool, bool, int, int, Mode, bool> SyncParams
+    {
+        get
+        {
+            var values = from crlf in _crlf
+                         from writeHeader in _booleans
+                         from writeTrailingNewline in _booleans
+                         from bufferSize in _bufferSizes
+                         from emptySegmentFrequency in _emptySegmentsEvery
+                         from escaping in _escaping
+                         from sourceGen in _booleans
+                         select new { crlf, writeHeader, writeTrailingNewline, bufferSize, emptySegmentFrequency, escaping, sourceGen };
 
-    private static IEnumerable<object[]> SyncParams
-        =>
-            from crlf in _crlf
-            from writeHeader in _booleans
-            from writeTrailingNewline in _booleans
-            from bufferSize in _bufferSizes
-            from emptySegmentFrequency in _emptySegmentsEvery
-            from escaping in _escaping
-            from sourceGen in _booleans
-            select new object[] { crlf, writeHeader, writeTrailingNewline, bufferSize, emptySegmentFrequency, escaping, sourceGen };
+            var data = new TheoryData<string, bool, bool, int, int, Mode, bool>();
 
-    public static IEnumerable<object[]> AsyncObjectParams => AsyncParams.Where(x => x[1] is true || x[^1] is false);
-    public static IEnumerable<object[]> AsyncRecordParams => AsyncParams.Where(x => x[1] is true || x[^1] is false);
+            foreach (var x in values)
+            {
+                // headerless csv not yet supported on sourcegen
+                if (x.sourceGen && !x.writeHeader)
+                    continue;
 
-    private static IEnumerable<object[]> AsyncParams
-        =>
-            from crlf in _crlf
-            from writeHeader in _booleans
-            from writeTrailingNewline in _booleans
-            from bufferSize in _bufferSizes
-            from escaping in _escaping
-            from sourceGen in _booleans
-            select new object[] { crlf, writeHeader, writeTrailingNewline, bufferSize, escaping, sourceGen };
+                data.Add(x.crlf, x.writeHeader, x.writeTrailingNewline, x.bufferSize, x.emptySegmentFrequency, x.escaping, x.sourceGen);
+            }
 
-    [Theory, MemberData(nameof(SyncObjectParams))]
+            return data;
+        }
+    }
+
+    public static TheoryData<string, bool, bool, int, Mode, bool> AsyncParams
+    {
+        get
+        {
+            var values = from crlf in _crlf
+                         from writeHeader in _booleans
+                         from writeTrailingNewline in _booleans
+                         from bufferSize in _bufferSizes
+                         from escaping in _escaping
+                         from sourceGen in _booleans
+                         select new { crlf, writeHeader, writeTrailingNewline, bufferSize, escaping, sourceGen };
+
+            var data = new TheoryData<string, bool, bool, int, Mode, bool>();
+
+            foreach (var x in values)
+            {
+                // headerless csv not yet supported on sourcegen
+                if (x.sourceGen && !x.writeHeader)
+                    continue;
+
+                data.Add(x.crlf, x.writeHeader, x.writeTrailingNewline, x.bufferSize, x.escaping, x.sourceGen);
+            }
+
+            return data;
+        }
+    }
+
+    [Theory, MemberData(nameof(SyncParams))]
     public void Objects_Sync(
         string newline,
         bool header,
@@ -94,7 +122,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         Validate(items, escaping);
     }
 
-    [Theory, MemberData(nameof(SyncRecordParams))]
+    [Theory, MemberData(nameof(SyncParams))]
     public async Task Records_Sync(
         string newline,
         bool header,
@@ -122,7 +150,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         Validate(items, escaping);
     }
 
-    [Theory, MemberData(nameof(AsyncObjectParams))]
+    [Theory, MemberData(nameof(AsyncParams))]
     public async Task Objects_Async(
         string newline,
         bool header,
@@ -149,7 +177,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         Validate(items, escaping);
     }
 
-    [Theory, MemberData(nameof(AsyncRecordParams))]
+    [Theory, MemberData(nameof(AsyncParams))]
     public async Task Records_Async(
         string newline,
         bool header,

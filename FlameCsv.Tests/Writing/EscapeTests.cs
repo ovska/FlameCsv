@@ -152,10 +152,21 @@ public static class EscapeTests
         (3, "||\r\n test |"),
     ];
 
-    public static IEnumerable<object?[]> NeedsEscapingData() =>
-        from x in _needsEscapingData
-        from newline in new[] { "\r\n", "\n" }
-        select new object?[] { newline, x.quoteCount, x.data };
+    public static TheoryData<string, int?, string> NeedsEscapingData()
+    {
+        var values = from x in _needsEscapingData
+                     from newline in new[] { "\r\n", "\n" }
+                     select new { newline, x.quoteCount, x.data };
+        
+        var theory = new TheoryData<string, int?, string>();
+
+        foreach (var x in values)
+        {
+            theory.Add(x.newline, x.quoteCount, x.data);
+        }
+
+        return theory;
+    }
 
     [Theory, MemberData(nameof(NeedsEscapingData))]
     public static void Should_Check_Needs_Escaping(string newline, int? quotes, string input)
