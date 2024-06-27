@@ -16,7 +16,7 @@ namespace FlameCsv.Tests.Readers;
 /// <summary>
 /// A spray-and-pray tests of different APIs using various options and CSV features.
 /// </summary>
-[Collection("ReaderTests")]
+//[Collection("ReaderTests")]
 public abstract class CsvReaderTestsBase<T> : IDisposable
     where T : unmanaged, IEquatable<T>
 {

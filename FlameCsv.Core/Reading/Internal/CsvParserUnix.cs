@@ -174,10 +174,7 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IEqua
 
     protected override (int consumed, int linesRead) FillSliceBuffer(ReadOnlySpan<T> data, Span<Slice> slices)
     {
-        if (_newlineLength == 0 && !TryPeekNewline())
-        {
-            return default;
-        }
+        Debug.Assert(_newlineLength != 0, "FillSliceBuffer called with newlinelen 0");
 
         int linesRead = 0;
         int consumed = 0;

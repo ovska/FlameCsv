@@ -37,7 +37,6 @@ public static class ReflectionUtilTests
         yield return new object[] { typeof(ValueTuple), false };
         yield return new object[] { typeof(ValueTuple<>), false };
         yield return new object[] { typeof(ValueTuple<,>), false };
-        yield return new object[] { typeof(ValueTuple<int, int>), true };
         yield return new object[] { typeof((int a, int b)), true };
         yield return new object[] { typeof(Tuple), false };
         yield return new object[] { typeof(Tuple<>), false };

@@ -161,36 +161,48 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
     [MethodImpl(MethodImplOptions.NoInlining)]
     private bool TryReadSlow(out ReadOnlyMemory<T> line, out CsvRecordMeta meta, bool isFinalBlock)
     {
-        if (!_reader.End)
+        if (_newlineLength == 0 && !TryPeekNewline())
         {
-            if (_slices.Length > 0)
-            {
-                ReadOnlyMemory<T> unread = _reader.Unread;
-                scoped Span<Slice> slices = _slices.AsSpan().Cast<T, Slice>();
-                var (consumed, linesRead) = FillSliceBuffer(unread.Span, slices);
+            if (isFinalBlock)
+                goto ConsumeFinalBlock;
 
-                if (linesRead > 0)
-                {
-                    _sliceIndex = 0;
-                    _sliceCount = linesRead;
-                    _sliceBuffer = unread;
-                    _reader.AdvanceCurrent(consumed);
-                    return TryReadLine(out line, out meta, isFinalBlock);
-                }
-            }
-
-            if (!isFinalBlock)
-            {
-                return TryReadLine(out line, out meta);
-            }
-
-            // consume final block
-            line = _reader.UnreadSequence.AsMemory(ref _multisegmentBuffer, _arrayPool);
-            meta = GetRecordMeta(line);
-            _reader.AdvanceToEnd();
-            return true;
+            goto Fail;
         }
 
+        Debug.Assert(_newlineLength != 0, "TryPeekNewline should have initialized newline");
+
+        if (_reader.End)
+            goto Fail;
+
+        if (_slices.Length > 0)
+        {
+            ReadOnlyMemory<T> unread = _reader.Unread;
+            scoped Span<Slice> slices = _slices.AsSpan().Cast<T, Slice>();
+            var (consumed, linesRead) = FillSliceBuffer(unread.Span, slices);
+
+            if (linesRead > 0)
+            {
+                _sliceIndex = 0;
+                _sliceCount = linesRead;
+                _sliceBuffer = unread;
+                _reader.AdvanceCurrent(consumed);
+                return TryReadLine(out line, out meta, isFinalBlock);
+            }
+        }
+
+        if (!isFinalBlock)
+        {
+            return TryReadLine(out line, out meta);
+        }
+
+        ConsumeFinalBlock:
+        Debug.Assert(isFinalBlock);
+        line = _reader.UnreadSequence.AsMemory(ref _multisegmentBuffer, _arrayPool);
+        meta = GetRecordMeta(line);
+        _reader.AdvanceToEnd();
+        return true;
+
+        Fail:
         Debug.Assert(_sliceIndex == 0);
         Unsafe.SkipInit(out line);
         Unsafe.SkipInit(out meta);
@@ -200,8 +212,6 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
     public abstract CsvRecordMeta GetRecordMeta(ReadOnlyMemory<T> line);
     protected abstract bool TryReadLine(out ReadOnlyMemory<T> line, out CsvRecordMeta meta);
     protected abstract (int consumed, int linesRead) FillSliceBuffer(ReadOnlySpan<T> data, scoped Span<Slice> slices);
-
-    internal ReadOnlySequence<T> UnreadSequence => _reader.UnreadSequence;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool SkipRecord(ReadOnlyMemory<T> record, int line, bool headerRead)
@@ -249,10 +259,6 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
     [MethodImpl(MethodImplOptions.NoInlining)]
     protected bool TryPeekNewline()
     {
-        // TODO: wip newline detection when reading
-        Unsafe.AsRef(in _newlineLength) = 2;
-        return true;
-
         Debug.Assert(_newlineLength == 0, $"TryPeekNewline called with invalid newline length: {_newlineLength}");
 
         Debug.Assert(
@@ -260,34 +266,46 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
             (typeof(T) == typeof(byte) && _newline1.Equals((T)(object)(byte)'\r') && _newline2.Equals((T)(object)(byte)'\n')),
             $"Invalid default newline for {typeof(T).FullName}: [{_newline1}, {_newline2}]");
 
-        if (_reader.UnreadSequence.PositionOf(_newline2) is not SequencePosition lfPosition)
-        {
-            return false;
-        }
-
-        ReadOnlySequence<T> firstLineSlice = _reader.UnreadSequence.Slice(_reader.UnreadSequence.Start, lfPosition);
-
-        T[]? buffer = null;
+        CsvSequenceReader<T> copy = _reader;
+        ReadOnlyMemory<T> firstLine;
+        long originalLength = copy.UnreadSequence.Length;
+        long lengthAfterLine;
 
         try
         {
-            ReadOnlyMemory<T> firstLine = firstLineSlice.AsMemory(ref buffer, _arrayPool);
+            Unsafe.AsRef(in _newlineLength) = 2;
 
-            if (firstLine.IsEmpty || firstLine.Span[^1].Equals(_newline1))
-            {
-                // crlf
-                Unsafe.AsRef(in _newlineLength) = 2;
-            }
-            else
-            {
-                // lf
-                Unsafe.AsRef(in _newline1) = _newline2;
-                Unsafe.AsRef(in _newlineLength) = 1;
-            }
+            if (!TryReadLine(out firstLine, out _))
+                return false;
+
+            lengthAfterLine = _reader.UnreadSequence.Length;
         }
         finally
         {
-            _arrayPool.EnsureReturned(ref buffer);
+            // reset original state, we are only peeking
+            _reader = copy;
+            Unsafe.AsRef(in _newlineLength) = 0;
+        }
+
+        long lengthOffset = originalLength - lengthAfterLine - firstLine.Length;
+
+        // it's impossible to get to this point using \r as escape/quote, see CsvOptions.ValidateDialect()
+        // we can be certain that a line ending in \n is valid, and possibly contained the preceding \r
+        if (lengthOffset == 2)
+        {
+            // crlf
+            Unsafe.AsRef(in _newlineLength) = 2;
+        }
+        else if (lengthOffset == 1)
+        {
+            // lf
+            Unsafe.AsRef(in _newline1) = _newline2;
+            Unsafe.AsRef(in _newlineLength) = 1;
+        }
+        else
+        {
+            throw new UnreachableException(
+                $"Invalid TryPeekNewline: Read line len {firstLine.Length}, reader went from {originalLength} to {lengthAfterLine}, line: {_options.AsPrintableString(firstLine)}");
         }
 
         return true;

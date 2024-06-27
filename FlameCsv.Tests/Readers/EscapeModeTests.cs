@@ -120,7 +120,7 @@ public static class EscapeModeTests
         Assert.True(parser.TryReadLine(out var line, out _, isFinalBlock: false));
 
         Assert.Equal("xyz", line.ToString());
-        Assert.Equal("abc", parser.UnreadSequence.ToString());
+        Assert.Equal("abc", parser._reader.UnreadSequence.ToString());
     }
 
     [Theory]
@@ -151,7 +151,7 @@ public static class EscapeModeTests
             results.Add(line.ToString());
         }
 
-        results.Add(parser.UnreadSequence.ToString());
+        results.Add(parser._reader.UnreadSequence.ToString());
 
         Assert.Equal(lines, results);
     }
@@ -172,7 +172,7 @@ public static class EscapeModeTests
 
         Assert.True(parser.TryReadLine(out var line, out _, isFinalBlock: false));
         Assert.Equal(segments[0], line.ToString());
-        Assert.Equal(segments[2], parser.UnreadSequence.ToString());
+        Assert.Equal(segments[2], parser._reader.UnreadSequence.ToString());
     }
 
     [Fact]
@@ -185,7 +185,7 @@ public static class EscapeModeTests
         parser.Reset(in seq);
 
         Assert.False(parser.TryReadLine(out _, out _, isFinalBlock: false));
-        Assert.Equal(data, parser.UnreadSequence.ToString());
+        Assert.Equal(data, parser._reader.UnreadSequence.ToString());
     }
 
     [Theory, MemberData(nameof(GetEscapeTestData))]
