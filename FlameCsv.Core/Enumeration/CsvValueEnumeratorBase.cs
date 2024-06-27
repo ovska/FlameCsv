@@ -94,8 +94,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
                 record,
                 stackalloc T[Token<T>.StackLength],
                 ref _unescapeBuffer,
-                meta.quoteCount,
-                meta.escapeCount);
+                in meta);
 
             _current = _materializer.Parse(ref reader);
             return true;
@@ -137,8 +136,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
             record,
             stackalloc T[Token<T>.StackLength],
             ref _unescapeBuffer,
-            meta.quoteCount,
-            meta.escapeCount);
+            in meta);
 
         List<string> values = new(16);
 

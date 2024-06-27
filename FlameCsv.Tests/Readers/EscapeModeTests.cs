@@ -22,12 +22,13 @@ public static class EscapeModeTests
     {
         char[]? buffer = null;
 
+        var meta = new CsvRecordMeta { quoteCount = (uint)input.Count('"') };
         var record = new CsvFieldReader<char>(
             new CsvTextOptions { Whitespace = " ", Escape = '\\' },
             input.AsMemory(),
             default,
             ref buffer,
-            (uint)input.Count('"'));
+            in meta);
 
         var field = UnixMode<char>.ReadNextField(ref record);
 
@@ -53,8 +54,7 @@ public static class EscapeModeTests
             input.AsMemory(),
             stackbuffer,
             ref buffer,
-            meta.quoteCount,
-            meta.escapeCount);
+            in meta);
 
         var field = UnixMode<char>.ReadNextField(ref record);
         Assert.Equal(expected, field);
@@ -93,8 +93,7 @@ public static class EscapeModeTests
             input.AsMemory(),
             stackalloc char[64],
             ref buffer,
-            meta.quoteCount,
-            meta.escapeCount);
+            in meta);
 
         List<string> actual = [];
 
@@ -118,7 +117,7 @@ public static class EscapeModeTests
         using var parser = CsvParser<char>.Create(new CsvTextOptions { Newline = "\r\n", Escape = '^' });
         parser.Reset(in seq);
 
-        Assert.True(parser.TryReadLine(out var line, out _));
+        Assert.True(parser.TryReadLine(out var line, out _, isFinalBlock: false));
 
         Assert.Equal("xyz", line.ToString());
         Assert.Equal("abc", parser.UnreadSequence.ToString());
@@ -147,7 +146,7 @@ public static class EscapeModeTests
 
         var results = new List<string>();
 
-        while (parser.TryReadLine(out var line, out _))
+        while (parser.TryReadLine(out var line, out _, isFinalBlock: false))
         {
             results.Add(line.ToString());
         }
@@ -171,7 +170,7 @@ public static class EscapeModeTests
         using var parser = CsvParser<char>.Create(new CsvTextOptions { Newline = newline, Escape = '^' });
         parser.Reset(in seq);
 
-        Assert.True(parser.TryReadLine(out var line, out _));
+        Assert.True(parser.TryReadLine(out var line, out _, isFinalBlock: false));
         Assert.Equal(segments[0], line.ToString());
         Assert.Equal(segments[2], parser.UnreadSequence.ToString());
     }
@@ -185,7 +184,7 @@ public static class EscapeModeTests
         using var parser = CsvParser<char>.Create(new CsvTextOptions { Escape = '^' });
         parser.Reset(in seq);
 
-        Assert.False(parser.TryReadLine(out _, out _));
+        Assert.False(parser.TryReadLine(out _, out _, isFinalBlock: false));
         Assert.Equal(data, parser.UnreadSequence.ToString());
     }
 

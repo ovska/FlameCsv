@@ -60,7 +60,7 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IEqua
     public override CsvRecordMeta GetRecordMeta(ReadOnlyMemory<T> line) => GetRecordMeta(line, _options);
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public override bool TryReadLine(out ReadOnlyMemory<T> line, out CsvRecordMeta meta)
+    protected override bool TryReadLine(out ReadOnlyMemory<T> line, out CsvRecordMeta meta)
     {
         CsvSequenceReader<T> copy = _reader;
 
@@ -174,6 +174,11 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IEqua
 
     protected override (int consumed, int linesRead) FillSliceBuffer(ReadOnlySpan<T> data, Span<Slice> slices)
     {
+        if (_newlineLength == 0 && !TryPeekNewline())
+        {
+            return default;
+        }
+
         int linesRead = 0;
         int consumed = 0;
         int currentConsumed = 0;

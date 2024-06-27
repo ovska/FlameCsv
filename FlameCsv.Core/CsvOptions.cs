@@ -419,8 +419,7 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
                 record,
                 stackalloc T[Token<T>.StackLength],
                 ref array,
-                meta.quoteCount,
-                meta.escapeCount);
+                in meta);
 
             return materializer.Parse(ref reader);
         }
@@ -448,7 +447,8 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
             !escape.HasValue)
         {
             AddError("All tokens were uninitialized");
-            goto End;
+            Throw(errors!);
+            return;
         }
 
         if (delimiter.Equals(quote))
@@ -465,20 +465,23 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
                 AddError("Escape must not be equal to Quote.");
         }
 
-        if (newline.IsEmpty)
+        if (newline.Length != 0)
         {
-            AddError("Newline must not be empty.");
-        }
-        else
-        {
-            if (newline.Contains(delimiter))
-                AddError("Newline must not contain Delimiter.");
+            if (newline.Length is not (1 or 2))
+            {
+                AddError("Newline must be empty, or 1 or 2 characters long.");
+            }
+            else
+            {
+                if (newline.Contains(delimiter))
+                    AddError("Newline must not contain Delimiter.");
 
-            if (newline.Contains(quote))
-                AddError("Newline must not contain Quote.");
+                if (newline.Contains(quote))
+                    AddError("Newline must not contain Quote.");
 
-            if (escape.HasValue && newline.Contains(escape.GetValueOrDefault()))
-                AddError("Newline must not contain Escape.");
+                if (escape.HasValue && newline.Contains(escape.GetValueOrDefault()))
+                    AddError("Newline must not contain Escape.");
+            }
         }
 
         if (!whitespace.IsEmpty)
@@ -496,7 +499,6 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
                 AddError("Whitespace must not contain Newline characters.");
         }
 
-        End:
         if (errors is not null)
             Throw(errors);
 

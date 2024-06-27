@@ -68,7 +68,6 @@ public class CsvTextOptions : CsvOptions<char>, IGetOrCreate<char, CsvTextOption
 
         _delimiter = ',';
         _quote = '"';
-        _newline = "\r\n".AsMemory();
 
         if (isReadOnly)
             MakeReadOnly();

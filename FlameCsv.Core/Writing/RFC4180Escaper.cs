@@ -23,7 +23,7 @@ internal readonly struct RFC4180Escaper<T> : IEscaper<T> where T : unmanaged, IE
         _delimiter = options._delimiter;
         _quote = options._quote;
         _whitespace = options._whitespace;
-        options.GetNewline(out _newline1, out _newline2, out _newlineLength);
+        options.GetNewline(out _newline1, out _newline2, out _newlineLength, forWriting: true);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

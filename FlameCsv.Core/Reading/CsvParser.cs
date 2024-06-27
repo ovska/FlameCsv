@@ -197,8 +197,8 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
         return false;
     }
 
-    public abstract bool TryReadLine(out ReadOnlyMemory<T> line, out CsvRecordMeta meta);
     public abstract CsvRecordMeta GetRecordMeta(ReadOnlyMemory<T> line);
+    protected abstract bool TryReadLine(out ReadOnlyMemory<T> line, out CsvRecordMeta meta);
     protected abstract (int consumed, int linesRead) FillSliceBuffer(ReadOnlySpan<T> data, scoped Span<Slice> slices);
 
     internal ReadOnlySequence<T> UnreadSequence => _reader.UnreadSequence;
@@ -244,5 +244,52 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
     protected static void ThrowForUnevenQuotes(ReadOnlyMemory<T> line, CsvOptions<T> options)
     {
         throw new ArgumentException($"The data had an uneven amount of quotes: {options.AsPrintableString(line)}");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    protected bool TryPeekNewline()
+    {
+        // TODO: wip newline detection when reading
+        Unsafe.AsRef(in _newlineLength) = 2;
+        return true;
+
+        Debug.Assert(_newlineLength == 0, $"TryPeekNewline called with invalid newline length: {_newlineLength}");
+
+        Debug.Assert(
+            (typeof(T) == typeof(char) && _newline1.Equals((T)(object)'\r') && _newline2.Equals((T)(object)'\n')) ||
+            (typeof(T) == typeof(byte) && _newline1.Equals((T)(object)(byte)'\r') && _newline2.Equals((T)(object)(byte)'\n')),
+            $"Invalid default newline for {typeof(T).FullName}: [{_newline1}, {_newline2}]");
+
+        if (_reader.UnreadSequence.PositionOf(_newline2) is not SequencePosition lfPosition)
+        {
+            return false;
+        }
+
+        ReadOnlySequence<T> firstLineSlice = _reader.UnreadSequence.Slice(_reader.UnreadSequence.Start, lfPosition);
+
+        T[]? buffer = null;
+
+        try
+        {
+            ReadOnlyMemory<T> firstLine = firstLineSlice.AsMemory(ref buffer, _arrayPool);
+
+            if (firstLine.IsEmpty || firstLine.Span[^1].Equals(_newline1))
+            {
+                // crlf
+                Unsafe.AsRef(in _newlineLength) = 2;
+            }
+            else
+            {
+                // lf
+                Unsafe.AsRef(in _newline1) = _newline2;
+                Unsafe.AsRef(in _newlineLength) = 1;
+            }
+        }
+        finally
+        {
+            _arrayPool.EnsureReturned(ref buffer);
+        }
+
+        return true;
     }
 }

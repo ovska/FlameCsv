@@ -86,7 +86,7 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
         _delimiter = options._delimiter;
         _quote = options._quote;
         _escape = options._escape;
-        options.GetNewline(out _newline1, out _newline2, out _newlineLength);
+        options.GetNewline(out _newline1, out _newline2, out _newlineLength, forWriting: true);
     }
 
     /// <summary>

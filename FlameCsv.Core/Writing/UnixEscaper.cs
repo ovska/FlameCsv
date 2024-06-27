@@ -24,7 +24,7 @@ internal readonly struct UnixEscaper<T> : IEscaper<T> where T : unmanaged, IEqua
         _quote = options._quote;
         _escape = options._escape.GetValueOrDefault();
         _whitespace = options._whitespace;
-        options.GetNewline(out _newline1, out _newline2, out _newlineLength);
+        options.GetNewline(out _newline1, out _newline2, out _newlineLength, forWriting: true);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

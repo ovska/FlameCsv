@@ -77,8 +77,7 @@ public ref struct CsvFieldReader<T> where T : unmanaged, IEquatable<T>
         ReadOnlyMemory<T> record,
         Span<T> unescapeBuffer,
         ref T[]? unescapeArray,
-        uint quotesRemaining,
-        uint escapesRemaining = 0)
+        ref readonly CsvRecordMeta meta)
     {
         Record = record.Span;
 
@@ -91,8 +90,8 @@ public ref struct CsvFieldReader<T> where T : unmanaged, IEquatable<T>
         _unescapeArray = ref unescapeArray;
 
         isAtStart = true;
-        this.quotesRemaining = quotesRemaining;
-        this.escapesRemaining = escapesRemaining;
+        quotesRemaining = meta.quoteCount;
+        escapesRemaining = meta.escapeCount;
     }
 
     public readonly ReadOnlyMemory<T> GetAsMemory(ReadOnlySpan<T> field)

@@ -45,7 +45,6 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// </summary>
     public static CsvBinding<T> Ignore<T>(int index)
     {
-        CsvBinding<T>.ThrowIfInvalid();
         return new IgnoredCsvBinding<T>(index);
     }
 
@@ -55,8 +54,6 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     public static CsvBinding<T> For<[DynamicallyAccessedMembers(Messages.ReflectionBound)] T>(int index, Expression<Func<T, object?>> memberExpression)
     {
         ArgumentNullException.ThrowIfNull(memberExpression);
-        CsvBinding<T>.ThrowIfInvalid();
-
         return ForMember<T>(index, memberExpression.GetMemberInfo());
     }
 
@@ -71,7 +68,6 @@ public abstract class CsvBinding : IComparable<CsvBinding>
         string? header = null)
     {
         ArgumentNullException.ThrowIfNull(member);
-        CsvBinding<T>.ThrowIfInvalid();
 
         foreach (var data in CsvTypeInfo<T>.Instance.Members)
         {
@@ -91,7 +87,6 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     public static CsvBinding<T> ForParameter<[DynamicallyAccessedMembers(Messages.ReflectionBound)] T>(int index, ParameterInfo parameter)
     {
         ArgumentNullException.ThrowIfNull(parameter);
-        CsvBinding<T>.ThrowIfInvalid();
 
         foreach (var data in CsvTypeInfo<T>.Instance.ConstructorParameters)
         {
@@ -110,8 +105,6 @@ public abstract class CsvBinding : IComparable<CsvBinding>
         int index,
         in HeaderBindingCandidate candidate)
     {
-        CsvBinding<T>.ThrowIfInvalid();
-
         return candidate.Target switch
         {
             MemberInfo m => ForMember<T>(index, m, candidate.Value),
@@ -152,7 +145,6 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     {
         return ma.MetadataToken == mb.MetadataToken && ma.Module == mb.Module;
     }
-
 
     /// <inheritdoc/>
     public int CompareTo(CsvBinding? other)

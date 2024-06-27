@@ -103,15 +103,14 @@ public class CsvEnumerateBench
         using var parser = CsvParser<byte>.Create(CsvUtf8Options.Default);
         parser.Reset(new ReadOnlySequence<byte>(_bytes));
 
-        while (parser.TryReadLine(out var line, out var meta))
+        while (parser.TryReadLine(out var line, out var meta, isFinalBlock: false))
         {
             CsvFieldReader<byte> state = new(
                 CsvUtf8Options.Default,
                 line,
                 unescapeBuffer,
                 ref unescapeArray,
-                meta.quoteCount,
-                meta.escapeCount);
+                in meta);
 
             while (!state.End)
             {

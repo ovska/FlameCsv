@@ -215,8 +215,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
             record,
             [],
             ref buffer,
-            meta.quoteCount,
-            meta.escapeCount);
+            in meta);
         int index = 0;
 
         if (!Token<T>.LargeObjectHeapAllocates(record.Length * 2))

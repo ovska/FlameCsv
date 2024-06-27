@@ -33,13 +33,13 @@ public class SequenceReaderTests
         var parser = CsvParser<char>.Create(_lfOptions);
         parser.Reset(MemorySegment<char>.AsSequence(data.AsMemory(), 64));
 
-        Assert.True(parser.TryReadLine(out var line, out CsvRecordMeta meta));
+        Assert.True(parser.TryReadLine(out var line, out CsvRecordMeta meta, isFinalBlock: false));
         Assert.Equal("1,Alice,true", line.ToString());
         Assert.Equal(0u, meta.quoteCount);
-        Assert.True(parser.TryReadLine(out line, out meta));
+        Assert.True(parser.TryReadLine(out line, out meta, isFinalBlock: false));
         Assert.Equal("2,Bob,false", line.ToString());
         Assert.Equal(0u, meta.quoteCount);
-        Assert.False(parser.TryReadLine(out _, out _));
+        Assert.False(parser.TryReadLine(out _, out _, isFinalBlock: false));
     }
 
     [Fact]
@@ -50,13 +50,13 @@ public class SequenceReaderTests
         var parser = CsvParser<char>.Create(_crlfOptions);
         parser.Reset(MemorySegment<char>.AsSequence(data.AsMemory(), 64));
 
-        Assert.True(parser.TryReadLine(out var line, out CsvRecordMeta meta));
+        Assert.True(parser.TryReadLine(out var line, out CsvRecordMeta meta, isFinalBlock: false));
         Assert.Equal("1,Alice,true", line.ToString());
         Assert.Equal(0u, meta.quoteCount);
-        Assert.True(parser.TryReadLine(out line, out meta));
+        Assert.True(parser.TryReadLine(out line, out meta, isFinalBlock: false));
         Assert.Equal("2,Bob,false", line.ToString());
         Assert.Equal(0u, meta.quoteCount);
-        Assert.False(parser.TryReadLine(out _, out _));
+        Assert.False(parser.TryReadLine(out _, out _, isFinalBlock: false));
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public class SequenceReaderTests
         var parser = CsvParser<char>.Create(_crlfOptions);
         parser.Reset(in seq);
 
-        Assert.True(parser.TryReadLine(out var line, out _));
+        Assert.True(parser.TryReadLine(out var line, out _, isFinalBlock: false));
 
         Assert.Equal("xyz", line.ToString());
         Assert.Equal("abc", parser.UnreadSequence.ToString());
@@ -90,11 +90,11 @@ public class SequenceReaderTests
         var parser = CsvParser<char>.Create(_crlfOptions);
         parser.Reset(in seq);
 
-        Assert.True(parser.TryReadLine(out var line, out var meta));
+        Assert.True(parser.TryReadLine(out var line, out var meta, isFinalBlock: false));
         Assert.Equal(s1, line.ToString());
         Assert.Equal(2u, meta.quoteCount);
 
-        Assert.False(parser.TryReadLine(out _, out _));
+        Assert.False(parser.TryReadLine(out _, out _, isFinalBlock: false));
         Assert.Equal(s3 + s4, parser.UnreadSequence.ToString());
     }
 
@@ -114,7 +114,7 @@ public class SequenceReaderTests
 
         var results = new List<string>();
 
-        while (parser.TryReadLine(out var line, out _))
+        while (parser.TryReadLine(out var line, out _, isFinalBlock: false))
         {
             results.Add(line.ToString());
         }
@@ -140,7 +140,7 @@ public class SequenceReaderTests
         var parser = CsvParser<char>.Create(context);
         parser.Reset(in seq);
 
-        Assert.True(parser.TryReadLine(out var line, out _));
+        Assert.True(parser.TryReadLine(out var line, out _, isFinalBlock: false));
         Assert.Equal(segments[0], line.ToString());
         Assert.Equal(segments[2], parser.UnreadSequence.ToString());
     }
@@ -153,12 +153,12 @@ public class SequenceReaderTests
 
         var parser1 = CsvParser<char>.Create(_lfOptions);
         parser1.Reset(in seq);
-        Assert.False(parser1.TryReadLine(out _, out _));
+        Assert.False(parser1.TryReadLine(out _, out _, isFinalBlock: false));
         Assert.Equal(data, parser1.UnreadSequence.ToString());
 
         var parser2 = CsvParser<char>.Create(_crlfOptions);
         parser2.Reset(in seq);
-        Assert.False(parser2.TryReadLine(out _, out _));
+        Assert.False(parser2.TryReadLine(out _, out _, isFinalBlock: false));
         Assert.Equal(data, parser2.UnreadSequence.ToString());
     }
 
@@ -178,7 +178,7 @@ public class SequenceReaderTests
         var parser = CsvParser<char>.Create(new CsvTextOptions { Newline = "|", ArrayPool = ReturnTrackingArrayPool<char>.Shared });
         parser.Reset(seq);
 
-        bool result = parser.TryReadLine(out var line, out var meta);
+        bool result = parser.TryReadLine(out var line, out var meta, isFinalBlock: false);
 
         if (data.Contains('|'))
         {

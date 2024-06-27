@@ -41,9 +41,10 @@ public struct CsvFieldEnumerator<T> : IDisposable, IEnumerator<ReadOnlyMemory<T>
             _remaining,
             [],
             ref _toReturn,
-            _remainingMeta.quoteCount,
-            _remainingMeta.escapeCount)
-        { isAtStart = _isAtStart };
+            ref _remainingMeta)
+        {
+            isAtStart = _isAtStart
+        };
 
         if (!reader.TryReadNext(out ReadOnlyMemory<T> field))
         {

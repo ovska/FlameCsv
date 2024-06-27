@@ -51,7 +51,6 @@ public class CsvUtf8Options : CsvOptions<byte>, IGetOrCreate<byte, CsvUtf8Option
     {
         _delimiter = new Utf8Char(',');
         _quote = new Utf8Char('"');
-        _newline = Utf8String.CRLF;
 
         if (isReadOnly)
             MakeReadOnly();
