@@ -27,7 +27,7 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IE
     public override CsvRecordMeta GetRecordMeta(ReadOnlyMemory<T> line) => GetRecordMeta(line, _options);
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public override bool TryReadLine(out ReadOnlyMemory<T> line, out CsvRecordMeta meta)
+    protected override bool TryReadLine(out ReadOnlyMemory<T> line, out CsvRecordMeta meta)
     {
         CsvSequenceReader<T> copy = _reader;
 
@@ -122,6 +122,11 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IE
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     protected override (int consumed, int linesRead) FillSliceBuffer(ReadOnlySpan<T> data, Span<Slice> slices)
     {
+        if (_newlineLength == 0 && !TryPeekNewline())
+        {
+            return default;
+        }
+
         int linesRead = 0;
         int consumed = 0;
         int currentConsumed = 0;

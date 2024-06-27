@@ -28,12 +28,13 @@ public static class RFC4180ModeTests
 
         char[]? buffer = null;
 
+        var meta = parser.GetRecordMeta(input.AsMemory());
         var reader = new CsvFieldReader<char>(
             parser.Options,
             input.AsMemory(),
             stackalloc char[16],
             ref buffer,
-            parser.GetRecordMeta(input.AsMemory()).quoteCount);
+            in meta);
 
         Assert.True(reader.TryReadNext(out ReadOnlySpan<char> field));
         Assert.Equal(expected, field.ToString());
@@ -46,12 +47,13 @@ public static class RFC4180ModeTests
         string input = "\"Long line with lots of content, but no quotes except the wrapping!\"";
         using var parser = CsvParser<char>.Create(CsvTextOptions.Default);
 
+        var meta = parser.GetRecordMeta(input.AsMemory());
         var reader = new CsvFieldReader<char>(
             parser.Options,
             input.AsMemory(),
             [],
             ref Unsafe.NullRef<char[]?>(),
-            parser.GetRecordMeta(input.AsMemory()).quoteCount);
+            in meta);
 
         Assert.True(reader.TryReadNext(out ReadOnlySpan<char> field));
         Assert.Equal(input[1..^1], field.ToString());
@@ -73,12 +75,13 @@ public static class RFC4180ModeTests
 
         char[]? unescapeArray = null;
 
+        var meta = new CsvRecordMeta { quoteCount = (uint)input.Count(c => c == '"') };
         var record = new CsvFieldReader<char>(
             parser.Options,
             input.AsMemory(),
             stackalloc char[128],
             ref unescapeArray,
-            (uint)input.Count(c => c == '"'));
+            in meta);
 
         var field = RFC4180Mode<char>.ReadNextField(ref record);
 
@@ -109,12 +112,13 @@ public static class RFC4180ModeTests
 
         char[]? buffer = null;
 
+        var meta = parser.GetRecordMeta(line.AsMemory());
         CsvFieldReader<char> reader = new(
             parser.Options,
             line.AsMemory(),
             [],
             ref buffer,
-            parser.GetRecordMeta(line.AsMemory()).quoteCount);
+            in meta);
 
         while (!reader.End)
         {
@@ -146,12 +150,13 @@ public static class RFC4180ModeTests
             var input = new string(chars.ToArray());
             var line = $"\"{input}\",test";
 
+            var meta = new CsvRecordMeta { quoteCount = (uint)line.Count('"') };
             CsvFieldReader<char> state = new(
                 parser.Options,
                 line.AsMemory(),
                 [],
                 ref buffer,
-                (uint)line.Count('"'));
+                in meta);
 
             var list = new List<string>();
 

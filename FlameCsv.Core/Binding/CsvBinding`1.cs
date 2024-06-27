@@ -78,12 +78,4 @@ public abstract class CsvBinding<T> :
     }
 
     protected abstract void PrintDetails(StringBuilder sb);
-
-    internal static readonly bool _isInvalid = typeof(T).IsInterface;
-
-    internal static void ThrowIfInvalid()
-    {
-        if (_isInvalid)
-            throw new NotSupportedException("Interface binding is not supported");
-    }
 }

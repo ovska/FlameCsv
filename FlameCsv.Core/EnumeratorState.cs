@@ -173,8 +173,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
                 _record,
                 [],
                 ref array,
-                _meta.quoteCount,
-                _meta.escapeCount);
+                ref _meta);
 
             while (reader.TryReadNext(out ReadOnlyMemory<T> field))
             {

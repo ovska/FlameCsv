@@ -26,7 +26,8 @@ public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(targetType);
 
-        var instanceOrFactory = CreateConverterOrFactory(targetType, options);
+        CsvConverter<T> instanceOrFactory = CreateConverterOrFactory(targetType, options)
+            ?? throw new InvalidOperationException($"{GetType()}.{nameof(CreateConverterOrFactory)} returned null");
 
         if (!instanceOrFactory.CanConvert(targetType))
         {
@@ -65,7 +66,7 @@ public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute
     /// <summary>
     /// Gets or creates a parser instance for the binding's member.
     /// </summary>
-    /// <param name="targetType"></param>
+    /// <param name="targetType">Type to convert</param>
     /// <param name="options">Current configuration instance</param>
     /// <returns>Converter instance</returns>
     /// <exception cref="CsvConfigurationException">Thrown if <see cref="ConverterType"/> is not valid for the member,

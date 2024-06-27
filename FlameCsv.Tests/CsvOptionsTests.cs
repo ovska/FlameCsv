@@ -74,7 +74,8 @@ public class CsvOptionsTests
         var options = CsvTextOptions.Default;
         Assert.True(options.IsReadOnly);
 
-        Assert.Equal("\r\n", options.Newline);
+        Assert.Equal([], options._newline.Span);
+        Assert.Equal("", options.Newline);
 
         var boolParser = options.GetConverter<bool>();
         Assert.True(boolParser.TryParse("true", out var bValue));
@@ -125,8 +126,8 @@ public class CsvOptionsTests
         var options = CsvUtf8Options.Default;
         Assert.True(options.IsReadOnly);
 
-        Assert.Equal("\r\n"u8.ToArray(), ((ICsvDialectOptions<byte>)options).Newline.ToArray());
-        Assert.Equal("\r\n", options.Newline);
+        Assert.Equal([], ((ICsvDialectOptions<byte>)options).Newline.ToArray());
+        Assert.Equal("", options.Newline);
 
         var boolParser = options.GetConverter<bool>();
         Assert.True(boolParser.TryParse("true"u8, out var bValue));

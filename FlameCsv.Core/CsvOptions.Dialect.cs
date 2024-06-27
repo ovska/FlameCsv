@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
 using static FlameCsv.Utilities.SealableUtil;
 
@@ -29,7 +30,7 @@ public partial class CsvOptions<T> : ICsvDialectOptions<T>
         get => _newline;
         set
         {
-            Guard.IsBetween(value.Length, 1, 2, "Newline length");
+            Guard.IsBetween(value.Length, 0, 2, "Newline length");
             this.SetValue(ref _newline, value);
         }
     }
@@ -47,8 +48,38 @@ public partial class CsvOptions<T> : ICsvDialectOptions<T>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void GetNewline(out T newline1, out T newline2, out int newlineLength)
+    internal void GetNewline(out T newline1, out T newline2, out int newlineLength, bool forWriting = false)
     {
+        if ((newlineLength = _newline.Length) is 0)
+        {
+            if (forWriting)
+                newlineLength = 2;
+
+            if (typeof(T) == typeof(char))
+            {
+                char cr = '\r';
+                char lf = '\n';
+
+                newline1 = Unsafe.As<char, T>(ref cr);
+                newline2 = Unsafe.As<char, T>(ref lf);
+                return;
+            }
+
+            if (typeof(T) == typeof(byte))
+            {
+                byte cr = (byte)'\r';
+                byte lf = (byte)'\n';
+
+                newline1 = Unsafe.As<byte, T>(ref cr);
+                newline2 = Unsafe.As<byte, T>(ref lf);
+                return;
+            }
+
+            throw new NotSupportedException($"Default newline handling not supported for token type {typeof(T).FullName}");
+        }
+
+        Debug.Assert(newlineLength is 1 or 2);
+
         var span = _newline.Span;
         newline1 = span[0];
         

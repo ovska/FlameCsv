@@ -27,7 +27,7 @@ public class FieldBench
                 line.Item1.AsMemory(),
                 buffer,
                 ref array,
-                line.Item2.quoteCount);
+                in line.Item2);
 
             while (!reader.End)
                 _ = Older<char>.ReadNextField(ref reader);
@@ -49,7 +49,7 @@ public class FieldBench
                 line.Item1.AsMemory(),
                 buffer,
                 ref array,
-                line.Item2.quoteCount);
+                in line.Item2);
 
             while (!reader.End)
                 _ = RFC4180Mode<char>.ReadNextField(ref reader);

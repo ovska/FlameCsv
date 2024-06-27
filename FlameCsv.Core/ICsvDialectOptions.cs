@@ -19,7 +19,8 @@ internal interface ICsvDialectOptions<T> where T : unmanaged, IEquatable<T>
 
     /// <summary>
     /// Whitespace tokens. When writing, values with trailing or leading whitespace are quoted.
-    /// When reading, leading and trailing whitespace characters are trimmed.
+    /// When reading, leading and trailing whitespace characters are trimmed.<br/>
+    /// When empty (the default), both <c>\r\n</c> and <c>\n</c> are handled.
     /// </summary>
     ReadOnlyMemory<T> Whitespace { get; set; }
 
