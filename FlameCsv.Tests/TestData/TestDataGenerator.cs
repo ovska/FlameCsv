@@ -1,16 +1,10 @@
-using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.Unicode;
 using CommunityToolkit.HighPerformance.Buffers;
-using CommunityToolkit.HighPerformance.Helpers;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Tests.Readers;
-using FlameCsv.Tests.Writing;
-using FlameCsv.Writing;
 using Utf8StringInterpolation;
 using U8 = Utf8StringInterpolation.Utf8String;
 

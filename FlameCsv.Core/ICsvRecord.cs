@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using FlameCsv.Binding;
 using FlameCsv.Exceptions;
 
 namespace FlameCsv;
@@ -131,5 +132,8 @@ public interface ICsvRecord<T> where T : unmanaged, IEquatable<T>
     /// </summary>
     [RequiresUnreferencedCode(Messages.CompiledExpressions)]
     TRecord ParseRecord<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TRecord>();
+
+    /// <inheritdoc cref="ParseRecord{TRecord}()"/>
+    TRecord ParseRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap);
 }
 

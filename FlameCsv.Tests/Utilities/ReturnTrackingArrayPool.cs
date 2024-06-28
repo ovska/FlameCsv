@@ -1,7 +1,6 @@
 ﻿using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Numerics;
 
 namespace FlameCsv.Tests.Utilities;
 

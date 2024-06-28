@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Threading.Tasks;
-using FlameCsv.Binding;
-using FlameCsv.Writing;
-using static FastExpressionCompiler.ExpressionCompiler;
+﻿using FlameCsv.Writing;
 
 namespace FlameCsv.Tests.Writing;
 

@@ -1,6 +1,4 @@
-﻿using System.Linq;
-
-namespace FlameCsv.SourceGen;
+﻿namespace FlameCsv.SourceGen;
 
 public partial class TypeMapGenerator
 {
