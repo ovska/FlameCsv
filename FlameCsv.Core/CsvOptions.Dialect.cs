@@ -47,6 +47,18 @@ public partial class CsvOptions<T> : ICsvDialectOptions<T>
         set => this.SetValue(ref _escape, value);
     }
 
+    internal ReadOnlySpan<T> GetNewlineSpan(Span<T> buffer)
+    {
+        if (_newline.Length != 0)
+            return _newline.Span;
+
+        GetNewline(out T newline1, out T newline2, out int newlineLength, forWriting: true);
+
+        buffer[0] = newline1;
+        buffer[1] = newline2;
+        return buffer.Slice(0, newlineLength);
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void GetNewline(out T newline1, out T newline2, out int newlineLength, bool forWriting = false)
     {
@@ -75,7 +87,7 @@ public partial class CsvOptions<T> : ICsvDialectOptions<T>
                 return;
             }
 
-            throw new NotSupportedException($"Default newline handling not supported for token type {typeof(T).FullName}");
+            throw new NotSupportedException($"Detecting empty newline is not supported for token type {typeof(T).FullName}");
         }
 
         Debug.Assert(newlineLength is 1 or 2);

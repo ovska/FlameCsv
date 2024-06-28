@@ -13,24 +13,34 @@ internal static class UtilityExtensions
     public static string AsPrintableString<T>(this Reading.CsvParser<T> parser, ReadOnlyMemory<T> value)
         where T : unmanaged, IEquatable<T>
     {
-        return AsPrintableString(parser._options, value);
+        return AsPrintableString(parser._options, value, parser._newlineLength);
     }
 
-[MethodImpl(MethodImplOptions.NoInlining)]
-    public static string AsPrintableString<T>(this CsvOptions<T> options, ReadOnlyMemory<T> value)
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static string AsPrintableString<T>(this CsvOptions<T> options, ReadOnlyMemory<T> value, int knownNewlineLength = 0)
         where T : unmanaged, IEquatable<T>
     {
         string? content = options._allowContentInExceptions ? options.GetAsString(value.Span) : null;
 
         string structure = string.Create(
             length: value.Length,
-            state: (options, value),
+            state: (options, value, knownNewlineLength),
             action: static (destination, state) =>
             {
-                (CsvOptions<T> options, ReadOnlyMemory<T> memory) = state;
+                (CsvOptions<T> options, ReadOnlyMemory<T> memory, int knownNewlineLength) = state;
                 var source = memory.Span;
 
-                var newline = options._newline.Span;
+                scoped ReadOnlySpan<T> newline = options._newline.Span;
+
+                if (newline.Length == 0)
+                {
+                    newline = options.GetNewlineSpan(stackalloc T[2]);
+
+                    if (knownNewlineLength == 1)
+                    {
+                        newline = [newline[1]];
+                    }
+                }
 
                 destination.Fill('x');
 

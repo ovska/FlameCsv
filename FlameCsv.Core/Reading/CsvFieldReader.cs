@@ -61,9 +61,9 @@ public ref struct CsvFieldReader<T> where T : unmanaged, IEquatable<T>
     public uint quotesRemaining;
     public uint escapesRemaining;
 
-    public readonly T Delimiter =>  _options._delimiter;
-    public readonly T Quote =>  _options._quote;
-    public readonly T? Escape =>  _options._escape;
+    public readonly T Delimiter => _options._delimiter;
+    public readonly T Quote => _options._quote;
+    public readonly T? Escape => _options._escape;
     public readonly ReadOnlySpan<T> Whitespace { get; }
 
     private readonly CsvOptions<T> _options;
