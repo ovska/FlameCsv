@@ -15,7 +15,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
         get => _parser._options._hasHeader && Header is null;
     }
 
-    public Dictionary<object, object> MaterializerCache => _materializerCache ??= [];
+    public Dictionary<object, object> MaterializerCache => _materializerCache ??= new(ReferenceEqualityComparer.Instance);
 
     public int Version { get; private set; }
 
