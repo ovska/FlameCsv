@@ -13,14 +13,13 @@ internal interface ICsvDialectOptions<T> where T : unmanaged, IEquatable<T>
     T Quote { get; set; }
 
     /// <summary>
-    /// Line terminator.
+    /// Line terminator. When empty (the default), automatically detected between <c>\r\n</c> and <c>\n</c> from the first line.
     /// </summary>
     ReadOnlyMemory<T> Newline { get; set; }
 
     /// <summary>
     /// Whitespace tokens. When writing, values with trailing or leading whitespace are quoted.
-    /// When reading, leading and trailing whitespace characters are trimmed.<br/>
-    /// When empty (the default), both <c>\r\n</c> and <c>\n</c> are handled.
+    /// When reading, leading and trailing whitespace characters are trimmed.
     /// </summary>
     ReadOnlyMemory<T> Whitespace { get; set; }
 

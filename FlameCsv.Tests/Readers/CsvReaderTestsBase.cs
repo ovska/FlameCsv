@@ -13,6 +13,8 @@ using FlameCsv.Tests.Utilities;
 
 namespace FlameCsv.Tests.Readers;
 
+public enum NewlineToken { CRLF, LF, AutoCRLF, AutoLF }
+
 /// <summary>
 /// A spray-and-pray tests of different APIs using various options and CSV features.
 /// </summary>
@@ -22,14 +24,14 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
 {
     private static readonly int[] _bufferSizes = [-1, 17, 128, 1024, 8096];
     private static readonly int[] _emptySegmentsEvery = [0, 1, 7];
-    private static readonly string[] _crlf = ["CRLF", "LF"];
+    private static readonly NewlineToken[] _crlf = [NewlineToken.CRLF, NewlineToken.LF, NewlineToken.AutoCRLF, NewlineToken.AutoLF];
     private static readonly bool[] _booleans = [true, false];
     private static readonly Mode[] _escaping = [Mode.None, Mode.RFC, Mode.Escape];
 
     private ReturnTrackingArrayPool<T>? _pool;
 
     protected abstract CsvTypeMap<T, Obj> TypeMap { get; }
-    protected abstract CsvOptions<T> CreateOptions(string newline, char? escape);
+    protected abstract CsvOptions<T> CreateOptions(NewlineToken newline, char? escape);
 
     protected abstract CsvRecordAsyncEnumerable<T> GetRecords(
         Stream stream,
@@ -41,7 +43,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         int bufferSize,
         bool sourceGen);
 
-    public static TheoryData<string, bool, bool, int, int, Mode, bool> SyncParams
+    public static TheoryData<NewlineToken, bool, bool, int, int, Mode, bool> SyncParams
     {
         get
         {
@@ -54,7 +56,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
                          from sourceGen in _booleans
                          select new { crlf, writeHeader, writeTrailingNewline, bufferSize, emptySegmentFrequency, escaping, sourceGen };
 
-            var data = new TheoryData<string, bool, bool, int, int, Mode, bool>();
+            var data = new TheoryData<NewlineToken, bool, bool, int, int, Mode, bool>();
 
             foreach (var x in values)
             {
@@ -69,7 +71,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         }
     }
 
-    public static TheoryData<string, bool, bool, int, Mode, bool> AsyncParams
+    public static TheoryData<NewlineToken, bool, bool, int, Mode, bool> AsyncParams
     {
         get
         {
@@ -81,7 +83,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
                          from sourceGen in _booleans
                          select new { crlf, writeHeader, writeTrailingNewline, bufferSize, escaping, sourceGen };
 
-            var data = new TheoryData<string, bool, bool, int, Mode, bool>();
+            var data = new TheoryData<NewlineToken, bool, bool, int, Mode, bool>();
 
             foreach (var x in values)
             {
@@ -98,7 +100,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
 
     [Theory, MemberData(nameof(SyncParams))]
     public void Objects_Sync(
-        string newline,
+        NewlineToken newline,
         bool header,
         bool trailingLF,
         int bufferSize,
@@ -106,7 +108,6 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         Mode escaping,
         bool sourceGen)
     {
-        newline = newline == "LF" ? "\n" : "\r\n";
         CsvOptions<T> options = PrepareOptions(newline, header, escaping);
 
         List<Obj> items = new(1000);
@@ -124,7 +125,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
 
     [Theory, MemberData(nameof(SyncParams))]
     public async Task Records_Sync(
-        string newline,
+        NewlineToken newline,
         bool header,
         bool trailingLF,
         int bufferSize,
@@ -132,7 +133,6 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         Mode escaping,
         bool sourceGen)
     {
-        newline = newline == "LF" ? "\n" : "\r\n";
         CsvOptions<T> options = PrepareOptions(newline, header, escaping);
 
         List<Obj> items;
@@ -144,7 +144,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
 
         using (var enumerator = enumerable.GetEnumerator())
         {
-            items = await GetItems(() => new(enumerator.MoveNext() ? enumerator.Current : null), sourceGen, header);
+            items = await GetItems(() => new(enumerator.MoveNext() ? enumerator.Current : null), sourceGen, header, newline);
         }
 
         Validate(items, escaping);
@@ -152,14 +152,13 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
 
     [Theory, MemberData(nameof(AsyncParams))]
     public async Task Objects_Async(
-        string newline,
+        NewlineToken newline,
         bool header,
         bool trailingLF,
         int bufferSize,
         Mode escaping,
         bool sourceGen)
     {
-        newline = newline == "LF" ? "\n" : "\r\n";
         CsvOptions<T> options = PrepareOptions(newline, header, escaping);
 
         List<Obj> items = new(1000);
@@ -179,14 +178,13 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
 
     [Theory, MemberData(nameof(AsyncParams))]
     public async Task Records_Async(
-        string newline,
+        NewlineToken newline,
         bool header,
         bool trailingLF,
         int bufferSize,
         Mode escaping,
         bool sourceGen)
     {
-        newline = newline == "LF" ? "\n" : "\r\n";
         CsvOptions<T> options = PrepareOptions(newline, header, escaping);
 
         List<Obj> items;
@@ -201,7 +199,8 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
             items = await GetItems(
                 async () => await enumerator.MoveNextAsync() ? enumerator.Current : null,
                 sourceGen,
-                header);
+                header,
+                newline);
         }
 
         Validate(items, escaping);
@@ -235,25 +234,32 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
     private async Task<List<Obj>> GetItems(
         Func<ValueTask<CsvValueRecord<T>?>> enumerator,
         bool sourceGen,
-        bool hasHeader)
+        bool hasHeader,
+        NewlineToken newline)
     {
         List<Obj> items = new(1000);
 
         int index = 0;
         long tokenPosition = 0;
 
+        int newlineLength = newline switch
+        {
+            NewlineToken.LF or NewlineToken.AutoLF => 1,
+            _ => 2,
+        };
+
         while (await enumerator() is { } record)
         {
             if (tokenPosition == 0 && hasHeader)
             {
-                tokenPosition = TestDataGenerator.Header.Length + record._options._newline.Length;
+                tokenPosition = TestDataGenerator.Header.Length + newlineLength;
             }
 
             index++;
             Assert.Equal(hasHeader ? index + 1 : index, record.Line);
             Assert.Equal(tokenPosition, record.Position);
 
-            tokenPosition += record.RawRecord.Length + record._options._newline.Length;
+            tokenPosition += record.RawRecord.Length + newlineLength;
 
             Obj obj = new Obj
             {
@@ -275,7 +281,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         return items;
     }
 
-    private CsvOptions<T> PrepareOptions(string newline, bool header, Mode escaping)
+    private CsvOptions<T> PrepareOptions(NewlineToken newline, bool header, Mode escaping)
     {
         CsvOptions<T> options = CreateOptions(
             newline,

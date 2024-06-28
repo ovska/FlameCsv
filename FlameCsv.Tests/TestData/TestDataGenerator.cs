@@ -8,6 +8,7 @@ using CommunityToolkit.HighPerformance.Buffers;
 using CommunityToolkit.HighPerformance.Helpers;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
+using FlameCsv.Tests.Readers;
 using FlameCsv.Tests.Writing;
 using FlameCsv.Writing;
 using Utf8StringInterpolation;
@@ -61,26 +62,31 @@ internal static class TestDataGenerator
         Mode Escaping);
 
     public static ReadOnlyMemory<T> Generate<T>(
-        string newLine,
+        NewlineToken newLineToken,
         bool writeHeader,
         bool writeTrailingNewline,
         Mode escaping)
     {
         if (typeof(T) == typeof(char))
-            return (ReadOnlyMemory<T>)(object)GenerateText(newLine, writeHeader, writeTrailingNewline, escaping);
+            return (ReadOnlyMemory<T>)(object)GenerateText(newLineToken, writeHeader, writeTrailingNewline, escaping);
 
         if (typeof(T) == typeof(byte))
-            return (ReadOnlyMemory<T>)(object)GenerateBytes(newLine, writeHeader, writeTrailingNewline, escaping);
+            return (ReadOnlyMemory<T>)(object)GenerateBytes(newLineToken, writeHeader, writeTrailingNewline, escaping);
 
         throw new UnreachableException();
     }
 
     public static ReadOnlyMemory<char> GenerateText(
-        string newLine,
+        NewlineToken newLineToken,
         bool writeHeader,
         bool writeTrailingNewline,
         Mode escaping)
     {
+        string newLine = newLineToken switch
+        {
+            NewlineToken.LF or NewlineToken.AutoLF => "\n",
+            _ => "\r\n",
+        };
         var key = new Key(newLine, writeHeader, writeTrailingNewline, escaping);
         var chars = _chars.GetOrAdd(
             key,
@@ -114,7 +120,7 @@ internal static class TestDataGenerator
 
                     if (escaping == Mode.Escape)
                     {
-                        writer.Append($"\"Name^\"{i}\"");   
+                        writer.Append($"\"Name^\"{i}\"");
                     }
                     else if (escaping == Mode.RFC)
                     {
@@ -143,11 +149,16 @@ internal static class TestDataGenerator
     }
 
     public static ReadOnlyMemory<byte> GenerateBytes(
-        string newLine,
+        NewlineToken newLineToken,
         bool writeHeader,
         bool writeTrailingNewline,
         Mode escaping)
     {
+        string newLine = newLineToken switch
+        {
+            NewlineToken.LF or NewlineToken.AutoLF => "\n",
+            _ => "\r\n",
+        };
         var key = new Key(newLine, writeHeader, writeTrailingNewline, escaping);
         var chars = _bytes.GetOrAdd(
             key,
