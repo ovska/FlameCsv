@@ -16,13 +16,18 @@ public sealed class CsvReaderTestsUtf8 : CsvReaderTestsBase<byte>
 {
     protected override CsvTypeMap<byte, Obj> TypeMap => ObjByteTypeMap.Instance;
 
-    protected override CsvOptions<byte> CreateOptions(string newline, char? escape)
+    protected override CsvOptions<byte> CreateOptions(NewlineToken newline, char? escape)
     {
         return new CsvUtf8Options
         {
             DateTimeFormat = 'O',
-            Newline = newline,
             Escape = escape,
+            Newline = newline switch
+            {
+                NewlineToken.LF => "\n",
+                NewlineToken.CRLF => "\r\n",
+                _ => default,
+            },
         };
     }
 

@@ -13,13 +13,18 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
 {
     protected override CsvTypeMap<char, Obj> TypeMap => ObjCharTypeMap.Instance;
 
-    protected override CsvOptions<char> CreateOptions(string newline, char? escape)
+    protected override CsvOptions<char> CreateOptions(NewlineToken newline, char? escape)
     {
         return new CsvTextOptions
         {
             DateTimeFormat = "O",
-            Newline = newline,
             Escape = escape,
+            Newline = newline switch
+            {
+                NewlineToken.LF => "\n",
+                NewlineToken.CRLF => "\r\n",
+                _ => default,
+            },
         };
     }
 

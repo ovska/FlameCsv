@@ -82,7 +82,7 @@ public class CsvTextOptions : CsvOptions<char>, IGetOrCreate<char, CsvTextOption
     public char Quote { get => _quote; set => this.SetValue(ref _quote, value); }
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Newline"/>
-    public string Newline { get => _newline.ToString(); set => this.SetValue(ref _newline, value.AsMemory()); }
+    public string? Newline { get => _newline.ToString(); set => this.SetValue(ref _newline, value.AsMemory()); }
 
     /// <inheritdoc cref="ICsvDialectOptions{T}.Whitespace"/>
     public string? Whitespace { get => _whitespace.ToString(); set => this.SetValue(ref _whitespace, value.AsMemory()); }

@@ -267,36 +267,48 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
             $"Invalid default newline for {typeof(T).FullName}: [{_newline1}, {_newline2}]");
 
         CsvSequenceReader<T> copy = _reader;
-        ReadOnlyMemory<T> firstLine;
-        long originalLength = copy.UnreadSequence.Length;
-        long lengthAfterLine;
+        int foundNewlineLength = 0;
+        T originalNewline1 = _newline1;
 
         try
         {
             Unsafe.AsRef(in _newlineLength) = 2;
 
-            if (!TryReadLine(out firstLine, out _))
-                return false;
+            if (!TryReadLine(out _, out _))
+            {
+                Unsafe.AsRef(in _newlineLength) = 1;
+                Unsafe.AsRef(in _newline1) = _newline2;
 
-            lengthAfterLine = _reader.UnreadSequence.Length;
+                _reader = copy;
+
+                if (!TryReadLine(out _, out _))
+                {
+                    return false;
+                }
+
+                foundNewlineLength = 1;
+            }
+            else
+            {
+                foundNewlineLength = 2;
+            }
         }
         finally
         {
             // reset original state, we are only peeking
             _reader = copy;
             Unsafe.AsRef(in _newlineLength) = 0;
+            Unsafe.AsRef(in _newline1) = originalNewline1;
         }
-
-        long lengthOffset = originalLength - lengthAfterLine - firstLine.Length;
 
         // it's impossible to get to this point using \r as escape/quote, see CsvOptions.ValidateDialect()
         // we can be certain that a line ending in \n is valid, and possibly contained the preceding \r
-        if (lengthOffset == 2)
+        if (foundNewlineLength == 2)
         {
             // crlf
             Unsafe.AsRef(in _newlineLength) = 2;
         }
-        else if (lengthOffset == 1)
+        else if (foundNewlineLength == 1)
         {
             // lf
             Unsafe.AsRef(in _newline1) = _newline2;
@@ -304,8 +316,7 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
         }
         else
         {
-            throw new UnreachableException(
-                $"Invalid TryPeekNewline: Read line len {firstLine.Length}, reader went from {originalLength} to {lengthAfterLine}, line: {_options.AsPrintableString(firstLine)}");
+            throw new UnreachableException($"Reached end of TryPeekNewline with length {foundNewlineLength}");
         }
 
         return true;

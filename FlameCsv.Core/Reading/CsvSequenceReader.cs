@@ -225,8 +225,10 @@ internal struct CsvSequenceReader<T> where T : unmanaged, IEquatable<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool AdvanceCurrent(int count)
     {
-        Debug.Assert(count >= 0);
-        Debug.Assert(CurrentIndex + count <= Current.Length);
+        Debug.Assert(count >= 0, $"AdvanceCurrent called with negative count {count}");
+        Debug.Assert(
+            CurrentIndex + count <= Current.Length,
+            $"AdvanceCurrent called with invalid count {count} (consumed: {CurrentIndex}, remaining: {Current.Length})");
 
         Consumed += count;
         CurrentIndex += count;
