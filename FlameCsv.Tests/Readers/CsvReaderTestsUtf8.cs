@@ -1,8 +1,4 @@
-﻿using System.Buffers;
-using System.Diagnostics;
-using System.IO.Pipelines;
-using System.Runtime.InteropServices;
-using System.Text;
+﻿using System.IO.Pipelines;
 using FlameCsv.Binding;
 using FlameCsv.Enumeration;
 using FlameCsv.Tests.TestData;

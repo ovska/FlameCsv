@@ -1,5 +1,4 @@
 ﻿using FlameCsv.SourceGen.Bindings;
-using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
 using System.Diagnostics;
 

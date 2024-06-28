@@ -1,19 +1,7 @@
-﻿using System;
-using System.Buffers;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Buffers;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
-using FlameCsv.Reading.Internal;
 using FlameCsv.Tests.Utilities;
-using Newtonsoft.Json;
 
 namespace FlameCsv.Tests.Readers;
 

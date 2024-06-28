@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Runtime.InteropServices;
 using FlameCsv.Converters;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace FlameCsv.Tests;
 

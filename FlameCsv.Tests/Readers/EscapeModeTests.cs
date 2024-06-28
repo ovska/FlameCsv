@@ -1,6 +1,4 @@
 ﻿using System.Buffers;
-using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;

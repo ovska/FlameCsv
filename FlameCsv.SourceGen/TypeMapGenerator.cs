@@ -1,5 +1,4 @@
 ﻿using System.Collections.Immutable;
-using FlameCsv.SourceGen.Bindings;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace FlameCsv.SourceGen;

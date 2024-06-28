@@ -1,13 +1,8 @@
-using System;
 using System.Buffers;
-using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics;
 using CommunityToolkit.HighPerformance;
-using FlameCsv.Converters;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
-using FlameCsv.Reading.Internal;
 using FlameCsv.Tests.Utilities;
 
 namespace FlameCsv.Tests.Readers;
