@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Runtime.InteropServices;
 using FlameCsv.Converters;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace FlameCsv.Tests;
 
@@ -223,6 +224,42 @@ public class CsvOptionsTests
 
         Assert.True(enumerator.MoveNext());
         Assert.Equal("7,8,9", enumerator.Current.RawRecord.ToString());
+    }
+
+    [Fact]
+    public void Should_Return_Correct_HasHeader_in_Skip()
+    {
+        foreach (var _ in CsvReader.Enumerate("A,B,C\n1,2,3", GetOpts(true)))
+        { }
+
+        foreach (var _ in CsvReader.Enumerate("X,y,z\nX,y,z", GetOpts(false)))
+        { }
+
+
+        CsvTextOptions GetOpts(bool hasHeader)
+        {
+            return new CsvTextOptions
+            {
+                HasHeader = hasHeader,
+                ShouldSkipRow = (in CsvRecordSkipArgs<char> args) =>
+                {
+                    if (args.Record.Span[0] == 'A')
+                    {
+                        Assert.False(args.HeaderRead);
+                    }
+                    if (args.Record.Span[0] == '1')
+                    {
+                        Assert.True(args.HeaderRead);
+                    }
+                    if (args.Record.Span[0] == 'X')
+                    {
+                        Assert.Null(args.HeaderRead);
+                    }
+
+                    return false;
+                }
+            };
+        }
     }
 
     [Fact]
