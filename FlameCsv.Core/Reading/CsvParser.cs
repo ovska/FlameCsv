@@ -214,7 +214,7 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
     protected abstract (int consumed, int linesRead) FillSliceBuffer(ReadOnlySpan<T> data, scoped Span<Slice> slices);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool SkipRecord(ReadOnlyMemory<T> record, int line, bool headerRead)
+    public bool SkipRecord(ReadOnlyMemory<T> record, int line, bool? headerRead)
     {
         return _options._shouldSkipRow is { } predicate && predicate(new CsvRecordSkipArgs<T>
         {

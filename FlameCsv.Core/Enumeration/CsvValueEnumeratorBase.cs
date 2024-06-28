@@ -71,7 +71,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         _line++;
         _position += record.Length + (!isFinalBlock).ToByte() * _parser._newlineLength;
 
-        if (_parser.SkipRecord(record, _line, _parser.HasHeader && _materializer is not null))
+        if (_parser.SkipRecord(record, _line, _parser.HasHeader ? _materializer is not null : null))
         {
             goto ReadNextRecord;
         }
