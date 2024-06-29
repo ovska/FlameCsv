@@ -27,9 +27,8 @@ public interface ICsvRecord<T> where T : unmanaged, IEquatable<T>
     bool HasHeader { get; }
 
     /// <summary>
-    /// 0-based token position of this record's beginning from the start of the CSV.
+    /// 0-based byte/character position of the record in the data.
     /// </summary>
-    /// <remarks>First record's position is always 0.</remarks>
     long Position { get; }
 
     /// <summary>
@@ -77,9 +76,6 @@ public interface ICsvRecord<T> where T : unmanaged, IEquatable<T>
     /// <summary>
     /// Returns the number of fields in the current record.
     /// </summary>
-    /// <remarks>
-    /// Reads the CSV record its' entirety if it already hasn't been tokenized.
-    /// </remarks>
     int GetFieldCount();
 
     /// <summary>

@@ -36,10 +36,11 @@ internal static class Throw
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void IfEnumerationChanged(int version, int expected)
     {
-        if (version == expected)
-            return;
+        if (expected == -1)
+            ObjectDisposed_Enumeration();
 
-        InvalidOp_EnumerationChanged();
+        if (version != expected)
+            InvalidOp_EnumerationChanged();
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
