@@ -274,7 +274,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
 
         bool IEnumerator.MoveNext() => MoveNext();
         void IEnumerator.Reset() => _index = 0;
-        readonly void IDisposable.Dispose(){}
+        readonly void IDisposable.Dispose() { }
         readonly ReadOnlyMemory<T> IEnumerator<ReadOnlyMemory<T>>.Current => Current;
         readonly object IEnumerator.Current => Current;
     }
@@ -288,8 +288,8 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
         public int Line => _record.Line;
         public long Position => _record.Position;
         public string[] Headers => _record._state.Header?.Keys.ToArray() ?? [];
-        public ReadOnlyMemory<T>[] Fields => _record.ToList().ToArray();
-        public string[] FieldValues => Fields.Select(f => _record._options.GetAsString(f.Span)).ToArray();
+        public ReadOnlyMemory<T>[] Fields => [.. _record.ToList()];
+        public string[] FieldValues => [.. Fields.Select(f => _record._options.GetAsString(f.Span))];
     }
 
     public static explicit operator CsvRecord<T>(CsvValueRecord<T> record) => new(record);

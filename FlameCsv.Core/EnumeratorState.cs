@@ -33,26 +33,14 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
         get => _header;
         set
         {
-            _header = value;
-            _materializerCache?.Clear();
+            if (ReferenceEquals(_header, value))
+                return;
 
-            if (value is null)
-            {
-                _headerNames = null;
-            }
-            else
-            {
-                _headerNames = new string[value.Count];
-                int ix = 0;
-                foreach (var (header, _) in value)
-                {
-                    _headerNames[ix++] = header;
-                }
-            }
+            _header = value;
+            _headerNames = value?.Keys.ToArray();
+            _materializerCache?.Clear();
         }
     }
-
-    private bool _disposed;
 
     private Dictionary<string, int>? _header;
     internal string[]? _headerNames;
@@ -68,7 +56,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Initialize(ReadOnlyMemory<T> memory, CsvRecordMeta meta)
     {
-        Throw.IfEnumerationDisposed(_disposed);
+        Throw.IfEnumerationDisposed(Version == -1);
 
         _record = memory;
         _meta = meta;
@@ -83,14 +71,16 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
-        if (_disposed)
+        if (Version == -1)
             return;
 
-        _disposed = true;
         Version = -1;
-        _fields.Dispose();
-        _parser._arrayPool.EnsureReturned(ref _unescapeBuffer);
-        _parser.Dispose();
+
+        using (_parser)
+        using (_fields)
+        {
+            _parser._arrayPool.EnsureReturned(ref _unescapeBuffer);
+        }
 
 #if DEBUG
         GC.SuppressFinalize(this);
@@ -102,7 +92,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
     public bool TryGetHeaderIndex(string name, out int index)
     {
         ArgumentNullException.ThrowIfNull(name);
-        Throw.IfEnumerationDisposed(_disposed);
+        Throw.IfEnumerationDisposed(Version == -1);
 
         if (!_parser._options._hasHeader)
             Throw.NotSupported_CsvHasNoHeader();
@@ -116,7 +106,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryGetAtIndex(int index, out ReadOnlyMemory<T> field)
     {
-        Throw.IfEnumerationDisposed(_disposed);
+        Throw.IfEnumerationDisposed(Version == -1);
 
         FullyConsume();
 
@@ -140,7 +130,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetHeader(Dictionary<string, int> header)
     {
-        Throw.IfEnumerationDisposed(_disposed);
+        Throw.IfEnumerationDisposed(Version == -1);
 
         if (!_parser._options._hasHeader)
             Throw.NotSupported_CsvHasNoHeader();
@@ -189,7 +179,6 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void EnsureVersion(int version)
     {
-        Throw.IfEnumerationDisposed(_disposed);
         Throw.IfEnumerationChanged(version, Version);
     }
 
@@ -210,7 +199,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
 #if DEBUG
     ~EnumeratorState()
     {
-        if (!_disposed)
+        if (Version != -1)
         {
             throw new UnreachableException("CsvEnumerationState was not disposed");
         }

@@ -24,7 +24,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     private int _line;
 
     private T[]? _unescapeBuffer; // string unescaping
-    internal readonly CsvParser<T> _parser;
+    protected readonly CsvParser<T> _parser;
 
     internal CsvValueEnumeratorBase(CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
         : this(options, null, typeMap)
@@ -186,8 +186,10 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     {
         if (disposing)
         {
-            _parser._arrayPool.EnsureReturned(ref _unescapeBuffer);
-            _parser.Dispose();
+            using (_parser)
+            {
+                _parser._arrayPool.EnsureReturned(ref _unescapeBuffer);
+            }
         }
     }
 }
