@@ -39,16 +39,11 @@ internal static class ArrayPoolExtensions
         }
     }
 
-    public static ArrayPool<T> AllocatingIfNull<T>(this ArrayPool<T>? arrayPool)
-    {
-        return arrayPool ?? AllocatingArrayPool<T>.Instance;
-    }
-
-    public static MemoryPool<T> AsMemoryPool<T>(this ArrayPool<T>? arrayPool)
+    public static MemoryPool<T> AsMemoryPool<T>(this ArrayPool<T> arrayPool)
     {
         return arrayPool == ArrayPool<T>.Shared
              ? MemoryPool<T>.Shared
-             : new ArrayPoolMemoryPoolWrapper<T>(arrayPool.AllocatingIfNull());
+             : new ArrayPoolMemoryPoolWrapper<T>(arrayPool);
     }
 
     private sealed class ArrayPoolMemoryPoolWrapper<T> : MemoryPool<T>

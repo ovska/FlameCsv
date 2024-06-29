@@ -1,6 +1,8 @@
-﻿using System.Diagnostics;
+﻿using System.Buffers;
+using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Text;
+using FlameCsv.Extensions;
 using FlameCsv.Writing;
 
 namespace FlameCsv.Tests.Writing;
@@ -35,10 +37,10 @@ public sealed class CsvByteBufferWriterTests : IAsyncDisposable
     public static void Should_Validate_Constructor_Params()
     {
         Assert.Throws<ArgumentNullException>(
-            () => new CsvCharBufferWriter(null!, null));
+            () => new CsvCharBufferWriter(null!, AllocatingArrayPool<char>.Instance));
 
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => new CsvCharBufferWriter(new StringWriter(), null, initialBufferSize: -1));
+            () => new CsvCharBufferWriter(new StringWriter(), AllocatingArrayPool<char>.Instance, initialBufferSize: -1));
     }
 
     [Fact]

@@ -147,7 +147,7 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IEqua
                     }
                     else
                     {
-                        line = _reader.Sequence.Slice(copy.Position, crPosition).AsMemory(ref _multisegmentBuffer, _arrayPool);
+                        line = _reader.Sequence.Slice(copy.Position, crPosition).AsMemory(ref _multisegmentBuffer, ArrayPool);
                     }
 
                     return true;
@@ -211,7 +211,6 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IEqua
                 currentConsumed += index + 2;
                 goto Seek;
             }
-
 
             currentConsumed += index;
 

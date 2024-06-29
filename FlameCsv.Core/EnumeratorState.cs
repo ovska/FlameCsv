@@ -50,7 +50,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
     public EnumeratorState(CsvParser<T> parser)
     {
         _parser = parser;
-        _fields = new(parser._arrayPool);
+        _fields = new WritableBuffer<T>(parser.ArrayPool);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -79,7 +79,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
         using (_parser)
         using (_fields)
         {
-            _parser._arrayPool.EnsureReturned(ref _unescapeBuffer);
+            _parser.ArrayPool.EnsureReturned(ref _unescapeBuffer);
         }
 
 #if DEBUG
@@ -172,7 +172,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
         }
         finally
         {
-            _parser._arrayPool.EnsureReturned(ref array);
+            _parser.ArrayPool.EnsureReturned(ref array);
         }
     }
 
@@ -206,4 +206,3 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
     }
 #endif
 }
-

@@ -27,7 +27,7 @@ public sealed class DelegatingUtf8Converter<TValue> : CsvConverter<byte, TValue>
         _converter = converter;
         _provider = options.FormatProvider;
         _format = options.DateOnlyFormat;
-        _arrayPool = options.ArrayPool.AllocatingIfNull();
+        _arrayPool = options._arrayPool;
     }
 
     public override bool TryFormat(Span<byte> destination, TValue value, out int charsWritten)

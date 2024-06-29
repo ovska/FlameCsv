@@ -38,15 +38,15 @@ internal sealed class ReturnTrackingArrayPool<T> : ArrayPool<T>, IDisposable
 
     public override void Return(T[] array, bool clearArray = false)
     {
-        if (array.Length > 0 && !_values.TryRemove(array, out _))
+        if (array.Length == 0)
+            return;
+
+        if (!_values.TryRemove(array, out _))
         {
             throw new InvalidOperationException("The returned array was not rented from the pool.");
         }
 
-        if (array.Length != 0)
-        {
-            Interlocked.Increment(ref returnedCount);
-            ArrayPool<T>.Shared.Return(array);
-        }
+        Interlocked.Increment(ref returnedCount);
+        ArrayPool<T>.Shared.Return(array);
     }
 }

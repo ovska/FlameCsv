@@ -43,15 +43,15 @@ internal readonly struct CsvCharBufferWriter : ICsvBufferWriter<char>
 
     public CsvCharBufferWriter(
         TextWriter writer,
-        ArrayPool<char>? arrayPool,
+        ArrayPool<char> arrayPool,
         int initialBufferSize = 4 * 1024)
     {
         ArgumentNullException.ThrowIfNull(writer);
         Guard.IsGreaterThan(initialBufferSize, 0);
 
         _writer = writer;
-        _arrayPool = arrayPool.AllocatingIfNull();
-        _state = new State(_arrayPool.Rent(initialBufferSize));
+        _arrayPool = arrayPool;
+        _state = new State(arrayPool.Rent(initialBufferSize));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

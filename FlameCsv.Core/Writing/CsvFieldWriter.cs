@@ -15,7 +15,7 @@ internal static class CsvFieldWriter
         CsvOptions<char> options)
     {
         return new CsvFieldWriter<char, CsvCharBufferWriter>(
-            new CsvCharBufferWriter(textWriter, options.ArrayPool.AllocatingIfNull()),
+            new CsvCharBufferWriter(textWriter, options._arrayPool),
             options);
     }
 
@@ -35,7 +35,7 @@ internal static class CsvFieldWriter
         bool leaveOpen = false)
     {
         StreamPipeWriterOptions writerOptions = new(
-            pool: options.ArrayPool.AllocatingIfNull().AsMemoryPool(),
+            pool: options._arrayPool.AsMemoryPool(),
             minimumBufferSize: bufferSize,
             leaveOpen: leaveOpen);
 
@@ -53,10 +53,10 @@ public interface ICsvFieldWriter<T> where T : unmanaged, IEquatable<T>
     void WriteNewline();
 }
 
-/// <remarks>
+/// <summary>
 /// Writes CSV fields and handles escaping as needed.
 /// This type is not intended to be used directly in user code, consider <see cref="CsvWriter{T}"/> instead.
-/// </remarks>
+/// </summary>
 public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
     where T : unmanaged, IEquatable<T>
     where TWriter : struct, IBufferWriter<T>
@@ -267,7 +267,7 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
                     source: written,
                     destination: destination,
                     specialCount: specialCount,
-                    arrayPool: _options._arrayPool.AllocatingIfNull());
+                    arrayPool: _options._arrayPool);
             }
             return true;
         }

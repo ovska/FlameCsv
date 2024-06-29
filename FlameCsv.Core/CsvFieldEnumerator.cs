@@ -65,7 +65,7 @@ public struct CsvFieldEnumerator<T> : IDisposable, IEnumerator<ReadOnlyMemory<T>
 
     public void Dispose()
     {
-        _parser._arrayPool.EnsureReturned(ref _toReturn);
+        _parser.ArrayPool.EnsureReturned(ref _toReturn);
         _parser.Dispose();
     }
 }

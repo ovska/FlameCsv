@@ -120,7 +120,7 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     internal bool _hasHeader = true;
     internal bool _validateFieldCount;
     internal CsvFieldEscaping _fieldEscaping;
-    internal ArrayPool<T>? _arrayPool = ArrayPool<T>.Shared;
+    internal ArrayPool<T> _arrayPool = ArrayPool<T>.Shared;
     internal bool _allowContentInExceptions;
     internal IList<(string text, bool value)>? _booleanValues;
 
@@ -277,8 +277,8 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     /// </summary>
     public ArrayPool<T>? ArrayPool
     {
-        get => _arrayPool;
-        set => this.SetValue(ref _arrayPool, value);
+        get => ReferenceEquals(_arrayPool, AllocatingArrayPool<T>.Instance) ? null : _arrayPool;
+        set => this.SetValue(ref _arrayPool, value ?? AllocatingArrayPool<T>.Instance);
     }
 
     /// <summary>
@@ -373,10 +373,6 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
         return converter;
     }
 
-    /// <summary>
-    /// Returns 
-    /// </summary>
-    /// <param name="created">Whether the converter was created, and was not from cache</param>
     protected internal CsvConverter<T>? TryGetExistingOrExplicit(Type resultType, out bool created)
     {
         ArgumentNullException.ThrowIfNull(resultType);

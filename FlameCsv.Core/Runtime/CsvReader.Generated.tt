@@ -116,7 +116,7 @@ for (var _tokenType = 0; _tokenType < 2; _tokenType++)
         return new CsvRecordFactoryAsyncEnumerable<<#= tokenType #>, TValue>(
             options,
 <# if (tokenType == "char") { #>
-            new <#= readerType #>(reader, DefaultBufferSize, options.ArrayPool.AllocatingIfNull()),
+            new <#= readerType #>(reader, DefaultBufferSize, options._arrayPool),
 <# } else { #>
             new PipeReaderWrapper(reader),
 <# } #>
