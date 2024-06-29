@@ -27,7 +27,7 @@
   </ItemGroup>
 
   <!--Can be enabled intermittently-->
-  <ItemGroup Condition="true">
+  <ItemGroup Condition="false">
     <PackageReference Include="ErrorProne.NET.Structs" Version="0.6.1-beta.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
