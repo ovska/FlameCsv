@@ -36,7 +36,6 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     internal CsvValueEnumeratorBase(CsvOptions<T> options, IMaterializer<T, TValue>? materializer)
             : this(options, materializer, null)
     {
-
     }
 
     [RequiresUnreferencedCode(Messages.CompiledExpressions)]
@@ -69,7 +68,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         long position = _position;
 
         _line++;
-        _position += record.Length + (!isFinalBlock).ToByte() * _parser._newlineLength;
+        _position += record.Length + ((!isFinalBlock).ToByte() * _parser._newlineLength);
 
         if (_parser.SkipRecord(record, _line, _parser.HasHeader ? _materializer is not null : null))
         {
@@ -188,7 +187,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         {
             using (_parser)
             {
-                _parser._arrayPool.EnsureReturned(ref _unescapeBuffer);
+                _parser.ArrayPool.EnsureReturned(ref _unescapeBuffer);
             }
         }
     }

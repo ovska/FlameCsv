@@ -83,7 +83,7 @@ public static partial class CsvReader
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
-            new TextPipeReader(reader, DefaultBufferSize, options.ArrayPool.AllocatingIfNull()),
+            new TextPipeReader(reader, DefaultBufferSize, options._arrayPool),
             materializer);
     }
 
@@ -106,7 +106,7 @@ public static partial class CsvReader
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
-            new TextPipeReader(reader, DefaultBufferSize, options.ArrayPool.AllocatingIfNull()),
+            new TextPipeReader(reader, DefaultBufferSize, options._arrayPool),
             materializer);
     }
 
@@ -129,7 +129,7 @@ public static partial class CsvReader
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
-            new TextPipeReader(reader, DefaultBufferSize, options.ArrayPool.AllocatingIfNull()),
+            new TextPipeReader(reader, DefaultBufferSize, options._arrayPool),
             materializer);
     }
 
@@ -152,7 +152,7 @@ public static partial class CsvReader
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
-            new TextPipeReader(reader, DefaultBufferSize, options.ArrayPool.AllocatingIfNull()),
+            new TextPipeReader(reader, DefaultBufferSize, options._arrayPool),
             materializer);
     }
 
@@ -175,7 +175,7 @@ public static partial class CsvReader
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
-            new TextPipeReader(reader, DefaultBufferSize, options.ArrayPool.AllocatingIfNull()),
+            new TextPipeReader(reader, DefaultBufferSize, options._arrayPool),
             materializer);
     }
 
@@ -198,7 +198,7 @@ public static partial class CsvReader
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
-            new TextPipeReader(reader, DefaultBufferSize, options.ArrayPool.AllocatingIfNull()),
+            new TextPipeReader(reader, DefaultBufferSize, options._arrayPool),
             materializer);
     }
 
@@ -221,7 +221,7 @@ public static partial class CsvReader
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
-            new TextPipeReader(reader, DefaultBufferSize, options.ArrayPool.AllocatingIfNull()),
+            new TextPipeReader(reader, DefaultBufferSize, options._arrayPool),
             materializer);
     }
 
@@ -244,7 +244,7 @@ public static partial class CsvReader
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
-            new TextPipeReader(reader, DefaultBufferSize, options.ArrayPool.AllocatingIfNull()),
+            new TextPipeReader(reader, DefaultBufferSize, options._arrayPool),
             materializer);
     }
 
@@ -267,7 +267,7 @@ public static partial class CsvReader
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
-            new TextPipeReader(reader, DefaultBufferSize, options.ArrayPool.AllocatingIfNull()),
+            new TextPipeReader(reader, DefaultBufferSize, options._arrayPool),
             materializer);
     }
 
@@ -290,7 +290,7 @@ public static partial class CsvReader
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
-            new TextPipeReader(reader, DefaultBufferSize, options.ArrayPool.AllocatingIfNull()),
+            new TextPipeReader(reader, DefaultBufferSize, options._arrayPool),
             materializer);
     }
 
@@ -313,7 +313,7 @@ public static partial class CsvReader
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
-            new TextPipeReader(reader, DefaultBufferSize, options.ArrayPool.AllocatingIfNull()),
+            new TextPipeReader(reader, DefaultBufferSize, options._arrayPool),
             materializer);
     }
 
@@ -336,7 +336,7 @@ public static partial class CsvReader
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
-            new TextPipeReader(reader, DefaultBufferSize, options.ArrayPool.AllocatingIfNull()),
+            new TextPipeReader(reader, DefaultBufferSize, options._arrayPool),
             materializer);
     }
 
@@ -359,7 +359,7 @@ public static partial class CsvReader
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
-            new TextPipeReader(reader, DefaultBufferSize, options.ArrayPool.AllocatingIfNull()),
+            new TextPipeReader(reader, DefaultBufferSize, options._arrayPool),
             materializer);
     }
 
@@ -382,7 +382,7 @@ public static partial class CsvReader
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
-            new TextPipeReader(reader, DefaultBufferSize, options.ArrayPool.AllocatingIfNull()),
+            new TextPipeReader(reader, DefaultBufferSize, options._arrayPool),
             materializer);
     }
 
@@ -405,7 +405,7 @@ public static partial class CsvReader
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
-            new TextPipeReader(reader, DefaultBufferSize, options.ArrayPool.AllocatingIfNull()),
+            new TextPipeReader(reader, DefaultBufferSize, options._arrayPool),
             materializer);
     }
 
@@ -428,7 +428,7 @@ public static partial class CsvReader
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
-            new TextPipeReader(reader, DefaultBufferSize, options.ArrayPool.AllocatingIfNull()),
+            new TextPipeReader(reader, DefaultBufferSize, options._arrayPool),
             materializer);
     }
 

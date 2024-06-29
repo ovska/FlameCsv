@@ -40,10 +40,10 @@ public sealed class CsvCharBufferWriterTests : IAsyncDisposable
     public static void Should_Validate_Constructor_Params()
     {
         Assert.Throws<ArgumentNullException>(
-            () => new CsvCharBufferWriter(null!, null));
+            () => new CsvCharBufferWriter(null!, AllocatingArrayPool<char>.Instance));
 
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => new CsvCharBufferWriter(new StringWriter(), null, initialBufferSize: -1));
+            () => new CsvCharBufferWriter(new StringWriter(), AllocatingArrayPool<char>.Instance, initialBufferSize: -1));
     }
 
     [Fact]

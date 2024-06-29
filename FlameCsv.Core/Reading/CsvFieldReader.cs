@@ -152,7 +152,7 @@ public ref struct CsvFieldReader<T> where T : unmanaged, IEquatable<T>
         if (length <= _unescapeBuffer.Length)
             return _unescapeBuffer.Slice(0, length);
 
-        _options._arrayPool.AllocatingIfNull().EnsureCapacity(ref _unescapeArray, length);
+        _options._arrayPool.EnsureCapacity(ref _unescapeArray, length);
         return _unescapeArray.AsSpan(0, length);
     }
 

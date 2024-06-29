@@ -94,7 +94,7 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IE
                     }
                     else
                     {
-                        line = _reader.Sequence.Slice(copy.Position, crPosition).AsMemory(ref _multisegmentBuffer, _arrayPool);
+                        line = _reader.Sequence.Slice(copy.Position, crPosition).AsMemory(ref _multisegmentBuffer, ArrayPool);
                     }
 
                     return true;

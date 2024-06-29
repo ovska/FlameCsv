@@ -113,8 +113,8 @@ public static partial class CsvReader
         Guard.CanRead(stream);
 
         options ??= CsvTextOptions.Default;
-        var textReader = new StreamReader(stream, encoding: encoding, leaveOpen: leaveOpen, bufferSize: bufferSize);
-        var reader = new TextPipeReader(textReader, bufferSize, options.ArrayPool.AllocatingIfNull());
+        var textReader = new StreamReader(stream, encoding: encoding, bufferSize: bufferSize, leaveOpen: leaveOpen);
+        var reader = new TextPipeReader(textReader, bufferSize, options._arrayPool);
         return new CsvValueAsyncEnumerable<char, TValue>(reader, options);
     }
 
@@ -135,7 +135,7 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(textReader);
 
         options ??= CsvTextOptions.Default;
-        var reader = new TextPipeReader(textReader, DefaultBufferSize, options.ArrayPool.AllocatingIfNull());
+        var reader = new TextPipeReader(textReader, DefaultBufferSize, options._arrayPool);
         return new CsvValueAsyncEnumerable<char, TValue>(reader, options);
     }
 
@@ -161,7 +161,7 @@ public static partial class CsvReader
         Guard.CanRead(stream);
 
         options ??= CsvUtf8Options.Default;
-        var reader = CreatePipeReader(stream, options.ArrayPool.AllocatingIfNull(), leaveOpen);
+        var reader = CreatePipeReader(stream, options._arrayPool, leaveOpen);
         return new CsvValueAsyncEnumerable<byte, TValue>(new PipeReaderWrapper(reader), options);
     }
 
@@ -251,7 +251,7 @@ public static partial class CsvReader
         Guard.CanRead(stream);
 
         return EnumerateAsync(
-            new StreamReader(stream, encoding: encoding, leaveOpen: leaveOpen, bufferSize: 4096),
+            new StreamReader(stream, encoding: encoding, bufferSize: 4096, leaveOpen: leaveOpen),
             options ?? CsvTextOptions.Default);
     }
 
@@ -272,7 +272,7 @@ public static partial class CsvReader
 
         options ??= CsvTextOptions.Default;
         return new CsvRecordAsyncEnumerable<char>(
-            new TextPipeReader(textReader, 4096, options.ArrayPool.AllocatingIfNull()),
+            new TextPipeReader(textReader, 4096, options._arrayPool),
             options);
     }
 
@@ -294,7 +294,7 @@ public static partial class CsvReader
 
         options ??= CsvUtf8Options.Default;
         return new CsvRecordAsyncEnumerable<byte>(
-            new PipeReaderWrapper(CreatePipeReader(stream, options.ArrayPool.AllocatingIfNull(), leaveOpen)),
+            new PipeReaderWrapper(CreatePipeReader(stream, options._arrayPool, leaveOpen)),
             options);
     }
 

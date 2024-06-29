@@ -286,7 +286,9 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
 
         options.HasHeader = header;
         options.AllowContentInExceptions = true;
-        options.ArrayPool = _pool = new() { TrackStackTraces = false };
+        options.ArrayPool = _pool = new ReturnTrackingArrayPool<T>();
+
+#if false
         options.ExceptionHandler = (in CsvExceptionHandlerArgs<T> args) =>
         {
             if (Debugger.IsAttached)
@@ -296,6 +298,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
 
             return false;
         };
+#endif
 
         return options;
     }

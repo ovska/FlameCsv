@@ -9,6 +9,9 @@ namespace FlameCsv.Extensions;
 /// </summary>
 internal sealed class AllocatingArrayPool<T> : ArrayPool<T>
 {
+    [Obsolete("Use Instance, not Shared", true)]
+    public static new ArrayPool<T> Shared => throw new System.Diagnostics.UnreachableException();
+
     /// <inheritdoc cref="AllocatingArrayPool{T}"/>
     public static AllocatingArrayPool<T> Instance { get; } = new();
 
@@ -27,5 +30,3 @@ internal sealed class AllocatingArrayPool<T> : ArrayPool<T>
         ArgumentNullException.ThrowIfNull(array);
     }
 }
-
-

@@ -56,13 +56,14 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
         pipeReader.AdvanceTo(consumed: _reader.Position, examined: _reader.Sequence.End);
     }
 
+    internal ArrayPool<T> ArrayPool => _options._arrayPool;
+
     internal readonly T _quote;
     internal readonly T _newline1;
     internal readonly T _newline2;
     internal readonly int _newlineLength;
 
     internal protected readonly CsvOptions<T> _options;
-    internal readonly ArrayPool<T> _arrayPool;
     protected T[]? _multisegmentBuffer;
     internal CsvSequenceReader<T> _reader;
 
@@ -86,12 +87,11 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
         _options = options;
         _reader = new CsvSequenceReader<T>();
         _noBuffering = options.NoLineBuffering;
-        _arrayPool = options._arrayPool.AllocatingIfNull();
 
         if (!_noBuffering)
         {
             // use user configured arraypool
-            _slices = _arrayPool.Rent(Unsafe.SizeOf<Slice>() * SliceBufferSize / Unsafe.SizeOf<T>());
+            _slices = _options._arrayPool.Rent(Unsafe.SizeOf<Slice>() * SliceBufferSize / Unsafe.SizeOf<T>());
         }
         else
         {
@@ -105,7 +105,7 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
     [SuppressMessage("Usage", "CA1816:Dispose methods should call SuppressFinalize", Justification = "<Pending>")]
     public override void Dispose()
     {
-        _arrayPool.EnsureReturned(ref _multisegmentBuffer);
+        ArrayPool.EnsureReturned(ref _multisegmentBuffer);
 
         _sliceBuffer = null;
         _reader = default;
@@ -114,7 +114,7 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
 
         if (!_noBuffering)
         {
-            _arrayPool.Return(_slices);
+            ArrayPool.Return(_slices);
             _slices = [];
         }
     }
@@ -197,7 +197,7 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
 
         ConsumeFinalBlock:
         Debug.Assert(isFinalBlock);
-        line = _reader.UnreadSequence.AsMemory(ref _multisegmentBuffer, _arrayPool);
+        line = _reader.UnreadSequence.AsMemory(ref _multisegmentBuffer, ArrayPool);
         meta = GetRecordMeta(line);
         _reader.AdvanceToEnd();
         return true;
