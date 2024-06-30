@@ -1,4 +1,5 @@
 ﻿using FlameCsv.SourceGen.Bindings;
+using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
 using System.Diagnostics;
 
@@ -15,6 +16,8 @@ partial struct TypeMapSymbol
 
         IMethodSymbol? constructor = null;
         IMethodSymbol? parameterlessCtor = null;
+        IMethodSymbol? singleCtor = null;
+        bool validSingleCtor = false;
 
         foreach (var member in Type.GetPublicMembersRecursive())
         {
@@ -61,12 +64,28 @@ partial struct TypeMapSymbol
                 {
                     parameterlessCtor ??= ctor;
                 }
+
+                if (singleCtor is null)
+                {
+                    singleCtor = ctor;
+                    validSingleCtor = true;
+                }
+                else
+                {
+                    validSingleCtor = false;
+                }
             }
         }
 
         if (!SkipConstructor)
         {
             constructor ??= parameterlessCtor;
+
+            if (constructor is null && validSingleCtor)
+            {
+                constructor = singleCtor;
+            }
+
             if (constructor is null)
             {
                 Fail(Diagnostics.NoConstructorFound(Type));
@@ -95,6 +114,28 @@ partial struct TypeMapSymbol
         if (members.Count == 0 && parameters.Count == 0)
         {
             Fail(Diagnostics.NoWritableMembersOrParametersFound(Type));
+        }
+
+        if (Type.IsRecord)
+        {
+            List<string> asd = [];
+            foreach (var parameter in parameters)
+            {
+                foreach (var member in members)
+                {
+                    if (member.Symbol.Name.Equals(parameter.Symbol.Name) &&
+                        member.Symbol is IPropertySymbol { SetMethod.IsInitOnly: true } &&
+                        SymbolEqualityComparer.Default.Equals(member.Type, parameter.Type) &&
+                        member.Scope is BindingScope.All or BindingScope.Read)
+                    {
+                        member.Scope = BindingScope.Write;
+                        asd.Add(member.Symbol.ToDisplayString());
+                    }
+                }
+            }
+
+            //throw new Exception(string.Join(", ", asd));
+
         }
 
         parameters.Sort((a, b) => a.ParameterPosition.CompareTo(b.ParameterPosition));

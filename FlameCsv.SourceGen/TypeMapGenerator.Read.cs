@@ -347,11 +347,19 @@ public partial class TypeMapGenerator
         foreach (var b in typeMap.Bindings.RequiredBindings)
         {
             sb.Append($@"
-            if (materializer.{b.ConverterId} == null) yield return {b.Name.ToStringLiteral()};");
+            if (materializer.{b.ConverterId} == null) yield return {GetName(b)};");
         }
 
         sb.Append(@"
         }");
+
+        static string GetName(IBinding binding)
+        {
+            string name = binding is ParameterBinding
+                ? binding.Name.Substring(3)
+                : binding.Name;
+            return name.ToStringLiteral();
+        }
     }
 
     private void WriteParserMember(StringBuilder sb, ref readonly TypeMapSymbol typeMap, IBinding binding)
@@ -381,7 +389,7 @@ public partial class TypeMapGenerator
 
         foreach (var binding in typeMap.Bindings.AllBindings)
         {
-            if (!binding.CanRead)
+            if (!binding.CanRead || binding.Scope == BindingScope.Write)
                 continue;
 
             if (!first)
@@ -446,7 +454,7 @@ public partial class TypeMapGenerator
         {
             typeMap.ThrowIfCancellationRequested();
 
-            if (!binding.CanRead)
+            if (!binding.CanRead || binding.Scope == BindingScope.Write)
                 continue;
 
             sb.Append(@"
