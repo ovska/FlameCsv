@@ -11,7 +11,7 @@ internal sealed class MemberBinding : IComparable<MemberBinding>, IBinding
     public string ConverterId { get; }
     public string HandlerId { get; }
     public int Order { get; }
-    public BindingScope Scope { get; }
+    public BindingScope Scope { get; set; }
 
     public bool CanRead { get; }
     public bool CanWrite { get; }

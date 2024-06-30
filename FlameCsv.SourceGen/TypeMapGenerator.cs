@@ -50,6 +50,7 @@ public partial class TypeMapGenerator : IIncrementalGenerator
 #nullable ");
         sb.Append(typeMap.Symbols.Nullable ? "enable" : "disable");
         sb.Append(@"
+using FlameCsv;
 using FlameCsv.Exceptions;
 using FlameCsv.Binding;
 using FlameCsv.Converters;
