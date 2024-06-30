@@ -16,11 +16,7 @@ internal sealed class TypeBindings
     {
         Members = members;
         Parameters = parameters;
-
-        var builder = ImmutableArray.CreateBuilder<IBinding>(members.Length + parameters.Length);
-        builder.AddRange(Members);
-        builder.AddRange(Parameters);
-        AllBindings = builder.MoveToImmutable();
+        AllBindings = [.. Members, .. Parameters];
 
         RequiredMembers = Members.Where(x => x.IsRequired).ToImmutableArray();
         RequiredBindings = AllBindings.Where(x => x.IsRequired).ToImmutableArray();

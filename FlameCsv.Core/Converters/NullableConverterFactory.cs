@@ -36,5 +36,12 @@ internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
     [return: DynamicallyAccessedMembers(Messages.Ctors)]
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL3050", Justification = Messages.StructFactorySuppressionMessage)]
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2070", Justification = Messages.StructFactorySuppressionMessage)]
+//#pragma warning disable RCS1158 // Static member in generic type should use a type parameter
     internal static Type GetParserType(Type type) => typeof(NullableConverter<,>).MakeGenericType(typeof(T), type);
+//#pragma warning restore RCS1158 // Static member in generic type should use a type parameter
+}
+
+file class Test<T>
+{
+    internal static Type? Method(Type key) => typeof(Dictionary<,>).MakeGenericType(key, typeof(T));
 }

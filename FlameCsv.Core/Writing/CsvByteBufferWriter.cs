@@ -52,7 +52,6 @@ internal readonly struct CsvByteBufferWriter : ICsvBufferWriter<byte>
         Unflushed += length;
     }
 
-
     [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
     public async ValueTask FlushAsync(CancellationToken cancellationToken = default)
     {

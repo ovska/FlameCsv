@@ -169,7 +169,6 @@ static partial class RFC4180Mode<T>
                 srcIndex++;
                 dstIndex++;
             }
-
         }
 
         goto EOL;
@@ -192,9 +191,6 @@ static partial class RFC4180Mode<T>
         }
     }
 
-    /// <exception cref="UnreachableException">
-    /// The data and/or the supplied quote count parameter were invalid. 
-    /// </exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     internal static void ThrowInvalidUnescape(
         ReadOnlySpan<T> field,

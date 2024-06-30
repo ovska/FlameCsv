@@ -73,14 +73,14 @@ static partial class UnixMode<T>
 
         if (quote.HasValue)
         {
-            int actualQuoteCount = MemoryExtensions.Count(source, quote.Value);
+            int actualQuoteCount = source.Count(quote.Value);
             if (actualQuoteCount != quoteCount)
             {
                 error.Append($"String delimiter count {quoteCount} was invalid (actual was {actualQuoteCount}). ");
             }
         }
 
-        int actualEscapeCount = MemoryExtensions.Count(source, escape);
+        int actualEscapeCount = source.Count(escape);
         if (actualEscapeCount != escapeCount)
         {
             error.Append($"Escape character count {escapeCount} was invalid (actual was {actualEscapeCount}). ");

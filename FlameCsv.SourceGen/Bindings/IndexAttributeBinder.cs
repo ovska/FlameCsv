@@ -19,8 +19,9 @@ internal static class IndexAttributeBinder
         in KnownSymbols symbols,
         bool write)
     {
+#if true
         return (null, "Index binding not yet supported");
-
+#else
         List<IndexBinding> list = [];
 
         foreach (var attr in type.GetAttributes())
@@ -178,5 +179,6 @@ internal static class IndexAttributeBinder
 
             return null;
         }
+#endif
     }
 }

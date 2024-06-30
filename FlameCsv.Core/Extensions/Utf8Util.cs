@@ -60,7 +60,7 @@ internal static class Utf8Util
             ReadOnlySpan<char> rightchars = bright[..charsWritten];
             right = right[bytesRead..];
 
-            if (!MemoryExtensions.Equals(leftchars, rightchars, comparison))
+            if (!leftchars.Equals(rightchars, comparison))
                 return false;
         }
 
@@ -79,7 +79,6 @@ internal static class Utf8Util
         {
             if (Ascii.IsValid(bytes))
                 return Ascii.Equals(chars, bytes);
-
         }
         else if (comparison == StringComparison.OrdinalIgnoreCase)
         {

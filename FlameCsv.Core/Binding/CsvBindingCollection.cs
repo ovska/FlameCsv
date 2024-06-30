@@ -172,8 +172,10 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
 
         // Guard against some weirdness possible by custom header binders
         if (bindings.Length > parameters.Length)
+        {
             throw new CsvBindingException<TValue>(
                 $"Invalid constructor bindings, got {bindings.Length} but ctor had {parameters.Length} parameters.");
+        }
 
         List<(ParameterCsvBinding<TValue>? ctorBinding, ParameterInfo param)> parameterInfos = new(parameters.Length);
 

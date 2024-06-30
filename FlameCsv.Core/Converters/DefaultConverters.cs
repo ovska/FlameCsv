@@ -20,7 +20,7 @@ public static partial class DefaultConverters
         value.Add(new(typeof(DateTimeOffset), o => new DateTimeOffsetTextConverter(o)));
         value.Add(new(typeof(TimeSpan), o => new TimeSpanTextConverter(o)));
         value.Add(new(typeof(Guid), o => new GuidTextConverter(o)));
-        return FrozenDictionary.ToFrozenDictionary(value);
+        return value.ToFrozenDictionary();
     }
 
     private static FrozenDictionary<Type, Utf8ConverterFactory> InitUtf8()
@@ -33,6 +33,6 @@ public static partial class DefaultConverters
         value.Add(new(typeof(DateTimeOffset), o => new DateTimeOffsetUtf8Converter(o.DateTimeFormat)));
         value.Add(new(typeof(TimeSpan), o => new TimeSpanUtf8Converter(o.TimeSpanFormat)));
         value.Add(new(typeof(Guid), o => new GuidUtf8Converter(o.GuidFormat)));
-        return FrozenDictionary.ToFrozenDictionary(value);
+        return value.ToFrozenDictionary();
     }
 }

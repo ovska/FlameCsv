@@ -45,5 +45,3 @@ internal sealed class CopyingRecordEnumerable<T> : IEnumerable<CsvRecord<T>>
         public void Reset() => throw new NotSupportedException();
     }
 }
-
-

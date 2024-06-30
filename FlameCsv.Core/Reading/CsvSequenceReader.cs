@@ -148,6 +148,7 @@ internal struct CsvSequenceReader<T> where T : unmanaged, IEquatable<T>
         }
     }
 
+    /// <summary>Attempts to advance by <param name="count"/></summary>
     /// <returns>True if the segment changed</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAdvance(int count, out bool segmentChanged)
@@ -167,6 +168,7 @@ internal struct CsvSequenceReader<T> where T : unmanaged, IEquatable<T>
         }
     }
 
+    /// <summary>Advances by <param name="count"/> to next segment.</summary>
     /// <returns>True if the segment changed</returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private bool AdvanceToNextMemory(int count)
