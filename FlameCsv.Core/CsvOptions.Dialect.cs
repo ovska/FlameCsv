@@ -94,7 +94,7 @@ public partial class CsvOptions<T> : ICsvDialectOptions<T>
 
         var span = _newline.Span;
         newline1 = span[0];
-        
+
         if (span.Length == 2)
         {
             newline2 = span[1];

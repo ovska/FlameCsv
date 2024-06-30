@@ -33,4 +33,3 @@ public readonly struct CsvRecordSkipArgs<T> where T : unmanaged, IEquatable<T>
 /// <typeparam name="T">Token type</typeparam>
 /// <returns><see langword="true"/> if the record should be skipped</returns>
 public delegate bool CsvRecordSkipPredicate<T>(in CsvRecordSkipArgs<T> args) where T : unmanaged, IEquatable<T>;
-

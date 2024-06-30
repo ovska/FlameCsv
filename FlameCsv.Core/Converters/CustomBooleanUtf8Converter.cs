@@ -14,8 +14,8 @@ internal sealed class CustomBooleanUtf8Converter : CsvConverter<byte, bool>
     {
         Guard.IsNotEmpty(values);
 
-        List<byte[]> trues = new(values.Count / 2 + 1);
-        List<byte[]> falses = new(values.Count / 2 + 1);
+        List<byte[]> trues = new((values.Count / 2) + 1);
+        List<byte[]> falses = new((values.Count / 2) + 1);
 
         foreach ((string text, bool value) in values)
         {

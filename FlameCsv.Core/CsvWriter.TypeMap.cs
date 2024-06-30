@@ -51,7 +51,6 @@ public static partial class CsvWriter
             cancellationToken);
     }
 
-
     public static Task WriteToFileAsync<TValue>(
         IEnumerable<TValue> values,
         string path,
@@ -79,7 +78,6 @@ public static partial class CsvWriter
             cancellationToken);
     }
 
-
     public static Task WriteAsync<TValue>(
         IEnumerable<TValue> values,
         PipeWriter pipeWriter,
@@ -103,7 +101,6 @@ public static partial class CsvWriter
             dematerializer,
             cancellationToken);
     }
-
 
     public static Task WriteAsync<TValue>(
         IEnumerable<TValue> values,

@@ -4,7 +4,6 @@ using FlameCsv.Binding.Internal;
 
 // ReSharper disable UnusedMember.Local
 // ReSharper disable ClassNeverInstantiated.Local
-#pragma warning disable IDE0290 // Use primary constructor
 
 namespace FlameCsv.Tests.Binding;
 

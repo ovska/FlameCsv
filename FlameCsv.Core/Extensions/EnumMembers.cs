@@ -33,7 +33,6 @@ internal static class EnumMembers<[DynamicallyAccessedMembers(DynamicallyAccesse
         return Enum.GetNames<TEnum>()
             .Select(name => new EnumValue
             {
-
                 Value = Enum.Parse<TEnum>(name),
                 Name = name,
                 MemberName = fields.First(f => f.Name.Equals(name, StringComparison.Ordinal)).GetCustomAttribute<EnumMemberAttribute>()?.Value

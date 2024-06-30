@@ -41,5 +41,3 @@ internal sealed class CopyingRecordAsyncEnumerable<T> : IAsyncEnumerable<CsvReco
         public ValueTask DisposeAsync() => _source.DisposeAsync();
     }
 }
-
-

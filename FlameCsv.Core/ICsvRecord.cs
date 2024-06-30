@@ -132,4 +132,3 @@ public interface ICsvRecord<T> where T : unmanaged, IEquatable<T>
     /// <inheritdoc cref="ParseRecord{TRecord}()"/>
     TRecord ParseRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap);
 }
-

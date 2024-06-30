@@ -298,7 +298,6 @@ public static partial class CsvReader
             options);
     }
 
-
     /// <summary>
     /// Returns an enumerable that reads one record at a time asynchronously from the reader.
     /// </summary>

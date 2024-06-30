@@ -43,7 +43,7 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
         {
             long oldPosition = Position;
 
-            Position += line.Length + _parser._newlineLength * (!isFinalBlock).ToByte();
+            Position += line.Length + (_parser._newlineLength * (!isFinalBlock).ToByte());
             Line++;
 
             if (_parser.SkipRecord(line, Line, _state.Options.HasHeader ? _state.Header is not null : null))
