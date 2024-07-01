@@ -9,13 +9,28 @@
 </p>
 
 # Features
-
-- Designed with performance in mind, minimizing copies and allocations
-- Flexible class binding and manual record/field reading
-- Supports both RFC 4180 / Excel and Unix (escaped) styles
-- Read CSV from `char` or `byte`, e.g. `TextReader`, `Stream`, `PipeReader`, `ReadOnlySequence`, `string`
-- Nearly allocation free enumeration to "peek" unescaped and tokenized fields and records
-- Source generator for class bindings to completely avoid reflection and dynamic code generation
+- **Usage**
+  - Straightforward API with minimal fiddling unless needed
+  - Supports reading both `char` and `byte` (UTF-8)
+  - Read from `TextReader`, `Stream`, `PipeReader`, `ReadOnlySequence`, `string`, etc.
+  - Write to `StringBuilder`, `TextWriter`, `Stream`, file, etc.
+  - Converter API similar to System.Text.Json to customize parsing
+  - When needed, ccess to low level types used to parse CSV
+- **Data binding**
+  - Supports both binding to classes/structs and reading records and individual fields manually
+  - Supports binding to CSV headers, or column indexes
+  - Supports complex object initialization, e.g. a combination of properties and constructor params
+- **Configuration**
+  - Supports both RFC4180/Excel and Unix/escaped CSV styles
+  - Automatic newline detection between `\n` and `\r\n` when reading text or UTF-8
+- **Performance**
+  - Built with performance in mind from the ground up
+  - Minimal allocations when reading records asynchronously
+  - Near-zero allocations when reading records synchronously
+  - Near-zero allocations when enumerating CSV (e.g. peeking fields)
+- **Source generator**
+  - NativeAOT / trimming compatible
+  - Same feature list and API as reflection based binding
 
 # Examples
 
