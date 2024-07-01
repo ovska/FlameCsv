@@ -67,11 +67,19 @@ using FlameCsv.Converters;
 ");
         }
 
-        sb.Append(@"
+        if (typeMap.ContainingClass.ContainingNamespace.IsGlobalNamespace)
+        {
+            sb.Append(@"
+// <global namespace>");
+        }
+        else
+        {
+            sb.Append(@"
 namespace ");
-        sb.Append(typeMap.ContainingClass.ContainingNamespace.ToDisplayString());
-        sb.Append(@"
+            sb.Append(typeMap.ContainingClass.ContainingNamespace.ToDisplayString());
+            sb.Append(@"
 {");
+        }
         typeMap.WriteWrappedTypes(sb, out int wrappedCount);
         sb.Append(@"
     partial class ");
@@ -96,8 +104,11 @@ namespace ");
             sb.Append('}', wrappedCount);
         }
 
-        sb.Append(@"
+        if (!typeMap.ContainingClass.ContainingNamespace.IsGlobalNamespace)
+        {
+            sb.Append(@"
 }");
+        }
 
         return SourceText.From(sb.ToString(), Encoding.UTF8);
     }
