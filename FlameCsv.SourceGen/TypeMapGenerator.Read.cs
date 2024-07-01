@@ -20,11 +20,11 @@ public partial class TypeMapGenerator
         sb.Append(typeMap.ParseHandlerArgs);
         sb.Append(@";
 
-        public override IMaterializer<");
+        public override FlameCsv.Reading.IMaterializer<");
         sb.Append(typeMap.Token);
         sb.Append(", ");
         sb.Append(typeMap.ResultName);
-        sb.Append(@"> BindMembers(ReadOnlySpan<string> headers, CsvOptions<");
+        sb.Append(@"> BindMembers(ReadOnlySpan<string> headers, FlameCsv.CsvOptions<");
         sb.Append(typeMap.Token);
         sb.Append(@"> options)
         {
@@ -64,11 +64,11 @@ public partial class TypeMapGenerator
             return materializer;
         }
 
-        public override IMaterializer<");
+        public override FlameCsv.Reading.IMaterializer<");
         sb.Append(typeMap.Token);
         sb.Append(", ");
         sb.Append(typeMap.ResultName);
-        sb.Append(@"> BindMembers(CsvOptions<");
+        sb.Append(@"> BindMembers(FlameCsv.CsvOptions<");
         sb.Append(typeMap.Token);
         sb.Append("""
 > options)
@@ -102,7 +102,7 @@ public partial class TypeMapGenerator
 
         sb.Append(@"        }
 
-        private sealed class TypeMapMaterializer : IMaterializer<");
+        private sealed class TypeMapMaterializer : FlameCsv.Reading.IMaterializer<");
         sb.Append(typeMap.Token);
         sb.Append(", ");
         sb.Append(typeMap.ResultName);
@@ -130,7 +130,7 @@ public partial class TypeMapGenerator
 
             public ");
         sb.Append(typeMap.ResultName);
-        sb.Append(" Parse(ref CsvFieldReader<");
+        sb.Append(" Parse(ref FlameCsv.Reading.CsvFieldReader<");
         sb.Append(typeMap.Token);
         sb.Append(@"> reader)
             {
@@ -140,7 +140,7 @@ public partial class TypeMapGenerator
 
                 int index = 0;
 
-                while (CsvFieldReader<");
+                while (FlameCsv.Reading.CsvFieldReader<");
         sb.Append(typeMap.Token);
         sb.Append(">.TryReadNext(ref reader, out ReadOnlySpan<");
         sb.Append(typeMap.Token);
@@ -345,7 +345,7 @@ public partial class TypeMapGenerator
 
         sb.Append(@"
 
-        private static IEnumerable<string> GetMissingRequiredFields(TypeMapMaterializer materializer)
+        private static System.Collections.Generic.IEnumerable<string> GetMissingRequiredFields(TypeMapMaterializer materializer)
         {");
 
         foreach (var b in typeMap.Bindings.RequiredBindings)
@@ -374,7 +374,7 @@ public partial class TypeMapGenerator
             return;
 
         sb.Append(@"
-            public CsvConverter<");
+            public FlameCsv.CsvConverter<");
         sb.Append(typeMap.Token);
         sb.Append(", ");
         sb.Append(binding.Type.ToDisplayString());
@@ -572,7 +572,7 @@ public partial class TypeMapGenerator
 
         if (bindings is null || error is not null)
         {
-            sb.Append("throw new NotSupportedException(GetType().FullName + \" does not support index binding: \" + ");
+            sb.Append("throw new System.NotSupportedException(GetType().FullName + \" does not support index binding: \" + ");
             sb.Append(error.ToStringLiteral());
             sb.Append(");");
             return;
