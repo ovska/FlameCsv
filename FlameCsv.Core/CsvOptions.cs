@@ -25,7 +25,7 @@ internal interface IGetOrCreate<T, TSelf>
 }
 
 /// <summary>
-/// Represents a base class for configuration used to read and write CSV data.
+/// Object used to configure dialect, converters and other options to read and write CSV data.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T>

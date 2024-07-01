@@ -7,14 +7,13 @@ public static class EscapeTests
 {
     private static RFC4180Escaper<char> GetEscaper(string newline = "\r\n")
     {
-        return new RFC4180Escaper<char>(new CsvTextOptions
-        {
-            Delimiter = ',',
-            Quote = '|',
-            Newline = newline,
-            Whitespace = "",
-            Escape = null,
-        });
+        return new RFC4180Escaper<char>(
+            delimiter: ',',
+            quote: '|',
+            newline1: newline[0],
+            newline2: newline.Length > 1 ? newline[1] : default,
+            newlineLength: newline.Length,
+            whitespace: default);
     }
 
     [Fact]
