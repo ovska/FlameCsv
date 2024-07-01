@@ -19,102 +19,120 @@
 
 # Examples
 
-## Reading records with a lambda function
+## Reading records
 ```csharp
-var records = CsvReader.ReadRecordsAsync(
-    new StringReader("1,true,Bob\r\n2,false,Alice\r\n"),
-    CsvTextReaderOptions.Default,
-    (int id, bool enabled, string name) => new { id, enabled, name });
+string data = "id,name,lastlogin\n1,Bob,2010-01-01\n2,Alice,2024-05-22";
 
-await foreach (var record in records)
+foreach (var user in CsvReader.Read<User>(data))
 {
-    Console.WriteLine(record);
+    Console.WriteLine(user);
 }
+
+record User(int Id, string Name, DateTime LastLogin, int? Age = null);
 ```
 
-## Binding field indexes to classes
-```csv
-1,Bob
-2,Alice
-```
+## Reading headerless CSV
 ```csharp
+string data = "1,Bob,2010-01-01\n2,Alice,2024-05-22";
+var options = new CsvTextOptions { HasHeader = false };
+
+foreach (var user in CsvReader.Read<User>(data, options))
+{
+    Console.WriteLine(user);
+}
+
 class User
 {
     [CsvIndex(0)] public int Id { get; set; }
     [CsvIndex(1)] public string? Name { get; set; }
-}
-```
-```csharp
-var options = CsvUtf8ReaderOptions.Default;
-var file = File.OpenRead("/home/ovska/test.csv");
-await foreach (var record in CsvReader.ReadAsync<User>(file, options))
-{
-    // ...
+    [CsvIndex(2)] public DateTime LastLogin { get; set; }
 }
 ```
 
-## Binding to header
-```csv
-Id,Name
-1,Bob
-2,Alice
-```
+## Reading UTF8 directly from bytes
 ```csharp
-class User
+var options = new CsvUtf8Options { /* configure here */ };
+await foreach (var user in CsvReader.ReadAsync<User>(File.OpenRead(@"C:\test.csv"), options))
 {
-    public int Id { get; set; }
-    public string? Name { get; set; }
-}
-```
-```csharp
-var options = new CsvUtf8ReaderOptions
-{
-    options.HasHeader = true;
-}
-var file = File.OpenRead("/home/ovska/test.csv");
-
-await foreach (User record in CsvReader.ReadAsync<User>(file, options))
-{
-    // ...
+    Console.WriteLine(user);
 }
 ```
 
-## Field index binding
+## Source gen (NativeAOT/trimming)
 ```csharp
-[CsvIndexIgnore(2)]
-record User(
-    [CsvIndex(0)] int Id,
-    [CsvIndex(1)] string Name,
-    bool IsAdmin = false)
+foreach (var user in CsvReader.Read<User>(data, UserTypeMap.Instance))
 {
-    [CsvIndex(3)]
-    public DateTime Created { get; init; }
+    Console.WriteLine(user);
+}
+
+record User(int Id, string Name, DateTime LastLogin, int? Age = null);
+
+[CsvTypeMap<char, User>]
+partial class UserTypeMap;
+```
+
+## Reading fields manually
+```csharp
+string data = "id,name,lastlogin,age\n1,Bob,2010-01-01,42\n2,Alice,2024-05-22,\n";
+
+// case insensitive header names (enabled by default)
+var options = new CsvTextOptions { Comparer = StringComparer.OrdinalIgnoreCase };
+
+foreach (CsvValueRecord<char> record in CsvReader.Enumerate(data, options))
+{
+    // get fields by column index of header name
+    var u1 = new User(
+        Id:        record.GetField<int>(0),
+        Name:      record.GetField<string>(1),
+        LastLogin: record.GetField<DateTime>(2),
+        Age:       record.GetFieldCount() >= 3 ? record.GetField<int?>(3) : null);
+
+    var u2 = new User(
+        Id:        record.GetField<int>("Id"),
+        Name:      record.GetField<string>("Name"),
+        LastLogin: record.GetField<DateTime>("LastLogin"),
+        Age:       record.GetFieldCount() >= 3 ? record.GetField<int?>("Age") : null);
 }
 ```
 
-## Reading from buffered data
+## Writing records
 ```csharp
-var csv = @"Id,Name\n1,Bob\n2,Alice";
-var options = CsvTextReaderOptions.Default;
-foreach (User record in CsvReader.Read<User>(csv, options))
-{
-    // ...
-}
+User[] data =
+[
+    new User(1, "Bob", DateTime.UnixEpoch, 42),
+    new User(2, "Alice", DateTime.UnixEpoch, null),
+];
+
+StringBuilder result = CsvWriter.WriteToString(data);
+Console.WriteLine(result);
+Console.ReadLine();
+
+record User(int Id, string Name, DateTime LastLogin, int? Age = null);
 ```
 
-## Reading manually
+## Writing records manually
 ```csharp
-var csv = @"1,Bob\n2,Alice";
-var options = CsvTextReaderOptions.Default;
-foreach (CsvRecord<char> record in CsvReader.Enumerate(csv, options))
+var output = new StringWriter();
+using var writer = CsvWriter.Create(output);
+
+User[] data =
+[
+    new User(1, "Bob", DateTime.UnixEpoch, 42),
+    new User(2, "Alice", DateTime.UnixEpoch, null),
+];
+
+writer.WriteHeader<User>();
+
+foreach (User item in data)
 {
-    var user = new User
-    {
-        Id = record.GetValue<int>(0),
-        Name = record.GetValue<string>(1),
-    };
+    writer.WriteRecord<User>(item);
 }
+
+writer.Flush();
+
+Console.WriteLine(output.ToString());
 ```
+
 
 # Performance
 

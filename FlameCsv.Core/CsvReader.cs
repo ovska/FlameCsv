@@ -104,8 +104,8 @@ public static partial class CsvReader
     [RUF(Messages.CompiledExpressions)]
     public static CsvValueAsyncEnumerable<char, TValue> ReadAsync<[DAM(Messages.ReflectionBound)] TValue>(
         Stream stream,
+        Encoding encoding,
         CsvOptions<char>? options = null,
-        Encoding? encoding = null,
         bool leaveOpen = false,
         int bufferSize = DefaultBufferSize)
     {

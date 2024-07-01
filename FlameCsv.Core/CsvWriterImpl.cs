@@ -134,6 +134,7 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
     {
         WriteDelimiterIfNeeded();
         GetDematerializerAndIncrementFieldCount<TRecord>().Write(_inner, value);
+        _index = 0;
         FlushIfNeeded();
     }
 
@@ -141,6 +142,7 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
     {
         WriteDelimiterIfNeeded();
         GetDematerializerAndIncrementFieldCount(typeMap).Write(_inner, value);
+        _index = 0;
         FlushIfNeeded();
     }
 
@@ -168,6 +170,7 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
     {
         WriteDelimiterIfNeeded();
         GetDematerializerAndIncrementFieldCount<TRecord>().Write(_inner, value);
+        _index = 0;
         return FlushIfNeededAsync(cancellationToken);
     }
 
@@ -175,6 +178,7 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
     {
         WriteDelimiterIfNeeded();
         GetDematerializerAndIncrementFieldCount(typeMap).Write(_inner, value);
+        _index = 0;
         return FlushIfNeededAsync(cancellationToken);
     }
 
@@ -183,6 +187,7 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
     {
         WriteDelimiterIfNeeded();
         GetDematerializerAndIncrementFieldCount<TRecord>().WriteHeader(_inner);
+        _index = 0;
         FlushIfNeeded();
     }
 
@@ -190,6 +195,7 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
     {
         WriteDelimiterIfNeeded();
         GetDematerializerAndIncrementFieldCount(typeMap).WriteHeader(_inner);
+        _index = 0;
         FlushIfNeeded();
     }
 
@@ -198,6 +204,7 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
     {
         WriteDelimiterIfNeeded();
         GetDematerializerAndIncrementFieldCount<TRecord>().WriteHeader(_inner);
+        _index = 0;
         return FlushIfNeededAsync(cancellationToken);
     }
 
@@ -205,6 +212,7 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
     {
         WriteDelimiterIfNeeded();
         GetDematerializerAndIncrementFieldCount(typeMap).WriteHeader(_inner);
+        _index = 0;
         return FlushIfNeededAsync(cancellationToken);
     }
 
