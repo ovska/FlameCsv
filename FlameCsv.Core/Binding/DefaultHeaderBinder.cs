@@ -88,7 +88,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
     {
         _options.MakeReadOnly();
 
-        HeaderData headerData = DefaultHeaderBinder<T>.GetHeaderDataFor<TValue>(write: false);
+        HeaderData headerData = GetHeaderDataFor<TValue>(write: false);
         ReadOnlySpan<string> IgnoredValues = headerData.IgnoredValues.Span;
         List<CsvBinding<TValue>> foundBindings = new(headerFields.Length);
 
@@ -134,7 +134,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
     {
         _options.MakeReadOnly();
 
-        var candidates = DefaultHeaderBinder<T>.GetHeaderDataFor<TValue>(write: true).Candidates;
+        var candidates = GetHeaderDataFor<TValue>(write: true).Candidates;
 
         List<CsvBinding<TValue>> result = new(candidates.Length);
         HashSet<object> handledMembers = [];
@@ -159,7 +159,7 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
     private static HeaderData GetHeaderDataFor<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue>(
         bool write)
     {
-        ConditionalWeakTable<Type, DefaultHeaderBinder<T>.HeaderData> cache = write ? _writeCache : _readCache;
+        ConditionalWeakTable<Type, HeaderData> cache = write ? _writeCache : _readCache;
 
         if (!cache.TryGetValue(typeof(TValue), out var headerData))
         {
@@ -263,6 +263,22 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
                             parameter.Value,
                             default,
                             isRequired: false));
+                }
+
+                // hack for records: remove init-only properties with same name and type
+                // as a parameter
+                for (int i = candidates.Count - 1; i >= 0; i--)
+                {
+                    HeaderBindingCandidate existing = candidates[i];
+
+                    if (existing.Target is PropertyInfo prop &&
+                        prop.Name == parameter.Value.Name &&
+                        prop.PropertyType == parameter.Value.ParameterType &&
+                        prop.SetMethod is { ReturnParameter: var rp } &&
+                        rp.GetRequiredCustomModifiers().Contains(typeof(IsExternalInit)))
+                    {
+                        candidates.RemoveAt(i);
+                    }
                 }
             }
 
