@@ -11,7 +11,6 @@ internal static class Extensions
         {
             if (SymbolEqualityComparer.Default.Equals(propertySymbol, implementation))
             {
-                // throw new Exception(propertySymbol.ToDisplayString() + " || " + implementation.ToDisplayString());
                 return true;
             }
         }

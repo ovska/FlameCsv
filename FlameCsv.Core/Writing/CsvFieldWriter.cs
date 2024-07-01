@@ -206,12 +206,29 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
         {
             if (_escape is null)
             {
-                if (TryEscapeAndAdvance(new RFC4180Escaper<T>(_options), destination, tokensWritten))
+                RFC4180Escaper<T> escaper = new(
+                    delimiter: _delimiter,
+                    quote: _quote,
+                    newline1: _newline1,
+                    newline2: _newline2,
+                    newlineLength: _newlineLength,
+                    whitespace: _options._whitespace);
+
+                if (TryEscapeAndAdvance(in escaper, destination, tokensWritten))
                     return;
             }
             else
             {
-                if (TryEscapeAndAdvance(new UnixEscaper<T>(_options), destination, tokensWritten))
+                UnixEscaper<T> escaper = new(
+                    delimiter: _delimiter,
+                    quote: _quote,
+                    escape: _escape.Value,
+                    newline1: _newline1,
+                    newline2: _newline2,
+                    newlineLength: _newlineLength,
+                    whitespace: _options._whitespace);
+
+                if (TryEscapeAndAdvance(in escaper, destination, tokensWritten))
                     return;
             }
         }
@@ -225,7 +242,7 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
     /// and the writer was not advanced.
     /// </summary>
     private bool TryEscapeAndAdvance<TEscaper>(
-        in TEscaper escaper,
+        ref readonly TEscaper escaper,
         Span<T> destination,
         int tokensWritten)
         where TEscaper : struct, IEscaper<T>

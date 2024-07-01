@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 
 namespace FlameCsv.Writing;
@@ -17,14 +16,23 @@ internal readonly struct UnixEscaper<T> : IEscaper<T> where T : unmanaged, IEqua
     private readonly int _newlineLength;
     private readonly ReadOnlyMemory<T> _whitespace;
 
-    public UnixEscaper(CsvOptions<T> options)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public UnixEscaper(
+        T delimiter,
+        T quote,
+        T escape,
+        T newline1,
+        T newline2,
+        int newlineLength,
+        ReadOnlyMemory<T> whitespace)
     {
-        Debug.Assert(options._escape.HasValue);
-        _delimiter = options._delimiter;
-        _quote = options._quote;
-        _escape = options._escape.GetValueOrDefault();
-        _whitespace = options._whitespace;
-        options.GetNewline(out _newline1, out _newline2, out _newlineLength, forWriting: true);
+        _delimiter = delimiter;
+        _quote = quote;
+        _escape = escape;
+        _newline1 = newline1;
+        _newline2 = newline2;
+        _newlineLength = newlineLength;
+        _whitespace = whitespace;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
