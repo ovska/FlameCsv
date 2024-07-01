@@ -279,7 +279,7 @@ public partial class TypeMapGenerator
             if (!binding.CanRead)
                 continue;
 
-            sb.Append("                if (null != ");
+            sb.Append("                if (null != (object?)");
             sb.Append(binding.ConverterId);
             sb.Append(") ");
 
@@ -329,9 +329,8 @@ public partial class TypeMapGenerator
                 ");
             }
 
-            sb.Append("materializer.");
+            sb.Append("null == (object?)materializer.");
             sb.Append(typeMap.Bindings.RequiredBindings[i].ConverterId);
-            sb.Append(" == null");
         }
 
         sb.Append(@")
@@ -468,7 +467,7 @@ public partial class TypeMapGenerator
             if (!typeMap.ThrowOnDuplicate)
             {
                 // add check to ignore already handled members
-                sb.Append("null == materializer.");
+                sb.Append("null == (object?)materializer.");
                 sb.Append(binding.ConverterId);
                 sb.Append(@" &&
                     ");
@@ -515,7 +514,7 @@ public partial class TypeMapGenerator
             if (typeMap.ThrowOnDuplicate)
             {
                 sb.Append(@"
-                    if (null != materializer.");
+                    if (null != (object?)materializer.");
                 sb.Append(binding.ConverterId);
                 sb.Append(") ThrowDuplicate(");
                 sb.Append(binding.Name.ToStringLiteral());

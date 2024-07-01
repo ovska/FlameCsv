@@ -56,7 +56,9 @@ internal static class Extensions
         // keep track of properties to not duplicate them for interfaces
         HashSet<ISymbol> properties = new(SymbolEqualityComparer.Default);
 
-        while (current is not null && current.SpecialType != SpecialType.System_Object)
+        while (current is not null
+            && current.SpecialType != SpecialType.System_Object
+            && current.SpecialType != SpecialType.System_ValueType)
         {
             foreach (var member in current.GetMembers())
             {
