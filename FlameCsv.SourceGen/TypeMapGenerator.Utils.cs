@@ -52,7 +52,7 @@ public partial class TypeMapGenerator
                 optionsName = "o";
             }
 
-            sb.Append("new NullableConverter<");
+            sb.Append("new FlameCsv.Converters.NullableConverter<");
             sb.Append(typeMap.Token);
             sb.Append(", ");
             sb.Append(typeName);
@@ -183,7 +183,7 @@ public partial class TypeMapGenerator
 
         if (wrapNullable)
         {
-            sb.Append("new NullableConverter<");
+            sb.Append("new FlameCsv.Converters.NullableConverter<");
             sb.Append(typeMap.Token);
             sb.Append(", ");
             sb.Append(baseType);

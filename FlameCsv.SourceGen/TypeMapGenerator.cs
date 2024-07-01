@@ -50,22 +50,7 @@ public partial class TypeMapGenerator : IIncrementalGenerator
 #nullable ");
         sb.Append(typeMap.Symbols.Nullable ? "enable" : "disable");
         sb.Append(@"
-using FlameCsv;
-using FlameCsv.Exceptions;
-using FlameCsv.Binding;
-using FlameCsv.Converters;
 ");
-        if (typeMap.Scope is BindingScope.All or BindingScope.Read)
-        {
-            sb.Append(@"using FlameCsv.Reading;
-");
-        }
-
-        if (typeMap.Scope is BindingScope.All or BindingScope.Write)
-        {
-            sb.Append(@"using FlameCsv.Writing;
-");
-        }
 
         if (typeMap.ContainingClass.ContainingNamespace.IsGlobalNamespace)
         {
@@ -84,7 +69,7 @@ namespace ");
         sb.Append(@"
     partial class ");
         sb.Append(typeMap.ContainingClass.Name);
-        sb.Append(" : CsvTypeMap<");
+        sb.Append(" : FlameCsv.Binding.CsvTypeMap<");
         sb.Append(typeMap.Token);
         sb.Append(", ");
         sb.Append(typeMap.ResultName);
@@ -123,9 +108,9 @@ namespace ");
                 if (!typeMap.ContainingClass.MemberNames.Contains("Instance"))
                 {
                     sb.Append(@"    public static ");
-                    sb.Append(typeMap.ContainingClass.Name);
+                    sb.Append(typeMap.ContainingClass.ToDisplayString());
                     sb.Append(" Instance { get; } = new ");
-                    sb.Append(typeMap.ContainingClass.Name);
+                    sb.Append(typeMap.ContainingClass.ToDisplayString());
                     sb.Append(@"();
 
 ");

@@ -11,11 +11,11 @@ public partial class TypeMapGenerator
 
         sb.Append(@"
 
-        public override IDematerializer<");
+        public override FlameCsv.Writing.IDematerializer<");
         sb.Append(typeMap.Token);
         sb.Append(", ");
         sb.Append(typeMap.Type.ToDisplayString());
-        sb.Append("> GetDematerializer(CsvOptions<");
+        sb.Append("> GetDematerializer(FlameCsv.CsvOptions<");
         sb.Append(typeMap.Token);
         sb.Append(@"> options)
         {
@@ -46,7 +46,7 @@ public partial class TypeMapGenerator
             };
         }
 
-        private sealed class Dematerializer : IDematerializer<");
+        private sealed class Dematerializer : FlameCsv.Writing.IDematerializer<");
         sb.Append(typeMap.Token);
         sb.Append(", ");
         sb.Append(typeMap.Type.ToDisplayString());
@@ -62,7 +62,7 @@ public partial class TypeMapGenerator
                 continue;
 
             sb.Append(@"
-            public required CsvConverter<");
+            public required FlameCsv.CsvConverter<");
             sb.Append(typeMap.Token);
             sb.Append(", ");
             sb.Append(binding.Type.ToDisplayString());
@@ -75,7 +75,7 @@ public partial class TypeMapGenerator
 
         sb.Append(@"
 
-            public void Write<TWriter>(CsvFieldWriter<");
+            public void Write<TWriter>(FlameCsv.Writing.CsvFieldWriter<");
         sb.Append(typeMap.Token);
         sb.Append(", TWriter> writer, ");
         sb.Append(typeMap.Type.ToDisplayString());
@@ -125,7 +125,7 @@ public partial class TypeMapGenerator
         sb.Append(@"
             }
 
-            public void WriteHeader<TWriter>(CsvFieldWriter<");
+            public void WriteHeader<TWriter>(FlameCsv.Writing.CsvFieldWriter<");
         sb.Append(typeMap.Token);
         sb.Append(", TWriter> writer) where TWriter : struct, System.Buffers.IBufferWriter<");
         sb.Append(typeMap.Token);
