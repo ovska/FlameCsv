@@ -89,7 +89,7 @@ public partial class TypeMapGenerator
 
         foreach (var binding in typeMap.Bindings.AllBindings)
         {
-            if (!binding.CanRead)
+            if (!binding.CanRead || binding.Scope == BindingScope.Write)
                 continue;
 
             sb.Append("            public ");
@@ -110,7 +110,12 @@ public partial class TypeMapGenerator
         {");
 
         foreach (var binding in typeMap.Bindings.AllBindings)
+        {
+            if (!binding.CanRead || binding.Scope == BindingScope.Write)
+                continue;
+
             WriteParserMember(sb, in typeMap, binding);
+        }
 
         sb.Append(@"
 
