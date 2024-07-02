@@ -16,12 +16,12 @@ internal static class Throw
             return;
 
         InvalidOp_DefaultStruct(typeof(TCaller));
-    }
 
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void InvalidOp_DefaultStruct(Type type)
-    {
-        throw new InvalidOperationException($"The struct '{type.ToTypeString()}' was uninitialized.");
+        [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+        static void InvalidOp_DefaultStruct(Type type)
+        {
+            throw new InvalidOperationException($"The struct '{type.ToTypeString()}' was uninitialized.");
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -74,12 +74,6 @@ internal static class Throw
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void InvalidData_FieldCount()
-    {
-        throw new InvalidDataException("The CSV record has an invalid number of fields.");
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void InvalidData_FieldCount(int expected, int actual)
     {
         throw new InvalidDataException($"The CSV record has {actual} fields, but {expected} were expected.");
@@ -109,19 +103,11 @@ internal static class Throw
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ParseFailed<T>(ReadOnlyMemory<T> field, Type parsedType, CsvOptions<T> options)
-        where T : unmanaged, IEquatable<T>
-    {
-        throw new CsvParseException(
-            $"Failed to parse {parsedType.FullName} using from {options.AsPrintableString(field)}");
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ParseFailed<T, TValue>(ReadOnlyMemory<T> field, CsvConverter<T> converter, CsvOptions<T> options)
+    public static void ParseFailed<T>(ReadOnlyMemory<T> field, CsvConverter<T> converter, CsvOptions<T> options, Type toParse)
             where T : unmanaged, IEquatable<T>
     {
         throw new CsvParseException(
-            $"Failed to parse {typeof(TValue).FullName} using {converter.GetType().FullName} " +
+            $"Failed to parse {toParse.FullName} using {converter.GetType().FullName} " +
             $"from {options.AsPrintableString(field)}");
     }
 

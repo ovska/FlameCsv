@@ -238,7 +238,9 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
         get => _fieldEscaping;
         set
         {
-            GuardEx.IsDefined(value);
+            if (!Enum.IsDefined(value))
+                ThrowHelper.ThrowArgumentException(nameof(value));
+
             this.SetValue(ref _fieldEscaping, value);
         }
     }
