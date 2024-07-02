@@ -53,19 +53,6 @@ internal static class ExpressionExtensions
         return fn ?? lambda.CompileFast<TDelegate>(flags: DefaultCompilerFlags);
     }
 
-    /// <summary>
-    /// Compiles a lambda expression with a closure (not static) into a delegate using FastExpressionCompiler.
-    /// </summary>
-    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
-    public static TDelegate CompileLambdaWithClosure<TDelegate>(this LambdaExpression lambda)
-        where TDelegate : Delegate
-    {
-        Guard.IsTrue(RuntimeFeature.IsDynamicCodeSupported);
-
-        Debug.Assert(lambda.TryCompileWithoutClosure<TDelegate>(flags: DefaultCompilerFlags) is null);
-        return lambda.CompileFast<TDelegate>(flags: DefaultCompilerFlags);
-    }
-
     public static (MemberExpression, Type) GetAsMemberExpression(this MemberInfo memberInfo, Expression target)
     {
         return memberInfo switch
