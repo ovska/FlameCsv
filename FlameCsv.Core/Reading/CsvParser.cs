@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -264,7 +265,7 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
         Debug.Assert(
             (typeof(T) == typeof(char) && _newline1.Equals((T)(object)'\r') && _newline2.Equals((T)(object)'\n')) ||
             (typeof(T) == typeof(byte) && _newline1.Equals((T)(object)(byte)'\r') && _newline2.Equals((T)(object)(byte)'\n')),
-            $"Invalid default newline for {typeof(T).FullName}: [{_newline1}, {_newline2}]");
+            $"Invalid default newline for {typeof(T).ToTypeString()}: [{_newline1}, {_newline2}]");
 
         CsvSequenceReader<T> copy = _reader;
         int foundNewlineLength = 0;

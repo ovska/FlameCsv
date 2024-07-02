@@ -87,7 +87,7 @@ public partial class CsvOptions<T> : ICsvDialectOptions<T>
                 return;
             }
 
-            throw new NotSupportedException($"Detecting empty newline is not supported for token type {typeof(T).FullName}");
+            throw new NotSupportedException($"Detecting empty newline is not supported for token type {typeof(T).ToTypeString()}");
         }
 
         Debug.Assert(newlineLength is 1 or 2);
