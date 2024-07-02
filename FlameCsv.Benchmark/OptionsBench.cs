@@ -11,17 +11,15 @@ namespace FlameCsv.Benchmark;
 [HideColumns("Error", "StdDev", "Gen0")]
 public class OptionsBench
 {
-    private readonly CsvTextOptions _options = new();
-
     [Benchmark(Baseline = true)]
     public void FromOptions()
     {
-        _ = _options.GetConverter<string>();
+        _ = new CsvTextOptions().GetConverter<DayOfWeek>();
     }
 
     [Benchmark]
     public void FromDefault()
     {
-        _ = DefaultConverters.CreateString(_options);
+        _ = DefaultConverters.Create<DayOfWeek>(new CsvTextOptions());
     }
 }
