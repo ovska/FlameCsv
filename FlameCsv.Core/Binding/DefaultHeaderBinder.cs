@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Binding.Internal;
@@ -121,7 +122,10 @@ public sealed class DefaultHeaderBinder<T> : IHeaderBinder<T> where T : unmanage
 
             if (binding is null && !IgnoreUnmatched)
             {
-                throw new CsvBindingException(); // TODO
+                if (_options.AllowContentInExceptions)
+                    throw new CsvBindingException($"Could not bind header '{field}' at index {index} to type {typeof(TValue).ToTypeString()}");
+
+                throw new CsvBindingException($"Could not bind header at index {index} to type {typeof(TValue).ToTypeString()}");
             }
 
             foundBindings.Add(binding ?? CsvBinding.Ignore<TValue>(index: foundBindings.Count));

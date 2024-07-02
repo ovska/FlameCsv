@@ -89,7 +89,7 @@ internal static class Throw
     public static void InvalidOp_NoHeader(int index, Type type, MemberInfo member)
     {
         throw new InvalidOperationException(
-            $"No header name found for member {member.Name} at index {index} when writing {type.FullName}.");
+            $"No header name found for member {member.Name} at index {index} when writing {type.ToTypeString()}.");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -107,7 +107,7 @@ internal static class Throw
             where T : unmanaged, IEquatable<T>
     {
         throw new CsvParseException(
-            $"Failed to parse {toParse.FullName} using {converter.GetType().FullName} " +
+            $"Failed to parse {toParse.ToTypeString()} using {converter.GetType().ToTypeString()} " +
             $"from {options.AsPrintableString(field)}");
     }
 
