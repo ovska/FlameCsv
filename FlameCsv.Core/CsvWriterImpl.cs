@@ -17,7 +17,7 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
     private readonly CsvFieldWriter<T, TWriter> _inner;
     private readonly bool _autoFlush;
 
-    private readonly Dictionary<object, object> _dematerializerCache = [];
+    private readonly Dictionary<object, object> _dematerializerCache = new(ReferenceEqualityComparer.Instance);
     private object? _previousKey;
     private object? _previousValue;
 
@@ -27,6 +27,8 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
 
     public override int ColumnIndex => _index;
     public override int LineIndex => _line;
+
+    private bool _disposed;
 
     public CsvWriterImpl(
         CsvOptions<T> options,
@@ -57,13 +59,13 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
 
     public override void WriteField(ReadOnlySpan<char> text, bool skipEscaping = false)
     {
-        WriteFieldCore(text);
+        WriteFieldCore(text, skipEscaping);
         FlushIfNeeded();
     }
 
     public override ValueTask WriteFieldAsync(ReadOnlySpan<char> text, bool skipEscaping = false, CancellationToken cancellationToken = default)
     {
-        WriteFieldCore(text);
+        WriteFieldCore(text, skipEscaping);
         return FlushIfNeededAsync(cancellationToken);
     }
 
@@ -99,12 +101,40 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
         return FlushIfNeededAsync(cancellationToken);
     }
 
-    public override void Dispose() => _inner.Writer.Complete(null);
+    public override void Dispose()
+    {
+        if (!_disposed)
+        {
+            _disposed = true;
+            _inner.Writer.Complete(null);
+        }
+    }
 
-    public override ValueTask DisposeAsync() => _inner.Writer.CompleteAsync(null);
+    public override async ValueTask DisposeAsync()
+    {
+        if (!_disposed)
+        {
+            _disposed = true;
+            await _inner.Writer.CompleteAsync(null).ConfigureAwait(false);
+        }
+    }
 
-    public override void Flush() => _inner.Writer.Flush();
-    public override ValueTask FlushAsync(CancellationToken cancellationToken = default) => _inner.Writer.FlushAsync(cancellationToken);
+    public override void Flush()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _inner.Writer.Flush();
+    }
+
+    public override ValueTask FlushAsync(CancellationToken cancellationToken = default)
+    {
+        if (_disposed)
+            return ValueTask.FromException(new ObjectDisposedException(GetType().Name));
+
+        if (cancellationToken.IsCancellationRequested)
+            return ValueTask.FromCanceled(cancellationToken);
+
+        return _inner.Writer.FlushAsync(cancellationToken);
+    }
 
     private void WriteFieldCore<TField>([AllowNull] TField value)
     {
@@ -123,10 +153,16 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private ValueTask FlushIfNeededAsync(CancellationToken cancellationToken)
     {
+        if (_disposed)
+            return ValueTask.FromException(new ObjectDisposedException(GetType().Name));
+
+        if (cancellationToken.IsCancellationRequested)
+            return ValueTask.FromCanceled(cancellationToken);
+
         if (_autoFlush && _inner.Writer.NeedsFlush)
             return _inner.Writer.FlushAsync(cancellationToken);
 
-        return !cancellationToken.IsCancellationRequested ? default : ValueTask.FromCanceled(cancellationToken);
+        return ValueTask.CompletedTask;
     }
 
     [RUF(Messages.CompiledExpressions)]
@@ -273,6 +309,8 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void FlushIfNeeded()
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         if (_autoFlush && _inner.Writer.NeedsFlush)
             _inner.Writer.Flush();
     }

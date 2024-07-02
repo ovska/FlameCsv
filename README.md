@@ -110,6 +110,16 @@ foreach (CsvValueRecord<char> record in CsvReader.Enumerate(data, options))
 }
 ```
 
+## Copy CSV structure into objects for later use
+The `CsvValueRecord<T>` struct wraps around buffers from the CSV data source directly. To access the records safely outside a `foreach`, use `AsEnumerable()` or manually call `new CsvRecord<T>(csvValueRecord)`.
+```csharp
+string data = "id,name,lastlogin,age\n1,Bob,2010-01-01,42\n2,Alice,2024-05-22,\n";
+
+// CsvRecord reference type copies the CSV fields for later use
+List<CsvRecord<char>> records = [.. CsvReader.Enumerate(data).AsEnumerable()];
+Console.WriteLine("First name: " + records[0].GetField(1));
+```
+
 ## Writing records
 ```csharp
 User[] data =
@@ -120,7 +130,32 @@ User[] data =
 
 StringBuilder result = CsvWriter.WriteToString(data);
 Console.WriteLine(result);
-Console.ReadLine();
+
+record User(int Id, string Name, DateTime LastLogin, int? Age = null);
+```
+
+## Writing fields manually
+```csharp
+var output = new MemoryStream();
+await using (var writer = CsvWriter.Create(output))
+{
+    writer.WriteRaw("id,name,lastlogin"u8);
+    writer.NextRecord();
+
+    writer.WriteField(1);
+    writer.WriteField("Bob");
+    writer.WriteField(DateTime.UnixEpoch);
+    writer.WriteField(42);
+    writer.NextRecord();
+
+    writer.WriteField(2);
+    writer.WriteField("Alice");
+    writer.WriteField(DateTime.UnixEpoch);
+    writer.WriteField(ReadOnlySpan<char>.Empty, skipEscaping: true);
+    writer.NextRecord();
+}
+
+Console.WriteLine(Encoding.UTF8.GetString(output.ToArray()));
 
 record User(int Id, string Name, DateTime LastLogin, int? Age = null);
 ```
@@ -146,6 +181,8 @@ foreach (User item in data)
 writer.Flush();
 
 Console.WriteLine(output.ToString());
+
+record User(int Id, string Name, DateTime LastLogin, int? Age = null);
 ```
 
 
