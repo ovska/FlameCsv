@@ -17,7 +17,7 @@ public class EscapeBench
     [GlobalSetup]
     public void Setup()
     {
-        _escaper = new RFC4180Escaper<char>(CsvTextOptions.Default);
+        _escaper = new RFC4180Escaper<char>(',', '"', '\r', '\n', 2, default);
         _escaper.NeedsEscaping(Input, out specialCount);
 
         ArgumentOutOfRangeException.ThrowIfZero(specialCount);
