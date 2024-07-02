@@ -5,7 +5,7 @@ using FlameCsv.Binding.Attributes;
 namespace FlameCsv.Benchmark;
 
 [HideColumns("Error", "StdDev")]
-[SimpleJob]
+//[SimpleJob]
 [MemoryDiagnoser]
 //[BenchmarkDotNet.Diagnostics.Windows.Configs.EtwProfiler]
 public class CsvReadBench

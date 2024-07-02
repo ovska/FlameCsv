@@ -41,7 +41,7 @@ internal static class ArrayPoolExtensions
 
     public static MemoryPool<T> AsMemoryPool<T>(this ArrayPool<T> arrayPool)
     {
-        return arrayPool == ArrayPool<T>.Shared
+        return ReferenceEquals(arrayPool, ArrayPool<T>.Shared)
              ? MemoryPool<T>.Shared
              : new ArrayPoolMemoryPoolWrapper<T>(arrayPool);
     }

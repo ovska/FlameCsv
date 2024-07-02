@@ -13,31 +13,11 @@ csharp_prefer_static_local_function = true:suggestion
 
 ## Compiler and IDE warnings
 
-# Useless rules
-dotnet_diagnostic.CS1591.severity = warning # Missing XML comment on public member
-dotnet_diagnostic.RCS1001.severity = none # Add braces to if statement (when expression spans over multiple lines).
 dotnet_diagnostic.RCS1194.severity = none # Implement exception constructors.
-dotnet_diagnostic.RCS1139.severity = none # Add summary element to documentation comment.
 dotnet_diagnostic.xUnit1004.severity = none # Test methods should not be skipped.
-
-# Mostly style, should be up to the author
-dotnet_diagnostic.RCS1021.severity = none # Use expression-bodied lambda.
-dotnet_diagnostic.RCS1224.severity = none # Make method an extension method.
-dotnet_diagnostic.RCS1080.severity = none # Use 'Count' property instead of 'Any' method.
-dotnet_diagnostic.IDE0066.severity = none # Use 'switch' expression.
-dotnet_diagnostic.RCS1180.severity = none # Inline lazy initialization.
-dotnet_diagnostic.RCS1123.severity = none # Add parentheses when necessary.
 
 # Code style rules.
 # These are mostly useful but disabled to reduce clutter in warnings.
-dotnet_diagnostic.RCS1037.severity = none # Remove trailing white-space.
-dotnet_diagnostic.RCS1036.severity = none # Remove redundant empty line.
-dotnet_diagnostic.RCS1232.severity = none # Order elements in documentation comment.
-dotnet_diagnostic.RCS1209.severity = none # Order type parameter constraints.
-dotnet_diagnostic.RCS1196.severity = none # Call extension method as instance method.
-dotnet_diagnostic.RCS1205.severity = none # Order named arguments according to the order of parameters.
-dotnet_diagnostic.IDE0063.severity = none # 'using' statement can be simplified
-dotnet_diagnostic.RCS1168.severity = suggestion # Parameter name differs from base name
 dotnet_diagnostic.CS9192.severity = error # Argument should be a variable because it is passed to a ref readonly parameter
 dotnet_diagnostic.CS9195.severity = error # Argument should be passed with the in keyword
 
@@ -110,8 +90,8 @@ dotnet_diagnostic.RCS1197.severity = none
 
 # IDE0057: Use range operator
 dotnet_diagnostic.IDE0057.severity = none
-
 dotnet_diagnostic.RCS1090.severity = warning # Add call to 'ConfigureAwait'.
+
 
 # CA1815: Override equals and operator equals on value types
 dotnet_diagnostic.CA1815.severity = silent
