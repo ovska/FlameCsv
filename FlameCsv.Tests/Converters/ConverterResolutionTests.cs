@@ -43,8 +43,8 @@ public static partial class ConverterResolutionTests
     [Fact]
     public static void Should_Resolve_Correct_From_Attribute()
     {
-        var o1 = new CsvTextOptions();
-        var o2 = new CsvTextOptions();
+        var o1 = new CsvOptions<char>();
+        var o2 = new CsvOptions<char>();
 
         var r1 = CsvReader.Read<ShimOR>(data, o1).ToList();
         var r2 = CsvReader.Read<ShimOR>(data, TypeMapOR.Instance, o2).ToList();
@@ -55,8 +55,8 @@ public static partial class ConverterResolutionTests
         Assert.Equal(123, r2[0].Age);
 
         // overridden converter should not have any effect on configured one
-        Assert.IsType<Int32TextConverter>(o1.GetConverter<int>());
-        Assert.IsType<Int32TextConverter>(o2.GetConverter<int>());
+        Assert.IsType<SpanTextConverter<int>>(o1.GetConverter<int>());
+        Assert.IsType<SpanTextConverter<int>>(o2.GetConverter<int>());
         Assert.IsType<StringTextConverter>(o1.GetConverter<string>());
         Assert.IsType<StringTextConverter>(o2.GetConverter<string>());
     }
@@ -64,8 +64,8 @@ public static partial class ConverterResolutionTests
     [Fact]
     public static void Should_Resolve_Correct_Explicitly()
     {
-        var o1 = new CsvTextOptions { Converters = { new IdConverter() } };
-        var o2 = new CsvTextOptions { Converters = { new IdConverter() } };
+        var o1 = new CsvOptions<char> { Converters = { new IdConverter() } };
+        var o2 = new CsvOptions<char> { Converters = { new IdConverter() } };
 
         var r1 = CsvReader.Read<ShimNR>(data, o1).ToList();
         var r2 = CsvReader.Read<ShimNR>(data, TypeMapNR.Instance, o2).ToList();

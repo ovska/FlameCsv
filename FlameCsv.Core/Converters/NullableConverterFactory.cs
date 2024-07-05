@@ -9,13 +9,11 @@ namespace FlameCsv.Converters;
 internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
     where T : unmanaged, IEquatable<T>
 {
-    private static readonly Type _nullableType = typeof(Nullable<>);
-
     public static NullableConverterFactory<T> Instance { get; } = new();
 
     public override bool CanConvert(Type type)
     {
-        return type.IsGenericType && type.GetGenericTypeDefinition() == _nullableType;
+        return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>);
     }
 
     public override CsvConverter<T> Create(Type type, CsvOptions<T> options)

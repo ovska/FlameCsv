@@ -137,7 +137,7 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
         _stream = new MemoryStream();
         _writer = new CsvFieldWriter<byte, CsvByteBufferWriter>(
             new CsvByteBufferWriter(PipeWriter.Create(_stream, new StreamPipeWriterOptions(minimumBufferSize: bufferSize, pool: new AllocatingMemoryPool()))),
-            new CsvUtf8Options { FieldEscaping = quoting, Null = "null" });
+            new CsvOptions<byte> { FieldEscaping = quoting, Null = "null" });
     }
 
     private sealed class Formatter : CsvConverter<byte, string>

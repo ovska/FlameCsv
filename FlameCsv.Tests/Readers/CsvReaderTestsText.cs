@@ -14,9 +14,9 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
 
     protected override CsvOptions<char> CreateOptions(NewlineToken newline, char? escape)
     {
-        return new CsvTextOptions
+        return new CsvOptions<char>
         {
-            DateTimeFormat = "O",
+            Formats = { { typeof(DateTime), "O" } },
             Escape = escape,
             Newline = newline switch
             {
@@ -66,7 +66,7 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
 
         await using var ms = new MemoryStream(Encoding.UTF8.GetBytes(data));
         using var reader = new StreamReader(ms, bufferSize: 128);
-        var options = new CsvTextOptions { HasHeader = false };
+        var options = new CsvOptions<char> { HasHeader = false };
 
         await foreach (var item in CsvReader.ReadAsync<Obj>(reader, options))
         {

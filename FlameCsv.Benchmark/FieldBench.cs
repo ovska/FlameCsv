@@ -11,7 +11,7 @@ public class FieldBench
 {
     private static readonly (string, CsvRecordMeta)[] _fields =
         File.ReadAllLines("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv")
-        .Select(l => (l, CsvParser<char>.GetRecordMeta(l.AsMemory(), CsvTextOptions.Default)))
+        .Select(l => (l, CsvParser<char>.GetRecordMeta(l.AsMemory(), CsvOptions<char>.Default)))
         .ToArray();
 
     [Benchmark(Baseline = true)]
@@ -23,7 +23,7 @@ public class FieldBench
         foreach (ref readonly var line in _fields.AsSpan())
         {
             var reader = new CsvFieldReader<char>(
-                CsvTextOptions.Default,
+                CsvOptions<char>.Default,
                 line.Item1.AsMemory(),
                 buffer,
                 ref array,
@@ -45,7 +45,7 @@ public class FieldBench
         foreach (ref readonly var line in _fields.AsSpan())
         {
             var reader = new CsvFieldReader<char>(
-                CsvTextOptions.Default,
+                CsvOptions<char>.Default,
                 line.Item1.AsMemory(),
                 buffer,
                 ref array,

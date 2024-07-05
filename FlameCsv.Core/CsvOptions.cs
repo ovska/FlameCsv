@@ -9,31 +9,66 @@ using FlameCsv.Extensions;
 using FlameCsv.Converters;
 using FlameCsv.Utilities;
 using FlameCsv.Writing;
-using static FlameCsv.Utilities.SealableUtil;
 using CommunityToolkit.HighPerformance.Buffers;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Reading;
-using CommunityToolkit.HighPerformance;
+using System.Text;
+using FlameCsv.Converters.Text;
+using System.Globalization;
+using static FlameCsv.Utilities.SealableUtil;
+using System.ComponentModel;
 
 namespace FlameCsv;
 
-internal interface IGetOrCreate<T, TSelf>
-    where T : unmanaged, IEquatable<T>
-    where TSelf : CsvOptions<T>
+file static class DefaultOptionsHolder
 {
-    CsvConverter<T, TValue> GetOrCreate<TValue>(Func<TSelf, CsvConverter<T, TValue>> func);
+    public static readonly Lazy<CsvOptions<char>> Text = new(() =>
+    {
+        var o = new CsvOptions<char>();
+        o.MakeReadOnly();
+        return o;
+    });
+
+    public static readonly Lazy<CsvOptions<byte>> Utf8 = new(() =>
+    {
+        var o = new CsvOptions<byte>();
+        o.MakeReadOnly();
+        return o;
+    });
 }
 
 /// <summary>
 /// Object used to configure dialect, converters and other options to read and write CSV data.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T>
+public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T>
 {
+    /// <summary>
+    /// Returns read-only default options for <typeparamref name="T"/>, with same configuration as <see langword="new"/>().
+    /// </summary>
+    /// <remarks>
+    /// Throws <see cref="NotSupportedException"/> for token types other than <see langword="char"/> or <see langword="byte"/>.
+    /// </remarks>
+    public static CsvOptions<T> Default
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            if (typeof(T) == typeof(char))
+                return Unsafe.As<CsvOptions<T>>(DefaultOptionsHolder.Text.Value);
+
+            if (typeof(T) == typeof(byte))
+                return Unsafe.As<CsvOptions<T>>(DefaultOptionsHolder.Utf8.Value);
+
+            ThrowInvalidTokenType(nameof(Default));
+            return default!;
+        }
+    }
+
     /// <summary>
     /// Initializes an options-instance with default configuration.
     /// </summary>
-    protected CsvOptions()
+    public CsvOptions()
     {
         _converters = new SealableList<CsvConverter<T>>(this, defaultValues: null);
 
@@ -46,17 +81,26 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     {
         ArgumentNullException.ThrowIfNull(other);
 
-        _comparer = other._comparer;
         _shouldSkipRow = other._shouldSkipRow;
         _exceptionHandler = other._exceptionHandler;
         _hasHeader = other._hasHeader;
+        _validateFieldCount = other._validateFieldCount;
+        _fieldEscaping = other._fieldEscaping;
+        _arrayPool = other._arrayPool;
         _allowContentInExceptions = other._allowContentInExceptions;
+        _booleanValues = other._booleanValues;
+        _formatProvider = other._formatProvider;
+        _providers = other._providers?.Clone();
+        _formats = other._formats?.Clone();
+        _comparer = other._comparer;
         _useDefaultConverters = other._useDefaultConverters;
         _ignoreEnumCase = other._ignoreEnumCase;
+        _enumFormat = other._enumFormat;
         _allowUndefinedEnumValues = other._allowUndefinedEnumValues;
-        _arrayPool = other._arrayPool;
-        _stringPool = other._stringPool;
         _disableBuffering = other._disableBuffering;
+        _stringPool = other._stringPool;
+        _null = other._null;
+        _nullTokens = other._nullTokens?.Clone();
         _converters = new(this, other._converters); // copy collection
     }
 
@@ -76,7 +120,7 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
         if (IsReadOnly)
             return false;
 
-        ValidateDialect();
+        InitializeDialect();
         IsReadOnly = true;
         return true;
     }
@@ -88,32 +132,140 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     /// By default, CSV header is matched to property/field names and
     /// <see cref="Binding.Attributes.CsvHeaderAttribute"/> using <see cref="StringComparison.OrdinalIgnoreCase"/>.
     /// </remarks>
-    public abstract IHeaderBinder<T> GetHeaderBinder();
+    public virtual IHeaderBinder<T> GetHeaderBinder() => new DefaultHeaderBinder<T>(this);
 
     /// <summary>
     /// Returns the <see langword="null"/> value for parsing and formatting for the parameter type.
+    /// Returns <see cref="Null"/> if none is configured.
     /// </summary>
-    public abstract ReadOnlyMemory<T> GetNullToken(Type resultType);
+    public virtual ReadOnlyMemory<T> GetNullToken(Type resultType)
+    {
+        if (typeof(T) != typeof(char) && typeof(T) != typeof(byte))
+        {
+            ThrowInvalidTokenType(nameof(GetNullToken));
+        }
+
+        if (_nullTokens is not null)
+        {
+            // allow fetching null tokens for both int and int?
+            Type? alternate = resultType.IsValueType ? Nullable.GetUnderlyingType(resultType) : null;
+
+            if (typeof(T) == typeof(char))
+            {
+                if (_nullTokens.TryGetValue(resultType, out string? value) ||
+                    (alternate is not null && _nullTokens.TryGetValue(alternate, out value)))
+                {
+                    var result = value.AsMemory();
+                    return Unsafe.As<ReadOnlyMemory<char>, ReadOnlyMemory<T>>(ref result);
+                }
+            }
+
+            if (typeof(T) == typeof(byte))
+            {
+                if (_nullTokens.TryGetAlternate(resultType, out Utf8String value) ||
+                    (alternate is not null && _nullTokens.TryGetAlternate(alternate, out value)))
+                {
+                    ReadOnlyMemory<byte> result = value;
+                    return Unsafe.As<ReadOnlyMemory<byte>, ReadOnlyMemory<T>>(ref result);
+                }
+            }
+        }
+
+        return GetDefaultNullToken();
+    }
+
+    private ReadOnlyMemory<T> GetDefaultNullToken()
+    {
+        if (_null is null)
+            return default;
+
+        if (typeof(T) == typeof(char))
+        {
+            var value = Unsafe.As<string?>(_null).AsMemory();
+            return Unsafe.As<ReadOnlyMemory<char>, ReadOnlyMemory<T>>(ref value);
+        }
+
+        if (typeof(T) == typeof(byte))
+        {
+            var value = (ReadOnlyMemory<byte>)Unsafe.As<Tuple<Utf8String>>(_null).Item1;
+            return Unsafe.As<ReadOnlyMemory<byte>, ReadOnlyMemory<T>>(ref value);
+        }
+
+        ThrowInvalidTokenType(nameof(GetNullToken));
+        return default;
+    }
+
+    /// <summary>
+    /// Returns the format configured for <paramref name="resultType"/>, or <paramref name="defaultValue"/> by default.
+    /// </summary>
+    public virtual string? GetFormat(Type resultType, string? defaultValue = null) => _formats is not null && _formats.TryGetValue(resultType, out var format) ? format : defaultValue;
+
+    /// <summary>
+    /// Returns the format provider configured for <paramref name="resultType"/>, or <see cref="FormatProvider"/> by default.
+    /// </summary>
+    public virtual IFormatProvider? GetFormatProvider(Type resultType) => _providers is not null && _providers.TryGetValue(resultType, out var provider) ? provider : _formatProvider;
 
     /// <summary>
     /// Returns a <see langword="string"/> representation of the value.
     /// </summary>
     /// <seealso cref="WriteText{TWriter}(TWriter, ReadOnlySpan{char})"/>
-    public abstract string GetAsString(ReadOnlySpan<T> field);
+    public virtual string GetAsString(ReadOnlySpan<T> field)
+    {
+        if (typeof(T) == typeof(char))
+        {
+            return field.UnsafeCast<T, char>().ToString();
+        }
 
-    public abstract bool TryGetChars(ReadOnlySpan<T> field, Span<char> destination, out int charsWritten);
+        if (typeof(T) == typeof(byte))
+        {
+            return Encoding.UTF8.GetString(field.UnsafeCast<T, byte>());
+        }
+
+        ThrowInvalidTokenType(nameof(GetAsString));
+        return default!;
+    }
 
     /// <summary>
-    /// Writes the text to <paramref name="writer"/>.
+    /// Writes <paramref name="destination"/> as chars to <paramref name="destination"/>.
+    /// </summary>
+    public virtual bool TryGetChars(ReadOnlySpan<T> field, Span<char> destination, out int charsWritten)
+    {
+        if (typeof(T) == typeof(char))
+        {
+            return field.UnsafeCast<T, char>().TryWriteTo(destination, out charsWritten);
+        }
+
+        if (typeof(T) == typeof(byte))
+        {
+            return Encoding.UTF8.TryGetChars(field.UnsafeCast<T, byte>(), destination, out charsWritten);
+        }
+
+        ThrowInvalidTokenType(nameof(TryGetChars));
+        Unsafe.SkipInit(out charsWritten);
+        return default;
+    }
+
+    /// <summary>
+    /// Writes <paramref name="value"/> as <typeparamref name="T"/> to <paramref name="destination"/>.
     /// </summary>
     /// <param name="value">Text to write</param>
     /// <seealso cref="GetAsString(ReadOnlySpan{T})"/>
-    public abstract bool TryWriteChars(ReadOnlySpan<char> value, Span<T> destination, out int charsWritten);
+    public virtual bool TryWriteChars(ReadOnlySpan<char> value, Span<T> destination, out int charsWritten)
+    {
+        if (typeof(T) == typeof(char))
+        {
+            return value.UnsafeCast<char, T>().TryWriteTo(destination, out charsWritten);
+        }
 
-    /// <summary>
-    /// Returns the default parsers that are used to initialize <see cref="Converters"/> in derived types.
-    /// </summary>
-    internal protected abstract bool TryGetDefaultConverter(Type type, [NotNullWhen(true)] out CsvConverter<T>? converter);
+        if (typeof(T) == typeof(byte))
+        {
+            return Encoding.UTF8.TryGetBytes(value, destination.UnsafeCast<T, byte>(), out charsWritten);
+        }
+
+        ThrowInvalidTokenType(nameof(TryWriteChars));
+        Unsafe.SkipInit(out charsWritten);
+        return default;
+    }
 
     internal CsvRecordSkipPredicate<T>? _shouldSkipRow;
     internal CsvExceptionHandler<T>? _exceptionHandler;
@@ -121,15 +273,76 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     internal bool _validateFieldCount;
     internal CsvFieldEscaping _fieldEscaping;
     internal ArrayPool<T> _arrayPool = ArrayPool<T>.Shared;
-    internal bool _allowContentInExceptions;
+    private bool _allowContentInExceptions;
     internal IList<(string text, bool value)>? _booleanValues;
-
+    private IFormatProvider? _formatProvider = CultureInfo.InvariantCulture;
+    private TypeDictionary<IFormatProvider?, object>? _providers;
+    internal TypeDictionary<string?, object>? _formats;
     private IEqualityComparer<string> _comparer = StringComparer.OrdinalIgnoreCase;
     private bool _useDefaultConverters = true;
     private bool _ignoreEnumCase = true;
+    private string? _enumFormat;
     private bool _allowUndefinedEnumValues;
     private bool _disableBuffering;
     private StringPool? _stringPool;
+    private object? _null;
+    private TypeDictionary<string?, Utf8String>? _nullTokens;
+
+    public virtual string? Null
+    {
+        get
+        {
+            if (_null is null)
+                return null;
+
+            if (typeof(T) == typeof(char))
+                return Unsafe.As<string?>(_null);
+
+            if (typeof(T) == typeof(byte))
+                return (string)Unsafe.As<Tuple<Utf8String>>(_null).Item1;
+
+            ThrowInvalidTokenType(nameof(Null));
+            return null;
+        }
+        set
+        {
+            this.ThrowIfReadOnly();
+
+            if (value is null || typeof(T) == typeof(char))
+            {
+                _null = value;
+                return;
+            }
+
+            if (typeof(T) == typeof(byte))
+            {
+                _null = new Tuple<Utf8String>(value);
+                return;
+            }
+
+            ThrowInvalidTokenType(nameof(Null));
+        }
+    }
+
+    /// <summary>
+    /// Format provider used it none is defined for type in <see cref="FormatProviders"/>.
+    /// Defaults to <see cref="CultureInfo.InvariantCulture"/>.
+    /// </summary>
+    public IFormatProvider? FormatProvider
+    {
+        get => _formatProvider;
+        set => this.SetValue(ref _formatProvider, value);
+    }
+
+    /// <summary>
+    /// Format provider user per type instead of <see cref="FormatProvider"/>.
+    /// </summary>
+    public IDictionary<Type, IFormatProvider?> FormatProviders => _providers ??= new TypeDictionary<IFormatProvider?, object>(this);
+
+    /// <summary>
+    /// Format used per type.
+    /// </summary>
+    public IDictionary<Type, string?> Formats => _formats ??= new TypeDictionary<string?, object>(this);
 
     /// <summary>
     /// Disables buffering newline ranges when reading. Buffering increases raw throughput,
@@ -248,6 +461,32 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     /// <summary>
     /// Whether to use the library's built-in converters. Default is <see langword="true"/>.
     /// </summary>
+    /// <remarks>
+    /// The following types are supported by default:<br/>
+    /// - <see langword="string"/><br/>
+    /// - <see langword="enum"/><br/>
+    /// - <see langword="bool"/><br/>
+    /// - <see langword="byte"/><br/>
+    /// - <see langword="sbyte"/><br/>
+    /// - <see langword="short"/><br/>
+    /// - <see langword="ushort"/><br/>
+    /// - <see langword="int"/><br/>
+    /// - <see langword="uint"/><br/>
+    /// - <see langword="long"/><br/>
+    /// - <see langword="ulong"/><br/>
+    /// - <see langword="nint"/><br/>
+    /// - <see langword="nuint"/><br/>
+    /// - <see langword="float"/><br/>
+    /// - <see langword="double"/><br/>
+    /// - <see langword="decimal"/><br/>
+    /// - <see cref="Guid"/><br/>
+    /// - <see cref="DateTime"/><br/>
+    /// - <see cref="DateTimeOffset"/><br/>
+    /// - <see cref="TimeSpan"/><br/>
+    /// - For <see langword="char"/> any type that implements <see cref="ISpanFormattable"/> and <see cref="ISpanParsable{TSelf}"/>.<br/>
+    /// - For <see langword="byte"/> any type that implements at least one of <see cref="IUtf8SpanFormattable"/> and
+    /// <see cref="IUtf8SpanParsable{TSelf}"/>, with <see cref="ISpanFormattable"/> and <see cref="ISpanParsable{TSelf}"/> as fallbacks.<br/>
+    /// </remarks>
     public bool UseDefaultConverters
     {
         get => _useDefaultConverters;
@@ -274,6 +513,20 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     }
 
     /// <summary>
+    /// The default format for enums, used if enum's format is not defined in <see cref="Formats"/>.
+    /// </summary>
+    public string? EnumFormat
+    {
+        get => _enumFormat;
+        set
+        {
+            // validate
+            _ = Enum.TryFormat(default(CsvBindingScope), default, out _, value);
+            this.SetValue(ref _enumFormat, value);
+        }
+    }
+
+    /// <summary>
     /// Pool used to create reusable buffers when needed. Default is <see cref="ArrayPool{T}.Shared"/>.
     /// Set to <see langword="null"/> to disable pooling and always allocate.
     /// </summary>
@@ -284,18 +537,18 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     }
 
     /// <summary>
+    /// Returns tokens used to parse and format <see langword="null"/> values. See <see cref="GetNullToken(Type)"/>.
+    /// </summary>
+    /// <remarks>
+    /// Adding a token for value type is equivalent to adding it to the <see cref="Nullable{T}"/> counterpart.
+    /// </remarks>
+    public IDictionary<Type, string?> NullTokens => _nullTokens ??= new(this, static str => (Utf8String)str);
+
+    /// <summary>
     /// Optional custom boolean value mapping. If not empty, must contain at least one value for both
     /// <see langword="true"/> and <see langword="false"/>. Default is empty.
     /// </summary>
-    public IList<(string text, bool value)> BooleanValues
-    {
-        get => _booleanValues ??= new List<(string, bool)>();
-        set
-        {
-            ArgumentNullException.ThrowIfNull(value);
-            this.SetValue(ref _booleanValues, value);
-        }
-    }
+    public IList<(string text, bool value)> BooleanValues => _booleanValues ??= new SealableList<(string, bool)>(this, null);
 
     /// <summary>
     /// Collection of all converters and factories of the options instance.
@@ -313,7 +566,7 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     /// Returns a converter for <typeparamref name="TResult"/>.
     /// </summary>
     /// <typeparam name="TResult">Type to convert</typeparam>
-    /// <exception cref="CsvParserMissingException"/>
+    /// <exception cref="CsvConverterMissingException"/>
     public CsvConverter<T, TResult> GetConverter<TResult>()
     {
         return (CsvConverter<T, TResult>)GetConverter(typeof(TResult));
@@ -326,10 +579,10 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     /// Never returns a factory.
     /// </remarks>
     /// <param name="resultType">Type to convert</param>
-    /// <exception cref="CsvParserMissingException"/>
+    /// <exception cref="CsvConverterMissingException"/>
     public CsvConverter<T> GetConverter(Type resultType)
     {
-        return TryGetConverter(resultType) ?? throw new CsvParserMissingException(typeof(T), resultType);
+        return TryGetConverter(resultType) ?? throw new CsvConverterMissingException(typeof(T), resultType);
     }
 
     public CsvConverter<T, TResult>? TryGetConverter<TResult>()
@@ -344,25 +597,22 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
     /// <param name="resultType">Type to convert</param>
     public CsvConverter<T>? TryGetConverter(Type resultType)
     {
-        CsvConverter<T>? converter = TryGetExistingOrExplicit(resultType, out bool created);
-
-        if (converter is null && UseDefaultConverters)
+        if (!TryGetExistingOrCustomConverter(resultType, out CsvConverter<T>? converter, out bool created)
+            && UseDefaultConverters)
         {
-            // prefer explicit nullable converter if possible
-            if (TryGetDefaultConverter(resultType, out var builtin))
+            if (TryCreateDefaultConverter(resultType, out var builtin))
             {
-                Debug.Assert(builtin.CanConvert(resultType));
-                converter = builtin.GetOrCreateConverter(resultType, this);
-                created = true;
+                Debug.Assert(builtin.CanConvert(resultType), $"Invalid builtin converter {builtin} for {resultType}");
+                Debug.Assert(builtin is not CsvConverterFactory<T>, $"{resultType} default converter returned a factory");
+                converter = builtin;
             }
             else if (NullableConverterFactory<T>.Instance.CanConvert(resultType))
             {
                 converter = NullableConverterFactory<T>.Instance.Create(resultType, this);
-                created = true;
             }
         }
 
-        if (created && converter is not null && !_converterCache.TryAdd(resultType, converter))
+        if (converter is not null && created && !_converterCache.TryAdd(resultType, converter))
         {
             // ensure we return the same instance that was cached
             converter = _converterCache[resultType];
@@ -375,32 +625,60 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
         return converter;
     }
 
-    protected internal CsvConverter<T>? TryGetExistingOrExplicit(Type resultType, out bool created)
+    private bool TryCreateDefaultConverter(Type type, [NotNullWhen(true)] out CsvConverter<T>? converter)
     {
-        ArgumentNullException.ThrowIfNull(resultType);
-        MakeReadOnly();
-
-        if (_converterCache.TryGetValue(resultType, out var cached))
+        if (typeof(T) == typeof(char))
         {
-            Debug.Assert(cached.CanConvert(resultType));
-            created = false;
-            return cached;
-        }
+            CsvConverter<char>? result = null;
+            CsvOptions<char> options = (CsvOptions<char>)(object)this;
 
-        ReadOnlySpan<CsvConverter<T>> converters = _converters.Span;
-
-        // Read converters in reverse order so parser added last has the highest priority
-        for (int i = converters.Length - 1; i >= 0; i--)
-        {
-            if (converters[i].CanConvert(resultType))
+            if (EnumTextConverterFactory.Instance.CanConvert(type))
             {
-                created = true;
-                return converters[i].GetOrCreateConverter(resultType, this);
+                result = EnumTextConverterFactory.Instance.Create(type, options);
+            }
+            else if (DefaultConverters.Text.Value.TryGetValue(type, out var factory))
+            {
+                result = factory(options);
+            }
+            else if (SpanTextConverterFactory.Instance.CanConvert(type))
+            {
+                result = SpanTextConverterFactory.Instance.Create(type, options);
+            }
+
+            if (result != null)
+            {
+                converter = (CsvConverter<T>)(object)result;
+                return true;
             }
         }
 
-        created = false;
-        return null;
+        if (typeof(T) == typeof(byte))
+        {
+            CsvConverter<byte>? result = null;
+            CsvOptions<byte> options = (CsvOptions<byte>)(object)this;
+
+            if (EnumUtf8ConverterFactory.Instance.CanConvert(type))
+            {
+                result = EnumUtf8ConverterFactory.Instance.Create(type, options);
+            }
+            else if (DefaultConverters.Utf8.Value.TryGetValue(type, out var factory))
+            {
+                result = factory(options);
+            }
+            else if (SpanUtf8ConverterFactory.Instance.CanConvert(type))
+            {
+                result = SpanUtf8ConverterFactory.Instance.Create(type, options);
+            }
+
+            if (result != null)
+            {
+                converter = (CsvConverter<T>)(object)result;
+                return true;
+            }
+        }
+
+        converter = default;
+        return false;
     }
 
     internal TValue Materialize<TValue>(ReadOnlyMemory<T> record, IMaterializer<T, TValue> materializer)
@@ -428,85 +706,58 @@ public abstract partial class CsvOptions<T> : ISealable where T : unmanaged, IEq
         }
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private void ValidateDialect()
+    private bool TryGetExistingOrCustomConverter(
+        Type resultType,
+        [NotNullWhen(true)] out CsvConverter<T>? converter,
+        out bool created)
     {
-        List<string>? errors = null;
+        ArgumentNullException.ThrowIfNull(resultType);
+        MakeReadOnly();
 
-        T delimiter = _delimiter;
-        T quote = _quote;
-        T? escape = _escape;
-        ReadOnlySpan<T> whitespace = _whitespace.Span;
-
-        if (delimiter.Equals(quote))
+        if (_converterCache.TryGetValue(resultType, out var cached))
         {
-            AddError("Delimiter and Quote must not be equal.");
+            Debug.Assert(cached.CanConvert(resultType));
+            converter = cached;
+            created = false;
+            return true;
         }
 
-        if (escape.HasValue)
+        ReadOnlySpan<CsvConverter<T>> converters = _converters.Span;
+
+        // Read converters in reverse order so parser added last has the highest priority
+        for (int i = converters.Length - 1; i >= 0; i--)
         {
-            if (escape.GetValueOrDefault().Equals(delimiter))
-                AddError("Escape must not be equal to Delimiter.");
-
-            if (escape.GetValueOrDefault().Equals(quote))
-                AddError("Escape must not be equal to Quote.");
-        }
-
-        ReadOnlySpan<T> newline = _newline.Span;
-
-        if (newline.Length == 0)
-        {
-            // use crlf if we have a known token type
-            if (typeof(T) == typeof(char))
+            if (converters[i].CanConvert(resultType))
             {
-                newline = "\r\n".AsSpan().UnsafeCast<char, T>();
-            }
-            else if (typeof(T) == typeof(byte))
-            {
-                newline = "\r\n"u8.UnsafeCast<byte, T>();
+                converter = converters[i].GetOrCreateConverter(resultType, this);
+                created = true;
+                return true;
             }
         }
 
-        if (newline.Length is not (1 or 2))
+        converter = null;
+        created = false;
+        return false;
+    }
+
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public CsvConverter<T, TValue> GetOrCreate<TValue>(Func<CsvOptions<T>, CsvConverter<T, TValue>> factory)
+    {
+        CsvConverter<T, TValue> result;
+
+        if (TryGetExistingOrCustomConverter(typeof(TValue), out CsvConverter<T>? converter, out bool created))
         {
-            AddError("Newline must be empty, or 1 or 2 characters long.");
+            result = (CsvConverter<T, TValue>)converter;
         }
         else
         {
-            if (newline.Contains(delimiter))
-                AddError("Newline must not contain Delimiter.");
-
-            if (newline.Contains(quote))
-                AddError("Newline must not contain Quote.");
-
-            if (escape.HasValue && newline.Contains(escape.GetValueOrDefault()))
-                AddError("Newline must not contain Escape.");
+            result = factory(this);
+            created = true;
         }
 
-        if (!whitespace.IsEmpty)
-        {
-            if (whitespace.Contains(delimiter))
-                AddError("Whitespace must not contain Delimiter.");
+        if (created)
+            _converterCache.TryAdd(typeof(TValue), result);
 
-            if (whitespace.Contains(quote))
-                AddError("Whitespace must not contain Quote.");
-
-            if (escape.HasValue && whitespace.Contains(escape.GetValueOrDefault()))
-                AddError("Whitespace must not contain Escape.");
-
-            if (whitespace.IndexOfAny(newline) >= 0)
-                AddError("Whitespace must not contain Newline characters.");
-        }
-
-        if (errors is not null)
-            Throw(errors);
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        void AddError(string message) => (errors ??= []).Add(message);
-
-        static void Throw(List<string> errors)
-        {
-            throw new CsvConfigurationException($"Invalid CsvOptions tokens: {string.Join(" ", errors)}");
-        }
+        return result;
     }
 }

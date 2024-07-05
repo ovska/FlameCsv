@@ -94,26 +94,9 @@ public static class CsvRecordTests
         Assert.Throws<InvalidDataException>(
             () => new CsvRecordEnumerable<char>(
                 "1,2,3\r\n1,2,3,4\r\n".AsMemory(),
-                new CsvTextOptions { ValidateFieldCount = true })
+                new CsvOptions<char> { ValidateFieldCount = true })
             .AsEnumerable()
             .ToList());
-    }
-
-    [Fact]
-    public static void Should_Return_Field()
-    {
-        var record = new CsvRecord<char>("A,B,C,\"D\"".AsMemory(), CsvTextOptions.Default);
-
-        Assert.Equal(4, record.GetFieldCount());
-        Assert.Equal("A", record.GetField(0).ToString());
-        Assert.Equal("B", record.GetField(1).ToString());
-        Assert.Equal("C", record.GetField(2).ToString());
-        Assert.Equal("D", record.GetField(3).ToString());
-
-        Assert.Equal("A", record[0].ToString());
-        Assert.Equal("B", record[1].ToString());
-        Assert.Equal("C", record[2].ToString());
-        Assert.Equal("D", record[3].ToString());
     }
 
     [Fact]
@@ -121,7 +104,7 @@ public static class CsvRecordTests
     {
         var records = new CsvRecordEnumerable<char>(
             "A,B,C\r\n1,2,3\r\n".AsMemory(),
-            CsvTextOptions.Default).AsEnumerable().ToList();
+            CsvOptions<char>.Default).AsEnumerable().ToList();
 
         Assert.Single(records);
 
@@ -144,7 +127,7 @@ public static class CsvRecordTests
     {
         var records = new CsvRecordEnumerable<char>(
             "A,B,C\r\n1,2,3\r\n".AsMemory(),
-            CsvTextOptions.Default).AsEnumerable().ToList();
+            CsvOptions<char>.Default).AsEnumerable().ToList();
 
         Assert.Single(records);
         var record = records[0];
