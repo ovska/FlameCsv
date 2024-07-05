@@ -1,56 +1,116 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
+using CommunityToolkit.HighPerformance;
+using FlameCsv.Extensions;
 using static FlameCsv.Utilities.SealableUtil;
 
 namespace FlameCsv;
 
-public partial class CsvOptions<T> : ICsvDialectOptions<T>
+public partial class CsvOptions<T>
 {
-    internal T _delimiter;
-    internal T _quote;
-    internal ReadOnlyMemory<T> _newline;
-    internal ReadOnlyMemory<T> _whitespace;
-    internal T? _escape;
+    private static void ThrowInvalidTokenType(string? memberName)
+    {
+        throw new NotSupportedException(
+            $"{typeof(CsvOptions<T>).ToTypeString()}.{memberName} is not supported by default, inherit the class and override the member.");
+    }
 
-    T ICsvDialectOptions<T>.Delimiter
+    internal ref readonly CsvDialect<T> Dialect
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            if (_dialect.HasValue)
+            {
+                return ref Nullable.GetValueRefOrDefaultRef(in _dialect);
+            }
+
+            return ref InitializeDialect();
+        }
+    }
+
+    private CsvDialect<T>? _dialect;
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    protected virtual ref readonly CsvDialect<T> InitializeDialect()
+    {
+        if (typeof(T) == typeof(char))
+        {
+            var dialect = new CsvDialect<char>
+            {
+                Delimiter = _delimiter,
+                Escape = _escape,
+                Newline = _newline.AsMemory(),
+                Quote = _quote,
+                Whitespace = _whitespace.AsMemory()
+            };
+            dialect.Validate();
+            _dialect = Unsafe.As<CsvDialect<char>, CsvDialect<T>>(ref dialect);
+            return ref Nullable.GetValueRefOrDefaultRef(in _dialect);
+        }
+
+        if (typeof(T) == typeof(byte))
+        {
+            var dialect = new CsvDialect<byte>
+            {
+                Delimiter = (Utf8Char)_delimiter,
+                Quote = (Utf8Char)_quote,
+                Escape = (Utf8Char?)_escape,
+                Newline = (Utf8String)_newline,
+                Whitespace = (Utf8String)_whitespace,
+            };
+            dialect.Validate();
+            _dialect = Unsafe.As<CsvDialect<byte>, CsvDialect<T>>(ref dialect);
+            return ref Nullable.GetValueRefOrDefaultRef(in _dialect);
+        }
+
+        ThrowInvalidTokenType(null);
+        return ref Unsafe.NullRef<CsvDialect<T>>();
+    }
+
+    private char _delimiter = ',';
+    private char _quote = '"';
+    private string? _newline;
+    private string? _whitespace;
+    private char? _escape;
+
+    public char Delimiter
     {
         get => _delimiter;
         set => this.SetValue(ref _delimiter, value);
     }
 
-    T ICsvDialectOptions<T>.Quote
+    public char Quote
     {
         get => _quote;
         set => this.SetValue(ref _quote, value);
     }
 
-    ReadOnlyMemory<T> ICsvDialectOptions<T>.Newline
-    {
-        get => _newline;
-        set
-        {
-            Guard.IsBetween(value.Length, 0, 2, "Newline length");
-            this.SetValue(ref _newline, value);
-        }
-    }
-
-    ReadOnlyMemory<T> ICsvDialectOptions<T>.Whitespace
-    {
-        get => _whitespace;
-        set => this.SetValue(ref _whitespace, value);
-    }
-
-    T? ICsvDialectOptions<T>.Escape
+    public char? Escape
     {
         get => _escape;
         set => this.SetValue(ref _escape, value);
     }
 
+    public string? Newline
+    {
+        get => _newline;
+        set => this.SetValue(ref _newline, value);
+    }
+
+    public string? Whitespace
+    {
+        get => _whitespace;
+        set => this.SetValue(ref _whitespace, value);
+    }
+
     internal ReadOnlySpan<T> GetNewlineSpan(Span<T> buffer)
     {
-        if (_newline.Length != 0)
-            return _newline.Span;
+        ref readonly CsvDialect<T> dialect = ref Dialect;
+        ReadOnlySpan<T> newline = dialect.Newline.Span;
+
+        if (newline.Length != 0)
+            return newline;
 
         GetNewline(out T newline1, out T newline2, out int newlineLength, forWriting: true);
 
@@ -62,7 +122,10 @@ public partial class CsvOptions<T> : ICsvDialectOptions<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void GetNewline(out T newline1, out T newline2, out int newlineLength, bool forWriting = false)
     {
-        if ((newlineLength = _newline.Length) is 0)
+        ref readonly CsvDialect<T> dialect = ref Dialect;
+        ReadOnlySpan<T> newline = dialect.Newline.Span;
+
+        if ((newlineLength = newline.Length) is 0)
         {
             if (forWriting)
                 newlineLength = 2;
@@ -92,12 +155,11 @@ public partial class CsvOptions<T> : ICsvDialectOptions<T>
 
         Debug.Assert(newlineLength is 1 or 2);
 
-        var span = _newline.Span;
-        newline1 = span[0];
+        newline1 = newline[0];
 
-        if (span.Length == 2)
+        if (newline.Length == 2)
         {
-            newline2 = span[1];
+            newline2 = newline[1];
             newlineLength = 2;
         }
         else

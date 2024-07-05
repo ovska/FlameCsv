@@ -49,7 +49,7 @@ record User(int Id, string Name, DateTime LastLogin, int? Age = null);
 ## Reading headerless CSV
 ```csharp
 string data = "1,Bob,2010-01-01\n2,Alice,2024-05-22";
-var options = new CsvTextOptions { HasHeader = false };
+var options = new CsvOptions<char> { HasHeader = false };
 
 foreach (var user in CsvReader.Read<User>(data, options))
 {
@@ -66,7 +66,7 @@ class User
 
 ## Reading UTF8 directly from bytes
 ```csharp
-var options = new CsvUtf8Options { /* configure here */ };
+var options = new CsvOptions<byte> { /* configure here */ };
 await foreach (var user in CsvReader.ReadAsync<User>(File.OpenRead(@"C:\test.csv"), options))
 {
     Console.WriteLine(user);
@@ -91,7 +91,7 @@ partial class UserTypeMap;
 string data = "id,name,lastlogin,age\n1,Bob,2010-01-01,42\n2,Alice,2024-05-22,\n";
 
 // case insensitive header names (enabled by default)
-var options = new CsvTextOptions { Comparer = StringComparer.OrdinalIgnoreCase };
+var options = new CsvOptions<char> { Comparer = StringComparer.OrdinalIgnoreCase };
 
 foreach (CsvValueRecord<char> record in CsvReader.Enumerate(data, options))
 {

@@ -33,19 +33,6 @@ internal readonly struct KnownSymbols(Compilation compilation)
         return type;
     }
 
-    /// <summary>
-    /// Returns CsvUtf8Options or CsvTextOptions, or null
-    /// </summary>
-    public INamedTypeSymbol? GetExplicitOptionsType(ITypeSymbol tokenType)
-    {
-        return tokenType.SpecialType switch
-        {
-            SpecialType.System_Byte => Get(compilation, "FlameCsv.CsvUtf8Options"),
-            SpecialType.System_Char => Get(compilation, "FlameCsv.CsvTextOptions"),
-            _ => null
-        };
-    }
-
     private static INamedTypeSymbol Get(Compilation compilation, string name)
     {
         return compilation.GetTypeByMetadataName(name)

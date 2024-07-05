@@ -34,24 +34,10 @@ public partial class TypeMapGenerator
 
         string typeName = type.ToDisplayString();
 
-        INamedTypeSymbol? optionsSymbol = typeMap.Symbols.GetExplicitOptionsType(typeMap.TokenSymbol);
-        bool canUseDefault =
-            IsDefaultConverterSupported(in typeMap.Symbols, type, out string defaultName) &&
-            typeMap.UseBuiltinConverters &&
-            optionsSymbol is not null;
-
         string optionsName = "options";
 
         if (isNullable)
         {
-            if (canUseDefault)
-            {
-                sb.Append("FlameCsv.Converters.DefaultConverters.GetOrCreate((");
-                sb.Append(optionsSymbol!.ToDisplayString());
-                sb.Append(")options, static o => ");
-                optionsName = "o";
-            }
-
             sb.Append("new FlameCsv.Converters.NullableConverter<");
             sb.Append(typeMap.Token);
             sb.Append(", ");
@@ -59,25 +45,32 @@ public partial class TypeMapGenerator
             sb.Append(">(");
         }
 
-        if (canUseDefault)
-        {
-            sb.Append("FlameCsv.Converters.DefaultConverters.Create");
-            sb.Append(defaultName);
-            sb.Append("((");
-            sb.Append(optionsSymbol!.ToDisplayString());
-            sb.Append(')');
-            sb.Append(optionsName);
-            sb.Append(')');
+        //if (propertyOrField is IPropertySymbol { Name: "DOF" })
+        //{
+        //    throw new Exception($"{typeMap.TokenSymbol.OriginalDefinition.SpecialType}");
+        //}
 
-            if (typeMap.Symbols.Nullable)
-                sb.Append('!');
-        }
-        else
+        if (type.IsEnumOrNullableEnum() &&
+            typeMap.TokenSymbol.OriginalDefinition.SpecialType is SpecialType.System_Char or SpecialType.System_Byte)
         {
-            sb.Append("options.GetConverter<");
+            sb.Append("options.UseDefaultConverters ? options.GetOrCreate(static o => new FlameCsv.Converters.");
+
+            if (typeMap.TokenSymbol.OriginalDefinition.SpecialType == SpecialType.System_Char)
+            {
+                sb.Append("EnumTextConverter<");
+            }
+            else
+            {
+                sb.Append("EnumUtf8Converter<");
+            }
+
             sb.Append(typeName);
-            sb.Append(">()");
+            sb.Append(">(o)) : ");
         }
+
+        sb.Append("options.GetConverter<");
+        sb.Append(typeName);
+        sb.Append(">()");
 
         if (isNullable)
         {
@@ -86,11 +79,6 @@ public partial class TypeMapGenerator
             sb.Append(".GetNullToken(typeof(");
             sb.Append(typeName);
             sb.Append(")))");
-
-            if (canUseDefault)
-            {
-                sb.Append(")");
-            }
         }
     }
 
@@ -103,8 +91,6 @@ public partial class TypeMapGenerator
     {
         string? foundArgs = null;
         INamedTypeSymbol csvOptionsSymbol = typeMap.Symbols.GetCsvOptionsType(typeMap.TokenSymbol);
-        INamedTypeSymbol? explicitOptions = typeMap.Symbols.GetExplicitOptionsType(typeMap.TokenSymbol);
-        bool foundExplicit = false;
         bool foundInstance = false;
 
         foreach (var member in parser.GetMembers())
@@ -114,11 +100,7 @@ public partial class TypeMapGenerator
             {
                 if (method.Parameters.Length == 1)
                 {
-                    if (SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, explicitOptions))
-                    {
-                        foundExplicit = true;
-                    }
-                    else if (SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, csvOptionsSymbol))
+                    if (SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, csvOptionsSymbol))
                     {
                         foundArgs = "options";
                         break;
@@ -137,12 +119,6 @@ public partial class TypeMapGenerator
             {
                 foundInstance |= true;
             }
-        }
-
-        // if no CsvOptions<T> constructor found, use CsvTextOptions or CsvUtf8Options with cast
-        if (string.IsNullOrEmpty(foundArgs) && foundExplicit)
-        {
-            foundArgs = $"({explicitOptions!.ToDisplayString()})options";
         }
 
         if (foundArgs is null && !foundInstance)
@@ -218,48 +194,5 @@ public partial class TypeMapGenerator
 
         if (typeMap.Symbols.Nullable)
             sb.Append('!');
-    }
-
-    private bool IsDefaultConverterSupported(in KnownSymbols symbols, ITypeSymbol type, out string name)
-    {
-        switch (type.SpecialType)
-        {
-            case SpecialType.System_String:
-            case SpecialType.System_Boolean:
-            case SpecialType.System_Byte:
-            case SpecialType.System_SByte:
-            case SpecialType.System_Char:
-            case SpecialType.System_Double:
-            case SpecialType.System_Decimal:
-            case SpecialType.System_Int16:
-            case SpecialType.System_Int32:
-            case SpecialType.System_Int64:
-            case SpecialType.System_UInt16:
-            case SpecialType.System_UInt32:
-            case SpecialType.System_UInt64:
-            case SpecialType.System_Single:
-            case SpecialType.System_IntPtr:
-            case SpecialType.System_UIntPtr:
-                name = type.Name;
-                return true;
-        }
-
-        if (type.BaseType is { SpecialType: SpecialType.System_Enum })
-        {
-            name = $"<{type.ToDisplayString()}>";
-            return true;
-        }
-
-        if ((type.Name == "DateTime" && SymbolEqualityComparer.Default.Equals(type, symbols.SystemDateTime)) ||
-            (type.Name == "DateTimeOffset" && SymbolEqualityComparer.Default.Equals(type, symbols.SystemDateTimeOffset)) ||
-            (type.Name == "TimeSpan" && SymbolEqualityComparer.Default.Equals(type, symbols.SystemTimeSpan)) ||
-            (type.Name == "Guid" && SymbolEqualityComparer.Default.Equals(type, symbols.SystemGuid)))
-        {
-            name = type.Name;
-            return true;
-        }
-
-        name = "";
-        return false;
     }
 }

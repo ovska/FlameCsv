@@ -1,81 +1,34 @@
-using System.Globalization;
-using System.Runtime.InteropServices;
 using FlameCsv.Converters;
 
 namespace FlameCsv.Tests;
 
 public class CsvOptionsTests
 {
-    [Fact]
-    public static void Should_Validate_Text_ParseParams()
+    [Theory, InlineData(typeof(int*)), InlineData(typeof(List<>)), InlineData(typeof(Span<int>)), InlineData(default(Type))]
+    public static void Should_Validate_TypeDictionary_Argument(Type? type)
     {
-        Do(o => o.IntegerNumberStyles = (NumberStyles)int.MaxValue);
-        Do(o => o.DecimalNumberStyles = (NumberStyles)int.MaxValue);
-        Do(o => o.DateTimeStyles = (DateTimeStyles)int.MaxValue);
-        Do(o => o.TimeSpanStyles = (TimeSpanStyles)int.MaxValue);
+        var to = new CsvOptions<char>();
+        Assert.ThrowsAny<ArgumentException>(() => to.NullTokens[type!] = "");
 
-        static void Do(Action<CsvTextOptions> action)
-        {
-            Assert.ThrowsAny<ArgumentException>(() => action(new CsvTextOptions()));
-        }
-    }
-
-    [Fact]
-    public static void Should_Validate_Utf8_Formats()
-    {
-        Do(o => o.DateTimeFormat = '^');
-        Do(o => o.TimeSpanFormat = '^');
-        Do(o => o.IntegerFormat = '^');
-        Do(o => o.DecimalFormat = '^');
-        Do(o => o.GuidFormat = '^');
-
-        // no ex
-        _ = new CsvUtf8Options
-        {
-            DateTimeFormat = default,
-            TimeSpanFormat = default,
-            IntegerFormat = default,
-            DecimalFormat = default,
-            GuidFormat = default,
-        };
-
-        static void Do(Action<CsvUtf8Options> action)
-        {
-            Assert.ThrowsAny<FormatException>(() => action(new CsvUtf8Options()));
-        }
-    }
-
-    [Fact]
-    public static void Should_Validate_NullToken()
-    {
-        var to = new CsvTextOptions();
-        Assert.ThrowsAny<ArgumentException>(() => to.NullTokens[typeof(int)] = default);
-        Assert.ThrowsAny<ArgumentException>(() => to.NullTokens[typeof(int*)] = default);
-        Assert.ThrowsAny<ArgumentException>(() => to.NullTokens[typeof(Span<>)] = default);
-        Assert.ThrowsAny<ArgumentException>(() => to.NullTokens[typeof(Span<int>)] = default);
-
-        var bo = new CsvUtf8Options();
-        Assert.ThrowsAny<ArgumentException>(() => bo.NullTokens[typeof(int)] = default);
-        Assert.ThrowsAny<ArgumentException>(() => bo.NullTokens[typeof(int*)] = default);
-        Assert.ThrowsAny<ArgumentException>(() => bo.NullTokens[typeof(Span<>)] = default);
-        Assert.ThrowsAny<ArgumentException>(() => bo.NullTokens[typeof(Span<int>)] = default);
+        var bo = new CsvOptions<byte>();
+        Assert.ThrowsAny<ArgumentException>(() => bo.NullTokens[type!] = "");
     }
 
     [Fact]
     public void Should_Not_Use_Builtin_Parsers()
     {
-        var options = new CsvTextOptions { UseDefaultConverters = false };
+        var options = new CsvOptions<char> { UseDefaultConverters = false };
         Assert.Null(options.TryGetConverter<int>());
     }
 
     [Fact]
     public void Should_Return_Text_Defaults()
     {
-        var options = CsvTextOptions.Default;
+        var options = CsvOptions<char>.Default;
         Assert.True(options.IsReadOnly);
 
-        Assert.Equal([], options._newline.Span);
-        Assert.Equal("", options.Newline);
+        Assert.Equal(['\r', '\n'], options.GetNewlineSpan(['\0', '\0']));
+        Assert.Null(options.Newline);
 
         var boolParser = options.GetConverter<bool>();
         Assert.True(boolParser.TryParse("true", out var bValue));
@@ -91,43 +44,17 @@ public class CsvOptionsTests
 
         Assert.Null(options.TryGetConverter(typeof(Type)));
 
-        Assert.Same(options, CsvTextOptions.Default);
-    }
-
-    [Fact]
-    public void Should_Reuse_Common_Strings()
-    {
-        var options = new CsvUtf8Options { Newline = "\r\n" };
-        Assert.True(MemoryMarshal.TryGetArray(((ICsvDialectOptions<byte>)options).Newline, out var segment1));
-        Assert.True(MemoryMarshal.TryGetArray((ReadOnlyMemory<byte>)Utf8String.CRLF, out var segment2));
-
-        Assert.Equal(segment1.Count, segment2.Count);
-        Assert.Equal(segment1.Offset, segment2.Offset);
-        Assert.Same(segment1.Array, segment1.Array);
-
-        var s1 = (string)options.Newline;
-        var s2 = (string)options.Newline;
-        Assert.Same(s1, s2);
-
-        options.Newline = "\n";
-        s1 = (string)options.Newline;
-        s2 = (string)options.Newline;
-        Assert.Same(s1, s2);
-
-        options.Newline = "\r";
-        s1 = (string)options.Newline;
-        s2 = (string)options.Newline;
-        Assert.NotSame(s1, s2);
+        Assert.Same(options, CsvOptions<char>.Default);
     }
 
     [Fact]
     public void Should_Return_Utf8_Defaults()
     {
-        var options = CsvUtf8Options.Default;
+        var options = CsvOptions<byte>.Default;
         Assert.True(options.IsReadOnly);
 
-        Assert.Equal([], ((ICsvDialectOptions<byte>)options).Newline.ToArray());
-        Assert.Equal("", options.Newline);
+        Assert.Equal([(byte)'\r', (byte)'\n'], options.GetNewlineSpan([0, 0]));
+        Assert.Null(options.Newline);
 
         var boolParser = options.GetConverter<bool>();
         Assert.True(boolParser.TryParse("true"u8, out var bValue));
@@ -143,19 +70,21 @@ public class CsvOptionsTests
 
         Assert.Null(options.TryGetConverter(typeof(Type)));
 
-        Assert.Same(options, CsvUtf8Options.Default);
+        Assert.Same(options, CsvOptions<byte>.Default);
     }
 
     [Fact]
     public void Should_Throw_On_ReadOnly_Modified()
     {
-        var options = new CsvTextOptions();
+        var options = new CsvOptions<char>();
         Assert.True(options.MakeReadOnly());
         Assert.False(options.MakeReadOnly());
 
         Run(o => o.Delimiter = default);
         Run(o => o.Quote = default);
+        Run(o => o.Escape = default);
         Run(o => o.Newline = "");
+        Run(o => o.Whitespace = "");
         Run(o => o.ShouldSkipRow = default);
         Run(o => o.HasHeader = default);
         Run(o => o.Comparer = StringComparer.Ordinal);
@@ -167,8 +96,22 @@ public class CsvOptionsTests
         Run(o => o.Converters.Remove(new BooleanTextConverter()));
         Run(o => o.Converters.RemoveAt(0));
         Run(o => o.Converters.Clear());
+        Run(o => o.StringPool = null);
+        Run(o => o.IgnoreEnumCase = default);
+        Run(o => o.AllowContentInExceptions = default);
+        Run(o => o.AllowUndefinedEnumValues = default);
+        Run(o => o.UseDefaultConverters = default);
+        Run(o => o.EnumFormat = "");
+        Run(o => o.FieldEscaping = default);
+        Run(o => o.FormatProvider = default);
+        Run(o => o.FormatProviders.Add(typeof(int), null));
+        Run(o => o.Formats.Add(typeof(int), null));
+        Run(o => o.NoLineBuffering = true);
+        Run(o => o.Null = "null");
+        Run(o => o.ValidateFieldCount = default);
+        Run(o => o.BooleanValues.Add(default));
 
-        void Run(Action<CsvTextOptions> action)
+        void Run(Action<CsvOptions<char>> action)
         {
             Assert.Throws<InvalidOperationException>(() => action(options));
         }
@@ -179,7 +122,7 @@ public class CsvOptionsTests
     {
         const string data = "1,1,1\r\n1,1,1\r\n1,1,1,1\r\n";
 
-        var options = new CsvTextOptions { ValidateFieldCount = true, HasHeader = false };
+        var options = new CsvOptions<char> { ValidateFieldCount = true, HasHeader = false };
 
         using var enumerator = CsvReader.Enumerate(data, options).GetEnumerator();
 
@@ -193,7 +136,7 @@ public class CsvOptionsTests
     {
         const string data = "A,B,C\r\n1,1,1\r\n1,1,1,1\r\n";
 
-        var options = new CsvTextOptions { ValidateFieldCount = true, HasHeader = true };
+        var options = new CsvOptions<char> { ValidateFieldCount = true, HasHeader = true };
 
         using var enumerator = CsvReader.Enumerate(data, options).GetEnumerator();
 
@@ -211,7 +154,7 @@ public class CsvOptionsTests
             "#4,5,6\r\n" +
             "7,8,9\r\n";
 
-        var options = new CsvTextOptions
+        var options = new CsvOptions<char>
         {
             ShouldSkipRow = (in CsvRecordSkipArgs<char> args) => args.Line == 1 || args.Record.Span[0] == '#',
         };
@@ -235,9 +178,9 @@ public class CsvOptionsTests
         { }
 
 
-        CsvTextOptions GetOpts(bool hasHeader)
+        CsvOptions<char> GetOpts(bool hasHeader)
         {
-            return new CsvTextOptions
+            return new CsvOptions<char>
             {
                 HasHeader = hasHeader,
                 ShouldSkipRow = (in CsvRecordSkipArgs<char> args) =>
@@ -271,7 +214,7 @@ public class CsvOptionsTests
             "#4,5,6\r\n" +
             "7,8,9\r\n";
 
-        var options = new CsvTextOptions
+        var options = new CsvOptions<char>
         {
             ShouldSkipRow = (in CsvRecordSkipArgs<char> args) => args.Line == 1 || args.Record.Span[0] == '#',
         };

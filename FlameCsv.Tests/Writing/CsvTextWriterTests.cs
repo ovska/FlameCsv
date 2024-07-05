@@ -18,14 +18,14 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         CsvFieldEscaping quoting,
         bool sourceGen)
     {
-        var options = new CsvTextOptions
+        var options = new CsvOptions<char>
         {
             Newline = newline,
             HasHeader = header,
             FieldEscaping = quoting,
             Escape = escape,
             Quote = '\'',
-            DateTimeFormat = "O",
+            Formats = { { typeof(DateTime), "O" }, { typeof(DateTimeOffset), "O" } },
         };
 
         var output = new StringBuilder(capacity: short.MaxValue * 4);
@@ -50,14 +50,14 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         CsvFieldEscaping quoting,
         bool sourceGen)
     {
-        var options = new CsvTextOptions
+        var options = new CsvOptions<char>
         {
             Newline = newline,
             HasHeader = header,
             FieldEscaping = quoting,
             Escape = escape,
             Quote = '\'',
-            DateTimeFormat = "O",
+            Formats = { { typeof(DateTime), "O" }, { typeof(DateTimeOffset), "O" } },
         };
 
         var output = new StringBuilder(capacity: short.MaxValue * 4);

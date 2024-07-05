@@ -19,14 +19,14 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
         bool sourceGen,
         int bufferSize)
     {
-        var options = new CsvUtf8Options
+        var options = new CsvOptions<byte>
         {
             Newline = newline,
             HasHeader = header,
             FieldEscaping = quoting,
             Escape = escape,
             Quote = '\'',
-            DateTimeFormat = 'O',
+            Formats = { { typeof(DateTime), "O" }, { typeof(DateTimeOffset), "O" } },
         };
 
         using var output = new MemoryStream(capacity: short.MaxValue * 4);

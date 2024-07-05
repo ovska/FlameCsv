@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Extensions;
 
@@ -10,8 +11,12 @@ internal sealed class CustomBooleanTextConverter : CsvConverter<char, bool>
     private readonly ImmutableArray<string> _falseValues;
     private readonly StringComparison _comparison;
 
-    internal CustomBooleanTextConverter(IList<(string text, bool value)> values)
+    internal CustomBooleanTextConverter(CsvOptions<char> options)
     {
+        Debug.Assert(options._booleanValues is not null);
+
+        IList<(string text, bool value)> values = options._booleanValues;
+
         Guard.IsNotEmpty(values);
 
         var trues = ImmutableArray.CreateBuilder<string>(values.Count);

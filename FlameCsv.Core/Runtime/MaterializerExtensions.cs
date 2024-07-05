@@ -92,13 +92,13 @@ internal static class MaterializerExtensions
         if (write)
         {
             var fields = typeof(TTuple).GetFields();
-            fields.AsSpan().Sort(FieldInfoNameComparer.Instance); // ensure order Item1, Item2 etc.
+            fields.AsSpan().Sort(static (a, b) => a.Name.CompareTo(b.Name)); // ensure order Item1, Item2 etc.
 
             bindingsList = new(fields.Length);
 
             for (int i = 0; i < fields.Length; i++)
             {
-                System.Reflection.FieldInfo? field = fields[i];
+                FieldInfo? field = fields[i];
                 bindingsList.Add(
                     field.FieldType == typeof(CsvIgnored)
                         ? new IgnoredCsvBinding<TTuple>(index: i)
@@ -121,12 +121,5 @@ internal static class MaterializerExtensions
 
         bindingCollection = new CsvBindingCollection<TTuple>(bindingsList, write, isInternalCall: true);
         return true;
-    }
-
-    private sealed class FieldInfoNameComparer : IComparer<FieldInfo>
-    {
-        public static readonly FieldInfoNameComparer Instance = new();
-        private FieldInfoNameComparer() { }
-        public int Compare(FieldInfo? x, FieldInfo? y) => StringComparer.Ordinal.Compare(x!.Name, y!.Name);
     }
 }

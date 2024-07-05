@@ -4,9 +4,6 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters.Text;
 
-/// <summary>
-/// Parser factory for non-flags enums.
-/// </summary>
 internal sealed class EnumTextConverterFactory : CsvConverterFactory<char>
 {
     public static EnumTextConverterFactory Instance { get; } = new();

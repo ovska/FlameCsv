@@ -105,7 +105,7 @@ public interface ICsvRecord<T> where T : unmanaged, IEquatable<T>
     /// <param name="index">0-based field index</param>
     /// <returns>Parsed value</returns>
     /// <exception cref="ArgumentOutOfRangeException"/>
-    /// <exception cref="CsvParserMissingException"/>
+    /// <exception cref="CsvConverterMissingException"/>
     /// <exception cref="CsvParseException"/>
     TValue GetField<TValue>(int index);
 
@@ -119,7 +119,7 @@ public interface ICsvRecord<T> where T : unmanaged, IEquatable<T>
     /// <exception cref="ArgumentException"/>
     /// <exception cref="ArgumentNullException"/>
     /// <exception cref="InvalidOperationException"/>
-    /// <exception cref="CsvParserMissingException"/>
+    /// <exception cref="CsvConverterMissingException"/>
     /// <exception cref="CsvParseException"/>
     TValue GetField<TValue>(string name);
 

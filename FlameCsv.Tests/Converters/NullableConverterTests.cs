@@ -8,7 +8,7 @@ public static class NullableConverterTests
     public static void Should_Return_Null()
     {
         var converter = new NullableConverter<char, int>(
-            new Int32TextConverter(CsvTextOptions.Default),
+            new SpanTextConverter<int>(CsvOptions<char>.Default),
             "".AsMemory());
 
         Assert.True(converter.TryParse("", out var value1));
@@ -28,9 +28,9 @@ public static class NullableConverterTests
         Assert.True(factory.CanConvert(typeof(int?)));
         Assert.False(factory.CanConvert(typeof(int)));
 
-        var emptyOptions = new CsvTextOptions
+        var emptyOptions = new CsvOptions<char>
         {
-            Converters = { factory, new Int32TextConverter(CsvTextOptions.Default) },
+            Converters = { factory, new SpanTextConverter<int>(CsvOptions<char>.Default) },
             Null = "null",
         };
         var parser = (CsvConverter<char, int?>)factory.Create(typeof(int?), emptyOptions);

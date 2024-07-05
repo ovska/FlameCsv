@@ -20,7 +20,7 @@ public class ModeBench2
     {
         ReadOnlySequence<char> data = _data;
 
-        while (OLD(CsvTextOptions.Default, ref data, out _, out _))
+        while (OLD(CsvOptions<char>.Default, ref data, out _, out _))
         {
         }
     }
@@ -30,7 +30,7 @@ public class ModeBench2
     {
         ReadOnlySequence<char> data = _data;
 
-        while (NEW(CsvTextOptions.Default, ref data, out _, out _))
+        while (NEW(CsvOptions<char>.Default, ref data, out _, out _))
         {
         }
     }
@@ -41,8 +41,8 @@ public class ModeBench2
         out CsvRecordMeta meta)
         where T : unmanaged, IEquatable<T>
     {
-        ReadOnlySpan<T> newLine = options._newline.Span;
-        T quote = options._quote;
+        ReadOnlySpan<T> newLine = options.Dialect.Newline.Span;
+        T quote = options.Dialect.Quote;
         meta = default;
         ref uint quoteCount = ref meta.quoteCount;
 
@@ -205,8 +205,8 @@ public class ModeBench2
         out CsvRecordMeta meta)
         where T : unmanaged, IEquatable<T>
     {
-        ReadOnlySpan<T> newLine = options._newline.Span;
-        T quote = options._quote;
+        ReadOnlySpan<T> newLine = options.Dialect.Newline.Span;
+        T quote = options.Dialect.Quote;
         meta = default;
         ref uint quoteCount = ref meta.quoteCount;
 

@@ -21,7 +21,9 @@ internal static class SealableUtil
         TValue value,
         [CallerMemberName] string memberName = "")
     {
-        sealable.ThrowIfReadOnly(memberName);
+        if (sealable.IsReadOnly)
+            ThrowForIsReadOnly(memberName);
+
         field = value;
     }
 
