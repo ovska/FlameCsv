@@ -18,7 +18,7 @@ public static partial class CsvWriter
         ArgumentNullException.ThrowIfNull(textWriter);
         ArgumentNullException.ThrowIfNull(typeMap);
 
-        options ??= CsvTextOptions.Default;
+        options ??= CsvOptions<char>.Default;
         var dematerializer = typeMap.GetDematerializer(options);
 
         WriteCore(
@@ -41,7 +41,7 @@ public static partial class CsvWriter
         if (cancellationToken.IsCancellationRequested)
             return Task.FromCanceled(cancellationToken);
 
-        options ??= CsvUtf8Options.Default;
+        options ??= CsvOptions<byte>.Default;
         var dematerializer = typeMap.GetDematerializer(options);
 
         return WriteAsyncCore(
@@ -66,7 +66,7 @@ public static partial class CsvWriter
         if (cancellationToken.IsCancellationRequested)
             return Task.FromCanceled(cancellationToken);
 
-        options ??= CsvTextOptions.Default;
+        options ??= CsvOptions<char>.Default;
         var dematerializer = typeMap.GetDematerializer(options);
 
         return WriteAsyncCore(
@@ -92,7 +92,7 @@ public static partial class CsvWriter
         if (cancellationToken.IsCancellationRequested)
             return Task.FromCanceled(cancellationToken);
 
-        options ??= CsvUtf8Options.Default;
+        options ??= CsvOptions<byte>.Default;
         var dematerializer = typeMap.GetDematerializer(options);
 
         return WriteAsyncCore(
@@ -122,7 +122,7 @@ public static partial class CsvWriter
         if (cancellationToken.IsCancellationRequested)
             return Task.FromCanceled(cancellationToken);
 
-        options ??= CsvUtf8Options.Default;
+        options ??= CsvOptions<byte>.Default;
         var dematerializer = typeMap.GetDematerializer(options);
 
         return WriteAsyncCore(
@@ -146,7 +146,7 @@ public static partial class CsvWriter
         if (cancellationToken.IsCancellationRequested)
             return Task.FromCanceled(cancellationToken);
 
-        options ??= CsvTextOptions.Default;
+        options ??= CsvOptions<char>.Default;
         var dematerializer = typeMap.GetDematerializer(options);
 
         return WriteAsyncCore(
@@ -171,7 +171,7 @@ public static partial class CsvWriter
         ArgumentNullException.ThrowIfNull(typeMap);
         ArgumentOutOfRangeException.ThrowIfNegative(initialCapacity);
 
-        options ??= CsvTextOptions.Default;
+        options ??= CsvOptions<char>.Default;
         var dematerializer = typeMap.GetDematerializer(options);
 
         var sb = new StringBuilder(capacity: initialCapacity);

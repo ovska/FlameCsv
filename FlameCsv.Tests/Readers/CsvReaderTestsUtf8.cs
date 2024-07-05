@@ -14,9 +14,9 @@ public sealed class CsvReaderTestsUtf8 : CsvReaderTestsBase<byte>
 
     protected override CsvOptions<byte> CreateOptions(NewlineToken newline, char? escape)
     {
-        return new CsvUtf8Options
+        return new CsvOptions<byte>
         {
-            DateTimeFormat = 'O',
+            Formats = { { typeof(DateTime), "O" } },
             Escape = escape,
             Newline = newline switch
             {

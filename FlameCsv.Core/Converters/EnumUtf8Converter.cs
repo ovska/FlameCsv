@@ -9,12 +9,16 @@ public sealed class EnumUtf8Converter<TEnum>
 {
     private readonly bool _allowUndefinedValues;
     private readonly bool _ignoreCase;
+    private readonly string? _format;
+    private readonly IFormatProvider? _formatProvider;
 
     public EnumUtf8Converter(CsvOptions<byte> options)
     {
         ArgumentNullException.ThrowIfNull(options);
         _allowUndefinedValues = options.AllowUndefinedEnumValues;
         _ignoreCase = options.IgnoreEnumCase;
+        _formatProvider = options.GetFormatProvider(typeof(TEnum));
+        _format = options.GetFormat(typeof(TEnum), options.EnumFormat);
     }
 
     public override bool TryParse(ReadOnlySpan<byte> source, out TEnum value)
@@ -30,16 +34,7 @@ public sealed class EnumUtf8Converter<TEnum>
         }
         else
         {
-            int exactLength = Encoding.UTF8.GetCharCount(source);
-
-            if (Token<char>.CanStackalloc(exactLength))
-            {
-                chars = stackalloc char[exactLength];
-            }
-            else
-            {
-                chars = toReturn = ArrayPool<char>.Shared.Rent(maxLength);
-            }
+            chars = toReturn = ArrayPool<char>.Shared.Rent(maxLength);
         }
 
         int written = Encoding.UTF8.GetChars(source, chars);
@@ -55,6 +50,20 @@ public sealed class EnumUtf8Converter<TEnum>
 
     public override bool TryFormat(Span<byte> destination, TEnum value, out int charsWritten)
     {
-        return Utf8.TryWrite(destination, $"{value}", out charsWritten);
+        Utf8.TryWriteInterpolatedStringHandler handler = new(
+            literalLength: 0,
+            formattedCount: 1,
+            destination: destination,
+            provider: _formatProvider,
+            shouldAppend: out bool shouldAppend);
+
+        if (shouldAppend)
+        {
+            handler.AppendFormatted(value, _format);
+            return Utf8.TryWrite(destination, ref handler, out charsWritten);
+        }
+
+        charsWritten = 0;
+        return false;
     }
 }

@@ -4,17 +4,45 @@ using CommunityToolkit.Diagnostics;
 
 namespace FlameCsv.Utilities;
 
-internal sealed class TypeDictionary<TValue> : IDictionary<Type, TValue>
+internal sealed class TypeDictionary<TValue, TAlternate> : IDictionary<Type, TValue>
 {
+    public TypeDictionary<TValue, TAlternate> Clone()
+    {
+        return new TypeDictionary<TValue, TAlternate>(
+            _owner,
+            _convert,
+            this);
+    }
+
     private readonly ISealable _owner;
     private readonly Dictionary<Type, TValue> _dictionary;
+    private readonly Dictionary<Type, TAlternate>? _alternate;
+    private readonly Func<TValue, TAlternate>? _convert;
 
     public TypeDictionary(
         ISealable owner,
-        TypeDictionary<TValue>? source = null)
+        Func<TValue, TAlternate>? convert = null,
+        TypeDictionary<TValue, TAlternate>? source = null)
     {
         _owner = owner;
-        _dictionary = source is null ? new() : new(source._dictionary);
+        _dictionary = source is null ? new(ReferenceEqualityComparer.Instance) : new(source._dictionary, ReferenceEqualityComparer.Instance);
+
+        if (typeof(TAlternate) == typeof(object))
+        {
+            _convert = null!;
+            _alternate = null!;
+        }
+        else
+        {
+            _convert = convert ?? throw new InvalidOperationException();
+            _alternate = new Dictionary<Type, TAlternate>(ReferenceEqualityComparer.Instance);
+
+            if (source?._alternate is not null)
+            {
+                foreach (var (k, v) in source._alternate)
+                    _alternate[k] = v;
+            }
+        }
     }
 
     public TValue this[Type key]
@@ -22,10 +50,13 @@ internal sealed class TypeDictionary<TValue> : IDictionary<Type, TValue>
         get => _dictionary[key];
         set
         {
-            ArgumentNullException.ThrowIfNull(value);
+            ArgumentNullException.ThrowIfNull(key);
             ValidateKey(key);
             _owner.ThrowIfReadOnly();
             _dictionary[key] = value;
+
+            if (_convert is not null)
+                _alternate![key] = _convert(value);
         }
     }
 
@@ -41,12 +72,15 @@ internal sealed class TypeDictionary<TValue> : IDictionary<Type, TValue>
         ValidateKey(key);
         _owner.ThrowIfReadOnly();
         _dictionary[key] = value;
+        if (_convert is not null)
+            _alternate![key] = _convert(value);
     }
 
     public void Clear()
     {
         _owner.ThrowIfReadOnly();
         _dictionary.Clear();
+        _alternate?.Clear();
     }
 
     public bool ContainsKey(Type key)
@@ -58,7 +92,9 @@ internal sealed class TypeDictionary<TValue> : IDictionary<Type, TValue>
     public bool Remove(Type key)
     {
         ArgumentNullException.ThrowIfNull(key);
+        ValidateKey(key);
         _owner.ThrowIfReadOnly();
+        _alternate?.Remove(key);
         return _dictionary.Remove(key);
     }
 
@@ -68,15 +104,18 @@ internal sealed class TypeDictionary<TValue> : IDictionary<Type, TValue>
         return _dictionary.TryGetValue(key, out value);
     }
 
+    public bool TryGetAlternate(Type key, [MaybeNullWhen(false)] out TAlternate value)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        value = default!;
+        return _alternate?.TryGetValue(key, out value) ?? false;
+    }
+
     private static void ValidateKey(Type type)
     {
-        if (type.IsPointer ||
-            type.IsByRef ||
-            type.IsGenericTypeDefinition ||
-            (type.IsValueType && !(type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))))
+        if (type.IsPointer || type.IsByRef || type.IsByRefLike || type.IsGenericTypeDefinition)
         {
-            ThrowHelper.ThrowArgumentException(
-                $"Null tokens are only valid for concrete types that can be null (was: {type.ToTypeString()})");
+            ThrowHelper.ThrowArgumentException("key", (string?)null);
         }
     }
 

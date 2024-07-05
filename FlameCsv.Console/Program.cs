@@ -1,11 +1,8 @@
 ﻿using System.Buffers.Text;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Converters;
-using FlameCsv.Reading;
-using FlameCsv.Writing;
 
 namespace FlameCsv.Console
 {
@@ -21,9 +18,6 @@ namespace FlameCsv.Console
             System.Console.WriteLine(test[0].Id);
             System.Console.WriteLine(test[0].Name);
             System.Console.WriteLine(test[0].IsEnabled);
-
-            var options = CsvTextOptions.Default;
-            CsvConverter<char, long?> @__Converter_Age = FlameCsv.Converters.DefaultConverters.GetOrCreate(options, static o => new NullableConverter<char, long>(FlameCsv.Converters.DefaultConverters.CreateInt64((FlameCsv.CsvTextOptions)o), o.GetNullToken(typeof(long))));
         }
     }
 
@@ -32,9 +26,10 @@ namespace FlameCsv.Console
 
     public class Obj
     {
+        public DayOfWeek DOF { get; set; }
         public int Id { get; set; }
         public string? Name { get; set; }
         public bool IsEnabled { get; set; }
-        [CsvConverter<char, Int64TextConverter>] public long? Age { get; set; }
+        [CsvConverter<char, SpanTextConverter<long>>] public long? Age { get; set; }
     }
 }

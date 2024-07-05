@@ -6,24 +6,17 @@ namespace FlameCsv.Converters;
 
 internal sealed class PoolingStringTextConverter : CsvConverter<char, string>
 {
-    public override bool HandleNull => true;
-
-    public static PoolingStringTextConverter SharedInstance { get; } = new(CsvTextOptions.Default);
+    public static PoolingStringTextConverter SharedInstance { get; } = new(CsvOptions<char>.Default);
 
     private readonly StringPool _stringPool;
-    private readonly string? _null;
 
-    public PoolingStringTextConverter(CsvTextOptions options)
+    public PoolingStringTextConverter(CsvOptions<char> options)
     {
         _stringPool = options.StringPool ?? StringPool.Shared;
-        _null = options.NullTokens.TryGetValue(typeof(string), out var value) ? value : null;
     }
 
     public override bool TryFormat(Span<char> destination, string value, out int charsWritten)
     {
-        if (value is null)
-            return _null.AsSpan().TryWriteTo(destination, out charsWritten);
-
         return value.AsSpan().TryWriteTo(destination, out charsWritten);
     }
 

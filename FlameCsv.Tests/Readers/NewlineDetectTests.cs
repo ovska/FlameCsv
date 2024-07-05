@@ -24,8 +24,8 @@ public static class NewlineDetectTests
     public static void RFC4180(string input, bool escape)
     {
         // repeat to ensure the newline detection is valid for the parser instance, not whole Options
-        var textOpts = new CsvTextOptions { Newline = null, Escape = escape ? '^' : null };
-        var utf8Opts = new CsvUtf8Options { Newline = default, Escape = escape ? '^' : null };
+        var textOpts = new CsvOptions<char> { Newline = null, Escape = escape ? '^' : null };
+        var utf8Opts = new CsvOptions<byte> { Newline = default, Escape = escape ? '^' : null };
 
         for (int i = 0; i < 2; i++)
         {
@@ -34,7 +34,7 @@ public static class NewlineDetectTests
         }
 
         Assert.Empty(textOpts.Newline ?? "");
-        Assert.Empty(utf8Opts.Newline);
+        Assert.Empty(utf8Opts.Newline ?? "");
     }
 
     private static void Impl<T>(

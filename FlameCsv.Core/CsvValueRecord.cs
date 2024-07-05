@@ -163,7 +163,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
 
         if (!parser.TryParse(field.Span, out var value))
         {
-            Throw.ParseFailed<T>(field, parser, _options, typeof(TValue));
+            Throw.ParseFailed(field, parser, _options, typeof(TValue));
         }
 
         return value;

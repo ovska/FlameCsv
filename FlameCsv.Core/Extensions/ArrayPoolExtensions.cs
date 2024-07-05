@@ -13,7 +13,7 @@ internal static class ArrayPoolExtensions
         if (sequence.IsSingleSegment)
             return sequence.First;
 
-        int length = (int)sequence.Length;
+        int length = checked((int)sequence.Length);
 
         if (length == 0)
             return ReadOnlyMemory<T>.Empty;

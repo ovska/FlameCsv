@@ -7,8 +7,8 @@ namespace FlameCsv.Tests.Readers;
 
 public class SequenceReaderTests
 {
-    private readonly CsvTextOptions _crlfOptions = new() { Newline = "\r\n", ArrayPool = new ReturnTrackingArrayPool<char>() };
-    private readonly CsvTextOptions _lfOptions = new() { Newline = "\n", ArrayPool = new ReturnTrackingArrayPool<char>() };
+    private readonly CsvOptions<char> _crlfOptions = new() { Newline = "\r\n", ArrayPool = new ReturnTrackingArrayPool<char>() };
+    private readonly CsvOptions<char> _lfOptions = new() { Newline = "\n", ArrayPool = new ReturnTrackingArrayPool<char>() };
 
     [Fact]
     public void Should_Read_LF()
@@ -173,7 +173,7 @@ public class SequenceReaderTests
     public void Should_Find_Lines(string data, string expected, uint quoteCount)
     {
         var seq = new ReadOnlySequence<char>(data.AsMemory());
-        using var parser = CsvParser<char>.Create(new CsvTextOptions { Newline = "|", ArrayPool = ReturnTrackingArrayPool<char>.Shared });
+        using var parser = CsvParser<char>.Create(new CsvOptions<char> { Newline = "|", ArrayPool = ReturnTrackingArrayPool<char>.Shared });
         parser.Reset(seq);
 
         bool result = parser.TryReadLine(out var line, out var meta, isFinalBlock: false);

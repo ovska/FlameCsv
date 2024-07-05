@@ -20,7 +20,7 @@ internal static class UtilityExtensions
     public static string AsPrintableString<T>(this CsvOptions<T> options, ReadOnlyMemory<T> value, int knownNewlineLength = 0)
         where T : unmanaged, IEquatable<T>
     {
-        string? content = options._allowContentInExceptions ? options.GetAsString(value.Span) : null;
+        string? content = options.AllowContentInExceptions ? options.GetAsString(value.Span) : null;
 
         string structure = string.Create(
             length: value.Length,
@@ -30,7 +30,8 @@ internal static class UtilityExtensions
                 (CsvOptions<T> options, ReadOnlyMemory<T> memory, int knownNewlineLength) = state;
                 var source = memory.Span;
 
-                scoped ReadOnlySpan<T> newline = options._newline.Span;
+                ref readonly CsvDialect<T> dialect = ref options.Dialect;
+                scoped ReadOnlySpan<T> newline = dialect.Newline.Span;
 
                 if (newline.Length == 0)
                 {
@@ -48,15 +49,15 @@ internal static class UtilityExtensions
                 {
                     T token = source[i];
 
-                    if (token.Equals(options._delimiter))
+                    if (token.Equals(dialect.Delimiter))
                     {
                         destination[i] = ',';
                     }
-                    else if (token.Equals(options._quote))
+                    else if (token.Equals(dialect.Quote))
                     {
                         destination[i] = '"';
                     }
-                    else if (options._escape.HasValue && token.Equals(options._escape.Value))
+                    else if (dialect.Escape.HasValue && token.Equals(dialect.Escape.Value))
                     {
                         destination[i] = 'E';
                     }

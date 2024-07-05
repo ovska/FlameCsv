@@ -61,9 +61,10 @@ public ref struct CsvFieldReader<T> where T : unmanaged, IEquatable<T>
     public uint quotesRemaining;
     public uint escapesRemaining;
 
-    public readonly T Delimiter => _options._delimiter;
-    public readonly T Quote => _options._quote;
-    public readonly T? Escape => _options._escape;
+    private readonly ref readonly CsvDialect<T> _dialect;
+    public readonly T Delimiter => _dialect.Delimiter;
+    public readonly T Quote => _dialect.Quote;
+    public readonly T? Escape => _dialect.Escape;
     public readonly ReadOnlySpan<T> Whitespace { get; }
 
     private readonly CsvOptions<T> _options;
@@ -82,7 +83,8 @@ public ref struct CsvFieldReader<T> where T : unmanaged, IEquatable<T>
         Record = record.Span;
 
         _options = options;
-        Whitespace = options._whitespace.Span;
+        _dialect = ref options.Dialect;
+        Whitespace = _dialect.Whitespace.Span;
 
         _record = record;
 

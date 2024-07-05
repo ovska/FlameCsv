@@ -36,15 +36,6 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         // validates it on initialization
     }
 
-    public CsvRecord(ReadOnlyMemory<T> record, CsvOptions<T> options)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        options.MakeReadOnly();
-
-        Options = options;
-        (RawRecord, _values) = InitializeFromValues(record, options);
-    }
-
     int IReadOnlyCollection<ReadOnlyMemory<T>>.Count => GetFieldCount();
 
     ReadOnlyMemory<T> IReadOnlyList<ReadOnlyMemory<T>>.this[int index] => this[index];
@@ -95,7 +86,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         var converter = Options.GetConverter<TValue>();
 
         if (!converter.TryParse(field.Span, out TValue? value))
-            Throw.ParseFailed<T>(field, converter, Options, typeof(TValue));
+            Throw.ParseFailed(field, converter, Options, typeof(TValue));
 
         return value;
     }
@@ -107,7 +98,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         var converter = Options.GetConverter<TValue>();
 
         if (!converter.TryParse(field.Span, out TValue? value))
-            Throw.ParseFailed<T>(field, converter, Options, typeof(TValue));
+            Throw.ParseFailed(field, converter, Options, typeof(TValue));
 
         return value;
     }
@@ -184,7 +175,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
             return new PreservedValues(record.RawRecord.SafeCopy(), _values);
         }
 
-        var array = new T[totalLength];
+        T[] array = GC.AllocateUninitializedArray<T>(totalLength);
         var data = new Memory<T>(array, 0, record.RawRecord.Length);
         record.RawRecord.CopyTo(data);
 
@@ -203,69 +194,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         return new PreservedValues(data, values);
     }
 
-    private static PreservedValues InitializeFromValues(
-        ReadOnlyMemory<T> record,
-        CsvOptions<T> options)
-    {
-        T[]? buffer = null;
-        var meta = CsvParser<T>.GetRecordMeta(record, options);
-
-        scoped CsvFieldReader<T> reader = new(
-            options,
-            record,
-            [],
-            ref buffer,
-            in meta);
-        int index = 0;
-
-        if (!Token<T>.LargeObjectHeapAllocates(record.Length * 2))
-        {
-            // use a single buffer for everything
-            Memory<T> remaining = new T[record.Length * 2];
-            record.CopyTo(remaining);
-            ReadOnlyMemory<T> copiedRecord = remaining.Slice(0, record.Length);
-            remaining = remaining.Slice(record.Length);
-            ReadOnlyMemory<T>[] values = new ReadOnlyMemory<T>[16];
-
-            while (reader.TryReadNext(out ReadOnlySpan<T> field))
-            {
-                field.CopyTo(remaining.Span);
-                values[index++] = remaining.Slice(0, field.Length);
-                remaining = remaining.Slice(field.Length);
-            }
-
-            return new PreservedValues(copiedRecord, new ArraySegment<ReadOnlyMemory<T>>(values, 0, index));
-        }
-        else
-        {
-            ReadOnlyMemory<T>[] values = new ReadOnlyMemory<T>[16];
-
-            while (reader.TryReadNext(out ReadOnlySpan<T> field))
-            {
-                if (index >= values.Length)
-                    Array.Resize(ref values, values.Length * 2);
-
-                values[index++] = field.ToArray();
-            }
-
-            return new PreservedValues(
-                record.SafeCopy(),
-                new ArraySegment<ReadOnlyMemory<T>>(values, 0, index));
-        }
-    }
     IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator() => _values.GetEnumerator();
-
     IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<ReadOnlyMemory<T>>)this).GetEnumerator();
-
-    private readonly struct PreservedValues(ReadOnlyMemory<T> record, ArraySegment<ReadOnlyMemory<T>> fields)
-    {
-        public ReadOnlyMemory<T> Record => record;
-        public ArraySegment<ReadOnlyMemory<T>> Fields => fields;
-
-        public void Deconstruct(out ReadOnlyMemory<T> record, out ArraySegment<ReadOnlyMemory<T>> fields)
-        {
-            record = Record;
-            fields = Fields;
-        }
-    }
+    private readonly record struct PreservedValues(ReadOnlyMemory<T> Record, ArraySegment<ReadOnlyMemory<T>> Fields);
 }

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
 using FlameCsv.Enumeration;

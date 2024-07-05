@@ -41,7 +41,7 @@ public sealed class CsvBooleanTextValuesAttribute : CsvConverterAttribute<char>
 
         if (targetType == typeof(bool?))
         {
-            return new NullableConverter<char, bool>(converter, options.GetNullToken(typeof(bool?)));
+            return new NullableConverter<char, bool>(converter, options.GetNullToken(typeof(bool)));
         }
 
         throw new CsvConfigurationException(

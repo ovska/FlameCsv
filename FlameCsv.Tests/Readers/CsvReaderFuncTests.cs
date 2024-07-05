@@ -13,7 +13,7 @@ public static class CsvReaderFuncTests
 
         var enumerable = CsvReader.ReadRecordsAsync(
             reader,
-            new CsvTextOptions { HasHeader = false },
+            new CsvOptions<char> { HasHeader = false },
             static (int id, bool enabled, string name) => new { id, enabled, name });
 
         var results = new List<(int id, bool enabled, string name)>();

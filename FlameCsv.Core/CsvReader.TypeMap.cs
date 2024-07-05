@@ -19,7 +19,7 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(typeMap);
         return new CsvTypeMapEnumerable<char, TValue>(
             new ReadOnlySequence<char>(csv.AsMemory()),
-            options ?? CsvTextOptions.Default,
+            options ?? CsvOptions<char>.Default,
             typeMap);
     }
 
@@ -31,7 +31,7 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(typeMap);
         return new CsvTypeMapEnumerable<char, TValue>(
             new ReadOnlySequence<char>(csv),
-            options ?? CsvTextOptions.Default,
+            options ?? CsvOptions<char>.Default,
             typeMap);
     }
 
@@ -43,7 +43,7 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(typeMap);
         return new CsvTypeMapEnumerable<byte, TValue>(
             new ReadOnlySequence<byte>(csv),
-            options ?? CsvUtf8Options.Default,
+            options ?? CsvOptions<byte>.Default,
             typeMap);
     }
 
@@ -84,7 +84,7 @@ public static partial class CsvReader
         if (bufferSize != -1)
             ArgumentOutOfRangeException.ThrowIfLessThan(bufferSize, 1);
 
-        options ??= CsvTextOptions.Default;
+        options ??= CsvOptions<char>.Default;
         var textReader = new StreamReader(stream, encoding: encoding, bufferSize: bufferSize, leaveOpen: leaveOpen);
         var reader = new TextPipeReader(textReader, bufferSize, options._arrayPool);
         return new CsvTypeMapAsyncEnumerable<char, TValue>(
@@ -101,7 +101,7 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(textReader);
         ArgumentNullException.ThrowIfNull(typeMap);
 
-        options ??= CsvTextOptions.Default;
+        options ??= CsvOptions<char>.Default;
         var reader = new TextPipeReader(textReader, DefaultBufferSize, options._arrayPool);
         return new CsvTypeMapAsyncEnumerable<char, TValue>(reader, options, typeMap);
     }
@@ -116,7 +116,7 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(typeMap);
         Guard.CanRead(stream);
 
-        options ??= CsvUtf8Options.Default;
+        options ??= CsvOptions<byte>.Default;
         var reader = CreatePipeReader(stream, options._arrayPool, leaveOpen);
         return new CsvTypeMapAsyncEnumerable<byte, TValue>(new PipeReaderWrapper(reader), options, typeMap);
     }
@@ -129,6 +129,6 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(typeMap);
 
-        return new CsvTypeMapAsyncEnumerable<byte, TValue>(new PipeReaderWrapper(reader), options ?? CsvUtf8Options.Default, typeMap);
+        return new CsvTypeMapAsyncEnumerable<byte, TValue>(new PipeReaderWrapper(reader), options ?? CsvOptions<byte>.Default, typeMap);
     }
 }

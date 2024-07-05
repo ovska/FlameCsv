@@ -10,8 +10,12 @@ internal sealed class CustomBooleanUtf8Converter : CsvConverter<byte, bool>
     private readonly byte[][] _trueValues;
     private readonly byte[][] _falseValues;
 
-    internal CustomBooleanUtf8Converter(IList<(string text, bool value)> values)
+    internal CustomBooleanUtf8Converter(CsvOptions<byte> options)
     {
+        Debug.Assert(options._booleanValues is not null);
+
+        IList<(string text, bool value)> values = options._booleanValues;
+
         Guard.IsNotEmpty(values);
 
         List<byte[]> trues = new((values.Count / 2) + 1);

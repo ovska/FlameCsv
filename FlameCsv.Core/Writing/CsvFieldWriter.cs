@@ -73,6 +73,7 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
     private readonly T _newline1;
     private readonly T _newline2;
     private readonly T? _escape;
+    private readonly ReadOnlyMemory<T> _whitespace;
     private readonly int _newlineLength;
 
     public CsvFieldWriter(TWriter writer, CsvOptions<T> options)
@@ -83,9 +84,11 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
         _writer = writer;
         _options = options;
 
-        _delimiter = options._delimiter;
-        _quote = options._quote;
-        _escape = options._escape;
+        ref readonly CsvDialect<T> dialect = ref options.Dialect;
+        _delimiter = dialect.Delimiter;
+        _quote = dialect.Quote;
+        _escape = dialect.Escape;
+        _whitespace = dialect.Whitespace;
         options.GetNewline(out _newline1, out _newline2, out _newlineLength, forWriting: true);
     }
 
@@ -212,7 +215,7 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
                     newline1: _newline1,
                     newline2: _newline2,
                     newlineLength: _newlineLength,
-                    whitespace: _options._whitespace);
+                    whitespace: _whitespace);
 
                 if (TryEscapeAndAdvance(in escaper, destination, tokensWritten))
                     return;
@@ -226,7 +229,7 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
                     newline1: _newline1,
                     newline2: _newline2,
                     newlineLength: _newlineLength,
-                    whitespace: _options._whitespace);
+                    whitespace: _whitespace);
 
                 if (TryEscapeAndAdvance(in escaper, destination, tokensWritten))
                     return;

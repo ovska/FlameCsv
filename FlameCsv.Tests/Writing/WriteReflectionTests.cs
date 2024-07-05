@@ -20,7 +20,7 @@ public class WriteReflectionTests
             new() { Id = 2, Name = "Alice", IsEnabled = false },
         };
 
-        var opts = new CsvTextOptions { HasHeader = header, ArrayPool = null };
+        var opts = new CsvOptions<char> { HasHeader = header, ArrayPool = null };
         var sb = CsvWriter.WriteToString(data, opts);
 
         var expected =

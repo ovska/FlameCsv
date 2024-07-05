@@ -22,7 +22,7 @@ public static class EscapeModeTests
 
         var meta = new CsvRecordMeta { quoteCount = (uint)input.Count('"') };
         var record = new CsvFieldReader<char>(
-            new CsvTextOptions { Whitespace = " ", Escape = '\\' },
+            new CsvOptions<char> { Whitespace = " ", Escape = '\\' },
             input.AsMemory(),
             default,
             ref buffer,
@@ -43,7 +43,7 @@ public static class EscapeModeTests
     {
         char[]? buffer = null;
 
-        using var parser = CsvParser<char>.Create(new CsvTextOptions { Escape = '^', Quote = '\'' });
+        using var parser = CsvParser<char>.Create(new CsvOptions<char> { Escape = '^', Quote = '\'' });
         var meta = parser.GetRecordMeta(input.AsMemory());
         Span<char> stackbuffer = stackalloc char[16];
 
@@ -73,7 +73,7 @@ public static class EscapeModeTests
     public static void Should_Read_Fields(string input, string[] expected)
     {
         using var pool = new ReturnTrackingArrayPool<char>();
-        var options = new CsvTextOptions
+        var options = new CsvOptions<char>
         {
             Escape = '^',
             Quote = '\'',
@@ -112,7 +112,7 @@ public static class EscapeModeTests
         var last = first.Append(end.AsMemory());
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
 
-        using var parser = CsvParser<char>.Create(new CsvTextOptions { Newline = "\r\n", Escape = '^' });
+        using var parser = CsvParser<char>.Create(new CsvOptions<char> { Newline = "\r\n", Escape = '^' });
         parser.Reset(in seq);
 
         Assert.True(parser.TryReadLine(out var line, out _, isFinalBlock: false));
@@ -139,7 +139,7 @@ public static class EscapeModeTests
 
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
 
-        using var parser = CsvParser<char>.Create(new CsvTextOptions { Newline = "\r\n", Escape = '^' });
+        using var parser = CsvParser<char>.Create(new CsvOptions<char> { Newline = "\r\n", Escape = '^' });
         parser.Reset(in seq);
 
         var results = new List<string>();
@@ -165,7 +165,7 @@ public static class EscapeModeTests
             .Append(segments[2].AsMemory());
 
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
-        using var parser = CsvParser<char>.Create(new CsvTextOptions { Newline = newline, Escape = '^' });
+        using var parser = CsvParser<char>.Create(new CsvOptions<char> { Newline = newline, Escape = '^' });
         parser.Reset(in seq);
 
         Assert.True(parser.TryReadLine(out var line, out _, isFinalBlock: false));
@@ -179,7 +179,7 @@ public static class EscapeModeTests
         const string data = "\"testxyz\",\"broken";
         var seq = new ReadOnlySequence<char>(data.AsMemory());
 
-        using var parser = CsvParser<char>.Create(new CsvTextOptions { Escape = '^' });
+        using var parser = CsvParser<char>.Create(new CsvOptions<char> { Escape = '^' });
         parser.Reset(in seq);
 
         Assert.False(parser.TryReadLine(out _, out _, isFinalBlock: false));
@@ -194,7 +194,7 @@ public static class EscapeModeTests
         string noNewline)
     {
         using var pool = new ReturnTrackingArrayPool<char>();
-        var options = new CsvTextOptions
+        var options = new CsvOptions<char>
         {
             Escape = '^',
             Quote = '\'',

@@ -1,25 +1,13 @@
 using System.Text;
-using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
 
 internal sealed class StringUtf8Converter : CsvConverter<byte, string>
 {
-    public override bool HandleNull => true;
-
-    private readonly ReadOnlyMemory<byte> _null;
-
-    public StringUtf8Converter(CsvUtf8Options options)
-    {
-        if (options.NullTokens.TryGetValue(typeof(string), out var value))
-            _null = value;
-    }
+    public static readonly StringUtf8Converter Instance = new();
 
     public override bool TryFormat(Span<byte> destination, string value, out int charsWritten)
     {
-        if (value is null)
-            return _null.Span.TryWriteTo(destination, out charsWritten);
-
         return Encoding.UTF8.TryGetBytes(value, destination, out charsWritten);
     }
 

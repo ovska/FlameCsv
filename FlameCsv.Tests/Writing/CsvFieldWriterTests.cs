@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using FlameCsv.Binding;
 using FlameCsv.Extensions;
 using FlameCsv.Writing;
 
@@ -131,7 +130,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
     {
         var writer = CsvFieldWriter.Create(TextWriter.Null, new BrokenOptions
         {
-            _delimiter = ',', _quote = '"', _newline = "\n".AsMemory(), Write = tokensWritten
+            Delimiter = ',', Quote = '"', Newline = "\n", Write = tokensWritten
         });
         Assert.Throws<InvalidOperationException>(() => writer.WriteText("test"));
         writer.Writer.Complete(null);
@@ -163,7 +162,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
         _textWriter = new StringWriter();
         _writer = new CsvFieldWriter<char, CsvCharBufferWriter>(
             new CsvCharBufferWriter(_textWriter, AllocatingArrayPool<char>.Instance, bufferSize),
-            new CsvTextOptions { FieldEscaping = quoting, Null = "null", Escape = escape });
+            new CsvOptions<char> { FieldEscaping = quoting, Null = "null", Escape = escape });
     }
 
     private sealed class Formatter : CsvConverter<char, string>
@@ -211,11 +210,5 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
         }
 
         public int Write { get; set; }
-
-        public override string GetAsString(ReadOnlySpan<char> field) => throw new NotImplementedException();
-        public override IHeaderBinder<char> GetHeaderBinder() => throw new NotImplementedException();
-        public override ReadOnlyMemory<char> GetNullToken(Type resultType) => throw new NotImplementedException();
-        public override bool TryGetChars(ReadOnlySpan<char> field, Span<char> destination, out int charsWritten) => throw new NotImplementedException();
-        protected internal override bool TryGetDefaultConverter(Type type, [NotNullWhen(true)] out CsvConverter<char>? converter) => throw new NotImplementedException();
     }
 }

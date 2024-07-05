@@ -181,12 +181,12 @@ public partial class WriteBench
     [Benchmark]
     public void Generic_Fields()
     {
-        var writer = CsvFieldWriter.Create(TextWriter.Null, CsvTextOptions.Default);
+        var writer = CsvFieldWriter.Create(TextWriter.Null, CsvOptions<char>.Default);
 
-        var c1 = CsvTextOptions.Default.GetConverter<int>();
-        var c2 = CsvTextOptions.Default.GetConverter<string>();
-        var c3 = CsvTextOptions.Default.GetConverter<bool>();
-        var c4 = CsvTextOptions.Default.GetConverter<DateTime>();
+        var c1 = CsvOptions<char>.Default.GetConverter<int>();
+        var c2 = CsvOptions<char>.Default.GetConverter<string>();
+        var c3 = CsvOptions<char>.Default.GetConverter<bool>();
+        var c4 = CsvOptions<char>.Default.GetConverter<DateTime>();
 
         writer.WriteText("Id");
         writer.WriteDelimiter();

@@ -15,7 +15,7 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IE
     {
         CsvRecordMeta meta = new()
         {
-            quoteCount = (uint)System.MemoryExtensions.Count(line.Span, options._quote),
+            quoteCount = (uint)System.MemoryExtensions.Count(line.Span, options.Dialect.Quote),
         };
 
         if (meta.quoteCount % 2 != 0)

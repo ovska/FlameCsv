@@ -23,7 +23,7 @@ public sealed class CsvEnumerationTests : IDisposable
             "name,id\r\n" +
             "Alice,2\r\n";
 
-        using var enumerator = new CsvRecordEnumerator<char>(data.ToArray(), CsvTextOptions.Default);
+        using var enumerator = new CsvRecordEnumerator<char>(data.ToArray(), CsvOptions<char>.Default);
 
         Assert.True(enumerator.MoveNext());
         var record1 = enumerator.Current.ParseRecord<Shim>();
@@ -45,7 +45,7 @@ public sealed class CsvEnumerationTests : IDisposable
     {
         const string data = "1,\"Test\",true\r\n2,\"Asd\",false\r\n";
 
-        using var enumerator = new CsvRecordEnumerator<char>(data.ToArray(), new CsvTextOptions { HasHeader = false });
+        using var enumerator = new CsvRecordEnumerator<char>(data.ToArray(), new CsvOptions<char> { HasHeader = false });
 
         Assert.True(enumerator.MoveNext());
         Assert.Equal("1,\"Test\",true", enumerator.Current.RawRecord.ToString());
@@ -67,7 +67,7 @@ public sealed class CsvEnumerationTests : IDisposable
 
         int index = 0;
 
-        foreach (var record in new CsvRecordEnumerable<char>(data.AsMemory(), new CsvTextOptions { HasHeader = false }))
+        foreach (var record in new CsvRecordEnumerable<char>(data.AsMemory(), new CsvOptions<char> { HasHeader = false }))
         {
             var shim = record.ParseRecord<Shim>();
             Assert.Equal(index + 1, shim.Id);
@@ -87,7 +87,7 @@ public sealed class CsvEnumerationTests : IDisposable
     {
         using var enumerator = new CsvFieldEnumerator<char>(
             "1,\"Test\",true".AsMemory(),
-            CsvTextOptions.Default);
+            CsvOptions<char>.Default);
 
         Assert.True(enumerator.MoveNext());
         Assert.Equal("1", enumerator.Current.ToString());
@@ -109,7 +109,7 @@ public sealed class CsvEnumerationTests : IDisposable
 
         using var enumerator = new CsvFieldEnumerator<char>(
             "\"xyz\"".AsMemory(),
-            CsvTextOptions.Default);
+            CsvOptions<char>.Default);
 
         Assert.True(enumerator.MoveNext());
         Assert.False(enumerator.MoveNext());
@@ -170,7 +170,7 @@ public sealed class CsvEnumerationTests : IDisposable
     [Fact]
     public void Should_Return_Fields_By_Name()
     {
-        using var enumerator = new CsvRecordEnumerable<char>("A,B,C\r\n1,2,3".AsMemory(), new CsvTextOptions { HasHeader = true })
+        using var enumerator = new CsvRecordEnumerable<char>("A,B,C\r\n1,2,3".AsMemory(), new CsvOptions<char> { HasHeader = true })
             .GetEnumerator();
 
         Assert.True(enumerator.MoveNext());
@@ -187,7 +187,7 @@ public sealed class CsvEnumerationTests : IDisposable
     {
         _enumerator = new CsvRecordEnumerator<char>(
             "1,\"Test\",true".AsMemory(),
-            new CsvTextOptions { HasHeader = false });
+            new CsvOptions<char> { HasHeader = false });
         _enumerator.MoveNext();
         return _enumerator.Current;
     }

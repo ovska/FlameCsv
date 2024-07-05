@@ -1,7 +1,5 @@
-﻿using System;
-using System.Buffers;
+﻿using System.Buffers;
 using System.Text;
-using CsvHelper;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using nietras.SeparatedValues;
@@ -45,7 +43,7 @@ public class CsvEnumerateBench
     //[Benchmark]
     //public void Flame_Utf8()
     //{
-    //    foreach (var record in new CsvRecordEnumerable<byte>(in _byteSeq, CsvUtf8Options.Default))
+    //    foreach (var record in new CsvRecordEnumerable<byte>(in _byteSeq, CsvOptions<byte>.Default))
     //    {
     //        foreach (var field in record)
     //        {
@@ -59,7 +57,7 @@ public class CsvEnumerateBench
     ////{
     ////    using var stream = GetFileStream();
 
-    ////    await foreach (var record in CsvReader.EnumerateAsync(stream, CsvUtf8Options.Default))
+    ////    await foreach (var record in CsvReader.EnumerateAsync(stream, CsvOptions<byte>.Default))
     ////    {
     ////        foreach (var field in record)
     ////        {
@@ -71,7 +69,7 @@ public class CsvEnumerateBench
     //[Benchmark]
     //public void Flame_Char()
     //{
-    //    foreach (var record in new CsvRecordEnumerable<char>(in _charSeq, CsvTextOptions.Default))
+    //    foreach (var record in new CsvRecordEnumerable<char>(in _charSeq, CsvOptions<char>.Default))
     //    {
     //        foreach (var field in record)
     //        {
@@ -86,7 +84,7 @@ public class CsvEnumerateBench
     //    await using var stream = GetFileStream();
     //    using var reader = new StreamReader(stream, Encoding.ASCII, false);
 
-    //    await foreach (var record in CsvReader.EnumerateAsync(reader, CsvTextOptions.Default))
+    //    await foreach (var record in CsvReader.EnumerateAsync(reader, CsvOptions<char>.Default))
     //    {
     //        foreach (var field in record)
     //        {
@@ -100,13 +98,13 @@ public class CsvEnumerateBench
     {
         byte[]? unescapeArray = null;
         Span<byte> unescapeBuffer = stackalloc byte[128];
-        using var parser = CsvParser<byte>.Create(CsvUtf8Options.Default);
+        using var parser = CsvParser<byte>.Create(CsvOptions<byte>.Default);
         parser.Reset(new ReadOnlySequence<byte>(_bytes));
 
         while (parser.TryReadLine(out var line, out var meta, isFinalBlock: false))
         {
             CsvFieldReader<byte> state = new(
-                CsvUtf8Options.Default,
+                CsvOptions<byte>.Default,
                 line,
                 unescapeBuffer,
                 ref unescapeArray,
@@ -126,7 +124,7 @@ public class CsvEnumerateBench
     {
         var reader = nietras.SeparatedValues.Sep.Reader(o => o with
         {
-            Sep = new nietras.SeparatedValues.Sep(','),
+            Sep = new Sep(','),
             CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
             HasHeader = false,
         }).From(_bytes);

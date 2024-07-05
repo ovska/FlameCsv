@@ -31,14 +31,14 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
         ArgumentNullException.ThrowIfNull(options);
         options.MakeReadOnly();
 
-        return !options._escape.HasValue
+        return !options.Dialect.Escape.HasValue
             ? new CsvParserRFC4180<T>(options)
             : new CsvParserUnix<T>(options);
     }
 
     public static CsvRecordMeta GetRecordMeta(ReadOnlyMemory<T> line, CsvOptions<T> options)
     {
-        return !options._escape.HasValue
+        return !options.Dialect.Escape.HasValue
             ? CsvParserRFC4180<T>.GetRecordMeta(line, options)
             : CsvParserUnix<T>.GetRecordMeta(line, options);
     }
@@ -99,7 +99,7 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
             _slices = [];
         }
 
-        _quote = options._quote;
+        _quote = options.Dialect.Quote;
         options.GetNewline(out _newline1, out _newline2, out _newlineLength);
     }
 

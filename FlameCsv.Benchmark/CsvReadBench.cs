@@ -28,11 +28,11 @@ public class CsvReadBench
     /*[Params(true, false)]*/
     public bool Header { get; set; } = true;
 
-    private static readonly CsvTextOptions _withHeader = new CsvTextOptions { HasHeader = true };
-    private static readonly CsvTextOptions _withoutHeader = new CsvTextOptions { HasHeader = false };
+    private static readonly CsvOptions<char> _withHeader = new CsvOptions<char> { HasHeader = true };
+    private static readonly CsvOptions<char> _withoutHeader = new CsvOptions<char> { HasHeader = false };
 
-    private static readonly CsvUtf8Options _bwithHeader = new CsvUtf8Options { HasHeader = true };
-    private static readonly CsvUtf8Options _bwithoutHeader = new CsvUtf8Options { HasHeader = false };
+    private static readonly CsvOptions<byte> _bwithHeader = new CsvOptions<byte> { HasHeader = true };
+    private static readonly CsvOptions<byte> _bwithoutHeader = new CsvOptions<byte> { HasHeader = false };
 
     private CsvOptions<char> OptionsInstance => Header ? _withHeader : _withoutHeader;
     private CsvOptions<byte> OptionsInstanceB => Header ? _bwithHeader : _bwithoutHeader;
@@ -81,7 +81,7 @@ public class CsvReadBench
     [Benchmark]
     public async Task FlameText_SG()
     {
-        await foreach (var record in CsvReader.ReadAsync<Entry>(
+        await foreach (var record in CsvReader.ReadAsync(
             GetFileStream(),
             EntryTypeMap_Text.Instance,
             OptionsInstance,
@@ -94,7 +94,7 @@ public class CsvReadBench
     [Benchmark]
     public async Task FlameUtf8_SG()
     {
-        await foreach (var record in CsvReader.ReadAsync<Entry>(
+        await foreach (var record in CsvReader.ReadAsync(
             GetFileStream(),
             EntryTypeMap_Utf8.Instance,
             OptionsInstanceB))

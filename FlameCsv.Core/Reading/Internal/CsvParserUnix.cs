@@ -11,15 +11,16 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IEqua
 
     public CsvParserUnix(CsvOptions<T> options) : base(options)
     {
-        Debug.Assert(options._escape.HasValue);
-        _escape = options._escape.Value;
+        Debug.Assert(options.Dialect.Escape.HasValue);
+        _escape = options.Dialect.Escape.Value;
     }
 
     public static new CsvRecordMeta GetRecordMeta(ReadOnlyMemory<T> line, CsvOptions<T> options)
     {
         ReadOnlySpan<T> span = line.Span;
-        T quote = options._quote;
-        T escape = options._escape.GetValueOrDefault();
+        ref readonly CsvDialect<T> dialect = ref options.Dialect;
+        T quote = dialect.Quote;
+        T escape = dialect.Escape.GetValueOrDefault();
 
         int index = span.IndexOfAny(quote, escape);
         bool skipNext = false;
