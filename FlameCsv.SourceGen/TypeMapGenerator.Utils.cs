@@ -91,7 +91,6 @@ public partial class TypeMapGenerator
     {
         string? foundArgs = null;
         INamedTypeSymbol csvOptionsSymbol = typeMap.Symbols.GetCsvOptionsType(typeMap.TokenSymbol);
-        bool foundInstance = false;
 
         foreach (var member in parser.GetMembers())
         {
@@ -111,25 +110,17 @@ public partial class TypeMapGenerator
                     foundArgs = "";
                 }
             }
-            else if (member.IsStatic
-                && member.Name == "Instance"
-                && member.CanBeReferencedByName
-                && member.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal
-                && member.Kind is SymbolKind.Field or SymbolKind.Property)
-            {
-                foundInstance |= true;
-            }
         }
 
-        if (foundArgs is null && !foundInstance)
+        if (foundArgs is null)
             typeMap.Fail(Diagnostics.NoCsvFactoryConstructorFound(parser));
 
         ITypeSymbol baseType = memberType.UnwrapNullable(out bool nullable);
         bool wrapNullable = false;
 
+        // wrap in a NullableConverter if needed, find base type
         if (nullable)
         {
-            // wrap in a NullableConverter if needed, find base type
             INamedTypeSymbol? current = parser.BaseType;
             ITypeSymbol? resultType = null;
 
@@ -166,19 +157,11 @@ public partial class TypeMapGenerator
             sb.Append(">(");
         }
 
-        if (string.IsNullOrEmpty(foundArgs) && foundInstance)
-        {
-            sb.Append(parser.ToDisplayString());
-            sb.Append(".Instance");
-        }
-        else
-        {
-            sb.Append("new ");
-            sb.Append(parser.ToDisplayString());
-            sb.Append('(');
-            sb.Append(foundArgs);
-            sb.Append(')');
-        }
+        sb.Append("new ");
+        sb.Append(parser.ToDisplayString());
+        sb.Append('(');
+        sb.Append(foundArgs);
+        sb.Append(')');
 
         if (parser.Inherits(converterFactorySymbol))
         {
