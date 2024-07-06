@@ -77,6 +77,7 @@ namespace ");
     {
     ");
         WriteStaticInstance(sb, in typeMap);
+        WriteCacheKeys(sb, in typeMap);
         GetReadCode(sb, in typeMap);
         GetWriteCode(sb, in typeMap);
         sb.Append(@"
@@ -98,7 +99,7 @@ namespace ");
         return SourceText.From(sb.ToString(), Encoding.UTF8);
     }
 
-    private void WriteStaticInstance(StringBuilder sb, ref readonly TypeMapSymbol typeMap)
+    private static void WriteStaticInstance(StringBuilder sb, ref readonly TypeMapSymbol typeMap)
     {
         // check if there is no "Instance" member, and a parameterless exists ctor.
         foreach (var ctor in typeMap.ContainingClass.InstanceConstructors)
@@ -119,6 +120,22 @@ namespace ");
                 return;
             }
         }
+    }
+
+    private static void WriteCacheKeys(StringBuilder sb, ref readonly TypeMapSymbol typeMap)
+    {
+        return;
+
+        foreach (var binding in typeMap.Bindings.AllBindings)
+        {
+            sb.Append(@"        private static readonly object __CacheKey_");
+            sb.Append(binding.Name);
+            sb.Append(@" = new object();
+");
+        }
+
+        sb.Append(@"
+");
     }
 
     private static CompilationTarget GetSemanticTargetForGeneration(
