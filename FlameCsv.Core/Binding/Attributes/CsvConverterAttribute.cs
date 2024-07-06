@@ -17,10 +17,17 @@ public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute
     /// <inheritdoc cref="CsvHeaderConfigurationAttribute.Scope"/>
     public CsvBindingScope Scope { get; set; }
 
+    private readonly object _cacheKey = new();
+
     public CsvConverter<T> CreateConverter(Type targetType, CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(targetType);
+
+        if (options._explicitCache.TryGetValue(_cacheKey, out CsvConverter<T>? cached))
+        {
+            return cached;
+        }
 
         CsvConverter<T> instanceOrFactory = CreateConverterOrFactory(targetType, options)
             ?? throw new InvalidOperationException($"{GetType()}.{nameof(CreateConverterOrFactory)} returned null");
@@ -45,9 +52,10 @@ public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute
 
                 if (converter is not null)
                 {
-                    return NullableConverterFactory<T>.GetParserType(underlying).CreateInstance<CsvConverter<T>>(
+                    instanceOrFactory = NullableConverterFactory<T>.GetParserType(underlying).CreateInstance<CsvConverter<T>>(
                         converter,
                         options.GetNullToken(underlying));
+                    goto Success;
                 }
             }
 
@@ -56,7 +64,13 @@ public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute
                 $"can not parse the member type: {targetType.ToTypeString()}");
         }
 
-        return instanceOrFactory.GetOrCreateConverter(targetType, options);
+        Success:
+        var result = instanceOrFactory.GetOrCreateConverter(targetType, options);
+
+        if (options._explicitCache.TryAdd(_cacheKey, result))
+            return result;
+
+        return options._explicitCache[_cacheKey];
     }
 
     /// <summary>
