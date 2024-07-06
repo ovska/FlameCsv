@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using System.Numerics;
 using System.Text;
+using FlameCsv.Converters;
 
 namespace FlameCsv.Tests.Converters;
 
@@ -18,8 +19,36 @@ public abstract class DefaultConverterTests<T> where T : unmanaged, IEquatable<T
 {
     private readonly T[] _buffer = new T[128];
 
-    protected CsvOptions<T> Options => CsvOptions<T>.Default;
     protected abstract ReadOnlySpan<T> AsSpan(string? value);
+
+    [Fact]
+    public void NotEnoughSpace()
+    {
+        SpanUtf8ConverterFactory.Instance.CanConvert(typeof(DateTime));
+
+        var o = new CsvOptions<T> { Null = "null" };
+
+        Execute(true);
+        Execute(default(string?));
+        Execute(DayOfWeek.Monday);
+        Execute(new int?());
+        Execute(new DayOfWeek?());
+        Execute((DayOfWeek?)DayOfWeek.Monday);
+        Execute(1);
+        Execute(1u);
+        Execute(1d);
+        Execute(1f);
+        Execute(DateTime.UnixEpoch);
+        Execute(Guid.Empty);
+
+        void Execute<TValue>(TValue obj)
+        {
+            var converter = o.GetConverter<TValue>();
+
+            if (obj is not null || converter.HandleNull)
+                Assert.False(converter.TryFormat([], obj, out int charsWritten));
+        }
+    }
 
     [Fact]
     public void Dates()
@@ -35,7 +64,7 @@ public abstract class DefaultConverterTests<T> where T : unmanaged, IEquatable<T
         Execute("", new int?());
         Execute("1", 1);
         Execute("", new DayOfWeek?());
-        Execute("Monday", DayOfWeek.Monday);
+        Execute("Monday", (DayOfWeek?)DayOfWeek.Monday);
 
         var guid = new Guid(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11);
         Execute(guid.ToString("D"), guid);
@@ -89,7 +118,7 @@ public abstract class DefaultConverterTests<T> where T : unmanaged, IEquatable<T
     protected void Execute<TValue>(string? str, TValue obj, CsvOptions<T>? options = null)
     {
         var span = AsSpan(str);
-        var converter = (options ?? Options).GetConverter<TValue>();
+        var converter = (options ?? CsvOptions<T>.Default).GetConverter<TValue>();
 
         Assert.True(converter.TryParse(span, out var value));
         Assert.Equal(obj, value);
