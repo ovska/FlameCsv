@@ -12,12 +12,14 @@ internal sealed class SpanUtf8ConverterFactory : CsvConverterFactory<byte>
 
     private SpanUtf8ConverterFactory() { }
 
+    [SuppressMessage("Trimming", "IL2067:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The parameter of method does not have matching annotations.", Justification = "<Pending>")]
     public override bool CanConvert(Type type)
     {
         return RuntimeFeature.IsDynamicCodeSupported && CheckInterfaces(type) is not Implements.None;
     }
 
     [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Guarded with RuntimeFeature.IsDynamicCodeSupported")]
+    [SuppressMessage("Trimming", "IL2067:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The parameter of method does not have matching annotations.", Justification = "<Pending>")]
     public override CsvConverter<byte> Create(Type type, CsvOptions<byte> options)
     {
         Debug.Assert(RuntimeFeature.IsDynamicCodeSupported);
@@ -34,30 +36,45 @@ internal sealed class SpanUtf8ConverterFactory : CsvConverterFactory<byte>
     }
 
     [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Guarded with RuntimeFeature.IsDynamicCodeSupported")]
-    private static Implements CheckInterfaces(Type type)
+    private static Implements CheckInterfaces([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type type)
     {
-        bool formattable = type.IsAssignableTo(typeof(IUtf8SpanFormattable));
+        bool? formattable = null;
+        bool? parsable = null;
 
-        // needs to be ISpanFormattable if not Utf8 formattable
-        if (!formattable && !type.IsAssignableTo(typeof(ISpanFormattable)))
+        foreach (var iface in type.GetInterfaces())
         {
-            return Implements.None;
-        }
+            if (iface.IsGenericType)
+            {
+                var def = iface.GetGenericTypeDefinition();
 
-        bool parsable = type.IsAssignableTo(typeof(IUtf8SpanParsable<>).MakeGenericType(type));
-
-        // needs to be ISpanParsable if not utf8 parsable
-        if (!parsable && !type.IsAssignableTo(typeof(ISpanParsable<>).MakeGenericType(type)))
-        {
-            return Implements.None;
+                if (def == typeof(IUtf8SpanParsable<>))
+                {
+                    parsable = true;
+                }
+                else if (def == typeof(ISpanParsable<>))
+                {
+                    parsable = false;
+                }
+            }
+            else
+            {
+                if (iface == typeof(IUtf8SpanFormattable))
+                {
+                    formattable = true;
+                }
+                else if (iface == typeof(ISpanFormattable))
+                {
+                    formattable ??= false;
+                }
+            }
         }
 
         return (formattable, parsable) switch
         {
-            (false, false) => Implements.None,
+            (true, true) => Implements.Both,
             (true, false) => Implements.Formattable,
             (false, true) => Implements.Parsable,
-            (true, true) => Implements.Both,
+            _ => Implements.None,
         };
     }
 
