@@ -69,7 +69,7 @@ public class ReadExceptionTests
             list.Select(o => (o.Id, o.Name)));
 
         Assert.Single(exceptions);
-        Assert.IsType<SpanTextConverter<int>>(exceptions[0].Parser);
+        Assert.IsType<IntegerNumberTextConverter<int>>(exceptions[0].Parser);
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public class ReadExceptionTests
         Assert.Equal("id,name\r\n".Length, ((CsvUnhandledException)ex).Position);
 
         Assert.IsType<CsvParseException>(ex.InnerException);
-        Assert.IsType<SpanTextConverter<int>>(((CsvParseException)ex.InnerException).Parser);
+        Assert.IsType<IntegerNumberTextConverter<int>>(((CsvParseException)ex.InnerException).Parser);
     }
 
     [Fact]
@@ -118,6 +118,6 @@ public class ReadExceptionTests
         Assert.Equal("1,Bob\r\n".Length, ((CsvUnhandledException)ex).Position);
 
         Assert.IsType<CsvParseException>(ex.InnerException);
-        Assert.IsType<SpanTextConverter<int>>(((CsvParseException)ex.InnerException).Parser);
+        Assert.IsType<IntegerNumberTextConverter<int>>(((CsvParseException)ex.InnerException).Parser);
     }
 }
