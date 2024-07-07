@@ -8,8 +8,7 @@ namespace FlameCsv.Binding.Attributes;
 /// Overrides the converter for the target member or parameter.
 /// </summary>
 /// <remarks>
-/// Converter created this way are not cached in <see cref="CsvOptions{T}"/>,
-/// and a new instance is created for every overridden property if necessary.
+/// Converters created this way are cached in <see cref="CsvOptions{T}"/> per member/parameter.
 /// </remarks>
 /// <typeparam name="T"></typeparam>
 /// <typeparam name="TConverter"></typeparam>
@@ -24,8 +23,10 @@ public sealed class CsvConverterAttribute<T, [DynamicallyAccessedMembers(Message
 
     protected override CsvConverter<T> CreateConverterOrFactory(Type targetType, CsvOptions<T> options)
     {
-        if (options.GetType() != typeof(CsvOptions<T>) &&
-            typeof(TConverter).GetConstructor([options.GetType()]) is { } exactCtor)
+        bool isInherited = options.GetType() != typeof(CsvOptions<T>);
+
+        // check for possible inherited ctor
+        if (isInherited && typeof(TConverter).GetConstructor([options.GetType()]) is { } exactCtor)
         {
             return (CsvConverter<T>)exactCtor.Invoke([options]);
         }
@@ -40,7 +41,9 @@ public sealed class CsvConverterAttribute<T, [DynamicallyAccessedMembers(Message
             return (CsvConverter<T>)emptyCtor.Invoke([]);
         }
 
+        string suffix = isInherited ? $" or {options.GetType().ToTypeString()}" : "";
+
         throw new CsvConfigurationException(
-            $"Parser type {typeof(TConverter).ToTypeString()} has no valid constructor!");
+            $"{typeof(TConverter).ToTypeString()} has constructor that accepts {typeof(CsvOptions<T>).ToTypeString()}{suffix} or no parameters");
     }
 }

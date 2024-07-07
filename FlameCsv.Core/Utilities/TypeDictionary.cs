@@ -19,29 +19,29 @@ internal sealed class TypeDictionary<TValue, TAlternate> : IDictionary<Type, TVa
     private readonly Dictionary<Type, TAlternate>? _alternate;
     private readonly Func<TValue, TAlternate>? _convert;
 
+    [MemberNotNullWhen(true, nameof(_alternate))]
+    [MemberNotNullWhen(true, nameof(_convert))]
+    public bool HasAlternate => _alternate is not null && _convert is not null;
+
     public TypeDictionary(
         ISealable owner,
         Func<TValue, TAlternate>? convert = null,
         TypeDictionary<TValue, TAlternate>? source = null)
     {
         _owner = owner;
-        _dictionary = source is null ? new(ReferenceEqualityComparer.Instance) : new(source._dictionary, ReferenceEqualityComparer.Instance);
+        _dictionary = source is null ? new(NullableTypeEqualityComparer.Instance) : new(source._dictionary, NullableTypeEqualityComparer.Instance);
 
         if (typeof(TAlternate) == typeof(object))
         {
-            _convert = null!;
-            _alternate = null!;
+            _convert = null;
+            _alternate = null;
         }
         else
         {
-            _convert = convert ?? throw new InvalidOperationException();
-            _alternate = new Dictionary<Type, TAlternate>(ReferenceEqualityComparer.Instance);
-
-            if (source?._alternate is not null)
-            {
-                foreach (var (k, v) in source._alternate)
-                    _alternate[k] = v;
-            }
+            _convert = convert ?? throw new InvalidOperationException($"Alternate missing for {typeof(TAlternate)}");
+            _alternate = source?._alternate is null
+                ? new Dictionary<Type, TAlternate>(NullableTypeEqualityComparer.Instance)
+                : new Dictionary<Type, TAlternate>(source._alternate, NullableTypeEqualityComparer.Instance);
         }
     }
 
@@ -50,13 +50,12 @@ internal sealed class TypeDictionary<TValue, TAlternate> : IDictionary<Type, TVa
         get => _dictionary[key];
         set
         {
-            ArgumentNullException.ThrowIfNull(key);
             ValidateKey(key);
             _owner.ThrowIfReadOnly();
             _dictionary[key] = value;
 
-            if (_convert is not null)
-                _alternate![key] = _convert(value);
+            if (HasAlternate)
+                _alternate[key] = _convert(value);
         }
     }
 
@@ -68,12 +67,12 @@ internal sealed class TypeDictionary<TValue, TAlternate> : IDictionary<Type, TVa
 
     public void Add(Type key, TValue value)
     {
-        ArgumentNullException.ThrowIfNull(key);
         ValidateKey(key);
         _owner.ThrowIfReadOnly();
         _dictionary[key] = value;
-        if (_convert is not null)
-            _alternate![key] = _convert(value);
+
+        if (HasAlternate)
+            _alternate[key] = _convert(value);
     }
 
     public void Clear()
@@ -85,13 +84,11 @@ internal sealed class TypeDictionary<TValue, TAlternate> : IDictionary<Type, TVa
 
     public bool ContainsKey(Type key)
     {
-        ArgumentNullException.ThrowIfNull(key);
         return _dictionary.ContainsKey(key);
     }
 
     public bool Remove(Type key)
     {
-        ArgumentNullException.ThrowIfNull(key);
         ValidateKey(key);
         _owner.ThrowIfReadOnly();
         _alternate?.Remove(key);
@@ -107,13 +104,15 @@ internal sealed class TypeDictionary<TValue, TAlternate> : IDictionary<Type, TVa
     public bool TryGetAlternate(Type key, [MaybeNullWhen(false)] out TAlternate value)
     {
         ArgumentNullException.ThrowIfNull(key);
-        value = default!;
+        value = default;
         return _alternate?.TryGetValue(key, out value) ?? false;
     }
 
-    private static void ValidateKey(Type type)
+    private static void ValidateKey(Type key)
     {
-        if (type.IsPointer || type.IsByRef || type.IsByRefLike || type.IsGenericTypeDefinition)
+        ArgumentNullException.ThrowIfNull(key);
+
+        if (key.IsPointer || key.IsByRef || key.IsByRefLike || key.IsGenericTypeDefinition)
         {
             ThrowHelper.ThrowArgumentException("key", (string?)null);
         }

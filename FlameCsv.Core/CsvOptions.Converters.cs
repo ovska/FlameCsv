@@ -7,7 +7,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
 using System.ComponentModel;
-using static FastExpressionCompiler.ImTools.FHashMap;
 using System.Runtime.CompilerServices;
 
 namespace FlameCsv;
@@ -15,7 +14,8 @@ namespace FlameCsv;
 partial class CsvOptions<T>
 {
     /// <summary>
-    /// Collection of all converters and factories of the options instance.
+    /// Collection of all converters and factories of the options instance, not including the built-in converters
+    /// (see <see cref="UseDefaultConverters"/>).
     /// </summary>
     /// <remarks>
     /// Modifying the collection after the options instance is used (<see cref="IsReadOnly"/> is <see langword="true"/>)
@@ -24,8 +24,44 @@ partial class CsvOptions<T>
     public IList<CsvConverter<T>> Converters => _converters;
 
     private readonly SealableList<CsvConverter<T>> _converters;
+
     internal readonly ConcurrentDictionary<Type, CsvConverter<T>> _converterCache = new(ReferenceEqualityComparer.Instance);
     internal readonly ConcurrentDictionary<object, CsvConverter<T>> _explicitCache = new(ReferenceEqualityComparer.Instance);
+
+    /// <summary>
+    /// Maximum amount of converters cached internally by the options instance before the cache is cleared.
+    /// For converters by type, for example with <see cref="GetConverter(Type)"/>. Default is -1
+    /// </summary>
+    protected int MaxConverterCacheSize
+    {
+        get => _maxConverterCacheSize;
+        set
+        {
+            if (value != -1)
+                ArgumentOutOfRangeException.ThrowIfLessThan(value, 0);
+
+            _maxConverterCacheSize = value;
+        }
+    }
+
+    /// <summary>
+    /// Maximum amount of member converters cached internally by the options instance before the cache is cleared.
+    /// For converters overridden for member, for example with <see cref="Binding.Attributes.CsvConverterAttribute{T}"/>. Default is 256.
+    /// </summary>
+    protected int MaxExplicitCacheSize
+    {
+        get => _maxExplicitCacheSize;
+        set
+        {
+            if (value != -1)
+                ArgumentOutOfRangeException.ThrowIfLessThan(value, 0);
+
+            _maxExplicitCacheSize = value;
+        }
+    }
+
+    private int _maxConverterCacheSize = -1;
+    private int _maxExplicitCacheSize = 256;
 
     /// <summary>
     /// Returns a converter for <typeparamref name="TResult"/>.
@@ -77,15 +113,19 @@ partial class CsvOptions<T>
             }
         }
 
-        if (converter is not null && created && !_converterCache.TryAdd(resultType, converter))
-        {
-            // ensure we return the same instance that was cached
-            converter = _converterCache[resultType];
-        }
-
         Debug.Assert(
             converter is not CsvConverterFactory<T>,
             $"TryGetConverter returned a factory: {converter?.GetType().ToTypeString()}");
+
+        if (converter is not null && created)
+        {
+            CheckConverterCacheSize();
+            if (!_converterCache.TryAdd(resultType, converter))
+            {
+                // ensure we return the same instance that was cached
+                converter = _converterCache[resultType];
+            }
+        }
 
         return converter;
     }
@@ -112,7 +152,7 @@ partial class CsvOptions<T>
 
             if (result != null)
             {
-                converter = (CsvConverter<T>)(object)result;
+                converter = Unsafe.As<CsvConverter<T>>(result);
                 return true;
             }
         }
@@ -137,7 +177,7 @@ partial class CsvOptions<T>
 
             if (result != null)
             {
-                converter = (CsvConverter<T>)(object)result;
+                converter = Unsafe.As<CsvConverter<T>>(result);
                 return true;
             }
         }
@@ -170,6 +210,7 @@ partial class CsvOptions<T>
 
         if (created)
         {
+            CheckConverterCacheSize();
             _converterCache.TryAdd(typeof(TValue), result);
         }
 
@@ -242,9 +283,16 @@ partial class CsvOptions<T>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void CheckConverterCacheSize()
+    {
+        if (MaxConverterCacheSize > 0 && _explicitCache.Count >= MaxConverterCacheSize)
+            _converterCache.Clear();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void CheckExplicitCacheSize()
     {
-        if (_explicitCache.Count > 256)
+        if (MaxExplicitCacheSize > 0 && _explicitCache.Count >= MaxExplicitCacheSize)
             _explicitCache.Clear();
     }
 

@@ -12,21 +12,6 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
 {
     protected override CsvTypeMap<char, Obj> TypeMap => ObjCharTypeMap.Instance;
 
-    protected override CsvOptions<char> CreateOptions(NewlineToken newline, char? escape)
-    {
-        return new CsvOptions<char>
-        {
-            Formats = { { typeof(DateTime), "O" } },
-            Escape = escape,
-            Newline = newline switch
-            {
-                NewlineToken.LF => "\n",
-                NewlineToken.CRLF => "\r\n",
-                _ => default,
-            },
-        };
-    }
-
     protected override CsvRecordAsyncEnumerable<char> GetRecords(
         Stream stream,
         CsvOptions<char> options,

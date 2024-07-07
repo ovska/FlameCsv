@@ -1,5 +1,3 @@
-using CommunityToolkit.Diagnostics;
-
 namespace FlameCsv.Binding.Attributes;
 
 /// <summary>
@@ -27,17 +25,23 @@ public sealed class CsvHeaderAttribute : CsvHeaderConfigurationAttribute
     /// Whether the member must be matched. Default is <see langword="false"/>.
     /// </summary>
     /// <remarks>
-    /// Constructor parameters without a default value are always required.
+    /// Required init-only properties and constructor parameters without a default value are always required.
     /// </remarks>
     public bool Required { get; set; }
 
     /// <inheritdoc cref="CsvHeaderAttribute"/>
     /// <param name="values">
-    /// Values to match against the header. Leave empty to configure only order and whether the member is required.
+    /// Values to match against the header. When empty, member/parameter name is used.
     /// </param>
     public CsvHeaderAttribute(params string[] values)
     {
-        Guard.IsNotNull(values);
+        ArgumentNullException.ThrowIfNull(values);
+
+        for (int i = 0; i < values.Length; i++)
+        {
+            ArgumentNullException.ThrowIfNull(values[i]);
+        }
+
         Values = values;
     }
 }

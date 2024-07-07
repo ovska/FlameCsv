@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Converters;
 
 namespace FlameCsv.Tests.Converters;
@@ -36,5 +37,38 @@ public static class NullableConverterTests
         var parser = (CsvConverter<char, int?>)factory.Create(typeof(int?), emptyOptions);
         Assert.True(parser.TryParse("null", out var value));
         Assert.Null(value);
+    }
+
+    [Fact(Skip = "Not yet implemented")]
+    public static void Should_Use_Interface_Converter()
+    {
+        var options = new CsvOptions<char> { Converters = { new DisposableConverter() } };
+        Assert.True(NullableConverterFactory<char>.Instance.CanConvert(typeof(Shim?)));
+        var converter = NullableConverterFactory<char>.Instance.Create(typeof(Shim?), options);
+    }
+
+    private readonly record struct Shim(int Id) : IDisposable
+    {
+        public void Dispose() { }
+    }
+
+    private sealed class DisposableConverter : CsvConverter<char, IDisposable>
+    {
+        public override bool TryFormat(Span<char> destination, IDisposable value, out int charsWritten)
+        {
+            return ((Shim)value).Id.TryFormat(destination, out charsWritten); ;
+        }
+
+        public override bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out IDisposable value)
+        {
+            if (int.TryParse(source, out int id))
+            {
+                value = new Shim(id);
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
     }
 }

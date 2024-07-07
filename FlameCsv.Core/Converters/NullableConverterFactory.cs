@@ -18,17 +18,25 @@ internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
 
     public override CsvConverter<T> Create(Type type, CsvOptions<T> options)
     {
-        var innerType = type.GetGenericArguments()[0];
-        var inner = options.GetConverter(innerType);
+        var structType = type.GetGenericArguments()[0];
+        var converterOfT = options.GetConverter(structType);
 
+#if false
         // If the value type has an interface or object converter, just return that converter directly.
-        // source: dotnet runtime
-        if (innerType.IsValueType && inner.Type is { IsValueType: false })
+        // e.g. a struct that implements IEnumerable<T>
+        // this matches the behavior of System.Text.Json
+        if (structType.IsValueType && converterOfT.Type is { IsValueType: false })
         {
-            return inner;
-        }
+            if (!RuntimeFeature.IsDynamicCodeSupported)
+                throw new NotSupportedException();
 
-        return GetParserType(innerType).CreateInstance<CsvConverter<T>>(inner, options.GetNullToken(type));
+#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+            return CastingConverter.Create(converterOfT.Type, type, converterOfT);
+#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+        }
+#endif
+
+        return GetParserType(structType).CreateInstance<CsvConverter<T>>(converterOfT, options.GetNullToken(type));
     }
 
     [return: DynamicallyAccessedMembers(Messages.Ctors)]

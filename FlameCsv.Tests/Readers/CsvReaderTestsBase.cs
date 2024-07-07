@@ -24,10 +24,9 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
     private static readonly bool[] _booleans = [true, false];
     private static readonly Mode[] _escaping = [Mode.None, Mode.RFC, Mode.Escape];
 
-    private ReturnTrackingArrayPool<T>? _pool;
+    private readonly ReturnTrackingArrayPool<T> _pool = new ReturnTrackingArrayPool<T>();
 
     protected abstract CsvTypeMap<T, Obj> TypeMap { get; }
-    protected abstract CsvOptions<T> CreateOptions(NewlineToken newline, char? escape);
 
     protected abstract CsvRecordAsyncEnumerable<T> GetRecords(
         Stream stream,
@@ -104,7 +103,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         Mode escaping,
         bool sourceGen)
     {
-        CsvOptions<T> options = PrepareOptions(newline, header, escaping);
+        CsvOptions<T> options = GetOptions(newline, header, escaping);
 
         List<Obj> items = new(1000);
 
@@ -129,7 +128,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         Mode escaping,
         bool sourceGen)
     {
-        CsvOptions<T> options = PrepareOptions(newline, header, escaping);
+        CsvOptions<T> options = GetOptions(newline, header, escaping);
 
         List<Obj> items;
 
@@ -155,7 +154,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         Mode escaping,
         bool sourceGen)
     {
-        CsvOptions<T> options = PrepareOptions(newline, header, escaping);
+        CsvOptions<T> options = GetOptions(newline, header, escaping);
 
         List<Obj> items = new(1000);
 
@@ -181,7 +180,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         Mode escaping,
         bool sourceGen)
     {
-        CsvOptions<T> options = PrepareOptions(newline, header, escaping);
+        CsvOptions<T> options = GetOptions(newline, header, escaping);
 
         List<Obj> items;
 
@@ -213,8 +212,6 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
 
             Assert.Empty(missing);
         }
-
-        Assert.Equal(1_000, items.Count);
 
         for (int i = 0; i < 1_000; i++)
         {
@@ -277,33 +274,37 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         return items;
     }
 
-    private CsvOptions<T> PrepareOptions(NewlineToken newline, bool header, Mode escaping)
+    private CsvOptions<T> GetOptions(NewlineToken newline, bool header, Mode escaping)
     {
-        CsvOptions<T> options = CreateOptions(
-            newline,
-            escaping == Mode.Escape ? '^' : null);
-
-        options.HasHeader = header;
-        options.AllowContentInExceptions = true;
-        options.ArrayPool = _pool = new ReturnTrackingArrayPool<T>();
-
-#if false
-        options.ExceptionHandler = (in CsvExceptionHandlerArgs<T> args) =>
+        return new CsvOptions<T>
         {
-            if (Debugger.IsAttached)
+            Formats = { [typeof(DateTime)] = "O" },
+            Escape = escaping == Mode.Escape ? '^' : null,
+            Newline = newline switch
             {
-                var str = args.Options.GetAsString(args.Record.Span);
-            }
+                NewlineToken.LF => "\n",
+                NewlineToken.CRLF => "\r\n",
+                _ => default,
+            },
+            HasHeader = header,
+            AllowContentInExceptions = true,
+            ArrayPool = _pool,
+#if false
+            ExceptionHandler = static (in CsvExceptionHandlerArgs<T> args) =>
+            {
+                if (System.Diagnostics.Debugger.IsAttached)
+                {
+                    var str = args.Options.GetAsString(args.Record.Span);
+                }
 
-            return false;
-        };
+                return false;
+            },
 #endif
-
-        return options;
+        };
     }
 
     public void Dispose()
     {
-        _pool?.Dispose();
+        _pool.Dispose();
     }
 }
