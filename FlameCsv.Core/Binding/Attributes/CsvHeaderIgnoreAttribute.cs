@@ -14,6 +14,12 @@ public sealed class CsvHeaderIgnoreAttribute : Attribute, ICsvBindingAttribute
     public CsvHeaderIgnoreAttribute(params string[] values)
     {
         ArgumentNullException.ThrowIfNull(values);
+
+        for (int i = 0; i < values.Length; i++)
+        {
+            ArgumentNullException.ThrowIfNull(values[i]);
+        }
+
         Values = values;
     }
 }

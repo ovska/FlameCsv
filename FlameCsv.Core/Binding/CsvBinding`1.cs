@@ -23,7 +23,7 @@ public abstract class CsvBinding<T> :
     /// <summary>
     /// Returns the custom attributes on the binding, or empty if not applicable (e.g. ignored field).
     /// </summary>
-    protected abstract ReadOnlySpan<object> Attributes { get; }
+    protected internal abstract ReadOnlySpan<object> Attributes { get; }
 
     public bool TryGetAttribute<TAttribute>([NotNullWhen(true)] out TAttribute? attribute)
         where TAttribute : Attribute

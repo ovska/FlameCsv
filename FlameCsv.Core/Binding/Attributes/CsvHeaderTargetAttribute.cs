@@ -37,7 +37,14 @@ public sealed class CsvHeaderTargetAttribute : Attribute, ICsvBindingAttribute
         params string[] values)
     {
         Guard.IsNotNullOrWhiteSpace(memberName);
-        Guard.IsNotNull(values);
+
+        ArgumentNullException.ThrowIfNull(values);
+
+        for (int i = 0; i < values.Length; i++)
+        {
+            ArgumentNullException.ThrowIfNull(values[i]);
+        }
+
         Values = values;
         MemberName = memberName;
     }

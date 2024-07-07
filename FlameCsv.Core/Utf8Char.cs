@@ -5,7 +5,7 @@ namespace FlameCsv;
 /// <summary>
 /// Represents an ASCII UTF-8 character.
 /// </summary>
-public readonly struct Utf8Char : IEquatable<Utf8Char>, IEquatable<char>, IEquatable<byte>
+internal readonly struct Utf8Char : IEquatable<Utf8Char>, IEquatable<char>, IEquatable<byte>
 {
     private readonly byte _value;
 

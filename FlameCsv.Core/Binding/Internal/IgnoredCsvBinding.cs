@@ -8,7 +8,7 @@ internal sealed class IgnoredCsvBinding<T>(int index) : CsvBinding<T>(index, nul
 
     internal protected override object Sentinel => typeof(CsvIgnored);
 
-    protected override ReadOnlySpan<object> Attributes => default;
+    protected internal override ReadOnlySpan<object> Attributes => default;
 
     protected override void PrintDetails(StringBuilder sb)
     {

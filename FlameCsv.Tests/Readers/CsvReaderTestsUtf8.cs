@@ -12,21 +12,6 @@ public sealed class CsvReaderTestsUtf8 : CsvReaderTestsBase<byte>
 {
     protected override CsvTypeMap<byte, Obj> TypeMap => ObjByteTypeMap.Instance;
 
-    protected override CsvOptions<byte> CreateOptions(NewlineToken newline, char? escape)
-    {
-        return new CsvOptions<byte>
-        {
-            Formats = { { typeof(DateTime), "O" } },
-            Escape = escape,
-            Newline = newline switch
-            {
-                NewlineToken.LF => "\n",
-                NewlineToken.CRLF => "\r\n",
-                _ => default,
-            },
-        };
-    }
-
     protected override IAsyncEnumerable<Obj> GetObjects(
         Stream stream,
         CsvOptions<byte> options,

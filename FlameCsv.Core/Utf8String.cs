@@ -8,7 +8,7 @@ namespace FlameCsv;
 /// <summary>
 /// Represents an UTF-8 string, represented by a string or bytes.
 /// </summary>
-public readonly struct Utf8String : IEquatable<Utf8String>, IEquatable<string>, IEquatable<ReadOnlyMemory<byte>>
+internal readonly struct Utf8String : IEquatable<Utf8String>, IEquatable<string>, IEquatable<ReadOnlyMemory<byte>>
 {
     public static readonly Utf8String Null = new("null", "null"u8);
     public static readonly Utf8String CRLF = new("\r\n", "\r\n"u8);

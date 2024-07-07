@@ -57,9 +57,10 @@ internal abstract class DelegateGenerator<T> where T : unmanaged, IEquatable<T>
                 return IgnoredConverter<T>.Instance;
             }
 
-            if (binding.TryGetAttribute<CsvConverterAttribute<T>>(out var @override))
+            foreach (var attribute in binding.Attributes)
             {
-                return @override.CreateConverter(binding.Type, options);
+                if (attribute is CsvConverterAttribute<T> @override && @override.Scope != CsvBindingScope.Write)
+                    return @override.CreateConverter(binding.Type, options);
             }
 
             return options.GetConverter(binding.Type);
