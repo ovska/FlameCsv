@@ -33,16 +33,16 @@ static partial class DefaultConverters
     private static void RegisterNumberConverters(List<KeyValuePair<Type, ConverterFactory<char>>> list)
     {
         list.EnsureCapacity(list.Count + <#= types.Length #>);
-<# foreach (var (typeName, keyWord, _) in types) { #>
-        list.Add(new(typeof(<#= keyWord #>), static o => new SpanTextConverter<<#= keyWord #>>(o)));
+<# foreach (var (typeName, keyWord, isInteger) in types) { #>
+        list.Add(new(typeof(<#= keyWord #>), static o => new <#= isInteger ? "Integer" : "Float" #>NumberTextConverter<<#= keyWord #>>(o)));
 <# } #>
     }
 
     private static void RegisterNumberConverters(List<KeyValuePair<Type, ConverterFactory<byte>>> list)
     {
         list.EnsureCapacity(list.Count + <#= types.Length #>);
-<# foreach (var (typeName, keyWord, _) in types) { #>
-        list.Add(new(typeof(<#= keyWord #>), static o => new SpanUtf8Converter<<#= keyWord #>>(o)));
+<# foreach (var (typeName, keyWord, isInteger) in types) { #>
+        list.Add(new(typeof(<#= keyWord #>), static o => new <#= isInteger ? "Integer" : "Float" #>NumberUtf8Converter<<#= keyWord #>>(o)));
 <# } #>
     }
 }

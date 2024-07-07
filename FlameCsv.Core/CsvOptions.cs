@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
@@ -88,6 +89,7 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
         _formatProvider = other._formatProvider;
         _providers = other._providers?.Clone();
         _formats = other._formats?.Clone();
+        _styles = other._styles?.Clone();
         _comparer = other._comparer;
         _useDefaultConverters = other._useDefaultConverters;
         _ignoreEnumCase = other._ignoreEnumCase;
@@ -193,6 +195,15 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     public virtual IFormatProvider? GetFormatProvider(Type resultType) => _providers is not null && _providers.TryGetValue(resultType, out var provider) ? provider : _formatProvider;
 
     /// <summary>
+    /// Returns the number styles configured for the <see cref="INumberBase{TSelf}"/>, or <paramref name="defaultValue"/> by default.
+    /// </summary>
+    /// <remarks>
+    /// Defaults are <see cref="NumberStyles.Integer"/> for <see cref="IBinaryInteger{TSelf}"/> and
+    /// <see cref="NumberStyles.Float"/> for <see cref="IFloatingPoint{TSelf}"/>.
+    /// </remarks>
+    public virtual NumberStyles GetNumberStyles(Type resultType, NumberStyles defaultValue) => _styles is not null && _styles.TryGetValue(resultType, out var styles) ? styles : defaultValue;
+
+    /// <summary>
     /// Returns a <see langword="string"/> representation of the value.
     /// </summary>
     /// <seealso cref="WriteText{TWriter}(TWriter, ReadOnlySpan{char})"/>
@@ -262,18 +273,22 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     internal ArrayPool<T> _arrayPool = ArrayPool<T>.Shared;
     private bool _allowContentInExceptions;
     internal IList<(string text, bool value)>? _booleanValues;
-    private IFormatProvider? _formatProvider = CultureInfo.InvariantCulture;
-    private TypeDictionary<IFormatProvider?, object>? _providers;
-    internal TypeDictionary<string?, object>? _formats;
-    private IEqualityComparer<string> _comparer = StringComparer.OrdinalIgnoreCase;
     private bool _useDefaultConverters = true;
     private bool _ignoreEnumCase = true;
     private string? _enumFormat;
     private bool _allowUndefinedEnumValues;
     private bool _disableBuffering;
     private StringPool? _stringPool;
+
+    private IEqualityComparer<string> _comparer = StringComparer.OrdinalIgnoreCase;
+
     private object? _null;
     private TypeDictionary<string?, Utf8String>? _nullTokens;
+    private TypeDictionary<string?, object>? _formats;
+    private TypeDictionary<NumberStyles, object>? _styles;
+
+    private IFormatProvider? _formatProvider = CultureInfo.InvariantCulture;
+    private TypeDictionary<IFormatProvider?, object>? _providers;
 
     public virtual string? Null
     {
@@ -332,9 +347,17 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     public IDictionary<Type, string?> Formats => _formats ??= new TypeDictionary<string?, object>(this);
 
     /// <summary>
-    /// Disables buffering newline ranges when reading. Buffering increases raw throughput,
-    /// but can in some cases raise errors later in the parsing pipeline than without.
+    /// Parsing styles used per <see cref="IBinaryNumber{TSelf}"/> and <see cref="IFloatingPoint{TSelf}"/>.
     /// </summary>
+    public IDictionary<Type, NumberStyles> NumberStyles => _styles ??= new TypeDictionary<NumberStyles, object>(this);
+
+    /// <summary>
+    /// Disables buffering newline ranges when reading.
+    /// </summary>
+    /// <remarks>
+    /// Buffering increases reading performance, but lines are buffered without parsing their individual fields,
+    /// which may cause extra data to be read when one of the fields contains an erroneus value.
+    /// </remarks>
     public bool NoLineBuffering
     {
         get => _disableBuffering;
@@ -342,7 +365,7 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     }
 
     /// <summary>
-    /// Text comparison used to match header names.
+    /// String comparer used to match CSV header to members and parameters. Default is <see cref="StringComparer.OrdinalIgnoreCase"/>.
     /// </summary>
     /// <remarks>
     /// Header names are converted to strings using <see cref="GetAsString(ReadOnlySpan{T})"/>.
@@ -374,9 +397,9 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     /// this case, rows with invalid data are skipped, see also: <see cref="ShouldSkipRow"/>.
     /// </summary>
     /// <remarks>
-    /// <see cref="CsvFormatException"/> is not handled, as it represents an invalid CSV.<br/>
+    /// <see cref="CsvFormatException"/> is always thrown as it represents an invalid CSV.<br/>
     /// This handler is not used in the enumerators that return <see cref="CsvValueRecord{T}"/>, you can catch
-    /// exceptions thrown manually when handling the record.
+    /// exceptions thrown manually when reading fields from the record.
     /// </remarks>
     public CsvExceptionHandler<T>? ExceptionHandler
     {
@@ -407,27 +430,15 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     }
 
     /// <summary>
-    /// Whether the read CSV has a header record. The default is <see langword="true"/>.
+    /// Whether to read/write a header record. The default is <see langword="true"/>.
     /// </summary>
-    /// <seealso cref="HeaderBinder"/>
+    /// <remarks>
+    /// When <see langword="false"/>, types must be annotated with <see cref="Binding.Attributes.CsvIndexAttribute"/>.
+    /// </remarks>
     public bool HasHeader
     {
         get => _hasHeader;
         set => this.SetValue(ref _hasHeader, value);
-    }
-
-    /// <summary>
-    /// Whether to ensure that all records have the same number of fields. The first read or written CSV recoird
-    /// is used as the source of truth for the record count, regardless of whether it was a header record or not.
-    /// Object parsing always validates the field count. Default is <see langword="false"/>.
-    /// </summary>
-    /// <remarks>
-    /// Example: reading/writing a header with 5 fields ensures that every record read/written afterwards has exactly 5 fields.
-    /// </remarks>
-    public bool ValidateFieldCount
-    {
-        get => _validateFieldCount;
-        set => this.SetValue(ref _validateFieldCount, value);
     }
 
     /// <summary>
@@ -446,32 +457,22 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     }
 
     /// <summary>
-    /// Whether to use the library's built-in converters. Default is <see langword="true"/>.
+    /// Whether to use the library's built-in converters. Default is <see langword="true"/>. The converters can be configured
+    /// using properties of <see cref="CsvOptions{T}"/>.
     /// </summary>
     /// <remarks>
     /// The following types are supported by default:<br/>
     /// - <see langword="string"/><br/>
     /// - <see langword="enum"/><br/>
     /// - <see langword="bool"/><br/>
-    /// - <see langword="byte"/><br/>
-    /// - <see langword="sbyte"/><br/>
-    /// - <see langword="short"/><br/>
-    /// - <see langword="ushort"/><br/>
-    /// - <see langword="int"/><br/>
-    /// - <see langword="uint"/><br/>
-    /// - <see langword="long"/><br/>
-    /// - <see langword="ulong"/><br/>
-    /// - <see langword="nint"/><br/>
-    /// - <see langword="nuint"/><br/>
-    /// - <see langword="float"/><br/>
-    /// - <see langword="double"/><br/>
-    /// - <see langword="decimal"/><br/>
+    /// - Common <see cref="IBinaryNumber{TSelf}"/> types such as <see langword="int"/> and <see langword="long"/>)<br/>
+    /// - Common <see cref="IFloatingPoint{TSelf}{TSelf}"/> types such as <see langword="double"/> and <see langword="float"/><br/>
     /// - <see cref="Guid"/><br/>
     /// - <see cref="DateTime"/><br/>
     /// - <see cref="DateTimeOffset"/><br/>
     /// - <see cref="TimeSpan"/><br/>
-    /// - For <see langword="char"/> any type that implements <see cref="ISpanFormattable"/> and <see cref="ISpanParsable{TSelf}"/>.<br/>
-    /// - For <see langword="byte"/> any type that implements at least one of <see cref="IUtf8SpanFormattable"/> and
+    /// - For token type <see langword="char"/> any type that implements <see cref="ISpanFormattable"/> and <see cref="ISpanParsable{TSelf}"/>.<br/>
+    /// - For token type <see langword="byte"/> any type that implements at least one of <see cref="IUtf8SpanFormattable"/> and
     /// <see cref="IUtf8SpanParsable{TSelf}"/>, with <see cref="ISpanFormattable"/> and <see cref="ISpanParsable{TSelf}"/> as fallbacks.<br/>
     /// </remarks>
     public bool UseDefaultConverters

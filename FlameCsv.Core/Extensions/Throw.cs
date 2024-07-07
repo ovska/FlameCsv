@@ -79,12 +79,6 @@ internal static class Throw
         throw new InvalidDataException($"The CSV record has {actual} fields, but {expected} were expected.");
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    public static ValueTask InvalidData_FieldCountAsync(int expected, int actual)
-    {
-        return ValueTask.FromException(new InvalidDataException($"The CSV record has {actual} fields, but {expected} were expected."));
-    }
-
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void InvalidOp_NoHeader(int index, Type type, MemberInfo member)
     {

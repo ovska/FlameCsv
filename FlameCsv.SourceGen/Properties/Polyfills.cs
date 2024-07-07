@@ -1,4 +1,6 @@
 ﻿#pragma warning disable IDE0161 // Convert to file-scoped namespace
+using System.ComponentModel;
+
 namespace System.Diagnostics.CodeAnalysis
 {
     [AttributeUsage(AttributeTargets.Method | AttributeTargets.Property, Inherited = false, AllowMultiple = true)]
@@ -25,4 +27,21 @@ namespace System.Diagnostics.CodeAnalysis
 
     [AttributeUsage(AttributeTargets.Method, Inherited = false)]
     internal sealed class DoesNotReturnAttribute : Attribute;
+}
+
+namespace System.Runtime.CompilerServices
+{
+    internal static class IsExternalInit { }
+    internal sealed class CompilerFeatureRequiredAttribute { public CompilerFeatureRequiredAttribute(string featureName) { } }
+
+    /// <summary>Specifies that a type has required members or that a member is required.</summary>
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    internal        sealed class RequiredMemberAttribute : Attribute
+    { }
+}
+
+namespace System.Diagnostics.CodeAnalysis
+{
+    internal sealed class SetsRequiredMembersAttribute { }
 }
