@@ -1,11 +1,36 @@
 ﻿using System.Runtime.InteropServices;
 using FlameCsv.Binding;
 using FlameCsv.Extensions;
+using FlameCsv.Utilities;
 
 namespace FlameCsv.Tests.Extensions;
 
 public static class UtilityExtensionTests
 {
+    [Fact]
+    public static void Should_Have_Nullable_Equality()
+    {
+        var comparer = NullableTypeEqualityComparer.Instance;
+
+        Assert.Equal(default(Type)!, default(Type)!, comparer);
+        Assert.Equal(typeof(int), typeof(int), comparer);
+        Assert.Equal(typeof(int?), typeof(int?), comparer);
+        Assert.Equal(typeof(int), typeof(int?), comparer);
+        Assert.Equal(typeof(int?), typeof(int), comparer);
+        Assert.NotEqual(default(Type)!, typeof(string), comparer);
+        Assert.NotEqual(typeof(string), default(Type)!, comparer);
+        Assert.Equal(typeof(string), typeof(string), comparer);
+
+        var c = new CsvOptions<char>();
+        c.NullTokens[typeof(int)] = "test";
+        Assert.Contains(typeof(int?), c.NullTokens);
+        Assert.Equal("test", c.NullTokens[typeof(int?)]);
+        c.NullTokens.Clear();
+        c.NullTokens[typeof(int?)] = "test";
+        Assert.Contains(typeof(int), c.NullTokens);
+        Assert.Equal("test", c.NullTokens[typeof(int)]);
+    }
+
     [Theory]
     [InlineData(true, CsvBindingScope.All, true)]
     [InlineData(false, CsvBindingScope.All, true)]

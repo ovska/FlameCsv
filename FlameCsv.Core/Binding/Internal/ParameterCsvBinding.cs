@@ -12,7 +12,7 @@ internal sealed class ParameterCsvBinding<T> : CsvBinding<T>
     public override Type Type => Parameter.ParameterType;
     internal protected override object Sentinel => Parameter;
 
-    protected override ReadOnlySpan<object> Attributes => _parameterData is not null ? _parameterData.Attributes : default;
+    protected internal override ReadOnlySpan<object> Attributes => _parameterData is not null ? _parameterData.Attributes : default;
 
     private readonly ParameterData? _parameterData;
 

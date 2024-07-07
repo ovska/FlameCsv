@@ -1,22 +1,18 @@
 using System.Buffers;
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
-using FlameCsv.Converters;
 using FlameCsv.Utilities;
 using FlameCsv.Writing;
 using CommunityToolkit.HighPerformance.Buffers;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Reading;
 using System.Text;
-using FlameCsv.Converters.Text;
 using System.Globalization;
 using static FlameCsv.Utilities.SealableUtil;
-using System.ComponentModel;
 
 namespace FlameCsv;
 
@@ -77,7 +73,7 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
 #endif
     }
 
-    protected CsvOptions(CsvOptions<T> other)
+    public CsvOptions(CsvOptions<T> other)
     {
         ArgumentNullException.ThrowIfNull(other);
 
@@ -136,7 +132,7 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
 
     /// <summary>
     /// Returns the <see langword="null"/> value for parsing and formatting for the parameter type.
-    /// Returns <see cref="Null"/> if none is configured.
+    /// Returns <see cref="Null"/> if none is configured in <see cref="NullTokens"/>.
     /// </summary>
     public virtual ReadOnlyMemory<T> GetNullToken(Type resultType)
     {
@@ -147,13 +143,9 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
 
         if (_nullTokens is not null)
         {
-            // allow fetching null tokens for both int and int?
-            Type? alternate = resultType.IsValueType ? Nullable.GetUnderlyingType(resultType) : null;
-
             if (typeof(T) == typeof(char))
             {
-                if (_nullTokens.TryGetValue(resultType, out string? value) ||
-                    (alternate is not null && _nullTokens.TryGetValue(alternate, out value)))
+                if (_nullTokens.TryGetValue(resultType, out string? value))
                 {
                     var result = value.AsMemory();
                     return Unsafe.As<ReadOnlyMemory<char>, ReadOnlyMemory<T>>(ref result);
@@ -162,8 +154,7 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
 
             if (typeof(T) == typeof(byte))
             {
-                if (_nullTokens.TryGetAlternate(resultType, out Utf8String value) ||
-                    (alternate is not null && _nullTokens.TryGetAlternate(alternate, out value)))
+                if (_nullTokens.TryGetAlternate(resultType, out Utf8String value))
                 {
                     ReadOnlyMemory<byte> result = value;
                     return Unsafe.As<ReadOnlyMemory<byte>, ReadOnlyMemory<T>>(ref result);
@@ -171,28 +162,24 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
             }
         }
 
-        return GetDefaultNullToken();
-    }
-
-    private ReadOnlyMemory<T> GetDefaultNullToken()
-    {
         if (_null is null)
-            return default;
+            return ReadOnlyMemory<T>.Empty;
 
         if (typeof(T) == typeof(char))
         {
+            Debug.Assert(_null.GetType() == typeof(string), $"Invalid null type for {typeof(T)}: {_null.GetType()}");
             var value = Unsafe.As<string?>(_null).AsMemory();
             return Unsafe.As<ReadOnlyMemory<char>, ReadOnlyMemory<T>>(ref value);
         }
 
         if (typeof(T) == typeof(byte))
         {
+            Debug.Assert(_null.GetType() == typeof(Tuple<Utf8String>), $"Invalid null type for {typeof(T)}: {_null.GetType()}");
             var value = (ReadOnlyMemory<byte>)Unsafe.As<Tuple<Utf8String>>(_null).Item1;
             return Unsafe.As<ReadOnlyMemory<byte>, ReadOnlyMemory<T>>(ref value);
         }
 
-        ThrowInvalidTokenType(nameof(GetNullToken));
-        return default;
+        throw new UnreachableException();
     }
 
     /// <summary>
@@ -539,9 +526,6 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     /// <summary>
     /// Returns tokens used to parse and format <see langword="null"/> values. See <see cref="GetNullToken(Type)"/>.
     /// </summary>
-    /// <remarks>
-    /// Adding a token for value type is equivalent to adding it to the <see cref="Nullable{T}"/> counterpart.
-    /// </remarks>
     public IDictionary<Type, string?> NullTokens => _nullTokens ??= new(this, static str => (Utf8String)str);
 
     /// <summary>
