@@ -10,6 +10,8 @@ namespace FlameCsv.Console
     {
         static void Main([NotNull] string[] args)
         {
+            new X();
+
             var dst = new byte[128];
             var res = Utf8Formatter.TryFormat((Int16)0, dst, out int written);
 
@@ -31,5 +33,20 @@ namespace FlameCsv.Console
         public string? Name { get; set; }
         public bool IsEnabled { get; set; }
         [CsvConverter<char, SpanTextConverter<long>>] public long? Age { get; set; }
+    }
+
+    class X : Base
+    {
+        protected override int Id => 123;
+    }
+
+    abstract class Base
+    {
+        protected abstract int Id { get; }
+
+        public Base()
+        {
+            System.Console.WriteLine(Id);
+        }
     }
 }

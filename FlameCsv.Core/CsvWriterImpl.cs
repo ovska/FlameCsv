@@ -71,13 +71,6 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
 
     public override void NextRecord()
     {
-        if (_options._validateFieldCount &&
-            _fieldCount.HasValue &&
-            _index != _fieldCount.Value)
-        {
-            Throw.InvalidData_FieldCount(_fieldCount.Value, _index);
-        }
-
         _inner.WriteNewline();
         _fieldCount ??= _index;
         _index = 0;
@@ -87,13 +80,6 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
 
     public override ValueTask NextRecordAsync(CancellationToken cancellationToken = default)
     {
-        if (_options._validateFieldCount &&
-            _fieldCount.HasValue &&
-            _index != _fieldCount.Value)
-        {
-            return Throw.InvalidData_FieldCountAsync(_fieldCount.Value, _index);
-        }
-
         _inner.WriteNewline();
         _fieldCount ??= _index;
         _index = 0;

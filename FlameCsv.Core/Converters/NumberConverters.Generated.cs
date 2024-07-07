@@ -8,38 +8,38 @@ static partial class DefaultConverters
     private static void RegisterNumberConverters(List<KeyValuePair<Type, ConverterFactory<char>>> list)
     {
         list.EnsureCapacity(list.Count + 14);
-        list.Add(new(typeof(byte), static o => new SpanTextConverter<byte>(o)));
-        list.Add(new(typeof(sbyte), static o => new SpanTextConverter<sbyte>(o)));
-        list.Add(new(typeof(short), static o => new SpanTextConverter<short>(o)));
-        list.Add(new(typeof(ushort), static o => new SpanTextConverter<ushort>(o)));
-        list.Add(new(typeof(int), static o => new SpanTextConverter<int>(o)));
-        list.Add(new(typeof(uint), static o => new SpanTextConverter<uint>(o)));
-        list.Add(new(typeof(long), static o => new SpanTextConverter<long>(o)));
-        list.Add(new(typeof(ulong), static o => new SpanTextConverter<ulong>(o)));
-        list.Add(new(typeof(nint), static o => new SpanTextConverter<nint>(o)));
-        list.Add(new(typeof(nuint), static o => new SpanTextConverter<nuint>(o)));
-        list.Add(new(typeof(float), static o => new SpanTextConverter<float>(o)));
-        list.Add(new(typeof(double), static o => new SpanTextConverter<double>(o)));
-        list.Add(new(typeof(decimal), static o => new SpanTextConverter<decimal>(o)));
-        list.Add(new(typeof(Half), static o => new SpanTextConverter<Half>(o)));
+        list.Add(new(typeof(byte), static o => new IntegerNumberTextConverter<byte>(o)));
+        list.Add(new(typeof(sbyte), static o => new IntegerNumberTextConverter<sbyte>(o)));
+        list.Add(new(typeof(short), static o => new IntegerNumberTextConverter<short>(o)));
+        list.Add(new(typeof(ushort), static o => new IntegerNumberTextConverter<ushort>(o)));
+        list.Add(new(typeof(int), static o => new IntegerNumberTextConverter<int>(o)));
+        list.Add(new(typeof(uint), static o => new IntegerNumberTextConverter<uint>(o)));
+        list.Add(new(typeof(long), static o => new IntegerNumberTextConverter<long>(o)));
+        list.Add(new(typeof(ulong), static o => new IntegerNumberTextConverter<ulong>(o)));
+        list.Add(new(typeof(nint), static o => new IntegerNumberTextConverter<nint>(o)));
+        list.Add(new(typeof(nuint), static o => new IntegerNumberTextConverter<nuint>(o)));
+        list.Add(new(typeof(float), static o => new FloatNumberTextConverter<float>(o)));
+        list.Add(new(typeof(double), static o => new FloatNumberTextConverter<double>(o)));
+        list.Add(new(typeof(decimal), static o => new FloatNumberTextConverter<decimal>(o)));
+        list.Add(new(typeof(Half), static o => new FloatNumberTextConverter<Half>(o)));
     }
 
     private static void RegisterNumberConverters(List<KeyValuePair<Type, ConverterFactory<byte>>> list)
     {
         list.EnsureCapacity(list.Count + 14);
-        list.Add(new(typeof(byte), static o => new SpanUtf8Converter<byte>(o)));
-        list.Add(new(typeof(sbyte), static o => new SpanUtf8Converter<sbyte>(o)));
-        list.Add(new(typeof(short), static o => new SpanUtf8Converter<short>(o)));
-        list.Add(new(typeof(ushort), static o => new SpanUtf8Converter<ushort>(o)));
-        list.Add(new(typeof(int), static o => new SpanUtf8Converter<int>(o)));
-        list.Add(new(typeof(uint), static o => new SpanUtf8Converter<uint>(o)));
-        list.Add(new(typeof(long), static o => new SpanUtf8Converter<long>(o)));
-        list.Add(new(typeof(ulong), static o => new SpanUtf8Converter<ulong>(o)));
-        list.Add(new(typeof(nint), static o => new SpanUtf8Converter<nint>(o)));
-        list.Add(new(typeof(nuint), static o => new SpanUtf8Converter<nuint>(o)));
-        list.Add(new(typeof(float), static o => new SpanUtf8Converter<float>(o)));
-        list.Add(new(typeof(double), static o => new SpanUtf8Converter<double>(o)));
-        list.Add(new(typeof(decimal), static o => new SpanUtf8Converter<decimal>(o)));
-        list.Add(new(typeof(Half), static o => new SpanUtf8Converter<Half>(o)));
+        list.Add(new(typeof(byte), static o => new IntegerNumberUtf8Converter<byte>(o)));
+        list.Add(new(typeof(sbyte), static o => new IntegerNumberUtf8Converter<sbyte>(o)));
+        list.Add(new(typeof(short), static o => new IntegerNumberUtf8Converter<short>(o)));
+        list.Add(new(typeof(ushort), static o => new IntegerNumberUtf8Converter<ushort>(o)));
+        list.Add(new(typeof(int), static o => new IntegerNumberUtf8Converter<int>(o)));
+        list.Add(new(typeof(uint), static o => new IntegerNumberUtf8Converter<uint>(o)));
+        list.Add(new(typeof(long), static o => new IntegerNumberUtf8Converter<long>(o)));
+        list.Add(new(typeof(ulong), static o => new IntegerNumberUtf8Converter<ulong>(o)));
+        list.Add(new(typeof(nint), static o => new IntegerNumberUtf8Converter<nint>(o)));
+        list.Add(new(typeof(nuint), static o => new IntegerNumberUtf8Converter<nuint>(o)));
+        list.Add(new(typeof(float), static o => new FloatNumberUtf8Converter<float>(o)));
+        list.Add(new(typeof(double), static o => new FloatNumberUtf8Converter<double>(o)));
+        list.Add(new(typeof(decimal), static o => new FloatNumberUtf8Converter<decimal>(o)));
+        list.Add(new(typeof(Half), static o => new FloatNumberUtf8Converter<Half>(o)));
     }
 }

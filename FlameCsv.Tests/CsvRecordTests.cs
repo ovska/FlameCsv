@@ -89,17 +89,6 @@ public static class CsvRecordTests
     }
 
     [Fact]
-    public static void Should_Validate_FieldCount()
-    {
-        Assert.Throws<InvalidDataException>(
-            () => new CsvRecordEnumerable<char>(
-                "1,2,3\r\n1,2,3,4\r\n".AsMemory(),
-                new CsvOptions<char> { ValidateFieldCount = true })
-            .AsEnumerable()
-            .ToList());
-    }
-
-    [Fact]
     public static void Should_Parse_Fields()
     {
         var records = new CsvRecordEnumerable<char>(

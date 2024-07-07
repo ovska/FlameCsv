@@ -108,40 +108,13 @@ public class CsvOptionsTests
         Run(o => o.Formats.Add(typeof(int), null));
         Run(o => o.NoLineBuffering = true);
         Run(o => o.Null = "null");
-        Run(o => o.ValidateFieldCount = default);
+        Run(o => o.NumberStyles.Add(typeof(int), System.Globalization.NumberStyles.None));
         Run(o => o.BooleanValues.Add(default));
 
         void Run(Action<CsvOptions<char>> action)
         {
             Assert.Throws<InvalidOperationException>(() => action(options));
         }
-    }
-
-    [Fact]
-    public void Should_Validate_Field_Count()
-    {
-        const string data = "1,1,1\r\n1,1,1\r\n1,1,1,1\r\n";
-
-        var options = new CsvOptions<char> { ValidateFieldCount = true, HasHeader = false };
-
-        using var enumerator = CsvReader.Enumerate(data, options).GetEnumerator();
-
-        Assert.True(enumerator.MoveNext());
-        Assert.True(enumerator.MoveNext());
-        Assert.Throws<InvalidDataException>(() => enumerator.MoveNext());
-    }
-
-    [Fact]
-    public void Should_Validate_Field_Count_With_Header()
-    {
-        const string data = "A,B,C\r\n1,1,1\r\n1,1,1,1\r\n";
-
-        var options = new CsvOptions<char> { ValidateFieldCount = true, HasHeader = true };
-
-        using var enumerator = CsvReader.Enumerate(data, options).GetEnumerator();
-
-        Assert.True(enumerator.MoveNext());
-        Assert.Throws<InvalidDataException>(() => enumerator.MoveNext());
     }
 
     [Fact]

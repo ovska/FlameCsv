@@ -55,8 +55,8 @@ public static partial class ConverterResolutionTests
         Assert.Equal(123, r2[0].Age);
 
         // overridden converter should not have any effect on configured one
-        Assert.IsType<SpanTextConverter<int>>(o1.GetConverter<int>());
-        Assert.IsType<SpanTextConverter<int>>(o2.GetConverter<int>());
+        Assert.IsType<IntegerNumberTextConverter<int>>(o1.GetConverter<int>());
+        Assert.IsType<IntegerNumberTextConverter<int>>(o2.GetConverter<int>());
         Assert.IsType<StringTextConverter>(o1.GetConverter<string>());
         Assert.IsType<StringTextConverter>(o2.GetConverter<string>());
     }

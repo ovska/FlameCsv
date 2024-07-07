@@ -14,8 +14,13 @@ public sealed class ImmutableEquatableArray<T> : IEquatable<ImmutableEquatableAr
     public T this[int index] => _values[index];
     public int Count => _values.Length;
 
-    public ImmutableEquatableArray(IEnumerable<T> values)
-        => _values = values.ToArray();
+    public ImmutableEquatableArray(IEnumerable<T> values, bool sorted = false)
+    {
+        _values = values.ToArray();
+
+        if (sorted)
+            Array.Sort(_values);
+    }
 
     public bool Equals(ImmutableEquatableArray<T>? other)
         => other != null && ((ReadOnlySpan<T>)_values).SequenceEqual(other._values);
@@ -70,5 +75,8 @@ public sealed class ImmutableEquatableArray<T> : IEquatable<ImmutableEquatableAr
 internal static class ImmutableEquatableArray
 {
     public static ImmutableEquatableArray<T> ToImmutableEquatableArray<T>(this IEnumerable<T> values) where T : IEquatable<T>
+        => new(values);
+
+    public static ImmutableEquatableArray<T> ToImmutableEquatableArray<T>(this IEnumerable<T> values, bool sorted = false) where T : IEquatable<T>, IComparable<T>
         => new(values);
 }
