@@ -125,10 +125,11 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
 
     /// <summary>
     /// Returns the header binder that matches CSV header record fields to parsed type's properties/fields.
+    /// See also <see cref="Comparer"/>.
     /// </summary>
     /// <remarks>
     /// By default, CSV header is matched to property/field names and
-    /// <see cref="Binding.Attributes.CsvHeaderAttribute"/> using <see cref="StringComparison.OrdinalIgnoreCase"/>.
+    /// <see cref="Binding.Attributes.CsvHeaderAttribute"/>.
     /// </remarks>
     public virtual IHeaderBinder<T> GetHeaderBinder() => new DefaultHeaderBinder<T>(this);
 
@@ -205,8 +206,8 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
 
     /// <summary>
     /// Returns a <see langword="string"/> representation of the value.
+    /// See also <see cref="TryGetChars(ReadOnlySpan{T}, Span{char}, out int)"/>
     /// </summary>
-    /// <seealso cref="WriteText{TWriter}(TWriter, ReadOnlySpan{char})"/>
     public virtual string GetAsString(ReadOnlySpan<T> field)
     {
         if (typeof(T) == typeof(char))
@@ -225,6 +226,7 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
 
     /// <summary>
     /// Writes <paramref name="destination"/> as chars to <paramref name="destination"/>.
+    /// See also <see cref="GetAsString(ReadOnlySpan{T})"/>.
     /// </summary>
     public virtual bool TryGetChars(ReadOnlySpan<T> field, Span<char> destination, out int charsWritten)
     {
@@ -247,7 +249,6 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     /// Writes <paramref name="value"/> as <typeparamref name="T"/> to <paramref name="destination"/>.
     /// </summary>
     /// <param name="value">Text to write</param>
-    /// <seealso cref="GetAsString(ReadOnlySpan{T})"/>
     public virtual bool TryWriteChars(ReadOnlySpan<char> value, Span<T> destination, out int charsWritten)
     {
         if (typeof(T) == typeof(char))
@@ -328,7 +329,7 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
 
     /// <summary>
     /// Format provider used it none is defined for type in <see cref="FormatProviders"/>.
-    /// Defaults to <see cref="CultureInfo.InvariantCulture"/>.
+    /// Defaults to <see cref="CultureInfo.InvariantCulture"/>. See <see cref="GetFormatProvider(Type)"/>.
     /// </summary>
     public IFormatProvider? FormatProvider
     {
@@ -337,19 +338,20 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     }
 
     /// <summary>
-    /// Format provider user per type instead of <see cref="FormatProvider"/>.
+    /// Format provider user per type instead of <see cref="FormatProvider"/>. See <see cref="GetFormatProvider(Type)"/>.
     /// </summary>
-    public IDictionary<Type, IFormatProvider?> FormatProviders => _providers ??= new TypeDictionary<IFormatProvider?, object>(this);
+    public ITypeDictionary<IFormatProvider?> FormatProviders => _providers ??= new TypeDictionary<IFormatProvider?, object>(this);
 
     /// <summary>
-    /// Format used per type.
+    /// Format used per type. See <see cref="GetFormat(Type, string?)"/>.
     /// </summary>
-    public IDictionary<Type, string?> Formats => _formats ??= new TypeDictionary<string?, object>(this);
+    public ITypeDictionary<string?> Formats => _formats ??= new TypeDictionary<string?, object>(this);
 
     /// <summary>
     /// Parsing styles used per <see cref="IBinaryNumber{TSelf}"/> and <see cref="IFloatingPoint{TSelf}"/>.
+    /// See <see cref="GetNumberStyles(Type, System.Globalization.NumberStyles)"/>.
     /// </summary>
-    public IDictionary<Type, NumberStyles> NumberStyles => _styles ??= new TypeDictionary<NumberStyles, object>(this);
+    public ITypeDictionary<NumberStyles> NumberStyles => _styles ??= new TypeDictionary<NumberStyles, object>(this);
 
     /// <summary>
     /// Disables buffering newline ranges when reading.
@@ -527,7 +529,7 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     /// <summary>
     /// Returns tokens used to parse and format <see langword="null"/> values. See <see cref="GetNullToken(Type)"/>.
     /// </summary>
-    public IDictionary<Type, string?> NullTokens => _nullTokens ??= new(this, static str => (Utf8String)str);
+    public ITypeDictionary<string?> NullTokens => _nullTokens ??= new(this, static str => (Utf8String)str);
 
     /// <summary>
     /// Optional custom boolean value mapping. If not empty, must contain at least one value for both
