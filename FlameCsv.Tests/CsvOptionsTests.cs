@@ -1,9 +1,151 @@
+using System.Globalization;
 using FlameCsv.Converters;
 
 namespace FlameCsv.Tests;
 
 public class CsvOptionsTests
 {
+    private static ReadOnlySpan<T> Format<T, TValue>(CsvOptions<T> options, TValue value)
+        where T : unmanaged, IEquatable<T>
+    {
+        T[] buffer = new T[64];
+        var converter = options.GetConverter<TValue>();
+        Assert.True(converter.TryFormat(buffer, value, out int charsWritten));
+        return buffer.AsSpan(0, charsWritten);
+    }
+
+    [Fact]
+    public static void Should_Return_Null_Token()
+    {
+        var to = new CsvOptions<char>
+        {
+            NullTokens =
+            {
+                [typeof(long)] = "long",
+                [typeof(short?)] = "short",
+            },
+            Null = "null",
+        };
+
+        Assert.Equal("long", to.GetNullToken(typeof(long)).ToString());
+        Assert.Equal("long", to.GetNullToken(typeof(long?)).ToString());
+        Assert.Equal("short", to.GetNullToken(typeof(short)).ToString());
+        Assert.Equal("short", to.GetNullToken(typeof(short?)).ToString());
+        Assert.Equal("null", to.GetNullToken(typeof(int)).ToString());
+        Assert.Equal("null", to.GetNullToken(typeof(int?)).ToString());
+
+        Assert.Equal("123", Format(to, 123L));
+        Assert.Equal("long", Format(to, new long?()));
+        Assert.Equal("123", Format(to, 123));
+        Assert.Equal("null", Format(to, new int?()));
+
+        var bo = new CsvOptions<byte>
+        {
+            NullTokens =
+            {
+                [typeof(long)] = "long",
+                [typeof(short?)] = "short",
+            },
+            Null = "null",
+        };
+
+        Assert.Equal("long"u8, bo.GetNullToken(typeof(long)).Span);
+        Assert.Equal("long"u8, bo.GetNullToken(typeof(long?)).Span);
+        Assert.Equal("short"u8, bo.GetNullToken(typeof(short)).Span);
+        Assert.Equal("short"u8, bo.GetNullToken(typeof(short?)).Span);
+        Assert.Equal("null"u8, bo.GetNullToken(typeof(int)).Span);
+        Assert.Equal("null"u8, bo.GetNullToken(typeof(int?)).Span);
+
+        Assert.Equal("123"u8, Format(bo, 123L));
+        Assert.Equal("long"u8, Format(bo, new long?()));
+        Assert.Equal("123"u8, Format(bo, 123));
+        Assert.Equal("null"u8, Format(bo, new int?()));
+    }
+
+    [Fact]
+    public static void Should_Return_Format()
+    {
+        var to = new CsvOptions<char>
+        {
+            EnumFormat = "x",
+            Formats = { [typeof(DayOfWeek)] = "d", [typeof(float)] = "0.0" },
+        };
+
+        Assert.Equal("1", Format(to, (DayOfWeek)1));
+        Assert.Equal("00000012", Format(to, TypeCode.String));
+        Assert.Equal("1.2", Format(to, 1.2345f));
+
+        var bo = new CsvOptions<byte>
+        {
+            EnumFormat = "x",
+            Formats = { [typeof(DayOfWeek)] = "d", [typeof(float)] = "0.0" },
+        };
+
+        Assert.Equal("1"u8, Format(bo, (DayOfWeek)1));
+        Assert.Equal("00000012"u8, Format(bo, TypeCode.String));
+        Assert.Equal("1.2"u8, Format(bo, 1.2345f));
+    }
+
+    [Fact]
+    public static void Should_Return_FormatProvider()
+    {
+        var to = new CsvOptions<char>
+        {
+            FormatProvider = new CultureInfo("fi"),
+            FormatProviders = { [typeof(double)] = CultureInfo.InvariantCulture },
+        };
+
+        Assert.Equal("fi", ((CultureInfo)to.GetFormatProvider(typeof(string))!).Name);
+        Assert.Equal(CultureInfo.InvariantCulture, to.GetFormatProvider(typeof(double)));
+
+        Assert.Equal("0,5", Format(to, 0.5f));
+        Assert.Equal("0.5", Format(to, 0.5d));
+
+        var bo = new CsvOptions<byte>
+        {
+            FormatProvider = new CultureInfo("fi"),
+            FormatProviders = { [typeof(double)] = CultureInfo.InvariantCulture },
+        };
+
+        Assert.Equal("fi", ((CultureInfo)bo.GetFormatProvider(typeof(string))!).Name);
+        Assert.Equal(CultureInfo.InvariantCulture, bo.GetFormatProvider(typeof(double)));
+
+        Assert.Equal("0,5"u8, Format(bo, 0.5f));
+        Assert.Equal("0.5"u8, Format(bo, 0.5d));
+    }
+
+    [Fact]
+    public static void Should_Return_NumberStyles()
+    {
+        var to = new CsvOptions<char>
+        {
+            NumberStyles =
+            {
+                [typeof(int)] = NumberStyles.AllowTrailingWhite,
+                [typeof(long)] = NumberStyles.AllowLeadingWhite,
+            }
+        };
+
+        Assert.True(to.GetConverter<int>().TryParse("1  ", out _));
+        Assert.False(to.GetConverter<long>().TryParse("1  ", out _));
+        Assert.False(to.GetConverter<int>().TryParse("  1", out _));
+        Assert.True(to.GetConverter<long>().TryParse("  1", out _));
+
+        var bo = new CsvOptions<byte>
+        {
+            NumberStyles =
+            {
+                [typeof(int)] = NumberStyles.AllowTrailingWhite,
+                [typeof(long)] = NumberStyles.AllowLeadingWhite,
+            }
+        };
+
+        Assert.True(bo.GetConverter<int>().TryParse("1  "u8, out _));
+        Assert.False(bo.GetConverter<long>().TryParse("1  "u8, out _));
+        Assert.False(bo.GetConverter<int>().TryParse("  1"u8, out _));
+        Assert.True(bo.GetConverter<long>().TryParse("  1"u8, out _));
+    }
+
     [Theory, InlineData(typeof(int*)), InlineData(typeof(List<>)), InlineData(typeof(Span<int>)), InlineData(default(Type))]
     public static void Should_Validate_TypeDictionary_Argument(Type? type)
     {
