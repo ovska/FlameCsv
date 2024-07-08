@@ -4,7 +4,13 @@ using CommunityToolkit.Diagnostics;
 
 namespace FlameCsv.Utilities;
 
-internal sealed class TypeDictionary<TValue, TAlternate> : IDictionary<Type, TValue>
+/// <summary>
+/// Dictionary of <typeparamref name="TValue"/> indexed by <see cref="Type"/>.
+/// Structs and their <see cref="Nullable{T}"/> counterpart are treated as equal.
+/// </summary>
+public interface ITypeDictionary<TValue> : IDictionary<Type, TValue>;
+
+internal sealed class TypeDictionary<TValue, TAlternate> : ITypeDictionary<TValue>
 {
     public TypeDictionary<TValue, TAlternate> Clone()
     {
