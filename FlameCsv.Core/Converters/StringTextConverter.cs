@@ -14,7 +14,7 @@ internal sealed class StringTextConverter : CsvConverter<char, string>
 
     public override bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out string value)
     {
-        value = new string(source);
+        value = !source.IsEmpty ? new string(source) : "";
         return true;
     }
 }

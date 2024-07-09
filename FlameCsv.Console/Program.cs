@@ -10,7 +10,9 @@ namespace FlameCsv.Console
     {
         static void Main([NotNull] string[] args)
         {
-            new X();
+            object? x = (object)1;
+
+            var dof = (DayOfWeek)x;
 
             var dst = new byte[128];
             var res = Utf8Formatter.TryFormat((Int16)0, dst, out int written);

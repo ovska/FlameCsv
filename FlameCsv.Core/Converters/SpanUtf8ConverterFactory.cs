@@ -49,11 +49,11 @@ internal sealed class SpanUtf8ConverterFactory : CsvConverterFactory<byte>
 
                 if (def == typeof(IUtf8SpanParsable<>))
                 {
-                    parsable = true;
+                    parsable = iface.GetGenericArguments()[0] == type;
                 }
                 else if (def == typeof(ISpanParsable<>))
                 {
-                    parsable = false;
+                    parsable = iface.GetGenericArguments()[0] == type;
                 }
             }
             else

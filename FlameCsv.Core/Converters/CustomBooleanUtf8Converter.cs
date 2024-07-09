@@ -14,9 +14,9 @@ internal sealed class CustomBooleanUtf8Converter : CsvConverter<byte, bool>
     {
         Debug.Assert(options._booleanValues is not null);
 
-        IList<(string text, bool value)> values = options._booleanValues;
+        Guard.IsNotEmpty(options.BooleanValues);
 
-        Guard.IsNotEmpty(values);
+        var values = options._booleanValues;
 
         List<byte[]> trues = new((values.Count / 2) + 1);
         List<byte[]> falses = new((values.Count / 2) + 1);
