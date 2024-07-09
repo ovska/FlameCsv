@@ -273,7 +273,7 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     internal CsvFieldEscaping _fieldEscaping;
     internal ArrayPool<T> _arrayPool = ArrayPool<T>.Shared;
     private bool _allowContentInExceptions;
-    internal IList<(string text, bool value)>? _booleanValues;
+    internal SealableList<(string, bool)>? _booleanValues;
     private bool _useDefaultConverters = true;
     private bool _ignoreEnumCase = true;
     private string? _enumFormat;
