@@ -14,11 +14,6 @@ namespace FlameCsv;
 public abstract class CsvConverter<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
-    /// Type the converter can convert, or <see langword="null"/> if the converter is a factory.
-    /// </summary>
-    public abstract Type? Type { get; }
-
-    /// <summary>
     /// Returns whether the type can be handled by this converter, or a suitable converter can be
     /// created from this factory instance.
     /// </summary>
@@ -34,8 +29,6 @@ public abstract class CsvConverter<T> where T : unmanaged, IEquatable<T>
 /// <typeparam name="TValue">Parsed/formatted value</typeparam>
 public abstract class CsvConverter<T, TValue> : CsvConverter<T> where T : unmanaged, IEquatable<T>
 {
-    public sealed override Type? Type => typeof(TValue);
-
     /// <summary>
     /// Returns whether the type can be handled by this converter.
     /// </summary>
@@ -61,27 +54,25 @@ public abstract class CsvConverter<T, TValue> : CsvConverter<T> where T : unmana
     public abstract bool TryFormat(Span<T> destination, TValue value, out int charsWritten);
 
     /// <summary>
-    /// Whether the converter formats null values.
+    /// Whether the converter formats null values. When <see langword="false"/> (the default),
+    /// <see cref="CsvOptions{T}.GetNullToken(Type)"/> is used to write nulls.
     /// </summary>
     public virtual bool HandleNull => false;
 }
 
 /// <summary>
-/// Creates instances of <see cref="CsvConverterFactory{T}"/>. Used to resolve converters for things such
-/// as open generics (like <see cref="List{T}"/>), <see cref="Enum"/>, and <see cref="Nullable{T}"/>.
+/// Creates instances of <see cref="CsvConverterFactory{T}"/>. Used to resolve converters for <see langword="enum"/> and <see cref="Nullable{T}"/>.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 public abstract class CsvConverterFactory<T> : CsvConverter<T> where T : unmanaged, IEquatable<T>
 {
-    public sealed override Type? Type => null;
-
     /// <summary>
     /// Creates an instance capable of converting values of the specified type.
     /// </summary>
     /// <remarks>
-    /// This method should only be called after <see cref="CsvConverter{T}.CanParse"/> has verified the type is valid.
+    /// This method should only be called after <see cref="CsvConverter{T}.CanConvert(Type)"/> has returned <see langword="true"/>.
     /// </remarks>
-    /// <param name="type">Value type of the returned <see cref="CsvConverter{T,TValue}"/></param>
+    /// <param name="type"><c>TValue</c> of the returned <see cref="CsvConverter{T,TValue}"/></param>
     /// <param name="options">Current options instance</param>
     /// <returns>Converter instance</returns>
     public abstract CsvConverter<T> Create(Type type, CsvOptions<T> options);

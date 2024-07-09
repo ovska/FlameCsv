@@ -1,4 +1,5 @@
-﻿using System.Collections.Immutable;
+﻿using System;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Extensions;
@@ -48,6 +49,9 @@ internal sealed class CustomBooleanTextConverter : CsvConverter<char, bool>
 
         if (falseValues.Length == 0)
             Throw.Config_TrueOrFalseBooleanValues(false);
+
+        // validate comparison
+        _ = string.Equals(trueValues[0], falseValues[0], comparison);
 
         _trueValues = [.. trueValues];
         _falseValues = [.. falseValues];
