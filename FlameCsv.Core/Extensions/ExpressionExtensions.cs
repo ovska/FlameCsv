@@ -40,11 +40,10 @@ internal static class ExpressionExtensions
     /// Compiles a lambda expression into a delegate using FastExpressionCompiler.
     /// </summary>
     [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+    [RequiresDynamicCode(Messages.CompiledExpressions)]
     public static TDelegate CompileLambda<TDelegate>(this LambdaExpression lambda, bool throwIfClosure = false)
         where TDelegate : Delegate
     {
-        Guard.IsTrue(RuntimeFeature.IsDynamicCodeSupported);
-
         TDelegate? fn = lambda.TryCompileWithoutClosure<TDelegate>(flags: DefaultCompilerFlags);
 
         if (fn is null && throwIfClosure)

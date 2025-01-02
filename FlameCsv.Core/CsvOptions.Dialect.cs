@@ -64,7 +64,7 @@ public partial class CsvOptions<T>
             return ref Nullable.GetValueRefOrDefaultRef(in _dialect);
         }
 
-        ThrowInvalidTokenType(null);
+        ThrowInvalidTokenType(nameof(InitializeDialect));
         return ref Unsafe.NullRef<CsvDialect<T>>();
     }
 

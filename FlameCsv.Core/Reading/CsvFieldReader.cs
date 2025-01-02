@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -10,47 +11,14 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading;
 
-internal static class CsvEnumerationExtensions
+public interface ICsvFieldReader<T> : IEnumerator<ReadOnlySpan<T>> where T : unmanaged, IEquatable<T>
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryReadNext<T>(ref this CsvFieldReader<T> record, out ReadOnlySpan<T> field)
-        where T : unmanaged, IEquatable<T>
-    {
-        return CsvFieldReader<T>.TryReadNext(ref record, out field);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryReadNext<T>(ref this CsvFieldReader<T> record, out ReadOnlyMemory<T> field)
-        where T : unmanaged, IEquatable<T>
-    {
-        if (CsvFieldReader<T>.TryReadNext(ref record, out var fieldSpan))
-        {
-            field = record.GetAsMemory(fieldSpan);
-            return true;
-        }
-
-        field = default;
-        return false;
-    }
+    ReadOnlyMemory<T> RawRecord { get; }
+    CsvOptions<T> Options { get; }
 }
 
-public ref struct CsvFieldReader<T> where T : unmanaged, IEquatable<T>
+public ref struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IEquatable<T>
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryReadNext(ref CsvFieldReader<T> reader, out ReadOnlySpan<T> field)
-    {
-        if (!reader.End)
-        {
-            field = !reader.Escape.HasValue
-                ? RFC4180Mode<T>.ReadNextField(ref reader)
-                : UnixMode<T>.ReadNextField(ref reader);
-            return true;
-        }
-
-        field = default;
-        return false;
-    }
-
     public readonly ReadOnlySpan<T> Record { get; }
     public readonly ReadOnlySpan<T> Remaining => Record.Slice(Consumed);
     public readonly bool End => Consumed >= Record.Length;
@@ -154,17 +122,14 @@ public ref struct CsvFieldReader<T> where T : unmanaged, IEquatable<T>
         if (length <= _unescapeBuffer.Length)
             return _unescapeBuffer.Slice(0, length);
 
+        if (Unsafe.IsNullRef(ref _unescapeArray))
+        {
+            Debug.Fail("Null ref unescape array");
+            return GC.AllocateUninitializedArray<T>(length);
+        }
+
         _options._arrayPool.EnsureCapacity(ref _unescapeArray, length);
         return _unescapeArray.AsSpan(0, length);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly void EnsureFullyConsumed(int fieldCount)
-    {
-        if ((((uint)Record.Length - (uint)Consumed) | quotesRemaining | escapesRemaining) == 0)
-            return;
-
-        ThrowNotFullyConsumed(fieldCount);
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -174,7 +139,7 @@ public ref struct CsvFieldReader<T> where T : unmanaged, IEquatable<T>
 
         throw new CsvParseException(
             $"Failed to parse{withStr} from {_options.AsPrintableString(field.ToArray())}.")
-        { Parser = parser };
+        { Converter = parser };
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -213,7 +178,7 @@ public ref struct CsvFieldReader<T> where T : unmanaged, IEquatable<T>
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private readonly void ThrowNotFullyConsumed(int fieldCount)
+    private readonly void ThrowNotFullyConsumed()
     {
         StringBuilder sb = new(capacity: 128);
 
@@ -229,10 +194,6 @@ public ref struct CsvFieldReader<T> where T : unmanaged, IEquatable<T>
 
         if (!End)
         {
-            if (fieldCount != -1)
-            {
-                sb.Append(CultureInfo.InvariantCulture, $"Expected the record to have {fieldCount} fields, but it had more. ");
-            }
             sb.Append(CultureInfo.InvariantCulture, $"Remaining: {_options.AsPrintableString(_record.Slice(Consumed))}, ");
         }
 
@@ -240,4 +201,34 @@ public ref struct CsvFieldReader<T> where T : unmanaged, IEquatable<T>
 
         throw new CsvFormatException(sb.ToString());
     }
+
+    public ReadOnlySpan<T> Current { get; private set; }
+
+    public bool MoveNext()
+    {
+        if (!End)
+        {
+            Current = !Escape.HasValue
+                ? RFC4180Mode<T>.ReadNextField(ref this)
+                : UnixMode<T>.ReadNextField(ref this);
+            return true;
+        }
+
+        Current = default;
+        return false;
+    }
+
+    public readonly void Dispose()
+    {
+        if ((((uint)Record.Length - (uint)Consumed) | quotesRemaining | escapesRemaining) == 0)
+            return;
+
+        ThrowNotFullyConsumed();
+    }
+
+    public readonly ReadOnlyMemory<T> RawRecord => _record;
+    public readonly CsvOptions<T> Options => _options;
+
+    readonly void IEnumerator.Reset() => throw new NotSupportedException();
+    readonly object IEnumerator.Current => throw new NotSupportedException();
 }

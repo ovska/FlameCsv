@@ -165,9 +165,9 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
                 ref array,
                 ref _meta);
 
-            while (reader.TryReadNext(out ReadOnlyMemory<T> field))
+            while (reader.MoveNext())
             {
-                _fields.Push(field);
+                _fields.Push(reader.Current);
             }
         }
         finally

@@ -30,19 +30,19 @@ namespace FlameCsv.Converters;
 
 static partial class DefaultConverters
 {
-    private static void RegisterNumberConverters(List<KeyValuePair<Type, ConverterFactory<char>>> list)
+    private static void RegisterNumberConverters(Dictionary<Type, ConverterFactory<char>> dict)
     {
-        list.EnsureCapacity(list.Count + <#= types.Length #>);
+        dict.EnsureCapacity(dict.Count + <#= types.Length #>);
 <# foreach (var (typeName, keyWord, isInteger) in types) { #>
-        list.Add(new(typeof(<#= keyWord #>), static o => new <#= isInteger ? "Integer" : "Float" #>NumberTextConverter<<#= keyWord #>>(o)));
+        dict.Add(typeof(<#= keyWord #>), static o => new <#= isInteger ? "Integer" : "Float" #>NumberTextConverter<<#= keyWord #>>(o));
 <# } #>
     }
 
-    private static void RegisterNumberConverters(List<KeyValuePair<Type, ConverterFactory<byte>>> list)
+    private static void RegisterNumberConverters(Dictionary<Type, ConverterFactory<byte>> dict)
     {
-        list.EnsureCapacity(list.Count + <#= types.Length #>);
+        dict.EnsureCapacity(dict.Count + <#= types.Length #>);
 <# foreach (var (typeName, keyWord, isInteger) in types) { #>
-        list.Add(new(typeof(<#= keyWord #>), static o => new <#= isInteger ? "Integer" : "Float" #>NumberUtf8Converter<<#= keyWord #>>(o)));
+        dict.Add(typeof(<#= keyWord #>), static o => new <#= isInteger ? "Integer" : "Float" #>NumberUtf8Converter<<#= keyWord #>>(o));
 <# } #>
     }
 }

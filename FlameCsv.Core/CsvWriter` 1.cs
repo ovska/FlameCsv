@@ -5,6 +5,7 @@ using FlameCsv.Binding;
 using FlameCsv.Writing;
 using DAM = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute;
 using RUF = System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute;
+using RDC = System.Diagnostics.CodeAnalysis.RequiresDynamicCodeAttribute;
 
 namespace FlameCsv;
 
@@ -94,14 +95,14 @@ public abstract class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unm
     {
     }
 
-    [RUF(Messages.CompiledExpressions)] public abstract void WriteHeader<[DAM(Messages.ReflectionBound)] TRecord>();
+    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)] public abstract void WriteHeader<[DAM(Messages.ReflectionBound)] TRecord>();
     public abstract void WriteHeader<TRecord>(CsvTypeMap<T, TRecord> typeMap);
-    [RUF(Messages.CompiledExpressions)] public abstract ValueTask WriteHeaderAsync<[DAM(Messages.ReflectionBound)] TRecord>(CancellationToken cancellationToken = default);
+    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)] public abstract ValueTask WriteHeaderAsync<[DAM(Messages.ReflectionBound)] TRecord>(CancellationToken cancellationToken = default);
     public abstract ValueTask WriteHeaderAsync<TRecord>(CsvTypeMap<T, TRecord> typeMap, CancellationToken cancellationToken = default);
 
-    [RUF(Messages.CompiledExpressions)] public abstract void WriteRecord<[DAM(Messages.ReflectionBound)] TRecord>(TRecord value);
+    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)] public abstract void WriteRecord<[DAM(Messages.ReflectionBound)] TRecord>(TRecord value);
     public abstract void WriteRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap, TRecord value);
-    [RUF(Messages.CompiledExpressions)] public abstract ValueTask WriteRecordAsync<[DAM(Messages.ReflectionBound)] TRecord>(TRecord value, CancellationToken cancellationToken = default);
+    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)] public abstract ValueTask WriteRecordAsync<[DAM(Messages.ReflectionBound)] TRecord>(TRecord value, CancellationToken cancellationToken = default);
     public abstract ValueTask WriteRecordAsync<TRecord>(CsvTypeMap<T, TRecord> typeMap, TRecord value, CancellationToken cancellationToken = default);
 
     public abstract void WriteRaw(scoped ReadOnlySpan<T> value);

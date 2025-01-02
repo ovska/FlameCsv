@@ -54,7 +54,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>
     /// List of strings to match this member for. Defaults to <see cref="Name"/>
     /// </summary>
     public required ImmutableEquatableArray<string> Names { get; init; }
-
+     
     /// <summary>
     /// The interface type that this property was explicitly implemented from.
     /// </summary>
@@ -66,7 +66,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>
         ISymbol typeSymbol,
         ISymbol symbol,
         KnownSymbols knownSymbols,
-        out PropertyModel model)
+        [NotNullWhen(true)] out PropertyModel? model)
     {
         if (!symbol.CanBeReferencedByName || symbol.IsStatic)
             goto Fail;
@@ -127,7 +127,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>
             IsRequired = isRequired || meta.IsRequired,
             Name = symbol.Name,
             ExplicitInterfaceOriginalDefinition = explicitInterface,
-            Names = meta.Names.ToImmutableEquatableArray(sorted: true),
+            Names = meta.Names.ToImmutableEquatableArray(),
             Order = meta.Order,
             Scope = meta.Scope,
             CanRead = meta.Scope != BindingScope.Write && canRead,
@@ -136,7 +136,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>
         return true;
 
         Fail:
-        model = null!;
+        model = null;
         return false;
     }
 

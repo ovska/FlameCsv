@@ -8,7 +8,7 @@ namespace FlameCsv.SourceGen.Helpers;
 /// </summary>
 [CollectionBuilder(typeof(ImmutableEquatableArray), nameof(ImmutableEquatableArray.Create))]
 public sealed class ImmutableEquatableArray<T> : IEquatable<ImmutableEquatableArray<T>>, IReadOnlyList<T>
-    where T : IEquatable<T>
+    where T : IEquatable<T>, IComparable<T>
 {
     public static ImmutableEquatableArray<T> Empty { get; } = new([]);
 
@@ -16,27 +16,22 @@ public sealed class ImmutableEquatableArray<T> : IEquatable<ImmutableEquatableAr
     public T this[int index] => _values[index];
     public int Count => _values.Length;
 
-    public ImmutableEquatableArray(IEnumerable<T> values, bool sorted = false)
+    public ImmutableEquatableArray(IEnumerable<T> values)
     {
         _values = values.ToArray();
-
-        if (sorted)
-            Array.Sort(_values);
+        Array.Sort(_values);
     }
 
-    public ImmutableEquatableArray(ReadOnlySpan<T> values, bool sorted = false)
+    public ImmutableEquatableArray(ReadOnlySpan<T> values)
     {
         _values = values.ToArray();
-
-        if (sorted)
-            Array.Sort(_values);
+        Array.Sort(_values);
     }
 
     public bool Equals(ImmutableEquatableArray<T>? other)
         => other != null && ((ReadOnlySpan<T>)_values).SequenceEqual(other._values);
 
-    public override bool Equals(object? obj)
-        => obj is ImmutableEquatableArray<T> other && Equals(other);
+    public override bool Equals(object? obj) => Equals(obj as ImmutableEquatableArray<T>);
 
     public override int GetHashCode()
     {
@@ -82,44 +77,35 @@ public sealed class ImmutableEquatableArray<T> : IEquatable<ImmutableEquatableAr
     }
 }
 
+[SuppressMessage("Style", "IDE0301:Simplify collection initialization")]
 internal static class ImmutableEquatableArray
 {
-    public static ImmutableEquatableArray<T> ToImmutableEquatableArray<T>(this IEnumerable<T> values) where T : IEquatable<T>
+    public static ImmutableEquatableArray<T> ToImmutableEquatableArray<T>(this IEnumerable<T> values) where T : IEquatable<T>, IComparable<T>
     {
         return CreateRange(values);
     }
 
-    public static ImmutableEquatableArray<T> ToImmutableEquatableArray<T>(this IEnumerable<T> values, bool sorted = false)
-        where T : IEquatable<T>, IComparable<T>
-    {
-        if (values is ICollection { Count: 0 })
-            return [];
+    public static ImmutableEquatableArray<T> Create<T>() where T : IEquatable<T>, IComparable<T> => ImmutableEquatableArray<T>.Empty;
 
-        return new(values, sorted);
-    }
+    public static ImmutableEquatableArray<T> Create<T>(T item) where T : IEquatable<T>, IComparable<T> => [item];
 
-    [SuppressMessage("Style", "IDE0301:Simplify collection initialization")]
-    public static ImmutableEquatableArray<T> Create<T>() where T : IEquatable<T> => ImmutableEquatableArray<T>.Empty;
-
-    public static ImmutableEquatableArray<T> Create<T>(T item) where T : IEquatable<T> => [item];
-
-    public static ImmutableEquatableArray<T> CreateRange<T>(IEnumerable<T> items) where T : IEquatable<T>
+    public static ImmutableEquatableArray<T> CreateRange<T>(IEnumerable<T> items) where T : IEquatable<T>, IComparable<T>
     {
         if (items is ICollection { Count: 0 })
-            return [];
+            return ImmutableEquatableArray<T>.Empty;
 
         return new(items);
     }
 
-    public static ImmutableEquatableArray<T> Create<T>(params T[] items) where T : IEquatable<T>
+    public static ImmutableEquatableArray<T> Create<T>(params T[] items) where T : IEquatable<T>, IComparable<T>
     {
         return Create((ReadOnlySpan<T>)items);
     }
 
-    public static ImmutableEquatableArray<T> Create<T>(ReadOnlySpan<T> items) where T : IEquatable<T>
+    public static ImmutableEquatableArray<T> Create<T>(ReadOnlySpan<T> items) where T : IEquatable<T>, IComparable<T>
     {
         if (items.IsEmpty)
-            return [];
+            return ImmutableEquatableArray<T>.Empty;
 
         return new(items);
     }

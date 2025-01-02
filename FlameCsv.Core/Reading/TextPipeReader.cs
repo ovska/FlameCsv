@@ -103,15 +103,15 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
 
     private void EnsureReadTail()
     {
-        if (_readHead == null)
+        if (_readHead is null)
         {
-            Debug.Assert(_readTail == null);
+            Debug.Assert(_readTail is null);
             _readHead = AllocateSegment();
             _readTail = _readHead;
         }
         else
         {
-            Debug.Assert(_readTail != null);
+            Debug.Assert(_readTail is not null);
             if (_readTail.WritableBytes < _bufferSize)
             {
                 TextSegment nextSegment = AllocateSegment();
@@ -140,12 +140,12 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
         TextSegment? examinedSegment = (TextSegment?)examined.GetObject();
         int examinedIndex = examined.GetInteger();
 
-        if (consumedSegment == null || examinedSegment == null)
+        if (consumedSegment is null || examinedSegment is null)
         {
             return;
         }
 
-        if (_readHead == null)
+        if (_readHead is null)
         {
             ThrowHelper.ThrowInvalidOperationException("Invalid AdvanceTo, head is null");
         }
@@ -202,7 +202,7 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
             _disposed = true;
 
             TextSegment? segment = _readHead;
-            while (segment != null)
+            while (segment is not null)
             {
                 TextSegment returnSegment = segment;
                 segment = segment.NextSegment;

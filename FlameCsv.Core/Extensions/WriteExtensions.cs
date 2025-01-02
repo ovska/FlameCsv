@@ -20,8 +20,8 @@ internal static class WriteExtensions
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ReadOnlySpan<TTo> UnsafeCast<TFrom, TTo>(this ReadOnlySpan<TFrom> span)
-    where TFrom : unmanaged
-    where TTo : unmanaged
+        where TFrom : unmanaged
+        where TTo : unmanaged
     {
         Debug.Assert(Unsafe.SizeOf<TFrom>() == Unsafe.SizeOf<TTo>());
 

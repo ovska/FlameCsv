@@ -1,5 +1,8 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.Diagnostics;
+using FlameCsv.Exceptions;
+using FlameCsv.Extensions;
 using FlameCsv.Reading;
 
 namespace FlameCsv.Runtime;
@@ -22,24 +25,33 @@ internal abstract partial class Materializer<T> where T : unmanaged, IEquatable<
     /// <param name="converter">Converter instance</param>
     /// <typeparam name="TValue">Parsed value</typeparam>
     [MethodImpl(MethodImplOptions.AggressiveInlining)] // should be small enough to inline in Parse()
-    protected static TValue ParseNext<TValue>(ref CsvFieldReader<T> reader, CsvConverter<T, TValue> converter)
+    protected TValue ParseNext<TValue, TReader>(
+        ref TReader reader,
+        CsvConverter<T, TValue> converter)
+        where TReader : ICsvFieldReader<T>, allows ref struct
     {
-        if (reader.TryReadNext(out ReadOnlySpan<T> field))
+        if (reader.MoveNext())
         {
+            ReadOnlySpan<T> field = reader.Current;
+
             if (converter.TryParse(field, out TValue? value))
                 return value;
 
-            reader.ThrowParseFailed(field, converter);
+            CsvParseException.Throw(reader.Options, field, converter);
         }
 
-        reader.ThrowForInvalidEOF();
+        CsvReadException.ThrowForPrematureEOF(FieldCount, reader.Options, reader.RawRecord);
         return default;
     }
 
-    public override string ToString()
+    public override string ToString() => GetType().ToTypeString();
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    protected static void ThrowNotFullyConsumed<TReader>(int fieldCount, ref readonly TReader reader)
+        where TReader : ICsvFieldReader<T>, allows ref struct
     {
-        return $"Materializer<{string.Join(
-            ", ",
-            GetType().GetGenericArguments().Select(t => t.ToTypeString().Replace(t.Namespace + '.', "")))}>";
+        throw new CsvFormatException(
+            $"Csv record was expected to have {fieldCount} fields, but had more: " +
+            reader.Options.AsPrintableString(reader.RawRecord));
     }
 }

@@ -30,6 +30,7 @@ internal abstract partial class Dematerializer<T>
     /// <typeparam name="TValue">Type of the object/struct being read</typeparam>
     [ExcludeFromCodeCoverage]
     [RequiresUnreferencedCode("Trimmed Dematerializer<...> implementations may not be available during runtime.")]
+    [RequiresDynamicCode("MakeGenericType is called on Dematerializer<...>")]
     internal static ConstructorInfo GetConstructor<TValue>(ReadOnlySpan<MemberCsvBinding<TValue>> bindings)
     {
         Type[] types = new Type[bindings.Length + 2];

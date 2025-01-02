@@ -76,8 +76,8 @@ internal sealed class TextSegment(ArrayPool<char> arrayPool) : ReadOnlySequenceS
 
     public void SetNext(TextSegment segment)
     {
-        Debug.Assert(segment != null);
-        Debug.Assert(Next == null);
+        Debug.Assert(segment is not null);
+        Debug.Assert(Next is null);
 
         NextSegment = segment;
 
@@ -85,7 +85,7 @@ internal sealed class TextSegment(ArrayPool<char> arrayPool) : ReadOnlySequenceS
 
         while (segment.Next != null)
         {
-            Debug.Assert(segment.NextSegment != null);
+            Debug.Assert(segment.NextSegment is not null);
             segment.NextSegment.RunningIndex = segment.RunningIndex + segment.Length;
             segment = segment.NextSegment;
         }

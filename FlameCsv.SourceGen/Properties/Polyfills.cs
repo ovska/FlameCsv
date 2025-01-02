@@ -1,4 +1,5 @@
-﻿#pragma warning disable IDE0161 // Convert to file-scoped namespace
+﻿#pragma warning disable IDE0060 // Remove unused parameter
+#pragma warning disable IDE0130 // Namespace does not match folder structure
 using System.ComponentModel;
 
 namespace System.Diagnostics.CodeAnalysis
@@ -27,6 +28,19 @@ namespace System.Diagnostics.CodeAnalysis
 
     [AttributeUsage(AttributeTargets.Method, Inherited = false)]
     internal sealed class DoesNotReturnAttribute : Attribute;
+
+    internal sealed class SetsRequiredMembersAttribute;
+
+    [AttributeUsage(AttributeTargets.Parameter, Inherited = false)]
+    internal sealed class NotNullWhenAttribute : Attribute
+    {
+        public bool ReturnValue { get; }
+
+        public NotNullWhenAttribute(bool returnValue)
+        {
+            ReturnValue = returnValue;
+        }
+    }
 }
 
 namespace System.Runtime.CompilerServices
@@ -64,9 +78,4 @@ namespace System.Runtime.CompilerServices
         /// <remarks>This should match the metadata name of the target method. For example, this might be ".ctor" if targeting the type's constructor.</remarks>
         public string MethodName { get; }
     }
-}
-
-namespace System.Diagnostics.CodeAnalysis
-{
-    internal sealed class SetsRequiredMembersAttribute { }
 }

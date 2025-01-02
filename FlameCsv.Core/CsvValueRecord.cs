@@ -190,7 +190,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
         return list;
     }
 
-    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+    [RequiresUnreferencedCode(Messages.CompiledExpressions), RequiresDynamicCode(Messages.CompiledExpressions)]
     public TRecord ParseRecord<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TRecord>()
     {
         _state.EnsureVersion(_version);

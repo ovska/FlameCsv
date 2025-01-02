@@ -42,7 +42,7 @@ internal sealed class SpanUtf8FormattableConverter<TValue> : CsvConverter<byte, 
         int written = Encoding.UTF8.GetChars(source, buffer);
 
         bool result = TValue.TryParse(buffer[..written], _provider, out value);
-        ArrayPool<char>.Shared.EnsureReturned(ref toReturn, clearArray: true);
+        ArrayPool<char>.Shared.EnsureReturned(ref toReturn);
 
         return result;
     }
