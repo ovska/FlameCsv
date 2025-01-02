@@ -2,9 +2,11 @@
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
-    <NoWarn>CS1591</NoWarn>
+    <NoWarn>$(NoWarn);CA2263;CS1591</NoWarn>
+  </PropertyGroup>
 
-    <!--Sourcegen stuff-->
+  <!--Sourcegen stuff-->
+  <PropertyGroup Condition="'$(Configuration)' != 'Release'">
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>
     <ReportAnalyzer>true</ReportAnalyzer>

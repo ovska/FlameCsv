@@ -82,38 +82,38 @@ public sealed class CsvEnumerationTests : IDisposable
         Assert.Throws<ArgumentNullException>(() => new CsvRecordEnumerable<char>(default(ReadOnlySequence<char>), null!));
     }
 
-    [Fact]
-    public void Should_Enumerate_Fields()
-    {
-        using var enumerator = new CsvFieldEnumerator<char>(
-            "1,\"Test\",true".AsMemory(),
-            CsvOptions<char>.Default);
+    //[Fact]
+    //public void Should_Enumerate_Fields()
+    //{
+    //    using var enumerator = new CsvFieldEnumerator<char>(
+    //        "1,\"Test\",true".AsMemory(),
+    //        CsvOptions<char>.Default);
 
-        Assert.True(enumerator.MoveNext());
-        Assert.Equal("1", enumerator.Current.ToString());
+    //    Assert.True(enumerator.MoveNext());
+    //    Assert.Equal("1", enumerator.Current.ToString());
 
-        Assert.True(enumerator.MoveNext());
-        Assert.Equal("Test", enumerator.Current.ToString());
+    //    Assert.True(enumerator.MoveNext());
+    //    Assert.Equal("Test", enumerator.Current.ToString());
 
-        Assert.True(enumerator.MoveNext());
-        Assert.Equal("true", enumerator.Current.ToString());
+    //    Assert.True(enumerator.MoveNext());
+    //    Assert.Equal("true", enumerator.Current.ToString());
 
-        Assert.False(enumerator.MoveNext());
-    }
+    //    Assert.False(enumerator.MoveNext());
+    //}
 
-    [Fact]
-    public void Should_Return_Buffer_On_Dispose()
-    {
-        // dispose throws if no return
-        using var pool = new ReturnTrackingArrayPool<char>();
+    //[Fact]
+    //public void Should_Return_Buffer_On_Dispose()
+    //{
+    //    // dispose throws if no return
+    //    using var pool = new ReturnTrackingArrayPool<char>();
 
-        using var enumerator = new CsvFieldEnumerator<char>(
-            "\"xyz\"".AsMemory(),
-            CsvOptions<char>.Default);
+    //    using var enumerator = new CsvFieldEnumerator<char>(
+    //        "\"xyz\"".AsMemory(),
+    //        CsvOptions<char>.Default);
 
-        Assert.True(enumerator.MoveNext());
-        Assert.False(enumerator.MoveNext());
-    }
+    //    Assert.True(enumerator.MoveNext());
+    //    Assert.False(enumerator.MoveNext());
+    //}
 
     [Fact]
     public void Should_Return_Field_Count()

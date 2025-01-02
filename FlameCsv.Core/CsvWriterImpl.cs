@@ -1,11 +1,11 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
-using FlameCsv.Extensions;
 using FlameCsv.Runtime;
 using FlameCsv.Writing;
 using DAM = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute;
 using RUF = System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute;
+using RDC = System.Diagnostics.CodeAnalysis.RequiresDynamicCodeAttribute;
 
 namespace FlameCsv;
 
@@ -151,7 +151,7 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
         return ValueTask.CompletedTask;
     }
 
-    [RUF(Messages.CompiledExpressions)]
+    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
     public override void WriteRecord<[DAM(Messages.ReflectionBound)] TRecord>(TRecord value)
     {
         WriteDelimiterIfNeeded();
@@ -187,7 +187,7 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
         _inner.Writer.Advance(value.Length);
     }
 
-    [RUF(Messages.CompiledExpressions)]
+    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
     public override ValueTask WriteRecordAsync<[DAM(Messages.ReflectionBound)] TRecord>(TRecord value, CancellationToken cancellationToken = default)
     {
         WriteDelimiterIfNeeded();
@@ -204,7 +204,7 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
         return FlushIfNeededAsync(cancellationToken);
     }
 
-    [RUF(Messages.CompiledExpressions)]
+    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
     public override void WriteHeader<[DAM(Messages.ReflectionBound)] TRecord>()
     {
         WriteDelimiterIfNeeded();
@@ -221,7 +221,7 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
         FlushIfNeeded();
     }
 
-    [RUF(Messages.CompiledExpressions)]
+    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
     public override ValueTask WriteHeaderAsync<[DAM(Messages.ReflectionBound)] TRecord>(CancellationToken cancellationToken = default)
     {
         WriteDelimiterIfNeeded();
@@ -261,7 +261,7 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
         return dematerializer;
     }
 
-    [RUF(Messages.CompiledExpressions)]
+    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
     private IDematerializer<T, TRecord> GetDematerializerAndIncrementFieldCount<[DAM(Messages.ReflectionBound)] TRecord>()
     {
         if (ReferenceEquals(_previousKey, typeof(TRecord)))

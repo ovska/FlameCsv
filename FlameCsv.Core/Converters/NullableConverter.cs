@@ -1,5 +1,3 @@
-using FlameCsv.Extensions;
-
 namespace FlameCsv.Converters;
 
 /// <summary>
@@ -28,11 +26,21 @@ public sealed class NullableConverter<T, TValue> : CsvConverter<T, TValue?>
         _null = nullToken;
     }
 
+    /// <inheritdoc cref="NullableConverter{T, TValue}"/>
+    /// <param name="inner">Converter for possible non-null values.</param>
+    /// <param name="nullToken">Tokens that match a null value. Default is empty.</param>
+    public NullableConverter(CsvOptions<T> options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        _converter = options.GetConverter<TValue>();
+        _null = options.GetNullToken(typeof(TValue));
+    }
+
     public override bool TryParse(ReadOnlySpan<T> source, out TValue? value)
     {
-        if (_converter.TryParse(source, out var _value))
+        if (_converter.TryParse(source, out TValue v))
         {
-            value = _value;
+            value = v;
             return true;
         }
 
@@ -44,9 +52,18 @@ public sealed class NullableConverter<T, TValue> : CsvConverter<T, TValue?>
     {
         if (value.HasValue)
         {
-            return _converter.TryFormat(destination, value.GetValueOrDefault(), out charsWritten);
+            ref readonly TValue v = ref Nullable.GetValueRefOrDefaultRef(in value);
+            return _converter.TryFormat(destination, v, out charsWritten);
         }
 
-        return _null.Span.TryWriteTo(destination, out charsWritten);
+        if (_null.Length <= destination.Length)
+        {
+            _null.Span.CopyTo(destination);
+            charsWritten = _null.Length;
+            return true;
+        }
+
+        charsWritten = 0;
+        return false;
     }
 }

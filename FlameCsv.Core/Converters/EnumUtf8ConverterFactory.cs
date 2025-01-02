@@ -22,5 +22,6 @@ internal sealed class EnumUtf8ConverterFactory : CsvConverterFactory<byte>
     [return: DynamicallyAccessedMembers(Messages.Ctors)]
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL3050", Justification = Messages.StructFactorySuppressionMessage)]
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2070", Justification = Messages.StructFactorySuppressionMessage)]
+    [SuppressMessage("Trimming", "IL2071", Justification = Messages.StructFactorySuppressionMessage)]
     private static Type GetParserType(Type resultType) => typeof(EnumUtf8Converter<>).MakeGenericType(resultType);
 }

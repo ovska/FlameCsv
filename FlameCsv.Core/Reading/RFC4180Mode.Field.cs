@@ -11,7 +11,7 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
     /// Reads the next field from a <strong>non-empty</strong> state.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static ReadOnlySpan<T> ReadNextField(ref CsvFieldReader<T> state)
+    public static ReadOnlySpan<T> ReadNextField(scoped ref CsvFieldReader<T> state)
     {
         Debug.Assert(!state.End, "ReadNextField called with empty input");
         Debug.Assert(state.escapesRemaining == 0, "RFC4180 called with escapes in the input");

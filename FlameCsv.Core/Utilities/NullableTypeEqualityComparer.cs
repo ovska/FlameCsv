@@ -16,20 +16,11 @@ internal sealed class NullableTypeEqualityComparer : IEqualityComparer<Type>
         if (x is null || y is null)
             return false;
 
-        if (x.IsValueType && y.IsValueType)
-        {
-            return ReferenceEquals(x, Nullable.GetUnderlyingType(y))
-                || ReferenceEquals(Nullable.GetUnderlyingType(x), y);
-        }
-
-        return false;
+        return (Nullable.GetUnderlyingType(x) ?? x).Equals(Nullable.GetUnderlyingType(y) ?? y);
     }
 
     public int GetHashCode([DisallowNull] Type obj)
     {
-        if (obj.IsValueType && Nullable.GetUnderlyingType(obj) is { } underlying)
-            return underlying.GetHashCode();
-
-        return obj.GetHashCode();
+        return (Nullable.GetUnderlyingType(obj) ?? obj).GetHashCode();
     }
 }

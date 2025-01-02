@@ -16,6 +16,7 @@ internal abstract partial class Materializer<T>
     /// <typeparam name="TResult">Type of the object/struct being read</typeparam>
     [ExcludeFromCodeCoverage]
     [RequiresUnreferencedCode("Trimmed Materializer<...> implementations may not be available during runtime.")]
+    [RequiresDynamicCode("MakeGenericType is called on Materializer<...>")]
     internal static ConstructorInfo GetConstructor<TResult>(ReadOnlySpan<CsvBinding<TResult>> bindings)
     {
         Type[] types = new Type[bindings.Length + 2];
@@ -72,12 +73,10 @@ internal sealed class Materializer<T, T0, TResult>
 
     private readonly CsvConverter<T, T0> converter0;
 
-    public TResult Parse(ref CsvFieldReader<T> reader)
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
     {
         T0 v0 = ParseNext(ref reader, converter0);
-
-        reader.EnsureFullyConsumed(FieldCount);
-
+        reader.Dispose();
         return valueFactory(v0);
     }
 }
@@ -106,13 +105,11 @@ internal sealed class Materializer<T, T0, T1, TResult>
     private readonly CsvConverter<T, T0> converter0;
     private readonly CsvConverter<T, T1> converter1;
 
-    public TResult Parse(ref CsvFieldReader<T> reader)
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
     {
         T0 v0 = ParseNext(ref reader, converter0);
         T1 v1 = ParseNext(ref reader, converter1);
-
-        reader.EnsureFullyConsumed(FieldCount);
-
+        reader.Dispose();
         return valueFactory(v0, v1);
     }
 }
@@ -144,14 +141,12 @@ internal sealed class Materializer<T, T0, T1, T2, TResult>
     private readonly CsvConverter<T, T1> converter1;
     private readonly CsvConverter<T, T2> converter2;
 
-    public TResult Parse(ref CsvFieldReader<T> reader)
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
     {
         T0 v0 = ParseNext(ref reader, converter0);
         T1 v1 = ParseNext(ref reader, converter1);
         T2 v2 = ParseNext(ref reader, converter2);
-
-        reader.EnsureFullyConsumed(FieldCount);
-
+        reader.Dispose();
         return valueFactory(v0, v1, v2);
     }
 }
@@ -186,15 +181,13 @@ internal sealed class Materializer<T, T0, T1, T2, T3, TResult>
     private readonly CsvConverter<T, T2> converter2;
     private readonly CsvConverter<T, T3> converter3;
 
-    public TResult Parse(ref CsvFieldReader<T> reader)
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
     {
         T0 v0 = ParseNext(ref reader, converter0);
         T1 v1 = ParseNext(ref reader, converter1);
         T2 v2 = ParseNext(ref reader, converter2);
         T3 v3 = ParseNext(ref reader, converter3);
-
-        reader.EnsureFullyConsumed(FieldCount);
-
+        reader.Dispose();
         return valueFactory(v0, v1, v2, v3);
     }
 }
@@ -232,16 +225,14 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult>
     private readonly CsvConverter<T, T3> converter3;
     private readonly CsvConverter<T, T4> converter4;
 
-    public TResult Parse(ref CsvFieldReader<T> reader)
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
     {
         T0 v0 = ParseNext(ref reader, converter0);
         T1 v1 = ParseNext(ref reader, converter1);
         T2 v2 = ParseNext(ref reader, converter2);
         T3 v3 = ParseNext(ref reader, converter3);
         T4 v4 = ParseNext(ref reader, converter4);
-
-        reader.EnsureFullyConsumed(FieldCount);
-
+        reader.Dispose();
         return valueFactory(v0, v1, v2, v3, v4);
     }
 }
@@ -282,7 +273,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult>
     private readonly CsvConverter<T, T4> converter4;
     private readonly CsvConverter<T, T5> converter5;
 
-    public TResult Parse(ref CsvFieldReader<T> reader)
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
     {
         T0 v0 = ParseNext(ref reader, converter0);
         T1 v1 = ParseNext(ref reader, converter1);
@@ -290,9 +281,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult>
         T3 v3 = ParseNext(ref reader, converter3);
         T4 v4 = ParseNext(ref reader, converter4);
         T5 v5 = ParseNext(ref reader, converter5);
-
-        reader.EnsureFullyConsumed(FieldCount);
-
+        reader.Dispose();
         return valueFactory(v0, v1, v2, v3, v4, v5);
     }
 }
@@ -336,7 +325,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult>
     private readonly CsvConverter<T, T5> converter5;
     private readonly CsvConverter<T, T6> converter6;
 
-    public TResult Parse(ref CsvFieldReader<T> reader)
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
     {
         T0 v0 = ParseNext(ref reader, converter0);
         T1 v1 = ParseNext(ref reader, converter1);
@@ -345,9 +334,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult>
         T4 v4 = ParseNext(ref reader, converter4);
         T5 v5 = ParseNext(ref reader, converter5);
         T6 v6 = ParseNext(ref reader, converter6);
-
-        reader.EnsureFullyConsumed(FieldCount);
-
+        reader.Dispose();
         return valueFactory(v0, v1, v2, v3, v4, v5, v6);
     }
 }
@@ -394,7 +381,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult>
     private readonly CsvConverter<T, T6> converter6;
     private readonly CsvConverter<T, T7> converter7;
 
-    public TResult Parse(ref CsvFieldReader<T> reader)
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
     {
         T0 v0 = ParseNext(ref reader, converter0);
         T1 v1 = ParseNext(ref reader, converter1);
@@ -404,9 +391,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult>
         T5 v5 = ParseNext(ref reader, converter5);
         T6 v6 = ParseNext(ref reader, converter6);
         T7 v7 = ParseNext(ref reader, converter7);
-
-        reader.EnsureFullyConsumed(FieldCount);
-
+        reader.Dispose();
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7);
     }
 }
@@ -456,7 +441,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
     private readonly CsvConverter<T, T7> converter7;
     private readonly CsvConverter<T, T8> converter8;
 
-    public TResult Parse(ref CsvFieldReader<T> reader)
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
     {
         T0 v0 = ParseNext(ref reader, converter0);
         T1 v1 = ParseNext(ref reader, converter1);
@@ -467,9 +452,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
         T6 v6 = ParseNext(ref reader, converter6);
         T7 v7 = ParseNext(ref reader, converter7);
         T8 v8 = ParseNext(ref reader, converter8);
-
-        reader.EnsureFullyConsumed(FieldCount);
-
+        reader.Dispose();
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8);
     }
 }
@@ -522,7 +505,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
     private readonly CsvConverter<T, T8> converter8;
     private readonly CsvConverter<T, T9> converter9;
 
-    public TResult Parse(ref CsvFieldReader<T> reader)
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
     {
         T0 v0 = ParseNext(ref reader, converter0);
         T1 v1 = ParseNext(ref reader, converter1);
@@ -534,9 +517,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
         T7 v7 = ParseNext(ref reader, converter7);
         T8 v8 = ParseNext(ref reader, converter8);
         T9 v9 = ParseNext(ref reader, converter9);
-
-        reader.EnsureFullyConsumed(FieldCount);
-
+        reader.Dispose();
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9);
     }
 }
@@ -592,7 +573,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T9> converter9;
     private readonly CsvConverter<T, T10> converter10;
 
-    public TResult Parse(ref CsvFieldReader<T> reader)
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
     {
         T0 v0 = ParseNext(ref reader, converter0);
         T1 v1 = ParseNext(ref reader, converter1);
@@ -605,9 +586,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         T8 v8 = ParseNext(ref reader, converter8);
         T9 v9 = ParseNext(ref reader, converter9);
         T10 v10 = ParseNext(ref reader, converter10);
-
-        reader.EnsureFullyConsumed(FieldCount);
-
+        reader.Dispose();
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10);
     }
 }
@@ -666,7 +645,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T10> converter10;
     private readonly CsvConverter<T, T11> converter11;
 
-    public TResult Parse(ref CsvFieldReader<T> reader)
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
     {
         T0 v0 = ParseNext(ref reader, converter0);
         T1 v1 = ParseNext(ref reader, converter1);
@@ -680,9 +659,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         T9 v9 = ParseNext(ref reader, converter9);
         T10 v10 = ParseNext(ref reader, converter10);
         T11 v11 = ParseNext(ref reader, converter11);
-
-        reader.EnsureFullyConsumed(FieldCount);
-
+        reader.Dispose();
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11);
     }
 }
@@ -744,7 +721,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T11> converter11;
     private readonly CsvConverter<T, T12> converter12;
 
-    public TResult Parse(ref CsvFieldReader<T> reader)
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
     {
         T0 v0 = ParseNext(ref reader, converter0);
         T1 v1 = ParseNext(ref reader, converter1);
@@ -759,9 +736,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         T10 v10 = ParseNext(ref reader, converter10);
         T11 v11 = ParseNext(ref reader, converter11);
         T12 v12 = ParseNext(ref reader, converter12);
-
-        reader.EnsureFullyConsumed(FieldCount);
-
+        reader.Dispose();
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12);
     }
 }
@@ -826,7 +801,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T12> converter12;
     private readonly CsvConverter<T, T13> converter13;
 
-    public TResult Parse(ref CsvFieldReader<T> reader)
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
     {
         T0 v0 = ParseNext(ref reader, converter0);
         T1 v1 = ParseNext(ref reader, converter1);
@@ -842,9 +817,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         T11 v11 = ParseNext(ref reader, converter11);
         T12 v12 = ParseNext(ref reader, converter12);
         T13 v13 = ParseNext(ref reader, converter13);
-
-        reader.EnsureFullyConsumed(FieldCount);
-
+        reader.Dispose();
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13);
     }
 }
@@ -912,7 +885,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T13> converter13;
     private readonly CsvConverter<T, T14> converter14;
 
-    public TResult Parse(ref CsvFieldReader<T> reader)
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
     {
         T0 v0 = ParseNext(ref reader, converter0);
         T1 v1 = ParseNext(ref reader, converter1);
@@ -929,9 +902,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         T12 v12 = ParseNext(ref reader, converter12);
         T13 v13 = ParseNext(ref reader, converter13);
         T14 v14 = ParseNext(ref reader, converter14);
-
-        reader.EnsureFullyConsumed(FieldCount);
-
+        reader.Dispose();
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14);
     }
 }
@@ -1002,7 +973,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T14> converter14;
     private readonly CsvConverter<T, T15> converter15;
 
-    public TResult Parse(ref CsvFieldReader<T> reader)
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
     {
         T0 v0 = ParseNext(ref reader, converter0);
         T1 v1 = ParseNext(ref reader, converter1);
@@ -1020,9 +991,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         T13 v13 = ParseNext(ref reader, converter13);
         T14 v14 = ParseNext(ref reader, converter14);
         T15 v15 = ParseNext(ref reader, converter15);
-
-        reader.EnsureFullyConsumed(FieldCount);
-
+        reader.Dispose();
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
     }
 }

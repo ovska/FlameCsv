@@ -50,6 +50,7 @@ public sealed class EnumUtf8Converter<TEnum>
 
     public override bool TryFormat(Span<byte> destination, TEnum value, out int charsWritten)
     {
+        // Enum doesn't support Utf8 formatting directly
         Utf8.TryWriteInterpolatedStringHandler handler = new(
             literalLength: 0,
             formattedCount: 1,
@@ -59,6 +60,7 @@ public sealed class EnumUtf8Converter<TEnum>
 
         if (shouldAppend)
         {
+            // the handler needs to be constructed by hand so we can pass in the dynamic format
             handler.AppendFormatted(value, _format);
             return Utf8.TryWrite(destination, ref handler, out charsWritten);
         }

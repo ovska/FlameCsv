@@ -5,12 +5,13 @@ using System.IO.Pipelines;
 using System.Text;
 using DAM = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute;
 using RUF = System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute;
+using RDC = System.Diagnostics.CodeAnalysis.RequiresDynamicCodeAttribute;
 
 namespace FlameCsv;
 
 static partial class CsvWriter
 {
-    [RUF(Messages.CompiledExpressions)]
+    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
     public static Task WriteToFileAsync<[DAM(Messages.ReflectionBound)] TValue>(
         IEnumerable<TValue> values,
         string path,
@@ -33,7 +34,7 @@ static partial class CsvWriter
             cancellationToken);
     }
 
-    [RUF(Messages.CompiledExpressions)]
+    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
     public static Task WriteToFileAsync<[DAM(Messages.ReflectionBound)] TValue>(
         IEnumerable<TValue> values,
         string path,
@@ -59,7 +60,7 @@ static partial class CsvWriter
             cancellationToken);
     }
 
-    [RUF(Messages.CompiledExpressions)]
+    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
     public static Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
         IEnumerable<TValue> values,
         PipeWriter pipeWriter,
@@ -82,7 +83,7 @@ static partial class CsvWriter
             cancellationToken);
     }
 
-    [RUF(Messages.CompiledExpressions)]
+    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
     public static Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
         IEnumerable<TValue> values,
         Stream stream,
@@ -111,7 +112,7 @@ static partial class CsvWriter
             cancellationToken);
     }
 
-    [RUF(Messages.CompiledExpressions)]
+    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
     public static Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
         IEnumerable<TValue> values,
         TextWriter textWriter,
@@ -134,7 +135,7 @@ static partial class CsvWriter
             cancellationToken);
     }
 
-    [RUF(Messages.CompiledExpressions)]
+    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
     public static void Write<[DAM(Messages.ReflectionBound)] TValue>(
         IEnumerable<TValue> values,
         TextWriter textWriter,
@@ -157,7 +158,7 @@ static partial class CsvWriter
     /// </summary>
     /// <param name="initialCapacity">Initial capacity of the string builder</param>
     /// <returns>A <see cref="StringBuilder"/> containing the CSV</returns>
-    [RUF(Messages.CompiledExpressions)]
+    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
     public static StringBuilder WriteToString<[DAM(Messages.ReflectionBound)] TValue>(
         IEnumerable<TValue> values,
         CsvOptions<char>? options = null,

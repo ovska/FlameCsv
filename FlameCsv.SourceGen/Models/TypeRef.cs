@@ -5,7 +5,7 @@ namespace FlameCsv.SourceGen.Models;
 // source: dotnet runtime (MIT license)
 
 [DebuggerDisplay("Name = {Name}")]
-public sealed class TypeRef : IEquatable<TypeRef>
+public sealed class TypeRef : IEquatable<TypeRef>, IComparable<TypeRef>
 {
     public TypeRef(ITypeSymbol type)
     {
@@ -29,6 +29,7 @@ public sealed class TypeRef : IEquatable<TypeRef>
 
     public bool CanBeNull => !IsValueType || SpecialType is SpecialType.System_Nullable_T;
 
+    public int CompareTo(TypeRef other) => FullyQualifiedName.CompareTo(other.FullyQualifiedName);
     public bool Equals(TypeRef? other) => FullyQualifiedName == other?.FullyQualifiedName;
     public override bool Equals(object? obj) => Equals(obj as TypeRef);
     public override int GetHashCode() => FullyQualifiedName.GetHashCode();

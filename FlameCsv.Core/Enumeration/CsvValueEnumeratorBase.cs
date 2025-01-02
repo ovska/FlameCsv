@@ -6,6 +6,8 @@ using FlameCsv.Extensions;
 using System.Runtime.CompilerServices;
 using FlameCsv.Reading;
 using FlameCsv.Runtime;
+using FlameCsv.Utilities;
+using System.Diagnostics;
 
 namespace FlameCsv.Enumeration;
 
@@ -26,20 +28,19 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     private T[]? _unescapeBuffer; // string unescaping
     protected readonly CsvParser<T> _parser;
 
-    internal CsvValueEnumeratorBase(CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
+    protected CsvValueEnumeratorBase(CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
         : this(options, null, typeMap)
     {
         ArgumentNullException.ThrowIfNull(typeMap);
     }
 
-    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
-    internal CsvValueEnumeratorBase(CsvOptions<T> options, IMaterializer<T, TValue>? materializer)
+    protected CsvValueEnumeratorBase(CsvOptions<T> options, IMaterializer<T, TValue>? materializer)
             : this(options, materializer, null)
     {
     }
 
     [RequiresUnreferencedCode(Messages.CompiledExpressions)]
-    internal CsvValueEnumeratorBase(CsvOptions<T> options) : this(options, null, null)
+    protected CsvValueEnumeratorBase(CsvOptions<T> options) : this(options, null, null)
     {
     }
 
@@ -119,8 +120,11 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     [MemberNotNull(nameof(_materializer))]
     [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = Messages.HeaderProcessorSuppressionMessage)]
     [UnconditionalSuppressMessage("Trimming", "IL2091", Justification = Messages.HeaderProcessorSuppressionMessage)]
+    [UnconditionalSuppressMessage("AOT", "IL3050", Justification = Messages.HeaderProcessorSuppressionMessage)]
     private bool TryReadHeader(ReadOnlyMemory<T> record)
     {
+        Debug.Assert(_typeMap is not null || (RuntimeFeature.IsDynamicCodeSupported && RuntimeFeature.IsDynamicCodeCompiled));
+
         if (!_parser.HasHeader)
         {
             _materializer = _typeMap is null
@@ -137,19 +141,27 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
             ref _unescapeBuffer,
             in meta);
 
-        List<string> values = new(16);
+        ValueListBuilder<string?>.DefaultScratch scratch = default;
+        ValueListBuilder<string> list = new(scratch);
 
-        while (reader.TryReadNext(out ReadOnlySpan<T> field))
+        try
         {
-            values.Add(_parser._options.GetAsString(field));
+            while (reader.MoveNext())
+            {
+                list.Append(_parser._options.GetAsString(reader.Current));
+            }
+
+            ReadOnlySpan<string> headers = list.AsSpan();
+
+            _materializer = _typeMap is null
+                ? _parser._options.CreateMaterializerFrom(_parser._options.GetHeaderBinder().Bind<TValue>(headers))
+                : _typeMap.BindMembers(headers, _parser._options);
+            return true;
         }
-
-        ReadOnlySpan<string> headers = values.AsSpan();
-
-        _materializer = _typeMap is null
-            ? _parser._options.CreateMaterializerFrom(_parser._options.GetHeaderBinder().Bind<TValue>(headers))
-            : _typeMap.BindMembers(headers, _parser._options);
-        return true;
+        finally
+        {
+            list.Dispose();
+        }
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]

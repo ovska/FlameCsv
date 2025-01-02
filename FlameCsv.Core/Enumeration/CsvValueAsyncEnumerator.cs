@@ -27,7 +27,6 @@ public sealed class CsvValueAsyncEnumerator<T, TValue> : CsvValueEnumeratorBase<
         _cancellationToken = cancellationToken;
     }
 
-    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
     internal CsvValueAsyncEnumerator(
         CsvOptions<T> options,
         IMaterializer<T, TValue>? materializer,

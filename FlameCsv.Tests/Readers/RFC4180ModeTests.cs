@@ -31,8 +31,9 @@ public static class RFC4180ModeTests
             ref buffer,
             in meta);
 
-        Assert.True(reader.TryReadNext(out ReadOnlySpan<char> field));
-        Assert.Equal(expected, field.ToString());
+
+        Assert.True(reader.MoveNext());
+        Assert.Equal(expected, reader.Current.ToString());
         Assert.True(reader.End);
     }
 
@@ -50,8 +51,8 @@ public static class RFC4180ModeTests
             ref Unsafe.NullRef<char[]?>(),
             in meta);
 
-        Assert.True(reader.TryReadNext(out ReadOnlySpan<char> field));
-        Assert.Equal(input[1..^1], field.ToString());
+        Assert.True(reader.MoveNext());
+        Assert.Equal(input[1..^1], reader.Current.ToString());
         Assert.True(reader.End);
     }
 

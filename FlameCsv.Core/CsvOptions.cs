@@ -144,11 +144,13 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
             ThrowInvalidTokenType(nameof(GetNullToken));
         }
 
-        if (_nullTokens is not null)
+        TypeDictionary<string?, Utf8String>? nullTokens = _nullTokens;
+
+        if (nullTokens is not null)
         {
             if (typeof(T) == typeof(char))
             {
-                if (_nullTokens.TryGetValue(resultType, out string? value))
+                if (nullTokens.TryGetValue(resultType, out string? value))
                 {
                     var result = value.AsMemory();
                     return Unsafe.As<ReadOnlyMemory<char>, ReadOnlyMemory<T>>(ref result);
@@ -157,7 +159,7 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
 
             if (typeof(T) == typeof(byte))
             {
-                if (_nullTokens.TryGetAlternate(resultType, out Utf8String value))
+                if (nullTokens.TryGetAlternate(resultType, out Utf8String value))
                 {
                     ReadOnlyMemory<byte> result = value;
                     return Unsafe.As<ReadOnlyMemory<byte>, ReadOnlyMemory<T>>(ref result);
@@ -188,12 +190,12 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     /// <summary>
     /// Returns the format configured for <paramref name="resultType"/>, or <paramref name="defaultValue"/> by default.
     /// </summary>
-    public virtual string? GetFormat(Type resultType, string? defaultValue = null) => _formats is not null && _formats.TryGetValue(resultType, out var format) ? format : defaultValue;
+    public virtual string? GetFormat(Type resultType, string? defaultValue = null) => _formats.GetOrDefault(resultType, defaultValue);
 
     /// <summary>
     /// Returns the format provider configured for <paramref name="resultType"/>, or <see cref="FormatProvider"/> by default.
     /// </summary>
-    public virtual IFormatProvider? GetFormatProvider(Type resultType) => _providers is not null && _providers.TryGetValue(resultType, out var provider) ? provider : _formatProvider;
+    public virtual IFormatProvider? GetFormatProvider(Type resultType) => _providers.GetOrDefault(resultType, _formatProvider);
 
     /// <summary>
     /// Returns the number styles configured for the <see cref="INumberBase{TSelf}"/>, or <paramref name="defaultValue"/> by default.
@@ -202,7 +204,7 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     /// Defaults are <see cref="NumberStyles.Integer"/> for <see cref="IBinaryInteger{TSelf}"/> and
     /// <see cref="NumberStyles.Float"/> for <see cref="IFloatingPoint{TSelf}"/>.
     /// </remarks>
-    public virtual NumberStyles GetNumberStyles(Type resultType, NumberStyles defaultValue) => _styles is not null && _styles.TryGetValue(resultType, out var styles) ? styles : defaultValue;
+    public virtual NumberStyles GetNumberStyles(Type resultType, NumberStyles defaultValue) => _styles.GetOrDefault(resultType, defaultValue);
 
     /// <summary>
     /// Returns a <see langword="string"/> representation of the value.
@@ -295,14 +297,22 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     {
         get
         {
-            if (_null is null)
+            object? local = _null;
+
+            if (local is null)
                 return null;
 
             if (typeof(T) == typeof(char))
-                return Unsafe.As<string?>(_null);
+            {
+                Debug.Assert(local.GetType() == typeof(string));
+                return Unsafe.As<string?>(local);
+            }
 
             if (typeof(T) == typeof(byte))
-                return (string)Unsafe.As<Tuple<Utf8String>>(_null).Item1;
+            {
+                Debug.Assert(local.GetType() == typeof(Tuple<Utf8String>));
+                return (string)Unsafe.As<Tuple<Utf8String>>(local).Item1;
+            }
 
             ThrowInvalidTokenType(nameof(Null));
             return null;
@@ -595,4 +605,20 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
         created = false;
         return false;
     }
+}
+
+file static class TypeDictExtensions
+{
+#nullable disable
+    [StackTraceHidden]
+    public static T GetOrDefault<T>(
+        this TypeDictionary<T, object> dict,
+        Type key,
+        T defaultValue,
+        [CallerArgumentExpression(nameof(key))] string parameterName = null)
+    {
+        ArgumentNullException.ThrowIfNull(key, parameterName);
+        return dict is not null && dict.TryGetValue(key, out T value) ? value : defaultValue;
+    }
+#nullable enable
 }

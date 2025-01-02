@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis;
 
 namespace FlameCsv.SourceGen.Models;
 
-internal sealed record ParameterModel
+internal sealed record ParameterModel : IComparable<ParameterModel> // TODO IEquatable
 {
     public required TypeRef ParameterType { get; init; }
     public required string Name { get; init; }
@@ -22,9 +22,10 @@ internal sealed record ParameterModel
         if (symbol is not IMethodSymbol { MethodKind: MethodKind.Constructor, DeclaredAccessibility: not Accessibility.Private } ctor)
             goto Fail;
 
-
         Fail:
         model = default!;
         return false;
     }
+
+    public int CompareTo(ParameterModel other) => ParameterIndex.CompareTo(other.ParameterIndex);
 }

@@ -16,8 +16,7 @@ internal sealed class FloatNumberTextConverter<TValue>(CsvOptions<char> options)
     protected override NumberStyles Styles => NumberStyles.Float;
 }
 
-internal abstract class BaseNumberTextConverter<TValue> : CsvConverter<char, TValue>
-    where TValue : INumberBase<TValue>
+internal abstract class BaseNumberTextConverter<TValue> : CsvConverter<char, TValue> where TValue : INumberBase<TValue>
 {
     private readonly string? _format;
     private readonly IFormatProvider? _provider;

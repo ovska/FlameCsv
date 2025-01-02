@@ -1,5 +1,4 @@
 ﻿using CommunityToolkit.Diagnostics;
-using FlameCsv.Converters.Text;
 using FlameCsv.Converters;
 using FlameCsv.Exceptions;
 using FlameCsv.Utilities;
@@ -105,6 +104,7 @@ partial class CsvOptions<T>
             {
                 Debug.Assert(builtin.CanConvert(resultType), $"Invalid builtin converter {builtin} for {resultType}");
                 Debug.Assert(builtin is not CsvConverterFactory<T>, $"{resultType} default converter returned a factory");
+                // TODO: set created accordingly
                 converter = builtin;
             }
             else if (NullableConverterFactory<T>.Instance.CanConvert(resultType))
