@@ -40,7 +40,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
 
     ReadOnlyMemory<T> IReadOnlyList<ReadOnlyMemory<T>>.this[int index] => this[index];
 
-    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+    [RequiresUnreferencedCode(Messages.CompiledExpressions), RequiresDynamicCode(Messages.CompiledExpressions)]
     public TRecord ParseRecord<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TRecord>()
     {
         IMaterializer<T, TRecord> materializer;
@@ -69,14 +69,14 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         return Options.Materialize(RawRecord, materializer);
     }
 
-    public virtual ReadOnlyMemory<T> GetField(int index) => _values.AsSpan()[index];
+    public virtual ReadOnlyMemory<T> GetField(int index) => _values[index];
 
     public virtual ReadOnlyMemory<T> GetField(string name)
     {
         if (_header is null)
             Throw.NotSupported_CsvHasNoHeader();
 
-        return _values.AsSpan()[_header[name]];
+        return _values[_header[name]];
     }
 
     public virtual TValue GetField<TValue>(int index)

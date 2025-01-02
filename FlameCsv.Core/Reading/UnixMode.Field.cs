@@ -6,7 +6,7 @@ namespace FlameCsv.Reading;
 
 internal static partial class UnixMode<T> where T : unmanaged, IEquatable<T>
 {
-    public static ReadOnlySpan<T> ReadNextField(ref CsvFieldReader<T> state)
+    public static ReadOnlySpan<T> ReadNextField(scoped ref CsvFieldReader<T> state)
     {
         Debug.Assert(!state.End, "ReadNextField called with empty input");
         Debug.Assert(state.Escape.HasValue);

@@ -10,6 +10,7 @@ using FlameCsv.Reading;
 namespace FlameCsv.Runtime;
 
 [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+[RequiresDynamicCode(Messages.CompiledExpressions)]
 internal sealed class ExpressionDelegateGenerator<T> : DelegateGenerator<T> where T : unmanaged, IEquatable<T>
 {
     protected override Func<object[], IMaterializer<T, TResult>> GetMaterializerInit<[DynamicallyAccessedMembers(Messages.Ctors)] TResult>(CsvBindingCollection<TResult> bc)

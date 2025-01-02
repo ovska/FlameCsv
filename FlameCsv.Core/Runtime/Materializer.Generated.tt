@@ -28,6 +28,7 @@ internal abstract partial class Materializer<T>
     /// <typeparam name="TResult">Type of the object/struct being read</typeparam>
     [ExcludeFromCodeCoverage]
     [RequiresUnreferencedCode("Trimmed Materializer<...> implementations may not be available during runtime.")]
+    [RequiresDynamicCode("MakeGenericType is called on Materializer<...>")]
     internal static ConstructorInfo GetConstructor<TResult>(ReadOnlySpan<CsvBinding<TResult>> bindings)
     {
         Type[] types = new Type[bindings.Length + 2];
@@ -112,7 +113,7 @@ internal sealed class Materializer<T, <#= generics #>>
         }
 #>
 
-    public TResult Parse(ref CsvFieldReader<T> reader)
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
     {
 <#
         for (var i = 0; i < current; i++)
@@ -126,9 +127,7 @@ internal sealed class Materializer<T, <#= generics #>>
             WriteLine(");");
         }
 #>
-
-        reader.EnsureFullyConsumed(FieldCount);
-
+        reader.Dispose();
 <#
         Write("        return valueFactory(");
         for (var i = 0; i < current; i++)

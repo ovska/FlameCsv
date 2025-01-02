@@ -10,6 +10,7 @@ namespace FlameCsv.Runtime;
 internal sealed class ReflectionDematerializer
 {
     [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+    [RequiresDynamicCode(Messages.CompiledExpressions)]
     public static IDematerializer<T, TValue> Create<T, TValue>(CsvOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {

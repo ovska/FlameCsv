@@ -1,4 +1,8 @@
-﻿namespace FlameCsv.Exceptions;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using FlameCsv.Extensions;
+
+namespace FlameCsv.Exceptions;
 
 public class CsvReadException : Exception
 {
@@ -8,4 +12,9 @@ public class CsvReadException : Exception
         : base(message, innerException)
     {
     }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public static void ThrowForPrematureEOF<T>(int fieldCount, CsvOptions<T> options, ReadOnlyMemory<T> record)
+        where T : unmanaged, IEquatable<T>
+            => throw new CsvReadException($"Csv record ended prematurely (expected {fieldCount} fields): {options.AsPrintableString(record)}");
 }

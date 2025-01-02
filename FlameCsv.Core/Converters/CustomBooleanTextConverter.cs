@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using System.Diagnostics;
 using CommunityToolkit.Diagnostics;
 using FlameCsv.Extensions;
@@ -16,7 +15,7 @@ internal sealed class CustomBooleanTextConverter : CsvConverter<char, bool>
     {
         Debug.Assert(options._booleanValues is not null);
 
-        IList<(string text, bool value)> values = options._booleanValues;
+        Utilities.SealableList<(string, bool)> values = options._booleanValues;
 
         Guard.IsNotEmpty(values);
 

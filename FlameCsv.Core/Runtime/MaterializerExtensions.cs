@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Internal;
 using FlameCsv.Exceptions;
@@ -12,6 +13,7 @@ namespace FlameCsv.Runtime;
 internal static class MaterializerExtensions
 {
     [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+    [RequiresDynamicCode(Messages.CompiledExpressions)]
     private static class ForType<T, TResult> where T : unmanaged, IEquatable<T>
     {
         /// <summary>
@@ -29,6 +31,7 @@ internal static class MaterializerExtensions
     /// Creates a materializer from the bindings.
     /// </summary>
     [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+    [RequiresDynamicCode(Messages.CompiledExpressions)]
     public static IMaterializer<T, TResult> CreateMaterializerFrom<T, [DynamicallyAccessedMembers(Messages.ReflectionBound)] TResult>(
         this CsvOptions<T> options,
         CsvBindingCollection<TResult> bindingCollection)
@@ -41,12 +44,11 @@ internal static class MaterializerExtensions
     /// Binds the options using built-in or index binding.
     /// </summary>
     [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+    [RequiresDynamicCode(Messages.CompiledExpressions)]
     public static IMaterializer<T, TResult> GetMaterializer<T, [DynamicallyAccessedMembers(Messages.ReflectionBound)] TResult>(
         this CsvOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
-        Debug.Assert(System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported, "Dynamic code is not supported");
-
         DelegateGenerator<T>.MaterializerFactory<TResult>? factory = ForType<T, TResult>.Cached;
 
         if (factory is null)

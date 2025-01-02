@@ -130,9 +130,9 @@ public partial class TypeMapGenerator
 
             public ");
         sb.Append(typeMap.ResultName);
-        sb.Append(" Parse(ref FlameCsv.Reading.CsvFieldReader<");
+        sb.Append(" Parse<TReader>(ref TReader reader) where TReader : FlameCsv.Reading.ICsvFieldReader<");
         sb.Append(typeMap.Token);
-        sb.Append(@"> reader)
+        sb.Append(@">, allows ref struct
             {
                 ParseState state = default;");
         WriteDefaultParameterValues(sb, in typeMap);
@@ -140,22 +140,24 @@ public partial class TypeMapGenerator
 
                 int index = 0;
 
-                while (FlameCsv.Reading.CsvFieldReader<");
-        sb.Append(typeMap.Token);
-        sb.Append(">.TryReadNext(ref reader, out ReadOnlySpan<");
-        sb.Append(typeMap.Token);
-        sb.Append(@"> field))
+                while (reader.MoveNext())
                 {
-                    if (Handlers[index++](this, ref state, field))
-                    {
-                        continue;
-                    }
+                    ReadOnlySpan<");
+        sb.Append(typeMap.Token);
+        sb.Append(@"> field = reader.Current;
 
-                    reader.ThrowParseFailed(field, null);
+                    if (!Handlers[index++](this, ref state, field))
+                    {
+                        FlameCsv.Exceptions.CsvParseException.Throw(reader.Options, field);
+                    }
                 }
 
-                // Ensure there were no leftover fields
-                reader.EnsureFullyConsumed(fieldCount: Handlers.Length);
+                if (index < FieldCount)
+                {
+                    FlameCsv.Exceptions.CsvReadException.ThrowForPrematureEOF(FieldCount, reader.Options, reader.RawRecord);
+                }
+
+                reader.Dispose();
 
                 // Create the value from parsed values. Required members are validated when creating the materializer,
                 // optional members are assigned only if parsed to not overwrite possible default values.
@@ -279,9 +281,9 @@ public partial class TypeMapGenerator
             if (!binding.CanRead)
                 continue;
 
-            sb.Append("                if (null != (object?)");
+            sb.Append("                if (");
             sb.Append(binding.ConverterId);
-            sb.Append(") ");
+            sb.Append(" is not null) ");
 
             if (binding.IsExplicitInterfaceDefinition(typeMap.Type, out var ifaceSymbol))
             {
@@ -329,8 +331,9 @@ public partial class TypeMapGenerator
                 ");
             }
 
-            sb.Append("null == (object?)materializer.");
+            sb.Append("materializer.");
             sb.Append(typeMap.Bindings.RequiredBindings[i].ConverterId);
+            sb.Append(" is null");
         }
 
         sb.Append(@")
@@ -351,7 +354,7 @@ public partial class TypeMapGenerator
         foreach (var b in typeMap.Bindings.RequiredBindings)
         {
             sb.Append($@"
-            if (materializer.{b.ConverterId} == null) yield return {GetName(b)};");
+            if (materializer.{b.ConverterId} is null) yield return {GetName(b)};");
         }
 
         sb.Append(@"
@@ -467,9 +470,9 @@ public partial class TypeMapGenerator
             if (!typeMap.ThrowOnDuplicate)
             {
                 // add check to ignore already handled members
-                sb.Append("null == (object?)materializer.");
+                sb.Append("materializer.");
                 sb.Append(binding.ConverterId);
-                sb.Append(@" &&
+                sb.Append(@" is null &&
                     ");
             }
 
@@ -480,7 +483,7 @@ public partial class TypeMapGenerator
                 if (writtenNames.Add(name))
                     WriteComparison(name);
             }
-
+ 
             foreach (var attribute in typeMap.Type.GetAttributes())
             {
                 if (SymbolEqualityComparer.Default.Equals(typeMap.Symbols.CsvHeaderTargetAttribute, attribute.AttributeClass)
@@ -514,9 +517,9 @@ public partial class TypeMapGenerator
             if (typeMap.ThrowOnDuplicate)
             {
                 sb.Append(@"
-                    if (null != (object?)materializer.");
+                    if (materializer.");
                 sb.Append(binding.ConverterId);
-                sb.Append(") ThrowDuplicate(");
+                sb.Append(" is not null) ThrowDuplicate(");
                 sb.Append(binding.Name.ToStringLiteral());
                 sb.Append(@", name, headers, options);
 ");
