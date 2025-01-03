@@ -149,10 +149,19 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
         return ref _fields;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void FullyConsume()
     {
         if (_fields.Length > 0)
             return;
+
+        FullyConsumeSlow();
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void FullyConsumeSlow()
+    {
+        Debug.Assert(_fields.Length == 0);
 
         T[]? array = null;
 
@@ -161,7 +170,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
             CsvFieldReader<T> reader = new(
                 Options,
                 _record,
-                [],
+                stackalloc T[Token<T>.StackLength],
                 ref array,
                 ref _meta);
 
@@ -179,7 +188,11 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void EnsureVersion(int version)
     {
-        Throw.IfEnumerationChanged(version, Version);
+        if (Version == -1)
+            Throw.ObjectDisposed_Enumeration();
+
+        if (version != Version)
+            Throw.InvalidOp_EnumerationChanged();
     }
 
     private void ValidateFieldCount()

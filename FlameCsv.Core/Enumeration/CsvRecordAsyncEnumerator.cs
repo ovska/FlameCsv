@@ -4,7 +4,8 @@ using FlameCsv.Reading;
 namespace FlameCsv.Enumeration;
 
 /// <inheritdoc cref="CsvRecordEnumeratorBase{T}"/>
-public sealed class CsvRecordAsyncEnumerator<T> : CsvRecordEnumeratorBase<T>, IAsyncDisposable where T : unmanaged, IEquatable<T>
+public sealed class CsvRecordAsyncEnumerator<T> : CsvRecordEnumeratorBase<T>, IAsyncEnumerator<CsvValueRecord<T>>
+    where T : unmanaged, IEquatable<T>
 {
     private readonly ICsvPipeReader<T> _reader;
     private readonly CancellationToken _cancellationToken;

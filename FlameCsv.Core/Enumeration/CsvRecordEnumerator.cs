@@ -1,10 +1,11 @@
 using System.Buffers;
+using System.Collections;
 using System.Runtime.CompilerServices;
 
 namespace FlameCsv.Enumeration;
 
 /// <inheritdoc cref="CsvRecordEnumeratorBase{T}"/>
-public sealed class CsvRecordEnumerator<T> : CsvRecordEnumeratorBase<T> where T : unmanaged, IEquatable<T>
+public sealed class CsvRecordEnumerator<T> : CsvRecordEnumeratorBase<T>, IEnumerator<CsvValueRecord<T>> where T : unmanaged, IEquatable<T>
 {
     public CsvRecordEnumerator(
         ReadOnlyMemory<T> data,
@@ -34,4 +35,7 @@ public sealed class CsvRecordEnumerator<T> : CsvRecordEnumeratorBase<T> where T 
         _current = default;
         return false;
     }
+
+    public void Reset() => throw new NotSupportedException();
+    object IEnumerator.Current => throw new NotSupportedException();
 }

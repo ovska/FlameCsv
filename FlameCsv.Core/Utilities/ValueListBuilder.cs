@@ -200,7 +200,4 @@ internal ref struct ValueListBuilder<T>
             ArrayPool<T>.Shared.Return(toReturn);
         }
     }
-
-    [InlineArray(16)]
-    public struct DefaultScratch { public T elem0; }
 }

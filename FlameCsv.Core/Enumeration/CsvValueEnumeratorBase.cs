@@ -31,17 +31,20 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     protected CsvValueEnumeratorBase(CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
         : this(options, null, typeMap)
     {
+        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(typeMap);
     }
 
     protected CsvValueEnumeratorBase(CsvOptions<T> options, IMaterializer<T, TValue>? materializer)
             : this(options, materializer, null)
     {
+        ArgumentNullException.ThrowIfNull(options);
     }
 
     [RequiresUnreferencedCode(Messages.CompiledExpressions)]
     protected CsvValueEnumeratorBase(CsvOptions<T> options) : this(options, null, null)
     {
+        ArgumentNullException.ThrowIfNull(options);
     }
 
     private CsvValueEnumeratorBase(
@@ -69,7 +72,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         long position = _position;
 
         _line++;
-        _position += record.Length + ((!isFinalBlock).ToByte() * _parser._newlineLength);
+        _position += record.Length + (isFinalBlock ? 0 : _parser._newlineLength);
 
         if (_parser.SkipRecord(record, _line, _parser.HasHeader ? _materializer is not null : null))
         {
@@ -133,6 +136,9 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
             return false;
         }
 
+        StringScratch scratch = default;
+        ValueListBuilder<string> list = new(scratch);
+
         var meta = _parser.GetRecordMeta(record);
         var reader = new CsvFieldReader<T>(
             _parser.Options,
@@ -140,9 +146,6 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
             stackalloc T[Token<T>.StackLength],
             ref _unescapeBuffer,
             in meta);
-
-        ValueListBuilder<string?>.DefaultScratch scratch = default;
-        ValueListBuilder<string> list = new(scratch);
 
         try
         {
@@ -204,3 +207,6 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         }
     }
 }
+
+[InlineArray(16)]
+file struct StringScratch { public string? elem0; }

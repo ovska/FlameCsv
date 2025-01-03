@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.SymbolStore;
-using FlameCsv.SourceGen.Helpers;
+﻿using FlameCsv.SourceGen.Helpers;
 
 namespace FlameCsv.SourceGen.Models;
 
@@ -54,7 +53,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>
     /// List of strings to match this member for. Defaults to <see cref="Name"/>
     /// </summary>
     public required ImmutableEquatableArray<string> Names { get; init; }
-     
+
     /// <summary>
     /// The interface type that this property was explicitly implemented from.
     /// </summary>
@@ -75,7 +74,6 @@ internal sealed record PropertyModel : IComparable<PropertyModel>
         bool isProperty = false;
         TypeRef? explicitInterface = null;
         bool isRequired;
-        Meta meta;
         bool canWrite;
         bool canRead;
 
@@ -103,6 +101,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>
         else if (symbol is IFieldSymbol fieldSymbol)
         {
             if (fieldSymbol.RefKind != RefKind.None ||
+                fieldSymbol.IsConst || // should this be writable?
                 fieldSymbol.HasAttribute(knownSymbols.CsvHeaderIgnoreAttribute))
             {
                 goto Fail;
@@ -111,14 +110,14 @@ internal sealed record PropertyModel : IComparable<PropertyModel>
             type = fieldSymbol.Type;
             isRequired = fieldSymbol.IsRequired;
             canWrite = true;
-            canRead = !fieldSymbol.IsReadOnly && !fieldSymbol.IsConst;
+            canRead = !fieldSymbol.IsReadOnly;
         }
         else
         {
             goto Fail;
         }
 
-        meta = GetMetadata(symbol, knownSymbols);
+        Meta meta = GetMetadata(symbol, knownSymbols);
 
         model = new PropertyModel
         {
@@ -159,7 +158,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>
                     names = new string[namesArray.Length];
 
                     for (int i = 0; i < namesArray.Length; i++)
-                        names[i] = namesArray[i].Value as string ?? "";
+                        names[i] = namesArray[i].Value?.ToString() ?? "";
                 }
 
                 foreach (var argument in attributeData.NamedArguments)

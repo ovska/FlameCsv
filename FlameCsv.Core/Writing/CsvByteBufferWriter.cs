@@ -87,8 +87,8 @@ internal readonly struct CsvByteBufferWriter : ICsvBufferWriter<byte>
             throw exception;
     }
 
-    public void Flush() => throw new NotSupportedException(NotSupported);
-    public void Complete(Exception? exception) => throw new NotSupportedException(NotSupported);
+    public void Complete(Exception? exception) => throw NotSupportedEx;
+    public void Flush() => throw NotSupportedEx;
 
-    private const string NotSupported = $"{nameof(CsvByteBufferWriter)} does not support synchronous flushing.";
+    private static NotSupportedException NotSupportedEx => new($"{nameof(CsvByteBufferWriter)} does not support synchronous flushing.");
 }
