@@ -1,11 +1,8 @@
-﻿using CommunityToolkit.Diagnostics;
-using FlameCsv.Runtime;
+﻿using FlameCsv.Runtime;
 using FlameCsv.Writing;
 using System.IO.Pipelines;
 using System.Text;
-using DAM = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute;
-using RUF = System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute;
-using RDC = System.Diagnostics.CodeAnalysis.RequiresDynamicCodeAttribute;
+using FlameCsv.Extensions;
 
 namespace FlameCsv;
 
@@ -156,6 +153,8 @@ static partial class CsvWriter
     /// <summary>
     /// Writes the CSV records to a string.
     /// </summary>
+    /// <param name="values">Values to write to the string builder</param>
+    /// <param name="options">Optional user configured options to use</param>
     /// <param name="initialCapacity">Initial capacity of the string builder</param>
     /// <returns>A <see cref="StringBuilder"/> containing the CSV</returns>
     [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]

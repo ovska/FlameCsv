@@ -250,7 +250,7 @@ public class CsvOptionsTests
         Run(o => o.Formats.Add(typeof(int), null));
         Run(o => o.NoLineBuffering = true);
         Run(o => o.Null = "null");
-        Run(o => o.NumberStyles.Add(typeof(int), System.Globalization.NumberStyles.None));
+        Run(o => o.NumberStyles.Add(typeof(int), NumberStyles.None));
         Run(o => o.BooleanValues.Add(default));
 
         void Run(Action<CsvOptions<char>> action)
@@ -271,7 +271,7 @@ public class CsvOptionsTests
 
         var options = new CsvOptions<char>
         {
-            ShouldSkipRow = (in CsvRecordSkipArgs<char> args) => args.Line == 1 || args.Record.Span[0] == '#',
+            ShouldSkipRow = args => args.Line == 1 || args.Record[0] == '#',
         };
 
         using var enumerator = CsvReader.Enumerate(data, options).GetEnumerator();
@@ -298,17 +298,17 @@ public class CsvOptionsTests
             return new CsvOptions<char>
             {
                 HasHeader = hasHeader,
-                ShouldSkipRow = (in CsvRecordSkipArgs<char> args) =>
+                ShouldSkipRow = args =>
                 {
-                    if (args.Record.Span[0] == 'A')
+                    if (args.Record[0] == 'A')
                     {
                         Assert.False(args.HeaderRead);
                     }
-                    if (args.Record.Span[0] == '1')
+                    if (args.Record[0] == '1')
                     {
                         Assert.True(args.HeaderRead);
                     }
-                    if (args.Record.Span[0] == 'X')
+                    if (args.Record[0] == 'X')
                     {
                         Assert.Null(args.HeaderRead);
                     }
@@ -331,7 +331,7 @@ public class CsvOptionsTests
 
         var options = new CsvOptions<char>
         {
-            ShouldSkipRow = (in CsvRecordSkipArgs<char> args) => args.Line == 1 || args.Record.Span[0] == '#',
+            ShouldSkipRow = args => args.Line == 1 || args.Record[0] == '#',
         };
 
         var values = CsvReader.Read<Skippable>(data, options).ToList();

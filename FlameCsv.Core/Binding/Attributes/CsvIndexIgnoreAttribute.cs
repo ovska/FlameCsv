@@ -1,5 +1,3 @@
-using CommunityToolkit.Diagnostics;
-
 namespace FlameCsv.Binding.Attributes;
 
 /// <summary>
@@ -22,10 +20,9 @@ public sealed class CsvIndexIgnoreAttribute : Attribute, ICsvBindingAttribute
     {
         ArgumentNullException.ThrowIfNull(indexes);
 
-        foreach (var index in indexes)
+        for (int i = 0; i < indexes.Length; i++)
         {
-            if (index < 0)
-                ThrowHelper.ThrowArgumentException(nameof(indexes), "All indexes must be non-negative.");
+            ArgumentOutOfRangeException.ThrowIfNegative(indexes[i]);
         }
 
         _indexes = indexes;

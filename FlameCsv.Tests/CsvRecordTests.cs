@@ -1,7 +1,9 @@
-﻿using FlameCsv.Enumeration;
+﻿using System.Diagnostics.CodeAnalysis;
+using FlameCsv.Enumeration;
 
 namespace FlameCsv.Tests;
 
+[SuppressMessage("ReSharper", "GenericEnumeratorNotDisposed")]
 public static class CsvRecordTests
 {
     [Fact]

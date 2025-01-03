@@ -17,7 +17,7 @@ public class FieldBench
     [Benchmark(Baseline = true)]
     public void Old()
     {
-        char[]? array = null;
+        Allocated<char> allocated = new(Allocator<char>.Default);
         Span<char> buffer = stackalloc char[128];
 
         foreach (ref readonly var line in _fields.AsSpan())
@@ -26,20 +26,20 @@ public class FieldBench
                 CsvOptions<char>.Default,
                 line.Item1.AsMemory(),
                 buffer,
-                ref array,
+                ref allocated,
                 in line.Item2);
 
             while (!reader.End)
                 _ = Older<char>.ReadNextField(ref reader);
         }
 
-        ArrayPool<char>.Shared.EnsureReturned(ref array);
+        allocated.Dispose();
     }
 
     [Benchmark(Baseline = false)]
     public void New()
     {
-        char[]? array = null;
+        Allocated<char> allocated = new(Allocator<char>.Default);
         Span<char> buffer = stackalloc char[128];
 
         foreach (ref readonly var line in _fields.AsSpan())
@@ -48,14 +48,14 @@ public class FieldBench
                 CsvOptions<char>.Default,
                 line.Item1.AsMemory(),
                 buffer,
-                ref array,
+                ref allocated,
                 in line.Item2);
 
             while (!reader.End)
                 _ = RFC4180Mode<char>.ReadNextField(ref reader);
         }
 
-        ArrayPool<char>.Shared.EnsureReturned(ref array);
+        allocated.Dispose();
     }
 
     static class Older<T> where T : unmanaged, IEquatable<T>

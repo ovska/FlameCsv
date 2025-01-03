@@ -1,14 +1,76 @@
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.Versioning;
 using CommunityToolkit.HighPerformance;
-using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Tests.Utilities;
 
 namespace FlameCsv.Tests.Readers;
 
-public static class RFC4180ModeTests
+public class RFC4180NativeFromStartTests : RFC4180NativeTestsBase
 {
+    protected override bool FromEnd => false;
+}
+
+public class RFC4180NativeFromEnmTests : RFC4180NativeTestsBase
+{
+    protected override bool FromEnd => true;
+}
+
+[SupportedOSPlatform("windows")]
+public abstract class RFC4180NativeTestsBase : RFC4180ModeTests, IDisposable
+{
+    protected abstract bool FromEnd { get; }
+
+    private MemoryManager<char>? _inputManager;
+    private MemoryManager<char>? _scratchManager;
+
+    public void Dispose()
+    {
+        (_inputManager as IDisposable)?.Dispose();
+        (_scratchManager as IDisposable)?.Dispose();
+    }
+
+    protected override Span<char> AllocateScratch(int minLength)
+    {
+        if (_scratchManager is not null)
+            ThrowConcurrentUsage();
+
+        _scratchManager = new GuardedMemoryManager<char>(minLength, FromEnd);
+        return _scratchManager.GetSpan();
+    }
+
+    protected override ReadOnlyMemory<char> AllocateMemory(string input)
+    {
+        if (_inputManager is not null)
+            ThrowConcurrentUsage();
+
+        _inputManager = new GuardedMemoryManager<char>(input.Length, FromEnd);
+
+        var memory = _inputManager.Memory;
+        input.AsMemory().CopyTo(memory);
+        return memory[..input.Length];
+    }
+
+    [DoesNotReturn]
+    private static void ThrowConcurrentUsage()
+    {
+        throw new InvalidOperationException("Concurrent usage detected");
+    }
+}
+
+public class RFC4180StringTests : RFC4180ModeTests
+{
+    protected override ReadOnlyMemory<char> AllocateMemory(string input) => input.AsMemory();
+    protected override Span<char> AllocateScratch(int minLength) => new char[minLength];
+}
+
+public abstract class RFC4180ModeTests
+{
+    protected abstract ReadOnlyMemory<char> AllocateMemory(string input);
+    protected abstract Span<char> AllocateScratch(int minLength);
+
     [Theory]
     [InlineData("test", "test")]
     [InlineData(" test", "test")]
@@ -17,38 +79,42 @@ public static class RFC4180ModeTests
     [InlineData("\" test\"", "test")]
     [InlineData("\"test \"", "test")]
     [InlineData("\" test \"", "test")]
-    public static void Should_Trim_Fields(string input, string expected)
+    public void Should_Trim_Fields(string input, string expected)
     {
         using var parser = CsvParser<char>.Create(new CsvOptions<char> { Whitespace = " " });
 
-        char[]? buffer = null;
+        IMemoryOwner<char>? allocated = null;
 
-        var meta = parser.GetRecordMeta(input.AsMemory());
+        var memory = AllocateMemory(input);
+
+        var meta = parser.GetRecordMeta(memory.Span);
         var reader = new CsvFieldReader<char>(
             parser.Options,
-            input.AsMemory(),
-            stackalloc char[16],
-            ref buffer,
+            memory.Span,
+            AllocateScratch(16),
+            ref allocated,
             in meta);
 
 
         Assert.True(reader.MoveNext());
         Assert.Equal(expected, reader.Current.ToString());
         Assert.True(reader.End);
+        allocated?.Dispose();
     }
 
     [Fact]
-    public static void Should_Seek_Long_Line()
+    public void Should_Seek_Long_Line()
     {
-        string input = "\"Long line with lots of content, but no quotes except the wrapping!\"";
+        const string input = "\"Long line with lots of content, but no quotes except the wrapping!\"";
         using var parser = CsvParser<char>.Create(CsvOptions<char>.Default);
 
-        var meta = parser.GetRecordMeta(input.AsMemory());
+        var memory = AllocateMemory(input);
+        var meta = parser.GetRecordMeta(memory.Span);
         var reader = new CsvFieldReader<char>(
             parser.Options,
-            input.AsMemory(),
+            memory.Span,
             [],
-            ref Unsafe.NullRef<char[]?>(),
+            ref Unsafe.NullRef<IMemoryOwner<char>?>(),
             in meta);
 
         Assert.True(reader.MoveNext());
@@ -65,23 +131,24 @@ public static class RFC4180ModeTests
     [InlineData("\"\"\"\"", "\"")]
     [InlineData("\"Some long, sentence\"", "Some long, sentence")]
     [InlineData("\"James \"\"007\"\" Bond\"", "James \"007\" Bond")]
-    public static void Should_Unescape(string input, string expected)
+    public void Should_Unescape(string input, string expected)
     {
         using var parser = CsvParser<char>.Create(CsvOptions<char>.Default);
 
-        char[]? unescapeArray = null;
+        IMemoryOwner<char>? allocated = null;
 
         var meta = new CsvRecordMeta { quoteCount = (uint)input.Count(c => c == '"') };
         var record = new CsvFieldReader<char>(
             parser.Options,
-            input.AsMemory(),
-            stackalloc char[128],
-            ref unescapeArray,
+            AllocateMemory(input).Span,
+            AllocateScratch(128),
+            ref allocated,
             in meta);
 
         var field = RFC4180Mode<char>.ReadNextField(ref record);
 
         Assert.Equal(expected, field.ToString());
+        allocated?.Dispose();
     }
 
     [Theory]
@@ -91,29 +158,25 @@ public static class RFC4180ModeTests
     [InlineData(",jklsadklasdW,laskdjlksad,,1231")]
     [InlineData("A,\"B\",C,D,E")]
     [InlineData("A,\"B\",C,D,\"E\"")]
-    public static void Should_Enumerate_Fields(string line)
+    public void Should_Enumerate_Fields(string line)
     {
-        using var pool = new ReturnTrackingArrayPool<char>();
-        var options = new CsvOptions<char>
-        {
-            Newline = "|",
-            ArrayPool = pool,
-            AllowContentInExceptions = true,
-        };
+        using var pool = new ReturnTrackingArrayMemoryPool<char>();
+        var options = new CsvOptions<char> { Newline = "|", MemoryPool = pool, AllowContentInExceptions = true, };
 
         var expected = line.Split(',').Select(s => s.Trim('"'));
 
         var list = new List<string>();
         using var parser = CsvParser<char>.Create(options);
 
-        char[]? buffer = null;
+        IMemoryOwner<char>? allocated = null;
 
-        var meta = parser.GetRecordMeta(line.AsMemory());
+        var memory = AllocateMemory(line);
+        var meta = parser.GetRecordMeta(memory.Span);
         CsvFieldReader<char> reader = new(
             parser.Options,
-            line.AsMemory(),
+            memory.Span,
             [],
-            ref buffer,
+            ref allocated,
             in meta);
 
         while (!reader.End)
@@ -122,22 +185,17 @@ public static class RFC4180ModeTests
         }
 
         Assert.Equal(expected, list);
-        options.ArrayPool.EnsureReturned(ref buffer);
+        allocated?.Dispose();
     }
 
     [Fact]
-    public static void Should_Enumerate_With_Comma2()
+    public void Should_Enumerate_With_Comma2()
     {
-        using var pool = new ReturnTrackingArrayPool<char>();
-        var options = new CsvOptions<char>
-        {
-            Newline = "|",
-            ArrayPool = pool,
-            AllowContentInExceptions = true,
-        };
+        using var pool = new ReturnTrackingArrayMemoryPool<char>();
+        var options = new CsvOptions<char> { Newline = "|", MemoryPool = pool, AllowContentInExceptions = true, };
 
         var data = new[] { options.Delimiter, options.Newline[0] }.GetPermutations();
-        char[]? buffer = null;
+        IMemoryOwner<char>? allocated = null;
 
         using var parser = CsvParser<char>.Create(options);
 
@@ -149,9 +207,9 @@ public static class RFC4180ModeTests
             var meta = new CsvRecordMeta { quoteCount = (uint)line.Count('"') };
             CsvFieldReader<char> state = new(
                 parser.Options,
-                line.AsMemory(),
+                line,
                 [],
-                ref buffer,
+                ref allocated,
                 in meta);
 
             var list = new List<string>();
@@ -166,6 +224,6 @@ public static class RFC4180ModeTests
             Assert.Equal("test", list[1]);
         }
 
-        options.ArrayPool.EnsureReturned(ref buffer);
+        allocated?.Dispose();
     }
 }

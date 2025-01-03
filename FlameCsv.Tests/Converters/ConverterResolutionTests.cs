@@ -1,13 +1,14 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using FlameCsv.Binding;
+﻿using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Converters;
+
+// ReSharper disable InconsistentNaming
 
 namespace FlameCsv.Tests.Converters;
 
 public static partial class ConverterResolutionTests
 {
-    private const string data = "id,name,age\r\n5,,0";
+    private const string Data = "id,name,age\r\n5,,0";
 
     [CsvTypeMap<char, ShimNR>]
     private partial class TypeMapNR;
@@ -31,7 +32,7 @@ public static partial class ConverterResolutionTests
 
     private class IdConverter : CsvConverter<char, int>
     {
-        public override bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out int value)
+        public override bool TryParse(ReadOnlySpan<char> source, out int value)
         {
             value = 123;
             return true;
@@ -46,8 +47,8 @@ public static partial class ConverterResolutionTests
         var o1 = new CsvOptions<char>();
         var o2 = new CsvOptions<char>();
 
-        var r1 = CsvReader.Read<ShimOR>(data, o1).ToList();
-        var r2 = CsvReader.Read<ShimOR>(data, TypeMapOR.Instance, o2).ToList();
+        var r1 = CsvReader.Read<ShimOR>(Data, o1).ToList();
+        var r2 = CsvReader.Read(Data, TypeMapOR.Instance, o2).ToList();
 
         Assert.Equal(123, r1[0].Id);
         Assert.Equal(123, r2[0].Id);
@@ -67,8 +68,8 @@ public static partial class ConverterResolutionTests
         var o1 = new CsvOptions<char> { Converters = { new IdConverter() } };
         var o2 = new CsvOptions<char> { Converters = { new IdConverter() } };
 
-        var r1 = CsvReader.Read<ShimNR>(data, o1).ToList();
-        var r2 = CsvReader.Read<ShimNR>(data, TypeMapNR.Instance, o2).ToList();
+        var r1 = CsvReader.Read<ShimNR>(Data, o1).ToList();
+        var r2 = CsvReader.Read(Data, TypeMapNR.Instance, o2).ToList();
 
         Assert.Equal(123, r1[0].Id);
         Assert.Equal(123, r2[0].Id);

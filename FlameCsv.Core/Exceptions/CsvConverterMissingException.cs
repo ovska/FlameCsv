@@ -1,5 +1,3 @@
-using CommunityToolkit.Diagnostics;
-
 namespace FlameCsv.Exceptions;
 
 /// <summary>
@@ -23,7 +21,7 @@ public sealed class CsvConverterMissingException : CsvConfigurationException
     /// <param name="tokenType">Type parameter of the <see cref="CsvOptions{T}"/></param>
     /// <param name="resultType">Type the parser was requested for</param>
     public CsvConverterMissingException(Type tokenType, Type resultType)
-        : base($"Parser not found for type: {resultType.ToTypeString()}")
+        : base($"Parser not found for type: {resultType.FullName}")
     {
         TokenType = tokenType;
         ResultType = resultType;

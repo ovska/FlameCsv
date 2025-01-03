@@ -5,7 +5,7 @@ namespace FlameCsv.Converters;
 
 internal static class CastingConverter
 {
-    [RequiresDynamicCode("Calls System.Type.MakeGenericType(params Type[])")]
+    [RDC("Calls System.Type.MakeGenericType(params Type[])")]
     public static CsvConverter<T> Create<T>(Type innerType, Type outerType, CsvConverter<T> inner) where T: unmanaged, IEquatable<T>
     {
         return typeof(CastingConverter<,,>).MakeGenericType(typeof(T), innerType, outerType).CreateInstance<CsvConverter<T>>(inner);

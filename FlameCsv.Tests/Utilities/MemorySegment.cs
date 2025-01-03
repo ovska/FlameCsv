@@ -17,7 +17,6 @@ internal class MemorySegment<T> : ReadOnlySequenceSegment<T>
         };
 
         Next = segment;
-
         return segment;
     }
 
@@ -26,17 +25,24 @@ internal class MemorySegment<T> : ReadOnlySequenceSegment<T>
     /// </summary>
     /// <param name="data">Source data</param>
     /// <param name="bufferSize">Segment max length, -1 to always return a single segment</param>
+    /// <param name="emptyFrequency">How often should an empty segment be inserted</param>
+    /// <param name="factory">Optional factory to create the memory instances</param>
     public static ReadOnlySequence<T> AsSequence(
         ReadOnlyMemory<T> data,
         int bufferSize,
-        int emptyFrequency = 0)
+        int emptyFrequency = 0,
+        Func<ReadOnlyMemory<T>, ReadOnlyMemory<T>>? factory = null)
     {
+        factory ??= m => m;
+
         if (bufferSize == -1 || data.Length <= bufferSize)
         {
-            return new ReadOnlySequence<T>(data);
+            return new ReadOnlySequence<T>(factory(data));
         }
 
-        MemorySegment<T> first = new(data.Slice(0, bufferSize));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bufferSize);
+
+        MemorySegment<T> first = new(factory(data.Slice(0, bufferSize)));
         MemorySegment<T> last = first;
 
         ReadOnlyMemory<T> remaining = data.Slice(bufferSize);
@@ -45,7 +51,7 @@ internal class MemorySegment<T> : ReadOnlySequenceSegment<T>
 
         while (remaining.Length > bufferSize)
         {
-            last = last.Append(remaining.Slice(0, bufferSize));
+            last = last.Append(factory(remaining.Slice(0, bufferSize)));
             remaining = remaining.Slice(bufferSize);
 
             if (emptyFrequency > 0 && ++counter % emptyFrequency == 0)
@@ -54,7 +60,7 @@ internal class MemorySegment<T> : ReadOnlySequenceSegment<T>
             }
         }
 
-        last = last.Append(remaining);
+        last = last.Append(factory(remaining));
         return new(first, 0, last, last.Memory.Length);
     }
 }

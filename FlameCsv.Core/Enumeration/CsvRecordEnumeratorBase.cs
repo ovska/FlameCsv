@@ -117,6 +117,6 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
     private void ThrowExceptionForDuplicateHeaderField(string field, CsvValueRecord<T> record)
     {
         throw new CsvFormatException(
-            $"Duplicate header field \"{field}\" in CSV: {_parser.AsPrintableString(record.RawRecord)}");
+            $"Duplicate header field \"{field}\" in CSV: {_parser.AsPrintableString(record.RawRecord.Span)}");
     }
 }

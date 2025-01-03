@@ -1,14 +1,19 @@
 ﻿using System.Buffers;
-using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Tests.Utilities;
 
 namespace FlameCsv.Tests.Readers;
 
-public class SequenceReaderTests
+public class SequenceReaderTests : IDisposable
 {
-    private readonly CsvOptions<char> _crlfOptions = new() { Newline = "\r\n", ArrayPool = new ReturnTrackingArrayPool<char>() };
-    private readonly CsvOptions<char> _lfOptions = new() { Newline = "\n", ArrayPool = new ReturnTrackingArrayPool<char>() };
+    private readonly CsvOptions<char> _crlfOptions = new() { Newline = "\r\n", MemoryPool = new ReturnTrackingArrayMemoryPool<char>() };
+    private readonly CsvOptions<char> _lfOptions = new() { Newline = "\n", MemoryPool = new ReturnTrackingArrayMemoryPool<char>() };
+
+    public void Dispose()
+    {
+        _crlfOptions._memoryPool.Dispose();
+        _lfOptions._memoryPool.Dispose();
+    }
 
     [Fact]
     public void Should_Read_LF()
@@ -83,7 +88,7 @@ public class SequenceReaderTests
         Assert.Equal(s3 + s4, parser._reader.UnreadSequence.ToString());
     }
 
-    private static readonly string[] _xxlines = [.. Enumerable.Range(0, 128).Select(i => new string('x', i))];
+    private static readonly string[] _xLines = [.. Enumerable.Range(0, 128).Select(i => new string('x', i))];
 
     public static TheoryData<int, int> Segments
     {
@@ -106,7 +111,7 @@ public class SequenceReaderTests
     [Theory, MemberData(nameof(Segments))]
     public void Should_Find_Complex_Newlines(int segmentSize, int emptyFrequency)
     {
-        var joined = string.Join("\r\n", _xxlines);
+        var joined = string.Join("\r\n", _xLines);
         using var parser = CsvParser<char>.Create(_crlfOptions);
         parser.Reset(MemorySegment<char>.AsSequence(joined.AsMemory(), segmentSize, emptyFrequency));
 
@@ -120,7 +125,7 @@ public class SequenceReaderTests
         if (!parser.End)
             results.Add(parser._reader.UnreadSequence.ToString());
 
-        Assert.Equal(_xxlines, results);
+        Assert.Equal(_xLines, results);
     }
 
     [Theory]
@@ -173,7 +178,7 @@ public class SequenceReaderTests
     public void Should_Find_Lines(string data, string expected, uint quoteCount)
     {
         var seq = new ReadOnlySequence<char>(data.AsMemory());
-        using var parser = CsvParser<char>.Create(new CsvOptions<char> { Newline = "|", ArrayPool = ReturnTrackingArrayPool<char>.Shared });
+        using var parser = CsvParser<char>.Create(new CsvOptions<char> { Newline = "|", MemoryPool = ReturnTrackingMemoryPool<char>.Shared });
         parser.Reset(seq);
 
         bool result = parser.TryReadLine(out var line, out var meta, isFinalBlock: false);

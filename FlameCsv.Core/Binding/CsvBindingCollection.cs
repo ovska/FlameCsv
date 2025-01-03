@@ -1,10 +1,11 @@
 using System.Collections;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using CommunityToolkit.Diagnostics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding.Internal;
 using FlameCsv.Exceptions;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Binding;
 
@@ -46,8 +47,7 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
     /// Returns the constructor used by the bindings, throwing if there are no constructor bindings.
     /// </summary>
     /// <exception cref="InvalidOperationException"/>
-    public ConstructorInfo Constructor => _ctor ??
-        ThrowHelper.ThrowInvalidOperationException<ConstructorInfo>("There are no constructor bindings.");
+    public ConstructorInfo Constructor => _ctor ?? throw new InvalidOperationException("There are no constructor bindings.");
 
     private readonly List<CsvBinding<TValue>> _allBindings;
     private readonly List<MemberCsvBinding<TValue>> _memberBindings;
@@ -58,10 +58,11 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
     /// Initializes a new binding collection.
     /// </summary>
     /// <param name="bindings">Field bindings</param>
+    /// <param name="write">The bindings are for writing and not reading CSV</param>
     /// <exception cref="CsvBindingException">Bindings are invalid</exception>
     public CsvBindingCollection(IEnumerable<CsvBinding<TValue>> bindings, bool write)
         : this(
-              bindings?.ToList() ?? throw new ArgumentNullException(nameof(bindings)),
+              (bindings ?? throw new ArgumentNullException(nameof(bindings))).ToList(),
               write,
               isInternalCall: true)
     {
@@ -70,13 +71,19 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
     /// <summary>
     /// Internal use only. The parameter list is modified and retained.
     /// </summary>
+    [SuppressMessage("ReSharper", "ParameterOnlyUsedForPreconditionCheck.Local")]
     internal CsvBindingCollection(
         List<CsvBinding<TValue>> bindingsList,
         bool write,
         bool isInternalCall)
     {
-        Debug.Assert(isInternalCall);
-        Guard.IsNotEmpty(bindingsList);
+        if (!isInternalCall)
+            throw new UnreachableException();
+
+        ArgumentNullException.ThrowIfNull(bindingsList);
+
+        if (bindingsList.Count == 0)
+            Throw.Argument("bindings", "Bindings were empty");
 
         Span<CsvBinding<TValue>> bindings = bindingsList.AsSpan();
         bindings.Sort(); // sort by index

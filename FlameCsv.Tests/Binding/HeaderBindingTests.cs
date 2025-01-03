@@ -2,10 +2,6 @@ using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Binding.Internal;
 
-// ReSharper disable UnusedType.Local
-// ReSharper disable UnusedMember.Local
-// ReSharper disable UnusedMember
-
 namespace FlameCsv.Tests.Binding;
 
 public static class HeaderBindingTests
@@ -19,18 +15,13 @@ public static class HeaderBindingTests
         public int Targeted { get; set; }
     }
 
-    private class ShimWithCtor
+    private class ShimWithCtor([CsvHeader("_targeted")] bool isEnabled)
     {
+        // ReSharper disable once InconsistentNaming
         public object? _Targeted { get; }
 
         public string? Name { get; set; }
-        public bool IsEnabled { get; }
-
-        public ShimWithCtor(
-            [CsvHeader("_targeted")] bool isEnabled)
-        {
-            IsEnabled = isEnabled;
-        }
+        public bool IsEnabled { get; } = isEnabled;
     }
 
     [Fact]

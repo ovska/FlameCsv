@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using CommunityToolkit.Diagnostics;
 using System.IO.Pipelines;
 using System.Text;
 using FlameCsv.Binding;
@@ -86,7 +85,7 @@ public static partial class CsvReader
 
         options ??= CsvOptions<char>.Default;
         var textReader = new StreamReader(stream, encoding: encoding, bufferSize: bufferSize, leaveOpen: leaveOpen);
-        var reader = new TextPipeReader(textReader, bufferSize, options._arrayPool);
+        var reader = new TextPipeReader(textReader, bufferSize, options._memoryPool);
         return new CsvTypeMapAsyncEnumerable<char, TValue>(
             reader,
             options,
@@ -102,7 +101,7 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(typeMap);
 
         options ??= CsvOptions<char>.Default;
-        var reader = new TextPipeReader(textReader, DefaultBufferSize, options._arrayPool);
+        var reader = new TextPipeReader(textReader, DefaultBufferSize, options._memoryPool);
         return new CsvTypeMapAsyncEnumerable<char, TValue>(reader, options, typeMap);
     }
 
@@ -117,7 +116,7 @@ public static partial class CsvReader
         Guard.CanRead(stream);
 
         options ??= CsvOptions<byte>.Default;
-        var reader = CreatePipeReader(stream, options._arrayPool, leaveOpen);
+        var reader = CreatePipeReader(stream, options._memoryPool, leaveOpen);
         return new CsvTypeMapAsyncEnumerable<byte, TValue>(new PipeReaderWrapper(reader), options, typeMap);
     }
 

@@ -1,8 +1,6 @@
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
 
-// ReSharper disable UnusedAutoPropertyAccessor.Local
-
 namespace FlameCsv.Tests.Binding;
 
 public static class CsvBindingTests
@@ -63,37 +61,34 @@ public static class CsvBindingTests
         Assert.Throws<ArgumentNullException>(
             () => new CsvBindingCollection<Class>(null!, false));
         Assert.Throws<ArgumentException>(
-            () => new CsvBindingCollection<Class>(Enumerable.Empty<CsvBinding<Class>>(), false));
+            () => new CsvBindingCollection<Class>([], false));
 
         Assert.ThrowsAny<CsvBindingException>(
             () => new CsvBindingCollection<Class>(
-                new[] { CsvBinding.Ignore<Class>(0), CsvBinding.Ignore<Class>(1) },
+                [CsvBinding.Ignore<Class>(0), CsvBinding.Ignore<Class>(1)],
                 false));
 
         Assert.ThrowsAny<CsvBindingException>(
             () => new CsvBindingCollection<Class>(
-                new[]
-                {
+                [
                     CsvBinding.For<Class>(0, x => x.Id),
-                    CsvBinding.For<Class>(0, x => x.Name),
-                },
+                    CsvBinding.For<Class>(0, x => x.Name)
+                ],
                 false));
 
         Assert.ThrowsAny<CsvBindingException>(
             () => new CsvBindingCollection<Class>(
-                new[]
-                {
+                [
                     CsvBinding.For<Class>(0, x => x.Id),
-                    CsvBinding.For<Class>(1, x => x.Id),
-                },
+                    CsvBinding.For<Class>(1, x => x.Id)
+                ],
                 false));
 
         Assert.ThrowsAny<CsvBindingException>(
             () => new CsvBindingCollection<Struct>(
-                new[]
-                {
-                    CsvBinding.ForMember<Struct>(0, typeof(Class).GetProperties()[0]),
-                },
+                [
+                    CsvBinding.ForMember<Struct>(0, typeof(Class).GetProperties()[0])
+                ],
                 false));
     }
 }

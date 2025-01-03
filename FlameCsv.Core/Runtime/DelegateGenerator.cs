@@ -1,23 +1,22 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using FlameCsv.Binding;
+﻿using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Converters;
 using FlameCsv.Reading;
 
 namespace FlameCsv.Runtime;
 
-[RequiresUnreferencedCode(Messages.CompiledExpressions)]
+[RUF(Messages.CompiledExpressions)]
 internal abstract class DelegateGenerator<T> where T : unmanaged, IEquatable<T>
 {
     public delegate IMaterializer<T, TResult> MaterializerFactory<TResult>(CsvOptions<T> options);
 
-    protected abstract Func<object[], IMaterializer<T, TResult>> GetMaterializerInit<[DynamicallyAccessedMembers(Messages.Ctors)] TResult>(
+    protected abstract Func<object[], IMaterializer<T, TResult>> GetMaterializerInit<[DAM(Messages.Ctors)] TResult>(
         CsvBindingCollection<TResult> bc);
 
-    protected abstract Delegate GetValueFactory<[DynamicallyAccessedMembers(Messages.Ctors)] TResult>(
+    protected abstract Delegate GetValueFactory<[DAM(Messages.Ctors)] TResult>(
         CsvBindingCollection<TResult> bc);
 
-    public MaterializerFactory<TResult> GetMaterializerFactory<[DynamicallyAccessedMembers(Messages.Ctors)] TResult>(
+    public MaterializerFactory<TResult> GetMaterializerFactory<[DAM(Messages.Ctors)] TResult>(
         CsvBindingCollection<TResult> bc)
     {
         ArgumentNullException.ThrowIfNull(bc);

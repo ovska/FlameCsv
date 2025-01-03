@@ -1,14 +1,17 @@
-﻿namespace FlameCsv.Tests.Binding;
+﻿using System.Runtime.CompilerServices;
+using FlameCsv.Runtime;
+
+namespace FlameCsv.Tests.Binding;
 
 public static class BuiltinBindingTests
 {
-    private const string data = "1,true,Alice\r\n2,false,Bob\r\n";
+    private const string Data = "1,true,Alice\r\n2,false,Bob\r\n";
 
     [Fact]
     public static void Should_Bind_To_ValueTuple()
     {
         var items = CsvReader
-            .Read<(int i, bool b, string s)>(data, new CsvOptions<char> { HasHeader = false })
+            .Read<(int i, bool b, string s)>(Data, new CsvOptions<char> { HasHeader = false })
             .ToList();
 
         Assert.Equal(2, items.Count);
@@ -20,11 +23,46 @@ public static class BuiltinBindingTests
     public static void Should_Bind_To_Tuple()
     {
         var items = CsvReader
-            .Read<Tuple<int, bool, string>>(data, new CsvOptions<char> { HasHeader = false })
+            .Read<Tuple<int, bool, string>>(Data, new CsvOptions<char> { HasHeader = false })
             .ToList();
 
         Assert.Equal(2, items.Count);
         Assert.Equal(new Tuple<int, bool, string>(1, true, "Alice"), items[0]);
         Assert.Equal(new Tuple<int, bool, string>(2, false, "Bob"), items[1]);
     }
+
+    private class FakeTuple : ITuple
+    {
+        public int Length => throw new NotSupportedException();
+        public object this[int index] => throw new NotSupportedException();
+    }
+
+    // ReSharper disable once UnusedTypeParameter
+    private class FakeTuple<T> : FakeTuple;
+
+    [Theory, MemberData(nameof(TupleTestData))]
+    public static void Should_Check_If_Tuple(Type type, bool expected)
+    {
+        var actual = MaterializerExtensions.IsTuple(type);
+        Assert.Equal(expected, actual);
+    }
+
+    public static TheoryData<Type, bool> TupleTestData()
+        => new()
+        {
+            { typeof(bool), false },
+            { typeof(object), false },
+            { typeof(ValueTuple), false },
+            { typeof(ValueTuple<>), false },
+            { typeof(ValueTuple<,>), false },
+            { typeof((int a, int b)), true },
+            { typeof(Tuple), false },
+            { typeof(Tuple<>), false },
+            { typeof(Tuple<,>), false },
+            { typeof(Tuple<int, int>), true },
+            // different module
+            { typeof(FakeTuple), false },
+            { typeof(FakeTuple<>), false },
+            { typeof(FakeTuple<int>), false },
+        };
 }

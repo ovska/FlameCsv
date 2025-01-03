@@ -1,7 +1,7 @@
-﻿using CommunityToolkit.Diagnostics;
-using System.IO.Pipelines;
+﻿using System.IO.Pipelines;
 using System.Text;
 using FlameCsv.Binding;
+using FlameCsv.Extensions;
 using FlameCsv.Writing;
 
 namespace FlameCsv;
@@ -159,6 +159,9 @@ public static partial class CsvWriter
     /// <summary>
     /// Writes the CSV records to a string.
     /// </summary>
+    /// <param name="values"></param>
+    /// <param name="typeMap"></param>
+    /// <param name="options"></param>
     /// <param name="initialCapacity">Initial capacity of the string builder</param>
     /// <returns>A <see cref="StringBuilder"/> containing the CSV</returns>
     public static StringBuilder WriteToString<TValue>(

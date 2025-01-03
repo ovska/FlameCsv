@@ -62,7 +62,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
     {
         Initialize();
 
-        _writer.WriteField(Formatter.Instance!, null);
+        _writer.WriteField(Formatter.Instance, null);
         await _writer.Writer.CompleteAsync(null);
 
         Assert.Equal("null", Written);
@@ -161,7 +161,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
     {
         _textWriter = new StringWriter();
         _writer = new CsvFieldWriter<char, CsvCharBufferWriter>(
-            new CsvCharBufferWriter(_textWriter, AllocatingArrayPool<char>.Instance, bufferSize),
+            new CsvCharBufferWriter(_textWriter, HeapMemoryPool<char>.Shared, bufferSize),
             new CsvOptions<char> { FieldEscaping = quoting, Null = "null", Escape = escape });
     }
 
@@ -171,7 +171,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
 
         public override bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out string value)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         public override bool TryFormat(Span<char> destination, string value, out int charsWritten)
@@ -186,9 +186,6 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
     {
         public int Write { get; set; }
 
-        public bool CanFormat(Type valueType)
-            => throw new NotImplementedException();
-
         public override bool TryFormat(Span<char> destination, string value, out int charsWritten)
         {
             charsWritten = Write;
@@ -197,7 +194,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
 
         public override bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out string value)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
     }
 

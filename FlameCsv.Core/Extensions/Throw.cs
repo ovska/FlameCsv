@@ -2,7 +2,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
 using FlameCsv.Exceptions;
 
 namespace FlameCsv.Extensions;
@@ -10,17 +9,17 @@ namespace FlameCsv.Extensions;
 internal static class Throw
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void IfDefaultStruct<TCaller>([NotNull] object? signal)
+    public static void IfDefaultStruct([DoesNotReturnIf(true)] bool signal, Type type)
     {
-        if (signal is not null)
+        if (!signal)
             return;
 
-        InvalidOp_DefaultStruct(typeof(TCaller));
+        InvalidOp_DefaultStruct(type);
 
         [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
         static void InvalidOp_DefaultStruct(Type type)
         {
-            throw new InvalidOperationException($"The struct '{type.ToTypeString()}' was uninitialized.");
+            throw new InvalidOperationException($"The struct '{type.FullName}' was uninitialized.");
         }
     }
 
@@ -68,6 +67,12 @@ internal static class Throw
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public static void InvalidOperation(string message)
+    {
+        throw new InvalidOperationException(message);
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void NotSupported_CsvHasNoHeader()
     {
         throw new NotSupportedException("The CSV does not have a header record.");
@@ -83,7 +88,7 @@ internal static class Throw
     public static void InvalidOp_NoHeader(int index, Type type, MemberInfo member)
     {
         throw new InvalidOperationException(
-            $"No header name found for member {member.Name} at index {index} when writing {type.ToTypeString()}.");
+            $"No header name found for member {member.Name} at index {index} when writing {type.FullName}.");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -97,11 +102,11 @@ internal static class Throw
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ParseFailed<T>(ReadOnlyMemory<T> field, CsvConverter<T> converter, CsvOptions<T> options, Type toParse)
+    public static void ParseFailed<T>(ReadOnlySpan<T> field, CsvConverter<T> converter, CsvOptions<T> options, Type toParse)
             where T : unmanaged, IEquatable<T>
     {
         throw new CsvParseException(
-            $"Failed to parse {toParse.ToTypeString()} using {converter.GetType().ToTypeString()} " +
+            $"Failed to parse {toParse.FullName} using {converter.GetType().FullName} " +
             $"from {options.AsPrintableString(field)}");
     }
 
@@ -135,6 +140,18 @@ internal static class Throw
         throw new ArgumentOutOfRangeException(
             nameof(index),
             $"Could not get field at index {index} (there were {count} fields in the record).");
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public static void Argument_OutOfRange(string paramName)
+    {
+        throw new ArgumentOutOfRangeException(paramName);
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public static void Argument(string paramName, string? message)
+    {
+        throw new ArgumentException(message, paramName);
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]

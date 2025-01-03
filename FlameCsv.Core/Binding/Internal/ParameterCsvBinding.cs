@@ -10,7 +10,7 @@ internal sealed class ParameterCsvBinding<T> : CsvBinding<T>
     public ParameterInfo Parameter { get; }
 
     public override Type Type => Parameter.ParameterType;
-    internal protected override object Sentinel => Parameter;
+    protected internal override object Sentinel => Parameter;
 
     protected internal override ReadOnlySpan<object> Attributes => _parameterData is not null ? _parameterData.Attributes : default;
 
@@ -34,4 +34,7 @@ internal sealed class ParameterCsvBinding<T> : CsvBinding<T>
         sb.Append(' ');
         sb.Append(Parameter.Name);
     }
+
+    // ReSharper disable once StringLiteralTypo
+    public override string DisplayName => Parameter.Name ?? "unnamedparameter";
 }
