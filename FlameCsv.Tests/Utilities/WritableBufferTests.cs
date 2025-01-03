@@ -1,10 +1,4 @@
-﻿using System;
-using System.Buffers;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using FlameCsv.Utilities;
+﻿using FlameCsv.Utilities;
 
 namespace FlameCsv.Tests.Utilities;
 
@@ -13,7 +7,7 @@ public class WritableBufferTests
     [Fact]
     public void Should_Write_And_Return_Buffers()
     {
-        using var pool = new ReturnTrackingArrayPool<char>();
+        using var pool = new ReturnTrackingArrayMemoryPool<char>();
         var buffer = new WritableBuffer<char>(pool);
 
         buffer.Push("test");

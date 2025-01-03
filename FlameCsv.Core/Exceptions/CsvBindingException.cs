@@ -10,14 +10,14 @@ public class CsvBindingException : CsvConfigurationException
     /// </summary>
     public virtual Type? TargetType { get; }
 
-    public virtual IEnumerable<CsvBinding> Bindings => Array.Empty<CsvBinding>();
+    public virtual IReadOnlyList<CsvBinding> Bindings => Array.Empty<CsvBinding>();
 
-    internal protected CsvBindingException(Type targetType, string message) : base(message)
+    protected internal CsvBindingException(Type? targetType, string message) : base(message)
     {
         TargetType = targetType;
     }
 
-    internal protected CsvBindingException(
+    protected internal CsvBindingException(
         string? message = null, Exception? innerException = null) : base(message, innerException)
     {
     }
@@ -31,7 +31,7 @@ public sealed class CsvBindingException<T> : CsvBindingException
     /// <summary>
     /// Target type of the attempted binding.
     /// </summary>
-    public override Type? TargetType => typeof(T);
+    public override Type TargetType => typeof(T);
 
     /// <summary>
     /// Possible bindings that caused the exception.
@@ -67,7 +67,7 @@ public sealed class CsvBindingException<T> : CsvBindingException
     public CsvBindingException(CsvBinding<T> binding)
         : base($"{binding} cannot be used for type {typeof(T)}")
     {
-        Bindings = new[] { binding };
+        Bindings = [binding];
     }
 
     /// <summary>
@@ -78,7 +78,7 @@ public sealed class CsvBindingException<T> : CsvBindingException
         CsvBinding<T> second)
         : base($"Conflicting bindings for {typeof(T)}: {first} and {second}")
     {
-        Bindings = new[] { first, second };
+        Bindings = [first, second];
     }
 
     /// <summary>
@@ -102,7 +102,7 @@ public sealed class CsvBindingException<T> : CsvBindingException
         Attribute second)
         : base($"Multiple parser overrides defined for {binding}: {first.GetType()} and {second.GetType()}")
     {
-        Bindings = new[] { binding };
+        Bindings = [binding];
     }
 
     /// <summary>

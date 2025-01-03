@@ -157,7 +157,7 @@ public partial class TypeMapGenerator
 
                 if (index < FieldCount)
                 {
-                    FlameCsv.Exceptions.CsvReadException.ThrowForPrematureEOF(FieldCount, reader.Options, reader.RawRecord);
+                    FlameCsv.Exceptions.CsvReadException.ThrowForPrematureEOF(FieldCount, reader.Options, reader.Record);
                 }
 
                 reader.Dispose();

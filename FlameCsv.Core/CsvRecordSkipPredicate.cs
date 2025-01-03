@@ -1,15 +1,15 @@
 namespace FlameCsv;
 
 /// <summary>
-/// Arguments for <see cref="CsvRecordSkipPredicate{T}".
+/// Arguments for <see cref="CsvRecordSkipPredicate{T}"/>.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-public readonly struct CsvRecordSkipArgs<T> where T : unmanaged, IEquatable<T>
+public readonly ref struct CsvRecordSkipArgs<T> where T : unmanaged, IEquatable<T>
 {
     /// <summary>
     /// The current CSV record (unescaped/untrimmed).
     /// </summary>
-    public ReadOnlyMemory<T> Record { get; init; }
+    public ReadOnlySpan<T> Record { get; init; }
 
     /// <summary>
     /// Options instance.
@@ -32,4 +32,4 @@ public readonly struct CsvRecordSkipArgs<T> where T : unmanaged, IEquatable<T>
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 /// <returns><see langword="true"/> if the record should be skipped</returns>
-public delegate bool CsvRecordSkipPredicate<T>(in CsvRecordSkipArgs<T> args) where T : unmanaged, IEquatable<T>;
+public delegate bool CsvRecordSkipPredicate<T>(CsvRecordSkipArgs<T> args) where T : unmanaged, IEquatable<T>;

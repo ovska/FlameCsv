@@ -1,6 +1,6 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using CommunityToolkit.Diagnostics;
+﻿using System.Reflection;
 using FlameCsv.Exceptions;
+using FlameCsv.Reflection;
 
 namespace FlameCsv.Binding.Attributes;
 
@@ -12,7 +12,8 @@ namespace FlameCsv.Binding.Attributes;
 /// </remarks>
 /// <typeparam name="T"></typeparam>
 /// <typeparam name="TConverter"></typeparam>
-public sealed class CsvConverterAttribute<T, [DynamicallyAccessedMembers(Messages.Ctors)] TConverter> : CsvConverterAttribute<T>
+public sealed class CsvConverterAttribute<T, [DAM(Messages.Ctors)] TConverter>
+    : CsvConverterAttribute<T>
     where T : unmanaged, IEquatable<T>
     where TConverter : CsvConverter<T>
 {
@@ -25,25 +26,43 @@ public sealed class CsvConverterAttribute<T, [DynamicallyAccessedMembers(Message
     {
         bool isInherited = options.GetType() != typeof(CsvOptions<T>);
 
-        // check for possible inherited ctor
-        if (isInherited && typeof(TConverter).GetConstructor([options.GetType()]) is { } exactCtor)
+        ConstructorInfo? inherited = null;
+        ConstructorInfo? notInherited = null;
+
+        foreach ((ConstructorInfo ctor, ParameterData[] parameters) in CsvTypeInfo.PublicConstructors<TConverter>())
         {
-            return (CsvConverter<T>)exactCtor.Invoke([options]);
+            if (parameters.Length == 1)
+            {
+                if (isInherited && options.GetType() == parameters[0].Value.ParameterType)
+                {
+                    inherited = ctor;
+                }
+                else if (parameters[0].Value.ParameterType == typeof(CsvOptions<T>))
+                {
+                    notInherited = ctor;
+                }
+            }
         }
 
-        if (typeof(TConverter).GetConstructor([typeof(CsvOptions<T>)]) is { } baseTypeCtor)
+        object[]? args = null;
+
+        if ((inherited ?? notInherited) is { } valid)
         {
-            return (CsvConverter<T>)baseTypeCtor.Invoke([options]);
+            args = [options];
+        }
+        else if ((valid = CsvTypeInfo.EmptyConstructor<TConverter>()) is not null)
+        {
+            args = [];
         }
 
-        if (typeof(TConverter).GetConstructor(Type.EmptyTypes) is { } emptyCtor)
+        if (args is null || valid is null)
         {
-            return (CsvConverter<T>)emptyCtor.Invoke([]);
+            string suffix = isInherited ? $" or {options.GetType().FullName}" : "";
+
+            throw new CsvConfigurationException(
+                $"{typeof(TConverter).FullName} has constructor that accepts {typeof(CsvOptions<T>).FullName}{suffix} or no parameters");
         }
 
-        string suffix = isInherited ? $" or {options.GetType().ToTypeString()}" : "";
-
-        throw new CsvConfigurationException(
-            $"{typeof(TConverter).ToTypeString()} has constructor that accepts {typeof(CsvOptions<T>).ToTypeString()}{suffix} or no parameters");
+        return (CsvConverter<T>)valid.Invoke(args);
     }
 }

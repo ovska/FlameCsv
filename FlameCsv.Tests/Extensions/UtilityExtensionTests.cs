@@ -12,17 +12,16 @@ public static class UtilityExtensionTests
     {
         var comparer = NullableTypeEqualityComparer.Instance;
 
-        Assert.Equal(default(Type)!, default(Type)!, comparer);
+        Assert.Equal(default!, default(Type)!, comparer);
         Assert.Equal(typeof(int), typeof(int), comparer);
         Assert.Equal(typeof(int?), typeof(int?), comparer);
         Assert.Equal(typeof(int), typeof(int?), comparer);
         Assert.Equal(typeof(int?), typeof(int), comparer);
-        Assert.NotEqual(default(Type)!, typeof(string), comparer);
-        Assert.NotEqual(typeof(string), default(Type)!, comparer);
+        Assert.NotEqual(default!, typeof(string), comparer);
+        Assert.NotEqual(typeof(string), default!, comparer);
         Assert.Equal(typeof(string), typeof(string), comparer);
 
-        var c = new CsvOptions<char>();
-        c.NullTokens[typeof(int)] = "test";
+        var c = new CsvOptions<char> { NullTokens = { [typeof(int)] = "test" } };
         Assert.Contains(typeof(int?), c.NullTokens);
         Assert.Equal("test", c.NullTokens[typeof(int?)]);
         c.NullTokens.Clear();
@@ -46,7 +45,7 @@ public static class UtilityExtensionTests
     [Fact]
     public static void Should_Make_Copy_Of_Data()
     {
-        var first = new int[] { 0, 1, 2 };
+        int[] first = [0, 1, 2];
 
         var mem = new ReadOnlyMemory<int>(first);
         var copy = mem.SafeCopy();

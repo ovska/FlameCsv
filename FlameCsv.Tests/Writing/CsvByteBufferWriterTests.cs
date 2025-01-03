@@ -1,9 +1,10 @@
-﻿using System.Buffers;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Text;
 using FlameCsv.Extensions;
 using FlameCsv.Writing;
+
+// ReSharper disable InconsistentNaming
 
 namespace FlameCsv.Tests.Writing;
 
@@ -12,7 +13,7 @@ public sealed class CsvByteBufferWriterTests : IAsyncDisposable
     private CsvByteBufferWriter _writer;
     private MemoryStream _memoryStream = null!;
 
-    private string Written => Encoding.UTF8.GetString(_memoryStream!.ToArray());
+    private string Written => Encoding.UTF8.GetString(_memoryStream.ToArray());
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
@@ -36,11 +37,10 @@ public sealed class CsvByteBufferWriterTests : IAsyncDisposable
     [Fact]
     public static void Should_Validate_Constructor_Params()
     {
-        Assert.Throws<ArgumentNullException>(
-            () => new CsvCharBufferWriter(null!, AllocatingArrayPool<char>.Instance));
+        Assert.Throws<ArgumentNullException>(() => new CsvCharBufferWriter(null!, HeapMemoryPool<char>.Shared));
 
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => new CsvCharBufferWriter(new StringWriter(), AllocatingArrayPool<char>.Instance, initialBufferSize: -1));
+            () => new CsvCharBufferWriter(new StringWriter(), HeapMemoryPool<char>.Shared, initialBufferSize: -1));
     }
 
     [Fact]
@@ -139,10 +139,8 @@ public sealed class CsvByteBufferWriterTests : IAsyncDisposable
     {
         Initialize();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
-        {
-            await _writer.CompleteAsync(null, new CancellationToken(canceled: true));
-        });
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            async () => { await _writer.CompleteAsync(null, new CancellationToken(canceled: true)); });
     }
 
     [Fact]
@@ -150,10 +148,11 @@ public sealed class CsvByteBufferWriterTests : IAsyncDisposable
     {
         Initialize();
 
-        await Assert.ThrowsAsync<UnreachableException>(async () =>
-        {
-            await _writer.CompleteAsync(new UnreachableException(), new CancellationToken(canceled: true));
-        });
+        await Assert.ThrowsAsync<UnreachableException>(
+            async () =>
+            {
+                await _writer.CompleteAsync(new UnreachableException(), new CancellationToken(canceled: true));
+            });
     }
 
     private void Initialize(int bufferSize = 1024)

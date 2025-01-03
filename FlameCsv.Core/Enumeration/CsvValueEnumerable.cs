@@ -1,11 +1,10 @@
 ﻿using System.Buffers;
 using System.Collections;
-using System.Diagnostics.CodeAnalysis;
 
 namespace FlameCsv.Enumeration;
 
-[RequiresUnreferencedCode(Messages.CompiledExpressions)]
-public sealed class CsvValueEnumerable<T, [DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue> : IEnumerable<TValue>
+[RUF(Messages.CompiledExpressions)]
+public sealed class CsvValueEnumerable<T, [DAM(Messages.ReflectionBound)] TValue> : IEnumerable<TValue>
     where T : unmanaged, IEquatable<T>
 {
     private readonly ReadOnlySequence<T> _data;

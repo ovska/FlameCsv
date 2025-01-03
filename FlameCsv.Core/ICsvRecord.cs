@@ -126,8 +126,8 @@ public interface ICsvRecord<T> where T : unmanaged, IEquatable<T>
     /// <summary>
     /// Parses the current record into an instance of <typeparamref name="TRecord"/>.
     /// </summary>
-    [RequiresUnreferencedCode(Messages.CompiledExpressions), RequiresDynamicCode(Messages.CompiledExpressions)]
-    TRecord ParseRecord<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TRecord>();
+    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    TRecord ParseRecord<[DAM(Messages.ReflectionBound)] TRecord>();
 
     /// <inheritdoc cref="ParseRecord{TRecord}()"/>
     TRecord ParseRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap);

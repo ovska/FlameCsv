@@ -24,17 +24,19 @@ public static class EscapeTests
         Assert.True(GetEscaper().NeedsEscaping(input, out int specialCount));
         Assert.Equal(5, specialCount);
 
-        using var arrayPool = new ReturnTrackingArrayPool<char>();
+        using var arrayPool = new ReturnTrackingArrayMemoryPool<char>();
         var writer = new ValueBufferWriter<char>();
         var destination = writer.GetSpan(14);
         input.CopyTo(destination);
 
-        ((IEscaper<char>)GetEscaper()).EscapeField(
-            in writer,
+        var escaper = GetEscaper();
+        Escape.FieldWithOverflow(
+            ref escaper,
+            ref writer,
             source: destination[..input.Length],
             destination: destination,
             specialCount: specialCount,
-            arrayPool: arrayPool);
+            allocator: arrayPool);
 
         Assert.Equal("|||t||e||s||t|||", writer.Writer.WrittenSpan.ToString());
     }
@@ -54,14 +56,16 @@ public static class EscapeTests
         Span<char> firstBuffer = writer.GetSpan(input.Length);
         input.CopyTo(firstBuffer);
 
-        using var arrayPool = new ReturnTrackingArrayPool<char>();
+        using var arrayPool = new ReturnTrackingArrayMemoryPool<char>();
 
-        ((IEscaper<char>)GetEscaper()).EscapeField(
-            in writer,
+        var escaper = GetEscaper();
+        Escape.FieldWithOverflow(
+            ref escaper,
+            ref writer,
             source: firstBuffer,
             destination: firstBuffer,
             specialCount: specialCount,
-            arrayPool: arrayPool);
+            allocator: arrayPool);
 
         Assert.Equal(expected, writer.Writer.WrittenSpan.ToString());
     }
@@ -75,7 +79,8 @@ public static class EscapeTests
         Span<char> buffer = stackalloc char[expected.Length];
         input.CopyTo(buffer);
 
-        ((IEscaper<char>)GetEscaper()).EscapeField(buffer[..input.Length], buffer, 0);
+        var escaper = GetEscaper();
+        Escape.Field(ref escaper, buffer[..input.Length], buffer, 0);
         Assert.Equal(expected, buffer.ToString());
     }
 
@@ -99,7 +104,8 @@ public static class EscapeTests
         var sharedBuffer = new char[expectedLength].AsSpan();
         input.CopyTo(sharedBuffer);
 
-        ((IEscaper<char>)GetEscaper()).EscapeField(sharedBuffer[..input.Length], sharedBuffer, quoteCount);
+        var escaper = GetEscaper();
+        Escape.Field(ref escaper, sharedBuffer[..input.Length], sharedBuffer, quoteCount);
         Assert.Equal(expected, new string(sharedBuffer));
 
         // Last sanity check
@@ -115,7 +121,6 @@ public static class EscapeTests
     [InlineData("\n", "|\n|")]
     public static void Should_Escape_1Char_Newline(string input, string expected)
     {
-
         var escaper = GetEscaper("\n");
         Assert.True(escaper.NeedsEscaping(input, out int quoteCount));
 
@@ -126,7 +131,7 @@ public static class EscapeTests
         var sharedBuffer = new char[expectedLength].AsSpan();
         input.CopyTo(sharedBuffer);
 
-        ((IEscaper<char>)GetEscaper("\n")).EscapeField(sharedBuffer[..input.Length], sharedBuffer, quoteCount);
+        Escape.Field(ref escaper, sharedBuffer[..input.Length], sharedBuffer, quoteCount);
         Assert.Equal(expected, new string(sharedBuffer));
 
         // Last sanity check

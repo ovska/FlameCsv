@@ -24,7 +24,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
 
     public CsvRecord(in CsvValueRecord<T> record)
     {
-        Throw.IfDefaultStruct<CsvValueRecord<T>>(record._options);
+        Throw.IfDefaultStruct(record._options is null, typeof(CsvValueRecord<T>));
 
         Options = record._options;
         _header = record._state.Header;
@@ -39,8 +39,8 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
 
     ReadOnlyMemory<T> IReadOnlyList<ReadOnlyMemory<T>>.this[int index] => this[index];
 
-    [RequiresUnreferencedCode(Messages.CompiledExpressions), RequiresDynamicCode(Messages.CompiledExpressions)]
-    public TRecord ParseRecord<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TRecord>()
+    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    public TRecord ParseRecord<[DAM(Messages.ReflectionBound)] TRecord>()
     {
         IMaterializer<T, TRecord> materializer;
 
@@ -68,7 +68,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         return Options.Materialize(RawRecord, materializer);
     }
 
-    public virtual ReadOnlyMemory<T> GetField(int index) => _values[index];
+    public virtual ReadOnlyMemory<T> GetField(int index) => _values[index]; // TODO: slice directly from array
 
     public virtual ReadOnlyMemory<T> GetField(string name)
     {
@@ -80,11 +80,11 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
 
     public virtual TValue GetField<TValue>(int index)
     {
-        var field = GetField(index);
+        var field = GetField(index).Span;
 
         var converter = Options.GetConverter<TValue>();
 
-        if (!converter.TryParse(field.Span, out TValue? value))
+        if (!converter.TryParse(field, out TValue? value))
             Throw.ParseFailed(field, converter, Options, typeof(TValue));
 
         return value;
@@ -92,11 +92,11 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
 
     public virtual TValue GetField<TValue>(string name)
     {
-        var field = GetField(name);
+        var field = GetField(name).Span;
 
         var converter = Options.GetConverter<TValue>();
 
-        if (!converter.TryParse(field.Span, out TValue? value))
+        if (!converter.TryParse(field, out TValue? value))
             Throw.ParseFailed(field, converter, Options, typeof(TValue));
 
         return value;

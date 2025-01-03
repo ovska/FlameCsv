@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Buffers;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
@@ -9,6 +10,9 @@ namespace FlameCsv;
 
 internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEquatable<T>
 {
+    /// <summary>
+    /// Options is configured to require a header, and none is read yet.
+    /// </summary>
     public bool NeedsHeader
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -22,7 +26,6 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
     public CsvOptions<T> Options => _parser._options;
 
     private readonly CsvParser<T> _parser;
-    private T[]? _unescapeBuffer; // rented array for unescaping
 
     private ReadOnlyMemory<T> _record;
     private CsvRecordMeta _meta;
@@ -50,7 +53,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
     public EnumeratorState(CsvParser<T> parser)
     {
         _parser = parser;
-        _fields = new WritableBuffer<T>(parser.ArrayPool);
+        _fields = new WritableBuffer<T>(parser.Allocator);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -76,11 +79,8 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
 
         Version = -1;
 
-        using (_parser)
-        using (_fields)
-        {
-            _parser.ArrayPool.EnsureReturned(ref _unescapeBuffer);
-        }
+        _parser.Dispose();
+        _fields.Dispose();
 
 #if DEBUG
         GC.SuppressFinalize(this);
@@ -113,6 +113,23 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
         if (index < _fields.Length)
         {
             field = _fields[index];
+            return true;
+        }
+
+        field = default;
+        return false;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryGetAtIndex(int index, out ReadOnlySpan<T> field)
+    {
+        Throw.IfEnumerationDisposed(Version == -1);
+
+        FullyConsume();
+
+        if (index < _fields.Length)
+        {
+            field = _fields[index].Span;
             return true;
         }
 
@@ -163,15 +180,15 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
     {
         Debug.Assert(_fields.Length == 0);
 
-        T[]? array = null;
+        IMemoryOwner<T>? memoryOwner = null;
 
         try
         {
             CsvFieldReader<T> reader = new(
                 Options,
-                _record,
+                _record.Span,
                 stackalloc T[Token<T>.StackLength],
-                ref array,
+                ref memoryOwner,
                 ref _meta);
 
             while (reader.MoveNext())
@@ -181,7 +198,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
         }
         finally
         {
-            _parser.ArrayPool.EnsureReturned(ref array);
+            memoryOwner?.Dispose();
         }
     }
 

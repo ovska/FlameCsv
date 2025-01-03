@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Text;
-using CommunityToolkit.Diagnostics;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
@@ -12,9 +11,8 @@ internal sealed class CustomBooleanUtf8Converter : CsvConverter<byte, bool>
 
     internal CustomBooleanUtf8Converter(CsvOptions<byte> options)
     {
-        Debug.Assert(options._booleanValues is not null);
-
-        Guard.IsNotEmpty(options.BooleanValues);
+        if (options._booleanValues is not { Count: > 0 })
+            Throw.Argument(nameof(CsvOptions<byte>.BooleanValues), "No values defined");
 
         var values = options._booleanValues;
 

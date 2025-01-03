@@ -1,11 +1,7 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using CommunityToolkit.Diagnostics;
-using System.IO.Pipelines;
+﻿using System.IO.Pipelines;
 using FlameCsv.Binding;
 using FlameCsv.Writing;
-using DAM = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute;
-using RUF = System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute;
-using RDC = System.Diagnostics.CodeAnalysis.RequiresDynamicCodeAttribute;
+using FlameCsv.Extensions;
 
 namespace FlameCsv;
 
@@ -42,6 +38,8 @@ static partial class CsvWriter
     /// async-overloads of the write methods such as <see cref="CsvWriter{T}.WriteRecordAsync{TRecord}(TRecord, CancellationToken)"/>.
     /// </remarks>
     /// <param name="stream">Stream to write the CSV to</param>
+    /// <param name="options"></param>
+    /// <param name="autoFlush">Automatically flush if needed after each write operation</param>
     public static CsvWriter<byte> Create(
         Stream stream,
         CsvOptions<byte>? options = null,
@@ -64,6 +62,8 @@ static partial class CsvWriter
     /// async-overloads of the write methods such as <see cref="CsvWriter{T}.WriteRecordAsync{TRecord}(TRecord, CancellationToken)"/>.
     /// </remarks>
     /// <param name="pipeWriter">Writer to write the CSV to</param>
+    /// <param name="options"></param>
+    /// <param name="autoFlush">Automatically flush if needed after each write operation</param>
     public static CsvWriter<byte> Create(
         PipeWriter pipeWriter,
         CsvOptions<byte>? options = null,
@@ -107,8 +107,8 @@ public abstract class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unm
 
     public abstract void WriteRaw(scoped ReadOnlySpan<T> value);
     public abstract ValueTask WriteRawAsync(scoped ReadOnlySpan<T> value, CancellationToken cancellationToken = default);
-    public abstract void WriteField<TField>([AllowNull] TField value);
-    public abstract ValueTask WriteFieldAsync<TField>([AllowNull] TField value, CancellationToken cancellationToken);
+    public abstract void WriteField<TField>(TField? value);
+    public abstract ValueTask WriteFieldAsync<TField>(TField? value, CancellationToken cancellationToken);
     public abstract void WriteField(ReadOnlySpan<char> text, bool skipEscaping = false);
     public abstract ValueTask WriteFieldAsync(ReadOnlySpan<char> text, bool skipEscaping = false, CancellationToken cancellationToken = default);
     public abstract void NextRecord();

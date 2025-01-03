@@ -115,6 +115,7 @@ partial struct TypeMapSymbol
             Fail(Diagnostics.NoWritableMembersOrParametersFound(Type));
         }
 
+#if false
         if (Type.IsRecord)
         {
             List<string> asd = [];
@@ -134,8 +135,8 @@ partial struct TypeMapSymbol
             }
 
             //throw new Exception(string.Join(", ", asd));
-
         }
+#endif
 
         parameters.Sort((a, b) => a.ParameterPosition.CompareTo(b.ParameterPosition));
         return new TypeBindings(members.ToImmutable(), parameters.ToImmutable());

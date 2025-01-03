@@ -8,7 +8,7 @@ using FlameCsv.Reflection;
 
 namespace FlameCsv.Binding;
 
-internal static class IndexAttributeBinder<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TValue>
+internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValue>
 {
     private static readonly Lazy<CsvBindingCollection<TValue>?> _read
         = new(() => CreateBindingCollection(false));
@@ -25,17 +25,19 @@ internal static class IndexAttributeBinder<[DynamicallyAccessedMembers(Messages.
 
     private static CsvBindingCollection<TValue>? CreateBindingCollection(bool write)
     {
-        var typeInfo = CsvTypeInfo<TValue>.Instance;
         List<CsvBinding<TValue>> list = [];
 
-        foreach (var attr in typeInfo.Attributes)
+        foreach (var attr in CsvTypeInfo.Attributes<TValue>())
         {
             if (attr is CsvIndexTargetAttribute target)
             {
                 if (!target.Scope.IsValidFor(write))
                     continue;
 
-                list.Add(new MemberCsvBinding<TValue>(target.Index, typeInfo.GetPropertyOrField(target.MemberName)));
+                list.Add(
+                    new MemberCsvBinding<TValue>(
+                        target.Index,
+                        CsvTypeInfo.GetPropertyOrField<TValue>(target.MemberName)));
             }
             else if (attr is CsvIndexIgnoreAttribute { Indexes: var ignoredIndices } ignoreAttr)
             {
@@ -51,7 +53,7 @@ internal static class IndexAttributeBinder<[DynamicallyAccessedMembers(Messages.
             }
         }
 
-        foreach (var member in typeInfo.Members)
+        foreach (var member in CsvTypeInfo.Members<TValue>())
         {
             foreach (var attr in member.Attributes)
             {
@@ -66,7 +68,7 @@ internal static class IndexAttributeBinder<[DynamicallyAccessedMembers(Messages.
 
         if (!write)
         {
-            foreach (var parameter in typeInfo.ConstructorParameters)
+            foreach (var parameter in CsvTypeInfo.ConstructorParameters<TValue>())
             {
                 bool found = false;
 

@@ -19,7 +19,7 @@ internal sealed class EnumUtf8ConverterFactory : CsvConverterFactory<byte>
         return GetParserType(type).CreateInstance<CsvConverter<byte>>(options);
     }
 
-    [return: DynamicallyAccessedMembers(Messages.Ctors)]
+    [return: DAM(Messages.Ctors)]
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL3050", Justification = Messages.StructFactorySuppressionMessage)]
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2070", Justification = Messages.StructFactorySuppressionMessage)]
     [SuppressMessage("Trimming", "IL2071", Justification = Messages.StructFactorySuppressionMessage)]

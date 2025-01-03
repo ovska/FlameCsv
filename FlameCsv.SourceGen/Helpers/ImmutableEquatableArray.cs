@@ -99,7 +99,7 @@ internal static class ImmutableEquatableArray
 
     public static ImmutableEquatableArray<T> Create<T>(params T[] items) where T : IEquatable<T>, IComparable<T>
     {
-        return Create((ReadOnlySpan<T>)items);
+        return [..(ReadOnlySpan<T>)items];
     }
 
     public static ImmutableEquatableArray<T> Create<T>(ReadOnlySpan<T> items) where T : IEquatable<T>, IComparable<T>

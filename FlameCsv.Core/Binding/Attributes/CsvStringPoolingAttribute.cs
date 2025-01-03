@@ -1,5 +1,4 @@
 ﻿using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
 using FlameCsv.Converters;
 
 namespace FlameCsv.Binding.Attributes;
@@ -10,7 +9,7 @@ public sealed class CsvStringPoolingAttribute<T> : CsvConverterAttribute<T> wher
     {
         if (targetType != typeof(string))
         {
-            throw new InvalidOperationException($"{GetType().ToTypeString()} must be applied on string, was: {targetType.ToTypeString()}");
+            throw new InvalidOperationException($"{GetType().FullName} must be applied on string, was: {targetType.FullName}");
         }
 
         if (typeof(T) == typeof(char))
@@ -23,6 +22,6 @@ public sealed class CsvStringPoolingAttribute<T> : CsvConverterAttribute<T> wher
             return Unsafe.As<CsvConverter<T>>(PoolingStringUtf8Converter.SharedInstance);
         }
 
-        throw new NotSupportedException($"{GetType().ToTypeString()} does not support token type {typeof(T).ToTypeString()}");
+        throw new NotSupportedException($"{GetType().FullName} does not support token type {typeof(T).FullName}");
     }
 }

@@ -1,6 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-
-namespace FlameCsv.Utilities;
+﻿namespace FlameCsv.Utilities;
 
 internal sealed class NullableTypeEqualityComparer : IEqualityComparer<Type>
 {
@@ -16,10 +14,10 @@ internal sealed class NullableTypeEqualityComparer : IEqualityComparer<Type>
         if (x is null || y is null)
             return false;
 
-        return (Nullable.GetUnderlyingType(x) ?? x).Equals(Nullable.GetUnderlyingType(y) ?? y);
+        return (Nullable.GetUnderlyingType(x) ?? x) == (Nullable.GetUnderlyingType(y) ?? y);
     }
 
-    public int GetHashCode([DisallowNull] Type obj)
+    public int GetHashCode(Type obj)
     {
         return (Nullable.GetUnderlyingType(obj) ?? obj).GetHashCode();
     }

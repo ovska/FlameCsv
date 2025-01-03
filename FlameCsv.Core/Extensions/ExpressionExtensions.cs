@@ -2,8 +2,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
 using FastExpressionCompiler;
 
 namespace FlameCsv.Extensions;
@@ -39,8 +37,8 @@ internal static class ExpressionExtensions
     /// <summary>
     /// Compiles a lambda expression into a delegate using FastExpressionCompiler.
     /// </summary>
-    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
-    [RequiresDynamicCode(Messages.CompiledExpressions)]
+    [RUF(Messages.CompiledExpressions)]
+    [RDC(Messages.CompiledExpressions)]
     public static TDelegate CompileLambda<TDelegate>(this LambdaExpression lambda, bool throwIfClosure = false)
         where TDelegate : Delegate
     {
@@ -58,9 +56,9 @@ internal static class ExpressionExtensions
         {
             PropertyInfo { CanRead: true } property => (Expression.Property(target, property), property.PropertyType),
             FieldInfo field => (Expression.Field(target, field), field.FieldType),
-            _ => ThrowHelper.ThrowArgumentException<(MemberExpression, Type)>(
-                nameof(memberInfo),
-                $"Parameter must be a readable property or field: {memberInfo}"),
+            _ => throw new ArgumentException(
+                $"Parameter must be a readable property or field: {memberInfo}",
+                paramName: nameof(memberInfo)),
         };
     }
 
@@ -82,8 +80,8 @@ internal static class ExpressionExtensions
             return inner.Member;
         }
 
-        return ThrowHelper.ThrowArgumentException<MemberInfo>(
-            nameof(memberExpression),
-            $"Parameter must be an expression targeting a property or field: {memberExpression}");
+        throw new ArgumentException(
+            $"Parameter must be an expression targeting a property or field: {memberExpression}",
+            nameof(memberExpression));
     }
 }

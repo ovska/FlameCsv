@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
@@ -29,14 +28,14 @@ internal sealed class SpanUtf8ConverterFactory : CsvConverterFactory<byte>
             Implements.Both => typeof(SpanUtf8Converter<>),
             Implements.Formattable => typeof(SpanUtf8FormattableConverter<>),
             Implements.Parsable => typeof(SpanUtf8ParsableConverter<>),
-            _ => throw new InvalidOperationException($"{GetType().ToTypeString()}.Create called with invalid type: {type.ToTypeString()}"),
+            _ => throw new InvalidOperationException($"{GetType().FullName}.Create called with invalid type: {type.FullName}"),
         };
 
         return toCreate.MakeGenericType(type).CreateInstance<CsvConverter<byte>>(options);
     }
 
     [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Guarded with RuntimeFeature.IsDynamicCodeSupported")]
-    private static Implements CheckInterfaces([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type type)
+    private static Implements CheckInterfaces([DAM(DynamicallyAccessedMemberTypes.Interfaces)] Type type)
     {
         bool? formattable = null;
         bool? parsable = null;

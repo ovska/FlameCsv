@@ -36,6 +36,9 @@ public sealed class CsvRecordEnumerator<T> : CsvRecordEnumeratorBase<T>, IEnumer
         return false;
     }
 
+    // RIDER complains about this class otherwise
+    public new CsvValueRecord<T> Current => base.Current;
+
     public void Reset() => throw new NotSupportedException();
     object IEnumerator.Current => throw new NotSupportedException();
 }

@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
 namespace FlameCsv.Converters;
@@ -14,8 +13,8 @@ internal sealed class BooleanTextConverter : CsvConverter<char, bool>
         {
             if (destination.Length > 3)
             {
-                ulong true_val = BitConverter.IsLittleEndian ? 0x65007500720074ul : 0x74007200750065ul; // "True"
-                MemoryMarshal.Write(MemoryMarshal.AsBytes(destination), in true_val);
+                ulong trueVal = BitConverter.IsLittleEndian ? 0x65007500720074ul : 0x74007200750065ul; // "True"
+                MemoryMarshal.Write(MemoryMarshal.AsBytes(destination), in trueVal);
                 charsWritten = 4;
                 return true;
             }
@@ -24,8 +23,8 @@ internal sealed class BooleanTextConverter : CsvConverter<char, bool>
         {
             if (destination.Length > 4)
             {
-                ulong fals_val = BitConverter.IsLittleEndian ? 0x73006C00610066ul : 0x660061006C0073ul; // "Fals"
-                MemoryMarshal.Write(MemoryMarshal.AsBytes(destination), in fals_val);
+                ulong falsVal = BitConverter.IsLittleEndian ? 0x73006C00610066ul : 0x660061006C0073ul; // "Fals"
+                MemoryMarshal.Write(MemoryMarshal.AsBytes(destination), in falsVal);
                 destination[4] = 'e';
                 charsWritten = 5;
                 return true;
@@ -36,7 +35,7 @@ internal sealed class BooleanTextConverter : CsvConverter<char, bool>
         return false;
     }
 
-    public override bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out bool value)
+    public override bool TryParse(ReadOnlySpan<char> source, out bool value)
     {
         return bool.TryParse(source, out value);
     }

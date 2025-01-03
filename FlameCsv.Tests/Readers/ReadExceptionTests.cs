@@ -13,7 +13,7 @@ public class ReadExceptionTests
     }
 
     private static List<Obj> Run(CsvOptions<char> opts)
-        => new(CsvReader.Read<Obj>("0,A\r\n1,B\r\nX,C\r\n3,D", opts));
+        => [..CsvReader.Read<Obj>("0,A\r\n1,B\r\nX,C\r\n3,D", opts)];
 
     [Fact]
     public void Should_Throw_On_Unhandled()
@@ -31,7 +31,7 @@ public class ReadExceptionTests
     {
         var opts = new CsvOptions<char>
         {
-            ExceptionHandler = (in CsvExceptionHandlerArgs<char> _) => false,
+            ExceptionHandler = _ => false,
             HasHeader = false,
         };
         Assert.Throws<CsvUnhandledException>(() => Run(opts));
@@ -45,7 +45,7 @@ public class ReadExceptionTests
         var opts = new CsvOptions<char>
         {
             HasHeader = false,
-            ExceptionHandler = (in CsvExceptionHandlerArgs<char> args) =>
+            ExceptionHandler = args =>
             {
                 if (args.Exception is CsvParseException pe)
                 {
@@ -60,12 +60,11 @@ public class ReadExceptionTests
         var list = Run(opts);
         Assert.Equal(3, list.Count);
         Assert.Equal(
-            new (int, string?)[]
-            {
+            [
                 (0, "A"),
                 (1, "B"),
-                (3, "D"),
-            },
+                (3, "D")
+            ],
             list.Select(o => (o.Id, o.Name)));
 
         Assert.Single(exceptions);
@@ -77,7 +76,7 @@ public class ReadExceptionTests
     {
         var opts = new CsvOptions<char>
         {
-            ExceptionHandler = (in CsvExceptionHandlerArgs<char> args) => throw new AggregateException(args.Exception),
+            ExceptionHandler = args => throw new AggregateException(args.Exception),
             HasHeader = false,
         };
         Assert.Throws<AggregateException>(() => Run(opts));

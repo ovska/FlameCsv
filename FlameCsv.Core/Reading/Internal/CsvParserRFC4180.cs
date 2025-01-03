@@ -11,11 +11,11 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IE
     {
     }
 
-    public static new CsvRecordMeta GetRecordMeta(ReadOnlyMemory<T> line, CsvOptions<T> options)
+    public new static CsvRecordMeta GetRecordMeta(ReadOnlySpan<T> line, CsvOptions<T> options)
     {
         CsvRecordMeta meta = new()
         {
-            quoteCount = (uint)System.MemoryExtensions.Count(line.Span, options.Dialect.Quote),
+            quoteCount = (uint)System.MemoryExtensions.Count(line, options.Dialect.Quote),
         };
 
         if (meta.quoteCount % 2 != 0)
@@ -24,7 +24,7 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IE
         return meta;
     }
 
-    public override CsvRecordMeta GetRecordMeta(ReadOnlyMemory<T> line) => GetRecordMeta(line, _options);
+    public override CsvRecordMeta GetRecordMeta(ReadOnlySpan<T> line) => GetRecordMeta(line, _options);
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     protected override bool TryReadLine(out ReadOnlyMemory<T> line, out CsvRecordMeta meta)
@@ -94,7 +94,7 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IE
                     }
                     else
                     {
-                        line = _reader.Sequence.Slice(copy.Position, crPosition).AsMemory(ref _multisegmentBuffer, ArrayPool);
+                        line = _reader.Sequence.Slice(copy.Position, crPosition).AsMemory(Allocator, ref _multisegmentBuffer);
                     }
 
                     return true;

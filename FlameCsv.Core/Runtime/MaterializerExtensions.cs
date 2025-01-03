@@ -1,19 +1,18 @@
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Internal;
 using FlameCsv.Exceptions;
 using FlameCsv.Reading;
 using FlameCsv.Reflection;
+using DAMT = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes;
 
 namespace FlameCsv.Runtime;
 
 internal static class MaterializerExtensions
 {
-    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
-    [RequiresDynamicCode(Messages.CompiledExpressions)]
+    [RUF(Messages.CompiledExpressions)]
+    [RDC(Messages.CompiledExpressions)]
     private static class ForType<T, TResult> where T : unmanaged, IEquatable<T>
     {
         /// <summary>
@@ -30,9 +29,9 @@ internal static class MaterializerExtensions
     /// <summary>
     /// Creates a materializer from the bindings.
     /// </summary>
-    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
-    [RequiresDynamicCode(Messages.CompiledExpressions)]
-    public static IMaterializer<T, TResult> CreateMaterializerFrom<T, [DynamicallyAccessedMembers(Messages.ReflectionBound)] TResult>(
+    [RUF(Messages.CompiledExpressions)]
+    [RDC(Messages.CompiledExpressions)]
+    public static IMaterializer<T, TResult> CreateMaterializerFrom<T, [DAM(Messages.ReflectionBound)] TResult>(
         this CsvOptions<T> options,
         CsvBindingCollection<TResult> bindingCollection)
         where T : unmanaged, IEquatable<T>
@@ -43,9 +42,9 @@ internal static class MaterializerExtensions
     /// <summary>
     /// Binds the options using built-in or index binding.
     /// </summary>
-    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
-    [RequiresDynamicCode(Messages.CompiledExpressions)]
-    public static IMaterializer<T, TResult> GetMaterializer<T, [DynamicallyAccessedMembers(Messages.ReflectionBound)] TResult>(
+    [RUF(Messages.CompiledExpressions)]
+    [RDC(Messages.CompiledExpressions)]
+    public static IMaterializer<T, TResult> GetMaterializer<T, [DAM(Messages.ReflectionBound)] TResult>(
         this CsvOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
@@ -53,8 +52,8 @@ internal static class MaterializerExtensions
 
         if (factory is null)
         {
-            if (TryGetTupleBindings<T, TResult>(write: false, out var bindings) ||
-                IndexAttributeBinder<TResult>.TryGetBindings(write: false, out bindings))
+            if (TryGetTupleBindings<T, TResult>(write: false, out var bindings)
+                || IndexAttributeBinder<TResult>.TryGetBindings(write: false, out bindings))
             {
                 factory = ForType<T, TResult>.Generator.GetMaterializerFactory(bindings);
             }
@@ -62,28 +61,31 @@ internal static class MaterializerExtensions
             {
                 // Don't cache nulls since its unlikely they will be attempted many times
                 throw new CsvBindingException<TResult>(
-                    $"Headerless CSV could not be bound to {typeof(TResult)}, since the type had no " +
-                    "[CsvIndex]-attributes and no built-in configuration.");
+                    $"Headerless CSV could not be bound to {typeof(TResult)}, since the type had no "
+                    + "[CsvIndex]-attributes and no built-in configuration.");
             }
 
-            factory =
-                Interlocked.CompareExchange(ref ForType<T, TResult>.Cached, factory, null)
+            factory = Interlocked.CompareExchange(ref ForType<T, TResult>.Cached, factory, null)
                 ?? factory;
         }
 
         return factory(options);
     }
 
-    private static bool TryGetTupleBindings<T,
-        [DynamicallyAccessedMembers(
-            DynamicallyAccessedMemberTypes.PublicConstructors |
-            DynamicallyAccessedMemberTypes.PublicFields)]
-    TTuple>(
+    internal static bool IsTuple(Type type)
+    {
+        return !type.IsGenericTypeDefinition
+            && type.IsGenericType
+            && type.Module == typeof(ValueTuple<>).Module
+            && type.IsAssignableTo(typeof(ITuple));
+    }
+
+    private static bool TryGetTupleBindings<T, [DAM(DAMT.PublicConstructors | DAMT.PublicFields)] TTuple>(
         bool write,
         [NotNullWhen(true)] out CsvBindingCollection<TTuple>? bindingCollection)
         where T : unmanaged, IEquatable<T>
     {
-        if (!ReflectionUtil.IsTuple<TTuple>())
+        if (!IsTuple(typeof(T)))
         {
             bindingCollection = null;
             return false;
@@ -94,17 +96,18 @@ internal static class MaterializerExtensions
         if (write)
         {
             var fields = typeof(TTuple).GetFields();
-            fields.AsSpan().Sort(static (a, b) => a.Name.CompareTo(b.Name)); // ensure order Item1, Item2 etc.
+            fields.AsSpan()
+                .Sort(
+                    static (a, b) => StringComparer.Ordinal.Compare(a.Name, b.Name)); // ensure order Item1, Item2 etc.
 
             bindingsList = new(fields.Length);
 
             for (int i = 0; i < fields.Length; i++)
             {
-                FieldInfo? field = fields[i];
                 bindingsList.Add(
-                    field.FieldType == typeof(CsvIgnored)
+                    fields[i].FieldType == typeof(CsvIgnored)
                         ? new IgnoredCsvBinding<TTuple>(index: i)
-                        : new MemberCsvBinding<TTuple>(index: i, (MemberData)field));
+                        : new MemberCsvBinding<TTuple>(index: i, (MemberData)fields[i]));
             }
         }
         else

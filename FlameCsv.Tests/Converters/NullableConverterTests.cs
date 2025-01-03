@@ -5,12 +5,12 @@ namespace FlameCsv.Tests.Converters;
 
 public static class NullableConverterTests
 {
-    [Fact]
-    public static void Should_Return_Null()
+    [Theory, InlineData(true), InlineData(false)]
+    public static void Should_Return_Null(bool optionsCtor)
     {
-        var converter = new NullableConverter<char, int>(
-            new SpanTextConverter<int>(CsvOptions<char>.Default),
-            "".AsMemory());
+        NullableConverter<char, int> converter = optionsCtor
+            ? new(CsvOptions<char>.Default)
+            : new(new SpanTextConverter<int>(CsvOptions<char>.Default), "".AsMemory());
 
         Assert.True(converter.TryParse("", out var value1));
         Assert.Null(value1);
@@ -31,8 +31,7 @@ public static class NullableConverterTests
 
         var emptyOptions = new CsvOptions<char>
         {
-            Converters = { factory, new SpanTextConverter<int>(CsvOptions<char>.Default) },
-            Null = "null",
+            Converters = { factory, new SpanTextConverter<int>(CsvOptions<char>.Default) }, Null = "null",
         };
         var parser = (CsvConverter<char, int?>)factory.Create(typeof(int?), emptyOptions);
         Assert.True(parser.TryParse("null", out var value));
@@ -44,19 +43,21 @@ public static class NullableConverterTests
     {
         var options = new CsvOptions<char> { Converters = { new DisposableConverter() } };
         Assert.True(NullableConverterFactory<char>.Instance.CanConvert(typeof(Shim?)));
-        var converter = NullableConverterFactory<char>.Instance.Create(typeof(Shim?), options);
+        _ = NullableConverterFactory<char>.Instance.Create(typeof(Shim?), options);
     }
 
     private readonly record struct Shim(int Id) : IDisposable
     {
-        public void Dispose() { }
+        public void Dispose()
+        {
+        }
     }
 
     private sealed class DisposableConverter : CsvConverter<char, IDisposable>
     {
         public override bool TryFormat(Span<char> destination, IDisposable value, out int charsWritten)
         {
-            return ((Shim)value).Id.TryFormat(destination, out charsWritten); ;
+            return ((Shim)value).Id.TryFormat(destination, out charsWritten);
         }
 
         public override bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out IDisposable value)

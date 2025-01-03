@@ -50,7 +50,7 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
             goto ContinueReadNoQuotes;
         }
 
-        StringStarted:
+    StringStarted:
         consumed++;
         remaining--;
         quotesConsumed++;
@@ -115,36 +115,35 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
 
         goto EOL;
 
-        StringEnded1:
+    StringEnded1:
         consumed += 1;
         remaining -= 1;
         goto StringEnded;
-        StringEnded2:
+    StringEnded2:
         consumed += 2;
         remaining -= 2;
         goto StringEnded;
-        StringEnded3:
+    StringEnded3:
         consumed += 3;
         remaining -= 3;
         goto StringEnded;
-        StringEnded4:
+    StringEnded4:
         consumed += 4;
         remaining -= 4;
         goto StringEnded;
-        StringEnded5:
+    StringEnded5:
         consumed += 5;
         remaining -= 5;
         goto StringEnded;
-        StringEnded6:
+    StringEnded6:
         consumed += 6;
         remaining -= 6;
         goto StringEnded;
-        StringEnded7:
+    StringEnded7:
         consumed += 7;
         remaining -= 7;
-        goto StringEnded;
 
-        StringEnded:
+    StringEnded:
         consumed++;
         remaining--;
         quotesRemaining--;
@@ -170,7 +169,7 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
             state.ThrowForInvalidEndOfString();
         }
 
-        ContinueReadNoQuotes:
+    ContinueReadNoQuotes:
         while (remaining >= 8)
         {
             if (delimiter.Equals(Unsafe.Add(ref first, consumed)))
@@ -230,36 +229,29 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
 
         goto EOL;
 
-        Done1:
+    Done1:
         consumed += 1;
-        remaining -= 1;
         goto Done;
-        Done2:
+    Done2:
         consumed += 2;
-        remaining -= 2;
         goto Done;
-        Done3:
+    Done3:
         consumed += 3;
-        remaining -= 3;
         goto Done;
-        Done4:
+    Done4:
         consumed += 4;
-        remaining -= 4;
         goto Done;
-        Done5:
+    Done5:
         consumed += 5;
-        remaining -= 5;
         goto Done;
-        Done6:
+    Done6:
         consumed += 6;
-        remaining -= 6;
         goto Done;
-        Done7:
+    Done7:
         consumed += 7;
-        remaining -= 7;
         goto Done;
 
-        EOL:
+    EOL:
         if (quotesRemaining != 0)
             state.ThrowForInvalidEOF();
 
@@ -268,12 +260,11 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
         state.Consumed = state.Record.Length;
         goto Return;
 
-        Done:
-        int consumedi = (int)consumed;
-        field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref first, sliceStart), consumedi - sliceStart);
-        state.Consumed += consumedi;
+    Done:
+        field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref first, sliceStart), (int)consumed - sliceStart);
+        state.Consumed += (int)consumed;
 
-        Return:
+    Return:
         state.isAtStart = false;
 
         if (quotesConsumed != 0)
