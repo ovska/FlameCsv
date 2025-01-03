@@ -45,7 +45,7 @@ internal readonly struct KnownSymbols(Compilation compilation)
 internal readonly struct SymbolMetadata
 {
     public ISymbol Symbol { get; }
-    public IEnumerable<string> Names { get; }
+    public string[] Names { get; }
     public bool IsRequired { get; }
     public int Order { get; }
     public BindingScope Scope { get; }
@@ -64,7 +64,7 @@ internal readonly struct SymbolMetadata
                     var names = new string[namesArray.Length];
 
                     for (int i = 0; i < namesArray.Length; i++)
-                        names[i] = namesArray[i].Value as string ?? "";
+                        names[i] = namesArray[i].Value?.ToString() ?? "";
 
                     Names = names;
                 }
@@ -89,6 +89,6 @@ internal readonly struct SymbolMetadata
             }
         }
 
-        Names ??= new[] { symbol.Name };
+        Names ??= [symbol.Name];
     }
 }

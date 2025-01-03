@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
@@ -39,6 +40,8 @@ public enum Mode
 
 internal static class TestDataGenerator
 {
+    private const int RequiredCapacity = 131_072;
+
     public const string Header = "Id,Name,IsEnabled,LastLogin,Token";
     public const string HeaderQuoted = "'Id','Name','IsEnabled','LastLogin','Token'";
     public static ReadOnlySpan<byte> HeaderU8 => "Id,Name,IsEnabled,LastLogin,Token"u8;
@@ -47,7 +50,7 @@ internal static class TestDataGenerator
     internal static readonly byte[] _guidbytes = [0, 1, 2, 3, 4, 5, 6, 7];
 
     private static readonly ConcurrentDictionary<Key, Lazy<ReadOnlyMemory<char>>> _chars = [];
-    private static readonly ConcurrentDictionary<Key, Lazy<ArraySegment<byte>>> _bytes = [];
+    private static readonly ConcurrentDictionary<Key, Lazy<ReadOnlyMemory<byte>>> _bytes = [];
 
     private readonly record struct Key(
         string Newline,
@@ -88,7 +91,7 @@ internal static class TestDataGenerator
             {
                 var (newLine, writeHeader, writeTrailingNewline, escaping) = key;
 
-                var writer = new StringBuilder(capacity: 131_072);
+                var writer = new StringBuilder(capacity: RequiredCapacity);
 
                 if (writeHeader)
                 {
@@ -136,7 +139,22 @@ internal static class TestDataGenerator
                 if (writeTrailingNewline)
                     writer.Append(newLine);
 
-                return writer.ToString().AsMemory();
+                if (writer.Capacity != RequiredCapacity)
+                    throw new UnreachableException(writer.Capacity.ToString());
+
+                var enumerator = writer.GetChunks();
+
+                if (enumerator.MoveNext())
+                {
+                    var result = enumerator.Current;
+
+                    if (!enumerator.MoveNext())
+                    {
+                        return result;
+                    }
+                }
+
+                throw new UnreachableException();
             }));
 
         return chars.Value;
@@ -156,12 +174,12 @@ internal static class TestDataGenerator
         var key = new Key(newLine, writeHeader, writeTrailingNewline, escaping);
         var chars = _bytes.GetOrAdd(
             key,
-            static key => new Lazy<ArraySegment<byte>>(() =>
+            static key => new Lazy<ReadOnlyMemory<byte>>(() =>
             {
                 var (newLine, writeHeader, writeTrailingNewline, escaping) = key;
 
-                using var apbf = new ArrayPoolBufferWriter<byte>(initialCapacity: 131_072);
-                var writer = U8.CreateWriter(apbf);
+                var innerWriter = new ArrayBufferWriter<byte>(initialCapacity: RequiredCapacity);
+                var writer = U8.CreateWriter(innerWriter);
 
                 if (writeHeader)
                 {
@@ -209,8 +227,11 @@ internal static class TestDataGenerator
                 if (writeTrailingNewline)
                     writer.Append(newLine);
 
+                if (innerWriter.Capacity != RequiredCapacity)
+                    throw new UnreachableException(innerWriter.Capacity.ToString());
+
                 writer.Dispose();
-                return apbf.WrittenMemory.ToArray();
+                return innerWriter.WrittenMemory;
             }));
 
         return chars.Value;

@@ -13,6 +13,12 @@ internal static class ArrayPoolExtensions
         if (sequence.IsSingleSegment)
             return sequence.First;
 
+        return AsMemoryMultisegment(in sequence, ref array, arrayPool);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static ReadOnlyMemory<T> AsMemoryMultisegment<T>(in ReadOnlySequence<T> sequence, ref T[]? array, ArrayPool<T> arrayPool)
+    {
         int length = checked((int)sequence.Length);
 
         if (length == 0)

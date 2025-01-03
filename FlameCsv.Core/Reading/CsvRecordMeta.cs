@@ -11,7 +11,7 @@ public struct CsvRecordMeta
     public uint quoteCount;
 
     /// <summary>
-    /// Amount of <em>effective</em> characters found in the line, e.g. an escaped escape <c>"\\"</c> counts as one.
+    /// Amount of <em>effective</em> escape-tokens found in the line, e.g. an escaped escape <c>"\\"</c> counts as one.
     /// </summary>
     public uint escapeCount;
 }

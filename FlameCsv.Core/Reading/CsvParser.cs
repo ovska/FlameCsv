@@ -126,7 +126,7 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
         _sliceCount = 0;
         _sliceIndex = 0;
         _sliceBuffer = default;
-        _reader = new(sequence);
+        _reader = new CsvSequenceReader<T>(in sequence);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

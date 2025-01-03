@@ -25,7 +25,7 @@ namespace FlameCsv.Console
         }
     }
 
-    [CsvTypeMap<char, Obj>(ThrowOnDuplicate = false, IgnoreUnmatched = false)]
+    [CsvTypeMap<char, Obj>(ThrowOnDuplicate = false, IgnoreUnmatched = true)]
     partial class ObjTypeMap;
 
     public class Obj
@@ -33,7 +33,7 @@ namespace FlameCsv.Console
         public DayOfWeek DOF { get; set; }
         public int Id { get; set; }
         public string? Name { get; set; }
-        public bool IsEnabled { get; set; }
+        [CsvHeader("Enabled")] public bool IsEnabled { get; set; }
         [CsvConverter<char, SpanTextConverter<long>>] public long? Age { get; set; }
     }
 

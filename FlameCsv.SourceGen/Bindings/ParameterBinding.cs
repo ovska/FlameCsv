@@ -1,4 +1,5 @@
-﻿namespace FlameCsv.SourceGen.Bindings;
+﻿
+namespace FlameCsv.SourceGen.Bindings;
 
 #pragma warning disable IDE0290 // Use primary constructor
 
@@ -6,14 +7,12 @@ internal sealed class ParameterBinding : IComparable<ParameterBinding>, IBinding
 {
     public string Name { get; }
     public string ParameterName => Symbol.Name;
-    public IEnumerable<string> Names { get; }
+    public IReadOnlyList<string> Names { get; }
     public BindingScope Scope => BindingScope.Read;
 
     ISymbol IBinding.Symbol => Symbol;
     public IParameterSymbol Symbol { get; }
     public ITypeSymbol Type => Symbol.Type;
-    public string ConverterId { get; }
-    public string HandlerId { get; }
     public int Order { get; }
     public bool IsRequired { get; }
     public int ParameterPosition => Symbol.Ordinal;
@@ -29,12 +28,22 @@ internal sealed class ParameterBinding : IComparable<ParameterBinding>, IBinding
     {
         Name = $"@p_{symbol.Name}";
         Symbol = symbol;
-        ConverterId = $"@__Converter_p_{symbol.Name}";
-        HandlerId = $"@s__Handler_p_{symbol.Name}";
         Order = meta.Order;
         IsRequired = meta.IsRequired || !symbol.HasExplicitDefaultValue;
         Names = meta.Names;
     }
 
     public int CompareTo(ParameterBinding other) => other.Order.CompareTo(Order); // reverse sort so higher order is first
+
+    public void WriteConverterId(StringBuilder sb)
+    {
+        sb.Append("@__Converter_p_");
+        sb.Append(Symbol.Name);
+    }
+
+    public void WriteHandlerId(StringBuilder sb)
+    {
+        sb.Append("@s__Handler_p_");
+        sb.Append(Symbol.Name);
+    }
 }

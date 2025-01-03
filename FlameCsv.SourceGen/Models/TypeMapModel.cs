@@ -1,4 +1,5 @@
-﻿using Microsoft.CodeAnalysis.CSharp;
+﻿using System.Diagnostics;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace FlameCsv.SourceGen.Models;
 
@@ -10,7 +11,7 @@ internal sealed record TypeMapModel
     {
         TypeMap = new TypeRef(containingClass);
         Token = new TypeRef(attribute.AttributeClass!.TypeArguments[0]);
-        Type = new TypeRef(attribute.AttributeClass!.TypeArguments[1]);
+        Type = new TypeRef(attribute.AttributeClass.TypeArguments[1]);
 
         foreach (var kvp in attribute.NamedArguments)
         {
@@ -23,7 +24,7 @@ internal sealed record TypeMapModel
                     BindingScope.Read => BindingScope.Read,
                     _ => throw new NotSupportedException("Unrecognized binding scope: " + kvp.Value.ToCSharpString()),
                 };
-
+                // TODO: ReportDiagnostic instead of exception?
                 break;
             }
         }

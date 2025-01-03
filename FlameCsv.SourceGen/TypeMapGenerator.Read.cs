@@ -31,6 +31,8 @@ public partial class TypeMapGenerator
             TypeMapMaterializer materializer = new TypeMapMaterializer(headers.Length);
             bool anyFieldBound = false;
 
+            System.Collections.Generic.IEqualityComparer<string> comparer = options.Comparer;
+
             for (int index = 0; index < headers.Length; index++)
             {
                 string name = headers[index];
@@ -42,9 +44,10 @@ public partial class TypeMapGenerator
 
         if (typeMap.IgnoreUnmatched)
         {
-            sb.Append("materializer.Handlers[index] = ");
+            sb.Append(@"// ignoring unmatched header
+                materializer.Handlers[index] = static ");
             sb.Append(typeMap.ParseHandlerArgs);
-            sb.Append(" => true; // ignored");
+            sb.Append(" => true;");
         }
         else
         {
@@ -282,7 +285,7 @@ public partial class TypeMapGenerator
                 continue;
 
             sb.Append("                if (");
-            sb.Append(binding.ConverterId);
+            binding.WriteConverterId(sb);
             sb.Append(" is not null) ");
 
             if (binding.IsExplicitInterfaceDefinition(typeMap.Type, out var ifaceSymbol))
@@ -332,7 +335,7 @@ public partial class TypeMapGenerator
             }
 
             sb.Append("materializer.");
-            sb.Append(typeMap.Bindings.RequiredBindings[i].ConverterId);
+            typeMap.Bindings.RequiredBindings[i].WriteConverterId(sb);
             sb.Append(" is null");
         }
 
@@ -353,8 +356,12 @@ public partial class TypeMapGenerator
 
         foreach (var b in typeMap.Bindings.RequiredBindings)
         {
-            sb.Append($@"
-            if (materializer.{b.ConverterId} is null) yield return {GetName(b)};");
+            sb.Append(@"
+            if (materializer.");
+            b.WriteConverterId(sb);
+            sb.Append(" is null) yield return ");
+            sb.Append(GetName(b));
+            sb.Append(';');
         }
 
         sb.Append(@"
@@ -382,7 +389,7 @@ public partial class TypeMapGenerator
         sb.Append(", ");
         sb.Append(binding.Type.ToDisplayString());
         sb.Append(typeMap.Symbols.Nullable ? ">? " : "> ");
-        sb.Append(binding.ConverterId);
+        binding.WriteConverterId(sb);
         sb.Append(';');
     }
 
@@ -414,11 +421,11 @@ public partial class TypeMapGenerator
             }
 
             sb.Append("private static readonly TryParseHandler ");
-            sb.Append(binding.HandlerId);
+            binding.WriteHandlerId(sb);
             sb.Append(" = ");
             sb.Append(typeMap.ParseHandlerArgs);
             sb.Append(" => materializer.");
-            sb.Append(binding.ConverterId);
+            binding.WriteConverterId(sb);
             sb.Append(".TryParse(field, out state.");
             sb.Append(binding.Name);
             sb.Append(");");
@@ -471,7 +478,7 @@ public partial class TypeMapGenerator
             {
                 // add check to ignore already handled members
                 sb.Append("materializer.");
-                sb.Append(binding.ConverterId);
+                binding.WriteConverterId(sb);
                 sb.Append(@" is null &&
                     ");
             }
@@ -518,7 +525,7 @@ public partial class TypeMapGenerator
             {
                 sb.Append(@"
                     if (materializer.");
-                sb.Append(binding.ConverterId);
+                binding.WriteConverterId(sb);
                 sb.Append(" is not null) ThrowDuplicate(");
                 sb.Append(binding.Name.ToStringLiteral());
                 sb.Append(@", name, headers, options);
@@ -527,12 +534,12 @@ public partial class TypeMapGenerator
 
             sb.Append(@"
                     materializer.");
-            sb.Append(binding.ConverterId);
+            binding.WriteConverterId(sb);
             sb.Append(" = ");
             ResolveConverter(sb, in typeMap, binding.Symbol, binding.Type, converterFactorySymbol);
             sb.Append(@";
                     materializer.Handlers[index] = ");
-            sb.Append(binding.HandlerId);
+            binding.WriteHandlerId(sb);
             sb.Append(@";
                     anyFieldBound = true;
                     continue;
@@ -551,7 +558,7 @@ public partial class TypeMapGenerator
                     ");
                 }
 
-                sb.Append("options.Comparer.Equals(name, ");
+                sb.Append("comparer.Equals(name, ");
                 sb.Append(name.ToStringLiteral());
                 sb.Append(')');
             }
