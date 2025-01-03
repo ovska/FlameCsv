@@ -32,7 +32,7 @@ public readonly struct CsvRecordAsyncEnumerable<T> : IAsyncEnumerable<CsvValueRe
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         Throw.IfDefaultStruct<CsvRecordAsyncEnumerable<T>>(_options);
-        
+
         await foreach (var csvRecord in this.WithCancellation(cancellationToken).ConfigureAwait(false))
         {
             yield return new CsvRecord<T>(in csvRecord);
