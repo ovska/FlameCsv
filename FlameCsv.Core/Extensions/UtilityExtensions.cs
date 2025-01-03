@@ -1,45 +1,48 @@
 ﻿using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using CommunityToolkit.Diagnostics;
 using FlameCsv.Binding;
 
 namespace FlameCsv.Extensions;
 
 internal static class UtilityExtensions
 {
-    public static string AsPrintableString<T>(this Reading.CsvParser<T> parser, ReadOnlyMemory<T> value)
+    public readonly ref struct PrintableState<T>(CsvOptions<T> options, ReadOnlySpan<T> value, int knownNewlineLength)
+        where T : unmanaged, IEquatable<T>
+    {
+        public CsvOptions<T> Options { get; } = options;
+        public ReadOnlySpan<T> Value { get; } = value;
+        public int KnownNewlineLength { get; } = knownNewlineLength;
+    }
+
+    public static string AsPrintableString<T>(this Reading.CsvParser<T> parser, ReadOnlySpan<T> value)
         where T : unmanaged, IEquatable<T>
     {
         return AsPrintableString(parser._options, value, parser._newlineLength);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static string AsPrintableString<T>(this CsvOptions<T> options, ReadOnlyMemory<T> value, int knownNewlineLength = 0)
+    public static string AsPrintableString<T>(this CsvOptions<T> options, ReadOnlySpan<T> value, int knownNewlineLength = 0)
         where T : unmanaged, IEquatable<T>
     {
-        string? content = options.AllowContentInExceptions ? options.GetAsString(value.Span) : null;
+        string? content = options.AllowContentInExceptions ? options.GetAsString(value) : null;
 
         string structure = string.Create(
             length: value.Length,
-            state: (options, value, knownNewlineLength),
+            state: new PrintableState<T>(options, value, knownNewlineLength),
             action: static (destination, state) =>
             {
-                (CsvOptions<T> options, ReadOnlyMemory<T> memory, int knownNewlineLength) = state;
-                var source = memory.Span;
-
-                ref readonly CsvDialect<T> dialect = ref options.Dialect;
+                ref readonly CsvDialect<T> dialect = ref state.Options.Dialect;
                 scoped ReadOnlySpan<T> newline = dialect.Newline.Span;
 
                 if (newline.Length == 0)
                 {
-                    newline = options.GetNewlineSpan(stackalloc T[2]);
+                    newline = state.Options.GetNewlineSpan(stackalloc T[2]);
 
-                    if (knownNewlineLength == 1)
+                    if (state.KnownNewlineLength == 1)
                     {
-                        newline = [newline[1]];
+                        newline = new ReadOnlySpan<T>(in newline[1]);
                     }
                 }
 
@@ -47,7 +50,7 @@ internal static class UtilityExtensions
 
                 for (int i = 0; i < destination.Length; i++)
                 {
-                    T token = source[i];
+                    T token = state.Value[i];
 
                     if (token.Equals(dialect.Delimiter))
                     {
@@ -114,14 +117,14 @@ internal static class UtilityExtensions
     }
 
     public static T CreateInstance<T>(
-        [DynamicallyAccessedMembers(Messages.Ctors)]
+        [DAM(Messages.Ctors)]
         this Type type,
         params object?[] parameters) where T : class
     {
         try
         {
             var instance = Activator.CreateInstance(type, parameters)
-                ?? throw new InvalidOperationException($"Instance of {type.ToTypeString()} could not be created");
+                ?? throw new InvalidOperationException($"Instance of {type.FullName} could not be created");
             return (T)instance;
         }
         catch (Exception e)
@@ -130,10 +133,10 @@ internal static class UtilityExtensions
                 string.Format(
                     CultureInfo.InvariantCulture,
                     "Could not create {0} from type {1} and {2} constructor parameters: [{3}]",
-                    typeof(T).ToTypeString(),
-                    type.ToTypeString(),
+                    typeof(T).FullName,
+                    type.FullName,
                     parameters.Length,
-                    string.Join(", ", parameters.Select(o => o?.GetType().ToTypeString() ?? "<null>"))),
+                    string.Join(", ", parameters.Select(o => o?.GetType().FullName ?? "<null>"))),
                 innerException: e);
         }
     }

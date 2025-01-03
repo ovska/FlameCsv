@@ -3,8 +3,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
-using FlameCsv.Extensions;
 
 namespace FlameCsv.Writing;
 
@@ -15,7 +13,7 @@ internal static class CsvFieldWriter
         CsvOptions<char> options)
     {
         return new CsvFieldWriter<char, CsvCharBufferWriter>(
-            new CsvCharBufferWriter(textWriter, options._arrayPool),
+            new CsvCharBufferWriter(textWriter, options._memoryPool),
             options);
     }
 
@@ -35,7 +33,7 @@ internal static class CsvFieldWriter
         bool leaveOpen = false)
     {
         StreamPipeWriterOptions writerOptions = new(
-            pool: options._arrayPool.AsMemoryPool(),
+            pool: options._memoryPool,
             minimumBufferSize: bufferSize,
             leaveOpen: leaveOpen);
 
@@ -47,7 +45,7 @@ internal static class CsvFieldWriter
 
 public interface ICsvFieldWriter<T> where T : unmanaged, IEquatable<T>
 {
-    void WriteField<TValue>(CsvConverter<T, TValue> converter, [AllowNull] TValue value);
+    void WriteField<TValue>(CsvConverter<T, TValue> converter, TValue? value);
     void WriteText(ReadOnlySpan<char> value, bool skipEscaping = false);
     void WriteDelimiter();
     void WriteNewline();
@@ -65,7 +63,7 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
 
     public TWriter Writer => _writer;
 
-    private readonly TWriter _writer;
+    private TWriter _writer;
     private readonly CsvOptions<T> _options;
 
     private readonly T _delimiter;
@@ -95,7 +93,7 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
     /// <summary>
     /// Writes <paramref name="value"/> to the writer using <paramref name="converter"/>.
     /// </summary>
-    public void WriteField<TValue>(CsvConverter<T, TValue> converter, [AllowNull] TValue value)
+    public void WriteField<TValue>(CsvConverter<T, TValue> converter, TValue? value)
     {
         int tokensWritten;
         scoped Span<T> destination;
@@ -130,6 +128,7 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
     /// Writes the text to the writer.
     /// </summary>
     /// <param name="value">Text to write</param>
+    /// <param name="skipEscaping">Value is never escaped, use with care</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteText(ReadOnlySpan<char> value, bool skipEscaping = false)
     {
@@ -158,7 +157,7 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
     }
 
     /// <summary>
-    /// Writes <see cref="ICsvDialectOptions{T}.Delimiter"/> to the writer.
+    /// Writes <see cref="CsvOptions{T}.Delimiter"/> to the writer.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteDelimiter()
@@ -169,7 +168,7 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
     }
 
     /// <summary>
-    /// Writes <see cref="ICsvDialectOptions{T}.Newline"/> to the writer.
+    /// Writes <see cref="CsvOptions{T}.Newline"/> to the writer.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteNewline()
@@ -217,7 +216,7 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
                     newlineLength: _newlineLength,
                     whitespace: _whitespace);
 
-                if (TryEscapeAndAdvance(in escaper, destination, tokensWritten))
+                if (TryEscapeAndAdvance(ref escaper, destination, tokensWritten))
                     return;
             }
             else
@@ -231,7 +230,7 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
                     newlineLength: _newlineLength,
                     whitespace: _whitespace);
 
-                if (TryEscapeAndAdvance(in escaper, destination, tokensWritten))
+                if (TryEscapeAndAdvance(ref escaper, destination, tokensWritten))
                     return;
             }
         }
@@ -245,7 +244,7 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
     /// and the writer was not advanced.
     /// </summary>
     private bool TryEscapeAndAdvance<TEscaper>(
-        ref readonly TEscaper escaper,
+        ref TEscaper escaper,
         Span<T> destination,
         int tokensWritten)
         where TEscaper : struct, IEscaper<T>
@@ -275,19 +274,20 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
             if (escapedLength <= destination.Length)
             {
                 // Common case: escape directly to the destination buffer
-                escaper.EscapeField(written, destination[..escapedLength], specialCount);
+                Escape.Field(ref escaper, written, destination[..escapedLength], specialCount);
                 _writer.Advance(escapedLength);
             }
             else
             {
                 // Rare case: not enough space, escape as much as possible to
                 // destination, then advance and write the leftovers
-                escaper.EscapeField(
-                    writer: in _writer,
+                Escape.FieldWithOverflow(
+                    escaper: ref escaper,
+                    writer: ref _writer,
                     source: written,
                     destination: destination,
                     specialCount: specialCount,
-                    arrayPool: _options._arrayPool);
+                    allocator: _options._memoryPool);
             }
             return true;
         }
@@ -300,7 +300,7 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
     {
         string display = culprit is CsvConverter<T> ? "CsvConverter" : "CsvOptions";
         throw new InvalidOperationException(
-            $"{display} ({culprit.GetType().ToTypeString()}) reported {tokensWritten} " +
+            $"{display} ({culprit.GetType().FullName}) reported {tokensWritten} " +
             $"tokens written to a buffer of length {destinationLength}.");
     }
 }

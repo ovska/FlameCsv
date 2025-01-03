@@ -96,7 +96,7 @@ public class CsvEnumerateBench
     [Benchmark]
     public void FlameUTF2()
     {
-        byte[]? unescapeArray = null;
+        Allocated<byte> allocated = new(Allocator<byte>.Default);
         Span<byte> unescapeBuffer = stackalloc byte[128];
         using var parser = CsvParser<byte>.Create(CsvOptions<byte>.Default);
         parser.Reset(new ReadOnlySequence<byte>(_bytes));
@@ -107,7 +107,7 @@ public class CsvEnumerateBench
                 CsvOptions<byte>.Default,
                 line,
                 unescapeBuffer,
-                ref unescapeArray,
+                ref allocated,
                 in meta);
 
             while (!state.End)
@@ -116,7 +116,7 @@ public class CsvEnumerateBench
             }
         }
 
-        ArrayPool<byte>.Shared.EnsureReturned(ref unescapeArray);
+        allocated.Dispose();
     }
 
     [Benchmark]

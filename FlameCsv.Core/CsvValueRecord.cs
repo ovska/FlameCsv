@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -154,14 +153,14 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
     {
         _state.EnsureVersion(_version);
 
-        if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> field))
+        if (!_state.TryGetAtIndex(index, out ReadOnlySpan<T> field))
         {
             Throw.Argument_FieldIndex(index, _state);
         }
 
         var parser = _options.GetConverter<TValue>();
 
-        if (!parser.TryParse(field.Span, out var value))
+        if (!parser.TryParse(field, out var value))
         {
             Throw.ParseFailed(field, parser, _options, typeof(TValue));
         }
@@ -190,8 +189,8 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
         return list;
     }
 
-    [RequiresUnreferencedCode(Messages.CompiledExpressions), RequiresDynamicCode(Messages.CompiledExpressions)]
-    public TRecord ParseRecord<[DynamicallyAccessedMembers(Messages.ReflectionBound)] TRecord>()
+    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    public TRecord ParseRecord<[DAM(Messages.ReflectionBound)] TRecord>()
     {
         _state.EnsureVersion(_version);
 

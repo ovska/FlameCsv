@@ -1,7 +1,7 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading;
 
@@ -173,10 +173,7 @@ internal struct CsvSequenceReader<T> where T : unmanaged, IEquatable<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private bool AdvanceToNextMemory(int count)
     {
-        if (count < 0)
-        {
-            ThrowHelper.ThrowArgumentOutOfRangeException(nameof(count));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
 
         if (Length < (Consumed + count))
         {
@@ -214,7 +211,7 @@ internal struct CsvSequenceReader<T> where T : unmanaged, IEquatable<T>
         {
             // Not enough data left- adjust for where we actually ended and throw
             Consumed -= count;
-            ThrowHelper.ThrowArgumentOutOfRangeException(nameof(count));
+            Throw.Argument_OutOfRange(nameof(count));
         }
 
         return true;
@@ -303,17 +300,17 @@ internal struct CsvSequenceReader<T> where T : unmanaged, IEquatable<T>
 
     private bool IsNextSlow(scoped ReadOnlySpan<T> next, bool advancePast)
     {
-        ReadOnlySpan<T> Current = Unread.Span;
+        ReadOnlySpan<T> current = Unread.Span;
 
         // We should only come in here if we need more data than we have in our current span
-        Debug.Assert(Current.Length < next.Length);
+        Debug.Assert(current.Length < next.Length);
 
         int fullLength = next.Length;
         SequencePosition nextPosition = _nextPosition;
 
-        while (next.StartsWith(Current))
+        while (next.StartsWith(current))
         {
-            if (next.Length == Current.Length)
+            if (next.Length == current.Length)
             {
                 // Fully matched
                 if (advancePast)
@@ -334,11 +331,11 @@ internal struct CsvSequenceReader<T> where T : unmanaged, IEquatable<T>
 
                 if (nextSegment.Length > 0)
                 {
-                    next = next.Slice(Current.Length);
-                    Current = nextSegment.Span;
-                    if (Current.Length > next.Length)
+                    next = next.Slice(current.Length);
+                    current = nextSegment.Span;
+                    if (current.Length > next.Length)
                     {
-                        Current = Current.Slice(0, next.Length);
+                        current = current.Slice(0, next.Length);
                     }
                     break;
                 }

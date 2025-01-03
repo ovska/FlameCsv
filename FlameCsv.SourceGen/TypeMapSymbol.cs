@@ -6,7 +6,7 @@ namespace FlameCsv.SourceGen;
 internal readonly partial struct TypeMapSymbol
 {
     /// <summary>
-    /// Class annotated with the CsvTypeMapAttribute<>
+    /// Class annotated with the CsvTypeMapAttribute.
     /// </summary>
     public INamedTypeSymbol ContainingClass { get; }
 

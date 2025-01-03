@@ -52,23 +52,12 @@ internal static partial class UnixMode<T> where T : unmanaged, IEquatable<T>
 
             goto NoQuotesHasEscapes;
         }
-        else
-        {
-            if (quotesConsumed % 2 == 0)
-            {
-                if (escapesRemaining == 0)
-                    goto HasQuotesNoEscapes;
-                goto HasQuotesAndEscapes;
-            }
-            else
-            {
-                if (escapesRemaining == 0)
-                    goto InStringNoEscapes;
-                goto InStringWithEscapes;
-            }
-        }
 
-        NoQuotesNoEscapes:
+        if (escapesRemaining == 0)
+            goto HasQuotesNoEscapes;
+        goto HasQuotesAndEscapes;
+
+    NoQuotesNoEscapes:
         while (consumed + 8 < len)
         {
             if (delimiter.Equals(Unsafe.Add(ref first, consumed)))
@@ -125,32 +114,32 @@ internal static partial class UnixMode<T> where T : unmanaged, IEquatable<T>
 
         goto EOL;
 
-        Done1:
+    Done1:
         consumed += 1;
         goto Done;
-        Done2:
+    Done2:
         consumed += 2;
         goto Done;
-        Done3:
+    Done3:
         consumed += 3;
         goto Done;
-        Done4:
+    Done4:
         consumed += 4;
         goto Done;
-        Done5:
+    Done5:
         consumed += 5;
         goto Done;
-        Done6:
+    Done6:
         consumed += 6;
         goto Done;
-        Done7:
+    Done7:
         consumed += 7;
         goto Done;
-        Done8:
+    Done8:
         consumed += 8;
         goto Done;
 
-        NoQuotesHasEscapes:
+    NoQuotesHasEscapes:
         while (consumed < len)
         {
             token = Unsafe.Add(ref first, consumed++);
@@ -175,7 +164,7 @@ internal static partial class UnixMode<T> where T : unmanaged, IEquatable<T>
 
         goto EOL;
 
-        HasQuotesNoEscapes:
+    HasQuotesNoEscapes:
         while (consumed < len)
         {
             token = Unsafe.Add(ref first, consumed++);
@@ -194,7 +183,7 @@ internal static partial class UnixMode<T> where T : unmanaged, IEquatable<T>
 
         goto EOL;
 
-        HasQuotesAndEscapes:
+    HasQuotesAndEscapes:
         while (consumed < len)
         {
             token = Unsafe.Add(ref first, consumed++);
@@ -225,7 +214,7 @@ internal static partial class UnixMode<T> where T : unmanaged, IEquatable<T>
 
         goto EOL;
 
-        InStringNoEscapes:
+    InStringNoEscapes:
         while (consumed < len)
         {
             if (Unsafe.Add(ref first, consumed++).Equals(quote))
@@ -241,7 +230,7 @@ internal static partial class UnixMode<T> where T : unmanaged, IEquatable<T>
 
         goto EOL;
 
-        InStringWithEscapes:
+    InStringWithEscapes:
         while (consumed < len)
         {
             token = Unsafe.Add(ref first, consumed++);
@@ -269,7 +258,7 @@ internal static partial class UnixMode<T> where T : unmanaged, IEquatable<T>
             }
         }
 
-        EOL:
+    EOL:
         if ((quotesRemaining | escapesRemaining) != 0)
             state.ThrowForInvalidEOF();
 
@@ -278,12 +267,12 @@ internal static partial class UnixMode<T> where T : unmanaged, IEquatable<T>
         state.Consumed = state.Record.Length;
         goto Return;
 
-        Done:
+    Done:
         int consumedi = (int)consumed - 1;
         field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref first, sliceStart), consumedi - sliceStart);
         state.Consumed += consumedi;
 
-        Return:
+    Return:
         state.isAtStart = false;
 
         if (quotesConsumed != 0)

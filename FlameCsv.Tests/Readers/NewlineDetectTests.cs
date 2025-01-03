@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Text;
+using FlameCsv.Exceptions;
 using FlameCsv.Reading;
 
 namespace FlameCsv.Tests.Readers;
@@ -44,8 +45,20 @@ public static class NewlineDetectTests
     {
         using var parser = CsvParser<T>.Create(options);
         parser.Reset(new ReadOnlySequence<T>(input));
-        Assert.True(parser.TryReadLine(out var line, out var meta, isFinalBlock: false));
+        Assert.True(parser.TryReadLine(out var line, out _, isFinalBlock: false));
         Assert.Equal(expected, line.Span);
         Assert.True(parser.TryReadLine(out _, out _, isFinalBlock: false));
+    }
+
+    [Fact]
+    public static void Should_Throw_On_Very_Long_Inputs()
+    {
+        using var parser = CsvParser<char>.Create(new CsvOptions<char> { Newline = null });
+        parser.Reset(new ReadOnlySequence<char>(new string('x', 4096).AsMemory()));
+
+        Assert.Throws<CsvConfigurationException>(() =>
+        {
+            _ = parser.TryReadLine(out _, out _, false);
+        });
     }
 }

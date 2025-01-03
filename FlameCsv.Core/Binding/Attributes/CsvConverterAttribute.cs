@@ -1,4 +1,3 @@
-using CommunityToolkit.Diagnostics;
 using FlameCsv.Converters;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -8,10 +7,7 @@ namespace FlameCsv.Binding.Attributes;
 /// <summary>
 /// Base attribute for overriding converters for the target member or parameter.
 /// </summary>
-[AttributeUsage(
-    AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter,
-    AllowMultiple = true,
-    Inherited = true)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter, AllowMultiple = true)]
 public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute where T : unmanaged, IEquatable<T>
 {
     /// <inheritdoc cref="CsvHeaderConfigurationAttribute.Scope"/>
@@ -29,8 +25,8 @@ public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute
             return cached;
         }
 
-        CsvConverter<T> instanceOrFactory = CreateConverterOrFactory(targetType, options)
-            ?? throw new InvalidOperationException($"{GetType()}.{nameof(CreateConverterOrFactory)} returned null");
+        CsvConverter<T> instanceOrFactory = CreateConverterOrFactory(targetType, options) ??
+            throw new InvalidOperationException($"{GetType()}.{nameof(CreateConverterOrFactory)} returned null");
 
         if (!instanceOrFactory.CanConvert(targetType))
         {
@@ -52,19 +48,20 @@ public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute
 
                 if (converter is not null)
                 {
-                    instanceOrFactory = NullableConverterFactory<T>.GetParserType(underlying).CreateInstance<CsvConverter<T>>(
-                        converter,
-                        options.GetNullToken(underlying));
+                    instanceOrFactory = NullableConverterFactory<T>.GetParserType(underlying)
+                        .CreateInstance<CsvConverter<T>>(
+                            converter,
+                            options.GetNullToken(underlying));
                     goto Success;
                 }
             }
 
             throw new CsvConfigurationException(
-                $"Overridden converter {instanceOrFactory.GetType().ToTypeString()} " +
-                $"can not parse the member type: {targetType.ToTypeString()}");
+                $"Overridden converter {instanceOrFactory.GetType().FullName} " +
+                $"can not parse the member type: {targetType.FullName}");
         }
 
-        Success:
+    Success:
         var result = instanceOrFactory.GetOrCreateConverter(targetType, options);
 
         if (options._explicitCache.TryAdd(_cacheKey, result))
@@ -79,7 +76,7 @@ public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute
     /// <param name="targetType">Type to convert</param>
     /// <param name="options">Current configuration instance</param>
     /// <returns>Converter instance</returns>
-    /// <exception cref="CsvConfigurationException">Thrown if <see cref="ConverterType"/> is not valid for the member,
+    /// <exception cref="CsvConfigurationException">Thrown if <see cref="targetType"/> is not valid for the member,
     /// or is not present in the configuration and has no parameterless constructor.</exception>
     protected abstract CsvConverter<T> CreateConverterOrFactory(Type targetType, CsvOptions<T> options);
 }

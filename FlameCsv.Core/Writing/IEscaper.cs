@@ -1,8 +1,6 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.HighPerformance;
-using FlameCsv.Extensions;
 
 namespace FlameCsv.Writing;
 
@@ -30,19 +28,26 @@ internal interface IEscaper<T> where T : unmanaged, IEquatable<T>
     /// Returns <see langword="true"/> if the value contains any special characters that need to be escaped/quoted.
     /// </summary>
     bool NeedsEscaping(T value);
+}
 
+internal static class Escape
+{
     /// <summary>
     /// Escapes <paramref name="source"/> into <paramref name="destination"/> by wrapping it in quotes and escaping
     /// possible quotes in the value.
     /// </summary>
+    /// <param name="escaper"></param>
     /// <param name="source">Data that needs escaping</param>
     /// <param name="destination">Destination buffer, can be the same memory region as source</param>
     /// <param name="specialCount">Amount of quotes/escapes in the source</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    sealed void EscapeField(
+    public static void Field<T, TEscaper>(
+        ref TEscaper escaper,
         scoped ReadOnlySpan<T> source,
         scoped Span<T> destination,
         int specialCount)
+        where T : unmanaged, IEquatable<T>
+        where TEscaper : IEscaper<T>
     {
         Debug.Assert(destination.Length >= source.Length + specialCount + 2, "Destination buffer is too small");
         Debug.Assert(
@@ -53,31 +58,34 @@ internal interface IEscaper<T> where T : unmanaged, IEquatable<T>
         int dstIndex = destination.Length - 1;
         int srcIndex = source.Length - 1;
 
-        destination[dstIndex--] = Quote;
+        destination[dstIndex--] = escaper.Quote;
 
         while (specialCount > 0)
         {
-            bool needsEscaping = NeedsEscaping(source[srcIndex]);
+            bool needsEscaping = escaper.NeedsEscaping(source[srcIndex]);
 
             destination[dstIndex--] = source[srcIndex--];
 
             if (needsEscaping)
             {
-                destination[dstIndex--] = Escape;
+                destination[dstIndex--] = escaper.Escape;
                 specialCount--;
             }
         }
 
         source.Slice(0, srcIndex + 1).CopyTo(destination.Slice(1));
-        destination[0] = Quote;
+        destination[0] = escaper.Quote;
     }
 
-    sealed void EscapeField<TWriter>(
-        ref readonly TWriter writer,
+    public static void FieldWithOverflow<T, TEscaper, TWriter>(
+        ref TEscaper escaper,
+        ref TWriter writer,
         scoped ReadOnlySpan<T> source,
         scoped Span<T> destination,
         int specialCount,
-        ArrayPool<T> arrayPool)
+        MemoryPool<T> allocator)
+        where T : unmanaged, IEquatable<T>
+        where TEscaper : IEscaper<T>
         where TWriter : struct, IBufferWriter<T>
     {
         Debug.Assert(
@@ -99,7 +107,7 @@ internal interface IEscaper<T> where T : unmanaged, IEquatable<T>
 
         int overflowLength = requiredLength - destination.Length;
         scoped Span<T> overflow;
-        T[]? overflowArray = null;
+        IMemoryOwner<T>? allocated = null;
 
         if (Token<T>.CanStackalloc(overflowLength))
         {
@@ -107,11 +115,11 @@ internal interface IEscaper<T> where T : unmanaged, IEquatable<T>
         }
         else
         {
-            overflowArray = arrayPool.Rent(overflowLength);
-            overflow = overflowArray.AsSpan(0, overflowLength);
+            allocated = allocator.Rent(overflowLength);
+            overflow = allocated.Memory.Span.Slice(0, overflowLength);
         }
 
-        overflow[ovrIndex--] = Quote; // write closing quote
+        overflow[ovrIndex--] = escaper.Quote; // write closing quote
 
         // Short circuit to faster impl if there are no quotes in the source data
         if (specialCount == 0)
@@ -122,13 +130,13 @@ internal interface IEscaper<T> where T : unmanaged, IEquatable<T>
         {
             if (needEscape)
             {
-                overflow[ovrIndex--] = Escape;
+                overflow[ovrIndex--] = escaper.Escape;
                 needEscape = false;
 
                 if (--specialCount == 0)
                     goto CopyTo;
             }
-            else if (NeedsEscaping(source[srcIndex]))
+            else if (escaper.NeedsEscaping(source[srcIndex]))
             {
                 overflow[ovrIndex--] = source[srcIndex--];
                 needEscape = true;
@@ -143,13 +151,13 @@ internal interface IEscaper<T> where T : unmanaged, IEquatable<T>
         {
             if (needEscape)
             {
-                destination[dstIndex--] = Escape;
+                destination[dstIndex--] = escaper.Escape;
                 needEscape = false;
 
                 if (--specialCount == 0)
                     goto CopyTo;
             }
-            else if (NeedsEscaping(source[srcIndex]))
+            else if (escaper.NeedsEscaping(source[srcIndex]))
             {
                 destination[dstIndex--] = source[srcIndex--];
                 needEscape = true;
@@ -163,11 +171,11 @@ internal interface IEscaper<T> where T : unmanaged, IEquatable<T>
         // true if the first token in the source is a quote
         if (needEscape)
         {
-            destination[dstIndex--] = Escape;
+            destination[dstIndex--] = escaper.Escape;
             specialCount--;
         }
 
-        CopyTo:
+    CopyTo:
         if (srcIndex > 0)
         {
             if (ovrIndex >= 0)
@@ -184,7 +192,7 @@ internal interface IEscaper<T> where T : unmanaged, IEquatable<T>
             }
         }
 
-        destination[dstIndex] = Quote; // write opening quote
+        destination[dstIndex] = escaper.Quote; // write opening quote
 
         Debug.Assert(dstIndex == 0);
         Debug.Assert(specialCount == 0);
@@ -196,6 +204,6 @@ internal interface IEscaper<T> where T : unmanaged, IEquatable<T>
         overflow.CopyTo(writer.GetSpan(overflow.Length));
         writer.Advance(overflow.Length);
 
-        arrayPool.EnsureReturned(ref overflowArray);
+        allocated?.Dispose();
     }
 }

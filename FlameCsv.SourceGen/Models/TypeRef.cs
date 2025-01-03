@@ -10,7 +10,7 @@ public sealed class TypeRef : IEquatable<TypeRef>, IComparable<TypeRef>
     public TypeRef(ITypeSymbol type)
     {
         Name = type.Name;
-        FullyQualifiedName = type.ToDisplayString(/*SymbolDisplayFormat.FullyQualifiedFormat*/);
+        FullyQualifiedName = type.ToDisplayString( /*SymbolDisplayFormat.FullyQualifiedFormat*/);
         IsValueType = type.IsValueType;
         TypeKind = type.TypeKind;
         SpecialType = type.OriginalDefinition.SpecialType;
@@ -29,7 +29,9 @@ public sealed class TypeRef : IEquatable<TypeRef>, IComparable<TypeRef>
 
     public bool CanBeNull => !IsValueType || SpecialType is SpecialType.System_Nullable_T;
 
-    public int CompareTo(TypeRef other) => FullyQualifiedName.CompareTo(other.FullyQualifiedName);
+    public int CompareTo(TypeRef other)
+        => String.Compare(FullyQualifiedName, other.FullyQualifiedName, StringComparison.Ordinal);
+
     public bool Equals(TypeRef? other) => FullyQualifiedName == other?.FullyQualifiedName;
     public override bool Equals(object? obj) => Equals(obj as TypeRef);
     public override int GetHashCode() => FullyQualifiedName.GetHashCode();

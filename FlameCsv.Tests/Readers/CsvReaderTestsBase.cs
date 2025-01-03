@@ -6,27 +6,28 @@ using FlameCsv.Enumeration;
 using FlameCsv.Tests.TestData;
 using FlameCsv.Tests.Utilities;
 
-// ReSharper disable ConvertIfStatementToSwitchStatement
-// ReSharper disable LoopCanBeConvertedToQuery
+// ReSharper disable InconsistentNaming
 
 namespace FlameCsv.Tests.Readers;
 
 public enum NewlineToken { CRLF, LF, AutoCRLF, AutoLF }
 
+public abstract class CsvReaderTestsBase
+{
+    protected static readonly int[] _bufferSizes = [-1, 17, 128, 1024, 8096];
+    protected static readonly int[] _emptySegmentsEvery = [0, 1, 7];
+    protected static readonly NewlineToken[] _crlf = [NewlineToken.CRLF, NewlineToken.LF, NewlineToken.AutoCRLF, NewlineToken.AutoLF];
+    protected static readonly bool[] _booleans = [true, false];
+    protected static readonly Mode[] _escaping = [Mode.None, Mode.RFC, Mode.Escape];
+}
+
 /// <summary>
 /// A spray-and-pray tests of different APIs using various options and CSV features.
 /// </summary>
 //[Collection("ReaderTests")]
-public abstract class CsvReaderTestsBase<T> : IDisposable
-    where T : unmanaged, IEquatable<T>
+public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase, IDisposable where T : unmanaged, IEquatable<T>
 {
-    private static readonly int[] _bufferSizes = [-1, 17, 128, 1024, 8096];
-    private static readonly int[] _emptySegmentsEvery = [0, 1, 7];
-    private static readonly NewlineToken[] _crlf = [NewlineToken.CRLF, NewlineToken.LF, NewlineToken.AutoCRLF, NewlineToken.AutoLF];
-    private static readonly bool[] _booleans = [true, false];
-    private static readonly Mode[] _escaping = [Mode.None, Mode.RFC, Mode.Escape];
-
-    private readonly ArrayPool<T> _pool = Debugger.IsAttached ? new ReturnTrackingArrayPool<T>() : ArrayPool<T>.Shared;
+    private readonly MemoryPool<T> _pool = Debugger.IsAttached ? ReturnTrackingMemoryPool<T>.Shared : MemoryPool<T>.Shared;
 
     protected abstract CsvTypeMap<T, Obj> TypeMap { get; }
 
@@ -111,8 +112,6 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         {
             CsvOptions<T> options = GetOptions(newline, header, escaping);
 
-            List<Obj> items = new(1000);
-
             var memory = TestDataGenerator.Generate<T>(newline, header, trailingLF, escaping);
             var sequence = MemorySegment<T>.AsSequence(memory, bufferSize, emptySegmentFreq);
 
@@ -167,16 +166,12 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         {
             CsvOptions<T> options = GetOptions(newline, header, escaping);
 
-            List<Obj> items = new(1000);
-
             var data = TestDataGenerator.Generate<byte>(newline, header, trailingLF, escaping);
 
-            await using (var stream = data.AsStream())
+            await using var stream = data.AsStream();
+            await foreach (var obj in GetObjects(stream, options, bufferSize, sourceGen).ConfigureAwait(false))
             {
-                await foreach (var obj in GetObjects(stream, options, bufferSize, sourceGen).ConfigureAwait(false))
-                {
-                    yield return obj;
-                }
+                yield return obj;
             }
         }
     }
@@ -198,13 +193,11 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
 
             var data = TestDataGenerator.Generate<byte>(newline, header, trailingLF, escaping);
 
-            await using (var stream = data.AsStream())
+            await using var stream = data.AsStream();
+            var items = GetItems(GetRecords(stream, options, bufferSize), sourceGen, header, newline);
+            await foreach (var item in items.ConfigureAwait(false))
             {
-                var items = GetItems(GetRecords(stream, options, bufferSize), sourceGen, header, newline);
-                await foreach (var item in items.ConfigureAwait(false))
-                {
-                    yield return item;
-                }
+                yield return item;
             }
         }
     }
@@ -221,7 +214,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
             Assert.Equal(escaping != Mode.None ? $"Name\"{i}" : $"Name-{i}", obj.Name);
             Assert.Equal(i % 2 == 0, obj.IsEnabled);
             Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(i), obj.LastLogin);
-            Assert.Equal(new Guid(i, 0, 0, TestDataGenerator._guidbytes), obj.Token);
+            Assert.Equal(new Guid(i, 0, 0, TestDataGenerator.GuidBytes), obj.Token);
 
             i++;
         }
@@ -235,8 +228,6 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         bool hasHeader,
         NewlineToken newline)
     {
-        List<Obj> items = new(1000);
-
         int index = 0;
         long tokenPosition = 0;
 
@@ -268,10 +259,8 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
                 Token = record.GetField<Guid>(4),
             };
 
-            var parsed = sourceGen ? record.ParseRecord<Obj>(TypeMap) : record.ParseRecord<Obj>();
+            var parsed = sourceGen ? record.ParseRecord(TypeMap) : record.ParseRecord<Obj>();
             Assert.Equal(obj, parsed);
-
-            items.Add(obj);
 
             Assert.Equal(5, record.GetFieldCount());
 
@@ -293,7 +282,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
             },
             HasHeader = header,
             AllowContentInExceptions = true,
-            ArrayPool = _pool,
+            MemoryPool = _pool,
 #if false
             ExceptionHandler = static (in CsvExceptionHandlerArgs<T> args) =>
             {
@@ -310,6 +299,6 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
 
     public void Dispose()
     {
-        (_pool as IDisposable)?.Dispose();
+        (_pool as ReturnTrackingMemoryPool<T>)?.Dispose();
     }
 }

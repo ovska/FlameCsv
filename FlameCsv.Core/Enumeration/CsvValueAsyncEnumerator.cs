@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Reading;
 
@@ -16,7 +15,7 @@ public sealed class CsvValueAsyncEnumerator<T, TValue> : CsvValueEnumeratorBase<
     private readonly ICsvPipeReader<T> _reader;
     private readonly CancellationToken _cancellationToken;
 
-    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+    [RUF(Messages.CompiledExpressions)]
     internal CsvValueAsyncEnumerator(
         CsvOptions<T> options,
         ICsvPipeReader<T> reader,

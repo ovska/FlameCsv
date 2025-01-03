@@ -27,8 +27,6 @@ public sealed class NullableConverter<T, TValue> : CsvConverter<T, TValue?>
     }
 
     /// <inheritdoc cref="NullableConverter{T, TValue}"/>
-    /// <param name="inner">Converter for possible non-null values.</param>
-    /// <param name="nullToken">Tokens that match a null value. Default is empty.</param>
     public NullableConverter(CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);

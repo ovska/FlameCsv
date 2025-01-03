@@ -1,9 +1,7 @@
-﻿using System.Buffers;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Text;
-using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Extensions;
 using FlameCsv.Writing;
 
@@ -69,7 +67,7 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
     {
         Initialize();
 
-        _writer.WriteField(Formatter.Instance!, null);
+        _writer.WriteField(Formatter.Instance, null);
         await _writer.Writer.CompleteAsync(null);
 
         Assert.Equal("null", Written);
@@ -136,7 +134,7 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
     {
         _stream = new MemoryStream();
         _writer = new CsvFieldWriter<byte, CsvByteBufferWriter>(
-            new CsvByteBufferWriter(PipeWriter.Create(_stream, new StreamPipeWriterOptions(minimumBufferSize: bufferSize, pool: new AllocatingMemoryPool()))),
+            new CsvByteBufferWriter(PipeWriter.Create(_stream, new StreamPipeWriterOptions(minimumBufferSize: bufferSize, pool: HeapMemoryPool<byte>.Shared))),
             new CsvOptions<byte> { FieldEscaping = quoting, Null = "null" });
     }
 
@@ -146,7 +144,7 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
 
         public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out string value)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         public override bool TryFormat(Span<byte> destination, string value, out int charsWritten)
@@ -161,9 +159,6 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
     {
         public int Write { get; set; }
 
-        public bool CanFormat(Type valueType)
-            => throw new NotImplementedException();
-
         public override bool TryFormat(Span<byte> destination, string value, out int charsWritten)
         {
             charsWritten = Write;
@@ -172,21 +167,7 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
 
         public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out string value)
         {
-            throw new NotImplementedException();
-        }
-    }
-
-    private sealed class AllocatingMemoryPool : MemoryPool<byte>
-    {
-        public override int MaxBufferSize => Array.MaxLength;
-
-        public override IMemoryOwner<byte> Rent(int minBufferSize = -1)
-        {
-            return MemoryOwner<byte>.Allocate(Math.Max(0, minBufferSize), AllocatingArrayPool<byte>.Instance);
-        }
-
-        protected override void Dispose(bool disposing)
-        {
+            throw new NotSupportedException();
         }
     }
 }

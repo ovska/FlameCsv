@@ -24,14 +24,14 @@ public readonly struct CsvRecordAsyncEnumerable<T> : IAsyncEnumerable<CsvValueRe
 
     public CsvRecordAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
-        Throw.IfDefaultStruct<CsvRecordAsyncEnumerable<T>>(_options);
+        Throw.IfDefaultStruct(_options is null, typeof(CsvRecordAsyncEnumerable<T>));
         return new(_reader, _options, cancellationToken);
     }
 
     public async IAsyncEnumerable<CsvRecord<T>> Preserve(
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        Throw.IfDefaultStruct<CsvRecordAsyncEnumerable<T>>(_options);
+        Throw.IfDefaultStruct(_options is null, typeof(CsvRecordAsyncEnumerable<T>));
 
         await foreach (var csvRecord in this.WithCancellation(cancellationToken).ConfigureAwait(false))
         {

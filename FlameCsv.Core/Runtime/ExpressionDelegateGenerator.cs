@@ -1,19 +1,20 @@
 ﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
+using FlameCsv.Binding.Internal;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 
 namespace FlameCsv.Runtime;
 
-[RequiresUnreferencedCode(Messages.CompiledExpressions)]
-[RequiresDynamicCode(Messages.CompiledExpressions)]
+[RUF(Messages.CompiledExpressions)]
+[RDC(Messages.CompiledExpressions)]
 internal sealed class ExpressionDelegateGenerator<T> : DelegateGenerator<T> where T : unmanaged, IEquatable<T>
 {
-    protected override Func<object[], IMaterializer<T, TResult>> GetMaterializerInit<[DynamicallyAccessedMembers(Messages.Ctors)] TResult>(CsvBindingCollection<TResult> bc)
+    protected override Func<object[], IMaterializer<T, TResult>> GetMaterializerInit<[DAM(Messages.Ctors)] TResult>(
+        CsvBindingCollection<TResult> bc)
     {
         ConstructorInfo ctor = Materializer<T>.GetConstructor(bc.Bindings);
 
@@ -33,26 +34,22 @@ internal sealed class ExpressionDelegateGenerator<T> : DelegateGenerator<T> wher
         return lambda.CompileLambda<Func<object[], IMaterializer<T, TResult>>>(throwIfClosure: true);
     }
 
-    protected override Delegate GetValueFactory<[DynamicallyAccessedMembers(Messages.Ctors)] TResult>(CsvBindingCollection<TResult> bc)
+    protected override Delegate GetValueFactory<[DAM(Messages.Ctors)] TResult>(CsvBindingCollection<TResult> bc)
     {
-        ParameterExpression[] parameters = GetParametersByBindingIndex();
+        ReadOnlyCollectionBuilder<ParameterExpression> parameters = GetParametersByBindingIndex();
         NewExpression newExpr = GetObjectInitialization();
         Expression body = GetExpressionBody();
         return Expression.Lambda(body, parameters).CompileLambda<Delegate>(throwIfClosure: true);
 
-        ParameterExpression[] GetParametersByBindingIndex()
+        ReadOnlyCollectionBuilder<ParameterExpression> GetParametersByBindingIndex()
         {
-            var array = new ParameterExpression[bc.Bindings.Length];
+            var array = new ReadOnlyCollectionBuilder<ParameterExpression>(bc.Bindings.Length);
 
             foreach (var binding in bc.Bindings)
             {
-                array[binding.Index] = Expression.Parameter(binding.Type
-#if DEBUG
-                    , binding.IsIgnored
-                        ? $"column{binding.Index}_ignored"
-                        : $"column{binding.Index}_{binding.Type.Name}"
-#endif
-                    );
+                array[binding.Index] = Expression.Parameter(
+                    binding.Type,
+                    Debugger.IsAttached ? $"field_{binding.Index}_{binding.DisplayName}" : null);
             }
 
             return array;
@@ -69,7 +66,7 @@ internal sealed class ExpressionDelegateGenerator<T> : DelegateGenerator<T> wher
             var ctorParameters = bc.ConstructorParameters;
             var result = new ReadOnlyCollectionBuilder<Expression>(ctorParameters.Length);
 
-            foreach (var (binding, parameter) in ctorParameters)
+            foreach ((ParameterCsvBinding<TResult>? binding, ParameterInfo parameter) in ctorParameters)
             {
                 Debug.Assert(binding is not null || parameter.HasDefaultValue);
 
@@ -99,7 +96,7 @@ internal sealed class ExpressionDelegateGenerator<T> : DelegateGenerator<T> wher
             return Expression.New(bc.Constructor, result);
         }
 
-        // returns either the new T(arg0, arg1) -expression
+        // returns either just the new T(arg0, arg1) -expression
         // -- or -- 
         // member initialization: new T(arg0, arg1) { Prop = arg1 }
         Expression GetExpressionBody()

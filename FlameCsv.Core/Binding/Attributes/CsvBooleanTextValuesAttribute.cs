@@ -1,6 +1,5 @@
 using FlameCsv.Exceptions;
 using FlameCsv.Converters;
-using CommunityToolkit.Diagnostics;
 
 namespace FlameCsv.Binding.Attributes;
 
@@ -45,6 +44,6 @@ public sealed class CsvBooleanTextValuesAttribute : CsvConverterAttribute<char>
         }
 
         throw new CsvConfigurationException(
-            $"{nameof(CsvBooleanTextValuesAttribute)} is valid on bool and bool?, but was on type {targetType.ToTypeString()}");
+            $"{nameof(CsvBooleanTextValuesAttribute)} is valid on bool and bool?, but was on type {targetType.FullName}");
     }
 }

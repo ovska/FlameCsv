@@ -107,15 +107,17 @@ internal ref struct ValueListBuilder<T>
 
         int pos = _pos;
         Span<T> span = _span;
-        if ((ulong)(uint)pos + (ulong)(uint)length <= (ulong)(uint)span.Length) // same guard condition as in Span<T>.Slice on 64-bit
+
+        // ReSharper disable RedundantCast
+        // same guard condition as in Span<T>.Slice on 64-bit
+        if ((ulong)(uint)pos + (ulong)(uint)length <= (ulong)(uint)span.Length)
         {
             _pos = pos + length;
             return span.Slice(pos, length);
         }
-        else
-        {
-            return AppendSpanWithGrow(length);
-        }
+        // ReSharper restore RedundantCast
+
+        return AppendSpanWithGrow(length);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -133,7 +135,7 @@ internal ref struct ValueListBuilder<T>
     {
         Debug.Assert(_pos == _span.Length);
         int pos = _pos;
-        Grow(1);
+        Grow(additionalCapacityRequired: 1);
         _span[pos] = item;
         _pos = pos + 1;
     }
@@ -168,16 +170,18 @@ internal ref struct ValueListBuilder<T>
 
     // Note that consuming implementations depend on the list only growing if it's absolutely
     // required.  If the list is already large enough to hold the additional items be added,
-    // it must not grow. The list is used in a number of places where the reference is checked
+    // it must not grow. The list is used in a number of places where the reference is checked,
     // and it's expected to match the initial reference provided to the constructor if that
     // span was sufficiently large.
     private void Grow(int additionalCapacityRequired = 1)
     {
-        const int ArrayMaxLength = 0x7FFFFFC7; // same as Array.MaxLength
+        const int arrayMaxLength = 0x7FFFFFC7; // same as Array.MaxLength
 
         // Double the size of the span.  If it's currently empty, default to size 4,
         // although it'll be increased in Rent to the pool's minimum bucket size.
-        int nextCapacity = Math.Max(_span.Length != 0 ? _span.Length * 2 : 4, _span.Length + additionalCapacityRequired);
+        int nextCapacity = Math.Max(
+            _span.Length != 0 ? _span.Length * 2 : 4,
+            _span.Length + additionalCapacityRequired);
 
         // If the computed doubled capacity exceeds the possible length of an array, then we
         // want to downgrade to either the maximum array length if that's large enough to hold
@@ -185,9 +189,9 @@ internal ref struct ValueListBuilder<T>
         // which case it'll result in an OOM when calling Rent below.  In the exceedingly rare
         // case where _span.Length is already int.MaxValue (in which case it couldn't be a managed
         // array), just use that same value again and let it OOM in Rent as well.
-        if ((uint)nextCapacity > ArrayMaxLength)
+        if ((uint)nextCapacity > arrayMaxLength)
         {
-            nextCapacity = Math.Max(Math.Max(_span.Length + 1, ArrayMaxLength), _span.Length);
+            nextCapacity = Math.Max(Math.Max(_span.Length + 1, arrayMaxLength), _span.Length);
         }
 
         T[] array = ArrayPool<T>.Shared.Rent(nextCapacity);

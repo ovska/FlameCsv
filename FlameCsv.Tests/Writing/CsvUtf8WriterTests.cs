@@ -3,7 +3,6 @@ using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Enumerables;
 using FlameCsv.Tests.TestData;
 using FlameCsv.Writing;
-using Microsoft.VisualStudio.TestPlatform.Utilities;
 using Xunit.Sdk;
 
 namespace FlameCsv.Tests.Writing;
@@ -58,9 +57,11 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
         ReadOnlySpan<byte> date = "1970-01-01T00:00:00.0000000+00:00"u8;
         ReadOnlySpan<byte> dateQuoted = "'1970-01-01T00:00:00.0000000+00:00'"u8;
 
-        foreach (var _line in new ReadOnlySpanTokenizer<byte>(result.Span, (byte)'\n'))
+        var tokenizer = new ReadOnlySpanTokenizer<byte>(result.Span, (byte)'\n');
+
+        while (tokenizer.MoveNext())
         {
-            ReadOnlySpan<byte> line = _line;
+            ReadOnlySpan<byte> line = tokenizer.Current;
 
             if (crlf && !line.IsEmpty)
             {
@@ -78,7 +79,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                 continue;
             }
 
-            if (_line.IsEmpty)
+            if (line.IsEmpty)
             {
                 Assert.Equal(1000, index);
                 continue;
@@ -86,21 +87,14 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
 
             int columnIndex = 0;
 
-            foreach (var _column in line.Tokenize((byte)','))
+            foreach (var columnBytes in line.Tokenize((byte)','))
             {
-                string column = Encoding.UTF8.GetString(_column);
+                string column = Encoding.UTF8.GetString(columnBytes);
 
                 switch (columnIndex++)
                 {
                     case 0:
-                        if (quoting == CsvFieldEscaping.AlwaysQuote)
-                        {
-                            Assert.Equal($"'{index}'", column);
-                        }
-                        else
-                        {
-                            Assert.Equal($"{index}", column);
-                        }
+                        Assert.Equal(quoting == CsvFieldEscaping.AlwaysQuote ? $"'{index}'" : $"{index}", column);
                         break;
                     case 1:
                         if (quoting == CsvFieldEscaping.Never)
@@ -118,31 +112,17 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                         break;
                     case 2:
                         string val = index % 2 == 0 ? "true" : "false";
-                        if (quoting == CsvFieldEscaping.AlwaysQuote)
-                        {
-                            Assert.Equal($"'{val}'", column);
-                        }
-                        else
-                        {
-                            Assert.Equal($"{val}", column);
-                        }
+                        Assert.Equal(quoting == CsvFieldEscaping.AlwaysQuote ? $"'{val}'" : $"{val}", column);
                         break;
                     case 3:
-                        Assert.Equal(quoting == CsvFieldEscaping.AlwaysQuote ? dateQuoted : date, _column);
+                        Assert.Equal(quoting == CsvFieldEscaping.AlwaysQuote ? dateQuoted : date, columnBytes);
                         break;
                     case 4:
-                        var guid = new Guid(index, 0, 0, TestDataGenerator._guidbytes);
-                        if (quoting == CsvFieldEscaping.AlwaysQuote)
-                        {
-                            Assert.Equal($"'{guid}'", column);
-                        }
-                        else
-                        {
-                            Assert.Equal($"{guid}", column);
-                        }
+                        var guid = new Guid(index, 0, 0, TestDataGenerator.GuidBytes);
+                        Assert.Equal(quoting == CsvFieldEscaping.AlwaysQuote ? $"'{guid}'" : $"{guid}", column);
                         break;
                     default:
-                        throw new XunitException($"Invalid column count on line {index}: {Encoding.UTF8.GetString(_line)}");
+                        throw new XunitException($"Invalid column count on line {index}: {Encoding.UTF8.GetString(line)}");
                 }
             }
 

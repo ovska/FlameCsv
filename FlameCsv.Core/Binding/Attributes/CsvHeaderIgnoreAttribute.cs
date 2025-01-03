@@ -6,7 +6,7 @@
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false)]
 public sealed class CsvHeaderIgnoreAttribute : Attribute, ICsvBindingAttribute
 {
-    public ReadOnlyMemory<string> Values { get; }
+    public string[] Values { get; }
 
     public CsvBindingScope Scope => CsvBindingScope.Read;
 

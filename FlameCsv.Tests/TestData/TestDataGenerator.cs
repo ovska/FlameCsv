@@ -2,7 +2,6 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
-using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Tests.Readers;
@@ -47,7 +46,7 @@ internal static class TestDataGenerator
     public static ReadOnlySpan<byte> HeaderU8 => "Id,Name,IsEnabled,LastLogin,Token"u8;
     public static ReadOnlySpan<byte> HeaderQuotedU8 => "'Id','Name','IsEnabled','LastLogin','Token'"u8;
 
-    internal static readonly byte[] _guidbytes = [0, 1, 2, 3, 4, 5, 6, 7];
+    internal static readonly byte[] GuidBytes = [0, 1, 2, 3, 4, 5, 6, 7];
 
     private static readonly ConcurrentDictionary<Key, Lazy<ReadOnlyMemory<char>>> _chars = [];
     private static readonly ConcurrentDictionary<Key, Lazy<ReadOnlyMemory<byte>>> _bytes = [];
@@ -133,7 +132,7 @@ internal static class TestDataGenerator
                     writer.Append(',');
                     writer.Append($"{DateTimeOffset.UnixEpoch.AddDays(i):O}");
                     writer.Append(',');
-                    writer.Append($"{new Guid(i, 0, 0, _guidbytes)}");
+                    writer.Append($"{new Guid(i, 0, 0, GuidBytes)}");
                 }
 
                 if (writeTrailingNewline)
@@ -221,7 +220,7 @@ internal static class TestDataGenerator
                     writer.Append(',');
                     writer.AppendFormatted(DateTimeOffset.UnixEpoch.AddDays(i), format: "O");
                     writer.Append(',');
-                    writer.AppendFormatted(new Guid(i, 0, 0, _guidbytes));
+                    writer.AppendFormatted(new Guid(i, 0, 0, GuidBytes));
                 }
 
                 if (writeTrailingNewline)
@@ -248,7 +247,7 @@ internal static class TestDataGenerator
                 Id = i,
                 IsEnabled = i % 2 == 0,
                 LastLogin = DateTimeOffset.UnixEpoch,
-                Token = new Guid(i, 0, 0, _guidbytes),
+                Token = new Guid(i, 0, 0, GuidBytes),
                 Name = $" Name'{i}",
             });
         }

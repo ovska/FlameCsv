@@ -8,3 +8,9 @@ csharp_style_implicit_object_creation_when_type_is_apparent = false
 # IDE0302: Simplify collection initialization
 dotnet_style_prefer_collection_expression = false
 dotnet_diagnostic.CA2007.severity = none
+
+resharper_property_can_be_made_init_only_local_highlighting=none
+resharper_class_never_instantiated_global_highlighting=none
+resharper_unused_type_local_highlighting=none
+resharper_string_literal_typo_highlighting=none
+resharper_unused_auto_property_accessor_local_highlighting=none

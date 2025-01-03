@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using CommunityToolkit.Diagnostics;
 
 namespace FlameCsv.Extensions;
 
@@ -19,12 +18,12 @@ internal static class InfrastructureExtensions
         }
 
         if (targetType.IsGenericTypeDefinition)
-            throw new ArgumentException($"Cannot create a parser for generic type {targetType.ToTypeString()}");
+            throw new ArgumentException($"Cannot create a parser for generic type {targetType.FullName}");
 
         CsvConverter<T> createdParser = factory.Create(targetType, readerOptions)
             ?? throw new InvalidOperationException(
-                $"Factory {factory.GetType().ToTypeString()} returned null " +
-                $"when creating parser for type {targetType.ToTypeString()}");
+                $"Factory {factory.GetType().FullName} returned null " +
+                $"when creating parser for type {targetType.FullName}");
 
         Debug.Assert(
             createdParser.CanConvert(targetType) && createdParser is not CsvConverterFactory<T>,

@@ -1,5 +1,3 @@
-using CommunityToolkit.Diagnostics;
-
 namespace FlameCsv.Binding.Attributes;
 
 /// <summary>
@@ -21,7 +19,7 @@ public sealed class CsvIndexAttribute : Attribute, ICsvBindingAttribute
     /// <param name="index">CSV field index</param>
     public CsvIndexAttribute(int index)
     {
-        Guard.IsGreaterThanOrEqualTo(index, 0);
+        ArgumentOutOfRangeException.ThrowIfLessThan(index, 0);
         Index = index;
     }
 }

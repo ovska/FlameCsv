@@ -1,6 +1,6 @@
 ﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using CommunityToolkit.Diagnostics;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Utilities;
 
@@ -120,7 +120,7 @@ internal sealed class TypeDictionary<TValue, TAlternate> : ITypeDictionary<TValu
 
         if (key.IsPointer || key.IsByRef || key.IsByRefLike || key.IsGenericTypeDefinition)
         {
-            ThrowHelper.ThrowArgumentException("key", (string?)null);
+            Throw.Argument(nameof(key), "Type must not be a pointer, byref/like or a generic definition");
         }
     }
 

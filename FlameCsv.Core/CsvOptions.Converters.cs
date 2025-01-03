@@ -1,5 +1,4 @@
-﻿using CommunityToolkit.Diagnostics;
-using FlameCsv.Converters;
+﻿using FlameCsv.Converters;
 using FlameCsv.Exceptions;
 using FlameCsv.Utilities;
 using System.Collections.Concurrent;
@@ -115,7 +114,7 @@ partial class CsvOptions<T>
 
         Debug.Assert(
             converter is not CsvConverterFactory<T>,
-            $"TryGetConverter returned a factory: {converter?.GetType().ToTypeString()}");
+            $"TryGetConverter returned a factory: {converter?.GetType().FullName}");
 
         if (converter is not null && created)
         {
@@ -299,6 +298,6 @@ partial class CsvOptions<T>
     [DoesNotReturn]
     private static void ThrowForInvalidConverter(object factory, Type toConvert)
     {
-        throw new CsvConfigurationException($"{factory.GetType().ToTypeString()} returned an invalid converter for {toConvert.ToTypeString()}");
+        throw new CsvConfigurationException($"{factory.GetType().FullName} returned an invalid converter for {toConvert.FullName}");
     }
 }

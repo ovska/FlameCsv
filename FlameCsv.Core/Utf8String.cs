@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text;
 using System.Text.Unicode;
-using CommunityToolkit.Diagnostics;
+using FlameCsv.Extensions;
 
 namespace FlameCsv;
 
@@ -74,7 +74,7 @@ internal readonly struct Utf8String : IEquatable<Utf8String>, IEquatable<string>
         else
         {
             if (!Utf8.IsValid(value.Span))
-                ThrowHelper.ThrowArgumentException(nameof(value), "Bytes were not well-formed UTF8");
+                Throw.Argument(nameof(value), "Bytes were not well-formed UTF8");
 
             _string = Encoding.UTF8.GetString(value.Span);
             _bytes = value;

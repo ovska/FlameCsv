@@ -1,3 +1,7 @@
+global using DAM = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute;
+global using RUF = System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute;
+global using RDC = System.Diagnostics.CodeAnalysis.RequiresDynamicCodeAttribute;
+
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 

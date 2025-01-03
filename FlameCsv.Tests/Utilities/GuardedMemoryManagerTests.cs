@@ -1,13 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
-using System.Text;
-using System.Threading.Tasks;
-using CommunityToolkit.HighPerformance;
-using Xunit.Abstractions;
+﻿using System.Runtime.Versioning;
 
 namespace FlameCsv.Tests.Utilities;
 
@@ -20,7 +11,7 @@ public class GuardedMemoryManagerTests
         // $env:COMPlus_legacyCorruptedStateExceptionsPolicy=1
         // dotnet test --filter Allocate
 
-        using var memoryManager = new GuardedMemoryManager(size, fromEnd);
+        using var memoryManager = new GuardedMemoryManager<byte>(size, fromEnd);
 
         var span = memoryManager.GetSpan();
 

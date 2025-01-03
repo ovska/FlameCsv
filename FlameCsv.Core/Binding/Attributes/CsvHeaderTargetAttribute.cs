@@ -1,5 +1,3 @@
-using CommunityToolkit.Diagnostics;
-
 namespace FlameCsv.Binding.Attributes;
 
 /// <summary>
@@ -36,8 +34,7 @@ public sealed class CsvHeaderTargetAttribute : Attribute, ICsvBindingAttribute
         string memberName,
         params string[] values)
     {
-        Guard.IsNotNullOrWhiteSpace(memberName);
-
+        ArgumentException.ThrowIfNullOrWhiteSpace(memberName);
         ArgumentNullException.ThrowIfNull(values);
 
         for (int i = 0; i < values.Length; i++)

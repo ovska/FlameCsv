@@ -15,21 +15,20 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IEqua
         _escape = options.Dialect.Escape.Value;
     }
 
-    public static new CsvRecordMeta GetRecordMeta(ReadOnlyMemory<T> line, CsvOptions<T> options)
+    public new static CsvRecordMeta GetRecordMeta(ReadOnlySpan<T> line, CsvOptions<T> options)
     {
-        ReadOnlySpan<T> span = line.Span;
         ref readonly CsvDialect<T> dialect = ref options.Dialect;
         T quote = dialect.Quote;
         T escape = dialect.Escape.GetValueOrDefault();
 
-        int index = span.IndexOfAny(quote, escape);
+        int index = line.IndexOfAny(quote, escape);
         bool skipNext = false;
 
         CsvRecordMeta meta = default;
 
         if (index >= 0)
         {
-            for (; index < span.Length; index++)
+            for (; index < line.Length; index++)
             {
                 if (skipNext)
                 {
@@ -37,11 +36,11 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IEqua
                     continue;
                 }
 
-                if (span[index].Equals(quote))
+                if (line[index].Equals(quote))
                 {
                     meta.quoteCount++;
                 }
-                else if (span[index].Equals(escape))
+                else if (line[index].Equals(escape))
                 {
                     meta.escapeCount++;
                     skipNext = true;
@@ -58,7 +57,7 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IEqua
         return meta;
     }
 
-    public override CsvRecordMeta GetRecordMeta(ReadOnlyMemory<T> line) => GetRecordMeta(line, _options);
+    public override CsvRecordMeta GetRecordMeta(ReadOnlySpan<T> line) => GetRecordMeta(line, _options);
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     protected override bool TryReadLine(out ReadOnlyMemory<T> line, out CsvRecordMeta meta)
@@ -148,7 +147,7 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IEqua
                     }
                     else
                     {
-                        line = _reader.Sequence.Slice(copy.Position, crPosition).AsMemory(ref _multisegmentBuffer, ArrayPool);
+                        line = _reader.Sequence.Slice(copy.Position, crPosition).AsMemory(Allocator, ref _multisegmentBuffer);
                     }
 
                     return true;

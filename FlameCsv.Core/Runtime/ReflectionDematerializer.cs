@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -9,8 +8,8 @@ namespace FlameCsv.Runtime;
 
 internal sealed class ReflectionDematerializer
 {
-    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
-    [RequiresDynamicCode(Messages.CompiledExpressions)]
+    [RUF(Messages.CompiledExpressions)]
+    [RDC(Messages.CompiledExpressions)]
     public static IDematerializer<T, TValue> Create<T, TValue>(CsvOptions<T> options)
         where T : unmanaged, IEquatable<T>
     {
@@ -42,12 +41,11 @@ internal sealed class ReflectionDematerializer
 
         for (int i = 0; i < bindings.Length; i++)
         {
-            var (memberExpression, _) = bindings[i].Member.GetAsMemberExpression(valueParam);
+            (MemberExpression memberExpression, _) = bindings[i].Member.GetAsMemberExpression(valueParam);
             var lambda = Expression.Lambda(memberExpression, valueParam);
             parameters[i + 2] = lambda.CompileLambda<Delegate>();
         }
 
-        var materializer = ctor.Invoke(parameters)!;
-        return (IDematerializer<T, TValue>)materializer;
+        return (IDematerializer<T, TValue>)ctor.Invoke(parameters);
     }
 }

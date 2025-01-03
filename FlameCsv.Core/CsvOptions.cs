@@ -9,11 +9,9 @@ using FlameCsv.Extensions;
 using FlameCsv.Utilities;
 using FlameCsv.Writing;
 using CommunityToolkit.HighPerformance.Buffers;
-using CommunityToolkit.Diagnostics;
 using FlameCsv.Reading;
 using System.Text;
 using System.Globalization;
-using static FlameCsv.Utilities.SealableUtil;
 
 namespace FlameCsv;
 
@@ -83,7 +81,7 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
         _hasHeader = other._hasHeader;
         _validateFieldCount = other._validateFieldCount;
         _fieldEscaping = other._fieldEscaping;
-        _arrayPool = other._arrayPool;
+        _memoryPool = other._memoryPool;
         _allowContentInExceptions = other._allowContentInExceptions;
         _booleanValues = other._booleanValues;
         _formatProvider = other._formatProvider;
@@ -119,6 +117,8 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
             return false;
 
         InitializeDialect();
+
+        // set to readonly only after dialect has been validated
         IsReadOnly = true;
         return true;
     }
@@ -172,14 +172,14 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
 
         if (typeof(T) == typeof(char))
         {
-            Debug.Assert(_null.GetType() == typeof(string), $"Invalid null type for {typeof(T)}: {_null.GetType()}");
+            Debug.Assert(_null is string, $"Invalid null type for {typeof(T)}: {_null.GetType()}");
             var value = Unsafe.As<string?>(_null).AsMemory();
             return Unsafe.As<ReadOnlyMemory<char>, ReadOnlyMemory<T>>(ref value);
         }
 
         if (typeof(T) == typeof(byte))
         {
-            Debug.Assert(_null.GetType() == typeof(Tuple<Utf8String>), $"Invalid null type for {typeof(T)}: {_null.GetType()}");
+            Debug.Assert(_null is Tuple<Utf8String>, $"Invalid null type for {typeof(T)}: {_null.GetType()}");
             var value = (ReadOnlyMemory<byte>)Unsafe.As<Tuple<Utf8String>>(_null).Item1;
             return Unsafe.As<ReadOnlyMemory<byte>, ReadOnlyMemory<T>>(ref value);
         }
@@ -251,6 +251,8 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     /// Writes <paramref name="value"/> as <typeparamref name="T"/> to <paramref name="destination"/>.
     /// </summary>
     /// <param name="value">Text to write</param>
+    /// <param name="destination">Buffer to write the value to</param>
+    /// <param name="charsWritten">Amount of tokens written to destination</param>
     public virtual bool TryWriteChars(ReadOnlySpan<char> value, Span<T> destination, out int charsWritten)
     {
         if (typeof(T) == typeof(char))
@@ -273,7 +275,7 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     internal bool _hasHeader = true;
     internal bool _validateFieldCount;
     internal CsvFieldEscaping _fieldEscaping;
-    internal ArrayPool<T> _arrayPool = ArrayPool<T>.Shared;
+    internal MemoryPool<T> _memoryPool = MemoryPool<T>.Shared;
     private bool _allowContentInExceptions;
     internal SealableList<(string, bool)>? _booleanValues;
     private bool _useDefaultConverters = true;
@@ -304,13 +306,13 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
 
             if (typeof(T) == typeof(char))
             {
-                Debug.Assert(local.GetType() == typeof(string));
+                Debug.Assert(local is string);
                 return Unsafe.As<string?>(local);
             }
 
             if (typeof(T) == typeof(byte))
             {
-                Debug.Assert(local.GetType() == typeof(Tuple<Utf8String>));
+                Debug.Assert(local is Tuple<Utf8String>);
                 return (string)Unsafe.As<Tuple<Utf8String>>(local).Item1;
             }
 
@@ -462,7 +464,7 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
         set
         {
             if (!Enum.IsDefined(value))
-                ThrowHelper.ThrowArgumentException(nameof(value));
+                Throw.Argument(nameof(value), "Value not defined in enum CsvFieldEscaping");
 
             this.SetValue(ref _fieldEscaping, value);
         }
@@ -478,7 +480,7 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     /// - <see langword="enum"/><br/>
     /// - <see langword="bool"/><br/>
     /// - Common <see cref="IBinaryNumber{TSelf}"/> types such as <see langword="int"/> and <see langword="long"/>)<br/>
-    /// - Common <see cref="IFloatingPoint{TSelf}{TSelf}"/> types such as <see langword="double"/> and <see langword="float"/><br/>
+    /// - Common <see cref="IFloatingPoint{TSelf}"/> types such as <see langword="double"/> and <see langword="float"/><br/>
     /// - <see cref="Guid"/><br/>
     /// - <see cref="DateTime"/><br/>
     /// - <see cref="DateTimeOffset"/><br/>
@@ -527,13 +529,14 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     }
 
     /// <summary>
-    /// Pool used to create reusable buffers when needed. Default is <see cref="ArrayPool{T}.Shared"/>.
-    /// Set to <see langword="null"/> to disable pooling and always allocate.
+    /// Pool used to create reusable buffers when reading multisegment data, or unescaping large fields.
+    /// Default allocator uses <see cref="MemoryPool{T}.Shared"/>.
+    /// Set to <see langword="null"/> to disable pooling and always heap allocate.
     /// </summary>
-    public ArrayPool<T>? ArrayPool
+    public MemoryPool<T>? MemoryPool
     {
-        get => ReferenceEquals(_arrayPool, AllocatingArrayPool<T>.Instance) ? null : _arrayPool;
-        set => this.SetValue(ref _arrayPool, value ?? AllocatingArrayPool<T>.Instance);
+        get => ReferenceEquals(_memoryPool, HeapMemoryPool<T>.Shared) ? null : _memoryPool;
+        set => this.SetValue(ref _memoryPool, value ?? HeapMemoryPool<T>.Shared);
     }
 
     /// <summary>
@@ -552,23 +555,24 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
         ArgumentNullException.ThrowIfNull(materializer);
         MakeReadOnly();
 
-        T[]? array = null;
+        ReadOnlySpan<T> span = record.Span;
+        IMemoryOwner<T>? memoryOwner = null;
 
         try
         {
-            var meta = CsvParser<T>.GetRecordMeta(record, this);
+            var meta = CsvParser<T>.GetRecordMeta(span, this);
             CsvFieldReader<T> reader = new(
                 this,
-                record,
+                span,
                 stackalloc T[Token<T>.StackLength],
-                ref array,
+                ref memoryOwner,
                 in meta);
 
             return materializer.Parse(ref reader);
         }
         finally
         {
-            _arrayPool?.EnsureReturned(ref array);
+            memoryOwner?.Dispose();
         }
     }
 
@@ -609,16 +613,14 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
 
 file static class TypeDictExtensions
 {
-#nullable disable
     [StackTraceHidden]
     public static T GetOrDefault<T>(
-        this TypeDictionary<T, object> dict,
+        this TypeDictionary<T, object>? dict,
         Type key,
         T defaultValue,
-        [CallerArgumentExpression(nameof(key))] string parameterName = null)
+        [CallerArgumentExpression(nameof(key))] string parameterName = "")
     {
         ArgumentNullException.ThrowIfNull(key, parameterName);
-        return dict is not null && dict.TryGetValue(key, out T value) ? value : defaultValue;
+        return dict is not null && dict.TryGetValue(key, out T? value) ? value : defaultValue;
     }
-#nullable enable
 }

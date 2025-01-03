@@ -1,11 +1,12 @@
 ﻿using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.HighPerformance;
-using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Tests.Utilities;
 
 namespace FlameCsv.Tests.Readers;
 
+[SuppressMessage("ReSharper", "ConvertTypeCheckPatternToNullCheck")]
 public static class EscapeModeTests
 {
     [Theory]
@@ -18,21 +19,23 @@ public static class EscapeModeTests
     [InlineData("\" test \"", "test")]
     public static void Should_Trim_Fields(string input, string expected)
     {
-        char[]? buffer = null;
+        IMemoryOwner<char>? allocated = null;
 
         var meta = new CsvRecordMeta { quoteCount = (uint)input.Count('"') };
         var record = new CsvFieldReader<char>(
             new CsvOptions<char> { Whitespace = " ", Escape = '\\' },
-            input.AsMemory(),
+            input,
             default,
-            ref buffer,
+            ref allocated,
             in meta);
 
         var field = UnixMode<char>.ReadNextField(ref record);
 
         Assert.Equal(expected, field.ToString());
         Assert.True(record.End);
-        Assert.Null(buffer);
+        Assert.Null(allocated);
+
+        allocated?.Dispose();
     }
 
     [Theory]
@@ -41,24 +44,26 @@ public static class EscapeModeTests
     [InlineData("te^^st", "te^st", true)]
     public static void Should_Unescape(string input, string expected, bool usesBuffer)
     {
-        char[]? buffer = null;
+        IMemoryOwner<char>? allocated = null;
 
         using var parser = CsvParser<char>.Create(new CsvOptions<char> { Escape = '^', Quote = '\'' });
-        var meta = parser.GetRecordMeta(input.AsMemory());
+        var meta = parser.GetRecordMeta(input);
         Span<char> stackbuffer = stackalloc char[16];
 
         var record = new CsvFieldReader<char>(
             parser.Options,
-            input.AsMemory(),
+            input,
             stackbuffer,
-            ref buffer,
+            ref allocated,
             in meta);
 
         var field = UnixMode<char>.ReadNextField(ref record);
         Assert.Equal(expected, field);
-        Assert.Null(buffer);
+        Assert.Null(allocated);
         Assert.Equal(usesBuffer, field.Overlaps(stackbuffer, out int elementOffset));
         Assert.Equal(0, elementOffset);
+
+        allocated?.Dispose();
     }
 
     [Theory]
@@ -72,25 +77,25 @@ public static class EscapeModeTests
     [InlineData("1,'Test','2'", new[] { "1", "Test", "2" })]
     public static void Should_Read_Fields(string input, string[] expected)
     {
-        using var pool = new ReturnTrackingArrayPool<char>();
+        using var pool = new ReturnTrackingArrayMemoryPool<char>();
         var options = new CsvOptions<char>
         {
             Escape = '^',
             Quote = '\'',
             AllowContentInExceptions = true,
-            ArrayPool = pool,
+            MemoryPool = pool,
         };
 
-        char[]? buffer = null;
+        IMemoryOwner<char>? allocated = null;
 
         using var parser = CsvParser<char>.Create(options);
-        var meta = parser.GetRecordMeta(input.AsMemory());
+        var meta = parser.GetRecordMeta(input);
 
         var state = new CsvFieldReader<char>(
             parser.Options,
-            input.AsMemory(),
+            input,
             stackalloc char[64],
-            ref buffer,
+            ref allocated,
             in meta);
 
         List<string> actual = [];
@@ -101,6 +106,8 @@ public static class EscapeModeTests
         }
 
         Assert.Equal(expected, actual);
+
+        allocated?.Dispose();
     }
 
     [Fact]
@@ -191,19 +198,36 @@ public static class EscapeModeTests
         int segmentSize,
         int emptyFrequency,
         string fullLine,
-        string noNewline)
+        string noNewline,
+        bool? guardedMemory)
     {
-        using var pool = new ReturnTrackingArrayPool<char>();
+        using MemoryPool<char> pool = guardedMemory switch
+        {
+            bool b when OperatingSystem.IsWindows() => new GuardedMemoryManagerPool<char>(b),
+            _ => new ReturnTrackingArrayMemoryPool<char>(),
+        };
+
         var options = new CsvOptions<char>
         {
             Escape = '^',
             Quote = '\'',
             AllowContentInExceptions = true,
-            ArrayPool = pool,
+            MemoryPool = pool,
         };
 
-        var originalData = MemorySegment<char>.AsSequence(fullLine.AsMemory(), segmentSize, emptyFrequency);
-        var originalWithoutNewline = MemorySegment<char>.AsSequence(noNewline.AsMemory(), segmentSize, emptyFrequency);
+        List<IDisposable> disposables = [];
+        Func<ReadOnlyMemory<char>, ReadOnlyMemory<char>> memoryFactory = src =>
+        {
+            // ReSharper disable once AccessToDisposedClosure
+            var owner = pool.Rent(src.Length);
+            var dst = owner.Memory;
+            src.CopyTo(dst);
+            disposables.Add(owner);
+            return dst[..src.Length];
+        };
+
+        var originalData = MemorySegment<char>.AsSequence(fullLine.AsMemory(), segmentSize, emptyFrequency, memoryFactory);
+        var originalWithoutNewline = MemorySegment<char>.AsSequence(noNewline.AsMemory(), segmentSize, emptyFrequency, memoryFactory);
 
         string data = originalData.ToString();
         var seq = originalData;
@@ -225,20 +249,23 @@ public static class EscapeModeTests
         Assert.Equal(withoutNewline, line.ToString());
         Assert.Equal(data.Replace("^'", "").Count('\''), (int)meta.quoteCount);
         Assert.Equal(data.Replace("^^", "^").Count('^'), (int)meta.escapeCount);
+
+        disposables.ForEach(d => d.Dispose());
     }
 
-    public static TheoryData<int, int, string, string> GetEscapeTestData()
+    public static TheoryData<int, int, string, string, bool?> GetEscapeTestData()
     {
         var values = from segmentSize in new[] { 1, 2, 4, 17, 128 }
                      from emptyFrequency in new[] { 0, 2, 3 }
                      from tdata in _escapeTestData.Select(x => (full: x, nolf: x[..^2]))
-                     select new { segmentSize, emptyFrequency, tdata.full, tdata.nolf };
+                     from guarded in (bool?[])(OperatingSystem.IsWindows() ? [true, false, null] : [null])
+                     select new { segmentSize, emptyFrequency, tdata.full, tdata.nolf, guarded };
 
-        var data = new TheoryData<int, int, string, string>();
+        var data = new TheoryData<int, int, string, string, bool?>();
 
         foreach (var x in values)
         {
-            data.Add(x.segmentSize, x.emptyFrequency, x.full, x.nolf);
+            data.Add(x.segmentSize, x.emptyFrequency, x.full, x.nolf, x.guarded);
         }
 
         return data;

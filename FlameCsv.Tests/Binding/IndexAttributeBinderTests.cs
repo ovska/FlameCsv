@@ -2,9 +2,6 @@ using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Binding.Internal;
 
-// ReSharper disable UnusedMember.Local
-// ReSharper disable ClassNeverInstantiated.Local
-
 namespace FlameCsv.Tests.Binding;
 
 public static class IndexAttributeBinderTests
@@ -13,9 +10,9 @@ public static class IndexAttributeBinderTests
     public static void Should_Bind_To_Members(bool write)
     {
         Assert.True(IndexAttributeBinder<Members>.TryGetBindings(write, out var result));
-        Assert.Equal(3, result!.Bindings.Length);
+        Assert.Equal(3, result.Bindings.Length);
         Assert.Equal(
-            new[] { (0, "A"), (1, "B"), (2, "C") },
+            [(0, "A"), (1, "B"), (2, "C")],
             result.Bindings.ToArray().Select(b => (b.Index, ((MemberCsvBinding<Members>)b).Member.Name)));
     }
 
@@ -23,9 +20,9 @@ public static class IndexAttributeBinderTests
     public static void Should_Bind_To_Targets(bool write)
     {
         Assert.True(IndexAttributeBinder<Class>.TryGetBindings(write, out var result));
-        Assert.Equal(3, result!.Bindings.Length);
+        Assert.Equal(3, result.Bindings.Length);
         Assert.Equal(
-            new[] { (0, "A"), (1, "B"), (2, "C") },
+            [(0, "A"), (1, "B"), (2, "C")],
             result.Bindings.ToArray().Select(b => (b.Index, ((MemberCsvBinding<Class>)b).Member.Name)));
     }
 
@@ -33,9 +30,9 @@ public static class IndexAttributeBinderTests
     public static void Should_Bind_To_Mixed(bool write)
     {
         Assert.True(IndexAttributeBinder<Mixed>.TryGetBindings(write, out var result));
-        Assert.Equal(3, result!.Bindings.Length);
+        Assert.Equal(3, result.Bindings.Length);
         Assert.Equal(
-            new[] { (0, "A"), (1, "B"), (2, "C") },
+            [(0, "A"), (1, "B"), (2, "C")],
             result.Bindings.ToArray().Select(b => (b.Index, ((MemberCsvBinding<Mixed>)b).Member.Name)));
     }
 
@@ -49,7 +46,7 @@ public static class IndexAttributeBinderTests
     public static void Should_Handle_Ignores(bool write)
     {
         Assert.True(IndexAttributeBinder<Ignored>.TryGetBindings(write, out var result));
-        Assert.Equal(3, result!.Bindings.Length);
+        Assert.Equal(3, result.Bindings.Length);
         Assert.Equal("A", ((MemberCsvBinding<Ignored>)result.Bindings[0]).Member.Name);
         Assert.True(result.Bindings[1].IsIgnored);
         Assert.Equal("B", ((MemberCsvBinding<Ignored>)result.Bindings[2]).Member.Name);
@@ -59,18 +56,18 @@ public static class IndexAttributeBinderTests
     public static void Should_Bind_To_Ctor_Params(bool write)
     {
         Assert.True(IndexAttributeBinder<Params>.TryGetBindings(write, out var result));
-        Assert.Equal(3, result!.Bindings.Length);
+        Assert.Equal(3, result.Bindings.Length);
 
         if (write)
         {
             Assert.Equal(
-                        new[] { (0, "A"), (1, "B"), (2, "C") },
+                [(0, "A"), (1, "B"), (2, "C")],
                         result.Bindings.ToArray().Select(b => (b.Index, ((MemberCsvBinding<Params>)b).Member.Name)));
         }
         else
         {
             Assert.Equal(
-                new[] { (0, "c"), (1, "b"), (2, "a") },
+                [(0, "c"), (1, "b"), (2, "a")],
                 result.Bindings.ToArray().Select(b => (b.Index, ((ParameterCsvBinding<Params>)b).Parameter.Name!)));
         }
     }
@@ -107,18 +104,11 @@ public static class IndexAttributeBinderTests
         [CsvIndex(2)] public bool C { get; set; }
     }
 
-    private class Params
+    private class Params([CsvIndex(2)] int a, [CsvIndex(1)] string? b, [CsvIndex(0)] bool c)
     {
-        [CsvIndex(0, Scope = CsvBindingScope.Write)] public int A { get; }
-        [CsvIndex(1, Scope = CsvBindingScope.Write)] public string? B { get; }
-        [CsvIndex(2, Scope = CsvBindingScope.Write)] public bool C { get; }
-
-        public Params([CsvIndex(2)] int a, [CsvIndex(1)] string? b, [CsvIndex(0)] bool c)
-        {
-            A = a;
-            B = b;
-            C = c;
-        }
+        [CsvIndex(0, Scope = CsvBindingScope.Write)] public int A { get; } = a;
+        [CsvIndex(1, Scope = CsvBindingScope.Write)] public string? B { get; } = b;
+        [CsvIndex(2, Scope = CsvBindingScope.Write)] public bool C { get; } = c;
     }
 
     private class None

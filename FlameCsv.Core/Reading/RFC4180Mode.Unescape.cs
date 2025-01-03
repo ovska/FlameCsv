@@ -1,5 +1,4 @@
-﻿using CommunityToolkit.Diagnostics;
-using CommunityToolkit.HighPerformance;
+﻿using CommunityToolkit.HighPerformance;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
 using System.Globalization;
@@ -71,7 +70,6 @@ static partial class RFC4180Mode<T>
         Copy(ref src, srcIndex, ref dst, dstIndex, 8);
         srcIndex += 8;
         dstIndex += 8;
-        goto FoundLong;
 
         FoundLong:
         if (srcIndex >= srcLength || !quote.Equals(Unsafe.Add(ref src, srcIndex)))
@@ -187,7 +185,7 @@ static partial class RFC4180Mode<T>
             Unsafe.CopyBlockUnaligned(
                 destination: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref dst, dstIndex)),
                 source: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref src, srcIndex)),
-                byteCount: (uint)Unsafe.SizeOf<T>() * length / (uint)sizeof(byte));
+                byteCount: (uint)Unsafe.SizeOf<T>() * length / sizeof(byte));
         }
     }
 
@@ -224,6 +222,6 @@ static partial class RFC4180Mode<T>
         error.Append(']');
 
         throw new UnreachableException(
-            $"Internal error, failed to unescape (token: {typeof(T).ToTypeString()}): {error}");
+            $"Internal error, failed to unescape (token: {typeof(T).FullName}): {error}");
     }
 }

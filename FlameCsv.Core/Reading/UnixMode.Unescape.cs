@@ -1,5 +1,4 @@
-﻿using CommunityToolkit.Diagnostics;
-using FlameCsv.Exceptions;
+﻿using FlameCsv.Exceptions;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -48,12 +47,12 @@ static partial class UnixMode<T>
             }
         }
 
-        Invalid:
+    Invalid:
         ThrowInvalidUnescape(source, null, escape, 0, escapeCount);
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private static ReadOnlyMemory<T> ThrowInvalidUnescape(
+    private static void ThrowInvalidUnescape(
         ReadOnlySpan<T> source,
         T? quote,
         T escape,
@@ -94,18 +93,21 @@ static partial class UnixMode<T>
         foreach (var token in source)
         {
             error.Append(
-                quote.HasValue && token.Equals(quote) ? '"' :
-                token.Equals(escape) ? 'E'
-                : 'x');
+                quote.HasValue && token.Equals(quote)
+                    ? '"'
+                    : token.Equals(escape)
+                        ? 'E'
+                        : 'x');
         }
 
         error.Append(']');
 
         throw new UnreachableException(
-            $"Internal error, failed to unescape (token: {typeof(T).ToTypeString()}): {error}"
+            $"Internal error, failed to unescape (token: {typeof(T).FullName}): {error}"
 #if DEBUG
-            , innerException: new CsvFormatException(source.ToString())
+           ,
+            innerException: new CsvFormatException(source.ToString())
 #endif
-            );
+        );
     }
 }

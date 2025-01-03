@@ -1,11 +1,11 @@
-﻿using System.Collections;
+﻿using System.Buffers;
+using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 
@@ -13,7 +13,7 @@ namespace FlameCsv.Reading;
 
 public interface ICsvFieldReader<T> : IEnumerator<ReadOnlySpan<T>> where T : unmanaged, IEquatable<T>
 {
-    ReadOnlyMemory<T> RawRecord { get; }
+    ReadOnlySpan<T> Record { get; }
     CsvOptions<T> Options { get; }
 }
 
@@ -35,29 +35,38 @@ public ref struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IE
     public readonly T? Escape => _dialect.Escape;
     public readonly ReadOnlySpan<T> Whitespace { get; }
 
+    readonly CsvOptions<T> ICsvFieldReader<T>.Options => _options;
     private readonly CsvOptions<T> _options;
-    private readonly ReadOnlyMemory<T> _record;
     private readonly Span<T> _unescapeBuffer;
-    private readonly ref T[]? _unescapeArray;
+    private readonly ref IMemoryOwner<T>? _unescapeAllocator;
 
+    [Obsolete("Use constructor accepting Span")]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvFieldReader(
         CsvOptions<T> options,
         ReadOnlyMemory<T> record,
         Span<T> unescapeBuffer,
-        ref T[]? unescapeArray,
+        ref IMemoryOwner<T>? unescapeAllocator,
+        ref readonly CsvRecordMeta meta) : this(options, record.Span, unescapeBuffer, ref unescapeAllocator, in meta)
+    {
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal CsvFieldReader(
+        CsvOptions<T> options,
+        ReadOnlySpan<T> record,
+        Span<T> unescapeBuffer,
+        ref IMemoryOwner<T>? unescapeAllocator,
         ref readonly CsvRecordMeta meta)
     {
-        Record = record.Span;
+        Record = record;
 
         _options = options;
         _dialect = ref options.Dialect;
         Whitespace = _dialect.Whitespace.Span;
 
-        _record = record;
-
         _unescapeBuffer = unescapeBuffer;
-        _unescapeArray = ref unescapeArray;
+        _unescapeAllocator = ref unescapeAllocator;
 
         isAtStart = true;
         quotesRemaining = meta.quoteCount;
@@ -79,14 +88,7 @@ public ref struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IE
         if (length <= _unescapeBuffer.Length)
             return _unescapeBuffer.Slice(0, length);
 
-        if (Unsafe.IsNullRef(ref _unescapeArray))
-        {
-            Debug.Fail("Null ref unescape array");
-            return GC.AllocateUninitializedArray<T>(length);
-        }
-
-        _options._arrayPool.EnsureCapacity(ref _unescapeArray, length);
-        return _unescapeArray.AsSpan(0, length);
+        return _options._memoryPool.EnsureCapacity(ref _unescapeAllocator, length, copyOnResize: false).Span;
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -105,7 +107,7 @@ public ref struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IE
         string escapeStr = !Escape.HasValue ? "" : $"and {escapesRemaining} escapes ";
         throw new UnreachableException(
             $"The record ended while having {quotesRemaining} quotes {escapeStr}remaining. " +
-            $"Record: {_options.AsPrintableString(_record)}");
+            $"Record: {_options.AsPrintableString(Record)}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -113,7 +115,7 @@ public ref struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IE
     {
         throw new UnreachableException(
             "The record had a string that ended in the middle without the next character being a delimiter. " +
-            $"Record: {_options.AsPrintableString(_record)}");
+            $"Record: {_options.AsPrintableString(Record)}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -121,8 +123,8 @@ public ref struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IE
     {
         throw new UnreachableException(
             "The CSV record was in an invalid state (escape token was the final character), " +
-            $"Remaining: {_options.AsPrintableString(_record.Slice(Consumed))}, " +
-            $"Record: {_options.AsPrintableString(_record)}");
+            $"Remaining: {_options.AsPrintableString(Record.Slice(Consumed))}, " +
+            $"Record: {_options.AsPrintableString(Record)}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -130,8 +132,8 @@ public ref struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IE
     {
         throw new UnreachableException(
             "The CSV record was in an invalid state (no delimiter at head after the first field), " +
-            $"Remaining: {_options.AsPrintableString(_record.Slice(Consumed))}, " +
-            $"Record: {_options.AsPrintableString(_record)}");
+            $"Remaining: {_options.AsPrintableString(Record.Slice(Consumed))}, " +
+            $"Record: {_options.AsPrintableString(Record)}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -151,16 +153,17 @@ public ref struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IE
 
         if (!End)
         {
-            sb.Append(CultureInfo.InvariantCulture, $"Remaining: {_options.AsPrintableString(_record.Slice(Consumed))}, ");
+            sb.Append(CultureInfo.InvariantCulture, $"Remaining: {_options.AsPrintableString(Record.Slice(Consumed))}, ");
         }
 
-        sb.Append(CultureInfo.InvariantCulture, $"Record: {_options.AsPrintableString(_record)}");
+        sb.Append(CultureInfo.InvariantCulture, $"Record: {_options.AsPrintableString(Record)}");
 
         throw new CsvFormatException(sb.ToString());
     }
 
     public ReadOnlySpan<T> Current { get; private set; }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool MoveNext()
     {
         if (!End)
@@ -182,9 +185,6 @@ public ref struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IE
 
         ThrowNotFullyConsumed();
     }
-
-    public readonly ReadOnlyMemory<T> RawRecord => _record;
-    public readonly CsvOptions<T> Options => _options;
 
     readonly void IEnumerator.Reset() => throw new NotSupportedException();
     readonly object IEnumerator.Current => throw new NotSupportedException();

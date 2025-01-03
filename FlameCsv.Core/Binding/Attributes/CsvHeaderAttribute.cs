@@ -5,8 +5,7 @@ namespace FlameCsv.Binding.Attributes;
 /// To just affect the order, leave the values empty to default to member name.
 /// </summary>
 /// <remarks>
-/// The provider determines case sensitivity, <see cref="HeaderTextBinder"/> or <see cref="HeaderUtf8Binder"/>
-/// for the default implementations.
+/// <see cref="CsvOptions{T}.Comparer"/> is used for comparisons.
 /// </remarks>
 public sealed class CsvHeaderAttribute : CsvHeaderConfigurationAttribute
 {

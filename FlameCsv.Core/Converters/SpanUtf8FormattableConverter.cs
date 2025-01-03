@@ -1,7 +1,6 @@
 ﻿using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
 
@@ -42,7 +41,11 @@ internal sealed class SpanUtf8FormattableConverter<TValue> : CsvConverter<byte, 
         int written = Encoding.UTF8.GetChars(source, buffer);
 
         bool result = TValue.TryParse(buffer[..written], _provider, out value);
-        ArrayPool<char>.Shared.EnsureReturned(ref toReturn);
+
+        if (toReturn is not null)
+        {
+            ArrayPool<char>.Shared.Return(toReturn);
+        }
 
         return result;
     }

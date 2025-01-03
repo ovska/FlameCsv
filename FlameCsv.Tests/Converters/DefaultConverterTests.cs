@@ -28,25 +28,25 @@ public abstract class DefaultConverterTests<T> where T : unmanaged, IEquatable<T
 
         var o = new CsvOptions<T> { Null = "null" };
 
-        Execute(true);
-        Execute(default(string?));
-        Execute(DayOfWeek.Monday);
-        Execute(new int?());
-        Execute(new DayOfWeek?());
-        Execute((DayOfWeek?)DayOfWeek.Monday);
-        Execute(1);
-        Execute(1u);
-        Execute(1d);
-        Execute(1f);
-        Execute(DateTime.UnixEpoch);
-        Execute(Guid.Empty);
+        ExecuteLocal(true);
+        ExecuteLocal(default(string?));
+        ExecuteLocal(DayOfWeek.Monday);
+        ExecuteLocal(new int?());
+        ExecuteLocal(new DayOfWeek?());
+        ExecuteLocal((DayOfWeek?)DayOfWeek.Monday);
+        ExecuteLocal(1);
+        ExecuteLocal(1u);
+        ExecuteLocal(1d);
+        ExecuteLocal(1f);
+        ExecuteLocal(DateTime.UnixEpoch);
+        ExecuteLocal(Guid.Empty);
 
-        void Execute<TValue>(TValue obj)
+        void ExecuteLocal<TValue>(TValue obj)
         {
             var converter = o.GetConverter<TValue>();
 
             if (obj is not null || converter.HandleNull)
-                Assert.False(converter.TryFormat([], obj, out int charsWritten));
+                Assert.False(converter.TryFormat([], obj, out _));
         }
     }
 
@@ -97,7 +97,7 @@ public abstract class DefaultConverterTests<T> where T : unmanaged, IEquatable<T
         RunInt<nuint>();
     }
 
-    private void RunFloat<TNumber>() where TNumber : notnull, IFloatingPointConstants<TNumber>, IFloatingPoint<TNumber>, IMinMaxValue<TNumber>
+    private void RunFloat<TNumber>() where TNumber : IFloatingPointConstants<TNumber>, IFloatingPoint<TNumber>, IMinMaxValue<TNumber>
     {
         Execute("0", TNumber.Zero);
         Execute("1", TNumber.One);
@@ -107,7 +107,7 @@ public abstract class DefaultConverterTests<T> where T : unmanaged, IEquatable<T
         Execute(TNumber.MaxValue.ToString(null, CultureInfo.InvariantCulture), TNumber.MaxValue);
     }
 
-    private void RunInt<TNumber>() where TNumber : notnull, INumber<TNumber>, IMinMaxValue<TNumber>
+    private void RunInt<TNumber>() where TNumber : INumber<TNumber>, IMinMaxValue<TNumber>
     {
         Execute("0", TNumber.Zero);
         Execute("1", TNumber.One);

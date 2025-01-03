@@ -53,13 +53,11 @@ public abstract class CsvBinding<T> :
     /// <inheritdoc/>
     public override int GetHashCode() => HashCode.Combine(Index, Sentinel);
 
-    /// <inheritdoc/>
     public static bool operator ==(CsvBinding<T> left, CsvBinding<T> right)
     {
-        return left is null ? right is null : left.Equals(right as CsvBinding);
+        return left?.Equals(right as CsvBinding) ?? right is null;
     }
 
-    /// <inheritdoc/>
     public static bool operator !=(CsvBinding<T> left, CsvBinding<T> right) => !(left == right);
 
     /// <summary>Returns the field index and member name.</summary>
@@ -78,4 +76,6 @@ public abstract class CsvBinding<T> :
     }
 
     protected abstract void PrintDetails(StringBuilder sb);
+
+    public abstract string DisplayName { get; }
 }

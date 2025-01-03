@@ -10,31 +10,27 @@ namespace FlameCsv.Tests.Binding;
 
 public static class CsvBooleanValuesAttributeTests
 {
-    public static TheoryData<string, bool, bool?> NonNullableTestData()
+    public static TheoryData<string, bool, bool?> NonNullableTestData() => new()
     {
-        var data = new TheoryData<string, bool, bool?>();
-        data.Add("1", true, true);
-        data.Add("Y", true, true);
-        data.Add("0", true, false);
-        data.Add("N", true, false);
-        data.Add("true", false, null);
-        data.Add("false", false, null);
-        return data;
-    }
+        { "1", true, true },
+        { "Y", true, true },
+        { "0", true, false },
+        { "N", true, false },
+        { "true", false, null },
+        { "false", false, null },
+    };
 
-    public static TheoryData<string, bool, bool?, string> NullableTestData()
+    public static TheoryData<string, bool, bool?, string> NullableTestData() => new()
     {
-        var data = new TheoryData<string, bool, bool?, string>();
-        data.Add("1", true, true, "");
-        data.Add("Y", true, true, "");
-        data.Add("0", true, false, "");
-        data.Add("N", true, false, "");
-        data.Add("true", false, null, "");
-        data.Add("false", false, null, "");
-        data.Add("null", true, null, "null");
-        data.Add("null", false, null, "");
-        return data;
-    }
+        { "1", true, true, "" },
+        { "Y", true, true, "" },
+        { "0", true, false, "" },
+        { "N", true, false, "" },
+        { "true", false, null, "" },
+        { "false", false, null, "" },
+        { "null", true, null, "null" },
+        { "null", false, null, "" },
+    };
 
     private class Shim
     {
@@ -63,7 +59,7 @@ public static class CsvBooleanValuesAttributeTests
             {
                 var binding = CsvBinding.ForMember<Shim>(0, typeof(Shim).GetProperty(property)!);
                 Assert.True(binding.TryGetAttribute<CsvConverterAttribute<char>>(out var @override));
-                _ = @override!.CreateConverter(typeof(bool), CsvOptions<char>.Default);
+                _ = @override.CreateConverter(typeof(bool), CsvOptions<char>.Default);
             });
     }
 
@@ -76,7 +72,7 @@ public static class CsvBooleanValuesAttributeTests
 
         Assert.True(binding.TryGetAttribute<CsvConverterAttribute<char>>(out var @override));
 
-        var parser = (CsvConverter<char, bool>)@override!.CreateConverter(typeof(bool), options);
+        var parser = (CsvConverter<char, bool>)@override.CreateConverter(typeof(bool), options);
 
         if (success)
         {
@@ -101,7 +97,7 @@ public static class CsvBooleanValuesAttributeTests
 
         Assert.True(binding.TryGetAttribute<CsvConverterAttribute<char>>(out var @override));
 
-        var parser = (CsvConverter<char, bool?>)@override!.CreateConverter(typeof(bool?), options);
+        var parser = (CsvConverter<char, bool?>)@override.CreateConverter(typeof(bool?), options);
 
         if (success)
         {
@@ -123,7 +119,7 @@ public static class CsvBooleanValuesAttributeTests
 
         Assert.True(binding.TryGetAttribute<CsvConverterAttribute<byte>>(out var @override));
 
-        var parser = (CsvConverter<byte, bool>)@override!.CreateConverter(typeof(bool), options);
+        var parser = (CsvConverter<byte, bool>)@override.CreateConverter(typeof(bool), options);
         var inputBytes = Encoding.UTF8.GetBytes(input);
 
         if (success)
@@ -149,7 +145,7 @@ public static class CsvBooleanValuesAttributeTests
 
         Assert.True(binding.TryGetAttribute<CsvConverterAttribute<byte>>(out var @override));
 
-        var parser = (FlameCsv.CsvConverter<byte, bool?>)@override!.CreateConverter(typeof(bool?), options);
+        var parser = (CsvConverter<byte, bool?>)@override.CreateConverter(typeof(bool?), options);
         var inputBytes = Encoding.UTF8.GetBytes(input);
 
         if (success)
@@ -172,7 +168,7 @@ public static class CsvBooleanValuesAttributeTests
 
         Assert.True(binding.TryGetAttribute<CsvConverterAttribute<char>>(out var @override));
 
-        var parser = (NullableConverter<char, bool>)@override!.CreateConverter(typeof(bool?), options);
+        var parser = (NullableConverter<char, bool>)@override.CreateConverter(typeof(bool?), options);
         Assert.True(parser.TryParse("", out bool? parsed));
         Assert.False(parsed.HasValue);
     }

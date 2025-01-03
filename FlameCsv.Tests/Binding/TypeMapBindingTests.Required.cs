@@ -2,6 +2,10 @@
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Converters;
 
+// ReSharper disable InconsistentNaming
+// ReSharper disable UnusedParameter.Local
+// ReSharper disable IdentifierTypo
+
 namespace FlameCsv.Tests.Binding;
 
 public static partial class TypeMapBindingTests
@@ -20,6 +24,7 @@ public static partial class TypeMapBindingTests
 
         [CsvConverter<char, EnumTextConverter<DayOfWeek>>]
         public DayOfWeek DOF { get; set; }
+
         public int? NullableInt { get; set; }
         public DayOfWeek? NullableDOF { get; set; }
         bool ISomething.Xyzz { get; set; }

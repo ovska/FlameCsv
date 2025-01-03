@@ -48,7 +48,7 @@ internal abstract partial class Dematerializer<T>
             16 => typeof(Dematerializer<,,,,,,,,,,,,,,,>),
             17 => typeof(Dematerializer<,,,,,,,,,,,,,,,,>),
             18 => typeof(Dematerializer<,,,,,,,,,,,,,,,,,>),
-            _ => throw new ArgumentException($"Unsupported typeparam count: {bindings.Length}"),
+            _ => throw new ArgumentException($"Unsupported type param count: {bindings.Length}"),
         }).MakeGenericType(types).GetConstructors()[0];
     }
 }

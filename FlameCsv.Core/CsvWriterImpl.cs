@@ -3,9 +3,6 @@ using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Runtime;
 using FlameCsv.Writing;
-using DAM = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute;
-using RUF = System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute;
-using RDC = System.Diagnostics.CodeAnalysis.RequiresDynamicCodeAttribute;
 
 namespace FlameCsv;
 
@@ -122,7 +119,7 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
         return _inner.Writer.FlushAsync(cancellationToken);
     }
 
-    private void WriteFieldCore<TField>([AllowNull] TField value)
+    private void WriteFieldCore<TField>(TField? value)
     {
         WriteDelimiterIfNeeded();
         _inner.WriteField(_options.GetConverter<TField?>(), value);

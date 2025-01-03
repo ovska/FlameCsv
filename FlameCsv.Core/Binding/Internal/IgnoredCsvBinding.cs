@@ -6,7 +6,7 @@ internal sealed class IgnoredCsvBinding<T>(int index) : CsvBinding<T>(index, nul
 {
     public override Type Type => typeof(CsvIgnored);
 
-    internal protected override object Sentinel => typeof(CsvIgnored);
+    protected internal override object Sentinel => typeof(CsvIgnored);
 
     protected internal override ReadOnlySpan<object> Attributes => default;
 
@@ -14,4 +14,6 @@ internal sealed class IgnoredCsvBinding<T>(int index) : CsvBinding<T>(index, nul
     {
         sb.Append("Ignored");
     }
+
+    public override string DisplayName => "Ignored";
 }

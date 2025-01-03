@@ -1,16 +1,15 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading;
 
 // based HEAVILY on the .NET runtime BufferSegment code
 [DebuggerDisplay(
     @"\{ TextSegment, Memory Length: {AvailableMemory.Length}, Index: {RunningIndex}, IsLast: {_next == null} \}")]
-internal sealed class TextSegment(ArrayPool<char> arrayPool) : ReadOnlySequenceSegment<char>
+internal sealed class TextSegment(MemoryPool<char> allocator) : ReadOnlySequenceSegment<char>
 {
-    internal char[]? _array;
+    internal IMemoryOwner<char>? _memory;
     private TextSegment? _next;
     private int _end;
 
@@ -49,12 +48,13 @@ internal sealed class TextSegment(ArrayPool<char> arrayPool) : ReadOnlySequenceS
 
     public void SetOwnedMemory(int bufferSize)
     {
-        AvailableMemory = _array = arrayPool.Rent(bufferSize);
+        AvailableMemory = (_memory = allocator.Rent(bufferSize)).Memory;
     }
 
     public void ResetMemory()
     {
-        arrayPool.EnsureReturned(ref _array);
+        _memory?.Dispose();
+        _memory = null!;
 
         Next = null;
         RunningIndex = 0;

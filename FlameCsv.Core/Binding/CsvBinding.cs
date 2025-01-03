@@ -1,8 +1,6 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
 using FlameCsv.Binding.Internal;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -31,11 +29,11 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// The target of the binding (member or parameter), or
     /// <see langword="typeof"/> <see cref="CsvIgnored"/> if ignored field.
     /// </summary>
-    internal protected abstract object Sentinel { get; }
+    protected internal abstract object Sentinel { get; }
 
-    internal protected CsvBinding(int index, string? header)
+    protected internal CsvBinding(int index, string? header)
     {
-        Guard.IsGreaterThanOrEqualTo(index, 0);
+        ArgumentOutOfRangeException.ThrowIfLessThan(index, 0);
         Index = index;
         Header = header;
     }
@@ -51,7 +49,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// <summary>
     /// Returns a binding for the specified member.
     /// </summary>
-    public static CsvBinding<T> For<[DynamicallyAccessedMembers(Messages.ReflectionBound)] T>(int index, Expression<Func<T, object?>> memberExpression)
+    public static CsvBinding<T> For<[DAM(Messages.ReflectionBound)] T>(int index, Expression<Func<T, object?>> memberExpression)
     {
         ArgumentNullException.ThrowIfNull(memberExpression);
         return ForMember<T>(index, memberExpression.GetMemberInfo());
@@ -62,14 +60,14 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <exception cref="CsvBindingException{T}"></exception>
-    public static CsvBinding<T> ForMember<[DynamicallyAccessedMembers(Messages.ReflectionBound)] T>(
+    public static CsvBinding<T> ForMember<[DAM(Messages.ReflectionBound)] T>(
         int index,
         MemberInfo member,
         string? header = null)
     {
         ArgumentNullException.ThrowIfNull(member);
 
-        foreach (var data in CsvTypeInfo<T>.Instance.Members)
+        foreach (var data in CsvTypeInfo.Members<T>())
         {
             if (ReferenceEquals(data.Value, member) || AreSameMember(data.Value, member))
             {
@@ -84,11 +82,11 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// Returns a binding for the specified parameter.
     /// </summary>
     /// <exception cref="CsvBindingException{T}"></exception>
-    public static CsvBinding<T> ForParameter<[DynamicallyAccessedMembers(Messages.ReflectionBound)] T>(int index, ParameterInfo parameter)
+    public static CsvBinding<T> ForParameter<[DAM(Messages.ReflectionBound)] T>(int index, ParameterInfo parameter)
     {
         ArgumentNullException.ThrowIfNull(parameter);
 
-        foreach (var data in CsvTypeInfo<T>.Instance.ConstructorParameters)
+        foreach (var data in CsvTypeInfo.ConstructorParameters<T>())
         {
             if (parameter.Equals(data.Value))
                 return new ParameterCsvBinding<T>(index, data);
@@ -101,7 +99,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// <summary>
     /// Returns a binding targeting the specified header binding match.
     /// </summary>
-    internal static CsvBinding<T> FromHeaderBinding<[DynamicallyAccessedMembers(Messages.ReflectionBound)] T>(
+    internal static CsvBinding<T> FromHeaderBinding<[DAM(Messages.ReflectionBound)] T>(
         int index,
         in HeaderBindingCandidate candidate)
     {
@@ -109,7 +107,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
         {
             MemberInfo m => ForMember<T>(index, m, candidate.Value),
             ParameterInfo p => ForParameter<T>(index, p),
-            _ => ThrowHelper.ThrowInvalidOperationException<CsvBinding<T>>("Invalid HeaderBindingArgs"),
+            _ => throw new InvalidOperationException("Invalid HeaderBindingArgs"),
         };
     }
 

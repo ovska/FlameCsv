@@ -30,13 +30,13 @@ public readonly struct CsvRecordEnumerable<T> : IEnumerable<CsvValueRecord<T>> w
 
     public CsvRecordEnumerator<T> GetEnumerator()
     {
-        Throw.IfDefaultStruct<CsvRecordEnumerable<T>>(_options);
+        Throw.IfDefaultStruct(_options is null, typeof(CsvRecordEnumerable<T>));
         return new(in _data, _options);
     }
 
     public IEnumerable<CsvRecord<T>> Preserve()
     {
-        Throw.IfDefaultStruct<CsvRecordEnumerable<T>>(_options);
+        Throw.IfDefaultStruct(_options is null, typeof(CsvRecordEnumerable<T>));
 
         foreach (var csvRecord in this)
         {

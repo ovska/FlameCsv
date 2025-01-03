@@ -1,6 +1,4 @@
 ﻿using System.Collections.Immutable;
-using System.Diagnostics;
-using CommunityToolkit.Diagnostics;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
@@ -13,28 +11,26 @@ internal sealed class CustomBooleanTextConverter : CsvConverter<char, bool>
 
     internal CustomBooleanTextConverter(CsvOptions<char> options)
     {
-        Debug.Assert(options._booleanValues is not null);
+        if (options._booleanValues is not { Count: > 0 })
+            Throw.Argument(nameof(CsvOptions<char>.BooleanValues), "No values defined");
 
-        Utilities.SealableList<(string, bool)> values = options._booleanValues;
-
-        Guard.IsNotEmpty(values);
-
-        var trues = ImmutableArray.CreateBuilder<string>(values.Count);
-        var falses = ImmutableArray.CreateBuilder<string>(values.Count);
+        var values = options._booleanValues;
+        var trueValues = ImmutableArray.CreateBuilder<string>(values.Count);
+        var falseValues = ImmutableArray.CreateBuilder<string>(values.Count);
 
         foreach ((string text, bool value) in values)
         {
-            (value ? trues : falses).Add(text);
+            (value ? trueValues : falseValues).Add(text);
         }
 
-        if (trues.Count == 0)
+        if (trueValues.Count == 0)
             Throw.Config_TrueOrFalseBooleanValues(true);
 
-        if (falses.Count == 0)
+        if (falseValues.Count == 0)
             Throw.Config_TrueOrFalseBooleanValues(false);
 
-        _trueValues = trues.ToImmutable();
-        _falseValues = falses.ToImmutable();
+        _trueValues = trueValues.ToImmutable();
+        _falseValues = falseValues.ToImmutable();
         _comparison = StringComparison.OrdinalIgnoreCase;
     }
 

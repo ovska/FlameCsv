@@ -1,6 +1,8 @@
 ﻿using FlameCsv.Binding;
 using FlameCsv.Exceptions;
 
+// ReSharper disable InconsistentNaming
+
 namespace FlameCsv.Tests.Binding;
 
 public static partial class TypeMapBindingTests
@@ -8,28 +10,26 @@ public static partial class TypeMapBindingTests
     [Fact]
     public static void Should_Require_At_Least_One_Field()
     {
-        Assert.ThrowsAny<CsvBindingException>(() =>
-        {
-            CsvReader.Read("a,b,c\r\n", ObjTypeMap_Simple.Instance, CsvOptions<char>.Default).ToList();
-        });
+        Assert.ThrowsAny<CsvBindingException>(
+            () => { _ = CsvReader.Read("a,b,c\r\n", ObjTypeMap_Simple.Instance, CsvOptions<char>.Default).ToList(); });
     }
 
     [Fact]
     public static void Should_Throw_On_Duplicate()
     {
-        Assert.ThrowsAny<CsvBindingException>(() =>
-        {
-            CsvReader.Read("id,name,id\r\n", ObjTypeMap_ThrowDuplicate.Instance, CsvOptions<char>.Default).ToList();
-        });
+        Assert.ThrowsAny<CsvBindingException>(
+            () =>
+            {
+                _ = CsvReader.Read("id,name,id\r\n", ObjTypeMap_ThrowDuplicate.Instance, CsvOptions<char>.Default)
+                    .ToList();
+            });
     }
 
     [Fact]
     public static void Should_Ignore_Unmatched()
     {
         const string data =
-            "id,name,test,isenabled\r\n" +
-            "1,Bob,This value is ignored,true\r\n" +
-            "2,Alice,This as well!,false\r\n";
+            "id,name,test,isenabled\r\n" + "1,Bob,This value is ignored,true\r\n" + "2,Alice,This as well!,false\r\n";
 
         var items = CsvReader.Read(data, ObjTypeMap_Simple.Instance, CsvOptions<char>.Default).ToList();
         AssertItems(items);
@@ -39,23 +39,17 @@ public static partial class TypeMapBindingTests
     public static void Should_Throw_On_Unmatched()
     {
         const string data =
-            "id,name,test,isenabled\r\n" +
-            "1,Bob,This value is ignored,true\r\n" +
-            "2,Alice,This as well!,false\r\n";
+            "id,name,test,isenabled\r\n" + "1,Bob,This value is ignored,true\r\n" + "2,Alice,This as well!,false\r\n";
 
-        Assert.ThrowsAny<CsvBindingException>(() =>
-        {
-            CsvReader.Read(data, ObjTypeMap_ThrowUnmatched.Instance, CsvOptions<char>.Default).ToList();
-        });
+        Assert.ThrowsAny<CsvBindingException>(
+            () => { _ = CsvReader.Read(data, ObjTypeMap_ThrowUnmatched.Instance, CsvOptions<char>.Default).ToList(); });
     }
 
     [Fact]
     public static void Should_Bind_To_TypeMap()
     {
         const string data =
-            "id,name,isenabled\r\n" +
-            "1,Bob,true\r\n" +
-            "2,Alice,false\r\n";
+            "id,name,isenabled\r\n" + "1,Bob,true\r\n" + "2,Alice,false\r\n";
 
         var items = CsvReader.Read(data, ObjTypeMap_Simple.Instance, CsvOptions<char>.Default).ToList();
         AssertItems(items);

@@ -17,7 +17,7 @@ public static class ConverterOverrideTests
 
         public override bool TryFormat(Span<char> destination, double value, out int charsWritten)
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
         public override bool TryParse(ReadOnlySpan<char> source, out double value)

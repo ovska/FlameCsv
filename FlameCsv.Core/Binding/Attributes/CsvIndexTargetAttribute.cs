@@ -1,5 +1,3 @@
-using CommunityToolkit.Diagnostics;
-
 namespace FlameCsv.Binding.Attributes;
 
 /// <summary>
@@ -25,9 +23,9 @@ public sealed class CsvIndexTargetAttribute : Attribute, ICsvBindingAttribute
         int index,
         string memberName)
     {
-        Guard.IsGreaterThanOrEqualTo(index, 0);
-        Guard.IsNotNullOrWhiteSpace(memberName);
+        ArgumentOutOfRangeException.ThrowIfLessThan(index, 0);
+        ArgumentException.ThrowIfNullOrWhiteSpace(memberName);
         Index = index;
-        MemberName = memberName;
+        MemberName = memberName.Trim();
     }
 }

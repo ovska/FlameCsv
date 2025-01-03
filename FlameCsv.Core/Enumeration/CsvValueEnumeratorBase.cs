@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -8,6 +7,7 @@ using FlameCsv.Reading;
 using FlameCsv.Runtime;
 using FlameCsv.Utilities;
 using System.Diagnostics;
+using System.Buffers;
 
 namespace FlameCsv.Enumeration;
 
@@ -25,7 +25,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     private long _position;
     private int _line;
 
-    private T[]? _unescapeBuffer; // string unescaping
+    private IMemoryOwner<T>? _unescapeBuffer; // string unescaping
     protected readonly CsvParser<T> _parser;
 
     protected CsvValueEnumeratorBase(CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
@@ -41,7 +41,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         ArgumentNullException.ThrowIfNull(options);
     }
 
-    [RequiresUnreferencedCode(Messages.CompiledExpressions)]
+    [RUF(Messages.CompiledExpressions)]
     protected CsvValueEnumeratorBase(CsvOptions<T> options) : this(options, null, null)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -55,16 +55,13 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         _parser = CsvParser<T>.Create(options);
         _materializer = materializer;
         _typeMap = typeMap;
-
-        _unescapeBuffer = null;
-
         _current = default!;
     }
 
     protected bool TryRead(bool isFinalBlock)
     {
         ReadNextRecord:
-        if (!_parser.TryReadLine(out ReadOnlyMemory<T> record, out CsvRecordMeta meta, isFinalBlock))
+        if (!_parser.TryReadLine(out ReadOnlyMemory<T> line, out CsvRecordMeta meta, isFinalBlock))
         {
             return false;
         }
@@ -72,7 +69,9 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         long position = _position;
 
         _line++;
-        _position += record.Length + (isFinalBlock ? 0 : _parser._newlineLength);
+        _position += line.Length + (isFinalBlock ? 0 : _parser._newlineLength);
+
+        ReadOnlySpan<T> record = line.Span;
 
         if (_parser.SkipRecord(record, _line, _parser.HasHeader ? _materializer is not null : null))
         {
@@ -124,7 +123,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = Messages.HeaderProcessorSuppressionMessage)]
     [UnconditionalSuppressMessage("Trimming", "IL2091", Justification = Messages.HeaderProcessorSuppressionMessage)]
     [UnconditionalSuppressMessage("AOT", "IL3050", Justification = Messages.HeaderProcessorSuppressionMessage)]
-    private bool TryReadHeader(ReadOnlyMemory<T> record)
+    private bool TryReadHeader(ReadOnlySpan<T> record)
     {
         Debug.Assert(_typeMap is not null || (RuntimeFeature.IsDynamicCodeSupported && RuntimeFeature.IsDynamicCodeCompiled));
 
@@ -168,7 +167,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private void ThrowInvalidFormatException(Exception innerException, ReadOnlyMemory<T> line)
+    private void ThrowInvalidFormatException(Exception innerException, ReadOnlySpan<T> line)
     {
         throw new CsvFormatException(
             $"The CSV was in an invalid format. The record was on line {_line} at character " +
@@ -179,7 +178,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private void ThrowUnhandledException(
         Exception innerException,
-        ReadOnlyMemory<T> record,
+        ReadOnlySpan<T> record,
         long position)
     {
         throw new CsvUnhandledException(
@@ -202,7 +201,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         {
             using (_parser)
             {
-                _parser.ArrayPool.EnsureReturned(ref _unescapeBuffer);
+                _unescapeBuffer?.Dispose();
             }
         }
     }

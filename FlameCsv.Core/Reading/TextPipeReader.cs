@@ -1,7 +1,7 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.Diagnostics;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading;
 
@@ -15,7 +15,7 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
 {
     private readonly TextReader _innerReader;
     private readonly int _bufferSize;
-    private readonly ArrayPool<char> _arrayPool;
+    private readonly MemoryPool<char> _allocator;
 
     private TextSegment? _readHead;
     private int _readIndex;
@@ -30,18 +30,18 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
     // Mutable struct! Don't make this readonly
     private TextSegmentPool _segmentPool;
 
-    public TextPipeReader(TextReader innerReader, int bufferSize, ArrayPool<char> arrayPool)
+    public TextPipeReader(TextReader innerReader, int bufferSize, MemoryPool<char> allocator)
     {
         ArgumentNullException.ThrowIfNull(innerReader);
 
         if (bufferSize != -1)
             ArgumentOutOfRangeException.ThrowIfLessThan(bufferSize, 1);
 
-        ArgumentNullException.ThrowIfNull(arrayPool);
+        ArgumentNullException.ThrowIfNull(allocator);
 
         _innerReader = innerReader;
         _bufferSize = bufferSize == -1 ? CsvReader.DefaultBufferSize : bufferSize;
-        _arrayPool = arrayPool;
+        _allocator = allocator;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -130,10 +130,7 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
 
     public void AdvanceTo(SequencePosition consumed, SequencePosition examined)
     {
-        if (_disposed)
-        {
-            ThrowHelper.ThrowObjectDisposedException(nameof(TextPipeReader));
-        }
+        ObjectDisposedException.ThrowIf(_disposed, this);
 
         TextSegment? consumedSegment = (TextSegment?)consumed.GetObject();
         int consumedIndex = consumed.GetInteger();
@@ -147,7 +144,7 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
 
         if (_readHead is null)
         {
-            ThrowHelper.ThrowInvalidOperationException("Invalid AdvanceTo, head is null");
+            Throw.InvalidOperation("Invalid AdvanceTo, head is null");
         }
 
         TextSegment returnStart = _readHead;
@@ -224,7 +221,7 @@ internal sealed class TextPipeReader : ICsvPipeReader<char>
             return segment;
         }
 
-        return new TextSegment(_arrayPool);
+        return new TextSegment(_allocator);
     }
 
     private void ReturnSegmentUnsynchronized(TextSegment segment)

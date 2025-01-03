@@ -1,6 +1,4 @@
-﻿using CommunityToolkit.Diagnostics;
-
-namespace FlameCsv;
+﻿namespace FlameCsv;
 
 /// <summary>
 /// Represents an ASCII UTF-8 character.
@@ -11,17 +9,13 @@ internal readonly struct Utf8Char : IEquatable<Utf8Char>, IEquatable<char>, IEqu
 
     public Utf8Char(char value)
     {
-        if (value >= 128)
-            ThrowHelper.ThrowArgumentOutOfRangeException<char>(nameof(value), value, "Cannot convert char to UTF8 byte");
-
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(value, 128);
         _value = (byte)value;
     }
 
     public Utf8Char(byte value)
     {
-        if (value >= 128)
-            ThrowHelper.ThrowArgumentOutOfRangeException<char>(nameof(value), value, "Cannot convert char to UTF8 byte");
-
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(value, 128);
         _value = value;
     }
 
