@@ -64,49 +64,6 @@ public ref struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IE
         escapesRemaining = meta.escapeCount;
     }
 
-    public readonly ReadOnlyMemory<T> GetAsMemory(ReadOnlySpan<T> field)
-    {
-        if (field.IsEmpty)
-            return default;
-
-        Debug.Assert(Record == _record.Span);
-
-        if (field.Overlaps(Record, out int elementOffset))
-        {
-            return _record.Slice(-elementOffset, field.Length);
-        }
-
-        if (!Unsafe.IsNullRef(ref _unescapeArray) &&
-            _unescapeArray != null &&
-            field.Overlaps(_unescapeArray.AsSpan(), out elementOffset))
-        {
-            return _unescapeArray.AsMemory(elementOffset, field.Length);
-        }
-
-        return ThrowForInvalidGetAsMemory();
-    }
-
-    private readonly ReadOnlyMemory<T> ThrowForInvalidGetAsMemory()
-    {
-        string message;
-
-        if (Unsafe.IsNullRef(ref _unescapeArray))
-        {
-            message = "unescapeArray was nullref";
-        }
-        else if (_unescapeArray is null)
-        {
-            message = "unescapeArray was null";
-        }
-        else
-        {
-            message = "field was not constructed from unescapeArray";
-        }
-
-        throw new InvalidOperationException(
-            $"GetAsMemory failed, field was not from the original buffer, and {message}");
-    }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal readonly ref T GetRemainingRef(out nuint remaining)
     {
