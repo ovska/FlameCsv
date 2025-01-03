@@ -77,7 +77,6 @@ namespace ");
     {
     ");
         WriteStaticInstance(sb, in typeMap);
-        WriteCacheKeys(sb, in typeMap);
         GetReadCode(sb, in typeMap);
         GetWriteCode(sb, in typeMap);
         sb.Append(@"
@@ -120,22 +119,6 @@ namespace ");
                 return;
             }
         }
-    }
-
-    private static void WriteCacheKeys(StringBuilder sb, ref readonly TypeMapSymbol typeMap)
-    {
-        return;
-
-        foreach (var binding in typeMap.Bindings.AllBindings)
-        {
-            sb.Append(@"        private static readonly object __CacheKey_");
-            sb.Append(binding.Name);
-            sb.Append(@" = new object();
-");
-        }
-
-        sb.Append(@"
-");
     }
 
     private static CompilationTarget GetSemanticTargetForGeneration(

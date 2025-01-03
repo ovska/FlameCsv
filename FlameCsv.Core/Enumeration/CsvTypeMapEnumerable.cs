@@ -29,6 +29,5 @@ public sealed class CsvTypeMapEnumerable<T, TValue> : IEnumerable<TValue> where 
     }
 
     IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator() => GetEnumerator();
-
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

@@ -1,15 +1,14 @@
-﻿namespace FlameCsv.SourceGen.Bindings;
+﻿
+namespace FlameCsv.SourceGen.Bindings;
 
 internal sealed class MemberBinding : IComparable<MemberBinding>, IBinding
 {
     public string Name => Symbol.Name;
-    public IEnumerable<string> Names { get; }
+    public IReadOnlyList<string> Names { get; }
 
     public ISymbol Symbol { get; }
     public ITypeSymbol Type { get; }
     public bool IsRequired { get; }
-    public string ConverterId { get; }
-    public string HandlerId { get; }
     public int Order { get; }
     public BindingScope Scope { get; set; }
 
@@ -30,8 +29,6 @@ internal sealed class MemberBinding : IComparable<MemberBinding>, IBinding
         Order = meta.Order;
         Names = meta.Names;
         Scope = meta.Scope;
-        ConverterId = $"@__Converter_{symbol.Name}";
-        HandlerId = $"@s__Handler_{symbol.Name}";
 
         CanRead = meta.Scope != BindingScope.Write &&
             symbol is IPropertySymbol { IsReadOnly: false } or IFieldSymbol { IsReadOnly: false, IsConst: false };
@@ -53,5 +50,17 @@ internal sealed class MemberBinding : IComparable<MemberBinding>, IBinding
 
         interfaceSymbol = null!;
         return false;
+    }
+
+    public void WriteConverterId(StringBuilder sb)
+    {
+        sb.Append("@__Converter_");
+        sb.Append(Symbol.Name);
+    }
+
+    public void WriteHandlerId(StringBuilder sb)
+    {
+        sb.Append("@s__Handler_");
+        sb.Append(Symbol.Name);
     }
 }

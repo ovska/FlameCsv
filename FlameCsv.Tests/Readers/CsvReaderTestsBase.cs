@@ -1,3 +1,5 @@
+using System.Buffers;
+using System.Diagnostics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
 using FlameCsv.Enumeration;
@@ -24,7 +26,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
     private static readonly bool[] _booleans = [true, false];
     private static readonly Mode[] _escaping = [Mode.None, Mode.RFC, Mode.Escape];
 
-    private readonly ReturnTrackingArrayPool<T> _pool = new ReturnTrackingArrayPool<T>();
+    private readonly ArrayPool<T> _pool = Debugger.IsAttached ? new ReturnTrackingArrayPool<T>() : ArrayPool<T>.Shared;
 
     protected abstract CsvTypeMap<T, Obj> TypeMap { get; }
 
@@ -94,7 +96,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
     }
 
     [Theory, MemberData(nameof(SyncParams))]
-    public void Objects_Sync(
+    public async Task Objects_Sync(
         NewlineToken newline,
         bool header,
         bool trailingLF,
@@ -103,19 +105,22 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         Mode escaping,
         bool sourceGen)
     {
-        CsvOptions<T> options = GetOptions(newline, header, escaping);
+        await Validate(Enumerate(), escaping);
 
-        List<Obj> items = new(1000);
+        IAsyncEnumerable<Obj> Enumerate()
+        {
+            CsvOptions<T> options = GetOptions(newline, header, escaping);
 
-        var memory = TestDataGenerator.Generate<T>(newline, header, trailingLF, escaping);
-        var sequence = MemorySegment<T>.AsSequence(memory, bufferSize, emptySegmentFreq);
+            List<Obj> items = new(1000);
 
-        if (sourceGen)
-            items.AddRange(CsvReader.Read(sequence, TypeMap, options));
-        else
-            items.AddRange(CsvReader.Read<T, Obj>(sequence, options));
+            var memory = TestDataGenerator.Generate<T>(newline, header, trailingLF, escaping);
+            var sequence = MemorySegment<T>.AsSequence(memory, bufferSize, emptySegmentFreq);
 
-        Validate(items, escaping);
+            return SyncAsyncEnumerable.Create<Obj>(
+                sourceGen
+                    ? CsvReader.Read(sequence, TypeMap, options)
+                    : CsvReader.Read<T, Obj>(sequence, options));
+        }
     }
 
     [Theory, MemberData(nameof(SyncParams))]
@@ -128,21 +133,23 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         Mode escaping,
         bool sourceGen)
     {
-        CsvOptions<T> options = GetOptions(newline, header, escaping);
+        await Validate(Enumerate(), escaping);
 
-        List<Obj> items;
-
-        var memory = TestDataGenerator.Generate<T>(newline, header, trailingLF, escaping);
-        var sequence = MemorySegment<T>.AsSequence(memory, bufferSize, emptySegmentFreq);
-
-        CsvRecordEnumerable<T> enumerable = CsvReader.Enumerate(sequence, options);
-
-        using (var enumerator = enumerable.GetEnumerator())
+        IAsyncEnumerable<Obj> Enumerate()
         {
-            items = await GetItems(() => new(enumerator.MoveNext() ? enumerator.Current : null), sourceGen, header, newline);
-        }
+            CsvOptions<T> options = GetOptions(newline, header, escaping);
 
-        Validate(items, escaping);
+            var memory = TestDataGenerator.Generate<T>(newline, header, trailingLF, escaping);
+            var sequence = MemorySegment<T>.AsSequence(memory, bufferSize, emptySegmentFreq);
+
+            var items = GetItems(
+                SyncAsyncEnumerable.Create(CsvReader.Enumerate(sequence, options)),
+                sourceGen,
+                header,
+                newline);
+
+            return items;
+        }
     }
 
     [Theory, MemberData(nameof(AsyncParams))]
@@ -154,21 +161,24 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         Mode escaping,
         bool sourceGen)
     {
-        CsvOptions<T> options = GetOptions(newline, header, escaping);
+        await Validate(Enumerate(), escaping);
 
-        List<Obj> items = new(1000);
-
-        var data = TestDataGenerator.Generate<byte>(newline, header, trailingLF, escaping);
-
-        await using (var stream = data.AsStream())
+        async IAsyncEnumerable<Obj> Enumerate()
         {
-            await foreach (var obj in GetObjects(stream, options, bufferSize, sourceGen))
+            CsvOptions<T> options = GetOptions(newline, header, escaping);
+
+            List<Obj> items = new(1000);
+
+            var data = TestDataGenerator.Generate<byte>(newline, header, trailingLF, escaping);
+
+            await using (var stream = data.AsStream())
             {
-                items.Add(obj);
+                await foreach (var obj in GetObjects(stream, options, bufferSize, sourceGen).ConfigureAwait(false))
+                {
+                    yield return obj;
+                }
             }
         }
-
-        Validate(items, escaping);
     }
 
     [Theory, MemberData(nameof(AsyncParams))]
@@ -180,52 +190,47 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
         Mode escaping,
         bool sourceGen)
     {
-        CsvOptions<T> options = GetOptions(newline, header, escaping);
+        await Validate(Enumerate(), escaping);
 
-        List<Obj> items;
-
-        var data = TestDataGenerator.Generate<byte>(newline, header, trailingLF, escaping);
-
-        await using (var stream = data.AsStream())
+        async IAsyncEnumerable<Obj> Enumerate()
         {
-            CsvRecordAsyncEnumerable<T> enumerable = GetRecords(stream, options, bufferSize);
+            CsvOptions<T> options = GetOptions(newline, header, escaping);
 
-            await using var enumerator = enumerable.GetAsyncEnumerator();
-            items = await GetItems(
-                async () => await enumerator.MoveNextAsync() ? enumerator.Current : null,
-                sourceGen,
-                header,
-                newline);
+            var data = TestDataGenerator.Generate<byte>(newline, header, trailingLF, escaping);
+
+            await using (var stream = data.AsStream())
+            {
+                var items = GetItems(GetRecords(stream, options, bufferSize), sourceGen, header, newline);
+                await foreach (var item in items.ConfigureAwait(false))
+                {
+                    yield return item;
+                }
+            }
         }
-
-        Validate(items, escaping);
     }
 
-    private static void Validate(List<Obj> items, Mode escaping)
+    private static async Task Validate(
+        IAsyncEnumerable<Obj> enumerable,
+        Mode escaping)
     {
-        if (items.Count != 1000)
+        int i = 0;
+
+        await foreach (var obj in enumerable.ConfigureAwait(false))
         {
-            var missing = Enumerable.Range(0, 1_000).ToHashSet();
-
-            foreach (var obj in items)
-                missing.Remove(obj.Id);
-
-            Assert.Empty(missing);
-        }
-
-        for (int i = 0; i < 1_000; i++)
-        {
-            var obj = items[i];
             Assert.Equal(i, obj.Id);
             Assert.Equal(escaping != Mode.None ? $"Name\"{i}" : $"Name-{i}", obj.Name);
             Assert.Equal(i % 2 == 0, obj.IsEnabled);
             Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(i), obj.LastLogin);
             Assert.Equal(new Guid(i, 0, 0, TestDataGenerator._guidbytes), obj.Token);
+
+            i++;
         }
+
+        Assert.Equal(1_000, i);
     }
 
-    private async Task<List<Obj>> GetItems(
-        Func<ValueTask<CsvValueRecord<T>?>> enumerator,
+    private async IAsyncEnumerable<Obj> GetItems(
+        IAsyncEnumerable<CsvValueRecord<T>> enumerable,
         bool sourceGen,
         bool hasHeader,
         NewlineToken newline)
@@ -241,7 +246,7 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
             _ => 2,
         };
 
-        while (await enumerator() is { } record)
+        await foreach (var record in enumerable.ConfigureAwait(false))
         {
             if (tokenPosition == 0 && hasHeader)
             {
@@ -269,9 +274,9 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
             items.Add(obj);
 
             Assert.Equal(5, record.GetFieldCount());
-        }
 
-        return items;
+            yield return obj;
+        }
     }
 
     private CsvOptions<T> GetOptions(NewlineToken newline, bool header, Mode escaping)
@@ -305,6 +310,6 @@ public abstract class CsvReaderTestsBase<T> : IDisposable
 
     public void Dispose()
     {
-        _pool.Dispose();
+        (_pool as IDisposable)?.Dispose();
     }
 }

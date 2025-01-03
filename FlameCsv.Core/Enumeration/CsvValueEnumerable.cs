@@ -26,6 +26,5 @@ public sealed class CsvValueEnumerable<T, [DynamicallyAccessedMembers(Messages.R
     }
 
     IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator() => GetEnumerator();
-
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

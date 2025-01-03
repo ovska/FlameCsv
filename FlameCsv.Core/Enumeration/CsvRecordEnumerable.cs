@@ -1,4 +1,6 @@
 ﻿using System.Buffers;
+using System.Collections;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Enumeration;
 
@@ -9,7 +11,7 @@ namespace FlameCsv.Enumeration;
 /// Maybe be enumerated multiple times, multiple concurrent enumerations are allowed.
 /// </remarks>
 /// <typeparam name="T">Token type</typeparam>
-public readonly struct CsvRecordEnumerable<T> where T : unmanaged, IEquatable<T>
+public readonly struct CsvRecordEnumerable<T> : IEnumerable<CsvValueRecord<T>> where T : unmanaged, IEquatable<T>
 {
     private readonly ReadOnlySequence<T> _data;
     private readonly CsvOptions<T> _options;
@@ -28,11 +30,20 @@ public readonly struct CsvRecordEnumerable<T> where T : unmanaged, IEquatable<T>
 
     public CsvRecordEnumerator<T> GetEnumerator()
     {
+        Throw.IfDefaultStruct<CsvRecordEnumerable<T>>(_options);
         return new(in _data, _options);
     }
 
-    public IEnumerable<CsvRecord<T>> AsEnumerable()
+    public IEnumerable<CsvRecord<T>> Preserve()
     {
-        return new CopyingRecordEnumerable<T>(in this);
+        Throw.IfDefaultStruct<CsvRecordEnumerable<T>>(_options);
+
+        foreach (var csvRecord in this)
+        {
+            yield return new CsvRecord<T>(in csvRecord);
+        }
     }
+
+    IEnumerator<CsvValueRecord<T>> IEnumerable<CsvValueRecord<T>>.GetEnumerator() => GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

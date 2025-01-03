@@ -1,5 +1,4 @@
 ﻿using FlameCsv.SourceGen.Helpers;
-using Microsoft.CodeAnalysis;
 
 namespace FlameCsv.SourceGen.Models;
 
@@ -19,11 +18,18 @@ internal sealed record ParameterModel : IComparable<ParameterModel> // TODO IEqu
         KnownSymbols knownSymbols,
         out ImmutableEquatableArray<ParameterModel> model)
     {
+        // TODO
         if (symbol is not IMethodSymbol { MethodKind: MethodKind.Constructor, DeclaredAccessibility: not Accessibility.Private } ctor)
             goto Fail;
 
+        if (ctor.Parameters.Length == 0 || knownSymbols.Nullable)
+        {
+            model = [];
+            return false;
+        }
+
         Fail:
-        model = default!;
+        model = [];
         return false;
     }
 

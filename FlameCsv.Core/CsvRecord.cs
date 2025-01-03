@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
@@ -23,7 +22,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     private readonly Dictionary<string, int>? _header;
     private readonly string[]? _headerNames;
 
-    public CsvRecord(CsvValueRecord<T> record)
+    public CsvRecord(in CsvValueRecord<T> record)
     {
         Throw.IfDefaultStruct<CsvValueRecord<T>>(record._options);
 

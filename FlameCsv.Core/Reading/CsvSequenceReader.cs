@@ -16,7 +16,7 @@ internal struct CsvSequenceReader<T> where T : unmanaged, IEquatable<T>
     /// Create a <see cref="SequenceReader{T}"/> over the given <see cref="ReadOnlySequence{T}"/>.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public CsvSequenceReader(ReadOnlySequence<T> sequence)
+    public CsvSequenceReader(in ReadOnlySequence<T> sequence)
     {
         CurrentIndex = 0;
         Consumed = 0;
