@@ -29,7 +29,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
 
     private ReadOnlyMemory<T> _record;
     private CsvRecordMeta _meta;
-    private WritableBuffer<T> _fields;
+    internal WritableBuffer<T> _fields;
 
     public Dictionary<string, int>? Header
     {
@@ -108,7 +108,10 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
     {
         Throw.IfEnumerationDisposed(Version == -1);
 
-        FullyConsume();
+        if (_fields.Length == 0)
+        {
+            Consume();
+        }
 
         if (index < _fields.Length)
         {
@@ -125,7 +128,10 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
     {
         Throw.IfEnumerationDisposed(Version == -1);
 
-        FullyConsume();
+        if (_fields.Length == 0)
+        {
+            Consume();
+        }
 
         if (index < _fields.Length)
         {
@@ -140,7 +146,11 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int GetFieldCount()
     {
-        FullyConsume();
+        if (_fields.Length == 0)
+        {
+            Consume();
+        }
+
         return _fields.Length;
     }
 
@@ -162,21 +172,15 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
     public ref WritableBuffer<T> GetFields()
     {
         if (_fields.Length == 0)
-            FullyConsume();
+        {
+            Consume();
+        }
+
         return ref _fields;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void FullyConsume()
-    {
-        if (_fields.Length > 0)
-            return;
-
-        FullyConsumeSlow();
-    }
-
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void FullyConsumeSlow()
+    private void Consume()
     {
         Debug.Assert(_fields.Length == 0);
 
@@ -214,7 +218,8 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
 
     private void ValidateFieldCount()
     {
-        FullyConsume();
+        if (_fields.Length == 0)
+            Consume();
 
         if (_expectedFieldCount is null)
         {
@@ -224,6 +229,22 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
         {
             Throw.InvalidData_FieldCount(_expectedFieldCount.Value, _fields.Length);
         }
+    }
+
+    public BufferFieldReader<T> CreateFieldReader()
+    {
+        if (_fields.Length == 0)
+            Consume();
+
+        return _fields.CreateReader(_parser._options, _record.Span);
+    }
+
+    public ReadOnlyMemory<T>[] PreserveFields()
+    {
+        if (_fields.Length == 0)
+            Consume();
+
+        return _fields.Preserve();
     }
 
 #if DEBUG

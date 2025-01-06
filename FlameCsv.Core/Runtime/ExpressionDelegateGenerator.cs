@@ -43,16 +43,17 @@ internal sealed class ExpressionDelegateGenerator<T> : DelegateGenerator<T> wher
 
         ReadOnlyCollectionBuilder<ParameterExpression> GetParametersByBindingIndex()
         {
-            var array = new ReadOnlyCollectionBuilder<ParameterExpression>(bc.Bindings.Length);
+            var builder = new ReadOnlyCollectionBuilder<ParameterExpression>(bc.Bindings.Length);
 
             foreach (var binding in bc.Bindings)
             {
-                array[binding.Index] = Expression.Parameter(
+                var param = Expression.Parameter(
                     binding.Type,
                     Debugger.IsAttached ? $"field_{binding.Index}_{binding.DisplayName}" : null);
+                builder.Add(param);
             }
 
-            return array;
+            return builder;
         }
 
         // returns object initialization expr, either new T()

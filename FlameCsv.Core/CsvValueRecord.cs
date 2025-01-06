@@ -6,6 +6,7 @@ using FlameCsv.Binding;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Runtime;
+using FlameCsv.Utilities;
 
 namespace FlameCsv;
 
@@ -14,7 +15,8 @@ namespace FlameCsv;
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 [DebuggerTypeProxy(typeof(CsvValueRecord<>.CsvRecordDebugView))]
-public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMemory<T>> where T : unmanaged, IEquatable<T>
+public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMemory<T>>
+    where T : unmanaged, IEquatable<T>
 {
     public long Position { get; }
     public int Line { get; }
@@ -32,11 +34,6 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
     /// Whether the current CSV enumeration has a header.
     /// </summary>
     public bool HasHeader => _state.Header is not null;
-
-    /// <summary>
-    /// Whether the record has no fields.
-    /// </summary>
-    public bool IsEmpty => _record.IsEmpty;
 
     public ReadOnlyMemory<T> this[int index] => GetField(index);
     public ReadOnlyMemory<T> this[string name] => GetField(name);
@@ -149,6 +146,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
     }
 
     /// <inheritdoc cref="ICsvRecord{T}.GetField{TValue}(int)"/>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public TValue GetField<TValue>(int index)
     {
         _state.EnsureVersion(_version);
@@ -158,11 +156,11 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
             Throw.Argument_FieldIndex(index, _state);
         }
 
-        var parser = _options.GetConverter<TValue>();
+        var converter = _options.GetConverter<TValue>();
 
-        if (!parser.TryParse(field, out var value))
+        if (!converter.TryParse(field, out var value))
         {
-            Throw.ParseFailed(field, parser, _options, typeof(TValue));
+            Throw.ParseFailed(field, converter, _options, typeof(TValue));
         }
 
         return value;
@@ -211,7 +209,16 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
             _state.MaterializerCache[typeof(TRecord)] = obj;
         }
 
-        return _options.Materialize(RawRecord, (IMaterializer<T, TRecord>)obj);
+        BufferFieldReader<T> reader = _state.CreateFieldReader();
+
+        try
+        {
+            return _options.Materialize(ref reader, (IMaterializer<T, TRecord>)obj);
+        }
+        finally
+        {
+            reader.Dispose();
+        }
     }
 
     public TRecord ParseRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap)
@@ -229,7 +236,16 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
             _state.MaterializerCache[typeMap] = obj;
         }
 
-        return _options.Materialize(RawRecord, (IMaterializer<T, TRecord>)obj);
+        BufferFieldReader<T> reader = _state.CreateFieldReader();
+
+        try
+        {
+            return _options.Materialize(ref reader, (IMaterializer<T, TRecord>)obj);
+        }
+        finally
+        {
+            reader.Dispose();
+        }
     }
 
     public override string ToString()
@@ -291,5 +307,5 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
         public string[] FieldValues => [.. Fields.Select(f => _record._options.GetAsString(f.Span))];
     }
 
-    public static explicit operator CsvRecord<T>(CsvValueRecord<T> record) => new(record);
+    public static explicit operator CsvRecord<T>(in CsvValueRecord<T> record) => new(in record);
 }

@@ -576,6 +576,24 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
         }
     }
 
+    internal TValue Materialize<TValue, TReader>(ref TReader reader, IMaterializer<T, TValue> materializer)
+        where TReader : ICsvFieldReader<T>, allows ref struct
+    {
+        ArgumentNullException.ThrowIfNull(materializer);
+        MakeReadOnly();
+
+        IMemoryOwner<T>? memoryOwner = null;
+
+        try
+        {
+            return materializer.Parse(ref reader);
+        }
+        finally
+        {
+            memoryOwner?.Dispose();
+        }
+    }
+
     private bool TryGetExistingOrCustomConverter(
         Type resultType,
         [NotNullWhen(true)] out CsvConverter<T>? converter,

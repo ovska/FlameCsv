@@ -66,8 +66,14 @@ partial class CsvOptions<T>
     /// </summary>
     /// <typeparam name="TResult">Type to convert</typeparam>
     /// <exception cref="CsvConverterMissingException"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CsvConverter<T, TResult> GetConverter<TResult>()
     {
+        if (_converterCache.TryGetValue(typeof(TResult), out var cached))
+        {
+            return (CsvConverter<T, TResult>)cached;
+        }
+
         return (CsvConverter<T, TResult>)GetConverter(typeof(TResult));
     }
 
@@ -79,8 +85,14 @@ partial class CsvOptions<T>
     /// </remarks>
     /// <param name="resultType">Type to convert</param>
     /// <exception cref="CsvConverterMissingException"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CsvConverter<T> GetConverter(Type resultType)
     {
+        if (_converterCache.TryGetValue(resultType, out var cached))
+        {
+            return cached;
+        }
+
         return TryGetConverter(resultType) ?? throw new CsvConverterMissingException(typeof(T), resultType);
     }
 
@@ -103,7 +115,7 @@ partial class CsvOptions<T>
             {
                 Debug.Assert(builtin.CanConvert(resultType), $"Invalid builtin converter {builtin} for {resultType}");
                 Debug.Assert(builtin is not CsvConverterFactory<T>, $"{resultType} default converter returned a factory");
-                // TODO: set created accordingly
+                // TODO: set created accordingly!!
                 converter = builtin;
             }
             else if (NullableConverterFactory<T>.Instance.CanConvert(resultType))
