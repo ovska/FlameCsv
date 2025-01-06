@@ -2,6 +2,7 @@
 using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Enumerables;
 using FlameCsv.Tests.TestData;
+using FlameCsv.Tests.Utilities;
 using FlameCsv.Writing;
 using Xunit.Sdk;
 
@@ -15,8 +16,11 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         bool header,
         char? escape,
         CsvFieldEscaping quoting,
-        bool sourceGen)
+        bool sourceGen,
+        int bufferSize,
+        bool? guarded)
     {
+        using var pool = ReturnTrackingMemoryPool<char>.Create(guarded);
         var options = new CsvOptions<char>
         {
             Newline = newline,
@@ -25,17 +29,23 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             Escape = escape,
             Quote = '\'',
             Formats = { { typeof(DateTime), "O" }, { typeof(DateTimeOffset), "O" } },
+            MemoryPool = pool,
         };
 
         var output = new StringBuilder(capacity: short.MaxValue * 4);
 
         if (sourceGen)
         {
-            CsvWriter.Write(TestDataGenerator.Objects.Value, new StringWriter(output), ObjCharTypeMap.Instance, options);
+            CsvWriter.Write(
+                TestDataGenerator.Objects.Value,
+                new StringWriter(output),
+                ObjCharTypeMap.Instance,
+                options,
+                bufferSize: bufferSize);
         }
         else
         {
-            CsvWriter.Write(TestDataGenerator.Objects.Value, new StringWriter(output), options);
+            CsvWriter.Write(TestDataGenerator.Objects.Value, new StringWriter(output), options, bufferSize: bufferSize);
         }
 
         Validate(output, escape.HasValue, newline == "\r\n", header, quoting);
@@ -47,8 +57,11 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         bool header,
         char? escape,
         CsvFieldEscaping quoting,
-        bool sourceGen)
+        bool sourceGen,
+        int bufferSize,
+        bool? guarded)
     {
+        using var pool = ReturnTrackingMemoryPool<char>.Create(guarded);
         var options = new CsvOptions<char>
         {
             Newline = newline,
@@ -57,17 +70,27 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             Escape = escape,
             Quote = '\'',
             Formats = { { typeof(DateTime), "O" }, { typeof(DateTimeOffset), "O" } },
+            MemoryPool = pool,
         };
 
         var output = new StringBuilder(capacity: short.MaxValue * 4);
 
         if (sourceGen)
         {
-            await CsvWriter.WriteAsync(TestDataGenerator.Objects.Value, new StringWriter(output), ObjCharTypeMap.Instance, options);
+            await CsvWriter.WriteAsync(
+                TestDataGenerator.Objects.Value,
+                new StringWriter(output),
+                ObjCharTypeMap.Instance,
+                options,
+                bufferSize: bufferSize);
         }
         else
         {
-            await CsvWriter.WriteAsync(TestDataGenerator.Objects.Value, new StringWriter(output), options);
+            await CsvWriter.WriteAsync(
+                TestDataGenerator.Objects.Value,
+                new StringWriter(output),
+                options,
+                bufferSize: bufferSize);
         }
 
         Validate(output, escape.HasValue, newline == "\r\n", header, quoting);
@@ -141,6 +164,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
                         {
                             Assert.Equal($"' Name''{index}'", column);
                         }
+
                         break;
                     case 2:
                         string val = index % 2 == 0 ? "true" : "false";
@@ -164,4 +188,3 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         Assert.Equal(1_000, index);
     }
 }
-

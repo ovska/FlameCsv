@@ -75,13 +75,11 @@ public partial class TypeMapGenerator
 
         sb.Append(@"
 
-            public void Write<TWriter>(FlameCsv.Writing.CsvFieldWriter<");
+            public void Write(ref readonly FlameCsv.Writing.CsvFieldWriter<");
         sb.Append(typeMap.Token);
-        sb.Append(", TWriter> writer, ");
+        sb.Append("> writer, ");
         sb.Append(typeMap.Type.ToDisplayString());
-        sb.Append(" obj) where TWriter : struct, System.Buffers.IBufferWriter<");
-        sb.Append(typeMap.Token);
-        sb.Append(@">
+        sb.Append(@" obj)
             {");
 
         for (int i = 0; i < typeMap.Bindings.Members.Length; i++)
@@ -125,11 +123,9 @@ public partial class TypeMapGenerator
         sb.Append(@"
             }
 
-            public void WriteHeader<TWriter>(FlameCsv.Writing.CsvFieldWriter<");
+            public void WriteHeader(ref readonly FlameCsv.Writing.CsvFieldWriter<");
         sb.Append(typeMap.Token);
-        sb.Append(", TWriter> writer) where TWriter : struct, System.Buffers.IBufferWriter<");
-        sb.Append(typeMap.Token);
-        sb.Append(@">
+        sb.Append(@"> writer)
             {");
 
         for (int i = 0; i < typeMap.Bindings.Members.Length; i++)

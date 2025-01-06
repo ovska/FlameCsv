@@ -85,7 +85,7 @@ internal static class MaterializerExtensions
         [NotNullWhen(true)] out CsvBindingCollection<TTuple>? bindingCollection)
         where T : unmanaged, IEquatable<T>
     {
-        if (!IsTuple(typeof(T)))
+        if (!IsTuple(typeof(TTuple)))
         {
             bindingCollection = null;
             return false;

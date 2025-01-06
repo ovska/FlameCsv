@@ -3,6 +3,8 @@ using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
+using FlameCsv.Utilities;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Enumeration;
 
@@ -14,6 +16,7 @@ namespace FlameCsv.Enumeration;
 /// This class is not thread-safe, and should not be used concurrently.<br/>
 /// The enumerator should always be disposed after use, either explicitly or using <c>foreach</c>.
 /// </remarks>
+[MustDisposeResource]
 public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanaged, IEquatable<T>
 {
     public CsvValueRecord<T> Current => _current._options is not null ? _current : ThrowInvalidCurrentAccess();
@@ -21,11 +24,13 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
     public int Line { get; protected set; }
     public long Position { get; protected set; }
 
+    [HandlesResourceDisposal]
     private readonly EnumeratorState<T> _state;
 
+    [HandlesResourceDisposal]
     protected readonly CsvParser<T> _parser;
-    protected internal CsvValueRecord<T> _current;
-    protected internal bool _disposed;
+    protected CsvValueRecord<T> _current;
+    protected bool _disposed;
 
     internal CsvRecordEnumeratorBase(CsvOptions<T> options)
     {
@@ -38,7 +43,7 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        Retry:
+    Retry:
         if (_parser.TryReadLine(out ReadOnlyMemory<T> line, out CsvRecordMeta meta, isFinalBlock))
         {
             long oldPosition = Position;
@@ -46,7 +51,7 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
             Position += line.Length + (_parser._newlineLength * (!isFinalBlock).ToByte());
             Line++;
 
-            if (_parser.SkipRecord(line, Line, _state.Options.HasHeader ? _state.Header is not null : null))
+            if (_parser.SkipRecord(line, Line, isHeader: _state.NeedsHeader))
             {
                 goto Retry;
             }
@@ -55,7 +60,7 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
 
             if (_state.NeedsHeader)
             {
-                _state.SetHeader(CreateHeaderDictionary(record));
+                _state.Header = CreateHeader(in record);
                 goto Retry;
             }
 
@@ -81,29 +86,47 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
 
         if (disposing)
         {
-            _current = default;
-            _parser.Dispose();
-            _state.Dispose();
+            using (_state)
+            using (_parser)
+            {
+                _current = default;
+            }
         }
     }
 
-    private Dictionary<string, int> CreateHeaderDictionary(CsvValueRecord<T> headerRecord)
+    private CsvHeader CreateHeader(ref readonly CsvValueRecord<T> headerRecord)
     {
-        Dictionary<string, int> dictionary = new(capacity: headerRecord.GetFieldCount(), comparer: _parser._options.Comparer);
+        BufferFieldReader<T> reader = headerRecord._state.CreateFieldReader();
+        StringScratch scratch = default;
+        ValueListBuilder<string> list = new(scratch);
 
-        int index = 0;
-
-        foreach (ReadOnlyMemory<T> field in headerRecord)
+        try
         {
-            string fieldString = _parser._options.GetAsString(field.Span);
-
-            if (!dictionary.TryAdd(fieldString, index++))
+            while (reader.MoveNext())
             {
-                ThrowExceptionForDuplicateHeaderField(fieldString, headerRecord);
+                list.Append(_parser._options.GetAsString(reader.Current));
             }
-        }
 
-        return dictionary;
+            string[] header = list.AsSpan().ToArray();
+
+            for (int i = 0; i < header.Length; i++)
+            {
+                for (int j = 0; j < header.Length; j++)
+                {
+                    if (i != j && _parser._options.Comparer.Equals(header[i], header[j]))
+                    {
+                        ThrowExceptionForDuplicateHeaderField(i, j, header[i], headerRecord);
+                    }
+                }
+            }
+
+            return new CsvHeader(_parser._options.Comparer, list.AsSpan().ToArray());
+        }
+        finally
+        {
+            list.Dispose();
+            reader.Dispose();
+        }
     }
 
     private CsvValueRecord<T> ThrowInvalidCurrentAccess()
@@ -114,9 +137,14 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
         throw new InvalidOperationException("Current was accessed before the enumeration started.");
     }
 
-    private void ThrowExceptionForDuplicateHeaderField(string field, CsvValueRecord<T> record)
+    private void ThrowExceptionForDuplicateHeaderField(
+        int index1,
+        int index2,
+        string field,
+        CsvValueRecord<T> record)
     {
         throw new CsvFormatException(
-            $"Duplicate header field \"{field}\" in CSV: {_parser.AsPrintableString(record.RawRecord.Span)}");
+            $"Duplicate header field \"{field}\" in fields {index1} and {index2} in CSV: "
+            + _parser.AsPrintableString(record.RawRecord.Span));
     }
 }

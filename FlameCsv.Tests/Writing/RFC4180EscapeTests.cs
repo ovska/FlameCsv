@@ -1,44 +1,56 @@
+using System.Buffers;
 using FlameCsv.Tests.Utilities;
 using FlameCsv.Writing;
 
 namespace FlameCsv.Tests.Writing;
 
-public static class EscapeTests
+file static class EscapeExt
 {
-    private static RFC4180Escaper<char> GetEscaper(string newline = "\r\n")
+    public static readonly CsvOptions<char> Options = new()
     {
-        return new RFC4180Escaper<char>(
-            delimiter: ',',
-            quote: '|',
-            newline1: newline[0],
-            newline2: newline.Length > 1 ? newline[1] : default,
-            newlineLength: newline.Length,
-            whitespace: default);
+        Delimiter = ',', Quote = '|',
+    };
+
+    public static bool MustBeQuoted(this RFC4180Escaper<char> escaper, ReadOnlySpan<char> field, out int specialCount)
+    {
+        if (field.IndexOfAny(Options.Dialect.NeedsQuoting) >= 0)
+        {
+            specialCount = escaper.CountEscapable(field);
+            return true;
+        }
+
+        specialCount = 0;
+        return false;
     }
+}
+
+public static class RFC4180EscapeTests
+{
+    private static readonly RFC4180Escaper<char> _escaper = new(quote: EscapeExt.Options.Quote);
 
     [Fact]
     public static void Should_Partial_Escape_Larger_Destination()
     {
         ReadOnlySpan<char> input = "|t|e|s|t|";
 
-        Assert.True(GetEscaper().NeedsEscaping(input, out int specialCount));
+        Assert.True(_escaper.MustBeQuoted(input, out int specialCount));
         Assert.Equal(5, specialCount);
 
         using var arrayPool = new ReturnTrackingArrayMemoryPool<char>();
-        var writer = new ValueBufferWriter<char>();
-        var destination = writer.GetSpan(14);
+        var writer = new ArrayBufferWriter<char>();
+        var destination = writer.GetSpan(14)[..14];
         input.CopyTo(destination);
 
-        var escaper = GetEscaper();
+        var escaper = _escaper;
         Escape.FieldWithOverflow(
             ref escaper,
-            ref writer,
+            writer,
             source: destination[..input.Length],
             destination: destination,
             specialCount: specialCount,
             allocator: arrayPool);
 
-        Assert.Equal("|||t||e||s||t|||", writer.Writer.WrittenSpan.ToString());
+        Assert.Equal("|||t||e||s||t|||", writer.WrittenSpan.ToString());
     }
 
     [Theory]
@@ -50,24 +62,24 @@ public static class EscapeTests
     [InlineData("|t", "|||t|")]
     public static void Should_Partial_Escape(string input, string expected)
     {
-        Assert.True(GetEscaper().NeedsEscaping(input, out int specialCount));
+        Assert.True(_escaper.MustBeQuoted(input, out int specialCount));
 
-        var writer = new ValueBufferWriter<char>();
-        Span<char> firstBuffer = writer.GetSpan(input.Length);
+        var writer = new ArrayBufferWriter<char>();
+        Span<char> firstBuffer = writer.GetSpan(input.Length)[..input.Length];
         input.CopyTo(firstBuffer);
 
         using var arrayPool = new ReturnTrackingArrayMemoryPool<char>();
 
-        var escaper = GetEscaper();
+        var escaper = _escaper;
         Escape.FieldWithOverflow(
             ref escaper,
-            ref writer,
+            writer,
             source: firstBuffer,
             destination: firstBuffer,
             specialCount: specialCount,
             allocator: arrayPool);
 
-        Assert.Equal(expected, writer.Writer.WrittenSpan.ToString());
+        Assert.Equal(expected, writer.WrittenSpan.ToString());
     }
 
     [Theory]
@@ -79,7 +91,7 @@ public static class EscapeTests
         Span<char> buffer = stackalloc char[expected.Length];
         input.CopyTo(buffer);
 
-        var escaper = GetEscaper();
+        var escaper = _escaper;
         Escape.Field(ref escaper, buffer[..input.Length], buffer, 0);
         Assert.Equal(expected, buffer.ToString());
     }
@@ -95,7 +107,7 @@ public static class EscapeTests
     [InlineData("a|a", "|a||a|")]
     public static void Should_Escape(string input, string expected)
     {
-        Assert.True(GetEscaper().NeedsEscaping(input, out int quoteCount));
+        Assert.True(_escaper.MustBeQuoted(input, out int quoteCount));
 
         int expectedLength = input.Length + quoteCount + 2;
         Assert.Equal(expected.Length, expectedLength);
@@ -104,7 +116,7 @@ public static class EscapeTests
         var sharedBuffer = new char[expectedLength].AsSpan();
         input.CopyTo(sharedBuffer);
 
-        var escaper = GetEscaper();
+        var escaper = _escaper;
         Escape.Field(ref escaper, sharedBuffer[..input.Length], sharedBuffer, quoteCount);
         Assert.Equal(expected, new string(sharedBuffer));
 
@@ -121,8 +133,8 @@ public static class EscapeTests
     [InlineData("\n", "|\n|")]
     public static void Should_Escape_1Char_Newline(string input, string expected)
     {
-        var escaper = GetEscaper("\n");
-        Assert.True(escaper.NeedsEscaping(input, out int quoteCount));
+        var escaper = _escaper;
+        int quoteCount = escaper.CountEscapable(input);
 
         int expectedLength = input.Length + quoteCount + 2;
         Assert.Equal(expected.Length, expectedLength);
@@ -144,7 +156,6 @@ public static class EscapeTests
     [
         (null, "foobar"),
         (null, "foo bar"),
-        (null, "\r \r"),
         (0, "foo,bar"),
         (1, "foo|bar"),
         (2, "|foobar|"),
@@ -161,7 +172,7 @@ public static class EscapeTests
         var values = from x in _needsEscapingData
                      from newline in new[] { "\r\n", "\n" }
                      select new { newline, x.quoteCount, x.data };
-        
+
         var theory = new TheoryData<string, int?, string>();
 
         foreach (var x in values)
@@ -175,17 +186,19 @@ public static class EscapeTests
     [Theory, MemberData(nameof(NeedsEscapingData))]
     public static void Should_Check_Needs_Escaping(string newline, int? quotes, string input)
     {
-        var escaper = GetEscaper(newline);
+        var options = new CsvOptions<char> { Quote = '|', Newline = newline };
         input = input.Replace("\r\n", newline);
+
+        bool needsQuoting = input.AsSpan().ContainsAny(options.Dialect.NeedsQuoting);
 
         if (!quotes.HasValue)
         {
-            Assert.False(escaper.NeedsEscaping(input, out _));
+            Assert.False(needsQuoting);
         }
         else
         {
-            Assert.True(escaper.NeedsEscaping(input, out var quoteCount));
-            Assert.Equal(quotes.Value, quoteCount);
+            Assert.True(needsQuoting);
+            Assert.Equal(quotes.Value, _escaper.CountEscapable(input));
         }
     }
 }

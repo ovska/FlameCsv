@@ -19,7 +19,7 @@ public interface ICsvFieldReader<T> : IEnumerator<ReadOnlySpan<T>> where T : unm
 
 public ref struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IEquatable<T>
 {
-    public readonly ReadOnlySpan<T> Record { get; }
+    public ReadOnlySpan<T> Record { get; }
     public readonly ReadOnlySpan<T> Remaining => Record.Slice(Consumed);
     public readonly bool End => Consumed >= Record.Length;
 
@@ -33,23 +33,12 @@ public ref struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IE
     public readonly T Delimiter => _dialect.Delimiter;
     public readonly T Quote => _dialect.Quote;
     public readonly T? Escape => _dialect.Escape;
-    public readonly ReadOnlySpan<T> Whitespace { get; }
+    public ReadOnlySpan<T> Whitespace { get; }
 
     readonly CsvOptions<T> ICsvFieldReader<T>.Options => _options;
     private readonly CsvOptions<T> _options;
     private readonly Span<T> _unescapeBuffer;
     private readonly ref IMemoryOwner<T>? _unescapeAllocator;
-
-    [Obsolete("Use constructor accepting Span")]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal CsvFieldReader(
-        CsvOptions<T> options,
-        ReadOnlyMemory<T> record,
-        Span<T> unescapeBuffer,
-        ref IMemoryOwner<T>? unescapeAllocator,
-        ref readonly CsvRecordMeta meta) : this(options, record.Span, unescapeBuffer, ref unescapeAllocator, in meta)
-    {
-    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvFieldReader(
@@ -89,16 +78,6 @@ public ref struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IE
             return _unescapeBuffer.Slice(0, length);
 
         return _options._memoryPool.EnsureCapacity(ref _unescapeAllocator, length, copyOnResize: false).Span;
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public readonly void ThrowParseFailed(ReadOnlySpan<T> field, CsvConverter<T>? parser)
-    {
-        string withStr = parser is null ? "" : $" with {parser.GetType()}";
-
-        throw new CsvParseException(
-            $"Failed to parse{withStr} from {_options.AsPrintableString(field.ToArray())}.")
-        { Converter = parser };
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]

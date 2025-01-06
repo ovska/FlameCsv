@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using JetBrains.Annotations;
 
 namespace FlameCsv;
 
@@ -199,7 +200,8 @@ partial class CsvOptions<T>
 
     /// <inheritdoc cref="GetOrCreate{TValue}(object, CsvConverterFactory{T})"/>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public CsvConverter<T, TValue> GetOrCreate<TValue>(Func<CsvOptions<T>, CsvConverter<T, TValue>> factory)
+    public CsvConverter<T, TValue> GetOrCreate<TValue>(
+        [RequireStaticDelegate] Func<CsvOptions<T>, CsvConverter<T, TValue>> factory)
     {
         ArgumentNullException.ThrowIfNull(factory);
 
@@ -267,7 +269,9 @@ partial class CsvOptions<T>
 
     /// <inheritdoc cref="GetOrCreate{TValue}(object, CsvConverterFactory{T})"/>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public CsvConverter<T, TValue> GetOrCreate<TValue>(object cacheKey, Func<CsvOptions<T>, CsvConverter<T, TValue>> factory)
+    public CsvConverter<T, TValue> GetOrCreate<TValue>(
+        object cacheKey,
+        [RequireStaticDelegate] Func<CsvOptions<T>, CsvConverter<T, TValue>> factory)
     {
         ArgumentNullException.ThrowIfNull(cacheKey);
         ArgumentNullException.ThrowIfNull(factory);

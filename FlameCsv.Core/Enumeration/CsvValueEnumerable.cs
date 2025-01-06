@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Collections;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Enumeration;
 
@@ -19,6 +20,7 @@ public sealed class CsvValueEnumerable<T, [DAM(Messages.ReflectionBound)] TValue
         _options = options;
     }
 
+    [MustDisposeResource]
     public CsvValueEnumerator<T, TValue> GetEnumerator()
     {
         return new CsvValueEnumerator<T, TValue>(_data, _options, materializer: null);

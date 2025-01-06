@@ -2,7 +2,7 @@ namespace FlameCsv.Exceptions;
 
 /// <summary>
 /// Represents unrecoverable format errors in the CSV.
-/// Exceptions of this kind cannot be handled by <see cref="CsvOptions{T}.ExceptionHandler"/>.
+/// This exception is not handled by <see cref="CsvOptions{T}.ExceptionHandler"/>.
 /// </summary>
 public sealed class CsvFormatException : Exception
 {

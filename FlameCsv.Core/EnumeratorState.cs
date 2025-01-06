@@ -5,9 +5,11 @@ using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Utilities;
+using JetBrains.Annotations;
 
 namespace FlameCsv;
 
+[MustDisposeResource]
 internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEquatable<T>
 {
     /// <summary>
@@ -19,7 +21,8 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
         get => _parser._options._hasHeader && Header is null;
     }
 
-    public Dictionary<object, object> MaterializerCache => _materializerCache ??= new(ReferenceEqualityComparer.Instance);
+    public Dictionary<object, object> MaterializerCache
+        => _materializerCache ??= new(ReferenceEqualityComparer.Instance);
 
     public int Version { get; private set; }
 
@@ -31,24 +34,31 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
     private CsvRecordMeta _meta;
     internal WritableBuffer<T> _fields;
 
-    public Dictionary<string, int>? Header
+    public CsvHeader? Header
     {
         get => _header;
         set
         {
-            if (ReferenceEquals(_header, value))
+            Throw.IfEnumerationDisposed(Version == -1);
+
+            if (!_parser._options._hasHeader)
+                Throw.NotSupported_CsvHasNoHeader();
+
+            if (EqualityComparer<CsvHeader>.Default.Equals(Header, value))
                 return;
 
+            if (Header is not null && value is not null)
+                Throw.Unreachable_AlreadyHasHeader();
+
             _header = value;
-            _headerNames = value?.Keys.ToArray();
+            _expectedFieldCount = value?.Count;
             _materializerCache?.Clear();
         }
     }
 
-    private Dictionary<string, int>? _header;
-    internal string[]? _headerNames;
     private Dictionary<object, object>? _materializerCache;
     private int? _expectedFieldCount;
+    private CsvHeader? _header;
 
     public EnumeratorState(CsvParser<T> parser)
     {
@@ -154,21 +164,6 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
         return _fields.Length;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetHeader(Dictionary<string, int> header)
-    {
-        Throw.IfEnumerationDisposed(Version == -1);
-
-        if (!_parser._options._hasHeader)
-            Throw.NotSupported_CsvHasNoHeader();
-
-        if (Header is not null)
-            Throw.Unreachable_AlreadyHasHeader();
-
-        Header = header;
-        _expectedFieldCount ??= Header.Count;
-    }
-
     public ref WritableBuffer<T> GetFields()
     {
         if (_fields.Length == 0)
@@ -186,15 +181,15 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
 
         IMemoryOwner<T>? memoryOwner = null;
 
+        CsvFieldReader<T> reader = new(
+            Options,
+            _record.Span,
+            stackalloc T[Token<T>.StackLength],
+            ref memoryOwner,
+            ref _meta);
+
         try
         {
-            CsvFieldReader<T> reader = new(
-                Options,
-                _record.Span,
-                stackalloc T[Token<T>.StackLength],
-                ref memoryOwner,
-                ref _meta);
-
             while (reader.MoveNext())
             {
                 _fields.Push(reader.Current);
@@ -202,6 +197,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEqu
         }
         finally
         {
+            reader.Dispose();
             memoryOwner?.Dispose();
         }
     }

@@ -9,22 +9,23 @@ namespace FlameCsv.Tests.Writing;
 
 public sealed class CsvByteWriterTests : IAsyncDisposable
 {
-    private CsvFieldWriter<byte, CsvByteBufferWriter>? _writer;
+    private CsvFieldWriter<byte> _writer;
     private MemoryStream? _stream;
 
-    private string Written => _stream is not null && _stream.TryGetBuffer(out var buffer)
-        ? Encoding.UTF8.GetString(buffer.AsSpan())
-        : throw new UnreachableException();
+    private string Written
+        => _stream is not null && _stream.TryGetBuffer(out var buffer)
+            ? Encoding.UTF8.GetString(buffer.AsSpan())
+            : throw new UnreachableException();
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
-        if (_writer is not null)
+        await using (_stream)
         {
-            await _writer.Writer.CompleteAsync(null);
+            if (_writer.Writer is not null)
+            {
+                await _writer.Writer.CompleteAsync(null);
+            }
         }
-
-        if (_stream is not null)
-            await _stream.DisposeAsync();
     }
 
     [Fact]
@@ -127,14 +128,16 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
         Assert.Equal(expected, Written);
     }
 
-    [MemberNotNull(nameof(_writer))]
     private void Initialize(
         CsvFieldEscaping quoting = CsvFieldEscaping.Auto,
         int bufferSize = 1024)
     {
         _stream = new MemoryStream();
-        _writer = new CsvFieldWriter<byte, CsvByteBufferWriter>(
-            new CsvByteBufferWriter(PipeWriter.Create(_stream, new StreamPipeWriterOptions(minimumBufferSize: bufferSize, pool: HeapMemoryPool<byte>.Shared))),
+        _writer = new CsvFieldWriter<byte>(
+            new CsvByteBufferWriter(
+                PipeWriter.Create(
+                    _stream,
+                    new StreamPipeWriterOptions(minimumBufferSize: bufferSize, pool: HeapMemoryPool<byte>.Shared))),
             new CsvOptions<byte> { FieldEscaping = quoting, Null = "null" });
     }
 

@@ -22,9 +22,13 @@ public readonly ref struct CsvRecordSkipArgs<T> where T : unmanaged, IEquatable<
     public int Line { get; init; }
 
     /// <summary>
-    /// Whether a header has been read yet. <see langword="null"/> when reading CSV without a header record.
+    /// Whether this is the header record.
     /// </summary>
-    public bool? HeaderRead { get; init; }
+    /// <remarks>
+    /// This is generally true only for the very first line when reading CSV with leader,
+    /// and always false when the CSV does not have a header.
+    /// </remarks>
+    public bool IsHeader { get; init; }
 }
 
 /// <summary>

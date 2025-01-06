@@ -1,4 +1,6 @@
-﻿namespace FlameCsv.Tests.Utilities;
+﻿using JetBrains.Annotations;
+
+namespace FlameCsv.Tests.Utilities;
 
 internal static class SyncAsyncEnumerable
 {
@@ -12,7 +14,9 @@ internal sealed class SyncAsyncEnumerable<T>(IEnumerable<T> inner) : IAsyncEnume
         return new Enumerator(inner.GetEnumerator(), cancellationToken);
     }
 
-    public sealed class Enumerator(IEnumerator<T> inner, CancellationToken cancellationToken) : IAsyncEnumerator<T>
+    public sealed class Enumerator(
+        [HandlesResourceDisposal] IEnumerator<T> inner,
+        CancellationToken cancellationToken) : IAsyncEnumerator<T>
     {
         public T Current => inner.Current;
 

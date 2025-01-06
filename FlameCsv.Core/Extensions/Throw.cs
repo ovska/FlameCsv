@@ -15,12 +15,12 @@ internal static class Throw
             return;
 
         InvalidOp_DefaultStruct(type);
+    }
 
-        [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-        static void InvalidOp_DefaultStruct(Type type)
-        {
-            throw new InvalidOperationException($"The struct '{type.FullName}' was uninitialized.");
-        }
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public static void InvalidOp_DefaultStruct(Type type)
+    {
+        throw new InvalidOperationException($"The struct '{type.FullName}' was uninitialized.");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -160,5 +160,11 @@ internal static class Throw
         throw new CsvConfigurationException(
             $"If {nameof(CsvOptions<byte>.BooleanValues)} it not empty, it must contain at least one value " +
             $"for both true and false ({which.ToString().ToLowerInvariant()} was missing).");
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public static int Argument_FieldName(string name)
+    {
+        throw new KeyNotFoundException($"Header field '{name}' was not found.");
     }
 }

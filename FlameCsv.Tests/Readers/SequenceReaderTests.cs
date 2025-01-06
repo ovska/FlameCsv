@@ -8,31 +8,29 @@ namespace FlameCsv.Tests.Readers;
 
 public class SequenceReaderTests : IDisposable
 {
-    public static TheoryData<bool?> GuardedData { get; } =
-        OperatingSystem.IsWindows()
-            ? new TheoryData<bool?> { true, false, null }
-            : [null];
+    public static TheoryData<bool?> GuardedData
+    {
+        get
+        {
+            var data = new TheoryData<bool?>();
+            foreach (var item in GlobalData.GuardedMemory) data.Add(item);
+            return data;
+        }
+    }
 
     private CsvOptions<char> CRLFOptions(bool? useGuardedPool)
     {
-        _memoryPool ??= CreatePool(useGuardedPool);
+        _memoryPool ??= ReturnTrackingMemoryPool<char>.Create(useGuardedPool);
         return new() { Newline = "\r\n", MemoryPool = _memoryPool, };
     }
 
     private CsvOptions<char> LFOptions(bool? useGuardedPool)
     {
-        _memoryPool ??= CreatePool(useGuardedPool);
+        _memoryPool ??= ReturnTrackingMemoryPool<char>.Create(useGuardedPool);
         return new() { Newline = "\n", MemoryPool = _memoryPool, };
     }
 
     private MemoryPool<char>? _memoryPool;
-
-    private static MemoryPool<char> CreatePool(bool? useGuardedPool)
-        => useGuardedPool switch
-        {
-            bool b when OperatingSystem.IsWindows() => new ReturnTrackingGuardedMemoryPool<char>(b),
-            _ => new ReturnTrackingArrayMemoryPool<char>(),
-        };
 
     public void Dispose()
     {

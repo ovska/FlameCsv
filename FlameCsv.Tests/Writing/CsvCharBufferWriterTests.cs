@@ -13,10 +13,10 @@ public sealed class CsvCharBufferWriterTests : IAsyncDisposable
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
-        await _writer.CompleteAsync(null);
-
-        if (_textWriter is not null)
-            await _textWriter.DisposeAsync();
+        await using (_textWriter)
+        {
+            await _writer.CompleteAsync(null);
+        }
     }
 
     [Theory]
@@ -39,11 +39,10 @@ public sealed class CsvCharBufferWriterTests : IAsyncDisposable
     [Fact]
     public static void Should_Validate_Constructor_Params()
     {
-        Assert.Throws<ArgumentNullException>(
-            () => new CsvCharBufferWriter(null!, HeapMemoryPool<char>.Shared));
+        Assert.Throws<ArgumentNullException>(() => new CsvCharBufferWriter(null!, HeapMemoryPool<char>.Shared, 1024));
 
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => new CsvCharBufferWriter(new StringWriter(), HeapMemoryPool<char>.Shared, initialBufferSize: -1));
+            () => new CsvCharBufferWriter(new StringWriter(), HeapMemoryPool<char>.Shared, bufferSize: int.MinValue));
     }
 
     [Fact]
@@ -139,10 +138,8 @@ public sealed class CsvCharBufferWriterTests : IAsyncDisposable
     {
         Initialize();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
-        {
-            await _writer.CompleteAsync(null, new CancellationToken(canceled: true));
-        });
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            async () => { await _writer.CompleteAsync(null, new CancellationToken(canceled: true)); });
     }
 
     [Fact]
@@ -150,10 +147,11 @@ public sealed class CsvCharBufferWriterTests : IAsyncDisposable
     {
         Initialize();
 
-        await Assert.ThrowsAsync<UnreachableException>(async () =>
-        {
-            await _writer.CompleteAsync(new UnreachableException(), new CancellationToken(canceled: true));
-        });
+        await Assert.ThrowsAsync<UnreachableException>(
+            async () =>
+            {
+                await _writer.CompleteAsync(new UnreachableException(), new CancellationToken(canceled: true));
+            });
     }
 
     private void Initialize(int bufferSize = 1024)

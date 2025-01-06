@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Text;
 using FlameCsv.Extensions;
@@ -10,22 +11,27 @@ namespace FlameCsv.Tests.Writing;
 
 public sealed class CsvByteBufferWriterTests : IAsyncDisposable
 {
-    private CsvByteBufferWriter _writer;
+    private CsvByteBufferWriter? _writer;
     private MemoryStream _memoryStream = null!;
 
     private string Written => Encoding.UTF8.GetString(_memoryStream.ToArray());
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
-        await _writer.CompleteAsync(null);
-        await _memoryStream.DisposeAsync();
+        await using (_memoryStream.ConfigureAwait(false))
+        {
+            if (_writer is not null)
+                await _writer.CompleteAsync(null);
+        }
     }
+
+    private const int WindowsFlushThreshold = (int)(4096 * 15d / 16d);
 
     [Theory]
     [InlineData(0, false)]
-    [InlineData(CsvByteBufferWriter.InternalFlushThreshold - 1, false)]
-    [InlineData(CsvByteBufferWriter.InternalFlushThreshold, true)]
-    [InlineData(CsvByteBufferWriter.InternalFlushThreshold + 100, true)]
+    [InlineData(WindowsFlushThreshold - 1, false)]
+    [InlineData(WindowsFlushThreshold, true)]
+    [InlineData(WindowsFlushThreshold + 100, true)]
     public void Should_Return_If_Needs_Flush(int written, bool expected)
     {
         Initialize();
@@ -37,10 +43,10 @@ public sealed class CsvByteBufferWriterTests : IAsyncDisposable
     [Fact]
     public static void Should_Validate_Constructor_Params()
     {
-        Assert.Throws<ArgumentNullException>(() => new CsvCharBufferWriter(null!, HeapMemoryPool<char>.Shared));
+        Assert.Throws<ArgumentNullException>(() => new CsvCharBufferWriter(null!, HeapMemoryPool<char>.Shared, 1024));
 
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => new CsvCharBufferWriter(new StringWriter(), HeapMemoryPool<char>.Shared, initialBufferSize: -1));
+            () => new CsvCharBufferWriter(new StringWriter(), HeapMemoryPool<char>.Shared, bufferSize: -1));
     }
 
     [Fact]
@@ -155,6 +161,7 @@ public sealed class CsvByteBufferWriterTests : IAsyncDisposable
             });
     }
 
+    [MemberNotNull(nameof(_writer))]
     private void Initialize(int bufferSize = 1024)
     {
         _writer = new CsvByteBufferWriter(

@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Collections;
 using FlameCsv.Binding;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Enumeration;
 
@@ -23,11 +24,12 @@ public sealed class CsvTypeMapEnumerable<T, TValue> : IEnumerable<TValue> where 
         _typeMap = typeMap;
     }
 
+    [MustDisposeResource]
     public CsvValueEnumerator<T, TValue> GetEnumerator()
     {
         return new CsvValueEnumerator<T, TValue>(_data, _options, _typeMap);
     }
 
-    IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator() => GetEnumerator();
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    [MustDisposeResource] IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator() => GetEnumerator();
+    [MustDisposeResource] IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

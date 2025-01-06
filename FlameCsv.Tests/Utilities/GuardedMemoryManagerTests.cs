@@ -2,22 +2,27 @@
 
 namespace FlameCsv.Tests.Utilities;
 
+public class GuardedMemoryManagerCharTests : GuardedMemoryManagerTestsBase<char>;
+public class GuardedMemoryManagerByteTests : GuardedMemoryManagerTestsBase<byte>;
+
 [SupportedOSPlatform("windows")]
-public class GuardedMemoryManagerTests
+public abstract class GuardedMemoryManagerTestsBase<T> where T : unmanaged
 {
     [Theory, MemberData(nameof(AllocationData))]
     public void Should_Allocate_Guarded_Memory(bool fromEnd, int size)
     {
-        // $env:COMPlus_legacyCorruptedStateExceptionsPolicy=1
-        // dotnet test --filter Allocate
+        Assert.Equal(4096, Environment.SystemPageSize);
 
-        using var memoryManager = new GuardedMemoryManager<byte>(size, fromEnd);
+        // $env:COMPlus_legacyCorruptedStateExceptionsPolicy=1
+        // dotnet test --filter Allocate -- xUnit.StopOnFail=true
+
+        using var memoryManager = new GuardedMemoryManager<T>(size, fromEnd);
 
         var span = memoryManager.GetSpan();
 
         try
         {
-            Assert.Equal(0, span[0]);
+            Assert.Equal(default, span[0]);
         }
         catch (AccessViolationException ave)
         {
@@ -26,7 +31,7 @@ public class GuardedMemoryManagerTests
 
         try
         {
-            Assert.Equal(0, span[^1]);
+            Assert.Equal(default, span[^1]);
         }
         catch (AccessViolationException ave)
         {
@@ -43,12 +48,8 @@ public class GuardedMemoryManagerTests
         {
             var data = new TheoryData<bool, int>();
 
-            var items =
-                from fromEnd in (bool[])[true, false]
-                from size in (int[])[32, 64, 1024, 4096, 4096 * 2]
-                select (fromEnd, size);
-
-            foreach (var (fromEnd, size) in items)
+            foreach (var fromEnd in GlobalData.Booleans)
+            foreach (var size in (int[]) [32, 64, 1024, 4096, 4096 * 2])
             {
                 data.Add(fromEnd, size);
             }

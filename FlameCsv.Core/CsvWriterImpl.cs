@@ -1,17 +1,17 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
+using FlameCsv.Extensions;
 using FlameCsv.Runtime;
 using FlameCsv.Writing;
 
 namespace FlameCsv;
 
-internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
+internal sealed class CsvWriterImpl<T> : CsvWriter<T>
     where T : unmanaged, IEquatable<T>
-    where TWriter : struct, ICsvBufferWriter<T>
 {
     private readonly CsvOptions<T> _options;
-    private readonly CsvFieldWriter<T, TWriter> _inner;
+    private readonly CsvFieldWriter<T> _inner;
     private readonly bool _autoFlush;
 
     private readonly Dictionary<object, object> _dematerializerCache = new(ReferenceEqualityComparer.Instance);
@@ -29,11 +29,11 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
 
     public CsvWriterImpl(
         CsvOptions<T> options,
-        CsvFieldWriter<T, TWriter> inner,
+        CsvFieldWriter<T> inner,
         bool autoFlush)
     {
         ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(inner);
+        Throw.IfDefaultStruct(inner.Writer is null, typeof(CsvFieldWriter<T>));
 
         options.MakeReadOnly();
         _options = options;
@@ -152,7 +152,7 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
     public override void WriteRecord<[DAM(Messages.ReflectionBound)] TRecord>(TRecord value)
     {
         WriteDelimiterIfNeeded();
-        GetDematerializerAndIncrementFieldCount<TRecord>().Write(_inner, value);
+        GetDematerializerAndIncrementFieldCount<TRecord>().Write(in _inner, value);
         _index = 0;
         FlushIfNeeded();
     }
@@ -160,7 +160,7 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
     public override void WriteRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap, TRecord value)
     {
         WriteDelimiterIfNeeded();
-        GetDematerializerAndIncrementFieldCount(typeMap).Write(_inner, value);
+        GetDematerializerAndIncrementFieldCount(typeMap).Write(in _inner, value);
         _index = 0;
         FlushIfNeeded();
     }
@@ -188,7 +188,7 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
     public override ValueTask WriteRecordAsync<[DAM(Messages.ReflectionBound)] TRecord>(TRecord value, CancellationToken cancellationToken = default)
     {
         WriteDelimiterIfNeeded();
-        GetDematerializerAndIncrementFieldCount<TRecord>().Write(_inner, value);
+        GetDematerializerAndIncrementFieldCount<TRecord>().Write(in _inner, value);
         _index = 0;
         return FlushIfNeededAsync(cancellationToken);
     }
@@ -196,7 +196,7 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
     public override ValueTask WriteRecordAsync<TRecord>(CsvTypeMap<T, TRecord> typeMap, TRecord value, CancellationToken cancellationToken = default)
     {
         WriteDelimiterIfNeeded();
-        GetDematerializerAndIncrementFieldCount(typeMap).Write(_inner, value);
+        GetDematerializerAndIncrementFieldCount(typeMap).Write(in _inner, value);
         _index = 0;
         return FlushIfNeededAsync(cancellationToken);
     }
@@ -205,7 +205,7 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
     public override void WriteHeader<[DAM(Messages.ReflectionBound)] TRecord>()
     {
         WriteDelimiterIfNeeded();
-        GetDematerializerAndIncrementFieldCount<TRecord>().WriteHeader(_inner);
+        GetDematerializerAndIncrementFieldCount<TRecord>().WriteHeader(in _inner);
         _index = 0;
         FlushIfNeeded();
     }
@@ -213,7 +213,7 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
     public override void WriteHeader<TRecord>(CsvTypeMap<T, TRecord> typeMap)
     {
         WriteDelimiterIfNeeded();
-        GetDematerializerAndIncrementFieldCount(typeMap).WriteHeader(_inner);
+        GetDematerializerAndIncrementFieldCount(typeMap).WriteHeader(in _inner);
         _index = 0;
         FlushIfNeeded();
     }
@@ -222,7 +222,7 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
     public override ValueTask WriteHeaderAsync<[DAM(Messages.ReflectionBound)] TRecord>(CancellationToken cancellationToken = default)
     {
         WriteDelimiterIfNeeded();
-        GetDematerializerAndIncrementFieldCount<TRecord>().WriteHeader(_inner);
+        GetDematerializerAndIncrementFieldCount<TRecord>().WriteHeader(in _inner);
         _index = 0;
         return FlushIfNeededAsync(cancellationToken);
     }
@@ -230,7 +230,7 @@ internal sealed class CsvWriterImpl<T, TWriter> : CsvWriter<T>
     public override ValueTask WriteHeaderAsync<TRecord>(CsvTypeMap<T, TRecord> typeMap, CancellationToken cancellationToken = default)
     {
         WriteDelimiterIfNeeded();
-        GetDematerializerAndIncrementFieldCount(typeMap).WriteHeader(_inner);
+        GetDematerializerAndIncrementFieldCount(typeMap).WriteHeader(in _inner);
         _index = 0;
         return FlushIfNeededAsync(cancellationToken);
     }

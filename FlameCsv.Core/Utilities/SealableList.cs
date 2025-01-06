@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using CommunityToolkit.HighPerformance;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Utilities;
 

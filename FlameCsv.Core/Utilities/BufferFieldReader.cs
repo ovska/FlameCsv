@@ -46,7 +46,7 @@ internal ref struct BufferFieldReader<T> : ICsvFieldReader<T> where T : unmanage
         _rangeEnumerator = _ranges.GetEnumerator();
     }
 
-    readonly object? IEnumerator.Current => throw new NotSupportedException();
+    readonly object IEnumerator.Current => throw new NotSupportedException();
 
     public void Dispose()
     {

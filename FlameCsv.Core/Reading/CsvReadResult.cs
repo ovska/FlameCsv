@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace FlameCsv.Reading;
 
-[DebuggerDisplay(@"\{ ReadResult<{typeof(T).Name,nq}, Buffer Length: {Buffer.Length}, IsCompleted: {IsCompleted} \}")]
+[DebuggerDisplay(@"\{ ReadResult<{typeof(T).Name,nq}> Length: {Buffer.Length}, IsCompleted: {IsCompleted} \}")]
 internal readonly struct CsvReadResult<T> where T : unmanaged, IEquatable<T>
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

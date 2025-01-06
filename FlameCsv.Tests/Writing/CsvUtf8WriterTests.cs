@@ -2,6 +2,7 @@
 using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Enumerables;
 using FlameCsv.Tests.TestData;
+using FlameCsv.Tests.Utilities;
 using FlameCsv.Writing;
 using Xunit.Sdk;
 
@@ -9,15 +10,17 @@ namespace FlameCsv.Tests.Writing;
 
 public class CsvUtf8WriterTests : CsvWriterTestsBase
 {
-    [Theory, MemberData(nameof(ArgsWithBufferSize))]
+    [Theory, MemberData(nameof(Args))]
     public async Task Objects_Async(
         string newline,
         bool header,
         char? escape,
         CsvFieldEscaping quoting,
         bool sourceGen,
-        int bufferSize)
+        int bufferSize,
+        bool? guarded)
     {
+        using var pool = ReturnTrackingMemoryPool<byte>.Create(guarded);
         var options = new CsvOptions<byte>
         {
             Newline = newline,
@@ -26,17 +29,27 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             Escape = escape,
             Quote = '\'',
             Formats = { { typeof(DateTime), "O" }, { typeof(DateTimeOffset), "O" } },
+            MemoryPool = pool,
         };
 
         using var output = new MemoryStream(capacity: short.MaxValue * 4);
 
         if (sourceGen)
         {
-            await CsvWriter.WriteAsync(TestDataGenerator.Objects.Value, output, ObjByteTypeMap.Instance, options, bufferSize: bufferSize);
+            await CsvWriter.WriteAsync(
+                TestDataGenerator.Objects.Value,
+                output,
+                ObjByteTypeMap.Instance,
+                options,
+                bufferSize: bufferSize);
         }
         else
         {
-            await CsvWriter.WriteAsync(TestDataGenerator.Objects.Value, output, options, bufferSize: bufferSize);
+            await CsvWriter.WriteAsync(
+                TestDataGenerator.Objects.Value,
+                output,
+                options,
+                bufferSize: bufferSize);
         }
 
         Assert.True(output.TryGetBuffer(out var buffer));
@@ -73,7 +86,9 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             {
                 Assert.Equal(0, index);
                 Assert.Equal(
-                    quoting == CsvFieldEscaping.AlwaysQuote ? TestDataGenerator.HeaderQuotedU8 : TestDataGenerator.HeaderU8,
+                    quoting == CsvFieldEscaping.AlwaysQuote
+                        ? TestDataGenerator.HeaderQuotedU8
+                        : TestDataGenerator.HeaderU8,
                     line);
                 headerRead = true;
                 continue;
@@ -109,6 +124,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                         {
                             Assert.Equal($"' Name''{index}'", column);
                         }
+
                         break;
                     case 2:
                         string val = index % 2 == 0 ? "true" : "false";
@@ -122,7 +138,8 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                         Assert.Equal(quoting == CsvFieldEscaping.AlwaysQuote ? $"'{guid}'" : $"{guid}", column);
                         break;
                     default:
-                        throw new XunitException($"Invalid column count on line {index}: {Encoding.UTF8.GetString(line)}");
+                        throw new XunitException(
+                            $"Invalid column count on line {index}: {Encoding.UTF8.GetString(line)}");
                 }
             }
 
@@ -132,4 +149,3 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
         Assert.Equal(1_000, index);
     }
 }
-

@@ -34,7 +34,7 @@ internal sealed class TextSegment(MemoryPool<char> allocator) : ReadOnlySequence
     /// Reference to the next block of data when the overall "active" bytes spans multiple blocks. At the point when the block is
     /// leased Next is guaranteed to be null. Start, End, and Next are used together in order to create a linked-list of discontiguous
     /// working memory. The "active" memory is grown when bytes are copied in, End is increased, and Next is assigned. The "active"
-    /// memory is shrunk when bytes are consumed, Start is increased, and blocks are returned to the pool.
+    /// memory is shrunk when bytes are consumed, Start is increased, and blocks ar e returned to the pool.
     /// </summary>
     public TextSegment? NextSegment
     {
@@ -53,6 +53,7 @@ internal sealed class TextSegment(MemoryPool<char> allocator) : ReadOnlySequence
 
     public void ResetMemory()
     {
+        AvailableMemory = default;
         _memory?.Dispose();
         _memory = null!;
 
@@ -61,7 +62,6 @@ internal sealed class TextSegment(MemoryPool<char> allocator) : ReadOnlySequence
         Memory = default;
         _next = null;
         _end = 0;
-        AvailableMemory = default;
     }
 
     public Memory<char> AvailableMemory { get; private set; }
