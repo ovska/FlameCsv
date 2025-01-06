@@ -8,25 +8,23 @@ using FlameCsv.Runtime;
 using FlameCsv.Utilities;
 using System.Diagnostics;
 using System.Buffers;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Enumeration;
 
+[MustDisposeResource]
 public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : unmanaged, IEquatable<T>
 {
-    public TValue Current => _current;
-
-    public int Line => _line;
-    public long Position => _position;
+    public TValue Current { get; private set; }
+    public int Line { get; private set; }
+    public long Position { get; private set; }
 
     private readonly CsvTypeMap<T, TValue>? _typeMap;
     private IMaterializer<T, TValue>? _materializer;
 
-    private TValue _current;
-    private long _position;
-    private int _line;
-
-    private IMemoryOwner<T>? _unescapeBuffer; // string unescaping
+    [HandlesResourceDisposal]
     protected readonly CsvParser<T> _parser;
+    private IMemoryOwner<T>? _unescapeBuffer; // string unescaping
 
     protected CsvValueEnumeratorBase(CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
         : this(options, null, typeMap)
@@ -55,7 +53,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         _parser = CsvParser<T>.Create(options);
         _materializer = materializer;
         _typeMap = typeMap;
-        _current = default!;
+        Current = default!;
     }
 
     protected bool TryRead(bool isFinalBlock)
@@ -66,14 +64,14 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
             return false;
         }
 
-        long position = _position;
+        long position = Position;
 
-        _line++;
-        _position += line.Length + (isFinalBlock ? 0 : _parser._newlineLength);
+        Line++;
+        Position += line.Length + (isFinalBlock ? 0 : _parser._newlineLength);
 
         ReadOnlySpan<T> record = line.Span;
 
-        if (_parser.SkipRecord(record, _line, _parser.HasHeader ? _materializer is not null : null))
+        if (_parser.SkipRecord(record, Line, _parser.HasHeader && _materializer is null))
         {
             goto ReadNextRecord;
         }
@@ -98,7 +96,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
                 ref _unescapeBuffer,
                 in meta);
 
-            _current = _materializer.Parse(ref reader);
+            Current = _materializer.Parse(ref reader);
             return true;
         }
         catch (Exception ex)
@@ -109,7 +107,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
                 ThrowInvalidFormatException(ex, record);
             }
 
-            if (_parser.ExceptionIsHandled(record, _line, ex))
+            if (_parser.ExceptionIsHandled(record, Line, ex))
             {
                 goto ReadNextRecord;
             }
@@ -163,6 +161,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         finally
         {
             list.Dispose();
+            reader.Dispose();
         }
     }
 
@@ -170,8 +169,8 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     private void ThrowInvalidFormatException(Exception innerException, ReadOnlySpan<T> line)
     {
         throw new CsvFormatException(
-            $"The CSV was in an invalid format. The record was on line {_line} at character " +
-            $"position {_position} in the CSV. Record: {_parser.AsPrintableString(line)}",
+            $"The CSV was in an invalid format. The record was on line {Line} at character " +
+            $"position {Position} in the CSV. Record: {_parser.AsPrintableString(line)}",
             innerException);
     }
 
@@ -183,8 +182,8 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     {
         throw new CsvUnhandledException(
             $"Unhandled exception while reading records of type {typeof(TValue)} from the CSV. The record was on " +
-            $"line {_line} at character position {position} in the CSV. Record: {_parser.AsPrintableString(record)}",
-            _line,
+            $"line {Line} at character position {position} in the CSV. Record: {_parser.AsPrintableString(record)}",
+            Line,
             position,
             innerException);
     }
@@ -206,6 +205,3 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         }
     }
 }
-
-[InlineArray(16)]
-file struct StringScratch { public string? elem0; }

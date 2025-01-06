@@ -24,7 +24,6 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
         ref uint quotesRemaining = ref state.quotesRemaining;
 
         ref T first = ref state.GetRemainingRef(out nuint remaining);
-        T lookUp;
 
         int sliceStart;
 
@@ -154,7 +153,7 @@ internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
             goto EOL;
         }
 
-        lookUp = Unsafe.Add(ref first, consumed);
+        T lookUp = Unsafe.Add(ref first, consumed);
 
         if (lookUp.Equals(quote))
         {

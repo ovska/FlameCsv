@@ -37,10 +37,14 @@ static partial class CsvWriter
         string path,
         CsvOptions<char>? options = null,
         Encoding? encoding = null,
+        int bufferSize = -1,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(values);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        if (bufferSize != -1)
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bufferSize);
 
         if (cancellationToken.IsCancellationRequested)
             return Task.FromCanceled(cancellationToken);
@@ -52,7 +56,8 @@ static partial class CsvWriter
             values,
             CsvFieldWriter.Create(
                 new StreamWriter(File.OpenWrite(path), encoding: encoding, leaveOpen: false),
-                options),
+                options,
+                bufferSize: bufferSize),
             dematerializer,
             cancellationToken);
     }
@@ -114,10 +119,14 @@ static partial class CsvWriter
         IEnumerable<TValue> values,
         TextWriter textWriter,
         CsvOptions<char>? options = null,
+        int bufferSize = -1,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(values);
         ArgumentNullException.ThrowIfNull(textWriter);
+
+        if (bufferSize != -1)
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bufferSize);
 
         if (cancellationToken.IsCancellationRequested)
             return Task.FromCanceled(cancellationToken);
@@ -127,7 +136,7 @@ static partial class CsvWriter
 
         return WriteAsyncCore(
             values,
-            CsvFieldWriter.Create(textWriter, options),
+            CsvFieldWriter.Create(textWriter, options, bufferSize),
             dematerializer,
             cancellationToken);
     }
@@ -136,17 +145,21 @@ static partial class CsvWriter
     public static void Write<[DAM(Messages.ReflectionBound)] TValue>(
         IEnumerable<TValue> values,
         TextWriter textWriter,
-        CsvOptions<char>? options = null)
+        CsvOptions<char>? options = null,
+        int bufferSize = -1)
     {
         ArgumentNullException.ThrowIfNull(values);
         ArgumentNullException.ThrowIfNull(textWriter);
+
+        if (bufferSize != -1)
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bufferSize);
 
         options ??= CsvOptions<char>.Default;
         var dematerializer = ReflectionDematerializer.Create<char, TValue>(options);
 
         WriteCore(
             values,
-            CsvFieldWriter.Create(textWriter, options),
+            CsvFieldWriter.Create(textWriter, options, bufferSize),
             dematerializer);
     }
 
@@ -172,18 +185,17 @@ static partial class CsvWriter
         var sb = new StringBuilder(capacity: initialCapacity);
         WriteCore(
             values,
-            CsvFieldWriter.Create(new StringWriter(sb), options),
+            CsvFieldWriter.Create(new StringWriter(sb), options, bufferSize: 4096),
             dematerializer);
         return sb;
     }
 
-    private static async Task WriteAsyncCore<T, TWriter, TValue>(
+    private static async Task WriteAsyncCore<T, TValue>(
         IEnumerable<TValue> values,
-        CsvFieldWriter<T, TWriter> writer,
+        CsvFieldWriter<T> writer,
         IDematerializer<T, TValue> dematerializer,
         CancellationToken cancellationToken)
         where T : unmanaged, IEquatable<T>
-        where TWriter : struct, ICsvBufferWriter<T>
     {
         Exception? exception = null;
 
@@ -191,15 +203,14 @@ static partial class CsvWriter
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (writer.WriteHeader)
-                dematerializer.WriteHeader(writer);
+            writer.TryWriteHeader(dematerializer);
 
             foreach (var value in values)
             {
                 if (writer.Writer.NeedsFlush)
                     await writer.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
 
-                dematerializer.Write(writer, value);
+                dematerializer.Write(in writer, value);
             }
         }
         catch (Exception e)
@@ -218,26 +229,24 @@ static partial class CsvWriter
         }
     }
 
-    private static void WriteCore<T, TWriter, TValue>(
+    private static void WriteCore<T, TValue>(
         IEnumerable<TValue> values,
-        CsvFieldWriter<T, TWriter> writer,
+        CsvFieldWriter<T> writer,
         IDematerializer<T, TValue> dematerializer)
         where T : unmanaged, IEquatable<T>
-        where TWriter : struct, ICsvBufferWriter<T>
     {
         Exception? exception = null;
 
         try
         {
-            if (writer.WriteHeader)
-                dematerializer.WriteHeader(writer);
+            writer.TryWriteHeader(dematerializer);
 
             foreach (var value in values)
             {
                 if (writer.Writer.NeedsFlush)
                     writer.Writer.Flush();
 
-                dematerializer.Write(writer, value);
+                dematerializer.Write(in writer, value);
             }
         }
         catch (Exception e)

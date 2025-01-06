@@ -2,7 +2,7 @@ using System.Buffers;
 
 namespace FlameCsv.Writing;
 
-internal interface ICsvBufferWriter<T> : IBufferWriter<T> where T : unmanaged
+public interface ICsvBufferWriter<T> : IBufferWriter<T> where T : unmanaged
 {
     /// <summary>
     /// Whether the writer's buffer is nearly full and should be flushed.

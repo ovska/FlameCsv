@@ -25,9 +25,9 @@ static partial class CsvWriter
     {
         ArgumentNullException.ThrowIfNull(textWriter);
         options ??= CsvOptions<char>.Default;
-        return new CsvWriterImpl<char, CsvCharBufferWriter>(
+        return new CsvWriterImpl<char>(
             options,
-            CsvFieldWriter.Create(textWriter, options),
+            CsvFieldWriter.Create(textWriter, options, 4096),
             autoFlush);
     }
 
@@ -49,7 +49,7 @@ static partial class CsvWriter
         Guard.CanWrite(stream);
 
         options ??= CsvOptions<byte>.Default;
-        return new CsvWriterImpl<byte, CsvByteBufferWriter>(
+        return new CsvWriterImpl<byte>(
             options,
             CsvFieldWriter.Create(stream, options),
             autoFlush);
@@ -72,7 +72,7 @@ static partial class CsvWriter
         ArgumentNullException.ThrowIfNull(pipeWriter);
 
         options ??= CsvOptions<byte>.Default;
-        return new CsvWriterImpl<byte, CsvByteBufferWriter>(
+        return new CsvWriterImpl<byte>(
             options,
             CsvFieldWriter.Create(pipeWriter, options),
             autoFlush);

@@ -46,7 +46,7 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
 
                 foreach (var index in ignoredIndices)
                 {
-                    // Ensure no duplicate ignores since its not really harmful to have them
+                    // Ensure no duplicate ignores since it's not really harmful to have them
                     if (!HasIgnoredIndex(index, list))
                         list.Add(new IgnoredCsvBinding<TValue>(index));
                 }

@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using static FlameCsv.Utilities.SealableUtil;
+using FlameCsv.Extensions;
 
 namespace FlameCsv;
 
@@ -61,7 +61,8 @@ public partial class CsvOptions<T>
                 Escape = _escape,
                 Newline = _newline.AsMemory(),
                 Quote = _quote,
-                Whitespace = _whitespace.AsMemory()
+                Whitespace = _whitespace.AsMemory(),
+                NeedsQuoting = null!,
             };
             _dialect = Unsafe.As<CsvDialect<char>, CsvDialect<T>>(ref dialect);
             return ref Nullable.GetValueRefOrDefaultRef(in _dialect);
@@ -76,6 +77,7 @@ public partial class CsvOptions<T>
                 Escape = (Utf8Char?)_escape,
                 Newline = (Utf8String)_newline,
                 Whitespace = (Utf8String)_whitespace,
+                NeedsQuoting = null!,
             };
             _dialect = Unsafe.As<CsvDialect<byte>, CsvDialect<T>>(ref dialect);
             return ref Nullable.GetValueRefOrDefaultRef(in _dialect);
@@ -184,7 +186,8 @@ public partial class CsvOptions<T>
                 return;
             }
 
-            throw new NotSupportedException($"Detecting empty newline is not supported for token type {typeof(T).FullName}");
+            throw new NotSupportedException(
+                $"Detecting empty newline is not supported for token type {typeof(T).FullName}");
         }
 
         Debug.Assert(newlineLength is 1 or 2);
@@ -198,7 +201,7 @@ public partial class CsvOptions<T>
         }
         else
         {
-            newline2 = default;
+            newline2 = newline1;
             newlineLength = 1;
         }
     }

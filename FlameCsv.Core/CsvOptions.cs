@@ -9,7 +9,6 @@ using FlameCsv.Extensions;
 using FlameCsv.Utilities;
 using FlameCsv.Writing;
 using CommunityToolkit.HighPerformance.Buffers;
-using FlameCsv.Reading;
 using System.Text;
 using System.Globalization;
 
@@ -549,50 +548,6 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     /// <see langword="true"/> and <see langword="false"/>. Default is empty.
     /// </summary>
     public IList<(string text, bool value)> BooleanValues => _booleanValues ??= new SealableList<(string, bool)>(this, null);
-
-    internal TValue Materialize<TValue>(ReadOnlyMemory<T> record, IMaterializer<T, TValue> materializer)
-    {
-        ArgumentNullException.ThrowIfNull(materializer);
-        MakeReadOnly();
-
-        ReadOnlySpan<T> span = record.Span;
-        IMemoryOwner<T>? memoryOwner = null;
-
-        try
-        {
-            var meta = CsvParser<T>.GetRecordMeta(span, this);
-            CsvFieldReader<T> reader = new(
-                this,
-                span,
-                stackalloc T[Token<T>.StackLength],
-                ref memoryOwner,
-                in meta);
-
-            return materializer.Parse(ref reader);
-        }
-        finally
-        {
-            memoryOwner?.Dispose();
-        }
-    }
-
-    internal TValue Materialize<TValue, TReader>(ref TReader reader, IMaterializer<T, TValue> materializer)
-        where TReader : ICsvFieldReader<T>, allows ref struct
-    {
-        ArgumentNullException.ThrowIfNull(materializer);
-        MakeReadOnly();
-
-        IMemoryOwner<T>? memoryOwner = null;
-
-        try
-        {
-            return materializer.Parse(ref reader);
-        }
-        finally
-        {
-            memoryOwner?.Dispose();
-        }
-    }
 
     private bool TryGetExistingOrCustomConverter(
         Type resultType,

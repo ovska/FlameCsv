@@ -302,15 +302,15 @@ public class CsvOptionsTests
                 {
                     if (args.Record[0] == 'A')
                     {
-                        Assert.False(args.HeaderRead);
+                        Assert.True(args.IsHeader);
                     }
                     if (args.Record[0] == '1')
                     {
-                        Assert.True(args.HeaderRead);
+                        Assert.False(args.IsHeader);
                     }
                     if (args.Record[0] == 'X')
                     {
-                        Assert.Null(args.HeaderRead);
+                        Assert.False(args.IsHeader);
                     }
 
                     return false;

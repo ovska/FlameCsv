@@ -3,30 +3,32 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace FlameCsv.Writing;
 
 internal static class CsvFieldWriter
 {
-    public static CsvFieldWriter<char, CsvCharBufferWriter> Create(
+    public static CsvFieldWriter<char> Create(
         TextWriter textWriter,
-        CsvOptions<char> options)
+        CsvOptions<char> options,
+        int bufferSize)
     {
-        return new CsvFieldWriter<char, CsvCharBufferWriter>(
-            new CsvCharBufferWriter(textWriter, options._memoryPool),
+        return new CsvFieldWriter<char>(
+            new CsvCharBufferWriter(textWriter, options._memoryPool, bufferSize),
             options);
     }
 
-    public static CsvFieldWriter<byte, CsvByteBufferWriter> Create(
+    public static CsvFieldWriter<byte> Create(
         PipeWriter pipeWriter,
         CsvOptions<byte> options)
     {
-        return new CsvFieldWriter<byte, CsvByteBufferWriter>(
+        return new CsvFieldWriter<byte>(
             new CsvByteBufferWriter(pipeWriter),
             options);
     }
 
-    public static CsvFieldWriter<byte, CsvByteBufferWriter> Create(
+    public static CsvFieldWriter<byte> Create(
         Stream stream,
         CsvOptions<byte> options,
         int bufferSize = -1,
@@ -37,35 +39,24 @@ internal static class CsvFieldWriter
             minimumBufferSize: bufferSize,
             leaveOpen: leaveOpen);
 
-        return new CsvFieldWriter<byte, CsvByteBufferWriter>(
+        return new CsvFieldWriter<byte>(
             new CsvByteBufferWriter(PipeWriter.Create(stream, writerOptions)),
             options);
     }
-}
-
-public interface ICsvFieldWriter<T> where T : unmanaged, IEquatable<T>
-{
-    void WriteField<TValue>(CsvConverter<T, TValue> converter, TValue? value);
-    void WriteText(ReadOnlySpan<char> value, bool skipEscaping = false);
-    void WriteDelimiter();
-    void WriteNewline();
 }
 
 /// <summary>
 /// Writes CSV fields and handles escaping as needed.
 /// This type is not intended to be used directly in user code, consider <see cref="CsvWriter{T}"/> instead.
 /// </summary>
-public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
-    where T : unmanaged, IEquatable<T>
-    where TWriter : struct, IBufferWriter<T>
+public readonly struct CsvFieldWriter<T> where T : unmanaged, IEquatable<T>
 {
-    internal bool WriteHeader => _options._hasHeader;
+    /// <summary>
+    /// The <see cref="System.Buffers.IBufferWriter{T}"/> this instance writes to.
+    /// </summary>
+    public ICsvBufferWriter<T> Writer { get; }
 
-    public TWriter Writer => _writer;
-
-    private TWriter _writer;
     private readonly CsvOptions<T> _options;
-
     private readonly T _delimiter;
     private readonly T _quote;
     private readonly T _newline1;
@@ -73,13 +64,16 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
     private readonly T? _escape;
     private readonly ReadOnlyMemory<T> _whitespace;
     private readonly int _newlineLength;
+    private readonly SearchValues<T> _needsQuoting;
 
-    public CsvFieldWriter(TWriter writer, CsvOptions<T> options)
+    public CsvFieldWriter(ICsvBufferWriter<T> writer, CsvOptions<T> options)
     {
+        ArgumentNullException.ThrowIfNull(writer);
         ArgumentNullException.ThrowIfNull(options);
+
         options.MakeReadOnly();
 
-        _writer = writer;
+        Writer = writer;
         _options = options;
 
         ref readonly CsvDialect<T> dialect = ref options.Dialect;
@@ -88,6 +82,7 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
         _escape = dialect.Escape;
         _whitespace = dialect.Whitespace;
         options.GetNewline(out _newline1, out _newline2, out _newlineLength, forWriting: true);
+        _needsQuoting = dialect.NeedsQuoting;
     }
 
     /// <summary>
@@ -100,17 +95,17 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
 
         if (value is not null || converter.HandleNull)
         {
-            destination = _writer.GetSpan();
+            destination = Writer.GetSpan();
 
             while (!converter.TryFormat(destination, value!, out tokensWritten))
             {
-                destination = _writer.GetSpan(destination.Length * 2);
+                destination = Writer.GetSpan(destination.Length * 2);
             }
         }
         else
         {
             ReadOnlySpan<T> nullValue = _options.GetNullToken(typeof(TValue)).Span;
-            destination = _writer.GetSpan(nullValue.Length);
+            destination = Writer.GetSpan(nullValue.Length);
             nullValue.CopyTo(destination);
             tokensWritten = nullValue.Length;
         }
@@ -133,11 +128,11 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
     public void WriteText(ReadOnlySpan<char> value, bool skipEscaping = false)
     {
         int tokensWritten;
-        scoped Span<T> destination = _writer.GetSpan();
+        scoped Span<T> destination = Writer.GetSpan();
 
         while (!_options.TryWriteChars(value, destination, out tokensWritten))
         {
-            destination = _writer.GetSpan(destination.Length * 2);
+            destination = Writer.GetSpan(destination.Length * 2);
         }
 
         // validate negative or too large tokensWritten in case of broken user-defined options
@@ -152,7 +147,7 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
         }
         else
         {
-            _writer.Advance(tokensWritten);
+            Writer.Advance(tokensWritten);
         }
     }
 
@@ -162,9 +157,9 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteDelimiter()
     {
-        Span<T> destination = _writer.GetSpan(1);
+        Span<T> destination = Writer.GetSpan(1);
         destination[0] = _delimiter;
-        _writer.Advance(1);
+        Writer.Advance(1);
     }
 
     /// <summary>
@@ -173,13 +168,27 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteNewline()
     {
-        Span<T> destination = _writer.GetSpan(_newlineLength);
+        Span<T> destination = Writer.GetSpan(_newlineLength);
         destination[0] = _newline1;
 
         if (_newlineLength == 2)
             destination[1] = _newline2;
 
-        _writer.Advance(_newlineLength);
+        Writer.Advance(_newlineLength);
+    }
+
+    /// <summary>
+    /// Writes the header with <paramref name="dematerializer"/> if <see cref="CsvOptions{T}.HasHeader"/> is true.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void TryWriteHeader<TValue>(IDematerializer<T, TValue> dematerializer)
+    {
+        ArgumentNullException.ThrowIfNull(dematerializer);
+
+        if (_options._hasHeader)
+        {
+            dematerializer.WriteHeader(in this);
+        }
     }
 
     private void AdvanceAndHandleQuoting(
@@ -193,11 +202,11 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
             {
                 // Ensure the buffer is large enough
                 if (destination.Length < 2)
-                    destination = _writer.GetSpan(2);
+                    destination = Writer.GetSpan(2);
 
                 destination[0] = _quote;
                 destination[1] = _quote;
-                _writer.Advance(2);
+                Writer.Advance(2);
             }
 
             return;
@@ -208,34 +217,19 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
         {
             if (_escape is null)
             {
-                RFC4180Escaper<T> escaper = new(
-                    delimiter: _delimiter,
-                    quote: _quote,
-                    newline1: _newline1,
-                    newline2: _newline2,
-                    newlineLength: _newlineLength,
-                    whitespace: _whitespace);
-
+                RFC4180Escaper<T> escaper = new(quote: _quote);
                 if (TryEscapeAndAdvance(ref escaper, destination, tokensWritten))
                     return;
             }
             else
             {
-                UnixEscaper<T> escaper = new(
-                    delimiter: _delimiter,
-                    quote: _quote,
-                    escape: _escape.Value,
-                    newline1: _newline1,
-                    newline2: _newline2,
-                    newlineLength: _newlineLength,
-                    whitespace: _whitespace);
-
+                UnixEscaper<T> escaper = new(quote: _quote, escape: _escape.Value);
                 if (TryEscapeAndAdvance(ref escaper, destination, tokensWritten))
                     return;
             }
         }
 
-        _writer.Advance(tokensWritten);
+        Writer.Advance(tokensWritten);
     }
 
     /// <summary>
@@ -247,35 +241,62 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
         ref TEscaper escaper,
         Span<T> destination,
         int tokensWritten)
-        where TEscaper : struct, IEscaper<T>
+        where TEscaper : struct, IEscaper<T>, allows ref struct
     {
+        Debug.Assert(tokensWritten != 0);
         Debug.Assert(_options._fieldEscaping != CsvFieldEscaping.Never);
 
         ReadOnlySpan<T> written = destination[..tokensWritten];
 
         bool shouldQuote;
-        int specialCount;
+        int escapableCount;
 
         if (_options._fieldEscaping == CsvFieldEscaping.AlwaysQuote)
         {
             shouldQuote = true;
-            specialCount = escaper.CountEscapable(written);
+            escapableCount = escaper.CountEscapable(written);
         }
         else
         {
-            shouldQuote = escaper.NeedsEscaping(written, out specialCount);
+            int index = written.IndexOfAny(_needsQuoting);
+
+            if (index != -1)
+            {
+                shouldQuote = true;
+                escapableCount = escaper.CountEscapable(written[index..]);
+            }
+            else
+            {
+                shouldQuote = false;
+                escapableCount = 0;
+
+                if (!_whitespace.IsEmpty)
+                {
+                    ref T first = ref MemoryMarshal.GetReference(written);
+                    ref T last = ref Unsafe.Add(ref first, written.Length - 1);
+
+                    foreach (T token in _whitespace.Span)
+                    {
+                        if (first.Equals(token) || last.Equals(token))
+                        {
+                            shouldQuote = true;
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         // if needed, escape/quote the field and adjust tokensWritten
         if (shouldQuote)
         {
-            int escapedLength = tokensWritten + 2 + specialCount;
+            int escapedLength = tokensWritten + 2 + escapableCount;
 
             if (escapedLength <= destination.Length)
             {
                 // Common case: escape directly to the destination buffer
-                Escape.Field(ref escaper, written, destination[..escapedLength], specialCount);
-                _writer.Advance(escapedLength);
+                Escape.Field(ref escaper, written, destination[..escapedLength], escapableCount);
+                Writer.Advance(escapedLength);
             }
             else
             {
@@ -283,12 +304,13 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
                 // destination, then advance and write the leftovers
                 Escape.FieldWithOverflow(
                     escaper: ref escaper,
-                    writer: ref _writer,
+                    writer: Writer,
                     source: written,
                     destination: destination,
-                    specialCount: specialCount,
+                    specialCount: escapableCount,
                     allocator: _options._memoryPool);
             }
+
             return true;
         }
 
@@ -300,7 +322,7 @@ public sealed class CsvFieldWriter<T, TWriter> : ICsvFieldWriter<T>
     {
         string display = culprit is CsvConverter<T> ? "CsvConverter" : "CsvOptions";
         throw new InvalidOperationException(
-            $"{display} ({culprit.GetType().FullName}) reported {tokensWritten} " +
-            $"tokens written to a buffer of length {destinationLength}.");
+            $"{display} ({culprit.GetType().FullName}) reported {tokensWritten} "
+            + $"tokens written to a buffer of length {destinationLength}.");
     }
 }

@@ -1,39 +1,22 @@
-﻿using FlameCsv.Writing;
+﻿using CFE = FlameCsv.Writing.CsvFieldEscaping;
 
 namespace FlameCsv.Tests.Writing;
 
 public abstract class CsvWriterTestsBase
 {
-    public static TheoryData<string, bool, char?, CsvFieldEscaping, bool, int> ArgsWithBufferSize()
+    public static TheoryData<string, bool, char?, CFE, bool, int, bool?> Args()
     {
-        var values = from arr in Args()
-        from bufferSize in (int[])[-1, 17, 128, 1024, 4096]
-                     select new { arr, bufferSize };
+        var data = new TheoryData<string, bool, char?, CFE, bool, int, bool?>();
 
-        var data = new TheoryData<string, bool, char?, CsvFieldEscaping, bool, int>();
-
-        foreach (var x in values)
+        foreach (var newline in (string[])["\r\n", "\n"])
+        foreach (var header in GlobalData.Booleans)
+        foreach (var escape in (char?[])['^', null])
+        foreach (var quoting in (CFE[])[CFE.Never, CFE.AlwaysQuote, CFE.Auto])
+        foreach (var sourceGen in GlobalData.Booleans)
+        foreach (var bufferSize in (int[])[-1, 17, 128, 1024, 4096])
+        foreach (var guarded in GlobalData.GuardedMemory)
         {
-            data.Add((string)x.arr[0], (bool)x.arr[1], (char?)x.arr[2], (CsvFieldEscaping)x.arr[3], (bool)x.arr[4], x.bufferSize);
-        }
-
-        return data;
-    }
-
-    public static TheoryData<string, bool, char?, CsvFieldEscaping, bool> Args()
-    {
-        var values = from newline in (string[])["\r\n", "\n"]
-                     from header in (bool[])[true, false]
-                     from escape in (char?[])['^', null]
-                     from quoting in (CsvFieldEscaping[])[CsvFieldEscaping.Never, CsvFieldEscaping.AlwaysQuote, CsvFieldEscaping.Auto]
-                     from sourceGen in (bool[])[true, false]
-                     select new { newline, header, escape, quoting, sourceGen};
-
-        var data = new TheoryData<string, bool, char?, CsvFieldEscaping, bool>();
-
-        foreach (var x in values)
-        {
-            data.Add(x.newline, x.header, x.escape, x.quoting, x.sourceGen);
+            data.Add(newline, header, escape, quoting, sourceGen, bufferSize, guarded);
         }
 
         return data;

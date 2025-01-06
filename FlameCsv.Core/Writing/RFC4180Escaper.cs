@@ -1,95 +1,28 @@
 ﻿using System.Runtime.CompilerServices;
-using CommunityToolkit.HighPerformance;
 
 namespace FlameCsv.Writing;
 
-internal readonly struct RFC4180Escaper<T> : IEscaper<T> where T : unmanaged, IEquatable<T>
+[method: MethodImpl(MethodImplOptions.AggressiveInlining)]
+internal readonly struct RFC4180Escaper<T>(T quote) : IEscaper<T> where T : unmanaged, IEquatable<T>
 {
-    public T Quote => _quote;
-    public T Escape => _quote;
-
-    private readonly T _delimiter;
-    private readonly T _quote;
-    private readonly T _newline1;
-    private readonly T _newline2;
-    private readonly int _newlineLength;
-    private readonly ReadOnlyMemory<T> _whitespace;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public RFC4180Escaper(
-        T delimiter,
-        T quote,
-        T newline1,
-        T newline2,
-        int newlineLength,
-        ReadOnlyMemory<T> whitespace)
+    public T Quote
     {
-        _delimiter = delimiter;
-        _quote = quote;
-        _newline1 = newline1;
-        _newline2 = newline2;
-        _newlineLength = newlineLength;
-        _whitespace = whitespace;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => quote;
+    }
+
+    public T Escape
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => quote;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool NeedsEscaping(T value) => value.Equals(_quote);
+    public bool NeedsEscaping(T value) => value.Equals(quote);
 
-    public bool NeedsEscaping(ReadOnlySpan<T> value, out int specialCount)
-    {
-        if (value.IsEmpty)
-        {
-            specialCount = 0;
-            return false;
-        }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int LastIndexOfEscapable(scoped ReadOnlySpan<T> value) => value.LastIndexOf(quote);
 
-        int index;
-
-        if (_newlineLength != 1)
-        {
-            index = value.IndexOfAny(_delimiter, _quote);
-
-            if (index >= 0)
-            {
-                goto FoundQuoteOrDelimiter;
-            }
-
-            specialCount = 0;
-            return value.IndexOf([_newline1, _newline2]) >= 0;
-        }
-        else
-        {
-            // Single token newlines can be seeked directly
-            index = value.IndexOfAny(_delimiter, _quote, _newline1);
-
-            if (index >= 0)
-            {
-                goto FoundQuoteOrDelimiter;
-            }
-        }
-
-        specialCount = 0;
-
-        if (!_whitespace.IsEmpty)
-        {
-            ref T first = ref value.DangerousGetReference();
-            ref T last = ref Unsafe.Add(ref first, value.Length - 1);
-
-            foreach (T token in _whitespace.Span)
-            {
-                if (first.Equals(token) || last.Equals(token))
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-
-        FoundQuoteOrDelimiter:
-        specialCount = CountEscapable(value.Slice(index));
-        return true;
-    }
-
-    public int CountEscapable(ReadOnlySpan<T> value) => System.MemoryExtensions.Count(value, _quote);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int CountEscapable(scoped ReadOnlySpan<T> value) => value.Count(quote);
 }

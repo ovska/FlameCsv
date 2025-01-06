@@ -12,18 +12,21 @@ public static partial class CsvWriter
         IEnumerable<TValue> values,
         TextWriter textWriter,
         CsvTypeMap<char, TValue> typeMap,
-        CsvOptions<char>? options = null)
+        CsvOptions<char>? options = null,
+        int bufferSize = -1)
     {
         ArgumentNullException.ThrowIfNull(values);
         ArgumentNullException.ThrowIfNull(textWriter);
         ArgumentNullException.ThrowIfNull(typeMap);
+        if (bufferSize != -1)
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bufferSize);
 
         options ??= CsvOptions<char>.Default;
         var dematerializer = typeMap.GetDematerializer(options);
 
         WriteCore(
             values,
-            CsvFieldWriter.Create(textWriter, options),
+            CsvFieldWriter.Create(textWriter, options, bufferSize),
             dematerializer);
     }
 
@@ -57,11 +60,14 @@ public static partial class CsvWriter
         CsvTypeMap<char, TValue> typeMap,
         CsvOptions<char>? options = null,
         Encoding? encoding = null,
+        int bufferSize = -1,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(values);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(typeMap);
+        if (bufferSize != -1)
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bufferSize);
 
         if (cancellationToken.IsCancellationRequested)
             return Task.FromCanceled(cancellationToken);
@@ -73,7 +79,8 @@ public static partial class CsvWriter
             values,
             CsvFieldWriter.Create(
                 new StreamWriter(File.OpenWrite(path), encoding: encoding, leaveOpen: false),
-                options),
+                options,
+                bufferSize: bufferSize),
             dematerializer,
             cancellationToken);
     }
@@ -137,11 +144,14 @@ public static partial class CsvWriter
         TextWriter textWriter,
         CsvTypeMap<char, TValue> typeMap,
         CsvOptions<char>? options = null,
+        int bufferSize = -1,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(values);
         ArgumentNullException.ThrowIfNull(textWriter);
         ArgumentNullException.ThrowIfNull(typeMap);
+        if (bufferSize != -1)
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bufferSize);
 
         if (cancellationToken.IsCancellationRequested)
             return Task.FromCanceled(cancellationToken);
@@ -151,7 +161,7 @@ public static partial class CsvWriter
 
         return WriteAsyncCore(
             values,
-            CsvFieldWriter.Create(textWriter, options),
+            CsvFieldWriter.Create(textWriter, options, bufferSize),
             dematerializer,
             cancellationToken);
     }
@@ -180,7 +190,7 @@ public static partial class CsvWriter
         var sb = new StringBuilder(capacity: initialCapacity);
         WriteCore(
             values,
-            CsvFieldWriter.Create(new StringWriter(sb), options),
+            CsvFieldWriter.Create(new StringWriter(sb), options, bufferSize: 4096),
             dematerializer);
         return sb;
     }

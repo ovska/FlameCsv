@@ -19,6 +19,7 @@ internal readonly struct Utf8String : IEquatable<Utf8String>, IEquatable<string>
     private readonly ReadOnlyMemory<byte> _bytes;
 
     public bool IsEmpty => string.IsNullOrEmpty(_string);
+    public int Length => _string?.Length ?? 0;
 
     public Utf8String(string? value)
     {

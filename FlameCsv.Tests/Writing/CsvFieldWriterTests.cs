@@ -6,20 +6,20 @@ namespace FlameCsv.Tests.Writing;
 
 public sealed class CsvFieldWriterTests : IAsyncDisposable
 {
-    private CsvFieldWriter<char, CsvCharBufferWriter>? _writer;
+    private CsvFieldWriter<char> _writer;
     private StringWriter? _textWriter;
 
     private string Written => _textWriter?.ToString() ?? string.Empty;
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
-        if (_writer is not null)
+        await using (_textWriter)
         {
-            await _writer.Writer.CompleteAsync(null);
+            if (_writer.Writer is not null)
+            {
+                await _writer.Writer.CompleteAsync(null);
+            }
         }
-
-        if (_textWriter is not null)
-            await _textWriter.DisposeAsync();
     }
 
     [Fact]
@@ -128,10 +128,10 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
     [Theory, InlineData(-1), InlineData((int)short.MaxValue)]
     public void Should_Guard_Against_Broken_Options(int tokensWritten)
     {
-        var writer = CsvFieldWriter.Create(TextWriter.Null, new BrokenOptions
-        {
-            Delimiter = ',', Quote = '"', Newline = "\n", Write = tokensWritten
-        });
+        var writer = CsvFieldWriter.Create(
+            TextWriter.Null,
+            new BrokenOptions { Delimiter = ',', Quote = '"', Newline = "\n", Write = tokensWritten },
+            bufferSize: 4096);
         Assert.Throws<InvalidOperationException>(() => writer.WriteText("test"));
         writer.Writer.Complete(null);
     }
@@ -148,7 +148,8 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
         Initialize(quoting);
 
         _writer.WriteField(Formatter.Instance, input);
-        await _writer.Writer.CompleteAsync(null);
+        await _writer.Writer.
+            CompleteAsync(null);
 
         Assert.Equal(expected, Written);
     }
@@ -160,7 +161,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
         char? escape = null)
     {
         _textWriter = new StringWriter();
-        _writer = new CsvFieldWriter<char, CsvCharBufferWriter>(
+        _writer = new CsvFieldWriter<char>(
             new CsvCharBufferWriter(_textWriter, HeapMemoryPool<char>.Shared, bufferSize),
             new CsvOptions<char> { FieldEscaping = quoting, Null = "null", Escape = escape });
     }
