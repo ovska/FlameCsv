@@ -80,10 +80,7 @@ public static class EscapeModeTests
         using var pool = new ReturnTrackingArrayMemoryPool<char>();
         var options = new CsvOptions<char>
         {
-            Escape = '^',
-            Quote = '\'',
-            AllowContentInExceptions = true,
-            MemoryPool = pool,
+            Escape = '^', Quote = '\'', AllowContentInExceptions = true, MemoryPool = pool,
         };
 
         IMemoryOwner<char>? allocated = null;
@@ -215,51 +212,49 @@ public static class EscapeModeTests
             MemoryPool = pool,
         };
 
-        List<IDisposable> disposables = [];
-        Func<ReadOnlyMemory<char>, ReadOnlyMemory<char>> memoryFactory = src =>
+        var fullMem = fullLine.AsMemory();
+        var noNewlineMem = noNewline.AsMemory();
+
+        using (MemorySegment<char>.Create(fullMem, segmentSize, emptyFrequency, pool, out var originalData))
+        using (MemorySegment<char>.Create(noNewlineMem, segmentSize, emptyFrequency, pool, out var originalWithoutLf))
         {
-            // ReSharper disable once AccessToDisposedClosure
-            var owner = pool.Rent(src.Length);
-            var dst = owner.Memory;
-            src.CopyTo(dst);
-            disposables.Add(owner);
-            return dst[..src.Length];
-        };
+            string data = originalData.ToString();
 
-        var originalData = MemorySegment<char>.AsSequence(fullLine.AsMemory(), segmentSize, emptyFrequency, memoryFactory);
-        var originalWithoutNewline = MemorySegment<char>.AsSequence(noNewline.AsMemory(), segmentSize, emptyFrequency, memoryFactory);
+            using var parser = CsvParser<char>.Create(options);
+            parser.Reset(in originalData);
 
-        string data = originalData.ToString();
-        var seq = originalData;
+            string withoutNewline = originalWithoutLf.ToString();
 
-        using var parser = CsvParser<char>.Create(options);
-        parser.Reset(in seq);
+            Assert.True(parser.TryReadLine(out var line, out var meta, isFinalBlock: false));
+            Assert.True(parser.End);
+            Assert.Equal(withoutNewline, line.ToString());
+            Assert.Equal(data.Replace("^'", "").Count('\''), (int)meta.quoteCount);
+            Assert.Equal(data.Replace("^^", "^").Count('^'), (int)meta.escapeCount);
 
-        string withoutNewline = originalWithoutNewline.ToString();
-
-        Assert.True(parser.TryReadLine(out var line, out var meta, isFinalBlock: false));
-        Assert.True(parser.End);
-        Assert.Equal(withoutNewline, line.ToString());
-        Assert.Equal(data.Replace("^'", "").Count('\''), (int)meta.quoteCount);
-        Assert.Equal(data.Replace("^^", "^").Count('^'), (int)meta.escapeCount);
-
-        parser.Reset(in originalWithoutNewline);
-        Assert.True(parser.TryReadLine(out line, out meta, isFinalBlock: true));
-        Assert.True(parser.End);
-        Assert.Equal(withoutNewline, line.ToString());
-        Assert.Equal(data.Replace("^'", "").Count('\''), (int)meta.quoteCount);
-        Assert.Equal(data.Replace("^^", "^").Count('^'), (int)meta.escapeCount);
-
-        disposables.ForEach(d => d.Dispose());
+            parser.Reset(in originalWithoutLf);
+            Assert.True(parser.TryReadLine(out line, out meta, isFinalBlock: true));
+            Assert.True(parser.End);
+            Assert.Equal(withoutNewline, line.ToString());
+            Assert.Equal(data.Replace("^'", "").Count('\''), (int)meta.quoteCount);
+            Assert.Equal(data.Replace("^^", "^").Count('^'), (int)meta.escapeCount);
+        }
     }
 
     public static TheoryData<int, int, string, string, bool?> GetEscapeTestData()
     {
-        var values = from segmentSize in new[] { 1, 2, 4, 17, 128 }
-                     from emptyFrequency in new[] { 0, 2, 3 }
-                     from tdata in _escapeTestData.Select(x => (full: x, nolf: x[..^2]))
-                     from guarded in (bool?[])(OperatingSystem.IsWindows() ? [true, false, null] : [null])
-                     select new { segmentSize, emptyFrequency, tdata.full, tdata.nolf, guarded };
+        var values =
+            from segmentSize in new[] { 1, 2, 4, 17, 128 }
+            from emptyFrequency in new[] { 0, 2, 3 }
+            from tdata in _escapeTestData.Select(x => (full: x, nolf: x[..^2]))
+            from guarded in (bool?[])(OperatingSystem.IsWindows() ? [true, false, null] : [null])
+            select new
+            {
+                segmentSize,
+                emptyFrequency,
+                tdata.full,
+                tdata.nolf,
+                guarded
+            };
 
         var data = new TheoryData<int, int, string, string, bool?>();
 
@@ -273,9 +268,6 @@ public static class EscapeModeTests
 
     private static readonly string[] _escapeTestData =
     [
-        "Test,Es^,caped,Es^\r\ncaped\r\n",
-        "^,^'^\r\r\n",
-        "^^\r\n",
-        "A^,B^'^C^\r^\n\r\n",
+        "Test,Es^,caped,Es^\r\ncaped\r\n", "^,^'^\r\r\n", "^^\r\n", "A^,B^'^C^\r^\n\r\n",
     ];
 }

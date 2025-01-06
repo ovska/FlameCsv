@@ -2,25 +2,49 @@
 using FlameCsv.Reading;
 using FlameCsv.Tests.Utilities;
 
+// ReSharper disable ConvertTypeCheckPatternToNullCheck
+
 namespace FlameCsv.Tests.Readers;
 
 public class SequenceReaderTests : IDisposable
 {
-    private readonly CsvOptions<char> _crlfOptions = new() { Newline = "\r\n", MemoryPool = new ReturnTrackingArrayMemoryPool<char>() };
-    private readonly CsvOptions<char> _lfOptions = new() { Newline = "\n", MemoryPool = new ReturnTrackingArrayMemoryPool<char>() };
+    public static TheoryData<bool?> GuardedData { get; } =
+        OperatingSystem.IsWindows()
+            ? new TheoryData<bool?> { true, false, null }
+            : [null];
+
+    private CsvOptions<char> CRLFOptions(bool? useGuardedPool)
+    {
+        _memoryPool ??= CreatePool(useGuardedPool);
+        return new() { Newline = "\r\n", MemoryPool = _memoryPool, };
+    }
+
+    private CsvOptions<char> LFOptions(bool? useGuardedPool)
+    {
+        _memoryPool ??= CreatePool(useGuardedPool);
+        return new() { Newline = "\n", MemoryPool = _memoryPool, };
+    }
+
+    private MemoryPool<char>? _memoryPool;
+
+    private static MemoryPool<char> CreatePool(bool? useGuardedPool)
+        => useGuardedPool switch
+        {
+            bool b when OperatingSystem.IsWindows() => new ReturnTrackingGuardedMemoryPool<char>(b),
+            _ => new ReturnTrackingArrayMemoryPool<char>(),
+        };
 
     public void Dispose()
     {
-        _crlfOptions._memoryPool.Dispose();
-        _lfOptions._memoryPool.Dispose();
+        _memoryPool?.Dispose();
     }
 
-    [Fact]
-    public void Should_Read_LF()
+    [Theory, MemberData(nameof(GuardedData))]
+    public void Should_Read_LF(bool? guardedMemory)
     {
-        var data = "1,Alice,true\n2,Bob,false\n";
+        const string data = "1,Alice,true\n2,Bob,false\n";
 
-        using var parser = CsvParser<char>.Create(_lfOptions);
+        using var parser = CsvParser<char>.Create(LFOptions(guardedMemory));
         parser.Reset(MemorySegment<char>.AsSequence(data.AsMemory(), 64));
 
         Assert.True(parser.TryReadLine(out var line, out CsvRecordMeta meta, isFinalBlock: false));
@@ -32,12 +56,12 @@ public class SequenceReaderTests : IDisposable
         Assert.False(parser.TryReadLine(out _, out _, isFinalBlock: false));
     }
 
-    [Fact]
-    public void Should_Read_CRLF()
+    [Theory, MemberData(nameof(GuardedData))]
+    public void Should_Read_CRLF(bool? guardedMemory)
     {
-        var data = "1,Alice,true\r\n2,Bob,false\r\n";
+        const string data = "1,Alice,true\r\n2,Bob,false\r\n";
 
-        using var parser = CsvParser<char>.Create(_crlfOptions);
+        using var parser = CsvParser<char>.Create(CRLFOptions(guardedMemory));
         parser.Reset(MemorySegment<char>.AsSequence(data.AsMemory(), 64));
 
         Assert.True(parser.TryReadLine(out var line, out CsvRecordMeta meta, isFinalBlock: false));
@@ -49,8 +73,8 @@ public class SequenceReaderTests : IDisposable
         Assert.False(parser.TryReadLine(out _, out _, isFinalBlock: false));
     }
 
-    [Fact]
-    public void Should_Find_Multisegment_Newlines()
+    [Theory, MemberData(nameof(GuardedData))]
+    public void Should_Find_Multisegment_Newlines(bool? guardedMemory)
     {
         const string start = "xyz\r";
         const string end = "\nabc";
@@ -58,7 +82,7 @@ public class SequenceReaderTests : IDisposable
         var last = first.Append(end.AsMemory());
 
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
-        using var parser = CsvParser<char>.Create(_crlfOptions);
+        using var parser = CsvParser<char>.Create(CRLFOptions(guardedMemory));
         parser.Reset(in seq);
 
         Assert.True(parser.TryReadLine(out var line, out _, isFinalBlock: false));
@@ -67,8 +91,8 @@ public class SequenceReaderTests : IDisposable
         Assert.Equal("abc", parser._reader.UnreadSequence.ToString());
     }
 
-    [Fact]
-    public void Should_Handle_Segment_Ending_Quote()
+    [Theory, MemberData(nameof(GuardedData))]
+    public void Should_Handle_Segment_Ending_Quote(bool? guardedMemory)
     {
         const string s1 = "\"test\"";
         const string s2 = "\r\n";
@@ -77,7 +101,7 @@ public class SequenceReaderTests : IDisposable
         var first = new MemorySegment<char>(s1.AsMemory());
         var last = first.Append(s2.AsMemory()).Append(s3.AsMemory()).Append(s4.AsMemory());
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
-        using var parser = CsvParser<char>.Create(_crlfOptions);
+        using var parser = CsvParser<char>.Create(CRLFOptions(guardedMemory));
         parser.Reset(in seq);
 
         Assert.True(parser.TryReadLine(out var line, out var meta, isFinalBlock: false));
@@ -90,18 +114,20 @@ public class SequenceReaderTests : IDisposable
 
     private static readonly string[] _xLines = [.. Enumerable.Range(0, 128).Select(i => new string('x', i))];
 
-    public static TheoryData<int, int> Segments
+    public static TheoryData<int, int, bool?> Segments
     {
         get
         {
-            var values = from size in (int[])[1, 2, 4, 17, 128, 8096]
-                         from freq in (int[])[0, 2, 20]
-                         select new { size, freq };
-            var data = new TheoryData<int, int>();
+            var values =
+                from size in (int[]) [1, 2, 4, 17, 128, 8096]
+                from freq in (int[]) [0, 2, 20]
+                from guarded in GuardedData
+                select new { size, freq, guard = (bool?)guarded[0] };
+            var data = new TheoryData<int, int, bool?>();
 
             foreach (var x in values)
             {
-                data.Add(x.size, x.freq);
+                data.Add(x.size, x.freq, x.guard);
             }
 
             return data;
@@ -109,10 +135,10 @@ public class SequenceReaderTests : IDisposable
     }
 
     [Theory, MemberData(nameof(Segments))]
-    public void Should_Find_Complex_Newlines(int segmentSize, int emptyFrequency)
+    public void Should_Find_Complex_Newlines(int segmentSize, int emptyFrequency, bool? guardedMemory)
     {
         var joined = string.Join("\r\n", _xLines);
-        using var parser = CsvParser<char>.Create(_crlfOptions);
+        using var parser = CsvParser<char>.Create(CRLFOptions(guardedMemory));
         parser.Reset(MemorySegment<char>.AsSequence(joined.AsMemory(), segmentSize, emptyFrequency));
 
         var results = new List<string>();
@@ -139,7 +165,7 @@ public class SequenceReaderTests : IDisposable
             .Append(segments[2].AsMemory());
 
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
-        var context = crlf ? _crlfOptions : _lfOptions;
+        var context = crlf ? CRLFOptions(null) : LFOptions(null);
         using var parser = CsvParser<char>.Create(context);
         parser.Reset(in seq);
 
@@ -148,18 +174,18 @@ public class SequenceReaderTests : IDisposable
         Assert.Equal(segments[2], parser._reader.UnreadSequence.ToString());
     }
 
-    [Fact]
-    public void Should_Handle_Line_With_Uneven_Quotes_No_Newline()
+    [Theory, MemberData(nameof(GuardedData))]
+    public void Should_Handle_Line_With_Uneven_Quotes_No_Newline(bool? guardedMemory)
     {
         const string data = "\"testxyz\",\"broken";
         var seq = new ReadOnlySequence<char>(data.AsMemory());
 
-        using var parser1 = CsvParser<char>.Create(_lfOptions);
+        using var parser1 = CsvParser<char>.Create(LFOptions(guardedMemory));
         parser1.Reset(in seq);
         Assert.False(parser1.TryReadLine(out _, out _, isFinalBlock: false));
         Assert.Equal(data, parser1._reader.UnreadSequence.ToString());
 
-        using var parser2 = CsvParser<char>.Create(_crlfOptions);
+        using var parser2 = CsvParser<char>.Create(CRLFOptions(guardedMemory));
         parser2.Reset(in seq);
         Assert.False(parser2.TryReadLine(out _, out _, isFinalBlock: false));
         Assert.Equal(data, parser2._reader.UnreadSequence.ToString());
@@ -178,7 +204,8 @@ public class SequenceReaderTests : IDisposable
     public void Should_Find_Lines(string data, string expected, uint quoteCount)
     {
         var seq = new ReadOnlySequence<char>(data.AsMemory());
-        using var parser = CsvParser<char>.Create(new CsvOptions<char> { Newline = "|", MemoryPool = ReturnTrackingMemoryPool<char>.Shared });
+        using var parser = CsvParser<char>.Create(
+            new CsvOptions<char> { Newline = "|", MemoryPool = ReturnTrackingMemoryPool<char>.Shared });
         parser.Reset(seq);
 
         bool result = parser.TryReadLine(out var line, out var meta, isFinalBlock: false);

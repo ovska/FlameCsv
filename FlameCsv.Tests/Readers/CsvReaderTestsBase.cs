@@ -202,9 +202,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase, IDisposable wh
         }
     }
 
-    private static async Task Validate(
-        IAsyncEnumerable<Obj> enumerable,
-        Mode escaping)
+    private static async Task Validate(IAsyncEnumerable<Obj> enumerable, Mode escaping)
     {
         int i = 0;
 
@@ -250,7 +248,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase, IDisposable wh
 
             tokenPosition += record.RawRecord.Length + newlineLength;
 
-            Obj obj = new Obj
+            Obj obj = new()
             {
                 Id = record.GetField<int>(0),
                 Name = record.GetField<string?>(1),

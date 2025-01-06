@@ -13,7 +13,7 @@ public class RFC4180NativeFromStartTests : RFC4180NativeTestsBase
     protected override bool FromEnd => false;
 }
 
-public class RFC4180NativeFromEnmTests : RFC4180NativeTestsBase
+public class RFC4180NativeFromEndTests : RFC4180NativeTestsBase
 {
     protected override bool FromEnd => true;
 }

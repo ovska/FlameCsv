@@ -10,7 +10,7 @@ namespace FlameCsv.Reading;
 
 public abstract class CsvParser : IDisposable
 {
-    protected internal readonly struct Slice
+    protected readonly struct Slice
     {
         public int Index { get; init; }
         public int Length { get; init; }
@@ -19,15 +19,18 @@ public abstract class CsvParser : IDisposable
 
     public abstract void Dispose();
 
-    protected internal const int SliceBufferSize =
+    protected const int SliceBufferSize =
 #if DEBUG
-    32;
+        32;
 #else
     128;
 #endif
 
     [InlineArray(SliceBufferSize)]
-    protected internal struct SliceBuffer { public Slice elem0; }
+    protected struct SliceBuffer
+    {
+        public Slice elem0;
+    }
 }
 
 public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T>
@@ -36,8 +39,6 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
     public static CsvParser<T> Create(CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        options.MakeReadOnly();
-
         return !options.Dialect.Escape.HasValue
             ? new CsvParserRFC4180<T>(options)
             : new CsvParserUnix<T>(options);
@@ -168,7 +169,7 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
         if (!_noBuffering)
         {
             ReadOnlyMemory<T> unread = _reader.Unread;
-            var (consumed, linesRead) = FillSliceBuffer(unread.Span, _slices);
+            (int consumed, int linesRead) = FillSliceBuffer(unread.Span, _slices);
 
             if (linesRead > 0)
             {
@@ -185,14 +186,14 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
             return TryReadLine(out line, out meta);
         }
 
-        ConsumeFinalBlock:
+    ConsumeFinalBlock:
         Debug.Assert(isFinalBlock);
         line = _reader.UnreadSequence.AsMemory(Allocator, ref _multisegmentBuffer);
         meta = GetRecordMeta(line.Span);
         _reader.AdvanceToEnd();
         return true;
 
-        Fail:
+    Fail:
         Debug.Assert(_sliceIndex == 0);
         Unsafe.SkipInit(out line);
         Unsafe.SkipInit(out meta);
@@ -202,37 +203,34 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool SkipRecord(ReadOnlyMemory<T> record, int line, bool? headerRead)
     {
-        return _options._shouldSkipRow is { } predicate && predicate(new CsvRecordSkipArgs<T>
-        {
-            Options = _options,
-            Line = line,
-            Record = record.Span,
-            HeaderRead = headerRead,
-        });
+        return _options._shouldSkipRow is { } predicate
+            && predicate(
+                new CsvRecordSkipArgs<T>
+                {
+                    Options = _options, Line = line, Record = record.Span, HeaderRead = headerRead,
+                });
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool SkipRecord(ReadOnlySpan<T> record, int line, bool? headerRead)
     {
-        return _options._shouldSkipRow is { } predicate && predicate(new CsvRecordSkipArgs<T>
-        {
-            Options = _options,
-            Line = line,
-            Record = record,
-            HeaderRead = headerRead,
-        });
+        return _options._shouldSkipRow is { } predicate
+            && predicate(
+                new CsvRecordSkipArgs<T>
+                {
+                    Options = _options, Line = line, Record = record, HeaderRead = headerRead,
+                });
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool ExceptionIsHandled(ReadOnlySpan<T> record, int line, Exception exception)
     {
-        return _options._exceptionHandler is { } handler && handler(new CsvExceptionHandlerArgs<T>
-        {
-            Options = _options,
-            Line = line,
-            Record = record,
-            Exception = exception,
-        });
+        return _options._exceptionHandler is { } handler
+            && handler(
+                new CsvExceptionHandlerArgs<T>
+                {
+                    Options = _options, Line = line, Record = record, Exception = exception,
+                });
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -264,8 +262,8 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
         Debug.Assert(_newlineLength == 0, $"TryPeekNewline called with invalid newline length: {_newlineLength}");
 
         Debug.Assert(
-            (typeof(T) == typeof(char) && "\r\n".AsSpan().UnsafeCast<char, T>().SequenceEqual([_newline1, _newline2])) ||
-            (typeof(T) == typeof(byte) && "\r\n"u8.UnsafeCast<byte, T>().SequenceEqual([_newline1, _newline2])),
+            (typeof(T) == typeof(char) && "\r\n".AsSpan().UnsafeCast<char, T>().SequenceEqual([_newline1, _newline2]))
+            || (typeof(T) == typeof(byte) && "\r\n"u8.UnsafeCast<byte, T>().SequenceEqual([_newline1, _newline2])),
             $"Invalid default newline for {typeof(T).FullName}: [{_newline1}, {_newline2}]");
 
         CsvSequenceReader<T> copy = _reader;
@@ -330,7 +328,7 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
         // ReSharper disable once ConditionIsAlwaysTrueOrFalse
         else if (foundNewlineLength == 1)
         {
-            // lf, fill both tokens with lf so the first IndexOf call needs less checks up-front
+            // lf, fill both tokens with lf so the first IndexOf call needs fewer checks up-front
             Unsafe.AsRef(in _newline1) = _newline2;
             Unsafe.AsRef(in _newlineLength) = 1;
         }
