@@ -12,13 +12,14 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     public virtual ReadOnlyMemory<T> this[int index] => GetField(index);
     public virtual ReadOnlyMemory<T> this[string name] => GetField(name);
 
-    public virtual long Position { get; protected set; }
-    public virtual int Line { get; protected set; }
+    public virtual long Position { get; }
+    public virtual int Line { get; }
     public CsvOptions<T> Options { get; }
     public virtual ReadOnlyMemory<T> RawRecord { get; }
+
     public bool HasHeader => _header is not null;
 
-    private readonly ArraySegment<ReadOnlyMemory<T>> _values;
+    private readonly ReadOnlyMemory<T>[] _fields;
     private readonly Dictionary<string, int>? _header;
     private readonly string[]? _headerNames;
 
@@ -26,13 +27,15 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     {
         Throw.IfDefaultStruct(record._options is null, typeof(CsvValueRecord<T>));
 
+        // we don't need to validate field count here, as a non-default CsvValueRecord validates it on init
+        Position = record.Position;
+        Line = record.Line;
         Options = record._options;
         _header = record._state.Header;
         _headerNames = record._state._headerNames;
-        (RawRecord, _values) = Initialize(record);
 
-        // we don't need to validate field count here, as a non-default CsvValueRecord
-        // validates it on initialization
+        RawRecord = record.RawRecord.SafeCopy();
+        _fields = record._state.PreserveFields();
     }
 
     int IReadOnlyCollection<ReadOnlyMemory<T>>.Count => GetFieldCount();
@@ -68,14 +71,14 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         return Options.Materialize(RawRecord, materializer);
     }
 
-    public virtual ReadOnlyMemory<T> GetField(int index) => _values[index]; // TODO: slice directly from array
+    public virtual ReadOnlyMemory<T> GetField(int index) => _fields[index]; // TODO: slice directly from array
 
     public virtual ReadOnlyMemory<T> GetField(string name)
     {
         if (_header is null)
             Throw.NotSupported_CsvHasNoHeader();
 
-        return _values[_header[name]];
+        return _fields[_header[name]];
     }
 
     public virtual TValue GetField<TValue>(int index)
@@ -102,16 +105,16 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         return value;
     }
 
-    public virtual int GetFieldCount() => _values.Count;
+    public virtual int GetFieldCount() => _fields.Length;
 
     public virtual bool TryGetValue<TValue>(int index, [MaybeNullWhen(false)] out TValue value)
     {
-        if ((uint)index > _values.Count)
+        if ((uint)index > _fields.Length)
         {
-            Throw.Argument_FieldIndex(index, _values.Count);
+            Throw.Argument_FieldIndex(index, _fields.Length);
         }
 
-        if (!Options.GetConverter<TValue>().TryParse(_values[index].Span, out value))
+        if (!Options.GetConverter<TValue>().TryParse(_fields[index].Span, out value))
         {
             value = default;
             return false;
@@ -151,49 +154,8 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         return _header.Keys;
     }
 
-    private static PreservedValues Initialize(CsvValueRecord<T> record)
-    {
-        int count = 0;
-        int totalLength = record.RawRecord.Length;
+    IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator()
+        => _fields.AsEnumerable().GetEnumerator();
 
-        foreach (var field in record)
-        {
-            count++;
-            totalLength += field.Length;
-        }
-
-        // split into separate arrays if the record is really big
-        if (Token<T>.LargeObjectHeapAllocates(totalLength))
-        {
-            var _values = new ReadOnlyMemory<T>[count];
-            int _index = 0;
-
-            foreach (var field in record)
-                _values[_index++] = field.SafeCopy();
-
-            return new PreservedValues(record.RawRecord.SafeCopy(), _values);
-        }
-
-        T[] array = GC.AllocateUninitializedArray<T>(totalLength);
-        var data = new Memory<T>(array, 0, record.RawRecord.Length);
-        record.RawRecord.CopyTo(data);
-
-        int fieldIndex = 0;
-        int runningIndex = data.Length;
-        var values = new ReadOnlyMemory<T>[count];
-
-        foreach (var field in record)
-        {
-            Memory<T> current = new(array, runningIndex, field.Length);
-            field.CopyTo(current);
-            runningIndex += field.Length;
-            values[fieldIndex++] = current;
-        }
-
-        return new PreservedValues(data, values);
-    }
-
-    IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator() => _values.GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<ReadOnlyMemory<T>>)this).GetEnumerator();
-    private readonly record struct PreservedValues(ReadOnlyMemory<T> Record, ArraySegment<ReadOnlyMemory<T>> Fields);
 }

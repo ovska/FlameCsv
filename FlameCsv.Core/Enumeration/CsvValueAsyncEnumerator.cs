@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Buffers;
+using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Reading;
 
@@ -68,7 +69,9 @@ public sealed class CsvValueAsyncEnumerator<T, TValue> : CsvValueEnumeratorBase<
         {
             _parser.Advance(_reader);
 
-            var (sequence, readerCompleted) = await _reader.ReadAsync(_cancellationToken).ConfigureAwait(false);
+            (ReadOnlySequence<T> sequence, bool readerCompleted) = await _reader
+                .ReadAsync(_cancellationToken)
+                .ConfigureAwait(false);
 
             _parser.Reset(in sequence);
             _readerCompleted = readerCompleted;
