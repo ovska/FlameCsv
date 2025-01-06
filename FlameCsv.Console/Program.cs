@@ -1,4 +1,5 @@
-﻿using System.Buffers.Text;
+﻿// ReSharper disable all
+using System.Buffers.Text;
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;

@@ -1,11 +1,11 @@
 using System.Buffers;
-using System.Diagnostics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
 using FlameCsv.Enumeration;
 using FlameCsv.Tests.TestData;
 using FlameCsv.Tests.Utilities;
 
+// ReSharper disable AccessToDisposedClosure
 // ReSharper disable InconsistentNaming
 
 namespace FlameCsv.Tests.Readers;
@@ -17,18 +17,70 @@ public abstract class CsvReaderTestsBase
     protected static readonly int[] _bufferSizes = [-1, 17, 128, 1024, 8096];
     protected static readonly int[] _emptySegmentsEvery = [0, 1, 7];
     protected static readonly NewlineToken[] _crlf = [NewlineToken.CRLF, NewlineToken.LF, NewlineToken.AutoCRLF, NewlineToken.AutoLF];
-    protected static readonly bool[] _booleans = [true, false];
     protected static readonly Mode[] _escaping = [Mode.None, Mode.RFC, Mode.Escape];
+
+    public sealed class SyncData : TheoryData<NewlineToken, bool, bool, int, int, Mode, bool, bool?>;
+
+    public sealed class AsyncData : TheoryData<NewlineToken, bool, bool, int, Mode, bool, bool?>;
+
+    public static SyncData SyncParams
+    {
+        get
+        {
+            var data = new SyncData();
+
+            foreach (var crlf in _crlf)
+            foreach (var writeHeader in GlobalData.Booleans)
+            foreach (var writeTrailingNewline in GlobalData.Booleans)
+            foreach (var bufferSize in _bufferSizes)
+            foreach (var emptySegmentFrequency in _emptySegmentsEvery)
+            foreach (var escaping in _escaping)
+            foreach (var sourceGen in GlobalData.Booleans)
+            foreach (var guarded in GlobalData.GuardedMemory)
+            {
+                // headerless csv not yet supported on sourcegen
+                if (sourceGen && !writeHeader)
+                    continue;
+
+                data.Add(crlf, writeHeader, writeTrailingNewline, bufferSize, emptySegmentFrequency, escaping, sourceGen, guarded);
+            }
+
+            return data;
+        }
+    }
+
+    public static AsyncData AsyncParams
+    {
+        get
+        {
+            var data = new AsyncData();
+
+            foreach (var crlf in _crlf)
+            foreach (var writeHeader in GlobalData.Booleans)
+            foreach (var writeTrailingNewline in GlobalData.Booleans)
+            foreach (var bufferSize in _bufferSizes)
+            foreach (var escaping in _escaping)
+            foreach (var sourceGen in GlobalData.Booleans)
+            foreach (var guarded in GlobalData.GuardedMemory)
+            {
+                // headerless csv not yet supported on sourcegen
+                if (sourceGen && !writeHeader)
+                    continue;
+
+                data.Add(crlf, writeHeader, writeTrailingNewline, bufferSize, escaping, sourceGen, guarded);
+            }
+
+            return data;
+        }
+    }
 }
 
 /// <summary>
 /// A spray-and-pray tests of different APIs using various options and CSV features.
 /// </summary>
 //[Collection("ReaderTests")]
-public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase, IDisposable where T : unmanaged, IEquatable<T>
+public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unmanaged, IEquatable<T>
 {
-    private readonly MemoryPool<T> _pool = Debugger.IsAttached ? ReturnTrackingMemoryPool<T>.Shared : MemoryPool<T>.Shared;
-
     protected abstract CsvTypeMap<T, Obj> TypeMap { get; }
 
     protected abstract CsvRecordAsyncEnumerable<T> GetRecords(
@@ -41,61 +93,6 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase, IDisposable wh
         int bufferSize,
         bool sourceGen);
 
-    public static TheoryData<NewlineToken, bool, bool, int, int, Mode, bool> SyncParams
-    {
-        get
-        {
-            var values = from crlf in _crlf
-                         from writeHeader in _booleans
-                         from writeTrailingNewline in _booleans
-                         from bufferSize in _bufferSizes
-                         from emptySegmentFrequency in _emptySegmentsEvery
-                         from escaping in _escaping
-                         from sourceGen in _booleans
-                         select new { crlf, writeHeader, writeTrailingNewline, bufferSize, emptySegmentFrequency, escaping, sourceGen };
-
-            var data = new TheoryData<NewlineToken, bool, bool, int, int, Mode, bool>();
-
-            foreach (var x in values)
-            {
-                // headerless csv not yet supported on sourcegen
-                if (x.sourceGen && !x.writeHeader)
-                    continue;
-
-                data.Add(x.crlf, x.writeHeader, x.writeTrailingNewline, x.bufferSize, x.emptySegmentFrequency, x.escaping, x.sourceGen);
-            }
-
-            return data;
-        }
-    }
-
-    public static TheoryData<NewlineToken, bool, bool, int, Mode, bool> AsyncParams
-    {
-        get
-        {
-            var values = from crlf in _crlf
-                         from writeHeader in _booleans
-                         from writeTrailingNewline in _booleans
-                         from bufferSize in _bufferSizes
-                         from escaping in _escaping
-                         from sourceGen in _booleans
-                         select new { crlf, writeHeader, writeTrailingNewline, bufferSize, escaping, sourceGen };
-
-            var data = new TheoryData<NewlineToken, bool, bool, int, Mode, bool>();
-
-            foreach (var x in values)
-            {
-                // headerless csv not yet supported on sourcegen
-                if (x.sourceGen && !x.writeHeader)
-                    continue;
-
-                data.Add(x.crlf, x.writeHeader, x.writeTrailingNewline, x.bufferSize, x.escaping, x.sourceGen);
-            }
-
-            return data;
-        }
-    }
-
     [Theory, MemberData(nameof(SyncParams))]
     public async Task Objects_Sync(
         NewlineToken newline,
@@ -104,21 +101,21 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase, IDisposable wh
         int bufferSize,
         int emptySegmentFreq,
         Mode escaping,
-        bool sourceGen)
+        bool sourceGen,
+        bool? guarded)
     {
-        await Validate(Enumerate(), escaping);
+        using var pool = ReturnTrackingMemoryPool<T>.Create(guarded);
+        CsvOptions<T> options = GetOptions(newline, header, escaping, pool);
+        var memory = TestDataGenerator.Generate<T>(newline, header, trailingLF, escaping);
 
-        IAsyncEnumerable<Obj> Enumerate()
+        using (MemorySegment<T>.Create(memory, bufferSize, emptySegmentFreq, pool, out var sequence))
         {
-            CsvOptions<T> options = GetOptions(newline, header, escaping);
-
-            var memory = TestDataGenerator.Generate<T>(newline, header, trailingLF, escaping);
-            var sequence = MemorySegment<T>.AsSequence(memory, bufferSize, emptySegmentFreq);
-
-            return SyncAsyncEnumerable.Create<Obj>(
+            var enumerable = SyncAsyncEnumerable.Create<Obj>(
                 sourceGen
                     ? CsvReader.Read(sequence, TypeMap, options)
                     : CsvReader.Read<T, Obj>(sequence, options));
+
+            await Validate(enumerable, escaping);
         }
     }
 
@@ -130,13 +127,15 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase, IDisposable wh
         int bufferSize,
         int emptySegmentFreq,
         Mode escaping,
-        bool sourceGen)
+        bool sourceGen,
+        bool? guarded)
     {
+        using var pool = ReturnTrackingMemoryPool<T>.Create(guarded);
         await Validate(Enumerate(), escaping);
 
         IAsyncEnumerable<Obj> Enumerate()
         {
-            CsvOptions<T> options = GetOptions(newline, header, escaping);
+            CsvOptions<T> options = GetOptions(newline, header, escaping, pool);
 
             var memory = TestDataGenerator.Generate<T>(newline, header, trailingLF, escaping);
             var sequence = MemorySegment<T>.AsSequence(memory, bufferSize, emptySegmentFreq);
@@ -158,13 +157,15 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase, IDisposable wh
         bool trailingLF,
         int bufferSize,
         Mode escaping,
-        bool sourceGen)
+        bool sourceGen,
+        bool? guarded)
     {
+        using var pool = ReturnTrackingMemoryPool<T>.Create(guarded);
         await Validate(Enumerate(), escaping);
 
         async IAsyncEnumerable<Obj> Enumerate()
         {
-            CsvOptions<T> options = GetOptions(newline, header, escaping);
+            CsvOptions<T> options = GetOptions(newline, header, escaping, pool);
 
             var data = TestDataGenerator.Generate<byte>(newline, header, trailingLF, escaping);
 
@@ -183,13 +184,15 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase, IDisposable wh
         bool trailingLF,
         int bufferSize,
         Mode escaping,
-        bool sourceGen)
+        bool sourceGen,
+        bool? guarded)
     {
+        using var pool = ReturnTrackingMemoryPool<T>.Create(guarded);
         await Validate(Enumerate(), escaping);
 
         async IAsyncEnumerable<Obj> Enumerate()
         {
-            CsvOptions<T> options = GetOptions(newline, header, escaping);
+            CsvOptions<T> options = GetOptions(newline, header, escaping, pool);
 
             var data = TestDataGenerator.Generate<byte>(newline, header, trailingLF, escaping);
 
@@ -266,7 +269,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase, IDisposable wh
         }
     }
 
-    private CsvOptions<T> GetOptions(NewlineToken newline, bool header, Mode escaping)
+    private CsvOptions<T> GetOptions(NewlineToken newline, bool header, Mode escaping, MemoryPool<T> pool)
     {
         return new CsvOptions<T>
         {
@@ -280,7 +283,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase, IDisposable wh
             },
             HasHeader = header,
             AllowContentInExceptions = true,
-            MemoryPool = _pool,
+            MemoryPool = pool,
 #if false
             ExceptionHandler = static (in CsvExceptionHandlerArgs<T> args) =>
             {
@@ -293,10 +296,5 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase, IDisposable wh
             },
 #endif
         };
-    }
-
-    public void Dispose()
-    {
-        (_pool as ReturnTrackingMemoryPool<T>)?.Dispose();
     }
 }

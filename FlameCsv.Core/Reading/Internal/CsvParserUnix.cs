@@ -15,9 +15,9 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IEqua
         _escape = options.Dialect.Escape.Value;
     }
 
-    public new static CsvRecordMeta GetRecordMeta(ReadOnlySpan<T> line, CsvOptions<T> options)
+    public override CsvRecordMeta GetRecordMeta(ReadOnlySpan<T> line)
     {
-        ref readonly CsvDialect<T> dialect = ref options.Dialect;
+        ref readonly CsvDialect<T> dialect = ref Options.Dialect;
         T quote = dialect.Quote;
         T escape = dialect.Escape.GetValueOrDefault();
 
@@ -49,15 +49,13 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IEqua
         }
 
         if (skipNext)
-            ThrowForInvalidLastEscape(line, options);
+            ThrowForInvalidLastEscape(line, Options);
 
         if (meta.quoteCount == 1)
-            ThrowForInvalidEscapeQuotes(line, options);
+            ThrowForInvalidEscapeQuotes(line, Options);
 
         return meta;
     }
-
-    public override CsvRecordMeta GetRecordMeta(ReadOnlySpan<T> line) => GetRecordMeta(line, _options);
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     protected override bool TryReadLine(out ReadOnlyMemory<T> line, out CsvRecordMeta meta)
@@ -71,7 +69,7 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IEqua
 
         while (!End)
         {
-            Seek:
+        Seek:
             int index = meta.quoteCount % 2 == 0
                 ? remaining.IndexOfAny(_quote, _escape, _newline1)
                 : remaining.IndexOfAny(_quote, _escape);
@@ -117,11 +115,8 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IEqua
 
                 // must be newline token
 
-                bool segmentHasChanged = false;
-
                 // Found one of the delimiters
-                if (index > 0 && _reader.AdvanceCurrent(index))
-                    segmentHasChanged = true;
+                bool segmentHasChanged = index > 0 && _reader.AdvanceCurrent(index);
 
                 // store first newline token position
                 var crPosition = _reader.Position;
@@ -134,10 +129,12 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IEqua
                 {
                     // perf: non-empty slice from the same segment, read directly from the original memory
                     // at this point, index points to the first newline token
-                    if (copy.Position.GetObject() == crPosition.GetObject() &&
-                        (unreadMemory.Length | remaining.Length) != 0)
+                    if (copy.Position.GetObject() == crPosition.GetObject()
+                        && (unreadMemory.Length | remaining.Length) != 0)
                     {
-                        int byteOffset = (int)Unsafe.ByteOffset(ref start, ref remaining.DangerousGetReferenceAt(index));
+                        int byteOffset = (int)Unsafe.ByteOffset(
+                            ref start,
+                            ref remaining.DangerousGetReferenceAt(index));
                         int elementCount = byteOffset / Unsafe.SizeOf<T>();
                         line = unreadMemory.Slice(0, elementCount);
 
@@ -147,7 +144,8 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IEqua
                     }
                     else
                     {
-                        line = _reader.Sequence.Slice(copy.Position, crPosition).AsMemory(Allocator, ref _multisegmentBuffer);
+                        line = _reader.Sequence.Slice(copy.Position, crPosition)
+                            .AsMemory(Allocator, ref _multisegmentBuffer);
                     }
 
                     return true;
@@ -184,7 +182,7 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IEqua
 
         while (linesRead < slices.Length)
         {
-            Seek:
+        Seek:
             int index = meta.quoteCount % 2 == 0
                 ? data.IndexOfAny(_quote, _escape, _newline1)
                 : data.IndexOfAny(_quote, _escape);
@@ -230,12 +228,7 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IEqua
             }
 
             // Found newline
-            slices[linesRead++] = new Slice
-            {
-                Index = consumed,
-                Length = currentConsumed,
-                Meta = meta,
-            };
+            slices[linesRead++] = new Slice { Index = consumed, Length = currentConsumed, Meta = meta, };
 
             consumed += currentConsumed + _newlineLength;
             data = data.Slice(index + _newlineLength);

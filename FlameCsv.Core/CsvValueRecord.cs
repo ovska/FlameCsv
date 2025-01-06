@@ -35,6 +35,22 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
     /// </summary>
     public bool HasHeader => _state.Header is not null;
 
+    public ReadOnlySpan<string> Header
+    {
+        get
+        {
+            _state.EnsureVersion(_version);
+
+            if (!_state.Options._hasHeader)
+                Throw.NotSupported_CsvHasNoHeader();
+
+            if (_state.Header is null)
+                Throw.InvalidOperation_HeaderNotRead();
+
+            return _state.Header.Values;
+        }
+    }
+
     public ReadOnlyMemory<T> this[int index] => GetField(index);
     public ReadOnlyMemory<T> this[string name] => GetField(name);
 
@@ -194,11 +210,11 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
 
         if (!_state.MaterializerCache.TryGetValue(typeof(TRecord), out object? obj))
         {
-            var headers = _state._headerNames;
+            var header = _state.Header;
 
-            if (headers is not null)
+            if (header is not null)
             {
-                var bindings = _options.GetHeaderBinder().Bind<TRecord>(headers);
+                var bindings = _options.GetHeaderBinder().Bind<TRecord>(header.Values);
                 obj = _options.CreateMaterializerFrom(bindings);
             }
             else
@@ -213,7 +229,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
 
         try
         {
-            return _options.Materialize(ref reader, (IMaterializer<T, TRecord>)obj);
+            return ((IMaterializer<T, TRecord>)obj).Parse(ref reader);
         }
         finally
         {
@@ -229,8 +245,8 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
 
         if (!_state.MaterializerCache.TryGetValue(typeMap, out object? obj))
         {
-            obj = _state._headerNames is not null
-                ? typeMap.BindMembers(_state._headerNames, _options)
+            obj = _state.Header is not null
+                ? typeMap.BindMembers(_state.Header.Values, _options)
                 : typeMap.BindMembers(_options);
 
             _state.MaterializerCache[typeMap] = obj;
@@ -240,7 +256,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
 
         try
         {
-            return _options.Materialize(ref reader, (IMaterializer<T, TRecord>)obj);
+            return ((IMaterializer<T, TRecord>)obj).Parse(ref reader);
         }
         finally
         {

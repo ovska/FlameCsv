@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Extensions;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Utilities;
 
@@ -32,7 +33,7 @@ internal sealed class TypeDictionary<TValue, TAlternate> : ITypeDictionary<TValu
     public TypeDictionary(
         ISealable owner,
         Func<TValue, TAlternate>? convert = null,
-        TypeDictionary<TValue, TAlternate>? source = null)
+        [RequireStaticDelegate] TypeDictionary<TValue, TAlternate>? source = null)
     {
         _owner = owner;
         _dictionary = source is null ? new(NullableTypeEqualityComparer.Instance) : new(source._dictionary, NullableTypeEqualityComparer.Instance);

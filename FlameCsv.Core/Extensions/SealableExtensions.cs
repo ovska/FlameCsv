@@ -1,9 +1,10 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using FlameCsv.Utilities;
 
-namespace FlameCsv.Utilities;
+namespace FlameCsv.Extensions;
 
-internal static class SealableUtil
+internal static class SealableExtensions
 {
     /// <summary>
     /// Sets the value of <paramref name="field"/> after ensuring that the current instance is not read-only.

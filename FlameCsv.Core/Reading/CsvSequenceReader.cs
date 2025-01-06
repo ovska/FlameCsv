@@ -209,7 +209,7 @@ internal struct CsvSequenceReader<T> where T : unmanaged, IEquatable<T>
 
         if (count != 0)
         {
-            // Not enough data left- adjust for where we actually ended and throw
+            // Not enough data left-adjust for where we actually ended and throw
             Consumed -= count;
             Throw.Argument_OutOfRange(nameof(count));
         }

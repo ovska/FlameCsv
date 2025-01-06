@@ -1,6 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Enumeration;
 
@@ -22,6 +23,7 @@ public readonly struct CsvRecordAsyncEnumerable<T> : IAsyncEnumerable<CsvValueRe
         _options = options;
     }
 
+    [MustDisposeResource]
     public CsvRecordAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
         Throw.IfDefaultStruct(_options is null, typeof(CsvRecordAsyncEnumerable<T>));

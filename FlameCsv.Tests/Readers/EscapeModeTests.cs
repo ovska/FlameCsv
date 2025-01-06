@@ -198,18 +198,11 @@ public static class EscapeModeTests
         string noNewline,
         bool? guardedMemory)
     {
-        using MemoryPool<char> pool = guardedMemory switch
-        {
-            bool b when OperatingSystem.IsWindows() => new GuardedMemoryManagerPool<char>(b),
-            _ => new ReturnTrackingArrayMemoryPool<char>(),
-        };
+        using MemoryPool<char> pool = ReturnTrackingMemoryPool<char>.Create(guardedMemory);
 
         var options = new CsvOptions<char>
         {
-            Escape = '^',
-            Quote = '\'',
-            AllowContentInExceptions = true,
-            MemoryPool = pool,
+            Escape = '^', Quote = '\'', AllowContentInExceptions = true, MemoryPool = pool,
         };
 
         var fullMem = fullLine.AsMemory();
@@ -242,32 +235,24 @@ public static class EscapeModeTests
 
     public static TheoryData<int, int, string, string, bool?> GetEscapeTestData()
     {
-        var values =
-            from segmentSize in new[] { 1, 2, 4, 17, 128 }
-            from emptyFrequency in new[] { 0, 2, 3 }
-            from tdata in _escapeTestData.Select(x => (full: x, nolf: x[..^2]))
-            from guarded in (bool?[])(OperatingSystem.IsWindows() ? [true, false, null] : [null])
-            select new
-            {
-                segmentSize,
-                emptyFrequency,
-                tdata.full,
-                tdata.nolf,
-                guarded
-            };
+        ReadOnlySpan<string> escapeData =
+        [
+            "Test,Es^,caped,Es^\r\ncaped\r\n",
+            "^,^'^\r\r\n",
+            "^^\r\n",
+            "A^,B^'^C^\r^\n\r\n",
+        ];
 
         var data = new TheoryData<int, int, string, string, bool?>();
 
-        foreach (var x in values)
+        foreach (var segmentSize in new[] { 1, 2, 4, 17, 128 })
+        foreach (var emptyFrequency in new[] { 0, 2, 3 })
+        foreach (var escData in escapeData)
+        foreach (var guarded in GlobalData.GuardedMemory)
         {
-            data.Add(x.segmentSize, x.emptyFrequency, x.full, x.nolf, x.guarded);
+            data.Add(segmentSize, emptyFrequency, escData, escData[..^2], guarded);
         }
 
         return data;
     }
-
-    private static readonly string[] _escapeTestData =
-    [
-        "Test,Es^,caped,Es^\r\ncaped\r\n", "^,^'^\r\r\n", "^^\r\n", "A^,B^'^C^\r^\n\r\n",
-    ];
 }

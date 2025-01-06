@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading.Internal;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Reading;
 
@@ -33,22 +34,18 @@ public abstract class CsvParser : IDisposable
     }
 }
 
+[MustDisposeResource]
 public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T>
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MustDisposeResource]
     public static CsvParser<T> Create(CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
+        options.MakeReadOnly();
         return !options.Dialect.Escape.HasValue
             ? new CsvParserRFC4180<T>(options)
             : new CsvParserUnix<T>(options);
-    }
-
-    public static CsvRecordMeta GetRecordMeta(ReadOnlySpan<T> line, CsvOptions<T> options)
-    {
-        return !options.Dialect.Escape.HasValue
-            ? CsvParserRFC4180<T>.GetRecordMeta(line, options)
-            : CsvParserUnix<T>.GetRecordMeta(line, options);
     }
 
     public CsvOptions<T> Options => _options;
@@ -201,24 +198,24 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool SkipRecord(ReadOnlyMemory<T> record, int line, bool? headerRead)
+    public bool SkipRecord(ReadOnlyMemory<T> record, int line, bool isHeader)
     {
         return _options._shouldSkipRow is { } predicate
             && predicate(
                 new CsvRecordSkipArgs<T>
                 {
-                    Options = _options, Line = line, Record = record.Span, HeaderRead = headerRead,
+                    Options = _options, Line = line, Record = record.Span, IsHeader = isHeader,
                 });
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool SkipRecord(ReadOnlySpan<T> record, int line, bool? headerRead)
+    public bool SkipRecord(ReadOnlySpan<T> record, int line, bool isHeader)
     {
         return _options._shouldSkipRow is { } predicate
             && predicate(
                 new CsvRecordSkipArgs<T>
                 {
-                    Options = _options, Line = line, Record = record, HeaderRead = headerRead,
+                    Options = _options, Line = line, Record = record, IsHeader = isHeader,
                 });
     }
 

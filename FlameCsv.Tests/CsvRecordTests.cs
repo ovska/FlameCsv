@@ -1,17 +1,32 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using FlameCsv.Binding;
 using FlameCsv.Enumeration;
+
+// ReSharper disable RedundantTypeArgumentsOfMethod
 
 namespace FlameCsv.Tests;
 
-[SuppressMessage("ReSharper", "GenericEnumeratorNotDisposed")]
-public static class CsvRecordTests
+public enum RecordType
 {
+    Struct,
+    Class,
+    Boxed
+}
+
+[SuppressMessage("ReSharper", "GenericEnumeratorNotDisposed")]
+public static partial class CsvRecordTests
+{
+    public static TheoryData<RecordType> RecordTypeData
+        => new() { RecordType.Struct, RecordType.Class, RecordType.Boxed };
+
     [Fact]
     public static async Task Should_Handle_Internal_State_Async()
     {
         CsvValueRecord<char>.Enumerator secondRecordEnumerator;
 
-        await using (var enumerator = CsvReader.EnumerateAsync(new StringReader("A,B,C\r\n1,2,3\r\n4,5,6\r\n")).GetAsyncEnumerator())
+        await using (var enumerator = CsvReader.EnumerateAsync(new StringReader("A,B,C\r\n1,2,3\r\n4,5,6\r\n"))
+                         .GetAsyncEnumerator())
         {
             Assert.Equal(0, enumerator.Line);
             Assert.Equal(0, enumerator.Position);
@@ -90,44 +105,67 @@ public static class CsvRecordTests
         Assert.ThrowsAny<ObjectDisposedException>(() => secondRecordEnumerator.MoveNext());
     }
 
-    [Fact]
-    public static void Should_Parse_Fields()
+    [Theory, MemberData(nameof(RecordTypeData))]
+    public static void Should_Parse_Fields_And_Records(RecordType recordType)
     {
-        var records = new CsvRecordEnumerable<char>(
-            "A,B,C\r\n1,2,3\r\n".AsMemory(),
-            CsvOptions<char>.Default).Preserve().ToList();
+        var enumerable = new CsvRecordEnumerable<char>("A,B,C\r\n1,2,3\r\n".AsMemory(), CsvOptions<char>.Default);
 
-        Assert.Single(records);
+        switch (recordType)
+        {
+            case RecordType.Struct: Impl<CsvValueRecord<char>>(enumerable); break;
+            case RecordType.Class: Impl<CsvRecord<char>>(enumerable.Preserve()); break;
+            case RecordType.Boxed: Impl<ICsvRecord<char>>(enumerable.OfType<ICsvRecord<char>>()); break;
+            default: throw new UnreachableException();
+        }
 
-        var record = records[0];
+        void Impl<TRecord>(IEnumerable<TRecord> recordEnumerable) where TRecord : ICsvRecord<char>
+        {
+            using var enumerator = recordEnumerable.GetEnumerator();
 
-        Assert.True(record.HasHeader);
+            Assert.True(enumerator.MoveNext());
 
-        Assert.Equal(["A", "B", "C"], record.GetHeaderRecord());
+            var record = enumerator.Current;
 
-        Assert.Equal(1, record.GetField<int>(0));
-        Assert.Equal(1, record.GetField<int>("A"));
-        Assert.Equal(2, record.GetField<int>(1));
-        Assert.Equal(2, record.GetField<int>("B"));
-        Assert.Equal(3, record.GetField<int>(2));
-        Assert.Equal(3, record.GetField<int>("C"));
-    }
+            Assert.True(record.HasHeader);
+            Assert.Equal((string[]) ["A", "B", "C"], record.Header);
 
-    [Fact]
-    public static void Should_Parse_Record()
-    {
-        var records = new CsvRecordEnumerable<char>(
-            "A,B,C\r\n1,2,3\r\n".AsMemory(),
-            CsvOptions<char>.Default).Preserve().ToList();
+            Assert.Equal("1,2,3", record.RawRecord.ToString());
 
-        Assert.Single(records);
-        var record = records[0];
+            Assert.Equal("1", record[0].ToString());
+            Assert.Equal("2", record[1].ToString());
+            Assert.Equal("3", record[2].ToString());
+            Assert.Equal("1", record.GetField(0).ToString());
+            Assert.Equal("2", record.GetField(1).ToString());
+            Assert.Equal("3", record.GetField(2).ToString());
 
-        var obj = record.ParseRecord<Obj>();
+            Assert.Equal("1", record["A"].ToString());
+            Assert.Equal("2", record["B"].ToString());
+            Assert.Equal("3", record["C"].ToString());
+            Assert.Equal("1", record.GetField("A").ToString());
+            Assert.Equal("2", record.GetField("B").ToString());
+            Assert.Equal("3", record.GetField("C").ToString());
 
-        Assert.Equal(1, obj.A);
-        Assert.Equal(2, obj.B);
-        Assert.Equal(3, obj.C);
+            Assert.Equal(1, record.GetField<int>(0));
+            Assert.Equal(1, record.GetField<int>("A"));
+            Assert.Equal(2, record.GetField<int>(1));
+            Assert.Equal(2, record.GetField<int>("B"));
+            Assert.Equal(3, record.GetField<int>(2));
+            Assert.Equal(3, record.GetField<int>("C"));
+
+            Assert.Equal(2, record.Line);
+            Assert.Equal(7L, record.Position);
+
+            Obj[] objs = [record.ParseRecord<Obj>(), record.ParseRecord(ObjTypeMap.Instance)];
+
+            foreach (var obj in objs)
+            {
+                Assert.Equal(1, obj.A);
+                Assert.Equal(2, obj.B);
+                Assert.Equal(3, obj.C);
+            }
+
+            Assert.False(enumerator.MoveNext());
+        }
     }
 
     private sealed class Obj
@@ -136,4 +174,7 @@ public static class CsvRecordTests
         public int B { get; set; }
         public int C { get; set; }
     }
+
+    [CsvTypeMap<char, Obj>]
+    private partial class ObjTypeMap;
 }

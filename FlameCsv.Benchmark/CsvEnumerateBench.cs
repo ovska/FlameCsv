@@ -1,4 +1,5 @@
-﻿using System.Buffers;
+﻿// ReSharper disable all
+using System.Buffers;
 using System.Text;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
@@ -96,7 +97,7 @@ public class CsvEnumerateBench
     [Benchmark]
     public void FlameUTF2()
     {
-        Allocated<byte> allocated = new(Allocator<byte>.Default);
+        IMemoryOwner<byte>? allocated = null;
         Span<byte> unescapeBuffer = stackalloc byte[128];
         using var parser = CsvParser<byte>.Create(CsvOptions<byte>.Default);
         parser.Reset(new ReadOnlySequence<byte>(_bytes));
@@ -105,7 +106,7 @@ public class CsvEnumerateBench
         {
             CsvFieldReader<byte> state = new(
                 CsvOptions<byte>.Default,
-                line,
+                line.Span,
                 unescapeBuffer,
                 ref allocated,
                 in meta);
@@ -116,7 +117,7 @@ public class CsvEnumerateBench
             }
         }
 
-        allocated.Dispose();
+        allocated?.Dispose();
     }
 
     [Benchmark]

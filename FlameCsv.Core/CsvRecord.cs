@@ -17,11 +17,25 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     public CsvOptions<T> Options { get; }
     public virtual ReadOnlyMemory<T> RawRecord { get; }
 
+    [MemberNotNullWhen(true, nameof(_header))]
     public bool HasHeader => _header is not null;
 
+    public ReadOnlySpan<string> Header
+    {
+        get
+        {
+            if (!Options._hasHeader)
+                Throw.NotSupported_CsvHasNoHeader();
+
+            if (!HasHeader)
+                Throw.InvalidOperation_HeaderNotRead();
+
+            return _header.Values;
+        }
+    }
+
     private readonly ReadOnlyMemory<T>[] _fields;
-    private readonly Dictionary<string, int>? _header;
-    private readonly string[]? _headerNames;
+    private readonly CsvHeader? _header;
 
     public CsvRecord(in CsvValueRecord<T> record)
     {
@@ -31,10 +45,8 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         Position = record.Position;
         Line = record.Line;
         Options = record._options;
-        _header = record._state.Header;
-        _headerNames = record._state._headerNames;
-
         RawRecord = record.RawRecord.SafeCopy();
+        _header = record._state.Header;
         _fields = record._state.PreserveFields();
     }
 
@@ -49,7 +61,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
 
         if (_header is not null)
         {
-            var bindings = Options.GetHeaderBinder().Bind<TRecord>(_headerNames);
+            var bindings = Options.GetHeaderBinder().Bind<TRecord>(_header.Values);
             materializer = Options.CreateMaterializerFrom(bindings);
         }
         else
@@ -57,7 +69,8 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
             materializer = Options.GetMaterializer<T, TRecord>();
         }
 
-        return Options.Materialize(RawRecord, materializer);
+        FieldEnumerator enumerator = new(this);
+        return materializer.Parse(ref enumerator);
     }
 
     public TRecord ParseRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap)
@@ -65,13 +78,14 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         ArgumentNullException.ThrowIfNull(typeMap);
 
         IMaterializer<T, TRecord> materializer = _header is not null
-            ? typeMap.BindMembers(_headerNames, Options)
+            ? typeMap.BindMembers(_header.Values, Options)
             : typeMap.BindMembers(Options);
 
-        return Options.Materialize(RawRecord, materializer);
+        FieldEnumerator enumerator = new(this);
+        return materializer.Parse(ref enumerator);
     }
 
-    public virtual ReadOnlyMemory<T> GetField(int index) => _fields[index]; // TODO: slice directly from array
+    public virtual ReadOnlyMemory<T> GetField(int index) => _fields[index];
 
     public virtual ReadOnlyMemory<T> GetField(string name)
     {
@@ -143,19 +157,43 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         return TryGetValue(index, out value);
     }
 
-    public IEnumerable<string> GetHeaderRecord()
-    {
-        if (!Options.HasHeader)
-            Throw.NotSupported_CsvHasNoHeader();
-
-        if (_header is null)
-            Throw.InvalidOperation_HeaderNotRead();
-
-        return _header.Keys;
-    }
-
     IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator()
         => _fields.AsEnumerable().GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<ReadOnlyMemory<T>>)this).GetEnumerator();
+
+    protected struct FieldEnumerator(CsvRecord<T> record) : ICsvFieldReader<T>
+    {
+        private int _index;
+        private ReadOnlyMemory<T> _current;
+
+        public bool MoveNext()
+        {
+            if (_index < record._fields.Length)
+            {
+                _current = record._fields[_index];
+                _index++;
+                return true;
+            }
+
+            _current = default;
+            return false;
+        }
+
+        public void Reset()
+        {
+            _index = default;
+        }
+
+        public readonly ReadOnlySpan<T> Current => _current.Span;
+
+        readonly object IEnumerator.Current => throw new NotSupportedException();
+
+        public readonly void Dispose()
+        {
+        }
+
+        public readonly ReadOnlySpan<T> Record => record.RawRecord.Span;
+        public readonly CsvOptions<T> Options => record.Options;
+    }
 }

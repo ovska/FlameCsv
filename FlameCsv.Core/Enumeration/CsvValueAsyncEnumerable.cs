@@ -1,4 +1,5 @@
 ﻿using FlameCsv.Reading;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Enumeration;
 
@@ -20,11 +21,13 @@ public sealed class CsvValueAsyncEnumerable<T, [DAM(Messages.ReflectionBound)] T
         _options = options;
     }
 
+    [MustDisposeResource]
     public CsvValueAsyncEnumerator<T, TValue> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
         return new CsvValueAsyncEnumerator<T, TValue>(_options, _reader, cancellationToken);
     }
 
+    [MustDisposeResource]
     IAsyncEnumerator<TValue> IAsyncEnumerable<TValue>.GetAsyncEnumerator(CancellationToken cancellationToken)
     {
         return GetAsyncEnumerator(cancellationToken);

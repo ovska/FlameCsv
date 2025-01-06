@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Collections;
 using FlameCsv.Extensions;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Enumeration;
 
@@ -28,6 +29,7 @@ public readonly struct CsvRecordEnumerable<T> : IEnumerable<CsvValueRecord<T>> w
         _options = options;
     }
 
+    [MustDisposeResource]
     public CsvRecordEnumerator<T> GetEnumerator()
     {
         Throw.IfDefaultStruct(_options is null, typeof(CsvRecordEnumerable<T>));
@@ -44,6 +46,9 @@ public readonly struct CsvRecordEnumerable<T> : IEnumerable<CsvValueRecord<T>> w
         }
     }
 
+    [MustDisposeResource]
     IEnumerator<CsvValueRecord<T>> IEnumerable<CsvValueRecord<T>>.GetEnumerator() => GetEnumerator();
+
+    [MustDisposeResource]
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

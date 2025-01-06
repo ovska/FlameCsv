@@ -10,7 +10,6 @@ namespace FlameCsv.Runtime;
 /// <typeparam name="T">Token type</typeparam>
 internal abstract partial class Materializer<T> where T : unmanaged, IEquatable<T>
 {
-    /// <inheritdoc cref="IMaterializer{T, TResult}.FieldCount" />
     public abstract int FieldCount { get; }
 
     /// <summary>

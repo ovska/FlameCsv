@@ -9,22 +9,29 @@ namespace FlameCsv.Benchmark;
 
 public class FieldBench
 {
-    private static readonly (string, CsvRecordMeta)[] _fields =
-        File.ReadAllLines("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv")
-        .Select(l => (l, CsvParser<char>.GetRecordMeta(l.AsMemory(), CsvOptions<char>.Default)))
-        .ToArray();
+    private static readonly (string, CsvRecordMeta)[] _fields;
+
+    static FieldBench()
+    {
+        using CsvParser<char> parser = CsvParser<char>.Create(CsvOptions<char>.Default);
+
+        _fields = File
+            .ReadAllLines("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv")
+            .Select(l => (l, parser.GetRecordMeta(l)))
+            .ToArray();
+    }
 
     [Benchmark(Baseline = true)]
     public void Old()
     {
-        Allocated<char> allocated = new(Allocator<char>.Default);
+        IMemoryOwner<char>? allocated = null;
         Span<char> buffer = stackalloc char[128];
 
         foreach (ref readonly var line in _fields.AsSpan())
         {
             var reader = new CsvFieldReader<char>(
                 CsvOptions<char>.Default,
-                line.Item1.AsMemory(),
+                line.Item1,
                 buffer,
                 ref allocated,
                 in line.Item2);
@@ -33,20 +40,20 @@ public class FieldBench
                 _ = Older<char>.ReadNextField(ref reader);
         }
 
-        allocated.Dispose();
+        allocated?.Dispose();
     }
 
     [Benchmark(Baseline = false)]
     public void New()
     {
-        Allocated<char> allocated = new(Allocator<char>.Default);
+        IMemoryOwner<char>? allocated = null;
         Span<char> buffer = stackalloc char[128];
 
         foreach (ref readonly var line in _fields.AsSpan())
         {
             var reader = new CsvFieldReader<char>(
                 CsvOptions<char>.Default,
-                line.Item1.AsMemory(),
+                line.Item1,
                 buffer,
                 ref allocated,
                 in line.Item2);
@@ -55,7 +62,7 @@ public class FieldBench
                 _ = RFC4180Mode<char>.ReadNextField(ref reader);
         }
 
-        allocated.Dispose();
+        allocated?.Dispose();
     }
 
     static class Older<T> where T : unmanaged, IEquatable<T>

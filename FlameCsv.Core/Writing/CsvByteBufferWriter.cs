@@ -1,30 +1,22 @@
 using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 
 namespace FlameCsv.Writing;
 
-[DebuggerDisplay(
-    @"\{ CsvByteBufferWriter, Unflushed: {Unflushed} \}")]
-internal readonly struct CsvByteBufferWriter : ICsvBufferWriter<byte>
+[DebuggerDisplay(@"\{ CsvByteBufferWriter, Unflushed: {_unflushed} \}")]
+internal sealed class CsvByteBufferWriter : ICsvBufferWriter<byte>
 {
-    public const int InternalFlushThreshold = (int)(4096d * 15d / 16d);
+    public static readonly int InternalFlushThreshold = (int)(Environment.SystemPageSize * 15d / 16d);
 
     private readonly PipeWriter _pipeWriter;
-    private readonly Box<int> _unflushed = 0; // see explanation in CsvCharBufferWriter
-
-    private ref int Unflushed
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => ref _unflushed.GetReference();
-    }
+    private int _unflushed; // see explanation in CsvCharBufferWriter
 
     public bool NeedsFlush
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Unflushed >= InternalFlushThreshold;
+        get => _unflushed >= InternalFlushThreshold;
     }
 
     public CsvByteBufferWriter(PipeWriter pipeWriter)
@@ -49,16 +41,16 @@ internal readonly struct CsvByteBufferWriter : ICsvBufferWriter<byte>
     public void Advance(int length)
     {
         _pipeWriter.Advance(length);
-        Unflushed += length;
+        _unflushed += length;
     }
 
     [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
     public async ValueTask FlushAsync(CancellationToken cancellationToken = default)
     {
-        if (Unflushed > 0)
+        if (_unflushed > 0)
         {
             await _pipeWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
-            Unflushed = 0;
+            _unflushed = 0;
         }
     }
 
@@ -90,5 +82,6 @@ internal readonly struct CsvByteBufferWriter : ICsvBufferWriter<byte>
     public void Complete(Exception? exception) => throw NotSupportedEx;
     public void Flush() => throw NotSupportedEx;
 
-    private static NotSupportedException NotSupportedEx => new($"{nameof(CsvByteBufferWriter)} does not support synchronous flushing.");
+    private static NotSupportedException NotSupportedEx
+        => new($"{nameof(CsvByteBufferWriter)} does not support synchronous flushing.");
 }

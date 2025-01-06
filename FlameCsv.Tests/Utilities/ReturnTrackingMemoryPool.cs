@@ -5,6 +5,8 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using FlameCsv.Extensions;
 
+// ReSharper disable ConvertTypeCheckPatternToNullCheck
+
 namespace FlameCsv.Tests.Utilities;
 
 [SupportedOSPlatform("windows")]
@@ -18,19 +20,19 @@ internal sealed class ReturnTrackingGuardedMemoryPool<T>(bool fromEnd) : ReturnT
         return manager.Memory;
     }
 
-    protected override void Release(Memory<T> memory)
+    protected override bool TryRelease(Memory<T> memory)
     {
         if (MemoryMarshal.TryGetMemoryManager<T, GuardedMemoryManager<T>>(memory, out var manager))
         {
             ((IDisposable)manager).Dispose();
-            return;
+            return true;
         }
 
-        throw new InvalidOperationException("Memory was not from GuardedMemoryManager");
+        return false;
     }
 }
 
-internal sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPool<T>
+internal sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPool<T> where T : unmanaged
 {
     public override int MaxBufferSize => Array.MaxLength;
 
@@ -39,20 +41,29 @@ internal sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPoo
         return ArrayPool<T>.Shared.Rent(length);
     }
 
-    protected override void Release(Memory<T> memory)
+    protected override bool TryRelease(Memory<T> memory)
     {
         if (MemoryMarshal.TryGetArray<T>(memory, out var segment))
         {
             ArrayPool<T>.Shared.Return(segment.Array!);
-            return;
+            return true;
         }
 
-        throw new InvalidOperationException("Memory was not from GuardedMemoryManager");
+        return false;
     }
 }
 
-internal abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T>
+internal abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T> where T : unmanaged
 {
+    public static ReturnTrackingMemoryPool<T> Create(bool? guardedFromEnd = null)
+    {
+        return guardedFromEnd switch
+        {
+            bool b when OperatingSystem.IsWindows() => new ReturnTrackingGuardedMemoryPool<T>(b),
+            _ => new ReturnTrackingArrayMemoryPool<T>(),
+        };
+    }
+
     public bool TrackStackTraces { get; set; }
 
     private readonly ConcurrentDictionary<Owner, StackTrace?> _values = new(ReferenceEqualityComparer.Instance);
@@ -60,7 +71,7 @@ internal abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T>
     private int _returnedCount;
 
     protected abstract Memory<T> Initialize(int length);
-    protected abstract void Release(Memory<T> memory);
+    protected abstract bool TryRelease(Memory<T> memory);
 
     public sealed class Owner(ReturnTrackingMemoryPool<T> pool, int minimumLength) : IMemoryOwner<T>
     {
@@ -74,13 +85,22 @@ internal abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T>
                 return;
 
             _disposed = true;
-            pool.Return(this);
-            Memory = default;
+
+            try
+            {
+                pool.Return(this);
+            }
+            finally
+            {
+                Memory = default;
+            }
         }
     }
 
     public override IMemoryOwner<T> Rent(int minBufferSize = -1)
     {
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(minBufferSize, MaxBufferSize);
+
         if (minBufferSize == 0)
             return HeapMemoryOwner<T>.Empty;
 
@@ -100,9 +120,9 @@ internal abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T>
         if (!_values.IsEmpty)
         {
             throw new InvalidOperationException(
-                $"{_values.Count} rented memory not disposed, {_returnedCount} out of {_rentedCount}. " +
-                Environment.NewLine +
-                string.Join(Environment.NewLine + Environment.NewLine, _values.Select(kvp => kvp.Value)));
+                $"{_values.Count} rented memory not disposed, {_returnedCount} out of {_rentedCount}. "
+                + Environment.NewLine
+                + string.Join(Environment.NewLine + Environment.NewLine, _values.Select(kvp => kvp.Value)));
         }
     }
 
@@ -119,6 +139,13 @@ internal abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T>
         }
 
         Interlocked.Increment(ref _returnedCount);
-        Release(instance.Memory);
+
+        var memory = instance.Memory;
+
+        if (!TryRelease(memory))
+        {
+            throw new InvalidOperationException(
+                $"Memory<{typeof(T)}>[{memory.Length}] was not from {GetType().FullName}");
+        }
     }
 }

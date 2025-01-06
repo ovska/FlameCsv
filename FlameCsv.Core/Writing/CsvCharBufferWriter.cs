@@ -16,13 +16,6 @@ internal readonly struct CsvCharBufferWriter : ICsvBufferWriter<char>
         public int Unflushed;
         public Memory<char> Buffer => Owner.Memory;
         public IMemoryOwner<char> Owner;
-        public readonly MemoryPool<char> Allocator;
-
-        public State(MemoryPool<char> allocator, int initialLength)
-        {
-            Allocator = allocator;
-            Owner = Allocator.Rent(initialLength);
-        }
 
         public int Remaining
         {
@@ -44,7 +37,9 @@ internal readonly struct CsvCharBufferWriter : ICsvBufferWriter<char>
     }
 
     private readonly TextWriter _writer;
+    private readonly MemoryPool<char> _allocator;
     private readonly State _state;
+    private readonly int _bufferSize;
 
     public bool NeedsFlush
     {
@@ -52,36 +47,49 @@ internal readonly struct CsvCharBufferWriter : ICsvBufferWriter<char>
         get => (_state.Unflushed / (double)_state.Buffer.Length) >= 0.875;
     }
 
-    public CsvCharBufferWriter(
-        TextWriter writer,
-        MemoryPool<char> allocator,
-        int initialBufferSize = 4 * 1024)
+    public CsvCharBufferWriter(TextWriter writer, MemoryPool<char> allocator, int bufferSize)
     {
         ArgumentNullException.ThrowIfNull(writer);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(initialBufferSize);
+
+        if (bufferSize == -1)
+            bufferSize = Environment.SystemPageSize / sizeof(char);
+
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bufferSize);
 
         _writer = writer;
-        _state = new State(allocator, initialBufferSize);
+        _allocator = allocator;
+        _bufferSize = bufferSize;
+        _state = new State { Owner = allocator.Rent(bufferSize) };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Span<char> GetSpan(int sizeHint = 0)
     {
-        if (_state.Remaining < sizeHint)
+        ArgumentOutOfRangeException.ThrowIfNegative(sizeHint);
+
+        if (_state.Remaining < sizeHint || _state.Remaining == 0)
         {
-            _state.Allocator.EnsureCapacity(ref _state.Owner, sizeHint + _state.Unflushed, copyOnResize: true);
+            _allocator.EnsureCapacity(
+                ref _state.Owner,
+                minimumLength: _state.Unflushed + Math.Max(sizeHint, _bufferSize),
+                copyOnResize: true);
         }
 
         Debug.Assert(_state.Remaining >= sizeHint);
-        return _state.Buffer.Span.Slice(_state.Unflushed);
+        return _state.Buffer.Slice(_state.Unflushed).Span;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Memory<char> GetMemory(int sizeHint = 0)
     {
-        if (_state.Remaining < sizeHint)
+        ArgumentOutOfRangeException.ThrowIfNegative(sizeHint);
+
+        if (_state.Remaining < sizeHint || _state.Remaining == 0)
         {
-            _state.Allocator.EnsureCapacity(ref _state.Owner, sizeHint + _state.Unflushed, copyOnResize: true);
+            _allocator.EnsureCapacity(
+                ref _state.Owner,
+                minimumLength: _state.Unflushed + Math.Max(sizeHint, _bufferSize),
+                copyOnResize: true);
         }
 
         Debug.Assert(_state.Remaining >= sizeHint);
@@ -91,8 +99,8 @@ internal readonly struct CsvCharBufferWriter : ICsvBufferWriter<char>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Advance(int length)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(length);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(length, _state.Remaining);
+        if ((uint)length > (uint)_state.Remaining)
+            Throw.Argument_OutOfRange(nameof(length));
 
         _state.Unflushed += length;
     }
@@ -111,7 +119,7 @@ internal readonly struct CsvCharBufferWriter : ICsvBufferWriter<char>
     {
         if (_state.HasUnflushedData)
         {
-            _writer.Write(_state.Buffer.Span.Slice(0, _state.Unflushed));
+            _writer.Write(_state.Buffer.Slice(0, _state.Unflushed).Span);
             _state.Unflushed = 0;
         }
     }
@@ -134,7 +142,9 @@ internal readonly struct CsvCharBufferWriter : ICsvBufferWriter<char>
                 }
                 catch (Exception e)
                 {
-                    exception = new CsvWriteException("Exception occured while flushing the writer for the final time.", e);
+                    exception = new CsvWriteException(
+                        "Exception occured while flushing the writer for the final time.",
+                        e);
                 }
             }
         }
@@ -157,7 +167,9 @@ internal readonly struct CsvCharBufferWriter : ICsvBufferWriter<char>
                 }
                 catch (Exception e)
                 {
-                    exception = new CsvWriteException("Exception occured while flushing the writer for the final time.", e);
+                    exception = new CsvWriteException(
+                        "Exception occured while flushing the writer for the final time.",
+                        e);
                 }
             }
         }

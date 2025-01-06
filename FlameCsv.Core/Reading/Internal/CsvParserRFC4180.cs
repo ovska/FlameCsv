@@ -11,20 +11,15 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IE
     {
     }
 
-    public new static CsvRecordMeta GetRecordMeta(ReadOnlySpan<T> line, CsvOptions<T> options)
+    public override CsvRecordMeta GetRecordMeta(ReadOnlySpan<T> line)
     {
-        CsvRecordMeta meta = new()
-        {
-            quoteCount = (uint)System.MemoryExtensions.Count(line, options.Dialect.Quote),
-        };
+        CsvRecordMeta meta = new() { quoteCount = (uint)System.MemoryExtensions.Count(line, Options.Dialect.Quote), };
 
         if (meta.quoteCount % 2 != 0)
-            ThrowForUnevenQuotes(line, options);
+            ThrowForUnevenQuotes(line, Options);
 
         return meta;
     }
-
-    public override CsvRecordMeta GetRecordMeta(ReadOnlySpan<T> line) => GetRecordMeta(line, _options);
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     protected override bool TryReadLine(out ReadOnlyMemory<T> line, out CsvRecordMeta meta)
@@ -39,7 +34,7 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IE
 
         while (!_reader.End)
         {
-            Seek:
+        Seek:
             int index = meta.quoteCount % 2 == 0
                 ? remaining.IndexOfAny(_quote, _newline1)
                 : remaining.IndexOf(_quote);
@@ -50,25 +45,17 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IE
                 {
                     meta.quoteCount++;
 
-                    if (_reader.AdvanceCurrent(index + 1))
-                    {
-                        remaining = _reader.Unread.Span;
-                    }
-                    else
-                    {
-                        remaining = remaining.Slice(index + 1);
-                    }
+                    remaining = _reader.AdvanceCurrent(index + 1)
+                        ? _reader.Unread.Span
+                        : remaining.Slice(index + 1);
 
                     goto Seek;
                 }
 
                 // must be newline token
 
-                bool segmentHasChanged = false;
-
                 // Found one of the delimiters
-                if (index > 0 && _reader.AdvanceCurrent(index))
-                    segmentHasChanged = true;
+                bool segmentHasChanged = index > 0 && _reader.AdvanceCurrent(index);
 
                 // store first newline token position
                 var crPosition = _reader.Position;
@@ -81,10 +68,12 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IE
                 {
                     // perf: non-empty slice from the same segment, read directly from the original memory
                     // at this point, index points to the first newline token
-                    if (copy.Position.GetObject() == crPosition.GetObject() &&
-                        (unreadMemory.Length | remaining.Length) != 0)
+                    if (copy.Position.GetObject() == crPosition.GetObject()
+                        && (unreadMemory.Length | remaining.Length) != 0)
                     {
-                        int byteOffset = (int)Unsafe.ByteOffset(ref start, ref remaining.DangerousGetReferenceAt(index));
+                        int byteOffset = (int)Unsafe.ByteOffset(
+                            ref start,
+                            ref remaining.DangerousGetReferenceAt(index));
                         int elementCount = byteOffset / Unsafe.SizeOf<T>();
                         line = unreadMemory.Slice(0, elementCount);
 
@@ -94,7 +83,8 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IE
                     }
                     else
                     {
-                        line = _reader.Sequence.Slice(copy.Position, crPosition).AsMemory(Allocator, ref _multisegmentBuffer);
+                        line = _reader.Sequence.Slice(copy.Position, crPosition)
+                            .AsMemory(Allocator, ref _multisegmentBuffer);
                     }
 
                     return true;
@@ -130,10 +120,10 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IE
 
         while (linesRead < slices.Length)
         {
-            Seek:
+        Seek:
             int index = meta.quoteCount % 2 == 0
-                    ? data.IndexOfAny(_quote, _newline1)
-                    : data.IndexOf(_quote);
+                ? data.IndexOfAny(_quote, _newline1)
+                : data.IndexOf(_quote);
 
             if (index < 0)
                 break;
@@ -165,12 +155,7 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IE
             }
 
             // Found newline
-            slices[linesRead++] = new Slice
-            {
-                Index = consumed,
-                Length = currentConsumed,
-                Meta = meta,
-            };
+            slices[linesRead++] = new Slice { Index = consumed, Length = currentConsumed, Meta = meta, };
 
             consumed += currentConsumed + _newlineLength;
             data = data.Slice(index + _newlineLength);
