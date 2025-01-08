@@ -41,7 +41,7 @@ public static class NewlineDetectTests
     private static void Impl<T>(
         CsvOptions<T> options,
         ReadOnlyMemory<T> input,
-        ReadOnlySpan<T> expected) where T : unmanaged, IEquatable<T>
+        ReadOnlySpan<T> expected) where T : unmanaged, IBinaryInteger<T>
     {
         using var parser = CsvParser<T>.Create(options);
         parser.Reset(new ReadOnlySequence<T>(input));

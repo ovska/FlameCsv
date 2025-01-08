@@ -6,7 +6,7 @@ namespace FlameCsv.Enumeration;
 
 /// <inheritdoc cref="CsvRecordEnumeratorBase{T}"/>
 public sealed class CsvRecordAsyncEnumerator<T> : CsvRecordEnumeratorBase<T>, IAsyncEnumerator<CsvValueRecord<T>>
-    where T : unmanaged, IEquatable<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     private readonly ICsvPipeReader<T> _reader;
     private readonly CancellationToken _cancellationToken;

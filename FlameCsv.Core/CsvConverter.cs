@@ -11,7 +11,7 @@ namespace FlameCsv;
 /// or <see cref="CsvConverterFactory{T}"/>.
 /// </remarks>
 /// <typeparam name="T">Token type</typeparam>
-public abstract class CsvConverter<T> where T : unmanaged, IEquatable<T>
+public abstract class CsvConverter<T> where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Returns whether the type can be handled by this converter, or a suitable converter can be
@@ -27,7 +27,7 @@ public abstract class CsvConverter<T> where T : unmanaged, IEquatable<T>
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 /// <typeparam name="TValue">Parsed/formatted value</typeparam>
-public abstract class CsvConverter<T, TValue> : CsvConverter<T> where T : unmanaged, IEquatable<T>
+public abstract class CsvConverter<T, TValue> : CsvConverter<T> where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Returns whether the type can be handled by this converter.
@@ -61,10 +61,11 @@ public abstract class CsvConverter<T, TValue> : CsvConverter<T> where T : unmana
 }
 
 /// <summary>
-/// Creates instances of <see cref="CsvConverterFactory{T}"/>. Used to resolve converters for <see langword="enum"/> and <see cref="Nullable{T}"/>.
+/// Creates instances of <see cref="CsvConverterFactory{T}"/>.
+/// By default, used to resolve converters for <see langword="enum"/> and <see cref="Nullable{T}"/>.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-public abstract class CsvConverterFactory<T> : CsvConverter<T> where T : unmanaged, IEquatable<T>
+public abstract class CsvConverterFactory<T> : CsvConverter<T> where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Creates an instance capable of converting values of the specified type.

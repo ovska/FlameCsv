@@ -6,7 +6,7 @@ namespace FlameCsv.Tests;
 public class CsvOptionsTests
 {
     private static ReadOnlySpan<T> Format<T, TValue>(CsvOptions<T> options, TValue value)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
         T[] buffer = new T[64];
         var converter = options.GetConverter<TValue>();
@@ -169,7 +169,9 @@ public class CsvOptionsTests
         var options = CsvOptions<char>.Default;
         Assert.True(options.IsReadOnly);
 
-        Assert.Equal(['\r', '\n'], options.GetNewlineSpan(['\0', '\0']));
+        options.GetNewline(out var newline1, out var newline2, out int newlineLength);
+        Assert.Equal(0, newlineLength);
+        Assert.Equal(['\r', '\n'], [newline1, newline2]);
         Assert.Null(options.Newline);
 
         var boolParser = options.GetConverter<bool>();
@@ -195,7 +197,9 @@ public class CsvOptionsTests
         var options = CsvOptions<byte>.Default;
         Assert.True(options.IsReadOnly);
 
-        Assert.Equal([(byte)'\r', (byte)'\n'], options.GetNewlineSpan([0, 0]));
+        options.GetNewline(out var newline1, out var newline2, out int newlineLength);
+        Assert.Equal(0, newlineLength);
+        Assert.Equal([(byte)'\r', (byte)'\n'], [newline1, newline2]);
         Assert.Null(options.Newline);
 
         var boolParser = options.GetConverter<bool>();
@@ -219,8 +223,7 @@ public class CsvOptionsTests
     public void Should_Throw_On_ReadOnly_Modified()
     {
         var options = new CsvOptions<char>();
-        Assert.True(options.MakeReadOnly());
-        Assert.False(options.MakeReadOnly());
+        options.MakeReadOnly();
 
         Run(o => o.Delimiter = default);
         Run(o => o.Quote = default);

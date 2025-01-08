@@ -71,7 +71,7 @@ internal abstract partial class Dematerializer<T>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Dematerializer<T, <#= generics #>>
-    : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IEquatable<T>
+    : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
 {
     public int FieldCount => <#= current #>;
 

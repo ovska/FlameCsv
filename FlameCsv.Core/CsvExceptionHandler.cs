@@ -5,13 +5,13 @@
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 /// <returns><see langword="true"/> if the exception can be ignored.</returns>
-public delegate bool CsvExceptionHandler<T>(CsvExceptionHandlerArgs<T> args) where T : unmanaged, IEquatable<T>;
+public delegate bool CsvExceptionHandler<T>(CsvExceptionHandlerArgs<T> args) where T : unmanaged, IBinaryInteger<T>;
 
 /// <summary>
 /// Arguments for <see cref="CsvExceptionHandler{T}"/>.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-public readonly ref struct CsvExceptionHandlerArgs<T> where T : unmanaged, IEquatable<T>
+public readonly ref struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// The CSV record that caused the exception (unescaped/untrimmed).

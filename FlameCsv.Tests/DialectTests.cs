@@ -7,25 +7,25 @@ public static class DialectTests
     [Fact]
     public static void Should_Return_Default_Options()
     {
-        static CsvDialect<T> Default<T>() where T : unmanaged, IEquatable<T> => CsvOptions<T>.Default.Dialect;
+        static CsvDialect<T> Default<T>() where T : unmanaged, IBinaryInteger<T> => CsvOptions<T>.Default.Dialect;
 
-        Assert.Equal(',', Default<char>().Delimiter);
-        Assert.Equal('"', Default<char>().Quote);
-        Assert.Null(Default<char>().Escape);
-        Assert.Empty(Default<char>().Newline.ToArray());
+        Assert.Equal(',', CsvOptions<char>.Default.Dialect.Delimiter);
+        Assert.Equal('"', CsvOptions<char>.Default.Dialect.Quote);
+        Assert.Null(CsvOptions<char>.Default.Dialect.Escape);
+        Assert.Empty(CsvOptions<char>.Default.Dialect.Newline.ToArray());
+        Assert.Empty(CsvOptions<char>.Default.Dialect.Whitespace.ToArray());
 
-        Assert.Equal((byte)',', Default<byte>().Delimiter);
-        Assert.Equal((byte)'"', Default<byte>().Quote);
-        Assert.Null(Default<byte>().Escape);
-        Assert.Empty(Default<byte>().Newline.ToArray());
-
-        Assert.Throws<NotSupportedException>(() => new CsvOptions<sbyte>().Dialect);
+        Assert.Equal((byte)',', CsvOptions<byte>.Default.Dialect.Delimiter);
+        Assert.Equal((byte)'"', CsvOptions<byte>.Default.Dialect.Quote);
+        Assert.Null(CsvOptions<byte>.Default.Dialect.Escape);
+        Assert.Empty(CsvOptions<byte>.Default.Dialect.Newline.ToArray());
+        Assert.Empty(CsvOptions<byte>.Default.Dialect.Whitespace.ToArray());
     }
 
     [Fact]
     public static void Should_Validate()
     {
-        Assert.Throws<CsvConfigurationException>(() => default(CsvDialect<char>).Validate());
+        Assert.Throws<InvalidOperationException>(() => default(CsvDialect<char>).Validate());
 
         AssertInvalid(o => o with { Quote = ',' });
         AssertInvalid(o => o with { Newline = ",".AsMemory() });

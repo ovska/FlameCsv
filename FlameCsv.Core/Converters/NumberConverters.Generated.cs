@@ -3,7 +3,8 @@
 
 namespace FlameCsv.Converters;
 
-static partial class DefaultConverters
+static partial class
+    DefaultConverters
 {
     private static void RegisterNumberConverters(Dictionary<Type, ConverterFactory<char>> dict)
     {

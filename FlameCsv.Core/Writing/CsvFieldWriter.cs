@@ -49,7 +49,7 @@ internal static class CsvFieldWriter
 /// Writes CSV fields and handles escaping as needed.
 /// This type is not intended to be used directly in user code, consider <see cref="CsvWriter{T}"/> instead.
 /// </summary>
-public readonly struct CsvFieldWriter<T> where T : unmanaged, IEquatable<T>
+public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// The <see cref="System.Buffers.IBufferWriter{T}"/> this instance writes to.
@@ -277,7 +277,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IEquatable<T>
 
                     foreach (T token in _whitespace.Span)
                     {
-                        if (first.Equals(token) || last.Equals(token))
+                        if (first == token || last == token)
                         {
                             shouldQuote = true;
                             break;

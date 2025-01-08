@@ -30,11 +30,11 @@ public sealed class CsvParseException : Exception
         CsvOptions<T> options,
         ReadOnlySpan<T> value,
         CsvConverter<T>? converter = null)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
         string withStr = converter is null ? "" : $" with {converter.GetType()}";
 
-        throw new CsvParseException($"Failed to parse{withStr} from {options.AsPrintableString(value.ToArray())}.")
+        throw new CsvParseException($"Failed to parse{withStr} from {options.AsPrintableString(value)}.")
         {
             Converter = converter,
         };

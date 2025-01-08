@@ -6,12 +6,12 @@ namespace FlameCsv.Utilities;
 
 internal sealed class SealableList<T> : IList<T>
 {
-    private readonly ISealable _owner;
+    private readonly ICanBeReadOnly _owner;
     private readonly List<T> _list;
 
     public ReadOnlySpan<T> Span => _list.AsSpan();
 
-    public SealableList(ISealable owner, SealableList<T>? defaultValues)
+    public SealableList(ICanBeReadOnly owner, SealableList<T>? defaultValues)
     {
         _owner = owner;
         _list = [];
@@ -76,12 +76,5 @@ internal sealed class SealableList<T> : IList<T>
     {
         _owner.ThrowIfReadOnly();
         _list.RemoveAt(index);
-    }
-
-    public int RemoveAll(Predicate<T> match)
-    {
-        ArgumentNullException.ThrowIfNull(match);
-        _owner.ThrowIfReadOnly();
-        return _list.RemoveAll(match);
     }
 }

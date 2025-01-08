@@ -50,7 +50,7 @@ public static partial class CsvReader
         ReadOnlyMemory<T> csv,
         CsvTypeMap<T, TValue> typeMap,
         CsvOptions<T> options)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(typeMap);
@@ -61,7 +61,7 @@ public static partial class CsvReader
         in ReadOnlySequence<T> csv,
         CsvTypeMap<T, TValue> typeMap,
         CsvOptions<T> options)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(typeMap);

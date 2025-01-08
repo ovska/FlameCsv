@@ -6,9 +6,9 @@ using FlameCsv.Reading;
 namespace FlameCsv.Runtime;
 
 [RUF(Messages.CompiledExpressions)]
-internal abstract class DelegateGenerator<T> where T : unmanaged, IEquatable<T>
+internal abstract class DelegateGenerator<T> where T : unmanaged, IBinaryInteger<T>
 {
-    public delegate IMaterializer<T, TResult> MaterializerFactory<TResult>(CsvOptions<T> options);
+    public delegate IMaterializer<T, TResult> MaterializerFactory<out TResult>(CsvOptions<T> options);
 
     protected abstract Func<object[], IMaterializer<T, TResult>> GetMaterializerInit<[DAM(Messages.Ctors)] TResult>(
         CsvBindingCollection<TResult> bc);

@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace FlameCsv.Reading;
 
-internal static partial class UnixMode<T> where T : unmanaged, IEquatable<T>
+internal static partial class UnixMode<T> where T : unmanaged, IBinaryInteger<T>
 {
     public static ReadOnlySpan<T> ReadNextField(scoped ref CsvFieldReader<T> state)
     {

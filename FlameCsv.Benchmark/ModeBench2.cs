@@ -39,7 +39,7 @@ public class ModeBench2
         ref ReadOnlySequence<T> sequence,
         out ReadOnlySequence<T> line,
         out CsvRecordMeta meta)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
         ReadOnlySpan<T> newLine = options.Dialect.Newline.Span;
         T quote = options.Dialect.Quote;
@@ -203,7 +203,7 @@ public class ModeBench2
         ref ReadOnlySequence<T> sequence,
         out ReadOnlySequence<T> line,
         out CsvRecordMeta meta)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
         ReadOnlySpan<T> newLine = options.Dialect.Newline.Span;
         T quote = options.Dialect.Quote;

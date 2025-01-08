@@ -59,14 +59,14 @@ public class CountEscapableBench
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)] public static int CountEscapable1<T>(scoped ReadOnlySpan<T> field, T quote, T escape)
-        where T : unmanaged, IEquatable<T>{
+        where T : unmanaged, IBinaryInteger<T>{
         return field.Count(quote) + field.Count(escape);
     }
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int CountEscapable2<T>(scoped ReadOnlySpan<T> field, T quote, T escape)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
         ref T r0 = ref MemoryMarshal.GetReference(field);
         nint rem = field.Length - 1;

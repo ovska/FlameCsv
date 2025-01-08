@@ -1,5 +1,5 @@
-﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
+using System.Text;
 using FlameCsv.Extensions;
 
 namespace FlameCsv;
@@ -28,21 +28,6 @@ public partial class CsvOptions<T>
 
     private CsvDialect<T>? _dialect;
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private ref readonly CsvDialect<T> InitializeDialect()
-    {
-        ref readonly CsvDialect<T> result = ref InitializeDialectCore();
-
-#if !DEBUG
-        if (GetType() != typeof(CsvOptions<T>))
-#endif
-        {
-            ValidateInitializeDialect(in result);
-        }
-
-        return ref result;
-    }
-
     /// <summary>
     /// Initializes <see cref="_dialect"/>.
     /// </summary>
@@ -51,40 +36,18 @@ public partial class CsvOptions<T>
     /// The dialect must be valid (see <see cref="CsvDialect{T}.Validate"/>).
     /// </remarks>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    protected virtual ref readonly CsvDialect<T> InitializeDialectCore()
+    protected virtual ref readonly CsvDialect<T> InitializeDialect()
     {
-        if (typeof(T) == typeof(char))
+        _dialect = new CsvDialect<T>
         {
-            var dialect = new CsvDialect<char>
-            {
-                Delimiter = _delimiter,
-                Escape = _escape,
-                Newline = _newline.AsMemory(),
-                Quote = _quote,
-                Whitespace = _whitespace.AsMemory(),
-                NeedsQuoting = null!,
-            };
-            _dialect = Unsafe.As<CsvDialect<char>, CsvDialect<T>>(ref dialect);
-            return ref Nullable.GetValueRefOrDefaultRef(in _dialect);
-        }
+            Delimiter = T.CreateChecked(_delimiter),
+            Quote = T.CreateChecked(_quote),
+            Escape = _escape.HasValue ? T.CreateChecked(_escape.Value) : null,
+            Newline = GetFromString(_newline),
+            Whitespace = GetFromString(_whitespace),
+        };
 
-        if (typeof(T) == typeof(byte))
-        {
-            var dialect = new CsvDialect<byte>
-            {
-                Delimiter = (Utf8Char)_delimiter,
-                Quote = (Utf8Char)_quote,
-                Escape = (Utf8Char?)_escape,
-                Newline = (Utf8String)_newline,
-                Whitespace = (Utf8String)_whitespace,
-                NeedsQuoting = null!,
-            };
-            _dialect = Unsafe.As<CsvDialect<byte>, CsvDialect<T>>(ref dialect);
-            return ref Nullable.GetValueRefOrDefaultRef(in _dialect);
-        }
-
-        ThrowInvalidTokenType(nameof(InitializeDialect));
-        return ref Unsafe.NullRef<CsvDialect<T>>();
+        return ref Nullable.GetValueRefOrDefaultRef(in _dialect);
     }
 
     private char _delimiter = ',';
@@ -122,8 +85,8 @@ public partial class CsvOptions<T>
     }
 
     /// <summary>
-    /// 1-2 characters long newline string. If null (the default), newline is automatically detected
-    /// between <c>CRLF</c> and <c>LF</c> when reading, and <c>CRLF</c> is used while writing.
+    /// 1-2 characters long newline string. If null or empty (the default), newline is automatically detected
+    /// between <c>CRLF</c> and <c>LF</c> when reading and <c>CRLF</c> is used while writing.
     /// </summary>
     public string? Newline
     {
@@ -132,33 +95,22 @@ public partial class CsvOptions<T>
     }
 
     /// <summary>
-    /// Optional whitespace characters that are trimmed out of each field before processing them.
+    /// Optional whitespace characters that are trimmed out of each field before processing them, and fields
+    /// written with preceding or trailing whitespace are quoted.
     /// The default is null/empty.
     /// </summary>
+    /// <seealso cref="FieldEscaping"/>
     public string? Whitespace
     {
         get => _whitespace;
         set => this.SetValue(ref _whitespace, value);
     }
 
-    internal ReadOnlySpan<T> GetNewlineSpan(Span<T> buffer)
-    {
-        ref readonly CsvDialect<T> dialect = ref Dialect;
-        ReadOnlySpan<T> newline = dialect.Newline.Span;
-
-        if (newline.Length != 0)
-            return newline;
-
-        GetNewline(out T newline1, out T newline2, out int newlineLength, forWriting: true);
-
-        buffer[0] = newline1;
-        buffer[1] = newline2;
-        return buffer.Slice(0, newlineLength);
-    }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void GetNewline(out T newline1, out T newline2, out int newlineLength, bool forWriting = false)
     {
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(Dialect.Newline.Length, 2, nameof(Newline));
+
         ReadOnlySpan<T> newline = Dialect.Newline.Span;
 
         if ((newlineLength = newline.Length) is 0)
@@ -166,31 +118,10 @@ public partial class CsvOptions<T>
             if (forWriting)
                 newlineLength = 2;
 
-            if (typeof(T) == typeof(char))
-            {
-                char cr = '\r';
-                char lf = '\n';
-
-                newline1 = Unsafe.As<char, T>(ref cr);
-                newline2 = Unsafe.As<char, T>(ref lf);
-                return;
-            }
-
-            if (typeof(T) == typeof(byte))
-            {
-                byte cr = (byte)'\r';
-                byte lf = (byte)'\n';
-
-                newline1 = Unsafe.As<byte, T>(ref cr);
-                newline2 = Unsafe.As<byte, T>(ref lf);
-                return;
-            }
-
-            throw new NotSupportedException(
-                $"Detecting empty newline is not supported for token type {typeof(T).FullName}");
+            newline1 = T.CreateChecked('\r');
+            newline2 = T.CreateChecked('\n');
+            return;
         }
-
-        Debug.Assert(newlineLength is 1 or 2);
 
         newline1 = newline[0];
 
@@ -203,33 +134,6 @@ public partial class CsvOptions<T>
         {
             newline2 = newline1;
             newlineLength = 1;
-        }
-    }
-
-    private void ValidateInitializeDialect(ref readonly CsvDialect<T> dialect)
-    {
-        if (Unsafe.IsNullRef(in dialect))
-        {
-            throw new InvalidOperationException("Overridden dialect init returned a null-ref");
-        }
-
-        try
-        {
-            dialect.Validate();
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException("Overridden dialect init returned a non-validated dialect", ex);
-        }
-
-        if (!_dialect.HasValue)
-        {
-            throw new InvalidOperationException("Overridden dialect init did not initialize _dialect propertly");
-        }
-
-        if (!Unsafe.AreSame(in dialect, in Nullable.GetValueRefOrDefaultRef(ref _dialect)))
-        {
-            throw new InvalidOperationException("Returned dialect reference was not the same as _dialect");
         }
     }
 }

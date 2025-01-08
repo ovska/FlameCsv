@@ -46,7 +46,7 @@ public sealed class CsvByteBufferWriterTests : IAsyncDisposable
         Assert.Throws<ArgumentNullException>(() => new CsvCharBufferWriter(null!, HeapMemoryPool<char>.Shared, 1024));
 
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => new CsvCharBufferWriter(new StringWriter(), HeapMemoryPool<char>.Shared, bufferSize: -1));
+            () => new CsvCharBufferWriter(new StringWriter(), HeapMemoryPool<char>.Shared, bufferSize: 0));
     }
 
     [Fact]

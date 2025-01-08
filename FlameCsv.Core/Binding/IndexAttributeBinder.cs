@@ -57,8 +57,7 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
         {
             foreach (var attr in member.Attributes)
             {
-                if (attr is CsvIndexAttribute { Index: var index } indexAttr &&
-                    indexAttr.Scope.IsValidFor(write))
+                if (attr is CsvIndexAttribute { Index: var index } indexAttr && indexAttr.Scope.IsValidFor(write))
                 {
                     list.Add(new MemberCsvBinding<TValue>(index, member));
                     break;

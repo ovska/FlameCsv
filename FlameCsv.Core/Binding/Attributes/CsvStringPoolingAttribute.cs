@@ -3,7 +3,7 @@ using FlameCsv.Converters;
 
 namespace FlameCsv.Binding.Attributes;
 
-public sealed class CsvStringPoolingAttribute<T> : CsvConverterAttribute<T> where T : unmanaged, IEquatable<T>
+public sealed class CsvStringPoolingAttribute<T> : CsvConverterAttribute<T> where T : unmanaged, IBinaryInteger<T>
 {
     protected override CsvConverter<T> CreateConverterOrFactory(Type targetType, CsvOptions<T> options)
     {

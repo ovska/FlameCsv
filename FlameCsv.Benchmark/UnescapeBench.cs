@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
-using System.Numerics;
 using FlameCsv.Reading;
 using System.Text;
 using FlameCsv.Extensions;
@@ -78,7 +77,7 @@ public class UnescapeBench
         T quote,
         uint quoteCount,
         ref Memory<T> unescapeBuffer)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
         Debug.Assert(quoteCount >= 2);
         Debug.Assert(quoteCount % 2 == 0);
@@ -244,7 +243,7 @@ public class UnescapeBench
         ReadOnlyMemory<T> sourceMemory,
         T quote,
         uint quoteCount,
-        ref Memory<T> unescapeBuffer) where T : unmanaged, IEquatable<T>
+        ref Memory<T> unescapeBuffer) where T : unmanaged, IBinaryInteger<T>
     {
         Debug.Assert(quoteCount >= 2);
         Debug.Assert(quoteCount % 2 == 0);
@@ -310,7 +309,7 @@ public class UnescapeBench
         scoped Span<T> buffer,
         ReadOnlySpan<T> field,
         uint quotesConsumed)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
         Debug.Assert(quotesConsumed >= 2);
         Debug.Assert(quotesConsumed % 2 == 0);

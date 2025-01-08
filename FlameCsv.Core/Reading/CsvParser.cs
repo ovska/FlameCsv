@@ -35,7 +35,7 @@ public abstract class CsvParser : IDisposable
 }
 
 [MustDisposeResource]
-public abstract class CsvParser<T> : CsvParser where T : unmanaged, IEquatable<T>
+public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteger<T>
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [MustDisposeResource]

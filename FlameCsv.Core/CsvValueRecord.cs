@@ -16,7 +16,7 @@ namespace FlameCsv;
 /// <typeparam name="T">Token type</typeparam>
 [DebuggerTypeProxy(typeof(CsvValueRecord<>.CsvRecordDebugView))]
 public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMemory<T>>
-    where T : unmanaged, IEquatable<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     public long Position { get; }
     public int Line { get; }

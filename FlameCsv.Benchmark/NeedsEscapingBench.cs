@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -77,7 +76,7 @@ public class NeedsEscapingBench
     }
 }
 
-file readonly struct OldEscaper<T> : IEscaper<T> where T : unmanaged, IEquatable<T>
+file readonly struct OldEscaper<T> : IEscaper<T> where T : unmanaged, IBinaryInteger<T>
 {
     public T Quote
     {

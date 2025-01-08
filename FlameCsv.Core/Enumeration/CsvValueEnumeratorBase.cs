@@ -13,7 +13,7 @@ using JetBrains.Annotations;
 namespace FlameCsv.Enumeration;
 
 [MustDisposeResource]
-public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : unmanaged, IEquatable<T>
+public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : unmanaged, IBinaryInteger<T>
 {
     public TValue Current { get; private set; }
     public int Line { get; private set; }
@@ -22,8 +22,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     private readonly CsvTypeMap<T, TValue>? _typeMap;
     private IMaterializer<T, TValue>? _materializer;
 
-    [HandlesResourceDisposal]
-    protected readonly CsvParser<T> _parser;
+    [HandlesResourceDisposal] protected readonly CsvParser<T> _parser;
     private IMemoryOwner<T>? _unescapeBuffer; // string unescaping
 
     protected CsvValueEnumeratorBase(CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
@@ -34,7 +33,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     }
 
     protected CsvValueEnumeratorBase(CsvOptions<T> options, IMaterializer<T, TValue>? materializer)
-            : this(options, materializer, null)
+        : this(options, materializer, null)
     {
         ArgumentNullException.ThrowIfNull(options);
     }
@@ -58,7 +57,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
 
     protected bool TryRead(bool isFinalBlock)
     {
-        ReadNextRecord:
+    ReadNextRecord:
         if (!_parser.TryReadLine(out ReadOnlyMemory<T> line, out CsvRecordMeta meta, isFinalBlock))
         {
             return false;
@@ -123,7 +122,8 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     [UnconditionalSuppressMessage("AOT", "IL3050", Justification = Messages.HeaderProcessorSuppressionMessage)]
     private bool TryReadHeader(ReadOnlySpan<T> record)
     {
-        Debug.Assert(_typeMap is not null || (RuntimeFeature.IsDynamicCodeSupported && RuntimeFeature.IsDynamicCodeCompiled));
+        Debug.Assert(
+            _typeMap is not null || (RuntimeFeature.IsDynamicCodeSupported && RuntimeFeature.IsDynamicCodeCompiled));
 
         if (!_parser.HasHeader)
         {
@@ -169,8 +169,8 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     private void ThrowInvalidFormatException(Exception innerException, ReadOnlySpan<T> line)
     {
         throw new CsvFormatException(
-            $"The CSV was in an invalid format. The record was on line {Line} at character " +
-            $"position {Position} in the CSV. Record: {_parser.AsPrintableString(line)}",
+            $"The CSV was in an invalid format. The record was on line {Line} at character "
+            + $"position {Position} in the CSV. Record: {_parser.AsPrintableString(line)}",
             innerException);
     }
 
@@ -181,8 +181,8 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         long position)
     {
         throw new CsvUnhandledException(
-            $"Unhandled exception while reading records of type {typeof(TValue)} from the CSV. The record was on " +
-            $"line {Line} at character position {position} in the CSV. Record: {_parser.AsPrintableString(record)}",
+            $"Unhandled exception while reading records of type {typeof(TValue)} from the CSV. The record was on "
+            + $"line {Line} at character position {position} in the CSV. Record: {_parser.AsPrintableString(record)}",
             Line,
             position,
             innerException);
