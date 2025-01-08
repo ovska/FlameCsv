@@ -8,7 +8,7 @@ internal static class InfrastructureExtensions
         this CsvConverter<T> parserOrFactory,
         Type targetType,
         CsvOptions<T> readerOptions)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
         Debug.Assert(parserOrFactory.CanConvert(targetType));
 
@@ -22,8 +22,7 @@ internal static class InfrastructureExtensions
 
         CsvConverter<T> createdParser = factory.Create(targetType, readerOptions)
             ?? throw new InvalidOperationException(
-                $"Factory {factory.GetType().FullName} returned null " +
-                $"when creating parser for type {targetType.FullName}");
+                $"Factory {factory.GetType().FullName} returned null when creating parser for type {targetType.FullName}");
 
         Debug.Assert(
             createdParser.CanConvert(targetType) && createdParser is not CsvConverterFactory<T>,

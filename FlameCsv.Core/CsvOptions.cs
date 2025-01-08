@@ -1,7 +1,6 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
@@ -9,34 +8,29 @@ using FlameCsv.Extensions;
 using FlameCsv.Utilities;
 using FlameCsv.Writing;
 using CommunityToolkit.HighPerformance.Buffers;
-using System.Text;
 using System.Globalization;
+using JetBrains.Annotations;
 
 namespace FlameCsv;
-
-file static class DefaultOptionsHolder
-{
-    public static readonly Lazy<CsvOptions<char>> Text = new(() =>
-    {
-        var o = new CsvOptions<char>();
-        o.MakeReadOnly();
-        return o;
-    });
-
-    public static readonly Lazy<CsvOptions<byte>> Utf8 = new(() =>
-    {
-        var o = new CsvOptions<byte>();
-        o.MakeReadOnly();
-        return o;
-    });
-}
 
 /// <summary>
 /// Object used to configure dialect, converters and other options to read and write CSV data.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T>
+[PublicAPI]
+public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinaryInteger<T>
 {
+    private static readonly Lazy<CsvOptions<T>> _defaultOptions = new(
+        () =>
+        {
+            if (typeof(T) != typeof(char) && typeof(T) != typeof(byte))
+                ThrowInvalidTokenType(nameof(Default));
+
+            var options = new CsvOptions<T>();
+            options.MakeReadOnly();
+            return options;
+        });
+
     /// <summary>
     /// Returns read-only default options for <typeparamref name="T"/>, with same configuration as <see langword="new"/>().
     /// </summary>
@@ -46,17 +40,7 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     public static CsvOptions<T> Default
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            if (typeof(T) == typeof(char))
-                return Unsafe.As<CsvOptions<T>>(DefaultOptionsHolder.Text.Value);
-
-            if (typeof(T) == typeof(byte))
-                return Unsafe.As<CsvOptions<T>>(DefaultOptionsHolder.Utf8.Value);
-
-            ThrowInvalidTokenType(nameof(Default));
-            return default!;
-        }
+        get => _defaultOptions.Value;
     }
 
     /// <summary>
@@ -110,16 +94,15 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     /// </summary>
     /// <returns><see langword="true"/> if the instance was made readonly, <see langword="false"/> if it already was.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool MakeReadOnly()
+    public void MakeReadOnly()
     {
-        if (IsReadOnly)
-            return false;
+        if (!IsReadOnly)
+        {
+            InitializeDialect();
 
-        InitializeDialect();
-
-        // set to readonly only after dialect has been validated
-        IsReadOnly = true;
-        return true;
+            // set to readonly only after dialect has been validated
+            IsReadOnly = true;
+        }
     }
 
     /// <summary>
@@ -158,7 +141,7 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
 
             if (typeof(T) == typeof(byte))
             {
-                if (nullTokens.TryGetAlternate(resultType, out Utf8String value))
+                if (nullTokens.TryGetAlternate(resultType, out Utf8String? value))
                 {
                     ReadOnlyMemory<byte> result = value;
                     return Unsafe.As<ReadOnlyMemory<byte>, ReadOnlyMemory<T>>(ref result);
@@ -189,12 +172,14 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     /// <summary>
     /// Returns the format configured for <paramref name="resultType"/>, or <paramref name="defaultValue"/> by default.
     /// </summary>
-    public virtual string? GetFormat(Type resultType, string? defaultValue = null) => _formats.GetOrDefault(resultType, defaultValue);
+    public virtual string? GetFormat(Type resultType, string? defaultValue = null)
+        => _formats.GetOrDefault(resultType, defaultValue);
 
     /// <summary>
     /// Returns the format provider configured for <paramref name="resultType"/>, or <see cref="FormatProvider"/> by default.
     /// </summary>
-    public virtual IFormatProvider? GetFormatProvider(Type resultType) => _providers.GetOrDefault(resultType, _formatProvider);
+    public virtual IFormatProvider? GetFormatProvider(Type resultType)
+        => _providers.GetOrDefault(resultType, _formatProvider);
 
     /// <summary>
     /// Returns the number styles configured for the <see cref="INumberBase{TSelf}"/>, or <paramref name="defaultValue"/> by default.
@@ -203,71 +188,8 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     /// Defaults are <see cref="NumberStyles.Integer"/> for <see cref="IBinaryInteger{TSelf}"/> and
     /// <see cref="NumberStyles.Float"/> for <see cref="IFloatingPoint{TSelf}"/>.
     /// </remarks>
-    public virtual NumberStyles GetNumberStyles(Type resultType, NumberStyles defaultValue) => _styles.GetOrDefault(resultType, defaultValue);
-
-    /// <summary>
-    /// Returns a <see langword="string"/> representation of the value.
-    /// See also <see cref="TryGetChars(ReadOnlySpan{T}, Span{char}, out int)"/>
-    /// </summary>
-    public virtual string GetAsString(ReadOnlySpan<T> field)
-    {
-        if (typeof(T) == typeof(char))
-        {
-            return field.UnsafeCast<T, char>().ToString();
-        }
-
-        if (typeof(T) == typeof(byte))
-        {
-            return Encoding.UTF8.GetString(field.UnsafeCast<T, byte>());
-        }
-
-        ThrowInvalidTokenType(nameof(GetAsString));
-        return default!;
-    }
-
-    /// <summary>
-    /// Writes <paramref name="destination"/> as chars to <paramref name="destination"/>.
-    /// See also <see cref="GetAsString(ReadOnlySpan{T})"/>.
-    /// </summary>
-    public virtual bool TryGetChars(ReadOnlySpan<T> field, Span<char> destination, out int charsWritten)
-    {
-        if (typeof(T) == typeof(char))
-        {
-            return field.UnsafeCast<T, char>().TryWriteTo(destination, out charsWritten);
-        }
-
-        if (typeof(T) == typeof(byte))
-        {
-            return Encoding.UTF8.TryGetChars(field.UnsafeCast<T, byte>(), destination, out charsWritten);
-        }
-
-        ThrowInvalidTokenType(nameof(TryGetChars));
-        Unsafe.SkipInit(out charsWritten);
-        return default;
-    }
-
-    /// <summary>
-    /// Writes <paramref name="value"/> as <typeparamref name="T"/> to <paramref name="destination"/>.
-    /// </summary>
-    /// <param name="value">Text to write</param>
-    /// <param name="destination">Buffer to write the value to</param>
-    /// <param name="charsWritten">Amount of tokens written to destination</param>
-    public virtual bool TryWriteChars(ReadOnlySpan<char> value, Span<T> destination, out int charsWritten)
-    {
-        if (typeof(T) == typeof(char))
-        {
-            return value.UnsafeCast<char, T>().TryWriteTo(destination, out charsWritten);
-        }
-
-        if (typeof(T) == typeof(byte))
-        {
-            return Encoding.UTF8.TryGetBytes(value, destination.UnsafeCast<T, byte>(), out charsWritten);
-        }
-
-        ThrowInvalidTokenType(nameof(TryWriteChars));
-        Unsafe.SkipInit(out charsWritten);
-        return default;
-    }
+    public virtual NumberStyles GetNumberStyles(Type resultType, NumberStyles defaultValue)
+        => _styles.GetOrDefault(resultType, defaultValue);
 
     internal CsvRecordSkipPredicate<T>? _shouldSkipRow;
     internal CsvExceptionHandler<T>? _exceptionHandler;
@@ -294,25 +216,23 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     private IFormatProvider? _formatProvider = CultureInfo.InvariantCulture;
     private TypeDictionary<IFormatProvider?, object>? _providers;
 
+    /// <summary>
+    /// Default null token to use when writing null values or reading nullable structs.
+    /// Default is <see langword="null"/> (empty field in CSV).
+    /// </summary>
+    /// <seealso cref="NullTokens"/>
     public virtual string? Null
     {
         get
         {
-            object? local = _null;
-
-            if (local is null)
-                return null;
-
             if (typeof(T) == typeof(char))
             {
-                Debug.Assert(local is string);
-                return Unsafe.As<string?>(local);
+                return (string?)_null;
             }
 
             if (typeof(T) == typeof(byte))
             {
-                Debug.Assert(local is Tuple<Utf8String>);
-                return (string)Unsafe.As<Tuple<Utf8String>>(local).Item1;
+                return (Utf8String?)_null;
             }
 
             ThrowInvalidTokenType(nameof(Null));
@@ -330,7 +250,7 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
 
             if (typeof(T) == typeof(byte))
             {
-                _null = new Tuple<Utf8String>(value);
+                _null = (Utf8String?)value;
                 return;
             }
 
@@ -351,7 +271,8 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     /// <summary>
     /// Format provider user per type instead of <see cref="FormatProvider"/>. See <see cref="GetFormatProvider(Type)"/>.
     /// </summary>
-    public ITypeDictionary<IFormatProvider?> FormatProviders => _providers ??= new TypeDictionary<IFormatProvider?, object>(this);
+    public ITypeDictionary<IFormatProvider?> FormatProviders
+        => _providers ??= new TypeDictionary<IFormatProvider?, object>(this);
 
     /// <summary>
     /// Format used per type. See <see cref="GetFormat(Type, string?)"/>.
@@ -378,7 +299,8 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     }
 
     /// <summary>
-    /// String comparer used to match CSV header to members and parameters. Default is <see cref="StringComparer.OrdinalIgnoreCase"/>.
+    /// String comparer used to match CSV header to members and parameters.
+    /// Default is <see cref="StringComparer.OrdinalIgnoreCase"/>.
     /// </summary>
     /// <remarks>
     /// Header names are converted to strings using <see cref="GetAsString(ReadOnlySpan{T})"/>.
@@ -426,6 +348,7 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     /// <remarks>
     /// Pooling reduces raw throughput, but can have profound impact on allocations if the data has a lot of repeating strings.
     /// </remarks>
+    /// <seealso cref="Binding.Attributes.CsvStringPoolingAttribute{T}"/>
     public StringPool? StringPool
     {
         get => _stringPool;
@@ -467,6 +390,16 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
 
             this.SetValue(ref _fieldEscaping, value);
         }
+    }
+
+    /// <summary>
+    /// If <see langword="true"/> validates that all records have the same amount of fields when reading or writing CSV.
+    /// Default is <see langword="false"/>.
+    /// </summary>
+    public bool ValidateFieldCount
+    {
+        get => _validateFieldCount;
+        set => this.SetValue(ref _validateFieldCount, value);
     }
 
     /// <summary>
@@ -541,13 +474,17 @@ public partial class CsvOptions<T> : ISealable where T : unmanaged, IEquatable<T
     /// <summary>
     /// Returns tokens used to parse and format <see langword="null"/> values. See <see cref="GetNullToken(Type)"/>.
     /// </summary>
-    public ITypeDictionary<string?> NullTokens => _nullTokens ??= new(this, static str => (Utf8String)str);
+    /// <seealso cref="CsvConverter{T,TValue}.HandleNull"/>
+    public ITypeDictionary<string?> NullTokens => _nullTokens ??= new(this, static Utf8String (str) => str);
 
     /// <summary>
     /// Optional custom boolean value mapping. If not empty, must contain at least one value for both
     /// <see langword="true"/> and <see langword="false"/>. Default is empty.
     /// </summary>
-    public IList<(string text, bool value)> BooleanValues => _booleanValues ??= new SealableList<(string, bool)>(this, null);
+    /// <seealso cref="Binding.Attributes.CsvBooleanTextValuesAttribute"/>
+    /// <seealso cref="Binding.Attributes.CsvBooleanUtf8ValuesAttribute"/>
+    public IList<(string text, bool value)> BooleanValues
+        => _booleanValues ??= new SealableList<(string, bool)>(this, null);
 
     private bool TryGetExistingOrCustomConverter(
         Type resultType,
@@ -591,7 +528,8 @@ file static class TypeDictExtensions
         this TypeDictionary<T, object>? dict,
         Type key,
         T defaultValue,
-        [CallerArgumentExpression(nameof(key))] string parameterName = "")
+        [CallerArgumentExpression(nameof(key))]
+        string parameterName = "")
     {
         ArgumentNullException.ThrowIfNull(key, parameterName);
         return dict is not null && dict.TryGetValue(key, out T? value) ? value : defaultValue;

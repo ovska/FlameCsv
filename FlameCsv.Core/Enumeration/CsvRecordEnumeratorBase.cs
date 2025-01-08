@@ -17,7 +17,7 @@ namespace FlameCsv.Enumeration;
 /// The enumerator should always be disposed after use, either explicitly or using <c>foreach</c>.
 /// </remarks>
 [MustDisposeResource]
-public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanaged, IEquatable<T>
+public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanaged, IBinaryInteger<T>
 {
     public CsvValueRecord<T> Current => _current._options is not null ? _current : ThrowInvalidCurrentAccess();
 

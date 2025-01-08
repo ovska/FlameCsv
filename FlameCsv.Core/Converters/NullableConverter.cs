@@ -6,7 +6,7 @@ namespace FlameCsv.Converters;
 /// <typeparam name="T">Token type</typeparam>
 /// <typeparam name="TValue">Parsed value and the type parameter of <see cref="Nullable{T}"/></typeparam>
 public sealed class NullableConverter<T, TValue> : CsvConverter<T, TValue?>
-    where T : unmanaged, IEquatable<T>
+    where T : unmanaged, IBinaryInteger<T>
     where TValue : struct
 {
     public override bool HandleNull => true;

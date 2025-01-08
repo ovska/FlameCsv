@@ -40,23 +40,6 @@ internal static class WriteExtensions
     /// <returns>True if the destination buffer is large enough and data was copied.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryWriteTo<T>(
-        this Span<T> value,
-        Span<T> buffer,
-        out int tokensWritten)
-    {
-        if (value.TryCopyTo(buffer))
-        {
-            tokensWritten = value.Length;
-            return true;
-        }
-
-        tokensWritten = 0;
-        return false;
-    }
-
-    /// <inheritdoc cref="TryWriteTo{T}(Span{T},Span{T},out int)"/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryWriteTo<T>(
         this ReadOnlySpan<T> value,
         Span<T> buffer,
         out int tokensWritten)

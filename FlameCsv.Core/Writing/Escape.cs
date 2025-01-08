@@ -20,7 +20,7 @@ internal static class Escape
         scoped ReadOnlySpan<T> source,
         scoped Span<T> destination,
         int specialCount)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
         where TEscaper : IEscaper<T>, allows ref struct
     {
         Debug.Assert(destination.Length >= source.Length + specialCount + 2, "Destination buffer is too small");
@@ -109,7 +109,7 @@ internal static class Escape
         scoped Span<T> destination,
         int specialCount,
         MemoryPool<T> allocator)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
         where TEscaper : IEscaper<T>, allows ref struct
     {
         Debug.Assert(

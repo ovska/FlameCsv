@@ -76,7 +76,7 @@ file static class Escape2
         scoped ReadOnlySpan<T> source,
         scoped Span<T> destination,
         int specialCount)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
         where TEscaper : IEscaper<T>
     {
         Debug.Assert(destination.Length >= source.Length + specialCount + 2, "Destination buffer is too small");

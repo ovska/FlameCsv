@@ -13,7 +13,7 @@ internal static class MaterializerExtensions
 {
     [RUF(Messages.CompiledExpressions)]
     [RDC(Messages.CompiledExpressions)]
-    private static class ForType<T, TResult> where T : unmanaged, IEquatable<T>
+    private static class ForType<T, TResult> where T : unmanaged, IBinaryInteger<T>
     {
         /// <summary>
         /// Generator instance to create delegates through reflection.
@@ -34,7 +34,7 @@ internal static class MaterializerExtensions
     public static IMaterializer<T, TResult> CreateMaterializerFrom<T, [DAM(Messages.ReflectionBound)] TResult>(
         this CsvOptions<T> options,
         CsvBindingCollection<TResult> bindingCollection)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
         return ForType<T, TResult>.Generator.GetMaterializerFactory(bindingCollection)(options);
     }
@@ -46,7 +46,7 @@ internal static class MaterializerExtensions
     [RDC(Messages.CompiledExpressions)]
     public static IMaterializer<T, TResult> GetMaterializer<T, [DAM(Messages.ReflectionBound)] TResult>(
         this CsvOptions<T> options)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
         DelegateGenerator<T>.MaterializerFactory<TResult>? factory = ForType<T, TResult>.Cached;
 
@@ -83,7 +83,7 @@ internal static class MaterializerExtensions
     private static bool TryGetTupleBindings<T, [DAM(DAMT.PublicConstructors | DAMT.PublicFields)] TTuple>(
         bool write,
         [NotNullWhen(true)] out CsvBindingCollection<TTuple>? bindingCollection)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
         if (!IsTuple(typeof(TTuple)))
         {

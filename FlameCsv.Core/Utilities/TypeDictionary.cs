@@ -7,8 +7,10 @@ namespace FlameCsv.Utilities;
 
 /// <summary>
 /// Dictionary of <typeparamref name="TValue"/> indexed by <see cref="Type"/>.
-/// Structs and their <see cref="Nullable{T}"/> counterpart are treated as equal.
 /// </summary>
+/// <remarks>
+/// Structs and their <see cref="Nullable{T}"/> counterparts are treated as equal.
+/// </remarks>
 public interface ITypeDictionary<TValue> : IDictionary<Type, TValue>;
 
 internal sealed class TypeDictionary<TValue, TAlternate> : ITypeDictionary<TValue>
@@ -21,7 +23,7 @@ internal sealed class TypeDictionary<TValue, TAlternate> : ITypeDictionary<TValu
             this);
     }
 
-    private readonly ISealable _owner;
+    private readonly ICanBeReadOnly _owner;
     private readonly Dictionary<Type, TValue> _dictionary;
     private readonly Dictionary<Type, TAlternate>? _alternate;
     private readonly Func<TValue, TAlternate>? _convert;
@@ -31,12 +33,14 @@ internal sealed class TypeDictionary<TValue, TAlternate> : ITypeDictionary<TValu
     public bool HasAlternate => _alternate is not null && _convert is not null;
 
     public TypeDictionary(
-        ISealable owner,
+        ICanBeReadOnly owner,
         Func<TValue, TAlternate>? convert = null,
         [RequireStaticDelegate] TypeDictionary<TValue, TAlternate>? source = null)
     {
         _owner = owner;
-        _dictionary = source is null ? new(NullableTypeEqualityComparer.Instance) : new(source._dictionary, NullableTypeEqualityComparer.Instance);
+        _dictionary = source is null
+            ? new(NullableTypeEqualityComparer.Instance)
+            : new(source._dictionary, NullableTypeEqualityComparer.Instance);
 
         if (typeof(TAlternate) == typeof(object))
         {
@@ -121,7 +125,7 @@ internal sealed class TypeDictionary<TValue, TAlternate> : ITypeDictionary<TValu
 
         if (key.IsPointer || key.IsByRef || key.IsByRefLike || key.IsGenericTypeDefinition)
         {
-            Throw.Argument(nameof(key), "Type must not be a pointer, byref/like or a generic definition");
+            Throw.Argument(nameof(key), "Type must not be a pointer, byref/like, or a generic definition");
         }
     }
 

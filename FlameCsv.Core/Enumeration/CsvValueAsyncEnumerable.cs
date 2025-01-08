@@ -8,7 +8,7 @@ namespace FlameCsv.Enumeration;
 /// </summary>
 [RUF(Messages.CompiledExpressions)]
 public sealed class CsvValueAsyncEnumerable<T, [DAM(Messages.ReflectionBound)] TValue> : IAsyncEnumerable<TValue>
-    where T : unmanaged, IEquatable<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     private readonly CsvOptions<T> _options;
     private readonly ICsvPipeReader<T> _reader;

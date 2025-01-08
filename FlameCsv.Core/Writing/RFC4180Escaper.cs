@@ -3,7 +3,7 @@
 namespace FlameCsv.Writing;
 
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-internal readonly struct RFC4180Escaper<T>(T quote) : IEscaper<T> where T : unmanaged, IEquatable<T>
+internal readonly struct RFC4180Escaper<T>(T quote) : IEscaper<T> where T : unmanaged, IBinaryInteger<T>
 {
     public T Quote
     {
@@ -18,7 +18,7 @@ internal readonly struct RFC4180Escaper<T>(T quote) : IEscaper<T> where T : unma
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool NeedsEscaping(T value) => value.Equals(quote);
+    public bool NeedsEscaping(T value) => value == quote;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int LastIndexOfEscapable(scoped ReadOnlySpan<T> value) => value.LastIndexOf(quote);

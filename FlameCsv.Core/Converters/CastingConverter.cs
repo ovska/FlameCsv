@@ -6,13 +6,16 @@ namespace FlameCsv.Converters;
 internal static class CastingConverter
 {
     [RDC("Calls System.Type.MakeGenericType(params Type[])")]
-    public static CsvConverter<T> Create<T>(Type innerType, Type outerType, CsvConverter<T> inner) where T: unmanaged, IEquatable<T>
+    public static CsvConverter<T> Create<T>(Type innerType, Type outerType, CsvConverter<T> inner)
+        where T : unmanaged, IBinaryInteger<T>
     {
-        return typeof(CastingConverter<,,>).MakeGenericType(typeof(T), innerType, outerType).CreateInstance<CsvConverter<T>>(inner);
+        return typeof(CastingConverter<,,>).MakeGenericType(typeof(T), innerType, outerType)
+            .CreateInstance<CsvConverter<T>>(inner);
     }
 }
 
-internal sealed class CastingConverter<T, TFrom, TTo> : CsvConverter<T, TTo> where T : unmanaged, IEquatable<T>
+internal sealed class CastingConverter<T, TFrom, TTo> : CsvConverter<T, TTo>
+    where T : unmanaged, IBinaryInteger<T>
     where TFrom : TTo
 {
     public override bool HandleNull => _inner.HandleNull;

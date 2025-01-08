@@ -5,7 +5,7 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading.Internal;
 
-internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IEquatable<T>
+internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IBinaryInteger<T>
 {
     private readonly T _escape;
 

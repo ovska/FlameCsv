@@ -9,7 +9,8 @@ namespace FlameCsv.Enumeration;
 /// Asynchronously reads data from a source into CSV records, use <see cref="CsvReader"/> to create.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-public readonly struct CsvRecordAsyncEnumerable<T> : IAsyncEnumerable<CsvValueRecord<T>> where T : unmanaged, IEquatable<T>
+public readonly struct CsvRecordAsyncEnumerable<T> : IAsyncEnumerable<CsvValueRecord<T>>
+    where T : unmanaged, IBinaryInteger<T>
 {
     private readonly ICsvPipeReader<T> _reader;
     private readonly CsvOptions<T> _options;
@@ -41,7 +42,9 @@ public readonly struct CsvRecordAsyncEnumerable<T> : IAsyncEnumerable<CsvValueRe
         }
     }
 
-    IAsyncEnumerator<CsvValueRecord<T>> IAsyncEnumerable<CsvValueRecord<T>>.GetAsyncEnumerator(CancellationToken cancellationToken)
+    [MustDisposeResource]
+    IAsyncEnumerator<CsvValueRecord<T>> IAsyncEnumerable<CsvValueRecord<T>>.GetAsyncEnumerator(
+        CancellationToken cancellationToken)
     {
         return GetAsyncEnumerator(cancellationToken);
     }

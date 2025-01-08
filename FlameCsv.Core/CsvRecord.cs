@@ -7,7 +7,7 @@ using FlameCsv.Runtime;
 
 namespace FlameCsv;
 
-public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> where T : unmanaged, IEquatable<T>
+public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> where T : unmanaged, IBinaryInteger<T>
 {
     public virtual ReadOnlyMemory<T> this[int index] => GetField(index);
     public virtual ReadOnlyMemory<T> this[string name] => GetField(name);

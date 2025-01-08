@@ -4,7 +4,7 @@
 /// Provides tokens and methods to escape special characters when quoting fields.
 /// </summary>
 /// <seealso cref="CsvDialect{T}.NeedsQuoting"/>
-internal interface IEscaper<T> where T : unmanaged, IEquatable<T>
+internal interface IEscaper<T> where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Escape character.

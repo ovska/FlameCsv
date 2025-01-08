@@ -11,7 +11,7 @@
 /// and no member with that name already exists.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class)]
-public sealed class CsvTypeMapAttribute<T, TValue> : Attribute where T : unmanaged, IEquatable<T>
+public sealed class CsvTypeMapAttribute<T, TValue> : Attribute where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Whether the generated code is valid for reading, writing, or both (the default).

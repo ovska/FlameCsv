@@ -10,45 +10,45 @@ internal static class SealableExtensions
     /// Sets the value of <paramref name="field"/> after ensuring that the current instance is not read-only.
     /// </summary>
     /// <typeparam name="TValue"></typeparam>
-    /// <param name="sealable"></param>
+    /// <param name="obj"></param>
     /// <param name="field">Reference to the field to modify</param>
     /// <param name="value">Value to set</param>
     /// <param name="memberName">Name of the property being set, used in exception messages</param>
     /// <exception cref="InvalidOperationException"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void SetValue<TValue>(
-        this ISealable sealable,
+        this ICanBeReadOnly obj,
         ref TValue field,
         TValue value,
         [CallerMemberName] string memberName = "")
     {
-        if (sealable.IsReadOnly)
+        if (obj.IsReadOnly)
             ThrowForIsReadOnly(memberName);
 
         field = value;
     }
 
     /// <summary>
-    /// Throws if <see cref="ISealable.IsReadOnly"/> is <see langword="true"/>.
+    /// Throws if <see cref="ICanBeReadOnly.IsReadOnly"/> is <see langword="true"/>.
     /// </summary>
-    /// <param name="sealable"></param>
+    /// <param name="obj"></param>
     /// <param name="memberName">Name of the calling property or method used in exception messages</param>
     /// <exception cref="InvalidOperationException"></exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ThrowIfReadOnly(
-        this ISealable sealable,
+        this ICanBeReadOnly obj,
         [CallerMemberName] string memberName = "")
     {
-        if (sealable.IsReadOnly)
+        if (obj.IsReadOnly)
             ThrowForIsReadOnly(memberName);
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining), DoesNotReturn]
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private static void ThrowForIsReadOnly(string memberName)
     {
         if (string.IsNullOrEmpty(memberName))
-            throw new InvalidOperationException("The options-instance is read only.");
+            throw new InvalidOperationException("The instance is read only.");
 
-        throw new InvalidOperationException($"The options-instance is read only (accessed via {memberName}).");
+        throw new InvalidOperationException($"The instance is read only (accessed via member {memberName}).");
     }
 }

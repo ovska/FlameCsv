@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Text;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
@@ -21,7 +20,7 @@ internal sealed class CustomBooleanUtf8Converter : CsvConverter<byte, bool>
 
         foreach ((string text, bool value) in values)
         {
-            (value ? trues : falses).Add(Encoding.UTF8.GetBytes(text ?? ""));
+            (value ? trues : falses).Add(options.GetFromString(text).UnsafeGetOrCreateArray());
         }
 
         if (trues.Count == 0)
@@ -34,18 +33,21 @@ internal sealed class CustomBooleanUtf8Converter : CsvConverter<byte, bool>
         _falseValues = [.. falses];
     }
 
-    internal CustomBooleanUtf8Converter(string[] trueValues, string[] falseValues)
+    internal CustomBooleanUtf8Converter(
+        CsvOptions<byte> options,
+        string[] trueValues,
+        string[] falseValues)
     {
         Debug.Assert(trueValues is { Length: > 0 });
         Debug.Assert(falseValues is { Length: > 0 });
 
-        _trueValues = trueValues.Select(v => Encoding.UTF8.GetBytes(v ?? "")).ToArray();
-        _falseValues = falseValues.Select(v => Encoding.UTF8.GetBytes(v ?? "")).ToArray();
+        _trueValues = trueValues.Select(v => options.GetFromString(v).UnsafeGetOrCreateArray()).ToArray();
+        _falseValues = falseValues.Select(v => options.GetFromString(v).UnsafeGetOrCreateArray()).ToArray();
     }
 
     public override bool TryFormat(Span<byte> destination, bool value, out int charsWritten)
     {
-        return (value ? _trueValues : _falseValues)[0].AsSpan().TryWriteTo(destination, out charsWritten);
+        return ((ReadOnlySpan<byte>)(value ? _trueValues : _falseValues)[0]).TryWriteTo(destination, out charsWritten);
     }
 
     /// <inheritdoc/>

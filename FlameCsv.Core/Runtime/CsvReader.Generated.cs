@@ -12,7 +12,7 @@ namespace FlameCsv;
 public static partial class CsvReader
 {
     public sealed class CsvRecordFactoryAsyncEnumerable<T, TValue> : IAsyncEnumerable<TValue>
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
         private readonly CsvOptions<T> _options;
         private readonly ICsvPipeReader<T> _reader;
@@ -45,7 +45,7 @@ public static partial class CsvReader
         [NotNull] object? reader,
         [NotNull] CsvOptions<T>? options,
         [NotNull] Delegate? recordFactory)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(options);

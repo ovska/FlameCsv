@@ -11,13 +11,13 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading;
 
-public interface ICsvFieldReader<T> : IEnumerator<ReadOnlySpan<T>> where T : unmanaged, IEquatable<T>
+public interface ICsvFieldReader<T> : IEnumerator<ReadOnlySpan<T>> where T : unmanaged, IBinaryInteger<T>
 {
     ReadOnlySpan<T> Record { get; }
     CsvOptions<T> Options { get; }
 }
 
-public ref struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IEquatable<T>
+public ref struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IBinaryInteger<T>
 {
     public ReadOnlySpan<T> Record { get; }
     public readonly ReadOnlySpan<T> Remaining => Record.Slice(Consumed);
