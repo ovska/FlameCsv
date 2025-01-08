@@ -55,7 +55,7 @@ internal abstract partial class Materializer<T>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, TResult>
-    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public override int FieldCount => 1;
 
@@ -82,7 +82,7 @@ internal sealed class Materializer<T, T0, TResult>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, TResult>
-    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public override int FieldCount => 2;
 
@@ -113,7 +113,7 @@ internal sealed class Materializer<T, T0, T1, TResult>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, TResult>
-    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public override int FieldCount => 3;
 
@@ -148,7 +148,7 @@ internal sealed class Materializer<T, T0, T1, T2, TResult>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, TResult>
-    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public override int FieldCount => 4;
 
@@ -187,7 +187,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, TResult>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult>
-    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public override int FieldCount => 5;
 
@@ -230,7 +230,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult>
-    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public override int FieldCount => 6;
 
@@ -277,7 +277,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult>
-    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public override int FieldCount => 7;
 
@@ -328,7 +328,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult>
-    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public override int FieldCount => 8;
 
@@ -383,7 +383,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResult>
-    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public override int FieldCount => 9;
 
@@ -442,7 +442,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TResult>
-    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public override int FieldCount => 10;
 
@@ -505,7 +505,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TResult>
-    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public override int FieldCount => 11;
 
@@ -572,7 +572,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TResult>
-    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public override int FieldCount => 12;
 
@@ -643,7 +643,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TResult>
-    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public override int FieldCount => 13;
 
@@ -718,7 +718,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TResult>
-    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public override int FieldCount => 14;
 
@@ -797,7 +797,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TResult>
-    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public override int FieldCount => 15;
 
@@ -880,7 +880,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TResult>
-    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public override int FieldCount => 16;
 

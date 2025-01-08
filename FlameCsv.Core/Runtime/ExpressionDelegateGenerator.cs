@@ -11,7 +11,7 @@ namespace FlameCsv.Runtime;
 
 [RUF(Messages.CompiledExpressions)]
 [RDC(Messages.CompiledExpressions)]
-internal sealed class ExpressionDelegateGenerator<T> : DelegateGenerator<T> where T : unmanaged, IEquatable<T>
+internal sealed class ExpressionDelegateGenerator<T> : DelegateGenerator<T> where T : unmanaged, IBinaryInteger<T>
 {
     protected override Func<object[], IMaterializer<T, TResult>> GetMaterializerInit<[DAM(Messages.Ctors)] TResult>(
         CsvBindingCollection<TResult> bc)

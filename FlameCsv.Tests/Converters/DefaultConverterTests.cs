@@ -1,5 +1,4 @@
 ﻿using System.Globalization;
-using System.Numerics;
 using System.Text;
 using FlameCsv.Converters;
 
@@ -15,7 +14,7 @@ public class DefaultUtf8ConverterTests : DefaultConverterTests<byte>
     protected override ReadOnlySpan<byte> AsSpan(string? value) => Encoding.UTF8.GetBytes(value ?? "");
 }
 
-public abstract class DefaultConverterTests<T> where T : unmanaged, IEquatable<T>
+public abstract class DefaultConverterTests<T> where T : unmanaged, IBinaryInteger<T>
 {
     private readonly T[] _buffer = new T[128];
 

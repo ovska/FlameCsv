@@ -79,7 +79,7 @@ static partial class CsvWriter
     }
 }
 
-public abstract class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unmanaged, IEquatable<T>
+public abstract class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Amount of fields written to the current record (starting from 0). If not zero, delimiter is written before any more data.

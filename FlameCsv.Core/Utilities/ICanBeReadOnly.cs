@@ -1,7 +1,6 @@
 ﻿namespace FlameCsv.Utilities;
 
-internal interface ISealable
+internal interface ICanBeReadOnly
 {
     bool IsReadOnly { get; }
-    bool MakeReadOnly();
 }

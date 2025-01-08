@@ -26,7 +26,8 @@ public abstract class DefaultHeaderBinder
 /// Binds CSV header to members.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-public sealed class DefaultHeaderBinder<T> : DefaultHeaderBinder, IHeaderBinder<T> where T : unmanaged, IEquatable<T>
+public sealed class DefaultHeaderBinder<T> : DefaultHeaderBinder, IHeaderBinder<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Fields that could not be matched are ignored.
@@ -144,8 +145,7 @@ public sealed class DefaultHeaderBinder<T> : DefaultHeaderBinder, IHeaderBinder<
 
                 foreach (var attribute in member.Attributes)
                 {
-                    if (attribute is not CsvHeaderAttribute attr ||
-                        !attr.Scope.IsValidFor(write))
+                    if (attribute is not CsvHeaderAttribute attr || !attr.Scope.IsValidFor(write))
                     {
                         continue;
                     }
@@ -187,9 +187,9 @@ public sealed class DefaultHeaderBinder<T> : DefaultHeaderBinder, IHeaderBinder<
                         candidates.Add(new HeaderBindingCandidate(value, member.Value, attr.Order, attr.IsRequired));
                     }
                 }
-                else if (ignoreAttribute is null &&
-                         attribute is CsvHeaderIgnoreAttribute hia &&
-                         hia.Scope.IsValidFor(write))
+                else if (ignoreAttribute is null
+                         && attribute is CsvHeaderIgnoreAttribute hia
+                         && hia.Scope.IsValidFor(write))
                 {
                     ignoreAttribute = hia;
                 }
@@ -244,11 +244,11 @@ public sealed class DefaultHeaderBinder<T> : DefaultHeaderBinder, IHeaderBinder<
                 {
                     HeaderBindingCandidate existing = candidates[i];
 
-                    if (existing.Target is PropertyInfo prop &&
-                        prop.Name == parameter.Value.Name &&
-                        prop.PropertyType == parameter.Value.ParameterType &&
-                        prop.SetMethod is { ReturnParameter: var rp } &&
-                        rp.GetRequiredCustomModifiers().Contains(typeof(IsExternalInit)))
+                    if (existing.Target is PropertyInfo prop
+                        && prop.Name == parameter.Value.Name
+                        && prop.PropertyType == parameter.Value.ParameterType
+                        && prop.SetMethod is { ReturnParameter: var rp }
+                        && rp.GetRequiredCustomModifiers().Contains(typeof(IsExternalInit)))
                     {
                         candidates.RemoveAt(i);
                     }

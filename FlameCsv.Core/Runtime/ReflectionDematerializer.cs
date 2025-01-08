@@ -11,7 +11,7 @@ internal sealed class ReflectionDematerializer
     [RUF(Messages.CompiledExpressions)]
     [RDC(Messages.CompiledExpressions)]
     public static IDematerializer<T, TValue> Create<T, TValue>(CsvOptions<T> options)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
         CsvBindingCollection<TValue> bindingCollection;
 
@@ -26,8 +26,8 @@ internal sealed class ReflectionDematerializer
         else
         {
             throw new CsvBindingException<TValue>(
-                $"Headerless CSV could not be written for {typeof(TValue)}, since the type had no " +
-                "[CsvIndex]-attributes and no built-in configuration.");
+                $"Headerless CSV could not be written for {typeof(TValue)}, since the type had no "
+                + "[CsvIndex]-attributes and no built-in configuration.");
         }
 
         var bindings = bindingCollection.MemberBindings;
@@ -43,7 +43,7 @@ internal sealed class ReflectionDematerializer
         {
             (MemberExpression memberExpression, _) = bindings[i].Member.GetAsMemberExpression(valueParam);
             var lambda = Expression.Lambda(memberExpression, valueParam);
-            parameters[i + 2] = lambda.CompileLambda<Delegate>();
+            parameters[i + 2] = lambda.CompileLambda<Delegate>(throwIfClosure: false);
         }
 
         return (IDematerializer<T, TValue>)ctor.Invoke(parameters);

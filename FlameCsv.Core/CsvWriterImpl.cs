@@ -8,7 +8,7 @@ using FlameCsv.Writing;
 namespace FlameCsv;
 
 internal sealed class CsvWriterImpl<T> : CsvWriter<T>
-    where T : unmanaged, IEquatable<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     private readonly CsvOptions<T> _options;
     private readonly CsvFieldWriter<T> _inner;

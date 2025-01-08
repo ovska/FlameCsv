@@ -195,7 +195,7 @@ static partial class CsvWriter
         CsvFieldWriter<T> writer,
         IDematerializer<T, TValue> dematerializer,
         CancellationToken cancellationToken)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
         Exception? exception = null;
 
@@ -233,7 +233,7 @@ static partial class CsvWriter
         IEnumerable<TValue> values,
         CsvFieldWriter<T> writer,
         IDematerializer<T, TValue> dematerializer)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
         Exception? exception = null;
 

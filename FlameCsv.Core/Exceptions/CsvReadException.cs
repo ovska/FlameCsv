@@ -15,6 +15,9 @@ public class CsvReadException : Exception
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void ThrowForPrematureEOF<T>(int fieldCount, CsvOptions<T> options, ReadOnlySpan<T> record)
-        where T : unmanaged, IEquatable<T>
-            => throw new CsvReadException($"Csv record ended prematurely (expected {fieldCount} fields): {options.AsPrintableString(record)}");
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        throw new CsvReadException(
+            $"Csv record ended prematurely (expected {fieldCount} fields): {options.AsPrintableString(record)}");
+    }
 }

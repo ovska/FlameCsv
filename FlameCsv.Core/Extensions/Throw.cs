@@ -103,7 +103,7 @@ internal static class Throw
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void ParseFailed<T>(ReadOnlySpan<T> field, CsvConverter<T> converter, CsvOptions<T> options, Type toParse)
-            where T : unmanaged, IEquatable<T>
+            where T : unmanaged, IBinaryInteger<T>
     {
         throw new CsvParseException(
             $"Failed to parse {toParse.FullName} using {converter.GetType().FullName} " +
@@ -112,7 +112,7 @@ internal static class Throw
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void Argument_FieldIndex<T>(int index, EnumeratorState<T>? state = null, string? name = null)
-            where T : unmanaged, IEquatable<T>
+            where T : unmanaged, IBinaryInteger<T>
     {
         string? knownFieldCount = null;
         name = name is null ? "" : $"'{name}' ";

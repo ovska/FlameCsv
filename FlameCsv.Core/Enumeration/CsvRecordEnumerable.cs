@@ -12,7 +12,7 @@ namespace FlameCsv.Enumeration;
 /// Maybe be enumerated multiple times, multiple concurrent enumerations are allowed.
 /// </remarks>
 /// <typeparam name="T">Token type</typeparam>
-public readonly struct CsvRecordEnumerable<T> : IEnumerable<CsvValueRecord<T>> where T : unmanaged, IEquatable<T>
+public readonly struct CsvRecordEnumerable<T> : IEnumerable<CsvValueRecord<T>> where T : unmanaged, IBinaryInteger<T>
 {
     private readonly ReadOnlySequence<T> _data;
     private readonly CsvOptions<T> _options;

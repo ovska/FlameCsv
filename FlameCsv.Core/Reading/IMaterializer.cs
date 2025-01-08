@@ -5,7 +5,7 @@ namespace FlameCsv.Reading;
 /// <summary>
 /// Instance of a type that reads CSV records into objects/structs.
 /// </summary>
-public interface IMaterializer<T, out TResult> where T : unmanaged, IEquatable<T>
+public interface IMaterializer<T, out TResult> where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Parses <typeparamref name="TResult"/> from the CSV record.

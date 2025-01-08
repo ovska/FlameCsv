@@ -6,7 +6,7 @@ using FlameCsv.Reading;
 namespace FlameCsv.Enumeration;
 
 public sealed class CsvValueEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TValue>, IEnumerator<TValue>
-    where T : unmanaged, IEquatable<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     [RUF(Messages.CompiledExpressions)]
     internal CsvValueEnumerator(ReadOnlySequence<T> csv, CsvOptions<T> options, IMaterializer<T, TValue>? materializer)

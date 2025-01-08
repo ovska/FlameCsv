@@ -5,7 +5,7 @@ using FlameCsv.Writing;
 
 namespace FlameCsv.Runtime;
 
-internal abstract class Dematerializer<T, TValue> : Dematerializer<T> where T : unmanaged, IEquatable<T>
+internal abstract class Dematerializer<T, TValue> : Dematerializer<T> where T : unmanaged, IBinaryInteger<T>
 {
     private readonly CsvBindingCollection<TValue> _bindings;
 

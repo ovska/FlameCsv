@@ -3,10 +3,17 @@ using System.Runtime.CompilerServices;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Utilities;
+using JetBrains.Annotations;
 
 namespace FlameCsv;
 
-public readonly struct CsvDialect<T> where T : unmanaged, IEquatable<T>
+/// <summary>
+/// Contains the token configuration for reading and writing CSV.
+/// </summary>
+/// <typeparam name="T">Token type</typeparam>
+/// <seealso cref="CsvOptions{T}.Dialect"/>
+[PublicAPI]
+public readonly struct CsvDialect<T> where T : unmanaged, IBinaryInteger<T>
 {
     public required T Delimiter { get; init; }
     public required T Quote { get; init; }
@@ -17,9 +24,9 @@ public readonly struct CsvDialect<T> where T : unmanaged, IEquatable<T>
     /// <summary>
     /// Returns search values used to determine whether fields need to be quoted while writing CSV.
     /// </summary>
-    public required SearchValues<T> NeedsQuoting
+    public SearchValues<T> NeedsQuoting
     {
-        get => _needsQuoting.Value ?? TryInitializeNeedsQuoting();
+        get => _needsQuoting?.Value ?? TryInitializeNeedsQuoting();
         init => _needsQuoting.Value = value;
     }
 
@@ -42,26 +49,10 @@ public readonly struct CsvDialect<T> where T : unmanaged, IEquatable<T>
         T delimiter = Delimiter;
         T quote = Quote;
         T? escape = Escape;
-        ReadOnlySpan<T> whitespace = Whitespace.Span;
-        ReadOnlySpan<T> newline = Newline.Span;
-
-        if (newline.Length == 0)
-        {
-            // use crlf if we have a known token type
-            if (typeof(T) == typeof(char))
-            {
-                newline = "\r\n".AsSpan().UnsafeCast<char, T>();
-            }
-            else if (typeof(T) == typeof(byte))
-            {
-                newline = "\r\n"u8.UnsafeCast<byte, T>();
-            }
-            else
-            {
-                throw new NotSupportedException(
-                    $"Automatic newline detection (empty Newline) is not supported for token type {typeof(T)}");
-            }
-        }
+        scoped ReadOnlySpan<T> whitespace = Whitespace.Span;
+        scoped ReadOnlySpan<T> newline = Newline.IsEmpty
+            ? [T.CreateChecked('\r'), T.CreateChecked('\n')]
+            : Newline.Span;
 
         if (NeedsQuoting is null)
         {
@@ -131,34 +122,13 @@ public readonly struct CsvDialect<T> where T : unmanaged, IEquatable<T>
 
     private SearchValues<T> TryInitializeNeedsQuoting()
     {
-        ValueListBuilder<T> list = new(stackalloc T[8]);
+        Throw.IfDefaultStruct(_needsQuoting is null, typeof(CsvDialect<T>));
+
+        ValueListBuilder<T> list = new(stackalloc T[5]);
         list.Append(Delimiter);
         list.Append(Quote);
-
-        scoped ReadOnlySpan<T> newlineSpan = Newline.Span;
-
-        if (newlineSpan.IsEmpty)
-        {
-            if (typeof(T) == typeof(char))
-            {
-                newlineSpan = "\r\n".AsSpan().UnsafeCast<char, T>();
-            }
-            else if (typeof(T) == typeof(byte))
-            {
-                newlineSpan = "\r\n"u8.UnsafeCast<byte, T>();
-            }
-            else
-            {
-                throw new NotSupportedException($"Empty newline is not supported for token type {typeof(T).FullName}");
-            }
-        }
-
-        list.Append(newlineSpan);
-
-        if (Escape.HasValue)
-        {
-            list.Append(Escape.Value);
-        }
+        list.Append(Newline.IsEmpty ? [T.CreateChecked('\r'), T.CreateChecked('\n')] : Newline.Span);
+        list.Append(Escape.HasValue ? [Escape.Value] : []);
 
         SearchValues<T> result;
 

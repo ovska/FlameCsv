@@ -39,7 +39,7 @@ internal static class ExpressionExtensions
     /// </summary>
     [RUF(Messages.CompiledExpressions)]
     [RDC(Messages.CompiledExpressions)]
-    public static TDelegate CompileLambda<TDelegate>(this LambdaExpression lambda, bool throwIfClosure = false)
+    public static TDelegate CompileLambda<TDelegate>(this LambdaExpression lambda, bool throwIfClosure)
         where TDelegate : Delegate
     {
         TDelegate? fn = lambda.TryCompileWithoutClosure<TDelegate>(flags: DefaultCompilerFlags);

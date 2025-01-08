@@ -65,7 +65,7 @@ public class FieldBench
         allocated?.Dispose();
     }
 
-    static class Older<T> where T : unmanaged, IEquatable<T>
+    static class Older<T> where T : unmanaged, IBinaryInteger<T>
     {
         public static ReadOnlySpan<T> ReadNextField(ref CsvFieldReader<T> state)
         {

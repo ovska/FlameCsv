@@ -1,11 +1,11 @@
 ﻿using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Reading;
 
 namespace FlameCsv.Utilities;
 
-#pragma warning disable IDE0064
-internal ref struct BufferFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IEquatable<T>
-#pragma warning restore IDE0064
+[SuppressMessage("CodeQuality", "IDE0064:Make readonly fields writable")]
+internal ref struct BufferFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IBinaryInteger<T>
 {
     private readonly ReadOnlySpan<T> _block;
     private readonly ReadOnlySpan<Range> _ranges;

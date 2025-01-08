@@ -79,7 +79,7 @@ public abstract class CsvReaderTestsBase
 /// A spray-and-pray tests of different APIs using various options and CSV features.
 /// </summary>
 //[Collection("ReaderTests")]
-public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unmanaged, IEquatable<T>
+public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unmanaged, IBinaryInteger<T>
 {
     protected abstract CsvTypeMap<T, Obj> TypeMap { get; }
 

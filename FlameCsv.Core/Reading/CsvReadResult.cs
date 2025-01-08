@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 namespace FlameCsv.Reading;
 
 [DebuggerDisplay(@"\{ ReadResult<{typeof(T).Name,nq}> Length: {Buffer.Length}, IsCompleted: {IsCompleted} \}")]
-internal readonly struct CsvReadResult<T> where T : unmanaged, IEquatable<T>
+internal readonly struct CsvReadResult<T> where T : unmanaged, IBinaryInteger<T>
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CsvReadResult(in ReadOnlySequence<T> buffer, bool isCompleted)

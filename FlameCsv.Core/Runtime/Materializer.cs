@@ -8,8 +8,9 @@ namespace FlameCsv.Runtime;
 /// State of a CSV row that is being parsed.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-internal abstract partial class Materializer<T> where T : unmanaged, IEquatable<T>
+internal abstract partial class Materializer<T> where T : unmanaged, IBinaryInteger<T>
 {
+    // ReSharper disable once MemberCanBeProtected.Global
     public abstract int FieldCount { get; }
 
     /// <summary>

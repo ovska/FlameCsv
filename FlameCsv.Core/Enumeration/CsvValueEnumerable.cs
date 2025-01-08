@@ -6,7 +6,7 @@ namespace FlameCsv.Enumeration;
 
 [RUF(Messages.CompiledExpressions)]
 public sealed class CsvValueEnumerable<T, [DAM(Messages.ReflectionBound)] TValue> : IEnumerable<TValue>
-    where T : unmanaged, IEquatable<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     private readonly ReadOnlySequence<T> _data;
     private readonly CsvOptions<T> _options;

@@ -1,6 +1,6 @@
 ﻿namespace FlameCsv.Writing;
 
-public interface IDematerializer<T, in TValue> where T : unmanaged, IEquatable<T>
+public interface IDematerializer<T, in TValue> where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Amount of fields that will be written when writing a record or header.

@@ -4,7 +4,7 @@ namespace FlameCsv.Binding;
 /// Binds CSV header to members.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-public interface IHeaderBinder<T> where T : unmanaged, IEquatable<T>
+public interface IHeaderBinder<T> where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Returns bindings parsed from the line.

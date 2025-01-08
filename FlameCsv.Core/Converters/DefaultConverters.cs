@@ -4,7 +4,7 @@ namespace FlameCsv.Converters;
 
 public static partial class DefaultConverters
 {
-    internal delegate CsvConverter<T> ConverterFactory<T>(CsvOptions<T> options) where T : unmanaged, IEquatable<T>;
+    internal delegate CsvConverter<T> ConverterFactory<T>(CsvOptions<T> options) where T : unmanaged, IBinaryInteger<T>;
 
     internal static readonly Lazy<FrozenDictionary<Type, ConverterFactory<char>>> Text = new(InitText);
     internal static readonly Lazy<FrozenDictionary<Type, ConverterFactory<byte>>> Utf8 = new(InitUtf8);

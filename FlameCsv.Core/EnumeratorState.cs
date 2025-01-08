@@ -10,7 +10,7 @@ using JetBrains.Annotations;
 namespace FlameCsv;
 
 [MustDisposeResource]
-internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IEquatable<T>
+internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Options is configured to require a header, and none is read yet.

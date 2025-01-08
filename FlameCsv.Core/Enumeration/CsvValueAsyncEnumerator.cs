@@ -9,7 +9,7 @@ namespace FlameCsv.Enumeration;
 /// Reads <typeparamref name="TValue"/> records from CSV. Used through <see cref="CsvReader"/>.
 /// </summary>
 public sealed class CsvValueAsyncEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TValue>, IAsyncEnumerator<TValue>
-    where T : unmanaged, IEquatable<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     private bool _readerCompleted;
 

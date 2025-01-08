@@ -5,7 +5,7 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading;
 
-internal static partial class RFC4180Mode<T> where T : unmanaged, IEquatable<T>
+internal static partial class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Reads the next field from a <strong>non-empty</strong> state.

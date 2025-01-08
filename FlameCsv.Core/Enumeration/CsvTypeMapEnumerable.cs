@@ -5,7 +5,7 @@ using JetBrains.Annotations;
 
 namespace FlameCsv.Enumeration;
 
-public sealed class CsvTypeMapEnumerable<T, TValue> : IEnumerable<TValue> where T : unmanaged, IEquatable<T>
+public sealed class CsvTypeMapEnumerable<T, TValue> : IEnumerable<TValue> where T : unmanaged, IBinaryInteger<T>
 {
     private readonly ReadOnlySequence<T> _data;
     private readonly CsvOptions<T> _options;

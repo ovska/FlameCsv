@@ -70,7 +70,7 @@ internal abstract partial class Materializer<T>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 internal sealed class Materializer<T, <#= generics #>>
-    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IEquatable<T>
+    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public override int FieldCount => <#= current #>;
 

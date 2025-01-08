@@ -61,7 +61,7 @@ public static partial class CsvReader
     public static CsvValueEnumerable<T, TValue> Read<T, [DAM(Messages.ReflectionBound)] TValue>(
         ReadOnlyMemory<T> csv,
         CsvOptions<T>? options = null)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
         options ??= CsvOptions<T>.Default;
         return new CsvValueEnumerable<T, TValue>(new ReadOnlySequence<T>(csv), options);
@@ -77,7 +77,7 @@ public static partial class CsvReader
     public static CsvValueEnumerable<T, TValue> Read<T, [DAM(Messages.ReflectionBound)] TValue>(
         in ReadOnlySequence<T> csv,
         CsvOptions<T>? options = null)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
         options ??= CsvOptions<T>.Default;
         return new CsvValueEnumerable<T, TValue>(in csv, options);
@@ -211,7 +211,7 @@ public static partial class CsvReader
     public static CsvRecordEnumerable<T> Enumerate<T>(
         ReadOnlyMemory<T> csv,
         CsvOptions<T> options)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
         return new CsvRecordEnumerable<T>(csv, options);
     }
@@ -225,7 +225,7 @@ public static partial class CsvReader
     public static CsvRecordEnumerable<T> Enumerate<T>(
         in ReadOnlySequence<T> csv,
         CsvOptions<T> options)
-        where T : unmanaged, IEquatable<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
         return new CsvRecordEnumerable<T>(in csv, options);
     }

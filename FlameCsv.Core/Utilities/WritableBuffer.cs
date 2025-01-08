@@ -6,7 +6,7 @@ using FlameCsv.Extensions;
 namespace FlameCsv.Utilities;
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0064:Make readonly fields writable")]
-internal struct WritableBuffer<T> : IDisposable where T : unmanaged, IEquatable<T>
+internal struct WritableBuffer<T> : IDisposable where T : unmanaged, IBinaryInteger<T>
 {
     public readonly int Length
     {

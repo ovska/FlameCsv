@@ -13,7 +13,7 @@ namespace FlameCsv;
 /// Parse the data or make a copy of the data if you need to hold onto it.
 /// </remarks>
 /// <typeparam name="T">Token type</typeparam>
-public interface ICsvRecord<T> where T : unmanaged, IEquatable<T>
+public interface ICsvRecord<T> where T : unmanaged, IBinaryInteger<T>
 {
     /// <inheritdoc cref="GetField(int)"/>
     ReadOnlyMemory<T> this[int index] { get; }

@@ -20,6 +20,7 @@ public sealed class CsvBooleanUtf8ValuesAttribute : CsvConverterAttribute<byte>
     protected override CsvConverter<byte> CreateConverterOrFactory(Type targetType, CsvOptions<byte> options)
     {
         CustomBooleanUtf8Converter converter = new(
+            options: options,
             trueValues: TrueValues,
             falseValues: FalseValues);
 

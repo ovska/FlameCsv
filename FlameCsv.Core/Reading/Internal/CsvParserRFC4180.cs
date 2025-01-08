@@ -5,7 +5,7 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading.Internal;
 
-internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IEquatable<T>
+internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IBinaryInteger<T>
 {
     public CsvParserRFC4180(CsvOptions<T> options) : base(options)
     {
@@ -41,13 +41,13 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IE
 
             if (index != -1)
             {
-                if (remaining[index].Equals(_quote))
+                if (remaining[index] == _quote)
                 {
                     meta.quoteCount++;
 
                     remaining = _reader.AdvanceCurrent(index + 1)
                         ? _reader.Unread.Span
-                        : remaining.Slice(index + 1);
+                        : remaining[(index + 1)..];
 
                     goto Seek;
                 }
@@ -128,7 +128,7 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IE
             if (index < 0)
                 break;
 
-            if (_quote.Equals(data.DangerousGetReferenceAt(index)))
+            if (_quote == data.DangerousGetReferenceAt(index))
             {
                 meta.quoteCount++;
                 data = data.Slice(index + 1);
@@ -146,7 +146,7 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IE
                     break;
 
                 // next token wasn't the second newline
-                if (!_newline2.Equals(data.DangerousGetReferenceAt(index + 1)))
+                if (_newline2 != data.DangerousGetReferenceAt(index + 1))
                 {
                     data = data.Slice(index + 1);
                     currentConsumed++;

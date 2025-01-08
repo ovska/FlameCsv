@@ -5,7 +5,7 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading;
 
-internal struct CsvSequenceReader<T> where T : unmanaged, IEquatable<T>
+internal struct CsvSequenceReader<T> where T : unmanaged, IBinaryInteger<T>
 {
     private SequencePosition _currentPosition;
     private SequencePosition _nextPosition;
