@@ -59,11 +59,9 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
     private readonly CsvOptions<T> _options;
     private readonly T _delimiter;
     private readonly T _quote;
-    private readonly T _newline1;
-    private readonly T _newline2;
+    private readonly NewlineBuffer<T> _newline;
     private readonly T? _escape;
     private readonly ReadOnlyMemory<T> _whitespace;
-    private readonly int _newlineLength;
     private readonly SearchValues<T> _needsQuoting;
 
     public CsvFieldWriter(ICsvBufferWriter<T> writer, CsvOptions<T> options)
@@ -81,7 +79,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         _quote = dialect.Quote;
         _escape = dialect.Escape;
         _whitespace = dialect.Whitespace;
-        options.GetNewline(out _newline1, out _newline2, out _newlineLength, forWriting: true);
+        _newline = options.GetNewline(forWriting: true);
         _needsQuoting = dialect.NeedsQuoting;
     }
 
@@ -168,13 +166,13 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteNewline()
     {
-        Span<T> destination = Writer.GetSpan(_newlineLength);
-        destination[0] = _newline1;
+        Span<T> destination = Writer.GetSpan(_newline.Length);
+        destination[0] = _newline[0];
 
-        if (_newlineLength == 2)
-            destination[1] = _newline2;
+        if (_newline.Length == 2)
+            destination[1] = _newline[1];
 
-        Writer.Advance(_newlineLength);
+        Writer.Advance(_newline.Length);
     }
 
     /// <summary>

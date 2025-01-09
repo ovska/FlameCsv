@@ -66,7 +66,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         long position = Position;
 
         Line++;
-        Position += line.Length + (isFinalBlock ? 0 : _parser._newlineLength);
+        Position += line.Length + (isFinalBlock ? 0 : _parser._newline.Length);
 
         ReadOnlySpan<T> record = line.Span;
 
@@ -170,7 +170,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     {
         throw new CsvFormatException(
             $"The CSV was in an invalid format. The record was on line {Line} at character "
-            + $"position {Position} in the CSV. Record: {_parser.AsPrintableString(line)}",
+            + $"position {Position} in the CSV. Record: {_parser._options.AsPrintableString(line)}",
             innerException);
     }
 
@@ -182,7 +182,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     {
         throw new CsvUnhandledException(
             $"Unhandled exception while reading records of type {typeof(TValue)} from the CSV. The record was on "
-            + $"line {Line} at character position {position} in the CSV. Record: {_parser.AsPrintableString(record)}",
+            + $"line {Line} at character position {position} in the CSV. Record: {_parser._options.AsPrintableString(record)}",
             Line,
             position,
             innerException);
