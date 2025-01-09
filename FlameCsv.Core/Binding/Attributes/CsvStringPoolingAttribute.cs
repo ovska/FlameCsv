@@ -3,8 +3,14 @@ using FlameCsv.Converters;
 
 namespace FlameCsv.Binding.Attributes;
 
+/// <summary>
+/// Configures the member to use pooled strings.
+/// </summary>
+/// <seealso cref="CsvOptions{T}.StringPool"/>
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter, AllowMultiple = false)]
 public sealed class CsvStringPoolingAttribute<T> : CsvConverterAttribute<T> where T : unmanaged, IBinaryInteger<T>
 {
+    /// <inheritdoc />
     protected override CsvConverter<T> CreateConverterOrFactory(Type targetType, CsvOptions<T> options)
     {
         if (targetType != typeof(string))

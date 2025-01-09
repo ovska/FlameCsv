@@ -196,5 +196,7 @@ resharper_convert_to_primary_constructor_highlighting=none
 resharper_virtual_member_never_overridden_global_highlighting=none
 resharper_class_with_virtual_members_never_inherited_global_highlighting=none
 
+dotnet_diagnostic.CS1591.severity = warning
+
 [*.Generated.*]
 end_of_line = crlf

@@ -180,7 +180,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
             return value.AsSpan().TryWriteTo(destination, out charsWritten);
         }
 
-        public override bool HandleNull => false;
+        protected internal override bool CanFormatNull => false;
     }
 
     private sealed class BrokenFormatter : CsvConverter<char, string>

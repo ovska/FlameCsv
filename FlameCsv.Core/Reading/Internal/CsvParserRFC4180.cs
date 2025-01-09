@@ -5,13 +5,9 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading.Internal;
 
-internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IBinaryInteger<T>
+internal sealed class CsvParserRFC4180<T>(CsvOptions<T> options) : CsvParser<T>(options) where T : unmanaged, IBinaryInteger<T>
 {
-    public CsvParserRFC4180(CsvOptions<T> options) : base(options)
-    {
-    }
-
-    public override CsvLine<T> GetAsCsvLine(ReadOnlyMemory<T> line)
+    internal override CsvLine<T> GetAsCsvLine(ReadOnlyMemory<T> line)
     {
         ReadOnlySpan<T> span = line.Span;
 
@@ -24,7 +20,7 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IB
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    protected override bool TryReadLine(out CsvLine<T> line)
+    private protected override bool TryReadLine(out CsvLine<T> line)
     {
         CsvSequenceReader<T> copy = _reader;
 
@@ -117,7 +113,7 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IB
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    protected override (int consumed, int linesRead) FillSliceBuffer(ReadOnlySpan<T> data, Span<Slice> slices)
+    private protected override (int consumed, int linesRead) FillSliceBuffer(ReadOnlySpan<T> data, Span<Slice> slices)
     {
         int linesRead = 0;
         int consumed = 0;
@@ -144,14 +140,14 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IB
 
             currentConsumed += index;
 
-            // find LF if we have 2 token newline
+            // find LF if we have 2-token newline
             if (_newline.Length == 2)
             {
                 // ran out of data
                 if (index >= data.Length - 1)
                     break;
 
-                // next token wasn't the second newline
+                // the next token wasn't the second newline
                 if (_newline.Second != data.DangerousGetReferenceAt(index + 1))
                 {
                     data = data.Slice(index + 1);

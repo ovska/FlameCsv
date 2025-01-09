@@ -13,8 +13,8 @@ internal static class Escape
     /// </summary>
     /// <param name="escaper"></param>
     /// <param name="source">Data that needs escaping</param>
-    /// <param name="destination">Destination buffer, can be the same memory region as source</param>
-    /// <param name="specialCount">Amount of quotes/escapes in the source</param>
+    /// <param name="destination">Destination buffer. Can be the same memory region as the source</param>
+    /// <param name="specialCount">Number of quotes/escapes in the source</param>
     public static void Field<T, TEscaper>(
         ref TEscaper escaper,
         scoped ReadOnlySpan<T> source,
@@ -122,7 +122,7 @@ internal static class Escape
 
         int requiredLength = source.Length + specialCount + 2;
 
-        // First write the overflowing data to the array, working backwards as source and destination
+        // First, write the overflowing data to the array, working backwards as source and destination
         // share a memory region
         int srcIndex = source.Length - 1;
         int ovrIndex = requiredLength - destination.Length - 1;

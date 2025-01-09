@@ -15,6 +15,9 @@ public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute
 
     private readonly object _cacheKey = new();
 
+    /// <summary>
+    /// Creates the configured converter.
+    /// </summary>
     public CsvConverter<T> CreateConverter(Type targetType, CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -58,7 +61,7 @@ public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute
 
             throw new CsvConfigurationException(
                 $"Overridden converter {instanceOrFactory.GetType().FullName} " +
-                $"can not parse the member type: {targetType.FullName}");
+                $"can not parse the member type: {targetType.FullName} (attribute: {this.GetType().FullName})");
         }
 
     Success:
@@ -71,12 +74,12 @@ public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute
     }
 
     /// <summary>
-    /// Gets or creates a parser instance for the binding's member.
+    /// Gets or creates a converter instance for the binding's member.
     /// </summary>
     /// <param name="targetType">Type to convert</param>
     /// <param name="options">Current configuration instance</param>
     /// <returns>Converter instance</returns>
-    /// <exception cref="CsvConfigurationException">Thrown if <see cref="targetType"/> is not valid for the member,
+    /// <exception cref="CsvConfigurationException">Thrown if <paramref name="targetType"/> is not valid for the member,
     /// or is not present in the configuration and has no parameterless constructor.</exception>
     protected abstract CsvConverter<T> CreateConverterOrFactory(Type targetType, CsvOptions<T> options);
 }

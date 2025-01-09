@@ -47,6 +47,7 @@ public sealed class CsvValueAsyncEnumerator<T, TValue> : CsvValueEnumeratorBase<
         _cancellationToken = cancellationToken;
     }
 
+    /// <inheritdoc />
     public ValueTask<bool> MoveNextAsync()
     {
         if (_cancellationToken.IsCancellationRequested)
@@ -85,13 +86,16 @@ public sealed class CsvValueAsyncEnumerator<T, TValue> : CsvValueEnumeratorBase<
         return TryRead(isFinalBlock: true);
     }
 
+    /// <summary>
+    /// Disposes the underlying data source and internal states, and returns pooled memory.
+    /// </summary>
     public async ValueTask DisposeAsync()
     {
         await _reader.DisposeAsync().ConfigureAwait(false);
         base.Dispose(true);
     }
 
-    protected override void Dispose(bool disposing)
+    private protected override void Dispose(bool disposing)
     {
         _reader.Dispose();
         base.Dispose(disposing);

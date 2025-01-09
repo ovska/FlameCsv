@@ -1,13 +1,20 @@
-﻿namespace FlameCsv.Binding.Attributes;
+﻿using JetBrains.Annotations;
+
+namespace FlameCsv.Binding.Attributes;
 
 /// <summary>
 /// Always ignores the specified fields when read CSV has a header record.
 /// </summary>
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
+[PublicAPI]
 public sealed class CsvHeaderIgnoreAttribute : Attribute, ICsvBindingAttribute
 {
+    /// <summary>
+    /// The header values to ignore.
+    /// </summary>
     public string[] Values { get; }
 
+    /// <inheritdoc cref="ICsvBindingAttribute.Scope"/>
     public CsvBindingScope Scope => CsvBindingScope.Read;
 
     /// <inheritdoc cref="CsvHeaderExcludeAttribute"/>

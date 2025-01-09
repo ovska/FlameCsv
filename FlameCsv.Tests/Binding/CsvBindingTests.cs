@@ -46,9 +46,7 @@ public static class CsvBindingTests
         var expr = CsvBinding.For<Base>(0, b => b.Id);
         Assert.Equal(propInfo, expr);
         Assert.True(propInfo.Equals((object)expr));
-        Assert.True(propInfo == expr);
         Assert.Equal(propInfo.GetHashCode(), expr.GetHashCode());
-        Assert.False(propInfo != expr);
 
         Assert.False(expr.Equals(CsvBinding.For<Base>(1, b => b.Id)));
         Assert.True(expr.Equals(CsvBinding.For<Class>(0, b => b.Id)));

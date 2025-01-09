@@ -18,9 +18,13 @@ namespace FlameCsv;
 public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMemory<T>>
     where T : unmanaged, IBinaryInteger<T>
 {
+    /// <inheritdoc/>
     public long Position { get; }
+
+    /// <inheritdoc/>
     public int Line { get; }
 
+    /// <inheritdoc/>
     public ReadOnlyMemory<T> RawRecord
     {
         get
@@ -35,6 +39,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
     /// </summary>
     public bool HasHeader => _state.Header is not null;
 
+    /// <inheritdoc/>
     public ReadOnlySpan<string> Header
     {
         get
@@ -51,7 +56,10 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
         }
     }
 
+    /// <inheritdoc/>
     public ReadOnlyMemory<T> this[int index] => GetField(index);
+
+    /// <inheritdoc/>
     public ReadOnlyMemory<T> this[string name] => GetField(name);
 
     internal readonly EnumeratorState<T> _state;
@@ -118,6 +126,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
         return _state.GetFieldCount();
     }
 
+    /// <inheritdoc/>
     public bool TryGetValue<TValue>(int index, [MaybeNullWhen(false)] out TValue value)
     {
         _state.EnsureVersion(_version);
@@ -136,6 +145,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
         return true;
     }
 
+    /// <inheritdoc/>
     public bool TryGetValue<TValue>(string name, [MaybeNullWhen(false)] out TValue value)
     {
         _state.EnsureVersion(_version);
@@ -148,6 +158,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
         return TryGetValue(index, out value);
     }
 
+    /// <inheritdoc/>
     public TValue GetField<TValue>(string name)
     {
         _state.EnsureVersion(_version);
@@ -160,7 +171,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
         return GetField<TValue>(index);
     }
 
-    /// <inheritdoc cref="ICsvRecord{T}.GetField{TValue}(int)"/>
+    /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public TValue GetField<TValue>(int index)
     {
@@ -182,26 +193,16 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ResetHeader() => _state.Header = null;
+    internal void ResetHeader() => _state.Header = null;
 
+    /// <inheritdoc cref="IEnumerable{T}.GetEnumerator"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Enumerator GetEnumerator() => new(_version, _state);
 
     IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator() => GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    public List<ReadOnlyMemory<T>> ToList()
-    {
-        List<ReadOnlyMemory<T>> list = [];
-
-        foreach (ReadOnlyMemory<T> field in this)
-        {
-            list.Add(field.SafeCopy());
-        }
-
-        return list;
-    }
-
+    /// <inheritdoc/>
     [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
     public TRecord ParseRecord<[DAM(Messages.ReflectionBound)] TRecord>()
     {
@@ -236,6 +237,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
         }
     }
 
+    /// <inheritdoc/>
     public TRecord ParseRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap)
     {
         ArgumentNullException.ThrowIfNull(typeMap);
@@ -263,13 +265,20 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
         }
     }
 
+    /// <inheritdoc/>
     public override string ToString()
     {
         return $"{{ CsvValueRecord [{_options.GetAsString(RawRecord.Span)}] }}";
     }
 
+    /// <summary>
+    /// Enumerates the fields in the record.
+    /// </summary>
     public struct Enumerator : IEnumerator<ReadOnlyMemory<T>>
     {
+        /// <summary>
+        /// Current field in the record.
+        /// </summary>
         public ReadOnlyMemory<T> Current { get; private set; }
 
         private readonly int _version;
@@ -285,6 +294,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
             _state = state;
         }
 
+        /// <inheritdoc cref="IEnumerator.MoveNext"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool MoveNext()
         {
@@ -309,18 +319,19 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
         readonly object IEnumerator.Current => Current;
     }
 
-    private sealed class CsvRecordDebugView
+    private sealed class CsvRecordDebugView(CsvValueRecord<T> record)
     {
-        private readonly CsvValueRecord<T> _record;
-
-        public CsvRecordDebugView(CsvValueRecord<T> record) => _record = record;
+        private readonly CsvValueRecord<T> _record = record;
 
         public int Line => _record.Line;
         public long Position => _record.Position;
         public string[] Headers => _record._state.Header?.Keys.ToArray() ?? [];
-        public ReadOnlyMemory<T>[] Fields => [.. _record.ToList()];
+        public ReadOnlyMemory<T>[] Fields => [.. _record];
         public string[] FieldValues => [.. Fields.Select(f => _record._options.GetAsString(f.Span))];
     }
 
+    /// <summary>
+    /// Preserves the data in the value record.
+    /// </summary>
     public static explicit operator CsvRecord<T>(in CsvValueRecord<T> record) => new(in record);
 }

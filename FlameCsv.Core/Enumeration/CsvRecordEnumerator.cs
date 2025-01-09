@@ -8,7 +8,7 @@ namespace FlameCsv.Enumeration;
 public sealed class CsvRecordEnumerator<T> : CsvRecordEnumeratorBase<T>, IEnumerator<CsvValueRecord<T>>
     where T : unmanaged, IBinaryInteger<T>
 {
-    public CsvRecordEnumerator(
+    internal CsvRecordEnumerator(
         ReadOnlyMemory<T> data,
         CsvOptions<T> options)
         : base(options)
@@ -16,7 +16,7 @@ public sealed class CsvRecordEnumerator<T> : CsvRecordEnumeratorBase<T>, IEnumer
         _parser.Reset(new ReadOnlySequence<T>(data));
     }
 
-    public CsvRecordEnumerator(
+    internal CsvRecordEnumerator(
         in ReadOnlySequence<T> data,
         CsvOptions<T> options)
         : base(options)
@@ -24,6 +24,7 @@ public sealed class CsvRecordEnumerator<T> : CsvRecordEnumeratorBase<T>, IEnumer
         _parser.Reset(in data);
     }
 
+    /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool MoveNext()
     {
@@ -32,14 +33,15 @@ public sealed class CsvRecordEnumerator<T> : CsvRecordEnumeratorBase<T>, IEnumer
             return true;
         }
 
-        // reached end of data
+        // reached the end of data
         _current = default;
         return false;
     }
 
     // RIDER complains about this class otherwise
+    /// <inheritdoc />
     public new CsvValueRecord<T> Current => base.Current;
 
     object IEnumerator.Current => base.Current;
-    public void Reset() => throw new NotSupportedException();
+    void IEnumerator.Reset() => throw new NotSupportedException();
 }

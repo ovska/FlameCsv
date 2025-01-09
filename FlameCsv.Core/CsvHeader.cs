@@ -5,7 +5,7 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv;
 
-public sealed class CsvHeader : IReadOnlyDictionary<string, int>, IEquatable<CsvHeader>
+internal sealed class CsvHeader : IReadOnlyDictionary<string, int>, IEquatable<CsvHeader>
 {
     public ReadOnlySpan<string> Values => _header;
 
