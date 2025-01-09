@@ -99,7 +99,7 @@ public partial class CsvOptions<T>
     /// written with preceding or trailing whitespace are quoted.
     /// The default is null/empty.
     /// </summary>
-    /// <seealso cref="FieldEscaping"/>
+    /// <seealso cref="FieldQuoting"/>
     public string? Whitespace
     {
         get => _whitespace;
