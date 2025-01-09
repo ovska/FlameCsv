@@ -4,7 +4,7 @@ using System.Text;
 namespace FlameCsv;
 
 /// <summary>
-/// Represents an UTF-8 string, represented by a string or bytes.
+/// UTF-8 string containing the string and byte representations.
 /// </summary>
 internal sealed class Utf8String : IEquatable<Utf8String>, IEquatable<string>, IEquatable<ReadOnlyMemory<byte>>
 {

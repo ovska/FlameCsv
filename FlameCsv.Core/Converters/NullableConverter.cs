@@ -9,7 +9,8 @@ public sealed class NullableConverter<T, TValue> : CsvConverter<T, TValue?>
     where T : unmanaged, IBinaryInteger<T>
     where TValue : struct
 {
-    public override bool HandleNull => true;
+    /// <inheritdoc />
+    protected internal override bool CanFormatNull => true;
 
     private readonly CsvConverter<T, TValue> _converter;
     private readonly ReadOnlyMemory<T> _null;
@@ -34,6 +35,7 @@ public sealed class NullableConverter<T, TValue> : CsvConverter<T, TValue?>
         _null = options.GetNullToken(typeof(TValue));
     }
 
+    /// <inheritdoc />
     public override bool TryParse(ReadOnlySpan<T> source, out TValue? value)
     {
         if (_converter.TryParse(source, out TValue v))
@@ -46,6 +48,7 @@ public sealed class NullableConverter<T, TValue> : CsvConverter<T, TValue?>
         return _null.Span.SequenceEqual(source);
     }
 
+    /// <inheritdoc />
     public override bool TryFormat(Span<T> destination, TValue? value, out int charsWritten)
     {
         if (value.HasValue)

@@ -4,12 +4,13 @@ using System.Text;
 
 namespace FlameCsv.Binding;
 
-public abstract class CsvBinding<T> :
-    CsvBinding,
-    IEquatable<CsvBinding>,
-    IEquatable<CsvBinding<T>>
+/// <summary>
+/// A binding between a CSV field and a property, field, or parameter.
+/// </summary>
+/// <typeparam name="T">Token type</typeparam>
+public abstract class CsvBinding<T> : CsvBinding, IEquatable<CsvBinding>, IEquatable<CsvBinding<T>>
 {
-    protected internal CsvBinding(int index, string? header) : base(index, header)
+    internal CsvBinding(int index, string? header) : base(index, header)
     {
     }
 
@@ -21,10 +22,13 @@ public abstract class CsvBinding<T> :
     public abstract Type Type { get; }
 
     /// <summary>
-    /// Returns the custom attributes on the binding, or empty if not applicable (e.g. ignored field).
+    /// Returns the custom attributes on the binding, or empty if not applicable (e.g., ignored field).
     /// </summary>
     protected internal abstract ReadOnlySpan<object> Attributes { get; }
 
+    /// <summary>
+    /// Attempts to return an attribute of type <typeparamref name="TAttribute"/> from the member/parameter.
+    /// </summary>
     public bool TryGetAttribute<TAttribute>([NotNullWhen(true)] out TAttribute? attribute)
         where TAttribute : Attribute
     {
@@ -53,13 +57,6 @@ public abstract class CsvBinding<T> :
     /// <inheritdoc/>
     public override int GetHashCode() => HashCode.Combine(Index, Sentinel);
 
-    public static bool operator ==(CsvBinding<T> left, CsvBinding<T> right)
-    {
-        return left?.Equals(right as CsvBinding) ?? right is null;
-    }
-
-    public static bool operator !=(CsvBinding<T> left, CsvBinding<T> right) => !(left == right);
-
     /// <summary>Returns the field index and member name.</summary>
     [ExcludeFromCodeCoverage]
     public override string ToString()
@@ -75,7 +72,13 @@ public abstract class CsvBinding<T> :
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Prints details for debugging to the builder.
+    /// </summary>
     protected abstract void PrintDetails(StringBuilder sb);
 
-    public abstract string DisplayName { get; }
+    /// <summary>
+    /// Display name for debugging.
+    /// </summary>
+    protected internal abstract string DisplayName { get; }
 }

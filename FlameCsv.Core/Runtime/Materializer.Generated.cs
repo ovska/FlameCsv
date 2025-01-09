@@ -12,7 +12,6 @@ internal abstract partial class Materializer<T>
     /// Returns the constructor info for materializer of <typeparamref name="TResult"/>.
     /// </summary>
     /// <param name="bindings">Bindings of the collection used to create the materializer</param>
-    /// <typeparam name="T">CSV token type</typeparam>
     /// <typeparam name="TResult">Type of the object/struct being read</typeparam>
     [ExcludeFromCodeCoverage]
     [RequiresUnreferencedCode("Trimmed Materializer<...> implementations may not be available during runtime.")]

@@ -17,7 +17,7 @@ partial class CsvOptions<T>
     /// (see <see cref="UseDefaultConverters"/>).
     /// </summary>
     /// <remarks>
-    /// Modifying the collection after the options instance is used (<see cref="IsReadOnly"/> is <see langword="true"/>)
+    /// Modifying the collection after the options-instance is used (<see cref="IsReadOnly"/> is <see langword="true"/>)
     /// results in an exception.
     /// </remarks>
     public IList<CsvConverter<T>> Converters => _converters;
@@ -28,8 +28,9 @@ partial class CsvOptions<T>
     internal readonly ConcurrentDictionary<object, CsvConverter<T>> _explicitCache = new(ReferenceEqualityComparer.Instance);
 
     /// <summary>
-    /// Maximum amount of converters cached internally by the options instance before the cache is cleared.
-    /// For converters by type, for example with <see cref="GetConverter(Type)"/>. Default is -1
+    /// Maximum number of converters cached internally by the options instance before the cache is cleared.
+    /// For converters by type, for example, with <see cref="GetConverter(Type)"/>.
+    /// Default is -1
     /// </summary>
     protected int MaxConverterCacheSize
     {
@@ -44,8 +45,10 @@ partial class CsvOptions<T>
     }
 
     /// <summary>
-    /// Maximum amount of member converters cached internally by the options instance before the cache is cleared.
-    /// For converters overridden for member, for example with <see cref="Binding.Attributes.CsvConverterAttribute{T}"/>. Default is 256.
+    /// Maximum number of member converters cached internally by the options instance before the cache is cleared.
+    /// For converters overridden for member, for example,
+    /// with <see cref="Binding.Attributes.CsvConverterAttribute{T}"/>.
+    /// Default is 256.
     /// </summary>
     protected int MaxExplicitCacheSize
     {
@@ -79,34 +82,36 @@ partial class CsvOptions<T>
     }
 
     /// <summary>
-    /// Returns a converter for values of the parameter type.
+    /// Returns a converter for <paramref name="resultType"/>.
     /// </summary>
-    /// <remarks>
-    /// Never returns a factory.
-    /// </remarks>
-    /// <param name="resultType">Type to convert</param>
+    /// <remarks>Never returns a <see cref="CsvConverterFactory{T}"/></remarks>
     /// <exception cref="CsvConverterMissingException"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CsvConverter<T> GetConverter(Type resultType)
     {
+        ArgumentNullException.ThrowIfNull(resultType);
+
         if (_converterCache.TryGetValue(resultType, out var cached))
         {
             return cached;
         }
 
-        return TryGetConverter(resultType) ?? throw new CsvConverterMissingException(typeof(T), resultType);
+        return TryGetConverter(resultType) ?? throw new CsvConverterMissingException(resultType);
     }
 
+    /// <summary>
+    /// Returns a converter for <typeparamref name="TResult"/>, or null if not found.
+    /// </summary>
+    /// <remarks>Never returns a <see cref="CsvConverterFactory{T}"/></remarks>
     public CsvConverter<T, TResult>? TryGetConverter<TResult>()
     {
         return TryGetConverter(typeof(TResult)) as CsvConverter<T, TResult>;
     }
 
     /// <summary>
-    /// Returns a converter for values of the parameter type, or null if there is no
-    /// converter registered for <paramref name="resultType"/>.
+    /// Returns a converter for <paramref name="resultType"/>, or null if there is none registered
     /// </summary>
-    /// <param name="resultType">Type to convert</param>
+    /// <remarks>Never returns a <see cref="CsvConverterFactory{T}"/></remarks>
     public CsvConverter<T>? TryGetConverter(Type resultType)
     {
         if (!TryGetExistingOrCustomConverter(resultType, out CsvConverter<T>? converter, out bool created)
@@ -216,7 +221,7 @@ partial class CsvOptions<T>
             result = factory(this);
 
             if (result is null)
-                ThrowForInvalidConverter(factory, typeof(TValue));
+                InvalidConverter.Throw(factory, typeof(TValue));
 
             created = true;
         }
@@ -234,7 +239,7 @@ partial class CsvOptions<T>
     /// Returns a converter for <typeparamref name="TValue"/>, or creates one using <paramref name="factory"/>.
     /// </summary>
     /// <remarks>
-    /// This API is meant to be used by the source generator, and not called directly.
+    /// This API is meant to be used by the source generator instead of user code.
     /// </remarks>
     /// <param name="cacheKey">Key unique for the member this converter is created for</param>
     /// <param name="factory">Factory to create a converter if none is cached</param>
@@ -256,7 +261,7 @@ partial class CsvOptions<T>
                     var converter = arg.factory.Create(typeof(TValue), arg.options);
 
                     if (converter is not CsvConverter<T, TValue> || !converter.CanConvert(typeof(TValue)))
-                        ThrowForInvalidConverter(arg.factory, typeof(TValue));
+                        InvalidConverter.Throw(arg.factory, typeof(TValue));
 
                     return converter;
                 },
@@ -286,7 +291,7 @@ partial class CsvOptions<T>
                     var result = arg.factory(arg.options);
 
                     if (result is null)
-                        ThrowForInvalidConverter(arg.factory, typeof(TValue));
+                        InvalidConverter.Throw(arg.factory, typeof(TValue));
 
                     return result;
                 },
@@ -310,10 +315,14 @@ partial class CsvOptions<T>
         if (MaxExplicitCacheSize > 0 && _explicitCache.Count >= MaxExplicitCacheSize)
             _explicitCache.Clear();
     }
+}
 
-    [DoesNotReturn]
-    private static void ThrowForInvalidConverter(object factory, Type toConvert)
+file static class InvalidConverter
+{
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public static void Throw(object factory, Type toConvert)
     {
         throw new CsvConfigurationException($"{factory.GetType().FullName} returned an invalid converter for {toConvert.FullName}");
     }
 }
+

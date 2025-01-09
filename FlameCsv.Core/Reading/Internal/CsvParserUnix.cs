@@ -5,17 +5,11 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading.Internal;
 
-internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IBinaryInteger<T>
+internal sealed class CsvParserUnix<T>(CsvOptions<T> options) : CsvParser<T>(options) where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly T _escape;
+    private readonly T _escape = options.Dialect.Escape!.Value;
 
-    public CsvParserUnix(CsvOptions<T> options) : base(options)
-    {
-        Debug.Assert(options.Dialect.Escape.HasValue);
-        _escape = options.Dialect.Escape.Value;
-    }
-
-    public override CsvLine<T> GetAsCsvLine(ReadOnlyMemory<T> line)
+    internal override CsvLine<T> GetAsCsvLine(ReadOnlyMemory<T> line)
     {
         ref readonly CsvDialect<T> dialect = ref Options.Dialect;
         T quote = dialect.Quote;
@@ -60,7 +54,7 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IBina
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    protected override bool TryReadLine(out CsvLine<T> line)
+    private protected override bool TryReadLine(out CsvLine<T> line)
     {
         CsvSequenceReader<T> copy = _reader;
 
@@ -96,7 +90,7 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IBina
                     escapeCount++;
 
                     // read past the escape and following
-                    // use TryAdvance as the escape might be last token in the segment
+                    // use TryAdvance as the escape might be the last token in the segment
                     if (!_reader.TryAdvance(index + 2, out bool refreshRemaining))
                         break;
 
@@ -174,7 +168,7 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IBina
         return false;
     }
 
-    protected override (int consumed, int linesRead) FillSliceBuffer(ReadOnlySpan<T> data, Span<Slice> slices)
+    private protected override (int consumed, int linesRead) FillSliceBuffer(ReadOnlySpan<T> data, Span<Slice> slices)
     {
         Debug.Assert(_newline.Length != 0);
 
@@ -223,7 +217,7 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IBina
                 if (index >= data.Length - 1)
                     break;
 
-                // next token wasn't the second newline
+                // the next token wasn't the second newline
                 if (!_newline.Second.Equals(data.DangerousGetReferenceAt(index + 1)))
                 {
                     data = data.Slice(index + 1);

@@ -155,7 +155,7 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
             return Encoding.UTF8.TryGetBytes(value, destination, out charsWritten);
         }
 
-        public override bool HandleNull => false;
+        protected internal override bool CanFormatNull => false;
     }
 
     private sealed class BrokenFormatter : CsvConverter<byte, string>

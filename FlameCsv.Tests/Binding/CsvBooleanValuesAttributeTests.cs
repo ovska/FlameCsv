@@ -184,14 +184,14 @@ public static class CsvBooleanValuesAttributeTests
             () => new CustomBooleanTextConverter(
                 new CsvOptions<char>
                 {
-                    BooleanValues = { ("t", true), ("f", false) }, Comparer = new NotWorkingComparer(),
+                    BooleanValues = { ("t", true), ("f", false) }, Comparer = new NotAlternateComparer(),
                 }));
     }
 
     [ExcludeFromCodeCoverage]
-    private sealed class NotWorkingComparer : IEqualityComparer<string>
+    private sealed class NotAlternateComparer : IEqualityComparer<string>
     {
-        public bool Equals(string? x, string? y) => throw new UnreachableException();
-        public int GetHashCode(string obj) => throw new UnreachableException();
+        public bool Equals(string? x, string? y) => String.Equals(x, y);
+        public int GetHashCode(string obj) => obj.GetHashCode();
     }
 }

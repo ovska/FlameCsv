@@ -32,11 +32,10 @@ internal static class Utf8Util
 
         while (true)
         {
-            // ran out of date on the left
+            // ran out of data?
             if (left.IsEmpty)
                 return right.IsEmpty;
 
-            // ran out of data on right before left
             if (right.IsEmpty)
                 break;
 

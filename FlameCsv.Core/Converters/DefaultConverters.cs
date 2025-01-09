@@ -2,7 +2,7 @@
 
 namespace FlameCsv.Converters;
 
-public static partial class DefaultConverters
+internal static partial class DefaultConverters
 {
     internal delegate CsvConverter<T> ConverterFactory<T>(CsvOptions<T> options) where T : unmanaged, IBinaryInteger<T>;
 

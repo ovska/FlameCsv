@@ -12,34 +12,50 @@ using JetBrains.Annotations;
 
 namespace FlameCsv.Enumeration;
 
+/// <summary>
+/// An enumerator that parses instances of <typeparamref name="TValue"/> from CSV records.
+/// </summary>
+/// <remarks>
+/// If the options are configured to read a header record, it will be processed first before any records are yielded.<br/>
+/// This class is not thread-safe, and should not be used concurrently.<br/>
+/// The enumerator should always be disposed after use, either explicitly or using <c>foreach</c>.
+/// </remarks>
 [MustDisposeResource]
 public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : unmanaged, IBinaryInteger<T>
 {
+    /// <summary>
+    /// Value parsed from the current CSV record.
+    /// </summary>
     public TValue Current { get; private set; }
+
+    /// <inheritdoc cref="CsvRecordEnumeratorBase{T}.Line"/>
     public int Line { get; private set; }
+
+    /// <inheritdoc cref="CsvRecordEnumeratorBase{T}.Position"/>
     public long Position { get; private set; }
 
     private readonly CsvTypeMap<T, TValue>? _typeMap;
     private IMaterializer<T, TValue>? _materializer;
 
-    [HandlesResourceDisposal] protected readonly CsvParser<T> _parser;
+    [HandlesResourceDisposal]
+    private protected readonly CsvParser<T> _parser;
     private IMemoryOwner<T>? _unescapeBuffer; // string unescaping
 
-    protected CsvValueEnumeratorBase(CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
+    private protected CsvValueEnumeratorBase(CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
         : this(options, null, typeMap)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(typeMap);
     }
 
-    protected CsvValueEnumeratorBase(CsvOptions<T> options, IMaterializer<T, TValue>? materializer)
+    private protected CsvValueEnumeratorBase(CsvOptions<T> options, IMaterializer<T, TValue>? materializer)
         : this(options, materializer, null)
     {
         ArgumentNullException.ThrowIfNull(options);
     }
 
     [RUF(Messages.CompiledExpressions)]
-    protected CsvValueEnumeratorBase(CsvOptions<T> options) : this(options, null, null)
+    private protected CsvValueEnumeratorBase(CsvOptions<T> options) : this(options, null, null)
     {
         ArgumentNullException.ThrowIfNull(options);
     }
@@ -55,7 +71,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         Current = default!;
     }
 
-    protected bool TryRead(bool isFinalBlock)
+    private protected bool TryRead(bool isFinalBlock)
     {
     ReadNextRecord:
         if (!_parser.TryReadLine(out CsvLine<T> line, isFinalBlock))
@@ -68,7 +84,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         Line++;
         Position += line.Value.Length + (isFinalBlock ? 0 : _parser._newline.Length);
 
-        if (_parser.SkipRecord(in line, Line, _parser.HasHeader && _materializer is null))
+        if (_parser.SkipRecord(in line, Line, _parser.Options._hasHeader && _materializer is null))
         {
             goto ReadNextRecord;
         }
@@ -103,7 +119,6 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
                 ThrowInvalidFormatException(ex, in line);
             }
 
-            // TODO
             if (_parser.ExceptionIsHandled(in line, Line, ex))
             {
                 goto ReadNextRecord;
@@ -123,11 +138,11 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         Debug.Assert(
             _typeMap is not null || (RuntimeFeature.IsDynamicCodeSupported && RuntimeFeature.IsDynamicCodeCompiled));
 
-        if (!_parser.HasHeader)
+        if (!_parser.Options.HasHeader)
         {
             _materializer = _typeMap is null
-                ? _parser._options.GetMaterializer<T, TValue>()
-                : _typeMap.BindMembers(_parser._options);
+                ? _parser.Options.GetMaterializer<T, TValue>()
+                : _typeMap.BindMembers(_parser.Options);
             return false;
         }
 
@@ -144,14 +159,14 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         {
             while (reader.MoveNext())
             {
-                list.Append(_parser._options.GetAsString(reader.Current));
+                list.Append(_parser.Options.GetAsString(reader.Current));
             }
 
             ReadOnlySpan<string> headers = list.AsSpan();
 
             _materializer = _typeMap is null
-                ? _parser._options.CreateMaterializerFrom(_parser._options.GetHeaderBinder().Bind<TValue>(headers))
-                : _typeMap.BindMembers(headers, _parser._options);
+                ? _parser.Options.CreateMaterializerFrom(_parser.Options.GetHeaderBinder().Bind<TValue>(headers))
+                : _typeMap.BindMembers(headers, _parser.Options);
             return true;
         }
         finally
@@ -166,7 +181,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     {
         throw new CsvFormatException(
             $"The CSV was in an invalid format. The record was on line {Line} at character "
-            + $"position {Position} in the CSV. Record: {_parser._options.AsPrintableString(line.Value.Span)}",
+            + $"position {Position} in the CSV. Record: {_parser.Options.AsPrintableString(line.Value.Span)}",
             innerException);
     }
 
@@ -179,19 +194,22 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         throw new CsvUnhandledException(
             $"Unhandled exception while reading records of type {typeof(TValue)} from the CSV. The record was on "
             + $"line {Line} at character position {position} in the CSV. Record: "
-            + _parser._options.AsPrintableString(line.Value.Span),
+            + _parser.Options.AsPrintableString(line.Value.Span),
             Line,
             position,
             innerException);
     }
 
+    /// <summary>
+    /// Disposes the underlying data source and internal states, and returns pooled memory.
+    /// </summary>
     public void Dispose()
     {
         Dispose(true);
         GC.SuppressFinalize(this);
     }
 
-    protected virtual void Dispose(bool disposing)
+    private protected virtual void Dispose(bool disposing)
     {
         if (disposing)
         {

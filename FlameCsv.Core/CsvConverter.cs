@@ -57,7 +57,7 @@ public abstract class CsvConverter<T, TValue> : CsvConverter<T> where T : unmana
     /// Whether the converter formats null values. When <see langword="false"/> (the default),
     /// <see cref="CsvOptions{T}.GetNullToken(Type)"/> is used to write nulls.
     /// </summary>
-    public virtual bool HandleNull => false;
+    protected internal virtual bool CanFormatNull => false;
 }
 
 /// <summary>

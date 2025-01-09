@@ -5,6 +5,7 @@ using FlameCsv.Reading;
 
 namespace FlameCsv.Enumeration;
 
+/// <inheritdoc cref="CsvValueAsyncEnumerator{T, TValue}"/>
 public sealed class CsvValueEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TValue>, IEnumerator<TValue>
     where T : unmanaged, IBinaryInteger<T>
 {
@@ -22,11 +23,14 @@ public sealed class CsvValueEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TV
         _parser.Reset(in csv);
     }
 
+    /// <inheritdoc cref="IEnumerator.MoveNext"/>
     public bool MoveNext()
     {
         return TryRead(isFinalBlock: false) || TryRead(isFinalBlock: true);
     }
 
+    // RIDER complains about this class otherwise
+    /// <inheritdoc cref="IEnumerator{T}.Current"/>
     public new TValue Current => base.Current;
 
     object IEnumerator.Current => Current!;

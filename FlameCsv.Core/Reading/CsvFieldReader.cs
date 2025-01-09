@@ -11,14 +11,24 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading;
 
+/// <summary>
+/// Type that can be used to enumerate fields in a single CSV record.
+/// </summary>
+/// <typeparam name="T"></typeparam>
 public interface ICsvFieldReader<T> : IEnumerator<ReadOnlySpan<T>> where T : unmanaged, IBinaryInteger<T>
 {
+    /// <summary>
+    /// The current line (CSV record).
+    /// </summary>
     ReadOnlySpan<T> Record { get; }
+
+    /// <summary>
+    /// Current options instance used to read the CSV.
+    /// </summary>
     CsvOptions<T> Options { get; }
 }
 
-// TODO: make internal
-public ref struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IBinaryInteger<T>
+internal ref struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IBinaryInteger<T>
 {
     public ReadOnlySpan<T> Record { get; }
     public readonly ReadOnlySpan<T> Remaining => Record.Slice(Consumed);

@@ -13,7 +13,7 @@ public interface IMaterializer<T, out TResult> where T : unmanaged, IBinaryInteg
     /// <param name="reader">Field reader</param>
     /// <returns>Parsed value</returns>
     /// <exception cref="Exceptions.CsvFormatException">
-    /// Thrown if the data is invalid (e.g. wrong field count)
+    /// Thrown if the data is invalid (e.g., wrong number of fields)
     /// </exception>
     /// <exception cref="Exceptions.CsvParseException">Thrown if a value cannot be parsed</exception>
     TResult Parse<TReader>([HandlesResourceDisposal] ref TReader reader)

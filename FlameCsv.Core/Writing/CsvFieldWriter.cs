@@ -47,7 +47,6 @@ internal static class CsvFieldWriter
 
 /// <summary>
 /// Writes CSV fields and handles escaping as needed.
-/// This type is not intended to be used directly in user code, consider <see cref="CsvWriter{T}"/> instead.
 /// </summary>
 public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
 {
@@ -64,6 +63,9 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
     private readonly ReadOnlyMemory<T> _whitespace;
     private readonly SearchValues<T> _needsQuoting;
 
+    /// <summary>
+    /// Creates a new instance.
+    /// </summary>
     public CsvFieldWriter(ICsvBufferWriter<T> writer, CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(writer);
@@ -91,7 +93,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         int tokensWritten;
         scoped Span<T> destination;
 
-        if (value is not null || converter.HandleNull)
+        if (value is not null || converter.CanFormatNull)
         {
             destination = Writer.GetSpan();
 
@@ -121,7 +123,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
     /// Writes the text to the writer.
     /// </summary>
     /// <param name="value">Text to write</param>
-    /// <param name="skipEscaping">Value is never escaped, use with care</param>
+    /// <param name="skipEscaping">Don't validate, escape or quote the written value in any way</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteText(ReadOnlySpan<char> value, bool skipEscaping = false)
     {

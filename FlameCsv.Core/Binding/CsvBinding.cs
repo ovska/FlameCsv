@@ -5,9 +5,14 @@ using FlameCsv.Binding.Internal;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reflection;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Binding;
 
+/// <summary>
+/// Base class representing a binding of a member or parameter to a CSV field.
+/// </summary>
+[PublicAPI]
 public abstract class CsvBinding : IComparable<CsvBinding>
 {
     /// <summary>
@@ -26,12 +31,12 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     public bool IsIgnored => ReferenceEquals(Sentinel, typeof(CsvIgnored));
 
     /// <summary>
-    /// The target of the binding (member or parameter), or
+    /// Equality contract of the binding. The target of the binding (member or parameter), or
     /// <see langword="typeof"/> <see cref="CsvIgnored"/> if ignored field.
     /// </summary>
-    protected internal abstract object Sentinel { get; }
+    protected abstract object Sentinel { get; }
 
-    protected internal CsvBinding(int index, string? header)
+    internal CsvBinding(int index, string? header)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(index, 0);
         Index = index;

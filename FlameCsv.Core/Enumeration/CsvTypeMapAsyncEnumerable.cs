@@ -27,6 +27,7 @@ public sealed class CsvTypeMapAsyncEnumerable<T, TValue> : IAsyncEnumerable<TVal
         _typeMap = typeMap;
     }
 
+    /// <inheritdoc cref="IAsyncEnumerable{T}.GetAsyncEnumerator"/>
     [MustDisposeResource]
     public CsvValueAsyncEnumerator<T, TValue> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {

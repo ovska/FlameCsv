@@ -2,22 +2,26 @@ using System.Buffers;
 
 namespace FlameCsv.Writing;
 
+/// <summary>
+/// An extended <see cref="IBufferWriter{T}"/> that can be flushed, and can report whether it should be flushed.
+/// </summary>
+/// <typeparam name="T"></typeparam>
 public interface ICsvBufferWriter<T> : IBufferWriter<T> where T : unmanaged
 {
     /// <summary>
-    /// Whether the writer's buffer is nearly full and should be flushed.
+    /// Whether the possible internal buffer is nearly full and should be flushed.
     /// </summary>
     bool NeedsFlush { get; }
 
-    /// <inheritdoc cref="FlushAsync(CancellationToken)" />
+    /// <summary>
+    /// Flushes the writer, ensuring that the written data is transported to the underlying target.
+    /// </summary>
     void Flush();
 
     /// <inheritdoc cref="CompleteAsync(Exception?, CancellationToken)" />
     void Complete(Exception? exception);
 
-    /// <summary>
-    /// Flushes the writer.
-    /// </summary>
+    /// <inheritdoc cref="Flush" />
     ValueTask FlushAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -26,7 +30,7 @@ public interface ICsvBufferWriter<T> : IBufferWriter<T> where T : unmanaged
     /// <param name="exception">
     /// Exception observed when writing the data. If null, pending unflushed data does not get flushed.
     /// </param>
-    /// <param name="cancellationToken"></param>
+    /// <param name="cancellationToken">Token to cancel the final flush.</param>
     ValueTask CompleteAsync(
         Exception? exception,
         CancellationToken cancellationToken = default);

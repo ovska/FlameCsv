@@ -9,12 +9,15 @@ using JetBrains.Annotations;
 
 namespace FlameCsv.Reading;
 
+/// <summary>
+/// Implementation detail.
+/// </summary>
 public abstract class CsvParser : IDisposable
 {
     /// <summary>
-    /// Used to cache lines read from the first memory of current sequence.
+    /// Used to cache lines read from the first memory of the current sequence.
     /// </summary>
-    protected readonly struct Slice
+    private protected readonly struct Slice
     {
         public required int Index { get; init; }
         public required int Length { get; init; }
@@ -22,6 +25,7 @@ public abstract class CsvParser : IDisposable
         public uint EscapeCount { get; init; }
     }
 
+    /// <inheritdoc/>
     public abstract void Dispose();
 
     [InlineArray(
@@ -31,15 +35,22 @@ public abstract class CsvParser : IDisposable
         128
 #endif
     )]
-    protected struct SliceBuffer
+    private protected struct SliceBuffer
     {
         public Slice elem0;
     }
 }
 
-[MustDisposeResource]
+/// <summary>
+/// Reads CSV records from a <see cref="ReadOnlySequence{T}"/>.
+/// </summary>
+/// <remarks>Internal implementation detail.</remarks>
+[MustDisposeResource] // TODO: see if this can be internal?
 public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteger<T>
 {
+    /// <summary>
+    /// Creates a new instance of <see cref="CsvParser{T}"/> for the specified options.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [MustDisposeResource]
     public static CsvParser<T> Create(CsvOptions<T> options)
@@ -51,9 +62,14 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
             : new CsvParserUnix<T>(options);
     }
 
+    /// <summary>
+    /// Current options instance.
+    /// </summary>
     public CsvOptions<T> Options => _options;
-    public bool HasHeader => _options._hasHeader;
 
+    /// <summary>
+    /// Whether the parser has reached the end of the current data.
+    /// </summary>
     public bool End
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -70,8 +86,8 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
     internal readonly T _quote;
     internal NewlineBuffer<T> _newline;
 
-    protected internal readonly CsvOptions<T> _options;
-    protected IMemoryOwner<T>? _multisegmentBuffer;
+    private protected readonly CsvOptions<T> _options;
+    private protected  IMemoryOwner<T>? _multisegmentBuffer;
     internal CsvSequenceReader<T> _reader;
 
     private readonly bool _noBuffering;
@@ -80,7 +96,7 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
     private int _sliceIndex;
     private SliceBuffer _slices;
 
-    protected CsvParser(CsvOptions<T> options)
+    private protected  CsvParser(CsvOptions<T> options)
     {
         Debug.Assert(options.IsReadOnly);
 
@@ -91,10 +107,11 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
         _newline = options.GetNewline();
     }
 
-    public abstract CsvLine<T> GetAsCsvLine(ReadOnlyMemory<T> line);
-    protected abstract bool TryReadLine(out CsvLine<T> line);
-    protected abstract (int consumed, int linesRead) FillSliceBuffer(ReadOnlySpan<T> data, scoped Span<Slice> slices);
+    internal abstract CsvLine<T> GetAsCsvLine(ReadOnlyMemory<T> line);
+    private protected  abstract bool TryReadLine(out CsvLine<T> line);
+    private protected  abstract (int consumed, int linesRead) FillSliceBuffer(ReadOnlySpan<T> data, scoped Span<Slice> slices);
 
+    /// <inheritdoc/>
     public override void Dispose()
     {
         GC.SuppressFinalize(this);
@@ -107,6 +124,9 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
         _sliceIndex = default;
     }
 
+    /// <summary>
+    /// Resets the data of the reader.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Reset(in ReadOnlySequence<T> sequence)
     {
@@ -116,10 +136,14 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
         _reader = new CsvSequenceReader<T>(in sequence);
     }
 
+    /// <summary>
+    /// Attempts to read a complete well-formed line (CSV record) from the underlying data.
+    /// </summary>
+    /// <param name="line">CSV record</param>
+    /// <param name="isFinalBlock">Whether no more data is possible to read</param>
+    /// <returns>True if a record was read</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryReadLine(
-        out CsvLine<T> line,
-        bool isFinalBlock)
+    public bool TryReadLine(out CsvLine<T> line, bool isFinalBlock)
     {
         if (_sliceCount > _sliceIndex)
         {
@@ -194,7 +218,7 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool SkipRecord(ReadOnlyMemory<T> record, int line, bool isHeader)
+    internal bool SkipRecord(ReadOnlyMemory<T> record, int line, bool isHeader)
     {
         return _options._shouldSkipRow is { } predicate
             && predicate(
@@ -205,7 +229,7 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool SkipRecord(ref readonly CsvLine<T> record, int line, bool isHeader)
+    internal bool SkipRecord(ref readonly CsvLine<T> record, int line, bool isHeader)
     {
         return _options._shouldSkipRow is { } predicate
             && predicate(
@@ -216,7 +240,7 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool ExceptionIsHandled(ref readonly CsvLine<T> record, int line, Exception exception)
+    internal bool ExceptionIsHandled(ref readonly CsvLine<T> record, int line, Exception exception)
     {
         return _options._exceptionHandler is { } handler
             && handler(
@@ -227,20 +251,20 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    protected static void ThrowForInvalidLastEscape(ReadOnlySpan<T> line, CsvOptions<T> options)
+    private protected static void ThrowForInvalidLastEscape(ReadOnlySpan<T> line, CsvOptions<T> options)
     {
         throw new CsvFormatException($"The record ended with an escape character: {options.AsPrintableString(line)}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    protected static void ThrowForInvalidEscapeQuotes(ReadOnlySpan<T> line, CsvOptions<T> options)
+    private protected static void ThrowForInvalidEscapeQuotes(ReadOnlySpan<T> line, CsvOptions<T> options)
     {
         throw new CsvFormatException(
             $"The entry had an invalid amount of quotes for escaped CSV: {options.AsPrintableString(line)}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    protected static void ThrowForUnevenQuotes(ReadOnlySpan<T> line, CsvOptions<T> options)
+    private protected static void ThrowForUnevenQuotes(ReadOnlySpan<T> line, CsvOptions<T> options)
     {
         throw new ArgumentException($"The data had an uneven amount of quotes: {options.AsPrintableString(line)}");
     }

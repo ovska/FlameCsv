@@ -1,7 +1,7 @@
 namespace FlameCsv.Converters;
 
 /// <summary>
-/// Parser for non-flags enums.
+/// The default converter for non-flags enums.
 /// </summary>
 public sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
     where TEnum : struct, Enum
@@ -11,6 +11,9 @@ public sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
     private readonly string? _format;
     private readonly IFormatProvider? _formatProvider;
 
+    /// <summary>
+    /// Creates a new enum converter.
+    /// </summary>
     public EnumTextConverter(CsvOptions<char> options)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -20,13 +23,15 @@ public sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
         _format = options.GetFormat(typeof(TEnum), options.EnumFormat);
     }
 
+    /// <inheritdoc/>
     public override bool TryFormat(Span<char> destination, TEnum value, out int charsWritten)
     {
         return ((ISpanFormattable)value).TryFormat(destination, out charsWritten, _format, _formatProvider);
     }
 
+    /// <inheritdoc/>
     public override bool TryParse(ReadOnlySpan<char> source, out TEnum value)
     {
-        return Enum.TryParse(source, _ignoreCase, out value) && (_allowUndefinedValues || Enum.IsDefined(value));
+        return Enum.TryParse(source, _ignoreCase, out value)&& (_allowUndefinedValues || Enum.IsDefined(value));
     }
 }

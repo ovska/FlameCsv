@@ -1,17 +1,11 @@
 namespace FlameCsv.Exceptions;
 
 /// <summary>
-/// Represents errors in configuration code, such as invalid parser types or factories.
+/// Represents problems in user code, such as invalid converter types.
 /// </summary>
-public class CsvConfigurationException : Exception
-{
-    /// <summary>
-    /// Initializes an exception representing an erroneus configuration.
-    /// </summary>
-    public CsvConfigurationException(
-        string? message = null,
-        Exception? innerException = null)
-        : base(message, innerException)
-    {
-    }
-}
+/// <remarks>
+/// Initializes an exception representing an erroneus configuration.
+/// </remarks>
+public class CsvConfigurationException(
+    string? message = null,
+    Exception? innerException = null) : Exception(message, innerException);

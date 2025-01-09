@@ -16,12 +16,12 @@ internal sealed class EnumUtf8ConverterFactory : CsvConverterFactory<byte>
 
     public override CsvConverter<byte> Create(Type type, CsvOptions<byte> options)
     {
-        return GetParserType(type).CreateInstance<CsvConverter<byte>>(options);
+        return CreateConverterType(type).CreateInstance<CsvConverter<byte>>(options);
     }
 
     [return: DAM(Messages.Ctors)]
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL3050", Justification = Messages.StructFactorySuppressionMessage)]
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2070", Justification = Messages.StructFactorySuppressionMessage)]
     [SuppressMessage("Trimming", "IL2071", Justification = Messages.StructFactorySuppressionMessage)]
-    private static Type GetParserType(Type resultType) => typeof(EnumUtf8Converter<>).MakeGenericType(resultType);
+    private static Type CreateConverterType(Type resultType) => typeof(EnumUtf8Converter<>).MakeGenericType(resultType);
 }

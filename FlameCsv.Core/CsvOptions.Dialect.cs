@@ -1,5 +1,4 @@
 ﻿using System.Runtime.CompilerServices;
-using System.Text;
 using FlameCsv.Extensions;
 
 namespace FlameCsv;
@@ -76,7 +75,7 @@ public partial class CsvOptions<T>
 
     /// <summary>
     /// Optional character used for escaping special characters.
-    /// Default value is null, which means RFC4180 escaping (quotes) is used.
+    /// The default value is null, which means RFC4180 escaping (quotes) is used.
     /// </summary>
     public char? Escape
     {
@@ -96,7 +95,7 @@ public partial class CsvOptions<T>
 
     /// <summary>
     /// Optional whitespace characters that are trimmed out of each field before processing them, and fields
-    /// written with preceding or trailing whitespace are quoted.
+    /// written with the preceding or trailing whitespace are quoted.
     /// The default is null/empty.
     /// </summary>
     /// <seealso cref="FieldQuoting"/>
