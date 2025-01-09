@@ -169,10 +169,13 @@ public class CsvOptionsTests
         var options = CsvOptions<char>.Default;
         Assert.True(options.IsReadOnly);
 
-        options.GetNewline(out var newline1, out var newline2, out int newlineLength);
-        Assert.Equal(0, newlineLength);
-        Assert.Equal(['\r', '\n'], [newline1, newline2]);
         Assert.Null(options.Newline);
+        var newline =  options.GetNewline();
+        Assert.Equal(0, newline.Length);
+        Assert.Equal(['\0', '\0'], [newline.First, newline.Second]);
+        newline =  options.GetNewline(forWriting: true);
+        Assert.Equal(2, newline.Length);
+        Assert.Equal(['\r', '\n'], [newline.First, newline.Second]);
 
         var boolParser = options.GetConverter<bool>();
         Assert.True(boolParser.TryParse("true", out var bValue));
@@ -197,10 +200,12 @@ public class CsvOptionsTests
         var options = CsvOptions<byte>.Default;
         Assert.True(options.IsReadOnly);
 
-        options.GetNewline(out var newline1, out var newline2, out int newlineLength);
-        Assert.Equal(0, newlineLength);
-        Assert.Equal([(byte)'\r', (byte)'\n'], [newline1, newline2]);
-        Assert.Null(options.Newline);
+        var newline =  options.GetNewline();
+        Assert.Equal(0, newline.Length);
+        Assert.Equal([0, 0], [newline.First, newline.Second]);
+        newline =  options.GetNewline(forWriting: true);
+        Assert.Equal(2, newline.Length);
+        Assert.Equal([(byte)'\r', (byte)'\n'], [newline.First, newline.Second]);
 
         var boolParser = options.GetConverter<bool>();
         Assert.True(boolParser.TryParse("true"u8, out var bValue));

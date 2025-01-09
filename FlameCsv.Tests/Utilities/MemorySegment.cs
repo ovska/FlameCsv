@@ -2,6 +2,25 @@ using System.Buffers;
 
 namespace FlameCsv.Tests.Utilities;
 
+internal static class MemorySegment
+{
+    public static ReadOnlySequence<char> Create(params ReadOnlySpan<string?> segments)
+    {
+        if (segments.IsEmpty)
+            return ReadOnlySequence<char>.Empty;
+
+        MemorySegment<char> first = new(segments[0].AsMemory());
+        MemorySegment<char> last = first;
+
+        for (int i = 1; i < segments.Length; i++)
+        {
+            last = last.Append(segments[i].AsMemory());
+        }
+
+        return new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
+    }
+}
+
 internal class MemorySegment<T> : ReadOnlySequenceSegment<T>
 {
     public MemorySegment(ReadOnlyMemory<T> memory)

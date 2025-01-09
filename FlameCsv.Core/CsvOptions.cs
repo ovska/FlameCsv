@@ -161,8 +161,8 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
 
         if (typeof(T) == typeof(byte))
         {
-            Debug.Assert(_null is Tuple<Utf8String>, $"Invalid null type for {typeof(T)}: {_null.GetType()}");
-            var value = (ReadOnlyMemory<byte>)Unsafe.As<Tuple<Utf8String>>(_null).Item1;
+            Debug.Assert(_null is Utf8String, $"Invalid null type for {typeof(T)}: {_null.GetType()}");
+            var value = (ReadOnlyMemory<byte>)(Utf8String)_null;
             return Unsafe.As<ReadOnlyMemory<byte>, ReadOnlyMemory<T>>(ref value);
         }
 

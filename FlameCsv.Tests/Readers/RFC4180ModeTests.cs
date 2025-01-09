@@ -197,8 +197,6 @@ public abstract class RFC4180ModeTests
         var data = new[] { options.Delimiter, options.Newline[0] }.GetPermutations();
         IMemoryOwner<char>? allocated = null;
 
-        using var parser = CsvParser<char>.Create(options);
-
         foreach (var chars in data)
         {
             var input = new string(chars.ToArray());
@@ -206,7 +204,7 @@ public abstract class RFC4180ModeTests
 
             var meta = new CsvRecordMeta { quoteCount = (uint)line.Count('"') };
             CsvFieldReader<char> state = new(
-                parser.Options,
+                options,
                 line,
                 [],
                 ref allocated,
@@ -223,6 +221,26 @@ public abstract class RFC4180ModeTests
             Assert.Equal(input, list[0]);
             Assert.Equal("test", list[1]);
         }
+
+        allocated?.Dispose();
+    }
+
+    [Fact]
+    public void Should_Handle_Segment_With_Only_CarriageReturn()
+    {
+        using var parser = CsvParser<char>.Create(CsvOptions<char>.Default);
+        IMemoryOwner<char>? allocated = null;
+
+        var data = MemorySegment.Create(
+            "some,line,here\r",
+            "\r\r",
+            "\r",
+            "\n");
+
+        parser.Reset(in data);
+        Assert.True(parser.TryReadLine(out var line, out _, false));
+
+        Assert.Equal("some,line,here\r\r\r\r", line.ToString());
 
         allocated?.Dispose();
     }
