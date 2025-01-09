@@ -160,12 +160,10 @@ internal struct CsvSequenceReader<T> where T : unmanaged, IBinaryInteger<T>
             segmentChanged = false;
             return true;
         }
-        else
-        {
-            // Can't satisfy from the current memory
-            segmentChanged = true;
-            return AdvanceToNextMemory(count);
-        }
+
+        // Can't satisfy from the current memory
+        segmentChanged = true;
+        return AdvanceToNextMemory(count);
     }
 
     /// <summary>Advances by <param name="count"/> to next segment.</summary>

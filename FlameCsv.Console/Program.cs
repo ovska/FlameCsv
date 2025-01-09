@@ -1,4 +1,6 @@
 ﻿// ReSharper disable all
+
+using System.Buffers;
 using System.Buffers.Text;
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Binding;
@@ -11,6 +13,15 @@ namespace FlameCsv.Console
     {
         static void Main([NotNull] string[] args)
         {
+            var c0 = SearchValues.Create("\"");
+            var c1 = SearchValues.Create(",\"");
+            var c2 = SearchValues.Create("^\"");
+            var c3 = SearchValues.Create("^\",");
+            var b0 = SearchValues.Create("\""u8);
+            var b1 = SearchValues.Create(",\""u8);
+            var b2 = SearchValues.Create("^\""u8);
+            var b3 = SearchValues.Create("^\","u8);
+
             object? x = (object)1;
 
             var dof = (DayOfWeek)x;

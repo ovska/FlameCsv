@@ -106,34 +106,17 @@ public partial class CsvOptions<T>
         set => this.SetValue(ref _whitespace, value);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void GetNewline(out T newline1, out T newline2, out int newlineLength, bool forWriting = false)
+    internal NewlineBuffer<T> GetNewline(bool forWriting = false)
     {
         ArgumentOutOfRangeException.ThrowIfGreaterThan(Dialect.Newline.Length, 2, nameof(Newline));
 
-        ReadOnlySpan<T> newline = Dialect.Newline.Span;
+        int newlineLength = Dialect.Newline.Length;
 
-        if ((newlineLength = newline.Length) is 0)
+        if (newlineLength is 0)
         {
-            if (forWriting)
-                newlineLength = 2;
-
-            newline1 = T.CreateChecked('\r');
-            newline2 = T.CreateChecked('\n');
-            return;
+            return forWriting ? NewlineBuffer<T>.CRLF : default;
         }
 
-        newline1 = newline[0];
-
-        if (newline.Length == 2)
-        {
-            newline2 = newline[1];
-            newlineLength = 2;
-        }
-        else
-        {
-            newline2 = newline1;
-            newlineLength = 1;
-        }
+        return new NewlineBuffer<T>(Dialect.Newline.Span);
     }
 }

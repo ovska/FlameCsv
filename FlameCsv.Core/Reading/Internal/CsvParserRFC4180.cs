@@ -36,7 +36,7 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IB
         {
         Seek:
             int index = meta.quoteCount % 2 == 0
-                ? remaining.IndexOfAny(_quote, _newline1)
+                ? remaining.IndexOfAny(_quote, _newline[0])
                 : remaining.IndexOf(_quote);
 
             if (index != -1)
@@ -47,7 +47,7 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IB
 
                     remaining = _reader.AdvanceCurrent(index + 1)
                         ? _reader.Unread.Span
-                        : remaining[(index + 1)..];
+                        : remaining.Slice(index + 1);
 
                     goto Seek;
                 }
@@ -64,7 +64,7 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IB
                 if (_reader.AdvanceCurrent(1))
                     segmentHasChanged = true;
 
-                if (_newlineLength == 1 || _reader.IsNext(_newline2, advancePast: true))
+                if (_newline.Length == 1 || _reader.IsNext(_newline[1], advancePast: true))
                 {
                     // perf: non-empty slice from the same segment, read directly from the original memory
                     // at this point, index points to the first newline token
@@ -122,7 +122,7 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IB
         {
         Seek:
             int index = meta.quoteCount % 2 == 0
-                ? data.IndexOfAny(_quote, _newline1)
+                ? data.IndexOfAny(_quote, _newline[0])
                 : data.IndexOf(_quote);
 
             if (index < 0)
@@ -139,14 +139,14 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IB
             currentConsumed += index;
 
             // find LF if we have 2 token newline
-            if (_newlineLength == 2)
+            if (_newline.Length == 2)
             {
                 // ran out of data
                 if (index >= data.Length - 1)
                     break;
 
                 // next token wasn't the second newline
-                if (_newline2 != data.DangerousGetReferenceAt(index + 1))
+                if (_newline[1] != data.DangerousGetReferenceAt(index + 1))
                 {
                     data = data.Slice(index + 1);
                     currentConsumed++;
@@ -157,8 +157,8 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IB
             // Found newline
             slices[linesRead++] = new Slice { Index = consumed, Length = currentConsumed, Meta = meta, };
 
-            consumed += currentConsumed + _newlineLength;
-            data = data.Slice(index + _newlineLength);
+            consumed += currentConsumed + _newline.Length;
+            data = data.Slice(index + _newline.Length);
             currentConsumed = 0;
             meta = default;
         }

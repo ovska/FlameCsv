@@ -65,13 +65,7 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
     internal MemoryPool<T> Allocator => _options._memoryPool;
 
     internal readonly T _quote;
-    internal readonly T _newline1;
-    internal readonly T _newline2;
-
-    /// <summary>
-    /// Known newline length. Zero if not yet initialized (not yet auto-detected).
-    /// </summary>
-    internal readonly int _newlineLength;
+    internal NewlineBuffer<T> _newline;
 
     protected internal readonly CsvOptions<T> _options;
     protected IMemoryOwner<T>? _multisegmentBuffer;
@@ -91,7 +85,7 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
         _reader = new CsvSequenceReader<T>();
         _noBuffering = options.NoLineBuffering;
         _quote = options.Dialect.Quote;
-        options.GetNewline(out _newline1, out _newline2, out _newlineLength);
+        _newline = options.GetNewline();
     }
 
     public abstract CsvRecordMeta GetRecordMeta(ReadOnlySpan<T> line);
@@ -150,7 +144,7 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
     [MethodImpl(MethodImplOptions.NoInlining)]
     private bool TryReadSlow(out ReadOnlyMemory<T> line, out CsvRecordMeta meta, bool isFinalBlock)
     {
-        if (_newlineLength == 0 && !TryPeekNewline())
+        if (_newline.Length == 0 && !TryPeekNewline())
         {
             if (isFinalBlock)
                 goto ConsumeFinalBlock;
@@ -158,7 +152,7 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
             goto Fail;
         }
 
-        Debug.Assert(_newlineLength != 0, "TryPeekNewline should have initialized newline");
+        Debug.Assert(_newline.Length != 0, "TryPeekNewline should have initialized newline");
 
         if (_reader.End)
             goto Fail;
@@ -256,30 +250,21 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
     [MethodImpl(MethodImplOptions.NoInlining)]
     protected bool TryPeekNewline()
     {
-        Debug.Assert(_newlineLength == 0, $"TryPeekNewline called with invalid newline length: {_newlineLength}");
-
-        Debug.Assert(
-            (typeof(T) == typeof(char) && "\r\n".AsSpan().UnsafeCast<char, T>().SequenceEqual([_newline1, _newline2]))
-            || (typeof(T) == typeof(byte) && "\r\n"u8.UnsafeCast<byte, T>().SequenceEqual([_newline1, _newline2])),
-            $"Invalid default newline for {typeof(T).FullName}: [{_newline1}, {_newline2}]");
+        Debug.Assert(_newline.Length == 0, $"TryPeekNewline called with invalid newline length: {_newline.Length}");
 
         CsvSequenceReader<T> copy = _reader;
         int foundNewlineLength;
 
-        // ReSharper disable once InlineTemporaryVariable
-        T originalNewline1 = _newline1;
-
         try
         {
-            Unsafe.AsRef(in _newlineLength) = 2;
+            _newline = NewlineBuffer<T>.CRLF;
 
             // try to read \r\n
             if (!TryReadLine(out _, out _))
             {
-                Unsafe.AsRef(in _newlineLength) = 1;
-                Unsafe.AsRef(in _newline1) = _newline2;
-
+                // reset reader
                 _reader = copy;
+                _newline =  NewlineBuffer<T>.LF;
 
                 // \r\n not found, perhaps just \n used?
                 if (!TryReadLine(out _, out _))
@@ -307,27 +292,19 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
         {
             // reset original state, we are only peeking
             _reader = copy;
-            Unsafe.AsRef(in _newlineLength) = 0;
-            Unsafe.AsRef(in _newline1) = originalNewline1;
+            _newline = default;
         }
 
-        // it's impossible to get to this point using \r as escape/quote, see CsvOptions.ValidateDialect()
+        // it's impossible to get to this point using \r as escape/quote, see CsvOptions.Dialect.Validate()
         // we can be certain that a line ending in \n is valid, and possibly contained the preceding \r
-
-        Debug.Assert(!_quote.Equals(_newline1));
-        Debug.Assert(!_quote.Equals(_newline2));
-
         if (foundNewlineLength == 2)
         {
-            // crlf
-            Unsafe.AsRef(in _newlineLength) = 2;
+            _newline = NewlineBuffer<T>.CRLF;
         }
         // ReSharper disable once ConditionIsAlwaysTrueOrFalse
         else if (foundNewlineLength == 1)
         {
-            // lf, fill both tokens with lf so the first IndexOf call needs fewer checks up-front
-            Unsafe.AsRef(in _newline1) = _newline2;
-            Unsafe.AsRef(in _newlineLength) = 1;
+            _newline = NewlineBuffer<T>.LF;
         }
         else
         {

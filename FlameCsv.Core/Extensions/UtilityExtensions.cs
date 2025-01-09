@@ -8,19 +8,13 @@ namespace FlameCsv.Extensions;
 
 internal static class UtilityExtensions
 {
-    public readonly ref struct PrintableState<T>(CsvOptions<T> options, ReadOnlySpan<T> value, int knownNewlineLength)
+    public readonly ref struct PrintableState<T>(CsvOptions<T> options, ReadOnlySpan<T> value)
         where T : unmanaged, IBinaryInteger<T>
     {
         public CsvOptions<T> Options { get; } = options;
         public ReadOnlySpan<T> Value { get; } = value;
-        public int KnownNewlineLength { get; } = knownNewlineLength;
     }
 
-    public static string AsPrintableString<T>(this Reading.CsvParser<T> parser, ReadOnlySpan<T> value)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        return AsPrintableString(parser._options, value, parser._newlineLength);
-    }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static string AsPrintableString<T>(
@@ -33,7 +27,7 @@ internal static class UtilityExtensions
 
         string structure = string.Create(
             length: value.Length,
-            state: new PrintableState<T>(options, value, knownNewlineLength),
+            state: new PrintableState<T>(options, value),
             action: static (destination, state) =>
             {
                 ref readonly CsvDialect<T> dialect = ref state.Options.Dialect;

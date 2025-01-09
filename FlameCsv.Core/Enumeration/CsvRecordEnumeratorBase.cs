@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -48,7 +49,7 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
         {
             long oldPosition = Position;
 
-            Position += line.Length + (_parser._newlineLength * (!isFinalBlock).ToByte());
+            Position += line.Length + (_parser._newline.Length * (!isFinalBlock).ToByte());
             Line++;
 
             if (_parser.SkipRecord(line, Line, isHeader: _state.NeedsHeader))
@@ -145,6 +146,6 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
     {
         throw new CsvFormatException(
             $"Duplicate header field \"{field}\" in fields {index1} and {index2} in CSV: "
-            + _parser.AsPrintableString(record.RawRecord.Span));
+            + _parser._options.AsPrintableString(record.RawRecord.Span));
     }
 }
