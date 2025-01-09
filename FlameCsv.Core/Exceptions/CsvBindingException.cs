@@ -1,8 +1,11 @@
 using System.Reflection;
 using FlameCsv.Binding;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Exceptions;
 
+/// <inheritdoc cref="CsvBindingException{T}"/>
+[PublicAPI]
 public class CsvBindingException : CsvConfigurationException
 {
     /// <summary>
@@ -10,14 +13,23 @@ public class CsvBindingException : CsvConfigurationException
     /// </summary>
     public virtual Type? TargetType { get; }
 
-    public virtual IReadOnlyList<CsvBinding> Bindings => Array.Empty<CsvBinding>();
+    /// <summary>
+    /// Bindings that relate to the exception (if known).
+    /// </summary>
+    public virtual IReadOnlyList<CsvBinding> Bindings => [];
 
-    protected internal CsvBindingException(Type? targetType, string message) : base(message)
+    /// <summary>
+    /// Initializes a new instance.
+    /// </summary>
+    public CsvBindingException(Type? targetType, string message) : base(message)
     {
         TargetType = targetType;
     }
 
-    protected internal CsvBindingException(
+    /// <summary>
+    /// Initializes a new instance.
+    /// </summary>
+    public CsvBindingException(
         string? message = null, Exception? innerException = null) : base(message, innerException)
     {
     }
@@ -44,7 +56,7 @@ public sealed class CsvBindingException<T> : CsvBindingException
         Exception? innerException = null)
         : base(message, innerException)
     {
-        Bindings = Array.Empty<CsvBinding>();
+        Bindings = [];
     }
 
     /// <summary>
@@ -58,16 +70,6 @@ public sealed class CsvBindingException<T> : CsvBindingException
         : base(message)
     {
         Bindings = bindings;
-    }
-
-    /// <summary>
-    /// Initializes a <see cref="CsvBindingException"/> for invalid target for a binding.
-    /// </summary>
-    /// <param name="binding">Binding not applicable for the target</param>
-    public CsvBindingException(CsvBinding<T> binding)
-        : base($"{binding} cannot be used for type {typeof(T)}")
-    {
-        Bindings = [binding];
     }
 
     /// <summary>
@@ -90,19 +92,7 @@ public sealed class CsvBindingException<T> : CsvBindingException
         ConstructorInfo second)
         : base($"Multiple constructors {target}: {first} and {second}")
     {
-        Bindings = Array.Empty<CsvBinding>();
-    }
-
-    /// <summary>
-    /// Throws an exception for multiple overrides.
-    /// </summary>
-    internal CsvBindingException(
-        CsvBinding<T> binding,
-        Attribute first,
-        Attribute second)
-        : base($"Multiple parser overrides defined for {binding}: {first.GetType()} and {second.GetType()}")
-    {
-        Bindings = [binding];
+        Bindings = [];
     }
 
     /// <summary>

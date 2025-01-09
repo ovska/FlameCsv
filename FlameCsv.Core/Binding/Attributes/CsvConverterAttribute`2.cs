@@ -22,6 +22,7 @@ public sealed class CsvConverterAttribute<T, [DAM(Messages.Ctors)] TConverter>
     {
     }
 
+    /// <inheritdoc/>
     protected override CsvConverter<T> CreateConverterOrFactory(Type targetType, CsvOptions<T> options)
     {
         bool isInherited = options.GetType() != typeof(CsvOptions<T>);

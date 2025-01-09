@@ -18,6 +18,7 @@ namespace FlameCsv.Binding;
 /// <typeparam name="TValue">Record type</typeparam>
 public abstract class CsvTypeMap<T, TValue> : CsvTypeMap where T : unmanaged, IBinaryInteger<T>
 {
+    /// <inheritdoc/>
     protected sealed override Type TargetType => typeof(TValue);
 
     /// <summary>
@@ -39,10 +40,21 @@ public abstract class CsvTypeMap<T, TValue> : CsvTypeMap where T : unmanaged, IB
     public abstract IDematerializer<T, TValue> GetDematerializer(CsvOptions<T> options);
 }
 
+/// <summary>
+/// Base class providing throw helpers for <see cref="CsvTypeMap{T,TValue}"/>.
+/// </summary>
 public abstract class CsvTypeMap
 {
+    /// <summary>
+    /// Gets the <see cref="Type"/> of the mapped type.
+    /// </summary>
     protected abstract Type TargetType { get; }
 
+    /// <summary>
+    /// Throws an exception for header field being bound multiple times.
+    /// </summary>
+    /// <seealso cref="CsvTypeMapAttribute{T,TValue}.ThrowOnDuplicate"/>
+    /// <exception cref="CsvBindingException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     protected void ThrowDuplicate(
         string member,
@@ -57,6 +69,11 @@ public abstract class CsvTypeMap
         throw new CsvBindingException(TargetType, message);
     }
 
+    /// <summary>
+    /// Throws an exception for header field that wasn't matched to any member or parameter.
+    /// </summary>
+    /// <seealso cref="CsvTypeMapAttribute{T,TValue}.IgnoreUnmatched"/>
+    /// <exception cref="CsvBindingException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     protected void ThrowUnmatched(string field, int index, bool allowContentInExceptions)
     {
@@ -67,6 +84,10 @@ public abstract class CsvTypeMap
         throw new CsvBindingException(TargetType, message);
     }
 
+    /// <summary>
+    /// Throws an exception for a required member or parameter that wasn't bound to any of the headers.
+    /// </summary>
+    /// <exception cref="CsvBindingException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     protected void ThrowRequiredNotRead(
         IEnumerable<string> members,
@@ -81,6 +102,11 @@ public abstract class CsvTypeMap
             $"{message}{(allowContentInExceptions ? $": {JoinValues(headers)}" : ".")}");
     }
 
+    /// <summary>
+    /// Throws an exception for header that couldn't be bound to any member of parameter.
+    /// </summary>
+    /// <seealso cref="CsvTypeMapAttribute{T,TValue}.IgnoreUnmatched"/>
+    /// <exception cref="CsvBindingException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     protected void ThrowNoFieldsBound(
         ReadOnlySpan<string> headers,

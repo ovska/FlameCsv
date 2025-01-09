@@ -1,18 +1,17 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
+using JetBrains.Annotations;
 
 namespace FlameCsv;
 
 /// <summary>
 /// An instance representing a single CSV record.
 /// </summary>
-/// <remarks>
-/// The data in the record is read lazily. Subsequent operations will use cached data if possible.<br/>
-/// References to the record or its fields must not be held onto after the next record has been read.
-/// Parse the data or make a copy of the data if you need to hold onto it.
-/// </remarks>
 /// <typeparam name="T">Token type</typeparam>
+/// <seealso cref="CsvValueRecord{T}"/>
+/// <seealso cref="CsvRecord{T}"/>
+[PublicAPI]
 public interface ICsvRecord<T> where T : unmanaged, IBinaryInteger<T>
 {
     /// <inheritdoc cref="GetField(int)"/>
@@ -30,8 +29,8 @@ public interface ICsvRecord<T> where T : unmanaged, IBinaryInteger<T>
     /// Returns true if the header has been parsed from the CSV the record.
     /// </summary>
     /// <remarks>
-    /// The header isn't returned as a separate record, so this property is always true if the options is configured to
-    /// have a header, and always false if not.
+    /// The header isn't returned as a separate record, so this property is always true if the options-instance
+    /// is configured to have a header, and always false if not.
     /// </remarks>
     bool HasHeader { get; }
 
@@ -57,7 +56,7 @@ public interface ICsvRecord<T> where T : unmanaged, IBinaryInteger<T>
     /// <summary>
     /// Returns the value of the field at the specified index.
     /// </summary>
-    /// <param name="index">0-based field index, e.g. 0 for the first field</param>
+    /// <param name="index">0-based field index, e.g., 0 for the first field</param>
     /// <returns>Field value, unescaped and stripped of quotes when applicable</returns>
     /// <exception cref="ArgumentOutOfRangeException"/>
     ReadOnlyMemory<T> GetField(int index);
@@ -123,11 +122,14 @@ public interface ICsvRecord<T> where T : unmanaged, IBinaryInteger<T>
     TValue GetField<TValue>(string name);
 
     /// <summary>
-    /// Parses the current record into an instance of <typeparamref name="TRecord"/>.
+    /// Parses the record into an instance of <typeparamref name="TRecord"/> using reflection.
     /// </summary>
     [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
     TRecord ParseRecord<[DAM(Messages.ReflectionBound)] TRecord>();
 
+    /// <summary>
+    /// Parses the record into an instance of <typeparamref name="TRecord"/> without reflection.
+    /// </summary>
     /// <inheritdoc cref="ParseRecord{TRecord}()"/>
     TRecord ParseRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap);
 }

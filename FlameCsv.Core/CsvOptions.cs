@@ -14,7 +14,7 @@ using JetBrains.Annotations;
 namespace FlameCsv;
 
 /// <summary>
-/// Object used to configure dialect, converters and other options to read and write CSV data.
+/// Object used to configure dialect, converters, and other options to read and write CSV data.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 [PublicAPI]
@@ -55,6 +55,9 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
 #endif
     }
 
+    /// <summary>
+    /// Initializes a new instance of options, copying the configuration from <paramref name="other"/>.
+    /// </summary>
     public CsvOptions(CsvOptions<T> other)
     {
         ArgumentNullException.ThrowIfNull(other);
@@ -84,7 +87,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     }
 
     /// <summary>
-    /// Whether the options instance is sealed and can no longer be modified.
+    /// Whether the options-instance is sealed and can no longer be modified.
     /// Options become read only after they begin being used to avoid concurrency bugs.
     /// </summary>
     public bool IsReadOnly { get; private set; }
@@ -92,7 +95,9 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// <summary>
     /// Seals the instance from modifications.
     /// </summary>
-    /// <returns><see langword="true"/> if the instance was made readonly, <see langword="false"/> if it already was.</returns>
+    /// <remarks>
+    /// Automatically called by the framework when the instance is used.
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void MakeReadOnly()
     {
@@ -100,7 +105,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         {
             InitializeDialect();
 
-            // set to readonly only after dialect has been validated
+            // set to readonly only after the dialect has been validated
             IsReadOnly = true;
         }
     }
@@ -327,9 +332,10 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
 
     /// <summary>
     /// Delegate that is called when an exception is thrown while parsing class records. If null (the default), or the
-    /// delegate returns false, the exception is considered unhandled and is thrown.<para/>For example, to ignore
-    /// unparseable values return <see langword="true"/> if the exception is <see cref="CsvParseException"/>. In
-    /// this case, rows with invalid data are skipped, see also: <see cref="ShouldSkipRow"/>.
+    /// delegate returns false, the exception is considered unhandled and is thrown.<para/>
+    /// For example, to ignore unparseable values return <see langword="true"/> if the exception is
+    /// <see cref="CsvParseException"/>. In this case, rows with invalid data are skipped, see also:
+    /// <see cref="ShouldSkipRow"/>.
     /// </summary>
     /// <remarks>
     /// <see cref="CsvFormatException"/> is always thrown as it represents an invalid CSV.<br/>
@@ -346,7 +352,8 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// String pool to use when parsing strings. Default is <see langword="null"/>, which results in no pooling.
     /// </summary>
     /// <remarks>
-    /// Pooling reduces raw throughput, but can have profound impact on allocations if the data has a lot of repeating strings.
+    /// Pooling reduces raw throughput, but can have a profound impact on allocations
+    /// if the data has a lot of repeating strings.
     /// </remarks>
     /// <seealso cref="Binding.Attributes.CsvStringPoolingAttribute{T}"/>
     public StringPool? StringPool
@@ -428,7 +435,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     }
 
     /// <summary>
-    /// Whether to ignore case when parsing enum values. Default is <see langword="true"/>.
+    /// Whether to ignore casing when parsing enum values. Default is <see langword="true"/>.
     /// </summary>
     public bool IgnoreEnumCase
     {
@@ -474,7 +481,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// <summary>
     /// Returns tokens used to parse and format <see langword="null"/> values. See <see cref="GetNullToken(Type)"/>.
     /// </summary>
-    /// <seealso cref="CsvConverter{T,TValue}.HandleNull"/>
+    /// <seealso cref="CsvConverter{T,TValue}.CanFormatNull"/>
     public ITypeDictionary<string?> NullTokens => _nullTokens ??= new(this, static Utf8String (str) => str);
 
     /// <summary>

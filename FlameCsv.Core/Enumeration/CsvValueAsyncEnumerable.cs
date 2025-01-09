@@ -21,6 +21,7 @@ public sealed class CsvValueAsyncEnumerable<T, [DAM(Messages.ReflectionBound)] T
         _options = options;
     }
 
+    /// <inheritdoc cref="IAsyncEnumerable{T}.GetAsyncEnumerator"/>
     [MustDisposeResource]
     public CsvValueAsyncEnumerator<T, TValue> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {

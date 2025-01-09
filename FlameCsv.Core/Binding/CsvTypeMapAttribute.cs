@@ -1,4 +1,6 @@
-﻿namespace FlameCsv.Binding;
+﻿using JetBrains.Annotations;
+
+namespace FlameCsv.Binding;
 
 /// <summary>
 /// Applies source generated binding logic to the annotated partial class.
@@ -11,6 +13,7 @@
 /// and no member with that name already exists.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class)]
+[PublicAPI]
 public sealed class CsvTypeMapAttribute<T, TValue> : Attribute where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>

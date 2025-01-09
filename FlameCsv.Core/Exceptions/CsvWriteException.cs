@@ -1,11 +1,8 @@
 ﻿namespace FlameCsv.Exceptions;
 
-public class CsvWriteException : Exception
-{
-    public CsvWriteException(
-        string? message = null,
-        Exception? innerException = null)
-        : base(message, innerException)
-    {
-    }
-}
+/// <summary>
+/// Represents errors when writing CSV, such as errors thrown during flushing the buffers.
+/// </summary>
+public class CsvWriteException(string? message = null, Exception? innerException = null) : Exception(
+    message,
+    innerException);

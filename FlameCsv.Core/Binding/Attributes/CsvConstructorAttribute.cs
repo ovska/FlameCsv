@@ -9,5 +9,6 @@
 [AttributeUsage(AttributeTargets.Constructor)]
 public sealed class CsvConstructorAttribute : Attribute, ICsvBindingAttribute
 {
+    /// <inheritdoc cref="ICsvBindingAttribute.Scope"/>
     public CsvBindingScope Scope => CsvBindingScope.Read;
 }

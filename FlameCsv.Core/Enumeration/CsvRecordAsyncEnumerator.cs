@@ -24,6 +24,7 @@ public sealed class CsvRecordAsyncEnumerator<T> : CsvRecordEnumeratorBase<T>, IA
         _cancellationToken = cancellationToken;
     }
 
+    /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask<bool> MoveNextAsync()
     {
@@ -82,6 +83,7 @@ public sealed class CsvRecordAsyncEnumerator<T> : CsvRecordEnumeratorBase<T>, IA
         return false;
     }
 
+    /// <summary>Disposes the undlerying data source.</summary>
     public async ValueTask DisposeAsync()
     {
         if (!_disposed)
@@ -93,7 +95,7 @@ public sealed class CsvRecordAsyncEnumerator<T> : CsvRecordEnumeratorBase<T>, IA
         }
     }
 
-    protected override void Dispose(bool disposing)
+    private protected override void Dispose(bool disposing)
     {
         if (!_disposed)
         {

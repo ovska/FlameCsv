@@ -4,6 +4,9 @@ using System.Text.Unicode;
 
 namespace FlameCsv.Converters;
 
+/// <summary>
+/// The default converter for non-flags enums.
+/// </summary>
 public sealed class EnumUtf8Converter<TEnum>
     : CsvConverter<byte, TEnum> where TEnum : struct, Enum
 {
@@ -12,6 +15,9 @@ public sealed class EnumUtf8Converter<TEnum>
     private readonly string? _format;
     private readonly IFormatProvider? _formatProvider;
 
+    /// <summary>
+    /// Initializes a new enum converter.
+    /// </summary>
     public EnumUtf8Converter(CsvOptions<byte> options)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -21,6 +27,7 @@ public sealed class EnumUtf8Converter<TEnum>
         _format = options.GetFormat(typeof(TEnum), options.EnumFormat);
     }
 
+    /// <inheritdoc/>
     public override bool TryParse(ReadOnlySpan<byte> source, out TEnum value)
     {
         int maxLength = Encoding.UTF8.GetMaxCharCount(source.Length);
@@ -48,6 +55,7 @@ public sealed class EnumUtf8Converter<TEnum>
         return result;
     }
 
+    /// <inheritdoc/>
     public override bool TryFormat(Span<byte> destination, TEnum value, out int charsWritten)
     {
         // Enum doesn't support Utf8 formatting directly

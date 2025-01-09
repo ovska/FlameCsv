@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -20,18 +19,35 @@ namespace FlameCsv.Enumeration;
 [MustDisposeResource]
 public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanaged, IBinaryInteger<T>
 {
+    /// <summary>
+    /// Gets the current record.
+    /// </summary>
+    /// <remarks>
+    /// The value should not be held onto after the enumeration continues or ends, as the records might wrap
+    /// shared or pooled memory.
+    /// If you must, use <c>Preserve()</c> on the enumerable.
+    /// </remarks>
+    /// <exception cref="ObjectDisposedException"/>
+    /// <exception cref="InvalidOperationException"/>
     public CsvValueRecord<T> Current => _current._options is not null ? _current : ThrowInvalidCurrentAccess();
 
+    /// <summary>
+    /// Logical 1-based line where <see cref="Current"/> is in the CSV.
+    /// </summary>
     public int Line { get; protected set; }
+
+    /// <summary>
+    /// Absolute position in the data source where <see cref="Current"/> starts.
+    /// </summary>
     public long Position { get; protected set; }
 
     [HandlesResourceDisposal]
     private readonly EnumeratorState<T> _state;
 
     [HandlesResourceDisposal]
-    protected readonly CsvParser<T> _parser;
-    protected CsvValueRecord<T> _current;
-    protected bool _disposed;
+    private protected readonly CsvParser<T> _parser;
+    private protected CsvValueRecord<T> _current;
+    private protected bool _disposed;
 
     internal CsvRecordEnumeratorBase(CsvOptions<T> options)
     {
@@ -40,7 +56,7 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    protected bool MoveNextCore(bool isFinalBlock)
+    private protected bool MoveNextCore(bool isFinalBlock)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -57,7 +73,7 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
                 goto Retry;
             }
 
-            CsvValueRecord<T> record = new(oldPosition, Line, in line, _parser._options, _state);
+            CsvValueRecord<T> record = new(oldPosition, Line, in line, _parser.Options, _state);
 
             if (_state.NeedsHeader)
             {
@@ -72,13 +88,16 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
         return false;
     }
 
+    /// <summary>
+    /// Disposes the underlying data source and internal states, and returns pooled memory.
+    /// </summary>
     public void Dispose()
     {
         Dispose(true);
         GC.SuppressFinalize(this);
     }
 
-    protected virtual void Dispose(bool disposing)
+    private protected virtual void Dispose(bool disposing)
     {
         if (_disposed)
             return;
@@ -105,7 +124,7 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
         {
             while (reader.MoveNext())
             {
-                list.Append(_parser._options.GetAsString(reader.Current));
+                list.Append(_parser.Options.GetAsString(reader.Current));
             }
 
             string[] header = list.AsSpan().ToArray();
@@ -114,14 +133,14 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
             {
                 for (int j = 0; j < header.Length; j++)
                 {
-                    if (i != j && _parser._options.Comparer.Equals(header[i], header[j]))
+                    if (i != j && _parser.Options.Comparer.Equals(header[i], header[j]))
                     {
                         ThrowExceptionForDuplicateHeaderField(i, j, header[i], headerRecord);
                     }
                 }
             }
 
-            return new CsvHeader(_parser._options.Comparer, list.AsSpan().ToArray());
+            return new CsvHeader(_parser.Options.Comparer, list.AsSpan().ToArray());
         }
         finally
         {
@@ -146,6 +165,6 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
     {
         throw new CsvFormatException(
             $"Duplicate header field \"{field}\" in fields {index1} and {index2} in CSV: "
-            + _parser._options.AsPrintableString(record.RawRecord.Span));
+            + _parser.Options.AsPrintableString(record.RawRecord.Span));
     }
 }

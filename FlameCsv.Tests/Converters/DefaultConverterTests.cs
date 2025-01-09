@@ -44,7 +44,7 @@ public abstract class DefaultConverterTests<T> where T : unmanaged, IBinaryInteg
         {
             var converter = o.GetConverter<TValue>();
 
-            if (obj is not null || converter.HandleNull)
+            if (obj is not null || converter.CanFormatNull)
                 Assert.False(converter.TryFormat([], obj, out _));
         }
     }

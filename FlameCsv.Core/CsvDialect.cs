@@ -8,48 +8,30 @@ using JetBrains.Annotations;
 
 namespace FlameCsv;
 
-[StructLayout(LayoutKind.Sequential)]
-internal readonly struct NewlineBuffer<T> where T : unmanaged, IBinaryInteger<T>
-{
-    public static readonly NewlineBuffer<T> CRLF = new(2, T.CreateChecked('\r'), T.CreateChecked('\n'));
-    public static readonly NewlineBuffer<T> LF = new(1, T.CreateChecked('\n'), T.CreateChecked('\n'));
-
-    public readonly int Length;
-    public readonly T First;
-    public readonly T Second;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public NewlineBuffer(scoped ReadOnlySpan<T> values)
-    {
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(values.Length, 2);
-        First = values[0];
-        Second = values.Length == 1 ? values[0] : values[1];
-        Length = values.Length;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private NewlineBuffer(int length, T first, T second)
-    {
-        ArgumentOutOfRangeException.ThrowIfGreaterThan((uint)length, 2u);
-        First = first;
-        Second = second;
-        Length = length;
-    }
-}
-
 /// <summary>
 /// Contains the token configuration for reading and writing CSV.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 /// <seealso cref="CsvOptions{T}.Dialect"/>
 [PublicAPI]
-public readonly struct CsvDialect<T> where T : unmanaged, IBinaryInteger<T>
+public readonly struct CsvDialect<T>() where T : unmanaged, IBinaryInteger<T>
 {
+    /// <inheritdoc cref="CsvOptions{T}.Delimiter"/>
     public required T Delimiter { get; init; }
+
+    /// <inheritdoc cref="CsvOptions{T}.Quote"/>
     public required T Quote { get; init; }
+
+    /// <inheritdoc cref="CsvOptions{T}.Newline"/>
     public required ReadOnlyMemory<T> Newline { get; init; }
+
+    /// <inheritdoc cref="CsvOptions{T}.Whitespace"/>
     public required ReadOnlyMemory<T> Whitespace { get; init; }
+
+    /// <inheritdoc cref="CsvOptions{T}.Escape"/>
     public required T? Escape { get; init; }
+
+    private readonly StrongBox<SearchValues<T>?> _needsQuoting = new();
 
     /// <summary>
     /// Returns search values used to determine whether fields need to be quoted while writing CSV.
@@ -60,17 +42,10 @@ public readonly struct CsvDialect<T> where T : unmanaged, IBinaryInteger<T>
         init => _needsQuoting.Value = value;
     }
 
-    private readonly StrongBox<SearchValues<T>?> _needsQuoting = new();
-
-    public CsvDialect()
-    {
-        Delimiter = default;
-        Quote = default;
-        Newline = default;
-        Whitespace = default;
-        Escape = null;
-    }
-
+    /// <summary>
+    /// Ensures that the dialect is valid, and has no problematic overlap in the tokens.
+    /// </summary>
+    /// <exception cref="CsvConfigurationException"></exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void Validate()
     {

@@ -1,25 +1,21 @@
 ﻿namespace FlameCsv.Exceptions;
 
-public sealed class CsvUnhandledException : Exception
+/// <summary>
+/// Wraps unhandled exceptions thrown when reading CSV records into types.
+/// </summary>
+public sealed class CsvUnhandledException(
+    string? message,
+    int line,
+    long position,
+    Exception? innerException = null) : Exception(message, innerException)
 {
     /// <summary>
     /// 1-based line index of the erroneus record.
     /// </summary>
-    public int Line { get; }
+    public int Line { get; } = line;
 
     /// <summary>
-    /// 0-based token index at the start of the record.
+    /// 0-based token index in the data, counted at the start of the record.
     /// </summary>
-    public long Position { get; }
-
-    public CsvUnhandledException(
-        string message,
-        int line,
-        long position,
-        Exception? innerException = null)
-        : base(message, innerException)
-    {
-        Line = line;
-        Position = position;
-    }
+    public long Position { get; } = position;
 }

@@ -10,6 +10,9 @@ using FlameCsv.Reflection;
 
 namespace FlameCsv.Binding;
 
+/// <summary>
+/// Internal implementation detail.
+/// </summary>
 public abstract class DefaultHeaderBinder
 {
     internal static readonly ConditionalWeakTable<Type, HeaderData> ReadCache = [];
@@ -36,6 +39,9 @@ public sealed class DefaultHeaderBinder<T> : DefaultHeaderBinder, IHeaderBinder<
 
     private readonly CsvOptions<T> _options;
 
+    /// <summary>
+    /// Creates a new header binder.
+    /// </summary>
     public DefaultHeaderBinder(
         CsvOptions<T> options,
         bool ignoreUnmatched = false)
@@ -46,6 +52,7 @@ public sealed class DefaultHeaderBinder<T> : DefaultHeaderBinder, IHeaderBinder<
         IgnoreUnmatched = ignoreUnmatched;
     }
 
+    /// <inheritdoc />
     public CsvBindingCollection<TValue> Bind<[DAM(Messages.ReflectionBound)] TValue>(
         ReadOnlySpan<string> headerFields)
     {
@@ -98,6 +105,7 @@ public sealed class DefaultHeaderBinder<T> : DefaultHeaderBinder, IHeaderBinder<
         return new CsvBindingCollection<TValue>(foundBindings, write: false, isInternalCall: true);
     }
 
+    /// <inheritdoc />
     public CsvBindingCollection<TValue> Bind<[DAM(Messages.ReflectionBound)] TValue>()
     {
         _options.MakeReadOnly();
@@ -238,7 +246,7 @@ public sealed class DefaultHeaderBinder<T> : DefaultHeaderBinder, IHeaderBinder<
                             isRequired: false));
                 }
 
-                // hack for records: remove init-only properties with same name and type
+                // hack for records: remove init-only properties with the same name and type
                 // as a parameter
                 for (int i = candidates.Count - 1; i >= 0; i--)
                 {

@@ -81,7 +81,7 @@ internal static class Throw
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void InvalidData_FieldCount(int expected, int actual)
     {
-        throw new InvalidDataException($"The CSV record has {actual} fields, but {expected} were expected.");
+        throw new CsvReadException($"The CSV record has {actual} fields, but {expected} were expected.");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]

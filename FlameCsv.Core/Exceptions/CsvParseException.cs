@@ -7,7 +7,12 @@ namespace FlameCsv.Exceptions;
 /// <summary>
 /// Represents an error of an unparseable value.
 /// </summary>
-public sealed class CsvParseException : Exception
+/// <remarks>
+/// Initializes an exception representing an unparseable value.
+/// </remarks>
+public sealed class CsvParseException(
+    string? message = null,
+    Exception? innerException = null) : Exception(message, innerException)
 {
     /// <summary>
     /// Parser instance.
@@ -15,15 +20,12 @@ public sealed class CsvParseException : Exception
     public object? Converter { get; set; }
 
     /// <summary>
-    /// Initializes an exception representing an unparseable value.
+    /// Throws an exception for a field that could not be parsed.
     /// </summary>
-    public CsvParseException(
-        string? message = null,
-        Exception? innerException = null)
-        : base(message, innerException)
-    {
-    }
-
+    /// <param name="options">Current options instance</param>
+    /// <param name="value">Field value</param>
+    /// <param name="converter">Converter used</param>
+    /// <exception cref="CsvParseException"></exception>
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void Throw<T>(

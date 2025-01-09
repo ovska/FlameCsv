@@ -5,7 +5,7 @@ namespace FlameCsv.Converters;
 // Keep the type in sync with CsvBinding.Type for ignored bindings.
 internal sealed class IgnoredConverter<T> : CsvConverter<T, CsvIgnored> where T : unmanaged, IBinaryInteger<T>
 {
-    public override bool HandleNull => true;
+    protected internal override bool CanFormatNull => true;
 
     public static IgnoredConverter<T> Instance { get; } = new();
 

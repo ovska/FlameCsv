@@ -18,7 +18,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
     public bool NeedsHeader
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _parser._options._hasHeader && Header is null;
+        get => _parser.Options._hasHeader && Header is null;
     }
 
     public Dictionary<object, object> MaterializerCache
@@ -26,7 +26,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
 
     public int Version { get; private set; }
 
-    public CsvOptions<T> Options => _parser._options;
+    public CsvOptions<T> Options => _parser.Options;
 
     private readonly CsvParser<T> _parser;
 
@@ -40,7 +40,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
         {
             Throw.IfEnumerationDisposed(Version == -1);
 
-            if (!_parser._options._hasHeader)
+            if (!_parser.Options._hasHeader)
                 Throw.NotSupported_CsvHasNoHeader();
 
             if (EqualityComparer<CsvHeader>.Default.Equals(Header, value))
@@ -73,7 +73,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
         _record = data;
         _fields.Clear();
 
-        if (_parser._options._validateFieldCount)
+        if (_parser.Options._validateFieldCount)
             ValidateFieldCount();
 
         return ++Version;
@@ -102,7 +102,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
         ArgumentNullException.ThrowIfNull(name);
         Throw.IfEnumerationDisposed(Version == -1);
 
-        if (!_parser._options._hasHeader)
+        if (!_parser.Options._hasHeader)
             Throw.NotSupported_CsvHasNoHeader();
 
         if (Header is null)
@@ -229,7 +229,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
         if (_fields.Length == 0)
             Consume();
 
-        return _fields.CreateReader(_parser._options, _record.Value);
+        return _fields.CreateReader(_parser.Options, _record.Value);
     }
 
     public ReadOnlyMemory<T>[] PreserveFields()

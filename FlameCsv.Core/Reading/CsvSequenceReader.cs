@@ -148,7 +148,7 @@ internal struct CsvSequenceReader<T> where T : unmanaged, IBinaryInteger<T>
         }
     }
 
-    /// <summary>Attempts to advance by <param name="count"/></summary>
+    /// <summary>Attempts to advance by <paramref name="count"/></summary>
     /// <returns>True if the segment changed</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAdvance(int count, out bool segmentChanged)

@@ -7,19 +7,43 @@ using FlameCsv.Runtime;
 
 namespace FlameCsv;
 
+/// <summary>
+/// Represents a single CSV record.
+/// </summary>
+/// <remarks>
+/// This class copies the data in the record, and can thus be preserved even after the record enumeration
+/// continues or ends.
+/// </remarks>
 public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> where T : unmanaged, IBinaryInteger<T>
 {
+    /// <inheritdoc/>
     public virtual ReadOnlyMemory<T> this[int index] => GetField(index);
+
+    /// <inheritdoc/>
     public virtual ReadOnlyMemory<T> this[string name] => GetField(name);
 
+    /// <inheritdoc/>
     public virtual long Position { get; }
+
+    /// <inheritdoc/>
     public virtual int Line { get; }
+
+    /// <summary>
+    /// Current options instance.
+    /// </summary>
     public CsvOptions<T> Options { get; }
+
+    /// <inheritdoc/>
     public virtual ReadOnlyMemory<T> RawRecord { get; }
 
+    /// <inheritdoc/>
     [MemberNotNullWhen(true, nameof(_header))]
     public bool HasHeader => _header is not null;
 
+    /// <summary>
+    /// Returns the headers in the current CSV.
+    /// </summary>
+    /// <exception cref="NotSupportedException">Options has been configured to read headered CSV</exception>
     public ReadOnlySpan<string> Header
     {
         get
@@ -37,6 +61,9 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     private readonly ReadOnlyMemory<T>[] _fields;
     private readonly CsvHeader? _header;
 
+    /// <summary>
+    /// Initializes a new instance, copying data from the record.
+    /// </summary>
     public CsvRecord(in CsvValueRecord<T> record)
     {
         Throw.IfDefaultStruct(record._options is null, typeof(CsvValueRecord<T>));
@@ -54,6 +81,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
 
     ReadOnlyMemory<T> IReadOnlyList<ReadOnlyMemory<T>>.this[int index] => this[index];
 
+    /// <inheritdoc/>
     [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
     public TRecord ParseRecord<[DAM(Messages.ReflectionBound)] TRecord>()
     {
@@ -73,6 +101,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         return materializer.Parse(ref enumerator);
     }
 
+    /// <inheritdoc/>
     public TRecord ParseRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap)
     {
         ArgumentNullException.ThrowIfNull(typeMap);
@@ -85,8 +114,10 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         return materializer.Parse(ref enumerator);
     }
 
+    /// <inheritdoc/>
     public virtual ReadOnlyMemory<T> GetField(int index) => _fields[index];
 
+    /// <inheritdoc/>
     public virtual ReadOnlyMemory<T> GetField(string name)
     {
         if (_header is null)
@@ -95,6 +126,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         return _fields[_header[name]];
     }
 
+    /// <inheritdoc/>
     public virtual TValue GetField<TValue>(int index)
     {
         var field = GetField(index).Span;
@@ -107,6 +139,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         return value;
     }
 
+    /// <inheritdoc/>
     public virtual TValue GetField<TValue>(string name)
     {
         var field = GetField(name).Span;
@@ -119,8 +152,10 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         return value;
     }
 
+    /// <inheritdoc/>
     public virtual int GetFieldCount() => _fields.Length;
 
+    /// <inheritdoc/>
     public virtual bool TryGetValue<TValue>(int index, [MaybeNullWhen(false)] out TValue value)
     {
         if ((uint)index > _fields.Length)
@@ -137,6 +172,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         return true;
     }
 
+    /// <inheritdoc/>
     public virtual bool TryGetValue<TValue>(string name, [MaybeNullWhen(false)] out TValue value)
     {
         if (!HasHeader)
@@ -162,11 +198,16 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
 
     IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<ReadOnlyMemory<T>>)this).GetEnumerator();
 
+    /// <summary>
+    /// Internal implementation detail.
+    /// </summary>
+    /// <param name="record"></param>
     protected struct FieldEnumerator(CsvRecord<T> record) : ICsvFieldReader<T>
     {
         private int _index;
         private ReadOnlyMemory<T> _current;
 
+        /// <inheritdoc/>
         public bool MoveNext()
         {
             if (_index < record._fields.Length)
@@ -180,20 +221,26 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
             return false;
         }
 
+        /// <inheritdoc/>
         public void Reset()
         {
             _index = default;
         }
 
+        /// <inheritdoc/>
         public readonly ReadOnlySpan<T> Current => _current.Span;
 
         readonly object IEnumerator.Current => throw new NotSupportedException();
 
-        public readonly void Dispose()
+        /// <inheritdoc/>
+        readonly void IDisposable.Dispose()
         {
         }
 
+        /// <inheritdoc/>
         public readonly ReadOnlySpan<T> Record => record.RawRecord.Span;
+
+        /// <inheritdoc/>
         public readonly CsvOptions<T> Options => record.Options;
     }
 }

@@ -14,7 +14,7 @@ internal sealed class MemberCsvBinding<T>(int index, MemberData member, string h
 
     public override Type Type => member.MemberType;
 
-    protected internal override object Sentinel => member.Value;
+    protected override object Sentinel => member.Value;
     protected internal override ReadOnlySpan<object> Attributes => member.Attributes;
 
     protected override void PrintDetails(StringBuilder sb)
@@ -25,7 +25,7 @@ internal sealed class MemberCsvBinding<T>(int index, MemberData member, string h
         sb.Append(member.Value.Name);
     }
 
-    public override string DisplayName
+    protected internal override string DisplayName
         => member.Value.DeclaringType?.Name is { Length: > 0 } name
             ? $"{name}_{member.Value.Name}"
             : member.Value.Name;

@@ -5,12 +5,18 @@ using JetBrains.Annotations;
 
 namespace FlameCsv.Enumeration;
 
+/// <summary>
+/// Enumerable that can be used to read <typeparamref name="TValue"/> without reflection.
+/// </summary>
 public sealed class CsvTypeMapEnumerable<T, TValue> : IEnumerable<TValue> where T : unmanaged, IBinaryInteger<T>
 {
     private readonly ReadOnlySequence<T> _data;
     private readonly CsvOptions<T> _options;
     private readonly CsvTypeMap<T, TValue> _typeMap;
 
+    /// <summary>
+    /// Creates a new instance.
+    /// </summary>
     public CsvTypeMapEnumerable(
         in ReadOnlySequence<T> csv,
         CsvOptions<T> options,
@@ -24,6 +30,7 @@ public sealed class CsvTypeMapEnumerable<T, TValue> : IEnumerable<TValue> where 
         _typeMap = typeMap;
     }
 
+    /// <inheritdoc cref="IEnumerable{T}.GetEnumerator"/>
     [MustDisposeResource]
     public CsvValueEnumerator<T, TValue> GetEnumerator()
     {
