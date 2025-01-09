@@ -4,6 +4,7 @@ using FlameCsv.Converters;
 namespace FlameCsv.Binding.Attributes;
 
 /// <inheritdoc cref="CsvBooleanTextValuesAttribute"/>
+/// <remarks>Does not use comparer from options, <see cref="IgnoreCase"/></remarks>
 public sealed class CsvBooleanUtf8ValuesAttribute : CsvConverterAttribute<byte>
 {
     /// <summary>
@@ -16,13 +17,19 @@ public sealed class CsvBooleanUtf8ValuesAttribute : CsvConverterAttribute<byte>
     /// </summary>
     public string[] FalseValues { get; set; } = [];
 
+    /// <summary>
+    /// If true (the default), ignores case when comparing values.
+    /// </summary>
+    public bool IgnoreCase { get; set; } = true;
+
     /// <inheritdoc/>
     protected override CsvConverter<byte> CreateConverterOrFactory(Type targetType, CsvOptions<byte> options)
     {
         CustomBooleanUtf8Converter converter = new(
             options: options,
             trueValues: TrueValues,
-            falseValues: FalseValues);
+            falseValues: FalseValues,
+            ignoreCase: IgnoreCase);
 
         if (targetType == typeof(bool))
         {

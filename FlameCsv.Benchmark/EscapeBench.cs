@@ -32,7 +32,7 @@ public class EscapeBench
 
         foreach (var line in data)
         {
-            var meta = parser.GetRecordMeta(line);
+            var meta = parser.GetAsCsvLine(line);
             var reader = new CsvFieldReader<char>(CsvOptions<char>.Default, line, unescapeBuffer, ref buffer, in meta);
 
             while (reader.MoveNext())

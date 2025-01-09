@@ -8,14 +8,21 @@ namespace FlameCsv.Reflection;
 
 internal static class CsvTypeInfo
 {
+    public readonly record struct CtorData(ConstructorInfo Value, ParameterData[] Params);
+
     private sealed class Cached<T>
     {
-        public static Cached<T> Value => _value ?? GetOrInitInstance();
+        public static Cached<T> Value
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _value ?? GetOrInitInstance();
+        }
+
         private static Cached<T>? _value;
 
         internal object[]? _customAttributes;
         internal MemberData[]? _members;
-        internal (ConstructorInfo Ctor, ParameterData[] Params)[]? _ctors;
+        internal CtorData[]? _ctors;
         internal object? _ctorParams;
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -26,37 +33,46 @@ internal static class CsvTypeInfo
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ReadOnlySpan<MemberData> Members<[DAM(DAMT.PublicProperties | DAMT.PublicFields)] T>()
         => Cached<T>.Value._members ??= InitPropertiesAndFields<T>();
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ReadOnlySpan<object> Attributes<T>()
-        => Cached<T>.Value._customAttributes ??= GetCustomAttributes<T>();
+        => Cached<T>.Value._customAttributes ??= InitCustomAttributes<T>();
 
-    public static ReadOnlySpan<(ConstructorInfo Ctor, ParameterData[] Params)>
-        PublicConstructors<[DAM(DAMT.PublicConstructors)] T>()
-        => Cached<T>.Value._ctors ??= GetOrInitConstructors<T>();
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ReadOnlySpan<CtorData> PublicConstructors<[DAM(DAMT.PublicConstructors)] T>()
+        => Cached<T>.Value._ctors ??= InitConstructors<T>();
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ReadOnlySpan<ParameterData> ConstructorParameters<[DAM(DAMT.PublicConstructors)] T>()
-        => (Cached<T>.Value._ctorParams ??= GetPrimaryCtorParams<T>()) as ParameterData[]
+        => (Cached<T>.Value._ctorParams ??= InitPrimaryCtorParams<T>()) as ParameterData[]
             ?? ThrowExceptionForNoPrimaryConstructor(typeof(T));
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ConstructorInfo? EmptyConstructor<[DAM(DAMT.PublicConstructors)] T>()
     {
-        foreach (var (ctor, parameters) in PublicConstructors<T>())
+        foreach ((ConstructorInfo ctor, ParameterData[] parameters) in PublicConstructors<T>())
         {
             if (parameters.Length == 0)
+            {
                 return ctor;
+            }
         }
 
         return null;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static MemberData GetPropertyOrField<[DAM(DAMT.PublicProperties | DAMT.PublicFields)] T>(string memberName)
     {
         foreach (var member in Members<T>())
         {
-            if (member.Value.Name.Equals(memberName, StringComparison.Ordinal))
+            if (memberName == member.Value.Name)
+            {
                 return member;
+            }
         }
 
         return ThrowMemberNotFound(typeof(T), memberName);
@@ -73,10 +89,10 @@ internal static class CsvTypeInfo
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static object[] GetCustomAttributes<T>() => typeof(T).GetCustomAttributes(inherit: true);
+    private static object[] InitCustomAttributes<T>() => typeof(T).GetCustomAttributes(inherit: true);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static object GetPrimaryCtorParams<[DAM(DAMT.PublicConstructors)] T>()
+    private static object InitPrimaryCtorParams<[DAM(DAMT.PublicConstructors)] T>()
     {
         var ctors = PublicConstructors<T>();
 
@@ -101,23 +117,22 @@ internal static class CsvTypeInfo
             }
 
             if (parameters.Length == 0)
+            {
                 parameterlessCtor = ctor;
+            }
         }
 
         // No explicit ctor found, but found parameterless
-        if (parameterlessCtor is not null)
-        {
-            return Array.Empty<ParameterData>();
-        }
-
-        return Type.Missing;
+        return parameterlessCtor is not null
+            ? Array.Empty<ParameterData>()
+            : Type.Missing;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static (ConstructorInfo, ParameterData[])[] GetOrInitConstructors<[DAM(DAMT.PublicConstructors)] T>()
+    private static CtorData[] InitConstructors<[DAM(DAMT.PublicConstructors)] T>()
         => typeof(T)
             .GetConstructors(BindingFlags.Instance | BindingFlags.Public)
-            .Select(c => (c, c.GetParameters().Select(p => new ParameterData(p)).ToArray()))
+            .Select(c => new CtorData(c, c.GetParameters().Select(p => new ParameterData(p)).ToArray()))
             .ToArray();
 
     private static ParameterData[] ThrowExceptionForNoPrimaryConstructor(Type type)

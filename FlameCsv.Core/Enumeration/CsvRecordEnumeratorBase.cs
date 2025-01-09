@@ -45,19 +45,19 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
         ObjectDisposedException.ThrowIf(_disposed, this);
 
     Retry:
-        if (_parser.TryReadLine(out ReadOnlyMemory<T> line, out CsvRecordMeta meta, isFinalBlock))
+        if (_parser.TryReadLine(out CsvLine<T> line, isFinalBlock))
         {
             long oldPosition = Position;
 
-            Position += line.Length + (_parser._newline.Length * (!isFinalBlock).ToByte());
+            Position += line.Value.Length + (_parser._newline.Length * (!isFinalBlock).ToByte());
             Line++;
 
-            if (_parser.SkipRecord(line, Line, isHeader: _state.NeedsHeader))
+            if (_parser.SkipRecord(line.Value, Line, isHeader: _state.NeedsHeader))
             {
                 goto Retry;
             }
 
-            CsvValueRecord<T> record = new(oldPosition, Line, line, _parser._options, meta, _state);
+            CsvValueRecord<T> record = new(oldPosition, Line, in line, _parser._options, _state);
 
             if (_state.NeedsHeader)
             {

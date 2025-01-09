@@ -64,17 +64,16 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
     internal CsvValueRecord(
         long position,
         int line,
-        ReadOnlyMemory<T> data,
+        ref readonly CsvLine<T> data,
         CsvOptions<T> options,
-        CsvRecordMeta meta,
         EnumeratorState<T> state)
     {
         Position = position;
         Line = line;
-        _record = data;
+        _record = data.Value;
         _options = options;
         _state = state;
-        _version = _state.Initialize(data, meta);
+        _version = _state.Initialize(in data);
     }
 
     /// <inheritdoc cref="ICsvRecord{T}.GetField(string)"/>

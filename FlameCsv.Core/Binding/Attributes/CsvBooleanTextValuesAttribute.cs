@@ -21,9 +21,12 @@ public sealed class CsvBooleanTextValuesAttribute : CsvConverterAttribute<char>
     public string[] FalseValues { get; set; } = [];
 
     /// <summary>
-    /// Comparison type to use, default is <see cref="StringComparison.OrdinalIgnoreCase"/>.
+    /// Comparison type to use, default is null which uses <see cref="CsvOptions{T}.Comparer"/> from options.
     /// </summary>
-    public StringComparison Comparison { get; set; } = StringComparison.OrdinalIgnoreCase;
+    /// <remarks>
+    /// If used, the options' comparer must implement <see cref="IAlternateEqualityComparer{TAlternate,T}"/> for span.
+    /// </remarks>
+    public StringComparison? Comparison { get; set; }
 
     /// <inheritdoc/>
     protected override CsvConverter<char> CreateConverterOrFactory(Type targetType, CsvOptions<char> options)
@@ -31,7 +34,8 @@ public sealed class CsvBooleanTextValuesAttribute : CsvConverterAttribute<char>
         CustomBooleanTextConverter converter = new(
             trueValues: TrueValues,
             falseValues: FalseValues,
-            comparison: Comparison);
+            comparison: Comparison,
+            options: options);
 
         if (targetType == typeof(bool))
         {
@@ -44,6 +48,6 @@ public sealed class CsvBooleanTextValuesAttribute : CsvConverterAttribute<char>
         }
 
         throw new CsvConfigurationException(
-            $"{nameof(CsvBooleanTextValuesAttribute)} is valid on bool and bool?, but was on type {targetType.FullName}");
+            $"{nameof(CsvBooleanTextValuesAttribute)} is valid on bool and bool?, but was used on type {targetType.FullName}");
     }
 }

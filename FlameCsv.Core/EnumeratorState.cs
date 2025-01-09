@@ -30,9 +30,8 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
 
     private readonly CsvParser<T> _parser;
 
-    private ReadOnlyMemory<T> _record;
-    private CsvRecordMeta _meta;
-    internal WritableBuffer<T> _fields;
+    private CsvLine<T> _record;
+    private WritableBuffer<T> _fields;
 
     public CsvHeader? Header
     {
@@ -67,12 +66,11 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int Initialize(ReadOnlyMemory<T> memory, CsvRecordMeta meta)
+    public int Initialize(ref readonly CsvLine<T> data)
     {
         Throw.IfEnumerationDisposed(Version == -1);
 
-        _record = memory;
-        _meta = meta;
+        _record = data;
         _fields.Clear();
 
         if (_parser._options._validateFieldCount)
@@ -183,10 +181,9 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
 
         CsvFieldReader<T> reader = new(
             Options,
-            _record.Span,
+            in _record,
             stackalloc T[Token<T>.StackLength],
-            ref memoryOwner,
-            ref _meta);
+            ref memoryOwner);
 
         try
         {
@@ -232,7 +229,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
         if (_fields.Length == 0)
             Consume();
 
-        return _fields.CreateReader(_parser._options, _record.Span);
+        return _fields.CreateReader(_parser._options, _record.Value);
     }
 
     public ReadOnlyMemory<T>[] PreserveFields()

@@ -15,20 +15,22 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IBina
         _escape = options.Dialect.Escape.Value;
     }
 
-    public override CsvRecordMeta GetRecordMeta(ReadOnlySpan<T> line)
+    public override CsvLine<T> GetAsCsvLine(ReadOnlyMemory<T> line)
     {
         ref readonly CsvDialect<T> dialect = ref Options.Dialect;
         T quote = dialect.Quote;
         T escape = dialect.Escape.GetValueOrDefault();
 
-        int index = line.IndexOfAny(quote, escape);
+        ReadOnlySpan<T> span = line.Span;
+        int index = span.IndexOfAny(quote, escape);
         bool skipNext = false;
 
-        CsvRecordMeta meta = default;
+        uint quoteCount = 0;
+        uint escapeCount = 0;
 
         if (index >= 0)
         {
-            for (; index < line.Length; index++)
+            for (; index < span.Length; index++)
             {
                 if (skipNext)
                 {
@@ -36,79 +38,71 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IBina
                     continue;
                 }
 
-                if (line[index].Equals(quote))
+                if (span[index].Equals(quote))
                 {
-                    meta.quoteCount++;
+                    quoteCount++;
                 }
-                else if (line[index].Equals(escape))
+                else if (span[index].Equals(escape))
                 {
-                    meta.escapeCount++;
+                    escapeCount++;
                     skipNext = true;
                 }
             }
         }
 
         if (skipNext)
-            ThrowForInvalidLastEscape(line, Options);
+            ThrowForInvalidLastEscape(span, Options);
 
-        if (meta.quoteCount == 1)
-            ThrowForInvalidEscapeQuotes(line, Options);
+        if (quoteCount == 1)
+            ThrowForInvalidEscapeQuotes(span, Options);
 
-        return meta;
+        return new CsvLine<T> { Value = line, QuoteCount = quoteCount, EscapeCount = escapeCount, };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    protected override bool TryReadLine(out ReadOnlyMemory<T> line, out CsvRecordMeta meta)
+    protected override bool TryReadLine(out CsvLine<T> line)
     {
         CsvSequenceReader<T> copy = _reader;
 
         ReadOnlyMemory<T> unreadMemory = _reader.Unread;
         ReadOnlySpan<T> remaining = unreadMemory.Span;
         ref T start = ref remaining.DangerousGetReference();
-        meta = default;
+
+        uint quoteCount = 0;
+        uint escapeCount = 0;
 
         while (!End)
         {
         Seek:
-            int index = meta.quoteCount % 2 == 0
-                ? remaining.IndexOfAny(_quote, _escape, _newline[0])
+            int index = quoteCount % 2 == 0
+                ? remaining.IndexOfAny(_quote, _escape, _newline.First)
                 : remaining.IndexOfAny(_quote, _escape);
 
             if (index != -1)
             {
                 if (remaining[index].Equals(_quote))
                 {
-                    meta.quoteCount++;
+                    quoteCount++;
 
-                    if (_reader.AdvanceCurrent(index + 1))
-                    {
-                        remaining = _reader.Unread.Span;
-                    }
-                    else
-                    {
-                        remaining = remaining.Slice(index + 1);
-                    }
+                    remaining = _reader.AdvanceCurrent(index + 1)
+                        ? _reader.Unread.Span
+                        : remaining.Slice(index + 1);
 
                     goto Seek;
                 }
 
                 if (remaining[index].Equals(_escape))
                 {
-                    meta.escapeCount++;
+                    escapeCount++;
 
                     // read past the escape and following
                     // use TryAdvance as the escape might be last token in the segment
                     if (!_reader.TryAdvance(index + 2, out bool refreshRemaining))
                         break;
 
-                    if (refreshRemaining)
-                    {
-                        remaining = _reader.Unread.Span;
-                    }
-                    else
-                    {
-                        remaining = remaining.Slice(index + 2);
-                    }
+                    remaining = refreshRemaining
+                        ? _reader.Unread.Span
+                        : remaining.Slice(index + 2);
 
                     goto Seek;
                 }
@@ -125,7 +119,7 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IBina
                 if (_reader.AdvanceCurrent(1))
                     segmentHasChanged = true;
 
-                if (_newline.Length == 1 || _reader.IsNext(_newline[1], advancePast: true))
+                if (_newline.Length == 1 || _reader.IsNext(_newline.Second, advancePast: true))
                 {
                     // perf: non-empty slice from the same segment, read directly from the original memory
                     // at this point, index points to the first newline token
@@ -136,16 +130,26 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IBina
                             ref start,
                             ref remaining.DangerousGetReferenceAt(index));
                         int elementCount = byteOffset / Unsafe.SizeOf<T>();
-                        line = unreadMemory.Slice(0, elementCount);
+                        line = new()
+                        {
+                            Value = unreadMemory.Slice(0, elementCount),
+                            QuoteCount = quoteCount,
+                            EscapeCount = escapeCount,
+                        };
 
                         Debug.Assert(
-                            _reader.Sequence.Slice(copy.Position, crPosition).SequenceEquals(line.Span),
+                            _reader.Sequence.Slice(copy.Position, crPosition).SequenceEquals(line.Value.Span),
                             $"Invalid slice: '{line}' vs '{_reader.Sequence.Slice(copy.Position, crPosition)}'");
                     }
                     else
                     {
-                        line = _reader.Sequence.Slice(copy.Position, crPosition)
-                            .AsMemory(Allocator, ref _multisegmentBuffer);
+                        line = new()
+                        {
+                            QuoteCount = quoteCount,
+                            EscapeCount = escapeCount,
+                            Value = _reader.Sequence.Slice(copy.Position, crPosition)
+                                .AsMemory(Allocator, ref _multisegmentBuffer),
+                        };
                     }
 
                     return true;
@@ -178,13 +182,14 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IBina
         int consumed = 0;
         int currentConsumed = 0;
 
-        CsvRecordMeta meta = default;
+        uint quoteCount = 0;
+        uint escapeCount = 0;
 
         while (linesRead < slices.Length)
         {
         Seek:
-            int index = meta.quoteCount % 2 == 0
-                ? data.IndexOfAny(_quote, _escape, _newline[0])
+            int index = quoteCount % 2 == 0
+                ? data.IndexOfAny(_quote, _escape, _newline.First)
                 : data.IndexOfAny(_quote, _escape);
 
             if (index < 0)
@@ -192,7 +197,7 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IBina
 
             if (_quote.Equals(data.DangerousGetReferenceAt(index)))
             {
-                meta.quoteCount++;
+                quoteCount++;
                 data = data.Slice(index + 1);
                 currentConsumed += index + 1;
                 goto Seek;
@@ -204,7 +209,7 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IBina
                 if (index >= data.Length - 1)
                     break;
 
-                meta.escapeCount++;
+                escapeCount++;
                 data = data.Slice(index + 2);
                 currentConsumed += index + 2;
                 goto Seek;
@@ -219,7 +224,7 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IBina
                     break;
 
                 // next token wasn't the second newline
-                if (!_newline[1].Equals(data.DangerousGetReferenceAt(index + 1)))
+                if (!_newline.Second.Equals(data.DangerousGetReferenceAt(index + 1)))
                 {
                     data = data.Slice(index + 1);
                     currentConsumed++;
@@ -228,12 +233,16 @@ internal sealed class CsvParserUnix<T> : CsvParser<T> where T : unmanaged, IBina
             }
 
             // Found newline
-            slices[linesRead++] = new Slice { Index = consumed, Length = currentConsumed, Meta = meta, };
+            slices[linesRead++] = new Slice
+            {
+                Index = consumed, Length = currentConsumed, QuoteCount = quoteCount, EscapeCount = escapeCount,
+            };
 
             consumed += currentConsumed + _newline.Length;
             data = data.Slice(index + _newline.Length);
             currentConsumed = 0;
-            meta = default;
+            quoteCount = 0;
+            escapeCount = 0;
         }
 
         return (consumed, linesRead);

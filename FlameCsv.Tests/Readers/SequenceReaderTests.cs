@@ -45,13 +45,13 @@ public class SequenceReaderTests : IDisposable
         using var parser = CsvParser<char>.Create(LFOptions(guardedMemory));
         parser.Reset(MemorySegment<char>.AsSequence(data.AsMemory(), 64));
 
-        Assert.True(parser.TryReadLine(out var line, out CsvRecordMeta meta, isFinalBlock: false));
+        Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
         Assert.Equal("1,Alice,true", line.ToString());
-        Assert.Equal(0u, meta.quoteCount);
-        Assert.True(parser.TryReadLine(out line, out meta, isFinalBlock: false));
+        Assert.Equal(0u, line.QuoteCount);
+        Assert.True(parser.TryReadLine(out line, isFinalBlock: false));
         Assert.Equal("2,Bob,false", line.ToString());
-        Assert.Equal(0u, meta.quoteCount);
-        Assert.False(parser.TryReadLine(out _, out _, isFinalBlock: false));
+        Assert.Equal(0u, line.QuoteCount);
+        Assert.False(parser.TryReadLine(out _, isFinalBlock: false));
     }
 
     [Theory, MemberData(nameof(GuardedData))]
@@ -62,13 +62,13 @@ public class SequenceReaderTests : IDisposable
         using var parser = CsvParser<char>.Create(CRLFOptions(guardedMemory));
         parser.Reset(MemorySegment<char>.AsSequence(data.AsMemory(), 64));
 
-        Assert.True(parser.TryReadLine(out var line, out CsvRecordMeta meta, isFinalBlock: false));
+        Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
         Assert.Equal("1,Alice,true", line.ToString());
-        Assert.Equal(0u, meta.quoteCount);
-        Assert.True(parser.TryReadLine(out line, out meta, isFinalBlock: false));
+        Assert.Equal(0u, line.QuoteCount);
+        Assert.True(parser.TryReadLine(out line, isFinalBlock: false));
         Assert.Equal("2,Bob,false", line.ToString());
-        Assert.Equal(0u, meta.quoteCount);
-        Assert.False(parser.TryReadLine(out _, out _, isFinalBlock: false));
+        Assert.Equal(0u, line.QuoteCount);
+        Assert.False(parser.TryReadLine(out _, isFinalBlock: false));
     }
 
     [Theory, MemberData(nameof(GuardedData))]
@@ -83,7 +83,7 @@ public class SequenceReaderTests : IDisposable
         using var parser = CsvParser<char>.Create(CRLFOptions(guardedMemory));
         parser.Reset(in seq);
 
-        Assert.True(parser.TryReadLine(out var line, out _, isFinalBlock: false));
+        Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
 
         Assert.Equal("xyz", line.ToString());
         Assert.Equal("abc", parser._reader.UnreadSequence.ToString());
@@ -102,11 +102,11 @@ public class SequenceReaderTests : IDisposable
         using var parser = CsvParser<char>.Create(CRLFOptions(guardedMemory));
         parser.Reset(in seq);
 
-        Assert.True(parser.TryReadLine(out var line, out var meta, isFinalBlock: false));
+        Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
         Assert.Equal(s1, line.ToString());
-        Assert.Equal(2u, meta.quoteCount);
+        Assert.Equal(2u, line.QuoteCount);
 
-        Assert.False(parser.TryReadLine(out _, out _, isFinalBlock: false));
+        Assert.False(parser.TryReadLine(out _, isFinalBlock: false));
         Assert.Equal(s3 + s4, parser._reader.UnreadSequence.ToString());
     }
 
@@ -141,7 +141,7 @@ public class SequenceReaderTests : IDisposable
 
         var results = new List<string>();
 
-        while (parser.TryReadLine(out var line, out _, isFinalBlock: false))
+        while (parser.TryReadLine(out var line, isFinalBlock: false))
         {
             results.Add(line.ToString());
         }
@@ -167,7 +167,7 @@ public class SequenceReaderTests : IDisposable
         using var parser = CsvParser<char>.Create(context);
         parser.Reset(in seq);
 
-        Assert.True(parser.TryReadLine(out var line, out _, isFinalBlock: false));
+        Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
         Assert.Equal(segments[0], line.ToString());
         Assert.Equal(segments[2], parser._reader.UnreadSequence.ToString());
     }
@@ -180,12 +180,12 @@ public class SequenceReaderTests : IDisposable
 
         using var parser1 = CsvParser<char>.Create(LFOptions(guardedMemory));
         parser1.Reset(in seq);
-        Assert.False(parser1.TryReadLine(out _, out _, isFinalBlock: false));
+        Assert.False(parser1.TryReadLine(out _, isFinalBlock: false));
         Assert.Equal(data, parser1._reader.UnreadSequence.ToString());
 
         using var parser2 = CsvParser<char>.Create(CRLFOptions(guardedMemory));
         parser2.Reset(in seq);
-        Assert.False(parser2.TryReadLine(out _, out _, isFinalBlock: false));
+        Assert.False(parser2.TryReadLine(out _, isFinalBlock: false));
         Assert.Equal(data, parser2._reader.UnreadSequence.ToString());
     }
 
@@ -206,7 +206,7 @@ public class SequenceReaderTests : IDisposable
             new CsvOptions<char> { Newline = "|", MemoryPool = ReturnTrackingMemoryPool<char>.Shared });
         parser.Reset(seq);
 
-        bool result = parser.TryReadLine(out var line, out var meta, isFinalBlock: false);
+        bool result = parser.TryReadLine(out var line, isFinalBlock: false);
 
         if (data.Contains('|'))
         {
@@ -214,7 +214,7 @@ public class SequenceReaderTests : IDisposable
             var lineStr = line.ToString();
             Assert.Equal(expected, lineStr);
             Assert.Equal(data[(lineStr.Length + 1)..], parser._reader.UnreadSequence.ToString());
-            Assert.Equal(quoteCount, meta.quoteCount);
+            Assert.Equal(quoteCount, line.QuoteCount);
         }
         else
         {

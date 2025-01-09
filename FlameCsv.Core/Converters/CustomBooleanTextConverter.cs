@@ -1,40 +1,38 @@
 ﻿using System.Collections.Immutable;
+using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
 
 internal sealed class CustomBooleanTextConverter : CsvConverter<char, bool>
 {
+    private readonly string _firstTrue;
+    private readonly string _firstFalse;
     private readonly ImmutableArray<string> _trueValues;
     private readonly ImmutableArray<string> _falseValues;
-    private readonly StringComparison _comparison;
+    private readonly IAlternateEqualityComparer<ReadOnlySpan<char>, string> _comparer;
 
     internal CustomBooleanTextConverter(CsvOptions<char> options)
     {
         if (options._booleanValues is not { Count: > 0 })
             Throw.Argument(nameof(CsvOptions<char>.BooleanValues), "No values defined");
 
-        var values = options._booleanValues;
-        var trueValues = ImmutableArray.CreateBuilder<string>(values.Count);
-        var falseValues = ImmutableArray.CreateBuilder<string>(values.Count);
+        _trueValues = [..options._booleanValues.Where(t => t.Item2).Select(t => t.Item1).Distinct(options.Comparer)];
+        _falseValues = [..options._booleanValues.Where(t => !t.Item2).Select(t => t.Item1).Distinct(options.Comparer)];
 
-        foreach ((string text, bool value) in values)
-        {
-            (value ? trueValues : falseValues).Add(text);
-        }
+        if (_trueValues.Length == 0) Throw.Config_TrueOrFalseBooleanValues(true);
+        if (_falseValues.Length == 0) Throw.Config_TrueOrFalseBooleanValues(false);
 
-        if (trueValues.Count == 0)
-            Throw.Config_TrueOrFalseBooleanValues(true);
-
-        if (falseValues.Count == 0)
-            Throw.Config_TrueOrFalseBooleanValues(false);
-
-        _trueValues = trueValues.ToImmutable();
-        _falseValues = falseValues.ToImmutable();
-        _comparison = StringComparison.OrdinalIgnoreCase;
+        _firstTrue = _trueValues[0];
+        _firstFalse = _falseValues[0];
+        _comparer = FromOptions(options);
     }
 
-    internal CustomBooleanTextConverter(string[] trueValues, string[] falseValues, StringComparison comparison)
+    internal CustomBooleanTextConverter(
+        string[] trueValues,
+        string[] falseValues,
+        StringComparison? comparison,
+        CsvOptions<char> options)
     {
         ArgumentNullException.ThrowIfNull(trueValues);
         ArgumentNullException.ThrowIfNull(falseValues);
@@ -45,17 +43,18 @@ internal sealed class CustomBooleanTextConverter : CsvConverter<char, bool>
         if (falseValues.Length == 0)
             Throw.Config_TrueOrFalseBooleanValues(false);
 
-        // validate comparison
-        _ = string.Equals(trueValues[0], falseValues[0], comparison);
-
         _trueValues = [.. trueValues];
         _falseValues = [.. falseValues];
-        _comparison = comparison;
+        _firstTrue = _trueValues[0];
+        _firstFalse = _falseValues[0];
+        _comparer = comparison is null
+            ? FromOptions(options)
+            : (IAlternateEqualityComparer<ReadOnlySpan<char>, string>)StringComparer.FromComparison(comparison.Value);
     }
 
     public override bool TryFormat(Span<char> destination, bool value, out int charsWritten)
     {
-        return (value ? _trueValues : _falseValues)[0].AsSpan().TryWriteTo(destination, out charsWritten);
+        return (value ? _firstTrue : _firstFalse).AsSpan().TryWriteTo(destination, out charsWritten);
     }
 
     /// <inheritdoc/>
@@ -63,7 +62,7 @@ internal sealed class CustomBooleanTextConverter : CsvConverter<char, bool>
     {
         foreach (string v in _trueValues.AsSpan())
         {
-            if (source.Equals(v.AsSpan(), _comparison))
+            if (_comparer.Equals(source, v))
             {
                 value = true;
                 return true;
@@ -72,7 +71,7 @@ internal sealed class CustomBooleanTextConverter : CsvConverter<char, bool>
 
         foreach (string v in _falseValues.AsSpan())
         {
-            if (source.Equals(v.AsSpan(), _comparison))
+            if (_comparer.Equals(source, v))
             {
                 value = false;
                 return true;
@@ -80,5 +79,16 @@ internal sealed class CustomBooleanTextConverter : CsvConverter<char, bool>
         }
 
         return value = false;
+    }
+
+    private static IAlternateEqualityComparer<ReadOnlySpan<char>, string> FromOptions(CsvOptions<char> options)
+    {
+        if (options.Comparer is IAlternateEqualityComparer<ReadOnlySpan<char>, string> alternateComparer)
+        {
+            return alternateComparer;
+        }
+
+        throw new CsvConfigurationException(
+            $"Comparer does not implement {nameof(IAlternateEqualityComparer<ReadOnlySpan<char>, string>)}.");
     }
 }

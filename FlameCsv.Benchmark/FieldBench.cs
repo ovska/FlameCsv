@@ -17,7 +17,7 @@ public class FieldBench
 
         _fields = File
             .ReadAllLines("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv")
-            .Select(l => (l, parser.GetRecordMeta(l)))
+            .Select(l => (l, parser.GetAsCsvLine(l)))
             .ToArray();
     }
 

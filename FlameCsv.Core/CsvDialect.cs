@@ -14,16 +14,6 @@ internal readonly struct NewlineBuffer<T> where T : unmanaged, IBinaryInteger<T>
     public static readonly NewlineBuffer<T> CRLF = new(2, T.CreateChecked('\r'), T.CreateChecked('\n'));
     public static readonly NewlineBuffer<T> LF = new(1, T.CreateChecked('\n'), T.CreateChecked('\n'));
 
-    public T this[int index]
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual((uint)index, 2u);
-            return Unsafe.Add(ref Unsafe.AsRef(in First), index);
-        }
-    }
-
     public readonly int Length;
     public readonly T First;
     public readonly T Second;

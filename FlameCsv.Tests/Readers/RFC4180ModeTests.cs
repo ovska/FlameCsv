@@ -87,13 +87,12 @@ public abstract class RFC4180ModeTests
 
         var memory = AllocateMemory(input);
 
-        var meta = parser.GetRecordMeta(memory.Span);
+        var line = parser.GetAsCsvLine(memory);
         var reader = new CsvFieldReader<char>(
             parser.Options,
-            memory.Span,
+            in line,
             AllocateScratch(16),
-            ref allocated,
-            in meta);
+            ref allocated);
 
 
         Assert.True(reader.MoveNext());
@@ -108,14 +107,12 @@ public abstract class RFC4180ModeTests
         const string input = "\"Long line with lots of content, but no quotes except the wrapping!\"";
         using var parser = CsvParser<char>.Create(CsvOptions<char>.Default);
 
-        var memory = AllocateMemory(input);
-        var meta = parser.GetRecordMeta(memory.Span);
+        var line = parser.GetAsCsvLine(AllocateMemory(input));
         var reader = new CsvFieldReader<char>(
             parser.Options,
-            memory.Span,
+            in line,
             [],
-            ref Unsafe.NullRef<IMemoryOwner<char>?>(),
-            in meta);
+            ref Unsafe.NullRef<IMemoryOwner<char>?>());
 
         Assert.True(reader.MoveNext());
         Assert.Equal(input[1..^1], reader.Current.ToString());
@@ -137,13 +134,12 @@ public abstract class RFC4180ModeTests
 
         IMemoryOwner<char>? allocated = null;
 
-        var meta = new CsvRecordMeta { quoteCount = (uint)input.Count(c => c == '"') };
+        var line = parser.GetAsCsvLine(AllocateMemory(input));
         var record = new CsvFieldReader<char>(
             parser.Options,
-            AllocateMemory(input).Span,
+            in line,
             AllocateScratch(128),
-            ref allocated,
-            in meta);
+            ref allocated);
 
         var field = RFC4180Mode<char>.ReadNextField(ref record);
 
@@ -158,26 +154,23 @@ public abstract class RFC4180ModeTests
     [InlineData(",jklsadklasdW,laskdjlksad,,1231")]
     [InlineData("A,\"B\",C,D,E")]
     [InlineData("A,\"B\",C,D,\"E\"")]
-    public void Should_Enumerate_Fields(string line)
+    public void Should_Enumerate_Fields(string input)
     {
         using var pool = new ReturnTrackingArrayMemoryPool<char>();
         var options = new CsvOptions<char> { Newline = "|", MemoryPool = pool, AllowContentInExceptions = true, };
 
-        var expected = line.Split(',').Select(s => s.Trim('"'));
+        var expected = input.Split(',').Select(s => s.Trim('"'));
 
         var list = new List<string>();
         using var parser = CsvParser<char>.Create(options);
 
         IMemoryOwner<char>? allocated = null;
-
-        var memory = AllocateMemory(line);
-        var meta = parser.GetRecordMeta(memory.Span);
+        var line = parser.GetAsCsvLine(AllocateMemory(input));
         CsvFieldReader<char> reader = new(
             parser.Options,
-            memory.Span,
+            in line,
             [],
-            ref allocated,
-            in meta);
+            ref allocated);
 
         while (!reader.End)
         {
@@ -200,15 +193,14 @@ public abstract class RFC4180ModeTests
         foreach (var chars in data)
         {
             var input = new string(chars.ToArray());
-            var line = $"\"{input}\",test";
+            var str = $"\"{input}\",test";
+            var line = new CsvLine<char> { Value = str.AsMemory(), QuoteCount = (uint)str.Count('"') };
 
-            var meta = new CsvRecordMeta { quoteCount = (uint)line.Count('"') };
             CsvFieldReader<char> state = new(
                 options,
-                line,
+                in line,
                 [],
-                ref allocated,
-                in meta);
+                ref allocated);
 
             var list = new List<string>();
 
@@ -238,7 +230,7 @@ public abstract class RFC4180ModeTests
             "\n");
 
         parser.Reset(in data);
-        Assert.True(parser.TryReadLine(out var line, out _, false));
+        Assert.True(parser.TryReadLine(out var line, false));
 
         Assert.Equal("some,line,here\r\r\r\r", line.ToString());
 

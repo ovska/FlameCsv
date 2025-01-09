@@ -17,6 +17,7 @@ public interface ICsvFieldReader<T> : IEnumerator<ReadOnlySpan<T>> where T : unm
     CsvOptions<T> Options { get; }
 }
 
+// TODO: make internal
 public ref struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IBinaryInteger<T>
 {
     public ReadOnlySpan<T> Record { get; }
@@ -43,12 +44,13 @@ public ref struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IB
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvFieldReader(
         CsvOptions<T> options,
-        ReadOnlySpan<T> record,
+        ref readonly CsvLine<T> line,
         Span<T> unescapeBuffer,
-        ref IMemoryOwner<T>? unescapeAllocator,
-        ref readonly CsvRecordMeta meta)
+        ref IMemoryOwner<T>? unescapeAllocator)
     {
-        Record = record;
+        Record = line.Value.Span;
+        quotesRemaining = line.QuoteCount;
+        escapesRemaining = line.EscapeCount;
 
         _options = options;
         _dialect = ref options.Dialect;
@@ -58,8 +60,6 @@ public ref struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IB
         _unescapeAllocator = ref unescapeAllocator;
 
         isAtStart = true;
-        quotesRemaining = meta.quoteCount;
-        escapesRemaining = meta.escapeCount;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -85,34 +85,34 @@ public ref struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IB
     {
         string escapeStr = !Escape.HasValue ? "" : $"and {escapesRemaining} escapes ";
         throw new UnreachableException(
-            $"The record ended while having {quotesRemaining} quotes {escapeStr}remaining. " +
-            $"Record: {_options.AsPrintableString(Record)}");
+            $"The record ended while having {quotesRemaining} quotes {escapeStr}remaining. "
+            + $"Record: {_options.AsPrintableString(Record)}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     internal readonly void ThrowForInvalidEndOfString()
     {
         throw new UnreachableException(
-            "The record had a string that ended in the middle without the next character being a delimiter. " +
-            $"Record: {_options.AsPrintableString(Record)}");
+            "The record had a string that ended in the middle without the next character being a delimiter. "
+            + $"Record: {_options.AsPrintableString(Record)}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     internal readonly void ThrowEscapeAtEnd()
     {
         throw new UnreachableException(
-            "The CSV record was in an invalid state (escape token was the final character), " +
-            $"Remaining: {_options.AsPrintableString(Record.Slice(Consumed))}, " +
-            $"Record: {_options.AsPrintableString(Record)}");
+            "The CSV record was in an invalid state (escape token was the final character), "
+            + $"Remaining: {_options.AsPrintableString(Record.Slice(Consumed))}, "
+            + $"Record: {_options.AsPrintableString(Record)}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     internal readonly void ThrowNoDelimiterAtHead()
     {
         throw new UnreachableException(
-            "The CSV record was in an invalid state (no delimiter at head after the first field), " +
-            $"Remaining: {_options.AsPrintableString(Record.Slice(Consumed))}, " +
-            $"Record: {_options.AsPrintableString(Record)}");
+            "The CSV record was in an invalid state (no delimiter at head after the first field), "
+            + $"Remaining: {_options.AsPrintableString(Record.Slice(Consumed))}, "
+            + $"Record: {_options.AsPrintableString(Record)}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -132,7 +132,9 @@ public ref struct CsvFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IB
 
         if (!End)
         {
-            sb.Append(CultureInfo.InvariantCulture, $"Remaining: {_options.AsPrintableString(Record.Slice(Consumed))}, ");
+            sb.Append(
+                CultureInfo.InvariantCulture,
+                $"Remaining: {_options.AsPrintableString(Record.Slice(Consumed))}, ");
         }
 
         sb.Append(CultureInfo.InvariantCulture, $"Record: {_options.AsPrintableString(Record)}");

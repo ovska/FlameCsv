@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
@@ -10,27 +12,29 @@ namespace FlameCsv.Tests.Binding;
 
 public static class CsvBooleanValuesAttributeTests
 {
-    public static TheoryData<string, bool, bool?> NonNullableTestData() => new()
-    {
-        { "1", true, true },
-        { "Y", true, true },
-        { "0", true, false },
-        { "N", true, false },
-        { "true", false, null },
-        { "false", false, null },
-    };
+    public static TheoryData<string, bool, bool?> NonNullableTestData()
+        => new()
+        {
+            { "1", true, true },
+            { "Y", true, true },
+            { "0", true, false },
+            { "N", true, false },
+            { "true", false, null },
+            { "false", false, null },
+        };
 
-    public static TheoryData<string, bool, bool?, string> NullableTestData() => new()
-    {
-        { "1", true, true, "" },
-        { "Y", true, true, "" },
-        { "0", true, false, "" },
-        { "N", true, false, "" },
-        { "true", false, null, "" },
-        { "false", false, null, "" },
-        { "null", true, null, "null" },
-        { "null", false, null, "" },
-    };
+    public static TheoryData<string, bool, bool?, string> NullableTestData()
+        => new()
+        {
+            { "1", true, true, "" },
+            { "Y", true, true, "" },
+            { "0", true, false, "" },
+            { "N", true, false, "" },
+            { "true", false, null, "" },
+            { "false", false, null, "" },
+            { "null", true, null, "null" },
+            { "null", false, null, "" },
+        };
 
     private class Shim
     {
@@ -171,5 +175,23 @@ public static class CsvBooleanValuesAttributeTests
         var parser = (NullableConverter<char, bool>)@override.CreateConverter(typeof(bool?), options);
         Assert.True(parser.TryParse("", out bool? parsed));
         Assert.False(parsed.HasValue);
+    }
+
+    [Fact]
+    public static void Should_Validate_AlternateComparer()
+    {
+        Assert.ThrowsAny<CsvConfigurationException>(
+            () => new CustomBooleanTextConverter(
+                new CsvOptions<char>
+                {
+                    BooleanValues = { ("t", true), ("f", false) }, Comparer = new NotWorkingComparer(),
+                }));
+    }
+
+    [ExcludeFromCodeCoverage]
+    private sealed class NotWorkingComparer : IEqualityComparer<string>
+    {
+        public bool Equals(string? x, string? y) => throw new UnreachableException();
+        public int GetHashCode(string obj) => throw new UnreachableException();
     }
 }

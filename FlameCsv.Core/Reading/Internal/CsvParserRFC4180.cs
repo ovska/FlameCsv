@@ -11,18 +11,20 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IB
     {
     }
 
-    public override CsvRecordMeta GetRecordMeta(ReadOnlySpan<T> line)
+    public override CsvLine<T> GetAsCsvLine(ReadOnlyMemory<T> line)
     {
-        CsvRecordMeta meta = new() { quoteCount = (uint)System.MemoryExtensions.Count(line, Options.Dialect.Quote), };
+        ReadOnlySpan<T> span = line.Span;
 
-        if (meta.quoteCount % 2 != 0)
-            ThrowForUnevenQuotes(line, Options);
+        uint quoteCount = (uint)System.MemoryExtensions.Count(span, Options.Dialect.Quote);
 
-        return meta;
+        if (quoteCount % 2 != 0)
+            ThrowForUnevenQuotes(span, Options);
+
+        return new CsvLine<T> { Value = line, QuoteCount = quoteCount, };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    protected override bool TryReadLine(out ReadOnlyMemory<T> line, out CsvRecordMeta meta)
+    protected override bool TryReadLine(out CsvLine<T> line)
     {
         CsvSequenceReader<T> copy = _reader;
 
@@ -30,20 +32,20 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IB
         ReadOnlySpan<T> remaining = unreadMemory.Span;
         ref T start = ref remaining.DangerousGetReference();
 
-        meta = new();
+        uint quoteCount = 0;
 
         while (!_reader.End)
         {
         Seek:
-            int index = meta.quoteCount % 2 == 0
-                ? remaining.IndexOfAny(_quote, _newline[0])
+            int index = quoteCount % 2 == 0
+                ? remaining.IndexOfAny(_quote, _newline.First)
                 : remaining.IndexOf(_quote);
 
             if (index != -1)
             {
                 if (remaining[index] == _quote)
                 {
-                    meta.quoteCount++;
+                    quoteCount++;
 
                     remaining = _reader.AdvanceCurrent(index + 1)
                         ? _reader.Unread.Span
@@ -64,7 +66,7 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IB
                 if (_reader.AdvanceCurrent(1))
                     segmentHasChanged = true;
 
-                if (_newline.Length == 1 || _reader.IsNext(_newline[1], advancePast: true))
+                if (_newline.Length == 1 || _reader.IsNext(_newline.Second, advancePast: true))
                 {
                     // perf: non-empty slice from the same segment, read directly from the original memory
                     // at this point, index points to the first newline token
@@ -75,16 +77,21 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IB
                             ref start,
                             ref remaining.DangerousGetReferenceAt(index));
                         int elementCount = byteOffset / Unsafe.SizeOf<T>();
-                        line = unreadMemory.Slice(0, elementCount);
+                        line = new CsvLine<T> { Value = unreadMemory.Slice(0, elementCount), QuoteCount = quoteCount, };
 
                         Debug.Assert(
-                            _reader.Sequence.Slice(copy.Position, crPosition).SequenceEquals(line.Span),
+                            _reader.Sequence.Slice(copy.Position, crPosition).SequenceEquals(line.Value.Span),
                             $"Invalid slice: '{line}' vs '{_reader.Sequence.Slice(copy.Position, crPosition)}'");
                     }
                     else
                     {
-                        line = _reader.Sequence.Slice(copy.Position, crPosition)
-                            .AsMemory(Allocator, ref _multisegmentBuffer);
+                        line = new()
+                        {
+                            QuoteCount = quoteCount,
+                            Value = _reader.Sequence
+                                .Slice(copy.Position, crPosition)
+                                .AsMemory(Allocator, ref _multisegmentBuffer),
+                        };
                     }
 
                     return true;
@@ -115,14 +122,13 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IB
         int linesRead = 0;
         int consumed = 0;
         int currentConsumed = 0;
-
-        CsvRecordMeta meta = default;
+        uint quoteCount = 0;
 
         while (linesRead < slices.Length)
         {
         Seek:
-            int index = meta.quoteCount % 2 == 0
-                ? data.IndexOfAny(_quote, _newline[0])
+            int index = quoteCount % 2 == 0
+                ? data.IndexOfAny(_quote, _newline.First)
                 : data.IndexOf(_quote);
 
             if (index < 0)
@@ -130,7 +136,7 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IB
 
             if (_quote == data.DangerousGetReferenceAt(index))
             {
-                meta.quoteCount++;
+                quoteCount++;
                 data = data.Slice(index + 1);
                 currentConsumed += index + 1;
                 goto Seek;
@@ -146,7 +152,7 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IB
                     break;
 
                 // next token wasn't the second newline
-                if (_newline[1] != data.DangerousGetReferenceAt(index + 1))
+                if (_newline.Second != data.DangerousGetReferenceAt(index + 1))
                 {
                     data = data.Slice(index + 1);
                     currentConsumed++;
@@ -155,12 +161,12 @@ internal sealed class CsvParserRFC4180<T> : CsvParser<T> where T : unmanaged, IB
             }
 
             // Found newline
-            slices[linesRead++] = new Slice { Index = consumed, Length = currentConsumed, Meta = meta, };
+            slices[linesRead++] = new Slice { Index = consumed, Length = currentConsumed, QuoteCount = quoteCount, };
 
             consumed += currentConsumed + _newline.Length;
             data = data.Slice(index + _newline.Length);
             currentConsumed = 0;
-            meta = default;
+            quoteCount = 0;
         }
 
         return (consumed, linesRead);
