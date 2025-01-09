@@ -7,8 +7,6 @@ public static class DialectTests
     [Fact]
     public static void Should_Return_Default_Options()
     {
-        static CsvDialect<T> Default<T>() where T : unmanaged, IBinaryInteger<T> => CsvOptions<T>.Default.Dialect;
-
         Assert.Equal(',', CsvOptions<char>.Default.Dialect.Delimiter);
         Assert.Equal('"', CsvOptions<char>.Default.Dialect.Quote);
         Assert.Null(CsvOptions<char>.Default.Dialect.Escape);

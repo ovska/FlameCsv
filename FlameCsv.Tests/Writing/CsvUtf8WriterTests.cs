@@ -15,7 +15,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
         string newline,
         bool header,
         char? escape,
-        CsvFieldEscaping quoting,
+        CsvFieldQuoting quoting,
         bool sourceGen,
         int bufferSize,
         bool? guarded)
@@ -25,7 +25,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
         {
             Newline = newline,
             HasHeader = header,
-            FieldEscaping = quoting,
+            FieldQuoting = quoting,
             Escape = escape,
             Quote = '\'',
             Formats = { { typeof(DateTime), "O" }, { typeof(DateTimeOffset), "O" } },
@@ -62,7 +62,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
         bool escapeMode,
         bool crlf,
         bool header,
-        CsvFieldEscaping quoting)
+        CsvFieldQuoting quoting)
     {
         bool headerRead = false;
         int index = 0;
@@ -86,7 +86,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             {
                 Assert.Equal(0, index);
                 Assert.Equal(
-                    quoting == CsvFieldEscaping.AlwaysQuote
+                    quoting == CsvFieldQuoting.AlwaysQuote
                         ? TestDataGenerator.HeaderQuotedU8
                         : TestDataGenerator.HeaderU8,
                     line);
@@ -109,10 +109,10 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                 switch (columnIndex++)
                 {
                     case 0:
-                        Assert.Equal(quoting == CsvFieldEscaping.AlwaysQuote ? $"'{index}'" : $"{index}", column);
+                        Assert.Equal(quoting == CsvFieldQuoting.AlwaysQuote ? $"'{index}'" : $"{index}", column);
                         break;
                     case 1:
-                        if (quoting == CsvFieldEscaping.Never)
+                        if (quoting == CsvFieldQuoting.Never)
                         {
                             Assert.Equal($" Name'{index}", column);
                         }
@@ -128,14 +128,14 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                         break;
                     case 2:
                         string val = index % 2 == 0 ? "true" : "false";
-                        Assert.Equal(quoting == CsvFieldEscaping.AlwaysQuote ? $"'{val}'" : $"{val}", column);
+                        Assert.Equal(quoting == CsvFieldQuoting.AlwaysQuote ? $"'{val}'" : $"{val}", column);
                         break;
                     case 3:
-                        Assert.Equal(quoting == CsvFieldEscaping.AlwaysQuote ? dateQuoted : date, columnBytes);
+                        Assert.Equal(quoting == CsvFieldQuoting.AlwaysQuote ? dateQuoted : date, columnBytes);
                         break;
                     case 4:
                         var guid = new Guid(index, 0, 0, TestDataGenerator.GuidBytes);
-                        Assert.Equal(quoting == CsvFieldEscaping.AlwaysQuote ? $"'{guid}'" : $"{guid}", column);
+                        Assert.Equal(quoting == CsvFieldQuoting.AlwaysQuote ? $"'{guid}'" : $"{guid}", column);
                         break;
                     default:
                         throw new XunitException(

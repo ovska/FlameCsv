@@ -111,7 +111,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         // validate negative or too large tokensWritten in case of broken user-defined formatters
         if ((uint)tokensWritten > (uint)destination.Length)
         {
-            ThrowForInvalidTokensWritten(converter, tokensWritten, destination.Length);
+            InvalidTokensWritten.Throw(converter, tokensWritten, destination.Length);
         }
 
         AdvanceAndHandleQuoting(destination, tokensWritten);
@@ -136,7 +136,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         // validate negative or too large tokensWritten in case of broken user-defined options
         if ((uint)tokensWritten > (uint)destination.Length)
         {
-            ThrowForInvalidTokensWritten(_options, tokensWritten, destination.Length);
+            InvalidTokensWritten.Throw(_options, tokensWritten, destination.Length);
         }
 
         if (!skipEscaping)
@@ -196,7 +196,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         // empty writes don't need escaping
         if (tokensWritten == 0)
         {
-            if (_options._fieldEscaping == CsvFieldEscaping.AlwaysQuote)
+            if (_options._fieldQuoting == CsvFieldQuoting.AlwaysQuote)
             {
                 // Ensure the buffer is large enough
                 if (destination.Length < 2)
@@ -211,7 +211,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         }
 
         // Value formatted, check if it needs to be wrapped in quotes
-        if (_options._fieldEscaping != CsvFieldEscaping.Never)
+        if (_options._fieldQuoting != CsvFieldQuoting.Never)
         {
             if (_escape is null)
             {
@@ -235,6 +235,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
     /// of <paramref name="destination"/>. Returns <see langword="false"/> if no escaping is needed
     /// and the writer was not advanced.
     /// </summary>
+    /// <returns>True if the writer was advanced</returns>
     private bool TryEscapeAndAdvance<TEscaper>(
         ref TEscaper escaper,
         Span<T> destination,
@@ -242,14 +243,14 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         where TEscaper : struct, IEscaper<T>, allows ref struct
     {
         Debug.Assert(tokensWritten != 0);
-        Debug.Assert(_options._fieldEscaping != CsvFieldEscaping.Never);
+        Debug.Assert(_options._fieldQuoting != CsvFieldQuoting.Never);
 
         ReadOnlySpan<T> written = destination[..tokensWritten];
 
         bool shouldQuote;
         int escapableCount;
 
-        if (_options._fieldEscaping == CsvFieldEscaping.AlwaysQuote)
+        if (_options._fieldQuoting == CsvFieldQuoting.AlwaysQuote)
         {
             shouldQuote = true;
             escapableCount = escaper.CountEscapable(written);
@@ -314,13 +315,14 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
 
         return false;
     }
+}
 
+file static class InvalidTokensWritten
+{
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowForInvalidTokensWritten(object culprit, int tokensWritten, int destinationLength)
+    public static void Throw(object source, int tokensWritten, int destinationLength)
     {
-        string display = culprit is CsvConverter<T> ? "CsvConverter" : "CsvOptions";
         throw new InvalidOperationException(
-            $"{display} ({culprit.GetType().FullName}) reported {tokensWritten} "
-            + $"tokens written to a buffer of length {destinationLength}.");
+            $"{source.GetType().FullName} reported {tokensWritten} tokens written to a buffer of length {destinationLength}.");
     }
 }

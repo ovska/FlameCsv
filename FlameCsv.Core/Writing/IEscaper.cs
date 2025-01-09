@@ -22,7 +22,8 @@ internal interface IEscaper<T> where T : unmanaged, IBinaryInteger<T>
     int LastIndexOfEscapable(scoped ReadOnlySpan<T> value);
 
     /// <summary>
-    /// Counts the number of special characters in the span.
+    /// Counts the number of special characters in the span. Using RFC4180 mode, this counts quotes.
+    /// In unix mode, counts both quotes and escapes.
     /// </summary>
     /// <remarks>Called after <see cref="CsvDialect{T}.NeedsQuoting"/> matches a token.</remarks>
     int CountEscapable(scoped ReadOnlySpan<T> field);

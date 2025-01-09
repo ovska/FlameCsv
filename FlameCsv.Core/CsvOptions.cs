@@ -63,7 +63,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         _exceptionHandler = other._exceptionHandler;
         _hasHeader = other._hasHeader;
         _validateFieldCount = other._validateFieldCount;
-        _fieldEscaping = other._fieldEscaping;
+        _fieldQuoting = other._fieldQuoting;
         _memoryPool = other._memoryPool;
         _allowContentInExceptions = other._allowContentInExceptions;
         _booleanValues = other._booleanValues;
@@ -195,7 +195,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     internal CsvExceptionHandler<T>? _exceptionHandler;
     internal bool _hasHeader = true;
     internal bool _validateFieldCount;
-    internal CsvFieldEscaping _fieldEscaping;
+    internal CsvFieldQuoting _fieldQuoting;
     internal MemoryPool<T> _memoryPool = MemoryPool<T>.Shared;
     private bool _allowContentInExceptions;
     internal SealableList<(string, bool)>? _booleanValues;
@@ -378,22 +378,22 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     }
 
     /// <summary>
-    /// Defines the quoting behavior when writing values. Default is <see cref="CsvFieldEscaping.Auto"/>.
+    /// Defines the quoting behavior when writing values. Default is <see cref="CsvFieldQuoting.Auto"/>.
     /// </summary>
-    public CsvFieldEscaping FieldEscaping
+    public CsvFieldQuoting FieldQuoting
     {
-        get => _fieldEscaping;
+        get => _fieldQuoting;
         set
         {
             if (!Enum.IsDefined(value))
                 Throw.Argument(nameof(value), "Value not defined in enum CsvFieldEscaping");
 
-            this.SetValue(ref _fieldEscaping, value);
+            this.SetValue(ref _fieldQuoting, value);
         }
     }
 
     /// <summary>
-    /// If <see langword="true"/> validates that all records have the same amount of fields when reading or writing CSV.
+    /// If <see langword="true"/> validates that all records have the same number of fields when reading or writing CSV.
     /// Default is <see langword="false"/>.
     /// </summary>
     public bool ValidateFieldCount

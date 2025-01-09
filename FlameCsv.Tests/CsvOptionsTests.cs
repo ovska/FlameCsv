@@ -252,7 +252,7 @@ public class CsvOptionsTests
         Run(o => o.AllowUndefinedEnumValues = default);
         Run(o => o.UseDefaultConverters = default);
         Run(o => o.EnumFormat = "");
-        Run(o => o.FieldEscaping = default);
+        Run(o => o.FieldQuoting = default);
         Run(o => o.FormatProvider = default);
         Run(o => o.FormatProviders.Add(typeof(int), null));
         Run(o => o.Formats.Add(typeof(int), null));
