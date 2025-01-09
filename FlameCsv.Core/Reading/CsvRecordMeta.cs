@@ -2,16 +2,12 @@
 
 namespace FlameCsv.Reading;
 
-[DebuggerDisplay(@"\{ RecordMeta, QuoteCount: {quoteCount}, EscapeCount: {escapeCount} \}")]
-public struct CsvRecordMeta
+[DebuggerDisplay(@"\{ CsvLine Length: {Value.Length}, QuoteCount: {QuoteCount}, EscapeCount: {EscapeCount} \}")]
+public readonly struct CsvLine<T> where T : unmanaged, IBinaryInteger<T>
 {
-    /// <summary>
-    /// Amount of quotes-tokens not preceded with an escape character found in the line.
-    /// </summary>
-    public uint quoteCount;
+    public required ReadOnlyMemory<T> Value { get; init; }
+    public required uint QuoteCount { get; init; }
+    public uint EscapeCount { get; init; }
 
-    /// <summary>
-    /// Amount of <em>effective</em> escape-tokens found in the line, e.g. an escaped escape <c>"\\"</c> counts as one.
-    /// </summary>
-    public uint escapeCount;
+    public override string ToString() => Value.ToString();
 }

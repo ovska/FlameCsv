@@ -58,7 +58,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     protected bool TryRead(bool isFinalBlock)
     {
     ReadNextRecord:
-        if (!_parser.TryReadLine(out ReadOnlyMemory<T> line, out CsvRecordMeta meta, isFinalBlock))
+        if (!_parser.TryReadLine(out CsvLine<T> line, isFinalBlock))
         {
             return false;
         }
@@ -66,16 +66,14 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         long position = Position;
 
         Line++;
-        Position += line.Length + (isFinalBlock ? 0 : _parser._newline.Length);
+        Position += line.Value.Length + (isFinalBlock ? 0 : _parser._newline.Length);
 
-        ReadOnlySpan<T> record = line.Span;
-
-        if (_parser.SkipRecord(record, Line, _parser.HasHeader && _materializer is null))
+        if (_parser.SkipRecord(in line, Line, _parser.HasHeader && _materializer is null))
         {
             goto ReadNextRecord;
         }
 
-        if (_materializer is null && TryReadHeader(record))
+        if (_materializer is null && TryReadHeader(in line))
         {
             // csv only had the header
             if (isFinalBlock)
@@ -90,10 +88,9 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         {
             CsvFieldReader<T> reader = new(
                 _parser.Options,
-                record,
+                in line,
                 stackalloc T[Token<T>.StackLength],
-                ref _unescapeBuffer,
-                in meta);
+                ref _unescapeBuffer);
 
             Current = _materializer.Parse(ref reader);
             return true;
@@ -103,15 +100,16 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
             // this is treated as an unrecoverable exception
             if (ex is CsvFormatException)
             {
-                ThrowInvalidFormatException(ex, record);
+                ThrowInvalidFormatException(ex, in line);
             }
 
-            if (_parser.ExceptionIsHandled(record, Line, ex))
+            // TODO
+            if (_parser.ExceptionIsHandled(in line, Line, ex))
             {
                 goto ReadNextRecord;
             }
 
-            ThrowUnhandledException(ex, record, position);
+            ThrowUnhandledException(ex, in line, position);
             throw; // unreachable
         }
     }
@@ -120,7 +118,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = Messages.HeaderProcessorSuppressionMessage)]
     [UnconditionalSuppressMessage("Trimming", "IL2091", Justification = Messages.HeaderProcessorSuppressionMessage)]
     [UnconditionalSuppressMessage("AOT", "IL3050", Justification = Messages.HeaderProcessorSuppressionMessage)]
-    private bool TryReadHeader(ReadOnlySpan<T> record)
+    private bool TryReadHeader(ref readonly CsvLine<T> record)
     {
         Debug.Assert(
             _typeMap is not null || (RuntimeFeature.IsDynamicCodeSupported && RuntimeFeature.IsDynamicCodeCompiled));
@@ -136,13 +134,11 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         StringScratch scratch = default;
         ValueListBuilder<string> list = new(scratch);
 
-        var meta = _parser.GetRecordMeta(record);
         var reader = new CsvFieldReader<T>(
             _parser.Options,
-            record,
+            in record,
             stackalloc T[Token<T>.StackLength],
-            ref _unescapeBuffer,
-            in meta);
+            ref _unescapeBuffer);
 
         try
         {
@@ -166,23 +162,24 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private void ThrowInvalidFormatException(Exception innerException, ReadOnlySpan<T> line)
+    private void ThrowInvalidFormatException(Exception innerException, in CsvLine<T> line)
     {
         throw new CsvFormatException(
             $"The CSV was in an invalid format. The record was on line {Line} at character "
-            + $"position {Position} in the CSV. Record: {_parser._options.AsPrintableString(line)}",
+            + $"position {Position} in the CSV. Record: {_parser._options.AsPrintableString(line.Value.Span)}",
             innerException);
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private void ThrowUnhandledException(
         Exception innerException,
-        ReadOnlySpan<T> record,
+        in CsvLine<T> line,
         long position)
     {
         throw new CsvUnhandledException(
             $"Unhandled exception while reading records of type {typeof(TValue)} from the CSV. The record was on "
-            + $"line {Line} at character position {position} in the CSV. Record: {_parser._options.AsPrintableString(record)}",
+            + $"line {Line} at character position {position} in the CSV. Record: "
+            + _parser._options.AsPrintableString(line.Value.Span),
             Line,
             position,
             innerException);

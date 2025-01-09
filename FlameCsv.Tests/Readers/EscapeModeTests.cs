@@ -21,13 +21,12 @@ public static class EscapeModeTests
     {
         IMemoryOwner<char>? allocated = null;
 
-        var meta = new CsvRecordMeta { quoteCount = (uint)input.Count('"') };
+        var line = new CsvLine<char> { Value = input.AsMemory(), QuoteCount = (uint)input.Count('"') };
         var record = new CsvFieldReader<char>(
             new CsvOptions<char> { Whitespace = " ", Escape = '\\' },
-            input,
+            in line,
             default,
-            ref allocated,
-            in meta);
+            ref allocated);
 
         var field = UnixMode<char>.ReadNextField(ref record);
 
@@ -47,15 +46,14 @@ public static class EscapeModeTests
         IMemoryOwner<char>? allocated = null;
 
         using var parser = CsvParser<char>.Create(new CsvOptions<char> { Escape = '^', Quote = '\'' });
-        var meta = parser.GetRecordMeta(input);
+        var line = parser.GetAsCsvLine(input.AsMemory());
         Span<char> stackbuffer = stackalloc char[16];
 
         var record = new CsvFieldReader<char>(
             parser.Options,
-            input,
+            in line,
             stackbuffer,
-            ref allocated,
-            in meta);
+            ref allocated);
 
         var field = UnixMode<char>.ReadNextField(ref record);
         Assert.Equal(expected, field);
@@ -86,14 +84,13 @@ public static class EscapeModeTests
         IMemoryOwner<char>? allocated = null;
 
         using var parser = CsvParser<char>.Create(options);
-        var meta = parser.GetRecordMeta(input);
+        var line = parser.GetAsCsvLine(input.AsMemory());
 
         var state = new CsvFieldReader<char>(
             parser.Options,
-            input,
+            in line,
             stackalloc char[64],
-            ref allocated,
-            in meta);
+            ref allocated);
 
         List<string> actual = [];
 
@@ -119,7 +116,7 @@ public static class EscapeModeTests
         using var parser = CsvParser<char>.Create(new CsvOptions<char> { Newline = "\r\n", Escape = '^' });
         parser.Reset(in seq);
 
-        Assert.True(parser.TryReadLine(out var line, out _, isFinalBlock: false));
+        Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
 
         Assert.Equal("xyz", line.ToString());
         Assert.Equal("abc", parser._reader.UnreadSequence.ToString());
@@ -148,7 +145,7 @@ public static class EscapeModeTests
 
         var results = new List<string>();
 
-        while (parser.TryReadLine(out var line, out _, isFinalBlock: false))
+        while (parser.TryReadLine(out var line, isFinalBlock: false))
         {
             results.Add(line.ToString());
         }
@@ -172,7 +169,7 @@ public static class EscapeModeTests
         using var parser = CsvParser<char>.Create(new CsvOptions<char> { Newline = newline, Escape = '^' });
         parser.Reset(in seq);
 
-        Assert.True(parser.TryReadLine(out var line, out _, isFinalBlock: false));
+        Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
         Assert.Equal(segments[0], line.ToString());
         Assert.Equal(segments[2], parser._reader.UnreadSequence.ToString());
     }
@@ -186,7 +183,7 @@ public static class EscapeModeTests
         using var parser = CsvParser<char>.Create(new CsvOptions<char> { Escape = '^' });
         parser.Reset(in seq);
 
-        Assert.False(parser.TryReadLine(out _, out _, isFinalBlock: false));
+        Assert.False(parser.TryReadLine(out _, isFinalBlock: false));
         Assert.Equal(data, parser._reader.UnreadSequence.ToString());
     }
 
@@ -218,18 +215,18 @@ public static class EscapeModeTests
 
             string withoutNewline = originalWithoutLf.ToString();
 
-            Assert.True(parser.TryReadLine(out var line, out var meta, isFinalBlock: false));
+            Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
             Assert.True(parser.End);
             Assert.Equal(withoutNewline, line.ToString());
-            Assert.Equal(data.Replace("^'", "").Count('\''), (int)meta.quoteCount);
-            Assert.Equal(data.Replace("^^", "^").Count('^'), (int)meta.escapeCount);
+            Assert.Equal(data.Replace("^'", "").Count('\''), (int)line.QuoteCount);
+            Assert.Equal(data.Replace("^^", "^").Count('^'), (int)line.EscapeCount);
 
             parser.Reset(in originalWithoutLf);
-            Assert.True(parser.TryReadLine(out line, out meta, isFinalBlock: true));
+            Assert.True(parser.TryReadLine(out line, isFinalBlock: true));
             Assert.True(parser.End);
             Assert.Equal(withoutNewline, line.ToString());
-            Assert.Equal(data.Replace("^'", "").Count('\''), (int)meta.quoteCount);
-            Assert.Equal(data.Replace("^^", "^").Count('^'), (int)meta.escapeCount);
+            Assert.Equal(data.Replace("^'", "").Count('\''), (int)line.QuoteCount);
+            Assert.Equal(data.Replace("^^", "^").Count('^'), (int)line.EscapeCount);
         }
     }
 

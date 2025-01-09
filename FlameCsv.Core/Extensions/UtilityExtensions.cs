@@ -15,12 +15,8 @@ internal static class UtilityExtensions
         public ReadOnlySpan<T> Value { get; } = value;
     }
 
-
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static string AsPrintableString<T>(
-        this CsvOptions<T> options,
-        ReadOnlySpan<T> value,
-        int knownNewlineLength = 0)
+    public static string AsPrintableString<T>(this CsvOptions<T> options, ReadOnlySpan<T> value)
         where T : unmanaged, IBinaryInteger<T>
     {
         string? content = options.AllowContentInExceptions ? options.GetAsString(value) : null;
@@ -111,9 +107,9 @@ internal static class UtilityExtensions
 
     public static T[] UnsafeGetOrCreateArray<T>(this ReadOnlyMemory<T> memory)
     {
-        if (MemoryMarshal.TryGetArray(memory, out var segment) &&
-            segment is { Array: { } arr, Offset: 0 } &&
-            segment.Array.Length == segment.Count)
+        if (MemoryMarshal.TryGetArray(memory, out var segment)
+            && segment is { Array: { } arr, Offset: 0 }
+            && segment.Array.Length == segment.Count)
         {
             return arr;
         }

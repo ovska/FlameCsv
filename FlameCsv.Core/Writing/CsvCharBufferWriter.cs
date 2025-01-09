@@ -11,11 +11,11 @@ internal readonly struct CsvCharBufferWriter : ICsvBufferWriter<char>
 {
     // this nested class is used to satisfy the struct-constraint for writer in CsvFieldWriter,
     // as a mutable struct doesn't play nice with async methods
-    private sealed class State : IDisposable
+    private sealed class State(IMemoryOwner<char> initialMemory) : IDisposable
     {
         public int Unflushed;
         public Memory<char> Buffer => Owner.Memory;
-        public IMemoryOwner<char> Owner;
+        public IMemoryOwner<char> Owner = initialMemory;
 
         public int Remaining
         {
@@ -59,7 +59,7 @@ internal readonly struct CsvCharBufferWriter : ICsvBufferWriter<char>
         _writer = writer;
         _allocator = allocator;
         _bufferSize = bufferSize;
-        _state = new State { Owner = allocator.Rent(bufferSize) };
+        _state = new State(allocator.Rent(bufferSize));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

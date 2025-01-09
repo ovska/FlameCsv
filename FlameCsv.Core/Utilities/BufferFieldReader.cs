@@ -10,24 +10,25 @@ internal ref struct BufferFieldReader<T> : ICsvFieldReader<T> where T : unmanage
     private readonly ReadOnlySpan<T> _block;
     private readonly ReadOnlySpan<Range> _ranges;
     private ReadOnlySpan<Range>.Enumerator _rangeEnumerator;
+    private readonly ReadOnlyMemory<T> _record;
 
     // ReSharper disable once ConvertToPrimaryConstructor
     public BufferFieldReader(
         CsvOptions<T> options,
-        ReadOnlySpan<T> record,
+        ReadOnlyMemory<T> record,
         ReadOnlySpan<T> block,
         ReadOnlySpan<Range> ranges)
     {
         _block = block;
         _ranges = ranges;
         _rangeEnumerator = ranges.GetEnumerator();
-        Record = record;
+        _record = record;
         Options = options;
     }
 
     public ReadOnlySpan<T> Current { get; private set; }
 
-    public ReadOnlySpan<T> Record { get; }
+    public readonly ReadOnlySpan<T> Record => _record.Span;
     public CsvOptions<T> Options { get; }
 
     public bool MoveNext()
