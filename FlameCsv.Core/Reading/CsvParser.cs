@@ -11,23 +11,26 @@ namespace FlameCsv.Reading;
 
 public abstract class CsvParser : IDisposable
 {
+    /// <summary>
+    /// Used to cache lines read from the first memory of current sequence.
+    /// </summary>
     protected readonly struct Slice
     {
-        public int Index { get; init; }
-        public int Length { get; init; }
-        public CsvRecordMeta Meta { get; init; }
+        public required int Index { get; init; }
+        public required int Length { get; init; }
+        public required uint QuoteCount { get; init; }
+        public uint EscapeCount { get; init; }
     }
 
     public abstract void Dispose();
 
-    protected const int SliceBufferSize =
+    [InlineArray(
 #if DEBUG
-        32;
+        32
 #else
-    128;
+        128
 #endif
-
-    [InlineArray(SliceBufferSize)]
+    )]
     protected struct SliceBuffer
     {
         public Slice elem0;
@@ -88,13 +91,13 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
         _newline = options.GetNewline();
     }
 
-    public abstract CsvRecordMeta GetRecordMeta(ReadOnlySpan<T> line);
-    protected abstract bool TryReadLine(out ReadOnlyMemory<T> line, out CsvRecordMeta meta);
+    public abstract CsvLine<T> GetAsCsvLine(ReadOnlyMemory<T> line);
+    protected abstract bool TryReadLine(out CsvLine<T> line);
     protected abstract (int consumed, int linesRead) FillSliceBuffer(ReadOnlySpan<T> data, scoped Span<Slice> slices);
 
-    [SuppressMessage("Usage", "CA1816:Dispose methods should call SuppressFinalize", Justification = "<Pending>")]
     public override void Dispose()
     {
+        GC.SuppressFinalize(this);
         _multisegmentBuffer?.Dispose();
         _multisegmentBuffer = null;
         _reader = default;
@@ -115,18 +118,19 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryReadLine(
-        out ReadOnlyMemory<T> line,
-        out CsvRecordMeta meta,
+        out CsvLine<T> line,
         bool isFinalBlock)
     {
         if (_sliceCount > _sliceIndex)
         {
-            Debug.Assert(_sliceIndex < SliceBufferSize);
-
             ref Slice slice = ref _slices[_sliceIndex];
 
-            line = _sliceBuffer.Slice(slice.Index, slice.Length);
-            meta = slice.Meta;
+            line = new()
+            {
+                Value = _sliceBuffer.Slice(slice.Index, slice.Length),
+                QuoteCount = slice.QuoteCount,
+                EscapeCount = slice.EscapeCount,
+            };
 
             if (++_sliceIndex >= _sliceCount)
             {
@@ -138,11 +142,11 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
             return true;
         }
 
-        return TryReadSlow(out line, out meta, isFinalBlock);
+        return TryReadSlow(out line, isFinalBlock);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private bool TryReadSlow(out ReadOnlyMemory<T> line, out CsvRecordMeta meta, bool isFinalBlock)
+    private bool TryReadSlow(out CsvLine<T> line, bool isFinalBlock)
     {
         if (_newline.Length == 0 && !TryPeekNewline())
         {
@@ -168,26 +172,24 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
                 _sliceCount = linesRead;
                 _sliceBuffer = unread;
                 _reader.AdvanceCurrent(consumed);
-                return TryReadLine(out line, out meta, isFinalBlock);
+                return TryReadLine(out line, isFinalBlock);
             }
         }
 
         if (!isFinalBlock)
         {
-            return TryReadLine(out line, out meta);
+            return TryReadLine(out line);
         }
 
     ConsumeFinalBlock:
         Debug.Assert(isFinalBlock);
-        line = _reader.UnreadSequence.AsMemory(Allocator, ref _multisegmentBuffer);
-        meta = GetRecordMeta(line.Span);
+        line = GetAsCsvLine(_reader.UnreadSequence.AsMemory(Allocator, ref _multisegmentBuffer));
         _reader.AdvanceToEnd();
         return true;
 
     Fail:
         Debug.Assert(_sliceIndex == 0);
         Unsafe.SkipInit(out line);
-        Unsafe.SkipInit(out meta);
         return false;
     }
 
@@ -203,24 +205,24 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool SkipRecord(ReadOnlySpan<T> record, int line, bool isHeader)
+    public bool SkipRecord(ref readonly CsvLine<T> record, int line, bool isHeader)
     {
         return _options._shouldSkipRow is { } predicate
             && predicate(
                 new CsvRecordSkipArgs<T>
                 {
-                    Options = _options, Line = line, Record = record, IsHeader = isHeader,
+                    Options = _options, Line = line, Record = record.Value.Span, IsHeader = isHeader,
                 });
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool ExceptionIsHandled(ReadOnlySpan<T> record, int line, Exception exception)
+    public bool ExceptionIsHandled(ref readonly CsvLine<T> record, int line, Exception exception)
     {
         return _options._exceptionHandler is { } handler
             && handler(
                 new CsvExceptionHandlerArgs<T>
                 {
-                    Options = _options, Line = line, Record = record, Exception = exception,
+                    Options = _options, Line = line, Record = record.Value.Span, Exception = exception,
                 });
     }
 
@@ -260,14 +262,14 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
             _newline = NewlineBuffer<T>.CRLF;
 
             // try to read \r\n
-            if (!TryReadLine(out _, out _))
+            if (!TryReadLine(out _))
             {
                 // reset reader
                 _reader = copy;
-                _newline =  NewlineBuffer<T>.LF;
+                _newline = NewlineBuffer<T>.LF;
 
                 // \r\n not found, perhaps just \n used?
-                if (!TryReadLine(out _, out _))
+                if (!TryReadLine(out _))
                 {
                     // found neither, throw if we've read a large chunk already
                     if (copy.Length > 1024L)

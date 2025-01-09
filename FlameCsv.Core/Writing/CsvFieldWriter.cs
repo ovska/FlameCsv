@@ -167,10 +167,10 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
     public void WriteNewline()
     {
         Span<T> destination = Writer.GetSpan(_newline.Length);
-        destination[0] = _newline[0];
+        destination[0] = _newline.First;
 
         if (_newline.Length == 2)
-            destination[1] = _newline[1];
+            destination[1] = _newline.Second;
 
         Writer.Advance(_newline.Length);
     }

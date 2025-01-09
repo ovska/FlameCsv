@@ -45,9 +45,9 @@ public static class NewlineDetectTests
     {
         using var parser = CsvParser<T>.Create(options);
         parser.Reset(new ReadOnlySequence<T>(input));
-        Assert.True(parser.TryReadLine(out var line, out _, isFinalBlock: false));
-        Assert.Equal(expected, line.Span);
-        Assert.True(parser.TryReadLine(out _, out _, isFinalBlock: false));
+        Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
+        Assert.Equal(expected, line.Value.Span);
+        Assert.True(parser.TryReadLine(out _, isFinalBlock: false));
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public static class NewlineDetectTests
 
         Assert.Throws<CsvConfigurationException>(() =>
         {
-            _ = parser.TryReadLine(out _, out _, false);
+            _ = parser.TryReadLine(out _, false);
         });
     }
 }
