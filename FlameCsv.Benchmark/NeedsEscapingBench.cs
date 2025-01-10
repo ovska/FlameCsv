@@ -28,8 +28,8 @@ public class NeedsEscapingBench
 
         foreach (var line in data)
         {
-            var meta = parser.GetAsCsvLine(line);
-            var reader = new CsvFieldReader<char>(CsvOptions<char>.Default, line, unescapeBuffer, ref buffer, in meta);
+            var meta = parser.GetAsCsvLine(line.AsMemory());
+            var reader = new CsvFieldReader<char>(CsvOptions<char>.Default, in meta, unescapeBuffer, ref buffer);
 
             while (reader.MoveNext())
             {
