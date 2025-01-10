@@ -56,6 +56,10 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Materializer.Generated.cs</LastGenOutput>
     </None>
+    <None Update="Reading\Internal\ISimdVector.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ISimdVector.Generated.cs</LastGenOutput>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -78,6 +82,11 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Materializer.Generated.tt</DependentUpon>
       <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Update="Reading\Internal\ISimdVector.Generated.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>ISimdVector.Generated.tt</DependentUpon>
     </Compile>
   </ItemGroup>
 

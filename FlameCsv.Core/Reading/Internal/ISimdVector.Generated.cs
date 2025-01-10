@@ -1,0 +1,194 @@
+﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+
+internal interface ISimdVector<T, TVector>
+    where T : unmanaged, IBinaryInteger<T>
+    where TVector : struct
+{
+    static abstract bool IsSupported { get; }
+    static abstract int Count { get; }
+    static abstract TVector Zero { get; }
+    static abstract TVector Equals(TVector left, TVector right);
+    static abstract TVector Create(T value);
+    static abstract TVector LoadUnsafe(ref readonly T source, nuint length);
+    static abstract ulong ExtractMostSignificantBits(TVector value);
+    static abstract TVector Or(TVector left, TVector right);
+    static abstract bool AllEqual(TVector left, TVector right);
+}
+
+internal readonly struct Vec64<T> : ISimdVector<T, Vector64<T>> where T : unmanaged, IBinaryInteger<T>
+{
+    public static bool IsSupported
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+            => Vector64<T>.IsSupported
+#if !DEBUG
+            && Vector64.IsHardwareAccelerated
+#endif
+        ;
+    }
+
+    public static int Count
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Vector64<T>.Count;
+    }
+
+    public static Vector64<T> Zero
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Vector64<T>.Zero;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector64<T> Equals(Vector64<T> left, Vector64<T> right) => Vector64.Equals(left, right);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector64<T> Create(T value) => Vector64.Create(value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector64<T> LoadUnsafe(ref readonly T source, nuint length) => Vector64.LoadUnsafe(in source, (nuint)Unsafe.SizeOf<T>() * length);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong ExtractMostSignificantBits(Vector64<T> value) => ulong.CreateSaturating(value.ExtractMostSignificantBits());
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector64<T> Or(Vector64<T> left, Vector64<T> right) => left | right;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool AllEqual(Vector64<T> left, Vector64<T> right) => left == right;
+}
+
+internal readonly struct Vec128<T> : ISimdVector<T, Vector128<T>> where T : unmanaged, IBinaryInteger<T>
+{
+    public static bool IsSupported
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+            => Vector128<T>.IsSupported
+#if !DEBUG
+            && Vector128.IsHardwareAccelerated
+#endif
+        ;
+    }
+
+    public static int Count
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Vector128<T>.Count;
+    }
+
+    public static Vector128<T> Zero
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Vector128<T>.Zero;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<T> Equals(Vector128<T> left, Vector128<T> right) => Vector128.Equals(left, right);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<T> Create(T value) => Vector128.Create(value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<T> LoadUnsafe(ref readonly T source, nuint length) => Vector128.LoadUnsafe(in source, (nuint)Unsafe.SizeOf<T>() * length);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong ExtractMostSignificantBits(Vector128<T> value) => ulong.CreateSaturating(value.ExtractMostSignificantBits());
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<T> Or(Vector128<T> left, Vector128<T> right) => left | right;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool AllEqual(Vector128<T> left, Vector128<T> right) => left == right;
+}
+
+internal readonly struct Vec256<T> : ISimdVector<T, Vector256<T>> where T : unmanaged, IBinaryInteger<T>
+{
+    public static bool IsSupported
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+            => Vector256<T>.IsSupported
+#if !DEBUG
+            && Vector256.IsHardwareAccelerated
+#endif
+        ;
+    }
+
+    public static int Count
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Vector256<T>.Count;
+    }
+
+    public static Vector256<T> Zero
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Vector256<T>.Zero;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<T> Equals(Vector256<T> left, Vector256<T> right) => Vector256.Equals(left, right);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<T> Create(T value) => Vector256.Create(value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<T> LoadUnsafe(ref readonly T source, nuint length) => Vector256.LoadUnsafe(in source, (nuint)Unsafe.SizeOf<T>() * length);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong ExtractMostSignificantBits(Vector256<T> value) => ulong.CreateSaturating(value.ExtractMostSignificantBits());
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<T> Or(Vector256<T> left, Vector256<T> right) => left | right;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool AllEqual(Vector256<T> left, Vector256<T> right) => left == right;
+}
+
+internal readonly struct Vec512<T> : ISimdVector<T, Vector512<T>> where T : unmanaged, IBinaryInteger<T>
+{
+    public static bool IsSupported
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+            => Vector512<T>.IsSupported
+#if !DEBUG
+            && Vector512.IsHardwareAccelerated
+#endif
+        ;
+    }
+
+    public static int Count
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Vector512<T>.Count;
+    }
+
+    public static Vector512<T> Zero
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Vector512<T>.Zero;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<T> Equals(Vector512<T> left, Vector512<T> right) => Vector512.Equals(left, right);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<T> Create(T value) => Vector512.Create(value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<T> LoadUnsafe(ref readonly T source, nuint length) => Vector512.LoadUnsafe(in source, (nuint)Unsafe.SizeOf<T>() * length);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong ExtractMostSignificantBits(Vector512<T> value) => ulong.CreateSaturating(value.ExtractMostSignificantBits());
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<T> Or(Vector512<T> left, Vector512<T> right) => left | right;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool AllEqual(Vector512<T> left, Vector512<T> right) => left == right;
+}
