@@ -5,6 +5,8 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using FlameCsv.Extensions;
 
+// ReSharper disable InlineTemporaryVariable
+
 #pragma warning disable RCS1158
 namespace FlameCsv.Reading;
 
@@ -60,9 +62,33 @@ public readonly struct Meta
 
 public static class Buffah<T> where T : unmanaged, IBinaryInteger<T>
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int Read(
         scoped ReadOnlySpan<T> data,
-        scoped Span<Meta> metaBuffer,
+        scoped Span<Meta> metaBufferSpan,
+        ref readonly CsvDialect<T> dialect,
+        SearchValues<T> anyToken,
+        bool isFinalBlock)
+    {
+#if !DEBUG
+        if (Unsafe.SizeOf<T>() == sizeof(char))
+        {
+            return Buffah<ushort>.ReadCore(
+                MemoryMarshal.Cast<T, ushort>(data),
+                metaBufferSpan,
+                ref Unsafe.As<CsvDialect<T>, CsvDialect<ushort>>(ref Unsafe.AsRef(in dialect)),
+                Unsafe.As<SearchValues<ushort>>(anyToken),
+                isFinalBlock);
+        }
+#endif
+
+        return ReadCore(data, metaBufferSpan, in dialect, anyToken, isFinalBlock);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.NoInlining)]
+    private static int ReadCore(
+        scoped ReadOnlySpan<T> data,
+        scoped Span<Meta> metaBufferSpan,
         ref readonly CsvDialect<T> dialect,
         SearchValues<T> anyToken,
         bool isFinalBlock)
@@ -73,16 +99,13 @@ public static class Buffah<T> where T : unmanaged, IBinaryInteger<T>
         ReadOnlySpan<T> currentStart = data;
         ReadOnlySpan<T> remaining = data;
         var newline = NewlineBuffer<T>.CRLF;
+        var searchValues = anyToken;
+        scoped Span<Meta> metaBuffer = metaBufferSpan;
 
         while (linesRead < metaBuffer.Length)
         {
-            if (remaining.IsEmpty)
-            {
-                break;
-            }
-
             int index = (quotesConsumed & 1) == 0
-                ? remaining.IndexOfAny(anyToken)
+                ? remaining.IndexOfAny(searchValues)
                 : remaining.IndexOf(dialect.Quote);
 
             if (index == -1)
@@ -183,7 +206,12 @@ internal readonly struct Vector64Impl<T> : IVector<T, Vector64<T>> where T : unm
     public static bool IsSupported
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Vector64<T>.IsSupported && Vector64.IsHardwareAccelerated;
+        get
+            => Vector64<T>.IsSupported
+#if !DEBUG
+            && Vector64.IsHardwareAccelerated
+#endif
+        ;
     }
 
     public static int Count
