@@ -68,9 +68,6 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// </summary>
     public CsvOptions()
     {
-#if DEBUG
-        _allowContentInExceptions = true;
-#endif
     }
 
     /// <summary>
@@ -86,7 +83,6 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         _validateFieldCount = other._validateFieldCount;
         _fieldQuoting = other._fieldQuoting;
         _memoryPool = other._memoryPool;
-        _allowContentInExceptions = other._allowContentInExceptions;
         _booleanValues = other._booleanValues;
         _formatProvider = other._formatProvider;
         _providers = other._providers?.Clone();
@@ -220,7 +216,6 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     internal bool _validateFieldCount;
     internal CsvFieldQuoting _fieldQuoting;
     internal MemoryPool<T> _memoryPool = MemoryPool<T>.Shared;
-    private bool _allowContentInExceptions;
     internal SealableList<(string, bool)>? _booleanValues;
     private bool _useDefaultConverters = true;
     private bool _ignoreEnumCase = true;
@@ -378,16 +373,6 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     {
         get => _stringPool;
         set => this.SetValue(ref _stringPool, value);
-    }
-
-    /// <summary>
-    /// If <see langword="true"/>, CSV content is included in exception messages. Default is
-    /// <see langword="false"/>, which will only show the CSV structure relative to delimiters/quotes/newlines.
-    /// </summary>
-    public bool AllowContentInExceptions
-    {
-        get => _allowContentInExceptions;
-        set => this.SetValue(ref _allowContentInExceptions, value);
     }
 
     /// <summary>

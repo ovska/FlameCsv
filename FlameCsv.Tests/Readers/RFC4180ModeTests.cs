@@ -157,7 +157,7 @@ public abstract class RFC4180ModeTests
     public void Should_Enumerate_Fields(string input)
     {
         using var pool = new ReturnTrackingArrayMemoryPool<char>();
-        var options = new CsvOptions<char> { Newline = "|", MemoryPool = pool, AllowContentInExceptions = true, };
+        var options = new CsvOptions<char> { Newline = "|", MemoryPool = pool, };
 
         var expected = input.Split(',').Select(s => s.Trim('"'));
 
@@ -185,7 +185,7 @@ public abstract class RFC4180ModeTests
     public void Should_Enumerate_With_Comma2()
     {
         using var pool = new ReturnTrackingArrayMemoryPool<char>();
-        var options = new CsvOptions<char> { Newline = "|", MemoryPool = pool, AllowContentInExceptions = true, };
+        var options = new CsvOptions<char> { Newline = "|", MemoryPool = pool, };
 
         var data = new[] { options.Delimiter, options.Newline[0] }.GetPermutations();
         IMemoryOwner<char>? allocated = null;

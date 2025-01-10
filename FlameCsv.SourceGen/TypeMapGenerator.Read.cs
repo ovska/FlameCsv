@@ -51,7 +51,7 @@ public partial class TypeMapGenerator
         }
         else
         {
-            sb.Append("base.ThrowUnmatched(name, index, options.AllowContentInExceptions);");
+            sb.Append("base.ThrowUnmatched(name, index);");
         }
 
         sb.Append(@"
@@ -59,7 +59,7 @@ public partial class TypeMapGenerator
 
             if (!anyFieldBound)
             {
-                base.ThrowNoFieldsBound(headers, options.AllowContentInExceptions);
+                base.ThrowNoFieldsBound(headers);
             }
 ");
 
@@ -342,7 +342,7 @@ public partial class TypeMapGenerator
         }
 
         sb.Append(@")
-                base.ThrowRequiredNotRead(GetMissingRequiredFields(materializer), headers, options.AllowContentInExceptions);
+                base.ThrowRequiredNotRead(GetMissingRequiredFields(materializer), headers);
 ");
     }
 
@@ -530,7 +530,7 @@ public partial class TypeMapGenerator
                 binding.WriteConverterId(sb);
                 sb.Append(" is not null) base.ThrowDuplicate(");
                 sb.Append(binding.Name.ToStringLiteral());
-                sb.Append(@", name, headers, options.AllowContentInExceptions);
+                sb.Append(@", name, headers);
 ");
             }
 

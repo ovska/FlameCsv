@@ -59,14 +59,11 @@ public abstract class CsvTypeMap
     protected void ThrowDuplicate(
         string member,
         string field,
-        ReadOnlySpan<string> headers,
-        bool allowContentInExceptions)
+        ReadOnlySpan<string> headers)
     {
-        string message = allowContentInExceptions
-            ? $"'{member}' matched to multiple of the {headers.Length} headers."
-            : $"\"{member}\" matched to multiple headers, including '{field}' in {JoinValues(headers)}.";
-
-        throw new CsvBindingException(TargetType, message);
+        throw new CsvBindingException(
+            TargetType,
+            $"\"{member}\" matched to multiple headers, including '{field}' in {JoinValues(headers)}.");
     }
 
     /// <summary>
@@ -75,13 +72,9 @@ public abstract class CsvTypeMap
     /// <seealso cref="CsvTypeMapAttribute{T,TValue}.IgnoreUnmatched"/>
     /// <exception cref="CsvBindingException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    protected void ThrowUnmatched(string field, int index, bool allowContentInExceptions)
+    protected void ThrowUnmatched(string field, int index)
     {
-        string message = allowContentInExceptions
-            ? $"Unmatched header field '{field}' at index {index}."
-            : $"Unmatched header field at index {index}.";
-
-        throw new CsvBindingException(TargetType, message);
+        throw new CsvBindingException(TargetType, $"Unmatched header field '{field}' at index {index}.");
     }
 
     /// <summary>
@@ -89,17 +82,12 @@ public abstract class CsvTypeMap
     /// </summary>
     /// <exception cref="CsvBindingException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    protected void ThrowRequiredNotRead(
-        IEnumerable<string> members,
-        ReadOnlySpan<string> headers,
-        bool allowContentInExceptions)
+    protected void ThrowRequiredNotRead(IEnumerable<string> members, ReadOnlySpan<string> headers)
     {
         string missingMembers = string.Join(", ", members.Select(x => $"\"{x}\""));
-        string message = $"Required members/parameters [{missingMembers}] were not matched to any header field";
-
         throw new CsvBindingException(
             TargetType,
-            $"{message}{(allowContentInExceptions ? $": {JoinValues(headers)}" : ".")}");
+            $"Required members/parameters [{missingMembers}] were not matched to any header field: [{JoinValues(headers)}]");
     }
 
     /// <summary>
@@ -108,15 +96,11 @@ public abstract class CsvTypeMap
     /// <seealso cref="CsvTypeMapAttribute{T,TValue}.IgnoreUnmatched"/>
     /// <exception cref="CsvBindingException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    protected void ThrowNoFieldsBound(
-        ReadOnlySpan<string> headers,
-        bool allowContentInExceptions)
+    protected void ThrowNoFieldsBound(ReadOnlySpan<string> headers)
     {
-        string message = allowContentInExceptions
-            ? $"No header fields were matched to a member or parameter: {JoinValues(headers)}"
-            : "No header fields were matched to a member or parameter.";
-
-        throw new CsvBindingException(TargetType, message);
+        throw new CsvBindingException(
+            TargetType,
+            $"No header fields were matched to a member or parameter: {JoinValues(headers)}");
     }
 
     private static string JoinValues(ReadOnlySpan<string> values)

@@ -92,13 +92,9 @@ internal static class Throw
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void Argument_HeaderNameNotFound(string name, bool allowContent, IEnumerable<string> header)
+    public static void Argument_HeaderNameNotFound(string name, IEnumerable<string> header)
     {
-        string msg = allowContent
-            ? $"Header \"{name}\" was not found among the CSV headers: {string.Join(", ", header)}"
-            : "Header not found among the CSV headers.";
-
-        throw new ArgumentException(msg, nameof(name));
+        throw new ArgumentException($"Header \"{name}\" was not found among the CSV headers: {string.Join(", ", header)}", nameof(name));
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]

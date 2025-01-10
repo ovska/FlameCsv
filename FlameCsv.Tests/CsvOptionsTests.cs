@@ -239,7 +239,6 @@ public class CsvOptionsTests
         Run(o => o.HasHeader = default);
         Run(o => o.Comparer = StringComparer.Ordinal);
         Run(o => o.ExceptionHandler = default);
-        Run(o => o.AllowContentInExceptions = default);
         Run(o => o.Converters[0] = new BooleanTextConverter());
         Run(o => o.Converters.Add(new BooleanTextConverter()));
         Run(o => o.Converters.Insert(0, new BooleanTextConverter()));
@@ -248,7 +247,6 @@ public class CsvOptionsTests
         Run(o => o.Converters.Clear());
         Run(o => o.StringPool = null);
         Run(o => o.IgnoreEnumCase = default);
-        Run(o => o.AllowContentInExceptions = default);
         Run(o => o.AllowUndefinedEnumValues = default);
         Run(o => o.UseDefaultConverters = default);
         Run(o => o.EnumFormat = "");

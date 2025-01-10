@@ -282,7 +282,6 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
                 _ => default,
             },
             HasHeader = header,
-            AllowContentInExceptions = true,
             MemoryPool = pool,
 #if false
             ExceptionHandler = static (in CsvExceptionHandlerArgs<T> args) =>
