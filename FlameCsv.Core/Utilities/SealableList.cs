@@ -22,6 +22,8 @@ internal sealed class SealableList<T> : IList<T>
         }
     }
 
+    public SealableList<T> Clone() => new(_owner, this);
+
     public T this[int index]
     {
         get => _list[index];
