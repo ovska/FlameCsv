@@ -20,9 +20,9 @@ partial class CsvOptions<T>
     /// Modifying the collection after the options-instance is used (<see cref="IsReadOnly"/> is <see langword="true"/>)
     /// results in an exception.
     /// </remarks>
-    public IList<CsvConverter<T>> Converters => _converters;
+    public IList<CsvConverter<T>> Converters => _converters ??= new SealableList<CsvConverter<T>>(this, defaultValues: null);
 
-    private readonly SealableList<CsvConverter<T>> _converters;
+    private SealableList<CsvConverter<T>>? _converters;
 
     internal readonly ConcurrentDictionary<Type, CsvConverter<T>> _converterCache = new(ReferenceEqualityComparer.Instance);
     internal readonly ConcurrentDictionary<object, CsvConverter<T>> _explicitCache = new(ReferenceEqualityComparer.Instance);
