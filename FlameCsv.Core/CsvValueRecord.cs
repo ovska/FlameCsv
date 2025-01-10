@@ -92,7 +92,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
 
         if (!_state.TryGetHeaderIndex(name, out int index))
         {
-            Throw.Argument_HeaderNameNotFound(name, _options.AllowContentInExceptions, _state.Header.Keys);
+            Throw.Argument_HeaderNameNotFound(name, _state.Header.Keys);
         }
 
         if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> field))
@@ -152,7 +152,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
 
         if (!_state.TryGetHeaderIndex(name, out int index))
         {
-            Throw.Argument_HeaderNameNotFound(name, _options.AllowContentInExceptions, _state.Header.Keys);
+            Throw.Argument_HeaderNameNotFound(name, _state.Header.Keys);
         }
 
         return TryGetValue(index, out value);
@@ -165,7 +165,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
 
         if (!_state.TryGetHeaderIndex(name, out int index))
         {
-            Throw.Argument_HeaderNameNotFound(name, _options.AllowContentInExceptions, _state.Header.Keys);
+            Throw.Argument_HeaderNameNotFound(name, _state.Header.Keys);
         }
 
         return GetField<TValue>(index);

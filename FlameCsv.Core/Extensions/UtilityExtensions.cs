@@ -19,8 +19,6 @@ internal static class UtilityExtensions
     public static string AsPrintableString<T>(this CsvOptions<T> options, ReadOnlySpan<T> value)
         where T : unmanaged, IBinaryInteger<T>
     {
-        string? content = options.AllowContentInExceptions ? options.GetAsString(value) : null;
-
         string structure = string.Create(
             length: value.Length,
             state: new PrintableState<T>(options, value),
@@ -57,10 +55,7 @@ internal static class UtilityExtensions
                 }
             });
 
-        if (content is null)
-            return $"Data structure: [{structure}]";
-
-        return $"Content: [{content}], data structure: [{structure}]";
+        return $"Content: [{options.GetAsString(value)}], data structure: [{structure}]";
     }
 
     public static bool IsValidFor(this CsvBindingScope scope, bool write)

@@ -187,7 +187,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
 
         if (!_header.TryGetValue(name, out int index))
         {
-            Throw.Argument_HeaderNameNotFound(name, Options.AllowContentInExceptions, _header.Keys);
+            Throw.Argument_HeaderNameNotFound(name, _header.Keys);
         }
 
         return TryGetValue(index, out value);

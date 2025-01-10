@@ -91,12 +91,8 @@ public sealed class DefaultHeaderBinder<T> : DefaultHeaderBinder, IHeaderBinder<
 
             if (binding is null && !IgnoreUnmatched)
             {
-                if (_options.AllowContentInExceptions)
-                    throw new CsvBindingException(
-                        $"Could not bind header '{field}' at index {index} to type {typeof(TValue).FullName}");
-
                 throw new CsvBindingException(
-                    $"Could not bind header at index {index} to type {typeof(TValue).FullName}");
+                    $"Could not bind header '{field}' at index {index} to type {typeof(TValue).FullName}");
             }
 
             foundBindings.Add(binding ?? CsvBinding.Ignore<TValue>(index: foundBindings.Count));

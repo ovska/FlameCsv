@@ -76,10 +76,7 @@ public static class EscapeModeTests
     public static void Should_Read_Fields(string input, string[] expected)
     {
         using var pool = new ReturnTrackingArrayMemoryPool<char>();
-        var options = new CsvOptions<char>
-        {
-            Escape = '^', Quote = '\'', AllowContentInExceptions = true, MemoryPool = pool,
-        };
+        var options = new CsvOptions<char> { Escape = '^', Quote = '\'', MemoryPool = pool, };
 
         IMemoryOwner<char>? allocated = null;
 
@@ -197,10 +194,7 @@ public static class EscapeModeTests
     {
         using MemoryPool<char> pool = ReturnTrackingMemoryPool<char>.Create(guardedMemory);
 
-        var options = new CsvOptions<char>
-        {
-            Escape = '^', Quote = '\'', AllowContentInExceptions = true, MemoryPool = pool,
-        };
+        var options = new CsvOptions<char> { Escape = '^', Quote = '\'', MemoryPool = pool, };
 
         var fullMem = fullLine.AsMemory();
         var noNewlineMem = noNewline.AsMemory();
@@ -234,10 +228,7 @@ public static class EscapeModeTests
     {
         ReadOnlySpan<string> escapeData =
         [
-            "Test,Es^,caped,Es^\r\ncaped\r\n",
-            "^,^'^\r\r\n",
-            "^^\r\n",
-            "A^,B^'^C^\r^\n\r\n",
+            "Test,Es^,caped,Es^\r\ncaped\r\n", "^,^'^\r\r\n", "^^\r\n", "A^,B^'^C^\r^\n\r\n",
         ];
 
         var data = new TheoryData<int, int, string, string, bool?>();
