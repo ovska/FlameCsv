@@ -13,6 +13,28 @@ using JetBrains.Annotations;
 
 namespace FlameCsv;
 
+file sealed class CsvOptionsCharSealed : CsvOptions<char>
+{
+    public static readonly CsvOptionsCharSealed Instance;
+
+    static CsvOptionsCharSealed()
+    {
+        Instance = new();
+        Instance.MakeReadOnly();
+    }
+}
+
+file sealed class CsvOptionsByteSealed : CsvOptions<byte>
+{
+    public static readonly CsvOptionsByteSealed Instance;
+
+    static CsvOptionsByteSealed()
+    {
+        Instance = new();
+        Instance.MakeReadOnly();
+    }
+}
+
 /// <summary>
 /// Object used to configure dialect, converters, and other options to read and write CSV data.
 /// </summary>
@@ -20,17 +42,6 @@ namespace FlameCsv;
 [PublicAPI]
 public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinaryInteger<T>
 {
-    private static readonly Lazy<CsvOptions<T>> _defaultOptions = new(
-        () =>
-        {
-            if (typeof(T) != typeof(char) && typeof(T) != typeof(byte))
-                ThrowInvalidTokenType(nameof(Default));
-
-            var options = new CsvOptions<T>();
-            options.MakeReadOnly();
-            return options;
-        });
-
     /// <summary>
     /// Returns read-only default options for <typeparamref name="T"/>, with same configuration as <see langword="new"/>().
     /// </summary>
@@ -40,7 +51,16 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     public static CsvOptions<T> Default
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _defaultOptions.Value;
+        get
+        {
+            if (typeof(T) == typeof(char))
+                return Unsafe.As<CsvOptions<T>>(CsvOptionsCharSealed.Instance);
+
+            if (typeof(T) != typeof(byte))
+                ThrowInvalidTokenType(nameof(Default));
+
+            return Unsafe.As<CsvOptions<T>>(CsvOptionsByteSealed.Instance);
+        }
     }
 
     /// <summary>

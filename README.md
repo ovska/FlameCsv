@@ -5,7 +5,7 @@
     title="Flames icons created by Flat Icons - Flaticon"
     src="https://user-images.githubusercontent.com/68028366/197605525-a4a8c70f-d757-441b-a26a-adcfaca9ee03.png" />
   <h1 align="center">FlameCsv</h1>
-  <p align="center">High-performance RFC 4180-compliant CSV library for .NET 8+ with trimming/AOT support</p>
+  <p align="center">High-performance RFC 4180-compliant CSV library for .NET 9 with trimming/AOT support</p>
 </p>
 
 # Features
@@ -14,15 +14,16 @@
   - Supports reading both `char` and `byte` (UTF-8)
   - Read from `TextReader`, `Stream`, `PipeReader`, `ReadOnlySequence`, `string`, etc.
   - Write to `StringBuilder`, `TextWriter`, `Stream`, file, etc.
-  - Converter API similar to System.Text.Json to customize parsing
-  - When needed, ccess to low level types used to parse CSV
+  - Converter API similar to System.Text.Json
+  - Provides low-level types to manually parse CSV
 - **Data binding**
   - Supports both binding to classes/structs and reading records and individual fields manually
   - Supports binding to CSV headers, or column indexes
   - Supports complex object initialization, e.g. a combination of properties and constructor params
 - **Configuration**
+  - Easy configuration for converting numbers, dates and many other built-in types
   - Supports both RFC4180/Excel and Unix/escaped CSV styles
-  - Automatic newline detection between `\n` and `\r\n` when reading text or UTF-8
+  - Automatic newline detection between `\n` and `\r\n`
 - **Performance**
   - Built with performance in mind from the ground up
   - Minimal allocations when reading records asynchronously
@@ -36,6 +37,8 @@
 
 ## Reading records
 ```csharp
+record User(int Id, string Name, DateTime LastLogin, int? Age = null);
+
 string data = "id,name,lastlogin\n1,Bob,2010-01-01\n2,Alice,2024-05-22";
 
 foreach (var user in CsvReader.Read<User>(data))
@@ -43,81 +46,88 @@ foreach (var user in CsvReader.Read<User>(data))
     Console.WriteLine(user);
 }
 
-record User(int Id, string Name, DateTime LastLogin, int? Age = null);
-```
-
-## Reading headerless CSV
-```csharp
-string data = "1,Bob,2010-01-01\n2,Alice,2024-05-22";
-var options = new CsvOptions<char> { HasHeader = false };
-
-foreach (var user in CsvReader.Read<User>(data, options))
+await foreach (var user in CsvReader.ReadAsync<User>(new TextReader(data)))
 {
     Console.WriteLine(user);
-}
-
-class User
-{
-    [CsvIndex(0)] public int Id { get; set; }
-    [CsvIndex(1)] public string? Name { get; set; }
-    [CsvIndex(2)] public DateTime LastLogin { get; set; }
 }
 ```
 
 ## Reading UTF8 directly from bytes
 ```csharp
-var options = new CsvOptions<byte> { /* configure here */ };
+var options = new CsvOptions<byte> { FormatProvider = CultureInfo.CurrentCulture };
+
 await foreach (var user in CsvReader.ReadAsync<User>(File.OpenRead(@"C:\test.csv"), options))
 {
     Console.WriteLine(user);
 }
 ```
 
-## Source gen (NativeAOT/trimming)
+## Reflection-free reading using source generator (for NativeAOT/trimming)
 ```csharp
-foreach (var user in CsvReader.Read<User>(data, UserTypeMap.Instance))
-{
-    Console.WriteLine(user);
-}
-
 record User(int Id, string Name, DateTime LastLogin, int? Age = null);
 
 [CsvTypeMap<char, User>]
 partial class UserTypeMap;
+
+foreach (var user in CsvReader.Read<User>(data, UserTypeMap.Instance))
+{
+    Console.WriteLine(user);
+}
 ```
 
 ## Reading fields manually
 ```csharp
 string data = "id,name,lastlogin,age\n1,Bob,2010-01-01,42\n2,Alice,2024-05-22,\n";
 
-// case insensitive header names (enabled by default)
-var options = new CsvOptions<char> { Comparer = StringComparer.OrdinalIgnoreCase };
+var options = new CsvOptions<char> {
+  Comparer = StringComparer.Ordinal,
+  Converters = { new CustomDateTimeConverter() }
+};
 
 foreach (CsvValueRecord<char> record in CsvReader.Enumerate(data, options))
 {
-    // get fields by column index of header name
+    // get fields by column index or header name
     var u1 = new User(
-        Id:        record.GetField<int>(0),
-        Name:      record.GetField<string>(1),
-        LastLogin: record.GetField<DateTime>(2),
-        Age:       record.GetFieldCount() >= 3 ? record.GetField<int?>(3) : null);
-
-    var u2 = new User(
         Id:        record.GetField<int>("Id"),
         Name:      record.GetField<string>("Name"),
         LastLogin: record.GetField<DateTime>("LastLogin"),
         Age:       record.GetFieldCount() >= 3 ? record.GetField<int?>("Age") : null);
+
+    var u2 = new User(
+        Id:        record.GetField<int>(0),
+        Name:      record.GetField<string>(1),
+        LastLogin: record.GetField<DateTime>(2),
+        Age:       record.GetFieldCount() >= 3 ? record.GetField<int?>(3) : null);
 }
 ```
 
 ## Copy CSV structure into objects for later use
-The `CsvValueRecord<T>` struct wraps around buffers from the CSV data source directly. To access the records safely outside a `foreach`, use `AsEnumerable()` or manually call `new CsvRecord<T>(csvValueRecord)`.
 ```csharp
 string data = "id,name,lastlogin,age\n1,Bob,2010-01-01,42\n2,Alice,2024-05-22,\n";
 
 // CsvRecord reference type copies the CSV fields for later use
-List<CsvRecord<char>> records = [.. CsvReader.Enumerate(data).AsEnumerable()];
+List<CsvRecord<char>> records = [.. CsvReader.Enumerate(data).Preserve()];
 Console.WriteLine("First name: " + records[0].GetField(1));
+return records[^1];
+```
+
+## Reading headerless CSV
+```csharp
+class User
+{
+    [CsvIndex(0)] public int Id { get; set; }
+    [CsvIndex(1)] public string? Name { get; set; }
+    [CsvIndex(2)] public DateTime LastLogin { get; set; }
+}
+
+string data = "1,Bob,2010-01-01\n2,Alice,2024-05-22";
+
+var options = new CsvOptions<char> { HasHeader = false };
+
+foreach (var user in CsvReader.Read<User>(data, options))
+{
+    Console.WriteLine(user);
+}
 ```
 
 ## Writing records
@@ -131,60 +141,8 @@ User[] data =
 StringBuilder result = CsvWriter.WriteToString(data);
 Console.WriteLine(result);
 
-record User(int Id, string Name, DateTime LastLogin, int? Age = null);
+await CsvWriter.WriteAsync(data, stream, leaveOpen: true);
 ```
-
-## Writing fields manually
-```csharp
-var output = new MemoryStream();
-await using (var writer = CsvWriter.Create(output))
-{
-    writer.WriteRaw("id,name,lastlogin"u8);
-    writer.NextRecord();
-
-    writer.WriteField(1);
-    writer.WriteField("Bob");
-    writer.WriteField(DateTime.UnixEpoch);
-    writer.WriteField(42);
-    writer.NextRecord();
-
-    writer.WriteField(2);
-    writer.WriteField("Alice");
-    writer.WriteField(DateTime.UnixEpoch);
-    writer.WriteField(ReadOnlySpan<char>.Empty, skipEscaping: true);
-    writer.NextRecord();
-}
-
-Console.WriteLine(Encoding.UTF8.GetString(output.ToArray()));
-
-record User(int Id, string Name, DateTime LastLogin, int? Age = null);
-```
-
-## Writing records manually
-```csharp
-var output = new StringWriter();
-using var writer = CsvWriter.Create(output);
-
-User[] data =
-[
-    new User(1, "Bob", DateTime.UnixEpoch, 42),
-    new User(2, "Alice", DateTime.UnixEpoch, null),
-];
-
-writer.WriteHeader<User>();
-
-foreach (User item in data)
-{
-    writer.WriteRecord<User>(item);
-}
-
-writer.Flush();
-
-Console.WriteLine(output.ToString());
-
-record User(int Id, string Name, DateTime LastLogin, int? Age = null);
-```
-
 
 # Performance
 

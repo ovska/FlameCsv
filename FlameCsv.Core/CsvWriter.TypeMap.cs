@@ -169,25 +169,25 @@ public static partial class CsvWriter
     /// <summary>
     /// Writes the CSV records to a string.
     /// </summary>
-    /// <param name="values"></param>
+    /// <param name="values">Values to write to the string builder</param>
     /// <param name="typeMap"></param>
-    /// <param name="options"></param>
-    /// <param name="initialCapacity">Initial capacity of the string builder</param>
-    /// <returns>A <see cref="StringBuilder"/> containing the CSV</returns>
+    /// <param name="options">Optional user configured options to use</param>
+    /// <param name="builder">Optional builder to write the CSV to.</param>
+    /// <returns><see cref="StringBuilder"/> containing the CSV</returns>
+    /// <returns><see cref="StringBuilder"/> containing the CSV</returns>
     public static StringBuilder WriteToString<TValue>(
         IEnumerable<TValue> values,
         CsvTypeMap<char, TValue> typeMap,
         CsvOptions<char>? options = null,
-        int initialCapacity = 1024)
+        StringBuilder? builder = null)
     {
         ArgumentNullException.ThrowIfNull(values);
         ArgumentNullException.ThrowIfNull(typeMap);
-        ArgumentOutOfRangeException.ThrowIfNegative(initialCapacity);
 
         options ??= CsvOptions<char>.Default;
         var dematerializer = typeMap.GetDematerializer(options);
 
-        var sb = new StringBuilder(capacity: initialCapacity);
+        var sb = builder ?? new StringBuilder(capacity: 1024);
         WriteCore(
             values,
             CsvFieldWriter.Create(new StringWriter(sb), options, bufferSize: 4096),
