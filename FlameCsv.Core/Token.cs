@@ -11,12 +11,11 @@ internal static class Token<T> where T : unmanaged
     public static bool CanStackalloc(int length)
     {
         // JITed to a constant
-        uint threshold = sizeof(byte) * 512u / (uint)Unsafe.SizeOf<T>();
-        return (uint)length <= threshold;
+        return (uint)length <= 512u / (uint)Unsafe.SizeOf<T>();
     }
 
     /// <summary>
     /// Conservative <see langword="stackalloc"/> size.
     /// </summary>
-    public static int StackLength => sizeof(byte) * 256 / Unsafe.SizeOf<T>();
+    public static int StackLength => 256 / Unsafe.SizeOf<T>();
 }
