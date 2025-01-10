@@ -232,7 +232,7 @@ public class UnescapeBench
             Unsafe.CopyBlockUnaligned(
                 destination: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref dst, dstIndex)),
                 source: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref src, srcIndex)),
-                byteCount: (uint)Unsafe.SizeOf<T>() * length / sizeof(byte));
+                byteCount: (uint)Unsafe.SizeOf<T>() * length);
         }
     }
 
@@ -479,7 +479,7 @@ public class UnescapeBench
             Unsafe.CopyBlockUnaligned(
                 destination: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref dst, dstIndex)),
                 source: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref src, srcIndex)),
-                byteCount: (uint)Unsafe.SizeOf<T>() * length / sizeof(byte));
+                byteCount: (uint)Unsafe.SizeOf<T>() * length);
         }
     }
 }

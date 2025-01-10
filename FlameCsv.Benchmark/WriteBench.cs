@@ -4,7 +4,7 @@ using FlameCsv.Binding;
 using FlameCsv.Writing;
 
 // ReSharper disable ClassNeverInstantiated.Global
- 
+
 namespace FlameCsv.Benchmark;
 
 [MemoryDiagnoser]
