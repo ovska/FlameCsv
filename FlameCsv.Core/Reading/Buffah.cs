@@ -2,8 +2,11 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 using FlameCsv.Extensions;
+
+// ReSharper disable DefaultStructEqualityIsUsed.Global
+
+#pragma warning disable CS0660, CS0661
 
 // ReSharper disable InlineTemporaryVariable
 
@@ -187,49 +190,4 @@ public static class Buffah<T> where T : unmanaged, IBinaryInteger<T>
         nint offset = Unsafe.ByteOffset(ref dataStart, ref dataEnd);
         return (int)(offset / Unsafe.SizeOf<T>());
     }
-}
-
-internal interface IVector<T, TVector>
-    where T : unmanaged, IBinaryInteger<T>
-    where TVector : struct
-{
-    static abstract bool IsSupported { get; }
-    static abstract int Count { get; }
-    static abstract TVector Equals(TVector left, TVector right);
-    static abstract TVector Create(T value);
-    static abstract TVector LoadUnsafe(ref readonly T source, nuint length);
-    static abstract uint ExtractMostSignificantBits(TVector value);
-}
-
-internal readonly struct Vector64Impl<T> : IVector<T, Vector64<T>> where T : unmanaged, IBinaryInteger<T>
-{
-    public static bool IsSupported
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-            => Vector64<T>.IsSupported
-#if !DEBUG
-            && Vector64.IsHardwareAccelerated
-#endif
-        ;
-    }
-
-    public static int Count
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Vector64<T>.Count;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector64<T> Equals(Vector64<T> left, Vector64<T> right) => Vector64.Equals(left, right);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector64<T> Create(T value) => Vector64.Create(value);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector64<T> LoadUnsafe(ref readonly T source, nuint length)
-        => Vector64.LoadUnsafe(in source, (nuint)Unsafe.SizeOf<T>() * length);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint ExtractMostSignificantBits(Vector64<T> value) => value.ExtractMostSignificantBits();
 }
