@@ -9,7 +9,7 @@ namespace FlameCsv.Benchmark;
 
 public class FieldBench
 {
-    private static readonly (string, CsvRecordMeta)[] _fields;
+    private static readonly CsvLine<char>[] _fields;
 
     static FieldBench()
     {
@@ -17,7 +17,7 @@ public class FieldBench
 
         _fields = File
             .ReadAllLines("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv")
-            .Select(l => (l, parser.GetAsCsvLine(l)))
+            .Select(l => parser.GetAsCsvLine(l.AsMemory()))
             .ToArray();
     }
 
@@ -31,10 +31,9 @@ public class FieldBench
         {
             var reader = new CsvFieldReader<char>(
                 CsvOptions<char>.Default,
-                line.Item1,
+                in line,
                 buffer,
-                ref allocated,
-                in line.Item2);
+                ref allocated);
 
             while (!reader.End)
                 _ = Older<char>.ReadNextField(ref reader);
@@ -53,10 +52,9 @@ public class FieldBench
         {
             var reader = new CsvFieldReader<char>(
                 CsvOptions<char>.Default,
-                line.Item1,
+                in line,
                 buffer,
-                ref allocated,
-                in line.Item2);
+                ref allocated);
 
             while (!reader.End)
                 _ = RFC4180Mode<char>.ReadNextField(ref reader);
