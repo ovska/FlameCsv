@@ -1,4 +1,5 @@
 ﻿// ReSharper disable all
+
 using System.Buffers;
 using System.Text;
 using FlameCsv.Extensions;
@@ -7,13 +8,14 @@ using nietras.SeparatedValues;
 
 namespace FlameCsv.Benchmark;
 
-[MemoryDiagnoser]
-[HideColumns("Error", "StdDev", "Gen0")]
+[MemoryDiagnoser(displayGenColumns: false)]
+[HideColumns("Error", "StdDev")]
 //[BenchmarkDotNet.Diagnostics.Windows.Configs.EtwProfiler]
 public class CsvEnumerateBench
 {
     private static readonly byte[] _bytes
         = File.ReadAllBytes("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv");
+
     private static readonly string _chars = Encoding.ASCII.GetString(_bytes);
     private static MemoryStream GetFileStream() => new MemoryStream(_bytes);
     private static readonly ReadOnlySequence<byte> _byteSeq = new(_bytes.AsMemory());
@@ -94,7 +96,7 @@ public class CsvEnumerateBench
     //    }
     //}
 
-    [Benchmark]
+    [Benchmark(Baseline = true)]
     public void FlameUTF2()
     {
         IMemoryOwner<byte>? allocated = null;
@@ -120,14 +122,69 @@ public class CsvEnumerateBench
     }
 
     [Benchmark]
+    public void Buffering()
+    {
+        Span<byte> unescapeBuffer = stackalloc byte[256];
+        Meta[] array = ArrayPool<Meta>.Shared.Rent(1024);
+        Span<Meta> metaBuffer = array;
+        ReadOnlySpan<byte> bytes = _bytes;
+        ref readonly CsvDialect<byte> dialect = ref CsvOptions<byte>.Default.Dialect;
+
+        int count;
+
+        while (true)
+        {
+            count = Buffah<byte>.Read(bytes, metaBuffer, in dialect, _searcher, false);
+
+            if (count == 0)
+            {
+                break;
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                var meta = metaBuffer[i];
+                _ = meta.SliceUnsafe(in dialect, bytes, unescapeBuffer);
+#if DEBUG
+                string value = Encoding.UTF8.GetString(meta.SliceUnsafe(in dialect, bytes, unescapeBuffer));
+                _ = 1;
+#endif
+            }
+
+            var last = metaBuffer[count - 1];
+            bytes = bytes.Slice(last.GetStartOfNext(newlineLength: 2));
+        }
+
+        count = Buffah<byte>.Read(bytes, metaBuffer, in dialect, _searcher, true);
+
+        for (int i = 0; i < count; i++)
+        {
+            var meta = metaBuffer[i];
+            _ = meta.SliceUnsafe(in dialect, bytes, unescapeBuffer);
+
+#if DEBUG
+            string value = Encoding.UTF8.GetString(meta.SliceUnsafe(in dialect, bytes, unescapeBuffer));
+            _ = 1;
+#endif
+        }
+
+        ArrayPool<Meta>.Shared.Return(array);
+    }
+
+    private static readonly SearchValues<byte> _searcher = SearchValues.Create(",\"\r\n"u8);
+
+    [Benchmark]
     public void Sepp()
     {
-        var reader = nietras.SeparatedValues.Sep.Reader(o => o with
-        {
-            Sep = new Sep(','),
-            CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
-            HasHeader = false,
-        }).From(_bytes);
+        var reader = nietras
+            .SeparatedValues.Sep.Reader(
+                o => o with
+                {
+                    Sep = new Sep(','),
+                    CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
+                    HasHeader = false,
+                })
+            .From(_bytes);
 
         foreach (var row in reader)
         {

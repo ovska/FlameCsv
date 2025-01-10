@@ -12,7 +12,7 @@ var config = DefaultConfig.Instance
     .AddJob(Job.Default
         .WithStrategy(RunStrategy.Throughput));
 
-BenchmarkRunner.Run<CountEscapableBench>(config);
+BenchmarkRunner.Run<CsvEnumerateBench>(config);
 
 //var bb = new BindingBench();
 

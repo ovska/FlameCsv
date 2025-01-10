@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
+using System.Text;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Reading;
 using FlameCsv.Tests.Utilities;
@@ -70,6 +71,81 @@ public abstract class RFC4180ModeTests
 {
     protected abstract ReadOnlyMemory<char> AllocateMemory(string input);
     protected abstract Span<char> AllocateScratch(int minLength);
+
+    [Fact]
+    public void Aasdasd()
+    {
+        var _bytes = File.ReadAllText(
+            "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv",
+            Encoding.UTF8);
+        SearchValues<char> searchValues = SearchValues.Create(",\"\r\n");
+
+        Span<char> unescapeBuffer = stackalloc char[256];
+        Span<Meta> metaBuffer = new Meta[1024];
+        ReadOnlySpan<char> bytes = _bytes;
+        ref readonly var dialect = ref CsvOptions<char>.Default.Dialect;
+
+        int count;
+
+        while (true)
+        {
+            count = Buffah<char>.Read(bytes, metaBuffer, in dialect, searchValues, false);
+
+            if (count == 0)
+            {
+                break;
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                var meta = metaBuffer[i];
+                var line = meta.SliceUnsafe(in dialect, bytes, unescapeBuffer);
+                var str = line.ToString();
+                _ = 1;
+            }
+
+            var last = metaBuffer[count - 1];
+            bytes = bytes.Slice(last.GetStartOfNext(2));
+        }
+
+        count = Buffah<char>.Read(bytes, metaBuffer, in dialect, searchValues, true);
+
+        for (int i = 0; i < count; i++)
+        {
+            var meta = metaBuffer[i];
+            var line = meta.SliceUnsafe(in dialect, bytes, unescapeBuffer);
+            var str = line.ToString();
+            _ = 1;
+        }
+    }
+
+    [Fact]
+    public void AAAAAAA()
+    {
+        const string data =
+            "id,name,isenabled\r\n1,\"Bob\",true\r\n2,\"Alice\",false\r\n";
+
+        var searchValues = SearchValues.Create(",\"\r\n");
+        var buffer = new Meta[16];
+        Span<char> scratch = stackalloc char[128];
+
+        int read = Buffah<char>.Read(data, buffer, in CsvOptions<char>.Default.Dialect, searchValues, false);
+
+        List<string> items = [];
+
+        for (int i = 0; i < read; i++)
+        {
+            var slice = buffer[i];
+            var span = slice.SliceUnsafe(in CsvOptions<char>.Default.Dialect, data, scratch);
+            var field = span.ToString();
+            items.Add(field);
+        }
+
+        string[] expected = ["id", "name", "isenabled", "1", "Bob", "true", "2", "Alice", "false",];
+
+        Assert.Equal(expected, items);
+    }
+
 
     [Theory]
     [InlineData("test", "test")]
