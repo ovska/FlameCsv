@@ -68,8 +68,6 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// </summary>
     public CsvOptions()
     {
-        _converters = new SealableList<CsvConverter<T>>(this, defaultValues: null);
-
 #if DEBUG
         _allowContentInExceptions = true;
 #endif
@@ -103,7 +101,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         _stringPool = other._stringPool;
         _null = other._null;
         _nullTokens = other._nullTokens?.Clone();
-        _converters = new(this, other._converters); // copy collection
+        _converters = other._converters?.Clone();
     }
 
     /// <summary>
@@ -405,7 +403,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     }
 
     /// <summary>
-    /// Defines the quoting behavior when writing values. Default is <see cref="CsvFieldQuoting.Auto"/>.
+    /// Defines the quoting behaviour when writing values. Default is <see cref="CsvFieldQuoting.Auto"/>.
     /// </summary>
     public CsvFieldQuoting FieldQuoting
     {
@@ -529,16 +527,21 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
             return true;
         }
 
-        ReadOnlySpan<CsvConverter<T>> converters = _converters.Span;
+        var local = _converters;
 
-        // Read converters in reverse order so parser added last has the highest priority
-        for (int i = converters.Length - 1; i >= 0; i--)
+        if (local is not null)
         {
-            if (converters[i].CanConvert(resultType))
+            ReadOnlySpan<CsvConverter<T>> converters = local.Span;
+
+            // Read converters in reverse order so parser added last has the highest priority
+            for (int i = converters.Length - 1; i >= 0; i--)
             {
-                converter = converters[i].GetOrCreateConverter(resultType, this);
-                created = true;
-                return true;
+                if (converters[i].CanConvert(resultType))
+                {
+                    converter = converters[i].GetOrCreateConverter(resultType, this);
+                    created = true;
+                    return true;
+                }
             }
         }
 
