@@ -25,7 +25,7 @@ internal readonly struct Vec64<T> : ISimdVector<T, Vector64<T>> where T : unmana
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
             => Vector64<T>.IsSupported
-#if !DEBUG
+#if RELEASE
             && Vector64.IsHardwareAccelerated
 #endif
         ;
@@ -69,7 +69,7 @@ internal readonly struct Vec128<T> : ISimdVector<T, Vector128<T>> where T : unma
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
             => Vector128<T>.IsSupported
-#if !DEBUG
+#if RELEASE
             && Vector128.IsHardwareAccelerated
 #endif
         ;
@@ -113,7 +113,7 @@ internal readonly struct Vec256<T> : ISimdVector<T, Vector256<T>> where T : unma
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
             => Vector256<T>.IsSupported
-#if !DEBUG
+#if RELEASE
             && Vector256.IsHardwareAccelerated
 #endif
         ;
@@ -157,7 +157,7 @@ internal readonly struct Vec512<T> : ISimdVector<T, Vector512<T>> where T : unma
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
             => Vector512<T>.IsSupported
-#if !DEBUG
+#if RELEASE
             && Vector512.IsHardwareAccelerated
 #endif
         ;

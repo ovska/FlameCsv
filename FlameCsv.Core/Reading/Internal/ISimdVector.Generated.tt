@@ -19,6 +19,7 @@ internal interface ISimdVector<T, TVector>
     static abstract bool AllEqual(TVector left, TVector right);
 }
 <#
+    const string PragmaCondition = "RELEASE";
     string[] sizes = ["64", "128", "256", "512"];
     foreach (var size in  sizes)
     {
@@ -31,7 +32,7 @@ internal readonly struct Vec<#= size #><T> : ISimdVector<T, Vector<#= size #><T>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
             => Vector<#= size #><T>.IsSupported
-#if !DEBUG
+#if <#= PragmaCondition #>
             && Vector<#= size #>.IsHardwareAccelerated
 #endif
         ;

@@ -1,10 +1,9 @@
-﻿using System.Buffers;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using FlameCsv.Extensions;
+using JetBrains.Annotations;
 
 #pragma warning disable RCS1158
 namespace FlameCsv.Reading;
@@ -25,8 +24,7 @@ internal interface INewline<T> where T : unmanaged, IBinaryInteger<T>
     /// Clears the second bit in the mask if needed. No-op for single newline sequences.
     /// </summary>
     /// <param name="mask">The mask to modify.</param>
-    /// <returns>True if the mask was already empty (a two-token newline was at the end of the vector)</returns>
-    static abstract bool ClearSecondBitIfNeeded(ref nuint mask);
+    static abstract void ClearSecondBitIfNeeded(ref nuint mask);
 
     /// <summary>
     /// Determines if the specified value represents a newline.
@@ -36,7 +34,19 @@ internal interface INewline<T> where T : unmanaged, IBinaryInteger<T>
     /// Can read the next value in the sequence if needed, see <see cref="OffsetFromEnd"/>.
     /// </remarks>
     /// <returns>True if the value represents a newline; otherwise, false.</returns>
+    [Pure]
     bool IsNewline(ref T value);
+
+    /// <summary>
+    /// Determines if the specified value represents a delimiter or a newline.
+    /// </summary>
+    /// <param name="delimiter">Delimiter</param>
+    /// <param name="value">The value to check against</param>
+    /// <param name="isEOL">When true, whether the value was a newline instead of delimiter</param>
+    /// <returns>True if the value represents a delimiter or a newline; otherwise, false.</returns>
+    /// <remarks>For single token newlines, always returns true</remarks>
+    [Pure]
+    bool IsDelimiterOrNewline(T delimiter, ref T value, out bool isEOL);
 }
 
 internal interface INewline<T, TVector> : INewline<T>
@@ -48,6 +58,7 @@ internal interface INewline<T, TVector> : INewline<T>
     /// </summary>
     /// <param name="input">The input vector to check.</param>
     /// <returns>A vector indicating the positions of newline sequences.</returns>
+    [Pure]
     TVector HasNewline(TVector input);
 }
 
@@ -56,6 +67,7 @@ internal readonly struct NewlineSingle<T, TSimd, TVector>(T first) : INewline<T,
     where TSimd : struct, ISimdVector<T, TVector>
     where TVector : struct
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TVector HasNewline(TVector input) => TSimd.Equals(input, _firstVec);
 
     private readonly TVector _firstVec = TSimd.Create(first);
@@ -75,10 +87,18 @@ internal readonly struct NewlineSingle<T, TSimd, TVector>(T first) : INewline<T,
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsNewline(ref T value) => value == first;
 
-    public static bool ClearSecondBitIfNeeded(ref nuint mask)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool IsDelimiterOrNewline(T delimiter, ref T value, out bool isEOL)
+    {
+        Debug.Assert(value == delimiter || value == first);
+        isEOL = value != delimiter;
+        return true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ClearSecondBitIfNeeded(ref nuint mask)
     {
         // no-op
-        return false;
     }
 }
 
@@ -87,6 +107,7 @@ internal readonly struct NewlineDouble<T, TSimd, TVector>(T first, T second) : I
     where TSimd : struct, ISimdVector<T, TVector>
     where TVector : struct
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TVector HasNewline(TVector input)
         => TSimd.Or(TSimd.Equals(input, _firstVec), TSimd.Equals(input, _secondVec));
 
@@ -109,15 +130,22 @@ internal readonly struct NewlineDouble<T, TSimd, TVector>(T first, T second) : I
     public bool IsNewline(ref T value) => value == first && Unsafe.Add(ref value, 1) == second;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool ClearSecondBitIfNeeded(ref nuint mask)
+    public bool IsDelimiterOrNewline(T delimiter, ref T value, out bool isEOL)
     {
-        if (mask == 0)
+        if (delimiter == value)
         {
+            Unsafe.SkipInit(out isEOL);
             return true;
         }
 
+        isEOL = true;
+        return value == first && Unsafe.Add(ref value, 1) == second;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ClearSecondBitIfNeeded(ref nuint mask)
+    {
         mask &= (mask - 1);
-        return false;
     }
 }
 
@@ -148,7 +176,6 @@ public readonly struct Meta
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> SliceUnsafe<T>(
         int runningIndex,
-        ref readonly CsvDialect<T> dialect,
         ReadOnlySpan<T> data,
         Span<T> buffer)
         where T : unmanaged, IBinaryInteger<T>
@@ -160,44 +187,11 @@ public readonly struct Meta
         }
 
         throw new NotImplementedException();
-
-        // Debug.Assert(QuotesRemaining % 2 == 0);
-        //
-        // int unescapedLength = Length - (int)(QuotesRemaining / 2u) - 2;
-        //
-        // if (buffer.Length < unescapedLength)
-        // {
-        //     Throw.Argument(nameof(buffer), "Not enough space to unescape");
-        // }
-        //
-        // RFC4180Mode<T>.Unescape(dialect.Quote, buffer, data.Slice(Start + 1, Length - 2), QuotesRemaining - 2);
-        // return buffer[..unescapedLength];
     }
 }
 
 internal static class Buffah<T> where T : unmanaged, IBinaryInteger<T>
 {
-    public readonly ref struct State<TNewline, TSimd, TVector>
-        where TNewline : INewline<T, TVector>
-        where TSimd : struct, ISimdVector<T, TVector>
-        where TVector : struct
-    {
-        public readonly T Delimiter;
-        public readonly T Quote;
-        public readonly TVector DelimiterVec;
-        public readonly TVector QuoteVec;
-        public readonly TNewline Newline;
-
-        public State(ref readonly CsvDialect<T> dialect, TNewline newline)
-        {
-            Delimiter = dialect.Delimiter;
-            Quote = dialect.Quote;
-            DelimiterVec = TSimd.Create(dialect.Delimiter);
-            QuoteVec = TSimd.Create(dialect.Quote);
-            Newline = newline;
-        }
-    }
-
     public static int Read(
         scoped ReadOnlySpan<T> data,
         scoped Span<Meta> metaBufferSpan,
@@ -225,18 +219,11 @@ internal static class Buffah<T> where T : unmanaged, IBinaryInteger<T>
         ref readonly CsvDialect<T> dialect,
         bool isFinalBlock)
     {
-        // if (Vec512<T>.IsSupported)
-        // {
-        //     return ReadImpl<NewlineDouble<T>,Vec512<T>, Vector512<T>>(
-        //         new(in dialect, new NewlineDouble<T>(T.CreateSaturating('\r'), T.CreateSaturating('\n'))),
-        //         data,
-        //         metaBufferSpan,
-        //         isFinalBlock);
-        // }
+        // TODO: 512
 
         if (Vec256<T>.IsSupported)
         {
-            return ReadImpl<NewlineDouble<T, Vec256<T>, Vector256<T>>, Vec256<T>, Vector256<T>>(
+            return ReaderImpl<T, NewlineDouble<T, Vec256<T>, Vector256<T>>, Vec256<T>, Vector256<T>>.Core(
                 new(in dialect, new(T.CreateSaturating('\r'), T.CreateSaturating('\n'))),
                 data,
                 metaBufferSpan,
@@ -245,7 +232,7 @@ internal static class Buffah<T> where T : unmanaged, IBinaryInteger<T>
 
         if (Vec128<T>.IsSupported)
         {
-            return ReadImpl<NewlineDouble<T, Vec128<T>, Vector128<T>>, Vec128<T>, Vector128<T>>(
+            return ReaderImpl<T, NewlineDouble<T, Vec128<T>, Vector128<T>>, Vec128<T>, Vector128<T>>.Core(
                 new(in dialect, new(T.CreateSaturating('\r'), T.CreateSaturating('\n'))),
                 data,
                 metaBufferSpan,
@@ -254,7 +241,7 @@ internal static class Buffah<T> where T : unmanaged, IBinaryInteger<T>
 
         if (Vec64<T>.IsSupported)
         {
-            return ReadImpl<NewlineDouble<T, Vec64<T>, Vector64<T>>, Vec64<T>, Vector64<T>>(
+            return ReaderImpl<T, NewlineDouble<T, Vec64<T>, Vector64<T>>, Vec64<T>, Vector64<T>>.Core(
                 new(in dialect, new(T.CreateSaturating('\r'), T.CreateSaturating('\n'))),
                 data,
                 metaBufferSpan,
@@ -262,24 +249,42 @@ internal static class Buffah<T> where T : unmanaged, IBinaryInteger<T>
         }
 
         throw new NotImplementedException();
-        // return ReadCore(data, metaBufferSpan, in dialect, anyToken, isFinalBlock);
+    }
+}
+
+internal static class ReaderImpl<T, TNewline, TSimd, TVector>
+    where T : unmanaged, IBinaryInteger<T>
+    where TNewline : struct, INewline<T, TVector>
+    where TSimd : struct, ISimdVector<T, TVector>
+    where TVector : struct
+{
+    public readonly ref struct State
+    {
+        public readonly T Delimiter;
+        public readonly T Quote;
+        public readonly TVector DelimiterVec;
+        public readonly TVector QuoteVec;
+        public readonly TNewline Newline;
+
+        public State(ref readonly CsvDialect<T> dialect, TNewline newline)
+        {
+            Delimiter = dialect.Delimiter;
+            Quote = dialect.Quote;
+            DelimiterVec = TSimd.Create(dialect.Delimiter);
+            QuoteVec = TSimd.Create(dialect.Quote);
+            Newline = newline;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.NoInlining)]
-    [SuppressMessage("ReSharper", "InlineTemporaryVariable")]
-    private static int ReadImpl<TNewline, TSimd, TVector>(
-        in State<TNewline, TSimd, TVector> state,
+    public static int Core(
+        in State state,
         scoped ReadOnlySpan<T> data,
         scoped Span<Meta> metaBuffer,
         bool isFinalBlock)
-        where TNewline : INewline<T, TVector>
-        where TSimd : struct, ISimdVector<T, TVector>
-        where TVector : struct
     {
         Debug.Assert(!data.IsEmpty);
         Debug.Assert(!metaBuffer.IsEmpty);
-
-        bool eol = false;
 
         TVector delimiterVec = state.DelimiterVec;
         TVector quoteVec = state.QuoteVec;
@@ -296,7 +301,7 @@ internal static class Buffah<T> where T : unmanaged, IBinaryInteger<T>
             ref MemoryMarshal.GetReference(metaBuffer),
             metaBuffer.Length - TSimd.Count);
 
-        nuint quotesConsumed = 0;
+        uint quotesConsumed = 0;
 
         while (Unsafe.IsAddressLessThan(in currentMeta, in metaEnd))
         {
@@ -324,16 +329,18 @@ internal static class Buffah<T> where T : unmanaged, IBinaryInteger<T>
                 // nothing of note in this slice
                 if (maskAny == 0)
                 {
-                    goto NextLoop;
+                    runningIndex += (nuint)TSimd.Count;
+                    continue;
                 }
 
                 nuint maskDelimiter = TSimd.ExtractMostSignificantBits(hasDelimiter);
 
-                // only delimiters
-                if (maskDelimiter == maskAny)
+                // only delimiters? skip this if there are any quotes in the current field
+                if ((maskDelimiter | quotesConsumed) == maskAny)
                 {
-                    currentMeta = ref ParseDelimiters(maskDelimiter, (int)runningIndex, ref currentMeta);
-                    goto NextLoop;
+                    currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
+                    runningIndex += (nuint)TSimd.Count;
+                    continue;
                 }
 
                 nuint maskNewlineOrDelimiter = TSimd.ExtractMostSignificantBits(hasNewlineOrDelimiter);
@@ -349,28 +356,26 @@ internal static class Buffah<T> where T : unmanaged, IBinaryInteger<T>
                         if ((Unsafe.SizeOf<nuint>() * 8 - 1) - BitOperations.LeadingZeroCount(maskDelimiter) <
                             indexNewline)
                         {
-                            currentMeta = ref ParseDelimiters(maskDelimiter, (int)runningIndex, ref currentMeta);
+                            // all delimiters are before any of the newlines
+                            currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
+
+                            // fall through to parse line ends
                             maskNewlineOrDelimiter = maskNewline;
-                            goto ReadLineEndings;
                         }
                         else
                         {
                             currentMeta = ref ParseDelimitersAndLineEnds(
                                 maskNewlineOrDelimiter,
-                                maskDelimiter,
-                                maskNewline,
+                                ref Unsafe.AsRef(in first),
                                 ref runningIndex,
                                 ref currentMeta,
                                 state.Delimiter,
                                 state.Newline);
-                            goto NextLoop;
+                            runningIndex += (nuint)TSimd.Count;
+                            continue;
                         }
-
-                        // if all delimiters are before any of the newlines, parse them first
-                        // fall through to parse line endings only
                     }
 
-                ReadLineEndings:
                     currentMeta = ref ParseLineEnds(
                         maskNewlineOrDelimiter,
                         ref Unsafe.AsRef(in first),
@@ -378,9 +383,20 @@ internal static class Buffah<T> where T : unmanaged, IBinaryInteger<T>
                         ref currentMeta,
                         state.Newline);
                 }
+                else
+                {
+                    // mixed delimiters, quotes, and newlines
+                    currentMeta = ref ParseAny(
+                        maskAny,
+                        ref Unsafe.AsRef(in first),
+                        ref runningIndex,
+                        ref currentMeta,
+                        state.Delimiter,
+                        state.Quote,
+                        state.Newline,
+                        ref quotesConsumed);
+                }
 
-            NextLoop:
-                // TODO: handle this in the Parse-methods
                 runningIndex += (nuint)TSimd.Count;
             }
 
@@ -395,7 +411,7 @@ internal static class Buffah<T> where T : unmanaged, IBinaryInteger<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ref Meta ParseDelimiters(
         nuint mask,
-        int currentIndex,
+        nuint runningIndex,
         ref Meta currentMeta)
     {
         do
@@ -403,7 +419,7 @@ internal static class Buffah<T> where T : unmanaged, IBinaryInteger<T>
             int offset = BitOperations.TrailingZeroCount(mask);
             mask &= (mask - 1); // clear lowest bit
 
-            currentMeta = new(currentIndex + offset, 0, false);
+            currentMeta = new((int)runningIndex + offset, 0, false);
             currentMeta = ref Unsafe.Add(ref currentMeta, 1);
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
 
@@ -411,30 +427,30 @@ internal static class Buffah<T> where T : unmanaged, IBinaryInteger<T>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ref Meta ParseLineEnds<TNewline>(
+    private static ref Meta ParseLineEnds(
         nuint mask,
         ref T first,
-        ref nuint currentIndexRef,
+        ref nuint runningIndex,
         ref Meta currentMeta,
         TNewline newline)
-        where TNewline : INewline<T>
     {
-        int currentIndex = (int)currentIndexRef;
-
         do
         {
             int offset = BitOperations.TrailingZeroCount(mask);
             mask &= (mask - 1); // clear lowest bit
 
-            if (newline.IsNewline(ref Unsafe.Add(ref first, currentIndex + offset)))
+            if (newline.IsNewline(ref Unsafe.Add(ref first, runningIndex + (nuint)offset)))
             {
-                currentMeta = new(currentIndex + offset, 0, isEOL: true);
+                currentMeta = new((int)runningIndex + offset, 0, isEOL: true);
                 currentMeta = ref Unsafe.Add(ref currentMeta, 1);
 
-                // clear the second bit if needed and adjust the index if we crossed a vector boundary
-                if (TNewline.ClearSecondBitIfNeeded(ref mask))
+                // clear the second bit if needed
+                TNewline.ClearSecondBitIfNeeded(ref mask);
+
+                // adjust the index if we crossed a vector boundary
+                if (TNewline.OffsetFromEnd != 0u && offset == TSimd.Count - 1)
                 {
-                    currentIndexRef += TNewline.OffsetFromEnd;
+                    runningIndex += TNewline.OffsetFromEnd;
                 }
             }
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
@@ -443,27 +459,88 @@ internal static class Buffah<T> where T : unmanaged, IBinaryInteger<T>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ref Meta ParseDelimitersAndLineEnds<TNewline>(
+    private static ref Meta ParseDelimitersAndLineEnds(
         nuint mask,
-        nuint maskDelimiter,
-        nuint maskNewline,
-        ref nuint currentIndexRef,
+        ref T first,
+        ref nuint runningIndex,
         ref Meta currentMeta,
         T delimiter,
         TNewline newline)
-        where TNewline : INewline<T>
     {
-        throw new NotImplementedException();
-        // do
-        // {
-        //     int offset = BitOperations.TrailingZeroCount(mask);
-        //     mask &= (mask - 1);
-        //
-        //     currentMeta = new(currentIndex + offset, 0, false);
-        //     currentMeta = ref Unsafe.Add(ref currentMeta, 1);
-        // } while (mask != 0); // see comment about metaEnd
-        //
-        // return ref currentMeta;
+        do
+        {
+            int offset = BitOperations.TrailingZeroCount(mask);
+            mask &= (mask - 1); // clear lowest bit
+
+            if (newline.IsDelimiterOrNewline(
+                    delimiter,
+                    ref Unsafe.Add(ref first, runningIndex + (nuint)offset),
+                    out bool isEOL))
+            {
+                currentMeta = new((int)runningIndex + offset, 0, isEOL);
+                currentMeta = ref Unsafe.Add(ref currentMeta, 1);
+
+                // clear the second bit if needed
+                if (isEOL)
+                {
+                    TNewline.ClearSecondBitIfNeeded(ref mask);
+
+                    // adjust the index if we crossed a vector boundary
+                    if (TNewline.OffsetFromEnd != 0u && offset == TSimd.Count - 1)
+                    {
+                        runningIndex += TNewline.OffsetFromEnd;
+                    }
+                }
+            }
+        } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
+
+        return ref currentMeta;
+    }
+
+    private static ref Meta ParseAny(
+        nuint mask,
+        ref T first,
+        ref nuint runningIndex,
+        ref Meta currentMeta,
+        T delimiter,
+        T quote,
+        TNewline newline,
+        ref uint quotesConsumed)
+    {
+        do
+        {
+            int offset = BitOperations.TrailingZeroCount(mask);
+            mask &= (mask - 1); // clear lowest bit
+
+            if (Unsafe.Add(ref first, runningIndex + (nuint)offset) == quote)
+            {
+                ++quotesConsumed;
+            }
+            else if ((quotesConsumed & 1) == 0 &&
+                     newline.IsDelimiterOrNewline(
+                         delimiter,
+                         ref Unsafe.Add(ref first, runningIndex + (nuint)offset),
+                         out bool isEOL))
+            {
+                currentMeta = new((int)runningIndex + offset, quotesConsumed, isEOL);
+                currentMeta = ref Unsafe.Add(ref currentMeta, 1);
+                quotesConsumed = 0;
+
+                // clear the second bit if needed
+                if (isEOL)
+                {
+                    TNewline.ClearSecondBitIfNeeded(ref mask);
+
+                    // adjust the index if we crossed a vector boundary
+                    if (TNewline.OffsetFromEnd != 0u && offset == TSimd.Count - 1)
+                    {
+                        runningIndex += TNewline.OffsetFromEnd;
+                    }
+                }
+            }
+        } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
+
+        return ref currentMeta;
     }
 }
 

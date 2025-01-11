@@ -75,53 +75,6 @@ public abstract class RFC4180ModeTests
     protected abstract Span<char> AllocateScratch(int minLength);
 
     [Fact]
-    public void Aasdasd()
-    {
-        var _bytes = File.ReadAllText(
-            "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv",
-            Encoding.UTF8);
-        SearchValues<char> searchValues = SearchValues.Create(",\"\r\n");
-
-        Span<char> unescapeBuffer = stackalloc char[256];
-        Span<Meta> metaBuffer = new Meta[1024];
-        ReadOnlySpan<char> bytes = _bytes;
-        ref readonly var dialect = ref CsvOptions<char>.Default.Dialect;
-
-        int count;
-
-        while (true)
-        {
-            count = Buffah<char>.Read(bytes, metaBuffer, in dialect, false);
-
-            if (count == 0)
-            {
-                break;
-            }
-
-            for (int i = 0; i < count; i++)
-            {
-                var meta = metaBuffer[i];
-                var line = meta.SliceUnsafe(0, in dialect, bytes, unescapeBuffer);
-                var str = line.ToString();
-                _ = 1;
-            }
-
-            var last = metaBuffer[count - 1];
-            bytes = bytes.Slice(last.GetLength(2));
-        }
-
-        count = Buffah<char>.Read(bytes, metaBuffer, in dialect, true);
-
-        for (int i = 0; i < count; i++)
-        {
-            var meta = metaBuffer[i];
-            var line = meta.SliceUnsafe(0, in dialect, bytes, unescapeBuffer);
-            var str = line.ToString();
-            _ = 1;
-        }
-    }
-
-    [Fact]
     public void bbbbbbbbbbbbbbbbbbbbbbbbb()
     {
         var input = "aaa^bbb^ccc--dddd".AsSpan().UnsafeCast<char, ushort>();
@@ -141,7 +94,7 @@ public abstract class RFC4180ModeTests
 
         // const string data = "id,name,isenabled\r\n1,\"Bob\",true\r\n2,\"Alice\",false\r\n";
         const string data
-            = "userid,name,isenabled,words,longassline,testheader with spaces,something,and stuff,xyz,foo,bar\r\ntestxyznakkiperuna,more,data,here";
+            = "userid,\"name\",isenabled,words\r\nlongassline,apxina\r\ntestheader with spaces,something,and stuff,xyz,foo,bar\r\ntest,xyz,nakki,peruna,more,data,here";
 
         var searchValues = SearchValues.Create(",\"\r\n");
         var buffer = new Meta[128];
@@ -163,32 +116,6 @@ public abstract class RFC4180ModeTests
         }
 
         Assert.Empty(items);
-    }
-
-    [Fact]
-    public void AAAAAAA()
-    {
-        // const string data = "id,name,isenabled\r\n1,\"Bob\",true\r\n2,\"Alice\",false\r\n";
-        const string data = "userid,name,isenabled\r\n1,Bob,true\r\n2,Alice,false\r\n";
-
-        var buffer = new Meta[16];
-        Span<char> scratch = stackalloc char[128];
-
-        int read = Buffah<char>.Read(data, buffer, in CsvOptions<char>.Default.Dialect, false);
-
-        List<string> items = [];
-
-        for (int i = 0; i < read; i++)
-        {
-            var slice = buffer[i];
-            var span = slice.SliceUnsafe(0, in CsvOptions<char>.Default.Dialect, data, scratch);
-            var field = span.ToString();
-            items.Add(field);
-        }
-
-        string[] expected = ["userid", "name", "isenabled", "1", "Bob", "true", "2", "Alice", "false",];
-
-        Assert.Equal(expected, items);
     }
 
     [Theory]
