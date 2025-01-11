@@ -89,7 +89,7 @@ public abstract class RFC4180ModeTests
 
         while (true)
         {
-            count = Buffah<char>.Read(bytes, metaBuffer, in dialect, searchValues, false);
+            count = Buffah<char>.Read(bytes, metaBuffer, in dialect, false);
 
             if (count == 0)
             {
@@ -99,53 +99,79 @@ public abstract class RFC4180ModeTests
             for (int i = 0; i < count; i++)
             {
                 var meta = metaBuffer[i];
-                var line = meta.SliceUnsafe(in dialect, bytes, unescapeBuffer);
+                var line = meta.SliceUnsafe(0, in dialect, bytes, unescapeBuffer);
                 var str = line.ToString();
                 _ = 1;
             }
 
             var last = metaBuffer[count - 1];
-            bytes = bytes.Slice(last.GetStartOfNext(2));
+            bytes = bytes.Slice(last.GetLength(2));
         }
 
-        count = Buffah<char>.Read(bytes, metaBuffer, in dialect, searchValues, true);
+        count = Buffah<char>.Read(bytes, metaBuffer, in dialect, true);
 
         for (int i = 0; i < count; i++)
         {
             var meta = metaBuffer[i];
-            var line = meta.SliceUnsafe(in dialect, bytes, unescapeBuffer);
+            var line = meta.SliceUnsafe(0, in dialect, bytes, unescapeBuffer);
             var str = line.ToString();
             _ = 1;
         }
     }
 
     [Fact]
-    public void AAAAAAA()
+    public void bbbbbbbbbbbbbbbbbbbbbbbbb()
     {
-        const string data =
-            "id,name,isenabled\r\n1,\"Bob\",true\r\n2,\"Alice\",false\r\n";
+        // const string data = "id,name,isenabled\r\n1,\"Bob\",true\r\n2,\"Alice\",false\r\n";
+        const string data = "userid,name,isenabled,words,longassline,testheader with spaces and stuff,something";
 
         var searchValues = SearchValues.Create(",\"\r\n");
         var buffer = new Meta[16];
         Span<char> scratch = stackalloc char[128];
 
-        int read = Buffah<char>.Read(data, buffer, in CsvOptions<char>.Default.Dialect, searchValues, false);
+        int read = Buffah<char>.Read(data, buffer, in CsvOptions<char>.Default.Dialect, false);
+
+        List<string> items = [];
+
+        var metas = buffer[..read];
+
+        for (int i = 0; i < read; i++)
+        {
+            var slice = buffer[i];
+            var start = i == 0 ? 0 : buffer[i - 1].GetLength(2);
+            // var span = slice.SliceUnsafe(runninIndex, in CsvOptions<char>.Default.Dialect, data, scratch);
+            var field = data.AsSpan(start..slice.End).ToString();
+            items.Add(field);
+        }
+
+        Assert.Equal([], items);
+    }
+
+    [Fact]
+    public void AAAAAAA()
+    {
+        // const string data = "id,name,isenabled\r\n1,\"Bob\",true\r\n2,\"Alice\",false\r\n";
+        const string data = "userid,name,isenabled\r\n1,Bob,true\r\n2,Alice,false\r\n";
+
+        var buffer = new Meta[16];
+        Span<char> scratch = stackalloc char[128];
+
+        int read = Buffah<char>.Read(data, buffer, in CsvOptions<char>.Default.Dialect, false);
 
         List<string> items = [];
 
         for (int i = 0; i < read; i++)
         {
             var slice = buffer[i];
-            var span = slice.SliceUnsafe(in CsvOptions<char>.Default.Dialect, data, scratch);
+            var span = slice.SliceUnsafe(0, in CsvOptions<char>.Default.Dialect, data, scratch);
             var field = span.ToString();
             items.Add(field);
         }
 
-        string[] expected = ["id", "name", "isenabled", "1", "Bob", "true", "2", "Alice", "false",];
+        string[] expected = ["userid", "name", "isenabled", "1", "Bob", "true", "2", "Alice", "false",];
 
         Assert.Equal(expected, items);
     }
-
 
     [Theory]
     [InlineData("test", "test")]
