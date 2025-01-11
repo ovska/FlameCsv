@@ -1,9 +1,11 @@
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 using System.Runtime.Versioning;
 using System.Text;
 using CommunityToolkit.HighPerformance;
+using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Tests.Utilities;
 
@@ -122,11 +124,27 @@ public abstract class RFC4180ModeTests
     [Fact]
     public void bbbbbbbbbbbbbbbbbbbbbbbbb()
     {
+        var input = "aaa^bbb^ccc--dddd".AsSpan().UnsafeCast<char, ushort>();
+
+        var x = Vector256<ushort>.Count;
+        var v1 = Vector256.LoadUnsafe(in input[0]);
+        var maskDelim = Vector256.Equals(v1, Vector256.Create((ushort)'^'));
+        var maskNewl = Vector256.Equals(v1, Vector256.Create((ushort)'-'));
+
+        nuint _maskDelim = maskDelim.ExtractMostSignificantBits();
+        nuint _maskNewl = maskNewl.ExtractMostSignificantBits();
+        var _strDelim = _maskDelim.ToString("b").PadLeft(Vector256<ushort>.Count, '0');
+        var _strNewl = _maskNewl.ToString("b").PadLeft(Vector256<ushort>.Count, '0');
+
+        var lineEndingIndex = BitOperations.TrailingZeroCount(_maskNewl);
+        var reverseDelimMask = (Unsafe.SizeOf<nuint>() * 8 - 1) - BitOperations.LeadingZeroCount(_maskDelim);
+
         // const string data = "id,name,isenabled\r\n1,\"Bob\",true\r\n2,\"Alice\",false\r\n";
-        const string data = "userid,name,isenabled,words,longassline,testheader with spaces and stuff,something";
+        const string data
+            = "userid,name,isenabled,words,longassline,testheader with spaces,something,and stuff,xyz,foo,bar\r\ntestxyznakkiperuna,more,data,here";
 
         var searchValues = SearchValues.Create(",\"\r\n");
-        var buffer = new Meta[16];
+        var buffer = new Meta[128];
         Span<char> scratch = stackalloc char[128];
 
         int read = Buffah<char>.Read(data, buffer, in CsvOptions<char>.Default.Dialect, false);
@@ -144,7 +162,7 @@ public abstract class RFC4180ModeTests
             items.Add(field);
         }
 
-        Assert.Equal([], items);
+        Assert.Empty(items);
     }
 
     [Fact]
