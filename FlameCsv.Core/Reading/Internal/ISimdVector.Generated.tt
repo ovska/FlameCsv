@@ -6,7 +6,7 @@ using System.Runtime.Intrinsics;
 
 internal interface ISimdVector<T, TVector>
     where T : unmanaged, IBinaryInteger<T>
-    where TVector : struct
+    where TVector : struct, ISimdVector<T, TVector>
 {
     static abstract bool IsSupported { get; }
     static abstract int Count { get; }
@@ -14,23 +14,25 @@ internal interface ISimdVector<T, TVector>
     static abstract TVector Equals(TVector left, TVector right);
     static abstract TVector Create(T value);
     static abstract TVector LoadUnsafe(ref readonly T source, nuint offset);
-    static abstract nuint ExtractMostSignificantBits(TVector value);
     static abstract TVector Or(TVector left, TVector right);
-    static abstract bool AllEqual(TVector left, TVector right);
+    [JetBrains.Annotations.Pure] nuint ExtractMostSignificantBits();
 }
 <#
-    const string MethodImpl = "[MethodImpl(MethodImplOptions.NoInlining)]";
+    const string MethodImpl = "MethodImpl(MethodImplOptions.AggressiveInlining)";
     const string PragmaCondition = "RELEASE";
     string[] sizes = ["64", "128", "256", "512"];
     foreach (var size in  sizes)
     {
 #>
 
-internal readonly struct Vec<#= size #><T> : ISimdVector<T, Vector<#= size #><T>> where T : unmanaged, IBinaryInteger<T>
+[method: <#= MethodImpl #>]
+internal readonly struct Vec<#= size #><T>(Vector<#= size #><T> value) : ISimdVector<T, Vec<#= size #><T>> where T : unmanaged, IBinaryInteger<T>
 {
+    private readonly Vector<#= size #><T> _value = value;
+
     public static bool IsSupported
     {
-        <#= MethodImpl #>
+        [<#= MethodImpl #>]
         get
             => Vector<#= size #><T>.IsSupported
 #if <#= PragmaCondition #>
@@ -41,33 +43,36 @@ internal readonly struct Vec<#= size #><T> : ISimdVector<T, Vector<#= size #><T>
 
     public static int Count
     {
-        <#= MethodImpl #>
+        [<#= MethodImpl #>]
         get => Vector<#= size #><T>.Count;
     }
 
-    public static Vector<#= size #><T> Zero
+    public static Vec<#= size #><T> Zero
     {
-        <#= MethodImpl #>
+        [<#= MethodImpl #>]
         get => Vector<#= size #><T>.Zero;
     }
 
-    <#= MethodImpl #>
-    public static Vector<#= size #><T> Equals(Vector<#= size #><T> left, Vector<#= size #><T> right) => Vector<#= size #>.Equals(left, right);
+    [<#= MethodImpl #>]
+    public static Vec<#= size #><T> Equals(Vec<#= size #><T> left, Vec<#= size #><T> right) => Vector<#= size #>.Equals(left._value, right._value);
 
-    <#= MethodImpl #>
-    public static Vector<#= size #><T> Create(T value) => Vector<#= size #>.Create(value);
+    [<#= MethodImpl #>]
+    public static Vec<#= size #><T> Create(T value) => Vector<#= size #>.Create(value);
 
-    <#= MethodImpl #>
-    public static Vector<#= size #><T> LoadUnsafe(ref readonly T source, nuint offset) => Vector<#= size #>.LoadUnsafe(in source, offset);
+    [<#= MethodImpl #>]
+    public static Vec<#= size #><T> LoadUnsafe(ref readonly T source, nuint offset) => Vector<#= size #>.LoadUnsafe(in source, offset);
 
-    <#= MethodImpl #>
-    public static nuint ExtractMostSignificantBits(Vector<#= size #><T> value) => nuint.CreateSaturating(value.ExtractMostSignificantBits());
+    [<#= MethodImpl #>]
+    public static Vec<#= size #><T> Or(Vec<#= size #><T> left, Vec<#= size #><T> right) => Vector<#= size #>.BitwiseOr(left._value, right._value);
 
-    <#= MethodImpl #>
-    public static Vector<#= size #><T> Or(Vector<#= size #><T> left, Vector<#= size #><T> right) => left | right;
+    [<#= MethodImpl #>]
+    public nuint ExtractMostSignificantBits() => nuint.CreateSaturating(_value.ExtractMostSignificantBits());
 
-    <#= MethodImpl #>
-    public static bool AllEqual(Vector<#= size #><T> left, Vector<#= size #><T> right) => left == right;
+    public static implicit operator Vec<#= size #><T>(Vector<#= size #><T> value) => new Vec<#= size #><T>(value);
+
+    public override string ToString() => _value.ToString();
+    public override bool Equals(object obj) => throw new NotSupportedException();
+    public override int GetHashCode() => throw new NotSupportedException();
 }
 <#
     }

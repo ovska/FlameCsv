@@ -77,30 +77,11 @@ public abstract class RFC4180ModeTests
     [Fact]
     public void bbbbbbbbbbbbbbbbbbbbbbbbb()
     {
-        var input = "aaa^bbb^ccc--dddd".AsSpan().UnsafeCast<char, ushort>();
-
-        var x = Vector256<ushort>.Count;
-        var v1 = Vector256.LoadUnsafe(in input[0]);
-        var maskDelim = Vector256.Equals(v1, Vector256.Create((ushort)'^'));
-        var maskNewl = Vector256.Equals(v1, Vector256.Create((ushort)'-'));
-
-        nuint _maskDelim = maskDelim.ExtractMostSignificantBits();
-        nuint _maskNewl = maskNewl.ExtractMostSignificantBits();
-        var _strDelim = _maskDelim.ToString("b").PadLeft(Vector256<ushort>.Count, '0');
-        var _strNewl = _maskNewl.ToString("b").PadLeft(Vector256<ushort>.Count, '0');
-
-        var lineEndingIndex = BitOperations.TrailingZeroCount(_maskNewl);
-        var reverseDelimMask = (Unsafe.SizeOf<nuint>() * 8 - 1) - BitOperations.LeadingZeroCount(_maskDelim);
-
         // const string data = "id,name,isenabled\r\n1,\"Bob\",true\r\n2,\"Alice\",false\r\n";
-        const string data
-            = "userid,\"name\",isenabled,words\r\nlongassline,apxina\r\ntestheader with spaces,something,and stuff,xyz,foo,bar\r\ntest,xyz,nakki,peruna,more,data,here";
+        byte[] data = File.ReadAllBytes("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv");
 
-        var searchValues = SearchValues.Create(",\"\r\n");
-        var buffer = new Meta[128];
-        Span<char> scratch = stackalloc char[128];
-
-        int read = Buffah<char>.Read(data, buffer, in CsvOptions<char>.Default.Dialect, false);
+        var buffer = new Meta[1024];
+        int read = Buffah<byte>.Read(data, buffer, in CsvOptions<byte>.Default.Dialect, false);
 
         List<string> items = [];
 
@@ -111,8 +92,7 @@ public abstract class RFC4180ModeTests
             var slice = buffer[i];
             var start = i == 0 ? 0 : buffer[i - 1].GetLength(2);
             // var span = slice.SliceUnsafe(runninIndex, in CsvOptions<char>.Default.Dialect, data, scratch);
-            var field = data.AsSpan(start..slice.End).ToString();
-            items.Add(field);
+            items.Add(Encoding.UTF8.GetString(data.AsSpan(start..slice.End)));
         }
 
         Assert.Empty(items);
@@ -140,7 +120,6 @@ public abstract class RFC4180ModeTests
             in line,
             AllocateScratch(16),
             ref allocated);
-
 
         Assert.True(reader.MoveNext());
         Assert.Equal(expected, reader.Current.ToString());
