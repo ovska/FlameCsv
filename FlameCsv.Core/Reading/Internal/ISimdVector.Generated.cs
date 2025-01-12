@@ -22,7 +22,7 @@ internal readonly struct Vec64<T> : ISimdVector<T, Vector64<T>> where T : unmana
 {
     public static bool IsSupported
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         get
             => Vector64<T>.IsSupported
 #if RELEASE
@@ -33,32 +33,32 @@ internal readonly struct Vec64<T> : ISimdVector<T, Vector64<T>> where T : unmana
 
     public static int Count
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         get => Vector64<T>.Count;
     }
 
     public static Vector64<T> Zero
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         get => Vector64<T>.Zero;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static Vector64<T> Equals(Vector64<T> left, Vector64<T> right) => Vector64.Equals(left, right);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static Vector64<T> Create(T value) => Vector64.Create(value);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static Vector64<T> LoadUnsafe(ref readonly T source, nuint offset) => Vector64.LoadUnsafe(in source, offset);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static nuint ExtractMostSignificantBits(Vector64<T> value) => nuint.CreateSaturating(value.ExtractMostSignificantBits());
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static Vector64<T> Or(Vector64<T> left, Vector64<T> right) => left | right;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static bool AllEqual(Vector64<T> left, Vector64<T> right) => left == right;
 }
 
@@ -66,7 +66,7 @@ internal readonly struct Vec128<T> : ISimdVector<T, Vector128<T>> where T : unma
 {
     public static bool IsSupported
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         get
             => Vector128<T>.IsSupported
 #if RELEASE
@@ -77,32 +77,32 @@ internal readonly struct Vec128<T> : ISimdVector<T, Vector128<T>> where T : unma
 
     public static int Count
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         get => Vector128<T>.Count;
     }
 
     public static Vector128<T> Zero
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         get => Vector128<T>.Zero;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static Vector128<T> Equals(Vector128<T> left, Vector128<T> right) => Vector128.Equals(left, right);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static Vector128<T> Create(T value) => Vector128.Create(value);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static Vector128<T> LoadUnsafe(ref readonly T source, nuint offset) => Vector128.LoadUnsafe(in source, offset);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static nuint ExtractMostSignificantBits(Vector128<T> value) => nuint.CreateSaturating(value.ExtractMostSignificantBits());
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static Vector128<T> Or(Vector128<T> left, Vector128<T> right) => left | right;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static bool AllEqual(Vector128<T> left, Vector128<T> right) => left == right;
 }
 
@@ -110,7 +110,7 @@ internal readonly struct Vec256<T> : ISimdVector<T, Vector256<T>> where T : unma
 {
     public static bool IsSupported
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         get
             => Vector256<T>.IsSupported
 #if RELEASE
@@ -121,32 +121,32 @@ internal readonly struct Vec256<T> : ISimdVector<T, Vector256<T>> where T : unma
 
     public static int Count
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         get => Vector256<T>.Count;
     }
 
     public static Vector256<T> Zero
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         get => Vector256<T>.Zero;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static Vector256<T> Equals(Vector256<T> left, Vector256<T> right) => Vector256.Equals(left, right);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static Vector256<T> Create(T value) => Vector256.Create(value);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static Vector256<T> LoadUnsafe(ref readonly T source, nuint offset) => Vector256.LoadUnsafe(in source, offset);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static nuint ExtractMostSignificantBits(Vector256<T> value) => nuint.CreateSaturating(value.ExtractMostSignificantBits());
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static Vector256<T> Or(Vector256<T> left, Vector256<T> right) => left | right;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static bool AllEqual(Vector256<T> left, Vector256<T> right) => left == right;
 }
 
@@ -154,7 +154,7 @@ internal readonly struct Vec512<T> : ISimdVector<T, Vector512<T>> where T : unma
 {
     public static bool IsSupported
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         get
             => Vector512<T>.IsSupported
 #if RELEASE
@@ -165,31 +165,31 @@ internal readonly struct Vec512<T> : ISimdVector<T, Vector512<T>> where T : unma
 
     public static int Count
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         get => Vector512<T>.Count;
     }
 
     public static Vector512<T> Zero
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.NoInlining)]
         get => Vector512<T>.Zero;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static Vector512<T> Equals(Vector512<T> left, Vector512<T> right) => Vector512.Equals(left, right);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static Vector512<T> Create(T value) => Vector512.Create(value);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static Vector512<T> LoadUnsafe(ref readonly T source, nuint offset) => Vector512.LoadUnsafe(in source, offset);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static nuint ExtractMostSignificantBits(Vector512<T> value) => nuint.CreateSaturating(value.ExtractMostSignificantBits());
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static Vector512<T> Or(Vector512<T> left, Vector512<T> right) => left | right;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static bool AllEqual(Vector512<T> left, Vector512<T> right) => left == right;
 }

@@ -19,6 +19,7 @@ internal interface ISimdVector<T, TVector>
     static abstract bool AllEqual(TVector left, TVector right);
 }
 <#
+    const string MethodImpl = "[MethodImpl(MethodImplOptions.NoInlining)]";
     const string PragmaCondition = "RELEASE";
     string[] sizes = ["64", "128", "256", "512"];
     foreach (var size in  sizes)
@@ -29,7 +30,7 @@ internal readonly struct Vec<#= size #><T> : ISimdVector<T, Vector<#= size #><T>
 {
     public static bool IsSupported
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        <#= MethodImpl #>
         get
             => Vector<#= size #><T>.IsSupported
 #if <#= PragmaCondition #>
@@ -40,32 +41,32 @@ internal readonly struct Vec<#= size #><T> : ISimdVector<T, Vector<#= size #><T>
 
     public static int Count
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        <#= MethodImpl #>
         get => Vector<#= size #><T>.Count;
     }
 
     public static Vector<#= size #><T> Zero
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        <#= MethodImpl #>
         get => Vector<#= size #><T>.Zero;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    <#= MethodImpl #>
     public static Vector<#= size #><T> Equals(Vector<#= size #><T> left, Vector<#= size #><T> right) => Vector<#= size #>.Equals(left, right);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    <#= MethodImpl #>
     public static Vector<#= size #><T> Create(T value) => Vector<#= size #>.Create(value);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    <#= MethodImpl #>
     public static Vector<#= size #><T> LoadUnsafe(ref readonly T source, nuint offset) => Vector<#= size #>.LoadUnsafe(in source, offset);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    <#= MethodImpl #>
     public static nuint ExtractMostSignificantBits(Vector<#= size #><T> value) => nuint.CreateSaturating(value.ExtractMostSignificantBits());
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    <#= MethodImpl #>
     public static Vector<#= size #><T> Or(Vector<#= size #><T> left, Vector<#= size #><T> right) => left | right;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    <#= MethodImpl #>
     public static bool AllEqual(Vector<#= size #><T> left, Vector<#= size #><T> right) => left == right;
 }
 <#

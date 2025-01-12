@@ -10,6 +10,7 @@
 
     <!--This setting is broken for structs that use the in-modifier-->
     <NoWarn>RCS1085</NoWarn>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <PropertyGroup Condition="false">

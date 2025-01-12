@@ -197,6 +197,37 @@ public class CsvEnumerateBench
             }
         }
     }
+
+    [Benchmark]
+    public void Buffer2()
+    {
+        #if DEBUG
+        var str = Encoding.UTF8.GetString(_bytes);
+        var asd = str[200..300];
+        bool v = System.Text.Ascii.IsValid(asd);
+        #endif
+
+        Meta[] array = ArrayPool<Meta>.Shared.Rent(1024);
+        Span<Meta> buffer = array;
+        ReadOnlySpan<byte> bytes = _bytes;
+
+        int read;
+
+        while ((read = Buffah<byte>.Read(bytes, buffer, in CsvOptions<byte>.Default.Dialect, false)) > 0)
+        {
+            for (int i = 0; i < read; i++)
+            {
+                var slice = buffer[i];
+                var start = i == 0 ? 0 : buffer[i - 1].GetLength(2);
+                _ = bytes[start..slice.End];
+            }
+
+            var last = buffer[read - 1];
+            bytes = bytes.Slice(last.End + last.GetLength(2));
+        }
+
+        ArrayPool<Meta>.Shared.Return(array);
+    }
 }
 
 public readonly struct MetaV1
@@ -261,7 +292,7 @@ file static class FieldReaderV1<T> where T : unmanaged, IBinaryInteger<T>
 #if !DEBUG
         if (Unsafe.SizeOf<T>() == sizeof(char))
         {
-            return Buffah<ushort>.ReadCore(
+            return FieldReaderV1<ushort>.ReadCore(
                 MemoryMarshal.Cast<T, ushort>(data),
                 metaBufferSpan,
                 ref Unsafe.As<CsvDialect<T>, CsvDialect<ushort>>(ref Unsafe.AsRef(in dialect)),
