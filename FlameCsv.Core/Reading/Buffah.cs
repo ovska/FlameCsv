@@ -338,22 +338,10 @@ internal static class ReaderImpl<T, TNewline, TSimd, TVector>
                 continue;
             }
 
-            if (runningIndex >= (nuint)(3648 + TSimd.Count))
-            {
-
-            }
-
             nuint maskDelimiter = TSimd.ExtractMostSignificantBits(hasDelimiter);
 
-            string current;
-
-            if (typeof(T) == typeof(byte))
-            {
-                current = Encoding.UTF8.GetString(data.Slice((int)runningIndex, TSimd.Count).UnsafeCast<T, byte>());
-            }
-
             // only delimiters? skip this if there are any quotes in the current field
-            if ((maskDelimiter + quotesConsumed) == maskAny)
+            if (quotesConsumed == 0u && maskDelimiter == maskAny)
             {
                 Debug.Assert(quotesConsumed == 0);
                 currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
@@ -363,7 +351,7 @@ internal static class ReaderImpl<T, TNewline, TSimd, TVector>
 
             nuint maskNewlineOrDelimiter = TSimd.ExtractMostSignificantBits(hasNewlineOrDelimiter);
 
-            if ((quotesConsumed & 1) == 0 && maskNewlineOrDelimiter == maskAny)
+            if (quotesConsumed == 0u && maskNewlineOrDelimiter == maskAny)
             {
                 if (maskDelimiter != 0)
                 {

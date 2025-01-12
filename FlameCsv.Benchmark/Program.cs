@@ -2,8 +2,8 @@
 using BenchmarkDotNet.Engines;
 using BenchmarkDotNet.Jobs;
 
-new CsvEnumerateBench().Buffer2();
-return;
+// new CsvEnumerateBench().Buffer2();
+// return;
 
 var config = DefaultConfig.Instance
     //.AddJob(Job.Default

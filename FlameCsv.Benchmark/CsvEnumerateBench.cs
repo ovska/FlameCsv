@@ -102,22 +102,22 @@ public class CsvEnumerateBench
     [Benchmark(Baseline = true)]
     public void FlameUTF2()
     {
-        IMemoryOwner<byte>? allocated = null;
-        Span<byte> unescapeBuffer = stackalloc byte[128];
-        using var parser = CsvParser<byte>.Create(CsvOptions<byte>.Default);
-        parser.Reset(new ReadOnlySequence<byte>(_bytes));
+        IMemoryOwner<char>? allocated = null;
+        Span<char> unescapeBuffer = stackalloc char[128];
+        using var parser = CsvParser<char>.Create(CsvOptions<char>.Default);
+        parser.Reset(new ReadOnlySequence<char>(_chars.AsMemory()));
 
         while (parser.TryReadLine(out var line, isFinalBlock: false))
         {
-            CsvFieldReader<byte> state = new(
-                CsvOptions<byte>.Default,
+            CsvFieldReader<char> state = new(
+                CsvOptions<char>.Default,
                 in line,
                 unescapeBuffer,
                 ref allocated);
 
             while (!state.End)
             {
-                _ = RFC4180Mode<byte>.ReadNextField(ref state);
+                _ = RFC4180Mode<char>.ReadNextField(ref state);
             }
         }
 
@@ -127,17 +127,17 @@ public class CsvEnumerateBench
     [Benchmark]
     public void Buffering()
     {
-        Span<byte> unescapeBuffer = stackalloc byte[256];
+        Span<char> unescapeBuffer = stackalloc char[256];
         MetaV1[] array = ArrayPool<MetaV1>.Shared.Rent(1024);
         Span<MetaV1> metaBuffer = array;
-        ReadOnlySpan<byte> bytes = _bytes;
-        ref readonly CsvDialect<byte> dialect = ref CsvOptions<byte>.Default.Dialect;
+        ReadOnlySpan<char> bytes = _chars;
+        ref readonly CsvDialect<char> dialect = ref CsvOptions<char>.Default.Dialect;
 
         int count;
 
         while (true)
         {
-            count = FieldReaderV1<byte>.Read(bytes, metaBuffer, in dialect, _searcher, false);
+            count = FieldReaderV1<char>.Read(bytes, metaBuffer, in dialect, _searcher, false);
 
             if (count == 0)
             {
@@ -148,33 +148,24 @@ public class CsvEnumerateBench
             {
                 var meta = metaBuffer[i];
                 _ = meta.SliceUnsafe(in dialect, bytes, unescapeBuffer);
-#if DEBUG
-                string value = Encoding.UTF8.GetString(meta.SliceUnsafe(in dialect, bytes, unescapeBuffer));
-                _ = 1;
-#endif
             }
 
             var last = metaBuffer[count - 1];
             bytes = bytes.Slice(last.GetStartOfNext(newlineLength: 2));
         }
 
-        count = FieldReaderV1<byte>.Read(bytes, metaBuffer, in dialect, _searcher, true);
+        count = FieldReaderV1<char>.Read(bytes, metaBuffer, in dialect, _searcher, true);
 
         for (int i = 0; i < count; i++)
         {
             var meta = metaBuffer[i];
             _ = meta.SliceUnsafe(in dialect, bytes, unescapeBuffer);
-
-#if DEBUG
-            string value = Encoding.UTF8.GetString(meta.SliceUnsafe(in dialect, bytes, unescapeBuffer));
-            _ = 1;
-#endif
         }
 
         ArrayPool<MetaV1>.Shared.Return(array);
     }
 
-    private static readonly SearchValues<byte> _searcher = SearchValues.Create(",\"\r\n"u8);
+    private static readonly SearchValues<char> _searcher = SearchValues.Create(",\"\r\n");
 
     [Benchmark]
     public void Sepp()
@@ -187,7 +178,7 @@ public class CsvEnumerateBench
                     CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
                     HasHeader = false,
                 })
-            .From(_bytes);
+            .From(new StringReader(_chars));
 
         foreach (var row in reader)
         {
@@ -201,19 +192,13 @@ public class CsvEnumerateBench
     [Benchmark]
     public void Buffer2()
     {
-        #if DEBUG
-        var str = Encoding.UTF8.GetString(_bytes);
-        var asd = str[200..300];
-        bool v = System.Text.Ascii.IsValid(asd);
-        #endif
-
         Meta[] array = ArrayPool<Meta>.Shared.Rent(1024);
         Span<Meta> buffer = array;
-        ReadOnlySpan<byte> bytes = _bytes;
+        ReadOnlySpan<char> bytes = _chars;
 
         int read;
 
-        while ((read = Buffah<byte>.Read(bytes, buffer, in CsvOptions<byte>.Default.Dialect, false)) > 0)
+        while ((read = Buffah<char>.Read(bytes, buffer, in CsvOptions<char>.Default.Dialect, false)) > 0)
         {
             for (int i = 0; i < read; i++)
             {
