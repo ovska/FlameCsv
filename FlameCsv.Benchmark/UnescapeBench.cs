@@ -5,6 +5,7 @@ using CommunityToolkit.HighPerformance;
 using FlameCsv.Reading;
 using System.Text;
 using FlameCsv.Extensions;
+using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Benchmark;
 
@@ -23,16 +24,16 @@ public class UnescapeBench
         "\"GE 48\"\" Fluorescent Tube, Cool White Energy Saver, 34 Watts, 30/Box\"",
     ];
 
-    private static readonly (ReadOnlyMemory<char> value, uint quoteCount)[] _testData = _data
+    private static readonly (char[] value, uint quoteCount)[] _testData = _data
         .Select(s => s[1..^1])
-        .Select(s => (new ReadOnlyMemory<char>(s.ToCharArray()), (uint)s.Count('"')))
+        .Select(s => (s.ToCharArray(), (uint)s.Count('"')))
         .ToArray();
 
     private readonly char[] _buffer = new char[1024];
 
-    private static readonly (ReadOnlyMemory<byte> value, uint quoteCount)[] _testData2 = _data
+    private static readonly (byte[] value, uint quoteCount)[] _testData2 = _data
         .Select(s => s[1..^1])
-        .Select(s => (new ReadOnlyMemory<byte>(Encoding.UTF8.GetBytes(s)), (uint)s.Count('"')))
+        .Select(s => (Encoding.UTF8.GetBytes(s), (uint)s.Count('"')))
         .ToArray();
 
     private readonly byte[] _buffer2 = new byte[1024];
@@ -48,27 +49,38 @@ public class UnescapeBench
         }
     }
 
-    [Benchmark(Baseline = true)]
-    public void New()
-    {
-        Memory<char> buf = _buffer;
-        foreach (ref readonly var tuple in _testData.AsSpan())
-        {
-            _ = UnescapeRare(tuple.value, '"', tuple.quoteCount, ref buf);
-        }
-    }
+    // [Benchmark(Baseline = true)]
+    // public void New()
+    // {
+    //     Memory<char> buf = _buffer;
+    //     foreach (ref readonly var tuple in _testData.AsSpan())
+    //     {
+    //         _ = UnescapeRare(tuple.value, '"', tuple.quoteCount, ref buf);
+    //     }
+    // }
+    //
+    // [Benchmark]
+    // public void New2()
+    // {
+    //     Span<char> buf = _buffer;
+    //     foreach (ref readonly var tuple in _testData.AsSpan())
+    //     {
+    //         RFC4180Mode<ushort>.Unescape(
+    //             '"',
+    //             buf.UnsafeCast<char, ushort>(),
+    //             tuple.value.AsSpan().UnsafeCast<char, ushort>(),
+    //             tuple.quoteCount);
+    //     }
+    // }
 
     [Benchmark]
-    public void New2()
+    public void New4()
     {
         Span<char> buf = _buffer;
+
         foreach (ref readonly var tuple in _testData.AsSpan())
         {
-            RFC4180Mode<ushort>.Unescape(
-                '"',
-                buf.UnsafeCast<char, ushort>(),
-                tuple.value.Span.UnsafeCast<char, ushort>(),
-                tuple.quoteCount);
+            RFC4180Mode<char>.Unescape<Vec128Char>('"', buf, tuple.value.AsSpan(), tuple.quoteCount);
         }
     }
 
@@ -104,48 +116,48 @@ public class UnescapeBench
 
         goto ContinueRead;
 
-        Found1:
+    Found1:
         Copy(ref src, srcIndex, ref dst, dstIndex, 1);
         srcIndex += 1;
         dstIndex += 1;
         goto FoundLong;
-        Found2:
+    Found2:
         Copy(ref src, srcIndex, ref dst, dstIndex, 2);
         srcIndex += 2;
         dstIndex += 2;
         goto FoundLong;
-        Found3:
+    Found3:
         Copy(ref src, srcIndex, ref dst, dstIndex, 3);
         srcIndex += 3;
         dstIndex += 3;
         goto FoundLong;
-        Found4:
+    Found4:
         Copy(ref src, srcIndex, ref dst, dstIndex, 4);
         srcIndex += 4;
         dstIndex += 4;
         goto FoundLong;
-        Found5:
+    Found5:
         Copy(ref src, srcIndex, ref dst, dstIndex, 5);
         srcIndex += 5;
         dstIndex += 5;
         goto FoundLong;
-        Found6:
+    Found6:
         Copy(ref src, srcIndex, ref dst, dstIndex, 6);
         srcIndex += 6;
         dstIndex += 6;
         goto FoundLong;
-        Found7:
+    Found7:
         Copy(ref src, srcIndex, ref dst, dstIndex, 7);
         srcIndex += 7;
         dstIndex += 7;
         goto FoundLong;
-        Found8:
+    Found8:
         Copy(ref src, srcIndex, ref dst, dstIndex, 8);
         srcIndex += 8;
         dstIndex += 8;
         goto FoundLong;
 
-        FoundLong:
+    FoundLong:
         if (srcIndex >= srcLength || !quote.Equals(Unsafe.Add(ref src, srcIndex)))
             ThrowInvalidUnescape();
 
@@ -156,7 +168,7 @@ public class UnescapeBench
         if (quotesLeft == 0)
             goto NoQuotesLeft;
 
-        ContinueRead:
+    ContinueRead:
         while ((srcLength - srcIndex) >= 8)
         {
             if (quote.Equals(Unsafe.Add(ref src, srcIndex + 0)))
@@ -211,16 +223,15 @@ public class UnescapeBench
                 srcIndex++;
                 dstIndex++;
             }
-
         }
 
         goto EOL;
 
         // Copy remaining data
-        NoQuotesLeft:
+    NoQuotesLeft:
         Copy(ref src, srcIndex, ref dst, dstIndex, (uint)(srcLength - srcIndex));
 
-        EOL:
+    EOL:
         if (quotesLeft != 0)
             ThrowInvalidUnescape();
 
@@ -325,56 +336,56 @@ public class UnescapeBench
 
         goto ContinueRead;
 
-        Found1:
+    Found1:
         Copy(ref src, srcIndex, ref dst, dstIndex, 1);
         srcIndex += 1;
         dstIndex += 1;
         remaining -= 1;
         goto FoundLong;
-        Found2:
+    Found2:
         Copy(ref src, srcIndex, ref dst, dstIndex, 2);
         srcIndex += 2;
         dstIndex += 2;
         remaining -= 2;
         goto FoundLong;
-        Found3:
+    Found3:
         Copy(ref src, srcIndex, ref dst, dstIndex, 3);
         srcIndex += 3;
         dstIndex += 3;
         remaining -= 3;
         goto FoundLong;
-        Found4:
+    Found4:
         Copy(ref src, srcIndex, ref dst, dstIndex, 4);
         srcIndex += 4;
         dstIndex += 4;
         remaining -= 4;
         goto FoundLong;
-        Found5:
+    Found5:
         Copy(ref src, srcIndex, ref dst, dstIndex, 5);
         srcIndex += 5;
         dstIndex += 5;
         remaining -= 5;
         goto FoundLong;
-        Found6:
+    Found6:
         Copy(ref src, srcIndex, ref dst, dstIndex, 6);
         srcIndex += 6;
         dstIndex += 6;
         remaining -= 6;
         goto FoundLong;
-        Found7:
+    Found7:
         Copy(ref src, srcIndex, ref dst, dstIndex, 7);
         srcIndex += 7;
         dstIndex += 7;
         remaining -= 7;
         goto FoundLong;
-        Found8:
+    Found8:
         Copy(ref src, srcIndex, ref dst, dstIndex, 8);
         srcIndex += 8;
         dstIndex += 8;
         remaining -= 8;
         goto FoundLong;
 
-        FoundLong:
+    FoundLong:
         if (--remaining < 0 || !quote.Equals(Unsafe.Add(ref src, srcIndex)))
             ThrowInvalidUnescape();
 
@@ -385,7 +396,7 @@ public class UnescapeBench
         if (quotesLeft == 0)
             goto NoQuotesLeft;
 
-        ContinueRead:
+    ContinueRead:
         if (Vector.IsHardwareAccelerated && Vector<T>.IsSupported)
         {
             Vector<T> mask = new(quote);
@@ -404,7 +415,7 @@ public class UnescapeBench
             }
         }
 
-        Scan:
+    Scan:
         while (remaining >= 8)
         {
             if (quote.Equals(Unsafe.Add(ref src, srcIndex + 0)))
@@ -460,16 +471,15 @@ public class UnescapeBench
                 srcIndex++;
                 dstIndex++;
             }
-
         }
 
         goto EOL;
 
         // Copy remaining data
-        NoQuotesLeft:
+    NoQuotesLeft:
         Copy(ref src, srcIndex, ref dst, dstIndex, (uint)remaining);
 
-        EOL:
+    EOL:
         if (quotesLeft != 0)
             ThrowInvalidUnescape();
 

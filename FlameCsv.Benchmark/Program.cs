@@ -2,6 +2,9 @@
 using BenchmarkDotNet.Engines;
 using BenchmarkDotNet.Jobs;
 
+// new CsvEnumerateBench().Buffer2();
+// return;
+
 var config = DefaultConfig.Instance
     //.AddJob(Job.Default
     //    .WithStrategy(RunStrategy.Throughput)
@@ -12,7 +15,7 @@ var config = DefaultConfig.Instance
     .AddJob(Job.Default
         .WithStrategy(RunStrategy.Throughput));
 
-BenchmarkRunner.Run<CountEscapableBench>(config);
+BenchmarkRunner.Run<UnescapeBench>(config);
 
 //var bb = new BindingBench();
 
