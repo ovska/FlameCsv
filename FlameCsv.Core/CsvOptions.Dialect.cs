@@ -37,7 +37,7 @@ public partial class CsvOptions<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     protected virtual ref readonly CsvDialect<T> InitializeDialect()
     {
-        _dialect = new CsvDialect<T>
+        var result = new CsvDialect<T>
         {
             Delimiter = T.CreateChecked(_delimiter),
             Quote = T.CreateChecked(_quote),
@@ -46,6 +46,9 @@ public partial class CsvOptions<T>
             Whitespace = GetFromString(_whitespace),
         };
 
+        result.Validate();
+
+        _dialect = result;
         return ref Nullable.GetValueRefOrDefaultRef(in _dialect);
     }
 
@@ -105,13 +108,11 @@ public partial class CsvOptions<T>
         set => this.SetValue(ref _whitespace, value);
     }
 
+    // TODO: move to dialect
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal NewlineBuffer<T> GetNewline(bool forWriting = false)
     {
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(Dialect.Newline.Length, 2, nameof(Newline));
-
-        int newlineLength = Dialect.Newline.Length;
-
-        if (newlineLength is 0)
+        if (Dialect.Newline.IsEmpty)
         {
             return forWriting ? NewlineBuffer<T>.CRLF : default;
         }

@@ -1,170 +1,308 @@
-﻿using System.Diagnostics;
+﻿using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.HighPerformance;
+using System.Runtime.InteropServices;
 using FlameCsv.Extensions;
+using FlameCsv.Utilities;
 
 namespace FlameCsv.Reading.Internal;
 
-internal sealed class CsvParserRFC4180<T>(CsvOptions<T> options) : CsvParser<T>(options) where T : unmanaged, IBinaryInteger<T>
+internal sealed class CsvParserRFC4180<T>(CsvOptions<T> options) : CsvParser<T>(options)
+    where T : unmanaged, IBinaryInteger<T>
 {
-    internal override CsvLine<T> GetAsCsvLine(ReadOnlyMemory<T> line)
+    private protected override bool TryReadFromSequence(out CsvLine<T> line, bool isFinalBlock)
     {
-        ReadOnlySpan<T> span = line.Span;
+        Debug.Assert(_dialect.Escape is null);
 
-        uint quoteCount = (uint)System.MemoryExtensions.Count(span, Options.Dialect.Quote);
-
-        if (quoteCount % 2 != 0)
-            ThrowForUnevenQuotes(span, Options);
-
-        return new CsvLine<T> { Value = line, QuoteCount = quoteCount, };
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private protected override bool TryReadLine(out CsvLine<T> line)
-    {
-        CsvSequenceReader<T> copy = _reader;
-
-        ReadOnlyMemory<T> unreadMemory = _reader.Unread;
-        ReadOnlySpan<T> remaining = unreadMemory.Span;
-        ref T start = ref remaining.DangerousGetReference();
+        using ValueListBuilder<Meta> fields = new(stackalloc Meta[16]);
 
         uint quoteCount = 0;
+        SequenceReader<T> reader = new(_sequence);
 
-        while (!_reader.End)
+        // load into locals for faster access
+        T delimiter = _dialect.Delimiter;
+        T quote = _dialect.Quote;
+        SearchValues<T> nextToken = _dialect.GetFindToken(_newline.Length);
+        NewlineBuffer<T> newline = _newline;
+
+        while (!reader.End)
         {
         Seek:
             int index = quoteCount % 2 == 0
-                ? remaining.IndexOfAny(_quote, _newline.First)
-                : remaining.IndexOf(_quote);
+                ? reader.UnreadSpan.IndexOfAny(nextToken)
+                : reader.UnreadSpan.IndexOf(quote);
 
             if (index != -1)
             {
-                if (remaining[index] == _quote)
+                if (reader.UnreadSpan[index] == quote)
                 {
-                    quoteCount++;
+                    reader.Advance(index + 1);
 
-                    remaining = _reader.AdvanceCurrent(index + 1)
-                        ? _reader.Unread.Span
-                        : remaining.Slice(index + 1);
+                    // quotes are commonly followed by delimiters, newlines or other quotes
+                    if ((++quoteCount & 1) == 0)
+                    {
+                        if (reader.TryPeek(out T next))
+                        {
+                            if (next == quote)
+                            {
+                                quoteCount++;
+                                reader.Advance(1);
+                                goto Seek;
+                            }
+
+                            if (next == delimiter)
+                            {
+                                reader.Advance(1);
+                                goto FoundDelimiter;
+                            }
+
+                            if (next == newline.First)
+                            {
+                                // don't advance here so the first position of a CRLF is preserved
+                                goto FoundNewline;
+                            }
+                        }
+                        else
+                        {
+                            // end of the sequence
+                            break;
+                        }
+                    }
 
                     goto Seek;
                 }
 
-                // must be newline token
-
-                // Found one of the delimiters
-                bool segmentHasChanged = index > 0 && _reader.AdvanceCurrent(index);
-
-                // store first newline token position
-                var crPosition = _reader.Position;
-
-                // and advance past it
-                if (_reader.AdvanceCurrent(1))
-                    segmentHasChanged = true;
-
-                if (_newline.Length == 1 || _reader.IsNext(_newline.Second, advancePast: true))
+                if (reader.UnreadSpan[index] == delimiter)
                 {
-                    // perf: non-empty slice from the same segment, read directly from the original memory
-                    // at this point, index points to the first newline token
-                    if (copy.Position.GetObject() == crPosition.GetObject()
-                        && (unreadMemory.Length | remaining.Length) != 0)
-                    {
-                        int byteOffset = (int)Unsafe.ByteOffset(
-                            ref start,
-                            ref remaining.DangerousGetReferenceAt(index));
-                        int elementCount = byteOffset / Unsafe.SizeOf<T>();
-                        line = new CsvLine<T> { Value = unreadMemory.Slice(0, elementCount), QuoteCount = quoteCount, };
+                    reader.Advance(index + 1);
+                    goto FoundDelimiter;
+                }
 
-                        Debug.Assert(
-                            _reader.Sequence.Slice(copy.Position, crPosition).SequenceEquals(line.Value.Span),
-                            $"Invalid slice: '{line}' vs '{_reader.Sequence.Slice(copy.Position, crPosition)}'");
-                    }
-                    else
-                    {
-                        line = new()
-                        {
-                            QuoteCount = quoteCount,
-                            Value = _reader.Sequence
-                                .Slice(copy.Position, crPosition)
-                                .AsMemory(Allocator, ref _multisegmentBuffer),
-                        };
-                    }
+                Debug.Assert(newline.Length != 0);
+                Debug.Assert(reader.UnreadSpan[index] == newline.First);
 
+                // must be newline token
+                reader.Advance(index);
+                goto FoundNewline;
+
+            FoundDelimiter:
+                fields.Append(Meta.RFC((int)reader.Consumed - 1, quoteCount, isEOL: false));
+                quoteCount = 0;
+                goto Seek;
+
+            FoundNewline:
+                // store first newline token position
+                var crPosition = reader.Position;
+
+                // ...and advance past it
+                reader.Advance(1);
+
+                if (newline.Length == 1 || reader.IsNext(newline.Second, advancePast: true))
+                {
+                    fields.Append(Meta.RFC((int)reader.Consumed - newline.Length, quoteCount, isEOL: true));
+
+                    line = new CsvLine<T>(
+                        this,
+                        reader
+                            .Sequence.Slice(reader.Sequence.Start, crPosition)
+                            .AsMemory(Allocator, ref _multisegmentBuffer),
+                        GetSegmentMeta(fields.AsSpan()));
+
+                    _sequence = reader.UnreadSequence;
                     return true;
                 }
 
-                if (!_reader.TryAdvance(1, out bool segmentChanged))
+                if (reader.End)
                     break;
-
-                if (segmentChanged || segmentHasChanged)
-                    remaining = _reader.Unread.Span;
 
                 goto Seek;
             }
 
-            _reader.AdvanceCurrent(remaining.Length);
-            remaining = _reader.Current.Span;
+            // nothing in this segment
+            reader.Advance(reader.UnreadSpan.Length);
         }
 
-        // Didn't find anything, reset our original state.
-        _reader = copy;
+        if (isFinalBlock && !_sequence.IsEmpty)
+        {
+            var lastLine = _sequence.AsMemory(Allocator, ref _multisegmentBuffer);
+            _sequence = default;
+
+            // the last field ended in a delimiter, so there must be at least one field after it
+            fields.Append(Meta.RFC(lastLine.Length, quoteCount, isEOL: true)); // TODO: should this be EOL or not?
+
+            line = new CsvLine<T>(this, lastLine, GetSegmentMeta(fields.AsSpan()));
+            return true;
+        }
+
         Unsafe.SkipInit(out line);
         return false;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private protected override (int consumed, int linesRead) FillSliceBuffer(ReadOnlySpan<T> data, Span<Slice> slices)
+    private protected override int ReadFromFirstSpan()
     {
-        int linesRead = 0;
-        int consumed = 0;
-        int currentConsumed = 0;
-        uint quoteCount = 0;
+        Debug.Assert(_newline.Length != 0);
 
-        while (linesRead < slices.Length)
+        const int minimumVectors = 1; // TODO: fine-tune
+
+        ReadOnlySpan<T> data = _sequence.FirstSpan;
+
+        if (Unsafe.SizeOf<T>() == sizeof(char))
         {
-        Seek:
-            int index = quoteCount % 2 == 0
-                ? data.IndexOfAny(_quote, _newline.First)
-                : data.IndexOf(_quote);
+            ReadOnlySpan<char> dataT = MemoryMarshal.Cast<T, char>(data);
+            ref readonly var dialect = ref Unsafe.As<CsvDialect<T>, CsvDialect<char>>(ref Unsafe.AsRef(in _dialect));
+            var newline = Unsafe.As<NewlineBuffer<T>, NewlineBuffer<char>>(ref _newline);
 
-            if (index < 0)
-                break;
-
-            if (_quote == data.DangerousGetReferenceAt(index))
+            if (Vec256Char.IsSupported && dataT.Length > Vec256Char.Count * minimumVectors)
             {
-                quoteCount++;
-                data = data.Slice(index + 1);
-                currentConsumed += index + 1;
-                goto Seek;
-            }
-
-            currentConsumed += index;
-
-            // find LF if we have 2-token newline
-            if (_newline.Length == 2)
-            {
-                // ran out of data
-                if (index >= data.Length - 1)
-                    break;
-
-                // the next token wasn't the second newline
-                if (_newline.Second != data.DangerousGetReferenceAt(index + 1))
+                if (newline.Length == 1)
                 {
-                    data = data.Slice(index + 1);
-                    currentConsumed++;
-                    goto Seek;
+                    return FieldParser<char, NewlineParserOne<char, Vec256Char>, Vec256Char>.Core(
+                        dialect.Delimiter,
+                        dialect.Quote,
+                        new(newline.First),
+                        dataT,
+                        MetaBuffer);
+                }
+
+                if (newline.Length == 2)
+                {
+                    return FieldParser<char, NewlineParserTwo<char, Vec256Char>, Vec256Char>.Core(
+                        dialect.Delimiter,
+                        dialect.Quote,
+                        new(newline.First, newline.Second),
+                        dataT,
+                        MetaBuffer);
                 }
             }
 
-            // Found newline
-            slices[linesRead++] = new Slice { Index = consumed, Length = currentConsumed, QuoteCount = quoteCount, };
+            if (Vec128Char.IsSupported && dataT.Length > Vec128Char.Count * minimumVectors)
+            {
+                if (newline.Length == 1)
+                {
+                    return FieldParser<char, NewlineParserOne<char, Vec128Char>, Vec128Char>.Core(
+                        dialect.Delimiter,
+                        dialect.Quote,
+                        new(newline.First),
+                        dataT,
+                        MetaBuffer);
+                }
 
-            consumed += currentConsumed + _newline.Length;
-            data = data.Slice(index + _newline.Length);
-            currentConsumed = 0;
-            quoteCount = 0;
+                if (newline.Length == 2)
+                {
+                    return FieldParser<char, NewlineParserTwo<char, Vec128Char>, Vec128Char>.Core(
+                        dialect.Delimiter,
+                        dialect.Quote,
+                        new(newline.First, newline.Second),
+                        dataT,
+                        MetaBuffer);
+                }
+            }
+
+            if (Vec64Char.IsSupported && dataT.Length > Vec64Char.Count * minimumVectors)
+            {
+                if (newline.Length == 1)
+                {
+                    return FieldParser<char, NewlineParserOne<char, Vec64Char>, Vec64Char>.Core(
+                        dialect.Delimiter,
+                        dialect.Quote,
+                        new(newline.First),
+                        dataT,
+                        MetaBuffer);
+                }
+
+                if (newline.Length == 2)
+                {
+                    return FieldParser<char, NewlineParserTwo<char, Vec64Char>, Vec64Char>.Core(
+                        dialect.Delimiter,
+                        dialect.Quote,
+                        new(newline.First, newline.Second),
+                        dataT,
+                        MetaBuffer);
+                }
+            }
         }
 
-        return (consumed, linesRead);
+        if (Unsafe.SizeOf<T>() == sizeof(byte))
+        {
+            ReadOnlySpan<byte> dataT = MemoryMarshal.Cast<T, byte>(data);
+            ref readonly var dialect = ref Unsafe.As<CsvDialect<T>, CsvDialect<byte>>(ref Unsafe.AsRef(in _dialect));
+            var newline = Unsafe.As<NewlineBuffer<T>, NewlineBuffer<byte>>(ref _newline);
+
+            if (Vec256Byte.IsSupported && dataT.Length > Vec256Byte.Count * minimumVectors)
+            {
+                if (newline.Length == 1)
+                {
+                    return FieldParser<byte, NewlineParserOne<byte, Vec256Byte>, Vec256Byte>.Core(
+                        dialect.Delimiter,
+                        dialect.Quote,
+                        new(newline.First),
+                        dataT,
+                        MetaBuffer);
+                }
+
+                if (newline.Length == 2)
+                {
+                    return FieldParser<byte, NewlineParserTwo<byte, Vec256Byte>, Vec256Byte>.Core(
+                        dialect.Delimiter,
+                        dialect.Quote,
+                        new(newline.First, newline.Second),
+                        dataT,
+                        MetaBuffer);
+                }
+            }
+
+            if (Vec128Byte.IsSupported && dataT.Length > Vec128Byte.Count * minimumVectors)
+            {
+                if (newline.Length == 1)
+                {
+                    return FieldParser<byte, NewlineParserOne<byte, Vec128Byte>, Vec128Byte>.Core(
+                        dialect.Delimiter,
+                        dialect.Quote,
+                        new(newline.First),
+                        dataT,
+                        MetaBuffer);
+                }
+
+                if (newline.Length == 2)
+                {
+                    return FieldParser<byte, NewlineParserTwo<byte, Vec128Byte>, Vec128Byte>.Core(
+                        dialect.Delimiter,
+                        dialect.Quote,
+                        new(newline.First, newline.Second),
+                        dataT,
+                        MetaBuffer);
+                }
+            }
+
+            if (Vec64Byte.IsSupported && dataT.Length > Vec64Byte.Count * minimumVectors)
+            {
+                if (newline.Length == 1)
+                {
+                    return FieldParser<byte, NewlineParserOne<byte, Vec64Byte>, Vec64Byte>.Core(
+                        dialect.Delimiter,
+                        dialect.Quote,
+                        new(newline.First),
+                        dataT,
+                        MetaBuffer);
+                }
+
+                if (newline.Length == 2)
+                {
+                    return FieldParser<byte, NewlineParserTwo<byte, Vec64Byte>, Vec64Byte>.Core(
+                        dialect.Delimiter,
+                        dialect.Quote,
+                        new(newline.First, newline.Second),
+                        dataT,
+                        MetaBuffer);
+                }
+            }
+        }
+
+        if (SequentialParser<T>.CanRead(data.Length))
+        {
+            return SequentialParser<T>.Core(in _dialect, _newline, data, MetaBuffer);
+        }
+
+        return 0;
     }
 }

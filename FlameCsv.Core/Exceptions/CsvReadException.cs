@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using FlameCsv.Extensions;
 
 namespace FlameCsv.Exceptions;
 
@@ -14,17 +13,12 @@ public class CsvReadException(
     Exception? innerException = null) : Exception(message, innerException)
 {
     /// <summary>
-    /// Throws an exception for a CSV record ending too early.
+    /// Throws an exception for a CSV record having an invalid number of fields.
     /// </summary>
-    /// <param name="fieldCount">Expected number of fields</param>
-    /// <param name="options">Current options instance</param>
-    /// <param name="record">The current CSV record</param>
     /// <exception cref="CsvReadException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowForPrematureEOF<T>(int fieldCount, CsvOptions<T> options, ReadOnlySpan<T> record)
-        where T : unmanaged, IBinaryInteger<T>
+    public static void ThrowForInvalidFieldCount(int expected, int actual)
     {
-        throw new CsvReadException(
-            $"Csv record ended prematurely (expected {fieldCount} fields): {options.AsPrintableString(record)}");
+        throw new CsvReadException($"Expected {expected} fields, but the record had {actual}");
     }
 }

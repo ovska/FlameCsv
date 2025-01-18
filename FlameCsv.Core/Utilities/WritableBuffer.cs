@@ -31,7 +31,7 @@ internal struct WritableBuffer<T> : IDisposable where T : unmanaged, IBinaryInte
     public readonly BufferFieldReader<T> CreateReader(CsvOptions<T> options, ReadOnlyMemory<T> record)
     {
         ObjectDisposedException.ThrowIf(_items is null, typeof(WritableBuffer<T>));
-        return new(options, record, _memory.Span, _items.AsSpan());
+        return new(options, _memory, _items.AsSpan());
     }
 
     private int _index;

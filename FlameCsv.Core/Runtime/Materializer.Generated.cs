@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using FlameCsv.Binding;
+using FlameCsv.Exceptions;
 using FlameCsv.Reading;
 
 namespace FlameCsv.Runtime;
@@ -56,8 +57,6 @@ internal abstract partial class Materializer<T>
 internal sealed class Materializer<T, T0, TResult>
     : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
-    public override int FieldCount => 1;
-
     private readonly Func<T0, TResult> valueFactory;
 
     public Materializer(
@@ -70,10 +69,13 @@ internal sealed class Materializer<T, T0, TResult>
 
     private readonly CsvConverter<T, T0> converter0;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
     {
-        T0 v0 = ParseNext(ref reader, converter0);
-        reader.Dispose();
+        CsvOptions<T> options = reader.Options;
+
+        if (reader.FieldCount != 1) CsvReadException.ThrowForInvalidFieldCount(1, reader.FieldCount);
+
+        Parse(reader[0], options, converter0, out T0 v0);
         return valueFactory(v0);
     }
 }
@@ -83,8 +85,6 @@ internal sealed class Materializer<T, T0, TResult>
 internal sealed class Materializer<T, T0, T1, TResult>
     : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
-    public override int FieldCount => 2;
-
     private readonly Func<T0, T1, TResult> valueFactory;
 
     public Materializer(
@@ -100,11 +100,14 @@ internal sealed class Materializer<T, T0, T1, TResult>
     private readonly CsvConverter<T, T0> converter0;
     private readonly CsvConverter<T, T1> converter1;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
     {
-        T0 v0 = ParseNext(ref reader, converter0);
-        T1 v1 = ParseNext(ref reader, converter1);
-        reader.Dispose();
+        CsvOptions<T> options = reader.Options;
+
+        if (reader.FieldCount != 2) CsvReadException.ThrowForInvalidFieldCount(2, reader.FieldCount);
+
+        Parse(reader[0], options, converter0, out T0 v0);
+        Parse(reader[1], options, converter1, out T1 v1);
         return valueFactory(v0, v1);
     }
 }
@@ -114,8 +117,6 @@ internal sealed class Materializer<T, T0, T1, TResult>
 internal sealed class Materializer<T, T0, T1, T2, TResult>
     : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
-    public override int FieldCount => 3;
-
     private readonly Func<T0, T1, T2, TResult> valueFactory;
 
     public Materializer(
@@ -134,12 +135,15 @@ internal sealed class Materializer<T, T0, T1, T2, TResult>
     private readonly CsvConverter<T, T1> converter1;
     private readonly CsvConverter<T, T2> converter2;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
     {
-        T0 v0 = ParseNext(ref reader, converter0);
-        T1 v1 = ParseNext(ref reader, converter1);
-        T2 v2 = ParseNext(ref reader, converter2);
-        reader.Dispose();
+        CsvOptions<T> options = reader.Options;
+
+        if (reader.FieldCount != 3) CsvReadException.ThrowForInvalidFieldCount(3, reader.FieldCount);
+
+        Parse(reader[0], options, converter0, out T0 v0);
+        Parse(reader[1], options, converter1, out T1 v1);
+        Parse(reader[2], options, converter2, out T2 v2);
         return valueFactory(v0, v1, v2);
     }
 }
@@ -149,8 +153,6 @@ internal sealed class Materializer<T, T0, T1, T2, TResult>
 internal sealed class Materializer<T, T0, T1, T2, T3, TResult>
     : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
-    public override int FieldCount => 4;
-
     private readonly Func<T0, T1, T2, T3, TResult> valueFactory;
 
     public Materializer(
@@ -172,13 +174,16 @@ internal sealed class Materializer<T, T0, T1, T2, T3, TResult>
     private readonly CsvConverter<T, T2> converter2;
     private readonly CsvConverter<T, T3> converter3;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
     {
-        T0 v0 = ParseNext(ref reader, converter0);
-        T1 v1 = ParseNext(ref reader, converter1);
-        T2 v2 = ParseNext(ref reader, converter2);
-        T3 v3 = ParseNext(ref reader, converter3);
-        reader.Dispose();
+        CsvOptions<T> options = reader.Options;
+
+        if (reader.FieldCount != 4) CsvReadException.ThrowForInvalidFieldCount(4, reader.FieldCount);
+
+        Parse(reader[0], options, converter0, out T0 v0);
+        Parse(reader[1], options, converter1, out T1 v1);
+        Parse(reader[2], options, converter2, out T2 v2);
+        Parse(reader[3], options, converter3, out T3 v3);
         return valueFactory(v0, v1, v2, v3);
     }
 }
@@ -188,8 +193,6 @@ internal sealed class Materializer<T, T0, T1, T2, T3, TResult>
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult>
     : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
-    public override int FieldCount => 5;
-
     private readonly Func<T0, T1, T2, T3, T4, TResult> valueFactory;
 
     public Materializer(
@@ -214,14 +217,17 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult>
     private readonly CsvConverter<T, T3> converter3;
     private readonly CsvConverter<T, T4> converter4;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
     {
-        T0 v0 = ParseNext(ref reader, converter0);
-        T1 v1 = ParseNext(ref reader, converter1);
-        T2 v2 = ParseNext(ref reader, converter2);
-        T3 v3 = ParseNext(ref reader, converter3);
-        T4 v4 = ParseNext(ref reader, converter4);
-        reader.Dispose();
+        CsvOptions<T> options = reader.Options;
+
+        if (reader.FieldCount != 5) CsvReadException.ThrowForInvalidFieldCount(5, reader.FieldCount);
+
+        Parse(reader[0], options, converter0, out T0 v0);
+        Parse(reader[1], options, converter1, out T1 v1);
+        Parse(reader[2], options, converter2, out T2 v2);
+        Parse(reader[3], options, converter3, out T3 v3);
+        Parse(reader[4], options, converter4, out T4 v4);
         return valueFactory(v0, v1, v2, v3, v4);
     }
 }
@@ -231,8 +237,6 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult>
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult>
     : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
-    public override int FieldCount => 6;
-
     private readonly Func<T0, T1, T2, T3, T4, T5, TResult> valueFactory;
 
     public Materializer(
@@ -260,15 +264,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult>
     private readonly CsvConverter<T, T4> converter4;
     private readonly CsvConverter<T, T5> converter5;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
     {
-        T0 v0 = ParseNext(ref reader, converter0);
-        T1 v1 = ParseNext(ref reader, converter1);
-        T2 v2 = ParseNext(ref reader, converter2);
-        T3 v3 = ParseNext(ref reader, converter3);
-        T4 v4 = ParseNext(ref reader, converter4);
-        T5 v5 = ParseNext(ref reader, converter5);
-        reader.Dispose();
+        CsvOptions<T> options = reader.Options;
+
+        if (reader.FieldCount != 6) CsvReadException.ThrowForInvalidFieldCount(6, reader.FieldCount);
+
+        Parse(reader[0], options, converter0, out T0 v0);
+        Parse(reader[1], options, converter1, out T1 v1);
+        Parse(reader[2], options, converter2, out T2 v2);
+        Parse(reader[3], options, converter3, out T3 v3);
+        Parse(reader[4], options, converter4, out T4 v4);
+        Parse(reader[5], options, converter5, out T5 v5);
         return valueFactory(v0, v1, v2, v3, v4, v5);
     }
 }
@@ -278,8 +285,6 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult>
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult>
     : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
-    public override int FieldCount => 7;
-
     private readonly Func<T0, T1, T2, T3, T4, T5, T6, TResult> valueFactory;
 
     public Materializer(
@@ -310,16 +315,19 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult>
     private readonly CsvConverter<T, T5> converter5;
     private readonly CsvConverter<T, T6> converter6;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
     {
-        T0 v0 = ParseNext(ref reader, converter0);
-        T1 v1 = ParseNext(ref reader, converter1);
-        T2 v2 = ParseNext(ref reader, converter2);
-        T3 v3 = ParseNext(ref reader, converter3);
-        T4 v4 = ParseNext(ref reader, converter4);
-        T5 v5 = ParseNext(ref reader, converter5);
-        T6 v6 = ParseNext(ref reader, converter6);
-        reader.Dispose();
+        CsvOptions<T> options = reader.Options;
+
+        if (reader.FieldCount != 7) CsvReadException.ThrowForInvalidFieldCount(7, reader.FieldCount);
+
+        Parse(reader[0], options, converter0, out T0 v0);
+        Parse(reader[1], options, converter1, out T1 v1);
+        Parse(reader[2], options, converter2, out T2 v2);
+        Parse(reader[3], options, converter3, out T3 v3);
+        Parse(reader[4], options, converter4, out T4 v4);
+        Parse(reader[5], options, converter5, out T5 v5);
+        Parse(reader[6], options, converter6, out T6 v6);
         return valueFactory(v0, v1, v2, v3, v4, v5, v6);
     }
 }
@@ -329,8 +337,6 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult>
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult>
     : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
-    public override int FieldCount => 8;
-
     private readonly Func<T0, T1, T2, T3, T4, T5, T6, T7, TResult> valueFactory;
 
     public Materializer(
@@ -364,17 +370,20 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult>
     private readonly CsvConverter<T, T6> converter6;
     private readonly CsvConverter<T, T7> converter7;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
     {
-        T0 v0 = ParseNext(ref reader, converter0);
-        T1 v1 = ParseNext(ref reader, converter1);
-        T2 v2 = ParseNext(ref reader, converter2);
-        T3 v3 = ParseNext(ref reader, converter3);
-        T4 v4 = ParseNext(ref reader, converter4);
-        T5 v5 = ParseNext(ref reader, converter5);
-        T6 v6 = ParseNext(ref reader, converter6);
-        T7 v7 = ParseNext(ref reader, converter7);
-        reader.Dispose();
+        CsvOptions<T> options = reader.Options;
+
+        if (reader.FieldCount != 8) CsvReadException.ThrowForInvalidFieldCount(8, reader.FieldCount);
+
+        Parse(reader[0], options, converter0, out T0 v0);
+        Parse(reader[1], options, converter1, out T1 v1);
+        Parse(reader[2], options, converter2, out T2 v2);
+        Parse(reader[3], options, converter3, out T3 v3);
+        Parse(reader[4], options, converter4, out T4 v4);
+        Parse(reader[5], options, converter5, out T5 v5);
+        Parse(reader[6], options, converter6, out T6 v6);
+        Parse(reader[7], options, converter7, out T7 v7);
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7);
     }
 }
@@ -384,8 +393,6 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult>
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResult>
     : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
-    public override int FieldCount => 9;
-
     private readonly Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, TResult> valueFactory;
 
     public Materializer(
@@ -422,18 +429,21 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
     private readonly CsvConverter<T, T7> converter7;
     private readonly CsvConverter<T, T8> converter8;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
     {
-        T0 v0 = ParseNext(ref reader, converter0);
-        T1 v1 = ParseNext(ref reader, converter1);
-        T2 v2 = ParseNext(ref reader, converter2);
-        T3 v3 = ParseNext(ref reader, converter3);
-        T4 v4 = ParseNext(ref reader, converter4);
-        T5 v5 = ParseNext(ref reader, converter5);
-        T6 v6 = ParseNext(ref reader, converter6);
-        T7 v7 = ParseNext(ref reader, converter7);
-        T8 v8 = ParseNext(ref reader, converter8);
-        reader.Dispose();
+        CsvOptions<T> options = reader.Options;
+
+        if (reader.FieldCount != 9) CsvReadException.ThrowForInvalidFieldCount(9, reader.FieldCount);
+
+        Parse(reader[0], options, converter0, out T0 v0);
+        Parse(reader[1], options, converter1, out T1 v1);
+        Parse(reader[2], options, converter2, out T2 v2);
+        Parse(reader[3], options, converter3, out T3 v3);
+        Parse(reader[4], options, converter4, out T4 v4);
+        Parse(reader[5], options, converter5, out T5 v5);
+        Parse(reader[6], options, converter6, out T6 v6);
+        Parse(reader[7], options, converter7, out T7 v7);
+        Parse(reader[8], options, converter8, out T8 v8);
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8);
     }
 }
@@ -443,8 +453,6 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TResult>
     : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
-    public override int FieldCount => 10;
-
     private readonly Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TResult> valueFactory;
 
     public Materializer(
@@ -484,19 +492,22 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
     private readonly CsvConverter<T, T8> converter8;
     private readonly CsvConverter<T, T9> converter9;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
     {
-        T0 v0 = ParseNext(ref reader, converter0);
-        T1 v1 = ParseNext(ref reader, converter1);
-        T2 v2 = ParseNext(ref reader, converter2);
-        T3 v3 = ParseNext(ref reader, converter3);
-        T4 v4 = ParseNext(ref reader, converter4);
-        T5 v5 = ParseNext(ref reader, converter5);
-        T6 v6 = ParseNext(ref reader, converter6);
-        T7 v7 = ParseNext(ref reader, converter7);
-        T8 v8 = ParseNext(ref reader, converter8);
-        T9 v9 = ParseNext(ref reader, converter9);
-        reader.Dispose();
+        CsvOptions<T> options = reader.Options;
+
+        if (reader.FieldCount != 10) CsvReadException.ThrowForInvalidFieldCount(10, reader.FieldCount);
+
+        Parse(reader[0], options, converter0, out T0 v0);
+        Parse(reader[1], options, converter1, out T1 v1);
+        Parse(reader[2], options, converter2, out T2 v2);
+        Parse(reader[3], options, converter3, out T3 v3);
+        Parse(reader[4], options, converter4, out T4 v4);
+        Parse(reader[5], options, converter5, out T5 v5);
+        Parse(reader[6], options, converter6, out T6 v6);
+        Parse(reader[7], options, converter7, out T7 v7);
+        Parse(reader[8], options, converter8, out T8 v8);
+        Parse(reader[9], options, converter9, out T9 v9);
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9);
     }
 }
@@ -506,8 +517,6 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TResult>
     : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
-    public override int FieldCount => 11;
-
     private readonly Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TResult> valueFactory;
 
     public Materializer(
@@ -550,20 +559,23 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T9> converter9;
     private readonly CsvConverter<T, T10> converter10;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
     {
-        T0 v0 = ParseNext(ref reader, converter0);
-        T1 v1 = ParseNext(ref reader, converter1);
-        T2 v2 = ParseNext(ref reader, converter2);
-        T3 v3 = ParseNext(ref reader, converter3);
-        T4 v4 = ParseNext(ref reader, converter4);
-        T5 v5 = ParseNext(ref reader, converter5);
-        T6 v6 = ParseNext(ref reader, converter6);
-        T7 v7 = ParseNext(ref reader, converter7);
-        T8 v8 = ParseNext(ref reader, converter8);
-        T9 v9 = ParseNext(ref reader, converter9);
-        T10 v10 = ParseNext(ref reader, converter10);
-        reader.Dispose();
+        CsvOptions<T> options = reader.Options;
+
+        if (reader.FieldCount != 11) CsvReadException.ThrowForInvalidFieldCount(11, reader.FieldCount);
+
+        Parse(reader[0], options, converter0, out T0 v0);
+        Parse(reader[1], options, converter1, out T1 v1);
+        Parse(reader[2], options, converter2, out T2 v2);
+        Parse(reader[3], options, converter3, out T3 v3);
+        Parse(reader[4], options, converter4, out T4 v4);
+        Parse(reader[5], options, converter5, out T5 v5);
+        Parse(reader[6], options, converter6, out T6 v6);
+        Parse(reader[7], options, converter7, out T7 v7);
+        Parse(reader[8], options, converter8, out T8 v8);
+        Parse(reader[9], options, converter9, out T9 v9);
+        Parse(reader[10], options, converter10, out T10 v10);
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10);
     }
 }
@@ -573,8 +585,6 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TResult>
     : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
-    public override int FieldCount => 12;
-
     private readonly Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TResult> valueFactory;
 
     public Materializer(
@@ -620,21 +630,24 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T10> converter10;
     private readonly CsvConverter<T, T11> converter11;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
     {
-        T0 v0 = ParseNext(ref reader, converter0);
-        T1 v1 = ParseNext(ref reader, converter1);
-        T2 v2 = ParseNext(ref reader, converter2);
-        T3 v3 = ParseNext(ref reader, converter3);
-        T4 v4 = ParseNext(ref reader, converter4);
-        T5 v5 = ParseNext(ref reader, converter5);
-        T6 v6 = ParseNext(ref reader, converter6);
-        T7 v7 = ParseNext(ref reader, converter7);
-        T8 v8 = ParseNext(ref reader, converter8);
-        T9 v9 = ParseNext(ref reader, converter9);
-        T10 v10 = ParseNext(ref reader, converter10);
-        T11 v11 = ParseNext(ref reader, converter11);
-        reader.Dispose();
+        CsvOptions<T> options = reader.Options;
+
+        if (reader.FieldCount != 12) CsvReadException.ThrowForInvalidFieldCount(12, reader.FieldCount);
+
+        Parse(reader[0], options, converter0, out T0 v0);
+        Parse(reader[1], options, converter1, out T1 v1);
+        Parse(reader[2], options, converter2, out T2 v2);
+        Parse(reader[3], options, converter3, out T3 v3);
+        Parse(reader[4], options, converter4, out T4 v4);
+        Parse(reader[5], options, converter5, out T5 v5);
+        Parse(reader[6], options, converter6, out T6 v6);
+        Parse(reader[7], options, converter7, out T7 v7);
+        Parse(reader[8], options, converter8, out T8 v8);
+        Parse(reader[9], options, converter9, out T9 v9);
+        Parse(reader[10], options, converter10, out T10 v10);
+        Parse(reader[11], options, converter11, out T11 v11);
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11);
     }
 }
@@ -644,8 +657,6 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TResult>
     : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
-    public override int FieldCount => 13;
-
     private readonly Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TResult> valueFactory;
 
     public Materializer(
@@ -694,22 +705,25 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T11> converter11;
     private readonly CsvConverter<T, T12> converter12;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
     {
-        T0 v0 = ParseNext(ref reader, converter0);
-        T1 v1 = ParseNext(ref reader, converter1);
-        T2 v2 = ParseNext(ref reader, converter2);
-        T3 v3 = ParseNext(ref reader, converter3);
-        T4 v4 = ParseNext(ref reader, converter4);
-        T5 v5 = ParseNext(ref reader, converter5);
-        T6 v6 = ParseNext(ref reader, converter6);
-        T7 v7 = ParseNext(ref reader, converter7);
-        T8 v8 = ParseNext(ref reader, converter8);
-        T9 v9 = ParseNext(ref reader, converter9);
-        T10 v10 = ParseNext(ref reader, converter10);
-        T11 v11 = ParseNext(ref reader, converter11);
-        T12 v12 = ParseNext(ref reader, converter12);
-        reader.Dispose();
+        CsvOptions<T> options = reader.Options;
+
+        if (reader.FieldCount != 13) CsvReadException.ThrowForInvalidFieldCount(13, reader.FieldCount);
+
+        Parse(reader[0], options, converter0, out T0 v0);
+        Parse(reader[1], options, converter1, out T1 v1);
+        Parse(reader[2], options, converter2, out T2 v2);
+        Parse(reader[3], options, converter3, out T3 v3);
+        Parse(reader[4], options, converter4, out T4 v4);
+        Parse(reader[5], options, converter5, out T5 v5);
+        Parse(reader[6], options, converter6, out T6 v6);
+        Parse(reader[7], options, converter7, out T7 v7);
+        Parse(reader[8], options, converter8, out T8 v8);
+        Parse(reader[9], options, converter9, out T9 v9);
+        Parse(reader[10], options, converter10, out T10 v10);
+        Parse(reader[11], options, converter11, out T11 v11);
+        Parse(reader[12], options, converter12, out T12 v12);
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12);
     }
 }
@@ -719,8 +733,6 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TResult>
     : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
-    public override int FieldCount => 14;
-
     private readonly Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TResult> valueFactory;
 
     public Materializer(
@@ -772,23 +784,26 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T12> converter12;
     private readonly CsvConverter<T, T13> converter13;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
     {
-        T0 v0 = ParseNext(ref reader, converter0);
-        T1 v1 = ParseNext(ref reader, converter1);
-        T2 v2 = ParseNext(ref reader, converter2);
-        T3 v3 = ParseNext(ref reader, converter3);
-        T4 v4 = ParseNext(ref reader, converter4);
-        T5 v5 = ParseNext(ref reader, converter5);
-        T6 v6 = ParseNext(ref reader, converter6);
-        T7 v7 = ParseNext(ref reader, converter7);
-        T8 v8 = ParseNext(ref reader, converter8);
-        T9 v9 = ParseNext(ref reader, converter9);
-        T10 v10 = ParseNext(ref reader, converter10);
-        T11 v11 = ParseNext(ref reader, converter11);
-        T12 v12 = ParseNext(ref reader, converter12);
-        T13 v13 = ParseNext(ref reader, converter13);
-        reader.Dispose();
+        CsvOptions<T> options = reader.Options;
+
+        if (reader.FieldCount != 14) CsvReadException.ThrowForInvalidFieldCount(14, reader.FieldCount);
+
+        Parse(reader[0], options, converter0, out T0 v0);
+        Parse(reader[1], options, converter1, out T1 v1);
+        Parse(reader[2], options, converter2, out T2 v2);
+        Parse(reader[3], options, converter3, out T3 v3);
+        Parse(reader[4], options, converter4, out T4 v4);
+        Parse(reader[5], options, converter5, out T5 v5);
+        Parse(reader[6], options, converter6, out T6 v6);
+        Parse(reader[7], options, converter7, out T7 v7);
+        Parse(reader[8], options, converter8, out T8 v8);
+        Parse(reader[9], options, converter9, out T9 v9);
+        Parse(reader[10], options, converter10, out T10 v10);
+        Parse(reader[11], options, converter11, out T11 v11);
+        Parse(reader[12], options, converter12, out T12 v12);
+        Parse(reader[13], options, converter13, out T13 v13);
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13);
     }
 }
@@ -798,8 +813,6 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TResult>
     : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
-    public override int FieldCount => 15;
-
     private readonly Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TResult> valueFactory;
 
     public Materializer(
@@ -854,24 +867,27 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T13> converter13;
     private readonly CsvConverter<T, T14> converter14;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
     {
-        T0 v0 = ParseNext(ref reader, converter0);
-        T1 v1 = ParseNext(ref reader, converter1);
-        T2 v2 = ParseNext(ref reader, converter2);
-        T3 v3 = ParseNext(ref reader, converter3);
-        T4 v4 = ParseNext(ref reader, converter4);
-        T5 v5 = ParseNext(ref reader, converter5);
-        T6 v6 = ParseNext(ref reader, converter6);
-        T7 v7 = ParseNext(ref reader, converter7);
-        T8 v8 = ParseNext(ref reader, converter8);
-        T9 v9 = ParseNext(ref reader, converter9);
-        T10 v10 = ParseNext(ref reader, converter10);
-        T11 v11 = ParseNext(ref reader, converter11);
-        T12 v12 = ParseNext(ref reader, converter12);
-        T13 v13 = ParseNext(ref reader, converter13);
-        T14 v14 = ParseNext(ref reader, converter14);
-        reader.Dispose();
+        CsvOptions<T> options = reader.Options;
+
+        if (reader.FieldCount != 15) CsvReadException.ThrowForInvalidFieldCount(15, reader.FieldCount);
+
+        Parse(reader[0], options, converter0, out T0 v0);
+        Parse(reader[1], options, converter1, out T1 v1);
+        Parse(reader[2], options, converter2, out T2 v2);
+        Parse(reader[3], options, converter3, out T3 v3);
+        Parse(reader[4], options, converter4, out T4 v4);
+        Parse(reader[5], options, converter5, out T5 v5);
+        Parse(reader[6], options, converter6, out T6 v6);
+        Parse(reader[7], options, converter7, out T7 v7);
+        Parse(reader[8], options, converter8, out T8 v8);
+        Parse(reader[9], options, converter9, out T9 v9);
+        Parse(reader[10], options, converter10, out T10 v10);
+        Parse(reader[11], options, converter11, out T11 v11);
+        Parse(reader[12], options, converter12, out T12 v12);
+        Parse(reader[13], options, converter13, out T13 v13);
+        Parse(reader[14], options, converter14, out T14 v14);
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14);
     }
 }
@@ -881,8 +897,6 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TResult>
     : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
-    public override int FieldCount => 16;
-
     private readonly Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TResult> valueFactory;
 
     public Materializer(
@@ -940,25 +954,28 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T14> converter14;
     private readonly CsvConverter<T, T15> converter15;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
     {
-        T0 v0 = ParseNext(ref reader, converter0);
-        T1 v1 = ParseNext(ref reader, converter1);
-        T2 v2 = ParseNext(ref reader, converter2);
-        T3 v3 = ParseNext(ref reader, converter3);
-        T4 v4 = ParseNext(ref reader, converter4);
-        T5 v5 = ParseNext(ref reader, converter5);
-        T6 v6 = ParseNext(ref reader, converter6);
-        T7 v7 = ParseNext(ref reader, converter7);
-        T8 v8 = ParseNext(ref reader, converter8);
-        T9 v9 = ParseNext(ref reader, converter9);
-        T10 v10 = ParseNext(ref reader, converter10);
-        T11 v11 = ParseNext(ref reader, converter11);
-        T12 v12 = ParseNext(ref reader, converter12);
-        T13 v13 = ParseNext(ref reader, converter13);
-        T14 v14 = ParseNext(ref reader, converter14);
-        T15 v15 = ParseNext(ref reader, converter15);
-        reader.Dispose();
+        CsvOptions<T> options = reader.Options;
+
+        if (reader.FieldCount != 16) CsvReadException.ThrowForInvalidFieldCount(16, reader.FieldCount);
+
+        Parse(reader[0], options, converter0, out T0 v0);
+        Parse(reader[1], options, converter1, out T1 v1);
+        Parse(reader[2], options, converter2, out T2 v2);
+        Parse(reader[3], options, converter3, out T3 v3);
+        Parse(reader[4], options, converter4, out T4 v4);
+        Parse(reader[5], options, converter5, out T5 v5);
+        Parse(reader[6], options, converter6, out T6 v6);
+        Parse(reader[7], options, converter7, out T7 v7);
+        Parse(reader[8], options, converter8, out T8 v8);
+        Parse(reader[9], options, converter9, out T9 v9);
+        Parse(reader[10], options, converter10, out T10 v10);
+        Parse(reader[11], options, converter11, out T11 v11);
+        Parse(reader[12], options, converter12, out T12 v12);
+        Parse(reader[13], options, converter13, out T13 v13);
+        Parse(reader[14], options, converter14, out T14 v14);
+        Parse(reader[15], options, converter15, out T15 v15);
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
     }
 }
