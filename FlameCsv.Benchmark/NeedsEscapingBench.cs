@@ -15,31 +15,32 @@ public class NeedsEscapingBench
     [GlobalSetup]
     public void Setup()
     {
-        List<char[]> fields = [];
-
-        var data = File.ReadLines(
-            "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv",
-            Encoding.ASCII);
-
-        IMemoryOwner<char>? buffer = null;
-        char[] unescapeBuffer = new char[1024];
-
-        using var parser = CsvParser<char>.Create(CsvOptions<char>.Default);
-
-        foreach (var line in data)
-        {
-            var meta = parser.GetAsCsvLine(line.AsMemory());
-            var reader = new CsvFieldReader<char>(CsvOptions<char>.Default, in meta, unescapeBuffer, ref buffer);
-
-            while (reader.MoveNext())
-            {
-                fields.Add(reader.Current.ToArray());
-            }
-        }
-
-        buffer?.Dispose();
-
-        _fields = fields.ToArray();
+        throw new NotImplementedException();
+        // List<char[]> fields = [];
+        //
+        // var data = File.ReadLines(
+        //     "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv",
+        //     Encoding.ASCII);
+        //
+        // IMemoryOwner<char>? buffer = null;
+        // char[] unescapeBuffer = new char[1024];
+        //
+        // using var parser = CsvParser<char>.Create(CsvOptions<char>.Default);
+        //
+        // foreach (var line in data)
+        // {
+        //     var meta = parser.GetAsCsvLine(line.AsMemory());
+        //     var reader = new CsvFieldReader<char>(CsvOptions<char>.Default, in meta, unescapeBuffer, ref buffer);
+        //
+        //     while (reader.MoveNext())
+        //     {
+        //         fields.Add(reader.Current.ToArray());
+        //     }
+        // }
+        //
+        // buffer?.Dispose();
+        //
+        // _fields = fields.ToArray();
     }
 
     [Benchmark(Baseline = true)]
@@ -116,6 +117,8 @@ file readonly struct OldEscaper<T> : IEscaper<T> where T : unmanaged, IBinaryInt
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool NeedsEscaping(T value) => value.Equals(_quote);
+
+    public bool SupportsVectorization => throw new NotSupportedException();
 
     public bool MustBeQuoted(ReadOnlySpan<T> field, out int escapableCount)
     {
