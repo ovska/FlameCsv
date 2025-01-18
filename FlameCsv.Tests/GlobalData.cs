@@ -1,12 +1,21 @@
-﻿using System.Collections.Immutable;
-
-namespace FlameCsv.Tests;
+﻿namespace FlameCsv.Tests;
 
 internal static class GlobalData
 {
-    public static ImmutableArray<bool> Booleans { get; } = [true, false];
+    /// <summary>
+    /// True and false.
+    /// </summary>
+    public static bool[] Booleans { get; } = [true, false];
 
-    public static ImmutableArray<bool?> GuardedMemory { get; } = OperatingSystem.IsWindows()
-        ? [true, false, null]
-        : [null];
+    /// <summary>
+    /// Guarded memory allocation data.
+    /// <see langword="null"/> means non-guarded date,
+    /// <see langword="true"/> means data is guarded right after the memory region,
+    /// <see langword="false"/> means the guarded data is right before.
+    /// </summary>
+    public static bool?[] GuardedMemory { get; } =
+        OperatingSystem.IsWindows() &&
+        Environment.GetEnvironmentVariable("COMPlus_legacyCorruptedStateExceptionsPolicy") == "1"
+            ? [true, false, null]
+            : [null];
 }
