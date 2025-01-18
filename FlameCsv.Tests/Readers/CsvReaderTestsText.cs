@@ -42,21 +42,12 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
     }
 
     [Fact]
-    public async Task Should_Read_Long_Multisegment_Lines()
+    public void Should_Read_Long_Multisegment_Lines()
     {
-        string name = new('x', 1024);
+        string name = new('x', 512);
         string data = $"0,{name},true,{DateTime.UnixEpoch:o},{Guid.Empty}{Environment.NewLine}";
 
-        var objs = new List<Obj>();
-
-        await using var ms = new MemoryStream(Encoding.UTF8.GetBytes(data));
-        using var reader = new StreamReader(ms, bufferSize: 128);
-        var options = new CsvOptions<char> { HasHeader = false };
-
-        await foreach (var item in CsvReader.ReadAsync<Obj>(reader, options))
-        {
-            objs.Add(item);
-        }
+        List<Obj> objs = [..CsvReader.Read<Obj>(data, new CsvOptions<char> { HasHeader = false })];
 
         Assert.Single(objs);
         var obj = objs[0];

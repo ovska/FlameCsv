@@ -26,39 +26,38 @@ public static class NewlineDetectTests
     {
         // repeat to ensure the newline detection is valid for the parser instance, not whole Options
         var textOpts = new CsvOptions<char> { Newline = null, Escape = escape ? '^' : null };
-        var utf8Opts = new CsvOptions<byte> { Newline = default, Escape = escape ? '^' : null };
+        var utf8Opts = new CsvOptions<byte> { Newline = null, Escape = escape ? '^' : null };
 
         for (int i = 0; i < 2; i++)
         {
-            Impl(textOpts, input.AsMemory(), "A,B,C");
-            Impl(utf8Opts, U8(input), "A,B,C"u8);
+            RunAssertions(textOpts, input.AsMemory(), "A,B,C");
+            RunAssertions(utf8Opts, U8(input), "A,B,C"u8);
         }
 
         Assert.Empty(textOpts.Newline ?? "");
         Assert.Empty(utf8Opts.Newline ?? "");
-    }
 
-    private static void Impl<T>(
-        CsvOptions<T> options,
-        ReadOnlyMemory<T> input,
-        ReadOnlySpan<T> expected) where T : unmanaged, IBinaryInteger<T>
-    {
-        using var parser = CsvParser<T>.Create(options);
-        parser.Reset(new ReadOnlySequence<T>(input));
-        Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
-        Assert.Equal(expected, line.Value.Span);
-        Assert.True(parser.TryReadLine(out _, isFinalBlock: false));
+        static void RunAssertions<T>(
+            CsvOptions<T> options,
+            ReadOnlyMemory<T> input,
+            ReadOnlySpan<T> expected) where T : unmanaged, IBinaryInteger<T>
+        {
+            using var parser = CsvParser.Create(options);
+            Assert.ThrowsAny<InvalidOperationException>(() => parser.NewlineLength);
+
+            parser.Reset(new ReadOnlySequence<T>(input));
+            Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
+            Assert.Equal(expected, line.Record.Span);
+
+            Assert.True(parser.TryReadLine(out _, isFinalBlock: false));
+        }
     }
 
     [Fact]
     public static void Should_Throw_On_Very_Long_Inputs()
     {
-        using var parser = CsvParser<char>.Create(new CsvOptions<char> { Newline = null });
+        using var parser = CsvParser.Create(new CsvOptions<char> { Newline = null });
         parser.Reset(new ReadOnlySequence<char>(new string('x', 4096).AsMemory()));
-
-        Assert.Throws<CsvConfigurationException>(() =>
-        {
-            _ = parser.TryReadLine(out _, false);
-        });
+        Assert.Throws<CsvFormatException>(() => { _ = parser.TryReadLine(out _, false); });
     }
 }
