@@ -1,244 +1,164 @@
-﻿using System.Diagnostics;
+﻿using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
+using FlameCsv.Utilities;
 
 namespace FlameCsv.Reading.Internal;
 
-internal sealed class CsvParserUnix<T>(CsvOptions<T> options) : CsvParser<T>(options) where T : unmanaged, IBinaryInteger<T>
+internal sealed class CsvParserUnix<T>(CsvOptions<T> options) : CsvParser<T>(options)
+    where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly T _escape = options.Dialect.Escape!.Value;
-
-    internal override CsvLine<T> GetAsCsvLine(ReadOnlyMemory<T> line)
+    private protected override bool TryReadFromSequence(out CsvLine<T> line, bool isFinalBlock)
     {
-        ref readonly CsvDialect<T> dialect = ref Options.Dialect;
-        T quote = dialect.Quote;
-        T escape = dialect.Escape.GetValueOrDefault();
-
-        ReadOnlySpan<T> span = line.Span;
-        int index = span.IndexOfAny(quote, escape);
-        bool skipNext = false;
-
-        uint quoteCount = 0;
-        uint escapeCount = 0;
-
-        if (index >= 0)
+        if (!_dialect.Escape.HasValue)
         {
-            for (; index < span.Length; index++)
-            {
-                if (skipNext)
-                {
-                    skipNext = false;
-                    continue;
-                }
-
-                if (span[index].Equals(quote))
-                {
-                    quoteCount++;
-                }
-                else if (span[index].Equals(escape))
-                {
-                    escapeCount++;
-                    skipNext = true;
-                }
-            }
+            Throw.Unreachable("Escape character not set.");
         }
 
-        if (skipNext)
-            ThrowForInvalidLastEscape(span, Options);
+        using ValueListBuilder<Meta> fields = new(stackalloc Meta[16]);
 
-        if (quoteCount == 1)
-            ThrowForInvalidEscapeQuotes(span, Options);
-
-        return new CsvLine<T> { Value = line, QuoteCount = quoteCount, EscapeCount = escapeCount, };
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private protected override bool TryReadLine(out CsvLine<T> line)
-    {
-        CsvSequenceReader<T> copy = _reader;
-
-        ReadOnlyMemory<T> unreadMemory = _reader.Unread;
-        ReadOnlySpan<T> remaining = unreadMemory.Span;
-        ref T start = ref remaining.DangerousGetReference();
+        // load into locals for faster access
+        T delimiter = _dialect.Delimiter;
+        T quote = _dialect.Quote;
+        T escape = _dialect.Escape.Value;
+        SearchValues<T> nextToken = _dialect.GetFindToken(_newline.Length);
+        NewlineBuffer<T> newline = _newline;
 
         uint quoteCount = 0;
         uint escapeCount = 0;
+        SequenceReader<T> reader = new(_sequence);
 
-        while (!End)
+        while (!reader.End)
         {
         Seek:
             int index = quoteCount % 2 == 0
-                ? remaining.IndexOfAny(_quote, _escape, _newline.First)
-                : remaining.IndexOfAny(_quote, _escape);
+                ? reader.UnreadSpan.IndexOfAny(nextToken)
+                : reader.UnreadSpan.IndexOfAny(quote, escape);
 
             if (index != -1)
             {
-                if (remaining[index].Equals(_quote))
-                {
-                    quoteCount++;
-
-                    remaining = _reader.AdvanceCurrent(index + 1)
-                        ? _reader.Unread.Span
-                        : remaining.Slice(index + 1);
-
-                    goto Seek;
-                }
-
-                if (remaining[index].Equals(_escape))
+                if (reader.UnreadSpan[index] == escape)
                 {
                     escapeCount++;
 
-                    // read past the escape and following
-                    // use TryAdvance as the escape might be the last token in the segment
-                    if (!_reader.TryAdvance(index + 2, out bool refreshRemaining))
-                        break;
+                    reader.Advance(index + 1);
 
-                    remaining = refreshRemaining
-                        ? _reader.Unread.Span
-                        : remaining.Slice(index + 2);
+                    // escape was the last token?
+                    if (reader.End)
+                    {
+                        break;
+                    }
+
+                    // skip past the escaped token
+                    reader.Advance(1);
+                    goto Seek;
+                }
+
+                if (reader.UnreadSpan[index] == quote)
+                {
+                    reader.Advance(index + 1);
+
+                    // quotes are commonly followed by delimiters, newlines or other quotes
+                    if ((++quoteCount & 1) == 0)
+                    {
+                        if (reader.TryPeek(out T next))
+                        {
+                            if (next == delimiter)
+                            {
+                                reader.Advance(1);
+                                goto FoundDelimiter;
+                            }
+
+                            if (next == newline.First)
+                            {
+                                // don't advance here so the first position of a CRLF is preserved
+                                goto FoundNewline;
+                            }
+                        }
+                        else
+                        {
+                            // end of the sequence
+                            break;
+                        }
+                    }
 
                     goto Seek;
                 }
 
-                // must be newline token
-
-                // Found one of the delimiters
-                bool segmentHasChanged = index > 0 && _reader.AdvanceCurrent(index);
-
-                // store first newline token position
-                var crPosition = _reader.Position;
-
-                // and advance past it
-                if (_reader.AdvanceCurrent(1))
-                    segmentHasChanged = true;
-
-                if (_newline.Length == 1 || _reader.IsNext(_newline.Second, advancePast: true))
+                if (reader.UnreadSpan[index] == delimiter)
                 {
-                    // perf: non-empty slice from the same segment, read directly from the original memory
-                    // at this point, index points to the first newline token
-                    if (copy.Position.GetObject() == crPosition.GetObject()
-                        && (unreadMemory.Length | remaining.Length) != 0)
-                    {
-                        int byteOffset = (int)Unsafe.ByteOffset(
-                            ref start,
-                            ref remaining.DangerousGetReferenceAt(index));
-                        int elementCount = byteOffset / Unsafe.SizeOf<T>();
-                        line = new()
-                        {
-                            Value = unreadMemory.Slice(0, elementCount),
-                            QuoteCount = quoteCount,
-                            EscapeCount = escapeCount,
-                        };
+                    reader.Advance(index + 1);
+                    goto FoundDelimiter;
+                }
 
-                        Debug.Assert(
-                            _reader.Sequence.Slice(copy.Position, crPosition).SequenceEquals(line.Value.Span),
-                            $"Invalid slice: '{line}' vs '{_reader.Sequence.Slice(copy.Position, crPosition)}'");
-                    }
-                    else
-                    {
-                        line = new()
-                        {
-                            QuoteCount = quoteCount,
-                            EscapeCount = escapeCount,
-                            Value = _reader.Sequence.Slice(copy.Position, crPosition)
-                                .AsMemory(Allocator, ref _multisegmentBuffer),
-                        };
-                    }
+                Debug.Assert(newline.Length != 0);
+                Debug.Assert(reader.UnreadSpan[index] == newline.First);
 
+                // must be newline token
+                reader.Advance(index);
+                goto FoundNewline;
+
+            FoundDelimiter:
+                fields.Append(Meta.Unix((int)reader.Consumed - 1, quoteCount, escapeCount, isEOL: false));
+                quoteCount = 0;
+                escapeCount = 0;
+                goto Seek;
+
+            FoundNewline:
+                // store first newline token position
+                var crPosition = reader.Position;
+
+                // ...and advance past it
+                reader.Advance(1);
+
+                if (newline.Length == 1 || reader.IsNext(newline.Second, advancePast: true))
+                {
+                    fields.Append(Meta.Unix((int)reader.Consumed - newline.Length, quoteCount, escapeCount, isEOL: true));
+
+                    line = new CsvLine<T>(
+                        this,
+                        reader
+                            .Sequence.Slice(reader.Sequence.Start, crPosition)
+                            .AsMemory(Allocator, ref _multisegmentBuffer),
+                        GetSegmentMeta(fields.AsSpan()));
+
+                    _sequence = reader.UnreadSequence;
                     return true;
                 }
 
-                if (!_reader.TryAdvance(1, out bool segmentChanged))
+                if (reader.End)
                     break;
 
-                if (segmentChanged || segmentHasChanged)
-                    remaining = _reader.Unread.Span;
-
+                reader.Advance(1);
                 goto Seek;
             }
 
-            _reader.AdvanceCurrent(remaining.Length);
-            remaining = _reader.Current.Span;
+            // nothing in this segment
+            reader.Advance(reader.UnreadSpan.Length);
         }
 
-        // Didn't find anything, reset our original state.
-        _reader = copy;
+        if (isFinalBlock && !_sequence.IsEmpty)
+        {
+            var lastLine = _sequence.AsMemory(Allocator, ref _multisegmentBuffer);
+            _sequence = default;
+
+            // the remaining data is either after a delimiter if fields is non-empty, or
+            // some trailing data after the last newline.
+            // TODO: should this be EOL or not?
+            fields.Append(Meta.Unix(lastLine.Length, quoteCount, escapeCount, isEOL: true));
+
+            line = new CsvLine<T>(this, lastLine, GetSegmentMeta(fields.AsSpan()));
+            return true;
+        }
+
         Unsafe.SkipInit(out line);
         return false;
     }
 
-    private protected override (int consumed, int linesRead) FillSliceBuffer(ReadOnlySpan<T> data, Span<Slice> slices)
+    private protected override int ReadFromFirstSpan()
     {
-        Debug.Assert(_newline.Length != 0);
-
-        int linesRead = 0;
-        int consumed = 0;
-        int currentConsumed = 0;
-
-        uint quoteCount = 0;
-        uint escapeCount = 0;
-
-        while (linesRead < slices.Length)
-        {
-        Seek:
-            int index = quoteCount % 2 == 0
-                ? data.IndexOfAny(_quote, _escape, _newline.First)
-                : data.IndexOfAny(_quote, _escape);
-
-            if (index < 0)
-                break;
-
-            if (_quote.Equals(data.DangerousGetReferenceAt(index)))
-            {
-                quoteCount++;
-                data = data.Slice(index + 1);
-                currentConsumed += index + 1;
-                goto Seek;
-            }
-
-            if (_escape.Equals(data.DangerousGetReferenceAt(index)))
-            {
-                // ran out of data
-                if (index >= data.Length - 1)
-                    break;
-
-                escapeCount++;
-                data = data.Slice(index + 2);
-                currentConsumed += index + 2;
-                goto Seek;
-            }
-
-            currentConsumed += index;
-
-            if (_newline.Length == 2)
-            {
-                // ran out of data
-                if (index >= data.Length - 1)
-                    break;
-
-                // the next token wasn't the second newline
-                if (!_newline.Second.Equals(data.DangerousGetReferenceAt(index + 1)))
-                {
-                    data = data.Slice(index + 1);
-                    currentConsumed++;
-                    goto Seek;
-                }
-            }
-
-            // Found newline
-            slices[linesRead++] = new Slice
-            {
-                Index = consumed, Length = currentConsumed, QuoteCount = quoteCount, EscapeCount = escapeCount,
-            };
-
-            consumed += currentConsumed + _newline.Length;
-            data = data.Slice(index + _newline.Length);
-            currentConsumed = 0;
-            quoteCount = 0;
-            escapeCount = 0;
-        }
-
-        return (consumed, linesRead);
+        // TODO: implement
+        return 0;
     }
 }

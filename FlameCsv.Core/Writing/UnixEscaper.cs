@@ -1,5 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace FlameCsv.Writing;
 
@@ -42,5 +43,11 @@ internal readonly struct UnixEscaper<T>(T quote, T escape) : IEscaper<T> where T
         }
 
         return (int)(c0 + c1 + c2 + c3);
+    }
+
+    public bool SupportsVectorization
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Ascii.IsValid(byte.CreateTruncating(quote)) && Ascii.IsValid(byte.CreateTruncating(escape));
     }
 }

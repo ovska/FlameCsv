@@ -71,17 +71,17 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvValueRecord(
         long position,
-        int line,
-        ref readonly CsvLine<T> data,
+        int lineIndex,
+        ref readonly CsvLine<T> line,
         CsvOptions<T> options,
         EnumeratorState<T> state)
     {
         Position = position;
-        Line = line;
-        _record = data.Value;
+        Line = lineIndex;
+        _record = line.Record;
         _options = options;
         _state = state;
-        _version = _state.Initialize(in data);
+        _version = _state.Initialize(in line);
     }
 
     /// <inheritdoc cref="ICsvRecord{T}.GetField(string)"/>
@@ -226,15 +226,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
         }
 
         BufferFieldReader<T> reader = _state.CreateFieldReader();
-
-        try
-        {
-            return ((IMaterializer<T, TRecord>)obj).Parse(ref reader);
-        }
-        finally
-        {
-            reader.Dispose();
-        }
+        return ((IMaterializer<T, TRecord>)obj).Parse(ref reader);
     }
 
     /// <inheritdoc/>
@@ -254,15 +246,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
         }
 
         BufferFieldReader<T> reader = _state.CreateFieldReader();
-
-        try
-        {
-            return ((IMaterializer<T, TRecord>)obj).Parse(ref reader);
-        }
-        finally
-        {
-            reader.Dispose();
-        }
+        return ((IMaterializer<T, TRecord>)obj).Parse(ref reader);
     }
 
     /// <inheritdoc/>

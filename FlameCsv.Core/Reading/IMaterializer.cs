@@ -17,5 +17,5 @@ public interface IMaterializer<T, out TResult> where T : unmanaged, IBinaryInteg
     /// </exception>
     /// <exception cref="Exceptions.CsvParseException">Thrown if a value cannot be parsed</exception>
     TResult Parse<TReader>([HandlesResourceDisposal] ref TReader reader)
-       where TReader : ICsvFieldReader<T>, allows ref struct;
+       where TReader : ICsvRecordFields<T>, allows ref struct;
 }

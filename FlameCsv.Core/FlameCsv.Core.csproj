@@ -10,6 +10,7 @@
 
     <!--This setting is broken for structs that use the in-modifier-->
     <NoWarn>RCS1085</NoWarn>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <PropertyGroup Condition="false">
@@ -56,6 +57,10 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Materializer.Generated.cs</LastGenOutput>
     </None>
+    <None Update="Reading\Internal\ISimdVector.Generated.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ISimdVector.Generated.cs</LastGenOutput>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -79,13 +84,18 @@
       <DependentUpon>Materializer.Generated.tt</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
+    <Compile Update="Reading\Internal\ISimdVector.Generated.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>ISimdVector.Generated.tt</DependentUpon>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup>
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="false">
     <PackageReference Include="Roslynator.Analyzers" Version="4.12.4">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
