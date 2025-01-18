@@ -131,38 +131,32 @@ public partial class TypeMapGenerator
                 Handlers = new TryParseHandler[length];
             }
 
-            public int FieldCount => Handlers.Length;
-
             public ");
         sb.Append(typeMap.ResultName);
-        sb.Append(" Parse<TReader>(ref TReader reader) where TReader : FlameCsv.Reading.ICsvFieldReader<");
+        sb.Append(" Parse<TReader>(ref TReader reader) where TReader : FlameCsv.Reading.ICsvRecordFields<");
         sb.Append(typeMap.Token);
         sb.Append(@">, allows ref struct
             {
+                if (Handlers.Length != reader.FieldCount)
+                {
+                    FlameCsv.Exceptions.CsvReadException.ThrowForInvalidFieldCount(expected: Handlers.Length, actual: reader.FieldCount);
+                }
+
                 ParseState state = default;");
         WriteDefaultParameterValues(sb, in typeMap);
         sb.Append(@"
 
-                int index = 0;
-
-                while (reader.MoveNext())
+                for (int index = 0; index < Handlers.Length; index++)
                 {
                     ReadOnlySpan<");
         sb.Append(typeMap.Token);
-        sb.Append(@"> field = reader.Current;
+        sb.Append(@"> @field = reader[index];
 
-                    if (!Handlers[index++](this, ref state, field))
+                    if (!Handlers[index](this, ref state, @field))
                     {
-                        FlameCsv.Exceptions.CsvParseException.Throw(reader.Options, field);
+                        FlameCsv.Exceptions.CsvParseException.Throw(reader.Options, @field);
                     }
                 }
-
-                if (index < FieldCount)
-                {
-                    FlameCsv.Exceptions.CsvReadException.ThrowForPrematureEOF(FieldCount, reader.Options, reader.Record);
-                }
-
-                reader.Dispose();
 
                 // Create the value from parsed values. Required members are validated when creating the materializer,
                 // optional members are assigned only if parsed to not overwrite possible default values.

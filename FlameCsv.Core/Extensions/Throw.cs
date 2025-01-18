@@ -61,6 +61,18 @@ internal static class Throw
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public static void Unreachable(string? message)
+    {
+        throw new UnreachableException(message);
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public static void Unreachable(ref DefaultInterpolatedStringHandler handler)
+    {
+        throw new UnreachableException(handler.ToStringAndClear());
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void InvalidOperation_HeaderNotRead()
     {
         throw new InvalidOperationException("The CSV header has not been read.");

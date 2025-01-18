@@ -13,6 +13,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using FlameCsv.Binding;
+using FlameCsv.Exceptions;
 using FlameCsv.Reading;
 
 namespace FlameCsv.Runtime;
@@ -71,8 +72,6 @@ internal abstract partial class Materializer<T>
 internal sealed class Materializer<T, <#= generics #>>
     : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
-    public override int FieldCount => <#= current #>;
-
     private readonly Func<<#= generics #>> valueFactory;
 
     public Materializer(
@@ -109,22 +108,24 @@ internal sealed class Materializer<T, <#= generics #>>
         }
 #>
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvFieldReader<T>, allows ref struct
+    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
     {
+        CsvOptions<T> options = reader.Options;
+
+        if (reader.FieldCount != <#= current #>) CsvReadException.ThrowForInvalidFieldCount(<#= current #>, reader.FieldCount);
+
 <#
         for (var i = 0; i < current; i++)
         {
-            Write("        ");
+            Write($"        Parse(reader[{i}], options, converter");
+            Write(i.ToString());
+            Write(", out ");
             Write(genericTypes[i]);
             Write(" ");
             Write(values[i]);
-            Write(" = ParseNext(ref reader, converter");
-            Write(i.ToString());
             WriteLine(");");
         }
-#>
-        reader.Dispose();
-<#
+
         Write("        return valueFactory(");
         for (var i = 0; i < current; i++)
         {

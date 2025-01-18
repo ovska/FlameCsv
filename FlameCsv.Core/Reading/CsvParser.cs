@@ -1,7 +1,7 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading.Internal;
@@ -9,51 +9,10 @@ using JetBrains.Annotations;
 
 namespace FlameCsv.Reading;
 
-/// <summary>
-/// Implementation detail.
-/// </summary>
-public abstract class CsvParser : IDisposable
+internal static class CsvParser
 {
-    /// <summary>
-    /// Used to cache lines read from the first memory of the current sequence.
-    /// </summary>
-    private protected readonly struct Slice
-    {
-        public required int Index { get; init; }
-        public required int Length { get; init; }
-        public required uint QuoteCount { get; init; }
-        public uint EscapeCount { get; init; }
-    }
-
-    /// <inheritdoc/>
-    public abstract void Dispose();
-
-    [InlineArray(
-#if DEBUG
-        32
-#else
-        128
-#endif
-    )]
-    private protected struct SliceBuffer
-    {
-        public Slice elem0;
-    }
-}
-
-/// <summary>
-/// Reads CSV records from a <see cref="ReadOnlySequence{T}"/>.
-/// </summary>
-/// <remarks>Internal implementation detail.</remarks>
-[MustDisposeResource] // TODO: see if this can be internal?
-public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteger<T>
-{
-    /// <summary>
-    /// Creates a new instance of <see cref="CsvParser{T}"/> for the specified options.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [MustDisposeResource]
-    public static CsvParser<T> Create(CsvOptions<T> options)
+    public static CsvParser<T> Create<T>(CsvOptions<T> options) where T : unmanaged, IBinaryInteger<T>
     {
         ArgumentNullException.ThrowIfNull(options);
         options.MakeReadOnly();
@@ -61,6 +20,16 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
             ? new CsvParserRFC4180<T>(options)
             : new CsvParserUnix<T>(options);
     }
+}
+
+/// <summary>
+/// Reads CSV records from a <see cref="ReadOnlySequence{T}"/>.
+/// </summary>
+/// <remarks>Internal implementation detail.</remarks>
+[MustDisposeResource]
+internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryInteger<T>
+{
+    public const int BufferedFields = 1024;
 
     /// <summary>
     /// Current options instance.
@@ -68,60 +37,116 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
     public CsvOptions<T> Options => _options;
 
     /// <summary>
-    /// Whether the parser has reached the end of the current data.
+    /// Length of the newline sequence.
     /// </summary>
-    public bool End
+    /// <exception cref="InvalidOperationException">
+    /// Options has no explicit newline configured, and the parser hasn't auto-detected a newline yet.
+    /// </exception>
+    public int NewlineLength
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _reader.End;
+        get
+        {
+            if (_newline.Length == 0)
+            {
+                Throw.InvalidOperation("Auto-detected newline not initialized");
+            }
+
+            return _newline.Length;
+        }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void Advance(ICsvPipeReader<T> pipeReader)
     {
-        pipeReader.AdvanceTo(consumed: _reader.Position, examined: _reader.Sequence.End);
+        pipeReader.AdvanceTo(consumed: _sequence.Start, examined: _sequence.End);
     }
 
     internal MemoryPool<T> Allocator => _options._memoryPool;
 
-    internal readonly T _quote;
+    internal readonly CsvDialect<T> _dialect;
     internal NewlineBuffer<T> _newline;
-
     private protected readonly CsvOptions<T> _options;
-    private protected  IMemoryOwner<T>? _multisegmentBuffer;
-    internal CsvSequenceReader<T> _reader;
+    internal ReadOnlySequence<T> _sequence;
 
-    private readonly bool _noBuffering;
-    private ReadOnlyMemory<T> _sliceBuffer;
-    private int _sliceCount;
-    private int _sliceIndex;
-    private SliceBuffer _slices;
+    private protected IMemoryOwner<T>? _multisegmentBuffer;
+    private protected IMemoryOwner<T>? _unescapeBuffer;
 
-    private protected  CsvParser(CsvOptions<T> options)
+    /// <summary>
+    /// Buffer to read fields into.
+    /// </summary>
+    protected Span<Meta> MetaBuffer
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _metaArray.AsSpan(start: 1);
+    }
+
+    /// <summary>
+    /// Array containing the field infos. The first index is reserved for the start-of-data item.
+    /// </summary>
+    /// <seealso cref="MetaBuffer"/>
+    private Meta[] _metaArray;
+
+    /// <summary>
+    /// Number of fields read by <see cref="ReadFromFirstSpan"/>.
+    /// </summary>
+    /// <remarks>
+    /// Does not include the start-of-data meta.
+    /// </remarks>
+    /// <seealso cref="_metaArray"/>
+    private int _metaCount;
+
+    /// <summary>
+    /// How many read fields have been consumed.
+    /// </summary>
+    private int _metaIndex;
+
+    /// <summary>
+    /// Whether we have an ASCII dialect, and buffering isn't disabled.
+    /// </summary>
+    private readonly bool _canUseFastPath;
+
+    private protected CsvParser(CsvOptions<T> options)
     {
         Debug.Assert(options.IsReadOnly);
 
         _options = options;
-        _reader = new CsvSequenceReader<T>();
-        _noBuffering = options.NoLineBuffering;
-        _quote = options.Dialect.Quote;
+        _dialect = options.Dialect;
         _newline = options.GetNewline();
+        _metaArray = [];
+        _canUseFastPath = !options.NoLineBuffering && _dialect.IsAscii;
     }
 
-    internal abstract CsvLine<T> GetAsCsvLine(ReadOnlyMemory<T> line);
-    private protected  abstract bool TryReadLine(out CsvLine<T> line);
-    private protected  abstract (int consumed, int linesRead) FillSliceBuffer(ReadOnlySpan<T> data, scoped Span<Slice> slices);
+    /// <summary>
+    /// Attempt to read a complete well-formed line (CSV record) from the reader.
+    /// </summary>
+    /// <param name="line">Memory containing the line.</param>
+    /// <param name="isFinalBlock">Whether more data can be expected after this read</param>
+    /// <returns>Number of fields parsed</returns>
+    /// <seealso cref="_metaArray"/>
+    private protected abstract bool TryReadFromSequence(out CsvLine<T> line, bool isFinalBlock);
+
+    /// <summary>
+    /// Read metas from the first segment.
+    /// </summary>
+    /// <returns>Number of fields parsed</returns>
+    /// <seealso cref="_metaArray"/>
+    private protected abstract int ReadFromFirstSpan();
 
     /// <inheritdoc/>
-    public override void Dispose()
+    public void Dispose()
     {
-        GC.SuppressFinalize(this);
-        _multisegmentBuffer?.Dispose();
+        using (_unescapeBuffer)
+        using (_multisegmentBuffer)
+        {
+            _sequence = default;
+            _multisegmentBuffer = null;
+            ArrayPool<Meta>.Shared.Return(_metaArray);
+            _metaArray = [];
+        }
+
+        _unescapeBuffer = null;
         _multisegmentBuffer = null;
-        _reader = default;
-        _sliceBuffer = default;
-        _slices = default;
-        _sliceCount = default;
-        _sliceIndex = default;
     }
 
     /// <summary>
@@ -130,10 +155,9 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Reset(in ReadOnlySequence<T> sequence)
     {
-        _sliceCount = 0;
-        _sliceIndex = 0;
-        _sliceBuffer = default; // don't hold on to Memory instances from previous reads
-        _reader = new CsvSequenceReader<T>(in sequence);
+        _metaCount = 0;
+        _metaIndex = 0;
+        _sequence = sequence;
     }
 
     /// <summary>
@@ -145,28 +169,33 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryReadLine(out CsvLine<T> line, bool isFinalBlock)
     {
-        if (_sliceCount > _sliceIndex)
+        if (_metaIndex < _metaCount)
         {
-            ref Slice slice = ref _slices[_sliceIndex];
-
-            line = new()
+            if (Meta.TryFindNextEOL(_metaArray.AsSpan((1 + _metaIndex)..(_metaCount + 1)), out int fieldCount))
             {
-                Value = _sliceBuffer.Slice(slice.Index, slice.Length),
-                QuoteCount = slice.QuoteCount,
-                EscapeCount = slice.EscapeCount,
-            };
-
-            if (++_sliceIndex >= _sliceCount)
-            {
-                _sliceBuffer = default;
-                _sliceCount = 0;
-                _sliceIndex = 0;
+                line = new CsvLine<T>(this, _sequence.First, _metaArray.AsSpan(_metaIndex, fieldCount + 1));
+                _metaIndex += fieldCount;
+                return true;
             }
-
-            return true;
         }
 
         return TryReadSlow(out line, isFinalBlock);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void AdvanceAndResetMeta()
+    {
+        Debug.Assert(_canUseFastPath && _metaIndex != 0);
+        Debug.Assert(_newline.Length != 0);
+        Debug.Assert(_metaCount >= _metaIndex);
+
+        var lastEOL = _metaArray[_metaIndex];
+
+        Debug.Assert(lastEOL.IsEOL);
+
+        _sequence = _sequence.Slice(lastEOL.GetNextStart(_newline.Length));
+        _metaCount = 0;
+        _metaIndex = 0;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -175,44 +204,46 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
         if (_newline.Length == 0 && !TryPeekNewline())
         {
             if (isFinalBlock)
-                goto ConsumeFinalBlock;
+                goto ReadFromSequence;
 
             goto Fail;
         }
 
         Debug.Assert(_newline.Length != 0, "TryPeekNewline should have initialized newline");
 
-        if (_reader.End)
+        if (_sequence.IsEmpty)
             goto Fail;
 
-        if (!_noBuffering)
+        if (_canUseFastPath && !isFinalBlock)
         {
-            ReadOnlyMemory<T> unread = _reader.Unread;
-            (int consumed, int linesRead) = FillSliceBuffer(unread.Span, _slices);
-
-            if (linesRead > 0)
+            if (_metaIndex != 0)
             {
-                _sliceIndex = 0;
-                _sliceCount = linesRead;
-                _sliceBuffer = unread;
-                _reader.AdvanceCurrent(consumed);
+                AdvanceAndResetMeta();
+            }
+
+            // delay the rent until first read
+            if (_metaArray.Length == 0)
+            {
+                _metaArray = ArrayPool<Meta>.Shared.Rent(BufferedFields);
+                _metaArray[0] = Meta.StartOfData; // the first meta should be one delimiter "behind"
+            }
+
+            int fieldCount = ReadFromFirstSpan();
+
+            // see if we read at least one fully formed line
+            if (fieldCount != 0 && Meta.HasEOL(MetaBuffer[..fieldCount], out int lastIndex))
+            {
+                _metaIndex = 0;
+                _metaCount = lastIndex + 1;
                 return TryReadLine(out line, isFinalBlock);
             }
         }
 
-        if (!isFinalBlock)
-        {
-            return TryReadLine(out line);
-        }
-
-    ConsumeFinalBlock:
-        Debug.Assert(isFinalBlock);
-        line = GetAsCsvLine(_reader.UnreadSequence.AsMemory(Allocator, ref _multisegmentBuffer));
-        _reader.AdvanceToEnd();
-        return true;
+    ReadFromSequence:
+        return TryReadFromSequence(out line, isFinalBlock);
 
     Fail:
-        Debug.Assert(_sliceIndex == 0);
+        Debug.Assert(_metaCount == 0);
         Unsafe.SkipInit(out line);
         return false;
     }
@@ -220,54 +251,46 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool SkipRecord(ReadOnlyMemory<T> record, int line, bool isHeader)
     {
-        return _options._shouldSkipRow is { } predicate
-            && predicate(
+        return _options._shouldSkipRow is { } predicate &&
+            predicate(
                 new CsvRecordSkipArgs<T>
                 {
-                    Options = _options, Line = line, Record = record.Span, IsHeader = isHeader,
+                    Options = _options,
+                    Line = line,
+                    Record = record.Span,
+                    IsHeader = isHeader,
                 });
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool SkipRecord(ref readonly CsvLine<T> record, int line, bool isHeader)
     {
-        return _options._shouldSkipRow is { } predicate
-            && predicate(
+        return _options._shouldSkipRow is { } predicate &&
+            predicate(
                 new CsvRecordSkipArgs<T>
                 {
-                    Options = _options, Line = line, Record = record.Value.Span, IsHeader = isHeader,
+                    Options = _options,
+                    Line = line,
+                    Record = record.Data.Span,
+                    IsHeader = isHeader,
                 });
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool ExceptionIsHandled(ref readonly CsvLine<T> record, int line, Exception exception)
     {
-        return _options._exceptionHandler is { } handler
-            && handler(
+        return _options._exceptionHandler is { } handler &&
+            handler(
                 new CsvExceptionHandlerArgs<T>
                 {
-                    Options = _options, Line = line, Record = record.Value.Span, Exception = exception,
+                    Options = _options,
+                    Line = line,
+                    Record = record.Data.Span,
+                    Exception = exception,
                 });
     }
 
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private protected static void ThrowForInvalidLastEscape(ReadOnlySpan<T> line, CsvOptions<T> options)
-    {
-        throw new CsvFormatException($"The record ended with an escape character: {options.AsPrintableString(line)}");
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private protected static void ThrowForInvalidEscapeQuotes(ReadOnlySpan<T> line, CsvOptions<T> options)
-    {
-        throw new CsvFormatException(
-            $"The entry had an invalid amount of quotes for escaped CSV: {options.AsPrintableString(line)}");
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private protected static void ThrowForUnevenQuotes(ReadOnlySpan<T> line, CsvOptions<T> options)
-    {
-        throw new ArgumentException($"The data had an uneven amount of quotes: {options.AsPrintableString(line)}");
-    }
+    public const int MaxNewlineDetectionLength = 1024;
 
     /// <summary>
     /// Attempt to auto-detect newline from the data.
@@ -276,67 +299,70 @@ public abstract class CsvParser<T> : CsvParser where T : unmanaged, IBinaryInteg
     [MethodImpl(MethodImplOptions.NoInlining)]
     protected bool TryPeekNewline()
     {
-        Debug.Assert(_newline.Length == 0, $"TryPeekNewline called with invalid newline length: {_newline.Length}");
+        if (_newline.Length != 0)
+        {
+            Throw.Unreachable($"{nameof(TryPeekNewline)} called with newline length of {_newline.Length}");
+        }
 
-        CsvSequenceReader<T> copy = _reader;
-        int foundNewlineLength;
+        if (_sequence.IsEmpty)
+        {
+            return false;
+        }
+
+        ReadOnlySequence<T> copy = _sequence;
+
+        // limit the amount of data we read to avoid reading the entire CSV
+        if (_sequence.Length > MaxNewlineDetectionLength)
+        {
+            _sequence = _sequence.Slice(0, MaxNewlineDetectionLength);
+        }
+
+        NewlineBuffer<T> detected = default;
 
         try
         {
-            _newline = NewlineBuffer<T>.CRLF;
+            // find the first linefeed as both auto-detected newlines contain it
+            _newline = NewlineBuffer<T>.LF;
 
-            // try to read \r\n
-            if (!TryReadLine(out _))
+            while (TryReadFromSequence(out var firstLine, false))
             {
-                // reset reader
-                _reader = copy;
-                _newline = NewlineBuffer<T>.LF;
-
-                // \r\n not found, perhaps just \n used?
-                if (!TryReadLine(out _))
+                // found a non-empty line?
+                if (!firstLine.Data.IsEmpty)
                 {
-                    // found neither, throw if we've read a large chunk already
-                    if (copy.Length > 1024L)
-                    {
-                        throw new CsvConfigurationException(
-                            $"Could not auto-detect newline even after {copy.Length} characters (no valid CRLF or LF tokens found)");
-                    }
-
-                    // maybe the first segment was just too small, or contained a single line without a newline
-                    return false;
+                    detected = firstLine.Data.Span[^1] == NewlineBuffer<T>.CRLF.First
+                        ? NewlineBuffer<T>.CRLF
+                        : NewlineBuffer<T>.LF;
+                    return true;
                 }
+            }
 
-                foundNewlineLength = 1;
-            }
-            else
+            detected = default;
+
+            // \n not found, throw if we've read up to our threshold already
+            if (copy.Length >= MaxNewlineDetectionLength)
             {
-                // unlikely that CSV contains any \r\n sequences unless it's a newline
-                foundNewlineLength = 2;
+                throw new CsvFormatException(
+                    $"Could not auto-detect newline even after {copy.Length} characters (no valid CRLF or LF tokens found)");
             }
+
+            // maybe the first segment was just too small, or contained a single line without a newline
+            return false;
         }
         finally
         {
-            // reset original state, we are only peeking
-            _reader = copy;
-            _newline = default;
+            _sequence = copy; // reset original state
+            _newline = detected; // set the detected newline, or default if not found
         }
+    }
 
-        // it's impossible to get to this point using \r as escape/quote, see CsvOptions.Dialect.Validate()
-        // we can be certain that a line ending in \n is valid, and possibly contained the preceding \r
-        if (foundNewlineLength == 2)
-        {
-            _newline = NewlineBuffer<T>.CRLF;
-        }
-        // ReSharper disable once ConditionIsAlwaysTrueOrFalse
-        else if (foundNewlineLength == 1)
-        {
-            _newline = NewlineBuffer<T>.LF;
-        }
-        else
-        {
-            throw new UnreachableException($"Reached end of TryPeekNewline with length {foundNewlineLength}");
-        }
+    private protected ReadOnlySpan<Meta> GetSegmentMeta(scoped ReadOnlySpan<Meta> fields)
+    {
+        Debug.Assert(fields.Length != 0);
+        Debug.Assert(_metaIndex == _metaCount);
 
-        return true;
+        ArrayPool<Meta>.Shared.EnsureCapacity(ref _metaArray, Math.Max(BufferedFields, fields.Length + 1));
+        _metaArray[0] = Meta.StartOfData;
+        fields.CopyTo(_metaArray.AsSpan(start: 1));
+        return _metaArray.AsSpan(0, fields.Length + 1);
     }
 }

@@ -41,17 +41,15 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
     /// </summary>
     public long Position { get; protected set; }
 
-    [HandlesResourceDisposal]
-    private readonly EnumeratorState<T> _state;
+    [HandlesResourceDisposal] private readonly EnumeratorState<T> _state;
 
-    [HandlesResourceDisposal]
-    private protected readonly CsvParser<T> _parser;
+    [HandlesResourceDisposal] private protected readonly CsvParser<T> _parser;
     private protected CsvValueRecord<T> _current;
     private protected bool _disposed;
 
     internal CsvRecordEnumeratorBase(CsvOptions<T> options)
     {
-        _parser = CsvParser<T>.Create(options);
+        _parser = CsvParser.Create(options);
         _state = new EnumeratorState<T>(_parser);
     }
 
@@ -65,10 +63,10 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
         {
             long oldPosition = Position;
 
-            Position += line.Value.Length + (_parser._newline.Length * (!isFinalBlock).ToByte());
+            Position += line.RecordLength + (_parser._newline.Length * (!isFinalBlock).ToByte());
             Line++;
 
-            if (_parser.SkipRecord(line.Value, Line, isHeader: _state.NeedsHeader))
+            if (_parser.SkipRecord(line.Data, Line, isHeader: _state.NeedsHeader))
             {
                 goto Retry;
             }
@@ -116,37 +114,31 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
 
     private CsvHeader CreateHeader(ref readonly CsvValueRecord<T> headerRecord)
     {
-        BufferFieldReader<T> reader = headerRecord._state.CreateFieldReader();
         StringScratch scratch = default;
-        ValueListBuilder<string> list = new(scratch);
+        using ValueListBuilder<string> list = new(scratch);
 
-        try
+        BufferFieldReader<T> reader = headerRecord._state.CreateFieldReader();
+
+        foreach (ReadOnlySpan<T> field in reader)
         {
-            while (reader.MoveNext())
-            {
-                list.Append(_parser.Options.GetAsString(reader.Current));
-            }
+            list.Append(CsvHeader.Get(_parser.Options, field));
+        }
 
-            string[] header = list.AsSpan().ToArray();
+        ReadOnlySpan<string> headers = list.AsSpan();
 
-            for (int i = 0; i < header.Length; i++)
+        for (int i = 0; i < headers.Length; i++)
+        {
+            for (int j = 0; j < headers.Length; j++)
             {
-                for (int j = 0; j < header.Length; j++)
+                if (i != j && _parser.Options.Comparer.Equals(headers[i], headers[j]))
                 {
-                    if (i != j && _parser.Options.Comparer.Equals(header[i], header[j]))
-                    {
-                        ThrowExceptionForDuplicateHeaderField(i, j, header[i], headerRecord);
-                    }
+                    ThrowExceptionForDuplicateHeaderField(i, j, headers[i], headerRecord);
                 }
             }
+        }
 
-            return new CsvHeader(_parser.Options.Comparer, list.AsSpan().ToArray());
-        }
-        finally
-        {
-            list.Dispose();
-            reader.Dispose();
-        }
+        // TODO: use a stack based list for the start of it?
+        return new CsvHeader(_parser.Options.Comparer, headers.ToArray());
     }
 
     private CsvValueRecord<T> ThrowInvalidCurrentAccess()
@@ -164,7 +156,7 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
         CsvValueRecord<T> record)
     {
         throw new CsvFormatException(
-            $"Duplicate header field \"{field}\" in fields {index1} and {index2} in CSV: "
-            + _parser.Options.AsPrintableString(record.RawRecord.Span));
+            $"Duplicate header field \"{field}\" in fields {index1} and {index2} in CSV: " +
+            _parser.Options.AsPrintableString(record.RawRecord.Span));
     }
 }

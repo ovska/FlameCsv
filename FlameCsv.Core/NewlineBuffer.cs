@@ -1,33 +1,60 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using FlameCsv.Extensions;
 
 namespace FlameCsv;
 
-[StructLayout(LayoutKind.Sequential)]
 internal readonly struct NewlineBuffer<T> where T : unmanaged, IBinaryInteger<T>
 {
-    public static readonly NewlineBuffer<T> CRLF = new(2, T.CreateChecked('\r'), T.CreateChecked('\n'));
-    public static readonly NewlineBuffer<T> LF = new(1, T.CreateChecked('\n'), T.CreateChecked('\n'));
+    public static NewlineBuffer<T> CRLF
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => new(2, T.CreateChecked('\r'), T.CreateChecked('\n'));
+    }
+
+    public static NewlineBuffer<T> LF
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => new(1, T.CreateChecked('\n'), T.CreateChecked('\n'));
+    }
 
     public readonly int Length;
     public readonly T First;
     public readonly T Second;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public NewlineBuffer(scoped ReadOnlySpan<T> values)
+    public NewlineBuffer(
+        scoped ReadOnlySpan<T> values,
+        [CallerArgumentExpression(nameof(values))]
+        string paramName = "")
     {
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(values.Length, 2);
-        First = values[0];
-        Second = values.Length == 1 ? values[0] : values[1];
-        Length = values.Length;
+        if (values.Length == 2)
+        {
+            Length = 2;
+            First = values[0];
+            Second = values[1];
+        }
+        else if (values.Length == 1)
+        {
+            Length = 1;
+            First = values[0];
+            Second = values[0];
+        }
+        else
+        {
+            Throw.Argument_OutOfRange(paramName);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private NewlineBuffer(int length, T first, T second)
     {
-        ArgumentOutOfRangeException.ThrowIfGreaterThan((uint)length, 2u);
+        Debug.Assert(length == 2 || (length == 1 && first == second));
         First = first;
         Second = second;
         Length = length;
     }
+
+    [Conditional("DEBUG")]
+    internal void AssertInitialized() => Debug.Assert(Length != 0);
 }

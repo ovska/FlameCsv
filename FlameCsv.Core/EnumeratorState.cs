@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
@@ -30,7 +29,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
 
     private readonly CsvParser<T> _parser;
 
-    private CsvLine<T> _record;
+    private ReadOnlyMemory<T> _record;
     private WritableBuffer<T> _fields;
 
     public CsvHeader? Header
@@ -66,12 +65,20 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int Initialize(ref readonly CsvLine<T> data)
+    public int Initialize(ref readonly CsvLine<T> line)
     {
         Throw.IfEnumerationDisposed(Version == -1);
 
-        _record = data;
         _fields.Clear();
+
+        Span<T> unescapeBuffer = stackalloc T[Token<T>.StackLength];
+
+        foreach (ReadOnlySpan<T> field in new MetaFieldReader<T>(in line, unescapeBuffer))
+        {
+            _fields.Push(field);
+        }
+
+        _record = line.Data;
 
         if (_parser.Options._validateFieldCount)
             ValidateFieldCount();
@@ -116,11 +123,6 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
     {
         Throw.IfEnumerationDisposed(Version == -1);
 
-        if (_fields.Length == 0)
-        {
-            Consume();
-        }
-
         if (index < _fields.Length)
         {
             field = _fields[index];
@@ -136,11 +138,6 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
     {
         Throw.IfEnumerationDisposed(Version == -1);
 
-        if (_fields.Length == 0)
-        {
-            Consume();
-        }
-
         if (index < _fields.Length)
         {
             field = _fields[index].Span;
@@ -154,49 +151,12 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int GetFieldCount()
     {
-        if (_fields.Length == 0)
-        {
-            Consume();
-        }
-
         return _fields.Length;
     }
 
     public ref WritableBuffer<T> GetFields()
     {
-        if (_fields.Length == 0)
-        {
-            Consume();
-        }
-
         return ref _fields;
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private void Consume()
-    {
-        Debug.Assert(_fields.Length == 0);
-
-        IMemoryOwner<T>? memoryOwner = null;
-
-        CsvFieldReader<T> reader = new(
-            Options,
-            in _record,
-            stackalloc T[Token<T>.StackLength],
-            ref memoryOwner);
-
-        try
-        {
-            while (reader.MoveNext())
-            {
-                _fields.Push(reader.Current);
-            }
-        }
-        finally
-        {
-            reader.Dispose();
-            memoryOwner?.Dispose();
-        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -211,9 +171,6 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
 
     private void ValidateFieldCount()
     {
-        if (_fields.Length == 0)
-            Consume();
-
         if (_expectedFieldCount is null)
         {
             _expectedFieldCount = _fields.Length;
@@ -226,17 +183,11 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
 
     public BufferFieldReader<T> CreateFieldReader()
     {
-        if (_fields.Length == 0)
-            Consume();
-
-        return _fields.CreateReader(_parser.Options, _record.Value);
+        return _fields.CreateReader(_parser.Options, _record);
     }
 
     public ReadOnlyMemory<T>[] PreserveFields()
     {
-        if (_fields.Length == 0)
-            Consume();
-
         return _fields.Preserve();
     }
 

@@ -1,4 +1,7 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Reading;
 
@@ -6,27 +9,75 @@ namespace FlameCsv.Reading;
 /// Represents a CSV record spanning one line, before the individual fields are read.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-[DebuggerDisplay(@"\{ CsvLine Length: {Value.Length}, QuoteCount: {QuoteCount}, EscapeCount: {EscapeCount} \}")]
-public readonly struct CsvLine<T> where T : unmanaged, IBinaryInteger<T>
+[DebuggerDisplay("{ToString(),nq}")]
+[EditorBrowsable(EditorBrowsableState.Never)]
+[DebuggerTypeProxy(typeof(CsvLine<>.CsvLineDebugView))]
+internal readonly ref struct CsvLine<T>(
+    CsvParser<T> parser,
+    ReadOnlyMemory<T> data,
+    ReadOnlySpan<Meta> fields)
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
-    /// Raw value of the line.
+    /// Raw value the fields point to.
     /// </summary>
-    public required ReadOnlyMemory<T> Value { get; init; }
+    public ReadOnlyMemory<T> Data { get; } = data;
 
     /// <summary>
-    /// How many quotes there were on the line.
-    /// </summary>
-    public required uint QuoteCount { get; init; }
-
-    /// <summary>
-    /// How many escape tokens there were on the line.
+    /// Field end indexes and special character counts.
     /// </summary>
     /// <remarks>
-    /// Always zero if <see cref="CsvOptions{T}.Escape"/> is null.
+    /// Contains one extra field at start denoting the start index inf <see cref="Data"/>.
     /// </remarks>
-    public uint EscapeCount { get; init; }
+    public ReadOnlySpan<Meta> Fields { get; } = fields;
+
+    public CsvParser<T> Parser { get; } = parser;
+
+    /// <summary>
+    /// Length of the raw record, not including possible trailing newline.
+    /// </summary>
+    public int RecordLength
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Fields[^1].End - Fields[0].GetNextStart(Parser._newline.Length);
+    }
+
+    /// <summary>
+    /// Data of the raw record, not including possible trailing newline.
+    /// </summary>
+    public ReadOnlyMemory<T> Record
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Data[Fields[0].GetNextStart(Parser._newline.Length)..Fields[^1].End];
+    }
 
     /// <inheritdoc />
-    public override string ToString() => Value.ToString();
+    public override string ToString()
+    {
+        if (Fields.IsEmpty)
+        {
+            return $"{{ CsvLine<{Token<T>.Name}>: Empty }}";
+        }
+
+        return $"{{ CsvLine<{Token<T>.Name}>[{Fields.Length - 1}]: \"{Parser.Options.GetAsString(Record.Span)}\" }}";
+    }
+
+    private class CsvLineDebugView
+    {
+        public CsvLineDebugView(CsvLine<T> line)
+        {
+            Span<T> unescapeBuffer = stackalloc T[Token<T>.StackLength];
+            var reader = new MetaFieldReader<T>(in line, unescapeBuffer);
+
+            Items = new string[reader.FieldCount];
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                Items[i] = reader[i].ToString();
+            }
+        }
+
+        // ReSharper disable once CollectionNeverQueried.Local
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public string[] Items { get; }
+    }
 }

@@ -1,12 +1,24 @@
 ﻿using System.Collections;
 using System.Collections.Frozen;
 using System.Runtime.CompilerServices;
+using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Extensions;
 
 namespace FlameCsv;
 
 internal sealed class CsvHeader : IReadOnlyDictionary<string, int>, IEquatable<CsvHeader>
 {
+    public static string Get<T>(CsvOptions<T> options, ReadOnlySpan<T> value)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        Span<char> buffer = stackalloc char[64];
+        return options.TryGetChars(value, buffer, out int length)
+            ? _headerPool.GetOrAdd(buffer.Slice(0, length))
+            : options.GetAsString(value);
+    }
+
+    private static readonly StringPool _headerPool = new(32);
+
     public ReadOnlySpan<string> Values => _header;
 
     private readonly IEqualityComparer<string> _comparer;
@@ -83,7 +95,7 @@ internal sealed class CsvHeader : IReadOnlyDictionary<string, int>, IEquatable<C
             }
         }
 
-        value = default;
+        value = 0;
         return false;
     }
 

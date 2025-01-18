@@ -1,6 +1,5 @@
 using System.Runtime.CompilerServices;
 using FlameCsv.Exceptions;
-using FlameCsv.Reading;
 
 namespace FlameCsv.Runtime;
 
@@ -10,31 +9,20 @@ namespace FlameCsv.Runtime;
 /// <typeparam name="T">Token type</typeparam>
 internal abstract partial class Materializer<T> where T : unmanaged, IBinaryInteger<T>
 {
-    // ReSharper disable once MemberCanBeProtected.Global
-    public abstract int FieldCount { get; }
-
-    /// <summary>
-    /// Parses the next field from the <paramref name="reader"/>.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)] // should be small enough to inline in Parse()
-    protected TValue ParseNext<TValue, TReader>(
-        ref TReader reader,
-        CsvConverter<T, TValue> converter)
-        where TReader : ICsvFieldReader<T>, allows ref struct
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected static void Parse<TValue>(
+        ReadOnlySpan<T> field,
+        CsvOptions<T> options,
+        CsvConverter<T, TValue> converter,
+        out TValue? value)
     {
-        if (reader.MoveNext())
+        if (converter.TryParse(field, out value))
         {
-            ReadOnlySpan<T> field = reader.Current;
-
-            if (converter.TryParse(field, out TValue? value))
-                return value;
-
-            CsvParseException.Throw(reader.Options, field, converter);
+            return;
         }
 
-        CsvReadException.ThrowForPrematureEOF(FieldCount, reader.Options, reader.Record);
-        return default;
+        CsvParseException.Throw(options, field, converter);
     }
 
-    public override string ToString() => GetType().FullName ?? GetType().Name;
+    public override string ToString() => GetType().FullName ?? "";
 }

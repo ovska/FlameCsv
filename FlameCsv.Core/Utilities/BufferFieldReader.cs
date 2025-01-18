@@ -1,56 +1,42 @@
-﻿using System.Collections;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Reading;
 
 namespace FlameCsv.Utilities;
 
 [SuppressMessage("CodeQuality", "IDE0064:Make readonly fields writable")]
-internal ref struct BufferFieldReader<T> : ICsvFieldReader<T> where T : unmanaged, IBinaryInteger<T>
+internal ref struct BufferFieldReader<T> : ICsvRecordFields<T> where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly ReadOnlySpan<T> _block;
+    private readonly ReadOnlySpan<T> _rawValue;
     private readonly ReadOnlySpan<Range> _ranges;
-    private ReadOnlySpan<Range>.Enumerator _rangeEnumerator;
-    private readonly ReadOnlyMemory<T> _record;
+    private int _index;
 
-    // ReSharper disable once ConvertToPrimaryConstructor
     public BufferFieldReader(
         CsvOptions<T> options,
-        ReadOnlyMemory<T> record,
-        ReadOnlySpan<T> block,
+        ReadOnlyMemory<T> block,
         ReadOnlySpan<Range> ranges)
     {
-        _block = block;
-        _ranges = ranges;
-        _rangeEnumerator = ranges.GetEnumerator();
-        _record = record;
         Options = options;
+        _rawValue = block.Span;
+        _ranges = ranges;
+        _index = 0;
     }
 
-    public ReadOnlySpan<T> Current { get; private set; }
-
-    public readonly ReadOnlySpan<T> Record => _record.Span;
     public CsvOptions<T> Options { get; }
+    public int FieldCount => _ranges.Length;
 
-    public bool MoveNext()
+    public bool TryReadNext(out ReadOnlySpan<T> field)
     {
-        if (_rangeEnumerator.MoveNext())
+        if (_index < _ranges.Length)
         {
-            Current = _block[_rangeEnumerator.Current];
+            field = _rawValue[_ranges[_index++]];
             return true;
         }
 
+        field = default;
         return false;
     }
 
-    public void Reset()
-    {
-        _rangeEnumerator = _ranges.GetEnumerator();
-    }
+    public ReadOnlySpan<T> this[int index] => _rawValue[_ranges[index]];
 
-    readonly object IEnumerator.Current => throw new NotSupportedException();
-
-    public void Dispose()
-    {
-        this = default;
-    }
+    public void Reset() => _index = 0;
 }

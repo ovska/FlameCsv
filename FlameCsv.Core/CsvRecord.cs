@@ -202,45 +202,10 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     /// Internal implementation detail.
     /// </summary>
     /// <param name="record"></param>
-    protected struct FieldEnumerator(CsvRecord<T> record) : ICsvFieldReader<T>
+    protected readonly struct FieldEnumerator(CsvRecord<T> record) : ICsvRecordFields<T>
     {
-        private int _index;
-        private ReadOnlyMemory<T> _current;
-
-        /// <inheritdoc/>
-        public bool MoveNext()
-        {
-            if (_index < record._fields.Length)
-            {
-                _current = record._fields[_index];
-                _index++;
-                return true;
-            }
-
-            _current = default;
-            return false;
-        }
-
-        /// <inheritdoc/>
-        public void Reset()
-        {
-            _index = default;
-        }
-
-        /// <inheritdoc/>
-        public readonly ReadOnlySpan<T> Current => _current.Span;
-
-        readonly object IEnumerator.Current => throw new NotSupportedException();
-
-        /// <inheritdoc/>
-        readonly void IDisposable.Dispose()
-        {
-        }
-
-        /// <inheritdoc/>
-        public readonly ReadOnlySpan<T> Record => record.RawRecord.Span;
-
-        /// <inheritdoc/>
-        public readonly CsvOptions<T> Options => record.Options;
+        public int FieldCount => record.GetFieldCount();
+        public CsvOptions<T> Options => record.Options;
+        public ReadOnlySpan<T> this[int index] => record._fields[index].Span;
     }
 }
