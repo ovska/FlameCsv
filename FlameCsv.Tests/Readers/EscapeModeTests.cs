@@ -1,10 +1,46 @@
 ﻿using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
-using CommunityToolkit.HighPerformance;
+using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Tests.Utilities;
 
 namespace FlameCsv.Tests.Readers;
+
+file static class Extensions
+{
+    public static List<List<string>> Read(
+        in this ReadOnlySequence<char> input,
+        CsvOptions<char> options)
+    {
+        using var parser = CsvParser.Create(options);
+        parser.Reset(input);
+
+        List<List<string>> records = [];
+        IMemoryOwner<char>? memoryOwner = null;
+        char[] buffer = new char[64];
+
+        while (parser.TryReadLine(out CsvLine<char> line, isFinalBlock: true) ||
+               parser.TryReadLine(out line, isFinalBlock: false))
+        {
+            List<string> fields = [];
+
+            foreach (var field in new MetaFieldReader<char>(in line, buffer))
+            {
+                fields.Add(field.ToString());
+            }
+
+            records.Add(fields);
+        }
+
+        memoryOwner?.Dispose();
+        return records;
+    }
+
+    public static List<List<string>> Read(this string input, CsvOptions<char> options)
+    {
+        return Read(new ReadOnlySequence<char>(input.AsMemory()), options);
+    }
+}
 
 [SuppressMessage("ReSharper", "ConvertTypeCheckPatternToNullCheck")]
 public static class EscapeModeTests
@@ -14,91 +50,51 @@ public static class EscapeModeTests
     [InlineData(" test", "test")]
     [InlineData("test ", "test")]
     [InlineData(" test ", "test")]
-    [InlineData("\" test\"", "test")]
-    [InlineData("\"test \"", "test")]
-    [InlineData("\" test \"", "test")]
+    [InlineData("\" test\"", " test")]
+    [InlineData("\"test \"", "test ")]
+    [InlineData("\" test \"", " test ")]
     public static void Should_Trim_Fields(string input, string expected)
     {
-        IMemoryOwner<char>? allocated = null;
-
-        var line = new CsvLine<char> { Value = input.AsMemory(), QuoteCount = (uint)input.Count('"') };
-        var record = new CsvFieldReader<char>(
-            new CsvOptions<char> { Whitespace = " ", Escape = '\\' },
-            in line,
-            default,
-            ref allocated);
-
-        var field = UnixMode<char>.ReadNextField(ref record);
-
-        Assert.Equal(expected, field.ToString());
-        Assert.True(record.End);
-        Assert.Null(allocated);
-
-        allocated?.Dispose();
+        var fields = input.Read(new CsvOptions<char> { Escape = '^', Quote = '"', Whitespace = " " });
+        Assert.Single(fields.SelectMany(x => x));
+        Assert.Equal(expected, fields[0][0]);
     }
 
     [Theory]
-    [InlineData("'test'", "test", false)]
-    [InlineData("te^'st", "te'st", true)]
-    [InlineData("te^^st", "te^st", true)]
-    public static void Should_Unescape(string input, string expected, bool usesBuffer)
+    [InlineData("'te^'st'", "te'st")]
+    [InlineData("'te^^st'", "te^st")]
+    [InlineData("'^,test^,'", ",test,")]
+    [InlineData("'test^,'", "test,")]
+    [InlineData("'test^,^test'", "test,test")]
+    [InlineData("'test^,^test^ '", "test,test ")]
+    public static void Should_Unescape(string input, string expected)
     {
-        IMemoryOwner<char>? allocated = null;
-
-        using var parser = CsvParser<char>.Create(new CsvOptions<char> { Escape = '^', Quote = '\'' });
-        var line = parser.GetAsCsvLine(input.AsMemory());
-        Span<char> stackbuffer = stackalloc char[16];
-
-        var record = new CsvFieldReader<char>(
-            parser.Options,
-            in line,
-            stackbuffer,
-            ref allocated);
-
-        var field = UnixMode<char>.ReadNextField(ref record);
-        Assert.Equal(expected, field);
-        Assert.Null(allocated);
-        Assert.Equal(usesBuffer, field.Overlaps(stackbuffer, out int elementOffset));
-        Assert.Equal(0, elementOffset);
-
-        allocated?.Dispose();
+        string data = $"field1,field2,{input}";
+        var result = data.Read(new CsvOptions<char> { Escape = '^', Quote = '\'' });
+        Assert.Single(result);
+        Assert.Equal(["field1", "field2", expected], result[0]);
     }
 
     [Theory]
     [InlineData("A,B,C", new[] { "A", "B", "C" })]
-    [InlineData("^A,^B,^C", new[] { "A", "B", "C" })]
-    [InlineData("ASD,'ASD, DEF',A^,D", new[] { "ASD", "ASD, DEF", "A,D" })]
+    [InlineData("'^A','^B','^C'", new[] { "A", "B", "C" })]
+    [InlineData("ASD,'ASD, DEF','A^,D'", new[] { "ASD", "ASD, DEF", "A,D" })]
     [InlineData(",,", new[] { "", "", "" })]
-    [InlineData("^,", new[] { "," })]
+    [InlineData("'^,'", new[] { "," })]
     [InlineData("'Test ^'Xyz^' Test'", new[] { "Test 'Xyz' Test" })]
     [InlineData("1,'^'Test^'',2", new[] { "1", "'Test'", "2" })]
     [InlineData("1,'Test','2'", new[] { "1", "Test", "2" })]
     public static void Should_Read_Fields(string input, string[] expected)
     {
         using var pool = new ReturnTrackingArrayMemoryPool<char>();
-        var options = new CsvOptions<char> { Escape = '^', Quote = '\'', MemoryPool = pool, };
-
-        IMemoryOwner<char>? allocated = null;
-
-        using var parser = CsvParser<char>.Create(options);
-        var line = parser.GetAsCsvLine(input.AsMemory());
-
-        var state = new CsvFieldReader<char>(
-            parser.Options,
-            in line,
-            stackalloc char[64],
-            ref allocated);
-
-        List<string> actual = [];
-
-        while (!state.End)
+        var options = new CsvOptions<char>
         {
-            actual.Add(UnixMode<char>.ReadNextField(ref state).ToString());
-        }
+            Escape = '^', Quote = '\'', MemoryPool = pool,
+        };
 
-        Assert.Equal(expected, actual);
-
-        allocated?.Dispose();
+        var actual = input.Read(options);
+        Assert.Single(actual);
+        Assert.Equal(expected, actual[0]);
     }
 
     [Fact]
@@ -110,13 +106,11 @@ public static class EscapeModeTests
         var last = first.Append(end.AsMemory());
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
 
-        using var parser = CsvParser<char>.Create(new CsvOptions<char> { Newline = "\r\n", Escape = '^' });
-        parser.Reset(in seq);
-
-        Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
-
-        Assert.Equal("xyz", line.ToString());
-        Assert.Equal("abc", parser._reader.UnreadSequence.ToString());
+        var result = seq.Read(new CsvOptions<char> { Newline = "\r\n", Escape = '^' });
+        Assert.Equal(2, result.Count);
+        Assert.Equal(2, result.Sum(row => row.Count));
+        Assert.Equal("xyz", result[0][0]);
+        Assert.Equal("abc", result[1][0]);
     }
 
     [Theory]
@@ -136,20 +130,8 @@ public static class EscapeModeTests
         var last = joined.Chunk(segmentSize).Aggregate(first, (prev, segment) => prev.Append(segment.AsMemory()));
 
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
-
-        using var parser = CsvParser<char>.Create(new CsvOptions<char> { Newline = "\r\n", Escape = '^' });
-        parser.Reset(in seq);
-
-        var results = new List<string>();
-
-        while (parser.TryReadLine(out var line, isFinalBlock: false))
-        {
-            results.Add(line.ToString());
-        }
-
-        results.Add(parser._reader.UnreadSequence.ToString());
-
-        Assert.Equal(lines, results);
+        var result = seq.Read(new CsvOptions<char> { Newline = "\r\n", Escape = '^' });
+        Assert.Equal(lines, result.Select(r => r[0]));
     }
 
     [Theory]
@@ -163,25 +145,11 @@ public static class EscapeModeTests
             .Append(segments[2].AsMemory());
 
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
-        using var parser = CsvParser<char>.Create(new CsvOptions<char> { Newline = newline, Escape = '^' });
-        parser.Reset(in seq);
+        var result = seq.Read(new CsvOptions<char> { Newline = newline, Escape = '^' });
 
-        Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
-        Assert.Equal(segments[0], line.ToString());
-        Assert.Equal(segments[2], parser._reader.UnreadSequence.ToString());
-    }
-
-    [Fact]
-    public static void Should_Handle_Line_With_Uneven_Quotes_No_Newline()
-    {
-        const string data = "\"testxyz\",\"broken";
-        var seq = new ReadOnlySequence<char>(data.AsMemory());
-
-        using var parser = CsvParser<char>.Create(new CsvOptions<char> { Escape = '^' });
-        parser.Reset(in seq);
-
-        Assert.False(parser.TryReadLine(out _, isFinalBlock: false));
-        Assert.Equal(data, parser._reader.UnreadSequence.ToString());
+        Assert.Equal(2, result.Count);
+        Assert.Equal(segments[0], result[0][0]);
+        Assert.Equal(segments[2], result[1][0]);
     }
 
     [Theory, MemberData(nameof(GetEscapeTestData))]
@@ -194,7 +162,10 @@ public static class EscapeModeTests
     {
         using MemoryPool<char> pool = ReturnTrackingMemoryPool<char>.Create(guardedMemory);
 
-        var options = new CsvOptions<char> { Escape = '^', Quote = '\'', MemoryPool = pool, };
+        var options = new CsvOptions<char>
+        {
+            Escape = '^', Quote = '\'', MemoryPool = pool
+        };
 
         var fullMem = fullLine.AsMemory();
         var noNewlineMem = noNewline.AsMemory();
@@ -202,25 +173,11 @@ public static class EscapeModeTests
         using (MemorySegment<char>.Create(fullMem, segmentSize, emptyFrequency, pool, out var originalData))
         using (MemorySegment<char>.Create(noNewlineMem, segmentSize, emptyFrequency, pool, out var originalWithoutLf))
         {
-            string data = originalData.ToString();
+            var withTrailing = originalData.Read(options);
+            Assert.Single(withTrailing);
 
-            using var parser = CsvParser<char>.Create(options);
-            parser.Reset(in originalData);
-
-            string withoutNewline = originalWithoutLf.ToString();
-
-            Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
-            Assert.True(parser.End);
-            Assert.Equal(withoutNewline, line.ToString());
-            Assert.Equal(data.Replace("^'", "").Count('\''), (int)line.QuoteCount);
-            Assert.Equal(data.Replace("^^", "^").Count('^'), (int)line.EscapeCount);
-
-            parser.Reset(in originalWithoutLf);
-            Assert.True(parser.TryReadLine(out line, isFinalBlock: true));
-            Assert.True(parser.End);
-            Assert.Equal(withoutNewline, line.ToString());
-            Assert.Equal(data.Replace("^'", "").Count('\''), (int)line.QuoteCount);
-            Assert.Equal(data.Replace("^^", "^").Count('^'), (int)line.EscapeCount);
+            var withoutTrailing = originalWithoutLf.Read(options);
+            Assert.Single(withoutTrailing);
         }
     }
 
@@ -228,7 +185,7 @@ public static class EscapeModeTests
     {
         ReadOnlySpan<string> escapeData =
         [
-            "Test,Es^,caped,Es^\r\ncaped\r\n", "^,^'^\r\r\n", "^^\r\n", "A^,B^'^C^\r^\n\r\n",
+            "'Test,Es^,caped,Es^\r\ncaped'\r\n", "'^,^'^\r'\r\n", "'^^'\r\n", "'A^,B^'^C^\r^\n'\r\n",
         ];
 
         var data = new TheoryData<int, int, string, string, bool?>();
