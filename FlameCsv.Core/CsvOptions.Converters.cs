@@ -20,12 +20,16 @@ partial class CsvOptions<T>
     /// Modifying the collection after the options-instance is used (<see cref="IsReadOnly"/> is <see langword="true"/>)
     /// results in an exception.
     /// </remarks>
-    public IList<CsvConverter<T>> Converters => _converters ??= new SealableList<CsvConverter<T>>(this, defaultValues: null);
+    public IList<CsvConverter<T>> Converters
+        => _converters ??= new SealableList<CsvConverter<T>>(this, defaultValues: null);
 
     private SealableList<CsvConverter<T>>? _converters;
 
-    internal readonly ConcurrentDictionary<Type, CsvConverter<T>> _converterCache = new(ReferenceEqualityComparer.Instance);
-    internal readonly ConcurrentDictionary<object, CsvConverter<T>> _explicitCache = new(ReferenceEqualityComparer.Instance);
+    internal readonly ConcurrentDictionary<Type, CsvConverter<T>> _converterCache
+        = new(ReferenceEqualityComparer.Instance);
+
+    internal readonly ConcurrentDictionary<object, CsvConverter<T>> _explicitCache
+        = new(ReferenceEqualityComparer.Instance);
 
     /// <summary>
     /// Maximum number of converters cached internally by the options instance before the cache is cleared.
@@ -86,7 +90,6 @@ partial class CsvOptions<T>
     /// </summary>
     /// <remarks>Never returns a <see cref="CsvConverterFactory{T}"/></remarks>
     /// <exception cref="CsvConverterMissingException"/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CsvConverter<T> GetConverter(Type resultType)
     {
         ArgumentNullException.ThrowIfNull(resultType);
@@ -103,6 +106,7 @@ partial class CsvOptions<T>
     /// Returns a converter for <typeparamref name="TResult"/>, or null if not found.
     /// </summary>
     /// <remarks>Never returns a <see cref="CsvConverterFactory{T}"/></remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CsvConverter<T, TResult>? TryGetConverter<TResult>()
     {
         return TryGetConverter(typeof(TResult)) as CsvConverter<T, TResult>;
@@ -114,19 +118,22 @@ partial class CsvOptions<T>
     /// <remarks>Never returns a <see cref="CsvConverterFactory{T}"/></remarks>
     public CsvConverter<T>? TryGetConverter(Type resultType)
     {
-        if (!TryGetExistingOrCustomConverter(resultType, out CsvConverter<T>? converter, out bool created)
-            && UseDefaultConverters)
+        if (!TryGetExistingOrCustomConverter(resultType, out CsvConverter<T>? converter, out bool created) &&
+            UseDefaultConverters)
         {
             if (TryCreateDefaultConverter(resultType, out var builtin))
             {
                 Debug.Assert(builtin.CanConvert(resultType), $"Invalid builtin converter {builtin} for {resultType}");
-                Debug.Assert(builtin is not CsvConverterFactory<T>, $"{resultType} default converter returned a factory");
-                // TODO: set created accordingly!!
+                Debug.Assert(
+                    builtin is not CsvConverterFactory<T>,
+                    $"{resultType} default converter returned a factory");
                 converter = builtin;
+                created = true;
             }
             else if (NullableConverterFactory<T>.Instance.CanConvert(resultType))
             {
                 converter = NullableConverterFactory<T>.Instance.Create(resultType, this);
+                created = true;
             }
         }
 
@@ -169,6 +176,7 @@ partial class CsvOptions<T>
 
             if (result != null)
             {
+                Debug.Assert(result is CsvConverter<T> and not CsvConverterFactory<T>);
                 converter = Unsafe.As<CsvConverter<T>>(result);
                 return true;
             }
@@ -194,12 +202,13 @@ partial class CsvOptions<T>
 
             if (result != null)
             {
+                Debug.Assert(result is CsvConverter<T> and not CsvConverterFactory<T>);
                 converter = Unsafe.As<CsvConverter<T>>(result);
                 return true;
             }
         }
 
-        converter = default;
+        converter = null;
         return false;
     }
 
@@ -322,7 +331,7 @@ file static class InvalidConverter
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void Throw(object factory, Type toConvert)
     {
-        throw new CsvConfigurationException($"{factory.GetType().FullName} returned an invalid converter for {toConvert.FullName}");
+        throw new CsvConfigurationException(
+            $"{factory.GetType().FullName} returned an invalid converter for {toConvert.FullName}");
     }
 }
-
