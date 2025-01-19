@@ -118,10 +118,11 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
         using ValueListBuilder<string> list = new(scratch);
 
         BufferFieldReader<T> reader = headerRecord._state.CreateFieldReader();
+        Span<char> charBuffer = stackalloc char[128];
 
         foreach (ReadOnlySpan<T> field in reader)
         {
-            list.Append(CsvHeader.Get(_parser.Options, field));
+            list.Append(CsvHeader.Get(_parser.Options, field, charBuffer));
         }
 
         ReadOnlySpan<string> headers = list.AsSpan();

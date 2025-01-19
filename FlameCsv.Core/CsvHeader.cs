@@ -8,16 +8,26 @@ namespace FlameCsv;
 
 internal sealed class CsvHeader : IReadOnlyDictionary<string, int>, IEquatable<CsvHeader>
 {
-    public static string Get<T>(CsvOptions<T> options, ReadOnlySpan<T> value)
+    /// <summary>
+    /// Retrieves a string representation of the given value using the provided options.
+    /// </summary>
+    /// <param name="options">The CSV options used for conversion.</param>
+    /// <param name="value">The header field.</param>
+    /// <param name="buffer">A buffer to write the characters to.</param>
+    /// <returns>
+    /// A string representation of the value.
+    /// The header values are pooled if they fit in the buffer using <see cref="CsvOptions{T}.TryGetChars"/>.
+    /// Otherwise, it is converted to a string using <see cref="CsvOptions{T}.GetAsString"/>.
+    /// </returns>
+    public static string Get<T>(CsvOptions<T> options, scoped ReadOnlySpan<T> value, scoped Span<char> buffer)
         where T : unmanaged, IBinaryInteger<T>
     {
-        Span<char> buffer = stackalloc char[64];
         return options.TryGetChars(value, buffer, out int length)
-            ? _headerPool.GetOrAdd(buffer.Slice(0, length))
+            ? HeaderPool.GetOrAdd(buffer.Slice(0, length))
             : options.GetAsString(value);
     }
 
-    private static readonly StringPool _headerPool = new(32);
+    internal static readonly StringPool HeaderPool = new(minimumSize: 32);
 
     public ReadOnlySpan<string> Values => _header;
 
@@ -34,9 +44,11 @@ internal sealed class CsvHeader : IReadOnlyDictionary<string, int>, IEquatable<C
             if (_dictionary is not null)
                 return _dictionary;
 
+            // TODO: profile
             if (++_accessCount > 4)
             {
-                return _dictionary = _header.Index().ToFrozenDictionary(x => x.Item, x => x.Index, _comparer);
+                var result = _header.Index().ToFrozenDictionary(x => x.Item, x => x.Index, _comparer);
+                return _dictionary ??= result;
             }
 
             return null;
