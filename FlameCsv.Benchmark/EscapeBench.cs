@@ -18,35 +18,37 @@ public class EscapeBench
     [GlobalSetup]
     public void Setup()
     {
-        List<(string line, int specialCount)> fields = [];
+        throw new NotImplementedException();
 
-        var data = File.ReadLines(
-            "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv",
-            Encoding.ASCII);
-
-        _escaper = new RFC4180Escaper<char>(',');
-        IMemoryOwner<char>? buffer = null;
-        char[] unescapeBuffer = new char[1024];
-
-        using var parser = CsvParser<char>.Create(CsvOptions<char>.Default);
-
-        foreach (var line in data)
-        {
-            var meta = parser.GetAsCsvLine(line.AsMemory());
-            var reader = new CsvFieldReader<char>(CsvOptions<char>.Default, in meta, unescapeBuffer, ref buffer);
-
-            while (reader.MoveNext())
-            {
-                if (reader.Current.ContainsAny(CsvOptions<char>.Default.Dialect.NeedsQuoting))
-                {
-                    fields.Add((reader.Current.ToString(), _escaper.CountEscapable(reader.Current)));
-                }
-            }
-        }
-
-        buffer?.Dispose();
-
-        _input = fields.ToArray();
+        // List<(string line, int specialCount)> fields = [];
+        //
+        // var data = File.ReadLines(
+        //     "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv",
+        //     Encoding.ASCII);
+        //
+        // _escaper = new RFC4180Escaper<char>(',');
+        // IMemoryOwner<char>? buffer = null;
+        // char[] unescapeBuffer = new char[1024];
+        //
+        // using var parser = CsvParser<char>.Create(CsvOptions<char>.Default);
+        //
+        // foreach (var line in data)
+        // {
+        //     var meta = parser.GetAsCsvLine(line.AsMemory());
+        //     var reader = new CsvFieldReader<char>(CsvOptions<char>.Default, in meta, unescapeBuffer, ref buffer);
+        //
+        //     while (reader.MoveNext())
+        //     {
+        //         if (reader.Current.ContainsAny(CsvOptions<char>.Default.Dialect.NeedsQuoting))
+        //         {
+        //             fields.Add((reader.Current.ToString(), _escaper.CountEscapable(reader.Current)));
+        //         }
+        //     }
+        // }
+        //
+        // buffer?.Dispose();
+        //
+        // _input = fields.ToArray();
     }
 
     [Benchmark(Baseline = true)]

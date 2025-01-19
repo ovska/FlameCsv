@@ -41,4 +41,13 @@
     <None Include="C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\.editorconfig" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="..\FlameCsv.Tests\TestData\customers-10000.zip" CopyToOutputDirectory="PreserveNewest">
+      <Link>Data\customers-10000.zip</Link>
+    </Content>
+    <Content Include="..\FlameCsv.Tests\TestData\SampleCSVFile_556kb.csv" CopyToOutputDirectory="PreserveNewest">
+      <Link>Data\SampleCSVFile_556kb.csv</Link>
+    </Content>
+  </ItemGroup>
+
 </Project>
