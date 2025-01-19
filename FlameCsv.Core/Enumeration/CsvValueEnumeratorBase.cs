@@ -142,10 +142,11 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         using ValueListBuilder<string> list = new(scratch);
 
         MetaFieldReader<T> reader = new(in record, stackalloc T[Token<T>.StackLength]);
+        Span<char> charBuffer = stackalloc char[128];
 
         foreach (ReadOnlySpan<T> field in reader)
         {
-            list.Append(CsvHeader.Get(_parser.Options, field));
+            list.Append(CsvHeader.Get(_parser.Options, field, charBuffer));
         }
 
         ReadOnlySpan<string> headers = list.AsSpan();

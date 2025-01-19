@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Text;
 using System.Text.Unicode;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Utilities;
 
@@ -121,5 +122,36 @@ internal static class Utf8Util
         }
 
         return false;
+    }
+
+    public static TResult WithUtf8Bytes<TState, TResult>(
+        ReadOnlySpan<byte> input,
+        TState state,
+        [RequireStaticDelegate] Func<ReadOnlySpan<char>, TState, TResult> func)
+    {
+        scoped Span<char> buffer;
+        char[]? toReturn = null;
+        int length = Encoding.UTF8.GetMaxCharCount(input.Length);
+
+        if (length <= 256)
+        {
+            buffer = stackalloc char[length];
+        }
+        else
+        {
+            buffer = toReturn = ArrayPool<char>.Shared.Rent(length);
+        }
+
+        int written = Encoding.UTF8.GetChars(input, buffer);
+
+        try
+        {
+            return func(buffer[..written], state);
+        }
+        finally
+        {
+            if (toReturn is not null)
+                ArrayPool<char>.Shared.Return(toReturn);
+        }
     }
 }
