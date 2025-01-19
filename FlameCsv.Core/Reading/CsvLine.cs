@@ -1,7 +1,10 @@
-﻿using System.ComponentModel;
+﻿using System.Buffers;
+using System.Collections;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using FlameCsv.Reading.Internal;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Reading;
 
@@ -60,6 +63,37 @@ internal readonly ref struct CsvLine<T>(
         }
 
         return $"{{ CsvLine<{Token<T>.Name}>[{Fields.Length - 1}]: \"{Parser.Options.GetAsString(Record.Span)}\" }}";
+    }
+
+    public static LineEnumerator Enumerate(in ReadOnlySequence<T> data, CsvOptions<T>? options = null)
+    {
+        return new LineEnumerator(options ?? CsvOptions<T>.Default, data);
+    }
+
+    public ref struct LineEnumerator : IEnumerator<CsvLine<T>>
+    {
+        [HandlesResourceDisposal] private readonly CsvParser<T> _parser;
+        private CsvLine<T> _current;
+
+        public LineEnumerator(CsvOptions<T> options, in ReadOnlySequence<T> data)
+        {
+            _parser = CsvParser.Create(options);
+            _parser.Reset(in data);
+        }
+
+        public bool MoveNext() => _parser.TryReadLine(out _current, false);
+
+        public CsvLine<T> Current => _current;
+
+        public void Reset() => throw new NotSupportedException();
+        object IEnumerator.Current => throw new NotSupportedException();
+
+        public void Dispose()
+        {
+            using (_parser) this = default;
+        }
+
+        public LineEnumerator GetEnumerator() => this;
     }
 
     private class CsvLineDebugView

@@ -1,4 +1,5 @@
-﻿using FlameCsv.Converters;
+﻿using System.Runtime.CompilerServices;
+using FlameCsv.Converters;
 
 namespace FlameCsv.Benchmark;
 
@@ -6,15 +7,32 @@ namespace FlameCsv.Benchmark;
 [HideColumns("Error", "StdDev", "Gen0")]
 public class OptionsBench
 {
+    private static readonly CsvOptions<char> _options = new();
+    private static readonly object _cacheKey = new();
+
+    public CsvOptions<char> Options
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get { return Reuse ? _options : new CsvOptions<char>(); }
+    }
+
+    [Params(true, false)] public bool Reuse { get; set; }
+
     [Benchmark(Baseline = true)]
     public void FromOptions()
     {
-        _ = new CsvOptions<char>().GetConverter<DayOfWeek>();
+        _ = Options.GetConverter<DayOfWeek>();
     }
 
     [Benchmark]
     public void FromDefault()
     {
-        _ = new CsvOptions<char>().GetOrCreate(static o => new EnumTextConverter<DayOfWeek>(o));
+        _ = Options.GetOrCreate(static o => new EnumTextConverter<DayOfWeek>(o));
+    }
+
+    [Benchmark]
+    public void FromMember()
+    {
+        _ = Options.GetOrCreate(_cacheKey, static o => new EnumTextConverter<DayOfWeek>(o));
     }
 }

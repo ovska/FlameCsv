@@ -12,8 +12,7 @@ namespace FlameCsv.Binding.Attributes;
 /// </remarks>
 /// <typeparam name="T"></typeparam>
 /// <typeparam name="TConverter"></typeparam>
-public sealed class CsvConverterAttribute<T, [DAM(Messages.Ctors)] TConverter>
-    : CsvConverterAttribute<T>
+public sealed class CsvConverterAttribute<T, [DAM(Messages.Ctors)] TConverter> : CsvConverterAttribute<T>
     where T : unmanaged, IBinaryInteger<T>
     where TConverter : CsvConverter<T>
 {

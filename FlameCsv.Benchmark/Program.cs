@@ -12,10 +12,9 @@ var config = DefaultConfig.Instance
     //    .WithEnvironmentVariable("DOTNET_EnableAVX2", "0")
     //    .WithEnvironmentVariable("DOTNET_EnableAVX512F", "0")
     //    .AsBaseline())
-    .AddJob(Job.Default
-        .WithStrategy(RunStrategy.Throughput));
+    .AddJob(Job.Default.WithStrategy(RunStrategy.Throughput));
 
-BenchmarkRunner.Run<UnescapeBench>(config);
+BenchmarkRunner.Run<OptionsBench>(config);
 
 //var bb = new BindingBench();
 
