@@ -24,6 +24,7 @@ public sealed class CsvHeaderIgnoreAttribute : Attribute, ICsvBindingAttribute
 
         for (int i = 0; i < values.Length; i++)
         {
+            // allow empty and whitespace here
             ArgumentNullException.ThrowIfNull(values[i]);
         }
 

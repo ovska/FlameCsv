@@ -23,7 +23,7 @@ public sealed class CsvIndexTargetAttribute : Attribute, ICsvBindingAttribute
         int index,
         string memberName)
     {
-        ArgumentOutOfRangeException.ThrowIfLessThan(index, 0);
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
         ArgumentException.ThrowIfNullOrWhiteSpace(memberName);
         Index = index;
         MemberName = memberName.Trim();
