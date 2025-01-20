@@ -106,14 +106,20 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     }
 
     /// <summary>
-    /// Returns the header binder that matches CSV header record fields to parsed type's properties/fields.
-    /// See also <see cref="Comparer"/>.
+    /// Returns the instance that binds CSV fields to members and vice versa using reflection.
+    /// The default value is <see cref="CsvReflectionBinder{T}"/>.
     /// </summary>
-    /// <remarks>
-    /// By default, CSV header is matched to property/field names and
-    /// <see cref="Binding.Attributes.CsvHeaderAttribute"/>.
-    /// </remarks>
-    public virtual IHeaderBinder<T> GetHeaderBinder() => new DefaultHeaderBinder<T>(this);
+    /// <seealso cref="CsvTypeMap{T,TValue}"/>
+    public virtual ICsvTypeBinder<T> TypeBinder
+    {
+        // lazy initialization
+        get => _typeBinder ??= new CsvReflectionBinder<T>(this, ignoreUnmatched: false);
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            this.SetValue(ref _typeBinder, value);
+        }
+    }
 
     /// <summary>
     /// Returns the <see langword="null"/> value for parsing and formatting for the parameter type.
@@ -204,6 +210,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     private bool _allowUndefinedEnumValues;
     private bool _disableBuffering;
     private StringPool? _stringPool;
+    private ICsvTypeBinder<T>? _typeBinder;
 
     private IEqualityComparer<string> _comparer = StringComparer.OrdinalIgnoreCase;
 

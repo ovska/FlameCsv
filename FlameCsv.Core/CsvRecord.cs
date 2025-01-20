@@ -3,7 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Binding;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
-using FlameCsv.Runtime;
 
 namespace FlameCsv;
 
@@ -85,17 +84,9 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
     public TRecord ParseRecord<[DAM(Messages.ReflectionBound)] TRecord>()
     {
-        IMaterializer<T, TRecord> materializer;
-
-        if (_header is not null)
-        {
-            var bindings = Options.GetHeaderBinder().Bind<TRecord>(_header.Values);
-            materializer = Options.CreateMaterializerFrom(bindings);
-        }
-        else
-        {
-            materializer = Options.GetMaterializer<T, TRecord>();
-        }
+        IMaterializer<T, TRecord> materializer = _header is not null
+            ? Options.TypeBinder.GetMaterializer<TRecord>(_header.Values)
+            : Options.TypeBinder.GetMaterializer<TRecord>();
 
         FieldEnumerator enumerator = new(this);
         return materializer.Parse(ref enumerator);

@@ -54,7 +54,7 @@ internal sealed class CustomBooleanTextConverter : CsvConverter<char, bool>
 
     public override bool TryFormat(Span<char> destination, bool value, out int charsWritten)
     {
-        return (value ? _firstTrue : _firstFalse).AsSpan().TryWriteTo(destination, out charsWritten);
+        return (value ? _firstTrue : _firstFalse).AsSpan().TryCopyTo(destination, out charsWritten);
     }
 
     /// <inheritdoc/>

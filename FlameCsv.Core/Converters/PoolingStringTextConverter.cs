@@ -17,7 +17,7 @@ internal sealed class PoolingStringTextConverter : CsvConverter<char, string>
 
     public override bool TryFormat(Span<char> destination, string value, out int charsWritten)
     {
-        return value.AsSpan().TryWriteTo(destination, out charsWritten);
+        return value.AsSpan().TryCopyTo(destination, out charsWritten);
     }
 
     public override bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out string value)

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
@@ -6,58 +7,28 @@ using FlameCsv.Binding.Attributes;
 using FlameCsv.Binding.Internal;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
+using FlameCsv.Reading;
 using FlameCsv.Reflection;
+using FlameCsv.Runtime;
+using FlameCsv.Writing;
 
 namespace FlameCsv.Binding;
 
 /// <summary>
 /// Internal implementation detail.
 /// </summary>
-public abstract class DefaultHeaderBinder
+public abstract class CsvReflectionBinder
 {
-    internal static readonly ConditionalWeakTable<Type, HeaderData> ReadCache = [];
-    internal static readonly ConditionalWeakTable<Type, HeaderData> WriteCache = [];
+    private static readonly ConditionalWeakTable<object, object> _dematerializerCache = [];
 
-    internal sealed class HeaderData(string[]? ignoredValues, List<HeaderBindingCandidate> candidates)
-    {
-        public ReadOnlySpan<string> IgnoredValues => ignoredValues;
-        public ReadOnlySpan<HeaderBindingCandidate> Candidates => candidates.AsSpan();
-    }
-}
-
-/// <summary>
-/// Binds CSV header to members.
-/// </summary>
-/// <typeparam name="T">Token type</typeparam>
-public sealed class DefaultHeaderBinder<T> : DefaultHeaderBinder, IHeaderBinder<T>
-    where T : unmanaged, IBinaryInteger<T>
-{
-    /// <summary>
-    /// Fields that could not be matched are ignored.
-    /// </summary>
-    public bool IgnoreUnmatched { get; }
-
-    private readonly CsvOptions<T> _options;
-
-    /// <summary>
-    /// Creates a new header binder.
-    /// </summary>
-    public DefaultHeaderBinder(
+    [RUF(Messages.CompiledExpressions)]
+    [RDC(Messages.CompiledExpressions)]
+    private protected static CsvBindingCollection<TValue> GetReadBindings<T, TValue>(
         CsvOptions<T> options,
-        bool ignoreUnmatched = false)
+        ReadOnlySpan<string> headerFields,
+        bool ignoreUnmatched)
+        where T : unmanaged, IBinaryInteger<T>
     {
-        ArgumentNullException.ThrowIfNull(options);
-
-        _options = options;
-        IgnoreUnmatched = ignoreUnmatched;
-    }
-
-    /// <inheritdoc />
-    public CsvBindingCollection<TValue> Bind<[DAM(Messages.ReflectionBound)] TValue>(
-        ReadOnlySpan<string> headerFields)
-    {
-        _options.MakeReadOnly();
-
         HeaderData headerData = GetHeaderDataFor<TValue>(write: false);
         ReadOnlySpan<string> ignoredValues = headerData.IgnoredValues;
         List<CsvBinding<TValue>> foundBindings = new(headerFields.Length);
@@ -70,7 +41,7 @@ public sealed class DefaultHeaderBinder<T> : DefaultHeaderBinder, IHeaderBinder<
 
             foreach (var value in ignoredValues)
             {
-                if (_options.Comparer.Equals(value, field))
+                if (options.Comparer.Equals(value, field))
                 {
                     binding = CsvBinding.Ignore<TValue>(index);
                     break;
@@ -81,7 +52,7 @@ public sealed class DefaultHeaderBinder<T> : DefaultHeaderBinder, IHeaderBinder<
             {
                 foreach (ref readonly var candidate in headerData.Candidates)
                 {
-                    if (_options.Comparer.Equals(candidate.Value, field))
+                    if (options.Comparer.Equals(candidate.Value, field))
                     {
                         binding = CsvBinding.FromHeaderBinding<TValue>(index, in candidate);
                         break;
@@ -89,7 +60,7 @@ public sealed class DefaultHeaderBinder<T> : DefaultHeaderBinder, IHeaderBinder<
                 }
             }
 
-            if (binding is null && !IgnoreUnmatched)
+            if (binding is null && !ignoreUnmatched)
             {
                 throw new CsvBindingException(
                     $"Could not bind header '{field}' at index {index} to type {typeof(TValue).FullName}");
@@ -101,11 +72,60 @@ public sealed class DefaultHeaderBinder<T> : DefaultHeaderBinder, IHeaderBinder<
         return new CsvBindingCollection<TValue>(foundBindings, write: false, isInternalCall: true);
     }
 
-    /// <inheritdoc />
-    public CsvBindingCollection<TValue> Bind<[DAM(Messages.ReflectionBound)] TValue>()
+    [RUF(Messages.CompiledExpressions)]
+    [RDC(Messages.CompiledExpressions)]
+    protected static IDematerializer<T, TValue> Create<T, TValue>(CsvOptions<T> options)
+        where T : unmanaged, IBinaryInteger<T>
     {
-        _options.MakeReadOnly();
+        if (_dematerializerCache.TryGetValue(options, out var dematerializer))
+        {
+            return (IDematerializer<T, TValue>)dematerializer;
+        }
 
+        CsvBindingCollection<TValue> bindingCollection;
+
+        if (options.HasHeader)
+        {
+            bindingCollection = GetWriteHeaders<T, TValue>();
+        }
+        else if (IndexAttributeBinder<TValue>.TryGetBindings(write: true, out var result))
+        {
+            bindingCollection = result;
+        }
+        // TODO: ITuple support
+        else
+        {
+            throw new CsvBindingException<TValue>(
+                $"Headerless CSV could not be written for {typeof(TValue)}, since the type had no " +
+                "[CsvIndex]-attributes."); // TODO: Add ITuple support
+        }
+
+        var bindings = bindingCollection.MemberBindings;
+        var ctor = Dematerializer<T>.GetConstructor(bindings);
+
+        var parameters = new object[bindings.Length + 2];
+        parameters[0] = bindingCollection;
+        parameters[1] = options;
+
+        var valueParam = Expression.Parameter(typeof(TValue), "value");
+
+        for (int i = 0; i < bindings.Length; i++)
+        {
+            (MemberExpression memberExpression, _) = bindings[i].Member.GetAsMemberExpression(valueParam);
+            var lambda = Expression.Lambda(memberExpression, valueParam);
+            parameters[i + 2] = lambda.CompileLambda<Delegate>(throwIfClosure: false);
+        }
+
+        IDematerializer<T, TValue> created = (IDematerializer<T, TValue>)ctor.Invoke(parameters);
+        _dematerializerCache.Add(options, created);
+        return created;
+    }
+
+    [RUF(Messages.CompiledExpressions)]
+    [RDC(Messages.CompiledExpressions)]
+    private static CsvBindingCollection<TValue> GetWriteHeaders<T, TValue>()
+        where T : unmanaged, IBinaryInteger<T>
+    {
         var candidates = GetHeaderDataFor<TValue>(write: true).Candidates;
 
         List<CsvBinding<TValue>> result = new(candidates.Length);
@@ -123,13 +143,21 @@ public sealed class DefaultHeaderBinder<T> : DefaultHeaderBinder, IHeaderBinder<
         return new CsvBindingCollection<TValue>(result, write: true, isInternalCall: true);
     }
 
+    internal static readonly ConditionalWeakTable<Type, HeaderData> ReadCache = [];
+    internal static readonly ConditionalWeakTable<Type, HeaderData> WriteCache = [];
+
+    internal sealed class HeaderData(string[]? ignoredValues, List<HeaderBindingCandidate> candidates)
+    {
+        public ReadOnlySpan<string> IgnoredValues => ignoredValues;
+        public ReadOnlySpan<HeaderBindingCandidate> Candidates => candidates.AsSpan();
+    }
+
     /// <summary>
     /// Returns members of <typeparamref name="TValue"/> that can be used for binding.
     /// </summary>
     /// <seealso cref="CsvHeaderAttribute"/>
     /// <seealso cref="CsvHeaderExcludeAttribute"/>
-    private static HeaderData GetHeaderDataFor<[DAM(Messages.ReflectionBound)] TValue>(
-        bool write)
+    private protected static HeaderData GetHeaderDataFor<[DAM(Messages.ReflectionBound)] TValue>(bool write)
     {
         ConditionalWeakTable<Type, HeaderData> cache = write ? WriteCache : ReadCache;
 
@@ -172,8 +200,7 @@ public sealed class DefaultHeaderBinder<T> : DefaultHeaderBinder, IHeaderBinder<
 
                 if (!found)
                 {
-                    candidates.Add(
-                        new HeaderBindingCandidate(member.Value.Name, member.Value, default, isRequired: false));
+                    candidates.Add(new HeaderBindingCandidate(member.Value.Name, member.Value, 0, isRequired: false));
                 }
             }
 
@@ -191,9 +218,9 @@ public sealed class DefaultHeaderBinder<T> : DefaultHeaderBinder, IHeaderBinder<
                         candidates.Add(new HeaderBindingCandidate(value, member.Value, attr.Order, attr.IsRequired));
                     }
                 }
-                else if (ignoreAttribute is null
-                         && attribute is CsvHeaderIgnoreAttribute hia
-                         && hia.Scope.IsValidFor(write))
+                else if (ignoreAttribute is null &&
+                         attribute is CsvHeaderIgnoreAttribute hia &&
+                         hia.Scope.IsValidFor(write))
                 {
                     ignoreAttribute = hia;
                 }
@@ -238,7 +265,7 @@ public sealed class DefaultHeaderBinder<T> : DefaultHeaderBinder, IHeaderBinder<
                         new HeaderBindingCandidate(
                             parameter.Value.Name!,
                             parameter.Value,
-                            default,
+                            0,
                             isRequired: false));
                 }
 
@@ -248,11 +275,11 @@ public sealed class DefaultHeaderBinder<T> : DefaultHeaderBinder, IHeaderBinder<
                 {
                     HeaderBindingCandidate existing = candidates[i];
 
-                    if (existing.Target is PropertyInfo prop
-                        && prop.Name == parameter.Value.Name
-                        && prop.PropertyType == parameter.Value.ParameterType
-                        && prop.SetMethod is { ReturnParameter: var rp }
-                        && rp.GetRequiredCustomModifiers().Contains(typeof(IsExternalInit)))
+                    if (existing.Target is PropertyInfo prop &&
+                        prop.Name == parameter.Value.Name &&
+                        prop.PropertyType == parameter.Value.ParameterType &&
+                        prop.SetMethod is { ReturnParameter: var rp } &&
+                        rp.GetRequiredCustomModifiers().Contains(typeof(IsExternalInit)))
                     {
                         candidates.RemoveAt(i);
                     }
@@ -267,5 +294,52 @@ public sealed class DefaultHeaderBinder<T> : DefaultHeaderBinder, IHeaderBinder<
         }
 
         return headerData;
+    }
+}
+
+/// <summary>
+/// Binds CSV header to members.
+/// </summary>
+/// <typeparam name="T">Token type</typeparam>
+public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder<T>
+    where T : unmanaged, IBinaryInteger<T>
+{
+    /// <summary>
+    /// Fields that could not be matched are ignored.
+    /// </summary>
+    public bool IgnoreUnmatched { get; }
+
+    private readonly CsvOptions<T> _options;
+
+    /// <summary>
+    /// Creates a new header binder.
+    /// </summary>
+    public CsvReflectionBinder(CsvOptions<T> options, bool ignoreUnmatched)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        _options = options;
+        IgnoreUnmatched = ignoreUnmatched;
+    }
+
+    [RUF(Messages.CompiledExpressions)]
+    [RDC(Messages.CompiledExpressions)]
+    public IMaterializer<T, TValue> GetMaterializer<TValue>(ReadOnlySpan<string> headers)
+    {
+        return _options.CreateMaterializerFrom(
+            GetReadBindings<T, TValue>(_options, headers, IgnoreUnmatched));
+    }
+
+    [RUF(Messages.CompiledExpressions)]
+    [RDC(Messages.CompiledExpressions)]
+    public IMaterializer<T, TValue> GetMaterializer<TValue>()
+    {
+        return _options.GetMaterializer<T, TValue>();
+    }
+
+    [RUF(Messages.CompiledExpressions)]
+    [RDC(Messages.CompiledExpressions)]
+    public IDematerializer<T, TValue> GetDematerializer<TValue>()
+    {
+        return Create<T, TValue>(_options);
     }
 }

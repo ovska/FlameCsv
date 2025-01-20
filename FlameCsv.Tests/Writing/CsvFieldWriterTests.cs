@@ -177,7 +177,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
 
         public override bool TryFormat(Span<char> destination, string value, out int charsWritten)
         {
-            return value.AsSpan().TryWriteTo(destination, out charsWritten);
+            return value.AsSpan().TryCopyTo(destination, out charsWritten);
         }
 
         protected internal override bool CanFormatNull => false;

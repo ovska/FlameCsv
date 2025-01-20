@@ -13,7 +13,7 @@ internal static class WriteExtensions
     /// <typeparam name="T">Token type</typeparam>
     /// <returns>True if the destination buffer is large enough and data was copied.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryWriteTo<T>(
+    public static bool TryCopyTo<T>(
         this ReadOnlySpan<T> value,
         Span<T> buffer,
         out int tokensWritten)

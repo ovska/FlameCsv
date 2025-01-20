@@ -76,7 +76,7 @@ internal sealed class CustomBooleanUtf8Converter : CsvConverter<byte, bool>
 
     public override bool TryFormat(Span<byte> destination, bool value, out int charsWritten)
     {
-        return ((ReadOnlySpan<byte>)(value ? _firstTrue : _firstFalse)).TryWriteTo(destination, out charsWritten);
+        return ((ReadOnlySpan<byte>)(value ? _firstTrue : _firstFalse)).TryCopyTo(destination, out charsWritten);
     }
 
     /// <inheritdoc/>
