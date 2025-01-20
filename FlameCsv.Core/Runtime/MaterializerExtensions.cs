@@ -52,8 +52,8 @@ internal static class MaterializerExtensions
 
         if (factory is null)
         {
-            if (TryGetTupleBindings<T, TResult>(write: false, out var bindings)
-                || IndexAttributeBinder<TResult>.TryGetBindings(write: false, out bindings))
+            if (TryGetTupleBindings<T, TResult>(write: false, out var bindings) ||
+                IndexAttributeBinder<TResult>.TryGetBindings(write: false, out bindings))
             {
                 factory = ForType<T, TResult>.Generator.GetMaterializerFactory(bindings);
             }
@@ -61,12 +61,11 @@ internal static class MaterializerExtensions
             {
                 // Don't cache nulls since its unlikely they will be attempted many times
                 throw new CsvBindingException<TResult>(
-                    $"Headerless CSV could not be bound to {typeof(TResult)}, since the type had no "
-                    + "[CsvIndex]-attributes and no built-in configuration.");
+                    $"Headerless CSV could not be bound to {typeof(TResult)}, since the type had no " +
+                    "[CsvIndex]-attributes and no built-in configuration.");
             }
 
-            factory = Interlocked.CompareExchange(ref ForType<T, TResult>.Cached, factory, null)
-                ?? factory;
+            factory = Interlocked.CompareExchange(ref ForType<T, TResult>.Cached, factory, null) ?? factory;
         }
 
         return factory(options);
@@ -74,13 +73,13 @@ internal static class MaterializerExtensions
 
     internal static bool IsTuple(Type type)
     {
-        return !type.IsGenericTypeDefinition
-            && type.IsGenericType
-            && type.Module == typeof(ValueTuple<>).Module
-            && type.IsAssignableTo(typeof(ITuple));
+        return !type.IsGenericTypeDefinition &&
+            type.IsGenericType &&
+            type.Module == typeof(ValueTuple<>).Module &&
+            type.IsAssignableTo(typeof(ITuple));
     }
 
-    private static bool TryGetTupleBindings<T, [DAM(DAMT.PublicConstructors | DAMT.PublicFields)] TTuple>(
+    internal static bool TryGetTupleBindings<T, [DAM(DAMT.PublicConstructors | DAMT.PublicFields)] TTuple>(
         bool write,
         [NotNullWhen(true)] out CsvBindingCollection<TTuple>? bindingCollection)
         where T : unmanaged, IBinaryInteger<T>
@@ -96,7 +95,8 @@ internal static class MaterializerExtensions
         if (write)
         {
             var fields = typeof(TTuple).GetFields();
-            fields.AsSpan()
+            fields
+                .AsSpan()
                 .Sort(
                     static (a, b) => StringComparer.Ordinal.Compare(a.Name, b.Name)); // ensure order Item1, Item2 etc.
 

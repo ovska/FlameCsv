@@ -16,8 +16,7 @@ public class WriteReflectionTests
     {
         var data = new Obj[]
         {
-            new() { Id = 1, Name = "Bob", IsEnabled = true },
-            new() { Id = 2, Name = "Alice", IsEnabled = false },
+            new() { Id = 1, Name = "Bob", IsEnabled = true }, new() { Id = 2, Name = "Alice", IsEnabled = false },
         };
 
         var opts = new CsvOptions<char> { HasHeader = header, MemoryPool = null };
@@ -27,5 +26,14 @@ public class WriteReflectionTests
             (header ? "Id,Name,IsEnabled\r\n" : "") +
             "1,Bob,true\r\n2,Alice,false\r\n";
         Assert.Equal(expected, sb.ToString());
+    }
+
+    [Fact]
+    public void Should_Write_Tuple()
+    {
+        var data = new[] { (1, "Bob", true), (2, "Alice", false), };
+        var opts = new CsvOptions<char> { HasHeader = false, MemoryPool = null };
+        var sb = CsvWriter.WriteToString(data, opts);
+        Assert.Equal("1,Bob,true\r\n2,Alice,false\r\n", sb.ToString());
     }
 }
