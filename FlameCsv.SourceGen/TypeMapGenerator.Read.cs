@@ -213,7 +213,7 @@ public partial class TypeMapGenerator
             sb.Append(binding.Name);
             sb.Append(" = ");
 
-            // Enum values are resolved as their underlying type so they need to be cast back to the enum type
+            // Enum values are resolved as their underlying type, so they need to be cast back to the enum type
             // e.g. DayOfWeek.Friday would be "state.arg = (System.DayOfWeek)5;"
             if (binding.Type.IsEnumOrNullableEnum())
             {

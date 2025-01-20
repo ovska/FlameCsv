@@ -89,11 +89,8 @@ internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKe
     {
         var @this = (TrimmingCache<TKey, TValue>)state;
 
-        if (@this._disposed)
-        {
-            @this._entries.Clear();
-            return false;
-        }
+        if (@this._disposed) return false;
+        if (@this._entries.IsEmpty) return true;
 
         MemoryPressure pressure = GCUtils.GetMemoryPressure();
 
