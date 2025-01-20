@@ -152,7 +152,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         ReadOnlySpan<string> headers = list.AsSpan();
 
         _materializer = _typeMap is null
-            ? _parser.Options.CreateMaterializerFrom(_parser.Options.GetHeaderBinder().Bind<TValue>(headers))
+            ? _parser.Options.TypeBinder.GetMaterializer<TValue>(headers)
             : _typeMap.BindMembers(headers, _parser.Options);
         return true;
     }

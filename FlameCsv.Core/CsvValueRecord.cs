@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
-using FlameCsv.Runtime;
 using FlameCsv.Utilities;
 
 namespace FlameCsv;
@@ -212,15 +211,9 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
         {
             var header = _state.Header;
 
-            if (header is not null)
-            {
-                var bindings = _options.GetHeaderBinder().Bind<TRecord>(header.Values);
-                obj = _options.CreateMaterializerFrom(bindings);
-            }
-            else
-            {
-                obj = _options.GetMaterializer<T, TRecord>();
-            }
+            obj = header is not null
+                ? _options.TypeBinder.GetMaterializer<TRecord>(header.Values)
+                : _options.TypeBinder.GetMaterializer<TRecord>();
 
             _state.MaterializerCache[typeof(TRecord)] = obj;
         }
