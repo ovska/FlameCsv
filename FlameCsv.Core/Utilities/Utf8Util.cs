@@ -128,6 +128,7 @@ internal static class Utf8Util
         ReadOnlySpan<byte> input,
         TState state,
         [RequireStaticDelegate] Func<ReadOnlySpan<char>, TState, TResult> func)
+        where TState : allows ref struct
     {
         scoped Span<char> buffer;
         char[]? toReturn = null;

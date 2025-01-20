@@ -38,7 +38,7 @@ public sealed class CsvHeaderAttribute : CsvHeaderConfigurationAttribute
 
         for (int i = 0; i < values.Length; i++)
         {
-            ArgumentNullException.ThrowIfNull(values[i]);
+            ArgumentException.ThrowIfNullOrWhiteSpace(values[i]);
         }
 
         Values = values;

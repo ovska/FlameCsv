@@ -39,7 +39,7 @@ public sealed class CsvHeaderTargetAttribute : Attribute, ICsvBindingAttribute
 
         for (int i = 0; i < values.Length; i++)
         {
-            ArgumentNullException.ThrowIfNull(values[i]);
+            ArgumentException.ThrowIfNullOrWhiteSpace(values[i]);
         }
 
         Values = values;

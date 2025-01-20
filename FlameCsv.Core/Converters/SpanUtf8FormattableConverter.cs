@@ -24,6 +24,8 @@ internal sealed class SpanUtf8FormattableConverter<TValue> : CsvConverter<byte, 
 
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out TValue value)
     {
+        if (source.Length == 0) return TValue.TryParse([], _provider, out value);
+
         int len = Encoding.UTF8.GetMaxCharCount(source.Length);
 
         scoped Span<char> buffer;

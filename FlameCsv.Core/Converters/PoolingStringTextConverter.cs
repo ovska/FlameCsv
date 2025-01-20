@@ -10,9 +10,13 @@ internal sealed class PoolingStringTextConverter : CsvConverter<char, string>
 
     private readonly StringPool _stringPool;
 
-    public PoolingStringTextConverter(CsvOptions<char> options)
+    public PoolingStringTextConverter(CsvOptions<char> options) : this(options?.StringPool)
     {
-        _stringPool = options.StringPool ?? StringPool.Shared;
+    }
+
+    public PoolingStringTextConverter(StringPool? pool)
+    {
+        _stringPool = pool ?? StringPool.Shared;
     }
 
     public override bool TryFormat(Span<char> destination, string value, out int charsWritten)
