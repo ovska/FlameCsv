@@ -477,8 +477,8 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// </summary>
     public MemoryPool<T>? MemoryPool
     {
-        get => ReferenceEquals(_memoryPool, HeapMemoryPool<T>.Shared) ? null : _memoryPool;
-        set => this.SetValue(ref _memoryPool, value ?? HeapMemoryPool<T>.Shared);
+        get => ReferenceEquals(_memoryPool, HeapMemoryPool<T>.Instance) ? null : _memoryPool;
+        set => this.SetValue(ref _memoryPool, value ?? HeapMemoryPool<T>.Instance);
     }
 
     /// <summary>
