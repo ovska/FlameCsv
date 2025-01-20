@@ -6,7 +6,6 @@ using FlameCsv.Binding.Attributes;
 
 namespace FlameCsv.Benchmark;
 
-[SimpleJob]
 [MemoryDiagnoser]
 [HideColumns("Error", "StdDev")]
 public class BindingBench
