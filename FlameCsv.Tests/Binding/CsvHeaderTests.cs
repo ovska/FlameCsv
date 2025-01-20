@@ -24,7 +24,7 @@ public static class CsvHeaderTests
             Assert.Equal(value, header1);
             Assert.Equal(value, header2);
 
-            if (CsvOptions<T>.Default.GetAsString(tokens).Length <= 32)
+            if (CsvOptions<T>.Default.GetAsString(tokens).Length <= buffer.Length)
             {
                 Assert.Same(header1, header2);
             }

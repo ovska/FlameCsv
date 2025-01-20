@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Utilities;
@@ -158,12 +159,12 @@ public readonly struct CsvDialect<T>() where T : unmanaged, IBinaryInteger<T>
 
         if (Unsafe.SizeOf<T>() == sizeof(byte))
         {
-            retVal = Ascii.IsValid(list.AsSpan().UnsafeCast<T, byte>());
+            retVal = Ascii.IsValid(list.AsSpan().Cast<T, byte>());
         }
 
         if (Unsafe.SizeOf<T>() == sizeof(char))
         {
-            retVal = Ascii.IsValid(list.AsSpan().UnsafeCast<T, char>());
+            retVal = Ascii.IsValid(list.AsSpan().Cast<T, char>());
         }
 
         list.Dispose();
@@ -174,12 +175,12 @@ public readonly struct CsvDialect<T>() where T : unmanaged, IBinaryInteger<T>
     {
         if (typeof(T) == typeof(byte))
         {
-            return (SearchValues<T>)(object)SearchValues.Create(tokens.UnsafeCast<T, byte>());
+            return (SearchValues<T>)(object)SearchValues.Create(tokens.Cast<T, byte>());
         }
 
         if (typeof(T) == typeof(char))
         {
-            return (SearchValues<T>)(object)SearchValues.Create(tokens.UnsafeCast<T, char>());
+            return (SearchValues<T>)(object)SearchValues.Create(tokens.Cast<T, char>());
         }
 
         throw new NotSupportedException($"SearchValues cannot be created for token {typeof(T).FullName}");

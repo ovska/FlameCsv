@@ -1,5 +1,10 @@
-﻿using System.Runtime.CompilerServices;
-using FlameCsv.Converters;
+﻿using FlameCsv.Converters;
+#if DEBUG
+using Unsafe = FlameCsv.Extensions.DebugUnsafe
+#else
+using Unsafe = System.Runtime.CompilerServices.Unsafe;
+#endif
+    ;
 
 namespace FlameCsv.Binding.Attributes;
 

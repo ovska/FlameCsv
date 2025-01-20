@@ -7,6 +7,12 @@ using System.Diagnostics;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
+#if DEBUG
+using Unsafe = FlameCsv.Extensions.DebugUnsafe
+#else
+using Unsafe = System.Runtime.CompilerServices.Unsafe;
+#endif
+    ;
 
 namespace FlameCsv;
 

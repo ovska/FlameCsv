@@ -12,8 +12,8 @@ internal static class Messages
         DynamicallyAccessedMemberTypes.PublicFields;
 
     public const string CompiledExpressions =
-        "This code path uses reflection and compiled expressions. Use SourceGen and overloads accepting " +
-        "CsvTypeMap to avoid them.";
+        "This code path uses reflection and compiled expressions. " +
+        "Use the overloads accepting source generated CsvTypeMap for AOT/trimming compatible code.";
 
     public const string StructFactorySuppressionMessage =
         "Constructors of the used struct are not actually used.";

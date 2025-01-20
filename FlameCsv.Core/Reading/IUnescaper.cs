@@ -12,7 +12,7 @@ internal static class Unescape
     [DoesNotReturn]
     public static void Invalid<T>(ReadOnlySpan<T> field, ref readonly Meta meta) where T : unmanaged, IBinaryInteger<T>
     {
-        string str = "";
+        string str;
 
         try
         {
