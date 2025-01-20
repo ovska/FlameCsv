@@ -162,7 +162,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
     {
         _textWriter = new StringWriter();
         _writer = new CsvFieldWriter<char>(
-            new CsvCharBufferWriter(_textWriter, HeapMemoryPool<char>.Shared, bufferSize),
+            new CsvCharBufferWriter(_textWriter, HeapMemoryPool<char>.Instance, bufferSize),
             new CsvOptions<char> { FieldQuoting = quoting, Null = "null", Escape = escape });
     }
 
