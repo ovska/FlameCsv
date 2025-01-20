@@ -23,6 +23,5 @@ public enum CsvFieldQuoting
     /// <remarks>
     /// Can result in invalid CSV being written, use with caution.
     /// </remarks>
-    [EditorBrowsable(EditorBrowsableState.Never)]
     Never = 2,
 }
