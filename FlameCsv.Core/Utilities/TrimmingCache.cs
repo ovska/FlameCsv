@@ -37,9 +37,9 @@ internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKe
 
     private readonly ConcurrentDictionary<TKey, Entry> _entries;
 
-    public TrimmingCache()
+    public TrimmingCache(IEqualityComparer<TKey>? comparer = null)
     {
-        _entries = new();
+        _entries = new(comparer);
         Gen2GcCallback.Register(Trim, targetObj: this);
     }
 

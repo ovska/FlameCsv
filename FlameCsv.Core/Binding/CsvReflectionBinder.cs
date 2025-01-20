@@ -3,6 +3,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
+using CommunityToolkit.HighPerformance.Helpers;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Binding.Internal;
 using FlameCsv.Exceptions;
@@ -20,6 +21,56 @@ namespace FlameCsv.Binding;
 /// </summary>
 public abstract class CsvReflectionBinder
 {
+    private protected sealed class CacheKey : IEquatable<CacheKey>
+    {
+        public static bool CanCache(int headersLength) => headersLength <= StringScratch.MaxLength;
+
+        private readonly WeakReference<object> _options;
+        private readonly Type _targetType;
+        private readonly bool _ignoreUnmatched;
+        private readonly int _length;
+        private StringScratch _headers;
+
+        public CacheKey(object options, Type targetType, bool ignoreUnmatched, ReadOnlySpan<string> headers)
+        {
+            Debug.Assert(headers.Length <= StringScratch.MaxLength);
+
+            _options = new(options);
+            _targetType = targetType;
+            _ignoreUnmatched = ignoreUnmatched;
+            _length = headers.Length;
+            _headers = default;
+            headers.CopyTo(_headers!);
+        }
+
+        public bool Equals(CacheKey? other)
+        {
+            return
+                other is not null &&
+                _length == other._length &&
+                _ignoreUnmatched == other._ignoreUnmatched &&
+                _targetType == other._targetType &&
+                _headers.AsSpan(_length).SequenceEqual(other._headers.AsSpan(other._length)) &&
+                _options.TryGetTarget(out object? target) &&
+                other._options.TryGetTarget(out object? otherTarget) &&
+                ReferenceEquals(target, otherTarget);
+        }
+
+        public override bool Equals(object? obj) => Equals(obj as CacheKey);
+
+        // ReSharper disable once NonReadonlyMemberInGetHashCode
+        public override int GetHashCode()
+            => HashCode.Combine(
+                _targetType.GetHashCode(),
+                _options.TryGetTarget(out object? target) ? (target?.GetHashCode() ?? 0) : 0,
+                _ignoreUnmatched.GetHashCode(),
+                _length,
+                HashCode<string>.Combine(_headers.AsSpan(_length)));
+    }
+
+    private protected static readonly TrimmingCache<CacheKey, object>
+        _materializerCache = new(EqualityComparer<CacheKey>.Default);
+
     private static readonly TrimmingCache<object, object> _dematerializerCache = [];
 
     [RUF(Messages.CompiledExpressions)]
@@ -83,22 +134,18 @@ public abstract class CsvReflectionBinder
             return (IDematerializer<T, TValue>)dematerializer;
         }
 
-        CsvBindingCollection<TValue> bindingCollection;
+        CsvBindingCollection<TValue>? bindingCollection;
 
         if (options.HasHeader)
         {
             bindingCollection = GetWriteHeaders<T, TValue>();
         }
-        else if (IndexAttributeBinder<TValue>.TryGetBindings(write: true, out var result))
-        {
-            bindingCollection = result;
-        }
-        // TODO: ITuple support
-        else
+        else if (!MaterializerExtensions.TryGetTupleBindings<T, TValue>(write: true, out bindingCollection) &&
+                 !IndexAttributeBinder<TValue>.TryGetBindings(write: true, out bindingCollection))
         {
             throw new CsvBindingException<TValue>(
-                $"Headerless CSV could not be written for {typeof(TValue)}, since the type had no " +
-                "[CsvIndex]-attributes."); // TODO: Add ITuple support
+                $"Headerless CSV could not be written for {typeof(TValue)} since the type had no " +
+                "[CsvIndex]-attributes.");
         }
 
         var bindings = bindingCollection.MemberBindings;
@@ -108,7 +155,7 @@ public abstract class CsvReflectionBinder
         parameters[0] = bindingCollection;
         parameters[1] = options;
 
-        var valueParam = Expression.Parameter(typeof(TValue), "value");
+        var valueParam = Expression.Parameter(typeof(TValue), "obj");
 
         for (int i = 0; i < bindings.Length; i++)
         {
@@ -189,129 +236,128 @@ public abstract class CsvReflectionBinder
     {
         List<HeaderBindingCandidate> candidates = [];
 
-            foreach (var member in CsvTypeInfo.Members<TValue>())
+        foreach (var member in CsvTypeInfo.Members<TValue>())
+        {
+            if (!write && member.IsReadOnly)
+                continue;
+
+            if (member.IsExcluded(write))
+                continue;
+
+            bool found = false;
+
+            foreach (var attribute in member.Attributes)
             {
-                if (!write && member.IsReadOnly)
+                if (attribute is not CsvHeaderAttribute attr || !attr.Scope.IsValidFor(write))
+                {
                     continue;
-
-                if (member.IsExcluded(write))
-                    continue;
-
-                bool found = false;
-
-                foreach (var attribute in member.Attributes)
-                {
-                    if (attribute is not CsvHeaderAttribute attr || !attr.Scope.IsValidFor(write))
-                    {
-                        continue;
-                    }
-
-                    found = true;
-
-                    if (attr.Values.Length == 0)
-                    {
-                        candidates.Add(
-                            new HeaderBindingCandidate(member.Value.Name, member.Value, attr.Order, attr.Required));
-                    }
-                    else
-                    {
-                        foreach (var value in attr.Values)
-                        {
-                            candidates.Add(new HeaderBindingCandidate(value, member.Value, attr.Order, attr.Required));
-                        }
-                    }
                 }
 
-                if (!found)
+                found = true;
+
+                if (attr.Values.Length == 0)
                 {
-                    candidates.Add(new HeaderBindingCandidate(member.Value.Name, member.Value, 0, isRequired: false));
-                }
-            }
-
-            CsvHeaderIgnoreAttribute? ignoreAttribute = null;
-
-            foreach (var attribute in CsvTypeInfo.Attributes<TValue>())
-            {
-                if (attribute is CsvHeaderTargetAttribute attr && attr.Scope.IsValidFor(write))
-                {
-                    var member = CsvTypeInfo.GetPropertyOrField<TValue>(attr.MemberName);
-                    candidates.EnsureCapacity(candidates.Count + attr.Values.Length);
-
-                    foreach (var value in attr.Values)
-                    {
-                        candidates.Add(new HeaderBindingCandidate(value, member.Value, attr.Order, attr.IsRequired));
-                    }
-                }
-                else if (ignoreAttribute is null &&
-                         attribute is CsvHeaderIgnoreAttribute hia &&
-                         hia.Scope.IsValidFor(write))
-                {
-                    ignoreAttribute = hia;
-                }
-            }
-
-            foreach (var parameter in !write ? CsvTypeInfo.ConstructorParameters<TValue>() : default)
-            {
-                CsvHeaderAttribute? attr = null;
-
-                foreach (var attribute in parameter.Attributes)
-                {
-                    if (attribute is CsvHeaderAttribute match && match.Scope.IsValidFor(write))
-                    {
-                        attr = match;
-                        break;
-                    }
-                }
-
-                if (attr is not null)
-                {
-                    if (attr.Values.Length == 0)
-                    {
-                        candidates.Add(
-                            new HeaderBindingCandidate(
-                                parameter.Value.Name!,
-                                parameter.Value,
-                                attr.Order,
-                                attr.Required));
-                    }
-                    else
-                    {
-                        foreach (var value in attr.Values)
-                        {
-                            candidates.Add(
-                                new HeaderBindingCandidate(value, parameter.Value, attr.Order, attr.Required));
-                        }
-                    }
+                    candidates.Add(
+                        new HeaderBindingCandidate(member.Value.Name, member.Value, attr.Order, attr.Required));
                 }
                 else
+                {
+                    foreach (var value in attr.Values)
+                    {
+                        candidates.Add(new HeaderBindingCandidate(value, member.Value, attr.Order, attr.Required));
+                    }
+                }
+            }
+
+            if (!found)
+            {
+                candidates.Add(new HeaderBindingCandidate(member.Value.Name, member.Value, 0, isRequired: false));
+            }
+        }
+
+        CsvHeaderIgnoreAttribute? ignoreAttribute = null;
+
+        foreach (var attribute in CsvTypeInfo.Attributes<TValue>())
+        {
+            if (attribute is CsvHeaderTargetAttribute attr && attr.Scope.IsValidFor(write))
+            {
+                var member = CsvTypeInfo.GetPropertyOrField<TValue>(attr.MemberName);
+                candidates.EnsureCapacity(candidates.Count + attr.Values.Length);
+
+                foreach (var value in attr.Values)
+                {
+                    candidates.Add(new HeaderBindingCandidate(value, member.Value, attr.Order, attr.IsRequired));
+                }
+            }
+            else if (ignoreAttribute is null &&
+                     attribute is CsvHeaderIgnoreAttribute hia &&
+                     hia.Scope.IsValidFor(write))
+            {
+                ignoreAttribute = hia;
+            }
+        }
+
+        foreach (var parameter in !write ? CsvTypeInfo.ConstructorParameters<TValue>() : default)
+        {
+            CsvHeaderAttribute? attr = null;
+
+            foreach (var attribute in parameter.Attributes)
+            {
+                if (attribute is CsvHeaderAttribute match && match.Scope.IsValidFor(write))
+                {
+                    attr = match;
+                    break;
+                }
+            }
+
+            if (attr is not null)
+            {
+                if (attr.Values.Length == 0)
                 {
                     candidates.Add(
                         new HeaderBindingCandidate(
                             parameter.Value.Name!,
                             parameter.Value,
-                            0,
-                            isRequired: false));
+                            attr.Order,
+                            attr.Required));
                 }
-
-                // hack for records: remove init-only properties with the same name and type
-                // as a parameter
-                for (int i = candidates.Count - 1; i >= 0; i--)
+                else
                 {
-                    HeaderBindingCandidate existing = candidates[i];
-
-                    if (existing.Target is PropertyInfo prop &&
-                        prop.Name == parameter.Value.Name &&
-                        prop.PropertyType == parameter.Value.ParameterType &&
-                        prop.SetMethod is { ReturnParameter: var rp } &&
-                        rp.GetRequiredCustomModifiers().Contains(typeof(IsExternalInit)))
+                    foreach (var value in attr.Values)
                     {
-                        candidates.RemoveAt(i);
+                        candidates.Add(new HeaderBindingCandidate(value, parameter.Value, attr.Order, attr.Required));
                     }
                 }
             }
+            else
+            {
+                candidates.Add(
+                    new HeaderBindingCandidate(
+                        parameter.Value.Name!,
+                        parameter.Value,
+                        0,
+                        isRequired: false));
+            }
 
-            candidates.AsSpan().Sort(); // sorted by Order
-            return new HeaderData(ignoreAttribute?.Values, candidates);
+            // hack for records: remove init-only properties with the same name and type
+            // as a parameter
+            for (int i = candidates.Count - 1; i >= 0; i--)
+            {
+                HeaderBindingCandidate existing = candidates[i];
+
+                if (existing.Target is PropertyInfo prop &&
+                    prop.Name == parameter.Value.Name &&
+                    prop.PropertyType == parameter.Value.ParameterType &&
+                    prop.SetMethod is { ReturnParameter: var rp } &&
+                    rp.GetRequiredCustomModifiers().Contains(typeof(IsExternalInit)))
+                {
+                    candidates.RemoveAt(i);
+                }
+            }
+        }
+
+        candidates.AsSpan().Sort(); // sorted by Order
+        return new HeaderData(ignoreAttribute?.Values, candidates);
     }
 }
 
@@ -343,6 +389,21 @@ public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder
     [RDC(Messages.CompiledExpressions)]
     public IMaterializer<T, TValue> GetMaterializer<TValue>(ReadOnlySpan<string> headers)
     {
+        if (CacheKey.CanCache(headers.Length))
+        {
+            CacheKey key = new(_options, typeof(TValue), IgnoreUnmatched, headers);
+
+            if (_materializerCache.TryGetValue(key, out var cached))
+            {
+                return (IMaterializer<T, TValue>)cached;
+            }
+
+            var materializer
+                = _options.CreateMaterializerFrom(GetReadBindings<T, TValue>(_options, headers, IgnoreUnmatched));
+            _materializerCache.Add(key, materializer);
+            return materializer;
+        }
+
         return _options.CreateMaterializerFrom(GetReadBindings<T, TValue>(_options, headers, IgnoreUnmatched));
     }
 
