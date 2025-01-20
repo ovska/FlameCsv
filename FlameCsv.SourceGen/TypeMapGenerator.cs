@@ -24,12 +24,28 @@ public partial class TypeMapGenerator : IIncrementalGenerator
 
         try
         {
-            context.AddSource(
-                $"{typeMap.ContainingClass.Name}.G.cs",
-                CreateTypeMap(in typeMap));
+            context.AddSource(GetSourceName(typeMap.ContainingClass), CreateTypeMap(in typeMap));
         }
         catch (DiagnosticException)
         {
+        }
+
+        static string GetSourceName(INamedTypeSymbol containingClass)
+        {
+            StringBuilder sb = new(capacity: 32);
+
+            INamedTypeSymbol? type = containingClass.ContainingType;
+
+            while (type is not null)
+            {
+                sb.Append(type.Name);
+                sb.Append('_');
+                type = type.ContainingType;
+            }
+
+            sb.Append(containingClass.Name);
+            sb.Append(".G.cs");
+            return sb.ToString();
         }
     }
 
