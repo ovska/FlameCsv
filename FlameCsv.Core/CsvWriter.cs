@@ -22,7 +22,7 @@ static partial class CsvWriter
             return Task.FromCanceled(cancellationToken);
 
         options ??= CsvOptions<byte>.Default;
-        var dematerializer = ReflectionDematerializer.Create<byte, TValue>(options);
+        var dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
         return WriteAsyncCore(
             values,
@@ -50,7 +50,7 @@ static partial class CsvWriter
             return Task.FromCanceled(cancellationToken);
 
         options ??= CsvOptions<char>.Default;
-        var dematerializer = ReflectionDematerializer.Create<char, TValue>(options);
+        var dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
         return WriteAsyncCore(
             values,
@@ -76,7 +76,8 @@ static partial class CsvWriter
             return Task.FromCanceled(cancellationToken);
 
         options ??= CsvOptions<byte>.Default;
-        var dematerializer = ReflectionDematerializer.Create<byte, TValue>(options);
+        var dematerializer = options.TypeBinder.GetDematerializer<TValue>();
+
 
         return WriteAsyncCore(
             values,
@@ -105,7 +106,7 @@ static partial class CsvWriter
             return Task.FromCanceled(cancellationToken);
 
         options ??= CsvOptions<byte>.Default;
-        var dematerializer = ReflectionDematerializer.Create<byte, TValue>(options);
+        var dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
         return WriteAsyncCore(
             values,
@@ -132,7 +133,7 @@ static partial class CsvWriter
             return Task.FromCanceled(cancellationToken);
 
         options ??= CsvOptions<char>.Default;
-        var dematerializer = ReflectionDematerializer.Create<char, TValue>(options);
+        var dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
         return WriteAsyncCore(
             values,
@@ -155,7 +156,7 @@ static partial class CsvWriter
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bufferSize);
 
         options ??= CsvOptions<char>.Default;
-        var dematerializer = ReflectionDematerializer.Create<char, TValue>(options);
+        var dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
         WriteCore(
             values,
@@ -179,7 +180,7 @@ static partial class CsvWriter
         ArgumentNullException.ThrowIfNull(values);
 
         options ??= CsvOptions<char>.Default;
-        var dematerializer = ReflectionDematerializer.Create<char, TValue>(options);
+        var dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
         var sb = builder ?? new StringBuilder(capacity: 4096);
         WriteCore(
