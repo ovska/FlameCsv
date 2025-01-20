@@ -34,13 +34,8 @@ internal static class CsvFieldWriter
         int bufferSize = -1,
         bool leaveOpen = false)
     {
-        StreamPipeWriterOptions writerOptions = new(
-            pool: options._memoryPool,
-            minimumBufferSize: bufferSize,
-            leaveOpen: leaveOpen);
-
         return new CsvFieldWriter<byte>(
-            new PipeBufferWriter(PipeWriter.Create(stream, writerOptions)),
+            new CsvStreamBufferWriter(stream, options._memoryPool, bufferSize, leaveOpen),
             options);
     }
 }
