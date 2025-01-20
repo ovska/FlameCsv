@@ -101,6 +101,11 @@ internal class HeapMemoryOwner<T>(T[] array) : IMemoryOwner<T>
 
 internal class HeapMemoryPool<T> : MemoryPool<T>
 {
+    public static HeapMemoryPool<T> Instance { get; } = new();
+
+    [Obsolete("Use Instance instead, this returns MemoryPool<T>.Shared", true)]
+    public new static MemoryPool<T> Shared => throw new NotSupportedException();
+
     public override int MaxBufferSize => Array.MaxLength;
 
     public override IMemoryOwner<T> Rent(int minBufferSize = -1)
@@ -109,7 +114,7 @@ internal class HeapMemoryPool<T> : MemoryPool<T>
             return HeapMemoryOwner<T>.Empty;
 
         if (minBufferSize == -1)
-            minBufferSize = 4096;
+            minBufferSize = Environment.SystemPageSize;
 
         ArgumentOutOfRangeException.ThrowIfNegative(minBufferSize);
         T[] array = GC.AllocateUninitializedArray<T>((int)BitOperations.RoundUpToPowerOf2((uint)minBufferSize));
