@@ -145,6 +145,7 @@ internal static class FieldParser<T, TNewline, TVector>
             if (quotesConsumed == 1)
             {
                 runningIndex += (nuint)TVector.Count;
+                continue;
             }
 
             // we are in a string, but we can't know if we are in a string, or one just ended in the last vector
