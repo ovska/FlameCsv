@@ -6,45 +6,40 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Writing;
 
-[DebuggerDisplay("[CsvCharBufferWriter] Written: {_state.Unflushed} / {_state.Buffer.Length})")]
-internal readonly struct CsvCharBufferWriter : ICsvBufferWriter<char>
+[DebuggerDisplay("[CsvCharBufferWriter] Written: {_unflushed} / {Buffer.Length})")]
+internal sealed class CsvCharBufferWriter : ICsvBufferWriter<char>
 {
-    // this nested class is used to satisfy the struct-constraint for writer in CsvFieldWriter,
-    // as a mutable struct doesn't play nice with async methods
-    private sealed class State(IMemoryOwner<char> initialMemory) : IDisposable
-    {
-        public int Unflushed;
-        public Memory<char> Buffer => Owner.Memory;
-        public IMemoryOwner<char> Owner = initialMemory;
-
-        public int Remaining
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => Buffer.Length - Unflushed;
-        }
-
-        public bool HasUnflushedData
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => Unflushed > 0;
-        }
-
-        public void Dispose()
-        {
-            Owner.Dispose();
-            Owner = null!;
-        }
-    }
+    private static readonly int _defaultBufferSize = 4 * Environment.SystemPageSize / sizeof(char);
 
     private readonly TextWriter _writer;
     private readonly MemoryPool<char> _allocator;
-    private readonly State _state;
     private readonly int _bufferSize;
+    private int _unflushed;
+    private Memory<char> Buffer => _memoryOwner.Memory;
+    private IMemoryOwner<char> _memoryOwner;
+
+    public int Remaining
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Buffer.Length - _unflushed;
+    }
+
+    public bool HasUnflushedData
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _unflushed > 0;
+    }
+
+    public void Dispose()
+    {
+        _memoryOwner.Dispose();
+        _memoryOwner = null!;
+    }
 
     public bool NeedsFlush
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (_state.Unflushed / (double)_state.Buffer.Length) >= 0.875;
+        get => (_unflushed / (double)Buffer.Length) >= 0.875;
     }
 
     public CsvCharBufferWriter(TextWriter writer, MemoryPool<char> allocator, int bufferSize)
@@ -52,14 +47,14 @@ internal readonly struct CsvCharBufferWriter : ICsvBufferWriter<char>
         ArgumentNullException.ThrowIfNull(writer);
 
         if (bufferSize == -1)
-            bufferSize = Environment.SystemPageSize / sizeof(char);
+            bufferSize = _defaultBufferSize;
 
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bufferSize);
 
         _writer = writer;
         _allocator = allocator;
         _bufferSize = bufferSize;
-        _state = new State(allocator.Rent(bufferSize));
+        _memoryOwner = allocator.Rent(bufferSize);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -67,16 +62,16 @@ internal readonly struct CsvCharBufferWriter : ICsvBufferWriter<char>
     {
         ArgumentOutOfRangeException.ThrowIfNegative(sizeHint);
 
-        if (_state.Remaining < sizeHint || _state.Remaining == 0)
+        if (Remaining < sizeHint || Remaining == 0)
         {
             _allocator.EnsureCapacity(
-                ref _state.Owner,
-                minimumLength: _state.Unflushed + Math.Max(sizeHint, _bufferSize),
+                ref _memoryOwner,
+                minimumLength: _unflushed + Math.Max(sizeHint, _bufferSize),
                 copyOnResize: true);
         }
 
-        Debug.Assert(_state.Remaining >= sizeHint);
-        return _state.Buffer.Slice(_state.Unflushed).Span;
+        Debug.Assert(Remaining >= sizeHint);
+        return Buffer.Slice(_unflushed).Span;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -84,43 +79,43 @@ internal readonly struct CsvCharBufferWriter : ICsvBufferWriter<char>
     {
         ArgumentOutOfRangeException.ThrowIfNegative(sizeHint);
 
-        if (_state.Remaining < sizeHint || _state.Remaining == 0)
+        if (Remaining < sizeHint || Remaining == 0)
         {
             _allocator.EnsureCapacity(
-                ref _state.Owner,
-                minimumLength: _state.Unflushed + Math.Max(sizeHint, _bufferSize),
+                ref _memoryOwner,
+                minimumLength: _unflushed + Math.Max(sizeHint, _bufferSize),
                 copyOnResize: true);
         }
 
-        Debug.Assert(_state.Remaining >= sizeHint);
-        return _state.Buffer.Slice(_state.Unflushed);
+        Debug.Assert(Remaining >= sizeHint);
+        return Buffer.Slice(_unflushed);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Advance(int length)
     {
-        if ((uint)length > (uint)_state.Remaining)
+        if ((uint)length > (uint)Remaining)
             Throw.Argument_OutOfRange(nameof(length));
 
-        _state.Unflushed += length;
+        _unflushed += length;
     }
 
     [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
     public async ValueTask FlushAsync(CancellationToken cancellationToken = default)
     {
-        if (_state.HasUnflushedData)
+        if (HasUnflushedData)
         {
-            await _writer.WriteAsync(_state.Buffer.Slice(0, _state.Unflushed), cancellationToken).ConfigureAwait(false);
-            _state.Unflushed = 0;
+            await _writer.WriteAsync(Buffer.Slice(0, _unflushed), cancellationToken).ConfigureAwait(false);
+            _unflushed = 0;
         }
     }
 
     public void Flush()
     {
-        if (_state.HasUnflushedData)
+        if (HasUnflushedData)
         {
-            _writer.Write(_state.Buffer.Slice(0, _state.Unflushed).Span);
-            _state.Unflushed = 0;
+            _writer.Write(Buffer.Slice(0, _unflushed).Span);
+            _unflushed = 0;
         }
     }
 
@@ -131,8 +126,8 @@ internal readonly struct CsvCharBufferWriter : ICsvBufferWriter<char>
         if (cancellationToken.IsCancellationRequested)
             exception ??= new OperationCanceledException(cancellationToken);
 
+        using (_memoryOwner)
         await using (_writer.ConfigureAwait(false))
-        using (_state)
         {
             if (exception is null)
             {
@@ -155,15 +150,15 @@ internal readonly struct CsvCharBufferWriter : ICsvBufferWriter<char>
 
     public void Complete(Exception? exception)
     {
-        using (_state)
+        using (_memoryOwner)
         using (_writer)
         {
-            if (exception is null && _state.HasUnflushedData)
+            if (exception is null && HasUnflushedData)
             {
                 try
                 {
-                    _writer.WriteAsync(_state.Buffer.Slice(0, _state.Unflushed));
-                    _state.Unflushed = -1;
+                    _writer.WriteAsync(Buffer.Slice(0, _unflushed));
+                    _unflushed = -1;
                 }
                 catch (Exception e)
                 {

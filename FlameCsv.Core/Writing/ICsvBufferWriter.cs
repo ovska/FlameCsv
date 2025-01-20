@@ -25,7 +25,7 @@ public interface ICsvBufferWriter<T> : IBufferWriter<T> where T : unmanaged
     ValueTask FlushAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Completes the reader, flushing unflushed data if no exceptions.
+    /// Completes the reader, flushing unflushed data if <paramref name="exception"/> is null.
     /// </summary>
     /// <param name="exception">
     /// Exception observed when writing the data. If null, pending unflushed data does not get flushed.
