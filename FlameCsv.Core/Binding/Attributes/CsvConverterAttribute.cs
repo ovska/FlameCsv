@@ -13,7 +13,15 @@ public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute
     /// <inheritdoc cref="CsvHeaderConfigurationAttribute.Scope"/>
     public CsvBindingScope Scope { get; set; }
 
-    private readonly object _cacheKey = new();
+    /// <summary>
+    /// Gets or creates a converter instance for the binding's member.
+    /// </summary>
+    /// <param name="targetType">Type to convert</param>
+    /// <param name="options">Current configuration instance</param>
+    /// <returns>Converter instance</returns>
+    /// <exception cref="CsvConfigurationException">Thrown if <paramref name="targetType"/> is not valid for the member,
+    /// or is not present in the configuration and has no parameterless constructor.</exception>
+    protected abstract CsvConverter<T> CreateConverterOrFactory(Type targetType, CsvOptions<T> options);
 
     /// <summary>
     /// Creates the configured converter.
@@ -23,7 +31,7 @@ public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(targetType);
 
-        if (options._explicitCache.TryGetValue(_cacheKey, out CsvConverter<T>? cached))
+        if (options._explicitCache.TryGetValue(key: this, out CsvConverter<T>? cached))
         {
             return cached;
         }
@@ -66,20 +74,6 @@ public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute
 
     Success:
         var result = instanceOrFactory.GetOrCreateConverter(targetType, options);
-
-        if (options._explicitCache.TryAdd(_cacheKey, result))
-            return result;
-
-        return options._explicitCache[_cacheKey];
+        return options._explicitCache.GetOrAdd(key: this, result);
     }
-
-    /// <summary>
-    /// Gets or creates a converter instance for the binding's member.
-    /// </summary>
-    /// <param name="targetType">Type to convert</param>
-    /// <param name="options">Current configuration instance</param>
-    /// <returns>Converter instance</returns>
-    /// <exception cref="CsvConfigurationException">Thrown if <paramref name="targetType"/> is not valid for the member,
-    /// or is not present in the configuration and has no parameterless constructor.</exception>
-    protected abstract CsvConverter<T> CreateConverterOrFactory(Type targetType, CsvOptions<T> options);
 }
