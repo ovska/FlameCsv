@@ -1,7 +1,6 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -10,30 +9,15 @@ using FlameCsv.Writing;
 using CommunityToolkit.HighPerformance.Buffers;
 using System.Globalization;
 using JetBrains.Annotations;
+using System.Runtime.CompilerServices;
+#if DEBUG
+using Unsafe = FlameCsv.Extensions.DebugUnsafe
+#else
+using Unsafe = System.Runtime.CompilerServices.Unsafe;
+#endif
+    ;
 
 namespace FlameCsv;
-
-file sealed class CsvOptionsCharSealed : CsvOptions<char>
-{
-    public static readonly CsvOptionsCharSealed Instance;
-
-    static CsvOptionsCharSealed()
-    {
-        Instance = new();
-        Instance.MakeReadOnly();
-    }
-}
-
-file sealed class CsvOptionsByteSealed : CsvOptions<byte>
-{
-    public static readonly CsvOptionsByteSealed Instance;
-
-    static CsvOptionsByteSealed()
-    {
-        Instance = new();
-        Instance.MakeReadOnly();
-    }
-}
 
 /// <summary>
 /// Object used to configure dialect, converters, and other options to read and write CSV data.
@@ -53,13 +37,10 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            if (typeof(T) == typeof(char))
-                return Unsafe.As<CsvOptions<T>>(CsvOptionsCharSealed.Instance);
-
-            if (typeof(T) != typeof(byte))
-                ThrowInvalidTokenType(nameof(Default));
-
-            return Unsafe.As<CsvOptions<T>>(CsvOptionsByteSealed.Instance);
+            if (typeof(T) == typeof(char)) return Unsafe.As<CsvOptions<T>>(CsvOptionsCharSealed.Instance);
+            if (typeof(T) == typeof(byte)) return Unsafe.As<CsvOptions<T>>(CsvOptionsByteSealed.Instance);
+            ThrowInvalidTokenType(nameof(Default));
+            return null!; // unreachable
         }
     }
 
@@ -548,5 +529,27 @@ file static class TypeDictExtensions
     {
         ArgumentNullException.ThrowIfNull(key, parameterName);
         return dict is not null && dict.TryGetValue(key, out T? value) ? value : defaultValue;
+    }
+}
+
+file sealed class CsvOptionsCharSealed : CsvOptions<char>
+{
+    public static readonly CsvOptionsCharSealed Instance;
+
+    static CsvOptionsCharSealed()
+    {
+        Instance = new();
+        Instance.MakeReadOnly();
+    }
+}
+
+file sealed class CsvOptionsByteSealed : CsvOptions<byte>
+{
+    public static readonly CsvOptionsByteSealed Instance;
+
+    static CsvOptionsByteSealed()
+    {
+        Instance = new();
+        Instance.MakeReadOnly();
     }
 }

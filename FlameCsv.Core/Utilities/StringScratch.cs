@@ -2,5 +2,9 @@
 
 namespace FlameCsv.Utilities;
 
-[InlineArray(16)]
-internal struct StringScratch { public string? elem0; }
+[InlineArray(MaxLength)]
+internal struct StringScratch
+{
+    public string? elem0;
+    public const int MaxLength = 16;
+}
