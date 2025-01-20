@@ -1,5 +1,6 @@
 ﻿namespace FlameCsv.Binding.Attributes;
 
+// ReSharper disable UnusedMemberInSuper.Global
 internal interface ICsvBindingAttribute
 {
     /// <summary>

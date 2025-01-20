@@ -10,9 +10,13 @@ internal sealed class PoolingStringUtf8Converter : CsvConverter<byte, string>
 
     public static PoolingStringUtf8Converter SharedInstance { get; } = new(CsvOptions<byte>.Default);
 
-    public PoolingStringUtf8Converter(CsvOptions<byte> options)
+    public PoolingStringUtf8Converter(CsvOptions<byte> options) : this(options?.StringPool)
     {
-        _stringPool = options.StringPool ?? StringPool.Shared;
+    }
+
+    public PoolingStringUtf8Converter(StringPool? stringPool)
+    {
+        _stringPool = stringPool ?? StringPool.Shared;
     }
 
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out string value)

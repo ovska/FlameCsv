@@ -115,7 +115,7 @@ internal sealed class CustomBooleanUtf8Converter : CsvConverter<byte, bool>
             }
         }
 
-        value = default;
+        value = false;
         return false;
     }
 

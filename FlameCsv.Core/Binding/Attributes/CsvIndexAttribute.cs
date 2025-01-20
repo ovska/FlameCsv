@@ -19,7 +19,7 @@ public sealed class CsvIndexAttribute : Attribute, ICsvBindingAttribute
     /// <param name="index">CSV field index</param>
     public CsvIndexAttribute(int index)
     {
-        ArgumentOutOfRangeException.ThrowIfLessThan(index, 0);
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
         Index = index;
     }
 }

@@ -1,4 +1,5 @@
-﻿using FlameCsv.Converters;
+﻿using CommunityToolkit.HighPerformance.Buffers;
+using FlameCsv.Converters;
 #if DEBUG
 using Unsafe = FlameCsv.Extensions.DebugUnsafe
 #else
@@ -20,17 +21,26 @@ public sealed class CsvStringPoolingAttribute<T> : CsvConverterAttribute<T> wher
     {
         if (targetType != typeof(string))
         {
-            throw new InvalidOperationException($"{GetType().FullName} must be applied on string, was: {targetType.FullName}");
+            throw new InvalidOperationException(
+                $"{GetType().FullName} must be applied on string, was: {targetType.FullName}");
         }
+
+        StringPool? configured = options.StringPool;
 
         if (typeof(T) == typeof(char))
         {
-            return Unsafe.As<CsvConverter<T>>(PoolingStringTextConverter.SharedInstance);
+            CsvConverter<char> converter = configured is not null && configured != StringPool.Shared
+                ? new PoolingStringTextConverter(configured)
+                : PoolingStringTextConverter.SharedInstance;
+            return Unsafe.As<CsvConverter<T>>(converter);
         }
 
         if (typeof(T) == typeof(byte))
         {
-            return Unsafe.As<CsvConverter<T>>(PoolingStringUtf8Converter.SharedInstance);
+            CsvConverter<byte> converter = configured is not null && configured != StringPool.Shared
+                ? new PoolingStringUtf8Converter(configured)
+                : PoolingStringUtf8Converter.SharedInstance;
+            return Unsafe.As<CsvConverter<T>>(converter);
         }
 
         throw new NotSupportedException($"{GetType().FullName} does not support token type {typeof(T).FullName}");
