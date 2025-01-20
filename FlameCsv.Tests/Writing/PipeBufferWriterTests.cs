@@ -9,9 +9,9 @@ using FlameCsv.Writing;
 
 namespace FlameCsv.Tests.Writing;
 
-public sealed class CsvByteBufferWriterTests : IAsyncDisposable
+public sealed class PipeBufferWriterTests : IAsyncDisposable
 {
-    private CsvByteBufferWriter? _writer;
+    private PipeBufferWriter? _writer;
     private MemoryStream _memoryStream = null!;
 
     private string Written => Encoding.UTF8.GetString(_memoryStream.ToArray());
@@ -164,7 +164,7 @@ public sealed class CsvByteBufferWriterTests : IAsyncDisposable
     [MemberNotNull(nameof(_writer))]
     private void Initialize(int bufferSize = 1024)
     {
-        _writer = new CsvByteBufferWriter(
+        _writer = new PipeBufferWriter(
             PipeWriter.Create(
                 _memoryStream = new MemoryStream(),
                 new StreamPipeWriterOptions(minimumBufferSize: bufferSize)));

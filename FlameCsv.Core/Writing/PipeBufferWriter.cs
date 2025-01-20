@@ -6,12 +6,12 @@ using FlameCsv.Exceptions;
 namespace FlameCsv.Writing;
 
 [DebuggerDisplay(@"\{ CsvByteBufferWriter, Unflushed: {_unflushed} \}")]
-internal sealed class CsvByteBufferWriter : ICsvBufferWriter<byte>
+internal sealed class PipeBufferWriter : ICsvBufferWriter<byte>
 {
     public static readonly int InternalFlushThreshold = (int)(Environment.SystemPageSize * 15d / 16d);
 
     private readonly PipeWriter _pipeWriter;
-    private int _unflushed; // see explanation in CsvCharBufferWriter
+    private int _unflushed;
 
     public bool NeedsFlush
     {
@@ -19,7 +19,7 @@ internal sealed class CsvByteBufferWriter : ICsvBufferWriter<byte>
         get => _unflushed >= InternalFlushThreshold;
     }
 
-    public CsvByteBufferWriter(PipeWriter pipeWriter)
+    public PipeBufferWriter(PipeWriter pipeWriter)
     {
         ArgumentNullException.ThrowIfNull(pipeWriter);
         _pipeWriter = pipeWriter;
@@ -83,5 +83,5 @@ internal sealed class CsvByteBufferWriter : ICsvBufferWriter<byte>
     public void Flush() => throw NotSupportedEx;
 
     private static NotSupportedException NotSupportedEx
-        => new($"{nameof(CsvByteBufferWriter)} does not support synchronous flushing.");
+        => new($"{nameof(PipeBufferWriter)} does not support synchronous flushing.");
 }

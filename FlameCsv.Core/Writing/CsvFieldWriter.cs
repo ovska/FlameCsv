@@ -24,7 +24,7 @@ internal static class CsvFieldWriter
         CsvOptions<byte> options)
     {
         return new CsvFieldWriter<byte>(
-            new CsvByteBufferWriter(pipeWriter),
+            new PipeBufferWriter(pipeWriter),
             options);
     }
 
@@ -40,7 +40,7 @@ internal static class CsvFieldWriter
             leaveOpen: leaveOpen);
 
         return new CsvFieldWriter<byte>(
-            new CsvByteBufferWriter(PipeWriter.Create(stream, writerOptions)),
+            new PipeBufferWriter(PipeWriter.Create(stream, writerOptions)),
             options);
     }
 }
