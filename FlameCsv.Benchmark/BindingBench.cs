@@ -1,5 +1,6 @@
 ﻿// ReSharper disable all
 using System.Globalization;
+using System.Runtime.InteropServices;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 
@@ -42,7 +43,6 @@ public class BindingBench
         foreach (var _ in CsvReader.Read(CSV, TestTypeMap.Instance, CsvOptions<char>.Default))
         {
         }
-
     }
 
     internal struct Obj

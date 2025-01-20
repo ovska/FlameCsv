@@ -142,7 +142,13 @@ public partial class TypeMapGenerator
                     FlameCsv.Exceptions.CsvReadException.ThrowForInvalidFieldCount(expected: Handlers.Length, actual: reader.FieldCount);
                 }
 
-                ParseState state = default;");
+#if DEBUG
+                ParseState state = default;
+#else
+                ParseState state;
+                System.Runtime.CompilerServices.Unsafe.SkipInit(out state); // uninitialized members are never accessed
+                ref TryParseHandler first = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(Handlers); 
+#endif");
         WriteDefaultParameterValues(sb, in typeMap);
         sb.Append(@"
 
@@ -151,8 +157,13 @@ public partial class TypeMapGenerator
                     ReadOnlySpan<");
         sb.Append(typeMap.Token);
         sb.Append(@"> @field = reader[index];
+#if DEBUG
+                    TryParseHandler handler = Handlers[index];
+#else
+                    TryParseHandler handler = System.Runtime.CompilerServices.Unsafe.Add(ref first, index);
+#endif
 
-                    if (!Handlers[index](this, ref state, @field))
+                    if (!handler.Invoke(this, ref state, @field))
                     {
                         FlameCsv.Exceptions.CsvParseException.Throw(reader.Options, @field);
                     }
