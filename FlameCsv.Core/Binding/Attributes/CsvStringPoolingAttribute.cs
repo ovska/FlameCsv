@@ -2,7 +2,7 @@
 #if DEBUG
 using Unsafe = FlameCsv.Extensions.DebugUnsafe
 #else
-using Unsafe = System.Runtime.CompilerServices.Unsafe;
+using Unsafe = System.Runtime.CompilerServices.Unsafe
 #endif
     ;
 
