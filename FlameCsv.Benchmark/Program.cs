@@ -2,7 +2,7 @@
 using BenchmarkDotNet.Engines;
 using BenchmarkDotNet.Jobs;
 
-// new CsvEnumerateBench().Buffer2();
+// new CsvReadBench().FlameText();
 // return;
 
 var config = DefaultConfig.Instance
@@ -14,7 +14,7 @@ var config = DefaultConfig.Instance
     //    .AsBaseline())
     .AddJob(Job.Default.WithStrategy(RunStrategy.Throughput));
 
-BenchmarkRunner.Run<OptionsBench>(config);
+BenchmarkRunner.Run<CsvReadBench>(config);
 
 //var bb = new BindingBench();
 
