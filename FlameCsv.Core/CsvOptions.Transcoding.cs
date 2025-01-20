@@ -1,6 +1,13 @@
-﻿using System.Runtime.CompilerServices;
-using System.Text;
+﻿using System.Text;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
+
+#if DEBUG
+using Unsafe = FlameCsv.Extensions.DebugUnsafe
+#else
+using System.Runtime.CompilerServices
+#endif
+    ;
 
 namespace FlameCsv;
 
@@ -14,16 +21,16 @@ public partial class CsvOptions<T>
     {
         if (typeof(T) == typeof(char))
         {
-            return value.UnsafeCast<T, char>().ToString();
+            return value.Cast<T, char>().ToString();
         }
 
         if (typeof(T) == typeof(byte))
         {
-            return Encoding.UTF8.GetString(value.UnsafeCast<T, byte>());
+            return Encoding.UTF8.GetString(value.Cast<T, byte>());
         }
 
         ThrowInvalidTokenType(nameof(GetAsString));
-        return default!;
+        return null!;
     }
 
     /// <summary>
@@ -64,17 +71,17 @@ public partial class CsvOptions<T>
     {
         if (typeof(T) == typeof(char))
         {
-            return value.UnsafeCast<T, char>().TryWriteTo(destination, out charsWritten);
+            return value.Cast<T, char>().TryCopyTo(destination, out charsWritten);
         }
 
         if (typeof(T) == typeof(byte))
         {
-            return Encoding.UTF8.TryGetChars(value.UnsafeCast<T, byte>(), destination, out charsWritten);
+            return Encoding.UTF8.TryGetChars(value.Cast<T, byte>(), destination, out charsWritten);
         }
 
         ThrowInvalidTokenType(nameof(TryGetChars));
         Unsafe.SkipInit(out charsWritten);
-        return default;
+        return false;
     }
 
     /// <summary>
@@ -88,16 +95,16 @@ public partial class CsvOptions<T>
     {
         if (typeof(T) == typeof(char))
         {
-            return value.UnsafeCast<char, T>().TryWriteTo(destination, out charsWritten);
+            return value.Cast<char, T>().TryCopyTo(destination, out charsWritten);
         }
 
         if (typeof(T) == typeof(byte))
         {
-            return Encoding.UTF8.TryGetBytes(value, destination.UnsafeCast<T, byte>(), out charsWritten);
+            return Encoding.UTF8.TryGetBytes(value, destination.Cast<T, byte>(), out charsWritten);
         }
 
         ThrowInvalidTokenType(nameof(TryWriteChars));
         Unsafe.SkipInit(out charsWritten);
-        return default;
+        return false;
     }
 }
