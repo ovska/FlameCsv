@@ -36,17 +36,7 @@ internal static class MemoryPoolExtensions
             return ReadOnlyMemory<T>.Empty;
         }
 
-        if (length > pool.MaxBufferSize)
-        {
-            Metrics.TooLargeRent(length, pool);
-            return GC.AllocateUninitializedArray<T>(length);
-        }
-
-        owner?.Dispose();
-
-        owner = pool.Rent(length);
-        Memory<T> memory = owner.Memory;
-
+        Memory<T> memory = pool.EnsureCapacity(ref owner, length, copyOnResize: false);
         sequence.CopyTo(memory.Span);
         return memory[..length];
     }
