@@ -137,7 +137,7 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
             new CsvByteBufferWriter(
                 PipeWriter.Create(
                     _stream,
-                    new StreamPipeWriterOptions(minimumBufferSize: bufferSize, pool: HeapMemoryPool<byte>.Shared))),
+                    new StreamPipeWriterOptions(minimumBufferSize: bufferSize, pool: HeapMemoryPool<byte>.Instance))),
             new CsvOptions<byte> { FieldQuoting = quoting, Null = "null" });
     }
 
