@@ -1,4 +1,4 @@
-using System.Buffers;
+﻿using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using FlameCsv.Exceptions;
@@ -6,17 +6,18 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Writing;
 
-[DebuggerDisplay("[CsvCharBufferWriter] Written: {_unflushed} / {Buffer.Length})")]
-internal sealed class CsvCharBufferWriter : ICsvBufferWriter<char>
+[DebuggerDisplay("[CsvStreamBufferWriter] Written: {_unflushed} / {Buffer.Length})")]
+internal sealed class CsvStreamBufferWriter : ICsvBufferWriter<byte>
 {
-    private static readonly int _defaultBufferSize = 4 * Environment.SystemPageSize / sizeof(char);
+    private static readonly int _defaultBufferSize = Environment.SystemPageSize;
 
-    private readonly TextWriter _writer;
-    private readonly MemoryPool<char> _allocator;
+    private readonly Stream _stream;
+    private readonly MemoryPool<byte> _allocator;
     private readonly int _bufferSize;
+    private readonly bool _leaveOpen;
     private int _unflushed;
-    private Memory<char> Buffer => _memoryOwner.Memory;
-    private IMemoryOwner<char> _memoryOwner;
+    private Memory<byte> Buffer => _memoryOwner.Memory;
+    private IMemoryOwner<byte> _memoryOwner;
 
     public int Remaining
     {
@@ -36,23 +37,24 @@ internal sealed class CsvCharBufferWriter : ICsvBufferWriter<char>
         get => (_unflushed / (double)Buffer.Length) >= 0.875;
     }
 
-    public CsvCharBufferWriter(TextWriter writer, MemoryPool<char> allocator, int bufferSize)
+    public CsvStreamBufferWriter(Stream stream, MemoryPool<byte> allocator, int bufferSize, bool leaveOpen)
     {
-        ArgumentNullException.ThrowIfNull(writer);
+        ArgumentNullException.ThrowIfNull(stream);
 
         if (bufferSize == -1)
             bufferSize = _defaultBufferSize;
 
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bufferSize);
 
-        _writer = writer;
+        _stream = stream;
         _allocator = allocator;
         _bufferSize = bufferSize;
+        _leaveOpen = leaveOpen;
         _memoryOwner = allocator.Rent(bufferSize);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Span<char> GetSpan(int sizeHint = 0)
+    public Span<byte> GetSpan(int sizeHint = 0)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(sizeHint);
 
@@ -69,7 +71,7 @@ internal sealed class CsvCharBufferWriter : ICsvBufferWriter<char>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Memory<char> GetMemory(int sizeHint = 0)
+    public Memory<byte> GetMemory(int sizeHint = 0)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(sizeHint);
 
@@ -99,7 +101,7 @@ internal sealed class CsvCharBufferWriter : ICsvBufferWriter<char>
     {
         if (HasUnflushedData)
         {
-            await _writer.WriteAsync(Buffer.Slice(0, _unflushed), cancellationToken).ConfigureAwait(false);
+            await _stream.WriteAsync(Buffer.Slice(0, _unflushed), cancellationToken).ConfigureAwait(false);
             _unflushed = 0;
         }
     }
@@ -108,7 +110,7 @@ internal sealed class CsvCharBufferWriter : ICsvBufferWriter<char>
     {
         if (HasUnflushedData)
         {
-            _writer.Write(Buffer.Slice(0, _unflushed).Span);
+            _stream.Write(Buffer.Slice(0, _unflushed).Span);
             _unflushed = 0;
         }
     }
@@ -121,7 +123,6 @@ internal sealed class CsvCharBufferWriter : ICsvBufferWriter<char>
             exception ??= new OperationCanceledException(cancellationToken);
 
         using (_memoryOwner)
-        await using (_writer.ConfigureAwait(false))
         {
             if (exception is null)
             {
@@ -138,6 +139,9 @@ internal sealed class CsvCharBufferWriter : ICsvBufferWriter<char>
                 finally
                 {
                     _unflushed = -1;
+
+                    if (!_leaveOpen)
+                        await _stream.DisposeAsync().ConfigureAwait(false);
                 }
             }
         }
@@ -149,7 +153,6 @@ internal sealed class CsvCharBufferWriter : ICsvBufferWriter<char>
     public void Complete(Exception? exception)
     {
         using (_memoryOwner)
-        using (_writer)
         {
             if (exception is null && HasUnflushedData)
             {
@@ -166,6 +169,9 @@ internal sealed class CsvCharBufferWriter : ICsvBufferWriter<char>
                 finally
                 {
                     _unflushed = -1;
+
+                    if (!_leaveOpen)
+                        _stream.Dispose();
                 }
             }
         }
