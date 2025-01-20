@@ -150,11 +150,9 @@ partial class CsvOptions<T>
         if (converter is not null && created)
         {
             CheckConverterCacheSize();
-            if (!_converterCache.TryAdd(resultType, converter))
-            {
-                // ensure we return the same instance that was cached
-                converter = _converterCache[resultType];
-            }
+
+            // ensure we return the same instance that was cached
+            return _converterCache.GetOrAdd(resultType, converter);
         }
 
         return converter;
