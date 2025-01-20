@@ -10,7 +10,7 @@ namespace FlameCsv.Benchmark;
 [HideColumns("Error", "StdDev")]
 public class BindingBench
 {
-    private const string CSV = "id,ticks,is_enabled,age,height\r\n1,1234567,true,40,182.57";
+    private const string CSV = "id,ticks,is_enabled,age,height\r\n1,1234567,true,40,182.57\r\n";
 
     private readonly CsvHelper.Configuration.CsvConfiguration _helperCfg = new(CultureInfo.InvariantCulture)
     {
