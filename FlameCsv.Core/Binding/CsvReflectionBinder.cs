@@ -10,6 +10,7 @@ using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Reflection;
 using FlameCsv.Runtime;
+using FlameCsv.Utilities;
 using FlameCsv.Writing;
 
 namespace FlameCsv.Binding;
@@ -19,7 +20,7 @@ namespace FlameCsv.Binding;
 /// </summary>
 public abstract class CsvReflectionBinder
 {
-    private static readonly ConditionalWeakTable<object, object> _dematerializerCache = [];
+    private static readonly TrimmingCache<object, object> _dematerializerCache = [];
 
     [RUF(Messages.CompiledExpressions)]
     [RDC(Messages.CompiledExpressions)]
@@ -143,13 +144,27 @@ public abstract class CsvReflectionBinder
         return new CsvBindingCollection<TValue>(result, write: true, isInternalCall: true);
     }
 
-    internal static readonly ConditionalWeakTable<Type, HeaderData> ReadCache = [];
-    internal static readonly ConditionalWeakTable<Type, HeaderData> WriteCache = [];
+    internal static readonly TrimmingCache<Type, HeaderDataEntry> Cache = [];
 
     internal sealed class HeaderData(string[]? ignoredValues, List<HeaderBindingCandidate> candidates)
     {
         public ReadOnlySpan<string> IgnoredValues => ignoredValues;
         public ReadOnlySpan<HeaderBindingCandidate> Candidates => candidates.AsSpan();
+    }
+
+    internal sealed class HeaderDataEntry
+    {
+        public HeaderDataEntry(Func<HeaderData> read, Func<HeaderData> write)
+        {
+            _read = new(read);
+            _write = new(write);
+        }
+
+        public HeaderData Read => _read.Value;
+        public HeaderData Write => _write.Value;
+
+        private readonly Lazy<HeaderData> _read;
+        private readonly Lazy<HeaderData> _write;
     }
 
     /// <summary>
@@ -159,11 +174,20 @@ public abstract class CsvReflectionBinder
     /// <seealso cref="CsvHeaderExcludeAttribute"/>
     private protected static HeaderData GetHeaderDataFor<[DAM(Messages.ReflectionBound)] TValue>(bool write)
     {
-        ConditionalWeakTable<Type, HeaderData> cache = write ? WriteCache : ReadCache;
-
-        if (!cache.TryGetValue(typeof(TValue), out var headerData))
+        if (!Cache.TryGetValue(typeof(TValue), out var entry))
         {
-            List<HeaderBindingCandidate> candidates = [];
+            entry = new HeaderDataEntry(
+                static () => GetHeaderDataCore<TValue>(write: false),
+                static () => GetHeaderDataCore<TValue>(write: true));
+            Cache.Add(typeof(TValue), entry);
+        }
+
+        return write ? entry.Write : entry.Read;
+    }
+
+    private static HeaderData GetHeaderDataCore<[DAM(Messages.ReflectionBound)] TValue>(bool write)
+    {
+        List<HeaderBindingCandidate> candidates = [];
 
             foreach (var member in CsvTypeInfo.Members<TValue>())
             {
@@ -287,13 +311,7 @@ public abstract class CsvReflectionBinder
             }
 
             candidates.AsSpan().Sort(); // sorted by Order
-
-            cache.AddOrUpdate(
-                typeof(TValue),
-                headerData = new HeaderData(ignoreAttribute?.Values, candidates));
-        }
-
-        return headerData;
+            return new HeaderData(ignoreAttribute?.Values, candidates);
     }
 }
 
@@ -325,8 +343,7 @@ public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder
     [RDC(Messages.CompiledExpressions)]
     public IMaterializer<T, TValue> GetMaterializer<TValue>(ReadOnlySpan<string> headers)
     {
-        return _options.CreateMaterializerFrom(
-            GetReadBindings<T, TValue>(_options, headers, IgnoreUnmatched));
+        return _options.CreateMaterializerFrom(GetReadBindings<T, TValue>(_options, headers, IgnoreUnmatched));
     }
 
     [RUF(Messages.CompiledExpressions)]

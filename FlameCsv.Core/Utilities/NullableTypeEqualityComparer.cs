@@ -8,7 +8,7 @@ internal sealed class NullableTypeEqualityComparer : IEqualityComparer<Type>
 
     public bool Equals(Type? x, Type? y)
     {
-        if (ReferenceEquals(x, y))
+        if (x == y)
             return true;
 
         if (x is null || y is null)
