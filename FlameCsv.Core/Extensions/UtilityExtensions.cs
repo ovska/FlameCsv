@@ -102,9 +102,9 @@ internal static class UtilityExtensions
 
     public static T[] UnsafeGetOrCreateArray<T>(this ReadOnlyMemory<T> memory)
     {
-        if (MemoryMarshal.TryGetArray(memory, out var segment)
-            && segment is { Array: { } arr, Offset: 0 }
-            && segment.Array.Length == segment.Count)
+        if (MemoryMarshal.TryGetArray(memory, out var segment) &&
+            segment is { Array: { } arr, Offset: 0 } &&
+            arr.Length == segment.Count)
         {
             return arr;
         }
