@@ -1,5 +1,13 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using FlameCsv.Extensions;
+#if DEBUG
+using Unsafe = FlameCsv.Extensions.DebugUnsafe
+#else
+using Unsafe = System.Runtime.CompilerServices.Unsafe
+#endif
+    ;
 
 namespace FlameCsv.Converters;
 
@@ -20,30 +28,125 @@ internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
     {
         var structType = type.GetGenericArguments()[0];
         var converterOfT = options.GetConverter(structType);
+        var nullToken = options.GetNullToken(type);
 
 #if false
-        // If the value type has an interface or object converter, just return that converter directly.
-        // e.g. a struct that implements IEnumerable<T>
+        // if the value type has an interface or object converter, return that converter directly.
+        // e.g., a struct that implements IEnumerable<T>
         // this matches the behavior of System.Text.Json
-        if (structType.IsValueType && converterOfT.Type is { IsValueType: false })
+        if (structType.IsValueType && converterOfT.ConvertedType is { IsValueType: false })
         {
             if (!RuntimeFeature.IsDynamicCodeSupported)
                 throw new NotSupportedException();
 
 #pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
-            return CastingConverter.Create(converterOfT.Type, type, converterOfT);
+            return CastingConverter.Create(converterOfT.ConvertedType, type, converterOfT);
 #pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
         }
 #endif
 
-        return GetParserType(structType).CreateInstance<CsvConverter<T>>(converterOfT, options.GetNullToken(type));
+        return CreateCore(structType, converterOfT, nullToken);
     }
 
+    internal static CsvConverter<T> CreateCore(
+        Type structType,
+        CsvConverter<T> converterOfT,
+        ReadOnlyMemory<T> nullToken)
+    {
+        return
+            TryGetEmpty(structType, converterOfT, nullToken) ??
+            TryGetString(structType, converterOfT, nullToken) ??
+            TryGetArray(structType, converterOfT, nullToken) ??
+            GetParserType(structType).CreateInstance<CsvConverter<T>>(converterOfT, nullToken);
+    }
+
+
     [return: DAM(Messages.Ctors)]
-    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL3050", Justification = Messages.StructFactorySuppressionMessage)]
-    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2070", Justification = Messages.StructFactorySuppressionMessage)]
+    [UnconditionalSuppressMessage(
+        "ReflectionAnalysis",
+        "IL3050",
+        Justification = Messages.StructFactorySuppressionMessage)]
+    [UnconditionalSuppressMessage(
+        "ReflectionAnalysis",
+        "IL2070",
+        Justification = Messages.StructFactorySuppressionMessage)]
     [SuppressMessage("Trimming", "IL2071", Justification = Messages.StructFactorySuppressionMessage)]
-#pragma warning disable RCS1158 // Static member in generic type should use a type parameter
     internal static Type GetParserType(Type type) => typeof(NullableConverter<,>).MakeGenericType(typeof(T), type);
-#pragma warning restore RCS1158 // Static member in generic type should use a type parameter
+
+    [UnconditionalSuppressMessage(
+        "ReflectionAnalysis",
+        "IL3050",
+        Justification = Messages.StructFactorySuppressionMessage)]
+    [UnconditionalSuppressMessage(
+        "ReflectionAnalysis",
+        "IL2070",
+        Justification = Messages.StructFactorySuppressionMessage)]
+    [SuppressMessage("Trimming", "IL2071", Justification = Messages.StructFactorySuppressionMessage)]
+    private static CsvConverter<T>? TryGetEmpty(
+        Type structType,
+        CsvConverter<T> converter,
+        ReadOnlyMemory<T> nullTokenT)
+    {
+        if (nullTokenT.IsEmpty)
+        {
+            return typeof(OptimizedNullEmptyConverter<,>)
+                .MakeGenericType(typeof(T), structType)
+                .CreateInstance<CsvConverter<T>>(converter);
+        }
+
+        return null;
+    }
+
+    [UnconditionalSuppressMessage(
+        "ReflectionAnalysis",
+        "IL3050",
+        Justification = Messages.StructFactorySuppressionMessage)]
+    [UnconditionalSuppressMessage(
+        "ReflectionAnalysis",
+        "IL2070",
+        Justification = Messages.StructFactorySuppressionMessage)]
+    [SuppressMessage("Trimming", "IL2071", Justification = Messages.StructFactorySuppressionMessage)]
+    private static CsvConverter<T>? TryGetArray(
+        Type structType,
+        CsvConverter<T> converter,
+        ReadOnlyMemory<T> nullTokenT)
+    {
+        if (MemoryMarshal.TryGetArray(nullTokenT, out var array))
+        {
+            return typeof(OptimizedNullArrayConverter<,>)
+                .MakeGenericType(typeof(T), structType)
+                .CreateInstance<CsvConverter<T>>(converter, array);
+        }
+
+        return null;
+    }
+
+
+    [UnconditionalSuppressMessage(
+        "ReflectionAnalysis",
+        "IL3050",
+        Justification = Messages.StructFactorySuppressionMessage)]
+    [UnconditionalSuppressMessage(
+        "ReflectionAnalysis",
+        "IL2070",
+        Justification = Messages.StructFactorySuppressionMessage)]
+    [SuppressMessage("Trimming", "IL2071", Justification = Messages.StructFactorySuppressionMessage)]
+    private static CsvConverter<T>? TryGetString(
+        Type structType,
+        CsvConverter<T> converter,
+        ReadOnlyMemory<T> nullTokenT)
+    {
+        if (typeof(T) != typeof(char)) return null;
+
+        var nullToken = Unsafe.As<ReadOnlyMemory<T>, ReadOnlyMemory<char>>(ref nullTokenT);
+
+        if (MemoryMarshal.TryGetString(nullToken, out var value, out var start, out var length))
+        {
+            return typeof(OptimizedNullStringConverter<>)
+                .MakeGenericType(structType)
+                .CreateInstance<CsvConverter<T>>(converter, value, start, length);
+        }
+
+        return null;
+    }
 }
