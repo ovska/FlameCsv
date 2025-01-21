@@ -150,7 +150,7 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
         throw new InvalidOperationException("Current was accessed before the enumeration started.");
     }
 
-    private void ThrowExceptionForDuplicateHeaderField(
+    private static void ThrowExceptionForDuplicateHeaderField(
         int index1,
         int index2,
         string field,
@@ -158,6 +158,6 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
     {
         throw new CsvFormatException(
             $"Duplicate header field \"{field}\" in fields {index1} and {index2} in CSV: " +
-            _parser.Options.AsPrintableString(record.RawRecord.Span));
+            record.RawRecord.Span.AsPrintableString());
     }
 }

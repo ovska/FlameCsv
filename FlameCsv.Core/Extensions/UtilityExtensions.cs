@@ -2,60 +2,29 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
 
 namespace FlameCsv.Extensions;
 
 internal static class UtilityExtensions
 {
-    public readonly ref struct PrintableState<T>(CsvOptions<T> options, ReadOnlySpan<T> value)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        public CsvOptions<T> Options { get; } = options;
-        public ReadOnlySpan<T> Value { get; } = value;
-    }
-
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static string AsPrintableString<T>(this CsvOptions<T> options, ReadOnlySpan<T> value)
+    public static string AsPrintableString<T>(this ReadOnlySpan<T> value)
         where T : unmanaged, IBinaryInteger<T>
     {
-        string structure = string.Create(
-            length: value.Length,
-            state: new PrintableState<T>(options, value),
-            action: static (destination, state) =>
-            {
-                ref readonly CsvDialect<T> dialect = ref state.Options.Dialect;
+        if (typeof(T) == typeof(char))
+        {
+            return $"Content: [{value.Cast<T, char>()}]";
+        }
 
-                scoped ReadOnlySpan<T> newline = dialect.Newline.IsEmpty
-                    ? [T.CreateChecked('\r'), T.CreateChecked('\n')]
-                    : dialect.Newline.Span;
+        if (typeof(T) == typeof(byte))
+        {
+            return $"Content: [{Encoding.UTF8.GetString(value.Cast<T, byte>())}]";
+        }
 
-                destination.Fill('x');
-
-                for (int i = 0; i < destination.Length; i++)
-                {
-                    T token = state.Value[i];
-
-                    if (token == dialect.Delimiter)
-                    {
-                        destination[i] = ',';
-                    }
-                    else if (token == dialect.Quote)
-                    {
-                        destination[i] = '"';
-                    }
-                    else if (dialect.Escape.HasValue && token == dialect.Escape.Value)
-                    {
-                        destination[i] = 'E';
-                    }
-                    else if (newline.Contains(token))
-                    {
-                        destination[i] = 'N';
-                    }
-                }
-            });
-
-        return $"Content: [{options.GetAsString(value)}], data structure: [{structure}]";
+        return $"Content: [{value.ToString()}]";
     }
 
     public static bool IsValidFor(this CsvBindingScope scope, bool write)
