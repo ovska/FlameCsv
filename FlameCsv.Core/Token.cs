@@ -4,11 +4,12 @@ namespace FlameCsv;
 
 internal static class Token<T> where T : unmanaged
 {
-    public static readonly string Name = typeof(T) == typeof(char)
-        ? "char"
-        : typeof(T) == typeof(byte)
-            ? "byte"
-            : typeof(T).Name;
+    public static string Name
+        => typeof(T) == typeof(char)
+            ? "char"
+            : typeof(T) == typeof(byte)
+                ? "byte"
+                : typeof(T).Name;
 
     /// <summary>
     /// Returns true if <see langword="stackalloc"/> <typeparamref name="T"/>[<paramref name="length"/>] is reasonably safe.

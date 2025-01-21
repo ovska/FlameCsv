@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
+using FlameCsv.Binding.Attributes;
 
 namespace FlameCsv.Binding;
 
@@ -41,7 +42,7 @@ public abstract class CsvBinding<T> : CsvBinding, IEquatable<CsvBinding>, IEquat
             }
         }
 
-        attribute = default;
+        attribute = null;
         return false;
     }
 
