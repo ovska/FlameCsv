@@ -13,6 +13,8 @@ namespace FlameCsv;
 /// <typeparam name="T">Token type</typeparam>
 public abstract class CsvConverter<T> where T : unmanaged, IBinaryInteger<T>
 {
+    public virtual Type? ConvertedType => null;
+
     /// <summary>
     /// Returns whether the type can be handled by this converter, or a suitable converter can be
     /// created from this factory instance.
@@ -29,12 +31,14 @@ public abstract class CsvConverter<T> where T : unmanaged, IBinaryInteger<T>
 /// <typeparam name="TValue">Parsed/formatted value</typeparam>
 public abstract class CsvConverter<T, TValue> : CsvConverter<T> where T : unmanaged, IBinaryInteger<T>
 {
+    public override Type? ConvertedType => typeof(TValue);
+
     /// <summary>
     /// Returns whether the type can be handled by this converter.
     /// </summary>
     /// <param name="type">Type to check</param>
     /// <returns><see langword="true"/> if the converter is suitable for <paramref name="type"/></returns>
-    public sealed override bool CanConvert(Type type) => type == typeof(TValue);
+    public override bool CanConvert(Type type) => type == typeof(TValue);
 
     /// <summary>
     /// Attempts to parse <paramref name="value"/> from the field.

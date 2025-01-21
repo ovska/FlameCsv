@@ -2,6 +2,8 @@
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 
+// ReSharper disable all
+
 namespace FlameCsv.Benchmark;
 
 [HideColumns("Error", "StdDev")]

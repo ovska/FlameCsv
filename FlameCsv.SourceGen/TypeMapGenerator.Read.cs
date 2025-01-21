@@ -165,7 +165,7 @@ public partial class TypeMapGenerator
 
                     if (!handler.Invoke(this, ref state, @field))
                     {
-                        FlameCsv.Exceptions.CsvParseException.Throw(reader.Options, @field);
+                        FlameCsv.Exceptions.CsvParseException.Throw(@field);
                     }
                 }
 
@@ -462,7 +462,7 @@ public partial class TypeMapGenerator
             {
                 return (b2 is ParameterBinding).CompareTo(b1 is ParameterBinding);
             }
-           
+
             if (b1.IsRequired != b2.IsRequired)
             {
                 return b2.IsRequired.CompareTo(b1.IsRequired);
