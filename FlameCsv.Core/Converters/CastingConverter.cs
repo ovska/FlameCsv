@@ -16,20 +16,19 @@ internal static class CastingConverter
 
 internal sealed class CastingConverter<T, TFrom, TTo>(CsvConverter<T, TFrom> inner) : CsvConverter<T, TTo>
     where T : unmanaged, IBinaryInteger<T>
-    where TFrom : TTo
 {
     protected internal override bool CanFormatNull => inner.CanFormatNull;
 
     public override bool TryFormat(Span<T> destination, TTo value, out int charsWritten)
     {
-        return inner.TryFormat(destination, (TFrom)value!, out charsWritten);
+        return inner.TryFormat(destination, (TFrom)(object)value!, out charsWritten);
     }
 
     public override bool TryParse(ReadOnlySpan<T> source, [MaybeNullWhen(false)] out TTo value)
     {
         if (inner.TryParse(source, out TFrom? value2))
         {
-            value = value2;
+            value = (TTo)(object)value2!;
             return true;
         }
 

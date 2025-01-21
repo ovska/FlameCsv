@@ -1,16 +1,18 @@
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Converters;
+using FlameCsv.Utilities;
 
 namespace FlameCsv.Tests.Converters;
 
 public static class NullableConverterTests
 {
-    [Theory, InlineData(true), InlineData(false)]
-    public static void Should_Return_Null(bool optionsCtor)
+    [Fact]
+    public static void Should_Return_Null()
     {
-        NullableConverter<char, int> converter = optionsCtor
-            ? new(CsvOptions<char>.Default)
-            : new(new SpanTextConverter<int>(CsvOptions<char>.Default), "".AsMemory());
+        NullableConverter<char, int> converter = new(
+            new SpanTextConverter<int>(CsvOptions<char>.Default),
+            "".AsMemory());
 
         Assert.True(converter.TryParse("", out var value1));
         Assert.Null(value1);
@@ -38,38 +40,92 @@ public static class NullableConverterTests
         Assert.Null(value);
     }
 
-    [Fact(Skip = "Not yet implemented")]
+#if false
+    [Fact]
     public static void Should_Use_Interface_Converter()
     {
-        var options = new CsvOptions<char> { Converters = { new DisposableConverter() } };
+        var options = new CsvOptions<char> { Converters = { new InterfaceConverter() } };
         Assert.True(NullableConverterFactory<char>.Instance.CanConvert(typeof(Shim?)));
-        _ = NullableConverterFactory<char>.Instance.Create(typeof(Shim?), options);
+        var converter = NullableConverterFactory<char>.Instance.Create(typeof(Shim?), options);
+
+        var c = (CsvConverter<char, Shim?>)converter;
+
+        Assert.True(c.TryParse("true", out var result));
+        Assert.True(result.GetValueOrDefault().IsReadOnly);
+
+        char[] buffer = new char[4];
+        Assert.True(c.TryFormat(buffer, new Shim(true), out var written));
+        Assert.Equal("True", buffer.AsSpan(..written).ToString());
+    }
+#endif
+
+    [Fact]
+    public static void Should_Create_Optimized_Converter()
+    {
+        var t = typeof(bool);
+        var c = new BooleanTextConverter();
+
+        Assert.IsType<OptimizedNullEmptyConverter<char, bool>>(
+            NullableConverterFactory<char>.CreateCore(t, c, new FakeMemoryManager(length: 0).Memory));
+
+        Assert.IsType<OptimizedNullEmptyConverter<char, bool>>(
+            NullableConverterFactory<char>.CreateCore(t, c, "".AsMemory()));
+
+        Assert.IsType<OptimizedNullEmptyConverter<char, bool>>(
+            NullableConverterFactory<char>.CreateCore(t, c, Array.Empty<char>()));
+
+        Assert.IsType<OptimizedNullStringConverter<bool>>(
+            NullableConverterFactory<char>.CreateCore(t, c, "null".AsMemory()));
+
+        Assert.IsType<OptimizedNullArrayConverter<char, bool>>(
+            NullableConverterFactory<char>.CreateCore(t, c, "null".ToCharArray()));
+
+        // can't be optimized if we can't get an array or string out of it
+        // repeated Span-property access should be slower than using string or array directly
+        Assert.IsType<NullableConverter<char, bool>>(
+            NullableConverterFactory<char>.CreateCore(t, c, new FakeMemoryManager(length: 1).Memory));
     }
 
-    private readonly record struct Shim(int Id) : IDisposable
-    {
-        public void Dispose()
-        {
-        }
-    }
+    private readonly record struct Shim(bool IsReadOnly) : ICanBeReadOnly;
 
-    private sealed class DisposableConverter : CsvConverter<char, IDisposable>
+    private sealed class InterfaceConverter : CsvConverter<char, ICanBeReadOnly>
     {
-        public override bool TryFormat(Span<char> destination, IDisposable value, out int charsWritten)
+        public override bool CanConvert(Type type) => type.IsAssignableTo(typeof(ICanBeReadOnly));
+
+        public override bool TryFormat(Span<char> destination, ICanBeReadOnly value, out int charsWritten)
         {
-            return ((Shim)value).Id.TryFormat(destination, out charsWritten);
+            return ((Shim)value).IsReadOnly.TryFormat(destination, out charsWritten);
         }
 
-        public override bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out IDisposable value)
+        public override bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out ICanBeReadOnly value)
         {
-            if (int.TryParse(source, out int id))
+            if (bool.TryParse(source, out var v))
             {
-                value = new Shim(id);
+                value = new Shim(v);
                 return true;
             }
 
-            value = default;
+            value = null;
             return false;
         }
+    }
+}
+
+file class FakeMemoryManager(int length) : MemoryManager<char>
+{
+    protected override void Dispose(bool disposing)
+    {
+    }
+
+    public override Span<char> GetSpan() => new char[length];
+
+    public override MemoryHandle Pin(int elementIndex = 0)
+    {
+        throw new NotSupportedException();
+    }
+
+    public override void Unpin()
+    {
+        throw new NotSupportedException();
     }
 }

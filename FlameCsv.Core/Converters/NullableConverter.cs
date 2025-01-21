@@ -1,38 +1,20 @@
 namespace FlameCsv.Converters;
 
-/// <summary>
-/// Converts instances of <see cref="Nullable{T}"/>.
-/// </summary>
-/// <typeparam name="T">Token type</typeparam>
-/// <typeparam name="TValue">Parsed value and the type parameter of <see cref="Nullable{T}"/></typeparam>
-public sealed class NullableConverter<T, TValue> : CsvConverter<T, TValue?>
+public abstract class NullableConverterBase<T, TValue> : CsvConverter<T, TValue?>
     where T : unmanaged, IBinaryInteger<T>
     where TValue : struct
 {
     /// <inheritdoc />
-    protected internal override bool CanFormatNull => true;
+    protected internal sealed override bool CanFormatNull => true;
 
     private readonly CsvConverter<T, TValue> _converter;
-    private readonly ReadOnlyMemory<T> _null;
 
-    /// <inheritdoc cref="NullableConverter{T,TValue}"/>
-    /// <param name="inner">Converter for possible non-null values.</param>
-    /// <param name="nullToken">Tokens that match a null value. Default is empty.</param>
-    public NullableConverter(
-        CsvConverter<T, TValue> inner,
-        ReadOnlyMemory<T> nullToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(inner);
-        _converter = inner;
-        _null = nullToken;
-    }
+    protected abstract ReadOnlySpan<T> Null { get; }
 
-    /// <inheritdoc cref="NullableConverter{T, TValue}"/>
-    public NullableConverter(CsvOptions<T> options)
+    protected NullableConverterBase(CsvConverter<T, TValue> converter)
     {
-        ArgumentNullException.ThrowIfNull(options);
-        _converter = options.GetConverter<TValue>();
-        _null = options.GetNullToken(typeof(TValue));
+        ArgumentNullException.ThrowIfNull(converter);
+        _converter = converter;
     }
 
     /// <inheritdoc />
@@ -44,8 +26,10 @@ public sealed class NullableConverter<T, TValue> : CsvConverter<T, TValue?>
             return true;
         }
 
-        value = default;
-        return _null.Span.SequenceEqual(source);
+        value = null;
+
+        var @null = Null;
+        return @null.IsEmpty && source.IsEmpty || @null.SequenceEqual(source);
     }
 
     /// <inheritdoc />
@@ -57,14 +41,84 @@ public sealed class NullableConverter<T, TValue> : CsvConverter<T, TValue?>
             return _converter.TryFormat(destination, v, out charsWritten);
         }
 
-        if (_null.Length <= destination.Length)
+        var @null = Null;
+
+        if (@null.Length <= destination.Length)
         {
-            _null.Span.CopyTo(destination);
-            charsWritten = _null.Length;
+            if (!@null.IsEmpty) @null.CopyTo(destination);
+            charsWritten = @null.Length;
             return true;
         }
 
         charsWritten = 0;
         return false;
     }
+}
+
+/// <summary>
+/// Converts instances of <see cref="Nullable{T}"/>.
+/// </summary>
+/// <typeparam name="T">Token type</typeparam>
+/// <typeparam name="TValue">Parsed value and the type parameter of <see cref="Nullable{T}"/></typeparam>
+public sealed class NullableConverter<T, TValue> : NullableConverterBase<T, TValue>
+    where T : unmanaged, IBinaryInteger<T>
+    where TValue : struct
+{
+    private readonly ReadOnlyMemory<T> _null;
+
+    /// <inheritdoc cref="NullableConverter{T,TValue}"/>
+    /// <param name="inner">Converter for possible non-null values.</param>
+    /// <param name="nullToken">Tokens that match a null value. Default is empty.</param>
+    public NullableConverter(
+        CsvConverter<T, TValue> inner,
+        ReadOnlyMemory<T> nullToken = default)
+        : base(inner)
+    {
+        _null = nullToken;
+    }
+
+    protected override ReadOnlySpan<T> Null => _null.Span;
+}
+
+internal sealed class OptimizedNullEmptyConverter<T, TValue>(CsvConverter<T, TValue> converter)
+    : NullableConverterBase<T, TValue>(converter)
+    where T : unmanaged, IBinaryInteger<T>
+    where TValue : struct
+{
+    protected override ReadOnlySpan<T> Null => ReadOnlySpan<T>.Empty;
+}
+
+internal sealed class OptimizedNullStringConverter<TValue> : NullableConverterBase<char, TValue>
+    where TValue : struct
+{
+    private readonly string? _string;
+    private readonly int _start;
+    private readonly int _length;
+
+    public OptimizedNullStringConverter(CsvConverter<char, TValue> converter, string? value, int start, int length)
+        : base(converter)
+    {
+        ArgumentNullException.ThrowIfNull(converter);
+        _string = value;
+        _start = start;
+        _length = length;
+    }
+
+    protected override ReadOnlySpan<char> Null => _string.AsSpan(_start, _length);
+}
+
+internal sealed class OptimizedNullArrayConverter<T, TValue> : NullableConverterBase<T, TValue>
+    where T : unmanaged, IBinaryInteger<T>
+    where TValue : struct
+{
+    private readonly ArraySegment<T> _array;
+
+    public OptimizedNullArrayConverter(CsvConverter<T, TValue> converter, ArraySegment<T> array)
+        : base(converter)
+    {
+        ArgumentNullException.ThrowIfNull(converter);
+        _array = array;
+    }
+
+    protected override ReadOnlySpan<T> Null => _array.AsSpan();
 }
