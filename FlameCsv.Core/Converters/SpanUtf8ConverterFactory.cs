@@ -7,7 +7,7 @@ namespace FlameCsv.Converters;
 
 internal sealed class SpanUtf8ConverterFactory : CsvConverterFactory<byte>
 {
-    public static readonly SpanUtf8ConverterFactory Instance = new SpanUtf8ConverterFactory();
+    public static readonly SpanUtf8ConverterFactory Instance = new();
 
     private SpanUtf8ConverterFactory() { }
 

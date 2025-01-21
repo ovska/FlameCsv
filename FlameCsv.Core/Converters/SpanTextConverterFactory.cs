@@ -7,7 +7,7 @@ namespace FlameCsv.Converters;
 
 internal sealed class SpanTextConverterFactory : CsvConverterFactory<char>
 {
-    public static readonly SpanTextConverterFactory Instance = new SpanTextConverterFactory();
+    public static readonly SpanTextConverterFactory Instance = new();
 
     private SpanTextConverterFactory() { }
 

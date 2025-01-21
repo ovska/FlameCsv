@@ -5,7 +5,7 @@ namespace FlameCsv.Converters;
 
 internal sealed class BooleanUtf8Converter : CsvConverter<byte, bool>
 {
-    public static readonly BooleanUtf8Converter Instance = new BooleanUtf8Converter();
+    public static readonly BooleanUtf8Converter Instance = new();
 
     public override bool TryFormat(Span<byte> destination, bool value, out int charsWritten)
     {

@@ -21,6 +21,12 @@ internal sealed class PoolingStringUtf8Converter : CsvConverter<byte, string>
 
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out string value)
     {
+        if (source.IsEmpty)
+        {
+            value = "";
+            return true;
+        }
+
         int length = Encoding.UTF8.GetMaxCharCount(source.Length);
 
         if (Token<char>.CanStackalloc(length) ||
