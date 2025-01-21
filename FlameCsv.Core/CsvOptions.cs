@@ -10,6 +10,7 @@ using CommunityToolkit.HighPerformance.Buffers;
 using System.Globalization;
 using JetBrains.Annotations;
 using System.Runtime.CompilerServices;
+using FlameCsv.Binding.Attributes;
 #if DEBUG
 using Unsafe = FlameCsv.Extensions.DebugUnsafe
 #else
@@ -480,7 +481,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// <see langword="true"/> and <see langword="false"/>. Default is empty.
     /// </summary>
     /// <seealso cref="Binding.Attributes.CsvBooleanTextValuesAttribute"/>
-    /// <seealso cref="Binding.Attributes.CsvBooleanUtf8ValuesAttribute"/>
+    /// <seealso cref="CsvBooleanValuesAttribute"/>
     public IList<(string text, bool value)> BooleanValues
         => _booleanValues ??= new SealableList<(string, bool)>(this, null);
 

@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Text;
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
@@ -20,6 +19,8 @@ public static class CsvBooleanValuesAttributeTests
             { "N", true, false },
             { "true", false, null },
             { "false", false, null },
+            { "Kyllä", true, true },
+            { "KYLLÄ", true, true },
         };
 
     public static TheoryData<string, bool, bool?, string> NullableTestData()
@@ -33,28 +34,30 @@ public static class CsvBooleanValuesAttributeTests
             { "false", false, null, "" },
             { "null", true, null, "null" },
             { "null", false, null, "" },
+            { "Kyllä", true, true, "" },
+            { "KYLLÄ", false, null, "" },
         };
 
     private class Shim
     {
-        [CsvBooleanTextValues(TrueValues = ["1", "Y"], FalseValues = ["0", "N"])]
-        [CsvBooleanUtf8Values(TrueValues = ["1", "Y"], FalseValues = ["0", "N"])]
+        [CsvBooleanValues<char>(TrueValues = ["1", "Y", "Kyllä"], FalseValues = ["0", "N"])]
+        [CsvBooleanValues<byte>(TrueValues = ["1", "Y", "Kyllä"], FalseValues = ["0", "N"])]
         public bool IsEnabled { get; set; }
 
-        [CsvBooleanTextValues(TrueValues = ["1", "Y"], FalseValues = ["0", "N"])]
-        [CsvBooleanUtf8Values(TrueValues = ["1", "Y"], FalseValues = ["0", "N"])]
+        [CsvBooleanValues<char>(TrueValues = ["1", "Y", "Kyllä"], FalseValues = ["0", "N"], IgnoreCase = false)]
+        [CsvBooleanValues<byte>(TrueValues = ["1", "Y", "Kyllä"], FalseValues = ["0", "N"], IgnoreCase = false)]
         public bool? IsEnabledN { get; set; }
 
-        [CsvBooleanTextValues(TrueValues = ["1"])]
-        [CsvBooleanUtf8Values(TrueValues = ["1"])]
+        [CsvBooleanValues<char>(TrueValues = ["1"])]
+        [CsvBooleanValues<byte>(TrueValues = ["1"])]
         public int InvalidType { get; set; }
 
-        [CsvBooleanTextValues]
-        [CsvBooleanUtf8Values]
+        [CsvBooleanValues<char>]
+        [CsvBooleanValues<byte>]
         public bool NoValues { get; set; }
     }
 
-    [Theory, InlineData("InvalidType"), InlineData("NoValues")]
+    [Theory, InlineData(nameof(Shim.InvalidType)), InlineData(nameof(Shim.NoValues))]
     public static void Should_Validate_Configuration(string property)
     {
         Assert.Throws<CsvConfigurationException>(
@@ -67,98 +70,84 @@ public static class CsvBooleanValuesAttributeTests
     }
 
     [Theory, MemberData(nameof(NonNullableTestData))]
-    public static void Should_Override_Bool_Text_Parser(string input, bool success, bool? expected)
+    public static void Should_Override_Bool(string input, bool success, bool? expected)
     {
-        var options = CsvOptions<char>.Default;
+        Impl<char>();
+        Impl<byte>();
 
-        var binding = CsvBinding.ForMember<Shim>(0, typeof(Shim).GetProperty("IsEnabled")!);
-
-        Assert.True(binding.TryGetAttribute<CsvConverterAttribute<char>>(out var @override));
-
-        var parser = (CsvConverter<char, bool>)@override.CreateConverter(typeof(bool), options);
-
-        if (success)
+        void Impl<T>() where T : unmanaged, IBinaryInteger<T>
         {
-            Assert.True(parser.TryParse(input, out var value));
-            Assert.Equal(expected, value);
-        }
-        else
-        {
-            Assert.False(parser.TryParse(input, out _));
+            var options = CsvOptions<T>.Default;
+
+            var binding = CsvBinding.ForMember<Shim>(0, typeof(Shim).GetProperty("IsEnabled")!);
+
+            Assert.True(binding.TryGetAttribute<CsvConverterAttribute<T>>(out var @override));
+
+            var parser = (CsvConverter<T, bool>)@override.CreateConverter(typeof(bool), options);
+            var inputSpan = options.GetFromString(input).Span;
+
+            if (success)
+            {
+                Assert.True(parser.TryParse(inputSpan, out var value));
+                Assert.Equal(expected, value);
+            }
+            else
+            {
+                Assert.False(parser.TryParse(inputSpan, out _));
+            }
         }
     }
 
     [Theory, MemberData(nameof(NullableTestData))]
-    public static void Should_Override_Nullable_Text_Parser(
+    public static void Should_Override_Nullable_Bool(
         string input,
         bool success,
         bool? expected,
         string nullToken)
     {
-        var options = new CsvOptions<char> { Null = nullToken };
-        var binding = CsvBinding.ForMember<Shim>(0, typeof(Shim).GetProperty("IsEnabledN")!);
+        Impl<char>();
+        Impl<byte>();
 
-        Assert.True(binding.TryGetAttribute<CsvConverterAttribute<char>>(out var @override));
-
-        var parser = (CsvConverter<char, bool?>)@override.CreateConverter(typeof(bool?), options);
-
-        if (success)
+        void Impl<T>() where T : unmanaged, IBinaryInteger<T>
         {
-            Assert.True(parser.TryParse(input, out var value));
-            Assert.Equal(expected, value);
-        }
-        else
-        {
-            Assert.False(parser.TryParse(input, out _));
-        }
-    }
+            var options = new CsvOptions<T> { Null = nullToken };
+            var binding = CsvBinding.ForMember<Shim>(0, typeof(Shim).GetProperty("IsEnabledN")!);
 
-    [Theory, MemberData(nameof(NonNullableTestData))]
-    public static void Should_Override_Bool_Utf8_Parser(string input, bool success, bool? expected)
-    {
-        var options = CsvOptions<byte>.Default;
+            Assert.True(binding.TryGetAttribute<CsvConverterAttribute<T>>(out var @override));
 
-        var binding = CsvBinding.ForMember<Shim>(0, typeof(Shim).GetProperty("IsEnabled")!);
+            var parser = (CsvConverter<T, bool?>)@override.CreateConverter(typeof(bool?), options);
+            var inputSpan = options.GetFromString(input).Span;
 
-        Assert.True(binding.TryGetAttribute<CsvConverterAttribute<byte>>(out var @override));
-
-        var parser = (CsvConverter<byte, bool>)@override.CreateConverter(typeof(bool), options);
-        var inputBytes = Encoding.UTF8.GetBytes(input);
-
-        if (success)
-        {
-            Assert.True(parser.TryParse(inputBytes, out var value));
-            Assert.Equal(expected, value);
-        }
-        else
-        {
-            Assert.False(parser.TryParse(inputBytes, out _));
+            if (success)
+            {
+                Assert.True(parser.TryParse(inputSpan, out var value));
+                Assert.Equal(expected, value);
+            }
+            else
+            {
+                Assert.False(parser.TryParse(inputSpan, out _));
+            }
         }
     }
 
-    [Theory, MemberData(nameof(NullableTestData))]
-    public static void Should_Override_Nullable_Utf8_Parser(
-        string input,
-        bool success,
-        bool? expected,
-        string nullToken)
+    [Fact]
+    public static void Should_Use_Case_Sensitivity()
     {
-        var options = new CsvOptions<byte> { Null = nullToken };
-        var binding = CsvBinding.ForMember<Shim>(0, typeof(Shim).GetProperty("IsEnabledN")!);
+        Impl<char>();
+        Impl<byte>();
 
-        Assert.True(binding.TryGetAttribute<CsvConverterAttribute<byte>>(out var @override));
-
-        var parser = (CsvConverter<byte, bool?>)@override.CreateConverter(typeof(bool?), options);
-        var inputBytes = Encoding.UTF8.GetBytes(input);
-
-        if (success)
+        static void Impl<T>() where T : unmanaged, IBinaryInteger<T>
         {
-            Assert.True(parser.TryParse(inputBytes, out var value));
-            Assert.Equal(expected, value);
-        }
-        else
-        {
-            Assert.False(parser.TryParse(inputBytes, out _));
+            var binding = CsvBinding.ForMember<Shim>(0, typeof(Shim).GetProperty("IsEnabledN")!);
+
+            Assert.True(binding.TryGetAttribute<CsvConverterAttribute<T>>(out var @override));
+
+            var parser = (CsvConverter<T, bool?>)@override.CreateConverter(typeof(bool?), CsvOptions<T>.Default);
+
+            Assert.False(parser.TryParse(CsvOptions<T>.Default.GetFromString("y").Span, out _));
+            Assert.True(
+                parser.TryParse(CsvOptions<T>.Default.GetFromString("Y").Span, out var value) &&
+                value.GetValueOrDefault());
         }
     }
 
