@@ -125,7 +125,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         var converter = Options.GetConverter<TValue>();
 
         if (!converter.TryParse(field, out TValue? value))
-            Throw.ParseFailed(field, converter, Options, typeof(TValue));
+            Throw.ParseFailed(field, converter, typeof(TValue));
 
         return value;
     }
@@ -138,7 +138,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         var converter = Options.GetConverter<TValue>();
 
         if (!converter.TryParse(field, out TValue? value))
-            Throw.ParseFailed(field, converter, Options, typeof(TValue));
+            Throw.ParseFailed(field, converter, typeof(TValue));
 
         return value;
     }

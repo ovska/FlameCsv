@@ -22,21 +22,17 @@ public sealed class CsvParseException(
     /// <summary>
     /// Throws an exception for a field that could not be parsed.
     /// </summary>
-    /// <param name="options">Current options instance</param>
     /// <param name="value">Field value</param>
     /// <param name="converter">Converter used</param>
     /// <exception cref="CsvParseException"></exception>
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void Throw<T>(
-        CsvOptions<T> options,
-        ReadOnlySpan<T> value,
-        CsvConverter<T>? converter = null)
+    public static void Throw<T>(ReadOnlySpan<T> value, CsvConverter<T>? converter = null)
         where T : unmanaged, IBinaryInteger<T>
     {
         string withStr = converter is null ? "" : $" with {converter.GetType()}";
 
-        throw new CsvParseException($"Failed to parse{withStr} from {options.AsPrintableString(value)}.")
+        throw new CsvParseException($"Failed to parse{withStr} from {value.AsPrintableString()}.")
         {
             Converter = converter,
         };

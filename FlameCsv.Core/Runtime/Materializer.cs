@@ -10,18 +10,14 @@ namespace FlameCsv.Runtime;
 internal abstract partial class Materializer<T> where T : unmanaged, IBinaryInteger<T>
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected static void Parse<TValue>(
-        ReadOnlySpan<T> field,
-        CsvOptions<T> options,
-        CsvConverter<T, TValue> converter,
-        out TValue? value)
+    protected static void Parse<TValue>(ReadOnlySpan<T> field, CsvConverter<T, TValue> converter, out TValue? value)
     {
         if (converter.TryParse(field, out value))
         {
             return;
         }
 
-        CsvParseException.Throw(options, field, converter);
+        CsvParseException.Throw(field, converter);
     }
 
     public override string ToString() => GetType().FullName ?? "";

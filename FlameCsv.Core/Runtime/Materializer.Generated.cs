@@ -75,7 +75,7 @@ internal sealed class Materializer<T, T0, TResult>
 
         if (reader.FieldCount != 1) CsvReadException.ThrowForInvalidFieldCount(1, reader.FieldCount);
 
-        Parse(reader[0], options, converter0, out T0 v0);
+        Parse(reader[0], converter0, out T0 v0);
         return valueFactory(v0);
     }
 }
@@ -106,8 +106,8 @@ internal sealed class Materializer<T, T0, T1, TResult>
 
         if (reader.FieldCount != 2) CsvReadException.ThrowForInvalidFieldCount(2, reader.FieldCount);
 
-        Parse(reader[0], options, converter0, out T0 v0);
-        Parse(reader[1], options, converter1, out T1 v1);
+        Parse(reader[0], converter0, out T0 v0);
+        Parse(reader[1], converter1, out T1 v1);
         return valueFactory(v0, v1);
     }
 }
@@ -141,9 +141,9 @@ internal sealed class Materializer<T, T0, T1, T2, TResult>
 
         if (reader.FieldCount != 3) CsvReadException.ThrowForInvalidFieldCount(3, reader.FieldCount);
 
-        Parse(reader[0], options, converter0, out T0 v0);
-        Parse(reader[1], options, converter1, out T1 v1);
-        Parse(reader[2], options, converter2, out T2 v2);
+        Parse(reader[0], converter0, out T0 v0);
+        Parse(reader[1], converter1, out T1 v1);
+        Parse(reader[2], converter2, out T2 v2);
         return valueFactory(v0, v1, v2);
     }
 }
@@ -180,10 +180,10 @@ internal sealed class Materializer<T, T0, T1, T2, T3, TResult>
 
         if (reader.FieldCount != 4) CsvReadException.ThrowForInvalidFieldCount(4, reader.FieldCount);
 
-        Parse(reader[0], options, converter0, out T0 v0);
-        Parse(reader[1], options, converter1, out T1 v1);
-        Parse(reader[2], options, converter2, out T2 v2);
-        Parse(reader[3], options, converter3, out T3 v3);
+        Parse(reader[0], converter0, out T0 v0);
+        Parse(reader[1], converter1, out T1 v1);
+        Parse(reader[2], converter2, out T2 v2);
+        Parse(reader[3], converter3, out T3 v3);
         return valueFactory(v0, v1, v2, v3);
     }
 }
@@ -223,11 +223,11 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult>
 
         if (reader.FieldCount != 5) CsvReadException.ThrowForInvalidFieldCount(5, reader.FieldCount);
 
-        Parse(reader[0], options, converter0, out T0 v0);
-        Parse(reader[1], options, converter1, out T1 v1);
-        Parse(reader[2], options, converter2, out T2 v2);
-        Parse(reader[3], options, converter3, out T3 v3);
-        Parse(reader[4], options, converter4, out T4 v4);
+        Parse(reader[0], converter0, out T0 v0);
+        Parse(reader[1], converter1, out T1 v1);
+        Parse(reader[2], converter2, out T2 v2);
+        Parse(reader[3], converter3, out T3 v3);
+        Parse(reader[4], converter4, out T4 v4);
         return valueFactory(v0, v1, v2, v3, v4);
     }
 }
@@ -270,12 +270,12 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult>
 
         if (reader.FieldCount != 6) CsvReadException.ThrowForInvalidFieldCount(6, reader.FieldCount);
 
-        Parse(reader[0], options, converter0, out T0 v0);
-        Parse(reader[1], options, converter1, out T1 v1);
-        Parse(reader[2], options, converter2, out T2 v2);
-        Parse(reader[3], options, converter3, out T3 v3);
-        Parse(reader[4], options, converter4, out T4 v4);
-        Parse(reader[5], options, converter5, out T5 v5);
+        Parse(reader[0], converter0, out T0 v0);
+        Parse(reader[1], converter1, out T1 v1);
+        Parse(reader[2], converter2, out T2 v2);
+        Parse(reader[3], converter3, out T3 v3);
+        Parse(reader[4], converter4, out T4 v4);
+        Parse(reader[5], converter5, out T5 v5);
         return valueFactory(v0, v1, v2, v3, v4, v5);
     }
 }
@@ -321,13 +321,13 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult>
 
         if (reader.FieldCount != 7) CsvReadException.ThrowForInvalidFieldCount(7, reader.FieldCount);
 
-        Parse(reader[0], options, converter0, out T0 v0);
-        Parse(reader[1], options, converter1, out T1 v1);
-        Parse(reader[2], options, converter2, out T2 v2);
-        Parse(reader[3], options, converter3, out T3 v3);
-        Parse(reader[4], options, converter4, out T4 v4);
-        Parse(reader[5], options, converter5, out T5 v5);
-        Parse(reader[6], options, converter6, out T6 v6);
+        Parse(reader[0], converter0, out T0 v0);
+        Parse(reader[1], converter1, out T1 v1);
+        Parse(reader[2], converter2, out T2 v2);
+        Parse(reader[3], converter3, out T3 v3);
+        Parse(reader[4], converter4, out T4 v4);
+        Parse(reader[5], converter5, out T5 v5);
+        Parse(reader[6], converter6, out T6 v6);
         return valueFactory(v0, v1, v2, v3, v4, v5, v6);
     }
 }
@@ -376,14 +376,14 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult>
 
         if (reader.FieldCount != 8) CsvReadException.ThrowForInvalidFieldCount(8, reader.FieldCount);
 
-        Parse(reader[0], options, converter0, out T0 v0);
-        Parse(reader[1], options, converter1, out T1 v1);
-        Parse(reader[2], options, converter2, out T2 v2);
-        Parse(reader[3], options, converter3, out T3 v3);
-        Parse(reader[4], options, converter4, out T4 v4);
-        Parse(reader[5], options, converter5, out T5 v5);
-        Parse(reader[6], options, converter6, out T6 v6);
-        Parse(reader[7], options, converter7, out T7 v7);
+        Parse(reader[0], converter0, out T0 v0);
+        Parse(reader[1], converter1, out T1 v1);
+        Parse(reader[2], converter2, out T2 v2);
+        Parse(reader[3], converter3, out T3 v3);
+        Parse(reader[4], converter4, out T4 v4);
+        Parse(reader[5], converter5, out T5 v5);
+        Parse(reader[6], converter6, out T6 v6);
+        Parse(reader[7], converter7, out T7 v7);
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7);
     }
 }
@@ -435,15 +435,15 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
 
         if (reader.FieldCount != 9) CsvReadException.ThrowForInvalidFieldCount(9, reader.FieldCount);
 
-        Parse(reader[0], options, converter0, out T0 v0);
-        Parse(reader[1], options, converter1, out T1 v1);
-        Parse(reader[2], options, converter2, out T2 v2);
-        Parse(reader[3], options, converter3, out T3 v3);
-        Parse(reader[4], options, converter4, out T4 v4);
-        Parse(reader[5], options, converter5, out T5 v5);
-        Parse(reader[6], options, converter6, out T6 v6);
-        Parse(reader[7], options, converter7, out T7 v7);
-        Parse(reader[8], options, converter8, out T8 v8);
+        Parse(reader[0], converter0, out T0 v0);
+        Parse(reader[1], converter1, out T1 v1);
+        Parse(reader[2], converter2, out T2 v2);
+        Parse(reader[3], converter3, out T3 v3);
+        Parse(reader[4], converter4, out T4 v4);
+        Parse(reader[5], converter5, out T5 v5);
+        Parse(reader[6], converter6, out T6 v6);
+        Parse(reader[7], converter7, out T7 v7);
+        Parse(reader[8], converter8, out T8 v8);
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8);
     }
 }
@@ -498,16 +498,16 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
 
         if (reader.FieldCount != 10) CsvReadException.ThrowForInvalidFieldCount(10, reader.FieldCount);
 
-        Parse(reader[0], options, converter0, out T0 v0);
-        Parse(reader[1], options, converter1, out T1 v1);
-        Parse(reader[2], options, converter2, out T2 v2);
-        Parse(reader[3], options, converter3, out T3 v3);
-        Parse(reader[4], options, converter4, out T4 v4);
-        Parse(reader[5], options, converter5, out T5 v5);
-        Parse(reader[6], options, converter6, out T6 v6);
-        Parse(reader[7], options, converter7, out T7 v7);
-        Parse(reader[8], options, converter8, out T8 v8);
-        Parse(reader[9], options, converter9, out T9 v9);
+        Parse(reader[0], converter0, out T0 v0);
+        Parse(reader[1], converter1, out T1 v1);
+        Parse(reader[2], converter2, out T2 v2);
+        Parse(reader[3], converter3, out T3 v3);
+        Parse(reader[4], converter4, out T4 v4);
+        Parse(reader[5], converter5, out T5 v5);
+        Parse(reader[6], converter6, out T6 v6);
+        Parse(reader[7], converter7, out T7 v7);
+        Parse(reader[8], converter8, out T8 v8);
+        Parse(reader[9], converter9, out T9 v9);
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9);
     }
 }
@@ -565,17 +565,17 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         if (reader.FieldCount != 11) CsvReadException.ThrowForInvalidFieldCount(11, reader.FieldCount);
 
-        Parse(reader[0], options, converter0, out T0 v0);
-        Parse(reader[1], options, converter1, out T1 v1);
-        Parse(reader[2], options, converter2, out T2 v2);
-        Parse(reader[3], options, converter3, out T3 v3);
-        Parse(reader[4], options, converter4, out T4 v4);
-        Parse(reader[5], options, converter5, out T5 v5);
-        Parse(reader[6], options, converter6, out T6 v6);
-        Parse(reader[7], options, converter7, out T7 v7);
-        Parse(reader[8], options, converter8, out T8 v8);
-        Parse(reader[9], options, converter9, out T9 v9);
-        Parse(reader[10], options, converter10, out T10 v10);
+        Parse(reader[0], converter0, out T0 v0);
+        Parse(reader[1], converter1, out T1 v1);
+        Parse(reader[2], converter2, out T2 v2);
+        Parse(reader[3], converter3, out T3 v3);
+        Parse(reader[4], converter4, out T4 v4);
+        Parse(reader[5], converter5, out T5 v5);
+        Parse(reader[6], converter6, out T6 v6);
+        Parse(reader[7], converter7, out T7 v7);
+        Parse(reader[8], converter8, out T8 v8);
+        Parse(reader[9], converter9, out T9 v9);
+        Parse(reader[10], converter10, out T10 v10);
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10);
     }
 }
@@ -636,18 +636,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         if (reader.FieldCount != 12) CsvReadException.ThrowForInvalidFieldCount(12, reader.FieldCount);
 
-        Parse(reader[0], options, converter0, out T0 v0);
-        Parse(reader[1], options, converter1, out T1 v1);
-        Parse(reader[2], options, converter2, out T2 v2);
-        Parse(reader[3], options, converter3, out T3 v3);
-        Parse(reader[4], options, converter4, out T4 v4);
-        Parse(reader[5], options, converter5, out T5 v5);
-        Parse(reader[6], options, converter6, out T6 v6);
-        Parse(reader[7], options, converter7, out T7 v7);
-        Parse(reader[8], options, converter8, out T8 v8);
-        Parse(reader[9], options, converter9, out T9 v9);
-        Parse(reader[10], options, converter10, out T10 v10);
-        Parse(reader[11], options, converter11, out T11 v11);
+        Parse(reader[0], converter0, out T0 v0);
+        Parse(reader[1], converter1, out T1 v1);
+        Parse(reader[2], converter2, out T2 v2);
+        Parse(reader[3], converter3, out T3 v3);
+        Parse(reader[4], converter4, out T4 v4);
+        Parse(reader[5], converter5, out T5 v5);
+        Parse(reader[6], converter6, out T6 v6);
+        Parse(reader[7], converter7, out T7 v7);
+        Parse(reader[8], converter8, out T8 v8);
+        Parse(reader[9], converter9, out T9 v9);
+        Parse(reader[10], converter10, out T10 v10);
+        Parse(reader[11], converter11, out T11 v11);
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11);
     }
 }
@@ -711,19 +711,19 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         if (reader.FieldCount != 13) CsvReadException.ThrowForInvalidFieldCount(13, reader.FieldCount);
 
-        Parse(reader[0], options, converter0, out T0 v0);
-        Parse(reader[1], options, converter1, out T1 v1);
-        Parse(reader[2], options, converter2, out T2 v2);
-        Parse(reader[3], options, converter3, out T3 v3);
-        Parse(reader[4], options, converter4, out T4 v4);
-        Parse(reader[5], options, converter5, out T5 v5);
-        Parse(reader[6], options, converter6, out T6 v6);
-        Parse(reader[7], options, converter7, out T7 v7);
-        Parse(reader[8], options, converter8, out T8 v8);
-        Parse(reader[9], options, converter9, out T9 v9);
-        Parse(reader[10], options, converter10, out T10 v10);
-        Parse(reader[11], options, converter11, out T11 v11);
-        Parse(reader[12], options, converter12, out T12 v12);
+        Parse(reader[0], converter0, out T0 v0);
+        Parse(reader[1], converter1, out T1 v1);
+        Parse(reader[2], converter2, out T2 v2);
+        Parse(reader[3], converter3, out T3 v3);
+        Parse(reader[4], converter4, out T4 v4);
+        Parse(reader[5], converter5, out T5 v5);
+        Parse(reader[6], converter6, out T6 v6);
+        Parse(reader[7], converter7, out T7 v7);
+        Parse(reader[8], converter8, out T8 v8);
+        Parse(reader[9], converter9, out T9 v9);
+        Parse(reader[10], converter10, out T10 v10);
+        Parse(reader[11], converter11, out T11 v11);
+        Parse(reader[12], converter12, out T12 v12);
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12);
     }
 }
@@ -790,20 +790,20 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         if (reader.FieldCount != 14) CsvReadException.ThrowForInvalidFieldCount(14, reader.FieldCount);
 
-        Parse(reader[0], options, converter0, out T0 v0);
-        Parse(reader[1], options, converter1, out T1 v1);
-        Parse(reader[2], options, converter2, out T2 v2);
-        Parse(reader[3], options, converter3, out T3 v3);
-        Parse(reader[4], options, converter4, out T4 v4);
-        Parse(reader[5], options, converter5, out T5 v5);
-        Parse(reader[6], options, converter6, out T6 v6);
-        Parse(reader[7], options, converter7, out T7 v7);
-        Parse(reader[8], options, converter8, out T8 v8);
-        Parse(reader[9], options, converter9, out T9 v9);
-        Parse(reader[10], options, converter10, out T10 v10);
-        Parse(reader[11], options, converter11, out T11 v11);
-        Parse(reader[12], options, converter12, out T12 v12);
-        Parse(reader[13], options, converter13, out T13 v13);
+        Parse(reader[0], converter0, out T0 v0);
+        Parse(reader[1], converter1, out T1 v1);
+        Parse(reader[2], converter2, out T2 v2);
+        Parse(reader[3], converter3, out T3 v3);
+        Parse(reader[4], converter4, out T4 v4);
+        Parse(reader[5], converter5, out T5 v5);
+        Parse(reader[6], converter6, out T6 v6);
+        Parse(reader[7], converter7, out T7 v7);
+        Parse(reader[8], converter8, out T8 v8);
+        Parse(reader[9], converter9, out T9 v9);
+        Parse(reader[10], converter10, out T10 v10);
+        Parse(reader[11], converter11, out T11 v11);
+        Parse(reader[12], converter12, out T12 v12);
+        Parse(reader[13], converter13, out T13 v13);
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13);
     }
 }
@@ -873,21 +873,21 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         if (reader.FieldCount != 15) CsvReadException.ThrowForInvalidFieldCount(15, reader.FieldCount);
 
-        Parse(reader[0], options, converter0, out T0 v0);
-        Parse(reader[1], options, converter1, out T1 v1);
-        Parse(reader[2], options, converter2, out T2 v2);
-        Parse(reader[3], options, converter3, out T3 v3);
-        Parse(reader[4], options, converter4, out T4 v4);
-        Parse(reader[5], options, converter5, out T5 v5);
-        Parse(reader[6], options, converter6, out T6 v6);
-        Parse(reader[7], options, converter7, out T7 v7);
-        Parse(reader[8], options, converter8, out T8 v8);
-        Parse(reader[9], options, converter9, out T9 v9);
-        Parse(reader[10], options, converter10, out T10 v10);
-        Parse(reader[11], options, converter11, out T11 v11);
-        Parse(reader[12], options, converter12, out T12 v12);
-        Parse(reader[13], options, converter13, out T13 v13);
-        Parse(reader[14], options, converter14, out T14 v14);
+        Parse(reader[0], converter0, out T0 v0);
+        Parse(reader[1], converter1, out T1 v1);
+        Parse(reader[2], converter2, out T2 v2);
+        Parse(reader[3], converter3, out T3 v3);
+        Parse(reader[4], converter4, out T4 v4);
+        Parse(reader[5], converter5, out T5 v5);
+        Parse(reader[6], converter6, out T6 v6);
+        Parse(reader[7], converter7, out T7 v7);
+        Parse(reader[8], converter8, out T8 v8);
+        Parse(reader[9], converter9, out T9 v9);
+        Parse(reader[10], converter10, out T10 v10);
+        Parse(reader[11], converter11, out T11 v11);
+        Parse(reader[12], converter12, out T12 v12);
+        Parse(reader[13], converter13, out T13 v13);
+        Parse(reader[14], converter14, out T14 v14);
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14);
     }
 }
@@ -960,22 +960,22 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         if (reader.FieldCount != 16) CsvReadException.ThrowForInvalidFieldCount(16, reader.FieldCount);
 
-        Parse(reader[0], options, converter0, out T0 v0);
-        Parse(reader[1], options, converter1, out T1 v1);
-        Parse(reader[2], options, converter2, out T2 v2);
-        Parse(reader[3], options, converter3, out T3 v3);
-        Parse(reader[4], options, converter4, out T4 v4);
-        Parse(reader[5], options, converter5, out T5 v5);
-        Parse(reader[6], options, converter6, out T6 v6);
-        Parse(reader[7], options, converter7, out T7 v7);
-        Parse(reader[8], options, converter8, out T8 v8);
-        Parse(reader[9], options, converter9, out T9 v9);
-        Parse(reader[10], options, converter10, out T10 v10);
-        Parse(reader[11], options, converter11, out T11 v11);
-        Parse(reader[12], options, converter12, out T12 v12);
-        Parse(reader[13], options, converter13, out T13 v13);
-        Parse(reader[14], options, converter14, out T14 v14);
-        Parse(reader[15], options, converter15, out T15 v15);
+        Parse(reader[0], converter0, out T0 v0);
+        Parse(reader[1], converter1, out T1 v1);
+        Parse(reader[2], converter2, out T2 v2);
+        Parse(reader[3], converter3, out T3 v3);
+        Parse(reader[4], converter4, out T4 v4);
+        Parse(reader[5], converter5, out T5 v5);
+        Parse(reader[6], converter6, out T6 v6);
+        Parse(reader[7], converter7, out T7 v7);
+        Parse(reader[8], converter8, out T8 v8);
+        Parse(reader[9], converter9, out T9 v9);
+        Parse(reader[10], converter10, out T10 v10);
+        Parse(reader[11], converter11, out T11 v11);
+        Parse(reader[12], converter12, out T12 v12);
+        Parse(reader[13], converter13, out T13 v13);
+        Parse(reader[14], converter14, out T14 v14);
+        Parse(reader[15], converter15, out T15 v15);
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
     }
 }

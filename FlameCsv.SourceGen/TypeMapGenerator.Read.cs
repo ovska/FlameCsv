@@ -457,14 +457,18 @@ public partial class TypeMapGenerator
             {
                 return b2.Order.CompareTo(b1.Order);
             }
-            else if ((b1 is ParameterBinding) != (b2 is ParameterBinding))
+
+            if ((b1 is ParameterBinding) != (b2 is ParameterBinding))
             {
                 return (b2 is ParameterBinding).CompareTo(b1 is ParameterBinding);
             }
-            else
+           
+            if (b1.IsRequired != b2.IsRequired)
             {
                 return b2.IsRequired.CompareTo(b1.IsRequired);
             }
+
+            return String.Compare(b1.Name, b2.Name, StringComparison.Ordinal);
         });
 
         var converterFactorySymbol = typeMap.Symbols.CsvConverterFactory.ConstructedFrom.Construct(typeMap.TokenSymbol);
