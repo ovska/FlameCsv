@@ -110,12 +110,12 @@ internal static class Throw
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ParseFailed<T>(ReadOnlySpan<T> field, CsvConverter<T> converter, CsvOptions<T> options, Type toParse)
+    public static void ParseFailed<T>(ReadOnlySpan<T> field, CsvConverter<T> converter, Type toParse)
             where T : unmanaged, IBinaryInteger<T>
     {
         throw new CsvParseException(
             $"Failed to parse {toParse.FullName} using {converter.GetType().FullName} " +
-            $"from {options.AsPrintableString(field)}");
+            $"from {field.AsPrintableString()}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
