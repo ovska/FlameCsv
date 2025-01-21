@@ -31,7 +31,7 @@ static partial class DefaultConverters
     {
         dict.EnsureCapacity(dict.Count + <#= types.Length #>);
 <# foreach (var (typeName, keyWord, isInteger) in types) { #>
-        dict.Add(typeof(<#= keyWord #>), static o => new <#= isInteger ? "Integer" : "Float" #>NumberTextConverter<<#= keyWord #>>(o));
+        dict.Add(typeof(<#= keyWord #>), static o => new NumberTextConverter<<#= keyWord #>, <#= isInteger ? "Integer" : "Float" #>Styles>(o));
 <# } #>
     }
 
@@ -39,7 +39,7 @@ static partial class DefaultConverters
     {
         dict.EnsureCapacity(dict.Count + <#= types.Length #>);
 <# foreach (var (typeName, keyWord, isInteger) in types) { #>
-        dict.Add(typeof(<#= keyWord #>), static o => new <#= isInteger ? "Integer" : "Float" #>NumberUtf8Converter<<#= keyWord #>>(o));
+        dict.Add(typeof(<#= keyWord #>), static o => new NumberUtf8Converter<<#= keyWord #>, <#= isInteger ? "Integer" : "Float" #>Styles>(o));
 <# } #>
     }
 }

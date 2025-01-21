@@ -3,44 +3,43 @@
 
 namespace FlameCsv.Converters;
 
-static partial class
-    DefaultConverters
+static partial class DefaultConverters
 {
     private static void RegisterNumberConverters(Dictionary<Type, ConverterFactory<char>> dict)
     {
         dict.EnsureCapacity(dict.Count + 14);
-        dict.Add(typeof(byte), static o => new IntegerNumberTextConverter<byte>(o));
-        dict.Add(typeof(sbyte), static o => new IntegerNumberTextConverter<sbyte>(o));
-        dict.Add(typeof(short), static o => new IntegerNumberTextConverter<short>(o));
-        dict.Add(typeof(ushort), static o => new IntegerNumberTextConverter<ushort>(o));
-        dict.Add(typeof(int), static o => new IntegerNumberTextConverter<int>(o));
-        dict.Add(typeof(uint), static o => new IntegerNumberTextConverter<uint>(o));
-        dict.Add(typeof(long), static o => new IntegerNumberTextConverter<long>(o));
-        dict.Add(typeof(ulong), static o => new IntegerNumberTextConverter<ulong>(o));
-        dict.Add(typeof(nint), static o => new IntegerNumberTextConverter<nint>(o));
-        dict.Add(typeof(nuint), static o => new IntegerNumberTextConverter<nuint>(o));
-        dict.Add(typeof(float), static o => new FloatNumberTextConverter<float>(o));
-        dict.Add(typeof(double), static o => new FloatNumberTextConverter<double>(o));
-        dict.Add(typeof(decimal), static o => new FloatNumberTextConverter<decimal>(o));
-        dict.Add(typeof(Half), static o => new FloatNumberTextConverter<Half>(o));
+        dict.Add(typeof(byte), static o => new NumberTextConverter<byte, IntegerStyles>(o));
+        dict.Add(typeof(sbyte), static o => new NumberTextConverter<sbyte, IntegerStyles>(o));
+        dict.Add(typeof(short), static o => new NumberTextConverter<short, IntegerStyles>(o));
+        dict.Add(typeof(ushort), static o => new NumberTextConverter<ushort, IntegerStyles>(o));
+        dict.Add(typeof(int), static o => new NumberTextConverter<int, IntegerStyles>(o));
+        dict.Add(typeof(uint), static o => new NumberTextConverter<uint, IntegerStyles>(o));
+        dict.Add(typeof(long), static o => new NumberTextConverter<long, IntegerStyles>(o));
+        dict.Add(typeof(ulong), static o => new NumberTextConverter<ulong, IntegerStyles>(o));
+        dict.Add(typeof(nint), static o => new NumberTextConverter<nint, IntegerStyles>(o));
+        dict.Add(typeof(nuint), static o => new NumberTextConverter<nuint, IntegerStyles>(o));
+        dict.Add(typeof(float), static o => new NumberTextConverter<float, FloatStyles>(o));
+        dict.Add(typeof(double), static o => new NumberTextConverter<double, FloatStyles>(o));
+        dict.Add(typeof(decimal), static o => new NumberTextConverter<decimal, FloatStyles>(o));
+        dict.Add(typeof(Half), static o => new NumberTextConverter<Half, FloatStyles>(o));
     }
 
     private static void RegisterNumberConverters(Dictionary<Type, ConverterFactory<byte>> dict)
     {
         dict.EnsureCapacity(dict.Count + 14);
-        dict.Add(typeof(byte), static o => new IntegerNumberUtf8Converter<byte>(o));
-        dict.Add(typeof(sbyte), static o => new IntegerNumberUtf8Converter<sbyte>(o));
-        dict.Add(typeof(short), static o => new IntegerNumberUtf8Converter<short>(o));
-        dict.Add(typeof(ushort), static o => new IntegerNumberUtf8Converter<ushort>(o));
-        dict.Add(typeof(int), static o => new IntegerNumberUtf8Converter<int>(o));
-        dict.Add(typeof(uint), static o => new IntegerNumberUtf8Converter<uint>(o));
-        dict.Add(typeof(long), static o => new IntegerNumberUtf8Converter<long>(o));
-        dict.Add(typeof(ulong), static o => new IntegerNumberUtf8Converter<ulong>(o));
-        dict.Add(typeof(nint), static o => new IntegerNumberUtf8Converter<nint>(o));
-        dict.Add(typeof(nuint), static o => new IntegerNumberUtf8Converter<nuint>(o));
-        dict.Add(typeof(float), static o => new FloatNumberUtf8Converter<float>(o));
-        dict.Add(typeof(double), static o => new FloatNumberUtf8Converter<double>(o));
-        dict.Add(typeof(decimal), static o => new FloatNumberUtf8Converter<decimal>(o));
-        dict.Add(typeof(Half), static o => new FloatNumberUtf8Converter<Half>(o));
+        dict.Add(typeof(byte), static o => new NumberUtf8Converter<byte, IntegerStyles>(o));
+        dict.Add(typeof(sbyte), static o => new NumberUtf8Converter<sbyte, IntegerStyles>(o));
+        dict.Add(typeof(short), static o => new NumberUtf8Converter<short, IntegerStyles>(o));
+        dict.Add(typeof(ushort), static o => new NumberUtf8Converter<ushort, IntegerStyles>(o));
+        dict.Add(typeof(int), static o => new NumberUtf8Converter<int, IntegerStyles>(o));
+        dict.Add(typeof(uint), static o => new NumberUtf8Converter<uint, IntegerStyles>(o));
+        dict.Add(typeof(long), static o => new NumberUtf8Converter<long, IntegerStyles>(o));
+        dict.Add(typeof(ulong), static o => new NumberUtf8Converter<ulong, IntegerStyles>(o));
+        dict.Add(typeof(nint), static o => new NumberUtf8Converter<nint, IntegerStyles>(o));
+        dict.Add(typeof(nuint), static o => new NumberUtf8Converter<nuint, IntegerStyles>(o));
+        dict.Add(typeof(float), static o => new NumberUtf8Converter<float, FloatStyles>(o));
+        dict.Add(typeof(double), static o => new NumberUtf8Converter<double, FloatStyles>(o));
+        dict.Add(typeof(decimal), static o => new NumberUtf8Converter<decimal, FloatStyles>(o));
+        dict.Add(typeof(Half), static o => new NumberUtf8Converter<Half, FloatStyles>(o));
     }
 }
