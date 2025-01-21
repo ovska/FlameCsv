@@ -53,7 +53,7 @@ internal abstract class DelegateGenerator<T> where T : unmanaged, IBinaryInteger
         {
             if (binding.IsIgnored)
             {
-                return IgnoredConverter<T>.Instance;
+                return CsvIgnored.Converter<T>();
             }
 
             foreach (var attribute in binding.Attributes)
