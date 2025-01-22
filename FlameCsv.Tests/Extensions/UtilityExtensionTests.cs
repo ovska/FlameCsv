@@ -3,6 +3,8 @@ using FlameCsv.Binding;
 using FlameCsv.Extensions;
 using FlameCsv.Utilities;
 
+// ReSharper disable PreferConcreteValueOverDefault
+
 namespace FlameCsv.Tests.Extensions;
 
 public static class UtilityExtensionTests
@@ -35,7 +37,7 @@ public static class UtilityExtensionTests
     [InlineData(false, CsvBindingScope.All, true)]
     [InlineData(true, CsvBindingScope.Read, false)]
     [InlineData(false, CsvBindingScope.Read, true)]
-    [InlineData(true, CsvBindingScope. Write, true)]
+    [InlineData(true, CsvBindingScope.Write, true)]
     [InlineData(false, CsvBindingScope.Write, false)]
     public static void Should_Return_Valid_Scope(bool write, CsvBindingScope scope, bool valid)
     {

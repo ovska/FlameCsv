@@ -134,7 +134,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         {
             _materializer = _typeMap is null
                 ? _parser.Options.GetMaterializer<T, TValue>()
-                : _typeMap.BindMembers(_parser.Options);
+                : CsvTypeMap.GetMaterializer(_typeMap, _parser.Options);
             return false;
         }
 
@@ -153,7 +153,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
 
         _materializer = _typeMap is null
             ? _parser.Options.TypeBinder.GetMaterializer<TValue>(headers)
-            : _typeMap.BindMembers(headers, _parser.Options);
+            : CsvTypeMap.GetMaterializer(_typeMap, headers, _parser.Options);
         return true;
     }
 

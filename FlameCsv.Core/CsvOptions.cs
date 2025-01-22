@@ -50,12 +50,20 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// </summary>
     public CsvOptions()
     {
+        HotReloadService.RegisterForHotReload(
+            this,
+            static state =>
+            {
+                var @this = (CsvOptions<T>)state;
+                @this._converterCache.Clear();
+                @this._explicitCache.Clear();
+            });
     }
 
     /// <summary>
     /// Initializes a new instance of options, copying the configuration from <paramref name="other"/>.
     /// </summary>
-    public CsvOptions(CsvOptions<T> other)
+    public CsvOptions(CsvOptions<T> other) : this()
     {
         ArgumentNullException.ThrowIfNull(other);
 
@@ -480,49 +488,9 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// Optional custom boolean value mapping. If not empty, must contain at least one value for both
     /// <see langword="true"/> and <see langword="false"/>. Default is empty.
     /// </summary>
-    /// <seealso cref="Binding.Attributes.CsvBooleanTextValuesAttribute"/>
-    /// <seealso cref="CsvBooleanValuesAttribute"/>
+    /// <seealso cref="CsvBooleanValuesAttribute{T}"/>
     public IList<(string text, bool value)> BooleanValues
         => _booleanValues ??= new SealableList<(string, bool)>(this, null);
-
-    private bool TryGetExistingOrCustomConverter(
-        Type resultType,
-        [NotNullWhen(true)] out CsvConverter<T>? converter,
-        out bool created)
-    {
-        ArgumentNullException.ThrowIfNull(resultType);
-        MakeReadOnly();
-
-        if (_converterCache.TryGetValue(resultType, out var cached))
-        {
-            Debug.Assert(cached.CanConvert(resultType));
-            converter = cached;
-            created = false;
-            return true;
-        }
-
-        var local = _converters;
-
-        if (local is not null)
-        {
-            ReadOnlySpan<CsvConverter<T>> converters = local.Span;
-
-            // Read converters in reverse order so parser added last has the highest priority
-            for (int i = converters.Length - 1; i >= 0; i--)
-            {
-                if (converters[i].CanConvert(resultType))
-                {
-                    converter = converters[i].GetOrCreateConverter(resultType, this);
-                    created = true;
-                    return true;
-                }
-            }
-        }
-
-        converter = null;
-        created = false;
-        return false;
-    }
 }
 
 file static class TypeDictExtensions

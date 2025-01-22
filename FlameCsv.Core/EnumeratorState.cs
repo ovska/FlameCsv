@@ -17,7 +17,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
     public bool NeedsHeader
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _parser.Options._hasHeader && Header is null;
+        get => Options._hasHeader && Header is null;
     }
 
     public Dictionary<object, object> MaterializerCache
@@ -25,9 +25,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
 
     public int Version { get; private set; }
 
-    public CsvOptions<T> Options => _parser.Options;
-
-    private readonly CsvParser<T> _parser;
+    public CsvOptions<T> Options { get; }
 
     private ReadOnlyMemory<T> _record;
     private WritableBuffer<T> _fields;
@@ -39,7 +37,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
         {
             Throw.IfEnumerationDisposed(Version == -1);
 
-            if (!_parser.Options._hasHeader)
+            if (!Options._hasHeader)
                 Throw.NotSupported_CsvHasNoHeader();
 
             if (EqualityComparer<CsvHeader>.Default.Equals(Header, value))
@@ -58,10 +56,15 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
     private int? _expectedFieldCount;
     private CsvHeader? _header;
 
-    public EnumeratorState(CsvParser<T> parser)
+    public EnumeratorState(CsvOptions<T> options)
     {
-        _parser = parser;
-        _fields = new WritableBuffer<T>(parser.Allocator);
+        Debug.Assert(options.IsReadOnly);
+        Options = options;
+        _fields = new WritableBuffer<T>(options._memoryPool);
+
+        HotReloadService.RegisterForHotReload(
+            this,
+            static state => ((EnumeratorState<T>)state)._materializerCache?.Clear());
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -80,7 +83,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
 
         _record = line.Data;
 
-        if (_parser.Options._validateFieldCount)
+        if (Options._validateFieldCount)
             ValidateFieldCount();
 
         return ++Version;
@@ -94,7 +97,6 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
 
         Version = -1;
 
-        _parser.Dispose();
         _fields.Dispose();
 
 #if DEBUG
@@ -109,7 +111,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
         ArgumentNullException.ThrowIfNull(name);
         Throw.IfEnumerationDisposed(Version == -1);
 
-        if (!_parser.Options._hasHeader)
+        if (!Options._hasHeader)
             Throw.NotSupported_CsvHasNoHeader();
 
         if (Header is null)
@@ -183,7 +185,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
 
     public BufferFieldReader<T> CreateFieldReader()
     {
-        return _fields.CreateReader(_parser.Options, _record);
+        return _fields.CreateReader(Options, _record);
     }
 
     public ReadOnlyMemory<T>[] PreserveFields()

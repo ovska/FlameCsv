@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using FlameCsv.Extensions;
 using JetBrains.Annotations;
 #if DEBUG
 using Unsafe = FlameCsv.Extensions.DebugUnsafe
@@ -27,7 +28,18 @@ partial class CsvOptions<T>
     /// results in an exception.
     /// </remarks>
     public IList<CsvConverter<T>> Converters
-        => _converters ??= new SealableList<CsvConverter<T>>(this, defaultValues: null);
+    {
+        get
+        {
+            var local = _converters;
+            if (local is not null) return local;
+            return Interlocked.CompareExchange(
+                    ref _converters,
+                    new SealableList<CsvConverter<T>>(this, defaultValues: null),
+                    null) ??
+                _converters;
+        }
+    }
 
     private SealableList<CsvConverter<T>>? _converters;
 
@@ -40,17 +52,16 @@ partial class CsvOptions<T>
     /// <summary>
     /// Maximum number of converters cached internally by the options instance before the cache is cleared.
     /// For converters by type, for example, with <see cref="GetConverter(Type)"/>.
-    /// Default is -1
+    /// Default is <see cref="int.MaxValue"/>.
     /// </summary>
     protected int MaxConverterCacheSize
     {
         get => _maxConverterCacheSize;
         set
         {
-            if (value != -1)
-                ArgumentOutOfRangeException.ThrowIfLessThan(value, 0);
-
+            ArgumentOutOfRangeException.ThrowIfLessThan(value, 0);
             _maxConverterCacheSize = value;
+            CheckConverterCacheSize();
         }
     }
 
@@ -65,14 +76,13 @@ partial class CsvOptions<T>
         get => _maxExplicitCacheSize;
         set
         {
-            if (value != -1)
-                ArgumentOutOfRangeException.ThrowIfLessThan(value, 0);
-
+            ArgumentOutOfRangeException.ThrowIfLessThan(value, 0);
             _maxExplicitCacheSize = value;
+            CheckExplicitCacheSize();
         }
     }
 
-    private int _maxConverterCacheSize = -1;
+    private int _maxConverterCacheSize = int.MaxValue;
     private int _maxExplicitCacheSize = 256;
 
     /// <summary>
@@ -88,7 +98,16 @@ partial class CsvOptions<T>
             return (CsvConverter<T, TResult>)cached;
         }
 
-        return (CsvConverter<T, TResult>)GetConverter(typeof(TResult));
+#pragma warning disable CA2263 // the generic overload calls this method anyway
+        var converter = TryGetConverter(typeof(TResult));
+#pragma warning restore CA2263
+
+        if (converter is null)
+        {
+            CsvConverterMissingException.Throw(typeof(TResult));
+        }
+
+        return (CsvConverter<T, TResult>)converter;
     }
 
     /// <summary>
@@ -105,7 +124,14 @@ partial class CsvOptions<T>
             return cached;
         }
 
-        return TryGetConverter(resultType) ?? throw new CsvConverterMissingException(resultType);
+        var converter = TryGetConverter(resultType);
+
+        if (converter is null)
+        {
+            CsvConverterMissingException.Throw(resultType);
+        }
+
+        return converter;
     }
 
     /// <summary>
@@ -115,7 +141,7 @@ partial class CsvOptions<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CsvConverter<T, TResult>? TryGetConverter<TResult>()
     {
-        return TryGetConverter(typeof(TResult)) as CsvConverter<T, TResult>;
+        return (CsvConverter<T, TResult>?)TryGetConverter(typeof(TResult));
     }
 
     /// <summary>
@@ -158,12 +184,52 @@ partial class CsvOptions<T>
         return converter;
     }
 
+    private bool TryGetExistingOrCustomConverter(
+        Type resultType,
+        [NotNullWhen(true)] out CsvConverter<T>? converter,
+        out bool created)
+    {
+        ArgumentNullException.ThrowIfNull(resultType);
+        MakeReadOnly();
+
+        if (_converterCache.TryGetValue(resultType, out var cached))
+        {
+            Debug.Assert(cached.CanConvert(resultType));
+            converter = cached;
+            created = false;
+            return true;
+        }
+
+        var local = _converters;
+
+        // null of the Converters-property is never accessed (no custom converters)
+        if (local is not null)
+        {
+            ReadOnlySpan<CsvConverter<T>> converters = local.Span;
+
+            // Read converters in reverse order so parser added last has the highest priority
+            for (int i = converters.Length - 1; i >= 0; i--)
+            {
+                if (converters[i].CanConvert(resultType))
+                {
+                    converter = converters[i].GetOrCreateConverter(resultType, this);
+                    created = true;
+                    return true;
+                }
+            }
+        }
+
+        converter = null;
+        created = false;
+        return false;
+    }
+
     private bool TryCreateDefaultConverter(Type type, [NotNullWhen(true)] out CsvConverter<T>? converter)
     {
         if (typeof(T) == typeof(char))
         {
             CsvConverter<char>? result = null;
-            CsvOptions<char> options = (CsvOptions<char>)(object)this;
+            CsvOptions<char> options = Unsafe.As<CsvOptions<char>>(this);
 
             if (EnumTextConverterFactory.Instance.CanConvert(type))
             {
@@ -180,7 +246,6 @@ partial class CsvOptions<T>
 
             if (result != null)
             {
-                Debug.Assert(result is CsvConverter<T> and not CsvConverterFactory<T>);
                 converter = Unsafe.As<CsvConverter<T>>(result);
                 return true;
             }
@@ -189,7 +254,7 @@ partial class CsvOptions<T>
         if (typeof(T) == typeof(byte))
         {
             CsvConverter<byte>? result = null;
-            CsvOptions<byte> options = (CsvOptions<byte>)(object)this;
+            CsvOptions<byte> options = Unsafe.As<CsvOptions<byte>>(this);
 
             if (EnumUtf8ConverterFactory.Instance.CanConvert(type))
             {
@@ -206,7 +271,6 @@ partial class CsvOptions<T>
 
             if (result != null)
             {
-                Debug.Assert(result is CsvConverter<T> and not CsvConverterFactory<T>);
                 converter = Unsafe.As<CsvConverter<T>>(result);
                 return true;
             }
@@ -271,7 +335,7 @@ partial class CsvOptions<T>
                 cacheKey,
                 static (_, arg) =>
                 {
-                    var converter = arg.factory.Create(typeof(TValue), arg.options);
+                    CsvConverter<T> converter = arg.factory.Create(typeof(TValue), arg.options);
 
                     if (converter is not CsvConverter<T, TValue> || !converter.CanConvert(typeof(TValue)))
                         InvalidConverter.Throw(arg.factory, typeof(TValue));
@@ -301,12 +365,12 @@ partial class CsvOptions<T>
                 cacheKey,
                 static (_, arg) =>
                 {
-                    var result = arg.factory(arg.options);
+                    CsvConverter<T, TValue> converter = arg.factory(arg.options);
 
-                    if (result is null)
+                    if (converter is null || !converter.CanConvert(typeof(TValue)))
                         InvalidConverter.Throw(arg.factory, typeof(TValue));
 
-                    return result;
+                    return converter;
                 },
                 static (_, value, _) => value,
                 (factory, options: this));
@@ -318,14 +382,14 @@ partial class CsvOptions<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void CheckConverterCacheSize()
     {
-        if (MaxConverterCacheSize > 0 && _explicitCache.Count >= MaxConverterCacheSize)
+        if (_explicitCache.Count >= MaxConverterCacheSize)
             _converterCache.Clear();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void CheckExplicitCacheSize()
     {
-        if (MaxExplicitCacheSize > 0 && _explicitCache.Count >= MaxExplicitCacheSize)
+        if (_explicitCache.Count >= MaxExplicitCacheSize)
             _explicitCache.Clear();
     }
 }

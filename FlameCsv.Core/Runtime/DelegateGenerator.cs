@@ -1,11 +1,9 @@
 ﻿using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
-using FlameCsv.Converters;
 using FlameCsv.Reading;
 
 namespace FlameCsv.Runtime;
 
-[RUF(Messages.CompiledExpressions)]
 internal abstract class DelegateGenerator<T> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate IMaterializer<T, TResult> MaterializerFactory<out TResult>(CsvOptions<T> options);

@@ -25,6 +25,9 @@ internal static class TrimmingCache
     }
 }
 
+/// <summary>
+/// Cache that trims entries based on memory pressure and clears itself on hot reload.
+/// </summary>
 [CollectionBuilder(typeof(TrimmingCache), methodName: nameof(TrimmingCache.Create))]
 internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>, IDisposable
     where TKey : class
@@ -41,6 +44,14 @@ internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKe
     {
         _entries = new(comparer);
         Gen2GcCallback.Register(Trim, targetObj: this);
+
+        HotReloadService.RegisterForHotReload(
+            this,
+            static state =>
+            {
+                var @this = (TrimmingCache<TKey, TValue>)state;
+                @this._entries.Clear();
+            });
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -82,6 +93,7 @@ internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKe
         {
             _disposed = true;
             _entries.Clear();
+            HotReloadService.UnregisterForHotReload(this);
         }
     }
 
