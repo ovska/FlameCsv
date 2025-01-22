@@ -314,6 +314,38 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
             return false;
         }
 
+        // optimistic fast path for the first line containing no quotes or escapes
+        if (_sequence.FirstSpan.IndexOf(NewlineBuffer<T>.LF.First) is var linefeedIndex and not -1)
+        {
+            // data starts with LF?
+            if (linefeedIndex == 0)
+            {
+                _newline = NewlineBuffer<T>.LF;
+                return true;
+            }
+
+            // ensure there were no quotes or escapes between the start of the buffer and the linefeed
+            ReadOnlySpan<T> untilLf = _sequence.FirstSpan.Slice(0, linefeedIndex);
+
+            if (untilLf.IndexOfAny(_dialect.Quote, _dialect.Escape ?? _dialect.Quote) == -1)
+            {
+                // check if CR in the data
+                int firstCR = untilLf.IndexOf(NewlineBuffer<T>.CRLF.First);
+
+                if (firstCR == -1)
+                {
+                    _newline = NewlineBuffer<T>.LF;
+                    return true;
+                }
+
+                if (firstCR == untilLf.Length - 1)
+                {
+                    _newline = NewlineBuffer<T>.CRLF;
+                    return true;
+                }
+            }
+        }
+
         ReadOnlySequence<T> copy = _sequence;
 
         // limit the amount of data we read to avoid reading the entire CSV
@@ -322,7 +354,7 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
             _sequence = _sequence.Slice(0, MaxNewlineDetectionLength);
         }
 
-        NewlineBuffer<T> detected = default;
+        NewlineBuffer<T> result = default;
 
         try
         {
@@ -334,14 +366,15 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
                 // found a non-empty line?
                 if (!firstLine.Data.IsEmpty)
                 {
-                    detected = firstLine.Data.Span[^1] == NewlineBuffer<T>.CRLF.First
+                    result = firstLine.Data.Span[^1] == NewlineBuffer<T>.CRLF.First
                         ? NewlineBuffer<T>.CRLF
                         : NewlineBuffer<T>.LF;
                     return true;
                 }
             }
 
-            detected = default;
+            // no line found, reset to the original state
+            result = default;
 
             // \n not found, throw if we've read up to our threshold already
             if (copy.Length >= MaxNewlineDetectionLength)
@@ -356,7 +389,7 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
         finally
         {
             _sequence = copy; // reset original state
-            _newline = detected; // set the detected newline, or default if not found
+            _newline = result; // set the detected newline, or default if not found
         }
     }
 

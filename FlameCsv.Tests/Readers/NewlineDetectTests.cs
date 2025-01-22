@@ -2,6 +2,7 @@
 using System.Text;
 using FlameCsv.Exceptions;
 using FlameCsv.Reading;
+using FlameCsv.Tests.Utilities;
 
 namespace FlameCsv.Tests.Readers;
 
@@ -53,11 +54,34 @@ public static class NewlineDetectTests
         }
     }
 
-    [Fact]
-    public static void Should_Throw_On_Very_Long_Inputs()
+    [Theory, MemberData(nameof(NewlineData))]
+    public static void Should_Throw_On_Very_Long_Inputs(bool segments, NewlineToken? newline, bool shouldThrow)
     {
         using var parser = CsvParser.Create(new CsvOptions<char> { Newline = null });
-        parser.Reset(new ReadOnlySequence<char>(new string('x', 4096).AsMemory()));
-        Assert.Throws<CsvFormatException>(() => { _ = parser.TryReadLine(out _, false); });
+
+        string newlineStr = newline switch
+        {
+            NewlineToken.CRLF => "\r\n",
+            NewlineToken.LF => "\n",
+            _ => ""
+        };
+
+        var data = MemorySegment<char>.AsSequence(
+            (new string('x', 4096) + newlineStr).AsMemory(),
+            bufferSize: segments ? 2048 : -1);
+
+        parser.Reset(in data);
+        if (shouldThrow) Assert.Throws<CsvFormatException>(() => { _ = parser.TryReadLine(out _, false); });
     }
+
+    public static TheoryData<bool, NewlineToken?, bool> NewlineData
+        => new()
+        {
+            { false, NewlineToken.CRLF, false },
+            { false, NewlineToken.LF, false },
+            { false, null, true },
+            { true, NewlineToken.CRLF, true },
+            { true, NewlineToken.LF, true },
+            { true, null, true },
+        };
 }
