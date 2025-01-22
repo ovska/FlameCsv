@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 
 namespace FlameCsv.Reading.Internal;
@@ -147,8 +148,27 @@ internal readonly struct Meta
     {
         Debug.Assert(data.Length >= End - start);
 
-        ReadOnlySpan<T> field = data[start..End];
+        int length = End - start;
+        ReadOnlySpan<T> field = MemoryMarshal.CreateReadOnlySpan(
+            ref Unsafe.Add(ref MemoryMarshal.GetReference(data), (nint)(uint)start),
+            length);
 
+        if (field.IsEmpty || dialect.Whitespace.IsEmpty && _specialCountAndStart == 0)
+        {
+            return field;
+        }
+
+        return GetFieldCore(in dialect, field, buffer, parser);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private ReadOnlySpan<T> GetFieldCore<T>(
+        scoped ref readonly CsvDialect<T> dialect,
+        ReadOnlySpan<T> field,
+        Span<T> buffer,
+        CsvParser<T> parser)
+        where T : unmanaged, IBinaryInteger<T>
+    {
         if (!dialect.Whitespace.IsEmpty)
         {
             field = field.Trim(dialect.Whitespace);
@@ -158,12 +178,14 @@ internal readonly struct Meta
         {
             uint specialCount = SpecialCount;
 
-            if (field[0] != dialect.Quote || field[^1] != dialect.Quote)
+            if (field.Length <= 1 ||
+                field.DangerousGetReference() != dialect.Quote ||
+                field.DangerousGetReferenceAt(field.Length - 1) != dialect.Quote)
             {
                 Unescape.Invalid(field, in this);
             }
 
-            field = field[1..^1];
+            field = MemoryMarshal.CreateReadOnlySpan(ref field.DangerousGetReferenceAt(1), field.Length - 2);
 
             if (IsEscape && specialCount != 0)
             {
