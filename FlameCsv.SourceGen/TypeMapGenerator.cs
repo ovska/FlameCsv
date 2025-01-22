@@ -103,7 +103,7 @@ namespace ");
     {
     ");
         WriteStaticInstance(sb, in typeMap);
-        // WriteCacheKeys(sb, in typeMap);
+        WriteIndexes(sb, in typeMap);
         GetReadCode(sb, in typeMap);
         GetWriteCode(sb, in typeMap);
         sb.Append(
@@ -128,20 +128,31 @@ namespace ");
         return SourceText.From(sb.ToString(), Encoding.UTF8);
     }
 
-    // private void WriteCacheKeys(StringBuilder sb, in TypeMapSymbol typeMap)
-    // {
-    //     int index;
-    //
-    //     foreach (var binding in typeMap.Bindings.AllBindings)
-    //     {
-    //         if ((!binding.CanRead && typeMap.Scope == BindingScope.Read) ||
-    //             (!binding.CanWrite && typeMap.Scope == BindingScope.Write))
-    //             continue;
-    //
-    //         sb.Append(@"
-    //         private static "
-    //     }
-    // }
+    private void WriteIndexes(StringBuilder sb, in TypeMapSymbol typeMap)
+    {
+        if (typeMap.Scope == BindingScope.Write) return;
+
+        // start from 1 so uninitialized members fail as expected
+        int index = 1;
+
+        foreach (var binding in typeMap.Bindings.AllBindings)
+        {
+            if ((!binding.CanRead && typeMap.Scope == BindingScope.Read) ||
+                (!binding.CanWrite && typeMap.Scope == BindingScope.Write))
+                continue;
+
+            sb.Append(@"
+        private const int ");
+            binding.WriteIndex(sb, index);
+            sb.Append(" = ");
+            sb.Append(index++);
+            sb.Append(';');
+        }
+
+        sb.Append(@"
+
+");
+    }
 
     private static void WriteStaticInstance(StringBuilder sb, ref readonly TypeMapSymbol typeMap)
     {
@@ -158,7 +169,6 @@ namespace ");
                     sb.Append(typeMap.ContainingClass.ToDisplayString());
                     sb.Append(
                         @"();
-
 ");
                 }
 

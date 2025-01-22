@@ -14,7 +14,7 @@ var config = DefaultConfig.Instance
     //    .AsBaseline())
     .AddJob(Job.Default.WithStrategy(RunStrategy.Throughput));
 
-BenchmarkRunner.Run<BindingBench>(config);
+BenchmarkRunner.Run<CsvReadBench>(config);
 
 //var bb = new BindingBench();
 

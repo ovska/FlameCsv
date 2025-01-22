@@ -63,4 +63,16 @@ internal sealed class MemberBinding : IComparable<MemberBinding>, IBinding
         sb.Append("@s__Handler_");
         sb.Append(Symbol.Name);
     }
+
+    public void WriteIndex(StringBuilder sb, int? index = null)
+    {
+        _index ??= index ?? throw new InvalidOperationException();
+
+        sb.Append("@s__Index_");
+        sb.Append(Symbol.Name);
+    }
+
+    public int Index => _index ?? throw new InvalidOperationException();
+
+    private int? _index;
 }
