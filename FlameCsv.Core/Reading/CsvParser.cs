@@ -112,7 +112,7 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
 
         _options = options;
         _dialect = options.Dialect;
-        _newline = options.GetNewline();
+        _newline = options.Dialect.GetNewlineOrDefault();
         _metaArray = [];
         _canUseFastPath = !options.NoLineBuffering && _dialect.IsAscii;
     }

@@ -55,7 +55,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
     private readonly T _quote;
     private readonly NewlineBuffer<T> _newline;
     private readonly T? _escape;
-    private readonly ReadOnlyMemory<T> _whitespace;
+    private readonly T[]? _whitespace;
     private readonly SearchValues<T> _needsQuoting;
 
     /// <summary>
@@ -75,8 +75,8 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         _delimiter = dialect.Delimiter;
         _quote = dialect.Quote;
         _escape = dialect.Escape;
-        _whitespace = dialect.Whitespace;
-        _newline = options.GetNewline(forWriting: true);
+        _whitespace = dialect.GetWhitespaceArray();
+        _newline = dialect.GetNewlineOrDefault(forWriting: true);
         _needsQuoting = dialect.NeedsQuoting;
     }
 
@@ -266,12 +266,12 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
                 shouldQuote = false;
                 escapableCount = 0;
 
-                if (!_whitespace.IsEmpty)
+                if (_whitespace is not null)
                 {
                     ref T first = ref MemoryMarshal.GetReference(written);
                     ref T last = ref Unsafe.Add(ref first, written.Length - 1);
 
-                    foreach (T token in _whitespace.Span)
+                    foreach (T token in _whitespace)
                     {
                         if (first == token || last == token)
                         {
