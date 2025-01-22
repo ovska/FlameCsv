@@ -70,7 +70,7 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
     internal ReadOnlySequence<T> _sequence;
 
     private protected IMemoryOwner<T>? _multisegmentBuffer;
-    private protected IMemoryOwner<T>? _unescapeBuffer;
+    internal IMemoryOwner<T>? _unescapeBuffer;
 
     /// <summary>
     /// Buffer to read fields into.
@@ -158,6 +158,11 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
         _metaCount = 0;
         _metaIndex = 0;
         _sequence = sequence;
+    }
+
+    public Span<T> GetUnescapeBuffer(int length)
+    {
+        return Allocator.EnsureCapacity(ref _unescapeBuffer, length, copyOnResize: false).Span;
     }
 
     /// <summary>

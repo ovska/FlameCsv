@@ -60,6 +60,18 @@ public class RFC4180ModeTests
         Assert.Single(result);
         Assert.Equal(["some", "line", last], result[0]);
     }
+
+    [Fact]
+    public void Should_Unescape_Huge_Field()
+    {
+        var pt1 = new string('a', 4096);
+        var pt2 = new string('b', 4096);
+        var hugefield = $"\"{pt1}\"\"{pt2}\"\r\n";
+
+        var result = hugefield.Read(new CsvOptions<char> { Newline = "\r\n" });
+        Assert.Single(result);
+        Assert.Equal([pt1 + '"' + pt2], result[0]);
+    }
 }
 
 file static class Extensions
