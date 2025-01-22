@@ -18,7 +18,7 @@ using FlameCsv.Reading;
 
 namespace FlameCsv.Runtime;
 
-internal abstract partial class Materializer<T>
+internal static class Materializer<T>
 {
     /// <summary>
     /// Returns the constructor info for materializer of <typeparamref name="TResult"/>.
@@ -57,6 +57,7 @@ internal abstract partial class Materializer<T>
         WriteLine(">),");
     }
 #>
+            > <#= TotalCount + 2#> => throw new NotSupportedException($"Type params up to {bindings.Length} are not supported (max: <#= TotalCount #>)"),
             _ => throw new ArgumentException($"Unsupported typeparam count: {bindings.Length}"),
         }).MakeGenericType(types).GetConstructors()[0];
     }
@@ -69,8 +70,7 @@ internal abstract partial class Materializer<T>
 #>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
-internal sealed class Materializer<T, <#= generics #>>
-    : Materializer<T>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
+internal sealed class Materializer<T, <#= generics #>> : IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     private readonly Func<<#= generics #>> valueFactory;
 
@@ -83,6 +83,12 @@ internal sealed class Materializer<T, <#= generics #>>
                 WriteLine(",");
             Write("        ");
             Write(converters[i]);
+        }
+        for (var i = 0; i < current; i++)
+        {
+            WriteLine(",");
+            Write("        string target");
+            Write(i.ToString());
         }
 #>)
     {
@@ -97,6 +103,15 @@ internal sealed class Materializer<T, <#= generics #>>
             Write(ix);
             WriteLine(";");
         }
+        for (var i = 0; i < current; i++)
+        {
+            var ix = i.ToString();
+            Write("        this.target");
+            Write(ix);
+            Write(" = target");
+            Write(ix);
+            WriteLine(";");
+        }
 #>    }
 
 <#
@@ -106,21 +121,34 @@ internal sealed class Materializer<T, <#= generics #>>
             Write(converters[i]);
             WriteLine(";");
         }
+        for (var i = 0; i < current; i++)
+        {
+            Write("    private readonly string target");
+            Write(i.ToString());
+            WriteLine(";");
+        }
 #>
 
     public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
     {
         if (reader.FieldCount != <#= current #>) CsvReadException.ThrowForInvalidFieldCount(<#= current #>, reader.FieldCount);
-
 <#
         for (var i = 0; i < current; i++)
         {
-            Write($"        Parse(reader[{i}], converter");
+            Write($"        if (!converter");
             Write(i.ToString());
-            Write(", out ");
+            Write(".TryParse(reader[");
+            Write(i.ToString());
+            Write("], out ");
             Write(genericTypes[i]);
             Write(" ");
             Write(values[i]);
+            Write(")) CsvParseException.Throw(reader[");
+            Write(i.ToString());
+            Write("], converter");
+            Write(i.ToString());
+            Write(", target");
+            Write(i.ToString());
             WriteLine(");");
         }
 

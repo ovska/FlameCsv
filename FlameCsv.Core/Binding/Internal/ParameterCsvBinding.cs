@@ -36,5 +36,7 @@ internal sealed class ParameterCsvBinding<T> : CsvBinding<T>
     }
 
     // ReSharper disable once StringLiteralTypo
-    protected internal override string DisplayName => Parameter.Name ?? "unnamedparameter";
+    protected internal override string DisplayName => _displayName ??= $"{Parameter.Name} (Parameter)";
+
+    private string? _displayName;
 }

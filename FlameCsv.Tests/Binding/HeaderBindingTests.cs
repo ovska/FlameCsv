@@ -1,5 +1,6 @@
 using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
+using FlameCsv.Exceptions;
 using FlameCsv.Tests.Utilities;
 
 // ReSharper disable all
@@ -20,7 +21,7 @@ public static class HeaderBindingTests
         Assert.Equal("Test", result.Name);
 
         // should cache
-        // Assert.Same(materializer, binder.GetMaterializer<ShimWithCtor>(["Name", "_targeted"]));
+        Assert.Same(materializer, binder.GetMaterializer<ShimWithCtor>(["Name", "_targeted"]));
     }
 
     [Fact]
@@ -39,7 +40,18 @@ public static class HeaderBindingTests
         Assert.Equal(1, result.Targeted);
 
         // should cache
-        // Assert.Same(materializer, binder.GetMaterializer<Shim>(["IsEnabled", "Name", "_targeted"]));
+        Assert.Same(materializer, binder.GetMaterializer<Shim>(["IsEnabled", "Name", "_targeted"]));
+    }
+
+    [Fact]
+    public static void Should_Include_Name_In_Exception_Message()
+    {
+        var ex = Record.Exception(
+            () => CsvReader.Read<Shim>("IsEnabled,Name,_targeted\r\ntrue,name,\0\r\n").ToList());
+
+        Assert.IsType<CsvUnhandledException>(ex);
+        Assert.IsType<CsvParseException>(ex.InnerException);
+        Assert.Contains("Targeted", ex.InnerException?.Message, StringComparison.Ordinal);
     }
 }
 
