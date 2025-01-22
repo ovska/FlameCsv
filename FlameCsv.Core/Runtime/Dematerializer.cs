@@ -1,5 +1,5 @@
-﻿using CommunityToolkit.HighPerformance;
-using FlameCsv.Binding;
+﻿using FlameCsv.Binding;
+using FlameCsv.Binding.Internal;
 using FlameCsv.Extensions;
 using FlameCsv.Writing;
 
@@ -16,15 +16,17 @@ internal abstract class Dematerializer<T, TValue> : Dematerializer<T> where T : 
 
     public void WriteHeader(ref readonly CsvFieldWriter<T> writer)
     {
-        foreach (var item in _bindings.MemberBindings.Enumerate())
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = _bindings.MemberBindings;
+
+        for (int i = 0; i < bindings.Length; i++)
         {
-            if (item.Index != 0)
+            if (i != 0)
                 writer.WriteDelimiter();
 
-            if (item.Value.Header is null)
-                Throw.InvalidOp_NoHeader(item.Index, typeof(TValue), item.Value.Member);
+            if (bindings[i].Header is null)
+                Throw.InvalidOp_NoHeader(i, typeof(TValue), bindings[i].Member);
 
-            writer.WriteText(item.Value.Header);
+            writer.WriteText(bindings[i].Header);
         }
 
         writer.WriteNewline();

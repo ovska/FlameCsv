@@ -28,31 +28,13 @@ public sealed class CsvParseException(
     /// <exception cref="CsvParseException"></exception>
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void Throw<T>(ReadOnlySpan<T> value, CsvConverter<T>? converter = null, string? target = null)
+    public static void Throw<T, TValue>(ReadOnlySpan<T> value, CsvConverter<T, TValue> converter, string target)
         where T : unmanaged, IBinaryInteger<T>
     {
-        string info = "";
-
-        if (target is not null)
+        throw new CsvParseException(
+            $"Failed to parse {typeof(TValue).FullName} {target} using {converter.GetType().FullName} from {value.AsPrintableString()}")
         {
-            info += $" target \"{target}\"";
-        }
-
-        if (converter is not null)
-        {
-            info += $" using {converter.GetType().FullName}";
-        }
-
-
-        throw new CsvParseException($"Failed to parse{info} from {value.AsPrintableString()}.")
-        {
-            Converter = converter,
+            Converter = converter
         };
-    }
-
-    public static void Throw<T>(ReadOnlySpan<T> value, (CsvConverter<T>? converter, string? target) info)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        Throw(value, info.converter, info.target);
     }
 }
