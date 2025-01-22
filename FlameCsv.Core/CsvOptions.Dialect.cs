@@ -42,8 +42,8 @@ public partial class CsvOptions<T>
             Delimiter = T.CreateChecked(_delimiter),
             Quote = T.CreateChecked(_quote),
             Escape = _escape.HasValue ? T.CreateChecked(_escape.Value) : null,
-            Newline = GetFromString(_newline),
-            Whitespace = GetFromString(_whitespace),
+            Newline = GetFromString(_newline).Span,
+            Whitespace = GetFromString(_whitespace).Span,
         };
 
         result.Validate();
@@ -106,17 +106,5 @@ public partial class CsvOptions<T>
     {
         get => _whitespace;
         set => this.SetValue(ref _whitespace, value);
-    }
-
-    // TODO: move to dialect
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal NewlineBuffer<T> GetNewline(bool forWriting = false)
-    {
-        if (Dialect.Newline.IsEmpty)
-        {
-            return forWriting ? NewlineBuffer<T>.CRLF : default;
-        }
-
-        return new NewlineBuffer<T>(Dialect.Newline.Span);
     }
 }

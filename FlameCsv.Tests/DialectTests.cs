@@ -52,11 +52,11 @@ public static class DialectTests
         Assert.Throws<InvalidOperationException>(() => default(CsvDialect<char>).Validate());
 
         AssertInvalid(o => o with { Quote = ',' });
-        AssertInvalid(o => o with { Newline = ",".AsMemory() });
-        AssertInvalid(o => o with { Newline = "\"".AsMemory() });
+        AssertInvalid(o => o with { Newline = "," });
+        AssertInvalid(o => o with { Newline = "\"" });
         AssertInvalid(o => o with { Delimiter = '\n' });
         AssertInvalid(o => o with { Escape = ',' });
-        AssertInvalid(o => o with { Whitespace = ",".AsMemory() });
+        AssertInvalid(o => o with { Whitespace = "," });
 
         static void AssertInvalid(Func<CsvDialect<char>, CsvDialect<char>> action)
         {
