@@ -1,6 +1,4 @@
-﻿using System.ComponentModel;
-
-namespace FlameCsv.Writing;
+﻿namespace FlameCsv.Writing;
 
 /// <summary>
 /// Enumeration that determines when CSV fields should be wrapped in quotes when writing.
