@@ -9,6 +9,12 @@ using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Utilities;
 using JetBrains.Annotations;
+#if DEBUG
+using Unsafe = FlameCsv.Extensions.DebugUnsafe
+#else
+using Unsafe = System.Runtime.CompilerServices.Unsafe
+#endif
+    ;
 
 namespace FlameCsv;
 
@@ -29,15 +35,54 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>>
     public required T Quote { get; init; }
 
     /// <inheritdoc cref="CsvOptions{T}.Newline"/>
-    public required ReadOnlyMemory<T> Newline { get; init; }
+    public required ReadOnlySpan<T> Newline
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _newline;
+        init
+        {
+            if (value.IsEmpty)
+            {
+                _newline = null;
+                return;
+            }
+
+            if (value.Length == 1 && value[0] == T.CreateChecked('\n'))
+            {
+                _newline = _cachedLF ??= [T.CreateChecked('\n')];
+                return;
+            }
+
+            if (value.Length == 2 && value[0] == T.CreateChecked('\r') && value[1] == T.CreateChecked('\n'))
+            {
+                _newline = _cachedCRLF ??= [T.CreateChecked('\r'), T.CreateChecked('\n')];
+                return;
+            }
+
+            _newline = value.ToArray();
+        }
+    }
 
     /// <inheritdoc cref="CsvOptions{T}.Whitespace"/>
-    public required ReadOnlyMemory<T> Whitespace { get; init; }
+    public ReadOnlySpan<T> Whitespace
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _whitespace;
+        init => _whitespace = value.IsEmpty ? null : value.ToArray();
+    }
 
     /// <inheritdoc cref="CsvOptions{T}.Escape"/>
     public required T? Escape { get; init; }
 
     private readonly LazyValues _lazyValues = new();
+
+    private readonly T[]? _newline;
+    private readonly T[]? _whitespace;
+
+    /// <summary>
+    /// Returns the underlying storage for <see cref="Whitespace"/>.
+    /// </summary>
+    internal T[]? GetWhitespaceArray() => _whitespace;
 
     /// <summary>
     /// Returns search values used to determine whether fields need to be quoted while writing CSV.
@@ -74,10 +119,16 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public bool IsAscii => _lazyValues.IsAscii ??= GetIsAscii();
 
+    /// <summary>
+    /// Returns the newline buffer for <see cref="Newline"/>. If empty, returns <see cref="NewlineBuffer{T}.CRLF"/>
+    /// if writing, and an empty buffer if reading.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal NewlineBuffer<T> GetNewlineOrDefault()
+    internal NewlineBuffer<T> GetNewlineOrDefault(bool forWriting = false)
     {
-        return Newline.IsEmpty ? NewlineBuffer<T>.CRLF : new NewlineBuffer<T>(Newline.Span);
+        return Newline.IsEmpty
+            ? forWriting ? NewlineBuffer<T>.CRLF : default
+            : new NewlineBuffer<T>(Newline);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -92,12 +143,13 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>>
 
         if (Newline.IsEmpty)
         {
+            // crlf is the default when writing
             list.Append(NewlineBuffer<T>.CRLF.First);
             list.Append(NewlineBuffer<T>.CRLF.Second);
         }
         else
         {
-            list.Append(Newline.Span);
+            list.Append(Newline);
         }
 
         if (Escape.HasValue)
@@ -132,7 +184,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>>
         {
             if (!Newline.IsEmpty)
             {
-                list.Append(Newline.Span[0]);
+                list.Append(Newline[0]);
             }
             else if (length == 1)
             {
@@ -156,8 +208,8 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>>
         list.Append(Delimiter);
         list.Append(Quote);
         if (Escape.HasValue) list.Append(Escape.Value);
-        if (!Newline.IsEmpty) list.Append(Newline.Span); // empty newline is CRLF -> always ASCII
-        if (!Whitespace.IsEmpty) list.Append(Whitespace.Span);
+        if (!Newline.IsEmpty) list.Append(Newline); // empty newline is CRLF -> always ASCII
+        if (!Whitespace.IsEmpty) list.Append(Whitespace);
 
         if (Unsafe.SizeOf<T>() == sizeof(byte))
         {
@@ -223,10 +275,10 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>>
         T delimiter = Delimiter;
         T quote = Quote;
         T? escape = Escape;
-        scoped ReadOnlySpan<T> whitespace = Whitespace.Span;
+        scoped ReadOnlySpan<T> whitespace = Whitespace;
         scoped ReadOnlySpan<T> newline = Newline.IsEmpty
             ? [T.CreateChecked('\r'), T.CreateChecked('\n')]
-            : Newline.Span;
+            : Newline;
 
         if (delimiter.Equals(quote))
         {
@@ -359,8 +411,8 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>>
             Delimiter == other.Delimiter &&
             Quote == other.Quote &&
             Escape == other.Escape &&
-            Newline.Span.SequenceEqual(other.Newline.Span) &&
-            Whitespace.Span.SequenceEqual(other.Whitespace.Span);
+            Newline.SequenceEqual(other.Newline) &&
+            Whitespace.SequenceEqual(other.Whitespace);
     }
 
     public override int GetHashCode()
@@ -371,15 +423,18 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>>
         hash.Add(Quote);
         hash.Add(Escape);
         hash.Add(Newline.IsEmpty);
-        foreach (var c in Newline.Span) hash.Add(c);
+        foreach (var c in Newline) hash.Add(c);
         hash.Add(Whitespace.IsEmpty);
-        foreach (var c in Whitespace.Span) hash.Add(c);
+        foreach (var c in Whitespace) hash.Add(c);
 
         return hash.ToHashCode();
     }
 
     public static bool operator ==(CsvDialect<T> left, CsvDialect<T> right) => left.Equals(right);
     public static bool operator !=(CsvDialect<T> left, CsvDialect<T> right) => !(left == right);
+
+    private static T[]? _cachedLF;
+    private static T[]? _cachedCRLF;
 }
 
 // throwhelper doesn't need to be generic

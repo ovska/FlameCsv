@@ -151,7 +151,7 @@ internal readonly struct Meta
 
         if (!dialect.Whitespace.IsEmpty)
         {
-            field = field.Trim(dialect.Whitespace.Span);
+            field = field.Trim(dialect.Whitespace);
         }
 
         if (_specialCountAndStart != 0)

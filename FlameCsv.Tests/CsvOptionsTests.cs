@@ -19,12 +19,7 @@ public class CsvOptionsTests
     {
         var to = new CsvOptions<char>
         {
-            NullTokens =
-            {
-                [typeof(long)] = "long",
-                [typeof(short?)] = "short",
-            },
-            Null = "null",
+            NullTokens = { [typeof(long)] = "long", [typeof(short?)] = "short", }, Null = "null",
         };
 
         Assert.Equal("long", to.GetNullToken(typeof(long)).ToString());
@@ -41,12 +36,7 @@ public class CsvOptionsTests
 
         var bo = new CsvOptions<byte>
         {
-            NullTokens =
-            {
-                [typeof(long)] = "long",
-                [typeof(short?)] = "short",
-            },
-            Null = "null",
+            NullTokens = { [typeof(long)] = "long", [typeof(short?)] = "short", }, Null = "null",
         };
 
         Assert.Equal("long"u8, bo.GetNullToken(typeof(long)).Span);
@@ -67,8 +57,7 @@ public class CsvOptionsTests
     {
         var to = new CsvOptions<char>
         {
-            EnumFormat = "x",
-            Formats = { [typeof(DayOfWeek)] = "d", [typeof(float)] = "0.0" },
+            EnumFormat = "x", Formats = { [typeof(DayOfWeek)] = "d", [typeof(float)] = "0.0" },
         };
 
         Assert.Equal("1", Format(to, (DayOfWeek)1));
@@ -77,8 +66,7 @@ public class CsvOptionsTests
 
         var bo = new CsvOptions<byte>
         {
-            EnumFormat = "x",
-            Formats = { [typeof(DayOfWeek)] = "d", [typeof(float)] = "0.0" },
+            EnumFormat = "x", Formats = { [typeof(DayOfWeek)] = "d", [typeof(float)] = "0.0" },
         };
 
         Assert.Equal("1"u8, Format(bo, (DayOfWeek)1));
@@ -146,7 +134,8 @@ public class CsvOptionsTests
         Assert.True(bo.GetConverter<long>().TryParse("  1"u8, out _));
     }
 
-    [Theory, InlineData(typeof(int*)), InlineData(typeof(List<>)), InlineData(typeof(Span<int>)), InlineData(default(Type))]
+    [Theory, InlineData(typeof(int*)), InlineData(typeof(List<>)), InlineData(typeof(Span<int>)),
+     InlineData(null)]
     public static void Should_Validate_TypeDictionary_Argument(Type? type)
     {
         var to = new CsvOptions<char>();
@@ -170,10 +159,10 @@ public class CsvOptionsTests
         Assert.True(options.IsReadOnly);
 
         Assert.Null(options.Newline);
-        var newline =  options.GetNewline();
+        var newline = options.Dialect.GetNewlineOrDefault();
         Assert.Equal(0, newline.Length);
         Assert.Equal(['\0', '\0'], [newline.First, newline.Second]);
-        newline =  options.GetNewline(forWriting: true);
+        newline = options.Dialect.GetNewlineOrDefault(forWriting: true);
         Assert.Equal(2, newline.Length);
         Assert.Equal(['\r', '\n'], [newline.First, newline.Second]);
 
@@ -200,12 +189,12 @@ public class CsvOptionsTests
         var options = CsvOptions<byte>.Default;
         Assert.True(options.IsReadOnly);
 
-        var newline =  options.GetNewline();
+        var newline = options.Dialect.GetNewlineOrDefault();
         Assert.Equal(0, newline.Length);
         Assert.Equal([0, 0], [newline.First, newline.Second]);
-        newline =  options.GetNewline(forWriting: true);
+        newline = options.Dialect.GetNewlineOrDefault(forWriting: true);
         Assert.Equal(2, newline.Length);
-        Assert.Equal([(byte)'\r', (byte)'\n'], [newline.First, newline.Second]);
+        Assert.Equal("\r\n"u8, [newline.First, newline.Second]);
 
         var boolParser = options.GetConverter<bool>();
         Assert.True(boolParser.TryParse("true"u8, out var bValue));
@@ -230,15 +219,15 @@ public class CsvOptionsTests
         var options = new CsvOptions<char>();
         options.MakeReadOnly();
 
-        Run(o => o.Delimiter = default);
-        Run(o => o.Quote = default);
-        Run(o => o.Escape = default);
+        Run(o => o.Delimiter = '\0');
+        Run(o => o.Quote = '\0');
+        Run(o => o.Escape = null);
         Run(o => o.Newline = "");
         Run(o => o.Whitespace = "");
-        Run(o => o.ShouldSkipRow = default);
-        Run(o => o.HasHeader = default);
+        Run(o => o.ShouldSkipRow = null);
+        Run(o => o.HasHeader = false);
         Run(o => o.Comparer = StringComparer.Ordinal);
-        Run(o => o.ExceptionHandler = default);
+        Run(o => o.ExceptionHandler = null);
         Run(o => o.Converters[0] = new BooleanTextConverter());
         Run(o => o.Converters.Add(new BooleanTextConverter()));
         Run(o => o.Converters.Insert(0, new BooleanTextConverter()));
@@ -246,12 +235,12 @@ public class CsvOptionsTests
         Run(o => o.Converters.RemoveAt(0));
         Run(o => o.Converters.Clear());
         Run(o => o.StringPool = null);
-        Run(o => o.IgnoreEnumCase = default);
-        Run(o => o.AllowUndefinedEnumValues = default);
-        Run(o => o.UseDefaultConverters = default);
+        Run(o => o.IgnoreEnumCase = false);
+        Run(o => o.AllowUndefinedEnumValues = false);
+        Run(o => o.UseDefaultConverters = false);
         Run(o => o.EnumFormat = "");
         Run(o => o.FieldQuoting = default);
-        Run(o => o.FormatProvider = default);
+        Run(o => o.FormatProvider = null);
         Run(o => o.FormatProviders.Add(typeof(int), null));
         Run(o => o.Formats.Add(typeof(int), null));
         Run(o => o.NoLineBuffering = true);
@@ -275,10 +264,7 @@ public class CsvOptionsTests
             "#4,5,6\r\n" +
             "7,8,9\r\n";
 
-        var options = new CsvOptions<char>
-        {
-            ShouldSkipRow = args => args.Line == 1 || args.Record[0] == '#',
-        };
+        var options = new CsvOptions<char> { ShouldSkipRow = args => args.Line == 1 || args.Record[0] == '#', };
 
         using var enumerator = CsvReader.Enumerate(data, options).GetEnumerator();
 
@@ -293,10 +279,12 @@ public class CsvOptionsTests
     public void Should_Return_Correct_HasHeader_in_Skip()
     {
         foreach (var _ in CsvReader.Enumerate("A,B,C\n1,2,3", GetOpts(true)))
-        { }
+        {
+        }
 
         foreach (var _ in CsvReader.Enumerate("X,y,z\nX,y,z", GetOpts(false)))
-        { }
+        {
+        }
 
 
         CsvOptions<char> GetOpts(bool hasHeader)
@@ -310,10 +298,12 @@ public class CsvOptionsTests
                     {
                         Assert.True(args.IsHeader);
                     }
+
                     if (args.Record[0] == '1')
                     {
                         Assert.False(args.IsHeader);
                     }
+
                     if (args.Record[0] == 'X')
                     {
                         Assert.False(args.IsHeader);
@@ -335,10 +325,7 @@ public class CsvOptionsTests
             "#4,5,6\r\n" +
             "7,8,9\r\n";
 
-        var options = new CsvOptions<char>
-        {
-            ShouldSkipRow = args => args.Line == 1 || args.Record[0] == '#',
-        };
+        var options = new CsvOptions<char> { ShouldSkipRow = args => args.Line == 1 || args.Record[0] == '#', };
 
         var values = CsvReader.Read<Skippable>(data, options).ToList();
 
