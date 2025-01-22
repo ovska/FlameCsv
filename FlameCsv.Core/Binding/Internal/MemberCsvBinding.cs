@@ -26,7 +26,7 @@ internal sealed class MemberCsvBinding<T>(int index, MemberData member, string h
     }
 
     protected internal override string DisplayName
-        => member.Value.DeclaringType?.Name is { Length: > 0 } name
-            ? $"{name}_{member.Value.Name}"
-            : member.Value.Name;
+        => _displayName ??= $"{member.Value.Name} ({(member.IsProperty ? "Property" : "Field")})";
+
+    private string? _displayName;
 }

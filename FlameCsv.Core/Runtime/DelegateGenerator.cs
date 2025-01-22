@@ -36,12 +36,18 @@ internal abstract class DelegateGenerator<T> where T : unmanaged, IBinaryInteger
         {
             var bindings = BindingCollection.Bindings;
 
-            object[] materializerCtorArgs = new object[bindings.Length + 1];
+            object[] materializerCtorArgs = new object[1 + bindings.Length + bindings.Length];
             materializerCtorArgs[0] = ValueFactory;
+
+            int running = 1;
+            for (int i = 0; i < bindings.Length; i++)
+            {
+                materializerCtorArgs[running++] = ResolveConverter(bindings[i], options);
+            }
 
             for (int i = 0; i < bindings.Length; i++)
             {
-                materializerCtorArgs[i + 1] = ResolveConverter(bindings[i], options);
+                materializerCtorArgs[running++] = bindings[i].DisplayName;
             }
 
             return MaterializerFactory(materializerCtorArgs);

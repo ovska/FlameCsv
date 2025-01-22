@@ -192,7 +192,7 @@ public partial class TypeMapGenerator
 
                     if (!result)
                     {
-                        FlameCsv.Exceptions.CsvParseException.Throw(@field, GetBindingTarget(targets[index]));
+                        ThrowForFailedParse(@field, index);
                     }
                 }
 
@@ -212,10 +212,11 @@ public partial class TypeMapGenerator
             [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
             private static bool ThrowForInvalidTarget(int index) => throw new System.Diagnostics.UnreachableException($""Converter at index {index} was uninitialized"");
 
+            [System.Diagnostics.CodeAnalysis.DoesNotReturn]
             [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-            private (FlameCsv.CsvConverter<");
+            private void ThrowForFailedParse(ReadOnlySpan<");
         sb.Append(typeMap.Token);
-        sb.Append(@">? converter, string? name) GetBindingTarget(int target) => target switch
+        sb.Append(@"> @field, int target)
             {
 ");
 
@@ -224,18 +225,18 @@ public partial class TypeMapGenerator
             if (!binding.CanRead || binding.Scope == BindingScope.Write)
                 continue;
 
-            sb.Append("                ");
+            sb.Append("                if (target == ");
             sb.Append(binding.Index);
-            sb.Append(" => (");
+            sb.Append(") FlameCsv.Exceptions.CsvParseException.Throw(@field, ");
             binding.WriteConverterId(sb);
             sb.Append(", ");
             sb.Append(binding.Name.ToStringLiteral());
-            sb.Append(@"),
+            sb.Append(@");
 ");
         }
 
-        sb.Append(@"                _ => throw new System.Diagnostics.UnreachableException(""Invalid target: "" + target.ToString()),
-            };
+        sb.Append(@"                throw new System.Diagnostics.UnreachableException(""Invalid target: "" + target.ToString());
+            }
         }
 
         ");
