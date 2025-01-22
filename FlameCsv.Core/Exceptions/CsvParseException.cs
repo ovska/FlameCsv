@@ -24,17 +24,35 @@ public sealed class CsvParseException(
     /// </summary>
     /// <param name="value">Field value</param>
     /// <param name="converter">Converter used</param>
+    /// <param name="target"></param>
     /// <exception cref="CsvParseException"></exception>
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void Throw<T>(ReadOnlySpan<T> value, CsvConverter<T>? converter = null)
+    public static void Throw<T>(ReadOnlySpan<T> value, CsvConverter<T>? converter = null, string? target = null)
         where T : unmanaged, IBinaryInteger<T>
     {
-        string withStr = converter is null ? "" : $" with {converter.GetType()}";
+        string info = "";
 
-        throw new CsvParseException($"Failed to parse{withStr} from {value.AsPrintableString()}.")
+        if (target is not null)
+        {
+            info += $" target \"{target}\"";
+        }
+
+        if (converter is not null)
+        {
+            info += $" using {converter.GetType().FullName}";
+        }
+
+
+        throw new CsvParseException($"Failed to parse{info} from {value.AsPrintableString()}.")
         {
             Converter = converter,
         };
+    }
+
+    public static void Throw<T>(ReadOnlySpan<T> value, (CsvConverter<T>? converter, string? target) info)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        Throw(value, info.converter, info.target);
     }
 }
