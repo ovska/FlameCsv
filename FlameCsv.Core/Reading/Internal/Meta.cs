@@ -11,9 +11,24 @@ namespace FlameCsv.Reading.Internal;
 [StructLayout(LayoutKind.Explicit, Size = 8)]
 internal readonly struct Meta
 {
+    /// <summary>
+    /// Mask on <see cref="_endAndFlags"/> to check if the meta is at the end of the record.
+    /// </summary>
     private const int EOLMask = unchecked((int)0x80000000);
+
+    /// <summary>
+    /// Mask on <see cref="_specialCountAndStart"/> to check if this is the start of data.
+    /// </summary>
     private const int StartMask = unchecked((int)0x80000000);
+
+    /// <summary>
+    /// Mask on <see cref="_specialCountAndStart"/> to check if this meta is for a unix-style escaped meta.
+    /// </summary>
     private const int IsEscapeMask = 0x40000000;
+
+    /// <summary>
+    /// Mask on <see cref="_specialCountAndStart"/> to extract the special count.
+    /// </summary>
     private const int SpecialCountMask = 0x3FFF_FFFF; // 30 bits for special count
 
     [FieldOffset(0)] private readonly int _endAndFlags;
