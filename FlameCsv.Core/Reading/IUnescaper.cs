@@ -36,6 +36,7 @@ internal static class Unescape
         int written = 0;
         int index = 0;
 
+        // TODO PERF: vectorize me
         while (index < field.Length)
         {
             int next = unescaper.FindNext(field.Slice(index));
@@ -53,7 +54,7 @@ internal static class Unescape
             destination[written++] = field[next + index];
             index += next + 1; // advance past the escaped value
 
-            // Found all quotes, copy remaining data
+            // Found all quotes, copy the remaining data
             if (unescaper.AllSpecialConsumed)
             {
                 field.Slice(index).CopyTo(destination.Slice(written));
