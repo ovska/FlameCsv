@@ -12,6 +12,7 @@ public class NeedsEscapingBench
     [GlobalSetup]
     public void Setup()
     {
+        _ = _escape;
         throw new NotImplementedException();
         // List<char[]> fields = [];
         //

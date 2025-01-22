@@ -15,4 +15,6 @@ internal interface IBinding
 
     void WriteConverterId(StringBuilder sb);
     void WriteHandlerId(StringBuilder sb);
+    void WriteIndex(StringBuilder sb, int? index = null);
+    int Index { get; }
 }

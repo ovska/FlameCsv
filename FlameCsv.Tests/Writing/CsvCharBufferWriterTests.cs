@@ -6,7 +6,7 @@ namespace FlameCsv.Tests.Writing;
 
 public sealed class CsvCharBufferWriterTests : IAsyncDisposable
 {
-    private CsvCharBufferWriter _writer;
+    private CsvCharBufferWriter _writer = null!;
     private StringWriter? _textWriter;
 
     private string Written => _textWriter?.ToString() ?? string.Empty;
