@@ -1,5 +1,4 @@
-﻿using System.ComponentModel;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -7,11 +6,10 @@ using FlameCsv.Exceptions;
 
 namespace FlameCsv.Reading.Internal;
 
-[EditorBrowsable(EditorBrowsableState.Never)]
 [SkipLocalsInit]
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
 [StructLayout(LayoutKind.Explicit, Size = 8)]
-public readonly struct Meta
+internal readonly struct Meta
 {
     private const int EOLMask = unchecked((int)0x80000000);
     private const int StartMask = unchecked((int)0x80000000);
@@ -40,6 +38,7 @@ public readonly struct Meta
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Meta RFC(int end, uint quoteCount, bool isEOL = false)
     {
+        // ensure quote count is even and not too large
         if (((quoteCount & 1) | (quoteCount & ~SpecialCountMask)) != 0)
         {
             ThrowInvalidRFC(quoteCount, isEOL);
@@ -124,10 +123,11 @@ public readonly struct Meta
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> GetField<T>(
-        ref readonly CsvDialect<T> dialect,
+        scoped ref readonly CsvDialect<T> dialect,
         int start,
         ReadOnlySpan<T> data,
-        Span<T> buffer)
+        Span<T> buffer,
+        CsvParser<T> parser)
         where T : unmanaged, IBinaryInteger<T>
     {
         Debug.Assert(data.Length >= End - start);
@@ -157,7 +157,7 @@ public readonly struct Meta
 
                 if (length > buffer.Length)
                 {
-                    throw new NotImplementedException("Need buffer from parser");
+                    buffer = parser.GetUnescapeBuffer(length);
                 }
 
                 Unescape.Field(field, unescaper, buffer);
@@ -170,7 +170,7 @@ public readonly struct Meta
 
                 if (length > buffer.Length)
                 {
-                    throw new NotImplementedException("Need buffer from parser");
+                    buffer = parser.GetUnescapeBuffer(length);
                 }
 
                 Unescape.Field(field, unescaper, buffer);
