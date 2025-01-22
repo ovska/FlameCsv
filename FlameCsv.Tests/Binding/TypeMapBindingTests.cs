@@ -48,8 +48,7 @@ public static partial class TypeMapBindingTests
     [Fact]
     public static void Should_Bind_To_TypeMap()
     {
-        const string data =
-            "id,name,isenabled\r\n" + "1,Bob,true\r\n" + "2,Alice,false\r\n";
+        const string data = "id,name,isenabled\r\n" + "1,Bob,true\r\n" + "2,Alice,false\r\n";
 
         var items = CsvReader.Read(data, ObjTypeMap_Simple.Instance, CsvOptions<char>.Default).ToList();
         AssertItems(items);

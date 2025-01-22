@@ -5,6 +5,7 @@ using FlameCsv.Binding.Internal;
 using FlameCsv.Exceptions;
 using FlameCsv.Reading;
 using FlameCsv.Reflection;
+using FlameCsv.Utilities;
 using DAMT = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes;
 
 namespace FlameCsv.Runtime;
@@ -15,11 +16,6 @@ internal static class MaterializerExtensions
     [RDC(Messages.CompiledExpressions)]
     private static class ForType<T, TResult> where T : unmanaged, IBinaryInteger<T>
     {
-        /// <summary>
-        /// Generator instance to create delegates through reflection.
-        /// </summary>
-        public static readonly DelegateGenerator<T> Generator = new ExpressionDelegateGenerator<T>();
-
         /// <summary>
         /// Cached bindings for headerless CSV.
         /// </summary>
@@ -36,7 +32,7 @@ internal static class MaterializerExtensions
         CsvBindingCollection<TResult> bindingCollection)
         where T : unmanaged, IBinaryInteger<T>
     {
-        return ForType<T, TResult>.Generator.GetMaterializerFactory(bindingCollection)(options);
+        return ExpressionDelegateGenerator<T>.Instance.GetMaterializerFactory(bindingCollection)(options);
     }
 
     /// <summary>
@@ -55,7 +51,7 @@ internal static class MaterializerExtensions
             if (TryGetTupleBindings<T, TResult>(write: false, out var bindings) ||
                 IndexAttributeBinder<TResult>.TryGetBindings(write: false, out bindings))
             {
-                factory = ForType<T, TResult>.Generator.GetMaterializerFactory(bindings);
+                factory = ExpressionDelegateGenerator<T>.Instance.GetMaterializerFactory(bindings);
             }
             else
             {
@@ -66,6 +62,8 @@ internal static class MaterializerExtensions
             }
 
             factory = Interlocked.CompareExchange(ref ForType<T, TResult>.Cached, factory, null) ?? factory;
+
+            HotReloadService.RegisterForHotReload(factory, static _ => ForType<T, TResult>.Cached = null);
         }
 
         return factory(options);

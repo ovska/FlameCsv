@@ -45,6 +45,52 @@ public abstract class CsvTypeMap<T, TValue> : CsvTypeMap where T : unmanaged, IB
 /// </summary>
 public abstract class CsvTypeMap
 {
+    private static readonly TrimmingCache<object, object> _materializers = new();
+    private static readonly TrimmingCache<object, object> _dematerializers = new();
+
+    public static IMaterializer<T, TValue> GetMaterializer<T, TValue>(
+        CsvTypeMap<T, TValue> map,
+        scoped ReadOnlySpan<string> headers,
+        CsvOptions<T> options)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        // TODO: use headers to cache
+
+        // if (_materializers.TryGetValue(map, out object? cached))
+        //     return (IMaterializer<T, TValue>)cached;
+
+        var materializer = map.BindMembers(headers, options);
+        // _materializers.Add(map, materializer);
+        return materializer;
+    }
+
+    public static IMaterializer<T, TValue> GetMaterializer<T, TValue>(
+        CsvTypeMap<T, TValue> map,
+        CsvOptions<T> options)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        if (_materializers.TryGetValue(map, out object? cached))
+            return (IMaterializer<T, TValue>)cached;
+
+        var materializer = map.BindMembers(options);
+        _materializers.Add(map, materializer);
+        return materializer;
+    }
+
+    public static IDematerializer<T, TValue> GetDematerializer<T, TValue>(
+        CsvTypeMap<T, TValue> map,
+        CsvOptions<T> options)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        if (_dematerializers.TryGetValue(map, out object? cached))
+            return (IDematerializer<T, TValue>)cached;
+
+        var dematerializer = map.GetDematerializer(options);
+        _dematerializers.Add(map, dematerializer);
+        return dematerializer;
+    }
+
+
     /// <summary>
     /// Gets the <see cref="Type"/> of the mapped type.
     /// </summary>

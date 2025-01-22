@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Exceptions;
@@ -17,4 +19,11 @@ public sealed class CsvConverterMissingException(Type resultType)
     /// Type the converter is for.
     /// </summary>
     public Type ResultType { get; } = resultType;
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void Throw(Type resultType)
+    {
+        throw new CsvConverterMissingException(resultType);
+    }
 }

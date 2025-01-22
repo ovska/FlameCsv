@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
+using FlameCsv.Utilities;
 using DAMT = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes;
 
 namespace FlameCsv.Reflection;
@@ -30,6 +31,20 @@ internal static class CsvTypeInfo
         {
             var instance = new Cached<T>();
             return Interlocked.CompareExchange(ref _value, instance, null) ?? instance;
+        }
+
+        private Cached()
+        {
+            HotReloadService.RegisterForHotReload(
+                this,
+                static state =>
+                {
+                    var @this = (Cached<T>)state;
+                    @this._customAttributes = null;
+                    @this._members = null;
+                    @this._ctors = null;
+                    @this._ctorParams = null;
+                });
         }
     }
 
