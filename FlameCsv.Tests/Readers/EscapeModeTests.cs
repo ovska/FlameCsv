@@ -1,5 +1,7 @@
 ﻿using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Tests.Utilities;
@@ -111,6 +113,18 @@ public static class EscapeModeTests
         Assert.Equal(2, result.Sum(row => row.Count));
         Assert.Equal("xyz", result[0][0]);
         Assert.Equal("abc", result[1][0]);
+    }
+
+    [Fact]
+    public static void Should_Unescape_Huge_Field()
+    {
+        var pt1 = new string('a', 4096);
+        var pt2 = new string('b', 4096);
+        var hugefield = $"\"{pt1}^\"{pt2}\"\r\n";
+
+        var result = hugefield.Read(new CsvOptions<char> { Escape = '^', Newline = "\r\n" });
+        Assert.Single(result);
+        Assert.Equal([pt1 + '"' + pt2], result[0]);
     }
 
     [Theory]

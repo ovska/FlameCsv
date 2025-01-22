@@ -49,28 +49,30 @@ public static class MetaTests
         Assert.False(meta.IsStart);
     }
 
-    public static TheoryData<uint, uint> InvalidMetaData => new()
-    {
-        { 0, 1 },
-        { 0, 3 },
-        { 1, 0 },
-        { 1, 1 },
-        { 1, 2 },
-        { 3, 0 },
-        { 3, 2 },
-        { 3, 3 },
-    };
+    public static TheoryData<uint, uint> InvalidMetaData
+        => new()
+        {
+            { 0, 1 },
+            { 0, 3 },
+            { 1, 0 },
+            { 1, 1 },
+            { 1, 2 },
+            { 3, 0 },
+            { 3, 2 },
+            { 3, 3 },
+        };
 
     [Theory]
     [MemberData(nameof(InvalidMetaData))]
     public static void Should_Validate_Args(uint quoteCount, uint escapeCount)
     {
-        Assert.Throws<CsvFormatException>(() =>
-        {
-           _ = escapeCount == 0
-                ? Meta.RFC(0, quoteCount)
-                : Meta.Unix(0, quoteCount, escapeCount);
-        });
+        Assert.Throws<CsvFormatException>(
+            () =>
+            {
+                _ = escapeCount == 0
+                    ? Meta.RFC(0, quoteCount)
+                    : Meta.Unix(0, quoteCount, escapeCount);
+            });
     }
 
     [Fact]
@@ -121,7 +123,12 @@ public static class MetaTests
         for (int i = 0; i < metaBuffer.Length; i++)
         {
             Meta meta = metaBuffer[i];
-            ReadOnlySpan<char> field = meta.GetField(in CsvOptions<char>.Default.Dialect, start, data.AsSpan(), []);
+            ReadOnlySpan<char> field = meta.GetField(
+                in CsvOptions<char>.Default.Dialect,
+                start,
+                data.AsSpan(),
+                [],
+                null!);
             Assert.Equal(expected[i], field.ToString());
 
             start = meta.GetNextStart(2);

@@ -6,11 +6,6 @@
 public interface ICsvRecordFields<T> where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
-    /// Gets the CSV options associated with the record.
-    /// </summary>
-    CsvOptions<T> Options { get; }
-
-    /// <summary>
     /// Gets the number of fields in the record.
     /// </summary>
     int FieldCount { get; }
