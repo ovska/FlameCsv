@@ -4,7 +4,6 @@ using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Reading;
 using System.Text;
-using FlameCsv.Extensions;
 using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Benchmark;
