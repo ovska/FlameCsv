@@ -13,8 +13,6 @@ public static class ConverterOverrideTests
 
     private sealed class CurrencyConverter : CsvConverter<char, double>
     {
-        private readonly NumberFormatInfo _nfi = new CultureInfo("en-US").NumberFormat;
-
         public override bool TryFormat(Span<char> destination, double value, out int charsWritten)
         {
             throw new NotSupportedException();
@@ -22,7 +20,7 @@ public static class ConverterOverrideTests
 
         public override bool TryParse(ReadOnlySpan<char> source, out double value)
         {
-            return double.TryParse(source, NumberStyles.Currency, _nfi, out value);
+            return double.TryParse(source, NumberStyles.Currency, new CultureInfo("en-US").NumberFormat, out value);
         }
     }
 

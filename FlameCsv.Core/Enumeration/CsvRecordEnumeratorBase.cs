@@ -50,7 +50,7 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
     internal CsvRecordEnumeratorBase(CsvOptions<T> options)
     {
         _parser = CsvParser.Create(options);
-        _state = new EnumeratorState<T>(_parser);
+        _state = new EnumeratorState<T>(options);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

@@ -15,10 +15,12 @@ namespace FlameCsv;
 /// <summary>
 /// Contains the token configuration for reading and writing CSV.
 /// </summary>
+/// <remarks>Internal implementation detail.</remarks>
 /// <typeparam name="T">Token type</typeparam>
 /// <seealso cref="CsvOptions{T}.Dialect"/>
 [PublicAPI]
-public readonly struct CsvDialect<T>() where T : unmanaged, IBinaryInteger<T>
+public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>>
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <inheritdoc cref="CsvOptions{T}.Delimiter"/>
     public required T Delimiter { get; init; }
@@ -348,6 +350,36 @@ public readonly struct CsvDialect<T>() where T : unmanaged, IBinaryInteger<T>
             }
         }
     }
+
+    public override bool Equals([NotNullWhen(true)] object? obj) => obj is CsvDialect<T> other && Equals(other);
+
+    public bool Equals(CsvDialect<T> other)
+    {
+        return
+            Delimiter == other.Delimiter &&
+            Quote == other.Quote &&
+            Escape == other.Escape &&
+            Newline.Span.SequenceEqual(other.Newline.Span) &&
+            Whitespace.Span.SequenceEqual(other.Whitespace.Span);
+    }
+
+    public override int GetHashCode()
+    {
+        HashCode hash = new();
+
+        hash.Add(Delimiter);
+        hash.Add(Quote);
+        hash.Add(Escape);
+        hash.Add(Newline.IsEmpty);
+        foreach (var c in Newline.Span) hash.Add(c);
+        hash.Add(Whitespace.IsEmpty);
+        foreach (var c in Whitespace.Span) hash.Add(c);
+
+        return hash.ToHashCode();
+    }
+
+    public static bool operator ==(CsvDialect<T> left, CsvDialect<T> right) => left.Equals(right);
+    public static bool operator !=(CsvDialect<T> left, CsvDialect<T> right) => !(left == right);
 }
 
 // throwhelper doesn't need to be generic
