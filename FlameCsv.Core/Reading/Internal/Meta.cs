@@ -146,6 +146,11 @@ internal readonly struct Meta
         CsvParser<T> parser)
         where T : unmanaged, IBinaryInteger<T>
     {
+        // Preliminary testing with a small amount of real world data:
+        // - 91.42% of fields have no quotes
+        // - 8,51% of fields have just the wrapping quotes
+        // - 0,08% of fields have quotes embedded, i.e. "John ""The Man"" Smith"
+
         Debug.Assert(data.Length >= End - start);
 
         int length = End - start;
@@ -169,6 +174,7 @@ internal readonly struct Meta
         CsvParser<T> parser)
         where T : unmanaged, IBinaryInteger<T>
     {
+        // trim before unquoting to preserve whitespace in strings
         if (!dialect.Whitespace.IsEmpty)
         {
             field = field.Trim(dialect.Whitespace);
@@ -178,9 +184,7 @@ internal readonly struct Meta
         {
             uint specialCount = SpecialCount;
 
-            if (field.Length <= 1 ||
-                field.DangerousGetReference() != dialect.Quote ||
-                field.DangerousGetReferenceAt(field.Length - 1) != dialect.Quote)
+            if (field.Length <= 1 || field[0] != dialect.Quote || field[^1] != dialect.Quote)
             {
                 Unescape.Invalid(field, in this);
             }
