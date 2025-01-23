@@ -133,7 +133,7 @@ internal readonly struct Meta
              + end // end index
              + isEOLMask // -1 if EOL, 0 otherwise (to clear the delimiter)
              + isStartMask // -1 if the start, 0 otherwise (to clear the delimiter)
-             - (isEOLMask * newlineLength); // negation of newline if EOL, 0 otherwise
+             + (isEOLMask & newlineLength); // negation of newline if EOL, 0 otherwise
         //@formatter:on
     }
 
@@ -155,7 +155,7 @@ internal readonly struct Meta
 
         Debug.Assert(data.Length >= End - start);
 
-        int length = End - start;
+        int length = (_endAndFlags & ~EOLMask) - start;
         ReadOnlySpan<T> field = MemoryMarshal.CreateReadOnlySpan(
             ref Unsafe.Add(ref MemoryMarshal.GetReference(data), (nint)(uint)start),
             length);
@@ -271,7 +271,7 @@ internal readonly struct Meta
     {
         get
         {
-            if (IsStart) return $"Start {End}";
+            if (IsStart) return $"Start: {End}";
             return $"End: {End}, IsEOL: {IsEOL}, SpecialCount: {SpecialCount}, IsEscape: {IsEscape}";
         }
     }
