@@ -7,6 +7,14 @@ public partial class TypeMapGenerator
         if (typeMap.Scope == BindingScope.Read)
             return;
 
+        var writeBindingsSorted = typeMap.Bindings.Members.Where(m => m.CanWrite).ToArray();
+
+        Array.Sort(
+            writeBindingsSorted,
+            (b1, b2) => b1.Order != b2.Order
+                ? b2.Order.CompareTo(b1.Order)
+                : String.Compare(b1.Name, b2.Name, StringComparison.Ordinal));
+
         typeMap.ThrowIfCancellationRequested();
 
         sb.Append(@"
@@ -24,14 +32,8 @@ public partial class TypeMapGenerator
 
         var converterFactorySymbol = typeMap.Symbols.CsvConverterFactory.ConstructedFrom.Construct(typeMap.TokenSymbol);
 
-        int bindingCount = 0;
-
-        foreach (var binding in typeMap.Bindings.Members)
+        foreach (var binding in writeBindingsSorted)
         {
-            if (!binding.CanWrite)
-                continue;
-
-            bindingCount++;
             sb.Append(@"
                 ");
             binding.WriteConverterId(sb);
@@ -51,16 +53,10 @@ public partial class TypeMapGenerator
         sb.Append(", ");
         sb.Append(typeMap.Type.ToDisplayString());
         sb.Append(@">
-        {
-            public int FieldCount => ");
-        sb.Append(bindingCount);
-        sb.Append(';');
+        {");
 
-        foreach (var binding in typeMap.Bindings.Members)
+        foreach (var binding in writeBindingsSorted)
         {
-            if (!binding.CanWrite)
-                continue;
-
             sb.Append(@"
             public required FlameCsv.CsvConverter<");
             sb.Append(typeMap.Token);
@@ -82,9 +78,9 @@ public partial class TypeMapGenerator
         sb.Append(@" obj)
             {");
 
-        for (int i = 0; i < typeMap.Bindings.Members.Length; i++)
+        for (int i = 0; i < writeBindingsSorted.Length; i++)
         {
-            var binding = typeMap.Bindings.Members[i];
+            var binding = writeBindingsSorted[i];
 
             if (!binding.CanWrite)
                 continue;
@@ -106,7 +102,7 @@ public partial class TypeMapGenerator
 
             sb.Append(binding.Name);
 
-            if (i < typeMap.Bindings.Members.Length - 1)
+            if (i < writeBindingsSorted.Length - 1)
             {
                 sb.Append(@");
                 writer.WriteDelimiter();");
@@ -128,18 +124,26 @@ public partial class TypeMapGenerator
         sb.Append(@"> writer)
             {");
 
-        for (int i = 0; i < typeMap.Bindings.Members.Length; i++)
+        // write directly to the writer for char and byte
+        string suffix = typeMap.TokenSymbol.SpecialType == SpecialType.System_Byte ? "u8" : "";
+        string method = typeMap.TokenSymbol.SpecialType switch
         {
-            var binding = typeMap.Bindings.Members[i];
+            SpecialType.System_Char or SpecialType.System_Byte => "WriteRaw",
+            _ => "WriteText"
+        };
 
-            if (!binding.CanWrite)
-                continue;
+        for (int i = 0; i < writeBindingsSorted.Length; i++)
+        {
+            var binding = writeBindingsSorted[i];
 
             sb.Append(@"
-                writer.WriteText(");
+                writer.");
+            sb.Append(method);
+            sb.Append('(');
             sb.Append(binding.Names[0].ToStringLiteral());
+            sb.Append(suffix);
 
-            if (i < typeMap.Bindings.Members.Length - 1)
+            if (i < writeBindingsSorted.Length - 1)
             {
                 sb.Append(@");
                 writer.WriteDelimiter();");
