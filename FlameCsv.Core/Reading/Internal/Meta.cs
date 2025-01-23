@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 
@@ -151,7 +152,6 @@ internal readonly struct Meta
         // - 8,51% of fields have just the wrapping quotes
         // - 0,08% of fields have quotes embedded, i.e. "John ""The Man"" Smith"
         // Optimizing the unescaping routine might not be worth it.
-        // TODO: profile if we should do the quote unwrapping here already and meta reader is still inlineable
 
         Debug.Assert(data.Length >= End - start);
 
@@ -233,11 +233,67 @@ internal readonly struct Meta
     public static bool TryFindNextEOL(scoped ReadOnlySpan<Meta> meta, out int index)
     {
         index = 0;
+        int unrolledEnd = meta.Length - 8;
+        int end = meta.Length;
 
-        // TODO: vectorize me
-        while (index < meta.Length)
+        ref Meta first = ref MemoryMarshal.GetReference(meta);
+
+        while (index < unrolledEnd)
         {
-            if (meta[index++].IsEOL)
+            if ((Unsafe.Add(ref first, index)._endAndFlags & EOLMask) != 0)
+            {
+                index += 1;
+                return true;
+            }
+
+            if ((Unsafe.Add(ref first, index + 1)._endAndFlags & EOLMask) != 0)
+            {
+                index += 2;
+                return true;
+            }
+
+            if ((Unsafe.Add(ref first, index + 2)._endAndFlags & EOLMask) != 0)
+            {
+                index += 3;
+                return true;
+            }
+
+            if ((Unsafe.Add(ref first, index + 3)._endAndFlags & EOLMask) != 0)
+            {
+                index += 4;
+                return true;
+            }
+
+            if ((Unsafe.Add(ref first, index + 4)._endAndFlags & EOLMask) != 0)
+            {
+                index += 5;
+                return true;
+            }
+
+            if ((Unsafe.Add(ref first, index + 5)._endAndFlags & EOLMask) != 0)
+            {
+                index += 6;
+                return true;
+            }
+
+            if ((Unsafe.Add(ref first, index + 6)._endAndFlags & EOLMask) != 0)
+            {
+                index += 7;
+                return true;
+            }
+
+            if ((Unsafe.Add(ref first, index + 7)._endAndFlags & EOLMask) != 0)
+            {
+                index += 8;
+                return true;
+            }
+
+            index += 8;
+        }
+
+        while (index < end)
+        {
+            if (Unsafe.Add(ref first, index++).IsEOL)
             {
                 return true;
             }

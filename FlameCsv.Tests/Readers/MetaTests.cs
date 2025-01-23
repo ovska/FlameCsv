@@ -163,8 +163,13 @@ public static class MetaTests
             { [false, true], 2 },
             { [false, false, true], 3 },
             { [false, false, false], -1 },
-            { Enumerable.Repeat(false, 16).Concat(Enumerable.Repeat(true, 1)).ToArray(), 17 },
-            { Enumerable.Repeat(false, 15).Concat(Enumerable.Repeat(true, 15)).ToArray(), 16 },
-            { Enumerable.Repeat(false, 16).ToArray(), -1 },
+            { R(false, 16).Concat(R(true, 1)).ToArray(), 17 },
+            { R(false, 15).Concat(R(true, 15)).ToArray(), 16 },
+            { R(false, 16).ToArray(), -1 },
+            { [..R(false, 5), true, ..R(false, 128)], 6 },
+            { [..R(false, 32), true, ..R(false, 128)], 33 },
+            { [..R(false, 129), true, ..R(false, 128)], 130 },
         };
+
+    private static IEnumerable<bool> R(bool value, int count) => Enumerable.Repeat(value, count);
 }
