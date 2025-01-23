@@ -229,7 +229,7 @@ public partial class TypeMapGenerator
             sb.Append(binding.Index);
             sb.Append(") FlameCsv.Exceptions.CsvParseException.Throw(@field, ");
             binding.WriteConverterId(sb);
-            sb.Append(", ");
+            sb.Append("!, ");
             sb.Append(binding.Name.ToStringLiteral());
             sb.Append(@");
 ");
