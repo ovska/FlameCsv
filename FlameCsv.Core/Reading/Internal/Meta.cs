@@ -155,27 +155,32 @@ internal readonly struct Meta
 
         Debug.Assert(data.Length >= End - start);
 
-        int length = (_endAndFlags & ~EOLMask) - start;
-        ReadOnlySpan<T> field = MemoryMarshal.CreateReadOnlySpan(
-            ref Unsafe.Add(ref MemoryMarshal.GetReference(data), (nint)(uint)start),
-            length);
-
-        if (field.IsEmpty || dialect.Whitespace.IsEmpty && _specialCountAndStart == 0)
+        if ((dialect.Whitespace.Length | (_specialCountAndStart & ~2)) == 0)
         {
-            return field;
+            int offset = (_specialCountAndStart >> 31 | -_specialCountAndStart >> 31) & 1;
+            int length = (_endAndFlags & ~EOLMask) - start;
+
+            return MemoryMarshal.CreateReadOnlySpan(
+                ref Unsafe.Add(ref MemoryMarshal.GetReference(data), start + offset),
+                length - offset - offset);
         }
 
-        return GetFieldCore(in dialect, field, buffer, parser);
+        return GetFieldCore(in dialect, start, data, buffer, parser);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private ReadOnlySpan<T> GetFieldCore<T>(
         scoped ref readonly CsvDialect<T> dialect,
-        ReadOnlySpan<T> field,
+        int start,
+        ReadOnlySpan<T> data,
         Span<T> buffer,
         CsvParser<T> parser)
         where T : unmanaged, IBinaryInteger<T>
     {
+        ReadOnlySpan<T> field = MemoryMarshal.CreateReadOnlySpan(
+            ref Unsafe.Add(ref MemoryMarshal.GetReference(data), (nint)(uint)start),
+            (_endAndFlags & ~EOLMask) - start);
+
         // trim before unquoting to preserve whitespace in strings
         if (!dialect.Whitespace.IsEmpty)
         {
