@@ -4,6 +4,7 @@ using System.Text;
 using FlameCsv.Extensions;
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using FlameCsv.Enumeration;
 
 namespace FlameCsv;
@@ -58,6 +59,7 @@ public static partial class CsvReader
 
     /// <inheritdoc cref="Read{T,TValue}(ReadOnlyMemory{T},CsvOptions{T})"/>
     [RUF(Messages.CompiledExpressions)]
+    [OverloadResolutionPriority(-1)]
     public static CsvValueEnumerable<T, TValue> Read<T, [DAM(Messages.ReflectionBound)] TValue>(
         ReadOnlyMemory<T> csv,
         CsvOptions<T>? options = null)
@@ -202,32 +204,36 @@ public static partial class CsvReader
         return new CsvRecordEnumerable<char>(csv.AsMemory(), options ?? CsvOptions<char>.Default);
     }
 
-    /// <summary>
-    /// Returns an enumerable that reads one record at a time from the data.
-    /// </summary>
-    /// <inheritdoc cref="Enumerate(string?, CsvOptions{char})" path="/remarks"/>
-    /// <param name="csv"><inheritdoc cref="Enumerate(string?, CsvOptions{char})" path="/param[@name='csv']"/></param>
-    /// <param name="options"><inheritdoc cref="Enumerate(string?, CsvOptions{char})" path="/param[@name='options']"/></param>
-    public static CsvRecordEnumerable<T> Enumerate<T>(
-        ReadOnlyMemory<T> csv,
-        CsvOptions<T> options)
-        where T : unmanaged, IBinaryInteger<T>
+    /// <inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)"/>
+    public static CsvRecordEnumerable<char> Enumerate(
+        ReadOnlyMemory<char> csv,
+        CsvOptions<char>? options = null)
     {
-        return new CsvRecordEnumerable<T>(csv, options);
+        return new CsvRecordEnumerable<char>(csv, options ?? CsvOptions<char>.Default);
     }
 
-    /// <summary>
-    /// Returns an enumerable that reads one record at a time from the <see cref="ReadOnlySequence{T}"/>.
-    /// </summary>
-    /// <inheritdoc cref="Enumerate(string?, CsvOptions{char})" path="/remarks"/>
-    /// <param name="csv"><inheritdoc cref="Enumerate(string?, CsvOptions{char})" path="/param[@name='csv']"/></param>
-    /// <param name="options"><inheritdoc cref="Enumerate(string?, CsvOptions{char})" path="/param[@name='options']"/></param>
-    public static CsvRecordEnumerable<T> Enumerate<T>(
-        in ReadOnlySequence<T> csv,
-        CsvOptions<T> options)
-        where T : unmanaged, IBinaryInteger<T>
+    /// <inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)"/>
+    public static CsvRecordEnumerable<byte> Enumerate(
+        ReadOnlyMemory<byte> csv,
+        CsvOptions<byte>? options = null)
     {
-        return new CsvRecordEnumerable<T>(in csv, options);
+        return new CsvRecordEnumerable<byte>(csv, options ?? CsvOptions<byte>.Default);
+    }
+
+    /// <inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)"/>
+    public static CsvRecordEnumerable<char> Enumerate(
+        in ReadOnlySequence<char> csv,
+        CsvOptions<char>? options = null)
+    {
+        return new CsvRecordEnumerable<char>(in csv, options ?? CsvOptions<char>.Default);
+    }
+
+    /// <inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)"/>
+    public static CsvRecordEnumerable<byte> Enumerate(
+        in ReadOnlySequence<byte> csv,
+        CsvOptions<byte>? options = null)
+    {
+        return new CsvRecordEnumerable<byte>(in csv, options ?? CsvOptions<byte>.Default);
     }
 
     /// <summary>
@@ -283,6 +289,7 @@ public static partial class CsvReader
     /// or wish to use a LINQ-query such as <c>First()</c> on the returned value, you should convert the records
     /// <see cref="CsvRecord{T}"/>, which makes a copy of each record's data, making it safe for later use.
     /// </remarks>
+    [OverloadResolutionPriority(1)] // Prefer byte over char for ambiguous streams
     public static CsvRecordAsyncEnumerable<byte> EnumerateAsync(
         Stream stream,
         CsvOptions<byte>? options = null,
@@ -306,12 +313,11 @@ public static partial class CsvReader
     /// <see cref="CsvRecord{T}"/>, which makes a copy of each record's data, making it safe for later use.
     /// </remarks>
     public static CsvRecordAsyncEnumerable<byte> EnumerateAsync(
-        PipeReader reader,
+        PipeReader pipeReader,
         CsvOptions<byte>? options = null)
     {
-        ArgumentNullException.ThrowIfNull(reader);
-
-        return new CsvRecordAsyncEnumerable<byte>(new PipeReaderWrapper(reader), options ?? CsvOptions<byte>.Default);
+        ArgumentNullException.ThrowIfNull(pipeReader);
+        return new CsvRecordAsyncEnumerable<byte>(new PipeReaderWrapper(pipeReader), options ?? CsvOptions<byte>.Default);
     }
 
     /// <summary>
@@ -325,4 +331,28 @@ public static partial class CsvReader
         Guard.CanRead(stream);
         return PipeReader.Create(stream, new StreamPipeReaderOptions(pool: memoryPool, leaveOpen: leaveOpen));
     }
+
+    #region Generic
+
+    /// <inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)"/>
+    [OverloadResolutionPriority(-1)]
+    public static CsvRecordEnumerable<T> Enumerate<T>(
+        ReadOnlyMemory<T> csv,
+        CsvOptions<T>? options = null)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        return new CsvRecordEnumerable<T>(csv, options ?? CsvOptions<T>.Default);
+    }
+
+    /// <inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)"/>
+    [OverloadResolutionPriority(-1)]
+    public static CsvRecordEnumerable<T> Enumerate<T>(
+        in ReadOnlySequence<T> csv,
+        CsvOptions<T>? options = null)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        return new CsvRecordEnumerable<T>(in csv, options ?? CsvOptions<T>.Default);
+    }
+
+    #endregion
 }
