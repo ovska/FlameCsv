@@ -6,6 +6,8 @@ using System.Text;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
 
+// ReSharper disable UnusedMember.Global
+
 namespace FlameCsv.Extensions;
 
 internal static class UtilityExtensions

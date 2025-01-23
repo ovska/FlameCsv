@@ -150,6 +150,8 @@ internal readonly struct Meta
         // - 91.42% of fields have no quotes
         // - 8,51% of fields have just the wrapping quotes
         // - 0,08% of fields have quotes embedded, i.e. "John ""The Man"" Smith"
+        // Optimizing the unescaping routine might not be worth it.
+        // TODO: profile if we should do the quote unwrapping here already and meta reader is still inlineable
 
         Debug.Assert(data.Length >= End - start);
 

@@ -147,6 +147,27 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
     }
 
     /// <summary>
+    /// Writes raw value to the writer.
+    /// </summary>
+    /// <param name="value">Value to write</param>
+    /// <param name="skipEscaping">Don't validate, escape or quote the written value in any way</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void WriteRaw(ReadOnlySpan<T> value, bool skipEscaping = false)
+    {
+        scoped Span<T> destination = Writer.GetSpan(value.Length);
+        value.CopyTo(destination);
+
+        if (!skipEscaping)
+        {
+            AdvanceAndHandleQuoting(destination, tokensWritten: value.Length);
+        }
+        else
+        {
+            Writer.Advance(value.Length);
+        }
+    }
+
+    /// <summary>
     /// Writes <see cref="CsvOptions{T}.Delimiter"/> to the writer.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -186,9 +207,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         }
     }
 
-    private void AdvanceAndHandleQuoting(
-        scoped Span<T> destination,
-        int tokensWritten)
+    private void AdvanceAndHandleQuoting(scoped Span<T> destination, int tokensWritten)
     {
         // empty writes don't need escaping
         if (tokensWritten == 0)

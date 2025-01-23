@@ -3,6 +3,8 @@ using System.Text;
 using System.Text.Unicode;
 using JetBrains.Annotations;
 
+// ReSharper disable UnusedMember.Global
+
 namespace FlameCsv.Utilities;
 
 internal static class Utf8Util
