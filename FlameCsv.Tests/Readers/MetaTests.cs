@@ -143,13 +143,15 @@ public static class MetaTests
     {
         var metas = values.Select(b => Meta.Plain(0, isEOL: b)).ToArray();
 
+        ref Meta first = ref metas[0];
+
         if (expected == -1)
         {
-            Assert.False(Meta.TryFindNextEOL(metas, out _));
+            Assert.False(Meta.TryFindNextEOL(ref first, metas.Length, out _));
         }
         else
         {
-            Assert.True(Meta.TryFindNextEOL(metas, out int index));
+            Assert.True(Meta.TryFindNextEOL(ref first, metas.Length, out int index));
             Assert.Equal(expected, index);
         }
     }
@@ -157,7 +159,6 @@ public static class MetaTests
     public static TheoryData<bool[], int> NewlineData
         => new()
         {
-            { [], -1 },
             { [true], 1 },
             { [true, false], 1 },
             { [false, true], 2 },

@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -102,6 +103,11 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
     private int _metaIndex;
 
     /// <summary>
+    /// The memory that the meta fields are based on.
+    /// </summary>
+    private ReadOnlyMemory<T> _metaMemory;
+
+    /// <summary>
     /// Whether we have an ASCII dialect, and buffering isn't disabled.
     /// </summary>
     private readonly bool _canUseFastPath;
@@ -139,8 +145,10 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
         using (_unescapeBuffer)
         using (_multisegmentBuffer)
         {
+            // don't hold on to any references to the data after disposing
             _sequence = default;
-            _multisegmentBuffer = null;
+            _metaMemory = default;
+
             ArrayPool<Meta>.Shared.Return(_metaArray);
             _metaArray = [];
         }
@@ -157,6 +165,7 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
     {
         _metaCount = 0;
         _metaIndex = 0;
+        _metaMemory = default; // don't hold on to the memory from last read
         _sequence = sequence;
     }
 
@@ -176,9 +185,18 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
     {
         if (_metaIndex < _metaCount)
         {
-            if (Meta.TryFindNextEOL(_metaArray.AsSpan((1 + _metaIndex)..(_metaCount + 1)), out int fieldCount))
+            ref Meta metaRef = ref MemoryMarshal.GetArrayDataReference(_metaArray);
+
+            if (Meta.TryFindNextEOL(
+                    first: ref Unsafe.Add(ref metaRef, 1 + _metaIndex),
+                    end: _metaCount - _metaIndex + 1,
+                    index: out int fieldCount))
             {
-                line = new CsvLine<T>(this, _sequence.First, _metaArray.AsSpan(_metaIndex, fieldCount + 1));
+                line = new CsvLine<T>(
+                    parser: this,
+                    data: _metaMemory,
+                    fields: MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref metaRef, _metaIndex), fieldCount + 1));
+
                 _metaIndex += fieldCount;
                 return true;
             }
@@ -196,8 +214,13 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
 
         var lastEOL = _metaArray[_metaIndex];
 
-        Debug.Assert(lastEOL.IsEOL);
+        if (!lastEOL.IsEOL)
+        {
+            // TODO: better error message
+            Throw.Unreachable("Last read line was not an EOL");
+        }
 
+        _metaMemory = default;  // don't hold on to the memory from last read
         _sequence = _sequence.Slice(lastEOL.GetNextStart(_newline.Length));
         _metaCount = 0;
         _metaIndex = 0;
@@ -240,6 +263,7 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
             {
                 _metaIndex = 0;
                 _metaCount = lastIndex + 1;
+                _metaMemory = _sequence.First;
                 return TryReadLine(out line, isFinalBlock);
             }
         }
