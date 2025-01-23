@@ -1,6 +1,5 @@
 ﻿using System.Buffers;
 using System.Collections;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using FlameCsv.Reading.Internal;
@@ -13,8 +12,8 @@ namespace FlameCsv.Reading;
 /// </summary>
 /// <typeparam name="T"></typeparam>
 [DebuggerDisplay("{ToString(),nq}")]
-[EditorBrowsable(EditorBrowsableState.Never)]
 [DebuggerTypeProxy(typeof(CsvLine<>.CsvLineDebugView))]
+[method: MethodImpl(MethodImplOptions.AggressiveInlining)]
 internal readonly ref struct CsvLine<T>(
     CsvParser<T> parser,
     ReadOnlyMemory<T> data,
@@ -104,9 +103,10 @@ internal readonly ref struct CsvLine<T>(
             var reader = new MetaFieldReader<T>(in line, unescapeBuffer);
 
             Items = new string[reader.FieldCount];
+
             for (int i = 0; i < reader.FieldCount; i++)
             {
-                Items[i] = reader[i].ToString();
+                Items[i] = CsvOptions<T>.Default.GetAsString(reader[i]);
             }
         }
 

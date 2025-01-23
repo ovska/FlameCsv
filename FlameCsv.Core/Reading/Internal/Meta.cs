@@ -230,13 +230,13 @@ internal readonly struct Meta
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryFindNextEOL(scoped ReadOnlySpan<Meta> meta, out int index)
+    public static bool TryFindNextEOL(
+        scoped ref Meta first,
+        int end,
+        out int index)
     {
         index = 0;
-        int unrolledEnd = meta.Length - 8;
-        int end = meta.Length;
-
-        ref Meta first = ref MemoryMarshal.GetReference(meta);
+        int unrolledEnd = end - 8;
 
         while (index < unrolledEnd)
         {
