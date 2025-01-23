@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using FlameCsv.Extensions;
@@ -41,7 +40,7 @@ internal readonly ref struct MetaFieldReader<T> : ICsvRecordFields<T> where T : 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            if ((uint)index > (uint)_fieldCount)
+            if ((uint)index >= (uint)_fieldCount)
                 Throw.Argument_FieldIndex(index, _fieldCount);
 
             ref Meta meta = ref Unsafe.Add(ref _firstMeta, index + 1);
