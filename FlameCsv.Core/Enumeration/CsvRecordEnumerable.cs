@@ -37,7 +37,7 @@ public readonly struct CsvRecordEnumerable<T> : IEnumerable<CsvValueRecord<T>> w
     public CsvRecordEnumerator<T> GetEnumerator()
     {
         Throw.IfDefaultStruct(_options is null, typeof(CsvRecordEnumerable<T>));
-        return new(in _csv, _options);
+        return new CsvRecordEnumerator<T>(in _csv, _options);
     }
 
     /// <inheritdoc cref="CsvRecordAsyncEnumerable{T}.Preserve"/>

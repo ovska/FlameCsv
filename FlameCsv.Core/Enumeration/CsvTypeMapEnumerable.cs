@@ -34,7 +34,7 @@ public sealed class CsvTypeMapEnumerable<T, TValue> : IEnumerable<TValue> where 
     [MustDisposeResource]
     public CsvValueEnumerator<T, TValue> GetEnumerator()
     {
-        return new CsvValueEnumerator<T, TValue>(_data, _options, _typeMap);
+        return new CsvValueEnumerator<T, TValue>(in _data, _options, _typeMap);
     }
 
     [MustDisposeResource] IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator() => GetEnumerator();

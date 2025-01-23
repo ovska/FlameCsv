@@ -30,7 +30,7 @@ public sealed class CsvValueEnumerable<T, [DAM(Messages.ReflectionBound)] TValue
     [MustDisposeResource]
     public CsvValueEnumerator<T, TValue> GetEnumerator()
     {
-        return new CsvValueEnumerator<T, TValue>(_data, _options, materializer: null);
+        return new CsvValueEnumerator<T, TValue>(in _data, _options, materializer: null);
     }
 
     IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator() => GetEnumerator();

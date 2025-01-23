@@ -29,16 +29,6 @@ public sealed class CsvValueAsyncEnumerator<T, TValue> : CsvValueEnumeratorBase<
 
     internal CsvValueAsyncEnumerator(
         CsvOptions<T> options,
-        IMaterializer<T, TValue>? materializer,
-        ICsvPipeReader<T> reader,
-        CancellationToken cancellationToken) : base(options, materializer)
-    {
-        _reader = reader;
-        _cancellationToken = cancellationToken;
-    }
-
-    internal CsvValueAsyncEnumerator(
-        CsvOptions<T> options,
         CsvTypeMap<T, TValue> typeMap,
         ICsvPipeReader<T> reader,
         CancellationToken cancellationToken) : base(options, typeMap)

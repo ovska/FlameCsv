@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.IO.Pipelines;
+using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.Binding;
 using FlameCsv.Reading;
@@ -46,6 +47,7 @@ public static partial class CsvReader
             typeMap);
     }
 
+    [OverloadResolutionPriority(-1)]
     public static CsvTypeMapEnumerable<T, TValue> Read<T, TValue>(
         ReadOnlyMemory<T> csv,
         CsvTypeMap<T, TValue> typeMap,
