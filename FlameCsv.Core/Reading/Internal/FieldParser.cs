@@ -5,6 +5,22 @@ using System.Runtime.InteropServices;
 
 namespace FlameCsv.Reading.Internal;
 
+/*
+ * For general purpose data with occasional quotes:
+ * 50% of vectors have only delimiters.
+ * 30% of vectors have quotes or are continuations from previous string.
+ * 7% of vectors have delimiters followed by newline(s) (worthwhile optimization, thanks Sep).
+ * 5% of vectors are in the middle of a string and have no quotes (can be skipped).
+ * 4% of vectors have nothing in them.
+ * 2% of vectors have delimiters and newlines mixed in order (surprising).
+ * 1,5% of vectors have newline(s) before delimiter(s) (not worth to pursue further).
+ * 0,6% of vectors have only newlines (very small %).
+ *
+ * For very short fields without quotes, only 1,3% of vectors have only delimiters.
+ * The Rest is mixed delimiters and newlines.
+ * TODO: profile the sequential parser and figure out some heuristic so we know what to optimize for.
+ */
+
 [SkipLocalsInit]
 [SuppressMessage("ReSharper", "InlineTemporaryVariable")]
 internal static class FieldParser<T, TNewline, TVector>
@@ -80,9 +96,6 @@ internal static class FieldParser<T, TNewline, TVector>
 
                 if (maskDelimiter != 0)
                 {
-                    // TODO: profile this with real-life data to see if the check should be reversed as well
-                    // i.e. are fields at the beginning of a line commonly short
-
                     nuint maskNewline = maskNewlineOrDelimiter & ~maskDelimiter;
                     int indexNewline = BitOperations.TrailingZeroCount(maskNewline);
 
