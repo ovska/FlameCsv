@@ -33,7 +33,11 @@ internal readonly ref struct MetaFieldReader<T> : ICsvRecordFields<T> where T : 
         _unescapeBuffer = unescapeBuffer;
     }
 
-    public int FieldCount => _fieldCount;
+    public int FieldCount
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _fieldCount;
+    }
 
     public ReadOnlySpan<T> this[int index]
     {
