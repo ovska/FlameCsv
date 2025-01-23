@@ -10,13 +10,13 @@ public sealed class CsvValueEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TV
     where T : unmanaged, IBinaryInteger<T>
 {
     [RUF(Messages.CompiledExpressions)]
-    internal CsvValueEnumerator(ReadOnlySequence<T> csv, CsvOptions<T> options, IMaterializer<T, TValue>? materializer)
+    internal CsvValueEnumerator(in ReadOnlySequence<T> csv, CsvOptions<T> options, IMaterializer<T, TValue>? materializer)
         : base(options, materializer)
     {
         _parser.Reset(in csv);
     }
 
-    internal CsvValueEnumerator(ReadOnlySequence<T> csv, CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
+    internal CsvValueEnumerator(in ReadOnlySequence<T> csv, CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
         : base(options, typeMap)
     {
         ArgumentNullException.ThrowIfNull(typeMap);

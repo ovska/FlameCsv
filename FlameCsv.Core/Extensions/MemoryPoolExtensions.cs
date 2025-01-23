@@ -93,6 +93,7 @@ internal class HeapMemoryPool<T> : MemoryPool<T>
 {
     public static HeapMemoryPool<T> Instance { get; } = new();
 
+    // ReSharper disable once UnusedMember.Global
     [Obsolete("Use Instance instead, this returns MemoryPool<T>.Shared", true)]
     public new static MemoryPool<T> Shared => throw new NotSupportedException();
 
