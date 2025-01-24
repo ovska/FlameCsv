@@ -47,6 +47,7 @@ internal struct WritableBuffer<T> : IDisposable where T : unmanaged, IBinaryInte
         _owner = HeapMemoryOwner<T>.Empty;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Push(ReadOnlySpan<T> value)
     {
         ObjectDisposedException.ThrowIf(_items is null, typeof(WritableBuffer<T>));
@@ -63,6 +64,7 @@ internal struct WritableBuffer<T> : IDisposable where T : unmanaged, IBinaryInte
         _items.Add(new Range(start, start + value.Length));
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Clear()
     {
         ObjectDisposedException.ThrowIf(_items is null, typeof(WritableBuffer<T>));

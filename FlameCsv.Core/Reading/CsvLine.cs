@@ -1,9 +1,6 @@
-﻿using System.Buffers;
-using System.Collections;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using FlameCsv.Reading.Internal;
-using JetBrains.Annotations;
 
 namespace FlameCsv.Reading;
 
@@ -13,17 +10,20 @@ namespace FlameCsv.Reading;
 /// <typeparam name="T"></typeparam>
 [DebuggerDisplay("{ToString(),nq}")]
 [DebuggerTypeProxy(typeof(CsvLine<>.CsvLineDebugView))]
-[method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-internal readonly ref struct CsvLine<T>(
-    CsvParser<T> parser,
-    ReadOnlyMemory<T> data,
-    ReadOnlySpan<Meta> fields)
-    where T : unmanaged, IBinaryInteger<T>
+public readonly ref struct CsvLine<T> : ICsvRecordFields<T> where T : unmanaged, IBinaryInteger<T>
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal CsvLine(CsvParser<T> parser, ReadOnlyMemory<T> data, ReadOnlySpan<Meta> fields)
+    {
+        Data = data;
+        Fields = fields;
+        Parser = parser;
+    }
+
     /// <summary>
     /// Raw value the fields point to.
     /// </summary>
-    public ReadOnlyMemory<T> Data { get; } = data;
+    internal ReadOnlyMemory<T> Data { get; }
 
     /// <summary>
     /// Field end indexes and special character counts.
@@ -31,9 +31,9 @@ internal readonly ref struct CsvLine<T>(
     /// <remarks>
     /// Contains one extra field at start denoting the start index inf <see cref="Data"/>.
     /// </remarks>
-    public ReadOnlySpan<Meta> Fields { get; } = fields;
+    internal ReadOnlySpan<Meta> Fields { get; }
 
-    public CsvParser<T> Parser { get; } = parser;
+    internal CsvParser<T> Parser { get; }
 
     /// <summary>
     /// Length of the raw record, not including possible trailing newline.
@@ -64,37 +64,6 @@ internal readonly ref struct CsvLine<T>(
         return $"{{ CsvLine<{Token<T>.Name}>[{Fields.Length - 1}]: \"{Parser.Options.GetAsString(Record.Span)}\" }}";
     }
 
-    public static LineEnumerator Enumerate(in ReadOnlySequence<T> data, CsvOptions<T>? options = null)
-    {
-        return new LineEnumerator(options ?? CsvOptions<T>.Default, data);
-    }
-
-    public ref struct LineEnumerator : IEnumerator<CsvLine<T>>
-    {
-        [HandlesResourceDisposal] private readonly CsvParser<T> _parser;
-        private CsvLine<T> _current;
-
-        public LineEnumerator(CsvOptions<T> options, in ReadOnlySequence<T> data)
-        {
-            _parser = CsvParser.Create(options);
-            _parser.Reset(in data);
-        }
-
-        public bool MoveNext() => _parser.TryReadLine(out _current, false);
-
-        public CsvLine<T> Current => _current;
-
-        public void Reset() => throw new NotSupportedException();
-        object IEnumerator.Current => throw new NotSupportedException();
-
-        public void Dispose()
-        {
-            using (_parser) this = default;
-        }
-
-        public LineEnumerator GetEnumerator() => this;
-    }
-
     private class CsvLineDebugView
     {
         public CsvLineDebugView(CsvLine<T> line)
@@ -114,4 +83,15 @@ internal readonly ref struct CsvLine<T>(
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         public string[] Items { get; }
     }
+
+    public int FieldCount => Fields.Length - 1;
+
+    ReadOnlySpan<T> ICsvRecordFields<T>.this[int index]
+        => Fields[index + 1]
+            .GetField(
+                dialect: in Parser._dialect,
+                start: Fields[index].GetNextStart(Parser._newline.Length),
+                data: Data.Span,
+                buffer: [],
+                parser: Parser);
 }

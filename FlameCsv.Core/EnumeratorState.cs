@@ -75,10 +75,11 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
         _fields.Clear();
 
         Span<T> unescapeBuffer = stackalloc T[Token<T>.StackLength];
+        MetaFieldReader<T> reader = new(in line, unescapeBuffer);
 
-        foreach (ReadOnlySpan<T> field in new MetaFieldReader<T>(in line, unescapeBuffer))
+        for (int i = 0; i < reader.FieldCount; i++)
         {
-            _fields.Push(field);
+            _fields.Push(reader[i]);
         }
 
         _record = line.Data;

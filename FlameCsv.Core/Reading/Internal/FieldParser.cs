@@ -7,14 +7,14 @@ namespace FlameCsv.Reading.Internal;
 
 /*
  * For general purpose data with occasional quotes:
- * 50% of vectors have only delimiters.
- * 30% of vectors have quotes or are continuations from previous string.
- * 7% of vectors have delimiters followed by newline(s) (worthwhile optimization, thanks Sep).
- * 5% of vectors are in the middle of a string and have no quotes (can be skipped).
- * 4% of vectors have nothing in them.
- * 2% of vectors have delimiters and newlines mixed in order (surprising).
- * 1,5% of vectors have newline(s) before delimiter(s) (not worth to pursue further).
- * 0,6% of vectors have only newlines (very small %).
+ * 50% of vectors had only delimiters.
+ * 30% of vectors had quotes or are continuations from previous string.
+ * 7% of vectors had delimiters followed by newline(s) (worthwhile optimization, thanks Sep).
+ * 5% of vectors were in the middle of a string and had no quotes (can be skipped).
+ * 4% of vectors had nothing in them.
+ * 2% of vectors had delimiters and newlines mixed in order (surprising).
+ * 1,5% of vectors had newline(s) before delimiter(s) (not worth to pursue further).
+ * 0,6% of vectors had only newlines (very small %).
  *
  * For very short fields without quotes, only 1,3% of vectors have only delimiters.
  * The Rest is mixed delimiters and newlines.
@@ -152,7 +152,7 @@ internal static class FieldParser<T, TNewline, TVector>
             continue;
 
         TrySkipQuoted:
-            // there are unresolveds quotes but the current vector had none
+            // there are unresolved quotes but the current vector had none
             Debug.Assert(hasQuote == TVector.Zero);
 
             // verifiably in a string?
