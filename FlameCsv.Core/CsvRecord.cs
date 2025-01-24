@@ -10,8 +10,7 @@ namespace FlameCsv;
 /// Represents a single CSV record.
 /// </summary>
 /// <remarks>
-/// This class copies the data in the record, and can thus be preserved even after the record enumeration
-/// continues or ends.
+/// This class is a self-contained copy of a CSV record.
 /// </remarks>
 public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> where T : unmanaged, IBinaryInteger<T>
 {
@@ -42,6 +41,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     /// <summary>
     /// Returns the headers in the current CSV.
     /// </summary>
+    /// <seealso cref="HasHeader"/>
     /// <exception cref="NotSupportedException">Options has been configured to read headered CSV</exception>
     public ReadOnlySpan<string> Header
     {
