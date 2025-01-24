@@ -171,7 +171,6 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
     }
 
     /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public TValue GetField<TValue>(int index)
     {
         _state.EnsureVersion(_version);

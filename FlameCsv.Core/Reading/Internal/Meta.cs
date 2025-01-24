@@ -2,7 +2,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 
@@ -24,7 +23,7 @@ internal readonly struct Meta
     private const int StartMask = unchecked((int)0x80000000);
 
     /// <summary>
-    /// Mask on <see cref="_specialCountAndStart"/> to check if this meta is for a unix-style escaped meta.
+    /// Mask on <see cref="_specialCountAndStart"/> to check if this meta is for unix-style escaped meta.
     /// </summary>
     private const int IsEscapeMask = 0x40000000;
 
@@ -165,11 +164,11 @@ internal readonly struct Meta
                 length - offset - offset);
         }
 
-        return GetFieldCore(in dialect, start, data, buffer, parser);
+        return GetFieldSlow(in dialect, start, data, buffer, parser);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private ReadOnlySpan<T> GetFieldCore<T>(
+    private ReadOnlySpan<T> GetFieldSlow<T>(
         scoped ref readonly CsvDialect<T> dialect,
         int start,
         ReadOnlySpan<T> data,
