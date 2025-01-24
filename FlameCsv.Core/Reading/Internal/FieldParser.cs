@@ -18,7 +18,8 @@ namespace FlameCsv.Reading.Internal;
  *
  * For very short fields without quotes, only 1,3% of vectors have only delimiters.
  * The Rest is mixed delimiters and newlines.
- * TODO: profile the sequential parser and figure out some heuristic so we know what to optimize for.
+ *
+ * The sequential parser is always slower, no matter how small the input.
  */
 
 [SkipLocalsInit]

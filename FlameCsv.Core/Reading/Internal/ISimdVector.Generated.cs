@@ -4,6 +4,8 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Text;
 
+#pragma warning disable CS0649 // Field is never assigned to, and will always have its default value
+
 namespace FlameCsv.Reading.Internal;
 
 internal static class SimdVector
@@ -40,7 +42,6 @@ internal static class SimdVector
                 return true;
             }
         }
-
         if (Unsafe.SizeOf<T>() == sizeof(byte))
         {
             if (Vec256Byte.IsSupported)
@@ -81,10 +82,9 @@ internal interface ISimdVector<T, TVector>
     [JetBrains.Annotations.Pure] nuint ExtractMostSignificantBits();
 }
 
-[method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-internal readonly struct Vec64Char(Vector64<byte> value) : ISimdVector<char, Vec64Char>
+internal readonly struct Vec64Char : ISimdVector<char, Vec64Char>
 {
-    private readonly Vector64<byte> _value = value;
+    private readonly Vector64<byte> _value;
 
     public static bool IsSupported
     {
@@ -139,17 +139,17 @@ internal readonly struct Vec64Char(Vector64<byte> value) : ISimdVector<char, Vec
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Vec64Char left, Vec64Char right) => left._value != right._value;
 
-    public static implicit operator Vec64Char(Vector64<byte> value) => new Vec64Char(value);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator Vec64Char(Vector64<byte> value) => Unsafe.As<Vector64<byte>, Vec64Char>(ref value);
 
     public override string ToString() => _value.ToString();
     public override bool Equals(object obj) => throw new NotSupportedException();
     public override int GetHashCode() => throw new NotSupportedException();
 }
 
-[method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-internal readonly struct Vec128Char(Vector128<byte> value) : ISimdVector<char, Vec128Char>
+internal readonly struct Vec128Char : ISimdVector<char, Vec128Char>
 {
-    private readonly Vector128<byte> _value = value;
+    private readonly Vector128<byte> _value;
 
     public static bool IsSupported
     {
@@ -204,17 +204,17 @@ internal readonly struct Vec128Char(Vector128<byte> value) : ISimdVector<char, V
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Vec128Char left, Vec128Char right) => left._value != right._value;
 
-    public static implicit operator Vec128Char(Vector128<byte> value) => new Vec128Char(value);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator Vec128Char(Vector128<byte> value) => Unsafe.As<Vector128<byte>, Vec128Char>(ref value);
 
     public override string ToString() => _value.ToString();
     public override bool Equals(object obj) => throw new NotSupportedException();
     public override int GetHashCode() => throw new NotSupportedException();
 }
 
-[method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-internal readonly struct Vec256Char(Vector256<byte> value) : ISimdVector<char, Vec256Char>
+internal readonly struct Vec256Char : ISimdVector<char, Vec256Char>
 {
-    private readonly Vector256<byte> _value = value;
+    private readonly Vector256<byte> _value;
 
     public static bool IsSupported
     {
@@ -269,17 +269,17 @@ internal readonly struct Vec256Char(Vector256<byte> value) : ISimdVector<char, V
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Vec256Char left, Vec256Char right) => left._value != right._value;
 
-    public static implicit operator Vec256Char(Vector256<byte> value) => new Vec256Char(value);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator Vec256Char(Vector256<byte> value) => Unsafe.As<Vector256<byte>, Vec256Char>(ref value);
 
     public override string ToString() => _value.ToString();
     public override bool Equals(object obj) => throw new NotSupportedException();
     public override int GetHashCode() => throw new NotSupportedException();
 }
 
-[method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-internal readonly struct Vec64Byte(Vector64<byte> value) : ISimdVector<byte, Vec64Byte>
+internal readonly struct Vec64Byte : ISimdVector<byte, Vec64Byte>
 {
-    private readonly Vector64<byte> _value = value;
+    private readonly Vector64<byte> _value;
 
     public static bool IsSupported
     {
@@ -325,17 +325,17 @@ internal readonly struct Vec64Byte(Vector64<byte> value) : ISimdVector<byte, Vec
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Vec64Byte left, Vec64Byte right) => left._value != right._value;
 
-    public static implicit operator Vec64Byte(Vector64<byte> value) => new Vec64Byte(value);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator Vec64Byte(Vector64<byte> value) => Unsafe.As<Vector64<byte>, Vec64Byte>(ref value);
 
     public override string ToString() => _value.ToString();
     public override bool Equals(object obj) => throw new NotSupportedException();
     public override int GetHashCode() => throw new NotSupportedException();
 }
 
-[method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-internal readonly struct Vec128Byte(Vector128<byte> value) : ISimdVector<byte, Vec128Byte>
+internal readonly struct Vec128Byte : ISimdVector<byte, Vec128Byte>
 {
-    private readonly Vector128<byte> _value = value;
+    private readonly Vector128<byte> _value;
 
     public static bool IsSupported
     {
@@ -381,17 +381,17 @@ internal readonly struct Vec128Byte(Vector128<byte> value) : ISimdVector<byte, V
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Vec128Byte left, Vec128Byte right) => left._value != right._value;
 
-    public static implicit operator Vec128Byte(Vector128<byte> value) => new Vec128Byte(value);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator Vec128Byte(Vector128<byte> value) => Unsafe.As<Vector128<byte>, Vec128Byte>(ref value);
 
     public override string ToString() => _value.ToString();
     public override bool Equals(object obj) => throw new NotSupportedException();
     public override int GetHashCode() => throw new NotSupportedException();
 }
 
-[method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-internal readonly struct Vec256Byte(Vector256<byte> value) : ISimdVector<byte, Vec256Byte>
+internal readonly struct Vec256Byte : ISimdVector<byte, Vec256Byte>
 {
-    private readonly Vector256<byte> _value = value;
+    private readonly Vector256<byte> _value;
 
     public static bool IsSupported
     {
@@ -437,7 +437,8 @@ internal readonly struct Vec256Byte(Vector256<byte> value) : ISimdVector<byte, V
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Vec256Byte left, Vec256Byte right) => left._value != right._value;
 
-    public static implicit operator Vec256Byte(Vector256<byte> value) => new Vec256Byte(value);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator Vec256Byte(Vector256<byte> value) => Unsafe.As<Vector256<byte>, Vec256Byte>(ref value);
 
     public override string ToString() => _value.ToString();
     public override bool Equals(object obj) => throw new NotSupportedException();
