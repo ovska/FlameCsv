@@ -1,4 +1,5 @@
-﻿using System.IO.Compression;
+﻿using System.Buffers;
+using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.Reading;
@@ -8,8 +9,8 @@ namespace FlameCsv.Benchmark;
 
 public static class TestData
 {
-    private static readonly CsvOptions<byte> _optionsUtf8 = new() { Newline =  "\r\n"};
-    private static readonly CsvOptions<char> _optionsText = new() { Newline =  "\r\n"};
+    private static readonly CsvOptions<byte> _optionsUtf8 = new() { Newline = "\r\n" };
+    private static readonly CsvOptions<char> _optionsText = new() { Newline = "\r\n" };
 
     public static readonly Instance SampleCsvFile556Kb = new("SampleCSVFile_556kb.csv");
     public static readonly Instance Customers10000 = new("customers-10000.zip");
@@ -92,7 +93,7 @@ public static class TestData
                 {
                     using var lines = new ValueListBuilder<byte[]>(capacity: 1024);
 
-                    foreach (var line in CsvLine<byte>.Enumerate(new(_utf8.Value), _optionsUtf8))
+                    foreach (var line in EnumerateLines(_utf8.Value, _optionsUtf8))
                     {
                         lines.Append(line.Record.ToArray());
                     }
@@ -105,7 +106,7 @@ public static class TestData
                 {
                     using var lines = new ValueListBuilder<char[]>(capacity: 1024);
 
-                    foreach (var line in CsvLine<char>.Enumerate(new(_text.Value), _optionsText))
+                    foreach (var line in EnumerateLines(_text.Value, _optionsText))
                     {
                         lines.Append(line.Record.ToArray());
                     }
@@ -118,7 +119,7 @@ public static class TestData
                 {
                     using var lines = new ValueListBuilder<byte[]>(capacity: 1024);
 
-                    foreach (var line in CsvLine<byte>.Enumerate(new(_utf8.Value), _optionsUtf8))
+                    foreach (var line in EnumerateLines(_utf8.Value, _optionsUtf8))
                     {
                         var reader = new RawFieldReader<byte>(in line);
 
@@ -136,7 +137,7 @@ public static class TestData
                 {
                     using var lines = new ValueListBuilder<char[]>(capacity: 1024);
 
-                    foreach (var line in CsvLine<char>.Enumerate(new(_text.Value), _optionsText))
+                    foreach (var line in EnumerateLines(_text.Value, _optionsText))
                     {
                         var reader = new RawFieldReader<char>(in line);
 
@@ -156,5 +157,22 @@ public static class TestData
         private readonly Lazy<char[][]> _linesText;
         private readonly Lazy<byte[][]> _fieldsUtf8;
         private readonly Lazy<char[][]> _fieldsText;
+    }
+
+    private static IEnumerable<CsvLine<T>> EnumerateLines<T>(T[] value, CsvOptions<T> options)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        using var parser = CsvParser.Create(options);
+        parser.Reset(new ReadOnlySequence<T>(value));
+
+        while (parser.TryReadLine(out var line, isFinalBlock: false))
+        {
+            yield return line;
+        }
+
+        if (parser.TryReadLine(out var lastLine, isFinalBlock: true))
+        {
+            yield return lastLine;
+        }
     }
 }

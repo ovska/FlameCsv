@@ -23,10 +23,11 @@ file static class Extensions
                parser.TryReadLine(out line, isFinalBlock: false))
         {
             List<string> fields = [];
+            var reader = new MetaFieldReader<char>(in line, buffer);
 
-            foreach (var field in new MetaFieldReader<char>(in line, buffer))
+            for (int i = 0; i < reader.FieldCount; i++)
             {
-                fields.Add(field.ToString());
+                fields.Add(reader[i].ToString());
             }
 
             records.Add(fields);
