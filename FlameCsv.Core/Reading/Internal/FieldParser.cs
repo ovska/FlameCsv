@@ -29,7 +29,7 @@ internal static class FieldParser<T, TNewline, TVector>
     where TNewline : struct, INewlineParser<T, TVector>, allows ref struct
     where TVector : struct, ISimdVector<T, TVector>
 {
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static int Core(
         T delimiterArg,
         T quoteArg,
