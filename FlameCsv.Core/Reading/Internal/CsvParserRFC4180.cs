@@ -138,6 +138,7 @@ internal sealed class CsvParserRFC4180<T>(CsvOptions<T> options) : CsvParser<T>(
         return false;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private protected override int ReadFromFirstSpan()
     {
         Debug.Assert(_newline.Length != 0);

@@ -28,4 +28,8 @@
     <TrimmerRootAssembly Include="FlameCsv.Core" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="JetBrains.Profiler.Api" Version="1.4.8" />
+  </ItemGroup>
+
 </Project>
