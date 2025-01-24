@@ -25,11 +25,14 @@ public class CsvEnumerateBench
     private static readonly ReadOnlySequence<byte> _byteSeq = new(_bytes.AsMemory());
     private static readonly ReadOnlySequence<char> _charSeq = new(_chars.AsMemory());
 
+    private static readonly CsvOptions<byte> _optionsByte = new() { Newline = "\r\n" };
+    private static readonly CsvOptions<char> _optionsChar = new() { Newline = "\r\n" };
+
     [Benchmark(Baseline = true)]
     public void Flame_byte()
     {
         Span<byte> unescapeBuffer = stackalloc byte[256];
-        using var parser = CsvParser.Create(CsvOptions<byte>.Default);
+        using var parser = CsvParser.Create(_optionsByte);
         parser.Reset(in _byteSeq);
 
         while (parser.TryReadLine(out var line, isFinalBlock: false))
@@ -46,7 +49,7 @@ public class CsvEnumerateBench
     public void Flame_char()
     {
         Span<char> unescapeBuffer = stackalloc char[128];
-        using var parser = CsvParser.Create(CsvOptions<char>.Default);
+        using var parser = CsvParser.Create(_optionsChar);
         parser.Reset(in _charSeq);
 
         while (parser.TryReadLine(out var line, isFinalBlock: false))
@@ -69,6 +72,7 @@ public class CsvEnumerateBench
                     Sep = new Sep(','),
                     CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
                     HasHeader = false,
+                    Unescape = true,
                 })
             .From(_bytes);
 
@@ -91,6 +95,7 @@ public class CsvEnumerateBench
                     Sep = new Sep(','),
                     CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
                     HasHeader = false,
+                    Unescape = true,
                 })
             .From(new StringReader(_chars));
 

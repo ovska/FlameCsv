@@ -108,6 +108,7 @@ internal readonly ref struct NewlineParserTwo<T, TVector>(T first, T second) : I
         get => 1;
     }
 
+    // profiled: this is faster than comparing to a combined uint/ushort value
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsNewline(ref T value) => value == first && Unsafe.Add(ref value, 1) == second;
 

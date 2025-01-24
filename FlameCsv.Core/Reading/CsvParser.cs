@@ -264,7 +264,7 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
             {
                 _metaIndex = 0;
                 _metaCount = lastIndex + 1;
-                _metaMemory = _sequence.First;
+                _metaMemory = _sequence.First; // cache to avoid calling GetFirstBuffer on every record
                 return TryReadLine(out line, isFinalBlock);
             }
         }
