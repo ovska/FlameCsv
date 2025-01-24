@@ -59,6 +59,11 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>>
                 return;
             }
 
+            if (value.Length is not 1 or 2)
+            {
+                InvalidDialect.Throw(["Newline must be empty, or 1 or 2 characters long."]);
+            }
+
             _newline = value.ToArray();
         }
     }

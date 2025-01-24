@@ -23,10 +23,12 @@ public interface ICsvRecord<T> where T : unmanaged, IBinaryInteger<T>
     /// <summary>
     /// Returns the header record for the current CSV. Throws if <see cref="HasHeader"/> is <see langword="false"/>.
     /// </summary>
+    /// <seealso cref="HasHeader"/>
+    /// <exception cref="NotSupportedException">Options is configured not to have a header</exception>
     ReadOnlySpan<string> Header { get; }
 
     /// <summary>
-    /// Returns true if the header has been parsed from the CSV the record.
+    /// Returns true if the header has been parsed from the CSV the record and <see cref="Header"/> is safe to use.
     /// </summary>
     /// <remarks>
     /// The header isn't returned as a separate record, so this property is always true if the options-instance

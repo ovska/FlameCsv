@@ -8,7 +8,6 @@ namespace FlameCsv.Enumeration;
 /// <summary>
 /// Asynchronously reads data from a source into CSV records, use <see cref="CsvReader"/> to create.
 /// </summary>
-/// <typeparam name="T">Token type</typeparam>
 [PublicAPI]
 public readonly struct CsvRecordAsyncEnumerable<T> : IAsyncEnumerable<CsvValueRecord<T>>
     where T : unmanaged, IBinaryInteger<T>

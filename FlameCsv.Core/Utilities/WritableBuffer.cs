@@ -78,12 +78,15 @@ internal struct WritableBuffer<T> : IDisposable where T : unmanaged, IBinaryInte
         this = default;
     }
 
+    /// <summary>
+    /// Copies the buffer to a new array and returns individual fields as <see cref="ReadOnlyMemory{T}"/>.
+    /// </summary>
     public readonly ReadOnlyMemory<T>[] Preserve()
     {
         ObjectDisposedException.ThrowIf(_items is null, typeof(WritableBuffer<T>));
 
         if (_items.Count == 0)
-            Throw.InvalidOperation("Cannot preserve empty buffer");
+            return [];
 
         var array = new ReadOnlyMemory<T>[_items.Count];
         var buffer = new T[_items[^1].End.GetOffset(_memory.Length)];
