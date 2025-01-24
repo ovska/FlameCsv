@@ -97,7 +97,7 @@ public class CsvEnumerateBench
                     HasHeader = false,
                     Unescape = true,
                 })
-            .From(new StringReader(_chars));
+            .FromText(_chars);
 
         foreach (var row in reader)
         {
