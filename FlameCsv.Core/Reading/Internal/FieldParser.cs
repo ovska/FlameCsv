@@ -49,7 +49,7 @@ internal static class FieldParser<T, TNewline, TVector>
         ref Meta currentMeta = ref MemoryMarshal.GetReference(metaBuffer);
         ref readonly Meta metaEnd = ref Unsafe.Add(
             ref MemoryMarshal.GetReference(metaBuffer),
-            metaBuffer.Length - TVector.Count);
+            metaBuffer.Length - TVector.Count); // the worst case: data ends in Vector.Count delimiters
 
         // load the constants into registers
         T delimiter = delimiterArg;
