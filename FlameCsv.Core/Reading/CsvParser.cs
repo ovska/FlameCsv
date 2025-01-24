@@ -180,6 +180,7 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
     /// <param name="line">CSV record</param>
     /// <param name="isFinalBlock">Whether no more data is possible to read</param>
     /// <returns>True if a record was read</returns>
+    [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryReadLine(out CsvLine<T> line, bool isFinalBlock)
     {

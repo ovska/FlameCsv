@@ -19,6 +19,8 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Text;
 
+#pragma warning disable CS0649 // Field is never assigned to, and will always have its default value
+
 namespace FlameCsv.Reading.Internal;
 
 internal static class SimdVector
@@ -108,10 +110,9 @@ internal interface ISimdVector<T, TVector>
             string typeName = $"Vec{size}{name}";
 #>
 
-[method: <#= MethodImpl #>]
-internal readonly struct <#= typeName #>(Vector<#= size #><byte> value) : ISimdVector<<#= keyword #>, <#= typeName #>>
+internal readonly struct <#= typeName #> : ISimdVector<<#= keyword #>, <#= typeName #>>
 {
-    private readonly Vector<#= size #><byte> _value = value;
+    private readonly Vector<#= size #><byte> _value;
 
     public static bool IsSupported
     {
@@ -206,7 +207,8 @@ internal readonly struct <#= typeName #>(Vector<#= size #><byte> value) : ISimdV
     [<#= MethodImpl #>]
     public static bool operator !=(<#= typeName #> left, <#= typeName #> right) => left._value != right._value;
 
-    public static implicit operator <#= typeName #>(Vector<#= size #><byte> value) => new <#= typeName #>(value);
+    [<#= MethodImpl #>]
+    public static implicit operator <#= typeName #>(Vector<#= size #><byte> value) => Unsafe.As<Vector<#= size #><byte>, <#= typeName #>>(ref value);
 
     public override string ToString() => _value.ToString();
     public override bool Equals(object obj) => throw new NotSupportedException();
