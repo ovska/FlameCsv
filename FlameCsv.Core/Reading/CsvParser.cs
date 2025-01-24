@@ -213,6 +213,8 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
         Debug.Assert(_newline.Length != 0);
         Debug.Assert(_metaCount >= _metaIndex);
 
+        _metaMemory = default;  // don't hold on to the memory from last read
+
         var lastEOL = _metaArray[_metaIndex];
 
         if (!lastEOL.IsEOL)
@@ -221,7 +223,6 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
             Throw.Unreachable("Last read line was not an EOL");
         }
 
-        _metaMemory = default;  // don't hold on to the memory from last read
         _sequence = _sequence.Slice(lastEOL.GetNextStart(_newline.Length));
         _metaCount = 0;
         _metaIndex = 0;

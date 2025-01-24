@@ -25,7 +25,7 @@ namespace FlameCsv.Console
             Span<byte> unescapeBuffer = stackalloc byte[256];
             using var parser = CsvParser.Create(_options);
 
-            for (int x = 0; x < 500; x++)
+            for (int x = 0; x < 1_000; x++)
             {
                 parser.Reset(in _byteSeq);
 

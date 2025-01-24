@@ -117,4 +117,31 @@ public class CsvParserTests
         parser.Reset(new ReadOnlySequence<char>(new string('x', 4096).AsMemory()));
         Assert.Throws<CsvFormatException>(() => parser.TryReadLine(out _, false));
     }
+
+    [Fact]
+    public void Should_Handle_Empty_Lines()
+    {
+        const string data =
+            """
+            1,2,3
+
+            4,5,6
+
+            """;
+
+        using var parser = CsvParser.Create(new CsvOptions<char> { Newline = "\n" });
+        parser.Reset(new(data.AsMemory()));
+
+        Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
+        Assert.Equal("1,2,3", line.Record.ToString());
+
+        Assert.True(parser.TryReadLine(out line, isFinalBlock: false));
+        Assert.Equal(0, line.RecordLength);
+
+        Assert.True(parser.TryReadLine(out line, isFinalBlock: false));
+        Assert.Equal("4,5,6", line.Record.ToString());
+
+        Assert.False(parser.TryReadLine(out _, isFinalBlock: false));
+        Assert.False(parser.TryReadLine(out _, isFinalBlock: true));
+    }
 }
