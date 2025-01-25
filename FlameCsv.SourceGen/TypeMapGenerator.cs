@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+﻿using FlameCsv.SourceGen.Models;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace FlameCsv.SourceGen;
@@ -8,51 +8,48 @@ public partial class TypeMapGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        IncrementalValuesProvider<CompilationTarget> typeMapTargets = context
+        IncrementalValuesProvider<TypeMapModel> typeMapTargets = context
             .SyntaxProvider
             .ForAttributeWithMetadataName(
                 "FlameCsv.Binding.CsvTypeMapAttribute`2",
                 static (syntaxNode, _) => syntaxNode is ClassDeclarationSyntax or RecordDeclarationSyntax,
-                GetSemanticTargetForGeneration)
-            .Where(static target => target.Compilation is not null);
+                static (context, token) =>
+                {
+                    token.ThrowIfCancellationRequested();
+
+                    return new TypeMapModel(
+                        new FlameSymbols(context.SemanticModel.Compilation),
+                        (INamedTypeSymbol)context.TargetSymbol,
+                        context.Attributes[0]);
+                });
 
         context.RegisterSourceOutput(typeMapTargets, (spc, source) => Execute(source, spc));
     }
 
-    private void Execute(CompilationTarget target, SourceProductionContext context)
+    private void Execute(TypeMapModel typeMap, SourceProductionContext context)
     {
-        TypeMapSymbol typeMap = new(target.Compilation, target.TargetClass, target.Attribute, context);
+        StringBuilder sourceName = new(capacity: 32);
 
-        try
+        foreach (var wrapping in typeMap.WrappingTypes)
         {
-            context.AddSource(GetSourceName(typeMap.ContainingClass), CreateTypeMap(in typeMap));
-        }
-        catch (DiagnosticException)
-        {
+            sourceName.Append(wrapping.name);
+            sourceName.Append('_');
         }
 
-        static string GetSourceName(INamedTypeSymbol containingClass)
-        {
-            StringBuilder sb = new(capacity: 32);
+        sourceName.Append(typeMap.TypeMap.Name);
+        sourceName.Append(".G.cs");
 
-            INamedTypeSymbol? type = containingClass.ContainingType;
-
-            while (type is not null)
-            {
-                sb.Append(type.Name);
-                sb.Append('_');
-                type = type.ContainingType;
-            }
-
-            sb.Append(containingClass.Name);
-            sb.Append(".G.cs");
-            return sb.ToString();
-        }
+        context.AddSource(
+            sourceName.ToString(),
+            CreateTypeMap(typeMap.GetSymbols(), typeMap, context.CancellationToken));
     }
 
-    private SourceText CreateTypeMap(ref readonly TypeMapSymbol typeMap)
+    private SourceText CreateTypeMap(
+        FlameSymbols symbols,
+        TypeMapModel typeMap,
+        CancellationToken cancellationToken)
     {
-        typeMap.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
 
         var assembly = typeof(TypeMapGenerator).Assembly.GetName();
         StringBuilder sb = new(capacity: 1024 * 16);
@@ -67,12 +64,12 @@ public partial class TypeMapGenerator : IIncrementalGenerator
             @"
 // </auto-generated>
 #nullable ");
-        sb.Append(typeMap.Symbols.Nullable ? "enable" : "disable");
+        sb.Append(symbols.NullableContext ? "enable" : "disable");
         sb.Append(
             @"
 ");
 
-        if (typeMap.ContainingClass.ContainingNamespace.IsGlobalNamespace)
+        if (typeMap.InGlobalNamespace)
         {
             sb.Append(
                 @"
@@ -83,42 +80,60 @@ public partial class TypeMapGenerator : IIncrementalGenerator
             sb.Append(
                 @"
 namespace ");
-            sb.Append(typeMap.ContainingClass.ContainingNamespace.ToDisplayString());
+            sb.Append(typeMap.Namespace);
             sb.Append(
                 @"
 {");
         }
 
-        typeMap.WriteWrappedTypes(sb, out int wrappedCount);
-        sb.Append(
-            @"
-    partial class ");
-        sb.Append(typeMap.ContainingClass.Name);
-        sb.Append(" : FlameCsv.Binding.CsvTypeMap<");
-        sb.Append(typeMap.Token);
-        sb.Append(", ");
-        sb.Append(typeMap.ResultName);
-        sb.Append(
-            @">
-    {
-    ");
-        WriteStaticInstance(sb, in typeMap);
-        WriteIndexes(sb, in typeMap);
-        GetReadCode(sb, in typeMap);
-        GetWriteCode(sb, in typeMap);
-        sb.Append(
-            @"
-    }");
-
-        if (wrappedCount != 0)
+        foreach (var wrapping in typeMap.WrappingTypes)
         {
             sb.Append(
                 @"
     ");
-            sb.Append('}', wrappedCount);
+            sb.Append(wrapping.display);
         }
 
-        if (!typeMap.ContainingClass.ContainingNamespace.IsGlobalNamespace)
+        sb.Append(
+            @"
+    partial class ");
+        sb.Append(typeMap.TypeMap.Name);
+        sb.Append(" : FlameCsv.Binding.CsvTypeMap<");
+        sb.Append(typeMap.Token.FullyQualifiedName);
+        sb.Append(", ");
+        sb.Append(typeMap.Type.FullyQualifiedName);
+        sb.Append(
+            @">
+    {
+    ");
+
+        if (typeMap.CanWriteInstance)
+        {
+            sb.Append(@"    public static ");
+            sb.Append(typeMap.TypeMap.FullyQualifiedName);
+            sb.Append(" Instance { get; } = new ");
+            sb.Append(typeMap.TypeMap.FullyQualifiedName);
+            sb.Append(
+                @"();
+");
+        }
+
+        WriteIndexes(sb, typeMap);
+        GetReadCode(sb, symbols, typeMap, cancellationToken);
+        GetWriteCode(sb, symbols, typeMap, cancellationToken);
+        sb.Append(
+            @"
+    }");
+
+        if (typeMap.WrappingTypes.Count != 0)
+        {
+            sb.Append(
+                @"
+    ");
+            sb.Append('}', typeMap.WrappingTypes.Count);
+        }
+
+        if (!typeMap.InGlobalNamespace)
         {
             sb.Append(
                 @"
@@ -128,154 +143,27 @@ namespace ");
         return SourceText.From(sb.ToString(), Encoding.UTF8);
     }
 
-    private void WriteIndexes(StringBuilder sb, in TypeMapSymbol typeMap)
+    private void WriteIndexes(StringBuilder sb, TypeMapModel typeMap)
     {
         if (typeMap.Scope == CsvBindingScope.Write) return;
 
-        // start from 1 so uninitialized members fail as expected
-        int index = 1;
-
-        foreach (var binding in typeMap.Bindings.AllBindings)
+        foreach (var conversion in typeMap.Conversions)
         {
-            if ((!binding.CanRead && typeMap.Scope == CsvBindingScope.Read) ||
-                (!binding.CanWrite && typeMap.Scope == CsvBindingScope.Write))
-                continue;
+            if (!conversion.CanRead) return;
 
-            sb.Append(@"
+            sb.Append(
+                @"
         private const int ");
-            binding.WriteIndex(sb, index);
+            sb.Append(conversion.IndexPrefix);
+            sb.Append(conversion.Name);
             sb.Append(" = ");
-            sb.Append(index++);
+            sb.Append(typeMap.GetIndex(conversion));
             sb.Append(';');
         }
 
-        sb.Append(@"
+        sb.Append(
+            @"
 
 ");
-    }
-
-    private static void WriteStaticInstance(StringBuilder sb, ref readonly TypeMapSymbol typeMap)
-    {
-        // check if there is no "Instance" member, and a parameterless exists ctor.
-        foreach (var ctor in typeMap.ContainingClass.InstanceConstructors)
-        {
-            if (ctor.Parameters.IsDefaultOrEmpty)
-            {
-                if (!typeMap.ContainingClass.MemberNames.Contains("Instance"))
-                {
-                    sb.Append(@"    public static ");
-                    sb.Append(typeMap.ContainingClass.ToDisplayString());
-                    sb.Append(" Instance { get; } = new ");
-                    sb.Append(typeMap.ContainingClass.ToDisplayString());
-                    sb.Append(
-                        @"();
-");
-                }
-
-                return;
-            }
-        }
-    }
-
-    private static CompilationTarget GetSemanticTargetForGeneration(
-        GeneratorAttributeSyntaxContext context,
-        CancellationToken token)
-    {
-        token.ThrowIfCancellationRequested();
-
-        var compilation = context.SemanticModel.Compilation;
-
-        if (context.TargetSymbol is not INamedTypeSymbol typeMapClass)
-        {
-            // TODO: diagnostic
-            return default;
-        }
-
-        if (context.Attributes.Length != 1)
-        {
-            // TODO: diagnostic
-            return default;
-        }
-
-        return new CompilationTarget(compilation, context.Attributes[0], typeMapClass);
-    }
-
-    readonly struct CompilationTarget : IEquatable<CompilationTarget>
-    {
-        public CompilationTarget(Compilation compilation, AttributeData attribute, INamedTypeSymbol targetClass)
-        {
-            Compilation = compilation;
-            Attribute = attribute;
-            TargetClass = targetClass;
-        }
-
-        public Compilation Compilation { get; }
-        public AttributeData Attribute { get; }
-        public INamedTypeSymbol TargetClass { get; }
-
-        public override int GetHashCode()
-        {
-            if (Compilation is null)
-                return 0;
-
-            unchecked
-            {
-                int hash = SymbolEqualityComparer.Default.GetHashCode(TargetClass);
-                hash *= 37;
-                hash ^= SymbolEqualityComparer.Default.GetHashCode(Attribute.AttributeClass?.TypeParameters[0]);
-                hash *= 37;
-                hash ^= SymbolEqualityComparer.Default.GetHashCode(Attribute.AttributeClass?.TypeParameters[1]);
-                foreach (var kvp in Attribute.NamedArguments)
-                {
-                    hash *= 37;
-                    hash ^= kvp.Value.GetHashCode();
-                }
-
-                return hash;
-            }
-        }
-
-        public bool Equals(CompilationTarget other)
-        {
-            return SymbolEqualityComparer.Default.Equals(TargetClass, other.TargetClass) &&
-                SymbolEqualityComparer.Default.Equals(
-                    Attribute.AttributeClass!.TypeParameters[0],
-                    other.Attribute.AttributeClass!.TypeParameters[0]) &&
-                SymbolEqualityComparer.Default.Equals(
-                    Attribute.AttributeClass!.TypeParameters[1],
-                    other.Attribute.AttributeClass!.TypeParameters[1]) &&
-                Attribute.NamedArguments.Length == other.Attribute.NamedArguments.Length &&
-                ArgumentsEqual(Attribute.NamedArguments, other.Attribute.NamedArguments);
-        }
-
-        private static bool ArgumentsEqual(
-            ImmutableArray<KeyValuePair<string, TypedConstant>> a,
-            ImmutableArray<KeyValuePair<string, TypedConstant>> b)
-        {
-            if (a.Length != b.Length)
-                return false;
-
-            foreach (var argA in a)
-            {
-                bool found = false;
-
-                foreach (var argB in b)
-                {
-                    if (argA.Key == argB.Key)
-                    {
-                        if (!argA.Value.Equals(argB.Value))
-                            return false;
-
-                        found = true;
-                        break;
-                    }
-                }
-
-                if (!found)
-                    return false;
-            }
-
-            return true;
-        }
     }
 }

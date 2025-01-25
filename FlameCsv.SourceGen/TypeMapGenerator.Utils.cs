@@ -1,181 +1,54 @@
-﻿namespace FlameCsv.SourceGen;
+﻿using FlameCsv.SourceGen.Models;
+
+namespace FlameCsv.SourceGen;
 
 public partial class TypeMapGenerator
 {
-    private void ResolveConverter(
+    private void WriteConverter(
         StringBuilder sb,
-        ref readonly TypeMapSymbol typeMap,
-        ISymbol propertyOrField,
-        ITypeSymbol type,
-        INamedTypeSymbol converterFactorySymbol)
+        FlameSymbols symbols,
+        IMemberModel member)
     {
-        foreach (var attributeData in propertyOrField.GetAttributes())
+        bool wrapInNullable = member.OverriddenConverter?.WrapInNullable ??
+            member.Type.SpecialType == SpecialType.System_Nullable_T;
+
+        if (wrapInNullable)
         {
-            if (attributeData.AttributeClass is { IsGenericType: true } attribute &&
-                SymbolEqualityComparer.Default.Equals(typeMap.TokenSymbol, attribute.TypeArguments[0]) &&
-                SymbolEqualityComparer.Default.Equals(attribute.ConstructUnboundGenericType(), typeMap.Symbols.CsvConverterOfTAttribute))
-            {
-                ResolveExplicitConverter(
-                    in typeMap,
-                    sb,
-                    type,
-                    attribute.TypeArguments[1],
-                    converterFactorySymbol);
-                return;
-            }
-        }
-
-        bool isNullable = false;
-
-        if (typeMap.UseBuiltinConverters)
-        {
-            type = type.UnwrapNullable(out isNullable);
-        }
-
-        string typeName = type.ToDisplayString();
-
-        string optionsName = "options";
-
-        if (isNullable)
-        {
-            sb.Append("new FlameCsv.Converters.NullableConverter<");
-            sb.Append(typeMap.Token);
-            sb.Append(", ");
-            sb.Append(typeName);
+            sb.Append("options.GetOrCreateNullable<");
+            sb.Append(member.Type.FullyQualifiedName);
+            sb.Length--; // trim out the nullability question mark
             sb.Append(">(");
         }
 
-        //if (propertyOrField is IPropertySymbol { Name: "DOF" })
-        //{
-        //    throw new Exception($"{typeMap.TokenSymbol.OriginalDefinition.SpecialType}");
-        //}
-
-        if (type.IsEnumOrNullableEnum() &&
-            typeMap.TokenSymbol.OriginalDefinition.SpecialType is SpecialType.System_Char or SpecialType.System_Byte)
+        if (member.OverriddenConverter is not { } converter)
         {
-            sb.Append("options.UseDefaultConverters ? options.GetOrCreate(static o => new FlameCsv.Converters.");
-
-            if (typeMap.TokenSymbol.OriginalDefinition.SpecialType == SpecialType.System_Char)
-            {
-                sb.Append("EnumTextConverter<");
-            }
-            else
-            {
-                sb.Append("EnumUtf8Converter<");
-            }
-
-            sb.Append(typeName);
-            sb.Append(">(o)) : ");
+            sb.Append(member.Type.IsEnumOrNullableEnum ? "options.GetOrCreateEnum<" : "options.GetConverter<");
+            sb.Append(member.Type.FullyQualifiedName);
+            if (member.Type.SpecialType == SpecialType.System_Nullable_T) sb.Length--;
+            sb.Append(">()");
         }
-
-        sb.Append("options.GetConverter<");
-        sb.Append(typeName);
-        sb.Append(">()");
-
-        if (isNullable)
+        else
         {
-            sb.Append(", ");
-            sb.Append(optionsName);
-            sb.Append(".GetNullToken(typeof(");
-            sb.Append(typeName);
-            sb.Append(")))");
-        }
-    }
-
-    private void ResolveExplicitConverter(
-        ref readonly TypeMapSymbol typeMap,
-        StringBuilder sb,
-        ITypeSymbol memberType,
-        ITypeSymbol parser,
-        INamedTypeSymbol converterFactorySymbol)
-    {
-        string? foundArgs = null;
-        INamedTypeSymbol csvOptionsSymbol = typeMap.Symbols.GetCsvOptionsType(typeMap.TokenSymbol);
-
-        foreach (var member in parser.GetMembers())
-        {
-            if (member.Kind == SymbolKind.Method &&
-                member is IMethodSymbol { MethodKind: MethodKind.Constructor } method)
-            {
-                if (method.Parameters.Length == 1)
+            sb.Append("new ");
+            sb.Append(converter.ConverterType.FullyQualifiedName);
+            sb.Append('(');
+            sb.Append(
+                converter.ConstructorArguments switch
                 {
-                    if (SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, csvOptionsSymbol))
-                    {
-                        foundArgs = "options";
-                        break;
-                    }
-                }
-                else if (method.Parameters.IsEmpty)
-                {
-                    foundArgs = "";
-                }
-            }
-        }
-
-        if (foundArgs is null)
-            typeMap.Fail(Diagnostics.NoCsvFactoryConstructorFound(parser));
-
-        ITypeSymbol baseType = memberType.UnwrapNullable(out bool nullable);
-        bool wrapNullable = false;
-
-        // wrap in a NullableConverter if needed, find base type
-        if (nullable)
-        {
-            INamedTypeSymbol? current = parser.BaseType;
-            ITypeSymbol? resultType = null;
-
-            while (current != null)
-            {
-                if (current.IsGenericType)
-                {
-                    INamedTypeSymbol generic = current.ConstructUnboundGenericType();
-
-                    if (SymbolEqualityComparer.Default.Equals(generic, typeMap.Symbols.CsvConverterFactory))
-                    {
-                        resultType = current.TypeArguments[0];
-                        break;
-                    }
-                    else if (SymbolEqualityComparer.Default.Equals(generic, typeMap.Symbols.CsvConverterTTValue))
-                    {
-                        resultType = current.TypeArguments[1];
-                        break;
-                    }
-                }
-
-                current = current.BaseType;
-            }
-
-            wrapNullable = SymbolEqualityComparer.Default.Equals(baseType, resultType);
-        }
-
-        if (wrapNullable)
-        {
-            sb.Append("new FlameCsv.Converters.NullableConverter<");
-            sb.Append(typeMap.Token);
-            sb.Append(", ");
-            sb.Append(baseType);
-            sb.Append(">(");
-        }
-
-        sb.Append("new ");
-        sb.Append(parser.ToDisplayString());
-        sb.Append('(');
-        sb.Append(foundArgs);
-        sb.Append(')');
-
-        if (parser.Inherits(converterFactorySymbol))
-        {
-            sb.Append(".Create<");
-            sb.Append(memberType.ToDisplayString());
-            sb.Append(">(options)");
-        }
-
-        if (wrapNullable)
-        {
+                    ConstructorArgumentType.Options => "options",
+                    _ => "",
+                });
             sb.Append(')');
+
+            if (converter.IsFactory)
+            {
+                sb.Append(".Create<");
+                sb.Append(member.Type.FullyQualifiedName);
+                sb.Append(">(options)");
+            }
         }
 
-        if (typeMap.Symbols.Nullable)
-            sb.Append('!');
+        if (wrapInNullable) sb.Append(')');
+        if (symbols.NullableContext) sb.Append('!');
     }
 }

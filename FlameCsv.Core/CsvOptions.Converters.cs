@@ -389,6 +389,66 @@ partial class CsvOptions<T>
         return (CsvConverter<T, TValue>)value;
     }
 
+    #region Source Generator
+
+    /// <summary>
+    /// Returns a nullable converter, falling back to the default if <see cref="UseDefaultConverters"/> is true.
+    /// </summary>
+    /// <remarks>
+    /// This API is meant to be used by the source generator to produce trimming/AOT safe code.
+    /// </remarks>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public CsvConverter<T, TValue?> GetOrCreateNullable<TValue>(CsvConverter<T, TValue> inner) where TValue : struct
+    {
+        CsvConverter<T, TValue?> result;
+
+        if (TryGetExistingOrCustomConverter(typeof(TValue?), out CsvConverter<T>? converter, out bool created))
+        {
+            result = (CsvConverter<T, TValue?>)converter;
+        }
+        else
+        {
+            result = NullableConverterFactory<T>.Create(inner, GetNullToken(typeof(TValue)));
+            created = true;
+        }
+
+        if (created)
+        {
+            CheckConverterCacheSize();
+            _converterCache.TryAdd(typeof(TValue?), result);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns an enum converter, falling back to the default if <see cref="UseDefaultConverters"/> is true.
+    /// </summary>
+    /// <remarks>
+    /// This API is meant to be used by the source generator to produce trimming/AOT safe code.
+    /// </remarks>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public CsvConverter<T, TEnum> GetOrCreateEnum<TEnum>() where TEnum : struct, Enum
+    {
+        if (typeof(T) == typeof(char))
+        {
+            return (CsvConverter<T, TEnum>)(object)Unsafe
+                .As<CsvOptions<char>>(this)
+                .GetOrCreate(static o => new EnumTextConverter<TEnum>(o));
+        }
+
+        if (typeof(T) == typeof(byte))
+        {
+            return (CsvConverter<T, TEnum>)(object)Unsafe
+                .As<CsvOptions<byte>>(this)
+                .GetOrCreate(static o => new EnumUtf8Converter<TEnum>(o));
+        }
+
+        return GetConverter<TEnum>();
+    }
+
+#endregion
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void CheckConverterCacheSize()
     {

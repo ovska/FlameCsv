@@ -1,4 +1,5 @@
-﻿using FlameCsv.SourceGen.Bindings;
+﻿using FlameCsv.SourceGen.Helpers;
+using FlameCsv.SourceGen.Models;
 
 namespace FlameCsv.SourceGen;
 
@@ -6,19 +7,21 @@ public partial class TypeMapGenerator
 {
     private void GetReadCode(
         StringBuilder sb,
-        ref readonly TypeMapSymbol typeMap)
+        FlameSymbols symbols,
+        TypeMapModel typeMap,
+        CancellationToken cancellationToken)
     {
         if (typeMap.Scope == CsvBindingScope.Write)
             return;
 
-        typeMap.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
 
         sb.Append("        protected override FlameCsv.Reading.IMaterializer<");
-        sb.Append(typeMap.Token);
+        sb.Append(typeMap.Token.Name);
         sb.Append(", ");
-        sb.Append(typeMap.ResultName);
+        sb.Append(typeMap.Type.FullyQualifiedName);
         sb.Append("> BindForReading(ReadOnlySpan<string> headers, FlameCsv.CsvOptions<");
-        sb.Append(typeMap.Token);
+        sb.Append(typeMap.Token.Name);
         sb.Append(
             @"> options)
         {
@@ -31,7 +34,7 @@ public partial class TypeMapGenerator
             {
                 string name = headers[index];
 ");
-        WriteMatchers(sb, in typeMap);
+        WriteMatchers(sb, symbols, typeMap, cancellationToken);
 
         sb.Append(
             @"
@@ -58,7 +61,7 @@ public partial class TypeMapGenerator
             }
 ");
 
-        WriteRequiredCheck(in typeMap, sb);
+        WriteRequiredCheck(typeMap, sb);
 
         sb.Append(
             @"
@@ -66,23 +69,20 @@ public partial class TypeMapGenerator
         }
 
         protected override FlameCsv.Reading.IMaterializer<");
-        sb.Append(typeMap.Token);
+        sb.Append(typeMap.Token.Name);
         sb.Append(", ");
-        sb.Append(typeMap.ResultName);
+        sb.Append(typeMap.Type.FullyQualifiedName);
         sb.Append(@"> BindForReading(FlameCsv.CsvOptions<");
-        sb.Append(typeMap.Token);
+        sb.Append(typeMap.Token.Name);
         sb.Append(
             """
             > options)
                     {
-                        
+                        throw new System.NotSupportedException();
+                    }
             """);
-        WriteIndexBinding(sb, in typeMap);
-        sb.Append(
-            @"
-        }");
 
-        WriteMissingRequiredFields(in typeMap, sb);
+        WriteMissingRequiredFields(typeMap, sb);
 
         sb.Append(
             @"
@@ -91,15 +91,15 @@ public partial class TypeMapGenerator
         {
 ");
 
-        foreach (var binding in typeMap.Bindings.AllBindings)
+        foreach (var member in typeMap.Conversions)
         {
-            if (!binding.CanRead || binding.Scope == CsvBindingScope.Write)
+            if (!member.CanRead || member.Scope == CsvBindingScope.Write)
                 continue;
 
             sb.Append("            public ");
-            sb.Append(binding.Type.ToDisplayString());
+            sb.Append(member.Type.FullyQualifiedName);
             sb.Append(' ');
-            sb.Append(binding.Name);
+            sb.Append(member.Name);
             sb.Append(
                 @";
 ");
@@ -109,19 +109,30 @@ public partial class TypeMapGenerator
             @"        }
 
         private sealed class TypeMapMaterializer : FlameCsv.Reading.IMaterializer<");
-        sb.Append(typeMap.Token);
+        sb.Append(typeMap.Token.Name);
         sb.Append(", ");
-        sb.Append(typeMap.ResultName);
+        sb.Append(typeMap.Type.FullyQualifiedName);
         sb.Append(
             @">
         {");
 
-        foreach (var binding in typeMap.Bindings.AllBindings)
+        foreach (var member in typeMap.Conversions)
         {
-            if (!binding.CanRead || binding.Scope == CsvBindingScope.Write)
+            if (!member.CanRead || member.Scope == CsvBindingScope.Write)
                 continue;
 
-            WriteParserMember(sb, in typeMap, binding);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            sb.Append(
+                @"
+            public FlameCsv.CsvConverter<");
+            sb.Append(typeMap.Token.Name);
+            sb.Append(", ");
+            sb.Append(member.Type.FullyQualifiedName);
+            sb.Append(symbols.NullableContext ? ">? " : "> ");
+            sb.Append(member.ConverterPrefix);
+            sb.Append(member.Name);
+            sb.Append(';');
         }
 
         sb.Append(
@@ -135,9 +146,9 @@ public partial class TypeMapGenerator
             }
 
             public ");
-        sb.Append(typeMap.ResultName);
+        sb.Append(typeMap.Type.FullyQualifiedName);
         sb.Append(" Parse<TReader>(ref TReader reader) where TReader : FlameCsv.Reading.ICsvRecordFields<");
-        sb.Append(typeMap.Token);
+        sb.Append(typeMap.Token.Name);
         sb.Append(
             @">, allows ref struct
             {
@@ -153,14 +164,14 @@ public partial class TypeMapGenerator
 #else
                 System.Runtime.CompilerServices.Unsafe.SkipInit(out ParseState state); // uninitialized members are never accessed
 #endif");
-        WriteDefaultParameterValues(sb, in typeMap);
+        WriteDefaultParameterValues(sb, typeMap, cancellationToken);
         sb.Append(
             @"
 
                 for (int index = 0; index < targets.Length; index++)
                 {
                     ReadOnlySpan<");
-        sb.Append(typeMap.Token);
+        sb.Append(typeMap.Token.Name);
         sb.Append(
             @"> @field = reader[index];
 
@@ -168,20 +179,25 @@ public partial class TypeMapGenerator
                     {
 ");
 
-        foreach (var binding in typeMap.Bindings.AllBindings)
+        foreach (var member in typeMap.Conversions)
         {
-            if (!binding.CanRead || binding.Scope == CsvBindingScope.Write)
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (!member.CanRead || member.Scope == CsvBindingScope.Write)
                 continue;
 
             sb.Append("                        ");
-            sb.Append(binding.Index);
+            sb.Append(member.IndexPrefix);
+            sb.Append(member.Name);
             sb.Append(" => ");
-            binding.WriteConverterId(sb);
-            if (typeMap.Symbols.Nullable) sb.Append('!');
+            sb.Append(member.ConverterPrefix);
+            sb.Append(member.Name);
+            if (symbols.NullableContext) sb.Append('!');
             sb.Append(".TryParse(@field, out state.");
-            sb.Append(binding.Name);
-            if (typeMap.Symbols.Nullable) sb.Append('!');
-            sb.Append(@"),
+            sb.Append(member.Name);
+            if (symbols.NullableContext) sb.Append('!');
+            sb.Append(
+                @"),
 ");
         }
 
@@ -199,10 +215,10 @@ public partial class TypeMapGenerator
                 // Create the value from parsed values. Required members are validated when creating the materializer,
                 // optional members are assigned only if parsed to not overwrite possible default values.
                 ");
-        sb.Append(typeMap.ResultName);
+        sb.Append(typeMap.Type.FullyQualifiedName);
         sb.Append(" obj = new ");
-        sb.Append(typeMap.ResultName);
-        WriteSetters(sb, in typeMap);
+        sb.Append(typeMap.Type.FullyQualifiedName);
+        WriteSetters(sb, symbols, typeMap, cancellationToken);
         sb.Append(
             @"
                 return obj;
@@ -215,44 +231,57 @@ public partial class TypeMapGenerator
             [System.Diagnostics.CodeAnalysis.DoesNotReturn]
             [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
             private void ThrowForFailedParse(ReadOnlySpan<");
-        sb.Append(typeMap.Token);
-        sb.Append(@"> @field, int target)
+        sb.Append(typeMap.Token.Name);
+        sb.Append(
+            @"> @field, int target)
             {
 ");
 
-        foreach (var binding in typeMap.Bindings.AllBindings)
+        int index = 1;
+
+        foreach (var member in typeMap.Conversions)
         {
-            if (!binding.CanRead || binding.Scope == CsvBindingScope.Write)
+            if (!member.CanRead || member.Scope == CsvBindingScope.Write)
                 continue;
 
             sb.Append("                if (target == ");
-            sb.Append(binding.Index);
+            sb.Append(index++);
             sb.Append(") FlameCsv.Exceptions.CsvParseException.Throw(@field, ");
-            binding.WriteConverterId(sb);
+            sb.Append(member.ConverterPrefix);
+            sb.Append(member.Name);
             sb.Append("!, ");
-            sb.Append(binding.Name.ToStringLiteral());
-            sb.Append(@");
+            sb.Append(member.Name.ToStringLiteral());
+            sb.Append(
+                @");
 ");
         }
 
-        sb.Append(@"                throw new System.Diagnostics.UnreachableException(""Invalid target: "" + target.ToString());
+        sb.Append(
+            @"                throw new System.Diagnostics.UnreachableException(""Invalid target: "" + target.ToString());
             }
         }
 
         ");
     }
 
-    private void WriteDefaultParameterValues(StringBuilder sb, ref readonly TypeMapSymbol typeMap)
+    private void WriteDefaultParameterValues(
+        StringBuilder sb,
+        TypeMapModel typeMap,
+        CancellationToken cancellationToken)
     {
-        typeMap.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (typeMap.Parameters is null) return;
 
         bool commentWritten = false;
 
-        foreach (var binding in typeMap.Bindings.Parameters)
+        foreach (var parameter in typeMap.Parameters)
         {
-            // Don't write common default values
-            if (binding.IsRequired ||
-                binding.DefaultValue is null or false or 0 or 0u or 0L or 0D)
+            // check if parameter can be omitted at all
+            if (!parameter.HasDefaultValue ||
+                parameter.IsRequiredByAttribute ||
+                // Don't write common default values
+                parameter.DefaultValue is null or false or 0 or 0u or 0L or 0D)
             {
                 continue;
             }
@@ -269,47 +298,51 @@ public partial class TypeMapGenerator
             sb.Append(
                 @"
                 state.");
-            sb.Append(binding.Name);
+            sb.Append(parameter.Name);
             sb.Append(" = ");
 
             // Enum values are resolved as their underlying type, so they need to be cast back to the enum type
             // e.g. DayOfWeek.Friday would be "state.arg = (System.DayOfWeek)5;"
-            if (binding.Type.IsEnumOrNullableEnum())
+            if (parameter.ParameterType.IsEnumOrNullableEnum)
             {
                 sb.Append('(');
-                sb.Append(binding.Type.ToDisplayString());
+                sb.Append(parameter.ParameterType.FullyQualifiedName);
                 sb.Append(')');
             }
 
-            sb.Append(binding.DefaultValue.ToLiteral());
+            sb.Append(parameter.DefaultValue.ToLiteral());
             sb.Append(';');
         }
     }
 
-    private void WriteSetters(StringBuilder sb, ref readonly TypeMapSymbol typeMap)
+    private void WriteSetters(
+        StringBuilder sb,
+        FlameSymbols symbols,
+        TypeMapModel typeMap,
+        CancellationToken cancellationToken)
     {
-        typeMap.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
 
         sb.Append('(');
 
-        if (typeMap.Bindings.Parameters.Length != 0)
+        if (typeMap.Parameters is { Count: > 0 } parameters)
         {
-            foreach (var binding in typeMap.Bindings.Parameters)
+            foreach (var parameter in parameters)
             {
                 sb.Append(
                     @"
                     ");
-                sb.Append(binding.ParameterName);
+                sb.Append(parameter.Name);
                 sb.Append(": ");
 
-                if (binding.HasInModifier)
+                if (parameter.RefKind is RefKind.In or RefKind.RefReadOnlyParameter)
                 {
                     sb.Append("in ");
                 }
 
                 sb.Append("state.");
-                sb.Append(binding.Name);
-                if (typeMap.Symbols.Nullable)
+                sb.Append(parameter.Name);
+                if (symbols.NullableContext)
                     sb.Append('!');
                 sb.Append(",");
             }
@@ -319,20 +352,22 @@ public partial class TypeMapGenerator
 
         sb.Append(')');
 
-        if (typeMap.Bindings.RequiredMembers.Length != 0)
+        if (typeMap.Properties.Exists(static p => p.IsRequired))
         {
             sb.Append(
                 @"
                 {
                 ");
 
-            foreach (var binding in typeMap.Bindings.RequiredMembers)
+            foreach (var property in typeMap.Properties)
             {
+                if (!property.IsRequired) continue;
+
                 sb.Append("    ");
-                sb.Append(binding.Name);
+                sb.Append(property.Name);
                 sb.Append(" = state.");
-                sb.Append(binding.Name);
-                if (typeMap.Symbols.Nullable)
+                sb.Append(property.Name);
+                if (symbols.NullableContext)
                     sb.Append('!');
                 sb.Append(
                     @",
@@ -346,22 +381,23 @@ public partial class TypeMapGenerator
             @";
 ");
 
-        foreach (var binding in typeMap.Bindings.Members)
+        foreach (var property in typeMap.Properties)
         {
-            if (binding.IsRequired)
+            if (property.IsRequired)
                 continue; // already handled
 
-            if (!binding.CanRead)
+            if (!property.CanRead)
                 continue;
 
             sb.Append("                if (");
-            binding.WriteConverterId(sb);
+            sb.Append(property.ConverterPrefix);
+            sb.Append(property.Name);
             sb.Append(" is not null) ");
 
-            if (binding.IsExplicitInterfaceDefinition(typeMap.Type, out var ifaceSymbol))
+            if (property.ExplicitInterfaceOriginalDefinition is { } iface)
             {
                 sb.Append("((");
-                sb.Append(ifaceSymbol.ToDisplayString());
+                sb.Append(iface.FullyQualifiedName);
                 sb.Append(")obj).");
             }
             else
@@ -369,10 +405,10 @@ public partial class TypeMapGenerator
                 sb.Append("obj.");
             }
 
-            sb.Append(binding.Name);
+            sb.Append(property.Name);
             sb.Append(" = state.");
-            sb.Append(binding.Name);
-            if (typeMap.Symbols.Nullable)
+            sb.Append(property.Name);
+            if (symbols.NullableContext)
                 sb.Append('!');
             sb.Append(
                 @";
@@ -383,10 +419,10 @@ public partial class TypeMapGenerator
     }
 
     private void WriteRequiredCheck(
-        ref readonly TypeMapSymbol typeMap,
+        TypeMapModel typeMap,
         StringBuilder sb)
     {
-        if (typeMap.Bindings.RequiredBindings.Length == 0)
+        if (!typeMap.HasRequiredMembers)
         {
             sb.Append(
                 @"
@@ -399,9 +435,15 @@ public partial class TypeMapGenerator
             @"
             if (");
 
-        for (int i = 0; i < typeMap.Bindings.RequiredBindings.Length; i++)
+        bool first = true;
+
+        foreach (var member in typeMap.Conversions)
         {
-            if (i != 0)
+            if (first)
+            {
+                first = false;
+            }
+            else
             {
                 sb.Append(
                     @" ||
@@ -409,7 +451,8 @@ public partial class TypeMapGenerator
             }
 
             sb.Append("materializer.");
-            typeMap.Bindings.RequiredBindings[i].WriteConverterId(sb);
+            sb.Append(member.ConverterPrefix);
+            sb.Append(member.Name);
             sb.Append(" is null");
         }
 
@@ -419,9 +462,9 @@ public partial class TypeMapGenerator
 ");
     }
 
-    private void WriteMissingRequiredFields(ref readonly TypeMapSymbol typeMap, StringBuilder sb)
+    private void WriteMissingRequiredFields(TypeMapModel typeMap, StringBuilder sb)
     {
-        if (typeMap.Bindings.RequiredBindings.Length == 0)
+        if (!typeMap.HasRequiredMembers)
             return;
 
         sb.Append(
@@ -430,64 +473,66 @@ public partial class TypeMapGenerator
         private static System.Collections.Generic.IEnumerable<string> GetMissingRequiredFields(TypeMapMaterializer materializer)
         {");
 
-        foreach (var b in typeMap.Bindings.RequiredBindings)
+        foreach (var member in typeMap.Conversions)
         {
             sb.Append(
                 @"
             if (materializer.");
-            b.WriteConverterId(sb);
+            sb.Append(member.ConverterPrefix);
+            sb.Append(member.Name);
             sb.Append(" is null) yield return ");
-            sb.Append(GetName(b));
+            sb.Append(member.Name.ToStringLiteral());
             sb.Append(';');
         }
 
         sb.Append(
             @"
         }");
+    }
 
-        static string GetName(IBinding binding)
+
+    private void WriteMatchers(
+        StringBuilder sb,
+        FlameSymbols symbols,
+        TypeMapModel typeMap,
+        CancellationToken cancellationToken)
+    {
+        List<IMemberModel> allMembersSorted
+            = new(capacity: typeMap.Properties.Count + typeMap.Parameters?.Count ?? 0);
+
+        foreach (var property in typeMap.Properties) allMembersSorted.Add(property);
+        if (typeMap.Parameters is not null)
         {
-            string name = binding is ParameterBinding
-                ? binding.Name.Substring(3)
-                : binding.Name;
-            return name.ToStringLiteral();
+            foreach (var parameter in typeMap.Parameters) allMembersSorted.Add(parameter);
         }
-    }
 
-    private void WriteParserMember(StringBuilder sb, ref readonly TypeMapSymbol typeMap, IBinding binding)
-    {
-        typeMap.ThrowIfCancellationRequested();
 
-        if (!binding.CanRead)
-            return;
-
-        sb.Append(
-            @"
-            public FlameCsv.CsvConverter<");
-        sb.Append(typeMap.Token);
-        sb.Append(", ");
-        sb.Append(binding.Type.ToDisplayString());
-        sb.Append(typeMap.Symbols.Nullable ? ">? " : "> ");
-        binding.WriteConverterId(sb);
-        sb.Append(';');
-    }
-
-    private void WriteMatchers(StringBuilder sb, ref readonly TypeMapSymbol typeMap)
-    {
-        var allBindingsSorted = typeMap.Bindings.AllBindings.ToArray();
-
-        Array.Sort(
-            allBindingsSorted,
+        allMembersSorted.Sort(
             (b1, b2) =>
             {
+                var b1Order = b1.Order;
+                var b2Order = b2.Order;
+
+                foreach (var target in typeMap.TargetAttributes)
+                {
+                    if (StringComparer.Ordinal.Equals(target.MemberName, b1.Name))
+                    {
+                        b1Order = Math.Max(b1Order, target.Order);
+                    }
+                    else if (StringComparer.Ordinal.Equals(target.MemberName, b2.Name))
+                    {
+                        b2Order = Math.Max(b2Order, target.Order);
+                    }
+                }
+
                 if (b1.Order != b2.Order)
                 {
                     return b2.Order.CompareTo(b1.Order);
                 }
 
-                if ((b1 is ParameterBinding) != (b2 is ParameterBinding))
+                if ((b1 is ParameterModel) != (b2 is ParameterModel))
                 {
-                    return (b2 is ParameterBinding).CompareTo(b1 is ParameterBinding);
+                    return (b2 is ParameterModel).CompareTo(b1 is ParameterModel);
                 }
 
                 if (b1.IsRequired != b2.IsRequired)
@@ -498,15 +543,13 @@ public partial class TypeMapGenerator
                 return String.Compare(b1.Name, b2.Name, StringComparison.Ordinal);
             });
 
-        var converterFactorySymbol = typeMap.Symbols.CsvConverterFactory.ConstructedFrom.Construct(typeMap.TokenSymbol);
-
         HashSet<string> writtenNames = [];
 
-        foreach (var binding in allBindingsSorted)
+        foreach (var member in allMembersSorted)
         {
-            typeMap.ThrowIfCancellationRequested();
+            cancellationToken.ThrowIfCancellationRequested();
 
-            if (!binding.CanRead || binding.Scope == CsvBindingScope.Write)
+            if (!member.CanRead || member.Scope == CsvBindingScope.Write)
                 continue;
 
             sb.Append(
@@ -517,7 +560,8 @@ public partial class TypeMapGenerator
             {
                 // add check to ignore already handled members
                 sb.Append("materializer.");
-                binding.WriteConverterId(sb);
+                sb.Append(member.ConverterPrefix);
+                sb.Append(member.Name);
                 sb.Append(
                     @" is null &&
                     ");
@@ -525,23 +569,22 @@ public partial class TypeMapGenerator
 
             bool firstName = true;
 
-            foreach (string name in binding.Names)
+            foreach (string name in member.Names)
             {
                 if (writtenNames.Add(name))
                     WriteComparison(name);
             }
 
-            foreach (var attribute in typeMap.Type.GetAttributes())
+            if (member is PropertyModel)
             {
-                if (SymbolEqualityComparer.Default.Equals(
-                        typeMap.Symbols.CsvHeaderTargetAttribute,
-                        attribute.AttributeClass) &&
-                    binding.Name.Equals(attribute.ConstructorArguments[0].Value as string))
+                foreach (var attribute in typeMap.TargetAttributes)
                 {
-                    foreach (var value in attribute.ConstructorArguments[1].Values)
+                    if (StringComparer.Ordinal.Equals(attribute.MemberName, member.Name))
                     {
-                        if (value.Value is string name && writtenNames.Add(name))
-                            WriteComparison(name);
+                        foreach (var name in attribute.Names)
+                        {
+                            if (writtenNames.Add(name)) WriteComparison(name);
+                        }
                     }
                 }
             }
@@ -550,10 +593,10 @@ public partial class TypeMapGenerator
 
             sb.Append(")");
 
-            if (binding.Order != 0)
+            if (member.Order != 0)
             {
                 sb.Append(" // order: ");
-                sb.Append(binding.Order);
+                sb.Append(member.Order);
             }
 
             sb.Append(
@@ -565,9 +608,10 @@ public partial class TypeMapGenerator
                 sb.Append(
                     @"
                     if (materializer.");
-                binding.WriteConverterId(sb);
+                sb.Append(member.ConverterPrefix);
+                sb.Append(member.Name);
                 sb.Append(" is not null) base.ThrowDuplicate(");
-                sb.Append(binding.Name.ToStringLiteral());
+                sb.Append(member.Name.ToStringLiteral());
                 sb.Append(
                     @", name, headers);
 ");
@@ -576,13 +620,15 @@ public partial class TypeMapGenerator
             sb.Append(
                 @"
                     materializer.");
-            binding.WriteConverterId(sb);
+            sb.Append(member.ConverterPrefix);
+            sb.Append(member.Name);
             sb.Append(" = ");
-            ResolveConverter(sb, in typeMap, binding.Symbol, binding.Type, converterFactorySymbol);
+            WriteConverter(sb, symbols, member);
             sb.Append(
                 @";
                     materializer.Targets[index] = ");
-            binding.WriteIndex(sb);
+            sb.Append(member.IndexPrefix);
+            sb.Append(member.Name);
             sb.Append(
                 @";
                     anyFieldBound = true;
@@ -606,58 +652,6 @@ public partial class TypeMapGenerator
                 sb.Append("comparer.Equals(name, ");
                 sb.Append(name.ToStringLiteral());
                 sb.Append(')');
-            }
-        }
-    }
-
-    private void WriteIndexBinding(StringBuilder sb, ref readonly TypeMapSymbol typeMap)
-    {
-        List<IndexBinding>? bindings;
-        string? error;
-
-        if (typeMap.Bindings.Parameters.Length == 0)
-        {
-            bindings = null;
-            error = "No suitable constructor found";
-        }
-        else
-        {
-            (bindings, error) = IndexAttributeBinder.TryGetIndexBindings(typeMap.Type, in typeMap.Symbols, false);
-        }
-
-        if (bindings is null || error is not null)
-        {
-            sb.Append(
-                "throw new System.NotSupportedException(GetType().FullName + \" does not support index binding: \" + ");
-            sb.Append(error.ToStringLiteral());
-            sb.Append(");");
-            return;
-        }
-
-        sb.Append("TypeMapMaterializer materializer = new TypeMapMaterializer(");
-        sb.Append(bindings.Count);
-        sb.Append(
-            @");
-");
-
-        foreach (var binding in bindings)
-        {
-            sb.Append("            materializer.Targets[");
-            sb.Append(binding.Index);
-
-            if (binding.Symbol is not null)
-            {
-                sb.Append("] = @s__Handler_");
-                sb.Append(binding.Symbol.Name);
-                sb.Append(
-                    @";
-");
-            }
-            else
-            {
-                sb.Append(
-                    @"] = static (TypeMapMaterializer materializer, ref ParseState state, ReadOnlySpan<char> field) => true;
-");
             }
         }
     }
