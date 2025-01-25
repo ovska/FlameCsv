@@ -4,7 +4,7 @@ using FlameCsv.Utilities;
 
 namespace FlameCsv.Extensions;
 
-internal static class SealableExtensions
+internal static class OptionsExtensions
 {
     /// <summary>
     /// Sets the value of <paramref name="field"/> after ensuring that the current instance is not read-only.

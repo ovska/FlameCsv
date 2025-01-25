@@ -25,7 +25,7 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
     /// <remarks>
     /// The value should not be held onto after the enumeration continues or ends, as the records might wrap
     /// shared or pooled memory.
-    /// If you must, use <c>Preserve()</c> on the enumerable.
+    /// If you must, convert the record to <see cref="CsvRecord{T}"/>.
     /// </remarks>
     /// <exception cref="ObjectDisposedException"/>
     /// <exception cref="InvalidOperationException"/>

@@ -69,7 +69,7 @@ internal static class MemoryPoolExtensions
             return (memoryOwner = pool.Rent(minimumLength)).Memory;
         }
 
-        var newMemory = pool.Rent(minimumLength);
+        IMemoryOwner<T> newMemory = pool.Rent(minimumLength);
 
         if (copyOnResize)
         {

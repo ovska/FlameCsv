@@ -91,7 +91,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
 
         if (!_state.TryGetHeaderIndex(name, out int index))
         {
-            Throw.Argument_HeaderNameNotFound(name, _state.Header.Keys);
+            Throw.Argument_HeaderNameNotFound(name, _state.Header.HeaderNames);
         }
 
         if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> field))
@@ -151,7 +151,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
 
         if (!_state.TryGetHeaderIndex(name, out int index))
         {
-            Throw.Argument_HeaderNameNotFound(name, _state.Header.Keys);
+            Throw.Argument_HeaderNameNotFound(name, _state.Header.HeaderNames);
         }
 
         return TryGetValue(index, out value);
@@ -164,7 +164,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
 
         if (!_state.TryGetHeaderIndex(name, out int index))
         {
-            Throw.Argument_HeaderNameNotFound(name, _state.Header.Keys);
+            Throw.Argument_HeaderNameNotFound(name, _state.Header.HeaderNames);
         }
 
         return GetField<TValue>(index);
@@ -301,7 +301,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
 
         public int Line => _record.Line;
         public long Position => _record.Position;
-        public string[] Headers => _record._state.Header?.Keys.ToArray() ?? [];
+        public string[] Headers => _record._state.Header?.Values.ToArray() ?? [];
         public ReadOnlyMemory<T>[] Fields => [.. _record];
         public string[] FieldValues => [.. Fields.Select(f => _record._options.GetAsString(f.Span))];
     }

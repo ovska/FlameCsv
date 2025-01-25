@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using System.Text;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -27,7 +28,7 @@ internal sealed class CustomBooleanUtf8Converter : CsvConverter<byte, bool>
 
         foreach ((string text, bool value) in values)
         {
-            (value ? trues : falses).Add(options.GetFromString(text).UnsafeGetOrCreateArray());
+            (value ? trues : falses).Add(options.GetFromString(text).ToArray());
         }
 
         if (trues.Count == 0)
@@ -69,7 +70,7 @@ internal sealed class CustomBooleanUtf8Converter : CsvConverter<byte, bool>
             uniqueValues.TryAdd(falseValue ?? "", false);
         }
 
-        _values = [..uniqueValues.Select(v => (v.Value, options.GetFromString(v.Key).UnsafeGetOrCreateArray()))];
+        _values = [..uniqueValues.Select(v => (v.Value, options.GetFromString(v.Key).ToArray()))];
         _ignoreCase = ignoreCase;
         InitializeTrueAndFalse(_values, out _firstTrue, out _firstFalse, out _allAscii);
     }
