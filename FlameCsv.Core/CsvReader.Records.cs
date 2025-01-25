@@ -119,7 +119,7 @@ public static partial class CsvReader
 
         options ??= CsvOptions<byte>.Default;
         return new CsvRecordAsyncEnumerable<byte>(
-            new PipeReaderWrapper(CreatePipeReader(stream, options._memoryPool, leaveOpen)),
+            CreatePipeReader(stream, options._memoryPool, leaveOpen),
             options);
     }
 
@@ -139,10 +139,8 @@ public static partial class CsvReader
             options ?? CsvOptions<byte>.Default);
     }
 
-    #region Generic
-
     /// <inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)"/>
-    [OverloadResolutionPriority(-1)]
+    [OverloadResolutionPriority(-1)] // prefer concrete types to generic
     public static CsvRecordEnumerable<T> Enumerate<T>(
         ReadOnlyMemory<T> csv,
         CsvOptions<T>? options = null)
@@ -152,7 +150,7 @@ public static partial class CsvReader
     }
 
     /// <inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)"/>
-    [OverloadResolutionPriority(-1)]
+    [OverloadResolutionPriority(-1)] // prefer concrete types to generic
     public static CsvRecordEnumerable<T> Enumerate<T>(
         in ReadOnlySequence<T> csv,
         CsvOptions<T>? options = null)
@@ -160,6 +158,4 @@ public static partial class CsvReader
     {
         return new CsvRecordEnumerable<T>(in csv, options ?? CsvOptions<T>.Default);
     }
-
-    #endregion
 }

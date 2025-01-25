@@ -129,7 +129,7 @@ public static partial class CsvReader
 
         options ??= CsvOptions<byte>.Default;
         var reader = CreatePipeReader(stream, options._memoryPool, leaveOpen);
-        return new CsvValueAsyncEnumerable<byte, TValue>(new PipeReaderWrapper(reader), options);
+        return new CsvValueAsyncEnumerable<byte, TValue>(reader, options);
     }
 
     /// <summary>

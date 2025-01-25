@@ -7,6 +7,7 @@ using FlameCsv.Enumeration;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Runtime;
+using FlameCsv.Utilities;
 
 namespace FlameCsv;
 
@@ -45,23 +46,21 @@ public static partial class CsvReader
     private static void ValidateReadRecordsArgs<T>(
         [NotNull] object? reader,
         [NotNull] CsvOptions<T>? options,
-        [NotNull] Delegate? recordFactory)
+        [NotNull] Delegate? recordFactory,
+        ref ValueListBuilder<string> list)
         where T : unmanaged, IBinaryInteger<T>
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(recordFactory);
 
-        if (options.HasHeader)
-            ThrowArgumentExceptionReadRecordsHasHeader();
-
         options.MakeReadOnly();
 
-        static void ThrowArgumentExceptionReadRecordsHasHeader()
+        var parameters = recordFactory.Method.GetParameters();
+        for (int i = 0; i < parameters.Length; i++)
         {
-            throw new ArgumentException(
-                "The options were configured to read a CSV with a header record, " +
-                "which is not supported by ReadRecordsAsync.");
+            var parameter = parameters[i];
+            list.Append(parameter.Name ?? $"arg{i}");
         }
     }
 
@@ -78,9 +77,14 @@ public static partial class CsvReader
         CsvOptions<char> options,
         Func<T0, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<char, T0, TValue> materializer = new(recordFactory, options.GetConverter<T0>());
+        Materializer<char, T0, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), names[0]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
@@ -101,9 +105,14 @@ public static partial class CsvReader
         CsvOptions<char> options,
         Func<T0, T1, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<char, T0, T1, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>());
+        Materializer<char, T0, T1, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), names[0], names[1]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
@@ -124,9 +133,14 @@ public static partial class CsvReader
         CsvOptions<char> options,
         Func<T0, T1, T2, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<char, T0, T1, T2, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>());
+        Materializer<char, T0, T1, T2, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), names[0], names[1], names[2]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
@@ -147,9 +161,14 @@ public static partial class CsvReader
         CsvOptions<char> options,
         Func<T0, T1, T2, T3, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<char, T0, T1, T2, T3, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>());
+        Materializer<char, T0, T1, T2, T3, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), names[0], names[1], names[2], names[3]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
@@ -170,9 +189,14 @@ public static partial class CsvReader
         CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<char, T0, T1, T2, T3, T4, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>());
+        Materializer<char, T0, T1, T2, T3, T4, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), names[0], names[1], names[2], names[3], names[4]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
@@ -193,9 +217,14 @@ public static partial class CsvReader
         CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<char, T0, T1, T2, T3, T4, T5, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>());
+        Materializer<char, T0, T1, T2, T3, T4, T5, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), names[0], names[1], names[2], names[3], names[4], names[5]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
@@ -216,9 +245,14 @@ public static partial class CsvReader
         CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<char, T0, T1, T2, T3, T4, T5, T6, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>());
+        Materializer<char, T0, T1, T2, T3, T4, T5, T6, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), names[0], names[1], names[2], names[3], names[4], names[5], names[6]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
@@ -239,9 +273,14 @@ public static partial class CsvReader
         CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>());
+        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), names[0], names[1], names[2], names[3], names[4], names[5], names[6], names[7]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
@@ -262,9 +301,14 @@ public static partial class CsvReader
         CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>());
+        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), names[0], names[1], names[2], names[3], names[4], names[5], names[6], names[7], names[8]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
@@ -285,9 +329,14 @@ public static partial class CsvReader
         CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>());
+        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), names[0], names[1], names[2], names[3], names[4], names[5], names[6], names[7], names[8], names[9]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
@@ -308,9 +357,14 @@ public static partial class CsvReader
         CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>());
+        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), names[0], names[1], names[2], names[3], names[4], names[5], names[6], names[7], names[8], names[9], names[10]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
@@ -331,9 +385,14 @@ public static partial class CsvReader
         CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>());
+        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), names[0], names[1], names[2], names[3], names[4], names[5], names[6], names[7], names[8], names[9], names[10], names[11]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
@@ -354,9 +413,14 @@ public static partial class CsvReader
         CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>());
+        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), names[0], names[1], names[2], names[3], names[4], names[5], names[6], names[7], names[8], names[9], names[10], names[11], names[12]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
@@ -377,9 +441,14 @@ public static partial class CsvReader
         CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>());
+        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>(), names[0], names[1], names[2], names[3], names[4], names[5], names[6], names[7], names[8], names[9], names[10], names[11], names[12], names[13]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
@@ -400,9 +469,14 @@ public static partial class CsvReader
         CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>(), options.GetConverter<T14>());
+        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>(), options.GetConverter<T14>(), names[0], names[1], names[2], names[3], names[4], names[5], names[6], names[7], names[8], names[9], names[10], names[11], names[12], names[13], names[14]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
@@ -423,9 +497,14 @@ public static partial class CsvReader
         CsvOptions<char> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>(), options.GetConverter<T14>(), options.GetConverter<T15>());
+        Materializer<char, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>(), options.GetConverter<T14>(), options.GetConverter<T15>(), names[0], names[1], names[2], names[3], names[4], names[5], names[6], names[7], names[8], names[9], names[10], names[11], names[12], names[13], names[14], names[15]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<char, TValue>(
             options,
@@ -446,9 +525,14 @@ public static partial class CsvReader
         CsvOptions<byte> options,
         Func<T0, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<byte, T0, TValue> materializer = new(recordFactory, options.GetConverter<T0>());
+        Materializer<byte, T0, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), names[0]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             options,
@@ -469,9 +553,14 @@ public static partial class CsvReader
         CsvOptions<byte> options,
         Func<T0, T1, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<byte, T0, T1, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>());
+        Materializer<byte, T0, T1, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), names[0], names[1]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             options,
@@ -492,9 +581,14 @@ public static partial class CsvReader
         CsvOptions<byte> options,
         Func<T0, T1, T2, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<byte, T0, T1, T2, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>());
+        Materializer<byte, T0, T1, T2, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), names[0], names[1], names[2]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             options,
@@ -515,9 +609,14 @@ public static partial class CsvReader
         CsvOptions<byte> options,
         Func<T0, T1, T2, T3, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<byte, T0, T1, T2, T3, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>());
+        Materializer<byte, T0, T1, T2, T3, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), names[0], names[1], names[2], names[3]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             options,
@@ -538,9 +637,14 @@ public static partial class CsvReader
         CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<byte, T0, T1, T2, T3, T4, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>());
+        Materializer<byte, T0, T1, T2, T3, T4, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), names[0], names[1], names[2], names[3], names[4]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             options,
@@ -561,9 +665,14 @@ public static partial class CsvReader
         CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<byte, T0, T1, T2, T3, T4, T5, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>());
+        Materializer<byte, T0, T1, T2, T3, T4, T5, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), names[0], names[1], names[2], names[3], names[4], names[5]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             options,
@@ -584,9 +693,14 @@ public static partial class CsvReader
         CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>());
+        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), names[0], names[1], names[2], names[3], names[4], names[5], names[6]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             options,
@@ -607,9 +721,14 @@ public static partial class CsvReader
         CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>());
+        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), names[0], names[1], names[2], names[3], names[4], names[5], names[6], names[7]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             options,
@@ -630,9 +749,14 @@ public static partial class CsvReader
         CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>());
+        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), names[0], names[1], names[2], names[3], names[4], names[5], names[6], names[7], names[8]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             options,
@@ -653,9 +777,14 @@ public static partial class CsvReader
         CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>());
+        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), names[0], names[1], names[2], names[3], names[4], names[5], names[6], names[7], names[8], names[9]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             options,
@@ -676,9 +805,14 @@ public static partial class CsvReader
         CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>());
+        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), names[0], names[1], names[2], names[3], names[4], names[5], names[6], names[7], names[8], names[9], names[10]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             options,
@@ -699,9 +833,14 @@ public static partial class CsvReader
         CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>());
+        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), names[0], names[1], names[2], names[3], names[4], names[5], names[6], names[7], names[8], names[9], names[10], names[11]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             options,
@@ -722,9 +861,14 @@ public static partial class CsvReader
         CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>());
+        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), names[0], names[1], names[2], names[3], names[4], names[5], names[6], names[7], names[8], names[9], names[10], names[11], names[12]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             options,
@@ -745,9 +889,14 @@ public static partial class CsvReader
         CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>());
+        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>(), names[0], names[1], names[2], names[3], names[4], names[5], names[6], names[7], names[8], names[9], names[10], names[11], names[12], names[13]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             options,
@@ -768,9 +917,14 @@ public static partial class CsvReader
         CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>(), options.GetConverter<T14>());
+        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>(), options.GetConverter<T14>(), names[0], names[1], names[2], names[3], names[4], names[5], names[6], names[7], names[8], names[9], names[10], names[11], names[12], names[13], names[14]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             options,
@@ -791,9 +945,14 @@ public static partial class CsvReader
         CsvOptions<byte> options,
         Func<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
-        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>(), options.GetConverter<T14>(), options.GetConverter<T15>());
+        Materializer<byte, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue> materializer = new(recordFactory, options.GetConverter<T0>(), options.GetConverter<T1>(), options.GetConverter<T2>(), options.GetConverter<T3>(), options.GetConverter<T4>(), options.GetConverter<T5>(), options.GetConverter<T6>(), options.GetConverter<T7>(), options.GetConverter<T8>(), options.GetConverter<T9>(), options.GetConverter<T10>(), options.GetConverter<T11>(), options.GetConverter<T12>(), options.GetConverter<T13>(), options.GetConverter<T14>(), options.GetConverter<T15>(), names[0], names[1], names[2], names[3], names[4], names[5], names[6], names[7], names[8], names[9], names[10], names[11], names[12], names[13], names[14], names[15]);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<byte, TValue>(
             options,

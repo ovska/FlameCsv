@@ -13,11 +13,11 @@ public partial class TypeMapGenerator
 
         typeMap.ThrowIfCancellationRequested();
 
-        sb.Append("        public override FlameCsv.Reading.IMaterializer<");
+        sb.Append("        protected override FlameCsv.Reading.IMaterializer<");
         sb.Append(typeMap.Token);
         sb.Append(", ");
         sb.Append(typeMap.ResultName);
-        sb.Append("> BindMembers(ReadOnlySpan<string> headers, FlameCsv.CsvOptions<");
+        sb.Append("> BindForReading(ReadOnlySpan<string> headers, FlameCsv.CsvOptions<");
         sb.Append(typeMap.Token);
         sb.Append(
             @"> options)
@@ -65,11 +65,11 @@ public partial class TypeMapGenerator
             return materializer;
         }
 
-        public override FlameCsv.Reading.IMaterializer<");
+        protected override FlameCsv.Reading.IMaterializer<");
         sb.Append(typeMap.Token);
         sb.Append(", ");
         sb.Append(typeMap.ResultName);
-        sb.Append(@"> BindMembers(FlameCsv.CsvOptions<");
+        sb.Append(@"> BindForReading(FlameCsv.CsvOptions<");
         sb.Append(typeMap.Token);
         sb.Append(
             """

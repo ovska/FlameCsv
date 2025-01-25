@@ -40,7 +40,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         {
             if (typeof(T) == typeof(char)) return Unsafe.As<CsvOptions<T>>(CsvOptionsCharSealed.Instance);
             if (typeof(T) == typeof(byte)) return Unsafe.As<CsvOptions<T>>(CsvOptionsByteSealed.Instance);
-            ThrowInvalidTokenType(nameof(Default));
+            InvalidTokenTypeEx(nameof(Default));
             return null!; // unreachable
         }
     }
@@ -151,7 +151,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     {
         if (typeof(T) != typeof(char) && typeof(T) != typeof(byte))
         {
-            ThrowInvalidTokenType(nameof(GetNullToken));
+            InvalidTokenTypeEx(nameof(GetNullToken));
         }
 
         TypeDictionary<string?, Utf8String>? nullTokens = _nullTokens;
@@ -266,7 +266,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
                 return (Utf8String?)_null;
             }
 
-            ThrowInvalidTokenType(nameof(Null));
+            InvalidTokenTypeEx(nameof(Null));
             return null;
         }
         set
@@ -285,7 +285,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
                 return;
             }
 
-            ThrowInvalidTokenType(nameof(Null));
+            InvalidTokenTypeEx(nameof(Null));
         }
     }
 
@@ -304,22 +304,25 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// <summary>
     /// Format providers used per type.
     /// </summary>
+    /// <remarks>Structs and their <see cref="Nullable{T}"/> counterparts are treated as equal.</remarks>
     /// <seealso cref="FormatProvider"/>
     /// <seealso cref="GetFormatProvider(Type)"/>
-    public ITypeDictionary<IFormatProvider?> FormatProviders
+    public IDictionary<Type, IFormatProvider?> FormatProviders
         => _providers ??= new TypeDictionary<IFormatProvider?, object>(this);
 
     /// <summary>
     /// Format used per type.
     /// </summary>
-    /// <see cref="GetFormat(Type, string?)"/>
-    public ITypeDictionary<string?> Formats => _formats ??= new TypeDictionary<string?, object>(this);
+    /// <remarks>Structs and their <see cref="Nullable{T}"/> counterparts are treated as equal.</remarks>
+    /// <seealso cref="GetFormat(Type, string?)"/>
+    public IDictionary<Type, string?> Formats => _formats ??= new TypeDictionary<string?, object>(this);
 
     /// <summary>
     /// Styles used when parsing <see cref="IBinaryNumber{TSelf}"/> and <see cref="IFloatingPoint{TSelf}"/>.
     /// </summary>
+    /// <remarks>Structs and their <see cref="Nullable{T}"/> counterparts are treated as equal.</remarks>
     /// <seealso cref="GetNumberStyles(Type, System.Globalization.NumberStyles)"/>.
-    public ITypeDictionary<NumberStyles> NumberStyles => _styles ??= new TypeDictionary<NumberStyles, object>(this);
+    public IDictionary<Type, NumberStyles> NumberStyles => _styles ??= new TypeDictionary<NumberStyles, object>(this);
 
     /// <summary>
     /// Disables buffering CSV fields to memory when reading.
@@ -506,7 +509,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// Returns tokens used to parse and format <see langword="null"/> values. See <see cref="GetNullToken(Type)"/>.
     /// </summary>
     /// <seealso cref="CsvConverter{T,TValue}.CanFormatNull"/>
-    public ITypeDictionary<string?> NullTokens => _nullTokens ??= new(this, static Utf8String (str) => str);
+    public IDictionary<Type, string?> NullTokens => _nullTokens ??= new(this, static Utf8String (str) => str);
 
     /// <summary>
     /// Optional custom boolean value mapping. If not empty, must contain at least one value for both
