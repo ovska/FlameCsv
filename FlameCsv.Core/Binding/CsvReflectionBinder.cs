@@ -362,7 +362,7 @@ public abstract class CsvReflectionBinder
 }
 
 /// <summary>
-/// Binds CSV header to members.
+/// Binds type members and constructor parameters to CSV fields using reflection.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder<T>
@@ -376,7 +376,7 @@ public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder
     private readonly CsvOptions<T> _options;
 
     /// <summary>
-    /// Creates a new header binder.
+    /// Creates an instance of <see cref="CsvReflectionBinder{T}"/>.
     /// </summary>
     public CsvReflectionBinder(CsvOptions<T> options, bool ignoreUnmatched)
     {

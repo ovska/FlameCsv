@@ -43,10 +43,19 @@ partial class CsvOptions<T>
 
     private SealableList<CsvConverter<T>>? _converters;
 
-    internal readonly ConcurrentDictionary<Type, CsvConverter<T>> _converterCache
+    /// <summary>
+    /// Contains cached converters for types that have been requested with <see cref="GetConverter(Type)"/>.
+    /// </summary>
+    /// <seealso cref="MaxConverterCacheSize"/>
+    protected internal readonly ConcurrentDictionary<Type, CsvConverter<T>> _converterCache
         = new(ReferenceEqualityComparer.Instance);
 
-    internal readonly ConcurrentDictionary<object, CsvConverter<T>> _explicitCache
+    /// <summary>
+    /// Contains converters for members that have been overridden with
+    /// <see cref="Binding.Attributes.CsvConverterAttribute{T}"/>, indexed with an arbitrary key.
+    /// </summary>
+    /// <seealso cref="MaxExplicitCacheSize"/>
+    protected internal readonly ConcurrentDictionary<object, CsvConverter<T>> _explicitCache
         = new(ReferenceEqualityComparer.Instance);
 
     /// <summary>
@@ -115,6 +124,7 @@ partial class CsvOptions<T>
     /// </summary>
     /// <remarks>Never returns a <see cref="CsvConverterFactory{T}"/></remarks>
     /// <exception cref="CsvConverterMissingException"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CsvConverter<T> GetConverter(Type resultType)
     {
         ArgumentNullException.ThrowIfNull(resultType);
