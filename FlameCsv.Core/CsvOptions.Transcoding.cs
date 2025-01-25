@@ -15,8 +15,8 @@ public partial class CsvOptions<T>
 {
     /// <summary>
     /// Returns a <see langword="string"/> representation of the value.
-    /// See also <see cref="TryGetChars(ReadOnlySpan{T}, Span{char}, out int)"/>
     /// </summary>
+    /// <seealso cref="TryGetChars(ReadOnlySpan{T}, Span{char}, out int)"/>
     public virtual string GetAsString(ReadOnlySpan<T> value)
     {
         if (typeof(T) == typeof(char))
@@ -29,8 +29,7 @@ public partial class CsvOptions<T>
             return Encoding.UTF8.GetString(value.Cast<T, byte>());
         }
 
-        ThrowInvalidTokenType(nameof(GetAsString));
-        return null!;
+        throw InvalidTokenTypeEx(nameof(TryWriteChars));
     }
 
     /// <summary>
@@ -55,8 +54,7 @@ public partial class CsvOptions<T>
             return Unsafe.As<T[]>(Encoding.UTF8.GetBytes(value));
         }
 
-        ThrowInvalidTokenType(nameof(GetFromString));
-        return default;
+        throw InvalidTokenTypeEx(nameof(TryWriteChars));
     }
 
     /// <summary>
@@ -79,9 +77,7 @@ public partial class CsvOptions<T>
             return Encoding.UTF8.TryGetChars(value.Cast<T, byte>(), destination, out charsWritten);
         }
 
-        ThrowInvalidTokenType(nameof(TryGetChars));
-        Unsafe.SkipInit(out charsWritten);
-        return false;
+        throw InvalidTokenTypeEx(nameof(TryWriteChars));
     }
 
     /// <summary>
@@ -103,8 +99,12 @@ public partial class CsvOptions<T>
             return Encoding.UTF8.TryGetBytes(value, destination.Cast<T, byte>(), out charsWritten);
         }
 
-        ThrowInvalidTokenType(nameof(TryWriteChars));
-        Unsafe.SkipInit(out charsWritten);
-        return false;
+        throw InvalidTokenTypeEx(nameof(TryWriteChars));
+    }
+
+    private static NotSupportedException InvalidTokenTypeEx(string? memberName)
+    {
+        return new NotSupportedException(
+            $"{typeof(CsvOptions<T>).FullName}.{memberName} is not supported by default, inherit the class and override the member.");
     }
 }

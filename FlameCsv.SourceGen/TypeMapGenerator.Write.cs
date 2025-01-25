@@ -19,11 +19,11 @@ public partial class TypeMapGenerator
 
         sb.Append(@"
 
-        public override FlameCsv.Writing.IDematerializer<");
+        protected override FlameCsv.Writing.IDematerializer<");
         sb.Append(typeMap.Token);
         sb.Append(", ");
         sb.Append(typeMap.Type.ToDisplayString());
-        sb.Append("> GetDematerializer(FlameCsv.CsvOptions<");
+        sb.Append("> BindForWriting(FlameCsv.CsvOptions<");
         sb.Append(typeMap.Token);
         sb.Append(@"> options)
         {

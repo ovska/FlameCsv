@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.IO.Pipelines;
 using FlameCsv.Extensions;
+using FlameCsv.Reading;
 using JetBrains.Annotations;
 
 namespace FlameCsv;
@@ -20,12 +21,12 @@ public static partial class CsvReader
     /// <summary>
     /// Creates a PipeReader from a Stream.
     /// </summary>
-    private static PipeReader CreatePipeReader(
+    private static PipeReaderWrapper CreatePipeReader(
         Stream stream,
         MemoryPool<byte> memoryPool,
         bool leaveOpen)
     {
         Guard.CanRead(stream);
-        return PipeReader.Create(stream, new StreamPipeReaderOptions(pool: memoryPool, leaveOpen: leaveOpen));
+        return new(PipeReader.Create(stream, new StreamPipeReaderOptions(pool: memoryPool, leaveOpen: leaveOpen)));
     }
 }

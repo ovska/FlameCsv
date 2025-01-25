@@ -5,15 +5,7 @@ using JetBrains.Annotations;
 
 namespace FlameCsv.Utilities;
 
-/// <summary>
-/// Dictionary of <typeparamref name="TValue"/> indexed by <see cref="Type"/>.
-/// </summary>
-/// <remarks>
-/// Structs and their <see cref="Nullable{T}"/> counterparts are treated as equal.
-/// </remarks>
-public interface ITypeDictionary<TValue> : IDictionary<Type, TValue>;
-
-internal sealed class TypeDictionary<TValue, TAlternate> : ITypeDictionary<TValue>
+internal sealed class TypeDictionary<TValue, TAlternate> : IDictionary<Type, TValue>
 {
     public TypeDictionary<TValue, TAlternate> Clone()
     {

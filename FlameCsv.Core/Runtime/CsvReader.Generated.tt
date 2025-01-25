@@ -5,10 +5,8 @@
 <#
     // Max supported generics
     const int TotalCount = 16;
-    var indexes = Enumerable.Range(0, TotalCount);
+    var indexes = Enumerable.Range(0, TotalCount).ToArray();
     var genericTypes = indexes.Select(i => $"T{i}").ToArray();
-    var converters = indexes.Select(i => $"CsvConverter<T, T{i}> converter{i}").ToArray();
-    var values = indexes.Select(i => $"v{i}").ToArray();
     var methodName = "ReadRecordsAsync";
 #>
 #if false
@@ -20,6 +18,7 @@ using FlameCsv.Enumeration;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Runtime;
+using FlameCsv.Utilities;
 
 namespace FlameCsv;
 
@@ -58,23 +57,21 @@ public static partial class CsvReader
     private static void ValidateReadRecordsArgs<T>(
         [NotNull] object? reader,
         [NotNull] CsvOptions<T>? options,
-        [NotNull] Delegate? recordFactory)
+        [NotNull] Delegate? recordFactory,
+        ref ValueListBuilder<string> list)
         where T : unmanaged, IBinaryInteger<T>
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(recordFactory);
 
-        if (options.HasHeader)
-            ThrowArgumentExceptionReadRecordsHasHeader();
-
         options.MakeReadOnly();
 
-        static void ThrowArgumentExceptionReadRecordsHasHeader()
+        var parameters = recordFactory.Method.GetParameters();
+        for (int i = 0; i < parameters.Length; i++)
         {
-            throw new ArgumentException(
-                "The options were configured to read a CSV with a header record, " +
-                "which is not supported by <#= methodName #>.");
+            var parameter = parameters[i];
+            list.Append(parameter.Name ?? $"arg{i}");
         }
     }
 
@@ -103,7 +100,10 @@ for (var _tokenType = 0; _tokenType < 2; _tokenType++)
         CsvOptions<<#= tokenType #>> options,
         Func<<#= generics #>> recordFactory)
     {
-        ValidateReadRecordsArgs(reader, options, recordFactory);
+        StringScratch scratch = default;
+        var list = new ValueListBuilder<string>(scratch!);
+        ValidateReadRecordsArgs(reader, options, recordFactory, ref list);
+        ReadOnlySpan<string> names = list.AsSpan();
 
         Materializer<<#= tokenType #>, <#= generics #>> materializer = new(recordFactory<#
             for (int i = 0; i < current; i++)
@@ -112,7 +112,16 @@ for (var _tokenType = 0; _tokenType < 2; _tokenType++)
                 Write(genericTypes[i]);
                 Write(">()");
             }
+
+            for (int i = 0; i < current; i++)
+            {
+                Write(", names[");
+                Write(i.ToString());
+                Write("]");
+            }
         #>);
+
+        list.Dispose();
 
         return new CsvRecordFactoryAsyncEnumerable<<#= tokenType #>, TValue>(
             options,

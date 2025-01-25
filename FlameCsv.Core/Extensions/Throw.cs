@@ -162,6 +162,17 @@ internal static class Throw
         throw new ArgumentException(message, paramName);
     }
 
+    public static void IfInvalidArgument(
+        [DoesNotReturnIf(true)] bool condition,
+        string message,
+        [CallerArgumentExpression(nameof(condition))] string paramName = "")
+    {
+        if (!condition)
+            return;
+
+        Throw.Argument(paramName, message);
+    }
+
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void Config_TrueOrFalseBooleanValues(bool which)
     {

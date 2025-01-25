@@ -231,8 +231,8 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
         if (!_state.MaterializerCache.TryGetValue(typeMap, out object? obj))
         {
             obj = _state.Header is not null
-                ? typeMap.BindMembers(_state.Header.Values, _options)
-                : typeMap.BindMembers(_options);
+                ? typeMap.GetMaterializer(_state.Header.Values, _options)
+                : typeMap.GetMaterializer(_options);
 
             _state.MaterializerCache[typeMap] = obj;
         }

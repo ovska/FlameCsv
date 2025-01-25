@@ -98,8 +98,8 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         ArgumentNullException.ThrowIfNull(typeMap);
 
         IMaterializer<T, TRecord> materializer = _header is not null
-            ? typeMap.BindMembers(_header.Values, Options)
-            : typeMap.BindMembers(Options);
+            ? typeMap.GetMaterializer(_header.Values, Options)
+            : typeMap.GetMaterializer(Options);
 
         FieldEnumerator enumerator = new(this);
         return materializer.Parse(ref enumerator);
