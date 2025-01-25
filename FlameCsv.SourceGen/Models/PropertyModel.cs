@@ -2,12 +2,7 @@
 
 namespace FlameCsv.SourceGen.Models;
 
-internal sealed record RecordModel
-{
-
-}
-
-internal sealed record PropertyModel : IComparable<PropertyModel>
+internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
 {
     /// <summary>
     /// Property/field name
@@ -52,19 +47,28 @@ internal sealed record PropertyModel : IComparable<PropertyModel>
     /// <summary>
     /// List of strings to match this member for. Defaults to <see cref="Name"/>
     /// </summary>
-    public required ImmutableEquatableArray<string> Names { get; init; }
+    public required ImmutableUnsortedArray<string> Names { get; init; }
 
     /// <summary>
     /// The interface type that this property was explicitly implemented from.
     /// </summary>
     public required TypeRef? ExplicitInterfaceOriginalDefinition { get; init; }
 
+    /// <summary>
+    /// Overridden converter for this property.
+    /// </summary>
+    public required ConverterModel? OverriddenConverter { get; init; }
+
+    public string IndexPrefix => "s__Index_";
+    public string ConverterPrefix => "s__Converter_";
+
     public int CompareTo(PropertyModel other) => other.Order.CompareTo(Order); // reverse sort so higher order is first
 
     public static bool TryCreate(
+        ITypeSymbol token,
         ISymbol typeSymbol,
         ISymbol symbol,
-        KnownSymbols knownSymbols,
+        FlameSymbols symbols,
         [NotNullWhen(true)] out PropertyModel? model)
     {
         if (!symbol.CanBeReferencedByName || symbol.IsStatic)
@@ -81,7 +85,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>
         {
             if (propertySymbol.IsIndexer ||
                 propertySymbol.RefKind != RefKind.None ||
-                propertySymbol.HasAttribute(knownSymbols.CsvHeaderIgnoreAttribute))
+                propertySymbol.HasAttribute(symbols.CsvHeaderIgnoreAttribute))
             {
                 goto Fail;
             }
@@ -101,8 +105,8 @@ internal sealed record PropertyModel : IComparable<PropertyModel>
         else if (symbol is IFieldSymbol fieldSymbol)
         {
             if (fieldSymbol.RefKind != RefKind.None ||
-                fieldSymbol.IsConst || // should this be writable?
-                fieldSymbol.HasAttribute(knownSymbols.CsvHeaderIgnoreAttribute))
+                fieldSymbol.IsConst ||
+                fieldSymbol.HasAttribute(symbols.CsvHeaderIgnoreAttribute))
             {
                 goto Fail;
             }
@@ -117,7 +121,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>
             goto Fail;
         }
 
-        Meta meta = GetMetadata(symbol, knownSymbols);
+        var meta = new SymbolMetadata(token, symbol, symbols);
 
         model = new PropertyModel
         {
@@ -126,61 +130,17 @@ internal sealed record PropertyModel : IComparable<PropertyModel>
             IsRequired = isRequired || meta.IsRequired,
             Name = symbol.Name,
             ExplicitInterfaceOriginalDefinition = explicitInterface,
-            Names = meta.Names.ToImmutableEquatableArray(),
+            Names = meta.Names.ToImmutableUnsortedArray(),
             Order = meta.Order,
             Scope = meta.Scope,
             CanRead = meta.Scope != CsvBindingScope.Write && canRead,
             CanWrite = meta.Scope != CsvBindingScope.Read && canWrite,
+            OverriddenConverter = ConverterModel.GetOverriddenConverter(token, symbol, type, symbols)
         };
         return true;
 
-        Fail:
+    Fail:
         model = null;
         return false;
-    }
-
-    private record struct Meta(string[] Names, int Order, bool IsRequired, CsvBindingScope Scope);
-
-    private static Meta GetMetadata(ISymbol member, KnownSymbols knownSymbols)
-    {
-        string[]? names = null;
-        bool isRequired = false;
-        int order = 0;
-        CsvBindingScope scope = CsvBindingScope.All;
-
-        foreach (var attributeData in member.GetAttributes())
-        {
-            if (SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, knownSymbols.CsvHeaderAttribute))
-            {
-                // params-array
-                if (attributeData.ConstructorArguments[0].Values is { IsDefaultOrEmpty: false } namesArray)
-                {
-                    names = new string[namesArray.Length];
-
-                    for (int i = 0; i < namesArray.Length; i++)
-                        names[i] = namesArray[i].Value?.ToString() ?? "";
-                }
-
-                foreach (var argument in attributeData.NamedArguments)
-                {
-                    switch (argument)
-                    {
-                        case { Key: "Required", Value.Value: bool requiredArg }:
-                            isRequired = requiredArg;
-                            break;
-                        case { Key: "Order", Value.Value: int orderArg }:
-                            order = orderArg;
-                            break;
-                        case { Key: "Scope", Value.Value: int scopeArg }:
-                            scope = (CsvBindingScope)scopeArg;
-                            break;
-                    }
-                }
-
-                break;
-            }
-        }
-
-        return new Meta(names ?? [member.Name], order, isRequired, scope);
     }
 }

@@ -1,8 +1,10 @@
 ﻿namespace FlameCsv.SourceGen;
 
-internal readonly struct KnownSymbols(Compilation compilation)
+// ReSharper disable InconsistentNaming
+
+internal sealed class FlameSymbols(Compilation compilation)
 {
-    public bool Nullable => compilation.Options.NullableContextOptions.AnnotationsEnabled();
+    public bool NullableContext => compilation.Options.NullableContextOptions.AnnotationsEnabled();
 
     public INamedTypeSymbol CsvOptions { get; } = GetUnboundGeneric(compilation, "FlameCsv.CsvOptions`1");
     public INamedTypeSymbol CsvConverterTTValue { get; } = GetUnboundGeneric(compilation, "FlameCsv.CsvConverter`2");
@@ -16,18 +18,25 @@ internal readonly struct KnownSymbols(Compilation compilation)
     public INamedTypeSymbol CsvHeaderAttribute => Get(compilation, "FlameCsv.Binding.Attributes.CsvHeaderAttribute");
     public INamedTypeSymbol CsvHeaderTargetAttribute => Get(compilation, "FlameCsv.Binding.Attributes.CsvHeaderTargetAttribute");
     public INamedTypeSymbol CsvConstructorAttribute => Get(compilation, "FlameCsv.Binding.Attributes.CsvConstructorAttribute");
-    public INamedTypeSymbol SystemDateTime => Get(compilation, "System.DateTime");
-    public INamedTypeSymbol SystemDateTimeOffset => Get(compilation, "System.DateTimeOffset");
-    public INamedTypeSymbol SystemTimeSpan => Get(compilation, "System.TimeSpan");
-    public INamedTypeSymbol SystemGuid => Get(compilation, "System.Guid");
 
     private readonly Dictionary<ISymbol, INamedTypeSymbol> _optionsTypes = new(SymbolEqualityComparer.Default);
+    private readonly Dictionary<ISymbol, INamedTypeSymbol> _factoryTypes = new(SymbolEqualityComparer.Default);
 
     public INamedTypeSymbol GetCsvOptionsType(ITypeSymbol tokenType)
     {
         if (!_optionsTypes.TryGetValue(tokenType, out INamedTypeSymbol? type))
         {
             _optionsTypes[tokenType] = type = CsvOptions.OriginalDefinition.Construct(tokenType.OriginalDefinition);
+        }
+
+        return type;
+    }
+
+    public INamedTypeSymbol GetCsvConverterFactoryType(ITypeSymbol targetType)
+    {
+        if (!_factoryTypes.TryGetValue(targetType, out INamedTypeSymbol? type))
+        {
+            _factoryTypes[targetType] = type = CsvConverterFactory.ConstructedFrom.Construct(targetType.OriginalDefinition);
         }
 
         return type;
@@ -40,55 +49,4 @@ internal readonly struct KnownSymbols(Compilation compilation)
     }
 
     private static INamedTypeSymbol GetUnboundGeneric(Compilation compilation, string name) => Get(compilation, name).ConstructUnboundGenericType();
-}
-
-internal readonly struct SymbolMetadata
-{
-    public ISymbol Symbol { get; }
-    public string[] Names { get; }
-    public bool IsRequired { get; }
-    public int Order { get; }
-    public CsvBindingScope Scope { get; }
-
-    public SymbolMetadata(ISymbol symbol, in KnownSymbols knownSymbols)
-    {
-        Symbol = symbol;
-
-        foreach (var attributeData in symbol.GetAttributes())
-        {
-            if (SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, knownSymbols.CsvHeaderAttribute))
-            {
-                // params-array
-                if (attributeData.ConstructorArguments[0].Values is { IsDefaultOrEmpty: false } namesArray)
-                {
-                    var names = new string[namesArray.Length];
-
-                    for (int i = 0; i < namesArray.Length; i++)
-                        names[i] = namesArray[i].Value?.ToString() ?? "";
-
-                    Names = names;
-                }
-
-                foreach (var argument in attributeData.NamedArguments)
-                {
-                    switch (argument)
-                    {
-                        case { Key: "Required", Value.Value: bool requiredArg }:
-                            IsRequired = requiredArg;
-                            break;
-                        case { Key: "Order", Value.Value: int orderArg }:
-                            Order = orderArg;
-                            break;
-                        case { Key: "Scope", Value.Value: int scopeArg }:
-                            Scope = (CsvBindingScope)scopeArg;
-                            break;
-                    }
-                }
-
-                break;
-            }
-        }
-
-        Names ??= [symbol.Name];
-    }
 }
