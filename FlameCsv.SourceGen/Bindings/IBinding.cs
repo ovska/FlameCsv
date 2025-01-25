@@ -8,7 +8,7 @@ internal interface IBinding
     ITypeSymbol Type { get; }
     bool IsRequired { get; }
     int Order { get; }
-    BindingScope Scope { get; }
+    CsvBindingScope Scope { get; }
 
     bool CanRead { get; }
     bool CanWrite { get; }

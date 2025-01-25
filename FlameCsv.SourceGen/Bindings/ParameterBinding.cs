@@ -8,7 +8,7 @@ internal sealed class ParameterBinding : IComparable<ParameterBinding>, IBinding
     public string Name { get; }
     public string ParameterName => Symbol.Name;
     public IReadOnlyList<string> Names { get; }
-    public BindingScope Scope => BindingScope.Read;
+    public CsvBindingScope Scope => CsvBindingScope.Read;
 
     ISymbol IBinding.Symbol => Symbol;
     public IParameterSymbol Symbol { get; }

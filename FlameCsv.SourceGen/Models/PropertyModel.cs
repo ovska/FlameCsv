@@ -37,7 +37,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>
     /// <summary>
     /// Scope this property/field is valid for.
     /// </summary>
-    public required BindingScope Scope { get; init; }
+    public required CsvBindingScope Scope { get; init; }
 
     /// <summary>
     /// If this member can be used when reading CSV.
@@ -129,8 +129,8 @@ internal sealed record PropertyModel : IComparable<PropertyModel>
             Names = meta.Names.ToImmutableEquatableArray(),
             Order = meta.Order,
             Scope = meta.Scope,
-            CanRead = meta.Scope != BindingScope.Write && canRead,
-            CanWrite = meta.Scope != BindingScope.Read && canWrite,
+            CanRead = meta.Scope != CsvBindingScope.Write && canRead,
+            CanWrite = meta.Scope != CsvBindingScope.Read && canWrite,
         };
         return true;
 
@@ -139,14 +139,14 @@ internal sealed record PropertyModel : IComparable<PropertyModel>
         return false;
     }
 
-    private record struct Meta(string[] Names, int Order, bool IsRequired, BindingScope Scope);
+    private record struct Meta(string[] Names, int Order, bool IsRequired, CsvBindingScope Scope);
 
     private static Meta GetMetadata(ISymbol member, KnownSymbols knownSymbols)
     {
         string[]? names = null;
         bool isRequired = false;
         int order = 0;
-        BindingScope scope = BindingScope.All;
+        CsvBindingScope scope = CsvBindingScope.All;
 
         foreach (var attributeData in member.GetAttributes())
         {
@@ -165,14 +165,14 @@ internal sealed record PropertyModel : IComparable<PropertyModel>
                 {
                     switch (argument)
                     {
-                        case { Key: "Required", Value.Value: bool _required }:
-                            isRequired = _required;
+                        case { Key: "Required", Value.Value: bool requiredArg }:
+                            isRequired = requiredArg;
                             break;
-                        case { Key: "Order", Value.Value: int _order }:
-                            order = _order;
+                        case { Key: "Order", Value.Value: int orderArg }:
+                            order = orderArg;
                             break;
-                        case { Key: "Scope", Value.Value: int _scope }:
-                            scope = (BindingScope)_scope;
+                        case { Key: "Scope", Value.Value: int scopeArg }:
+                            scope = (CsvBindingScope)scopeArg;
                             break;
                     }
                 }

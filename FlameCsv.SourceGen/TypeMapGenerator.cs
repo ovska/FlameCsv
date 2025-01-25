@@ -130,15 +130,15 @@ namespace ");
 
     private void WriteIndexes(StringBuilder sb, in TypeMapSymbol typeMap)
     {
-        if (typeMap.Scope == BindingScope.Write) return;
+        if (typeMap.Scope == CsvBindingScope.Write) return;
 
         // start from 1 so uninitialized members fail as expected
         int index = 1;
 
         foreach (var binding in typeMap.Bindings.AllBindings)
         {
-            if ((!binding.CanRead && typeMap.Scope == BindingScope.Read) ||
-                (!binding.CanWrite && typeMap.Scope == BindingScope.Write))
+            if ((!binding.CanRead && typeMap.Scope == CsvBindingScope.Read) ||
+                (!binding.CanWrite && typeMap.Scope == CsvBindingScope.Write))
                 continue;
 
             sb.Append(@"

@@ -18,9 +18,9 @@ internal sealed record TypeMapModel
             {
                 Scope = kvp.Value.Value switch
                 {
-                    BindingScope.All => BindingScope.All,
-                    BindingScope.Write => BindingScope.Write,
-                    BindingScope.Read => BindingScope.Read,
+                    CsvBindingScope.All => CsvBindingScope.All,
+                    CsvBindingScope.Write => CsvBindingScope.Write,
+                    CsvBindingScope.Read => CsvBindingScope.Read,
                     _ => throw new NotSupportedException("Unrecognized binding scope: " + kvp.Value.ToCSharpString()),
                 };
                 // TODO: ReportDiagnostic instead of exception?
@@ -49,5 +49,5 @@ internal sealed record TypeMapModel
     /// <summary>
     /// Scope of the TypeMap.
     /// </summary>
-    public BindingScope Scope { get; }
+    public CsvBindingScope Scope { get; }
 }
