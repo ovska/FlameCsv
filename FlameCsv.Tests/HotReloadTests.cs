@@ -23,8 +23,15 @@ public static class HotReloadTests
         Assert.NotEmpty(o._explicitCache);
 
         // typemap
-        var dm = CsvTypeMap.GetDematerializer(ObjTypeMap_Simple.Instance, CsvOptions<char>.Default);
-        Assert.Same(dm, CsvTypeMap.GetDematerializer(ObjTypeMap_Simple.Instance, CsvOptions<char>.Default));
+        var dm = ObjTypeMap_Simple.Instance.GetDematerializer(CsvOptions<char>.Default);
+        Assert.Same(dm, ObjTypeMap_Simple.Instance.GetDematerializer(CsvOptions<char>.Default));
+
+        var noheader = new CsvOptions<char> { HasHeader = false };
+        var mnh = ObjTypeMap_Simple.Instance.GetMaterializer(noheader);
+        Assert.Same(mnh, ObjTypeMap_Simple.Instance.GetMaterializer(noheader));
+
+        var mh = ObjTypeMap_Simple.Instance.GetMaterializer(["a", "b", "c"], CsvOptions<char>.Default);
+        Assert.Same(mh, ObjTypeMap_Simple.Instance.GetMaterializer(["a", "b", "c"], CsvOptions<char>.Default));
 
         // record
         using var state = new EnumeratorState<char>(CsvOptions<char>.Default);
@@ -43,7 +50,9 @@ public static class HotReloadTests
         Assert.NotSame(c2, o.GetOrCreate(cacheKey: Type.Missing, static _ => new StringTextConverter()));
 
         // typemap
-        Assert.NotSame(dm, CsvTypeMap.GetDematerializer(ObjTypeMap_Simple.Instance, CsvOptions<char>.Default));
+        Assert.NotSame(dm, ObjTypeMap_Simple.Instance.GetDematerializer(CsvOptions<char>.Default));
+        Assert.NotSame(mnh, ObjTypeMap_Simple.Instance.GetMaterializer(noheader));
+        Assert.NotSame(mh, ObjTypeMap_Simple.Instance.GetMaterializer(["a", "b", "c"], CsvOptions<char>.Default));
 
         // record
         Assert.Empty(state.MaterializerCache);

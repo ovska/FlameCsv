@@ -5,12 +5,6 @@ namespace FlameCsv;
 
 public partial class CsvOptions<T>
 {
-    private static void ThrowInvalidTokenType(string? memberName)
-    {
-        throw new NotSupportedException(
-            $"{typeof(CsvOptions<T>).FullName}.{memberName} is not supported by default, inherit the class and override the member.");
-    }
-
     internal ref readonly CsvDialect<T> Dialect
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -42,14 +36,19 @@ public partial class CsvOptions<T>
             Delimiter = T.CreateChecked(_delimiter),
             Quote = T.CreateChecked(_quote),
             Escape = _escape.HasValue ? T.CreateChecked(_escape.Value) : null,
-            Newline = GetFromString(_newline).Span,
-            Whitespace = GetFromString(_whitespace).Span,
+            Newline = GetSpan(this, _newline, stackalloc T[8]),
+            Whitespace = GetSpan(this, _whitespace, stackalloc T[8])
         };
 
         result.Validate();
 
         _dialect = result;
         return ref Nullable.GetValueRefOrDefaultRef(in _dialect);
+
+        static ReadOnlySpan<T> GetSpan(CsvOptions<T> @this, string? value, Span<T> buffer)
+            => @this.TryWriteChars(value, buffer, out int written)
+                ? buffer.Slice(0, written)
+                : @this.GetFromString(value).Span;
     }
 
     private char _delimiter = ',';
