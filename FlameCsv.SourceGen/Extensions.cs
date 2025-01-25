@@ -5,34 +5,16 @@ namespace FlameCsv.SourceGen;
 
 internal static class Extensions
 {
-    public static bool IsExplicitInterfaceImplementation(this IPropertySymbol propertySymbol)
-    {
-        foreach (var implementation in propertySymbol.ExplicitInterfaceImplementations)
-        {
-            if (SymbolEqualityComparer.Default.Equals(propertySymbol, implementation))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    public static ITypeSymbol UnwrapNullable(this ITypeSymbol type, out bool isNullable)
+    public static bool IsNullable(this ITypeSymbol type, [NotNullWhen(true)] out ITypeSymbol? baseType)
     {
         if (type is { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T })
         {
-            isNullable = true;
-            return ((INamedTypeSymbol)type).TypeArguments[0];
+            baseType = ((INamedTypeSymbol)type).TypeArguments[0];
+            return true;
         }
 
-        isNullable = false;
-        return type;
-    }
-
-    public static bool IsEnumOrNullableEnum(this ITypeSymbol type)
-    {
-        return type.UnwrapNullable(out _) is { BaseType.SpecialType: SpecialType.System_Enum };
+        baseType = null;
+        return false;
     }
 
     public static bool Inherits(this ITypeSymbol? type, ITypeSymbol baseClass)
@@ -138,39 +120,6 @@ internal static class Extensions
                 _ => null,
             };
         }
-    }
-
-    public static bool ValidFor(this IFieldSymbol f, ref readonly TypeMapSymbol typeMap)
-    {
-        if (!f.CanBeReferencedByName ||
-            f.IsStatic ||
-            f.RefKind != RefKind.None ||
-            f.HasAttribute(typeMap.Symbols.CsvHeaderIgnoreAttribute))
-        {
-            return false;
-        }
-
-        // either field must be writable, or we are generating writing code too
-        return typeMap.Scope != CsvBindingScope.Read || f is { IsReadOnly: false, IsConst: false };
-    }
-
-    public static bool ValidFor(this IPropertySymbol p, ref readonly TypeMapSymbol typeMap)
-    {
-        if (!p.CanBeReferencedByName ||
-            p.IsStatic ||
-            p.IsIndexer ||
-            p.RefKind != RefKind.None ||
-            p.HasAttribute(typeMap.Symbols.CsvHeaderIgnoreAttribute))
-        {
-            return false;
-        }
-
-        return typeMap.Scope switch
-        {
-            CsvBindingScope.Read => !p.IsReadOnly, // only reading code, must be writable
-            CsvBindingScope.Write => !p.IsWriteOnly, // only writing code, must be readable
-            _ => true,
-        };
     }
 
     public static bool HasAttribute(this ISymbol symbol, INamedTypeSymbol attribute)

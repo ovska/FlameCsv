@@ -1,98 +1,127 @@
-﻿namespace FlameCsv.SourceGen;
+﻿using FlameCsv.SourceGen.Models;
+
+namespace FlameCsv.SourceGen;
 
 public partial class TypeMapGenerator
 {
-    private void GetWriteCode(StringBuilder sb, ref readonly TypeMapSymbol typeMap)
+    private void GetWriteCode(StringBuilder sb,
+        FlameSymbols symbols,
+        TypeMapModel typeMap,
+        CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (typeMap.Scope == CsvBindingScope.Read)
             return;
 
-        var writeBindingsSorted = typeMap.Bindings.Members.Where(m => m.CanWrite).ToArray();
+        var writableProperties = typeMap.Properties.Where(m => m.CanWrite).ToArray();
 
         Array.Sort(
-            writeBindingsSorted,
-            (b1, b2) => b1.Order != b2.Order
-                ? b2.Order.CompareTo(b1.Order)
-                : String.Compare(b1.Name, b2.Name, StringComparison.Ordinal));
+            writableProperties,
+            (b1, b2) =>
+            {
+                var b1Order = b1.Order;
+                var b2Order = b2.Order;
 
-        typeMap.ThrowIfCancellationRequested();
+                foreach (var target in typeMap.TargetAttributes)
+                {
+                    if (StringComparer.Ordinal.Equals(target.MemberName, b1.Name))
+                    {
+                        b1Order = Math.Max(b1Order, target.Order);
+                    }
+                    else if (StringComparer.Ordinal.Equals(target.MemberName, b2.Name))
+                    {
+                        b2Order = Math.Max(b2Order, target.Order);
+                    }
+                }
+
+                if (b1.Order != b2.Order)
+                {
+                    return b2.Order.CompareTo(b1.Order);
+                }
+
+                if (b1.Order != b2.Order)
+                {
+                    return b2.Order.CompareTo(b1.Order);
+                }
+
+                return String.Compare(b1.Name, b2.Name, StringComparison.Ordinal);
+            });
 
         sb.Append(@"
 
         protected override FlameCsv.Writing.IDematerializer<");
-        sb.Append(typeMap.Token);
+        sb.Append(typeMap.Token.Name);
         sb.Append(", ");
-        sb.Append(typeMap.Type.ToDisplayString());
+        sb.Append(typeMap.Type.FullyQualifiedName);
         sb.Append("> BindForWriting(FlameCsv.CsvOptions<");
-        sb.Append(typeMap.Token);
+        sb.Append(typeMap.Token.FullyQualifiedName);
         sb.Append(@"> options)
         {
             return new Dematerializer
             {");
 
-        var converterFactorySymbol = typeMap.Symbols.CsvConverterFactory.ConstructedFrom.Construct(typeMap.TokenSymbol);
-
-        foreach (var binding in writeBindingsSorted)
+        foreach (var property in writableProperties)
         {
             sb.Append(@"
                 ");
-            binding.WriteConverterId(sb);
+            sb.Append(property.ConverterPrefix);
+            sb.Append(property.Name);
             sb.Append(" = ");
-            ResolveConverter(sb, in typeMap, binding.Symbol, binding.Type, converterFactorySymbol);
+            WriteConverter(sb, symbols, property);
             sb.Append(',');
         }
 
-        typeMap.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
 
         sb.Append(@"
             };
         }
 
         private sealed class Dematerializer : FlameCsv.Writing.IDematerializer<");
-        sb.Append(typeMap.Token);
+        sb.Append(typeMap.Token.FullyQualifiedName);
         sb.Append(", ");
-        sb.Append(typeMap.Type.ToDisplayString());
+        sb.Append(typeMap.Type.FullyQualifiedName);
         sb.Append(@">
         {");
 
-        foreach (var binding in writeBindingsSorted)
+        foreach (var property in writableProperties)
         {
             sb.Append(@"
             public required FlameCsv.CsvConverter<");
-            sb.Append(typeMap.Token);
+            sb.Append(typeMap.Token.FullyQualifiedName);
             sb.Append(", ");
-            sb.Append(binding.Type.ToDisplayString());
+            sb.Append(property.Type.FullyQualifiedName);
             sb.Append("> ");
-            binding.WriteConverterId(sb);
+            sb.Append(property.ConverterPrefix);
+            sb.Append(property.Name);
             sb.Append(" { get; init; }");
         }
 
-        typeMap.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
 
         sb.Append(@"
 
             public void Write(ref readonly FlameCsv.Writing.CsvFieldWriter<");
-        sb.Append(typeMap.Token);
+        sb.Append(typeMap.Token.FullyQualifiedName);
         sb.Append("> writer, ");
-        sb.Append(typeMap.Type.ToDisplayString());
+        sb.Append(typeMap.Type.FullyQualifiedName);
         sb.Append(@" obj)
             {");
 
-        for (int i = 0; i < writeBindingsSorted.Length; i++)
+        for (int i = 0; i < writableProperties.Length; i++)
         {
-            var binding = writeBindingsSorted[i];
-
-            if (!binding.CanWrite)
-                continue;
+            var property = writableProperties[i];
 
             sb.Append(@"
                 writer.WriteField(");
-            binding.WriteConverterId(sb);
+            sb.Append(property.ConverterPrefix);
+            sb.Append(property.Name);
 
-            if (binding.IsExplicitInterfaceDefinition(typeMap.Type, out var ifaceSymbol))
+            if (property.ExplicitInterfaceOriginalDefinition is { } iface)
             {
                 sb.Append(", ((");
-                sb.Append(ifaceSymbol.ToDisplayString());
+                sb.Append(iface.FullyQualifiedName);
                 sb.Append(")obj).");
             }
             else
@@ -100,9 +129,9 @@ public partial class TypeMapGenerator
                 sb.Append(", obj.");
             }
 
-            sb.Append(binding.Name);
+            sb.Append(property.Name);
 
-            if (i < writeBindingsSorted.Length - 1)
+            if (i < writableProperties.Length - 1)
             {
                 sb.Append(@");
                 writer.WriteDelimiter();");
@@ -114,27 +143,27 @@ public partial class TypeMapGenerator
             }
         }
 
-        typeMap.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
 
         sb.Append(@"
             }
 
             public void WriteHeader(ref readonly FlameCsv.Writing.CsvFieldWriter<");
-        sb.Append(typeMap.Token);
+        sb.Append(typeMap.Token.FullyQualifiedName);
         sb.Append(@"> writer)
             {");
 
         // write directly to the writer for char and byte
-        string suffix = typeMap.TokenSymbol.SpecialType == SpecialType.System_Byte ? "u8" : "";
-        string method = typeMap.TokenSymbol.SpecialType switch
+        string suffix = typeMap.Token.SpecialType == SpecialType.System_Byte ? "u8" : "";
+        string method = typeMap.Token.SpecialType switch
         {
             SpecialType.System_Char or SpecialType.System_Byte => "WriteRaw",
             _ => "WriteText"
         };
 
-        for (int i = 0; i < writeBindingsSorted.Length; i++)
+        for (int i = 0; i < writableProperties.Length; i++)
         {
-            var binding = writeBindingsSorted[i];
+            var binding = writableProperties[i];
 
             sb.Append(@"
                 writer.");
@@ -143,7 +172,7 @@ public partial class TypeMapGenerator
             sb.Append(binding.Names[0].ToStringLiteral());
             sb.Append(suffix);
 
-            if (i < writeBindingsSorted.Length - 1)
+            if (i < writableProperties.Length - 1)
             {
                 sb.Append(@");
                 writer.WriteDelimiter();");
