@@ -48,7 +48,7 @@ internal readonly struct SymbolMetadata
     public string[] Names { get; }
     public bool IsRequired { get; }
     public int Order { get; }
-    public BindingScope Scope { get; }
+    public CsvBindingScope Scope { get; }
 
     public SymbolMetadata(ISymbol symbol, in KnownSymbols knownSymbols)
     {
@@ -73,14 +73,14 @@ internal readonly struct SymbolMetadata
                 {
                     switch (argument)
                     {
-                        case { Key: "Required", Value.Value: bool _required }:
-                            IsRequired = _required;
+                        case { Key: "Required", Value.Value: bool requiredArg }:
+                            IsRequired = requiredArg;
                             break;
-                        case { Key: "Order", Value.Value: int _order }:
-                            Order = _order;
+                        case { Key: "Order", Value.Value: int orderArg }:
+                            Order = orderArg;
                             break;
-                        case { Key: "Scope", Value.Value: int _scope }:
-                            Scope = (BindingScope)_scope;
+                        case { Key: "Scope", Value.Value: int scopeArg }:
+                            Scope = (CsvBindingScope)scopeArg;
                             break;
                     }
                 }

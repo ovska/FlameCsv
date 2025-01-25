@@ -157,6 +157,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
         return _fields.Length;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ref WritableBuffer<T> GetFields()
     {
         return ref _fields;

@@ -113,12 +113,12 @@ internal static class Extensions
         {
             null => "default",
             bool b => b ? "true" : "false",
-            _ when GetLES(value) is { } les => les.ToFullString(),
+            _ when GetLiteral(value) is { } les => les.ToFullString(),
             IFormattable f => f.ToString(null, System.Globalization.CultureInfo.InvariantCulture),
             _ => value.ToString()
         };
 
-        static LiteralExpressionSyntax? GetLES(object? value)
+        static LiteralExpressionSyntax? GetLiteral(object? value)
         {
             return value switch
             {
@@ -151,7 +151,7 @@ internal static class Extensions
         }
 
         // either field must be writable, or we are generating writing code too
-        return typeMap.Scope != BindingScope.Read || (!f.IsReadOnly && !f.IsConst);
+        return typeMap.Scope != CsvBindingScope.Read || f is { IsReadOnly: false, IsConst: false };
     }
 
     public static bool ValidFor(this IPropertySymbol p, ref readonly TypeMapSymbol typeMap)
@@ -167,17 +167,17 @@ internal static class Extensions
 
         return typeMap.Scope switch
         {
-            BindingScope.Read => !p.IsReadOnly, // only reading code, must be writable
-            BindingScope.Write => !p.IsWriteOnly, // only writing code, must be readable
+            CsvBindingScope.Read => !p.IsReadOnly, // only reading code, must be writable
+            CsvBindingScope.Write => !p.IsWriteOnly, // only writing code, must be readable
             _ => true,
         };
     }
 
     public static bool HasAttribute(this ISymbol symbol, INamedTypeSymbol attribute)
     {
-        foreach (var _attribute in symbol.GetAttributes())
+        foreach (var attr in symbol.GetAttributes())
         {
-            if (SymbolEqualityComparer.Default.Equals(_attribute.AttributeClass, attribute))
+            if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, attribute))
                 return true;
         }
 

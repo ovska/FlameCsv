@@ -4,7 +4,7 @@ public partial class TypeMapGenerator
 {
     private void GetWriteCode(StringBuilder sb, ref readonly TypeMapSymbol typeMap)
     {
-        if (typeMap.Scope == BindingScope.Read)
+        if (typeMap.Scope == CsvBindingScope.Read)
             return;
 
         var writeBindingsSorted = typeMap.Bindings.Members.Where(m => m.CanWrite).ToArray();

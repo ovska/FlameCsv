@@ -35,7 +35,7 @@ internal readonly partial struct TypeMapSymbol
     /// </summary>
     public string ParseHandlerArgs { get; }
 
-    public BindingScope Scope { get; }
+    public CsvBindingScope Scope { get; }
 
     public bool UseBuiltinConverters { get; }
 
@@ -46,7 +46,7 @@ internal readonly partial struct TypeMapSymbol
     /// <summary>
     /// Whether to skip checking for a valid constructor (only used for writing).
     /// </summary>
-    public bool SkipConstructor => Scope == BindingScope.Write;
+    public bool SkipConstructor => Scope == CsvBindingScope.Write;
 
     public TypeMapSymbol(
         Compilation compilation,
@@ -87,7 +87,7 @@ internal readonly partial struct TypeMapSymbol
             {
                 Scope = value switch
                 {
-                    BindingScope bs => bs,
+                    CsvBindingScope bs => bs,
                     _ => throw new NotSupportedException("Unrecognized binding scope: " + kvp.Value.ToCSharpString()),
                 };
             }

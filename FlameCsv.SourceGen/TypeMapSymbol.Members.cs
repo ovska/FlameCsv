@@ -105,7 +105,7 @@ partial struct TypeMapSymbol
                 }
 
                 var meta = new SymbolMetadata(parameter, in Symbols);
-                Debug.Assert(meta.Scope != BindingScope.Write);
+                Debug.Assert(meta.Scope != CsvBindingScope.Write);
                 parameters.Add(new ParameterBinding(parameter, in meta));
             }
         }

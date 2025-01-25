@@ -8,7 +8,7 @@ public partial class TypeMapGenerator
         StringBuilder sb,
         ref readonly TypeMapSymbol typeMap)
     {
-        if (typeMap.Scope == BindingScope.Write)
+        if (typeMap.Scope == CsvBindingScope.Write)
             return;
 
         typeMap.ThrowIfCancellationRequested();
@@ -93,7 +93,7 @@ public partial class TypeMapGenerator
 
         foreach (var binding in typeMap.Bindings.AllBindings)
         {
-            if (!binding.CanRead || binding.Scope == BindingScope.Write)
+            if (!binding.CanRead || binding.Scope == CsvBindingScope.Write)
                 continue;
 
             sb.Append("            public ");
@@ -118,7 +118,7 @@ public partial class TypeMapGenerator
 
         foreach (var binding in typeMap.Bindings.AllBindings)
         {
-            if (!binding.CanRead || binding.Scope == BindingScope.Write)
+            if (!binding.CanRead || binding.Scope == CsvBindingScope.Write)
                 continue;
 
             WriteParserMember(sb, in typeMap, binding);
@@ -170,7 +170,7 @@ public partial class TypeMapGenerator
 
         foreach (var binding in typeMap.Bindings.AllBindings)
         {
-            if (!binding.CanRead || binding.Scope == BindingScope.Write)
+            if (!binding.CanRead || binding.Scope == CsvBindingScope.Write)
                 continue;
 
             sb.Append("                        ");
@@ -222,7 +222,7 @@ public partial class TypeMapGenerator
 
         foreach (var binding in typeMap.Bindings.AllBindings)
         {
-            if (!binding.CanRead || binding.Scope == BindingScope.Write)
+            if (!binding.CanRead || binding.Scope == CsvBindingScope.Write)
                 continue;
 
             sb.Append("                if (target == ");
@@ -506,7 +506,7 @@ public partial class TypeMapGenerator
         {
             typeMap.ThrowIfCancellationRequested();
 
-            if (!binding.CanRead || binding.Scope == BindingScope.Write)
+            if (!binding.CanRead || binding.Scope == CsvBindingScope.Write)
                 continue;
 
             sb.Append(
