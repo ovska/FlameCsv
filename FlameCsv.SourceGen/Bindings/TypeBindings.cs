@@ -18,8 +18,8 @@ internal sealed class TypeBindings
         Parameters = parameters;
         AllBindings = [.. Members, .. Parameters];
 
-        RequiredMembers = [..Members.Where(x => x.IsRequired && x.Scope != BindingScope.Write)];
-        RequiredBindings = [..AllBindings.Where(x => x.IsRequired && x.Scope != BindingScope.Write)];
+        RequiredMembers = [..Members.Where(x => x.IsRequired && x.Scope != CsvBindingScope.Write)];
+        RequiredBindings = [..AllBindings.Where(x => x.IsRequired && x.Scope != CsvBindingScope.Write)];
     }
 }
 

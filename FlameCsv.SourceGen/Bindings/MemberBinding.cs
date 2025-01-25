@@ -10,7 +10,7 @@ internal sealed class MemberBinding : IComparable<MemberBinding>, IBinding
     public ITypeSymbol Type { get; }
     public bool IsRequired { get; }
     public int Order { get; }
-    public BindingScope Scope { get; set; }
+    public CsvBindingScope Scope { get; set; }
 
     public bool CanRead { get; }
     public bool CanWrite { get; }
@@ -30,9 +30,9 @@ internal sealed class MemberBinding : IComparable<MemberBinding>, IBinding
         Names = meta.Names;
         Scope = meta.Scope;
 
-        CanRead = meta.Scope != BindingScope.Write &&
+        CanRead = meta.Scope != CsvBindingScope.Write &&
             symbol is IPropertySymbol { IsReadOnly: false } or IFieldSymbol { IsReadOnly: false, IsConst: false };
-        CanWrite = meta.Scope != BindingScope.Read && symbol is not IPropertySymbol { IsWriteOnly: true };
+        CanWrite = meta.Scope != CsvBindingScope.Read && symbol is not IPropertySymbol { IsWriteOnly: true };
     }
 
     public int CompareTo(MemberBinding other) => other.Order.CompareTo(Order); // reverse sort so higher order is first
