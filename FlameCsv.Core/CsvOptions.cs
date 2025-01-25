@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.ComponentModel;
 using System.Diagnostics;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
@@ -27,7 +28,7 @@ namespace FlameCsv;
 public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
-    /// Returns read-only default options for <typeparamref name="T"/>, with same configuration as <see langword="new"/>().
+    /// Returns read-only default options for <typeparamref name="T"/> with same configuration as <c>new()</c>.
     /// </summary>
     /// <remarks>
     /// Throws <see cref="NotSupportedException"/> for token types other than <see langword="char"/> or <see langword="byte"/>.
@@ -87,12 +88,26 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         _null = other._null;
         _nullTokens = other._nullTokens?.Clone();
         _converters = other._converters?.Clone();
+
+        _delimiter = other._delimiter;
+        _quote = other._quote;
+        _escape = other._escape;
+        _newline = other._newline;
+        _whitespace = other._whitespace;
+
+        _converterCache = new(other._converterCache, other._converterCache.Comparer);
+        _explicitCache = new(other._explicitCache, other._explicitCache.Comparer);
+
+        // either of these types can be a derived type with a different max size
+        CheckConverterCacheSize();
+        CheckExplicitCacheSize();
     }
 
     /// <summary>
     /// Whether the options-instance is sealed and can no longer be modified.
     /// Options become read only after they begin being used to avoid concurrency bugs.
     /// </summary>
+    /// <seealso cref="CsvOptions{T}(CsvOptions{T})"/>
     public bool IsReadOnly { get; private set; }
 
     /// <summary>
@@ -120,8 +135,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// <seealso cref="CsvTypeMap{T,TValue}"/>
     public virtual ICsvTypeBinder<T> TypeBinder
     {
-        // lazy initialization
-        get => _typeBinder ??= new CsvReflectionBinder<T>(this, ignoreUnmatched: false);
+        get => _typeBinder ??= new CsvReflectionBinder<T>(this, ignoreUnmatched: false); // lazy initialization
         set
         {
             ArgumentNullException.ThrowIfNull(value);
@@ -184,26 +198,29 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     }
 
     /// <summary>
-    /// Returns the format configured for <paramref name="resultType"/>, or <paramref name="defaultValue"/> by default.
+    /// Returns the custom format configured for <paramref name="resultType"/>,
+    /// or <paramref name="defaultValue"/> by default.
     /// </summary>
     public virtual string? GetFormat(Type resultType, string? defaultValue = null)
-        => _formats.GetOrDefault(resultType, defaultValue);
+        => _formats.TryGetExt(resultType, defaultValue);
 
     /// <summary>
-    /// Returns the format provider configured for <paramref name="resultType"/>, or <see cref="FormatProvider"/> by default.
+    /// Returns the custom format provider configured for <paramref name="resultType"/>,
+    /// or <see cref="FormatProvider"/> by default.
     /// </summary>
     public virtual IFormatProvider? GetFormatProvider(Type resultType)
-        => _providers.GetOrDefault(resultType, _formatProvider);
+        => _providers.TryGetExt(resultType, _formatProvider);
 
     /// <summary>
-    /// Returns the number styles configured for the <see cref="INumberBase{TSelf}"/>, or <paramref name="defaultValue"/> by default.
+    /// Returns the custom number styles configured for the <see cref="INumberBase{TSelf}"/>,
+    /// or <paramref name="defaultValue"/> by default.
     /// </summary>
     /// <remarks>
     /// Defaults are <see cref="NumberStyles.Integer"/> for <see cref="IBinaryInteger{TSelf}"/> and
     /// <see cref="NumberStyles.Float"/> for <see cref="IFloatingPoint{TSelf}"/>.
     /// </remarks>
     public virtual NumberStyles GetNumberStyles(Type resultType, NumberStyles defaultValue)
-        => _styles.GetOrDefault(resultType, defaultValue);
+        => _styles.TryGetExt(resultType, defaultValue);
 
     internal CsvRecordSkipPredicate<T>? _shouldSkipRow;
     internal CsvExceptionHandler<T>? _exceptionHandler;
@@ -274,8 +291,10 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
 
     /// <summary>
     /// Format provider used it none is defined for type in <see cref="FormatProviders"/>.
-    /// Defaults to <see cref="CultureInfo.InvariantCulture"/>. See <see cref="GetFormatProvider(Type)"/>.
+    /// Defaults to <see cref="CultureInfo.InvariantCulture"/>.
     /// </summary>
+    /// <seealso cref="FormatProviders"/>
+    /// <seealso cref="GetFormatProvider(Type)"/>
     public IFormatProvider? FormatProvider
     {
         get => _formatProvider;
@@ -283,29 +302,31 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     }
 
     /// <summary>
-    /// Format provider user per type instead of <see cref="FormatProvider"/>. See <see cref="GetFormatProvider(Type)"/>.
+    /// Format providers used per type.
     /// </summary>
+    /// <seealso cref="FormatProvider"/>
+    /// <seealso cref="GetFormatProvider(Type)"/>
     public ITypeDictionary<IFormatProvider?> FormatProviders
         => _providers ??= new TypeDictionary<IFormatProvider?, object>(this);
 
     /// <summary>
-    /// Format used per type. See <see cref="GetFormat(Type, string?)"/>.
+    /// Format used per type.
     /// </summary>
+    /// <see cref="GetFormat(Type, string?)"/>
     public ITypeDictionary<string?> Formats => _formats ??= new TypeDictionary<string?, object>(this);
 
     /// <summary>
-    /// Parsing styles used per <see cref="IBinaryNumber{TSelf}"/> and <see cref="IFloatingPoint{TSelf}"/>.
-    /// See <see cref="GetNumberStyles(Type, System.Globalization.NumberStyles)"/>.
+    /// Styles used when parsing <see cref="IBinaryNumber{TSelf}"/> and <see cref="IFloatingPoint{TSelf}"/>.
     /// </summary>
+    /// <seealso cref="GetNumberStyles(Type, System.Globalization.NumberStyles)"/>.
     public ITypeDictionary<NumberStyles> NumberStyles => _styles ??= new TypeDictionary<NumberStyles, object>(this);
 
     /// <summary>
-    /// Disables buffering newline ranges when reading.
+    /// Disables buffering CSV fields to memory when reading.
+    /// Default is <see langword="false"/>.
+    /// If set to <see langword="true"/>, performance is degraded but records will always be read one at a time.
     /// </summary>
-    /// <remarks>
-    /// Buffering increases reading performance, but lines are buffered without parsing their individual fields,
-    /// which may cause extra data to be read when one of the fields contains an erroneus value.
-    /// </remarks>
+    [EditorBrowsable(EditorBrowsableState.Advanced)]
     public bool NoLineBuffering
     {
         get => _disableBuffering;
@@ -375,7 +396,8 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// Whether to read/write a header record. The default is <see langword="true"/>.
     /// </summary>
     /// <remarks>
-    /// When <see langword="false"/>, types must be annotated with <see cref="Binding.Attributes.CsvIndexAttribute"/>.
+    /// When <see langword="false"/>, types must be annotated with <see cref="Binding.Attributes.CsvIndexAttribute"/>
+    /// unless a custom <see cref="TypeBinder"/> is used.
     /// </remarks>
     public bool HasHeader
     {
@@ -384,7 +406,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     }
 
     /// <summary>
-    /// Defines the quoting behaviour when writing values. Default is <see cref="CsvFieldQuoting.Auto"/>.
+    /// Defines the quoting behavior when writing values. Default is <see cref="CsvFieldQuoting.Auto"/>.
     /// </summary>
     public CsvFieldQuoting FieldQuoting
     {
@@ -436,6 +458,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// <summary>
     /// Whether to ignore casing when parsing enum values. Default is <see langword="true"/>.
     /// </summary>
+    /// <seealso cref="UseDefaultConverters"/>
     public bool IgnoreEnumCase
     {
         get => _ignoreEnumCase;
@@ -446,6 +469,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// Whether to allow enum values that are not defined in the enum type.
     /// Default is <see langword="false"/>.
     /// </summary>
+    /// <seealso cref="UseDefaultConverters"/>
     public bool AllowUndefinedEnumValues
     {
         get => _allowUndefinedEnumValues;
@@ -455,6 +479,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// <summary>
     /// The default format for enums, used if enum's format is not defined in <see cref="Formats"/>.
     /// </summary>
+    /// <seealso cref="UseDefaultConverters"/>
     public string? EnumFormat
     {
         get => _enumFormat;
@@ -468,7 +493,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
 
     /// <summary>
     /// Pool used to create reusable buffers when reading multisegment data, or unescaping large fields.
-    /// Default allocator uses <see cref="MemoryPool{T}.Shared"/>.
+    /// Default value is <see cref="MemoryPool{T}.Shared"/>.
     /// Set to <see langword="null"/> to disable pooling and always heap allocate.
     /// </summary>
     public MemoryPool<T>? MemoryPool
@@ -487,6 +512,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// Optional custom boolean value mapping. If not empty, must contain at least one value for both
     /// <see langword="true"/> and <see langword="false"/>. Default is empty.
     /// </summary>
+    /// <seealso cref="UseDefaultConverters"/>
     /// <seealso cref="CsvBooleanValuesAttribute{T}"/>
     public IList<(string text, bool value)> BooleanValues
         => _booleanValues ??= new SealableList<(string, bool)>(this, null);
@@ -495,7 +521,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
 file static class TypeDictExtensions
 {
     [StackTraceHidden]
-    public static T GetOrDefault<T>(
+    public static T TryGetExt<T>(
         this TypeDictionary<T, object>? dict,
         Type key,
         T defaultValue,
