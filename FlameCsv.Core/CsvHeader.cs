@@ -1,12 +1,12 @@
-﻿using System.Collections;
-using System.Collections.Frozen;
+﻿using System.Collections.Frozen;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Extensions;
+using FlameCsv.Utilities;
 
 namespace FlameCsv;
 
-internal sealed class CsvHeader : IReadOnlyDictionary<string, int>, IEquatable<CsvHeader>
+internal sealed class CsvHeader
 {
     /// <summary>
     /// Retrieves a string representation of the given value using the provided options.
@@ -29,12 +29,16 @@ internal sealed class CsvHeader : IReadOnlyDictionary<string, int>, IEquatable<C
 
     internal static readonly StringPool HeaderPool = new(minimumSize: 32);
 
-    public ReadOnlySpan<string> Values => _header;
+    public ReadOnlySpan<string> Values => _header ?? ((ReadOnlySpan<string>)_scratch!).Slice(0, _scratchLength);
 
     private readonly IEqualityComparer<string> _comparer;
-    private readonly string[] _header;
     private FrozenDictionary<string, int>? _dictionary;
     private int _accessCount;
+
+    private readonly string[]? _header;
+
+    private readonly StringScratch _scratch;
+    private readonly int _scratchLength;
 
     private FrozenDictionary<string, int>? Dictionary
     {
@@ -47,44 +51,57 @@ internal sealed class CsvHeader : IReadOnlyDictionary<string, int>, IEquatable<C
             // TODO: profile
             if (++_accessCount > 4)
             {
-                var result = _header.Index().ToFrozenDictionary(x => x.Item, x => x.Index, _comparer);
-                return _dictionary ??= result;
+                return InitDictionary();
             }
 
             return null;
         }
     }
 
-    public CsvHeader(IEqualityComparer<string> comparer, string[] header)
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private FrozenDictionary<string, int> InitDictionary()
+    {
+        Dictionary<string, int> result = new(Count, _comparer);
+
+        ReadOnlySpan<string> values = Values;
+
+        for (int index = 0; index < values.Length; index++)
+        {
+            result[values[index]] = index;
+        }
+
+        return _dictionary ??= result.ToFrozenDictionary(_comparer);
+    }
+
+    public CsvHeader(IEqualityComparer<string> comparer, ReadOnlySpan<string> header)
     {
         ArgumentNullException.ThrowIfNull(comparer);
-        ArgumentNullException.ThrowIfNull(header);
 
         if (header.Length == 0)
             Throw.Argument("Header cannot be empty.", nameof(header));
 
         _comparer = comparer;
-        _header = header;
+
+        if (header.Length <= StringScratch.MaxLength)
+        {
+            _scratch = default;
+            header.CopyTo(_scratch!);
+            _scratchLength = header.Length;
+        }
+        else
+        {
+            _header = header.ToArray();
+        }
     }
 
-    IEnumerator<KeyValuePair<string, int>> IEnumerable<KeyValuePair<string, int>>.GetEnumerator()
-    {
-        return _header.Index().Select(x => new KeyValuePair<string, int>(x.Item, x.Index)).GetEnumerator();
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return ((IEnumerable<KeyValuePair<string, int>>)this).GetEnumerator();
-    }
-
-    public int Count => _header.Length;
+    public int Count => _header?.Length ?? _scratchLength;
 
     public bool ContainsKey(string key)
     {
         if (Dictionary is { } dict)
             return dict.ContainsKey(key);
 
-        foreach (var header in _header)
+        foreach (var header in Values)
         {
             if (_comparer.Equals(header, key))
                 return true;
@@ -98,9 +115,10 @@ internal sealed class CsvHeader : IReadOnlyDictionary<string, int>, IEquatable<C
         if (Dictionary is { } dict)
             return dict.TryGetValue(key, out value);
 
-        for (int index = 0; index < _header.Length; index++)
+        ReadOnlySpan<string> values = Values;
+        for (int index = 0; index < values.Length; index++)
         {
-            if (_comparer.Equals(_header[index], key))
+            if (_comparer.Equals(values[index], key))
             {
                 value = index;
                 return true;
@@ -113,23 +131,25 @@ internal sealed class CsvHeader : IReadOnlyDictionary<string, int>, IEquatable<C
 
     public int this[string key] => TryGetValue(key, out int value) ? value : Throw.Argument_FieldName(key);
 
-    public IEnumerable<string> Keys => _header;
-    IEnumerable<int> IReadOnlyDictionary<string, int>.Values => Enumerable.Range(0, _header.Length);
-
-    public bool Equals(CsvHeader? other)
+    public IEnumerable<string> HeaderNames
     {
-        return other is not null && _header.AsSpan().SequenceEqual(other._header.AsSpan(), _comparer);
-    }
+        get
+        {
+            if (_header is not null)
+            {
+                foreach (var header in _header)
+                {
+                    yield return header;
+                }
+            }
+            else
+            {
+                for (int index = 0; index < _scratchLength; index++)
+                {
+                    yield return _scratch[index]!;
+                }
+            }
 
-    public override bool Equals(object? obj) => Equals(obj as CsvHeader);
-
-    public override int GetHashCode()
-    {
-        var hash = new HashCode();
-
-        foreach (var header in _header)
-            hash.Add(header, _comparer);
-
-        return hash.ToHashCode();
+        }
     }
 }

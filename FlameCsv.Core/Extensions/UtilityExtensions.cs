@@ -71,18 +71,6 @@ internal static class UtilityExtensions
         return data.ToArray();
     }
 
-    public static T[] UnsafeGetOrCreateArray<T>(this ReadOnlyMemory<T> memory)
-    {
-        if (MemoryMarshal.TryGetArray(memory, out var segment) &&
-            segment is { Array: { } arr, Offset: 0 } &&
-            arr.Length == segment.Count)
-        {
-            return arr;
-        }
-
-        return memory.ToArray();
-    }
-
     public static T CreateInstance<T>([DAM(Messages.Ctors)] this Type type, params object?[] parameters) where T : class
     {
         try
