@@ -21,7 +21,7 @@ public class CsvParserTests
         get
         {
             var data = new TheoryData<NewlineToken, Mode, bool>();
-            foreach (var newline in Enum.GetValues<NewlineToken>())
+            foreach (var newline in GlobalData.Enum<NewlineToken>())
             foreach (var mode in (Mode[]) [Mode.RFC, Mode.Escape])
             foreach (var trailingNewline in GlobalData.Booleans)
             {

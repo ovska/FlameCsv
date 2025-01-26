@@ -16,8 +16,6 @@ public abstract class CsvReaderTestsBase
 {
     protected static readonly int[] _bufferSizes = [-1, 17, 128, 1024, 8096];
     protected static readonly int[] _emptySegmentsEvery = [0, 1, 7];
-    protected static readonly NewlineToken[] _crlf = [NewlineToken.CRLF, NewlineToken.LF, NewlineToken.AutoCRLF, NewlineToken.AutoLF];
-    protected static readonly Mode[] _escaping = [Mode.None, Mode.RFC, Mode.Escape];
 
     public sealed class SyncData : TheoryData<NewlineToken, bool, bool, int, int, Mode, bool, bool?>;
 
@@ -29,12 +27,12 @@ public abstract class CsvReaderTestsBase
         {
             var data = new SyncData();
 
-            foreach (var crlf in _crlf)
+            foreach (var crlf in GlobalData.Enum<NewlineToken>())
             foreach (var writeHeader in GlobalData.Booleans)
             foreach (var writeTrailingNewline in GlobalData.Booleans)
             foreach (var bufferSize in _bufferSizes)
             foreach (var emptySegmentFrequency in _emptySegmentsEvery)
-            foreach (var escaping in _escaping)
+            foreach (var escaping in GlobalData.Enum<Mode>())
             foreach (var sourceGen in GlobalData.Booleans)
             foreach (var guarded in GlobalData.GuardedMemory)
             {
@@ -55,11 +53,11 @@ public abstract class CsvReaderTestsBase
         {
             var data = new AsyncData();
 
-            foreach (var crlf in _crlf)
+            foreach (var crlf in GlobalData.Enum<NewlineToken>())
             foreach (var writeHeader in GlobalData.Booleans)
             foreach (var writeTrailingNewline in GlobalData.Booleans)
             foreach (var bufferSize in _bufferSizes)
-            foreach (var escaping in _escaping)
+            foreach (var escaping in GlobalData.Enum<Mode>())
             foreach (var sourceGen in GlobalData.Booleans)
             foreach (var guarded in GlobalData.GuardedMemory)
             {

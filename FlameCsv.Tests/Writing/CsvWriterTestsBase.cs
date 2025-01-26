@@ -11,7 +11,7 @@ public abstract class CsvWriterTestsBase
         foreach (var newline in (string[])["\r\n", "\n"])
         foreach (var header in GlobalData.Booleans)
         foreach (var escape in (char?[])['^', null])
-        foreach (var quoting in (CsvFieldQuoting[])[CsvFieldQuoting.Never, CsvFieldQuoting.AlwaysQuote, CsvFieldQuoting.Auto])
+        foreach (var quoting in GlobalData.Enum<CsvFieldQuoting>())
         foreach (var sourceGen in GlobalData.Booleans)
         foreach (var bufferSize in (int[])[-1, 17, 128, 1024, 4096])
         foreach (var guarded in GlobalData.GuardedMemory)

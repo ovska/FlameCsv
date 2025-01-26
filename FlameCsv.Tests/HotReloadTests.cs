@@ -1,6 +1,4 @@
 ﻿using System.Reflection.Metadata;
-using FlameCsv.Binding;
-using FlameCsv.Converters;
 using FlameCsv.Tests.Binding;
 using FlameCsv.Utilities;
 
