@@ -26,7 +26,6 @@ public partial class TypeMapGenerator
             @"> options)
         {
             TypeMapMaterializer materializer = new TypeMapMaterializer(headers.Length);
-            bool anyFieldBound = false;
 
             System.Collections.Generic.IEqualityComparer<string> comparer = options.Comparer;
 
@@ -55,7 +54,7 @@ public partial class TypeMapGenerator
             @"
             }
 
-            if (!anyFieldBound)
+            if (!global::System.MemoryExtensions.ContainsAnyInRange(materializer.Targets, @s__MinIndex, @s__MaxIndex))
             {
                 base.ThrowNoFieldsBound(headers);
             }
@@ -91,7 +90,7 @@ public partial class TypeMapGenerator
         {
 ");
 
-        foreach (var member in typeMap.Conversions)
+        foreach (var member in typeMap.PropertiesAndParameters)
         {
             if (!member.CanRead || member.Scope == CsvBindingScope.Write)
                 continue;
@@ -116,7 +115,7 @@ public partial class TypeMapGenerator
             @">
         {");
 
-        foreach (var member in typeMap.Conversions)
+        foreach (var member in typeMap.PropertiesAndParameters)
         {
             if (!member.CanRead || member.Scope == CsvBindingScope.Write)
                 continue;
@@ -179,7 +178,7 @@ public partial class TypeMapGenerator
                     {
 ");
 
-        foreach (var member in typeMap.Conversions)
+        foreach (var member in typeMap.PropertiesAndParameters)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -237,15 +236,14 @@ public partial class TypeMapGenerator
             {
 ");
 
-        int index = 1;
-
-        foreach (var member in typeMap.Conversions)
+        foreach (var member in typeMap.PropertiesAndParameters)
         {
             if (!member.CanRead || member.Scope == CsvBindingScope.Write)
                 continue;
 
             sb.Append("                if (target == ");
-            sb.Append(index++);
+            sb.Append(member.IndexPrefix);
+            sb.Append(member.Name);
             sb.Append(") FlameCsv.Exceptions.CsvParseException.Throw(@field, ");
             sb.Append(member.ConverterPrefix);
             sb.Append(member.Name);
@@ -303,7 +301,7 @@ public partial class TypeMapGenerator
 
             // Enum values are resolved as their underlying type, so they need to be cast back to the enum type
             // e.g. DayOfWeek.Friday would be "state.arg = (System.DayOfWeek)5;"
-            if (parameter.ParameterType.IsEnumOrNullableEnum)
+            if (parameter.ParameterType is { IsEnum: true } or { UnderlyingNullableType.IsEnum: true })
             {
                 sb.Append('(');
                 sb.Append(parameter.ParameterType.FullyQualifiedName);
@@ -437,7 +435,7 @@ public partial class TypeMapGenerator
 
         bool first = true;
 
-        foreach (var member in typeMap.Conversions)
+        foreach (var member in typeMap.PropertiesAndParameters)
         {
             if (first)
             {
@@ -473,7 +471,7 @@ public partial class TypeMapGenerator
         private static System.Collections.Generic.IEnumerable<string> GetMissingRequiredFields(TypeMapMaterializer materializer)
         {");
 
-        foreach (var member in typeMap.Conversions)
+        foreach (var member in typeMap.PropertiesAndParameters)
         {
             sb.Append(
                 @"
@@ -631,7 +629,6 @@ public partial class TypeMapGenerator
             sb.Append(member.Name);
             sb.Append(
                 @";
-                    anyFieldBound = true;
                     continue;
                 }
 ");

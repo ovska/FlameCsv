@@ -147,9 +147,14 @@ namespace ");
     {
         if (typeMap.Scope == CsvBindingScope.Write) return;
 
-        foreach (var conversion in typeMap.Conversions)
+        int max = -1;
+
+        foreach (var conversion in typeMap.PropertiesAndParameters)
         {
             if (!conversion.CanRead) return;
+
+            int index = typeMap.GetIndex(conversion);
+            max = Math.Max(max, index);
 
             sb.Append(
                 @"
@@ -157,9 +162,17 @@ namespace ");
             sb.Append(conversion.IndexPrefix);
             sb.Append(conversion.Name);
             sb.Append(" = ");
-            sb.Append(typeMap.GetIndex(conversion));
+            sb.Append(index);
             sb.Append(';');
         }
+
+        sb.Append(
+            @"
+        private const int @s__MinIndex = 1;
+        private const int @s__MaxIndex = ");
+        sb.Append(max);
+        sb.Append(';');
+
 
         sb.Append(
             @"

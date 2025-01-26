@@ -6,32 +6,34 @@ namespace FlameCsv.SourceGen.Helpers;
 /// <summary>
 /// Provides an immutable list implementation which implements sequence equality.
 /// </summary>
-[CollectionBuilder(typeof(ImmutableUnsortedArray), nameof(ImmutableUnsortedArray.Create))]
-public sealed class ImmutableUnsortedArray<T> : IEquatable<ImmutableUnsortedArray<T>>, IReadOnlyList<T>
-    where T : IEquatable<T>
+[CollectionBuilder(typeof(ImmutableSortedArray), nameof(ImmutableSortedArray.Create))]
+public sealed class ImmutableSortedArray<T> : IEquatable<ImmutableSortedArray<T>>, IReadOnlyList<T>
+    where T : IEquatable<T>, IComparable<T>
 {
     public ReadOnlySpan<T> AsSpan() => _values;
 
-    public static ImmutableUnsortedArray<T> Empty { get; } = new([]);
+    public static ImmutableSortedArray<T> Empty { get; } = new([]);
 
     private readonly T[] _values;
     public T this[int index] => _values[index];
     public int Count => _values.Length;
 
-    public ImmutableUnsortedArray(IEnumerable<T> values)
+    public ImmutableSortedArray(IEnumerable<T> values)
     {
         _values = values.ToArray();
+        Array.Sort(_values);
     }
 
-    public ImmutableUnsortedArray(ReadOnlySpan<T> values)
+    public ImmutableSortedArray(ReadOnlySpan<T> values)
     {
         _values = values.ToArray();
+        Array.Sort(_values);
     }
 
-    public bool Equals(ImmutableUnsortedArray<T>? other)
+    public bool Equals(ImmutableSortedArray<T>? other)
         => other != null && ((ReadOnlySpan<T>)_values).SequenceEqual(other._values);
 
-    public override bool Equals(object? obj) => Equals(obj as ImmutableUnsortedArray<T>);
+    public override bool Equals(object? obj) => Equals(obj as ImmutableSortedArray<T>);
 
     public override int GetHashCode()
     {
@@ -78,45 +80,43 @@ public sealed class ImmutableUnsortedArray<T> : IEquatable<ImmutableUnsortedArra
 }
 
 [SuppressMessage("Style", "IDE0301:Simplify collection initialization")]
-internal static class ImmutableUnsortedArray
+internal static class ImmutableSortedArray
 {
-    public static ImmutableUnsortedArray<T> ToImmutableUnsortedArray<T>(this IEnumerable<T> values)
-        where T : IEquatable<T>
+    public static ImmutableSortedArray<T> ToImmutableEquatableArray<T>(this IEnumerable<T> values) where T : IEquatable<T>, IComparable<T>
     {
-        if (values is ImmutableUnsortedArray<T> array)
+        if (values is ImmutableSortedArray<T> array)
             return array;
 
         return CreateRange(values);
     }
 
-    public static ImmutableUnsortedArray<T> Create<T>() where T : IEquatable<T>
-        => ImmutableUnsortedArray<T>.Empty;
+    public static ImmutableSortedArray<T> Create<T>() where T : IEquatable<T>, IComparable<T> => ImmutableSortedArray<T>.Empty;
 
-    public static ImmutableUnsortedArray<T> Create<T>(T item) where T : IEquatable<T> => [item];
+    public static ImmutableSortedArray<T> Create<T>(T item) where T : IEquatable<T>, IComparable<T> => [item];
 
-    public static ImmutableUnsortedArray<T> CreateRange<T>(IEnumerable<T> items) where T : IEquatable<T>
+    public static ImmutableSortedArray<T> CreateRange<T>(IEnumerable<T> items) where T : IEquatable<T>, IComparable<T>
     {
         if (items is ICollection { Count: 0 })
-            return ImmutableUnsortedArray<T>.Empty;
+            return ImmutableSortedArray<T>.Empty;
 
         return new(items);
     }
 
-    public static ImmutableUnsortedArray<T> Create<T>(params T[] items) where T : IEquatable<T>
+    public static ImmutableSortedArray<T> Create<T>(params T[] items) where T : IEquatable<T>, IComparable<T>
     {
         return [..(ReadOnlySpan<T>)items];
     }
 
-    public static ImmutableUnsortedArray<T> Create<T>(ReadOnlySpan<T> items) where T : IEquatable<T>
+    public static ImmutableSortedArray<T> Create<T>(ReadOnlySpan<T> items) where T : IEquatable<T>, IComparable<T>
     {
         if (items.IsEmpty)
-            return ImmutableUnsortedArray<T>.Empty;
+            return ImmutableSortedArray<T>.Empty;
 
         return new(items);
     }
 
-    public static bool Exists<T>(this ImmutableUnsortedArray<T> array, Predicate<T> match)
-        where T : IEquatable<T>
+    public static bool Exists<T>(this ImmutableSortedArray<T> array, Predicate<T> match)
+        where T : IEquatable<T>, IComparable<T>
     {
         foreach (T item in array)
         {
