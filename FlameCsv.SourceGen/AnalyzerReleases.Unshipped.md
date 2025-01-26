@@ -5,10 +5,9 @@
 
 Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
-FLAMESG001 | Usage | Disabled | Diagnostics
-FLAMESG002 | Usage | Disabled | Diagnostics
-FLAMESG003 | Usage | Disabled | Diagnostics
-FLAMESG004 | Usage | Disabled | Diagnostics
-FLAMESG005 | Usage | Disabled | Diagnostics
-FLAMESG006 | Usage | Disabled | Diagnostics
-FLAMESG007 | Usage | Disabled | Diagnostics
+FLAMESG100 | Usage | Disabled | Diagnostics
+FLAMESG101 | Usage | Disabled | Diagnostics
+FLAMESG102 | Usage | Disabled | Diagnostics
+FLAMESG200 | Usage | Disabled | Diagnostics
+FLAMESG201 | Usage | Disabled | Diagnostics
+FLAMESG202 | Usage | Disabled | Diagnostics

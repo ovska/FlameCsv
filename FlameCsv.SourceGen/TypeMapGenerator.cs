@@ -8,26 +8,52 @@ public partial class TypeMapGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
+        IncrementalValueProvider<FlameSymbols> flameCsvSymbols = context
+            .CompilationProvider
+            .Select((compilation, _) => new FlameSymbols(compilation));
+
         IncrementalValuesProvider<TypeMapModel> typeMapTargets = context
             .SyntaxProvider
             .ForAttributeWithMetadataName(
                 "FlameCsv.Binding.CsvTypeMapAttribute`2",
-                static (syntaxNode, _) => syntaxNode is ClassDeclarationSyntax or RecordDeclarationSyntax,
-                static (context, token) =>
+                static (syntaxNode, cancellationToken) =>
                 {
-                    token.ThrowIfCancellationRequested();
-
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return syntaxNode is ClassDeclarationSyntax or RecordDeclarationSyntax;
+                },
+                static (context, cancellationToken) =>
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return (ContainingClass: (INamedTypeSymbol)context.TargetSymbol, Attribute: context.Attributes[0]);
+                })
+            // .Where(static tuple => tuple.ContainingClass.CanBeReferencedByName)
+            .Combine(flameCsvSymbols)
+            .Select(
+                static (tuple, cancellationToken) =>
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
                     return new TypeMapModel(
-                        new FlameSymbols(context.SemanticModel.Compilation),
-                        (INamedTypeSymbol)context.TargetSymbol,
-                        context.Attributes[0]);
-                });
+                        symbols: tuple.Right,
+                        containingClass: tuple.Left.ContainingClass,
+                        attribute: tuple.Left.Attribute);
+                })
+            .WithTrackingName("FlameCsvSourceGen");
 
-        context.RegisterSourceOutput(typeMapTargets, (spc, source) => Execute(source, spc));
+        context.RegisterSourceOutput(typeMapTargets, static (spc, source) => Execute(source, spc));
     }
 
-    private void Execute(TypeMapModel typeMap, SourceProductionContext context)
+    private static void Execute(TypeMapModel typeMap, SourceProductionContext context)
     {
+        if (typeMap.HasDiagnostics(out var diagnostics))
+        {
+            foreach (var diagnostic in diagnostics)
+            {
+                context.ReportDiagnostic(diagnostic);
+            }
+
+            return;
+        }
+
         StringBuilder sourceName = new(capacity: 32);
 
         foreach (var wrapping in typeMap.WrappingTypes)
@@ -44,7 +70,7 @@ public partial class TypeMapGenerator : IIncrementalGenerator
             CreateTypeMap(typeMap.GetSymbols(), typeMap, context.CancellationToken));
     }
 
-    private SourceText CreateTypeMap(
+    private static SourceText CreateTypeMap(
         FlameSymbols symbols,
         TypeMapModel typeMap,
         CancellationToken cancellationToken)
@@ -143,18 +169,16 @@ namespace ");
         return SourceText.From(sb.ToString(), Encoding.UTF8);
     }
 
-    private void WriteIndexes(StringBuilder sb, TypeMapModel typeMap)
+    private static void WriteIndexes(StringBuilder sb, TypeMapModel typeMap)
     {
         if (typeMap.Scope == CsvBindingScope.Write) return;
 
-        int max = -1;
+        // start from 1 so uninitialized members are zero and fail as expected
+        int index = 1;
 
         foreach (var conversion in typeMap.PropertiesAndParameters)
         {
             if (!conversion.CanRead) return;
-
-            int index = typeMap.GetIndex(conversion);
-            max = Math.Max(max, index);
 
             sb.Append(
                 @"
@@ -162,7 +186,7 @@ namespace ");
             sb.Append(conversion.IndexPrefix);
             sb.Append(conversion.Name);
             sb.Append(" = ");
-            sb.Append(index);
+            sb.Append(index++);
             sb.Append(';');
         }
 
@@ -170,7 +194,7 @@ namespace ");
             @"
         private const int @s__MinIndex = 1;
         private const int @s__MaxIndex = ");
-        sb.Append(max);
+        sb.Append(index);
         sb.Append(';');
 
 

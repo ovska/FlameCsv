@@ -6,7 +6,7 @@ namespace FlameCsv.SourceGen.Helpers;
 /// <summary>
 /// Provides an immutable list implementation which implements sequence equality.
 /// </summary>
-[CollectionBuilder(typeof(ImmutableEquatableArray), nameof(ImmutableEquatableArray.Create))]
+[CollectionBuilder(typeof(ImmutableUnsortedArray), nameof(ImmutableUnsortedArray.Create))]
 public sealed class ImmutableEquatableArray<T> : IEquatable<ImmutableEquatableArray<T>>, IReadOnlyList<T>
     where T : IEquatable<T>
 {
@@ -78,9 +78,9 @@ public sealed class ImmutableEquatableArray<T> : IEquatable<ImmutableEquatableAr
 }
 
 [SuppressMessage("Style", "IDE0301:Simplify collection initialization")]
-internal static class ImmutableEquatableArray
+internal static class ImmutableUnsortedArray
 {
-    public static ImmutableEquatableArray<T> ToImmutableUnsortedArray<T>(this IEnumerable<T> values)
+    public static ImmutableEquatableArray<T> ToImmutableEquatableArray<T>(this IEnumerable<T> values)
         where T : IEquatable<T>
     {
         if (values is ImmutableEquatableArray<T> array)
@@ -104,7 +104,9 @@ internal static class ImmutableEquatableArray
 
     public static ImmutableEquatableArray<T> Create<T>(params T[] items) where T : IEquatable<T>
     {
-        return [..(ReadOnlySpan<T>)items];
+        // ReSharper disable once UseCollectionExpression
+        return Create((ReadOnlySpan<T>)items);
+
     }
 
     public static ImmutableEquatableArray<T> Create<T>(ReadOnlySpan<T> items) where T : IEquatable<T>

@@ -5,6 +5,11 @@ namespace FlameCsv.SourceGen.Models;
 internal sealed record TypeMapModel
 {
     /// <summary>
+    /// Scope of the TypeMap.
+    /// </summary>
+    public CsvBindingScope Scope { get; }
+
+    /// <summary>
     /// TypeRef to the TypeMap object
     /// </summary>
     public TypeRef TypeMap { get; }
@@ -18,11 +23,6 @@ internal sealed record TypeMapModel
     /// Ref to the converted type.
     /// </summary>
     public TypeRef Type { get; }
-
-    /// <summary>
-    /// Scope of the TypeMap.
-    /// </summary>
-    public CsvBindingScope Scope { get; }
 
     /// <summary>
     /// Whether the typemap is in the global namespace.
@@ -78,6 +78,8 @@ internal sealed record TypeMapModel
     public FlameSymbols GetSymbols() => _symbols;
     private readonly FlameSymbols _symbols;
 
+    private readonly List<Diagnostic> _diagnostics = [];
+
     public TypeMapModel(
         FlameSymbols symbols,
         INamedTypeSymbol containingClass,
@@ -97,10 +99,7 @@ internal sealed record TypeMapModel
         {
             if (StringComparer.Ordinal.Equals(kvp.Key, "Scope"))
             {
-                if (kvp.Value.Value is CsvBindingScope scope and >= CsvBindingScope.All and <= CsvBindingScope.Write)
-                {
-                    Scope = scope;
-                }
+                Scope = (kvp.Value.Value as CsvBindingScope?).GetValueOrDefault();
             }
             else if (StringComparer.Ordinal.Equals(kvp.Key, "IgnoreUnmatched"))
             {
@@ -151,7 +150,28 @@ internal sealed record TypeMapModel
 
             if (candidate is not null)
             {
-                Parameters = ParameterModel.Create(tokenSymbol, candidate.Parameters, symbols);
+                Parameters = ParameterModel.Create(tokenSymbol, candidate.Parameters, symbols, _diagnostics);
+
+                for (int index = 0; index < Parameters.Count; index++)
+                {
+                    ParameterModel parameter = Parameters[index];
+
+                    if (parameter.RefKind is not (RefKind.None or RefKind.In or RefKind.RefReadOnlyParameter))
+                    {
+                        _diagnostics.Add(
+                            Diagnostics.RefConstructorParameterFound(targetType, candidate.Parameters[index]));
+                    }
+
+                    if (parameter.ParameterType.IsRefLike)
+                    {
+                        _diagnostics.Add(
+                            Diagnostics.RefLikeConstructorParameterFound(targetType, candidate.Parameters[index]));
+                    }
+                }
+            }
+            else
+            {
+                _diagnostics.Add(Diagnostics.NoConstructorFound(targetType));
             }
         }
 
@@ -187,35 +207,60 @@ internal sealed record TypeMapModel
             }
 
             wrappers.Reverse();
-            WrappingTypes = wrappers.ToImmutableUnsortedArray();
+            WrappingTypes = wrappers.ToImmutableEquatableArray();
         }
 
-        Properties = targetType
-            .GetPublicMembersRecursive()
-            .Where(m => m.DeclaredAccessibility != Accessibility.Private)
-            .Select(m => PropertyModel.TryCreate(tokenSymbol, targetType, m, symbols, out var model) ? model : null)
-            .OfType<PropertyModel>()
-            .ToImmutableEquatableArray();
+        List<PropertyModel> properties = [];
+
+        foreach (var member in targetType.GetPublicMembersRecursive())
+        {
+            if (member.DeclaredAccessibility is Accessibility.Private) continue;
+
+            var prop = PropertyModel.TryCreate(tokenSymbol, targetType, member, symbols);
+
+            if (prop is not null)
+            {
+                properties.Add(prop);
+
+                if (prop.OverriddenConverter is { ConstructorArguments: ConstructorArgumentType.Invalid })
+                {
+                    _diagnostics.Add(
+                        Diagnostics.NoCsvFactoryConstructorFound(
+                            member,
+                            prop.OverriddenConverter.ConverterType.Name,
+                            tokenSymbol));
+                }
+            }
+        }
+
+        Properties = properties.ToImmutableSortedArray();
+
+        bool hasReadableMembers = Parameters?.Count > 0;
+        bool hasWritableProperties = false;
 
         foreach (var property in Properties)
         {
-            if (property.IsRequired)
-            {
-                HasRequiredMembers = true;
-                break;
-            }
+            HasRequiredMembers |= property.IsRequired;
+            hasReadableMembers |= property.CanRead;
+            hasWritableProperties |= property.CanWrite;
         }
 
         if (!HasRequiredMembers && Parameters is not null)
         {
             foreach (var parameter in Parameters)
             {
-                if (((IMemberModel)parameter).IsRequired)
-                {
-                    HasRequiredMembers = true;
-                    break;
-                }
+                HasRequiredMembers |= parameter.IsRequired;
             }
+        }
+
+        if (!hasReadableMembers)
+        {
+            _diagnostics.Add(Diagnostics.NoReadableMembers(targetType));
+        }
+
+        if (!hasWritableProperties)
+        {
+            _diagnostics.Add(Diagnostics.NoWritableMembers(targetType));
         }
 
         List<TargetAttributeModel>? targetAttributes = null;
@@ -228,7 +273,7 @@ internal sealed record TypeMapModel
             }
         }
 
-        TargetAttributes = targetAttributes?.ToImmutableUnsortedArray() ?? [];
+        TargetAttributes = targetAttributes?.ToImmutableEquatableArray() ?? [];
     }
 
     public MemberModelEnumerator PropertiesAndParameters => new(this);
@@ -247,6 +292,18 @@ internal sealed record TypeMapModel
         }
 
         return -1;
+    }
+
+    public bool HasDiagnostics([NotNullWhen(true)] out List<Diagnostic>? diagnostics)
+    {
+        if (_diagnostics.Count != 0)
+        {
+            diagnostics = _diagnostics;
+            return true;
+        }
+
+        diagnostics = null;
+        return false;
     }
 }
 
