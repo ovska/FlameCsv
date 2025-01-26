@@ -82,7 +82,7 @@ public sealed class ImmutableSortedArray<T> : IEquatable<ImmutableSortedArray<T>
 [SuppressMessage("Style", "IDE0301:Simplify collection initialization")]
 internal static class ImmutableSortedArray
 {
-    public static ImmutableSortedArray<T> ToImmutableEquatableArray<T>(this IEnumerable<T> values) where T : IEquatable<T>, IComparable<T>
+    public static ImmutableSortedArray<T> ToImmutableSortedArray<T>(this IEnumerable<T> values) where T : IEquatable<T>, IComparable<T>
     {
         if (values is ImmutableSortedArray<T> array)
             return array;
@@ -104,7 +104,8 @@ internal static class ImmutableSortedArray
 
     public static ImmutableSortedArray<T> Create<T>(params T[] items) where T : IEquatable<T>, IComparable<T>
     {
-        return [..(ReadOnlySpan<T>)items];
+        // ReSharper disable once UseCollectionExpression
+        return Create((ReadOnlySpan<T>)items);
     }
 
     public static ImmutableSortedArray<T> Create<T>(ReadOnlySpan<T> items) where T : IEquatable<T>, IComparable<T>
