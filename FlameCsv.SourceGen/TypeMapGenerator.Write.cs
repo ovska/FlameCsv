@@ -14,39 +14,7 @@ public partial class TypeMapGenerator
         if (typeMap.Scope == CsvBindingScope.Read)
             return;
 
-        var writableProperties = typeMap.Properties.Where(m => m.CanWrite).ToArray();
-
-        Array.Sort(
-            writableProperties,
-            (b1, b2) =>
-            {
-                var b1Order = b1.Order;
-                var b2Order = b2.Order;
-
-                foreach (var target in typeMap.TargetAttributes)
-                {
-                    if (StringComparer.Ordinal.Equals(target.MemberName, b1.Name))
-                    {
-                        b1Order = Math.Max(b1Order, target.Order);
-                    }
-                    else if (StringComparer.Ordinal.Equals(target.MemberName, b2.Name))
-                    {
-                        b2Order = Math.Max(b2Order, target.Order);
-                    }
-                }
-
-                if (b1.Order != b2.Order)
-                {
-                    return b2.Order.CompareTo(b1.Order);
-                }
-
-                if (b1.Order != b2.Order)
-                {
-                    return b2.Order.CompareTo(b1.Order);
-                }
-
-                return String.Compare(b1.Name, b2.Name, StringComparison.Ordinal);
-            });
+        List<PropertyModel> writableProperties = typeMap.GetSortedWritableProperties();
 
         sb.Append(@"
 
@@ -109,7 +77,7 @@ public partial class TypeMapGenerator
         sb.Append(@" obj)
             {");
 
-        for (int i = 0; i < writableProperties.Length; i++)
+        for (int i = 0; i < writableProperties.Count; i++)
         {
             var property = writableProperties[i];
 
@@ -131,7 +99,7 @@ public partial class TypeMapGenerator
 
             sb.Append(property.Name);
 
-            if (i < writableProperties.Length - 1)
+            if (i < writableProperties.Count - 1)
             {
                 sb.Append(@");
                 writer.WriteDelimiter();");
@@ -161,7 +129,7 @@ public partial class TypeMapGenerator
             _ => "WriteText"
         };
 
-        for (int i = 0; i < writableProperties.Length; i++)
+        for (int i = 0; i < writableProperties.Count; i++)
         {
             var binding = writableProperties[i];
 
@@ -172,7 +140,7 @@ public partial class TypeMapGenerator
             sb.Append(binding.Names[0].ToStringLiteral());
             sb.Append(suffix);
 
-            if (i < writableProperties.Length - 1)
+            if (i < writableProperties.Count - 1)
             {
                 sb.Append(@");
                 writer.WriteDelimiter();");

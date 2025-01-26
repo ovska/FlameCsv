@@ -471,7 +471,7 @@ public partial class TypeMapGenerator
         private static System.Collections.Generic.IEnumerable<string> GetMissingRequiredFields(TypeMapMaterializer materializer)
         {");
 
-        foreach (var member in typeMap.PropertiesAndParameters)
+        foreach (var member in typeMap.GetSortedReadableMembers())
         {
             sb.Append(
                 @"
@@ -495,60 +495,11 @@ public partial class TypeMapGenerator
         TypeMapModel typeMap,
         CancellationToken cancellationToken)
     {
-        List<IMemberModel> allMembersSorted
-            = new(capacity: typeMap.Properties.Count + typeMap.Parameters?.Count ?? 0);
-
-        foreach (var property in typeMap.Properties) allMembersSorted.Add(property);
-        if (typeMap.Parameters is not null)
-        {
-            foreach (var parameter in typeMap.Parameters) allMembersSorted.Add(parameter);
-        }
-
-
-        allMembersSorted.Sort(
-            (b1, b2) =>
-            {
-                var b1Order = b1.Order;
-                var b2Order = b2.Order;
-
-                foreach (var target in typeMap.TargetAttributes)
-                {
-                    if (StringComparer.Ordinal.Equals(target.MemberName, b1.Name))
-                    {
-                        b1Order = Math.Max(b1Order, target.Order);
-                    }
-                    else if (StringComparer.Ordinal.Equals(target.MemberName, b2.Name))
-                    {
-                        b2Order = Math.Max(b2Order, target.Order);
-                    }
-                }
-
-                if (b1.Order != b2.Order)
-                {
-                    return b2.Order.CompareTo(b1.Order);
-                }
-
-                if ((b1 is ParameterModel) != (b2 is ParameterModel))
-                {
-                    return (b2 is ParameterModel).CompareTo(b1 is ParameterModel);
-                }
-
-                if (b1.IsRequired != b2.IsRequired)
-                {
-                    return b2.IsRequired.CompareTo(b1.IsRequired);
-                }
-
-                return String.Compare(b1.Name, b2.Name, StringComparison.Ordinal);
-            });
-
         HashSet<string> writtenNames = [];
 
-        foreach (var member in allMembersSorted)
+        foreach (var member in typeMap.GetSortedReadableMembers())
         {
             cancellationToken.ThrowIfCancellationRequested();
-
-            if (!member.CanRead || member.Scope == CsvBindingScope.Write)
-                continue;
 
             sb.Append(
                 @"
