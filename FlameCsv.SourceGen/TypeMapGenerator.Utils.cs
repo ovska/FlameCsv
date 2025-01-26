@@ -17,7 +17,7 @@ public partial class TypeMapGenerator
             sb.Append("options.GetOrCreateNullable<");
             sb.Append(member.Type.FullyQualifiedName);
             sb.Length--; // trim out the nullability question mark
-            sb.Append(">(");
+            sb.Append(">(static options => ");
         }
 
         if (member.OverriddenConverter is not { } converter)
