@@ -1,10 +1,13 @@
-﻿namespace FlameCsv.SourceGen;
+﻿using Microsoft.CodeAnalysis.CSharp;
+
+namespace FlameCsv.SourceGen;
 
 // ReSharper disable InconsistentNaming
 
 internal sealed class FlameSymbols(Compilation compilation)
 {
     public bool NullableContext => compilation.Options.NullableContextOptions.AnnotationsEnabled();
+    public bool AllowUnsafe => compilation is CSharpCompilation { Options.AllowUnsafe: true };
 
     public INamedTypeSymbol CsvOptions { get; } = GetUnboundGeneric(compilation, "FlameCsv.CsvOptions`1");
     public INamedTypeSymbol CsvConverterTTValue { get; } = GetUnboundGeneric(compilation, "FlameCsv.CsvConverter`2");

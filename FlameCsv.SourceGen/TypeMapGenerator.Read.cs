@@ -11,23 +11,35 @@ public partial class TypeMapGenerator
         TypeMapModel typeMap,
         CancellationToken cancellationToken)
     {
-        if (typeMap.Scope == CsvBindingScope.Write)
-            return;
-
         cancellationToken.ThrowIfCancellationRequested();
 
-        sb.Append("        protected override FlameCsv.Reading.IMaterializer<");
+        sb.Append("        protected override global::FlameCsv.Reading.IMaterializer<");
         sb.Append(typeMap.Token.Name);
         sb.Append(", ");
         sb.Append(typeMap.Type.FullyQualifiedName);
-        sb.Append("> BindForReading(ReadOnlySpan<string> headers, FlameCsv.CsvOptions<");
+        sb.Append("> BindForReading(global::System.ReadOnlySpan<string> headers, global::FlameCsv.CsvOptions<");
         sb.Append(typeMap.Token.Name);
         sb.Append(
             @"> options)
         {
-            TypeMapMaterializer materializer = new TypeMapMaterializer(headers.Length);
+            ");
 
-            System.Collections.Generic.IEqualityComparer<string> comparer = options.Comparer;
+        if (typeMap.Scope == CsvBindingScope.Write)
+        {
+            sb.Append(
+                """
+                
+                            throw new global::System.NotSupportedException(""This type map is write-only."");
+                        }
+
+                """);
+
+            return;
+        }
+
+        sb.Append(@"TypeMapMaterializer materializer = new TypeMapMaterializer(headers.Length);
+
+            global::System.Collections.Generic.IEqualityComparer<string> comparer = options.Comparer;
 
             for (int index = 0; index < headers.Length; index++)
             {
@@ -67,19 +79,21 @@ public partial class TypeMapGenerator
             return materializer;
         }
 
-        protected override FlameCsv.Reading.IMaterializer<");
+        protected override global::FlameCsv.Reading.IMaterializer<");
         sb.Append(typeMap.Token.Name);
         sb.Append(", ");
         sb.Append(typeMap.Type.FullyQualifiedName);
-        sb.Append(@"> BindForReading(FlameCsv.CsvOptions<");
+        sb.Append(@"> BindForReading(global::FlameCsv.CsvOptions<");
         sb.Append(typeMap.Token.Name);
         sb.Append(
             """
             > options)
                     {
-                        throw new System.NotSupportedException();
+                        throw new global::System.NotSupportedException("Index binding is not yet supported for the source generator.");
                     }
             """);
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         WriteMissingRequiredFields(typeMap, sb);
 
@@ -90,10 +104,9 @@ public partial class TypeMapGenerator
         {
 ");
 
-        foreach (var member in typeMap.PropertiesAndParameters)
+        foreach (var member in typeMap.GetSortedReadableMembers())
         {
-            if (!member.CanRead || member.Scope == CsvBindingScope.Write)
-                continue;
+            cancellationToken.ThrowIfCancellationRequested();
 
             sb.Append("            public ");
             sb.Append(member.Type.FullyQualifiedName);
@@ -107,7 +120,7 @@ public partial class TypeMapGenerator
         sb.Append(
             @"        }
 
-        private sealed class TypeMapMaterializer : FlameCsv.Reading.IMaterializer<");
+        private sealed class TypeMapMaterializer : global::FlameCsv.Reading.IMaterializer<");
         sb.Append(typeMap.Token.Name);
         sb.Append(", ");
         sb.Append(typeMap.Type.FullyQualifiedName);
@@ -115,16 +128,13 @@ public partial class TypeMapGenerator
             @">
         {");
 
-        foreach (var member in typeMap.PropertiesAndParameters)
+        foreach (var member in typeMap.GetSortedReadableMembers())
         {
-            if (!member.CanRead || member.Scope == CsvBindingScope.Write)
-                continue;
-
             cancellationToken.ThrowIfCancellationRequested();
 
             sb.Append(
                 @"
-            public FlameCsv.CsvConverter<");
+            public global::FlameCsv.CsvConverter<");
             sb.Append(typeMap.Token.Name);
             sb.Append(", ");
             sb.Append(member.Type.FullyQualifiedName);
@@ -146,7 +156,7 @@ public partial class TypeMapGenerator
 
             public ");
         sb.Append(typeMap.Type.FullyQualifiedName);
-        sb.Append(" Parse<TReader>(ref TReader reader) where TReader : FlameCsv.Reading.ICsvRecordFields<");
+        sb.Append(" Parse<TReader>(ref TReader reader) where TReader : global::FlameCsv.Reading.ICsvRecordFields<");
         sb.Append(typeMap.Token.Name);
         sb.Append(
             @">, allows ref struct
@@ -155,21 +165,17 @@ public partial class TypeMapGenerator
 
                 if (targets.Length != reader.FieldCount)
                 {
-                    FlameCsv.Exceptions.CsvReadException.ThrowForInvalidFieldCount(expected: targets.Length, actual: reader.FieldCount);
+                    global::FlameCsv.Exceptions.CsvReadException.ThrowForInvalidFieldCount(expected: targets.Length, actual: reader.FieldCount);
                 }
 
-#if DEBUG
-                ParseState state = default;
-#else
-                System.Runtime.CompilerServices.Unsafe.SkipInit(out ParseState state); // uninitialized members are never accessed
-#endif");
+                ParseState state = default;"); // TODO: profile Unsafe.SkipInit
         WriteDefaultParameterValues(sb, typeMap, cancellationToken);
         sb.Append(
             @"
 
                 for (int index = 0; index < targets.Length; index++)
                 {
-                    ReadOnlySpan<");
+                    global::System.ReadOnlySpan<");
         sb.Append(typeMap.Token.Name);
         sb.Append(
             @"> @field = reader[index];
@@ -178,12 +184,9 @@ public partial class TypeMapGenerator
                     {
 ");
 
-        foreach (var member in typeMap.PropertiesAndParameters)
+        foreach (var member in typeMap.GetSortedReadableMembers())
         {
             cancellationToken.ThrowIfCancellationRequested();
-
-            if (!member.CanRead || member.Scope == CsvBindingScope.Write)
-                continue;
 
             sb.Append("                        ");
             sb.Append(member.IndexPrefix);
@@ -223,28 +226,27 @@ public partial class TypeMapGenerator
                 return obj;
             }
 
-            [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-            [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-            private static bool ThrowForInvalidTarget(int index) => throw new System.Diagnostics.UnreachableException($""Converter at index {index} was uninitialized"");
+            [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]
+            [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+            private static bool ThrowForInvalidTarget(int index) => throw new global::System.Diagnostics.UnreachableException($""Converter at index {index} was uninitialized"");
 
-            [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-            [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-            private void ThrowForFailedParse(ReadOnlySpan<");
+            [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]
+            [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+            private void ThrowForFailedParse(global::System.ReadOnlySpan<");
         sb.Append(typeMap.Token.Name);
         sb.Append(
             @"> @field, int target)
             {
 ");
 
-        foreach (var member in typeMap.PropertiesAndParameters)
+        foreach (var member in typeMap.GetSortedReadableMembers())
         {
-            if (!member.CanRead || member.Scope == CsvBindingScope.Write)
-                continue;
+            cancellationToken.ThrowIfCancellationRequested();
 
             sb.Append("                if (target == ");
             sb.Append(member.IndexPrefix);
             sb.Append(member.Name);
-            sb.Append(") FlameCsv.Exceptions.CsvParseException.Throw(@field, ");
+            sb.Append(") global::FlameCsv.Exceptions.CsvParseException.Throw(@field, ");
             sb.Append(member.ConverterPrefix);
             sb.Append(member.Name);
             sb.Append("!, ");
@@ -255,7 +257,7 @@ public partial class TypeMapGenerator
         }
 
         sb.Append(
-            @"                throw new System.Diagnostics.UnreachableException(""Invalid target: "" + target.ToString());
+            @"                throw new global::System.Diagnostics.UnreachableException(""Invalid target: "" + target.ToString());
             }
         }
 
@@ -278,7 +280,7 @@ public partial class TypeMapGenerator
             // check if parameter can be omitted at all
             if (!parameter.HasDefaultValue ||
                 parameter.IsRequiredByAttribute ||
-                // Don't write common default values
+                // Don't write common default values that a zeroed out struct would have
                 parameter.DefaultValue is null or false or 0 or 0u or 0L or 0D)
             {
                 continue;
