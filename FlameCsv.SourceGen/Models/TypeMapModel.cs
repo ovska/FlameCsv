@@ -38,12 +38,12 @@ internal sealed record TypeMapModel
     /// <summary>
     /// Properties and fields of the converted type.
     /// </summary>
-    public ImmutableEquatableArray<PropertyModel> Properties { get; }
+    public ImmutableSortedArray<PropertyModel> Properties { get; }
 
     /// <summary>
     /// Constructor parameters of the converted type. Null if no valid constructor is found, or scope is "write".
     /// </summary>
-    public ImmutableEquatableArray<ParameterModel>? Parameters { get; }
+    public ImmutableSortedArray<ParameterModel>? Parameters { get; }
 
     /// <summary>
     /// Whether the containing class has a parameterless constructor and no existing Instance property.
@@ -63,12 +63,12 @@ internal sealed record TypeMapModel
     /// <summary>
     /// Wrapping types if the typemap is nested, empty otherwise.
     /// </summary>
-    public ImmutableUnsortedArray<(string name, string display)> WrappingTypes { get; }
+    public ImmutableEquatableArray<(string name, string display)> WrappingTypes { get; }
 
     /// <summary>
     /// CsvTargetAttribute instances on the containing class.
     /// </summary>
-    public ImmutableUnsortedArray<TargetAttributeModel> TargetAttributes { get; }
+    public ImmutableEquatableArray<TargetAttributeModel> TargetAttributes { get; }
 
     /// <summary>
     /// Whether the typemap has any required members or parameters.
@@ -231,14 +231,14 @@ internal sealed record TypeMapModel
         TargetAttributes = targetAttributes?.ToImmutableUnsortedArray() ?? [];
     }
 
-    public ConversionMemberEnumerator Conversions => new(this);
+    public MemberModelEnumerator PropertiesAndParameters => new(this);
 
     public int GetIndex(IMemberModel memberModel)
     {
         // start from 1 so uninitialized members fail as expected
         int index = 1;
 
-        foreach (var conversion in Conversions)
+        foreach (var conversion in PropertiesAndParameters)
         {
             if (conversion == memberModel)
                 return index;
@@ -250,10 +250,10 @@ internal sealed record TypeMapModel
     }
 }
 
-internal struct ConversionMemberEnumerator(TypeMapModel model)
+internal struct MemberModelEnumerator(TypeMapModel model)
 {
-    private ImmutableEquatableArray<PropertyModel>.Enumerator _first = model.Properties.GetEnumerator();
-    private ImmutableEquatableArray<ParameterModel>.Enumerator _second = model.Parameters?.GetEnumerator() ?? default;
+    private ImmutableSortedArray<PropertyModel>.Enumerator _first = model.Properties.GetEnumerator();
+    private ImmutableSortedArray<ParameterModel>.Enumerator _second = model.Parameters?.GetEnumerator() ?? default;
     private bool _firstDone;
 
     public bool MoveNext()
@@ -267,5 +267,5 @@ internal struct ConversionMemberEnumerator(TypeMapModel model)
 
     public IMemberModel Current => _firstDone ? _second.Current : _first.Current;
 
-    public ConversionMemberEnumerator GetEnumerator() => this;
+    public MemberModelEnumerator GetEnumerator() => this;
 }

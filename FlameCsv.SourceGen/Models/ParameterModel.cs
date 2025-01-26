@@ -23,7 +23,7 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
     /// <summary>
     /// Configured header names, always non-empty.
     /// </summary>
-    public required ImmutableUnsortedArray<string> Names { get; init; }
+    public required ImmutableEquatableArray<string> Names { get; init; }
 
     /// <summary>
     /// Whether the parameter is required by an attribute.
@@ -87,7 +87,7 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
         return false;
     }
 
-    public static ImmutableEquatableArray<ParameterModel> Create(
+    public static ImmutableSortedArray<ParameterModel> Create(
         ITypeSymbol token,
         ImmutableArray<IParameterSymbol> parameters,
         FlameSymbols symbols)
