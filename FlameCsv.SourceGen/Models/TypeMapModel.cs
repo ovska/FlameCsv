@@ -76,7 +76,7 @@ internal sealed record TypeMapModel
     public bool HasRequiredMembers { get; }
 
     public FlameSymbols GetSymbols() => _symbols;
-    private readonly FlameSymbols _symbols;
+    private readonly FlameSymbols _symbols; // must be excluded from equality
 
     private readonly List<Diagnostic> _diagnostics = [];
 
@@ -118,7 +118,7 @@ internal sealed record TypeMapModel
         InGlobalNamespace = containingClass.ContainingNamespace.IsGlobalNamespace;
         Namespace = containingClass.ContainingNamespace.ToDisplayString();
 
-        if (Scope != CsvBindingScope.Read)
+        if (Scope != CsvBindingScope.Write)
         {
             var ctors = containingClass.InstanceConstructors;
 
@@ -253,12 +253,12 @@ internal sealed record TypeMapModel
             }
         }
 
-        if (!hasReadableMembers)
+        if (!hasReadableMembers && Scope != CsvBindingScope.Write)
         {
             _diagnostics.Add(Diagnostics.NoReadableMembers(targetType));
         }
 
-        if (!hasWritableProperties)
+        if (!hasWritableProperties && Scope != CsvBindingScope.Read)
         {
             _diagnostics.Add(Diagnostics.NoWritableMembers(targetType));
         }

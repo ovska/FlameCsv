@@ -11,22 +11,38 @@ public partial class TypeMapGenerator
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (typeMap.Scope == CsvBindingScope.Read)
-            return;
-
         List<PropertyModel> writableProperties = typeMap.GetSortedWritableProperties();
 
         sb.Append(@"
 
-        protected override FlameCsv.Writing.IDematerializer<");
+        protected override global::FlameCsv.Writing.IDematerializer<");
         sb.Append(typeMap.Token.Name);
         sb.Append(", ");
         sb.Append(typeMap.Type.FullyQualifiedName);
-        sb.Append("> BindForWriting(FlameCsv.CsvOptions<");
+        sb.Append("> BindForWriting(global::FlameCsv.CsvOptions<");
         sb.Append(typeMap.Token.FullyQualifiedName);
-        sb.Append(@"> options)
+        sb.Append(
+            @"> options)
         {
-            return new Dematerializer
+            ");
+
+        if (writableProperties.Count == 0 || typeMap.Scope == CsvBindingScope.Read)
+        {
+            sb.Append("throw new global::System.NotSupportedException(\"");
+
+            sb.Append(
+                writableProperties.Count == 0
+                    ? "Type has no writable properties."
+                    : "This type map is read-only.");
+
+            sb.Append(@""");
+        }
+");
+
+            return;
+        }
+
+        sb.Append(@"return new Dematerializer
             {");
 
         foreach (var property in writableProperties)
@@ -46,7 +62,7 @@ public partial class TypeMapGenerator
             };
         }
 
-        private sealed class Dematerializer : FlameCsv.Writing.IDematerializer<");
+        private sealed class Dematerializer : global::FlameCsv.Writing.IDematerializer<");
         sb.Append(typeMap.Token.FullyQualifiedName);
         sb.Append(", ");
         sb.Append(typeMap.Type.FullyQualifiedName);
@@ -56,7 +72,7 @@ public partial class TypeMapGenerator
         foreach (var property in writableProperties)
         {
             sb.Append(@"
-            public required FlameCsv.CsvConverter<");
+            public required global::FlameCsv.CsvConverter<");
             sb.Append(typeMap.Token.FullyQualifiedName);
             sb.Append(", ");
             sb.Append(property.Type.FullyQualifiedName);
@@ -70,7 +86,7 @@ public partial class TypeMapGenerator
 
         sb.Append(@"
 
-            public void Write(ref readonly FlameCsv.Writing.CsvFieldWriter<");
+            public void Write(ref readonly global::FlameCsv.Writing.CsvFieldWriter<");
         sb.Append(typeMap.Token.FullyQualifiedName);
         sb.Append("> writer, ");
         sb.Append(typeMap.Type.FullyQualifiedName);
@@ -116,7 +132,7 @@ public partial class TypeMapGenerator
         sb.Append(@"
             }
 
-            public void WriteHeader(ref readonly FlameCsv.Writing.CsvFieldWriter<");
+            public void WriteHeader(ref readonly global::FlameCsv.Writing.CsvFieldWriter<");
         sb.Append(typeMap.Token.FullyQualifiedName);
         sb.Append(@"> writer)
             {");
@@ -131,6 +147,8 @@ public partial class TypeMapGenerator
 
         for (int i = 0; i < writableProperties.Count; i++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var binding = writableProperties[i];
 
             sb.Append(@"
