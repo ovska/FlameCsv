@@ -276,23 +276,10 @@ internal sealed record TypeMapModel
         TargetAttributes = targetAttributes?.ToImmutableEquatableArray() ?? [];
     }
 
+    /// <summary>
+    /// Enumerate <see cref="Properties"/> and <see cref="Parameters"/>.
+    /// </summary>
     public MemberModelEnumerator PropertiesAndParameters => new(this);
-
-    public int GetIndex(IMemberModel memberModel)
-    {
-        // start from 1 so uninitialized members fail as expected
-        int index = 1;
-
-        foreach (var conversion in PropertiesAndParameters)
-        {
-            if (conversion == memberModel)
-                return index;
-
-            index++;
-        }
-
-        return -1;
-    }
 
     public bool HasDiagnostics([NotNullWhen(true)] out List<Diagnostic>? diagnostics)
     {
@@ -305,6 +292,90 @@ internal sealed record TypeMapModel
         diagnostics = null;
         return false;
     }
+
+    private List<IMemberModel>? _sortedReadMembers;
+
+    public List<IMemberModel> GetSortedReadableMembers()
+    {
+        if (_sortedReadMembers is null)
+        {
+            List<IMemberModel> result = new(Properties.Count + (Parameters?.Count ?? 0));
+
+            foreach (var member in PropertiesAndParameters)
+            {
+                if (member.CanRead && member.Scope != CsvBindingScope.Write)
+                {
+                    result.Add(member);
+                }
+            }
+
+            result.Sort(MemberComparison);
+            _sortedReadMembers = result;
+        }
+
+        return _sortedReadMembers;
+    }
+
+    private List<PropertyModel>? _sortedWriteMembers;
+
+    public List<PropertyModel> GetSortedWritableProperties()
+    {
+        if (_sortedWriteMembers is null)
+        {
+            List<PropertyModel> result = new(Properties.Count);
+
+            foreach (var member in Properties)
+            {
+                if (member.CanWrite)
+                {
+                    result.Add(member);
+                }
+            }
+
+            result.Sort(MemberComparison);
+            _sortedWriteMembers = result;
+        }
+
+        return _sortedWriteMembers;
+    }
+
+    private Comparison<IMemberModel>? _memberComparison;
+
+    private Comparison<IMemberModel> MemberComparison
+        => _memberComparison ??= (b1, b2) =>
+        {
+            var b1Order = b1.Order;
+            var b2Order = b2.Order;
+
+            foreach (var target in TargetAttributes)
+            {
+                if (StringComparer.Ordinal.Equals(target.MemberName, b1.Name))
+                {
+                    b1Order = Math.Max(b1Order, target.Order);
+                }
+                else if (StringComparer.Ordinal.Equals(target.MemberName, b2.Name))
+                {
+                    b2Order = Math.Max(b2Order, target.Order);
+                }
+            }
+
+            if (b1.Order != b2.Order)
+            {
+                return b2.Order.CompareTo(b1.Order);
+            }
+
+            if ((b1 is ParameterModel) != (b2 is ParameterModel))
+            {
+                return (b2 is ParameterModel).CompareTo(b1 is ParameterModel);
+            }
+
+            if (b1.IsRequired != b2.IsRequired)
+            {
+                return b2.IsRequired.CompareTo(b1.IsRequired);
+            }
+
+            return 0;
+        };
 }
 
 internal struct MemberModelEnumerator(TypeMapModel model)
