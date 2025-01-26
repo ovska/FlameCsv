@@ -22,11 +22,10 @@ public sealed class TypeRef : IEquatable<TypeRef>, IComparable<TypeRef>
         SpecialType = type.OriginalDefinition.SpecialType;
         IsRefLike = type.IsRefLikeType;
 
-        IsEnumOrNullableEnum
-            = (SpecialType is SpecialType.System_Nullable_T ? ((INamedTypeSymbol)type).TypeArguments[0] : type) is
-            {
-                BaseType.SpecialType: SpecialType.System_Enum
-            };
+        if (type.OriginalDefinition.SpecialType is SpecialType.System_Nullable_T)
+        {
+            UnderlyingNullableType = new TypeRef(((INamedTypeSymbol)type).TypeArguments[0]);
+        }
     }
 
     public string Name { get; }
@@ -41,8 +40,9 @@ public sealed class TypeRef : IEquatable<TypeRef>, IComparable<TypeRef>
     public SpecialType SpecialType { get; }
 
     public bool IsRefLike { get; }
-    public bool IsEnumOrNullableEnum { get; }
+    public TypeRef? UnderlyingNullableType { get; }
 
+    public bool IsEnum => SpecialType is SpecialType.System_Enum;
     public bool CanBeNull => !IsValueType || SpecialType is SpecialType.System_Nullable_T;
 
     public int CompareTo(TypeRef other) => StringComparer.Ordinal.Compare(FullyQualifiedName, other.FullyQualifiedName);

@@ -12,7 +12,7 @@ internal interface IMemberModel
     string Name { get; }
     string IndexPrefix { get; }
     string ConverterPrefix { get; }
-    ImmutableUnsortedArray<string> Names { get; }
+    ImmutableEquatableArray<string> Names { get; }
     ConverterModel? OverriddenConverter { get; }
     TypeRef Type { get; }
 }

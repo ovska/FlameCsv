@@ -47,7 +47,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
     /// <summary>
     /// List of strings to match this member for. Defaults to <see cref="Name"/>
     /// </summary>
-    public required ImmutableUnsortedArray<string> Names { get; init; }
+    public required ImmutableEquatableArray<string> Names { get; init; }
 
     /// <summary>
     /// The interface type that this property was explicitly implemented from.

@@ -8,7 +8,7 @@ internal sealed record TargetAttributeModel
     public bool IsRequired { get; }
     public CsvBindingScope Scope { get; }
     public int Order { get; }
-    public ImmutableUnsortedArray<string> Names { get; }
+    public ImmutableEquatableArray<string> Names { get; }
 
     public TargetAttributeModel(AttributeData attribute)
     {
@@ -21,7 +21,7 @@ internal sealed record TargetAttributeModel
         }
         else
         {
-            Names = ImmutableUnsortedArray<string>.Empty;
+            Names = ImmutableEquatableArray<string>.Empty;
         }
 
         foreach (var kvp in attribute.NamedArguments)
