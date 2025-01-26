@@ -46,9 +46,11 @@ public partial class CsvOptions<T>
         return ref Nullable.GetValueRefOrDefaultRef(in _dialect);
 
         static ReadOnlySpan<T> GetSpan(CsvOptions<T> @this, string? value, Span<T> buffer)
-            => @this.TryWriteChars(value, buffer, out int written)
+        {
+            return @this.TryWriteChars(value, buffer, out int written) && (uint)written <= (uint)buffer.Length
                 ? buffer.Slice(0, written)
                 : @this.GetFromString(value).Span;
+        }
     }
 
     private char _delimiter = ',';
