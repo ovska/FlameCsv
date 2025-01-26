@@ -59,20 +59,18 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
     /// </summary>
     public required ConverterModel? OverriddenConverter { get; init; }
 
-    public string IndexPrefix => "s__Index_";
-    public string ConverterPrefix => "s__Converter_";
+    public string IndexPrefix => "@s__Index_";
+    public string ConverterPrefix => "@s__Converter_";
 
     public int CompareTo(PropertyModel other) => other.Order.CompareTo(Order); // reverse sort so higher order is first
 
-    public static bool TryCreate(
+    public static PropertyModel? TryCreate(
         ITypeSymbol token,
         ISymbol typeSymbol,
         ISymbol symbol,
-        FlameSymbols symbols,
-        [NotNullWhen(true)] out PropertyModel? model)
+        FlameSymbols symbols)
     {
-        if (!symbol.CanBeReferencedByName || symbol.IsStatic)
-            goto Fail;
+        if (!symbol.CanBeReferencedByName || symbol.IsStatic) return null;
 
         ITypeSymbol type;
         bool isProperty = false;
@@ -87,7 +85,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
                 propertySymbol.RefKind != RefKind.None ||
                 propertySymbol.HasAttribute(symbols.CsvHeaderIgnoreAttribute))
             {
-                goto Fail;
+                return null;
             }
 
             type = propertySymbol.Type;
@@ -108,7 +106,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
                 fieldSymbol.IsConst ||
                 fieldSymbol.HasAttribute(symbols.CsvHeaderIgnoreAttribute))
             {
-                goto Fail;
+                return null;
             }
 
             type = fieldSymbol.Type;
@@ -118,29 +116,24 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
         }
         else
         {
-            goto Fail;
+            return null;
         }
 
         var meta = new SymbolMetadata(token, symbol, symbols);
 
-        model = new PropertyModel
+        return new PropertyModel
         {
             Type = new TypeRef(type),
             IsProperty = isProperty,
             IsRequired = isRequired || meta.IsRequired,
             Name = symbol.Name,
             ExplicitInterfaceOriginalDefinition = explicitInterface,
-            Names = meta.Names.ToImmutableUnsortedArray(),
+            Names = meta.Names.ToImmutableEquatableArray(),
             Order = meta.Order,
             Scope = meta.Scope,
             CanRead = meta.Scope != CsvBindingScope.Write && canRead,
             CanWrite = meta.Scope != CsvBindingScope.Read && canWrite,
             OverriddenConverter = ConverterModel.GetOverriddenConverter(token, symbol, type, symbols)
         };
-        return true;
-
-    Fail:
-        model = null;
-        return false;
     }
 }

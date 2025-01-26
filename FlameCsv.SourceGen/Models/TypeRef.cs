@@ -27,7 +27,6 @@ public sealed class TypeRef : IEquatable<TypeRef>, IComparable<TypeRef>
             UnderlyingNullableType = new TypeRef(((INamedTypeSymbol)type).TypeArguments[0]);
         }
     }
-
     public string Name { get; }
 
     /// <summary>

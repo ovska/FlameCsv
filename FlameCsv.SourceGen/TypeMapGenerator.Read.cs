@@ -5,7 +5,7 @@ namespace FlameCsv.SourceGen;
 
 public partial class TypeMapGenerator
 {
-    private void GetReadCode(
+    private static void GetReadCode(
         StringBuilder sb,
         FlameSymbols symbols,
         TypeMapModel typeMap,
@@ -262,7 +262,7 @@ public partial class TypeMapGenerator
         ");
     }
 
-    private void WriteDefaultParameterValues(
+    private static void WriteDefaultParameterValues(
         StringBuilder sb,
         TypeMapModel typeMap,
         CancellationToken cancellationToken)
@@ -313,7 +313,7 @@ public partial class TypeMapGenerator
         }
     }
 
-    private void WriteSetters(
+    private static void WriteSetters(
         StringBuilder sb,
         FlameSymbols symbols,
         TypeMapModel typeMap,
@@ -416,7 +416,7 @@ public partial class TypeMapGenerator
         sb.Length--;
     }
 
-    private void WriteRequiredCheck(
+    private static void WriteRequiredCheck(
         TypeMapModel typeMap,
         StringBuilder sb)
     {
@@ -460,7 +460,7 @@ public partial class TypeMapGenerator
 ");
     }
 
-    private void WriteMissingRequiredFields(TypeMapModel typeMap, StringBuilder sb)
+    private static void WriteMissingRequiredFields(TypeMapModel typeMap, StringBuilder sb)
     {
         if (!typeMap.HasRequiredMembers)
             return;
@@ -489,7 +489,7 @@ public partial class TypeMapGenerator
     }
 
 
-    private void WriteMatchers(
+    private static void WriteMatchers(
         StringBuilder sb,
         FlameSymbols symbols,
         TypeMapModel typeMap,

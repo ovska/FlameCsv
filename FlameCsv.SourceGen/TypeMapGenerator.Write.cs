@@ -4,7 +4,7 @@ namespace FlameCsv.SourceGen;
 
 public partial class TypeMapGenerator
 {
-    private void GetWriteCode(StringBuilder sb,
+    private static void GetWriteCode(StringBuilder sb,
         FlameSymbols symbols,
         TypeMapModel typeMap,
         CancellationToken cancellationToken)
