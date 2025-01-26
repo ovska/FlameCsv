@@ -51,14 +51,6 @@ partial class CsvOptions<T>
         = new(ReferenceEqualityComparer.Instance);
 
     /// <summary>
-    /// Contains converters for members that have been overridden with
-    /// <see cref="Binding.Attributes.CsvConverterAttribute{T}"/>, indexed with an arbitrary key.
-    /// </summary>
-    /// <seealso cref="MaxExplicitCacheSize"/>
-    protected internal readonly ConcurrentDictionary<object, CsvConverter<T>> _explicitCache
-        = new(ReferenceEqualityComparer.Instance);
-
-    /// <summary>
     /// Maximum number of converters cached internally by the options instance before the cache is cleared.
     /// For converters by type, for example, with <see cref="GetConverter(Type)"/>.
     /// Default is <see cref="int.MaxValue"/>.
@@ -74,25 +66,7 @@ partial class CsvOptions<T>
         }
     }
 
-    /// <summary>
-    /// Maximum number of member converters cached internally by the options instance before the cache is cleared.
-    /// For converters overridden for member, for example,
-    /// with <see cref="Binding.Attributes.CsvConverterAttribute{T}"/>.
-    /// Default is 256.
-    /// </summary>
-    protected int MaxExplicitCacheSize
-    {
-        get => _maxExplicitCacheSize;
-        set
-        {
-            ArgumentOutOfRangeException.ThrowIfLessThan(value, 0);
-            _maxExplicitCacheSize = value;
-            CheckExplicitCacheSize();
-        }
-    }
-
     private int _maxConverterCacheSize = int.MaxValue;
-    private int _maxExplicitCacheSize = 256;
 
     /// <summary>
     /// Returns a converter for <typeparamref name="TResult"/>.
@@ -290,7 +264,14 @@ partial class CsvOptions<T>
         return false;
     }
 
-    /// <inheritdoc cref="GetOrCreate{TValue}(object, CsvConverterFactory{T})"/>
+    #region Source Generator
+
+    /// <summary>
+    /// Returns a converter for <typeparamref cref="TValue"/>, either a configured one or from the factory.
+    /// </summary>
+    /// <remarks>
+    /// This API is meant to be used by the source generator to produce trimming/AOT safe code.
+    /// </remarks>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public CsvConverter<T, TValue> GetOrCreate<TValue>(
         [RequireStaticDelegate] Func<CsvOptions<T>, CsvConverter<T, TValue>> factory)
@@ -302,127 +283,51 @@ partial class CsvOptions<T>
         if (TryGetExistingOrCustomConverter(typeof(TValue), out CsvConverter<T>? converter, out bool created))
         {
             result = (CsvConverter<T, TValue>)converter;
-        }
-        else
-        {
-            result = factory(this);
 
-            if (result is null)
-                InvalidConverter.Throw(factory, typeof(TValue));
+            if (created)
+            {
+                CheckConverterCacheSize();
+                _converterCache.TryAdd(typeof(TValue), result);
+            }
 
-            created = true;
-        }
-
-        if (created)
-        {
-            CheckConverterCacheSize();
-            _converterCache.TryAdd(typeof(TValue), result);
+            return result;
         }
 
+        result = factory(this);
+        if (result is null) InvalidConverter.Throw(factory, typeof(TValue));
         return result;
     }
 
     /// <summary>
-    /// Returns a converter for <typeparamref name="TValue"/>, or creates one using <paramref name="factory"/>.
-    /// </summary>
-    /// <remarks>
-    /// This API is meant to be used by the source generator instead of user code.
-    /// </remarks>
-    /// <param name="cacheKey">Key unique for the member this converter is created for</param>
-    /// <param name="factory">Factory to create a converter if none is cached</param>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public CsvConverter<T, TValue> GetOrCreate<TValue>(object cacheKey, CsvConverterFactory<T> factory)
-    {
-        ArgumentNullException.ThrowIfNull(cacheKey);
-        ArgumentNullException.ThrowIfNull(factory);
-
-        Debug.Assert(factory.CanConvert(typeof(TValue)));
-
-        if (!_explicitCache.TryGetValue(cacheKey, out CsvConverter<T>? value))
-        {
-            CheckExplicitCacheSize();
-            value = _explicitCache.AddOrUpdate(
-                cacheKey,
-                static (_, arg) =>
-                {
-                    CsvConverter<T> converter = arg.factory.Create(typeof(TValue), arg.options);
-
-                    if (converter is not CsvConverter<T, TValue> || !converter.CanConvert(typeof(TValue)))
-                        InvalidConverter.Throw(arg.factory, typeof(TValue));
-
-                    return converter;
-                },
-                static (_, value, _) => value,
-                (factory, options: this));
-        }
-
-        return (CsvConverter<T, TValue>)value;
-    }
-
-    /// <inheritdoc cref="GetOrCreate{TValue}(object, CsvConverterFactory{T})"/>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public CsvConverter<T, TValue> GetOrCreate<TValue>(
-        object cacheKey,
-        [RequireStaticDelegate] Func<CsvOptions<T>, CsvConverter<T, TValue>> factory)
-    {
-        ArgumentNullException.ThrowIfNull(cacheKey);
-        ArgumentNullException.ThrowIfNull(factory);
-
-        if (!_explicitCache.TryGetValue(cacheKey, out CsvConverter<T>? value))
-        {
-            CheckExplicitCacheSize();
-            value = _explicitCache.AddOrUpdate(
-                cacheKey,
-                static (_, arg) =>
-                {
-                    CsvConverter<T, TValue> converter = arg.factory(arg.options);
-
-                    if (converter is null || !converter.CanConvert(typeof(TValue)))
-                        InvalidConverter.Throw(arg.factory, typeof(TValue));
-
-                    return converter;
-                },
-                static (_, value, _) => value,
-                (factory, options: this));
-        }
-
-        return (CsvConverter<T, TValue>)value;
-    }
-
-    #region Source Generator
-
-    /// <summary>
-    /// Returns a nullable converter, falling back to the default if <see cref="UseDefaultConverters"/> is true.
+    /// Returns a nullable converter, falling back to the built-in one if <see cref="UseDefaultConverters"/> is true.
     /// </summary>
     /// <remarks>
     /// This API is meant to be used by the source generator to produce trimming/AOT safe code.
     /// </remarks>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public CsvConverter<T, TValue?> GetOrCreateNullable<TValue>(CsvConverter<T, TValue> inner) where TValue : struct
+    public CsvConverter<T, TValue?> GetOrCreateNullable<TValue>(
+        [RequireStaticDelegate] Func<CsvOptions<T>, CsvConverter<T, TValue>> factory) where TValue : struct
     {
-        CsvConverter<T, TValue?> result;
-
         if (TryGetExistingOrCustomConverter(typeof(TValue?), out CsvConverter<T>? converter, out bool created))
         {
-            result = (CsvConverter<T, TValue?>)converter;
-        }
-        else
-        {
-            result = NullableConverterFactory<T>.Create(inner, GetNullToken(typeof(TValue)));
-            created = true;
+            if (created)
+            {
+                CheckConverterCacheSize();
+                _converterCache.TryAdd(typeof(TValue?), converter);
+            }
+
+            return (CsvConverter<T, TValue?>)converter;
         }
 
-        if (created)
-        {
-            CheckConverterCacheSize();
-            _converterCache.TryAdd(typeof(TValue?), result);
-        }
+        if (!UseDefaultConverters) CsvConverterMissingException.Throw(typeof(TValue?));
 
-        return result;
+        CsvConverter<T, TValue> inner = GetOrCreate(factory);
+        if (inner is null) InvalidConverter.Throw(factory, typeof(TValue));
+        return NullableConverterFactory<T>.Create(inner, GetNullToken(typeof(TValue)));
     }
 
     /// <summary>
-    /// Returns an enum converter, falling back to the default if <see cref="UseDefaultConverters"/> is true.
+    /// Returns an enum converter, falling back to the built-in one if <see cref="UseDefaultConverters"/> is true.
     /// </summary>
     /// <remarks>
     /// This API is meant to be used by the source generator to produce trimming/AOT safe code.
@@ -434,14 +339,24 @@ partial class CsvOptions<T>
         {
             return (CsvConverter<T, TEnum>)(object)Unsafe
                 .As<CsvOptions<char>>(this)
-                .GetOrCreate(static o => new EnumTextConverter<TEnum>(o));
+                .GetOrCreate(
+                    static o =>
+                    {
+                        if (!o.UseDefaultConverters) CsvConverterMissingException.Throw(typeof(TEnum));
+                        return new EnumTextConverter<TEnum>(o);
+                    });
         }
 
         if (typeof(T) == typeof(byte))
         {
             return (CsvConverter<T, TEnum>)(object)Unsafe
                 .As<CsvOptions<byte>>(this)
-                .GetOrCreate(static o => new EnumUtf8Converter<TEnum>(o));
+                .GetOrCreate(
+                    static o =>
+                    {
+                        if (!o.UseDefaultConverters) CsvConverterMissingException.Throw(typeof(TEnum));
+                        return new EnumUtf8Converter<TEnum>(o);
+                    });
         }
 
         return GetConverter<TEnum>();
@@ -452,15 +367,7 @@ partial class CsvOptions<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void CheckConverterCacheSize()
     {
-        if (_explicitCache.Count >= MaxConverterCacheSize)
-            _converterCache.Clear();
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void CheckExplicitCacheSize()
-    {
-        if (_explicitCache.Count >= MaxExplicitCacheSize)
-            _explicitCache.Clear();
+        if (_converterCache.Count >= MaxConverterCacheSize) _converterCache.Clear();
     }
 }
 

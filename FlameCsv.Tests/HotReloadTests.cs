@@ -18,9 +18,6 @@ public static class HotReloadTests
         var c1 = o.GetConverter<int>();
         Assert.NotEmpty(o._converterCache);
         Assert.Same(c1, o.GetConverter<int>());
-        var c2 = o.GetOrCreate(cacheKey: Type.Missing, static _ => new StringTextConverter());
-        Assert.Same(c2, o.GetOrCreate(cacheKey: Type.Missing, static _ => new StringTextConverter()));
-        Assert.NotEmpty(o._explicitCache);
 
         // typemap
         var dm = ObjTypeMap_Simple.Instance.GetDematerializer(CsvOptions<char>.Default);
@@ -45,9 +42,7 @@ public static class HotReloadTests
 
         // options
         Assert.Empty(o._converterCache);
-        Assert.Empty(o._explicitCache);
         Assert.NotSame(c1, o.GetConverter<int>());
-        Assert.NotSame(c2, o.GetOrCreate(cacheKey: Type.Missing, static _ => new StringTextConverter()));
 
         // typemap
         Assert.NotSame(dm, ObjTypeMap_Simple.Instance.GetDematerializer(CsvOptions<char>.Default));

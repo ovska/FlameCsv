@@ -56,7 +56,6 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
             {
                 var @this = (CsvOptions<T>)state;
                 @this._converterCache.Clear();
-                @this._explicitCache.Clear();
             });
     }
 
@@ -96,11 +95,9 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         _whitespace = other._whitespace;
 
         _converterCache = new(other._converterCache, other._converterCache.Comparer);
-        _explicitCache = new(other._explicitCache, other._explicitCache.Comparer);
 
         // either of these types can be a derived type with a different max size
         CheckConverterCacheSize();
-        CheckExplicitCacheSize();
     }
 
     /// <summary>

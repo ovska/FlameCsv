@@ -31,11 +31,6 @@ public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(targetType);
 
-        if (options._explicitCache.TryGetValue(key: this, out CsvConverter<T>? cached))
-        {
-            return cached;
-        }
-
         CsvConverter<T> instanceOrFactory = CreateConverterOrFactory(targetType, options) ??
             throw new InvalidOperationException($"{GetType()}.{nameof(CreateConverterOrFactory)} returned null");
 
@@ -73,7 +68,6 @@ public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute
         }
 
     Success:
-        var result = instanceOrFactory.GetOrCreateConverter(targetType, options);
-        return options._explicitCache.GetOrAdd(key: this, result);
+        return instanceOrFactory.GetOrCreateConverter(targetType, options);
     }
 }
