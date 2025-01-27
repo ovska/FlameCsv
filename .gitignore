@@ -366,7 +366,9 @@ MigrationBackup/
 FodyWeavers.xsd
 
 # JetBrains IDEs
-.idea/
+.idea
+!.idea/.idea.FlameCsv/.idea/icon.svg
+
 
 # Nuget temp
 .nuget/
