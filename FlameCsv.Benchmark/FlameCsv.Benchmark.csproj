@@ -5,7 +5,9 @@
     <NoWarn>$(NoWarn);IDE0008;IDE0011;IDE0040;CA1822;CS1591;CA2007</NoWarn>
 
     <AnalysisLevel>latest-minimum</AnalysisLevel>
-    
+
+    <ReportAnalyzer>true</ReportAnalyzer>
+
     <!--For ETW profiler-->
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>true</DebugSymbols>

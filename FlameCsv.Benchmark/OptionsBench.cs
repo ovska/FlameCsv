@@ -8,7 +8,6 @@ namespace FlameCsv.Benchmark;
 public class OptionsBench
 {
     private static readonly CsvOptions<char> _options = new();
-    private static readonly object _cacheKey = new();
 
     public CsvOptions<char> Options
     {
@@ -28,11 +27,5 @@ public class OptionsBench
     public void FromDefault()
     {
         _ = Options.GetOrCreate(static o => new EnumTextConverter<DayOfWeek>(o));
-    }
-
-    [Benchmark]
-    public void FromMember()
-    {
-        _ = Options.GetOrCreate(_cacheKey, static o => new EnumTextConverter<DayOfWeek>(o));
     }
 }

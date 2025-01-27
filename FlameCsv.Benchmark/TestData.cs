@@ -1,7 +1,9 @@
-﻿using System.Buffers;
+﻿#if false
+using System.Buffers;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Text;
+using FlameCsv.Benchmark.Utils;
 using FlameCsv.Reading;
 using FlameCsv.Utilities;
 
@@ -176,3 +178,4 @@ public static class TestData
         }
     }
 }
+#endif
