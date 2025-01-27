@@ -1,5 +1,6 @@
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
+using JetBrains.Annotations;
 
 namespace FlameCsv;
 
@@ -7,6 +8,7 @@ namespace FlameCsv;
 /// Arguments for <see cref="CsvRecordCallback{T}"/>.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
+[PublicAPI]
 public readonly ref struct CsvRecordCallbackArgs<T> where T : unmanaged, IBinaryInteger<T>
 {
     private readonly CsvLine<T> _line;
@@ -94,29 +96,13 @@ public readonly ref struct CsvRecordCallbackArgs<T> where T : unmanaged, IBinary
     /// <param name="index">0-based field index</param>
     /// <param name="raw">Don't unescape the value</param>
     /// <returns>Value of the field</returns>
-    public ReadOnlySpan<T> GetField(int index, bool raw = false)
-    {
-        if ((uint)index >= (uint)_line.Fields.Length)
-            Throw.Argument_FieldIndex(index, _line.Fields.Length - 1);
-
-        int start = _line.Fields[index].GetNextStart(_line.Parser._newline.Length);
-        ReadOnlySpan<T> data = _line.Data.Span;
-
-        if (raw)
-        {
-            return data[start.._line.Fields[index + 1].End];
-        }
-
-        return _line
-            .Fields[index + 1]
-            .GetField(dialect: in _line.Parser._dialect, start: start, data: data, buffer: [], parser: _line.Parser);
-    }
+    public ReadOnlySpan<T> GetField(int index, bool raw = false) => _line.GetField(index, raw);
 }
 
 /// <summary>
-/// Callback for skipping records.
+/// Callback called for every record (line) before it is returned or parsed into an object/struct.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-/// <returns><see langword="true"/> if the record should be skipped</returns>
+[PublicAPI]
 public delegate void CsvRecordCallback<T>(ref readonly CsvRecordCallbackArgs<T> args)
     where T : unmanaged, IBinaryInteger<T>;

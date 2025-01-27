@@ -2,10 +2,12 @@
 using System.Collections;
 using FlameCsv.Binding;
 using FlameCsv.Reading;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Enumeration;
 
 /// <inheritdoc cref="CsvValueAsyncEnumerator{T, TValue}"/>
+[PublicAPI]
 public sealed class CsvValueEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TValue>, IEnumerator<TValue>
     where T : unmanaged, IBinaryInteger<T>
 {

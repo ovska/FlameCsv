@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using FlameCsv.Extensions;
 using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Reading;
@@ -86,12 +87,22 @@ public readonly ref struct CsvLine<T> : ICsvRecordFields<T> where T : unmanaged,
 
     public int FieldCount => Fields.Length - 1;
 
-    ReadOnlySpan<T> ICsvRecordFields<T>.this[int index]
-        => Fields[index + 1]
-            .GetField(
-                dialect: in Parser._dialect,
-                start: Fields[index].GetNextStart(Parser._newline.Length),
-                data: Data.Span,
-                buffer: [],
-                parser: Parser);
+    ReadOnlySpan<T> ICsvRecordFields<T>.this[int index] => GetField(index);
+
+    public ReadOnlySpan<T> GetField(int index, bool raw = false, Span<T> buffer = default)
+    {
+        if ((uint)index >= (uint)(Fields.Length - 1))
+            Throw.Argument_FieldIndex(index, Fields.Length - 1);
+
+        int start = Fields[index].GetNextStart(Parser._newline.Length);
+        ReadOnlySpan<T> data = Data.Span;
+
+        if (raw)
+        {
+            return data[start..Fields[index + 1].End];
+        }
+
+        return Fields[index + 1]
+            .GetField(dialect: in Parser._dialect, start: start, data: data, buffer: buffer, parser: Parser);
+    }
 }

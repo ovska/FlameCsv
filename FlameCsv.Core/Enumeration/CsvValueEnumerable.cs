@@ -13,6 +13,7 @@ public sealed class CsvValueEnumerable<T, [DAM(Messages.ReflectionBound)] TValue
 {
     private readonly ReadOnlySequence<T> _data;
     private readonly CsvOptions<T> _options;
+    private CsvExceptionHandler<T>? _exceptionHandler;
 
     /// <summary>
     /// Creates a new instance.
@@ -30,9 +31,24 @@ public sealed class CsvValueEnumerable<T, [DAM(Messages.ReflectionBound)] TValue
     [MustDisposeResource]
     public CsvValueEnumerator<T, TValue> GetEnumerator()
     {
-        return new CsvValueEnumerator<T, TValue>(in _data, _options, materializer: null);
+        return new CsvValueEnumerator<T, TValue>(in _data, _options, materializer: null)
+        {
+            ExceptionHandler = _exceptionHandler
+        };
     }
 
     IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator() => GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    /// <summary>
+    /// Sets the exception handler for the enumerator.
+    /// If the handler returns <see langword="true"/>, the exception is considered handled and the record is skipped.
+    /// </summary>
+    /// <param name="handler">Exception handler. Set to null to remove an existing handler</param>
+    /// <returns>The same enumerable instance</returns>
+    public CsvValueEnumerable<T, TValue> WithExceptionHandler(CsvExceptionHandler<T>? handler)
+    {
+        _exceptionHandler = handler;
+        return this;
+    }
 }

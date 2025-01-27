@@ -278,20 +278,6 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
         return false;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal bool ExceptionIsHandled(ref readonly CsvLine<T> record, int line, Exception exception)
-    {
-        return _options._exceptionHandler is { } handler &&
-            handler(
-                new CsvExceptionHandlerArgs<T>
-                {
-                    Options = _options,
-                    Line = line,
-                    Record = record.Data.Span,
-                    Exception = exception,
-                });
-    }
-
     public const int MaxNewlineDetectionLength = 1024;
 
     /// <summary>
