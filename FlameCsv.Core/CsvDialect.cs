@@ -28,13 +28,20 @@ namespace FlameCsv;
 public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>>
     where T : unmanaged, IBinaryInteger<T>
 {
-    /// <inheritdoc cref="CsvOptions{T}.Delimiter"/>
+    /// <summary>
+    /// The separator character between CSV fields.
+    /// </summary>
     public required T Delimiter { get; init; }
 
-    /// <inheritdoc cref="CsvOptions{T}.Quote"/>
+    /// <summary>
+    /// Characted used to quote strings containing special characters.
+    /// </summary>
     public required T Quote { get; init; }
 
-    /// <inheritdoc cref="CsvOptions{T}.Newline"/>
+    /// <summary>
+    /// 1-2 characters long newline string, or empty if newline is automatically detected
+    /// (<c>CRLF</c> is used while writing in this case).
+    /// </summary>
     public required ReadOnlySpan<T> Newline
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -68,7 +75,11 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>>
         }
     }
 
-    /// <inheritdoc cref="CsvOptions{T}.Whitespace"/>
+    /// <summary>
+    /// Whitespace characters.
+    /// When reading, they are trimmed out of each field before processing them.
+    /// When writing, fields with the preceding or trailing whitespace are quoted if fields are automatically quoted.
+    /// </summary>
     public ReadOnlySpan<T> Whitespace
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -76,7 +87,9 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>>
         init => _whitespace = value.IsEmpty ? null : value.ToArray();
     }
 
-    /// <inheritdoc cref="CsvOptions{T}.Escape"/>
+    /// <summary>
+    /// Optional character used for escaping special characters.
+    /// </summary>
     public required T? Escape { get; init; }
 
     private readonly LazyValues _lazyValues = new();
@@ -90,7 +103,8 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>>
     internal T[]? GetWhitespaceArray() => _whitespace;
 
     /// <summary>
-    /// Returns search values used to determine whether fields need to be quoted while writing CSV.
+    /// Returns a <see cref="SearchValues{T}"/> instance
+    /// that contains characters that require quotes around the CSV field.
     /// </summary>
     public SearchValues<T> NeedsQuoting
     {
@@ -116,12 +130,10 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>>
 
     /// <summary>
     /// Determines if all tokens in the dialect are within ASCII range.
+    /// This is a requirement for high performance SIMD vectorization.
+    /// If false, this will have the same effect as setting <see cref="CsvOptions{T}.NoReadAhead"/> to false.
     /// </summary>
-    /// <returns>
-    /// <see langword="true"/> if all tokens are within ASCII range.
-    /// </returns>
-    /// <remarks>Required for vectorization.</remarks>
-    [EditorBrowsable(EditorBrowsableState.Never)]
+    [EditorBrowsable(EditorBrowsableState.Advanced)]
     public bool IsAscii => _lazyValues.IsAscii ??= GetIsAscii();
 
     /// <summary>

@@ -51,5 +51,5 @@ public class VectorizationBench
         }
     }
 
-    private static readonly CsvOptions<byte> _nobuffering = new() { Newline = "\r\n", NoLineBuffering = true };
+    private static readonly CsvOptions<byte> _nobuffering = new() { Newline = "\r\n", NoReadAhead = true };
 }

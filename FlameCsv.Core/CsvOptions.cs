@@ -82,7 +82,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         _ignoreEnumCase = other._ignoreEnumCase;
         _enumFormat = other._enumFormat;
         _allowUndefinedEnumValues = other._allowUndefinedEnumValues;
-        _disableBuffering = other._disableBuffering;
+        _noReadAhead = other._noReadAhead;
         _stringPool = other._stringPool;
         _null = other._null;
         _nullTokens = other._nullTokens?.Clone();
@@ -230,7 +230,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     private bool _ignoreEnumCase = true;
     private string? _enumFormat;
     private bool _allowUndefinedEnumValues;
-    private bool _disableBuffering;
+    private bool _noReadAhead;
     private StringPool? _stringPool;
     private ICsvTypeBinder<T>? _typeBinder;
 
@@ -323,14 +323,19 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
 
     /// <summary>
     /// Disables buffering CSV fields to memory when reading.
-    /// Default is <see langword="false"/>.
-    /// If set to <see langword="true"/>, performance is degraded but records will always be read one at a time.
+    /// The default is <see langword="true"/>, which will enable the library to use high performance SIMD operations
+    /// to read multiple record's worth of fields before yielding them,
+    /// which is significantly faster than reading records one-at-a-time.
     /// </summary>
+    /// <remarks>
+    /// A pre-requisite for this to work is that the resulting <see cref="CsvDialect{T}"/> has only ASCII tokens.
+    /// </remarks>
+    /// <seealso cref="CsvDialect{T}.IsAscii"/>
     [EditorBrowsable(EditorBrowsableState.Advanced)]
-    public bool NoLineBuffering
+    public bool NoReadAhead
     {
-        get => _disableBuffering;
-        set => this.SetValue(ref _disableBuffering, value);
+        get => _noReadAhead;
+        set => this.SetValue(ref _noReadAhead, value);
     }
 
     /// <summary>

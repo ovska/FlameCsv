@@ -103,6 +103,15 @@
     <Compile Update="CsvOptions.Transcoding.cs">
       <DependentUpon>CsvOptions.cs</DependentUpon>
     </Compile>
+    <Compile Update="CsvWriter.Create.cs">
+      <DependentUpon>CsvWriter.cs</DependentUpon>
+    </Compile>
+    <Compile Update="CsvWriter.Reflection.cs">
+      <DependentUpon>CsvWriter.cs</DependentUpon>
+    </Compile>
+    <Compile Update="CsvWriter.TypeMap.cs">
+      <DependentUpon>CsvWriter.cs</DependentUpon>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup>

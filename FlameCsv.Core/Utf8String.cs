@@ -8,9 +8,10 @@ namespace FlameCsv;
 /// </summary>
 internal sealed class Utf8String
 {
-    public static readonly Utf8String Empty = new("", []);
-    public static readonly Utf8String CRLF = new("\r\n", "\r\n"u8);
-    public static readonly Utf8String LF = new("\n", "\n"u8);
+    public static Utf8String Empty { get; } = new("", []);
+    public static Utf8String CRLF { get; } = new("\r\n", "\r\n"u8);
+    public static Utf8String LF { get; } = new("\n", "\n"u8);
+    public static Utf8String Space { get; } = new(" ", " "u8);
 
     private readonly string _string;
     private readonly ReadOnlyMemory<byte> _bytes;
@@ -35,6 +36,7 @@ internal sealed class Utf8String
             null or "" => Empty,
             "\n" => LF,
             "\r\n" => CRLF,
+            " " => Space,
             _ => new Utf8String(value),
         };
 
