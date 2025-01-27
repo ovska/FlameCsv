@@ -141,10 +141,6 @@ internal sealed class Dematerializer<T, <#= generics #>>
             {
                 WriteLine("        writer.WriteDelimiter();");
             }
-            else
-            {
-                WriteLine("        writer.WriteNewline();");
-            }
         }
 #>
     }

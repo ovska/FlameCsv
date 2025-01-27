@@ -67,7 +67,10 @@ public partial class TypeMapGenerator
         sb.Append(", ");
         sb.Append(typeMap.Type.FullyQualifiedName);
         sb.Append(@">
-        {");
+        {
+            public int FieldCount => ");
+        sb.Append(writableProperties.Count);
+        sb.Append(';');
 
         foreach (var property in writableProperties)
         {
@@ -114,16 +117,12 @@ public partial class TypeMapGenerator
             }
 
             sb.Append(property.Name);
+            sb.Append(");");
 
             if (i < writableProperties.Count - 1)
             {
-                sb.Append(@");
+                sb.Append(@"
                 writer.WriteDelimiter();");
-            }
-            else
-            {
-                sb.Append(@");
-                writer.WriteNewline();");
             }
         }
 
@@ -157,16 +156,12 @@ public partial class TypeMapGenerator
             sb.Append('(');
             sb.Append(binding.Names[0].ToStringLiteral());
             sb.Append(suffix);
+            sb.Append(");");
 
             if (i < writableProperties.Count - 1)
             {
-                sb.Append(@");
+                sb.Append(@"
                 writer.WriteDelimiter();");
-            }
-            else
-            {
-                sb.Append(@");
-                writer.WriteNewline();");
             }
         }
 

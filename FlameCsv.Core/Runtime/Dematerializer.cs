@@ -28,7 +28,5 @@ internal abstract class Dematerializer<T, TValue> : Dematerializer<T> where T : 
 
             writer.WriteText(bindings[i].Header);
         }
-
-        writer.WriteNewline();
     }
 }

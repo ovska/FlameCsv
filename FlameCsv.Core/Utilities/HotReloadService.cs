@@ -11,6 +11,8 @@ namespace FlameCsv.Utilities;
 [ExcludeFromCodeCoverage]
 internal static class HotReloadService
 {
+    public static bool IsActive { get; } = MetadataUpdater.IsSupported;
+
     /// <summary>
     /// Contains registered callbacks for cache clearing.
     /// </summary>

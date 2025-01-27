@@ -13,6 +13,7 @@ internal abstract partial class Dematerializer<T>
     /// Returns the constructor info for dematerializer of <typeparamref name="TValue"/>.
     /// </summary>
     /// <param name="bindings">Bindings of the collection used to create the dematerializer</param>
+    /// <typeparam name="T">CSV token type</typeparam>
     /// <typeparam name="TValue">Type of the object/struct being read</typeparam>
     [ExcludeFromCodeCoverage]
     [RequiresUnreferencedCode("Trimmed Dematerializer<...> implementations may not be available during runtime.")]
@@ -75,7 +76,6 @@ internal sealed class Dematerializer<T, T0, TValue>
     public void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
-        writer.WriteNewline();
     }
 }
 /// <inheritdoc />
@@ -108,7 +108,6 @@ internal sealed class Dematerializer<T, T0, T1, TValue>
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
         writer.WriteField(converter1, getter1(value));
-        writer.WriteNewline();
     }
 }
 /// <inheritdoc />
@@ -148,7 +147,6 @@ internal sealed class Dematerializer<T, T0, T1, T2, TValue>
         writer.WriteField(converter1, getter1(value));
         writer.WriteDelimiter();
         writer.WriteField(converter2, getter2(value));
-        writer.WriteNewline();
     }
 }
 /// <inheritdoc />
@@ -195,7 +193,6 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, TValue>
         writer.WriteField(converter2, getter2(value));
         writer.WriteDelimiter();
         writer.WriteField(converter3, getter3(value));
-        writer.WriteNewline();
     }
 }
 /// <inheritdoc />
@@ -249,7 +246,6 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, TValue>
         writer.WriteField(converter3, getter3(value));
         writer.WriteDelimiter();
         writer.WriteField(converter4, getter4(value));
-        writer.WriteNewline();
     }
 }
 /// <inheritdoc />
@@ -310,7 +306,6 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, TValue>
         writer.WriteField(converter4, getter4(value));
         writer.WriteDelimiter();
         writer.WriteField(converter5, getter5(value));
-        writer.WriteNewline();
     }
 }
 /// <inheritdoc />
@@ -378,7 +373,6 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, TValue>
         writer.WriteField(converter5, getter5(value));
         writer.WriteDelimiter();
         writer.WriteField(converter6, getter6(value));
-        writer.WriteNewline();
     }
 }
 /// <inheritdoc />
@@ -453,7 +447,6 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TValue>
         writer.WriteField(converter6, getter6(value));
         writer.WriteDelimiter();
         writer.WriteField(converter7, getter7(value));
-        writer.WriteNewline();
     }
 }
 /// <inheritdoc />
@@ -535,7 +528,6 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TVal
         writer.WriteField(converter7, getter7(value));
         writer.WriteDelimiter();
         writer.WriteField(converter8, getter8(value));
-        writer.WriteNewline();
     }
 }
 /// <inheritdoc />
@@ -624,7 +616,6 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
         writer.WriteField(converter8, getter8(value));
         writer.WriteDelimiter();
         writer.WriteField(converter9, getter9(value));
-        writer.WriteNewline();
     }
 }
 /// <inheritdoc />
@@ -720,7 +711,6 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
         writer.WriteField(converter9, getter9(value));
         writer.WriteDelimiter();
         writer.WriteField(converter10, getter10(value));
-        writer.WriteNewline();
     }
 }
 /// <inheritdoc />
@@ -823,7 +813,6 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
         writer.WriteField(converter10, getter10(value));
         writer.WriteDelimiter();
         writer.WriteField(converter11, getter11(value));
-        writer.WriteNewline();
     }
 }
 /// <inheritdoc />
@@ -933,7 +922,6 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
         writer.WriteField(converter11, getter11(value));
         writer.WriteDelimiter();
         writer.WriteField(converter12, getter12(value));
-        writer.WriteNewline();
     }
 }
 /// <inheritdoc />
@@ -1050,7 +1038,6 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
         writer.WriteField(converter12, getter12(value));
         writer.WriteDelimiter();
         writer.WriteField(converter13, getter13(value));
-        writer.WriteNewline();
     }
 }
 /// <inheritdoc />
@@ -1174,7 +1161,6 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
         writer.WriteField(converter13, getter13(value));
         writer.WriteDelimiter();
         writer.WriteField(converter14, getter14(value));
-        writer.WriteNewline();
     }
 }
 /// <inheritdoc />
@@ -1305,6 +1291,5 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
         writer.WriteField(converter14, getter14(value));
         writer.WriteDelimiter();
         writer.WriteField(converter15, getter15(value));
-        writer.WriteNewline();
     }
 }
