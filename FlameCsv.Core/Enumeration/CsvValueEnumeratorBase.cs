@@ -33,6 +33,15 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     /// <inheritdoc cref="CsvRecordEnumeratorBase{T}.Position"/>
     public long Position { get; private set; }
 
+    /// <summary>
+    /// Delegate that is called when an exception is thrown while parsing class records.
+    /// If the delegate returns <see langword="true"/>, the faulty record is skipped.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="CsvFormatException"/> is not handled as it represents structurally invalid CSV.
+    /// </remarks>
+    public CsvExceptionHandler<T>? ExceptionHandler { get; init; }
+
     private readonly CsvTypeMap<T, TValue>? _typeMap;
     private IMaterializer<T, TValue>? _materializer;
     private string[]? _headersArray;
@@ -124,9 +133,16 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
                 ThrowInvalidFormatException(ex, in line);
             }
 
-            if (_parser.ExceptionIsHandled(in line, Line, ex))
+            var handler = ExceptionHandler;
+
+            if (handler is not null)
             {
-                goto ReadNextRecord;
+                CsvExceptionHandlerArgs<T> args = new(line, _headersArray, ex, Line, position);
+
+                if (handler(in args))
+                {
+                    goto ReadNextRecord;
+                }
             }
 
             ThrowUnhandledException(ex, in line, position);
@@ -168,8 +184,8 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
             ? _parser.Options.TypeBinder.GetMaterializer<TValue>(headers)
             : _typeMap.GetMaterializer(headers, _parser.Options);
 
-        // we need a copy of the headers for the callback
-        if (_parser.Options._recordCallback is not null)
+        // we need a copy of the headers for the callbacks
+        if (ExceptionHandler is not null || _parser.Options._recordCallback is not null)
         {
             _headersArray = headers.ToArray();
         }
@@ -193,7 +209,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         long position)
     {
         throw new CsvUnhandledException(
-            $"Unhandled exception while reading records of type {typeof(TValue)} from the CSV. The record was on " +
+            $"Unhandled exception while reading records of type {typeof(TValue).FullName} from the CSV. The record was on " +
             $"line {Line} at character position {position} in the CSV. Record: " +
             line.Data.Span.AsPrintableString(),
             Line,

@@ -2,7 +2,6 @@ using System.Buffers;
 using System.ComponentModel;
 using System.Diagnostics;
 using FlameCsv.Binding;
-using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Utilities;
 using FlameCsv.Writing;
@@ -67,7 +66,6 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         ArgumentNullException.ThrowIfNull(other);
 
         _recordCallback = other._recordCallback;
-        _exceptionHandler = other._exceptionHandler;
         _hasHeader = other._hasHeader;
         _validateFieldCount = other._validateFieldCount;
         _fieldQuoting = other._fieldQuoting;
@@ -220,7 +218,6 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         => _styles.TryGetExt(resultType, defaultValue);
 
     internal CsvRecordCallback<T>? _recordCallback;
-    internal CsvExceptionHandler<T>? _exceptionHandler;
     internal bool _hasHeader = true;
     internal bool _validateFieldCount;
     internal CsvFieldQuoting _fieldQuoting;
@@ -359,6 +356,11 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// Delegate that is called for each record before it is processed.
     /// Can be used to skip records or reset the header.
     /// </summary>
+    /// <remarks>
+    /// Comments are not fully supported.
+    /// All lines are expected to be either valid CSV or empty.
+    /// Commented lines with delimiters and/or mismatched quotes will not work properly.
+    /// </remarks>
     public CsvRecordCallback<T>? RecordCallback
     {
         get => _recordCallback;
@@ -366,29 +368,10 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     }
 
     /// <summary>
-    /// Delegate that is called when an exception is thrown while parsing class records. If null (the default), or the
-    /// delegate returns false, the exception is considered unhandled and is thrown.<para/>
-    /// For example, to ignore unparseable values return <see langword="true"/> if the exception is
-    /// <see cref="CsvParseException"/>. In this case, rows with invalid data are skipped, see also:
-    /// <see cref="RecordCallback"/>.
-    /// </summary>
-    /// <remarks>
-    /// <see cref="CsvFormatException"/> is always thrown as it represents an invalid CSV.<br/>
-    /// This handler is not used in the enumerators that return <see cref="CsvValueRecord{T}"/>, you can catch
-    /// exceptions thrown manually when reading fields from the record.
-    /// </remarks>
-    public CsvExceptionHandler<T>? ExceptionHandler
-    {
-        get => _exceptionHandler;
-        set => this.SetValue(ref _exceptionHandler, value);
-    }
-
-    /// <summary>
     /// String pool to use when parsing strings. Default is <see langword="null"/>, which results in no pooling.
     /// </summary>
     /// <remarks>
-    /// Pooling reduces raw throughput, but can have a profound impact on allocations
-    /// if the data has a lot of repeating strings.
+    /// Pooling reduces raw throughput, but can have a profound impact on allocations if the data has repeating strings.
     /// </remarks>
     /// <seealso cref="Binding.Attributes.CsvStringPoolingAttribute{T}"/>
     public StringPool? StringPool

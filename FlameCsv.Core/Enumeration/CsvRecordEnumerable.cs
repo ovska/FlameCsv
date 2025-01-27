@@ -9,6 +9,7 @@ namespace FlameCsv.Enumeration;
 /// Enumerates known data into CSV records.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
+[PublicAPI]
 public readonly struct CsvRecordEnumerable<T> : IEnumerable<CsvValueRecord<T>> where T : unmanaged, IBinaryInteger<T>
 {
     private readonly ReadOnlySequence<T> _csv;

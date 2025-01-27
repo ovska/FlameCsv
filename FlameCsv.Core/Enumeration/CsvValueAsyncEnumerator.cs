@@ -2,12 +2,14 @@
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Reading;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Enumeration;
 
 /// <summary>
 /// Reads <typeparamref name="TValue"/> records from CSV. Used through <see cref="CsvReader"/>.
 /// </summary>
+[PublicAPI]
 public sealed class CsvValueAsyncEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TValue>, IAsyncEnumerator<TValue>
     where T : unmanaged, IBinaryInteger<T>
 {
