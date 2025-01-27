@@ -6,12 +6,23 @@
 public interface IDematerializer<T, in TValue> where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
-    /// Writes <typeparamref name="TValue"/> as CSV, including the trailing newline.
+    /// Number of fields the instance will write.
     /// </summary>
+    public int FieldCount { get; }
+
+    /// <summary>
+    /// Writes <typeparamref name="TValue"/> as CSV as <see cref="FieldCount"/> fields.
+    /// </summary>
+    /// <remarks>
+    /// Does not write a trailing newline.
+    /// </remarks>
     void Write(ref readonly CsvFieldWriter<T> writer, TValue value);
 
     /// <summary>
-    /// Writes a header, including the trailing newline.
+    /// Writes the header for <typeparamref name="TValue"/> as <see cref="FieldCount"/> fields.
     /// </summary>
+    /// <remarks>
+    /// Does not write a trailing newline.
+    /// </remarks>
     void WriteHeader(ref readonly CsvFieldWriter<T> writer);
 }

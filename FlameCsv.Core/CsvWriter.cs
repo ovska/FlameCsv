@@ -7,6 +7,8 @@ namespace FlameCsv;
 
 static partial class CsvWriter
 {
+    public const int DefaultBufferSize = 4096;
+
     [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
     public static Task WriteToFileAsync<[DAM(Messages.ReflectionBound)] TValue>(
         IEnumerable<TValue> values,
@@ -181,10 +183,10 @@ static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         var dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        var sb = builder ?? new StringBuilder(capacity: 4096);
+        var sb = builder ?? new StringBuilder();
         WriteCore(
             values,
-            CsvFieldWriter.Create(new StringWriter(sb), options, bufferSize: 4096),
+            CsvFieldWriter.Create(new StringWriter(sb), options, bufferSize: DefaultBufferSize),
             dematerializer);
         return sb;
     }
@@ -202,7 +204,11 @@ static partial class CsvWriter
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            writer.TryWriteHeader(dematerializer);
+            if (writer.Options._hasHeader)
+            {
+                dematerializer.WriteHeader(in writer);
+                writer.WriteNewline();
+            }
 
             foreach (var value in values)
             {
@@ -210,6 +216,7 @@ static partial class CsvWriter
                     await writer.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
 
                 dematerializer.Write(in writer, value);
+                writer.WriteNewline();
             }
         }
         catch (Exception e)
@@ -219,9 +226,9 @@ static partial class CsvWriter
         }
         finally
         {
-            // Don't flush if cancelled
-            if (exception is null && cancellationToken.IsCancellationRequested)
-                exception = new OperationCanceledException(cancellationToken);
+            // Don't flush if canceled
+            if (cancellationToken.IsCancellationRequested)
+                exception ??= new OperationCanceledException(cancellationToken);
 
             // this re-throws possible exceptions after disposing its internals
             await writer.Writer.CompleteAsync(exception, cancellationToken).ConfigureAwait(false);
@@ -238,7 +245,11 @@ static partial class CsvWriter
 
         try
         {
-            writer.TryWriteHeader(dematerializer);
+            if (writer.Options._hasHeader)
+            {
+                dematerializer.WriteHeader(in writer);
+                writer.WriteNewline();
+            }
 
             foreach (var value in values)
             {
@@ -246,6 +257,7 @@ static partial class CsvWriter
                     writer.Writer.Flush();
 
                 dematerializer.Write(in writer, value);
+                writer.WriteNewline();
             }
         }
         catch (Exception e)
