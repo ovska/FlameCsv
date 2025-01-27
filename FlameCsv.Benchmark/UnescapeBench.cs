@@ -306,7 +306,7 @@ public class UnescapeBench
     }
 
     /// <exception cref="UnreachableException">
-    /// The data and/or the supplied quote count parameter were invalid. 
+    /// The data and/or the supplied quote count parameter were invalid.
     /// </exception>
     [StackTraceHidden, DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     internal static void ThrowInvalidUnescape()
