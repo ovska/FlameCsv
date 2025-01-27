@@ -3,6 +3,7 @@ using System.Globalization;
 using FlameCsv.Binding;
 using FlameCsv.Writing;
 
+// ReSharper disable InconsistentNaming
 // ReSharper disable ClassNeverInstantiated.Global
 
 namespace FlameCsv.Benchmark;
@@ -22,12 +23,9 @@ public partial class WriteBench
 
         for (int i = 0; i < _data.Length; i++)
         {
-            Obj? obj = _data[i];
+            Obj obj = _data[i];
             writer.WriteRecord(obj);
             writer.NextRecord();
-
-            if (i % 10 == 9)
-                writer.Flush();
         }
     }
 
@@ -51,15 +49,12 @@ public partial class WriteBench
 
         for (int i = 0; i < _data.Length; i++)
         {
-            Obj? obj = _data[i];
+            Obj obj = _data[i];
             writer.WriteField(obj.Id);
             writer.WriteField(obj.Name);
             writer.WriteField(obj.IsEnabled);
             writer.WriteField(obj.LastLogin);
             writer.NextRecord();
-
-            if (i % 10 == 9)
-                writer.Flush();
         }
     }
 
@@ -72,12 +67,9 @@ public partial class WriteBench
 
         for (int i = 0; i < _data.Length; i++)
         {
-            Obj? obj = _data[i];
+            Obj obj = _data[i];
             writer.WriteRecord(obj);
             await writer.NextRecordAsync().ConfigureAwait(false);
-
-            if (i % 10 == 9)
-                await writer.FlushAsync();
         }
     }
 
@@ -98,65 +90,70 @@ public partial class WriteBench
         writer.WriteField("Name");
         writer.WriteField("IsEnabled");
         writer.WriteField("LastLogin");
-        writer.NextRecord();
+        await writer.NextRecordAsync().ConfigureAwait(false);
 
         for (int i = 0; i < _data.Length; i++)
         {
-            Obj? obj = _data[i];
+            Obj obj = _data[i];
             writer.WriteField(obj.Id);
             writer.WriteField(obj.Name);
             writer.WriteField(obj.IsEnabled);
             writer.WriteField(obj.LastLogin);
-            writer.NextRecord();
-
-            if (i % 10 == 9)
-                await writer.FlushAsync().ConfigureAwait(false);
+            await writer.NextRecordAsync().ConfigureAwait(false);
         }
     }
 
-    // [Benchmark]
-    // public void WriterObj()
-    // {
-    //     using var writer = CsvWriter.Create(TextWriter.Null, autoFlush: true);
-    //
-    //     writer.WriteHeader<Obj>();
-    //
-    //     foreach (var obj in _data)
-    //         writer.WriteRecord(obj);
-    // }
-    //
-    // [Benchmark]
-    // public void WriterObjTM()
-    // {
-    //     using var writer = CsvWriter.Create(TextWriter.Null, autoFlush: true);
-    //
-    //     writer.WriteHeader(ObjTypeMap.Instance);
-    //
-    //     foreach (var obj in _data)
-    //         writer.WriteRecord(ObjTypeMap.Instance, obj);
-    // }
-    //
-    // [Benchmark]
-    // public async Task Async_WriterObj()
-    // {
-    //     using var writer = CsvWriter.Create(TextWriter.Null, autoFlush: true);
-    //
-    //     await writer.WriteHeaderAsync<Obj>().ConfigureAwait(false);
-    //
-    //     foreach (var obj in _data)
-    //         await writer.WriteRecordAsync(obj).ConfigureAwait(false);
-    // }
-    //
-    // [Benchmark]
-    // public async Task Async_WriterObjTM()
-    // {
-    //     using var writer = CsvWriter.Create(TextWriter.Null, autoFlush: true);
-    //
-    //     await writer.WriteHeaderAsync(ObjTypeMap.Instance).ConfigureAwait(false);
-    //
-    //     foreach (var obj in _data)
-    //         await writer.WriteRecordAsync(ObjTypeMap.Instance, obj).ConfigureAwait(false);
-    // }
+    [Benchmark]
+    public void WriterObj()
+    {
+        using var writer = CsvWriter.Create(TextWriter.Null, autoFlush: true);
+
+        writer.WriteHeader<Obj>();
+
+        foreach (var obj in _data)
+            writer.WriteRecord(obj);
+    }
+
+    [Benchmark]
+    public void WriterObjTM()
+    {
+        using var writer = CsvWriter.Create(TextWriter.Null, autoFlush: true);
+
+        writer.WriteHeader(ObjTypeMap.Instance);
+
+        foreach (var obj in _data)
+            writer.WriteRecord(ObjTypeMap.Instance, obj);
+    }
+
+    [Benchmark]
+    public async Task Async_WriterObj()
+    {
+        await using var writer = CsvWriter.Create(TextWriter.Null, autoFlush: true);
+
+        writer.WriteHeader<Obj>();
+        await writer.NextRecordAsync();
+
+        foreach (var obj in _data)
+        {
+            writer.WriteRecord(obj);
+            await writer.NextRecordAsync();
+        }
+    }
+
+    [Benchmark]
+    public async Task Async_WriterObjTM()
+    {
+        await using var writer = CsvWriter.Create(TextWriter.Null, autoFlush: true);
+
+        writer.WriteHeader(ObjTypeMap.Instance);
+        await writer.NextRecordAsync();
+
+        foreach (var obj in _data)
+        {
+            writer.WriteRecord(ObjTypeMap.Instance, obj);
+            await writer.NextRecordAsync();
+        }
+    }
 
     [Benchmark(Baseline = true)]
     public void Generic()
@@ -206,7 +203,7 @@ public partial class WriteBench
             if (writer.Writer.NeedsFlush)
                 writer.Writer.Flush();
 
-            Obj? obj = _data[i];
+            Obj obj = _data[i];
             writer.WriteField(c1, obj.Id);
             writer.WriteDelimiter();
             writer.WriteField(c2, obj.Name);
@@ -223,7 +220,8 @@ public partial class WriteBench
     [GlobalSetup]
     public void Setup()
     {
-        _data = Enumerable.Range(0, Count)
+        _data = Enumerable
+            .Range(0, Count)
             .Select(
                 i => new Obj
                 {
@@ -245,6 +243,6 @@ public partial class WriteBench
         public DateTime LastLogin { get; set; }
     }
 
-    [CsvTypeMap<char, Obj>(UseBuiltinConverters = false)]
+    [CsvTypeMap<char, Obj>]
     public partial class ObjTypeMap;
 }

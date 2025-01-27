@@ -12,7 +12,8 @@ public partial class CsvReadBenchAsync
 {
     static CsvReadBenchAsync()
     {
-        _bytes = File.ReadAllBytes("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv");
+        _bytes = File.ReadAllBytes(
+            "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv");
 
         var header = "Index,Name,Contact,Count,Latitude,Longitude,Height,Location,Category,Popularity\r\n"u8;
         _bytesHeader = new byte[header.Length + _bytes.Length];
@@ -42,8 +43,7 @@ public partial class CsvReadBenchAsync
     {
         var config = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture)
         {
-            NewLine = Environment.NewLine,
-            HasHeaderRecord = Header,
+            NewLine = Environment.NewLine, HasHeaderRecord = Header,
         };
 
         using var reader = new StreamReader(GetFileStream(), Encoding.UTF8);
@@ -59,9 +59,9 @@ public partial class CsvReadBenchAsync
     public async Task FlameText()
     {
         await foreach (var record in CsvReader.ReadAsync<Entry>(
-            GetFileStream(),
-            Encoding.UTF8,
-            OptionsInstance))
+                           GetFileStream(),
+                           Encoding.UTF8,
+                           OptionsInstance))
         {
             _ = record;
         }
@@ -71,8 +71,8 @@ public partial class CsvReadBenchAsync
     public async Task FlameUtf8()
     {
         await foreach (var record in CsvReader.ReadAsync<Entry>(
-            GetFileStream(),
-            OptionsInstanceB))
+                           GetFileStream(),
+                           OptionsInstanceB))
         {
             _ = record;
         }
@@ -82,10 +82,10 @@ public partial class CsvReadBenchAsync
     public async Task FlameText_SG()
     {
         await foreach (var record in CsvReader.ReadAsync(
-            GetFileStream(),
-            EntryTypeMap_Text.Instance,
-            OptionsInstance,
-            encoding: Encoding.UTF8))
+                           GetFileStream(),
+                           EntryTypeMap_Text.Instance,
+                           OptionsInstance,
+                           encoding: Encoding.UTF8))
         {
             _ = record;
         }
@@ -95,9 +95,9 @@ public partial class CsvReadBenchAsync
     public async Task FlameUtf8_SG()
     {
         await foreach (var record in CsvReader.ReadAsync(
-            GetFileStream(),
-            EntryTypeMap_Utf8.Instance,
-            OptionsInstanceB))
+                           GetFileStream(),
+                           EntryTypeMap_Utf8.Instance,
+                           OptionsInstanceB))
         {
             _ = record;
         }
@@ -107,30 +107,38 @@ public partial class CsvReadBenchAsync
     {
         [CsvHelper.Configuration.Attributes.Index(0), CsvIndex(0)]
         public int Index { get; set; }
+
         [CsvHelper.Configuration.Attributes.Index(1), CsvIndex(1)]
         public string? Name { get; set; }
+
         [CsvHelper.Configuration.Attributes.Index(2), CsvIndex(2)]
         public string? Contact { get; set; }
+
         [CsvHelper.Configuration.Attributes.Index(3), CsvIndex(3)]
         public int Count { get; set; }
+
         [CsvHelper.Configuration.Attributes.Index(4), CsvIndex(4)]
         public double Latitude { get; set; }
+
         [CsvHelper.Configuration.Attributes.Index(5), CsvIndex(5)]
         public double Longitude { get; set; }
+
         [CsvHelper.Configuration.Attributes.Index(6), CsvIndex(6)]
         public double Height { get; set; }
+
         [CsvHelper.Configuration.Attributes.Index(7), CsvIndex(7)]
         public string? Location { get; set; }
+
         [CsvHelper.Configuration.Attributes.Index(8), CsvIndex(8)]
         public string? Category { get; set; }
+
         [CsvHelper.Configuration.Attributes.Index(9), CsvIndex(9)]
         public double? Popularity { get; set; }
     }
 
-[CsvTypeMap<char, CsvReadBenchAsync.Entry>]
-internal partial class EntryTypeMap_Text;
+    [CsvTypeMap<char, CsvReadBenchAsync.Entry>]
+    internal partial class EntryTypeMap_Text;
 
-[CsvTypeMap<byte, CsvReadBenchAsync.Entry>]
-internal partial class EntryTypeMap_Utf8;
+    [CsvTypeMap<byte, CsvReadBenchAsync.Entry>]
+    internal partial class EntryTypeMap_Utf8;
 }
-
