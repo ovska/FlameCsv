@@ -39,7 +39,7 @@ public class CsvParserTests
         using var parser = CsvParser.Create(
             new CsvOptions<char>
             {
-                NoLineBuffering = true,
+                NoReadAhead = true,
                 Newline = newline switch
                 {
                     NewlineToken.CRLF => "\r\n",
