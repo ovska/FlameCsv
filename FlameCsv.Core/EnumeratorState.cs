@@ -37,7 +37,7 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
         {
             Throw.IfEnumerationDisposed(Version == -1);
 
-            if (!Options._hasHeader)
+            if (!Options._hasHeader && value is not null)
                 Throw.NotSupported_CsvHasNoHeader();
 
             if (EqualityComparer<CsvHeader>.Default.Equals(Header, value))

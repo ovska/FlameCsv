@@ -279,34 +279,6 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal bool SkipRecord(ReadOnlyMemory<T> record, int line, bool isHeader)
-    {
-        return _options._shouldSkipRow is { } predicate &&
-            predicate(
-                new CsvRecordSkipArgs<T>
-                {
-                    Options = _options,
-                    Line = line,
-                    Record = record.Span,
-                    IsHeader = isHeader,
-                });
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal bool SkipRecord(ref readonly CsvLine<T> record, int line, bool isHeader)
-    {
-        return _options._shouldSkipRow is { } predicate &&
-            predicate(
-                new CsvRecordSkipArgs<T>
-                {
-                    Options = _options,
-                    Line = line,
-                    Record = record.Data.Span,
-                    IsHeader = isHeader,
-                });
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool ExceptionIsHandled(ref readonly CsvLine<T> record, int line, Exception exception)
     {
         return _options._exceptionHandler is { } handler &&
