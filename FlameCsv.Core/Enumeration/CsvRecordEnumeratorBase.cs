@@ -66,9 +66,22 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
             Position += line.RecordLength + (_parser._newline.Length * (!isFinalBlock).ToByte());
             Line++;
 
-            if (_parser.SkipRecord(line.Data, Line, isHeader: _state.NeedsHeader))
+            if (_parser.Options._recordCallback is { } callback)
             {
-                goto Retry;
+                bool skip = false;
+                bool headerRead = _state.Header is not null;
+
+                CsvRecordCallbackArgs<T> args = new(
+                    line,
+                    _state.Header is { } header ? header.Values : [],
+                    Line,
+                    oldPosition,
+                    ref skip,
+                    ref headerRead);
+                callback(in args);
+
+                if (!headerRead) _state.Header = null;
+                if (skip) goto Retry;
             }
 
             CsvValueRecord<T> record = new(oldPosition, Line, in line, _parser.Options, _state);

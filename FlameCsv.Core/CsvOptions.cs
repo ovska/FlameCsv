@@ -66,7 +66,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     {
         ArgumentNullException.ThrowIfNull(other);
 
-        _shouldSkipRow = other._shouldSkipRow;
+        _recordCallback = other._recordCallback;
         _exceptionHandler = other._exceptionHandler;
         _hasHeader = other._hasHeader;
         _validateFieldCount = other._validateFieldCount;
@@ -219,7 +219,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     public virtual NumberStyles GetNumberStyles(Type resultType, NumberStyles defaultValue)
         => _styles.TryGetExt(resultType, defaultValue);
 
-    internal CsvRecordSkipPredicate<T>? _shouldSkipRow;
+    internal CsvRecordCallback<T>? _recordCallback;
     internal CsvExceptionHandler<T>? _exceptionHandler;
     internal bool _hasHeader = true;
     internal bool _validateFieldCount;
@@ -356,13 +356,13 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     }
 
     /// <summary>
-    /// Delegate that determines whether a row should be skipped.
-    /// Default is <see langword="null"/>, which means all rows are processed.
+    /// Delegate that is called for each record before it is processed.
+    /// Can be used to skip records or reset the header.
     /// </summary>
-    public CsvRecordSkipPredicate<T>? ShouldSkipRow
+    public CsvRecordCallback<T>? RecordCallback
     {
-        get => _shouldSkipRow;
-        set => this.SetValue(ref _shouldSkipRow, value);
+        get => _recordCallback;
+        set => this.SetValue(ref _recordCallback, value);
     }
 
     /// <summary>
@@ -370,7 +370,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// delegate returns false, the exception is considered unhandled and is thrown.<para/>
     /// For example, to ignore unparseable values return <see langword="true"/> if the exception is
     /// <see cref="CsvParseException"/>. In this case, rows with invalid data are skipped, see also:
-    /// <see cref="ShouldSkipRow"/>.
+    /// <see cref="RecordCallback"/>.
     /// </summary>
     /// <remarks>
     /// <see cref="CsvFormatException"/> is always thrown as it represents an invalid CSV.<br/>
