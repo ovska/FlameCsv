@@ -224,7 +224,7 @@ public class CsvOptionsTests
         Run(o => o.Escape = null);
         Run(o => o.Newline = "");
         Run(o => o.Whitespace = "");
-        Run(o => o.ShouldSkipRow = null);
+        Run(o => o.RecordCallback = null);
         Run(o => o.HasHeader = false);
         Run(o => o.Comparer = StringComparer.Ordinal);
         Run(o => o.ExceptionHandler = null);
@@ -254,8 +254,61 @@ public class CsvOptionsTests
         }
     }
 
-    [Fact(Skip = "Vectorized paths don't yet work")]
-    public void Should_Skip_CsvRecord_Rows()
+    [Fact]
+    public void Should_ReRead_Header()
+    {
+        const string data =
+            """
+            A,B,C
+            1,2,3
+
+            C,A,B
+            3,1,2
+
+            """;
+
+        static void Callback(ref readonly CsvRecordCallbackArgs<char> args)
+        {
+            if (args.IsEmpty)
+            {
+                args.SkipRecord = true;
+                args.HeaderRead = false;
+            }
+        }
+
+        var options = new CsvOptions<char>
+        {
+            HasHeader = true,
+            RecordCallback = Callback,
+        };
+
+        using (var enumerator = CsvReader.Enumerate(data, options).GetEnumerator())
+        {
+            Assert.True(enumerator.MoveNext());
+            Assert.Equal("1", enumerator.Current.GetField("A").ToString());
+            Assert.Equal("2", enumerator.Current.GetField("B").ToString());
+            Assert.Equal("3", enumerator.Current.GetField("C").ToString());
+
+            Assert.True(enumerator.MoveNext());
+            Assert.Equal("1", enumerator.Current.GetField("A").ToString());
+            Assert.Equal("2", enumerator.Current.GetField("B").ToString());
+            Assert.Equal("3", enumerator.Current.GetField("C").ToString());
+
+            Assert.False(enumerator.MoveNext());
+        }
+
+        var values = CsvReader.Read<Skippable>(data, options).ToList();
+        Assert.Equal(2, values.Count);
+        Assert.Equal(1, values[0].A);
+        Assert.Equal(2, values[0].B);
+        Assert.Equal(3, values[0].C);
+        Assert.Equal(1, values[1].A);
+        Assert.Equal(2, values[1].B);
+        Assert.Equal(3, values[1].C);
+    }
+
+    [Fact]
+    public void Should_Skip_Rows()
     {
         const string data =
             "sep=,\r\n" +
@@ -264,7 +317,16 @@ public class CsvOptionsTests
             "#4,5,6\r\n" +
             "7,8,9\r\n";
 
-        var options = new CsvOptions<char> { ShouldSkipRow = args => args.Line == 1 || args.Record[0] == '#', };
+        static void Callback(ref readonly CsvRecordCallbackArgs<char> args)
+        {
+            if (args.Line == 1 || args.Record[0] == '#')
+            {
+                args.SkipRecord = true;
+            }
+        }
+
+        // record
+        var options = new CsvOptions<char> { RecordCallback = Callback };
 
         using var enumerator = CsvReader.Enumerate(data, options).GetEnumerator();
 
@@ -273,10 +335,21 @@ public class CsvOptionsTests
 
         Assert.True(enumerator.MoveNext());
         Assert.Equal("7,8,9", enumerator.Current.RawRecord.ToString());
+
+        // values
+        var values = CsvReader.Read<Skippable>(data, options).ToList();
+
+        Assert.Equal(2, values.Count);
+        Assert.Equal(1, values[0].A);
+        Assert.Equal(2, values[0].B);
+        Assert.Equal(3, values[0].C);
+        Assert.Equal(7, values[1].A);
+        Assert.Equal(8, values[1].B);
+        Assert.Equal(9, values[1].C);
     }
 
     [Fact]
-    public void Should_Return_Correct_HasHeader_in_Skip()
+    public void Should_Return_Correct_HeaderRead_in_Skip()
     {
         foreach (var _ in CsvReader.Enumerate("A,B,C\n1,2,3", GetOpts(true)))
         {
@@ -292,50 +365,28 @@ public class CsvOptionsTests
             return new CsvOptions<char>
             {
                 HasHeader = hasHeader,
-                ShouldSkipRow = args =>
+                RecordCallback = (ref readonly CsvRecordCallbackArgs<char> args) =>
                 {
                     if (args.Record[0] == 'A')
                     {
-                        Assert.True(args.IsHeader);
+                        Assert.Equal(1, args.Line);
+                        Assert.False(args.HeaderRead);
                     }
 
                     if (args.Record[0] == '1')
                     {
-                        Assert.False(args.IsHeader);
+                        Assert.Equal(2, args.Line);
+                        Assert.True(args.HeaderRead);
                     }
 
                     if (args.Record[0] == 'X')
                     {
-                        Assert.False(args.IsHeader);
+                        Assert.InRange(args.Line, 1, 2);
+                        Assert.False(args.HeaderRead);
                     }
-
-                    return false;
                 }
             };
         }
-    }
-
-    [Fact(Skip = "Vectorized paths don't yet work")]
-    public void Should_Skip_Value_Rows()
-    {
-        const string data =
-            "sep=,\r\n" +
-            "A,B,C\r\n" +
-            "1,2,3\r\n" +
-            "#4,5,6\r\n" +
-            "7,8,9\r\n";
-
-        var options = new CsvOptions<char> { ShouldSkipRow = args => args.Line == 1 || args.Record[0] == '#', };
-
-        var values = CsvReader.Read<Skippable>(data, options).ToList();
-
-        Assert.Equal(2, values.Count);
-        Assert.Equal(1, values[0].A);
-        Assert.Equal(2, values[0].B);
-        Assert.Equal(3, values[0].C);
-        Assert.Equal(7, values[1].A);
-        Assert.Equal(8, values[1].B);
-        Assert.Equal(9, values[1].C);
     }
 
     private sealed class Skippable

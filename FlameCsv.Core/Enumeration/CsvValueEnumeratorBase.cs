@@ -35,6 +35,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
 
     private readonly CsvTypeMap<T, TValue>? _typeMap;
     private IMaterializer<T, TValue>? _materializer;
+    private string[]? _headersArray;
 
     [HandlesResourceDisposal] private protected readonly CsvParser<T> _parser;
 
@@ -80,9 +81,22 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         Line++;
         Position += line.RecordLength + (isFinalBlock ? 0 : _parser._newline.Length);
 
-        if (_parser.SkipRecord(in line, Line, _parser.Options._hasHeader && _materializer is null))
+        if (_parser.Options._recordCallback is { } callback)
         {
-            goto ReadNextRecord;
+            bool skip = false;
+            bool headerRead = _parser.Options._hasHeader && _materializer is not null;
+
+            CsvRecordCallbackArgs<T> args = new(
+                line,
+                _headersArray,
+                Line,
+                position,
+                ref skip,
+                ref headerRead);
+            callback(in args);
+
+            if (!headerRead && _parser.Options._hasHeader) _materializer = null; // null to re-read headers
+            if (skip) goto ReadNextRecord;
         }
 
         if (_materializer is null && TryReadHeader(in line))
@@ -153,6 +167,13 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         _materializer = _typeMap is null
             ? _parser.Options.TypeBinder.GetMaterializer<TValue>(headers)
             : _typeMap.GetMaterializer(headers, _parser.Options);
+
+        // we need a copy of the headers for the callback
+        if (_parser.Options._recordCallback is not null)
+        {
+            _headersArray = headers.ToArray();
+        }
+
         return true;
     }
 
