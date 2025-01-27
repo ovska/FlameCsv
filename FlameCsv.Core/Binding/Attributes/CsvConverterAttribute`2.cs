@@ -8,7 +8,7 @@ namespace FlameCsv.Binding.Attributes;
 /// Overrides the converter for the target member or parameter.
 /// </summary>
 /// <remarks>
-/// Converters created this way are cached in <see cref="CsvOptions{T}"/> per member/parameter.
+/// Converters created this way are distinct from the cached converters in <see cref="CsvOptions{T}"/>.
 /// </remarks>
 /// <typeparam name="T"></typeparam>
 /// <typeparam name="TConverter"></typeparam>
