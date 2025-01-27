@@ -50,7 +50,11 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
     /// </summary>
     public ICsvBufferWriter<T> Writer { get; }
 
-    private readonly CsvOptions<T> _options;
+    /// <summary>
+    /// The options-instance for this writer.
+    /// </summary>
+    public CsvOptions<T> Options { get; }
+
     private readonly T _delimiter;
     private readonly T _quote;
     private readonly NewlineBuffer<T> _newline;
@@ -69,7 +73,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         options.MakeReadOnly();
 
         Writer = writer;
-        _options = options;
+        Options = options;
 
         ref readonly CsvDialect<T> dialect = ref options.Dialect;
         _delimiter = dialect.Delimiter;
@@ -99,7 +103,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         }
         else
         {
-            ReadOnlySpan<T> nullValue = _options.GetNullToken(typeof(TValue)).Span;
+            ReadOnlySpan<T> nullValue = Options.GetNullToken(typeof(TValue)).Span;
             destination = Writer.GetSpan(nullValue.Length);
             nullValue.CopyTo(destination);
             tokensWritten = nullValue.Length;
@@ -125,7 +129,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         int tokensWritten;
         scoped Span<T> destination = Writer.GetSpan();
 
-        while (!_options.TryWriteChars(value, destination, out tokensWritten))
+        while (!Options.TryWriteChars(value, destination, out tokensWritten))
         {
             destination = Writer.GetSpan(destination.Length * 2);
         }
@@ -133,7 +137,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         // validate negative or too large tokensWritten in case of broken user-defined options
         if ((uint)tokensWritten > (uint)destination.Length)
         {
-            InvalidTokensWritten.Throw(_options, tokensWritten, destination.Length);
+            InvalidTokensWritten.Throw(Options, tokensWritten, destination.Length);
         }
 
         if (!skipEscaping)
@@ -201,7 +205,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
     {
         ArgumentNullException.ThrowIfNull(dematerializer);
 
-        if (_options._hasHeader)
+        if (Options._hasHeader)
         {
             dematerializer.WriteHeader(in this);
         }
@@ -212,7 +216,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         // empty writes don't need escaping
         if (tokensWritten == 0)
         {
-            if (_options._fieldQuoting == CsvFieldQuoting.AlwaysQuote)
+            if (Options._fieldQuoting == CsvFieldQuoting.AlwaysQuote)
             {
                 // Ensure the buffer is large enough
                 if (destination.Length < 2)
@@ -227,7 +231,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         }
 
         // Value formatted, check if it needs to be wrapped in quotes
-        if (_options._fieldQuoting != CsvFieldQuoting.Never)
+        if (Options._fieldQuoting != CsvFieldQuoting.Never)
         {
             if (_escape is null)
             {
@@ -259,14 +263,14 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         where TEscaper : struct, IEscaper<T>, allows ref struct
     {
         Debug.Assert(tokensWritten != 0);
-        Debug.Assert(_options._fieldQuoting != CsvFieldQuoting.Never);
+        Debug.Assert(Options._fieldQuoting != CsvFieldQuoting.Never);
 
         ReadOnlySpan<T> written = destination[..tokensWritten];
 
         bool shouldQuote;
         int escapableCount;
 
-        if (_options._fieldQuoting == CsvFieldQuoting.AlwaysQuote)
+        if (Options._fieldQuoting == CsvFieldQuoting.AlwaysQuote)
         {
             shouldQuote = true;
             escapableCount = escaper.CountEscapable(written);
@@ -323,7 +327,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
                     source: written,
                     destination: destination,
                     specialCount: escapableCount,
-                    allocator: _options._memoryPool);
+                    allocator: Options._memoryPool);
             }
 
             return true;

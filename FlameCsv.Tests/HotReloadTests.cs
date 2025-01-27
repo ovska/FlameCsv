@@ -1,5 +1,8 @@
-﻿using System.Reflection.Metadata;
+﻿using System.Collections;
+using System.Reflection;
+using System.Reflection.Metadata;
 using FlameCsv.Tests.Binding;
+using FlameCsv.Tests.TestData;
 using FlameCsv.Utilities;
 
 namespace FlameCsv.Tests;
@@ -36,6 +39,15 @@ public static class HotReloadTests
         using var cache = new TrimmingCache<object, object>();
         cache.Add(new object(), new object());
 
+        // writer
+        using var writer = CsvWriter.Create(TextWriter.Null);
+        writer.WriteRecord(new Obj());
+        (ICollection? writeCache, object? writeKey, object? writeValue) = GetWriterCache(writer);
+        Assert.NotEmpty(writeCache);
+        Assert.NotNull(writeKey);
+        Assert.NotNull(writeValue);
+
+        // hot reload
         HotReloadService.ClearCache(null);
 
         // options
@@ -52,5 +64,22 @@ public static class HotReloadTests
 
         // trimming caches
         Assert.Empty(cache);
+
+        // writer
+        (writeCache, writeKey, writeValue) = GetWriterCache(writer);
+        Assert.Empty(writeCache);
+        Assert.Null(writeKey);
+        Assert.Null(writeValue);
+    }
+
+    private static (ICollection, object?, object?) GetWriterCache(CsvWriter<char> writer)
+    {
+        var type = typeof(CsvWriter<char>);
+
+        return (
+            (ICollection)type.GetField("_dematerializerCache", BindingFlags.NonPublic)!.GetValue(writer)!,
+            type.GetField("_previousKey", BindingFlags.NonPublic)!.GetValue(writer),
+            type.GetField("_previousValue", BindingFlags.NonPublic)!.GetValue(writer)
+        );
     }
 }
