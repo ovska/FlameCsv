@@ -120,7 +120,7 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
         _dialect = options.Dialect;
         _newline = options.Dialect.GetNewlineOrDefault();
         _metaArray = [];
-        _canUseFastPath = !options.NoLineBuffering && _dialect.IsAscii;
+        _canUseFastPath = !options.NoReadAhead && _dialect.IsAscii;
     }
 
     /// <summary>
@@ -213,14 +213,13 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
         Debug.Assert(_newline.Length != 0);
         Debug.Assert(_metaCount >= _metaIndex);
 
-        _metaMemory = default;  // don't hold on to the memory from last read
+        _metaMemory = default; // don't hold on to the memory from last read
 
         var lastEOL = _metaArray[_metaIndex];
 
         if (!lastEOL.IsEOL)
         {
-            // TODO: better error message
-            Throw.Unreachable("Last read line was not an EOL");
+            InvalidState.Throw(GetType(), _metaArray, _metaIndex, _metaCount);
         }
 
         _sequence = _sequence.Slice(lastEOL.GetNextStart(_newline.Length));
@@ -428,5 +427,23 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
         _metaArray[0] = Meta.StartOfData;
         fields.CopyTo(_metaArray.AsSpan(start: 1));
         return _metaArray.AsSpan(0, fields.Length + 1);
+    }
+}
+
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+file static class InvalidState
+{
+    public static void Throw(Type parserType, Meta[] metaArray, int metaIndex, int metaCount)
+    {
+        var error = new System.Text.StringBuilder()
+            .Append(parserType.FullName)
+            .Append(" was in an invalid state: ")
+            .Append(metaCount)
+            .Append(" metas were read and ")
+            .Append(metaIndex)
+            .Append(" were consumed, but the last consumed was not a newline. Metas: ")
+            .AppendJoin(", ", metaArray.Index());
+
+        throw new UnreachableException(error.ToString());
     }
 }

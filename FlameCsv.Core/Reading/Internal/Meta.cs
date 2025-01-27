@@ -306,7 +306,7 @@ internal readonly struct Meta
     {
         lastIndex = meta.Length - 1;
 
-        // TODO: vectorize me
+        // TODO: vectorize me?
         while (lastIndex >= 0)
         {
             if (meta[lastIndex].IsEOL)
@@ -327,6 +327,8 @@ internal readonly struct Meta
     }
 #endif
 
+    public override string ToString() => DebuggerDisplay;
+
     internal string DebuggerDisplay
     {
         get
@@ -338,7 +340,7 @@ internal readonly struct Meta
 
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowInvalidRFC(uint quoteCount, bool isEOL)
+    private static void ThrowInvalidRFC(uint quoteCount, bool isEOL)
     {
         string info = isEOL ? " at EOL" : "";
 
@@ -353,7 +355,7 @@ internal readonly struct Meta
 
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowInvalidUnix(uint quoteCount, uint escapeCount, bool isEOL)
+    private static void ThrowInvalidUnix(uint quoteCount, uint escapeCount, bool isEOL)
     {
         string info = isEOL ? " at EOL" : "";
 
