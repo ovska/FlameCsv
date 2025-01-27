@@ -13,42 +13,50 @@ public static class NewlineDetectTests
     [Theory]
     [InlineData("A,B,C\r\nX,Y,Z\r\n", false)]
     [InlineData("A,B,C\nX,Y,Z\n", false)]
+    [InlineData("\"A\",B,C\nX,Y,Z\n", false)]
     [InlineData("A,B,C\r\n\"X\",Y,Z\r\n", false)]
+    [InlineData("\"A\",B,C\r\n\"X\",Y,Z\r\n", false)]
     [InlineData("A,B,C\n\"X\",Y,Z\n", false)]
     [InlineData("A,B,C\r\n\"\"\"X\",Y,Z\r\n", false)]
     [InlineData("A,B,C\n\"\"\"X\",Y,Z\n", false)]
     [InlineData("A,B,C\r\nX,Y,Z\r\n", true)]
     [InlineData("A,B,C\nX,Y,Z\n", true)]
+    [InlineData("A,\"^B\",C\r\nX,Y,Z\r\n", true)]
+    [InlineData("A,\"^B\",C\nX,Y,Z\n", true)]
     [InlineData("A,B,C\r\n\"X\",Y,Z\r\n", true)]
     [InlineData("A,B,C\n\"X\",Y,Z\n", true)]
     [InlineData("A,B,C\r\n\"^\"X\",Y,Z\r\n", true)]
     [InlineData("A,B,C\n\"^\"X\",Y,Z\n", true)]
-    public static void RFC4180(string input, bool escape)
+    public static void Should_Detect(string input, bool escape)
     {
-        // repeat to ensure the newline detection is valid for the parser instance, not whole Options
         var textOpts = new CsvOptions<char> { Newline = null, Escape = escape ? '^' : null };
         var utf8Opts = new CsvOptions<byte> { Newline = null, Escape = escape ? '^' : null };
 
+        // repeat to ensure the newline detection is valid for the parser instance, not whole Options
         for (int i = 0; i < 2; i++)
         {
-            RunAssertions(textOpts, input.AsMemory(), "A,B,C");
-            RunAssertions(utf8Opts, U8(input), "A,B,C"u8);
+            RunAssertions(textOpts, input.AsMemory());
+            RunAssertions(utf8Opts, U8(input));
         }
 
-        Assert.Empty(textOpts.Newline ?? "");
-        Assert.Empty(utf8Opts.Newline ?? "");
+        Assert.Null(textOpts.Newline);
+        Assert.Null(utf8Opts.Newline);
 
         static void RunAssertions<T>(
             CsvOptions<T> options,
-            ReadOnlyMemory<T> input,
-            ReadOnlySpan<T> expected) where T : unmanaged, IBinaryInteger<T>
+            ReadOnlyMemory<T> input) where T : unmanaged, IBinaryInteger<T>
         {
             using var parser = CsvParser.Create(options);
             Assert.ThrowsAny<InvalidOperationException>(() => parser.NewlineLength);
 
             parser.Reset(new ReadOnlySequence<T>(input));
             Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
-            Assert.Equal(expected, line.Record.Span);
+
+            var reader = new MetaFieldReader<T>(in line, stackalloc T[8]);
+            Assert.Equal([T.CreateChecked('A')], reader[0]);
+            Assert.Equal([T.CreateChecked('B')], reader[1]);
+            Assert.Equal([T.CreateChecked('C')], reader[2]);
+
 
             Assert.True(parser.TryReadLine(out _, isFinalBlock: false));
         }
