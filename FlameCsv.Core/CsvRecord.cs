@@ -195,7 +195,10 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     /// <param name="record"></param>
     protected readonly struct FieldEnumerator(CsvRecord<T> record) : ICsvRecordFields<T>
     {
+        /// <inheritdoc cref="ICsvRecordFields{T}.FieldCount"/>
         public int FieldCount => record.GetFieldCount();
+
+        /// <inheritdoc cref="ICsvRecordFields{T}.this"/>
         public ReadOnlySpan<T> this[int index] => record._fields[index].Span;
     }
 }

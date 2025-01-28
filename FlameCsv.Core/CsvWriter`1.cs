@@ -18,7 +18,7 @@ public class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unmanaged, I
     /// <summary>
     /// Options instance of this writer.
     /// </summary>
-    public CsvOptions<T> Options { get; }
+    public CsvOptions<T> Options => _inner.Options;
 
     /// <summary>
     /// Whether to automatically check if the writer needs to be flushed after each record.
@@ -72,15 +72,19 @@ public class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unmanaged, I
 
     private readonly CsvFieldWriter<T> _inner;
 
-    public CsvWriter(CsvOptions<T> options, CsvFieldWriter<T> inner, bool autoFlush)
+    /// <summary>
+    /// Initializes a new writer instance.
+    /// </summary>
+    /// <param name="inner">Field writer instance to write to</param>
+    /// <param name="autoFlush">
+    /// Whether to automatically flush after each record if the writer's buffer pressure is high enough.
+    /// Automatic flushing is performed in <see cref="NextRecord"/> and <see cref="NextRecordAsync"/>.
+    /// </param>
+    public CsvWriter(CsvFieldWriter<T> inner, bool autoFlush)
     {
-        ArgumentNullException.ThrowIfNull(options);
         Throw.IfDefaultStruct(inner.Writer is null, typeof(CsvFieldWriter<T>));
 
-        options.MakeReadOnly();
-
         _inner = inner;
-        Options = options;
         AutoFlush = autoFlush;
         LineIndex = 1;
 

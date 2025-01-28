@@ -24,20 +24,15 @@ static partial class CsvWriter
         ArgumentNullException.ThrowIfNull(textWriter);
         options ??= CsvOptions<char>.Default;
         return new CsvWriter<char>(
-            options,
             CsvFieldWriter.Create(textWriter, options, DefaultBufferSize),
             autoFlush);
     }
 
-    /// <inheritdoc cref="Create(TextWriter, CsvOptions{char}?, bool)"/>
-    /// <remarks>
-    /// Writing to <see cref="Stream"/> does not support synchronous flushing. <see langword="await"/>
-    /// <see langword="using"/> must be used, and either <paramref name="autoFlush"/> <see langword="false"/> or
-    /// async-overloads of the write methods such as <see cref="CsvWriter{T}.WriteRecordAsync{TRecord}(TRecord, CancellationToken)"/>.
-    /// </remarks>
+    /// <summary><inheritdoc cref="Create(TextWriter, CsvOptions{char}?, bool)" path="/summary"/></summary>
     /// <param name="stream">Stream to write the CSV to</param>
-    /// <param name="options"></param>
-    /// <param name="autoFlush">Automatically flush if needed after each write operation</param>
+    /// <param name="options">Options instance. If null, <see cref="CsvOptions{T}.Default"/> is used</param>
+    /// <param name="autoFlush">Whether to automatically flush after </param>
+    /// <returns>Writer instance</returns>
     public static CsvWriter<byte> Create(
         Stream stream,
         CsvOptions<byte>? options = null,
@@ -48,20 +43,19 @@ static partial class CsvWriter
 
         options ??= CsvOptions<byte>.Default;
         return new CsvWriter<byte>(
-            options,
             CsvFieldWriter.Create(stream, options),
             autoFlush);
     }
 
-    /// <inheritdoc cref="Create(TextWriter, CsvOptions{char}?, bool)"/>
+    /// <summary><inheritdoc cref="Create(TextWriter, CsvOptions{char}?, bool)" path="/summary"/></summary>
     /// <remarks>
-    /// Writing to <see cref="PipeWriter"/> does not support synchronous flushing. <see langword="await"/>
-    /// <see langword="using"/> must be used, and either <paramref name="autoFlush"/> <see langword="false"/> or
-    /// async-overloads of the write methods such as <see cref="CsvWriter{T}.WriteRecordAsync{TRecord}(TRecord, CancellationToken)"/>.
+    /// Writing to a pipe does not support synchronous flushing/completion,
+    /// and will result in a <see cref="NotSupportedException"/>.
     /// </remarks>
-    /// <param name="pipeWriter">Writer to write the CSV to</param>
-    /// <param name="options"></param>
-    /// <param name="autoFlush">Automatically flush if needed after each write operation</param>
+    /// <param name="pipeWriter">Pipe to write the CSV to</param>
+    /// <param name="options">Options instance. If null, <see cref="CsvOptions{T}.Default"/> is used</param>
+    /// <param name="autoFlush">Whether to automatically flush after </param>
+    /// <returns>Writer instance</returns>
     public static CsvWriter<byte> Create(
         PipeWriter pipeWriter,
         CsvOptions<byte>? options = null,
@@ -71,7 +65,6 @@ static partial class CsvWriter
 
         options ??= CsvOptions<byte>.Default;
         return new CsvWriter<byte>(
-            options,
             CsvFieldWriter.Create(pipeWriter, options),
             autoFlush);
     }
