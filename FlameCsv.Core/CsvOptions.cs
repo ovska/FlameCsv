@@ -323,9 +323,10 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// The default is <see langword="true"/>, which will enable the library to use high performance SIMD operations
     /// to read multiple record's worth of fields before yielding them,
     /// which is significantly faster than reading records one-at-a-time.
+    /// Unless you have a specific reason to disable read-ahead, it is recommended to keep it enabled.
     /// </summary>
     /// <remarks>
-    /// A pre-requisite for this to work is that the resulting <see cref="CsvDialect{T}"/> has only ASCII tokens.
+    /// A pre-requisite for read-ahead to work is that the <see cref="CsvDialect{T}"/> has only ASCII tokens.
     /// </remarks>
     /// <seealso cref="CsvDialect{T}.IsAscii"/>
     [EditorBrowsable(EditorBrowsableState.Advanced)]
@@ -340,7 +341,8 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// Default is <see cref="StringComparer.OrdinalIgnoreCase"/>.
     /// </summary>
     /// <remarks>
-    /// Header names are converted to strings using <see cref="GetAsString(ReadOnlySpan{T})"/>.
+    /// The parsed CSV header fields are converted to strings using <see cref="TryGetChars"/> or
+    /// <see cref="GetAsString(ReadOnlySpan{T})"/>.
     /// </remarks>
     public IEqualityComparer<string> Comparer
     {

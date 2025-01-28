@@ -1,4 +1,5 @@
 using System.Globalization;
+using FlameCsv.Binding;
 using FlameCsv.Converters;
 
 namespace FlameCsv.Tests;
@@ -225,6 +226,7 @@ public class CsvOptionsTests
         Run(o => o.Newline = "");
         Run(o => o.Whitespace = "");
         Run(o => o.RecordCallback = null);
+        Run(o => o.NullTokens[typeof(int)] = "");
         Run(o => o.HasHeader = false);
         Run(o => o.Comparer = StringComparer.Ordinal);
         Run(o => o.Converters[0] = new BooleanTextConverter());
@@ -243,9 +245,11 @@ public class CsvOptionsTests
         Run(o => o.FormatProviders.Add(typeof(int), null));
         Run(o => o.Formats.Add(typeof(int), null));
         Run(o => o.NoReadAhead = true);
+        Run(o => o.MemoryPool = null);
         Run(o => o.Null = "null");
         Run(o => o.NumberStyles.Add(typeof(int), NumberStyles.None));
         Run(o => o.BooleanValues.Add(default));
+        Run(o => o.TypeBinder = new CsvReflectionBinder<char>(o, false));
 
         void Run(Action<CsvOptions<char>> action)
         {
@@ -274,11 +278,11 @@ public class CsvOptionsTests
             }
             else if (args.Line == 2)
             {
-                Assert.Equal(["A","B","C"], args.Header);
+                Assert.Equal(["A", "B", "C"], args.Header);
             }
             else if (args.Line == 5)
             {
-                Assert.Equal(["C","A","B"], args.Header);
+                Assert.Equal(["C", "A", "B"], args.Header);
             }
 
             if (args.IsEmpty)
@@ -288,11 +292,7 @@ public class CsvOptionsTests
             }
         }
 
-        var options = new CsvOptions<char>
-        {
-            HasHeader = true,
-            RecordCallback = Callback,
-        };
+        CsvOptions<char> options = new() { HasHeader = true, RecordCallback = Callback, };
 
         using (var enumerator = CsvReader.Enumerate(data, options).GetEnumerator())
         {
