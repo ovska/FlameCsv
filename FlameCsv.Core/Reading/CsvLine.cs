@@ -85,10 +85,22 @@ public readonly ref struct CsvLine<T> : ICsvRecordFields<T> where T : unmanaged,
         public string[] Items { get; }
     }
 
+    /// <summary>
+    /// Number of fields in the record.
+    /// </summary>
     public int FieldCount => Fields.Length - 1;
 
     ReadOnlySpan<T> ICsvRecordFields<T>.this[int index] => GetField(index);
 
+    /// <summary>
+    /// Returns the value of a field.
+    /// </summary>
+    /// <param name="index">Zero-based field index</param>
+    /// <param name="raw">Whether to return the field unescaped</param>
+    /// <param name="buffer">Optional buffer to use when unescaping fields with embedded quotes/escapes</param>
+    /// <returns>The field value</returns>
+    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="index"/> is out of range</exception>
+    /// <seealso cref="FieldCount"/>
     public ReadOnlySpan<T> GetField(int index, bool raw = false, Span<T> buffer = default)
     {
         if ((uint)index >= (uint)(Fields.Length - 1))

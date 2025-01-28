@@ -1,4 +1,3 @@
-using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using JetBrains.Annotations;
 
@@ -88,6 +87,9 @@ public readonly ref struct CsvRecordCallbackArgs<T> where T : unmanaged, IBinary
     /// </summary>
     public ReadOnlySpan<string> Header { get; }
 
+    /// <summary>
+    /// Number of fields in the record.
+    /// </summary>
     public int FieldCount => _line.FieldCount;
 
     /// <summary>

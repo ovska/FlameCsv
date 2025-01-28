@@ -9,8 +9,8 @@ namespace FlameCsv;
 public static partial class CsvWriter
 {
     public static void Write<TValue>(
-        IEnumerable<TValue> values,
         TextWriter textWriter,
+        IEnumerable<TValue> values,
         CsvTypeMap<char, TValue> typeMap,
         CsvOptions<char>? options = null,
         int bufferSize = -1)
@@ -31,8 +31,8 @@ public static partial class CsvWriter
     }
 
     public static Task WriteToFileAsync<TValue>(
-        IEnumerable<TValue> values,
         string path,
+        IEnumerable<TValue> values,
         CsvTypeMap<byte, TValue> typeMap,
         CsvOptions<byte>? options = null,
         CancellationToken cancellationToken = default)
@@ -44,19 +44,31 @@ public static partial class CsvWriter
         if (cancellationToken.IsCancellationRequested)
             return Task.FromCanceled(cancellationToken);
 
-        options ??= CsvOptions<byte>.Default;
-        var dematerializer = typeMap.GetDematerializer(options);
+        Stream? stream = null;
 
-        return WriteAsyncCore(
-            values,
-            CsvFieldWriter.Create(File.OpenWrite(path), options),
-            dematerializer,
-            cancellationToken);
+        try
+        {
+            stream = File.OpenWrite(path);
+            options ??= CsvOptions<byte>.Default;
+            var dematerializer = typeMap.GetDematerializer(options);
+
+            return WriteAsyncCore(
+                values,
+                CsvFieldWriter.Create(stream, options),
+                dematerializer,
+                cancellationToken);
+        }
+        catch
+        {
+            // ensure the stream is disposed if an exception is thrown before the task is returned
+            stream?.Dispose();
+            throw;
+        }
     }
 
     public static Task WriteToFileAsync<TValue>(
-        IEnumerable<TValue> values,
         string path,
+        IEnumerable<TValue> values,
         CsvTypeMap<char, TValue> typeMap,
         CsvOptions<char>? options = null,
         Encoding? encoding = null,
@@ -72,22 +84,35 @@ public static partial class CsvWriter
         if (cancellationToken.IsCancellationRequested)
             return Task.FromCanceled(cancellationToken);
 
-        options ??= CsvOptions<char>.Default;
-        var dematerializer = typeMap.GetDematerializer(options);
+        Stream? stream = null;
 
-        return WriteAsyncCore(
-            values,
-            CsvFieldWriter.Create(
-                new StreamWriter(File.OpenWrite(path), encoding: encoding, leaveOpen: false),
-                options,
-                bufferSize: bufferSize),
-            dematerializer,
-            cancellationToken);
+        try
+        {
+            stream = File.OpenWrite(path);
+
+            options ??= CsvOptions<char>.Default;
+            var dematerializer = typeMap.GetDematerializer(options);
+
+            return WriteAsyncCore(
+                values,
+                CsvFieldWriter.Create(
+                    new StreamWriter(stream, encoding: encoding, leaveOpen: false),
+                    options,
+                    bufferSize: bufferSize),
+                dematerializer,
+                cancellationToken);
+        }
+        catch
+        {
+            // ensure the stream is disposed if an exception is thrown before the task is returned
+            stream?.Dispose();
+            throw;
+        }
     }
 
     public static Task WriteAsync<TValue>(
-        IEnumerable<TValue> values,
         PipeWriter pipeWriter,
+        IEnumerable<TValue> values,
         CsvTypeMap<byte, TValue> typeMap,
         CsvOptions<byte>? options = null,
         CancellationToken cancellationToken = default)
@@ -110,8 +135,8 @@ public static partial class CsvWriter
     }
 
     public static Task WriteAsync<TValue>(
-        IEnumerable<TValue> values,
         Stream stream,
+        IEnumerable<TValue> values,
         CsvTypeMap<byte, TValue> typeMap,
         CsvOptions<byte>? options = null,
         int bufferSize = -1,
@@ -140,8 +165,8 @@ public static partial class CsvWriter
     }
 
     public static Task WriteAsync<TValue>(
-        IEnumerable<TValue> values,
         TextWriter textWriter,
+        IEnumerable<TValue> values,
         CsvTypeMap<char, TValue> typeMap,
         CsvOptions<char>? options = null,
         int bufferSize = -1,
@@ -170,11 +195,12 @@ public static partial class CsvWriter
     /// Writes the CSV records to a string.
     /// </summary>
     /// <param name="values">Values to write to the string builder</param>
-    /// <param name="typeMap"></param>
+    /// <param name="typeMap">Type map to use for writing</param>
     /// <param name="options">Optional user configured options to use</param>
     /// <param name="builder">Optional builder to write the CSV to.</param>
-    /// <returns><see cref="StringBuilder"/> containing the CSV</returns>
-    /// <returns><see cref="StringBuilder"/> containing the CSV</returns>
+    /// <returns>
+    /// <see cref="StringBuilder"/> containing the CSV (same instance as <paramref name="builder"/> if provided)
+    /// </returns>
     public static StringBuilder WriteToString<TValue>(
         IEnumerable<TValue> values,
         CsvTypeMap<char, TValue> typeMap,
@@ -187,11 +213,11 @@ public static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         var dematerializer = typeMap.GetDematerializer(options);
 
-        var sb = builder ?? new StringBuilder(capacity: 1024);
+        builder ??= new();
         WriteCore(
             values,
-            CsvFieldWriter.Create(new StringWriter(sb), options, bufferSize: 4096),
+            CsvFieldWriter.Create(new StringWriter(builder), options, bufferSize: DefaultBufferSize),
             dematerializer);
-        return sb;
+        return builder;
     }
 }

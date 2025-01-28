@@ -1,5 +1,8 @@
 namespace FlameCsv.Converters;
 
+/// <summary>
+/// Base class for converters that handle <see cref="Nullable{T}"/>.
+/// </summary>
 public abstract class NullableConverterBase<T, TValue> : CsvConverter<T, TValue?>
     where T : unmanaged, IBinaryInteger<T>
     where TValue : struct
@@ -9,8 +12,15 @@ public abstract class NullableConverterBase<T, TValue> : CsvConverter<T, TValue?
 
     private readonly CsvConverter<T, TValue> _converter;
 
+    /// <summary>
+    /// Returns the sequence that represents a null value for <typeparamref name="TValue"/>.
+    /// </summary>
     protected abstract ReadOnlySpan<T> Null { get; }
 
+    /// <summary>
+    /// Creates a new instance wrapping the converter.
+    /// </summary>
+    /// <param name="converter">Converter to convert non-null values</param>
     protected NullableConverterBase(CsvConverter<T, TValue> converter)
     {
         ArgumentNullException.ThrowIfNull(converter);
@@ -77,6 +87,10 @@ public sealed class NullableConverter<T, TValue> : NullableConverterBase<T, TVal
         _null = nullToken;
     }
 
+    /// <summary>
+    /// Sequence used to represent a null value.
+    /// </summary>
+    /// <seealso cref="CsvOptions{T}.GetNullToken"/>
     protected override ReadOnlySpan<T> Null => _null.Span;
 }
 

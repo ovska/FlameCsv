@@ -37,15 +37,19 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         if (sourceGen)
         {
             CsvWriter.Write(
-                TestDataGenerator.Objects.Value,
                 new StringWriter(output),
+                TestDataGenerator.Objects.Value,
                 ObjCharTypeMap.Instance,
                 options,
                 bufferSize: bufferSize);
         }
         else
         {
-            CsvWriter.Write(TestDataGenerator.Objects.Value, new StringWriter(output), options, bufferSize: bufferSize);
+            CsvWriter.Write(
+                new StringWriter(output),
+                TestDataGenerator.Objects.Value,
+                options,
+                bufferSize: bufferSize);
         }
 
         Validate(output, escape.HasValue, newline == "\r\n", header, quoting);
@@ -78,8 +82,8 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         if (sourceGen)
         {
             await CsvWriter.WriteAsync(
-                TestDataGenerator.Objects.Value,
                 new StringWriter(output),
+                TestDataGenerator.Objects.Value,
                 ObjCharTypeMap.Instance,
                 options,
                 bufferSize: bufferSize);
@@ -87,8 +91,8 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         else
         {
             await CsvWriter.WriteAsync(
-                TestDataGenerator.Objects.Value,
                 new StringWriter(output),
+                TestDataGenerator.Objects.Value,
                 options,
                 bufferSize: bufferSize);
         }

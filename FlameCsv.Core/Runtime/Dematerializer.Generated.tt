@@ -24,7 +24,6 @@ internal abstract partial class Dematerializer<T>
     /// Returns the constructor info for dematerializer of <typeparamref name="TValue"/>.
     /// </summary>
     /// <param name="bindings">Bindings of the collection used to create the dematerializer</param>
-    /// <typeparam name="T">CSV token type</typeparam>
     /// <typeparam name="TValue">Type of the object/struct being read</typeparam>
     [ExcludeFromCodeCoverage]
     [RequiresUnreferencedCode("Trimmed Dematerializer<...> implementations may not be available during runtime.")]

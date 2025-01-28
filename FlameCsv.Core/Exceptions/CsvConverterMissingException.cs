@@ -20,10 +20,12 @@ public sealed class CsvConverterMissingException(Type resultType)
     /// </summary>
     public Type ResultType { get; } = resultType;
 
+    /// <exception cref="CsvConverterMissingException">Always thrown</exception>
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void Throw(Type resultType)
     {
+        ArgumentNullException.ThrowIfNull(resultType);
         throw new CsvConverterMissingException(resultType);
     }
 }

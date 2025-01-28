@@ -12,21 +12,33 @@ namespace FlameCsv.Binding;
 /// </remarks>
 public readonly struct CsvIgnored
 {
+    /// <summary>
+    /// Returns a no-op converter instance of <typeparamref name="T"/>.
+    /// </summary>
+    /// <remarks>
+    /// This converter will always return <see langword="true"/> without writing or reading anything.
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static CsvConverter<T, CsvIgnored> Converter<T>()
         where T : unmanaged, IBinaryInteger<T>
         => IgnoredConverter<T>.Instance;
 
-    public sealed class IgnoredConverter<T> : CsvConverter<T, CsvIgnored> where T : unmanaged, IBinaryInteger<T>
+    private sealed class IgnoredConverter<T> : CsvConverter<T, CsvIgnored> where T : unmanaged, IBinaryInteger<T>
     {
         public static readonly IgnoredConverter<T> Instance = new();
 
+        /// <summary>
+        /// Always returns <see langword="true"/> without writing anything.
+        /// </summary>
         public override bool TryFormat(Span<T> destination, CsvIgnored value, out int charsWritten)
         {
             charsWritten = 0;
             return true;
         }
 
+        /// <summary>
+        /// Always returns <see langword="true"/>.
+        /// </summary>
         public override bool TryParse(ReadOnlySpan<T> source, out CsvIgnored value)
         {
             value = default;

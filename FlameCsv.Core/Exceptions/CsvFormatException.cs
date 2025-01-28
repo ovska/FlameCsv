@@ -1,8 +1,10 @@
+using FlameCsv.Enumeration;
+
 namespace FlameCsv.Exceptions;
 
 /// <summary>
-/// Represents unrecoverable format errors in the CSV, such as uneven string delimiters.
-/// This exception is not handled by <see cref="CsvOptions{T}.ExceptionHandler"/>.
+/// Represents unrecoverable format errors in the CSV, such as uneven string delimiters.<br/>
+/// This exception is <b>not</b> handled by <see cref="CsvValueEnumeratorBase{T,TValue}.ExceptionHandler"/>.
 /// </summary>
 /// <remarks>
 /// Initializes an exception representing invalid CSV format.

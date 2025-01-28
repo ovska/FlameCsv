@@ -126,7 +126,7 @@ public abstract class CsvReflectionBinder
 
     [RUF(Messages.CompiledExpressions)]
     [RDC(Messages.CompiledExpressions)]
-    protected static IDematerializer<T, TValue> Create<T, TValue>(CsvOptions<T> options)
+    private protected static IDematerializer<T, TValue> Create<T, TValue>(CsvOptions<T> options)
         where T : unmanaged, IBinaryInteger<T>
     {
         if (_dematerializerCache.TryGetValue(options, out var dematerializer))
@@ -385,6 +385,10 @@ public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder
         IgnoreUnmatched = ignoreUnmatched;
     }
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// Caches the return values based on the options and headers.
+    /// </remarks>
     [RUF(Messages.CompiledExpressions)]
     [RDC(Messages.CompiledExpressions)]
     public IMaterializer<T, TValue> GetMaterializer<TValue>(ReadOnlySpan<string> headers)
@@ -407,6 +411,10 @@ public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder
         return _options.CreateMaterializerFrom(GetReadBindings<T, TValue>(_options, headers, IgnoreUnmatched));
     }
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// Caches the return values based on the options.
+    /// </remarks>
     [RUF(Messages.CompiledExpressions)]
     [RDC(Messages.CompiledExpressions)]
     public IMaterializer<T, TValue> GetMaterializer<TValue>()
@@ -414,6 +422,10 @@ public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder
         return _options.GetMaterializer<T, TValue>();
     }
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// Caches the return values based on the options.
+    /// </remarks>
     [RUF(Messages.CompiledExpressions)]
     [RDC(Messages.CompiledExpressions)]
     public IDematerializer<T, TValue> GetDematerializer<TValue>()
