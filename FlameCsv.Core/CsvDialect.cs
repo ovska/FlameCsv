@@ -420,8 +420,14 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>>
         }
     }
 
+    /// <summary>
+    /// Returns whether the parameter object is equal to this dialect.
+    /// </summary>
     public override bool Equals([NotNullWhen(true)] object? obj) => obj is CsvDialect<T> other && Equals(other);
 
+    /// <summary>
+    /// Returns whether all tokens in the dialect are equal to the other dialect.
+    /// </summary>
     public bool Equals(CsvDialect<T> other)
     {
         return
@@ -432,6 +438,9 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>>
             Whitespace.SequenceEqual(other.Whitespace);
     }
 
+    /// <summary>
+    /// Returns a hash code for the dialect.
+    /// </summary>
     public override int GetHashCode()
     {
         HashCode hash = new();
@@ -447,7 +456,10 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>>
         return hash.ToHashCode();
     }
 
+    /// <summary></summary>
     public static bool operator ==(CsvDialect<T> left, CsvDialect<T> right) => left.Equals(right);
+
+    /// <summary></summary>
     public static bool operator !=(CsvDialect<T> left, CsvDialect<T> right) => !(left == right);
 
     private static T[]? _cachedLF;

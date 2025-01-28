@@ -267,7 +267,7 @@ partial class CsvOptions<T>
     #region Source Generator
 
     /// <summary>
-    /// Returns a converter for <typeparamref cref="TValue"/>, either a configured one or from the factory.
+    /// Returns a converter for <typeparamref name="TValue"/>, either a configured one or from the factory.
     /// </summary>
     /// <remarks>
     /// This API is meant to be used by the source generator to produce trimming/AOT safe code.

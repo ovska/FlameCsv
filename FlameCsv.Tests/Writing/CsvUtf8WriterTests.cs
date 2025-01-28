@@ -37,8 +37,8 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
         if (sourceGen)
         {
             await CsvWriter.WriteAsync(
-                TestDataGenerator.Objects.Value,
                 output,
+                TestDataGenerator.Objects.Value,
                 ObjByteTypeMap.Instance,
                 options,
                 bufferSize: bufferSize);
@@ -46,8 +46,8 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
         else
         {
             await CsvWriter.WriteAsync(
-                TestDataGenerator.Objects.Value,
                 output,
+                TestDataGenerator.Objects.Value,
                 options,
                 bufferSize: bufferSize);
         }

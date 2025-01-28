@@ -20,7 +20,7 @@ public readonly ref struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBina
 {
     private readonly CsvLine<T> _line;
 
-    public CsvExceptionHandlerArgs(
+    internal CsvExceptionHandlerArgs(
         CsvLine<T> line,
         ReadOnlySpan<string> header,
         Exception exception,

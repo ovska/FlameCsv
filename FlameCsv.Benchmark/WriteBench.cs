@@ -158,25 +158,25 @@ public partial class WriteBench
     [Benchmark(Baseline = true)]
     public void Generic()
     {
-        CsvWriter.Write(_data, TextWriter.Null);
+        CsvWriter.Write(TextWriter.Null, _data);
     }
 
     [Benchmark]
     public void Generic_TypeMap()
     {
-        CsvWriter.Write(_data, TextWriter.Null, ObjTypeMap.Instance);
+        CsvWriter.Write(TextWriter.Null, _data, ObjTypeMap.Instance);
     }
 
     [Benchmark]
     public Task Async_Generic()
     {
-        return CsvWriter.WriteAsync(_data, TextWriter.Null);
+        return CsvWriter.WriteAsync(TextWriter.Null, _data);
     }
 
     [Benchmark]
     public Task Async_Generic_TypeMap()
     {
-        return CsvWriter.WriteAsync(_data, TextWriter.Null, ObjTypeMap.Instance);
+        return CsvWriter.WriteAsync(TextWriter.Null, _data, ObjTypeMap.Instance);
     }
 
     [Benchmark]
