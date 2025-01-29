@@ -49,14 +49,13 @@ static partial class CsvWriter
 
     /// <summary><inheritdoc cref="Create(TextWriter, CsvOptions{char}?, bool)" path="/summary"/></summary>
     /// <remarks>
-    /// Writing to a pipe does not support synchronous flushing/completion,
-    /// and will result in a <see cref="NotSupportedException"/>.
+    /// Writing to a pipe does not support synchronous flushing.
     /// </remarks>
     /// <param name="pipeWriter">Pipe to write the CSV to</param>
     /// <param name="options">Options instance. If null, <see cref="CsvOptions{T}.Default"/> is used</param>
     /// <param name="autoFlush">Whether to automatically flush after </param>
     /// <returns>Writer instance</returns>
-    public static CsvWriter<byte> Create(
+    public static CsvAsyncWriter<byte> Create(
         PipeWriter pipeWriter,
         CsvOptions<byte>? options = null,
         bool autoFlush = false)
@@ -64,7 +63,7 @@ static partial class CsvWriter
         ArgumentNullException.ThrowIfNull(pipeWriter);
 
         options ??= CsvOptions<byte>.Default;
-        return new CsvWriter<byte>(
+        return new CsvAsyncWriter<byte>(
             CsvFieldWriter.Create(pipeWriter, options),
             autoFlush);
     }
