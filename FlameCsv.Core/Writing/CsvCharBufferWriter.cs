@@ -14,6 +14,7 @@ internal sealed class CsvCharBufferWriter : ICsvBufferWriter<char>
     private readonly TextWriter _writer;
     private readonly MemoryPool<char> _allocator;
     private readonly int _bufferSize;
+    private readonly bool _leaveOpen;
     private int _unflushed;
     private Memory<char> Buffer => _memoryOwner.Memory;
     private IMemoryOwner<char> _memoryOwner;
@@ -36,7 +37,7 @@ internal sealed class CsvCharBufferWriter : ICsvBufferWriter<char>
         get => (_unflushed / (double)Buffer.Length) >= 0.875;
     }
 
-    public CsvCharBufferWriter(TextWriter writer, MemoryPool<char> allocator, int bufferSize)
+    public CsvCharBufferWriter(TextWriter writer, MemoryPool<char> allocator, int bufferSize, bool leaveOpen)
     {
         ArgumentNullException.ThrowIfNull(writer);
 
@@ -48,6 +49,7 @@ internal sealed class CsvCharBufferWriter : ICsvBufferWriter<char>
         _writer = writer;
         _allocator = allocator;
         _bufferSize = bufferSize;
+        _leaveOpen = leaveOpen;
         _memoryOwner = allocator.Rent(bufferSize);
     }
 
@@ -117,12 +119,11 @@ internal sealed class CsvCharBufferWriter : ICsvBufferWriter<char>
         Exception? exception,
         CancellationToken cancellationToken = default)
     {
-        if (cancellationToken.IsCancellationRequested)
-            exception ??= new OperationCanceledException(cancellationToken);
-
-        using (_memoryOwner)
-        await using (_writer.ConfigureAwait(false))
+        try
         {
+            if (cancellationToken.IsCancellationRequested)
+                exception ??= new OperationCanceledException(cancellationToken);
+
             if (exception is null)
             {
                 try
@@ -140,16 +141,22 @@ internal sealed class CsvCharBufferWriter : ICsvBufferWriter<char>
                     _unflushed = -1;
                 }
             }
-        }
 
-        if (exception is not null)
-            throw exception;
+            if (exception is not null)
+                throw exception;
+        }
+        finally
+        {
+            using (_memoryOwner)
+            {
+                if (!_leaveOpen) await _writer.DisposeAsync().ConfigureAwait(false);
+            }
+        }
     }
 
     public void Complete(Exception? exception)
     {
-        using (_memoryOwner)
-        using (_writer)
+        try
         {
             if (exception is null && HasUnflushedData)
             {
@@ -168,9 +175,16 @@ internal sealed class CsvCharBufferWriter : ICsvBufferWriter<char>
                     _unflushed = -1;
                 }
             }
-        }
 
-        if (exception is not null)
-            throw exception;
+            if (exception is not null)
+                throw exception;
+        }
+        finally
+        {
+            using (_memoryOwner)
+            {
+                if (!_leaveOpen) _writer.Dispose();
+            }
+        }
     }
 }

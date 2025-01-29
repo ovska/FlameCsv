@@ -39,10 +39,15 @@ public sealed class CsvCharBufferWriterTests : IAsyncDisposable
     [Fact]
     public static void Should_Validate_Constructor_Params()
     {
-        Assert.Throws<ArgumentNullException>(() => new CsvCharBufferWriter(null!, HeapMemoryPool<char>.Instance, 1024));
+        Assert.Throws<ArgumentNullException>(
+            () => new CsvCharBufferWriter(null!, HeapMemoryPool<char>.Instance, 1024, false));
 
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => new CsvCharBufferWriter(new StringWriter(), HeapMemoryPool<char>.Instance, bufferSize: int.MinValue));
+            () => new CsvCharBufferWriter(
+                new StringWriter(),
+                HeapMemoryPool<char>.Instance,
+                bufferSize: int.MinValue,
+                false));
     }
 
     [Fact]
@@ -159,6 +164,7 @@ public sealed class CsvCharBufferWriterTests : IAsyncDisposable
         _writer = new CsvCharBufferWriter(
             _textWriter = new StringWriter(),
             HeapMemoryPool<char>.Instance,
-            bufferSize);
+            bufferSize,
+            false);
     }
 }

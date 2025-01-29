@@ -79,9 +79,24 @@ internal sealed class PipeBufferWriter : ICsvBufferWriter<byte>
             throw exception;
     }
 
-    public void Complete(Exception? exception) => throw NotSupportedEx;
-    public void Flush() => throw NotSupportedEx;
+    public void Complete(Exception? exception) => _pipeWriter.Complete(exception);
 
-    private static NotSupportedException NotSupportedEx
-        => new($"{nameof(PipeBufferWriter)} does not support synchronous flushing.");
+    public void Flush()
+    {
+        if (_unflushed > 0)
+        {
+            ValueTask<FlushResult> flush = _pipeWriter.FlushAsync();
+
+            if (flush.IsCompletedSuccessfully)
+            {
+                flush.GetAwaiter().GetResult();
+            }
+            else
+            {
+                flush.AsTask().GetAwaiter().GetResult();
+            }
+
+            _unflushed = 0;
+        }
+    }
 }

@@ -12,20 +12,37 @@ internal static class CsvFieldWriter
     public static CsvFieldWriter<char> Create(
         TextWriter textWriter,
         CsvOptions<char> options,
-        int bufferSize)
+        int bufferSize,
+        bool leaveOpen)
     {
-        return new CsvFieldWriter<char>(
-            new CsvCharBufferWriter(textWriter, options._memoryPool, bufferSize),
-            options);
+        try
+        {
+            return new CsvFieldWriter<char>(
+                new CsvCharBufferWriter(textWriter, options._memoryPool, bufferSize, leaveOpen),
+                options);
+        }
+        catch
+        {
+            textWriter.Dispose();
+            throw;
+        }
     }
 
     public static CsvFieldWriter<byte> Create(
         PipeWriter pipeWriter,
         CsvOptions<byte> options)
     {
-        return new CsvFieldWriter<byte>(
-            new PipeBufferWriter(pipeWriter),
-            options);
+        try
+        {
+            return new CsvFieldWriter<byte>(
+                new PipeBufferWriter(pipeWriter),
+                options);
+        }
+        catch (Exception e)
+        {
+            pipeWriter.Complete(e);
+            throw;
+        }
     }
 
     public static CsvFieldWriter<byte> Create(
@@ -34,9 +51,17 @@ internal static class CsvFieldWriter
         int bufferSize = -1,
         bool leaveOpen = false)
     {
-        return new CsvFieldWriter<byte>(
-            new CsvStreamBufferWriter(stream, options._memoryPool, bufferSize, leaveOpen),
-            options);
+        try
+        {
+            return new CsvFieldWriter<byte>(
+                new CsvStreamBufferWriter(stream, options._memoryPool, bufferSize, leaveOpen),
+                options);
+        }
+        catch
+        {
+            stream.Dispose();
+            throw;
+        }
     }
 }
 

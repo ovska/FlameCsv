@@ -58,6 +58,10 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ISimdVector.Generated.cs</LastGenOutput>
     </None>
+    <None Update="Writing\CsvWriter.Generated.cs.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CsvWriter.Generated.cs.cs</LastGenOutput>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -112,6 +116,11 @@
     </Compile>
     <Compile Update="CsvWriter.TypeMap.cs">
       <DependentUpon>CsvWriter.cs</DependentUpon>
+    </Compile>
+    <Compile Update="Writing\CsvWriter.Generated.cs.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>CsvWriter.Generated.cs.tt</DependentUpon>
     </Compile>
   </ItemGroup>
 

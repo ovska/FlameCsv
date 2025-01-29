@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Extensions;
@@ -68,7 +69,7 @@ public class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unmanaged, I
     /// <summary>
     /// Whether the writer has completed (disposed).
     /// </summary>
-    protected bool IsCompleted { get; private set; }
+    public bool IsCompleted { get; private set; }
 
     private readonly CsvFieldWriter<T> _inner;
 
@@ -164,6 +165,9 @@ public class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unmanaged, I
             value.CopyTo(destination);
             _inner.Writer.Advance(value.Length);
         }
+
+        ColumnIndex += columnsWritten;
+        LineIndex += linesWritten;
     }
 
     /// <summary>
@@ -173,24 +177,40 @@ public class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unmanaged, I
     /// Using the synchronous overload when writing to a <see cref="System.IO.Pipelines.PipeWriter"/>
     /// and <see cref="AutoFlush"/> is true will throw a runtime exception.
     /// </remarks>
+    /// <exception cref="ObjectDisposedException">The writer has completed</exception>
     public void NextRecord()
     {
+        ObjectDisposedException.ThrowIf(IsCompleted, this);
+
         _inner.WriteNewline();
         ColumnIndex = 0;
         LineIndex++;
-        FlushIfNeeded();
+
+        if (AutoFlush && _inner.Writer.NeedsFlush)
+            _inner.Writer.Flush();
     }
 
     /// <summary>
     /// Writes a newline and flushes the buffer if needed when <see cref="AutoFlush"/> is true.
     /// </summary>
     /// <param name="cancellationToken">Token to cancel the flush</param>
+    /// <exception cref="ObjectDisposedException">The writer has completed</exception>
     public ValueTask NextRecordAsync(CancellationToken cancellationToken = default)
     {
+        if (IsCompleted)
+            return ValueTask.FromException(new ObjectDisposedException(GetType().Name));
+
+        if (cancellationToken.IsCancellationRequested)
+            return ValueTask.FromCanceled(cancellationToken);
+
         _inner.WriteNewline();
         ColumnIndex = 0;
         LineIndex++;
-        return FlushIfNeededAsync(cancellationToken);
+
+        if (AutoFlush && _inner.Writer.NeedsFlush)
+            return _inner.Writer.FlushAsync(cancellationToken);
+
+        return ValueTask.CompletedTask;
     }
 
     /// <summary>
@@ -266,9 +286,10 @@ public class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unmanaged, I
     {
         if (!IsCompleted)
         {
+            IsCompleted = true;
+
             using (_cacheLock)
             {
-                IsCompleted = true;
                 _inner.Writer.Complete(exception);
             }
         }
@@ -286,9 +307,10 @@ public class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unmanaged, I
     {
         if (!IsCompleted)
         {
+            IsCompleted = true;
+
             using (_cacheLock)
             {
-                IsCompleted = true;
                 await _inner.Writer.CompleteAsync(exception, cancellationToken).ConfigureAwait(false);
             }
         }
@@ -301,6 +323,7 @@ public class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unmanaged, I
     /// Using the synchronous overload when writing to a <see cref="System.IO.Pipelines.PipeWriter"/>
     /// will throw a runtime exception.
     /// </remarks>
+    /// <exception cref="ObjectDisposedException">The writer has completed</exception>
     public void Flush()
     {
         ObjectDisposedException.ThrowIf(IsCompleted, this);
@@ -311,6 +334,7 @@ public class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unmanaged, I
     /// Flushes the writer.
     /// </summary>
     /// <param name="cancellationToken">Token to cancel the write operation</param>
+    /// <exception cref="ObjectDisposedException">The writer has completed</exception>
     public ValueTask FlushAsync(CancellationToken cancellationToken = default)
     {
         if (IsCompleted)
@@ -348,11 +372,20 @@ public class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unmanaged, I
             factory: static (options, _) => options.TypeBinder.GetDematerializer<TRecord>());
     }
 
+    /// <summary>
+    /// Returns or creates a cached dematerializer using the specified cache key, and increments
+    /// the field count so the calling method can write the record directly.
+    /// </summary>
+    /// <param name="cacheKey">Type or TypeMap to cache the dematerializer by</param>
+    /// <param name="state">State for the dematerializer factory</param>
+    /// <param name="factory">Factory to create a dematerializer if none exists yet</param>
     private IDematerializer<T, TRecord> GetDematerializerAndIncrementFieldCountCore<TRecord>(
         object cacheKey,
         object? state,
         [RequireStaticDelegate] Func<CsvOptions<T>, object?, IDematerializer<T, TRecord>> factory)
     {
+        Debug.Assert(cacheKey is Type or CsvTypeMap<T, TRecord>);
+
         IDematerializer<T, TRecord> dematerializer;
         bool created = false;
 
@@ -397,47 +430,23 @@ public class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unmanaged, I
     }
 
     /// <summary>
-    /// Flushes if <see cref="AutoFlush"/> and <see cref="ICsvBufferWriter{T}.NeedsFlush"/> are true.
+    /// Calls <see cref="Complete"/>.
     /// </summary>
     /// <remarks>
-    /// Using the synchronous overload when writing to a <see cref="System.IO.Pipelines.PipeWriter"/>
-    /// will throw a runtime exception.
+    /// Calling <see cref="Complete"/> directly is preferable.
     /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void FlushIfNeeded()
-    {
-        ObjectDisposedException.ThrowIf(IsCompleted, this);
-
-        if (AutoFlush && _inner.Writer.NeedsFlush)
-            _inner.Writer.Flush();
-    }
-
-    /// <summary>
-    /// Flushes if <see cref="AutoFlush"/> and <see cref="ICsvBufferWriter{T}.NeedsFlush"/> are true.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private ValueTask FlushIfNeededAsync(CancellationToken cancellationToken)
-    {
-        if (IsCompleted)
-            return ValueTask.FromException(new ObjectDisposedException(GetType().Name));
-
-        if (cancellationToken.IsCancellationRequested)
-            return ValueTask.FromCanceled(cancellationToken);
-
-        if (AutoFlush && _inner.Writer.NeedsFlush)
-            return _inner.Writer.FlushAsync(cancellationToken);
-
-        return ValueTask.CompletedTask;
-    }
-
-    /// <inheritdoc />
     void IDisposable.Dispose()
     {
         GC.SuppressFinalize(this);
         Complete();
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Calls <see cref="CompleteAsync"/>.
+    /// </summary>
+    /// <remarks>
+    /// Calling <see cref="CompleteAsync"/> directly is preferable.
+    /// </remarks>
     ValueTask IAsyncDisposable.DisposeAsync()
     {
         GC.SuppressFinalize(this);
@@ -457,8 +466,7 @@ public class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unmanaged, I
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public WriteScope(ReaderWriterLockSlim? rwl)
         {
-            rwl?.EnterWriteLock();
-            _rwl = rwl;
+            (_rwl = rwl)?.EnterWriteLock();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -472,8 +480,7 @@ public class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unmanaged, I
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ReadScope(ReaderWriterLockSlim? rwl)
         {
-            rwl?.EnterReadLock();
-            _rwl = rwl;
+            (_rwl = rwl)?.EnterReadLock();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

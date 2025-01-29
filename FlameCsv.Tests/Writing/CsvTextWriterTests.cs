@@ -18,6 +18,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         CsvFieldQuoting quoting,
         bool sourceGen,
         int bufferSize,
+        bool outputType,
         bool? guarded)
     {
         using var pool = ReturnTrackingMemoryPool<char>.Create(guarded);
@@ -36,20 +37,41 @@ public class CsvTextWriterTests : CsvWriterTestsBase
 
         if (sourceGen)
         {
-            CsvWriter.Write(
-                new StringWriter(output),
-                TestDataGenerator.Objects.Value,
-                ObjCharTypeMap.Instance,
-                options,
-                bufferSize: bufferSize);
+            if (outputType)
+            {
+                CsvWriter.Write(
+                    new StringWriter(output),
+                    TestDataGenerator.Objects.Value,
+                    ObjCharTypeMap.Instance,
+                    options,
+                    bufferSize: bufferSize);
+            }
+            else
+            {
+                CsvWriter.WriteToString(
+                    TestDataGenerator.Objects.Value,
+                    ObjCharTypeMap.Instance,
+                    options,
+                    output);
+            }
         }
         else
         {
-            CsvWriter.Write(
-                new StringWriter(output),
-                TestDataGenerator.Objects.Value,
-                options,
-                bufferSize: bufferSize);
+            if (outputType)
+            {
+                CsvWriter.Write(
+                    new StringWriter(output),
+                    TestDataGenerator.Objects.Value,
+                    options,
+                    bufferSize: bufferSize);
+            }
+            else
+            {
+                CsvWriter.WriteToString(
+                    TestDataGenerator.Objects.Value,
+                    options,
+                    output);
+            }
         }
 
         Validate(output, escape.HasValue, newline == "\r\n", header, quoting);
@@ -63,8 +85,11 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         CsvFieldQuoting quoting,
         bool sourceGen,
         int bufferSize,
+        bool outputType,
         bool? guarded)
     {
+        if (outputType) return;
+
         using var pool = ReturnTrackingMemoryPool<char>.Create(guarded);
         var options = new CsvOptions<char>
         {
