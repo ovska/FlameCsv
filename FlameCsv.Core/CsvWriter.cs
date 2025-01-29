@@ -14,6 +14,17 @@ static partial class CsvWriter
     /// </summary>
     public const int DefaultBufferSize = 4096;
 
+    private static FileStream GetFileStream(string path, bool isAsync, int bufferSize = DefaultBufferSize)
+    {
+        return new FileStream(
+            path,
+            FileMode.Create,
+            FileAccess.Write,
+            FileShare.None,
+            bufferSize,
+            FileOptions.SequentialScan | (isAsync ? FileOptions.Asynchronous : FileOptions.None));
+    }
+
     private static void WriteCore<T, TValue>(
         IEnumerable<TValue> values,
         CsvFieldWriter<T> writer,
