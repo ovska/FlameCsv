@@ -37,6 +37,7 @@ internal struct TextSegmentPool
     }
 
     [SuppressMessage("Style", "IDE0074:Use compound assignment", Justification = "Readability")]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Push(TextSegment textSegment)
     {
         Debug.Assert(textSegment._memory is null, "Segment rented memory should have been returned");
