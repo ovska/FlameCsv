@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.IO.Pipelines;
+using System.Text;
 using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Enumerables;
 using FlameCsv.Tests.TestData;
@@ -11,6 +12,61 @@ namespace FlameCsv.Tests.Writing;
 public class CsvUtf8WriterTests : CsvWriterTestsBase
 {
     [Theory, MemberData(nameof(Args))]
+    public void Objects_Sync(
+        string newline,
+        bool header,
+        char? escape,
+        CsvFieldQuoting quoting,
+        bool sourceGen,
+        int bufferSize,
+        bool outputType,
+        bool? guarded)
+    {
+        if (outputType)
+        {
+            return; // pipes dont support synchronous writing
+        }
+
+        using var pool = ReturnTrackingMemoryPool<byte>.Create(guarded);
+        var options = new CsvOptions<byte>
+        {
+            Newline = newline,
+            HasHeader = header,
+            FieldQuoting = quoting,
+            Escape = escape,
+            Quote = '\'',
+            Formats = { { typeof(DateTime), "O" }, { typeof(DateTimeOffset), "O" } },
+            MemoryPool = pool,
+        };
+
+        using var output = new MemoryStream(capacity: short.MaxValue * 4);
+
+        if (sourceGen)
+        {
+            // pipes dont support synchronous writing
+            CsvWriter.Write(
+                output,
+                TestDataGenerator.Objects.Value,
+                ObjByteTypeMap.Instance,
+                options,
+                bufferSize: bufferSize);
+        }
+        else
+        {
+            // pipes dont support synchronous writing
+            CsvWriter.Write(
+                output,
+                TestDataGenerator.Objects.Value,
+                options,
+                bufferSize: bufferSize);
+        }
+
+        Assert.True(output.TryGetBuffer(out var buffer));
+
+        Validate(buffer, escape.HasValue, newline == "\r\n", header, quoting);
+    }
+
+    [Theory, MemberData(nameof(Args))]
     public async Task Objects_Async(
         string newline,
         bool header,
@@ -18,6 +74,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
         CsvFieldQuoting quoting,
         bool sourceGen,
         int bufferSize,
+        bool outputType,
         bool? guarded)
     {
         using var pool = ReturnTrackingMemoryPool<byte>.Create(guarded);
@@ -36,20 +93,41 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
 
         if (sourceGen)
         {
-            await CsvWriter.WriteAsync(
-                output,
-                TestDataGenerator.Objects.Value,
-                ObjByteTypeMap.Instance,
-                options,
-                bufferSize: bufferSize);
+            if (outputType)
+            {
+                await CsvWriter.WriteAsync(
+                    PipeWriter.Create(output),
+                    TestDataGenerator.Objects.Value,
+                    ObjByteTypeMap.Instance,
+                    options);
+            }
+            else
+            {
+                await CsvWriter.WriteAsync(
+                    output,
+                    TestDataGenerator.Objects.Value,
+                    ObjByteTypeMap.Instance,
+                    options,
+                    bufferSize: bufferSize);
+            }
         }
         else
         {
-            await CsvWriter.WriteAsync(
-                output,
-                TestDataGenerator.Objects.Value,
-                options,
-                bufferSize: bufferSize);
+            if (outputType)
+            {
+                await CsvWriter.WriteAsync(
+                    PipeWriter.Create(output),
+                    TestDataGenerator.Objects.Value,
+                    options);
+            }
+            else
+            {
+                await CsvWriter.WriteAsync(
+                    output,
+                    TestDataGenerator.Objects.Value,
+                    options,
+                    bufferSize: bufferSize);
+            }
         }
 
         Assert.True(output.TryGetBuffer(out var buffer));

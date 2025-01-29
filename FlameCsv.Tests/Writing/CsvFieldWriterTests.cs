@@ -131,7 +131,8 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
         var writer = CsvFieldWriter.Create(
             TextWriter.Null,
             new BrokenOptions { Delimiter = ',', Quote = '"', Newline = "\n", Write = tokensWritten },
-            bufferSize: 4096);
+            bufferSize: 4096,
+            false);
         Assert.Throws<InvalidOperationException>(() => writer.WriteText("test"));
         writer.Writer.Complete(null);
     }
@@ -162,7 +163,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
     {
         _textWriter = new StringWriter();
         _writer = new CsvFieldWriter<char>(
-            new CsvCharBufferWriter(_textWriter, HeapMemoryPool<char>.Instance, bufferSize),
+            new CsvCharBufferWriter(_textWriter, HeapMemoryPool<char>.Instance, bufferSize, false),
             new CsvOptions<char> { FieldQuoting = quoting, Null = "null", Escape = escape });
     }
 
