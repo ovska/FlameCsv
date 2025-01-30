@@ -4,7 +4,7 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
 
-[RDC(Messages.FactoryMessage), RUF(Messages.FactoryMessage)]
+[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class SpanUtf8ConverterFactory : CsvConverterFactory<byte>
 {
     public static readonly SpanUtf8ConverterFactory Instance = new();

@@ -115,10 +115,25 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     /// </summary>
     /// <param name="value">Value to write</param>
     /// <typeparam name="TField">Field type that will be converted</typeparam>
+    [RDC(Messages.ConverterOverload), RUF(Messages.ConverterOverload)]
     public void WriteField<TField>(TField? value)
     {
         WriteDelimiterIfNeeded();
         _inner.WriteField(Options.GetConverter<TField?>(), value);
+        ColumnIndex++;
+    }
+
+    /// <summary>
+    /// Writes a field with the preceding delimiter if needed.
+    /// </summary>
+    /// <param name="converter">Converter instance to write the value with</param>
+    /// <param name="value">Value to write</param>
+    /// <typeparam name="TField">Field type that will be converted</typeparam>
+    public void WriteField<TField>(CsvConverter<T, TField> converter, TField? value)
+    {
+        ArgumentNullException.ThrowIfNull(converter);
+        WriteDelimiterIfNeeded();
+        _inner.WriteField(converter, value);
         ColumnIndex++;
     }
 

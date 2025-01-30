@@ -145,12 +145,12 @@ public static partial class CsvRecordTests
             Assert.Equal("2", record.GetField("B").ToString());
             Assert.Equal("3", record.GetField("C").ToString());
 
-            Assert.Equal(1, record.GetField<int>(0));
-            Assert.Equal(1, record.GetField<int>("A"));
-            Assert.Equal(2, record.GetField<int>(1));
-            Assert.Equal(2, record.GetField<int>("B"));
-            Assert.Equal(3, record.GetField<int>(2));
-            Assert.Equal(3, record.GetField<int>("C"));
+            Assert.Equal(1, record.ParseField<int>(0));
+            Assert.Equal(1, record.ParseField<int>("A"));
+            Assert.Equal(2, record.ParseField<int>(1));
+            Assert.Equal(2, record.ParseField<int>("B"));
+            Assert.Equal(3, record.ParseField<int>(2));
+            Assert.Equal(3, record.ParseField<int>("C"));
 
             Assert.Equal(2, record.Line);
             Assert.Equal(7L, record.Position);

@@ -74,65 +74,18 @@ partial class CsvOptions<T>
     /// <typeparam name="TResult">Type to convert</typeparam>
     /// <exception cref="CsvConverterMissingException"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
     public CsvConverter<T, TResult> GetConverter<TResult>()
     {
-        if (_converterCache.TryGetValue(typeof(TResult), out var cached))
-        {
-            return (CsvConverter<T, TResult>)cached;
-        }
-
-#pragma warning disable CA2263 // the generic overload calls this method anyway
-        var converter = TryGetConverter(typeof(TResult));
-#pragma warning restore CA2263
-
-        if (converter is null)
-        {
-            CsvConverterMissingException.Throw(typeof(TResult));
-        }
-
-        return (CsvConverter<T, TResult>)converter;
+        return (CsvConverter<T, TResult>)GetConverter(typeof(TResult));
     }
 
     /// <summary>
     /// Returns a converter for <paramref name="resultType"/>.
     /// </summary>
     /// <remarks>Never returns a <see cref="CsvConverterFactory{T}"/></remarks>
-    /// <exception cref="CsvConverterMissingException"/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
     public CsvConverter<T> GetConverter(Type resultType)
-    {
-        ArgumentNullException.ThrowIfNull(resultType);
-
-        if (_converterCache.TryGetValue(resultType, out var cached))
-        {
-            return cached;
-        }
-
-        var converter = TryGetConverter(resultType);
-
-        if (converter is null)
-        {
-            CsvConverterMissingException.Throw(resultType);
-        }
-
-        return converter;
-    }
-
-    /// <summary>
-    /// Returns a converter for <typeparamref name="TResult"/>, or null if not found.
-    /// </summary>
-    /// <remarks>Never returns a <see cref="CsvConverterFactory{T}"/></remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public CsvConverter<T, TResult>? TryGetConverter<TResult>()
-    {
-        return (CsvConverter<T, TResult>?)TryGetConverter(typeof(TResult));
-    }
-
-    /// <summary>
-    /// Returns a converter for <paramref name="resultType"/>, or null if there is none registered
-    /// </summary>
-    /// <remarks>Never returns a <see cref="CsvConverterFactory{T}"/></remarks>
-    public CsvConverter<T>? TryGetConverter(Type resultType)
     {
         if (!TryGetExistingOrCustomConverter(resultType, out CsvConverter<T>? converter, out bool created) &&
             UseDefaultConverters)
@@ -146,18 +99,15 @@ partial class CsvOptions<T>
                 converter = builtin;
                 created = true;
             }
-            else
+            else if (NullableConverterFactory<T>.Instance.CanConvert(resultType))
             {
-                converter = DefaultConverterFactories.TryCreateNullable(resultType, this);
-                created = converter is not null;
+                converter = NullableConverterFactory<T>.Instance.Create(resultType, this);
             }
         }
 
-        Debug.Assert(
-            converter is not CsvConverterFactory<T>,
-            $"TryGetConverter returned a factory: {converter?.GetType().FullName}");
+        if (converter is null) CsvConverterMissingException.Throw(resultType);
 
-        if (converter is not null && created)
+        if (created)
         {
             CheckConverterCacheSize();
 
@@ -168,6 +118,7 @@ partial class CsvOptions<T>
         return converter;
     }
 
+    [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
     private bool TryGetExistingOrCustomConverter(
         Type resultType,
         [NotNullWhen(true)] out CsvConverter<T>? converter,
@@ -208,6 +159,41 @@ partial class CsvOptions<T>
         return false;
     }
 
+    private bool TryGetExistingOrCustomConverter<TValue>(
+        [NotNullWhen(true)] out CsvConverter<T, TValue>? converter)
+    {
+        MakeReadOnly();
+
+        if (_converterCache.TryGetValue(typeof(TValue), out var cached) &&
+            cached is CsvConverter<T, TValue> casted)
+        {
+            converter = casted;
+            return true;
+        }
+
+        var local = _converters;
+
+        // null of the Converters-property is never accessed (no custom converters)
+        if (local is not null)
+        {
+            ReadOnlySpan<CsvConverter<T>> converters = local.Span;
+
+            // Read converters in reverse order so parser added last has the highest priority
+            for (int i = converters.Length - 1; i >= 0; i--)
+            {
+                if (converters[i] is CsvConverter<T, TValue> converterOfT)
+                {
+                    _converterCache.TryAdd(typeof(TValue), converter = converterOfT);
+                    return true;
+                }
+            }
+        }
+
+        converter = null;
+        return false;
+    }
+
+    [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
     private bool TryCreateDefaultConverter(Type type, [NotNullWhen(true)] out CsvConverter<T>? converter)
     {
         if (typeof(T) == typeof(char))
@@ -250,7 +236,8 @@ partial class CsvOptions<T>
     /// Returns a converter for <typeparamref name="TValue"/>, either a configured one or from the factory.
     /// </summary>
     /// <remarks>
-    /// This API is meant to be used by the source generator to produce trimming/AOT safe code.
+    /// This API is meant to be used by the source generator to produce trimming/AOT safe code.<br/>
+    /// If a non-factory user defined converter is found, it is returned directly.
     /// </remarks>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public CsvConverter<T, TValue> GetOrCreate<TValue>(
@@ -259,38 +246,30 @@ partial class CsvOptions<T>
     {
         ArgumentNullException.ThrowIfNull(factory);
 
-        CsvConverter<T, TValue> result;
-
-        if (TryGetExistingOrCustomConverter(typeof(TValue), out CsvConverter<T>? converter, out bool created))
+        if (TryGetExistingOrCustomConverter<TValue>(out CsvConverter<T, TValue>? converter))
         {
-            result = (CsvConverter<T, TValue>)converter;
-
-            if (created)
-            {
-                CheckConverterCacheSize();
-                _converterCache.TryAdd(typeof(TValue), result);
-            }
-
-            return result;
+            return converter;
         }
 
-        result = factory(this);
-        if (result is null) InvalidConverter.Throw(factory, typeof(TValue));
+        converter = factory(this);
+
+        if (converter is null) InvalidConverter.Throw(factory, typeof(TValue));
 
         if (canCache)
         {
             CheckConverterCacheSize();
-            _converterCache.TryAdd(typeof(TValue), result);
+            _converterCache.TryAdd(typeof(TValue), converter);
         }
 
-        return result;
+        return converter;
     }
 
     /// <summary>
     /// Returns a nullable converter, falling back to the built-in one if <see cref="UseDefaultConverters"/> is true.
     /// </summary>
     /// <remarks>
-    /// This API is meant to be used by the source generator to produce trimming/AOT safe code.
+    /// This API is meant to be used by the source generator to produce trimming/AOT safe code.<br/>
+    /// If a non-factory user defined converter is found, it is returned directly.
     /// </remarks>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public CsvConverter<T, TValue?> GetOrCreateNullable<TValue>(
@@ -298,15 +277,9 @@ partial class CsvOptions<T>
         bool canCache = false)
         where TValue : struct
     {
-        if (TryGetExistingOrCustomConverter(typeof(TValue?), out CsvConverter<T>? converter, out bool created))
+        if (TryGetExistingOrCustomConverter(out CsvConverter<T, TValue?>? converter))
         {
-            if (created)
-            {
-                CheckConverterCacheSize();
-                _converterCache.TryAdd(typeof(TValue?), converter);
-            }
-
-            return (CsvConverter<T, TValue?>)converter;
+            return converter;
         }
 
         if (!UseDefaultConverters) CsvConverterMissingException.Throw(typeof(TValue?));
@@ -329,7 +302,8 @@ partial class CsvOptions<T>
     /// Returns an enum converter, falling back to the built-in one if <see cref="UseDefaultConverters"/> is true.
     /// </summary>
     /// <remarks>
-    /// This API is meant to be used by the source generator to produce trimming/AOT safe code.
+    /// This API is meant to be used by the source generator to produce trimming/AOT safe code.<br/>
+    /// If a non-factory user defined converter is found, it is returned directly.
     /// </remarks>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public CsvConverter<T, TEnum> GetOrCreateEnum<TEnum>() where TEnum : struct, Enum
@@ -382,24 +356,9 @@ file static class InvalidConverter
     }
 }
 
-[UnconditionalSuppressMessage(
-    "Trimming",
-    "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code",
-    Justification = "<Pending>")]
+[RUF(Messages.ConverterFactories)]
 file static class DefaultConverterFactories
 {
-    public static CsvConverter<T>? TryCreateNullable<T>(Type type, CsvOptions<T> options)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        if (RuntimeFeature.IsDynamicCodeSupported &&
-            NullableConverterFactory<T>.Instance.CanConvert(type))
-        {
-            return NullableConverterFactory<T>.Instance.Create(type, options);
-        }
-
-        return null;
-    }
-
     public static CsvConverter<char>? TryCreateChar(Type type, CsvOptions<char> options)
     {
         if (RuntimeFeature.IsDynamicCodeSupported)
