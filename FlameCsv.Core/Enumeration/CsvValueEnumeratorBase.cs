@@ -1,11 +1,9 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using FlameCsv.Binding;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using System.Runtime.CompilerServices;
 using FlameCsv.Reading;
 using FlameCsv.Utilities;
-using System.Diagnostics;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Enumeration;

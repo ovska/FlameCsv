@@ -69,6 +69,7 @@ internal abstract partial class Dematerializer<T>
 #>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
+[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class Dematerializer<T, <#= generics #>>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
 {
@@ -144,6 +145,7 @@ internal sealed class Dematerializer<T, <#= generics #>>
 #>
     }
 }
+
 <#
     }
 #>

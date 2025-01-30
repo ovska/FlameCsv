@@ -3,7 +3,7 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
 
-[RDC(Messages.FactoryMessage), RUF(Messages.FactoryMessage)]
+[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class EnumUtf8ConverterFactory : CsvConverterFactory<byte>
 {
     public static EnumUtf8ConverterFactory Instance { get; } = new();

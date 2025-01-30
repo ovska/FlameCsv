@@ -251,11 +251,11 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
 
             Obj obj = new()
             {
-                Id = record.GetField<int>(0),
-                Name = record.GetField<string?>(1),
-                IsEnabled = record.GetField<bool>(2),
-                LastLogin = record.GetField<DateTimeOffset>(3),
-                Token = record.GetField<Guid>(4),
+                Id = record.ParseField<int>(0),
+                Name = record.ParseField<string?>(1),
+                IsEnabled = record.ParseField<bool>(2),
+                LastLogin = record.ParseField<DateTimeOffset>(3),
+                Token = record.ParseField<Guid>(4),
             };
 
             var parsed = sourceGen ? record.ParseRecord(TypeMap) : record.ParseRecord<Obj>();
