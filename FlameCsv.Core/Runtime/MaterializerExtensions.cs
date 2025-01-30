@@ -12,8 +12,8 @@ namespace FlameCsv.Runtime;
 
 internal static class MaterializerExtensions
 {
-    [RUF(Messages.CompiledExpressions)]
-    [RDC(Messages.CompiledExpressions)]
+    [RUF(Messages.Reflection)]
+    [RDC(Messages.DynamicCode)]
     private static class ForType<T, TResult> where T : unmanaged, IBinaryInteger<T>
     {
         /// <summary>
@@ -25,8 +25,8 @@ internal static class MaterializerExtensions
     /// <summary>
     /// Creates a materializer from the bindings.
     /// </summary>
-    [RUF(Messages.CompiledExpressions)]
-    [RDC(Messages.CompiledExpressions)]
+    [RUF(Messages.Reflection)]
+    [RDC(Messages.DynamicCode)]
     public static IMaterializer<T, TResult> CreateMaterializerFrom<T, [DAM(Messages.ReflectionBound)] TResult>(
         this CsvOptions<T> options,
         CsvBindingCollection<TResult> bindingCollection)
@@ -38,8 +38,8 @@ internal static class MaterializerExtensions
     /// <summary>
     /// Binds the options using built-in or index binding.
     /// </summary>
-    [RUF(Messages.CompiledExpressions)]
-    [RDC(Messages.CompiledExpressions)]
+    [RUF(Messages.Reflection)]
+    [RDC(Messages.DynamicCode)]
     public static IMaterializer<T, TResult> GetMaterializer<T, [DAM(Messages.ReflectionBound)] TResult>(
         this CsvOptions<T> options)
         where T : unmanaged, IBinaryInteger<T>
