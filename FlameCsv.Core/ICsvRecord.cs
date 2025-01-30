@@ -14,11 +14,18 @@ namespace FlameCsv;
 [PublicAPI]
 public interface ICsvRecord<T> where T : unmanaged, IBinaryInteger<T>
 {
-    /// <inheritdoc cref="GetField(int)"/>
-    ReadOnlyMemory<T> this[int index] { get; }
+    /// <summary>
+    /// The options-instance associated with the current CSV.
+    /// </summary>
+    CsvOptions<T> Options { get; }
 
-    /// <inheritdoc cref="GetField(string)"/>
-    ReadOnlyMemory<T> this[string name] { get; }
+    /// <inheritdoc cref="GetField(CsvFieldIdentifier)"/>
+    ReadOnlyMemory<T> this[CsvFieldIdentifier id] { get; }
+
+    /// <summary>
+    /// Returns true if the record contains the specified field.
+    /// </summary>
+    bool Contains(CsvFieldIdentifier id);
 
     /// <summary>
     /// Returns the header record for the current CSV. Throws if <see cref="HasHeader"/> is <see langword="false"/>.
@@ -58,21 +65,9 @@ public interface ICsvRecord<T> where T : unmanaged, IBinaryInteger<T>
     /// <summary>
     /// Returns the value of the field at the specified index.
     /// </summary>
-    /// <param name="index">0-based field index, e.g., 0 for the first field</param>
+    /// <param name="id">Field index of name</param>
     /// <returns>Field value, unescaped and stripped of quotes when applicable</returns>
-    /// <exception cref="ArgumentOutOfRangeException"/>
-    ReadOnlyMemory<T> GetField(int index);
-
-    /// <summary>
-    /// Returns the value of the field with the specified name. Requires for the CSV to have a header record.
-    /// </summary>
-    /// <remarks>The CSV must have a header record, see <see cref="HasHeader"/>.</remarks>
-    /// <param name="name">Header name to get the field for</param>
-    /// <returns>Field value, unescaped and stripped of quotes when applicable</returns>
-    /// <exception cref="ArgumentNullException"/>
-    /// <exception cref="ArgumentException"/>
-    /// <exception cref="InvalidOperationException"/>
-    ReadOnlyMemory<T> GetField(string name);
+    ReadOnlyMemory<T> GetField(CsvFieldIdentifier id);
 
     /// <summary>
     /// Returns the number of fields in the current record.
@@ -80,48 +75,55 @@ public interface ICsvRecord<T> where T : unmanaged, IBinaryInteger<T>
     int GetFieldCount();
 
     /// <summary>
-    /// Attempts to parse a <typeparamref name="TValue"/> from field at <paramref name="index"/>.
+    /// Attempts to parse a <typeparamref name="TValue"/> from a specific field.
     /// </summary>
     /// <typeparam name="TValue">Value parsed</typeparam>
-    /// <param name="index">0-based field index</param>
+    /// <param name="id">Field index of name</param>
     /// <param name="value">Parsed value, if successful</param>
     /// <returns><see langword="true"/> if the value was successfully parsed</returns>
-    bool TryGetValue<TValue>(int index, [MaybeNullWhen(false)] out TValue value);
+    /// <exception cref="ArgumentException">The ID points to a field that does not exist</exception>
+    /// <exception cref="CsvConverterMissingException">Converter not found for <typeparamref name="TValue"/></exception>
+    [RUF(Messages.ConverterOverload), RDC(Messages.ConverterOverload)]
+    bool TryParseField<TValue>(CsvFieldIdentifier id, [MaybeNullWhen(false)] out TValue value);
 
     /// <summary>
-    /// Attempts to parse a <typeparamref name="TValue"/> from field at the specified field.
+    /// Attempts to parse a <typeparamref name="TValue"/> from a specific field.
     /// </summary>
-    /// <remarks>The CSV must have a header record, see <see cref="HasHeader"/>.</remarks>
     /// <typeparam name="TValue">Value parsed</typeparam>
-    /// <param name="name">Header name to get the field for</param>
+    /// <param name="converter">Converter to parse the field with</param>
+    /// <param name="id">Field index of name</param>
     /// <param name="value">Parsed value, if successful</param>
     /// <returns><see langword="true"/> if the value was successfully parsed</returns>
-    bool TryGetValue<TValue>(string name, [MaybeNullWhen(false)] out TValue value);
+    /// <exception cref="ArgumentException">The ID points to a field that does not exist</exception>
+    /// <exception cref="CsvConverterMissingException">Converter not found for <typeparamref name="TValue"/></exception>
+    bool TryParseField<TValue>(
+        CsvConverter<T, TValue> converter,
+        CsvFieldIdentifier id,
+        [MaybeNullWhen(false)] out TValue value);
 
     /// <summary>
-    /// Parses a value of type <typeparamref name="TValue"/> from field at <paramref name="index"/>.
+    /// Parses a value of type <typeparamref name="TValue"/> from a specific field.
     /// </summary>
     /// <typeparam name="TValue">Value parsed</typeparam>
-    /// <param name="index">0-based field index</param>
+    /// <param name="id">Field index of name</param>
     /// <returns>Parsed value</returns>
-    /// <exception cref="ArgumentOutOfRangeException"/>
-    /// <exception cref="CsvConverterMissingException"/>
-    /// <exception cref="CsvParseException"/>
-    TValue GetField<TValue>(int index);
+    /// <exception cref="ArgumentException">The ID points to a field that does not exist</exception>
+    /// <exception cref="CsvConverterMissingException">Converter not found for <typeparamref name="TValue"/></exception>
+    /// <exception cref="CsvParseException">The field value could not be parsed</exception>
+    [RUF(Messages.ConverterOverload), RDC(Messages.ConverterOverload)]
+    TValue ParseField<TValue>(CsvFieldIdentifier id);
 
     /// <summary>
-    /// Parses a value of type <typeparamref name="TValue"/> from field at the specified field.
+    /// Parses a value of type <typeparamref name="TValue"/> from a specific field.
     /// </summary>
-    /// <remarks>The CSV must have a header record, see <see cref="HasHeader"/>.</remarks>
     /// <typeparam name="TValue">Value parsed</typeparam>
-    /// <param name="name">Header name to get the field for</param>
+    /// <param name="converter">Converter to parse the field with</param>
+    /// <param name="id">Field index of name</param>
     /// <returns>Parsed value</returns>
-    /// <exception cref="ArgumentException"/>
-    /// <exception cref="ArgumentNullException"/>
-    /// <exception cref="InvalidOperationException"/>
-    /// <exception cref="CsvConverterMissingException"/>
-    /// <exception cref="CsvParseException"/>
-    TValue GetField<TValue>(string name);
+    /// <exception cref="ArgumentException">The ID points to a field that does not exist</exception>
+    /// <exception cref="CsvConverterMissingException">Converter not found for <typeparamref name="TValue"/></exception>
+    /// <exception cref="CsvParseException">The field value could not be parsed</exception>
+    TValue ParseField<TValue>(CsvConverter<T, TValue> converter, CsvFieldIdentifier id);
 
     /// <summary>
     /// Parses the record into an instance of <typeparamref name="TRecord"/> using reflection.
@@ -132,6 +134,5 @@ public interface ICsvRecord<T> where T : unmanaged, IBinaryInteger<T>
     /// <summary>
     /// Parses the record into an instance of <typeparamref name="TRecord"/> without reflection.
     /// </summary>
-    /// <inheritdoc cref="ParseRecord{TRecord}()"/>
     TRecord ParseRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap);
 }

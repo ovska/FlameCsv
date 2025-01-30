@@ -15,10 +15,7 @@ namespace FlameCsv;
 public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> where T : unmanaged, IBinaryInteger<T>
 {
     /// <inheritdoc/>
-    public virtual ReadOnlyMemory<T> this[int index] => GetField(index);
-
-    /// <inheritdoc/>
-    public virtual ReadOnlyMemory<T> this[string name] => GetField(name);
+    public virtual ReadOnlyMemory<T> this[CsvFieldIdentifier id] => GetField(id);
 
     /// <inheritdoc/>
     public virtual long Position { get; }
@@ -37,6 +34,14 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     /// <inheritdoc/>
     [MemberNotNullWhen(true, nameof(_header))]
     public bool HasHeader => _header is not null;
+
+    /// <inheritdoc/>
+    public bool Contains(CsvFieldIdentifier id)
+    {
+        return id.TryGetIndex(out int index, out string? name)
+            ? (uint)index < (uint)_fields.Length
+            : HasHeader && _header.ContainsKey(name);
+    }
 
     /// <summary>
     /// Returns the headers in the current CSV.
@@ -106,39 +111,61 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     }
 
     /// <inheritdoc/>
-    public virtual ReadOnlyMemory<T> GetField(int index) => _fields[index];
-
-    /// <inheritdoc/>
-    public virtual ReadOnlyMemory<T> GetField(string name)
+    public virtual ReadOnlyMemory<T> GetField(CsvFieldIdentifier id)
     {
-        if (_header is null)
-            Throw.NotSupported_CsvHasNoHeader();
+        if (!id.TryGetIndex(out int index, out string? name))
+        {
+            if (!HasHeader)
+            {
+                Throw.NotSupported_CsvHasNoHeader();
+            }
 
-        return _fields[_header[name]];
+            if (_header is null)
+            {
+                Throw.InvalidOperation_HeaderNotRead();
+            }
+
+            if (!_header.TryGetValue(name, out index))
+            {
+                Throw.Argument_HeaderNameNotFound(name, _header.HeaderNames);
+            }
+        }
+
+        if ((uint)index >= _fields.Length)
+        {
+            Throw.Argument_FieldIndex(index, _fields.Length);
+        }
+
+        return _fields[index];
     }
 
     /// <inheritdoc/>
-    public virtual TValue GetField<TValue>(int index)
+    public TValue ParseField<TValue>(CsvConverter<T, TValue> converter, CsvFieldIdentifier id)
     {
-        var field = GetField(index).Span;
+        ArgumentNullException.ThrowIfNull(converter);
 
-        var converter = Options.GetConverter<TValue>();
+        var field = GetField(id).Span;
 
         if (!converter.TryParse(field, out TValue? value))
+        {
             Throw.ParseFailed(field, converter, typeof(TValue));
+        }
 
         return value;
     }
 
     /// <inheritdoc/>
-    public virtual TValue GetField<TValue>(string name)
+    [RUF(Messages.ConverterOverload), RDC(Messages.ConverterOverload)]
+    public virtual TValue ParseField<TValue>(CsvFieldIdentifier id)
     {
-        var field = GetField(name).Span;
+        var field = GetField(id).Span;
 
         var converter = Options.GetConverter<TValue>();
 
         if (!converter.TryParse(field, out TValue? value))
+        {
             Throw.ParseFailed(field, converter, typeof(TValue));
+        }
 
         return value;
     }
@@ -147,41 +174,21 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     public virtual int GetFieldCount() => _fields.Length;
 
     /// <inheritdoc/>
-    public virtual bool TryGetValue<TValue>(int index, [MaybeNullWhen(false)] out TValue value)
+    [RUF(Messages.ConverterOverload), RDC(Messages.ConverterOverload)]
+    public virtual bool TryParseField<TValue>(CsvFieldIdentifier id, [MaybeNullWhen(false)] out TValue value)
     {
-        if ((uint)index > _fields.Length)
-        {
-            Throw.Argument_FieldIndex(index, _fields.Length);
-        }
-
-        if (!Options.GetConverter<TValue>().TryParse(_fields[index].Span, out value))
-        {
-            value = default;
-            return false;
-        }
-
-        return true;
+        var converter = Options.GetConverter<TValue>();
+        return converter.TryParse(GetField(id).Span, out value);
     }
 
     /// <inheritdoc/>
-    public virtual bool TryGetValue<TValue>(string name, [MaybeNullWhen(false)] out TValue value)
+    public bool TryParseField<TValue>(
+        CsvConverter<T, TValue> converter,
+        CsvFieldIdentifier id,
+        [MaybeNullWhen(false)] out TValue value)
     {
-        if (!HasHeader)
-        {
-            Throw.NotSupported_CsvHasNoHeader();
-        }
-
-        if (_header is null)
-        {
-            Throw.InvalidOperation_HeaderNotRead();
-        }
-
-        if (!_header.TryGetValue(name, out int index))
-        {
-            Throw.Argument_HeaderNameNotFound(name, _header.HeaderNames);
-        }
-
-        return TryGetValue(index, out value);
+        ArgumentNullException.ThrowIfNull(converter);
+        return converter.TryParse(GetField(id).Span, out value);
     }
 
     IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator()

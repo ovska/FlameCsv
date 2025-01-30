@@ -17,9 +17,9 @@ internal static class Messages
     public const string DynamicCode = "This code path uses compiled expressions. " + Suffix;
     public const string Reflection = "This code path uses reflection. " + Suffix;
 
-    public const string FactoryMessage =
-        "This code path may require types that cannot be statically analyzed and might need runtime code generation. " +
-        "Use the source generator for native AOT applications.";
+    private const string Prefix
+        = "This code path may require types that cannot be statically analyzed and might need runtime code generation. ";
 
-    public const string StructFactorySuppressionMessage = "Constructors of the used struct are not actually used.";
+    public const string ConverterFactories = Prefix + "Use the source generator APIs for native AOT applications.";
+    public const string ConverterOverload = Prefix + "Use an alternative overload for native AOT applications.";
 }

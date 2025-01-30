@@ -56,6 +56,8 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
     private int? _expectedFieldCount;
     private CsvHeader? _header;
 
+    internal bool ContainsHeader(string name) => _header?.ContainsKey(name) ?? false;
+
     public EnumeratorState(CsvOptions<T> options)
     {
         Debug.Assert(options.IsReadOnly);

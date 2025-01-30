@@ -26,7 +26,7 @@ public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute
     /// <summary>
     /// Creates the configured converter.
     /// </summary>
-    [RDC(Messages.FactoryMessage), RUF(Messages.FactoryMessage)]
+    [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
     public CsvConverter<T> CreateConverter(Type targetType, CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);

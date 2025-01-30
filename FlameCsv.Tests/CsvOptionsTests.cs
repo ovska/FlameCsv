@@ -1,6 +1,7 @@
 using System.Globalization;
 using FlameCsv.Binding;
 using FlameCsv.Converters;
+using FlameCsv.Exceptions;
 
 namespace FlameCsv.Tests;
 
@@ -147,10 +148,10 @@ public class CsvOptionsTests
     }
 
     [Fact]
-    public void Should_Not_Use_Builtin_Parsers()
+    public void Should_Not_Use_Builtin_Converters()
     {
         var options = new CsvOptions<char> { UseDefaultConverters = false };
-        Assert.Null(options.TryGetConverter<int>());
+        Assert.ThrowsAny<CsvConverterMissingException>(() => options.GetConverter<int>());
     }
 
     [Fact]
@@ -179,7 +180,7 @@ public class CsvOptionsTests
         Assert.True(nullEnumParser.TryParse("Monday", out var mndy));
         Assert.Equal(DayOfWeek.Monday, mndy);
 
-        Assert.Null(options.TryGetConverter(typeof(Type)));
+        Assert.ThrowsAny<CsvConverterMissingException>(() => options.GetConverter<Type>());
 
         Assert.Same(options, CsvOptions<char>.Default);
     }
@@ -209,7 +210,7 @@ public class CsvOptionsTests
         Assert.True(nullEnumParser.TryParse("Monday"u8, out var mndy));
         Assert.Equal(DayOfWeek.Monday, mndy);
 
-        Assert.Null(options.TryGetConverter(typeof(Type)));
+        Assert.ThrowsAny<CsvConverterMissingException>(() => options.GetConverter<Type>());
 
         Assert.Same(options, CsvOptions<byte>.Default);
     }

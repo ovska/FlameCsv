@@ -12,7 +12,7 @@ namespace FlameCsv.Converters;
 /// <summary>
 /// Factory for <see cref="NullableConverter{T,TValue}"/>
 /// </summary>
-[RDC(Messages.FactoryMessage), RUF(Messages.FactoryMessage)]
+[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
     where T : unmanaged, IBinaryInteger<T>
 {

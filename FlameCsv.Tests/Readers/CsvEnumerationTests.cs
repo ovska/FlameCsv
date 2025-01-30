@@ -47,15 +47,15 @@ public sealed class CsvEnumerationTests : IDisposable
 
         Assert.True(enumerator.MoveNext());
         Assert.Equal("1,\"Test\",true", enumerator.Current.RawRecord.ToString());
-        Assert.Equal(1, enumerator.Current.GetField<int>(0));
-        Assert.Equal("Test", enumerator.Current.GetField<string>(1));
-        Assert.True(enumerator.Current.GetField<bool>(2));
+        Assert.Equal(1, enumerator.Current.ParseField<int>(0));
+        Assert.Equal("Test", enumerator.Current.ParseField<string>(1));
+        Assert.True(enumerator.Current.ParseField<bool>(2));
 
         Assert.True(enumerator.MoveNext());
         Assert.Equal("2,\"Asd\",false", enumerator.Current.RawRecord.ToString());
-        Assert.Equal(2, enumerator.Current.GetField<int>(0));
-        Assert.Equal("Asd", enumerator.Current.GetField<string>(1));
-        Assert.False(enumerator.Current.GetField<bool>(2));
+        Assert.Equal(2, enumerator.Current.ParseField<int>(0));
+        Assert.Equal("Asd", enumerator.Current.ParseField<string>(1));
+        Assert.False(enumerator.Current.ParseField<bool>(2));
     }
 
     [Fact]
@@ -111,17 +111,17 @@ public sealed class CsvEnumerationTests : IDisposable
     {
         CsvValueRecord<char> record = GetRecord();
 
-        Assert.Equal(1, record.GetField<int>(0));
-        Assert.Equal("Test", record.GetField<string?>(1));
-        Assert.True(record.GetField<bool>(2));
+        Assert.Equal(1, record.ParseField<int>(0));
+        Assert.Equal("Test", record.ParseField<string?>(1));
+        Assert.True(record.ParseField<bool>(2));
 
-        Assert.True(record.TryGetValue(0, out int _1));
+        Assert.True(record.TryParseField(0, out int _1));
         Assert.Equal(1, _1);
 
-        Assert.True(record.TryGetValue(1, out string? _2));
+        Assert.True(record.TryParseField(1, out string? _2));
         Assert.Equal("Test", _2);
 
-        Assert.True(record.TryGetValue(2, out bool _3));
+        Assert.True(record.TryParseField(2, out bool _3));
         Assert.True(_3);
     }
 

@@ -58,10 +58,18 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
     }
 
     /// <inheritdoc/>
-    public ReadOnlyMemory<T> this[int index] => GetField(index);
+    public bool Contains(CsvFieldIdentifier id)
+    {
+        return id.TryGetIndex(out int index, out string? name)
+            ? (uint)index < (uint)_state.GetFieldCount()
+            : _state.ContainsHeader(name);
+    }
 
     /// <inheritdoc/>
-    public ReadOnlyMemory<T> this[string name] => GetField(name);
+    public CsvOptions<T> Options => _options;
+
+    /// <inheritdoc/>
+    public ReadOnlyMemory<T> this[CsvFieldIdentifier id] => GetField(id);
 
     internal readonly EnumeratorState<T> _state;
     internal readonly CsvOptions<T> _options;
@@ -85,30 +93,16 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
         _version = _state.Initialize(in line);
     }
 
-    /// <inheritdoc cref="ICsvRecord{T}.GetField(string)"/>
+    /// <inheritdoc cref="ICsvRecord{T}.GetField(CsvFieldIdentifier)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ReadOnlyMemory<T> GetField(string name)
+    public ReadOnlyMemory<T> GetField(CsvFieldIdentifier id)
     {
         _state.EnsureVersion(_version);
 
-        if (!_state.TryGetHeaderIndex(name, out int index))
+        if (!id.TryGetIndex(out int index, out string? name) && !_state.TryGetHeaderIndex(name, out index))
         {
             Throw.Argument_HeaderNameNotFound(name, _state.Header.HeaderNames);
         }
-
-        if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> field))
-        {
-            Throw.Argument_FieldIndex(index, _state, name);
-        }
-
-        return field;
-    }
-
-    /// <inheritdoc cref="ICsvRecord{T}.GetField(int)"/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ReadOnlyMemory<T> GetField(int index)
-    {
-        _state.EnsureVersion(_version);
 
         if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> field))
         {
@@ -128,61 +122,45 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
     }
 
     /// <inheritdoc/>
-    public bool TryGetValue<TValue>(int index, [MaybeNullWhen(false)] out TValue value)
+    [RUF(Messages.ConverterOverload), RDC(Messages.ConverterOverload)]
+    public bool TryParseField<TValue>(CsvFieldIdentifier id, [MaybeNullWhen(false)] out TValue value)
     {
-        _state.EnsureVersion(_version);
-
-        if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> field))
-        {
-            Throw.Argument_FieldIndex(index, _state);
-        }
-
-        if (!_options.GetConverter<TValue>().TryParse(field.Span, out value))
-        {
-            value = default;
-            return false;
-        }
-
-        return true;
+        var field = GetField(id).Span;
+        return _options.GetConverter<TValue>().TryParse(field, out value);
     }
 
     /// <inheritdoc/>
-    public bool TryGetValue<TValue>(string name, [MaybeNullWhen(false)] out TValue value)
+    public bool TryParseField<TValue>(
+        CsvConverter<T, TValue> converter,
+        CsvFieldIdentifier id,
+        [MaybeNullWhen(false)] out TValue value)
     {
-        _state.EnsureVersion(_version);
-
-        if (!_state.TryGetHeaderIndex(name, out int index))
-        {
-            Throw.Argument_HeaderNameNotFound(name, _state.Header.HeaderNames);
-        }
-
-        return TryGetValue(index, out value);
+        ArgumentNullException.ThrowIfNull(converter);
+        return converter.TryParse(GetField(id).Span, out value);
     }
 
     /// <inheritdoc/>
-    public TValue GetField<TValue>(string name)
+    [RUF(Messages.ConverterOverload), RDC(Messages.ConverterOverload)]
+    public TValue ParseField<TValue>(CsvFieldIdentifier id)
     {
-        _state.EnsureVersion(_version);
-
-        if (!_state.TryGetHeaderIndex(name, out int index))
-        {
-            Throw.Argument_HeaderNameNotFound(name, _state.Header.HeaderNames);
-        }
-
-        return GetField<TValue>(index);
-    }
-
-    /// <inheritdoc/>
-    public TValue GetField<TValue>(int index)
-    {
-        _state.EnsureVersion(_version);
-
-        if (!_state.TryGetAtIndex(index, out ReadOnlySpan<T> field))
-        {
-            Throw.Argument_FieldIndex(index, _state);
-        }
+        var field = GetField(id).Span;
 
         var converter = _options.GetConverter<TValue>();
+
+        if (!_options.GetConverter<TValue>().TryParse(field, out var value))
+        {
+            Throw.ParseFailed(field, converter, typeof(TValue));
+        }
+
+        return value;
+    }
+
+    /// <inheritdoc/>
+    public TValue ParseField<TValue>(CsvConverter<T, TValue> converter, CsvFieldIdentifier id)
+    {
+        ArgumentNullException.ThrowIfNull(converter);
+
+        var field = GetField(id).Span;
 
         if (!converter.TryParse(field, out var value))
         {
@@ -292,7 +270,11 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
 
         bool IEnumerator.MoveNext() => MoveNext();
         void IEnumerator.Reset() => _index = 0;
-        readonly void IDisposable.Dispose() { }
+
+        readonly void IDisposable.Dispose()
+        {
+        }
+
         readonly ReadOnlyMemory<T> IEnumerator<ReadOnlyMemory<T>>.Current => Current;
         readonly object IEnumerator.Current => Current;
     }
