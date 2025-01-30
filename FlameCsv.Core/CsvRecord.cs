@@ -81,7 +81,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     ReadOnlyMemory<T> IReadOnlyList<ReadOnlyMemory<T>>.this[int index] => this[index];
 
     /// <inheritdoc/>
-    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public TRecord ParseRecord<[DAM(Messages.ReflectionBound)] TRecord>()
     {
         IMaterializer<T, TRecord> materializer = _header is not null

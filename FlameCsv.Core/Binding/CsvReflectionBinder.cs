@@ -73,8 +73,8 @@ public abstract class CsvReflectionBinder
 
     private static readonly TrimmingCache<object, object> _dematerializerCache = [];
 
-    [RUF(Messages.CompiledExpressions)]
-    [RDC(Messages.CompiledExpressions)]
+    [RUF(Messages.Reflection)]
+    [RDC(Messages.DynamicCode)]
     private protected static CsvBindingCollection<TValue> GetReadBindings<T, TValue>(
         CsvOptions<T> options,
         ReadOnlySpan<string> headerFields,
@@ -124,8 +124,8 @@ public abstract class CsvReflectionBinder
         return new CsvBindingCollection<TValue>(foundBindings, write: false, isInternalCall: true);
     }
 
-    [RUF(Messages.CompiledExpressions)]
-    [RDC(Messages.CompiledExpressions)]
+    [RUF(Messages.Reflection)]
+    [RDC(Messages.DynamicCode)]
     private protected static IDematerializer<T, TValue> Create<T, TValue>(CsvOptions<T> options)
         where T : unmanaged, IBinaryInteger<T>
     {
@@ -169,8 +169,8 @@ public abstract class CsvReflectionBinder
         return created;
     }
 
-    [RUF(Messages.CompiledExpressions)]
-    [RDC(Messages.CompiledExpressions)]
+    [RUF(Messages.Reflection)]
+    [RDC(Messages.DynamicCode)]
     private static CsvBindingCollection<TValue> GetWriteHeaders<T, TValue>()
         where T : unmanaged, IBinaryInteger<T>
     {
@@ -389,8 +389,8 @@ public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder
     /// <remarks>
     /// Caches the return values based on the options and headers.
     /// </remarks>
-    [RUF(Messages.CompiledExpressions)]
-    [RDC(Messages.CompiledExpressions)]
+    [RUF(Messages.Reflection)]
+    [RDC(Messages.DynamicCode)]
     public IMaterializer<T, TValue> GetMaterializer<TValue>(ReadOnlySpan<string> headers)
     {
         if (CacheKey.CanCache(headers.Length))
@@ -415,8 +415,8 @@ public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder
     /// <remarks>
     /// Caches the return values based on the options.
     /// </remarks>
-    [RUF(Messages.CompiledExpressions)]
-    [RDC(Messages.CompiledExpressions)]
+    [RUF(Messages.Reflection)]
+    [RDC(Messages.DynamicCode)]
     public IMaterializer<T, TValue> GetMaterializer<TValue>()
     {
         return _options.GetMaterializer<T, TValue>();
@@ -426,8 +426,8 @@ public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder
     /// <remarks>
     /// Caches the return values based on the options.
     /// </remarks>
-    [RUF(Messages.CompiledExpressions)]
-    [RDC(Messages.CompiledExpressions)]
+    [RUF(Messages.Reflection)]
+    [RDC(Messages.DynamicCode)]
     public IDematerializer<T, TValue> GetDematerializer<TValue>()
     {
         return Create<T, TValue>(_options);

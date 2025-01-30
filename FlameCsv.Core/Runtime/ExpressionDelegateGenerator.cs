@@ -9,8 +9,8 @@ using FlameCsv.Reading;
 
 namespace FlameCsv.Runtime;
 
-[RUF(Messages.CompiledExpressions)]
-[RDC(Messages.CompiledExpressions)]
+[RUF(Messages.Reflection)]
+[RDC(Messages.DynamicCode)]
 internal sealed class ExpressionDelegateGenerator<T> : DelegateGenerator<T> where T : unmanaged, IBinaryInteger<T>
 {
     public static readonly ExpressionDelegateGenerator<T> Instance = new();
