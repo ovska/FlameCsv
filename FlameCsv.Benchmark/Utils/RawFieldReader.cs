@@ -5,9 +5,10 @@ using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Reading.Internal;
 
+// ReSharper disable ConvertToAutoPropertyWhenPossible
+
 namespace FlameCsv.Benchmark.Utils;
 
-[SuppressMessage("ReSharper", "ConvertToAutoPropertyWhenPossible")]
 internal readonly ref struct RawFieldReader<T> : ICsvRecordFields<T> where T : unmanaged, IBinaryInteger<T>
 {
     private readonly int _newlineLength;

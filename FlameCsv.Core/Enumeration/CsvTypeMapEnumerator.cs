@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Collections;
+using FlameCsv.Binding;
 using FlameCsv.Reading;
 using JetBrains.Annotations;
 
@@ -7,14 +8,17 @@ namespace FlameCsv.Enumeration;
 
 /// <inheritdoc cref="CsvValueAsyncEnumeratorBase{T,TValue}"/>
 [PublicAPI]
-[RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-public sealed class CsvValueEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TValue>, IEnumerator<TValue>
+public sealed class CsvTypeMapEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TValue>, IEnumerator<TValue>
     where T : unmanaged, IBinaryInteger<T>
 {
+    private readonly CsvTypeMap<T, TValue> _typeMap;
     private readonly ReadOnlySequence<T> _csv;
 
-    internal CsvValueEnumerator(in ReadOnlySequence<T> csv, CsvOptions<T> options) : base(options)
+    internal CsvTypeMapEnumerator(in ReadOnlySequence<T> csv, CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
+        : base(options)
     {
+        ArgumentNullException.ThrowIfNull(typeMap);
+        _typeMap = typeMap;
         _csv = csv;
         _parser.Reset(in csv);
     }
@@ -32,13 +36,13 @@ public sealed class CsvValueEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TV
     /// <inheritdoc/>
     protected override IMaterializer<T, TValue> BindToHeaders(ReadOnlySpan<string> headers)
     {
-        return _parser.Options.TypeBinder.GetMaterializer<TValue>(headers);
+        return _typeMap.GetMaterializer(headers, _parser.Options);
     }
 
     /// <inheritdoc/>
     protected override IMaterializer<T, TValue> BindToHeaderless()
     {
-        return _parser.Options.TypeBinder.GetMaterializer<TValue>();
+        return _typeMap.GetMaterializer(_parser.Options);
     }
 
     object IEnumerator.Current => Current!;

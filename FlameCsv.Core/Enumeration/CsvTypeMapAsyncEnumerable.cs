@@ -31,9 +31,9 @@ public sealed class CsvTypeMapAsyncEnumerable<T, TValue> : IAsyncEnumerable<TVal
 
     /// <inheritdoc cref="IAsyncEnumerable{T}.GetAsyncEnumerator"/>
     [MustDisposeResource]
-    public CsvValueAsyncEnumerator<T, TValue> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+    public CsvTypeMapAsyncEnumerator<T, TValue> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
-        return new CsvValueAsyncEnumerator<T, TValue>(_options, _typeMap, _reader, cancellationToken)
+        return new CsvTypeMapAsyncEnumerator<T, TValue>(_options, _typeMap, _reader, cancellationToken)
         {
             ExceptionHandler = _exceptionHandler
         };

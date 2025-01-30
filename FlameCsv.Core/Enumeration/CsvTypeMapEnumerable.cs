@@ -34,16 +34,19 @@ public sealed class CsvTypeMapEnumerable<T, TValue> : IEnumerable<TValue> where 
 
     /// <inheritdoc cref="IEnumerable{T}.GetEnumerator"/>
     [MustDisposeResource]
-    public CsvValueEnumerator<T, TValue> GetEnumerator()
+    public CsvTypeMapEnumerator<T, TValue> GetEnumerator()
     {
-        return new CsvValueEnumerator<T, TValue>(in _data, _options, _typeMap)
+        return new CsvTypeMapEnumerator<T, TValue>(in _data, _options, _typeMap)
         {
             ExceptionHandler = _exceptionHandler,
         };
     }
 
-    [MustDisposeResource] IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator() => GetEnumerator();
-    [MustDisposeResource] IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    [MustDisposeResource]
+    IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator() => GetEnumerator();
+
+    [MustDisposeResource]
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     /// <inheritdoc cref="CsvValueEnumerable{T,TValue}.WithExceptionHandler"/>
     public CsvTypeMapEnumerable<T, TValue> WithExceptionHandler(CsvExceptionHandler<T>? handler)
