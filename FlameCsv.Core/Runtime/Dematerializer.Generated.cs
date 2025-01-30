@@ -61,12 +61,13 @@ internal sealed class Dematerializer<T, T0, TValue>
     public int FieldCount => 1;
 
     public Dematerializer(
-        CsvBindingCollection<TValue> bindings,
+        CsvBindingCollection<TValue> bindingCollection,
         CsvOptions<T> options,
         Func<TValue, T0> getter0)
-        : base(bindings)
+        : base(bindingCollection)
     {
-        this.converter0 = options.GetConverter<T0>();
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
         this.getter0 = getter0;
     }
 
@@ -88,14 +89,15 @@ internal sealed class Dematerializer<T, T0, T1, TValue>
     public int FieldCount => 2;
 
     public Dematerializer(
-        CsvBindingCollection<TValue> bindings,
+        CsvBindingCollection<TValue> bindingCollection,
         CsvOptions<T> options,
         Func<TValue, T0> getter0,
         Func<TValue, T1> getter1)
-        : base(bindings)
+        : base(bindingCollection)
     {
-        this.converter0 = options.GetConverter<T0>();
-        this.converter1 = options.GetConverter<T1>();
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
+        this.converter1 = ResolveConverter<T1>(options, bindings[1]);
         this.getter0 = getter0;
         this.getter1 = getter1;
     }
@@ -122,16 +124,17 @@ internal sealed class Dematerializer<T, T0, T1, T2, TValue>
     public int FieldCount => 3;
 
     public Dematerializer(
-        CsvBindingCollection<TValue> bindings,
+        CsvBindingCollection<TValue> bindingCollection,
         CsvOptions<T> options,
         Func<TValue, T0> getter0,
         Func<TValue, T1> getter1,
         Func<TValue, T2> getter2)
-        : base(bindings)
+        : base(bindingCollection)
     {
-        this.converter0 = options.GetConverter<T0>();
-        this.converter1 = options.GetConverter<T1>();
-        this.converter2 = options.GetConverter<T2>();
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
+        this.converter1 = ResolveConverter<T1>(options, bindings[1]);
+        this.converter2 = ResolveConverter<T2>(options, bindings[2]);
         this.getter0 = getter0;
         this.getter1 = getter1;
         this.getter2 = getter2;
@@ -163,18 +166,19 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, TValue>
     public int FieldCount => 4;
 
     public Dematerializer(
-        CsvBindingCollection<TValue> bindings,
+        CsvBindingCollection<TValue> bindingCollection,
         CsvOptions<T> options,
         Func<TValue, T0> getter0,
         Func<TValue, T1> getter1,
         Func<TValue, T2> getter2,
         Func<TValue, T3> getter3)
-        : base(bindings)
+        : base(bindingCollection)
     {
-        this.converter0 = options.GetConverter<T0>();
-        this.converter1 = options.GetConverter<T1>();
-        this.converter2 = options.GetConverter<T2>();
-        this.converter3 = options.GetConverter<T3>();
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
+        this.converter1 = ResolveConverter<T1>(options, bindings[1]);
+        this.converter2 = ResolveConverter<T2>(options, bindings[2]);
+        this.converter3 = ResolveConverter<T3>(options, bindings[3]);
         this.getter0 = getter0;
         this.getter1 = getter1;
         this.getter2 = getter2;
@@ -211,20 +215,21 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, TValue>
     public int FieldCount => 5;
 
     public Dematerializer(
-        CsvBindingCollection<TValue> bindings,
+        CsvBindingCollection<TValue> bindingCollection,
         CsvOptions<T> options,
         Func<TValue, T0> getter0,
         Func<TValue, T1> getter1,
         Func<TValue, T2> getter2,
         Func<TValue, T3> getter3,
         Func<TValue, T4> getter4)
-        : base(bindings)
+        : base(bindingCollection)
     {
-        this.converter0 = options.GetConverter<T0>();
-        this.converter1 = options.GetConverter<T1>();
-        this.converter2 = options.GetConverter<T2>();
-        this.converter3 = options.GetConverter<T3>();
-        this.converter4 = options.GetConverter<T4>();
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
+        this.converter1 = ResolveConverter<T1>(options, bindings[1]);
+        this.converter2 = ResolveConverter<T2>(options, bindings[2]);
+        this.converter3 = ResolveConverter<T3>(options, bindings[3]);
+        this.converter4 = ResolveConverter<T4>(options, bindings[4]);
         this.getter0 = getter0;
         this.getter1 = getter1;
         this.getter2 = getter2;
@@ -266,7 +271,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, TValue>
     public int FieldCount => 6;
 
     public Dematerializer(
-        CsvBindingCollection<TValue> bindings,
+        CsvBindingCollection<TValue> bindingCollection,
         CsvOptions<T> options,
         Func<TValue, T0> getter0,
         Func<TValue, T1> getter1,
@@ -274,14 +279,15 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, TValue>
         Func<TValue, T3> getter3,
         Func<TValue, T4> getter4,
         Func<TValue, T5> getter5)
-        : base(bindings)
+        : base(bindingCollection)
     {
-        this.converter0 = options.GetConverter<T0>();
-        this.converter1 = options.GetConverter<T1>();
-        this.converter2 = options.GetConverter<T2>();
-        this.converter3 = options.GetConverter<T3>();
-        this.converter4 = options.GetConverter<T4>();
-        this.converter5 = options.GetConverter<T5>();
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
+        this.converter1 = ResolveConverter<T1>(options, bindings[1]);
+        this.converter2 = ResolveConverter<T2>(options, bindings[2]);
+        this.converter3 = ResolveConverter<T3>(options, bindings[3]);
+        this.converter4 = ResolveConverter<T4>(options, bindings[4]);
+        this.converter5 = ResolveConverter<T5>(options, bindings[5]);
         this.getter0 = getter0;
         this.getter1 = getter1;
         this.getter2 = getter2;
@@ -328,7 +334,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, TValue>
     public int FieldCount => 7;
 
     public Dematerializer(
-        CsvBindingCollection<TValue> bindings,
+        CsvBindingCollection<TValue> bindingCollection,
         CsvOptions<T> options,
         Func<TValue, T0> getter0,
         Func<TValue, T1> getter1,
@@ -337,15 +343,16 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, TValue>
         Func<TValue, T4> getter4,
         Func<TValue, T5> getter5,
         Func<TValue, T6> getter6)
-        : base(bindings)
+        : base(bindingCollection)
     {
-        this.converter0 = options.GetConverter<T0>();
-        this.converter1 = options.GetConverter<T1>();
-        this.converter2 = options.GetConverter<T2>();
-        this.converter3 = options.GetConverter<T3>();
-        this.converter4 = options.GetConverter<T4>();
-        this.converter5 = options.GetConverter<T5>();
-        this.converter6 = options.GetConverter<T6>();
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
+        this.converter1 = ResolveConverter<T1>(options, bindings[1]);
+        this.converter2 = ResolveConverter<T2>(options, bindings[2]);
+        this.converter3 = ResolveConverter<T3>(options, bindings[3]);
+        this.converter4 = ResolveConverter<T4>(options, bindings[4]);
+        this.converter5 = ResolveConverter<T5>(options, bindings[5]);
+        this.converter6 = ResolveConverter<T6>(options, bindings[6]);
         this.getter0 = getter0;
         this.getter1 = getter1;
         this.getter2 = getter2;
@@ -397,7 +404,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TValue>
     public int FieldCount => 8;
 
     public Dematerializer(
-        CsvBindingCollection<TValue> bindings,
+        CsvBindingCollection<TValue> bindingCollection,
         CsvOptions<T> options,
         Func<TValue, T0> getter0,
         Func<TValue, T1> getter1,
@@ -407,16 +414,17 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TValue>
         Func<TValue, T5> getter5,
         Func<TValue, T6> getter6,
         Func<TValue, T7> getter7)
-        : base(bindings)
+        : base(bindingCollection)
     {
-        this.converter0 = options.GetConverter<T0>();
-        this.converter1 = options.GetConverter<T1>();
-        this.converter2 = options.GetConverter<T2>();
-        this.converter3 = options.GetConverter<T3>();
-        this.converter4 = options.GetConverter<T4>();
-        this.converter5 = options.GetConverter<T5>();
-        this.converter6 = options.GetConverter<T6>();
-        this.converter7 = options.GetConverter<T7>();
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
+        this.converter1 = ResolveConverter<T1>(options, bindings[1]);
+        this.converter2 = ResolveConverter<T2>(options, bindings[2]);
+        this.converter3 = ResolveConverter<T3>(options, bindings[3]);
+        this.converter4 = ResolveConverter<T4>(options, bindings[4]);
+        this.converter5 = ResolveConverter<T5>(options, bindings[5]);
+        this.converter6 = ResolveConverter<T6>(options, bindings[6]);
+        this.converter7 = ResolveConverter<T7>(options, bindings[7]);
         this.getter0 = getter0;
         this.getter1 = getter1;
         this.getter2 = getter2;
@@ -473,7 +481,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TVal
     public int FieldCount => 9;
 
     public Dematerializer(
-        CsvBindingCollection<TValue> bindings,
+        CsvBindingCollection<TValue> bindingCollection,
         CsvOptions<T> options,
         Func<TValue, T0> getter0,
         Func<TValue, T1> getter1,
@@ -484,17 +492,18 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TVal
         Func<TValue, T6> getter6,
         Func<TValue, T7> getter7,
         Func<TValue, T8> getter8)
-        : base(bindings)
+        : base(bindingCollection)
     {
-        this.converter0 = options.GetConverter<T0>();
-        this.converter1 = options.GetConverter<T1>();
-        this.converter2 = options.GetConverter<T2>();
-        this.converter3 = options.GetConverter<T3>();
-        this.converter4 = options.GetConverter<T4>();
-        this.converter5 = options.GetConverter<T5>();
-        this.converter6 = options.GetConverter<T6>();
-        this.converter7 = options.GetConverter<T7>();
-        this.converter8 = options.GetConverter<T8>();
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
+        this.converter1 = ResolveConverter<T1>(options, bindings[1]);
+        this.converter2 = ResolveConverter<T2>(options, bindings[2]);
+        this.converter3 = ResolveConverter<T3>(options, bindings[3]);
+        this.converter4 = ResolveConverter<T4>(options, bindings[4]);
+        this.converter5 = ResolveConverter<T5>(options, bindings[5]);
+        this.converter6 = ResolveConverter<T6>(options, bindings[6]);
+        this.converter7 = ResolveConverter<T7>(options, bindings[7]);
+        this.converter8 = ResolveConverter<T8>(options, bindings[8]);
         this.getter0 = getter0;
         this.getter1 = getter1;
         this.getter2 = getter2;
@@ -556,7 +565,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     public int FieldCount => 10;
 
     public Dematerializer(
-        CsvBindingCollection<TValue> bindings,
+        CsvBindingCollection<TValue> bindingCollection,
         CsvOptions<T> options,
         Func<TValue, T0> getter0,
         Func<TValue, T1> getter1,
@@ -568,18 +577,19 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
         Func<TValue, T7> getter7,
         Func<TValue, T8> getter8,
         Func<TValue, T9> getter9)
-        : base(bindings)
+        : base(bindingCollection)
     {
-        this.converter0 = options.GetConverter<T0>();
-        this.converter1 = options.GetConverter<T1>();
-        this.converter2 = options.GetConverter<T2>();
-        this.converter3 = options.GetConverter<T3>();
-        this.converter4 = options.GetConverter<T4>();
-        this.converter5 = options.GetConverter<T5>();
-        this.converter6 = options.GetConverter<T6>();
-        this.converter7 = options.GetConverter<T7>();
-        this.converter8 = options.GetConverter<T8>();
-        this.converter9 = options.GetConverter<T9>();
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
+        this.converter1 = ResolveConverter<T1>(options, bindings[1]);
+        this.converter2 = ResolveConverter<T2>(options, bindings[2]);
+        this.converter3 = ResolveConverter<T3>(options, bindings[3]);
+        this.converter4 = ResolveConverter<T4>(options, bindings[4]);
+        this.converter5 = ResolveConverter<T5>(options, bindings[5]);
+        this.converter6 = ResolveConverter<T6>(options, bindings[6]);
+        this.converter7 = ResolveConverter<T7>(options, bindings[7]);
+        this.converter8 = ResolveConverter<T8>(options, bindings[8]);
+        this.converter9 = ResolveConverter<T9>(options, bindings[9]);
         this.getter0 = getter0;
         this.getter1 = getter1;
         this.getter2 = getter2;
@@ -646,7 +656,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     public int FieldCount => 11;
 
     public Dematerializer(
-        CsvBindingCollection<TValue> bindings,
+        CsvBindingCollection<TValue> bindingCollection,
         CsvOptions<T> options,
         Func<TValue, T0> getter0,
         Func<TValue, T1> getter1,
@@ -659,19 +669,20 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
         Func<TValue, T8> getter8,
         Func<TValue, T9> getter9,
         Func<TValue, T10> getter10)
-        : base(bindings)
+        : base(bindingCollection)
     {
-        this.converter0 = options.GetConverter<T0>();
-        this.converter1 = options.GetConverter<T1>();
-        this.converter2 = options.GetConverter<T2>();
-        this.converter3 = options.GetConverter<T3>();
-        this.converter4 = options.GetConverter<T4>();
-        this.converter5 = options.GetConverter<T5>();
-        this.converter6 = options.GetConverter<T6>();
-        this.converter7 = options.GetConverter<T7>();
-        this.converter8 = options.GetConverter<T8>();
-        this.converter9 = options.GetConverter<T9>();
-        this.converter10 = options.GetConverter<T10>();
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
+        this.converter1 = ResolveConverter<T1>(options, bindings[1]);
+        this.converter2 = ResolveConverter<T2>(options, bindings[2]);
+        this.converter3 = ResolveConverter<T3>(options, bindings[3]);
+        this.converter4 = ResolveConverter<T4>(options, bindings[4]);
+        this.converter5 = ResolveConverter<T5>(options, bindings[5]);
+        this.converter6 = ResolveConverter<T6>(options, bindings[6]);
+        this.converter7 = ResolveConverter<T7>(options, bindings[7]);
+        this.converter8 = ResolveConverter<T8>(options, bindings[8]);
+        this.converter9 = ResolveConverter<T9>(options, bindings[9]);
+        this.converter10 = ResolveConverter<T10>(options, bindings[10]);
         this.getter0 = getter0;
         this.getter1 = getter1;
         this.getter2 = getter2;
@@ -743,7 +754,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     public int FieldCount => 12;
 
     public Dematerializer(
-        CsvBindingCollection<TValue> bindings,
+        CsvBindingCollection<TValue> bindingCollection,
         CsvOptions<T> options,
         Func<TValue, T0> getter0,
         Func<TValue, T1> getter1,
@@ -757,20 +768,21 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
         Func<TValue, T9> getter9,
         Func<TValue, T10> getter10,
         Func<TValue, T11> getter11)
-        : base(bindings)
+        : base(bindingCollection)
     {
-        this.converter0 = options.GetConverter<T0>();
-        this.converter1 = options.GetConverter<T1>();
-        this.converter2 = options.GetConverter<T2>();
-        this.converter3 = options.GetConverter<T3>();
-        this.converter4 = options.GetConverter<T4>();
-        this.converter5 = options.GetConverter<T5>();
-        this.converter6 = options.GetConverter<T6>();
-        this.converter7 = options.GetConverter<T7>();
-        this.converter8 = options.GetConverter<T8>();
-        this.converter9 = options.GetConverter<T9>();
-        this.converter10 = options.GetConverter<T10>();
-        this.converter11 = options.GetConverter<T11>();
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
+        this.converter1 = ResolveConverter<T1>(options, bindings[1]);
+        this.converter2 = ResolveConverter<T2>(options, bindings[2]);
+        this.converter3 = ResolveConverter<T3>(options, bindings[3]);
+        this.converter4 = ResolveConverter<T4>(options, bindings[4]);
+        this.converter5 = ResolveConverter<T5>(options, bindings[5]);
+        this.converter6 = ResolveConverter<T6>(options, bindings[6]);
+        this.converter7 = ResolveConverter<T7>(options, bindings[7]);
+        this.converter8 = ResolveConverter<T8>(options, bindings[8]);
+        this.converter9 = ResolveConverter<T9>(options, bindings[9]);
+        this.converter10 = ResolveConverter<T10>(options, bindings[10]);
+        this.converter11 = ResolveConverter<T11>(options, bindings[11]);
         this.getter0 = getter0;
         this.getter1 = getter1;
         this.getter2 = getter2;
@@ -847,7 +859,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     public int FieldCount => 13;
 
     public Dematerializer(
-        CsvBindingCollection<TValue> bindings,
+        CsvBindingCollection<TValue> bindingCollection,
         CsvOptions<T> options,
         Func<TValue, T0> getter0,
         Func<TValue, T1> getter1,
@@ -862,21 +874,22 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
         Func<TValue, T10> getter10,
         Func<TValue, T11> getter11,
         Func<TValue, T12> getter12)
-        : base(bindings)
+        : base(bindingCollection)
     {
-        this.converter0 = options.GetConverter<T0>();
-        this.converter1 = options.GetConverter<T1>();
-        this.converter2 = options.GetConverter<T2>();
-        this.converter3 = options.GetConverter<T3>();
-        this.converter4 = options.GetConverter<T4>();
-        this.converter5 = options.GetConverter<T5>();
-        this.converter6 = options.GetConverter<T6>();
-        this.converter7 = options.GetConverter<T7>();
-        this.converter8 = options.GetConverter<T8>();
-        this.converter9 = options.GetConverter<T9>();
-        this.converter10 = options.GetConverter<T10>();
-        this.converter11 = options.GetConverter<T11>();
-        this.converter12 = options.GetConverter<T12>();
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
+        this.converter1 = ResolveConverter<T1>(options, bindings[1]);
+        this.converter2 = ResolveConverter<T2>(options, bindings[2]);
+        this.converter3 = ResolveConverter<T3>(options, bindings[3]);
+        this.converter4 = ResolveConverter<T4>(options, bindings[4]);
+        this.converter5 = ResolveConverter<T5>(options, bindings[5]);
+        this.converter6 = ResolveConverter<T6>(options, bindings[6]);
+        this.converter7 = ResolveConverter<T7>(options, bindings[7]);
+        this.converter8 = ResolveConverter<T8>(options, bindings[8]);
+        this.converter9 = ResolveConverter<T9>(options, bindings[9]);
+        this.converter10 = ResolveConverter<T10>(options, bindings[10]);
+        this.converter11 = ResolveConverter<T11>(options, bindings[11]);
+        this.converter12 = ResolveConverter<T12>(options, bindings[12]);
         this.getter0 = getter0;
         this.getter1 = getter1;
         this.getter2 = getter2;
@@ -958,7 +971,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     public int FieldCount => 14;
 
     public Dematerializer(
-        CsvBindingCollection<TValue> bindings,
+        CsvBindingCollection<TValue> bindingCollection,
         CsvOptions<T> options,
         Func<TValue, T0> getter0,
         Func<TValue, T1> getter1,
@@ -974,22 +987,23 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
         Func<TValue, T11> getter11,
         Func<TValue, T12> getter12,
         Func<TValue, T13> getter13)
-        : base(bindings)
+        : base(bindingCollection)
     {
-        this.converter0 = options.GetConverter<T0>();
-        this.converter1 = options.GetConverter<T1>();
-        this.converter2 = options.GetConverter<T2>();
-        this.converter3 = options.GetConverter<T3>();
-        this.converter4 = options.GetConverter<T4>();
-        this.converter5 = options.GetConverter<T5>();
-        this.converter6 = options.GetConverter<T6>();
-        this.converter7 = options.GetConverter<T7>();
-        this.converter8 = options.GetConverter<T8>();
-        this.converter9 = options.GetConverter<T9>();
-        this.converter10 = options.GetConverter<T10>();
-        this.converter11 = options.GetConverter<T11>();
-        this.converter12 = options.GetConverter<T12>();
-        this.converter13 = options.GetConverter<T13>();
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
+        this.converter1 = ResolveConverter<T1>(options, bindings[1]);
+        this.converter2 = ResolveConverter<T2>(options, bindings[2]);
+        this.converter3 = ResolveConverter<T3>(options, bindings[3]);
+        this.converter4 = ResolveConverter<T4>(options, bindings[4]);
+        this.converter5 = ResolveConverter<T5>(options, bindings[5]);
+        this.converter6 = ResolveConverter<T6>(options, bindings[6]);
+        this.converter7 = ResolveConverter<T7>(options, bindings[7]);
+        this.converter8 = ResolveConverter<T8>(options, bindings[8]);
+        this.converter9 = ResolveConverter<T9>(options, bindings[9]);
+        this.converter10 = ResolveConverter<T10>(options, bindings[10]);
+        this.converter11 = ResolveConverter<T11>(options, bindings[11]);
+        this.converter12 = ResolveConverter<T12>(options, bindings[12]);
+        this.converter13 = ResolveConverter<T13>(options, bindings[13]);
         this.getter0 = getter0;
         this.getter1 = getter1;
         this.getter2 = getter2;
@@ -1076,7 +1090,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     public int FieldCount => 15;
 
     public Dematerializer(
-        CsvBindingCollection<TValue> bindings,
+        CsvBindingCollection<TValue> bindingCollection,
         CsvOptions<T> options,
         Func<TValue, T0> getter0,
         Func<TValue, T1> getter1,
@@ -1093,23 +1107,24 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
         Func<TValue, T12> getter12,
         Func<TValue, T13> getter13,
         Func<TValue, T14> getter14)
-        : base(bindings)
+        : base(bindingCollection)
     {
-        this.converter0 = options.GetConverter<T0>();
-        this.converter1 = options.GetConverter<T1>();
-        this.converter2 = options.GetConverter<T2>();
-        this.converter3 = options.GetConverter<T3>();
-        this.converter4 = options.GetConverter<T4>();
-        this.converter5 = options.GetConverter<T5>();
-        this.converter6 = options.GetConverter<T6>();
-        this.converter7 = options.GetConverter<T7>();
-        this.converter8 = options.GetConverter<T8>();
-        this.converter9 = options.GetConverter<T9>();
-        this.converter10 = options.GetConverter<T10>();
-        this.converter11 = options.GetConverter<T11>();
-        this.converter12 = options.GetConverter<T12>();
-        this.converter13 = options.GetConverter<T13>();
-        this.converter14 = options.GetConverter<T14>();
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
+        this.converter1 = ResolveConverter<T1>(options, bindings[1]);
+        this.converter2 = ResolveConverter<T2>(options, bindings[2]);
+        this.converter3 = ResolveConverter<T3>(options, bindings[3]);
+        this.converter4 = ResolveConverter<T4>(options, bindings[4]);
+        this.converter5 = ResolveConverter<T5>(options, bindings[5]);
+        this.converter6 = ResolveConverter<T6>(options, bindings[6]);
+        this.converter7 = ResolveConverter<T7>(options, bindings[7]);
+        this.converter8 = ResolveConverter<T8>(options, bindings[8]);
+        this.converter9 = ResolveConverter<T9>(options, bindings[9]);
+        this.converter10 = ResolveConverter<T10>(options, bindings[10]);
+        this.converter11 = ResolveConverter<T11>(options, bindings[11]);
+        this.converter12 = ResolveConverter<T12>(options, bindings[12]);
+        this.converter13 = ResolveConverter<T13>(options, bindings[13]);
+        this.converter14 = ResolveConverter<T14>(options, bindings[14]);
         this.getter0 = getter0;
         this.getter1 = getter1;
         this.getter2 = getter2;
@@ -1201,7 +1216,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     public int FieldCount => 16;
 
     public Dematerializer(
-        CsvBindingCollection<TValue> bindings,
+        CsvBindingCollection<TValue> bindingCollection,
         CsvOptions<T> options,
         Func<TValue, T0> getter0,
         Func<TValue, T1> getter1,
@@ -1219,24 +1234,25 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
         Func<TValue, T13> getter13,
         Func<TValue, T14> getter14,
         Func<TValue, T15> getter15)
-        : base(bindings)
+        : base(bindingCollection)
     {
-        this.converter0 = options.GetConverter<T0>();
-        this.converter1 = options.GetConverter<T1>();
-        this.converter2 = options.GetConverter<T2>();
-        this.converter3 = options.GetConverter<T3>();
-        this.converter4 = options.GetConverter<T4>();
-        this.converter5 = options.GetConverter<T5>();
-        this.converter6 = options.GetConverter<T6>();
-        this.converter7 = options.GetConverter<T7>();
-        this.converter8 = options.GetConverter<T8>();
-        this.converter9 = options.GetConverter<T9>();
-        this.converter10 = options.GetConverter<T10>();
-        this.converter11 = options.GetConverter<T11>();
-        this.converter12 = options.GetConverter<T12>();
-        this.converter13 = options.GetConverter<T13>();
-        this.converter14 = options.GetConverter<T14>();
-        this.converter15 = options.GetConverter<T15>();
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
+        this.converter1 = ResolveConverter<T1>(options, bindings[1]);
+        this.converter2 = ResolveConverter<T2>(options, bindings[2]);
+        this.converter3 = ResolveConverter<T3>(options, bindings[3]);
+        this.converter4 = ResolveConverter<T4>(options, bindings[4]);
+        this.converter5 = ResolveConverter<T5>(options, bindings[5]);
+        this.converter6 = ResolveConverter<T6>(options, bindings[6]);
+        this.converter7 = ResolveConverter<T7>(options, bindings[7]);
+        this.converter8 = ResolveConverter<T8>(options, bindings[8]);
+        this.converter9 = ResolveConverter<T9>(options, bindings[9]);
+        this.converter10 = ResolveConverter<T10>(options, bindings[10]);
+        this.converter11 = ResolveConverter<T11>(options, bindings[11]);
+        this.converter12 = ResolveConverter<T12>(options, bindings[12]);
+        this.converter13 = ResolveConverter<T13>(options, bindings[13]);
+        this.converter14 = ResolveConverter<T14>(options, bindings[14]);
+        this.converter15 = ResolveConverter<T15>(options, bindings[15]);
         this.getter0 = getter0;
         this.getter1 = getter1;
         this.getter2 = getter2;

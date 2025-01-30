@@ -70,47 +70,30 @@ internal static class Materializer<T>
 #>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
-internal sealed class Materializer<T, <#= generics #>> : IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
+[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+internal sealed class Materializer<T, <#= generics #>> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     private readonly Func<<#= generics #>> valueFactory;
 
     public Materializer(
         Func<<#= generics #>> valueFactory,
-<#
-        for (var i = 0; i < current; i++)
-        {
-            if (i != 0)
-                WriteLine(",");
-            Write("        ");
-            Write(converters[i]);
-        }
-        for (var i = 0; i < current; i++)
-        {
-            WriteLine(",");
-            Write("        string target");
-            Write(i.ToString());
-        }
-#>)
+        CsvBindingCollection<TResult> bindingCollection,
+        CsvOptions<T> options)
+        : base(bindingCollection)
     {
         this.valueFactory = valueFactory;
+        ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
 <#
         for (var i = 0; i < current; i++)
         {
             var ix = i.ToString();
             Write("        this.converter");
             Write(ix);
-            Write(" = converter");
+            Write(" = ResolveConverter<");
+            Write(genericTypes[i]);
+            Write(">(bindings[");
             Write(ix);
-            WriteLine(";");
-        }
-        for (var i = 0; i < current; i++)
-        {
-            var ix = i.ToString();
-            Write("        this.target");
-            Write(ix);
-            Write(" = target");
-            Write(ix);
-            WriteLine(";");
+            WriteLine("], options);");
         }
 #>    }
 
@@ -119,12 +102,6 @@ internal sealed class Materializer<T, <#= generics #>> : IMaterializer<T, TResul
         {
             Write("    private readonly ");
             Write(converters[i]);
-            WriteLine(";");
-        }
-        for (var i = 0; i < current; i++)
-        {
-            Write("    private readonly string target");
-            Write(i.ToString());
             WriteLine(";");
         }
 #>
@@ -147,9 +124,9 @@ internal sealed class Materializer<T, <#= generics #>> : IMaterializer<T, TResul
             Write(i.ToString());
             Write("], converter");
             Write(i.ToString());
-            Write(", target");
+            Write(", GetName(");
             Write(i.ToString());
-            WriteLine(");");
+            WriteLine("));");
         }
 
         Write("        return valueFactory(");

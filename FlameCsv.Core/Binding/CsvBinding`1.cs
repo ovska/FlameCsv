@@ -1,6 +1,8 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
+using FlameCsv.Binding.Attributes;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Binding;
 
@@ -81,4 +83,21 @@ public abstract class CsvBinding<T> : CsvBinding, IEquatable<CsvBinding>, IEquat
     /// Display name for debugging.
     /// </summary>
     protected internal abstract string DisplayName { get; }
+
+    [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+    internal CsvConverter<TToken, TResult> ResolveConverter<TToken, TResult>(
+        CsvOptions<TToken> options,
+        bool write)
+        where TToken : unmanaged, IBinaryInteger<TToken>
+    {
+        foreach (var attribute in Attributes)
+        {
+            if (attribute is CsvConverterAttribute<TToken> @override && @override.Scope.IsValidFor(write))
+            {
+                return (CsvConverter<TToken, TResult>)@override.CreateConverter(Type, options);
+            }
+        }
+
+        return options.GetConverter<TResult>();
+    }
 }

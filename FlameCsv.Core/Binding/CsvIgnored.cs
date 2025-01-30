@@ -19,18 +19,18 @@ public readonly struct CsvIgnored
     /// This converter will always return <see langword="true"/> without writing or reading anything.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static CsvConverter<T, CsvIgnored> Converter<T>()
+    public static CsvConverter<T, TResult> Converter<T, TResult>()
         where T : unmanaged, IBinaryInteger<T>
-        => IgnoredConverter<T>.Instance;
+        => IgnoredConverter<T, TResult>.Instance;
 
-    private sealed class IgnoredConverter<T> : CsvConverter<T, CsvIgnored> where T : unmanaged, IBinaryInteger<T>
+    private sealed class IgnoredConverter<T, TResult> : CsvConverter<T, TResult> where T : unmanaged, IBinaryInteger<T>
     {
-        public static readonly IgnoredConverter<T> Instance = new();
+        public static readonly IgnoredConverter<T, TResult> Instance = new();
 
         /// <summary>
         /// Always returns <see langword="true"/> without writing anything.
         /// </summary>
-        public override bool TryFormat(Span<T> destination, CsvIgnored value, out int charsWritten)
+        public override bool TryFormat(Span<T> destination, TResult value, out int charsWritten)
         {
             charsWritten = 0;
             return true;
@@ -39,9 +39,9 @@ public readonly struct CsvIgnored
         /// <summary>
         /// Always returns <see langword="true"/>.
         /// </summary>
-        public override bool TryParse(ReadOnlySpan<T> source, out CsvIgnored value)
+        public override bool TryParse(ReadOnlySpan<T> source, out TResult value)
         {
-            value = default;
+            value = default!;
             return true;
         }
     }
