@@ -59,7 +59,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     {
     }
 
-    [RUF(Messages.Reflection)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     private protected CsvValueEnumeratorBase(CsvOptions<T> options) : this(options, null, null)
     {
     }

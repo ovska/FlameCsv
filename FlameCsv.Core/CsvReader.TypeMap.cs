@@ -16,7 +16,7 @@ public static partial class CsvReader
     /// </summary>
     /// <param name="csv">CSV data</param>
     /// <param name="typeMap">Precompiled type map</param>
-    /// <param name="options">Options instance. If null, <see cref="CsvOptions{T}.Default"/> is used</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     public static CsvTypeMapEnumerable<char, TValue> Read<TValue>(
         string? csv,
         CsvTypeMap<char, TValue> typeMap,

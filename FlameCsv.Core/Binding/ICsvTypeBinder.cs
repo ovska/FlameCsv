@@ -14,7 +14,7 @@ public interface ICsvTypeBinder<T> where T : unmanaged, IBinaryInteger<T>
     /// Returns a materializer for <typeparamref name="TValue"/> bound to a CSV header.
     /// </summary>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    IMaterializer<T, TValue> GetMaterializer<TValue>(ReadOnlySpan<string> headers);
+    IMaterializer<T, TValue> GetMaterializer<[DAM(Messages.ReflectionBound)] TValue>(ReadOnlySpan<string> headers);
 
     /// <summary>
     /// Returns a materializer for <typeparamref name="TValue"/> bound to column indexes.
@@ -23,7 +23,7 @@ public interface ICsvTypeBinder<T> where T : unmanaged, IBinaryInteger<T>
     /// Options is configured not to write a header, but <typeparamref name="TValue"/> has no index binding.
     /// </exception>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    IMaterializer<T, TValue> GetMaterializer<TValue>();
+    IMaterializer<T, TValue> GetMaterializer<[DAM(Messages.ReflectionBound)] TValue>();
 
     /// <summary>
     /// Returns a dematerializer for <typeparamref name="TValue"/>.
@@ -32,5 +32,5 @@ public interface ICsvTypeBinder<T> where T : unmanaged, IBinaryInteger<T>
     /// Options is configured not to write a header, but <typeparamref name="TValue"/> has no index binding.
     /// </exception>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    IDematerializer<T, TValue> GetDematerializer<TValue>();
+    IDematerializer<T, TValue> GetDematerializer<[DAM(Messages.ReflectionBound)] TValue>();
 }

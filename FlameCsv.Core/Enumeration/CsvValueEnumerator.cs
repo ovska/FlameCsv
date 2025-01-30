@@ -11,7 +11,7 @@ namespace FlameCsv.Enumeration;
 public sealed class CsvValueEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TValue>, IEnumerator<TValue>
     where T : unmanaged, IBinaryInteger<T>
 {
-    [RUF(Messages.Reflection)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     internal CsvValueEnumerator(in ReadOnlySequence<T> csv, CsvOptions<T> options, IMaterializer<T, TValue>? materializer)
         : base(options, materializer)
     {
