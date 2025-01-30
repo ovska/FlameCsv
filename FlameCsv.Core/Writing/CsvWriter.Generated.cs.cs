@@ -23,7 +23,7 @@ static partial class CsvWriter
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
     /// </remarks>
-    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static StringBuilder WriteToString<[DAM(Messages.ReflectionBound)] TValue>(
         IEnumerable<TValue> values,
         CsvOptions<char>? options = null,
@@ -52,7 +52,7 @@ static partial class CsvWriter
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
     /// </remarks>
-    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static void WriteToFile<[DAM(Messages.ReflectionBound)] TValue>(
         string path,
         IEnumerable<TValue> values,
@@ -85,7 +85,7 @@ static partial class CsvWriter
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
     /// </remarks>
     [OverloadResolutionPriority(-1)] // prefer byte to char when writing to file
-    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static void WriteToFile<[DAM(Messages.ReflectionBound)] TValue>(
         string path,
         IEnumerable<TValue> values,
@@ -119,7 +119,7 @@ static partial class CsvWriter
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
     /// </remarks>
-    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static void Write<[DAM(Messages.ReflectionBound)] TValue>(
         TextWriter textWriter,
         IEnumerable<TValue> values,
@@ -151,7 +151,7 @@ static partial class CsvWriter
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
     /// </remarks>
-    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static void Write<[DAM(Messages.ReflectionBound)] TValue>(
         Stream stream,
         IEnumerable<TValue> values,
@@ -186,7 +186,7 @@ static partial class CsvWriter
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
     /// </remarks>
-    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
         TextWriter textWriter,
         IEnumerable<TValue> values,
@@ -227,7 +227,7 @@ static partial class CsvWriter
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
     /// </remarks>
-    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
         Stream stream,
         IEnumerable<TValue> values,
@@ -270,7 +270,7 @@ static partial class CsvWriter
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
     /// </remarks>
-    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
         PipeWriter pipe,
         IEnumerable<TValue> values,
@@ -309,7 +309,7 @@ static partial class CsvWriter
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
     /// </remarks>
-    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static async Task WriteToFileAsync<[DAM(Messages.ReflectionBound)] TValue>(
         string path,
         IEnumerable<TValue> values,
@@ -350,7 +350,7 @@ static partial class CsvWriter
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
     /// </remarks>
     [OverloadResolutionPriority(-1)] // prefer byte to char when writing to file
-    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static async Task WriteToFileAsync<[DAM(Messages.ReflectionBound)] TValue>(
         string path,
         IEnumerable<TValue> values,
@@ -392,7 +392,7 @@ static partial class CsvWriter
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
     /// </remarks>
-    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
         TextWriter textWriter,
         IAsyncEnumerable<TValue> values,
@@ -433,7 +433,7 @@ static partial class CsvWriter
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
     /// </remarks>
-    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
         Stream stream,
         IAsyncEnumerable<TValue> values,
@@ -476,7 +476,7 @@ static partial class CsvWriter
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
     /// </remarks>
-    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
         PipeWriter pipe,
         IAsyncEnumerable<TValue> values,
@@ -515,7 +515,7 @@ static partial class CsvWriter
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
     /// </remarks>
-    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static async Task WriteToFileAsync<[DAM(Messages.ReflectionBound)] TValue>(
         string path,
         IAsyncEnumerable<TValue> values,
@@ -556,7 +556,7 @@ static partial class CsvWriter
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
     /// </remarks>
     [OverloadResolutionPriority(-1)] // prefer byte to char when writing to file
-    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static async Task WriteToFileAsync<[DAM(Messages.ReflectionBound)] TValue>(
         string path,
         IAsyncEnumerable<TValue> values,

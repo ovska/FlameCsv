@@ -18,7 +18,7 @@ public sealed class CsvValueAsyncEnumerator<T, TValue> : CsvValueEnumeratorBase<
     private readonly ICsvPipeReader<T> _reader;
     private readonly CancellationToken _cancellationToken;
 
-    [RUF(Messages.CompiledExpressions)]
+    [RUF(Messages.Reflection)]
     internal CsvValueAsyncEnumerator(
         CsvOptions<T> options,
         ICsvPipeReader<T> reader,

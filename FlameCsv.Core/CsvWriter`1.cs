@@ -198,7 +198,7 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     /// see <see cref="CsvWriter{T}.NextRecord"/> and <see cref="NextRecordAsync"/>.
     /// </remarks>
     /// <param name="value">Value to write</param>
-    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public void WriteRecord<[DAM(Messages.ReflectionBound)] TRecord>(TRecord value)
     {
         ArgumentNullException.ThrowIfNull(value);
@@ -229,7 +229,7 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     /// <remarks>
     /// Does not write a trailing newline, see <see cref="CsvWriter{T}.NextRecord"/> and <see cref="NextRecordAsync"/>.
     /// </remarks>
-    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public void WriteHeader<[DAM(Messages.ReflectionBound)] TRecord>()
     {
         WriteDelimiterIfNeeded();
@@ -302,7 +302,7 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     /// <summary>
     /// Returns or creates a cached dematerializer using <see cref="CsvOptions{T}.TypeBinder"/>.
     /// </summary>
-    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     protected IDematerializer<T, TRecord>
         GetDematerializerAndIncrementFieldCount<[DAM(Messages.ReflectionBound)] TRecord>()
     {

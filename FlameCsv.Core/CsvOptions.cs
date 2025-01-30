@@ -124,10 +124,11 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     }
 
     /// <summary>
-    /// Returns the instance that binds CSV fields to members and vice versa using reflection.
+    /// The type binder used for reflection code paths.
     /// The default value is <see cref="CsvReflectionBinder{T}"/>.
     /// </summary>
     /// <seealso cref="CsvTypeMap{T,TValue}"/>
+    /// <seealso cref="CsvTypeMapAttribute{T,TValue}"/>
     public virtual ICsvTypeBinder<T> TypeBinder
     {
         get => _typeBinder ??= new CsvReflectionBinder<T>(this, ignoreUnmatched: false); // lazy initialization

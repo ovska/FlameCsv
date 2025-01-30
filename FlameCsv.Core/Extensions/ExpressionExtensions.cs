@@ -37,8 +37,8 @@ internal static class ExpressionExtensions
     /// <summary>
     /// Compiles a lambda expression into a delegate using FastExpressionCompiler.
     /// </summary>
-    [RUF(Messages.CompiledExpressions)]
-    [RDC(Messages.CompiledExpressions)]
+    [RUF(Messages.Reflection)]
+    [RDC(Messages.DynamicCode)]
     public static TDelegate CompileLambda<TDelegate>(this LambdaExpression lambda, bool throwIfClosure)
         where TDelegate : Delegate
     {

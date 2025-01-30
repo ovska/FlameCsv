@@ -201,7 +201,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     /// <inheritdoc/>
-    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public TRecord ParseRecord<[DAM(Messages.ReflectionBound)] TRecord>()
     {
         _state.EnsureVersion(_version);

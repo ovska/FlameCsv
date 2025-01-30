@@ -13,7 +13,7 @@ public interface ICsvTypeBinder<T> where T : unmanaged, IBinaryInteger<T>
     /// <summary>
     /// Returns a materializer for <typeparamref name="TValue"/> bound to a CSV header.
     /// </summary>
-    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     IMaterializer<T, TValue> GetMaterializer<TValue>(ReadOnlySpan<string> headers);
 
     /// <summary>
@@ -22,7 +22,7 @@ public interface ICsvTypeBinder<T> where T : unmanaged, IBinaryInteger<T>
     /// <exception cref="CsvBindingException">
     /// Options is configured not to write a header, but <typeparamref name="TValue"/> has no index binding.
     /// </exception>
-    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     IMaterializer<T, TValue> GetMaterializer<TValue>();
 
     /// <summary>
@@ -31,6 +31,6 @@ public interface ICsvTypeBinder<T> where T : unmanaged, IBinaryInteger<T>
     /// <exception cref="CsvBindingException">
     /// Options is configured not to write a header, but <typeparamref name="TValue"/> has no index binding.
     /// </exception>
-    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     IDematerializer<T, TValue> GetDematerializer<TValue>();
 }

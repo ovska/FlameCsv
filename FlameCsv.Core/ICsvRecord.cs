@@ -126,7 +126,7 @@ public interface ICsvRecord<T> where T : unmanaged, IBinaryInteger<T>
     /// <summary>
     /// Parses the record into an instance of <typeparamref name="TRecord"/> using reflection.
     /// </summary>
-    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     TRecord ParseRecord<[DAM(Messages.ReflectionBound)] TRecord>();
 
     /// <summary>
