@@ -1,24 +1,21 @@
 ﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
 
+[RDC(Messages.FactoryMessage), RUF(Messages.FactoryMessage)]
 internal sealed class SpanUtf8ConverterFactory : CsvConverterFactory<byte>
 {
     public static readonly SpanUtf8ConverterFactory Instance = new();
 
     private SpanUtf8ConverterFactory() { }
 
-    [SuppressMessage("Trimming", "IL2067:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The parameter of method does not have matching annotations.", Justification = "<Pending>")]
     public override bool CanConvert(Type type)
     {
         return RuntimeFeature.IsDynamicCodeSupported && CheckInterfaces(type) is not Implements.None;
     }
 
-    [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Guarded with RuntimeFeature.IsDynamicCodeSupported")]
-    [SuppressMessage("Trimming", "IL2067:Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The parameter of method does not have matching annotations.", Justification = "<Pending>")]
     public override CsvConverter<byte> Create(Type type, CsvOptions<byte> options)
     {
         Debug.Assert(RuntimeFeature.IsDynamicCodeSupported);
@@ -34,8 +31,7 @@ internal sealed class SpanUtf8ConverterFactory : CsvConverterFactory<byte>
         return toCreate.MakeGenericType(type).CreateInstance<CsvConverter<byte>>(options);
     }
 
-    [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "Guarded with RuntimeFeature.IsDynamicCodeSupported")]
-    private static Implements CheckInterfaces([DAM(DynamicallyAccessedMemberTypes.Interfaces)] Type type)
+    private static Implements CheckInterfaces(Type type)
     {
         bool? formattable = null;
         bool? parsable = null;

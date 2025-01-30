@@ -146,10 +146,10 @@ partial class CsvOptions<T>
                 converter = builtin;
                 created = true;
             }
-            else if (NullableConverterFactory<T>.Instance.CanConvert(resultType))
+            else
             {
-                converter = NullableConverterFactory<T>.Instance.Create(resultType, this);
-                created = true;
+                converter = DefaultConverterFactories.TryCreateNullable(resultType, this);
+                created = converter is not null;
             }
         }
 
@@ -212,21 +212,11 @@ partial class CsvOptions<T>
     {
         if (typeof(T) == typeof(char))
         {
-            CsvConverter<char>? result = null;
             CsvOptions<char> options = Unsafe.As<CsvOptions<char>>(this);
 
-            if (EnumTextConverterFactory.Instance.CanConvert(type))
-            {
-                result = EnumTextConverterFactory.Instance.Create(type, options);
-            }
-            else if (DefaultConverters.Text.Value.TryGetValue(type, out var factory))
-            {
-                result = factory(options);
-            }
-            else if (SpanTextConverterFactory.Instance.CanConvert(type))
-            {
-                result = SpanTextConverterFactory.Instance.Create(type, options);
-            }
+            CsvConverter<char>? result = DefaultConverters.Text.Value.TryGetValue(type, out var factory)
+                ? factory(options)
+                : DefaultConverterFactories.TryCreateChar(type, options);
 
             if (result != null)
             {
@@ -237,21 +227,11 @@ partial class CsvOptions<T>
 
         if (typeof(T) == typeof(byte))
         {
-            CsvConverter<byte>? result = null;
             CsvOptions<byte> options = Unsafe.As<CsvOptions<byte>>(this);
 
-            if (EnumUtf8ConverterFactory.Instance.CanConvert(type))
-            {
-                result = EnumUtf8ConverterFactory.Instance.Create(type, options);
-            }
-            else if (DefaultConverters.Utf8.Value.TryGetValue(type, out var factory))
-            {
-                result = factory(options);
-            }
-            else if (SpanUtf8ConverterFactory.Instance.CanConvert(type))
-            {
-                result = SpanUtf8ConverterFactory.Instance.Create(type, options);
-            }
+            CsvConverter<byte>? result = DefaultConverters.Utf8.Value.TryGetValue(type, out var factory)
+                ? factory(options)
+                : DefaultConverterFactories.TryCreateByte(type, options);
 
             if (result != null)
             {
@@ -274,7 +254,8 @@ partial class CsvOptions<T>
     /// </remarks>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public CsvConverter<T, TValue> GetOrCreate<TValue>(
-        [RequireStaticDelegate] Func<CsvOptions<T>, CsvConverter<T, TValue>> factory)
+        [RequireStaticDelegate] Func<CsvOptions<T>, CsvConverter<T, TValue>> factory,
+        bool canCache = false)
     {
         ArgumentNullException.ThrowIfNull(factory);
 
@@ -295,6 +276,13 @@ partial class CsvOptions<T>
 
         result = factory(this);
         if (result is null) InvalidConverter.Throw(factory, typeof(TValue));
+
+        if (canCache)
+        {
+            CheckConverterCacheSize();
+            _converterCache.TryAdd(typeof(TValue), result);
+        }
+
         return result;
     }
 
@@ -306,7 +294,9 @@ partial class CsvOptions<T>
     /// </remarks>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public CsvConverter<T, TValue?> GetOrCreateNullable<TValue>(
-        [RequireStaticDelegate] Func<CsvOptions<T>, CsvConverter<T, TValue>> factory) where TValue : struct
+        [RequireStaticDelegate] Func<CsvOptions<T>, CsvConverter<T, TValue>> factory,
+        bool canCache = false)
+        where TValue : struct
     {
         if (TryGetExistingOrCustomConverter(typeof(TValue?), out CsvConverter<T>? converter, out bool created))
         {
@@ -323,7 +313,16 @@ partial class CsvOptions<T>
 
         CsvConverter<T, TValue> inner = GetOrCreate(factory);
         if (inner is null) InvalidConverter.Throw(factory, typeof(TValue));
-        return NullableConverterFactory<T>.Create(inner, GetNullToken(typeof(TValue)));
+
+        var result = TrimmableNullableConverter.Create(inner, GetNullToken(typeof(TValue)));
+
+        if (canCache)
+        {
+            CheckConverterCacheSize();
+            _converterCache.TryAdd(typeof(TValue?), result);
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -344,7 +343,8 @@ partial class CsvOptions<T>
                     {
                         if (!o.UseDefaultConverters) CsvConverterMissingException.Throw(typeof(TEnum));
                         return new EnumTextConverter<TEnum>(o);
-                    });
+                    },
+                    canCache: true);
         }
 
         if (typeof(T) == typeof(byte))
@@ -356,10 +356,11 @@ partial class CsvOptions<T>
                     {
                         if (!o.UseDefaultConverters) CsvConverterMissingException.Throw(typeof(TEnum));
                         return new EnumUtf8Converter<TEnum>(o);
-                    });
+                    },
+                    canCache: true);
         }
 
-        return GetConverter<TEnum>();
+        throw new NotSupportedException("Enum converters are only supported for char and byte");
     }
 
 #endregion
@@ -378,5 +379,60 @@ file static class InvalidConverter
     {
         throw new CsvConfigurationException(
             $"{factory.GetType().FullName} returned an invalid converter for {toConvert.FullName}");
+    }
+}
+
+[UnconditionalSuppressMessage(
+    "Trimming",
+    "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code",
+    Justification = "<Pending>")]
+file static class DefaultConverterFactories
+{
+    public static CsvConverter<T>? TryCreateNullable<T>(Type type, CsvOptions<T> options)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        if (RuntimeFeature.IsDynamicCodeSupported &&
+            NullableConverterFactory<T>.Instance.CanConvert(type))
+        {
+            return NullableConverterFactory<T>.Instance.Create(type, options);
+        }
+
+        return null;
+    }
+
+    public static CsvConverter<char>? TryCreateChar(Type type, CsvOptions<char> options)
+    {
+        if (RuntimeFeature.IsDynamicCodeSupported)
+        {
+            if (EnumTextConverterFactory.Instance.CanConvert(type))
+            {
+                return EnumTextConverterFactory.Instance.Create(type, options);
+            }
+
+            if (SpanTextConverterFactory.Instance.CanConvert(type))
+            {
+                return SpanTextConverterFactory.Instance.Create(type, options);
+            }
+        }
+
+        return null;
+    }
+
+    public static CsvConverter<byte>? TryCreateByte(Type type, CsvOptions<byte> options)
+    {
+        if (RuntimeFeature.IsDynamicCodeSupported)
+        {
+            if (EnumUtf8ConverterFactory.Instance.CanConvert(type))
+            {
+                return EnumUtf8ConverterFactory.Instance.Create(type, options);
+            }
+
+            if (SpanUtf8ConverterFactory.Instance.CanConvert(type))
+            {
+                return SpanUtf8ConverterFactory.Instance.Create(type, options);
+            }
+        }
+
+        return null;
     }
 }

@@ -89,7 +89,7 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
         }
 
         return list.Count > 0
-            ? new CsvBindingCollection<TValue>(list, write, isInternalCall: true)
+            ? new CsvBindingCollection<TValue>(list, write)
             : null;
 
         static bool HasIgnoredIndex(int index, List<CsvBinding<TValue>> list)

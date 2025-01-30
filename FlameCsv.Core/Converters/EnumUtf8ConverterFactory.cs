@@ -1,9 +1,9 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
 
+[RDC(Messages.FactoryMessage), RUF(Messages.FactoryMessage)]
 internal sealed class EnumUtf8ConverterFactory : CsvConverterFactory<byte>
 {
     public static EnumUtf8ConverterFactory Instance { get; } = new();
@@ -16,12 +16,8 @@ internal sealed class EnumUtf8ConverterFactory : CsvConverterFactory<byte>
 
     public override CsvConverter<byte> Create(Type type, CsvOptions<byte> options)
     {
-        return CreateConverterType(type).CreateInstance<CsvConverter<byte>>(options);
+        return typeof(EnumUtf8Converter<>)
+            .MakeGenericType(type)
+            .CreateInstance<CsvConverter<byte>>(options);
     }
-
-    [return: DAM(Messages.Ctors)]
-    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL3050", Justification = Messages.StructFactorySuppressionMessage)]
-    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2070", Justification = Messages.StructFactorySuppressionMessage)]
-    [SuppressMessage("Trimming", "IL2071", Justification = Messages.StructFactorySuppressionMessage)]
-    private static Type CreateConverterType(Type resultType) => typeof(EnumUtf8Converter<>).MakeGenericType(resultType);
 }

@@ -14,6 +14,7 @@ internal abstract class DelegateGenerator<T> where T : unmanaged, IBinaryInteger
     protected abstract Delegate GetValueFactory<[DAM(Messages.Ctors)] TResult>(
         CsvBindingCollection<TResult> bc);
 
+    [RDC(Messages.FactoryMessage), RUF(Messages.FactoryMessage)]
     public MaterializerFactory<TResult> GetMaterializerFactory<[DAM(Messages.Ctors)] TResult>(
         CsvBindingCollection<TResult> bc)
     {
@@ -32,6 +33,7 @@ internal abstract class DelegateGenerator<T> where T : unmanaged, IBinaryInteger
         public Delegate ValueFactory { get; init; }
         public Func<object[], IMaterializer<T, TResult>> MaterializerFactory { get; init; }
 
+        [RDC(Messages.FactoryMessage), RUF(Messages.FactoryMessage)]
         public IMaterializer<T, TResult> Invoke(CsvOptions<T> options)
         {
             var bindings = BindingCollection.Bindings;
@@ -53,6 +55,7 @@ internal abstract class DelegateGenerator<T> where T : unmanaged, IBinaryInteger
             return MaterializerFactory(materializerCtorArgs);
         }
 
+        [RDC(Messages.FactoryMessage), RUF(Messages.FactoryMessage)]
         private static CsvConverter<T> ResolveConverter(CsvBinding<TResult> binding, CsvOptions<T> options)
         {
             if (binding.IsIgnored)

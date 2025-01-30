@@ -122,7 +122,7 @@ internal static class MaterializerExtensions
             }
         }
 
-        bindingCollection = new CsvBindingCollection<TTuple>(bindingsList, write, isInternalCall: true);
+        bindingCollection = new CsvBindingCollection<TTuple>(bindingsList, write);
         return true;
     }
 }

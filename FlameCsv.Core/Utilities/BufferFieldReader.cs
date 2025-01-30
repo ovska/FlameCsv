@@ -1,9 +1,7 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using FlameCsv.Reading;
+﻿using FlameCsv.Reading;
 
 namespace FlameCsv.Utilities;
 
-[SuppressMessage("CodeQuality", "IDE0064:Make readonly fields writable")]
 internal ref struct BufferFieldReader<T> : ICsvRecordFields<T> where T : unmanaged, IBinaryInteger<T>
 {
     private readonly ReadOnlySpan<T> _rawValue;
@@ -37,6 +35,4 @@ internal ref struct BufferFieldReader<T> : ICsvRecordFields<T> where T : unmanag
     }
 
     public ReadOnlySpan<T> this[int index] => _rawValue[_ranges[index]];
-
-    public void Reset() => _index = 0;
 }

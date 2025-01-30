@@ -8,7 +8,7 @@ namespace FlameCsv.Reading;
 [EditorBrowsable(EditorBrowsableState.Never)]
 [DebuggerDisplay(@"\{ ReadResult<{typeof(T).Name,nq}> Length: {Buffer.Length}, IsCompleted: {IsCompleted} \}")]
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-public readonly struct CsvReadResult<T>(in ReadOnlySequence<T> buffer, bool isCompleted) where T : unmanaged, IBinaryInteger<T>
+internal readonly struct CsvReadResult<T>(in ReadOnlySequence<T> buffer, bool isCompleted) where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Data read from the data source, e.g., PipeReader or TextReader.
