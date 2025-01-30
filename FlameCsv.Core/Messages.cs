@@ -11,8 +11,11 @@ internal static class Messages
         DynamicallyAccessedMemberTypes.PublicProperties |
         DynamicallyAccessedMemberTypes.PublicFields;
 
+    public const string DynamicCode = "This code path uses compiled expressions. " +
+        "Use the overloads accepting source generated CsvTypeMap for AOT/trimming compatible code.";
+
     public const string CompiledExpressions =
-        "This code path uses reflection and compiled expressions. " +
+        "This code path uses reflection. " +
         "Use the overloads accepting source generated CsvTypeMap for AOT/trimming compatible code.";
 
     public const string StructFactorySuppressionMessage =
