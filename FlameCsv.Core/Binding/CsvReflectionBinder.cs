@@ -119,7 +119,7 @@ public abstract class CsvReflectionBinder
             foundBindings.Add(binding ?? CsvBinding.Ignore<TValue>(index: foundBindings.Count));
         }
 
-        return new CsvBindingCollection<TValue>(foundBindings, write: false, isInternalCall: true);
+        return new CsvBindingCollection<TValue>(foundBindings, write: false);
     }
 
     [RUF(Messages.Reflection)]
@@ -185,7 +185,7 @@ public abstract class CsvReflectionBinder
                 result.Add(CsvBinding.FromHeaderBinding<TValue>(index++, in candidate));
         }
 
-        return new CsvBindingCollection<TValue>(result, write: true, isInternalCall: true);
+        return new CsvBindingCollection<TValue>(result, write: true);
     }
 
     internal static readonly TrimmingCache<Type, HeaderDataEntry> Cache = [];
