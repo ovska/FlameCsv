@@ -22,7 +22,7 @@ public static partial class CsvReader
     /// Convert the record to <see cref="CsvRecord{T}"/> to make a copy of the data if you need to preserve it.
     /// </remarks>
     /// <param name="csv">CSV data</param>
-    /// <param name="options">Options instance. If null, <see cref="CsvOptions{T}.Default"/> is used</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     public static CsvRecordEnumerable<char> Enumerate(
         string? csv,
         CsvOptions<char>? options = null)
@@ -67,9 +67,9 @@ public static partial class CsvReader
     /// </summary>
     /// <remarks><inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)" path="/remarks"/></remarks>
     /// <param name="stream">Stream to read the records from</param>
-    /// <param name="options"><inheritdoc cref="Enumerate(string?, CsvOptions{char})" path="/param[@name='options']"/></param>
-    /// <param name="encoding">Constructor parameter for the inner <see cref="StreamReader"/></param>
-    /// <param name="leaveOpen">Constructor parameter for the inner <see cref="StreamReader"/></param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="encoding">Encoding to use for the inner <see cref="StreamReader"/></param>
+    /// <param name="leaveOpen">Whether to leave the stream open after reading</param>
     public static CsvRecordAsyncEnumerable<char> EnumerateAsync(
         Stream stream,
         CsvOptions<char>? options = null,
@@ -89,7 +89,7 @@ public static partial class CsvReader
     /// </summary>
     /// <remarks><inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)" path="/remarks"/></remarks>
     /// <param name="textReader">Text reader to read the records from</param>
-    /// <param name="options"><inheritdoc cref="Enumerate(string?, CsvOptions{char})" path="/param[@name='options']"/></param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     public static CsvRecordAsyncEnumerable<char> EnumerateAsync(
         TextReader textReader,
         CsvOptions<char>? options = null)
@@ -103,12 +103,12 @@ public static partial class CsvReader
     }
 
     /// <summary>
-    /// Reads CSV records asynchronously from the stream by creating a <see cref="PipeReader"/> using the provided options.
+    /// Reads CSV records asynchronously from the <see cref="Stream"/>.
     /// </summary>
     /// <remarks><inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)" path="/remarks"/></remarks>
     /// <param name="stream">Stream to read the records from</param>
-    /// <param name="options"><inheritdoc cref="Enumerate(string?, CsvOptions{char})" path="/param[@name='options']"/></param>
-    /// <param name="leaveOpen">If true, the stream is disposed after enumeration ends</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="leaveOpen">Whether to leave the stream open after reading</param>
     [OverloadResolutionPriority(1)] // Prefer byte to char for ambiguous streams
     public static CsvRecordAsyncEnumerable<byte> EnumerateAsync(
         Stream stream,
@@ -124,11 +124,11 @@ public static partial class CsvReader
     }
 
     /// <summary>
-    /// Reads CSV records asynchronously from the pipe.
+    /// Reads CSV records asynchronously from the <see cref="PipeReader"/>.
     /// </summary>
     /// <remarks><inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)" path="/remarks"/></remarks>
     /// <param name="pipeReader">Pipe to read the records from</param>
-    /// <param name="options"><inheritdoc cref="Enumerate(string?, CsvOptions{char})" path="/param[@name='options']"/></param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     public static CsvRecordAsyncEnumerable<byte> EnumerateAsync(
         PipeReader pipeReader,
         CsvOptions<byte>? options = null)

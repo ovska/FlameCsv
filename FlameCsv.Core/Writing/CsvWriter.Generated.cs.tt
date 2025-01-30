@@ -35,7 +35,7 @@ static partial class CsvWriter
 
         string attrs = sourceGen
             ? ""
-            : "[RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]\n    ";
+            : "[RUF(Messages.Reflection), RDC(Messages.DynamicCode)]\n    ";
 
         string typeAttrs = sourceGen
             ? ""
@@ -188,7 +188,7 @@ static partial class CsvWriter
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(values);
-        FlameCsv.Extensions.Guard.CanRead(stream);
+        FlameCsv.Extensions.Guard.CanWrite(stream);
 
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = <#= bindValue #>;
@@ -261,7 +261,7 @@ static partial class CsvWriter
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(values);
-        FlameCsv.Extensions.Guard.CanRead(stream);
+        FlameCsv.Extensions.Guard.CanWrite(stream);
 
         try
         {
