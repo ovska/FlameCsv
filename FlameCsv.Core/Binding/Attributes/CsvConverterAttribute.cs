@@ -26,6 +26,7 @@ public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute
     /// <summary>
     /// Creates the configured converter.
     /// </summary>
+    [RDC(Messages.FactoryMessage), RUF(Messages.FactoryMessage)]
     public CsvConverter<T> CreateConverter(Type targetType, CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -54,10 +55,10 @@ public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute
 
                 if (converter is not null)
                 {
-                    instanceOrFactory = NullableConverterFactory<T>.GetParserType(underlying)
-                        .CreateInstance<CsvConverter<T>>(
-                            converter,
-                            options.GetNullToken(underlying));
+                    instanceOrFactory = NullableConverterFactory<T>.CreateCore(
+                        underlying,
+                        converter,
+                        options.GetNullToken(underlying));
                     goto Success;
                 }
             }

@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding.Internal;
@@ -63,23 +62,17 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
     public CsvBindingCollection(IEnumerable<CsvBinding<TValue>> bindings, bool write)
         : this(
               (bindings ?? throw new ArgumentNullException(nameof(bindings))).ToList(),
-              write,
-              isInternalCall: true)
+              write)
     {
     }
 
     /// <summary>
     /// Internal use only. The parameter list is modified and retained.
     /// </summary>
-    [SuppressMessage("ReSharper", "ParameterOnlyUsedForPreconditionCheck.Local")]
     internal CsvBindingCollection(
         List<CsvBinding<TValue>> bindingsList,
-        bool write,
-        bool isInternalCall)
+        bool write)
     {
-        if (!isInternalCall)
-            throw new UnreachableException();
-
         ArgumentNullException.ThrowIfNull(bindingsList);
 
         if (bindingsList.Count == 0)

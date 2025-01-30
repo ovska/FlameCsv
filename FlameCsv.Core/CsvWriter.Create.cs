@@ -10,7 +10,7 @@ static partial class CsvWriter
     /// Returns a writer instance that can be used to write custom fields, multiple different types,
     /// or multiple CSV documents into the same output.<br/>
     /// After use, the writer should be disposed, or completed with <see cref="CsvWriter{T}.Complete"/> or
-    /// <see cref="CsvWriter{T}.CompleteAsync"/>.
+    /// <see cref="CsvAsyncWriter{T}.CompleteAsync"/>.
     /// </summary>
     /// <param name="textWriter">Writer to write the CSV to</param>
     /// <param name="options">Options instance. If null, <see cref="CsvOptions{T}.Default"/> is used</param>

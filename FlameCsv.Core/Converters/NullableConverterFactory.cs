@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using FlameCsv.Extensions;
 #if DEBUG
@@ -13,6 +12,7 @@ namespace FlameCsv.Converters;
 /// <summary>
 /// Factory for <see cref="NullableConverter{T,TValue}"/>
 /// </summary>
+[RDC(Messages.FactoryMessage), RUF(Messages.FactoryMessage)]
 internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
     where T : unmanaged, IBinaryInteger<T>
 {
@@ -59,28 +59,8 @@ internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
             GetParserType(structType).CreateInstance<CsvConverter<T>>(converterOfT, nullToken);
     }
 
-
-    [return: DAM(Messages.Ctors)]
-    [UnconditionalSuppressMessage(
-        "ReflectionAnalysis",
-        "IL3050",
-        Justification = Messages.StructFactorySuppressionMessage)]
-    [UnconditionalSuppressMessage(
-        "ReflectionAnalysis",
-        "IL2070",
-        Justification = Messages.StructFactorySuppressionMessage)]
-    [SuppressMessage("Trimming", "IL2071", Justification = Messages.StructFactorySuppressionMessage)]
     internal static Type GetParserType(Type type) => typeof(NullableConverter<,>).MakeGenericType(typeof(T), type);
 
-    [UnconditionalSuppressMessage(
-        "ReflectionAnalysis",
-        "IL3050",
-        Justification = Messages.StructFactorySuppressionMessage)]
-    [UnconditionalSuppressMessage(
-        "ReflectionAnalysis",
-        "IL2070",
-        Justification = Messages.StructFactorySuppressionMessage)]
-    [SuppressMessage("Trimming", "IL2071", Justification = Messages.StructFactorySuppressionMessage)]
     private static CsvConverter<T>? TryGetEmpty(
         Type structType,
         CsvConverter<T> converter,
@@ -96,15 +76,6 @@ internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
         return null;
     }
 
-    [UnconditionalSuppressMessage(
-        "ReflectionAnalysis",
-        "IL3050",
-        Justification = Messages.StructFactorySuppressionMessage)]
-    [UnconditionalSuppressMessage(
-        "ReflectionAnalysis",
-        "IL2070",
-        Justification = Messages.StructFactorySuppressionMessage)]
-    [SuppressMessage("Trimming", "IL2071", Justification = Messages.StructFactorySuppressionMessage)]
     private static CsvConverter<T>? TryGetArray(
         Type structType,
         CsvConverter<T> converter,
@@ -120,16 +91,6 @@ internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
         return null;
     }
 
-
-    [UnconditionalSuppressMessage(
-        "ReflectionAnalysis",
-        "IL3050",
-        Justification = Messages.StructFactorySuppressionMessage)]
-    [UnconditionalSuppressMessage(
-        "ReflectionAnalysis",
-        "IL2070",
-        Justification = Messages.StructFactorySuppressionMessage)]
-    [SuppressMessage("Trimming", "IL2071", Justification = Messages.StructFactorySuppressionMessage)]
     private static CsvConverter<T>? TryGetString(
         Type structType,
         CsvConverter<T> converter,
@@ -148,10 +109,14 @@ internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
 
         return null;
     }
+}
 
-    public static CsvConverter<T, TValue?> Create<TValue>(
+internal static class TrimmableNullableConverter
+{
+    public static CsvConverter<T, TValue?> Create<T, TValue>(
         CsvConverter<T, TValue> inner,
         ReadOnlyMemory<T> nullToken)
+        where T : unmanaged, IBinaryInteger<T>
         where TValue : struct
     {
         if (nullToken.IsEmpty) return new OptimizedNullEmptyConverter<T, TValue>(inner);
