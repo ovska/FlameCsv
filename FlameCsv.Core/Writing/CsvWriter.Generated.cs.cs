@@ -161,7 +161,7 @@ static partial class CsvWriter
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(values);
-        FlameCsv.Extensions.Guard.CanRead(stream);
+        FlameCsv.Extensions.Guard.CanWrite(stream);
 
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
@@ -238,7 +238,7 @@ static partial class CsvWriter
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(values);
-        FlameCsv.Extensions.Guard.CanRead(stream);
+        FlameCsv.Extensions.Guard.CanWrite(stream);
 
         try
         {
@@ -444,7 +444,7 @@ static partial class CsvWriter
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(values);
-        FlameCsv.Extensions.Guard.CanRead(stream);
+        FlameCsv.Extensions.Guard.CanWrite(stream);
 
         try
         {
@@ -740,7 +740,7 @@ static partial class CsvWriter
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(values);
-        FlameCsv.Extensions.Guard.CanRead(stream);
+        FlameCsv.Extensions.Guard.CanWrite(stream);
 
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
@@ -819,7 +819,7 @@ static partial class CsvWriter
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(values);
-        FlameCsv.Extensions.Guard.CanRead(stream);
+        FlameCsv.Extensions.Guard.CanWrite(stream);
 
         try
         {
@@ -1030,7 +1030,7 @@ static partial class CsvWriter
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(values);
-        FlameCsv.Extensions.Guard.CanRead(stream);
+        FlameCsv.Extensions.Guard.CanWrite(stream);
 
         try
         {

@@ -6,6 +6,7 @@ using FlameCsv.Binding;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Utilities;
+using JetBrains.Annotations;
 
 namespace FlameCsv;
 
@@ -13,6 +14,7 @@ namespace FlameCsv;
 /// Represents the current record when reading CSV.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
+[PublicAPI]
 [DebuggerTypeProxy(typeof(CsvValueRecord<>.CsvRecordDebugView))]
 public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMemory<T>>
     where T : unmanaged, IBinaryInteger<T>
@@ -309,5 +311,8 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
     /// <summary>
     /// Preserves the data in the value record.
     /// </summary>
+    public CsvRecord<T> Preserve() => new(in this);
+
+    /// <inheritdoc cref="Preserve"/>
     public static explicit operator CsvRecord<T>(in CsvValueRecord<T> record) => new(in record);
 }

@@ -7,7 +7,7 @@ namespace FlameCsv.Enumeration;
 /// <summary>
 /// Enumerable that can be used to read <typeparamref name="TValue"/> using reflection.
 /// </summary>
-[RUF(Messages.Reflection)]
+[RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
 public sealed class CsvValueEnumerable<T, [DAM(Messages.ReflectionBound)] TValue> : IEnumerable<TValue>
     where T : unmanaged, IBinaryInteger<T>
 {
