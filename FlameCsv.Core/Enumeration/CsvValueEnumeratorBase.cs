@@ -4,7 +4,6 @@ using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using System.Runtime.CompilerServices;
 using FlameCsv.Reading;
-using FlameCsv.Runtime;
 using FlameCsv.Utilities;
 using System.Diagnostics;
 using JetBrains.Annotations;
@@ -42,40 +41,28 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     /// </remarks>
     public CsvExceptionHandler<T>? ExceptionHandler { get; init; }
 
-    private readonly CsvTypeMap<T, TValue>? _typeMap;
     private IMaterializer<T, TValue>? _materializer;
     private string[]? _headersArray;
 
     [HandlesResourceDisposal] private protected readonly CsvParser<T> _parser;
 
-    private protected CsvValueEnumeratorBase(CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
-        : this(options, null, typeMap)
-    {
-        ArgumentNullException.ThrowIfNull(typeMap);
-    }
-
-    private protected CsvValueEnumeratorBase(CsvOptions<T> options, IMaterializer<T, TValue>? materializer)
-        : this(options, materializer, null)
-    {
-    }
-
-    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    private protected CsvValueEnumeratorBase(CsvOptions<T> options) : this(options, null, null)
-    {
-    }
-
-    private CsvValueEnumeratorBase(
-        CsvOptions<T> options,
-        IMaterializer<T, TValue>? materializer,
-        CsvTypeMap<T, TValue>? typeMap)
+    private protected CsvValueEnumeratorBase(CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
         _parser = CsvParser.Create(options);
-        _materializer = materializer;
-        _typeMap = typeMap;
         Current = default!;
     }
+
+    /// <summary>
+    /// Returns a materializer bound to <paramref name="headers"/>.
+    /// </summary>
+    protected abstract IMaterializer<T, TValue> BindToHeaders(ReadOnlySpan<string> headers);
+
+    /// <summary>
+    /// Returns a materializer bound to field indexes.
+    /// </summary>
+    protected abstract IMaterializer<T, TValue> BindToHeaderless();
 
     private protected bool TryRead(bool isFinalBlock)
     {
@@ -151,19 +138,11 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     }
 
     [MemberNotNull(nameof(_materializer))]
-    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = Messages.HeaderProcessorSuppressionMessage)]
-    [UnconditionalSuppressMessage("Trimming", "IL2091", Justification = Messages.HeaderProcessorSuppressionMessage)]
-    [UnconditionalSuppressMessage("AOT", "IL3050", Justification = Messages.HeaderProcessorSuppressionMessage)]
     private bool TryReadHeader(ref readonly CsvLine<T> record)
     {
-        Debug.Assert(
-            _typeMap is not null || (RuntimeFeature.IsDynamicCodeSupported && RuntimeFeature.IsDynamicCodeCompiled));
-
         if (!_parser.Options.HasHeader)
         {
-            _materializer = _typeMap is null
-                ? _parser.Options.GetMaterializer<T, TValue>()
-                : _typeMap.GetMaterializer(_parser.Options);
+            _materializer = BindToHeaderless();
             return false;
         }
 
@@ -180,9 +159,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
 
         ReadOnlySpan<string> headers = list.AsSpan();
 
-        _materializer = _typeMap is null
-            ? _parser.Options.TypeBinder.GetMaterializer<TValue>(headers)
-            : _typeMap.GetMaterializer(headers, _parser.Options);
+        _materializer = BindToHeaders(headers);
 
         // we need a copy of the headers for the callbacks
         if (ExceptionHandler is not null || _parser.Options._recordCallback is not null)
