@@ -12,11 +12,30 @@ namespace FlameCsv;
 static partial class CsvWriter
 {
 <#
+    const string docPath = "<param name=\"path\">Path of the destination file. Existing files are overwritten</param>";
+    const string docValues = "<param name=\"values\">Values to write</param>";
+    const string docOptions = "<param name=\"options\">Options to use, <see cref=\"CsvOptions{T}.Default\"/> used by default</param>";
+    const string docToken = "<param name=\"cancellationToken\">Token to cancel the writing operation</param>";
+    const string docReturns = "<returns>Task representing the asynchronous writing operation</returns>";
+    const string docBuffersize = "<param name=\"bufferSize\">Buffer size to use for writing</param>";
+    const string docEncoding = "<param name=\"encoding\">Encoding to pass to the inner <see cref=\"StreamWriter\"/></param>";
+    const string docRemarks =
+        """
+        <remarks>
+            /// Data is written even if <paramref name="values"/> empty,
+            /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+            /// </remarks>
+        """;
+
     foreach (var sourceGen in (bool[])[false, true])
     {
+        string docSuffix = sourceGen
+            ? " using the type map"
+            : " using <see cref=\"CsvOptions{T}.TypeBinder\"/>";
+
         string attrs = sourceGen
             ? ""
-            : "[RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]\n    ";
+            : "[RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]\n    ";
 
         string typeAttrs = sourceGen
             ? ""
@@ -33,7 +52,46 @@ static partial class CsvWriter
         string typeMapChar = sourceGen
             ? "\n        CsvTypeMap<char, TValue> typeMap,"
             : "";
+
+        string typeMapDocs = sourceGen
+            ? "\n    /// <param name=\"typeMap\">Type map to use for writing</param>"
+            : "";
 #>
+    /// <summary>
+    /// Writes the values as CSV records to a string<#= docSuffix #>.
+    /// </summary>
+    /// <#= docValues #><#= typeMapDocs #>
+    /// <#= docOptions #>
+    /// <param name="builder">Optional builder to write the CSV to.</param>
+    /// <returns>
+    /// <see cref="StringBuilder"/> containing the CSV (same instance as <paramref name="builder"/> if provided)
+    /// </returns>
+    /// <#= docRemarks #>
+    <#= attrs #>public static StringBuilder WriteToString<<#= typeAttrs #>TValue>(
+        IEnumerable<TValue> values,<#= typeMapChar #>
+        CsvOptions<char>? options = null,
+        StringBuilder? builder = null)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+
+        options ??= CsvOptions<char>.Default;
+        IDematerializer<char, TValue> dematerializer = <#= bindValue #>;
+
+        builder ??= new();
+        WriteCore(
+            values,
+            CsvFieldWriter.Create(new StringWriter(builder), options, bufferSize: DefaultBufferSize, leaveOpen: false),
+            dematerializer);
+        return builder;
+    }
+
+    /// <summary>
+    /// Writes the values as CSV records to a file<#= docSuffix #>.
+    /// </summary>
+    /// <#= docPath #>
+    /// <#= docValues #><#= typeMapDocs #>
+    /// <#= docOptions #>
+    /// <#= docRemarks #>
     <#= attrs #>public static void WriteToFile<<#= typeAttrs #>TValue>(
         string path,
         IEnumerable<TValue> values,<#= typeMapByte #>
@@ -53,6 +111,15 @@ static partial class CsvWriter
             dematerializer);
     }
 
+    /// <summary>
+    /// Writes the values as CSV records to a file<#= docSuffix #>.
+    /// </summary>
+    /// <#= docPath #>
+    /// <#= docValues #><#= typeMapDocs #>
+    /// <#= docOptions #>
+    /// <#= docEncoding #>
+    /// <#= docBuffersize #>
+    /// <#= docRemarks #>
     [OverloadResolutionPriority(-1)] // prefer byte to char when writing to file
     <#= attrs #>public static void WriteToFile<<#= typeAttrs #>TValue>(
         string path,
@@ -75,6 +142,15 @@ static partial class CsvWriter
             dematerializer);
     }
 
+    /// <summary>
+    /// Writes the values as CSV records to the <see cref="TextWriter"/><#= docSuffix #>.
+    /// </summary>
+    /// <param name="textWriter">Writer to write the CSV to</param>
+    /// <#= docValues #><#= typeMapDocs #>
+    /// <#= docOptions #>
+    /// <#= docBuffersize #>
+    /// <param name="leaveOpen">Whether to leave the writer open after writing</param>
+    /// <#= docRemarks #>
     <#= attrs #>public static void Write<<#= typeAttrs #>TValue>(
         TextWriter textWriter,
         IEnumerable<TValue> values,<#= typeMapChar #>
@@ -94,6 +170,15 @@ static partial class CsvWriter
             dematerializer);
     }
 
+    /// <summary>
+    /// Writes the values as CSV records to the <see cref="Stream"/><#= docSuffix #>.
+    /// </summary>
+    /// <param name="stream">Stream to write the CSV to</param>
+    /// <#= docValues #><#= typeMapDocs #>
+    /// <#= docOptions #>
+    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="leaveOpen">Whether to leave the stream open after writing</param>
+    /// <#= docRemarks #>
     <#= attrs #>public static void Write<<#= typeAttrs #>TValue>(
         Stream stream,
         IEnumerable<TValue> values,<#= typeMapByte #>
@@ -118,6 +203,17 @@ static partial class CsvWriter
         foreach (var enumerableType in (string[])["IEnumerable<TValue>", "IAsyncEnumerable<TValue>"])
         {
 #>
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to the <see cref="TextWriter"/><#= docSuffix #>.
+    /// </summary>
+    /// <param name="textWriter">Writer to write the CSV to</param>
+    /// <#= docValues #><#= typeMapDocs #>
+    /// <#= docOptions #>
+    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="leaveOpen">Whether to leave the writer open after writing</param>
+    /// <#= docToken #>
+    /// <#= docReturns #>
+    /// <#= docRemarks #>
     <#= attrs #>public static async Task WriteAsync<<#= typeAttrs #>TValue>(
         TextWriter textWriter,
         <#= enumerableType #> values,<#= typeMapChar #>
@@ -144,6 +240,17 @@ static partial class CsvWriter
         }
     }
 
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to the <see cref="Stream"/><#= docSuffix #>.
+    /// </summary>
+    /// <param name="stream">Stream to write the CSV to</param>
+    /// <#= docValues #><#= typeMapDocs #>
+    /// <#= docOptions #>
+    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="leaveOpen">Whether to leave the stream open after writing</param>
+    /// <#= docToken #>
+    /// <#= docReturns #>
+    /// <#= docRemarks #>
     <#= attrs #>public static async Task WriteAsync<<#= typeAttrs #>TValue>(
         Stream stream,
         <#= enumerableType #> values,<#= typeMapByte #>
@@ -174,6 +281,15 @@ static partial class CsvWriter
         }
     }
 
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to the <see cref="PipeWriter"/><#= docSuffix #>.
+    /// </summary>
+    /// <param name="pipe">Pipe to write the CSV to</param>
+    /// <#= docValues #><#= typeMapDocs #>
+    /// <#= docOptions #>
+    /// <#= docToken #>
+    /// <#= docReturns #>
+    /// <#= docRemarks #>
     <#= attrs #>public static async Task WriteAsync<<#= typeAttrs #>TValue>(
         PipeWriter pipe,
         <#= enumerableType #> values,<#= typeMapByte #>
@@ -200,6 +316,15 @@ static partial class CsvWriter
             cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to a file<#= docSuffix #>.
+    /// </summary>
+    /// <#= docPath #>
+    /// <#= docValues #><#= typeMapDocs #>
+    /// <#= docOptions #>
+    /// <#= docToken #>
+    /// <#= docReturns #>
+    /// <#= docRemarks #>
     <#= attrs #>public static async Task WriteToFileAsync<<#= typeAttrs #>TValue>(
         string path,
         <#= enumerableType #> values,<#= typeMapByte #>
@@ -225,6 +350,17 @@ static partial class CsvWriter
         }
     }
 
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to a file<#= docSuffix #>.
+    /// </summary>
+    /// <#= docPath #>
+    /// <#= docValues #><#= typeMapDocs #>
+    /// <#= docOptions #>
+    /// <#= docEncoding #>
+    /// <#= docBuffersize #>
+    /// <#= docToken #>
+    /// <#= docReturns #>
+    /// <#= docRemarks #>
     [OverloadResolutionPriority(-1)] // prefer byte to char when writing to file
     <#= attrs #>public static async Task WriteToFileAsync<<#= typeAttrs #>TValue>(
         string path,

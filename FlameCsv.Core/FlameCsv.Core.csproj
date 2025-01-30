@@ -111,12 +111,6 @@
     <Compile Update="CsvWriter.Create.cs">
       <DependentUpon>CsvWriter.cs</DependentUpon>
     </Compile>
-    <Compile Update="CsvWriter.Reflection.cs">
-      <DependentUpon>CsvWriter.cs</DependentUpon>
-    </Compile>
-    <Compile Update="CsvWriter.TypeMap.cs">
-      <DependentUpon>CsvWriter.cs</DependentUpon>
-    </Compile>
     <Compile Update="Writing\CsvWriter.Generated.cs.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

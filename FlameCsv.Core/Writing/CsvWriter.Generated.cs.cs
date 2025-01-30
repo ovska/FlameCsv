@@ -10,7 +10,49 @@ namespace FlameCsv;
 
 static partial class CsvWriter
 {
-    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    /// <summary>
+    /// Writes the values as CSV records to a string using <see cref="CsvOptions{T}.TypeBinder"/>.
+    /// </summary>
+    /// <param name="values">Values to write</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="builder">Optional builder to write the CSV to.</param>
+    /// <returns>
+    /// <see cref="StringBuilder"/> containing the CSV (same instance as <paramref name="builder"/> if provided)
+    /// </returns>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
+    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
+    public static StringBuilder WriteToString<[DAM(Messages.ReflectionBound)] TValue>(
+        IEnumerable<TValue> values,
+        CsvOptions<char>? options = null,
+        StringBuilder? builder = null)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+
+        options ??= CsvOptions<char>.Default;
+        IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
+
+        builder ??= new();
+        WriteCore(
+            values,
+            CsvFieldWriter.Create(new StringWriter(builder), options, bufferSize: DefaultBufferSize, leaveOpen: false),
+            dematerializer);
+        return builder;
+    }
+
+    /// <summary>
+    /// Writes the values as CSV records to a file using <see cref="CsvOptions{T}.TypeBinder"/>.
+    /// </summary>
+    /// <param name="path">Path of the destination file. Existing files are overwritten</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
+    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
     public static void WriteToFile<[DAM(Messages.ReflectionBound)] TValue>(
         string path,
         IEnumerable<TValue> values,
@@ -30,8 +72,20 @@ static partial class CsvWriter
             dematerializer);
     }
 
+    /// <summary>
+    /// Writes the values as CSV records to a file using <see cref="CsvOptions{T}.TypeBinder"/>.
+    /// </summary>
+    /// <param name="path">Path of the destination file. Existing files are overwritten</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="encoding">Encoding to pass to the inner <see cref="StreamWriter"/></param>
+    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
     [OverloadResolutionPriority(-1)] // prefer byte to char when writing to file
-    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
     public static void WriteToFile<[DAM(Messages.ReflectionBound)] TValue>(
         string path,
         IEnumerable<TValue> values,
@@ -53,7 +107,19 @@ static partial class CsvWriter
             dematerializer);
     }
 
-    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    /// <summary>
+    /// Writes the values as CSV records to the <see cref="TextWriter"/> using <see cref="CsvOptions{T}.TypeBinder"/>.
+    /// </summary>
+    /// <param name="textWriter">Writer to write the CSV to</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="leaveOpen">Whether to leave the writer open after writing</param>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
+    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
     public static void Write<[DAM(Messages.ReflectionBound)] TValue>(
         TextWriter textWriter,
         IEnumerable<TValue> values,
@@ -73,7 +139,19 @@ static partial class CsvWriter
             dematerializer);
     }
 
-    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    /// <summary>
+    /// Writes the values as CSV records to the <see cref="Stream"/> using <see cref="CsvOptions{T}.TypeBinder"/>.
+    /// </summary>
+    /// <param name="stream">Stream to write the CSV to</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="leaveOpen">Whether to leave the stream open after writing</param>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
+    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
     public static void Write<[DAM(Messages.ReflectionBound)] TValue>(
         Stream stream,
         IEnumerable<TValue> values,
@@ -94,7 +172,21 @@ static partial class CsvWriter
             dematerializer);
     }
 
-    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to the <see cref="TextWriter"/> using <see cref="CsvOptions{T}.TypeBinder"/>.
+    /// </summary>
+    /// <param name="textWriter">Writer to write the CSV to</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="leaveOpen">Whether to leave the writer open after writing</param>
+    /// <param name="cancellationToken">Token to cancel the writing operation</param>
+    /// <returns>Task representing the asynchronous writing operation</returns>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
+    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
     public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
         TextWriter textWriter,
         IEnumerable<TValue> values,
@@ -121,7 +213,21 @@ static partial class CsvWriter
         }
     }
 
-    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to the <see cref="Stream"/> using <see cref="CsvOptions{T}.TypeBinder"/>.
+    /// </summary>
+    /// <param name="stream">Stream to write the CSV to</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="leaveOpen">Whether to leave the stream open after writing</param>
+    /// <param name="cancellationToken">Token to cancel the writing operation</param>
+    /// <returns>Task representing the asynchronous writing operation</returns>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
+    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
     public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
         Stream stream,
         IEnumerable<TValue> values,
@@ -152,7 +258,19 @@ static partial class CsvWriter
         }
     }
 
-    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to the <see cref="PipeWriter"/> using <see cref="CsvOptions{T}.TypeBinder"/>.
+    /// </summary>
+    /// <param name="pipe">Pipe to write the CSV to</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="cancellationToken">Token to cancel the writing operation</param>
+    /// <returns>Task representing the asynchronous writing operation</returns>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
+    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
     public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
         PipeWriter pipe,
         IEnumerable<TValue> values,
@@ -179,7 +297,19 @@ static partial class CsvWriter
             cancellationToken).ConfigureAwait(false);
     }
 
-    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to a file using <see cref="CsvOptions{T}.TypeBinder"/>.
+    /// </summary>
+    /// <param name="path">Path of the destination file. Existing files are overwritten</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="cancellationToken">Token to cancel the writing operation</param>
+    /// <returns>Task representing the asynchronous writing operation</returns>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
+    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
     public static async Task WriteToFileAsync<[DAM(Messages.ReflectionBound)] TValue>(
         string path,
         IEnumerable<TValue> values,
@@ -205,8 +335,22 @@ static partial class CsvWriter
         }
     }
 
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to a file using <see cref="CsvOptions{T}.TypeBinder"/>.
+    /// </summary>
+    /// <param name="path">Path of the destination file. Existing files are overwritten</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="encoding">Encoding to pass to the inner <see cref="StreamWriter"/></param>
+    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="cancellationToken">Token to cancel the writing operation</param>
+    /// <returns>Task representing the asynchronous writing operation</returns>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
     [OverloadResolutionPriority(-1)] // prefer byte to char when writing to file
-    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
     public static async Task WriteToFileAsync<[DAM(Messages.ReflectionBound)] TValue>(
         string path,
         IEnumerable<TValue> values,
@@ -234,7 +378,21 @@ static partial class CsvWriter
         }
     }
 
-    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to the <see cref="TextWriter"/> using <see cref="CsvOptions{T}.TypeBinder"/>.
+    /// </summary>
+    /// <param name="textWriter">Writer to write the CSV to</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="leaveOpen">Whether to leave the writer open after writing</param>
+    /// <param name="cancellationToken">Token to cancel the writing operation</param>
+    /// <returns>Task representing the asynchronous writing operation</returns>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
+    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
     public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
         TextWriter textWriter,
         IAsyncEnumerable<TValue> values,
@@ -261,7 +419,21 @@ static partial class CsvWriter
         }
     }
 
-    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to the <see cref="Stream"/> using <see cref="CsvOptions{T}.TypeBinder"/>.
+    /// </summary>
+    /// <param name="stream">Stream to write the CSV to</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="leaveOpen">Whether to leave the stream open after writing</param>
+    /// <param name="cancellationToken">Token to cancel the writing operation</param>
+    /// <returns>Task representing the asynchronous writing operation</returns>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
+    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
     public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
         Stream stream,
         IAsyncEnumerable<TValue> values,
@@ -292,7 +464,19 @@ static partial class CsvWriter
         }
     }
 
-    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to the <see cref="PipeWriter"/> using <see cref="CsvOptions{T}.TypeBinder"/>.
+    /// </summary>
+    /// <param name="pipe">Pipe to write the CSV to</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="cancellationToken">Token to cancel the writing operation</param>
+    /// <returns>Task representing the asynchronous writing operation</returns>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
+    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
     public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
         PipeWriter pipe,
         IAsyncEnumerable<TValue> values,
@@ -319,7 +503,19 @@ static partial class CsvWriter
             cancellationToken).ConfigureAwait(false);
     }
 
-    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to a file using <see cref="CsvOptions{T}.TypeBinder"/>.
+    /// </summary>
+    /// <param name="path">Path of the destination file. Existing files are overwritten</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="cancellationToken">Token to cancel the writing operation</param>
+    /// <returns>Task representing the asynchronous writing operation</returns>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
+    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
     public static async Task WriteToFileAsync<[DAM(Messages.ReflectionBound)] TValue>(
         string path,
         IAsyncEnumerable<TValue> values,
@@ -345,8 +541,22 @@ static partial class CsvWriter
         }
     }
 
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to a file using <see cref="CsvOptions{T}.TypeBinder"/>.
+    /// </summary>
+    /// <param name="path">Path of the destination file. Existing files are overwritten</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="encoding">Encoding to pass to the inner <see cref="StreamWriter"/></param>
+    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="cancellationToken">Token to cancel the writing operation</param>
+    /// <returns>Task representing the asynchronous writing operation</returns>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
     [OverloadResolutionPriority(-1)] // prefer byte to char when writing to file
-    [RUF(Messages.CompiledExpressions), RDC(Messages.CompiledExpressions)]
+    [RUF(Messages.CompiledExpressions), RDC(Messages.DynamicCode)]
     public static async Task WriteToFileAsync<[DAM(Messages.ReflectionBound)] TValue>(
         string path,
         IAsyncEnumerable<TValue> values,
@@ -374,6 +584,50 @@ static partial class CsvWriter
         }
     }
 
+    /// <summary>
+    /// Writes the values as CSV records to a string using the type map.
+    /// </summary>
+    /// <param name="values">Values to write</param>
+    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="builder">Optional builder to write the CSV to.</param>
+    /// <returns>
+    /// <see cref="StringBuilder"/> containing the CSV (same instance as <paramref name="builder"/> if provided)
+    /// </returns>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
+    public static StringBuilder WriteToString<TValue>(
+        IEnumerable<TValue> values,
+        CsvTypeMap<char, TValue> typeMap,
+        CsvOptions<char>? options = null,
+        StringBuilder? builder = null)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+
+        options ??= CsvOptions<char>.Default;
+        IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
+
+        builder ??= new();
+        WriteCore(
+            values,
+            CsvFieldWriter.Create(new StringWriter(builder), options, bufferSize: DefaultBufferSize, leaveOpen: false),
+            dematerializer);
+        return builder;
+    }
+
+    /// <summary>
+    /// Writes the values as CSV records to a file using the type map.
+    /// </summary>
+    /// <param name="path">Path of the destination file. Existing files are overwritten</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
     public static void WriteToFile<TValue>(
         string path,
         IEnumerable<TValue> values,
@@ -394,6 +648,19 @@ static partial class CsvWriter
             dematerializer);
     }
 
+    /// <summary>
+    /// Writes the values as CSV records to a file using the type map.
+    /// </summary>
+    /// <param name="path">Path of the destination file. Existing files are overwritten</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="encoding">Encoding to pass to the inner <see cref="StreamWriter"/></param>
+    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
     [OverloadResolutionPriority(-1)] // prefer byte to char when writing to file
     public static void WriteToFile<TValue>(
         string path,
@@ -417,6 +684,19 @@ static partial class CsvWriter
             dematerializer);
     }
 
+    /// <summary>
+    /// Writes the values as CSV records to the <see cref="TextWriter"/> using the type map.
+    /// </summary>
+    /// <param name="textWriter">Writer to write the CSV to</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="leaveOpen">Whether to leave the writer open after writing</param>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
     public static void Write<TValue>(
         TextWriter textWriter,
         IEnumerable<TValue> values,
@@ -437,6 +717,19 @@ static partial class CsvWriter
             dematerializer);
     }
 
+    /// <summary>
+    /// Writes the values as CSV records to the <see cref="Stream"/> using the type map.
+    /// </summary>
+    /// <param name="stream">Stream to write the CSV to</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="leaveOpen">Whether to leave the stream open after writing</param>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
     public static void Write<TValue>(
         Stream stream,
         IEnumerable<TValue> values,
@@ -458,6 +751,21 @@ static partial class CsvWriter
             dematerializer);
     }
 
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to the <see cref="TextWriter"/> using the type map.
+    /// </summary>
+    /// <param name="textWriter">Writer to write the CSV to</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="leaveOpen">Whether to leave the writer open after writing</param>
+    /// <param name="cancellationToken">Token to cancel the writing operation</param>
+    /// <returns>Task representing the asynchronous writing operation</returns>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
     public static async Task WriteAsync<TValue>(
         TextWriter textWriter,
         IEnumerable<TValue> values,
@@ -485,6 +793,21 @@ static partial class CsvWriter
         }
     }
 
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to the <see cref="Stream"/> using the type map.
+    /// </summary>
+    /// <param name="stream">Stream to write the CSV to</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="leaveOpen">Whether to leave the stream open after writing</param>
+    /// <param name="cancellationToken">Token to cancel the writing operation</param>
+    /// <returns>Task representing the asynchronous writing operation</returns>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
     public static async Task WriteAsync<TValue>(
         Stream stream,
         IEnumerable<TValue> values,
@@ -516,6 +839,19 @@ static partial class CsvWriter
         }
     }
 
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to the <see cref="PipeWriter"/> using the type map.
+    /// </summary>
+    /// <param name="pipe">Pipe to write the CSV to</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="cancellationToken">Token to cancel the writing operation</param>
+    /// <returns>Task representing the asynchronous writing operation</returns>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
     public static async Task WriteAsync<TValue>(
         PipeWriter pipe,
         IEnumerable<TValue> values,
@@ -543,6 +879,19 @@ static partial class CsvWriter
             cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to a file using the type map.
+    /// </summary>
+    /// <param name="path">Path of the destination file. Existing files are overwritten</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="cancellationToken">Token to cancel the writing operation</param>
+    /// <returns>Task representing the asynchronous writing operation</returns>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
     public static async Task WriteToFileAsync<TValue>(
         string path,
         IEnumerable<TValue> values,
@@ -569,6 +918,21 @@ static partial class CsvWriter
         }
     }
 
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to a file using the type map.
+    /// </summary>
+    /// <param name="path">Path of the destination file. Existing files are overwritten</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="encoding">Encoding to pass to the inner <see cref="StreamWriter"/></param>
+    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="cancellationToken">Token to cancel the writing operation</param>
+    /// <returns>Task representing the asynchronous writing operation</returns>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
     [OverloadResolutionPriority(-1)] // prefer byte to char when writing to file
     public static async Task WriteToFileAsync<TValue>(
         string path,
@@ -598,6 +962,21 @@ static partial class CsvWriter
         }
     }
 
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to the <see cref="TextWriter"/> using the type map.
+    /// </summary>
+    /// <param name="textWriter">Writer to write the CSV to</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="leaveOpen">Whether to leave the writer open after writing</param>
+    /// <param name="cancellationToken">Token to cancel the writing operation</param>
+    /// <returns>Task representing the asynchronous writing operation</returns>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
     public static async Task WriteAsync<TValue>(
         TextWriter textWriter,
         IAsyncEnumerable<TValue> values,
@@ -625,6 +1004,21 @@ static partial class CsvWriter
         }
     }
 
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to the <see cref="Stream"/> using the type map.
+    /// </summary>
+    /// <param name="stream">Stream to write the CSV to</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="leaveOpen">Whether to leave the stream open after writing</param>
+    /// <param name="cancellationToken">Token to cancel the writing operation</param>
+    /// <returns>Task representing the asynchronous writing operation</returns>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
     public static async Task WriteAsync<TValue>(
         Stream stream,
         IAsyncEnumerable<TValue> values,
@@ -656,6 +1050,19 @@ static partial class CsvWriter
         }
     }
 
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to the <see cref="PipeWriter"/> using the type map.
+    /// </summary>
+    /// <param name="pipe">Pipe to write the CSV to</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="cancellationToken">Token to cancel the writing operation</param>
+    /// <returns>Task representing the asynchronous writing operation</returns>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
     public static async Task WriteAsync<TValue>(
         PipeWriter pipe,
         IAsyncEnumerable<TValue> values,
@@ -683,6 +1090,19 @@ static partial class CsvWriter
             cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to a file using the type map.
+    /// </summary>
+    /// <param name="path">Path of the destination file. Existing files are overwritten</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="cancellationToken">Token to cancel the writing operation</param>
+    /// <returns>Task representing the asynchronous writing operation</returns>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
     public static async Task WriteToFileAsync<TValue>(
         string path,
         IAsyncEnumerable<TValue> values,
@@ -709,6 +1129,21 @@ static partial class CsvWriter
         }
     }
 
+    /// <summary>
+    /// Asynchronously writes the values as CSV records to a file using the type map.
+    /// </summary>
+    /// <param name="path">Path of the destination file. Existing files are overwritten</param>
+    /// <param name="values">Values to write</param>
+    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="encoding">Encoding to pass to the inner <see cref="StreamWriter"/></param>
+    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="cancellationToken">Token to cancel the writing operation</param>
+    /// <returns>Task representing the asynchronous writing operation</returns>
+    /// <remarks>
+    /// Data is written even if <paramref name="values"/> empty,
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// </remarks>
     [OverloadResolutionPriority(-1)] // prefer byte to char when writing to file
     public static async Task WriteToFileAsync<TValue>(
         string path,
