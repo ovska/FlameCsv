@@ -76,7 +76,7 @@ internal sealed class Dematerializer<T, <#= generics #>>
     public int FieldCount => <#= current #>;
 
     public Dematerializer(
-        CsvBindingCollection<TValue> bindings,
+        CsvBindingCollection<TValue> bindingCollection,
         CsvOptions<T> options<#
         for (var i = 0; i < current; i++)
         {
@@ -85,17 +85,20 @@ internal sealed class Dematerializer<T, <#= generics #>>
             Write(getters[i]);
         }
 #>)
-        : base(bindings)
+        : base(bindingCollection)
     {
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
 <#
         for (var i = 0; i < current; i++)
         {
             var ix = i.ToString();
             Write("        this.converter");
             Write(ix);
-            Write(" = options.GetConverter<");
+            Write(" = ResolveConverter<");
             Write(genericTypes[i]);
-            WriteLine(">();");
+            Write(">(options, bindings[");
+            Write(ix);
+            WriteLine("]);");
         }
 #><#
         for (var i = 0; i < current; i++)

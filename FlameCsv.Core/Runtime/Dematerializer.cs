@@ -29,4 +29,17 @@ internal abstract class Dematerializer<T, TValue> : Dematerializer<T> where T : 
             writer.WriteText(bindings[i].Header);
         }
     }
+
+    [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+    protected static CsvConverter<T, TConverted> ResolveConverter<TConverted>(
+        CsvOptions<T> options,
+        MemberCsvBinding<TValue> binding)
+    {
+        if (binding.IsIgnored)
+        {
+            return CsvIgnored.Converter<T, TConverted>();
+        }
+
+        return binding.ResolveConverter<T, TConverted>(options, write: true) ?? options.GetConverter<TConverted>();
+    }
 }
