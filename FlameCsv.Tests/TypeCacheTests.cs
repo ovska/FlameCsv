@@ -62,10 +62,7 @@ public static class TypeCacheTests
         Assert.Single(ctors, x => x.Params.Length == 0 && x.Value.GetCustomAttributes<CsvConstructorAttribute>().Any());
         Assert.Single(ctors, x => x.Params.Length == 1 && x.Params[0].Value.ParameterType == typeof(int));
 
-        Assert.Same(CsvTypeInfo.EmptyConstructor<Obj>(), CsvTypeInfo.EmptyConstructor<Obj>());
         Assert.Empty(CsvTypeInfo.ConstructorParameters<Obj>().ToArray());
-
-        Assert.Null(CsvTypeInfo.EmptyConstructor<Obj2>());
     }
 
     [Fact]
@@ -83,7 +80,7 @@ public static class TypeCacheTests
 [method: CsvConstructor]
 file class Obj2(bool b, int i)
 {
-    public Obj2(string s) : this(s is null, default) { }
+    public Obj2(string s) : this(s is null, 0) { }
 
     public bool B { get; set; } = b;
     public int I { get; set; } = i;

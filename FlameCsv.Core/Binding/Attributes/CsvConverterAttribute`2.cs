@@ -26,12 +26,17 @@ public sealed class CsvConverterAttribute<T, [DAM(Messages.Ctors)] TConverter> :
     {
         bool isInherited = options.GetType() != typeof(CsvOptions<T>);
 
+        ConstructorInfo? empty = null;
         ConstructorInfo? inherited = null;
         ConstructorInfo? notInherited = null;
 
         foreach ((ConstructorInfo ctor, ParameterData[] parameters) in CsvTypeInfo.PublicConstructors<TConverter>())
         {
-            if (parameters.Length == 1)
+            if (parameters.Length == 0)
+            {
+                empty = ctor;
+            }
+            else if (parameters.Length == 1)
             {
                 if (isInherited && options.GetType() == parameters[0].Value.ParameterType)
                 {
@@ -50,7 +55,7 @@ public sealed class CsvConverterAttribute<T, [DAM(Messages.Ctors)] TConverter> :
         {
             args = [options];
         }
-        else if ((valid = CsvTypeInfo.EmptyConstructor<TConverter>()) is not null)
+        else if ((valid = empty) is not null)
         {
             args = [];
         }
