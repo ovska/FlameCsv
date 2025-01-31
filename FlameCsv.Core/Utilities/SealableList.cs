@@ -4,8 +4,16 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Utilities;
 
+file sealed class ReadOnlyOwner : ICanBeReadOnly
+{
+    public static ReadOnlyOwner Instance { get; } = new();
+    public bool IsReadOnly => true;
+}
+
 internal sealed class SealableList<T> : IList<T>
 {
+    public static SealableList<T> Empty { get; } = new(ReadOnlyOwner.Instance, null);
+
     private readonly ICanBeReadOnly _owner;
     private readonly List<T> _list;
 

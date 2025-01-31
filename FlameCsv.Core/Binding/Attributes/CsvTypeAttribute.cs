@@ -7,7 +7,7 @@ namespace FlameCsv.Binding.Attributes;
 /// </summary>
 [PublicAPI]
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface)]
-public sealed class CsvTypeAttribute : Attribute
+public class CsvTypeAttribute : Attribute
 {
     /// <summary>
     /// Header values to always ignore when reading CSV.

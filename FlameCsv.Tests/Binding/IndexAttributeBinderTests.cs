@@ -2,10 +2,29 @@ using FlameCsv.Binding;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Binding.Internal;
 
+[assembly: CsvAssemblyType(typeof(FlameCsv.Tests.Binding.AssemblyScoped), IgnoredHeaders = ["xyz"])]
+[assembly: CsvAssemblyTypeField(typeof(FlameCsv.Tests.Binding.AssemblyScoped), "Id", Index = 0)]
+[assembly: CsvAssemblyTypeField(typeof(FlameCsv.Tests.Binding.AssemblyScoped), "Name", Index = 1)]
+
 namespace FlameCsv.Tests.Binding;
+
+file sealed class AssemblyScoped
+{
+    public int Id { get; set; }
+    public string? Name { get; set; }
+}
 
 public static class IndexAttributeBinderTests
 {
+    [Fact]
+    public static void Should_Bind_Using_Assembly_Attribute()
+    {
+        Assert.True(IndexAttributeBinder<AssemblyScoped>.TryGetBindings(true, out var result));
+        Assert.Equal(2, result.Bindings.Length);
+        Assert.Equal("Id", ((MemberCsvBinding<AssemblyScoped>)result.Bindings[0]).Member.Name);
+        Assert.Equal("Name", ((MemberCsvBinding<AssemblyScoped>)result.Bindings[1]).Member.Name);
+    }
+
     [Theory, InlineData(true), InlineData(false)]
     public static void Should_Bind_To_Members(bool write)
     {

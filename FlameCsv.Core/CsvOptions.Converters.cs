@@ -32,12 +32,17 @@ partial class CsvOptions<T>
         get
         {
             var local = _converters;
-            if (local is not null) return local;
-            return Interlocked.CompareExchange(
-                    ref _converters,
-                    new SealableList<CsvConverter<T>>(this, defaultValues: null),
-                    null) ??
-                _converters;
+
+            if (local is not null)
+            {
+                return local;
+            }
+
+            var result = IsReadOnly
+                ? SealableList<CsvConverter<T>>.Empty
+                : new SealableList<CsvConverter<T>>(this, null);
+
+            return Interlocked.CompareExchange(ref _converters, result, null) ?? _converters;
         }
     }
 

@@ -258,7 +258,7 @@ internal sealed record TypeMapModel
         List<TargetAttributeModel>? targetAttributes = null;
         List<string>? ignoredHeaders = null;
 
-        foreach (var attr in containingClass.GetAttributes())
+        foreach (var attr in targetType.GetAttributes())
         {
             if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, symbols.CsvTypeFieldAttribute))
             {
@@ -277,6 +277,15 @@ internal sealed record TypeMapModel
                                 (ignoredHeaders ??= []).Add(headerName);
                             }
                         }
+                    }
+                    else if (arg is
+                             {
+                                 Key: "CreatedTypeProxy",
+                                 Value: { Kind: TypedConstantKind.Type, Value: INamedTypeSymbol proxy }
+                             })
+                    {
+                        // TODO: implement
+                        _ = proxy;
                     }
                 }
             }

@@ -1,6 +1,5 @@
 ﻿using System.Reflection;
 using FlameCsv.Exceptions;
-using FlameCsv.Reflection;
 
 namespace FlameCsv.Binding.Attributes;
 

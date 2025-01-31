@@ -1,5 +1,4 @@
 ﻿using System.Runtime.InteropServices;
-using FlameCsv.Binding;
 using FlameCsv.Extensions;
 using FlameCsv.Utilities;
 

@@ -281,34 +281,12 @@ public abstract class CsvReflectionBinder
 
         foreach (var attribute in typeInfo.Attributes)
         {
-            if (attribute is CsvTypeAttribute typeAttr)
-            {
-                typeAttribute = typeAttr;
-                continue;
-            }
+            GetFromTypeAttributes(typeInfo, write, attribute, candidates, ref typeAttribute);
+        }
 
-            if (attribute is not CsvTypeFieldAttribute attr) continue;
-
-            if (attr.IsParameter)
-            {
-                if (write) continue;
-
-                var parameter = typeInfo.GetParameter(attr.MemberName).Value;
-
-                foreach (var value in attr.Headers)
-                {
-                    candidates.Add(new HeaderBindingCandidate(value, parameter, attr.Order, attr.IsRequired));
-                }
-            }
-            else
-            {
-                var member = typeInfo.GetPropertyOrField(attr.MemberName).Value;
-
-                foreach (var value in attr.Headers)
-                {
-                    candidates.Add(new HeaderBindingCandidate(value, member, attr.Order, attr.IsRequired));
-                }
-            }
+        foreach (var attribute in AssemblyAttributes.Get(typeInfo.Type))
+        {
+            GetFromTypeAttributes(typeInfo, write, attribute, candidates, ref typeAttribute);
         }
 
         foreach (var parameter in !write ? typeInfo.ConstructorParameters : default)
@@ -378,6 +356,50 @@ public abstract class CsvReflectionBinder
 
         candidates.AsSpan().Sort(); // sorted by Order
         return new HeaderData(typeAttribute?.IgnoredHeaders, candidates);
+    }
+
+    private static void GetFromTypeAttributes(
+        CsvTypeInfo typeInfo,
+        bool write,
+        object attribute,
+        List<HeaderBindingCandidate> candidates,
+        ref CsvTypeAttribute? typeAttribute)
+    {
+        if (attribute is CsvTypeAttribute typeAttr)
+        {
+            if (typeAttribute is not null)
+            {
+                throw new CsvBindingException(
+                    typeInfo.Type,
+                    $"Multiple {nameof(CsvTypeAttribute)} attributes on {typeInfo.Type}");
+            }
+
+            typeAttribute = typeAttr;
+            return;
+        }
+
+        if (attribute is not CsvTypeFieldAttribute attr) return;
+
+        if (attr.IsParameter)
+        {
+            if (write) return;
+
+            var parameter = typeInfo.GetParameter(attr.MemberName).Value;
+
+            foreach (var value in attr.Headers)
+            {
+                candidates.Add(new HeaderBindingCandidate(value, parameter, attr.Order, attr.IsRequired));
+            }
+        }
+        else
+        {
+            var member = typeInfo.GetPropertyOrField(attr.MemberName).Value;
+
+            foreach (var value in attr.Headers)
+            {
+                candidates.Add(new HeaderBindingCandidate(value, member, attr.Order, attr.IsRequired));
+            }
+        }
     }
 }
 

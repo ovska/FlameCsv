@@ -32,41 +32,12 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
 
         foreach (var attr in typeInfo.Attributes)
         {
-            if (attr is CsvTypeAttribute typeAttr)
-            {
-                foreach (var ignoredIndex in typeAttr.IgnoredIndexes ?? [])
-                {
-                    list.Add(new IgnoredCsvBinding<TValue>(ignoredIndex));
-                }
+            ProcessTypeAttributes(write, attr, list, parameterAttributes, typeInfo);
+        }
 
-                continue;
-            }
-
-            if (attr is not CsvTypeFieldAttribute { Index: var index and >= 0 } fieldAttribute)
-            {
-                continue;
-            }
-
-            if (fieldAttribute.IsIgnored)
-            {
-                list.Add(new IgnoredCsvBinding<TValue>(index));
-                continue;
-            }
-
-            if (fieldAttribute.IsParameter)
-            {
-                if (!write)
-                {
-                    parameterAttributes.Add(fieldAttribute);
-                }
-
-                continue;
-            }
-
-            list.Add(
-                new MemberCsvBinding<TValue>(
-                    index,
-                    typeInfo.GetPropertyOrField(fieldAttribute.MemberName)));
+        foreach (var attr in AssemblyAttributes.Get(typeof(TValue)))
+        {
+            ProcessTypeAttributes(write, attr, list, parameterAttributes, typeInfo);
         }
 
         foreach (var member in typeInfo.Members)
@@ -138,6 +109,50 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
         return list.Count > 0
             ? new CsvBindingCollection<TValue>(FixGaps(list, write), write)
             : null;
+    }
+
+    private static void ProcessTypeAttributes(
+        bool write,
+        object attr,
+        List<CsvBinding<TValue>> list,
+        List<CsvTypeFieldAttribute> parameterAttributes,
+        CsvTypeInfo typeInfo)
+    {
+        if (attr is CsvTypeAttribute typeAttr)
+        {
+            foreach (var ignoredIndex in typeAttr.IgnoredIndexes ?? [])
+            {
+                list.Add(new IgnoredCsvBinding<TValue>(ignoredIndex));
+            }
+
+            return;
+        }
+
+        if (attr is not CsvTypeFieldAttribute { Index: var index and >= 0 } fieldAttribute)
+        {
+            return;
+        }
+
+        if (fieldAttribute.IsIgnored)
+        {
+            list.Add(new IgnoredCsvBinding<TValue>(index));
+            return;
+        }
+
+        if (fieldAttribute.IsParameter)
+        {
+            if (!write)
+            {
+                parameterAttributes.Add(fieldAttribute);
+            }
+
+            return;
+        }
+
+        list.Add(
+            new MemberCsvBinding<TValue>(
+                index,
+                typeInfo.GetPropertyOrField(fieldAttribute.MemberName)));
     }
 
     private static IEnumerable<CsvBinding<TValue>> FixGaps(List<CsvBinding<TValue>> allBindings, bool write)

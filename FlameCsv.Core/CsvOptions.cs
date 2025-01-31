@@ -146,7 +146,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// </summary>
     public virtual IList<Assembly> ReflectionAssemblies
     {
-        get => _assemblies ??= new(this, null);
+        get => _assemblies ??= (IsReadOnly ? SealableList<Assembly>.Empty : new(this, null));
     }
 
     /// <summary>
@@ -513,7 +513,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// <seealso cref="UseDefaultConverters"/>
     /// <seealso cref="CsvBooleanValuesAttribute{T}"/>
     public IList<(string text, bool value)> BooleanValues
-        => _booleanValues ??= new SealableList<(string, bool)>(this, null);
+        => _booleanValues ??= (IsReadOnly ? SealableList<(string, bool)>.Empty : new(this, null));
 }
 
 file static class TypeDictExtensions
