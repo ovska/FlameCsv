@@ -32,18 +32,6 @@ public static class UtilityExtensionTests
         Assert.Equal("test", c.NullTokens[typeof(int)]);
     }
 
-    [Theory]
-    [InlineData(true, CsvBindingScope.All, true)]
-    [InlineData(false, CsvBindingScope.All, true)]
-    [InlineData(true, CsvBindingScope.Read, false)]
-    [InlineData(false, CsvBindingScope.Read, true)]
-    [InlineData(true, CsvBindingScope.Write, true)]
-    [InlineData(false, CsvBindingScope.Write, false)]
-    public static void Should_Return_Valid_Scope(bool write, CsvBindingScope scope, bool valid)
-    {
-        Assert.Equal(valid, scope.IsValidFor(write));
-    }
-
     [Fact]
     public static void Should_Make_Copy_Of_Data()
     {

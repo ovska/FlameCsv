@@ -62,8 +62,8 @@ internal static class CsvTypeInfo
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ReadOnlySpan<ParameterData> ConstructorParameters<[DAM(DAMT.PublicConstructors)] T>()
-        => (Cached<T>.Value._ctorParams ??= InitPrimaryCtorParams<T>()) as ParameterData[]
-            ?? ThrowExceptionForNoPrimaryConstructor(typeof(T));
+        => (Cached<T>.Value._ctorParams ??= InitPrimaryCtorParams<T>()) as ParameterData[] ??
+            ThrowExceptionForNoPrimaryConstructor(typeof(T));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static MemberData GetPropertyOrField<[DAM(DAMT.PublicProperties | DAMT.PublicFields)] T>(string memberName)
@@ -76,7 +76,21 @@ internal static class CsvTypeInfo
             }
         }
 
-        return ThrowMemberNotFound(typeof(T), memberName);
+        return (MemberData)ThrowMemberNotFound(typeof(T), memberName, isParameter: false);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ParameterData GetParameter<[DAM(DAMT.PublicConstructors)] T>(string parameterName)
+    {
+        foreach (var parameter in ConstructorParameters<T>())
+        {
+            if (parameterName == parameter.Value.Name)
+            {
+                return parameter;
+            }
+        }
+
+        return (ParameterData)ThrowMemberNotFound(typeof(T), parameterName, isParameter: false);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -143,8 +157,9 @@ internal static class CsvTypeInfo
             $"No empty constructor or constructor with [CsvConstructor] found for type {type.FullName}");
     }
 
-    private static MemberData ThrowMemberNotFound(Type type, string memberName)
+    private static object ThrowMemberNotFound(Type type, string memberName, bool isParameter)
     {
-        throw new CsvConfigurationException($"Property/field {memberName} not found on type {type.FullName}");
+        throw new CsvConfigurationException(
+            $"{(isParameter ? "Parameter" : "Property/field")} {memberName} not found on type {type.FullName}");
     }
 }

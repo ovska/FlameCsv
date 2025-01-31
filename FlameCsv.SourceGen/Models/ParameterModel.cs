@@ -59,9 +59,13 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
     /// </summary>
     public required int Order { get; init; }
 
+    /// <summary>
+    /// Whether the parameter is ignored.
+    /// </summary>
+    public required bool IsIgnored { get; init; }
+
     public bool IsRequired => IsRequiredByAttribute || !HasDefaultValue;
 
-    CsvBindingScope IMemberModel.Scope => CsvBindingScope.Read;
     bool IMemberModel.CanRead => false;
     bool IMemberModel.CanWrite => true;
     string IMemberModel.IndexPrefix => "@s__p_Index_";
@@ -100,7 +104,7 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
         {
             var parameter = parameters[i];
 
-            var meta = new SymbolMetadata(token, parameter, symbols);
+            var meta = new SymbolMetadata(parameter, symbols);
 
             ParameterModel parameterModel = new()
             {
@@ -109,6 +113,7 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
                 Name = parameter.Name,
                 Names = meta.Names.ToImmutableEquatableArray(),
                 Order = meta.Order,
+                IsIgnored = meta.IsIgnored,
                 IsRequiredByAttribute = meta.IsRequired,
                 HasDefaultValue = parameter.HasExplicitDefaultValue,
                 DefaultValue = parameter.HasExplicitDefaultValue ? parameter.ExplicitDefaultValue : null,

@@ -62,7 +62,7 @@ public static class IndexAttributeBinderTests
         {
             Assert.Equal(
                 [(0, "A"), (1, "B"), (2, "C")],
-                        result.Bindings.ToArray().Select(b => (b.Index, ((MemberCsvBinding<Params>)b).Member.Name)));
+                result.Bindings.ToArray().Select(b => (b.Index, ((MemberCsvBinding<Params>)b).Member.Name)));
         }
         else
         {
@@ -72,23 +72,23 @@ public static class IndexAttributeBinderTests
         }
     }
 
-    [CsvIndexIgnore(1)]
+    [CsvType(IgnoredIndexes = [1])]
     private class Ignored
     {
-        [CsvIndex(0)] public int A { get; set; }
-        [CsvIndex(2)] public int B { get; set; }
+        [CsvField(Index = 0)] public int A { get; set; }
+        [CsvField(Index = 2)] public int B { get; set; }
     }
 
     private class Members
     {
-        [CsvIndex(0)] public int A { get; set; }
-        [CsvIndex(1)] public string? B { get; set; }
-        [CsvIndex(2)] public bool C { get; set; }
+        [CsvField(Index = 0)] public int A { get; set; }
+        [CsvField(Index = 1)] public string? B { get; set; }
+        [CsvField(Index = 2)] public bool C { get; set; }
     }
 
-    [CsvIndexTarget(0, nameof(A))]
-    [CsvIndexTarget(1, nameof(B))]
-    [CsvIndexTarget(2, nameof(C))]
+    [CsvTypeField(nameof(A), Index = 0)]
+    [CsvTypeField(nameof(B), Index = 1)]
+    [CsvTypeField(nameof(C), Index = 2)]
     private class Class
     {
         public int A { get; set; }
@@ -96,19 +96,19 @@ public static class IndexAttributeBinderTests
         public bool C { get; set; }
     }
 
-    [CsvIndexTarget(1, nameof(B))]
+    [CsvTypeField(nameof(B), Index = 1)]
     private class Mixed
     {
-        [CsvIndex(0)] public int A { get; set; }
+        [CsvField(Index = 0)] public int A { get; set; }
         public string? B { get; set; }
-        [CsvIndex(2)] public bool C { get; set; }
+        [CsvField(Index = 2)] public bool C { get; set; }
     }
 
-    private class Params([CsvIndex(2)] int a, [CsvIndex(1)] string? b, [CsvIndex(0)] bool c)
+    private class Params([CsvField(Index = 2)] int a, [CsvField(Index = 1)] string? b, [CsvField(Index = 0)] bool c)
     {
-        [CsvIndex(0, Scope = CsvBindingScope.Write)] public int A { get; } = a;
-        [CsvIndex(1, Scope = CsvBindingScope.Write)] public string? B { get; } = b;
-        [CsvIndex(2, Scope = CsvBindingScope.Write)] public bool C { get; } = c;
+        [CsvField(Index = 0)] public int A { get; } = a;
+        [CsvField(Index = 1)] public string? B { get; } = b;
+        [CsvField(Index = 2)] public bool C { get; } = c;
     }
 
     private class None

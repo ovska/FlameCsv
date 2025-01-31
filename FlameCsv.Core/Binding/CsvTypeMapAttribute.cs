@@ -17,11 +17,6 @@ namespace FlameCsv.Binding;
 public sealed class CsvTypeMapAttribute<T, TValue> : Attribute where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
-    /// Whether the generated code is valid for reading, writing, or both (the default).
-    /// </summary>
-    public CsvBindingScope Scope { get; set; }
-
-    /// <summary>
     /// If <see langword="true"/>, headers that cannot be matched to a member are ignored instead of throwing.
     /// </summary>
     public bool IgnoreUnmatched { get; set; }

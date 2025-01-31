@@ -98,7 +98,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
         }
 
         throw new CsvBindingException<T>(
-            $"Parameter {parameter} was not found on the primary constructor of {typeof(T)}");
+            $"Parameter {parameter} was not found on the constructor of {typeof(T)}");
     }
 
     /// <summary>

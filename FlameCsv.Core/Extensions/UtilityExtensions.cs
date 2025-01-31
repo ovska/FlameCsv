@@ -4,7 +4,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using CommunityToolkit.HighPerformance;
-using FlameCsv.Binding;
 
 // ReSharper disable UnusedMember.Global
 
@@ -27,11 +26,6 @@ internal static class UtilityExtensions
         }
 
         return $"Content: [{value.ToString()}]";
-    }
-
-    public static bool IsValidFor(this CsvBindingScope scope, bool write)
-    {
-        return scope != (write ? CsvBindingScope.Read : CsvBindingScope.Write);
     }
 
     public static bool SequenceEquals<T>(in this ReadOnlySequence<T> sequence, ReadOnlySpan<T> other)

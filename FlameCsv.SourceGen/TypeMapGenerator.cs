@@ -171,8 +171,6 @@ namespace ");
 
     private static void WriteIndexes(StringBuilder sb, TypeMapModel typeMap)
     {
-        if (typeMap.Scope == CsvBindingScope.Write) return;
-
         // start from 1 so uninitialized members are zero and fail as expected
         int index = 1;
 

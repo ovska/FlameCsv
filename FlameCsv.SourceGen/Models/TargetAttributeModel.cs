@@ -4,9 +4,10 @@ namespace FlameCsv.SourceGen.Models;
 
 internal sealed record TargetAttributeModel
 {
+    public int? Index { get; }
     public string MemberName { get; }
+    public bool IsIgnored { get; }
     public bool IsRequired { get; }
-    public CsvBindingScope Scope { get; }
     public int Order { get; }
     public ImmutableEquatableArray<string> Names { get; }
 
@@ -26,19 +27,21 @@ internal sealed record TargetAttributeModel
 
         foreach (var kvp in attribute.NamedArguments)
         {
-            if (kvp.Key == "Scope")
+            if (kvp.Key == "IsIgnored")
             {
-                Scope = (CsvBindingScope)kvp.Value.Value!;
+                IsIgnored = kvp.Value.Value is true;
             }
-
-            if (kvp.Key == "IsRequired")
+            else if (kvp.Key == "IsRequired")
             {
                 IsRequired = kvp.Value.Value is true;
             }
-
-            if (kvp.Key == "Order")
+            else if (kvp.Key == "Order")
             {
                 Order = (int)kvp.Value.Value!;
+            }
+            else if (kvp.Key == "Index")
+            {
+                Index = kvp.Value.Value is int index and >= 0 ? index : null;
             }
         }
     }

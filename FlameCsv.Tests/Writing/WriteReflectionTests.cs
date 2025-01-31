@@ -6,9 +6,9 @@ public class WriteReflectionTests
 {
     private class Obj
     {
-        [CsvIndex(0)] public int Id { get; set; }
-        [CsvIndex(1)] public string? Name { get; set; }
-        [CsvIndex(2)] public bool IsEnabled { get; set; }
+        [CsvField(Index = 0)] public int Id { get; set; }
+        [CsvField(Index = 1)] public string? Name { get; set; }
+        [CsvField(Index = 2)] public bool IsEnabled { get; set; }
     }
 
     [Theory, InlineData(true), InlineData(false)]

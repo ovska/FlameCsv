@@ -15,11 +15,11 @@ namespace FlameCsv.Tests.TestData;
 
 public class Obj : IEquatable<Obj>
 {
-    [CsvIndex(0)] public int Id { get; set; }
-    [CsvIndex(1)] public string? Name { get; set; }
-    [CsvIndex(2)] public bool IsEnabled { get; set; }
-    [CsvIndex(3)] public DateTimeOffset LastLogin { get; set; }
-    [CsvIndex(4)] public Guid Token { get; set; }
+    [CsvField(Index = 0)] public int Id { get; set; }
+    [CsvField(Index = 1)] public string? Name { get; set; }
+    [CsvField(Index = 2)] public bool IsEnabled { get; set; }
+    [CsvField(Index = 3)] public DateTimeOffset LastLogin { get; set; }
+    [CsvField(Index = 4)] public Guid Token { get; set; }
 
     public bool Equals(Obj? other)
     {

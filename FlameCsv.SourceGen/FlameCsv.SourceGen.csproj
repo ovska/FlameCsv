@@ -19,10 +19,4 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" PrivateAssets="all" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Include="..\FlameCsv.Core\Binding\CsvBindingScope.cs">
-      <Link>CsvBindingScope.cs</Link>
-    </Compile>
-  </ItemGroup>
-
 </Project>

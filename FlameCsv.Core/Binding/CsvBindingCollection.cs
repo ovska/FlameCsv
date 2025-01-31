@@ -4,7 +4,6 @@ using System.Reflection;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding.Internal;
 using FlameCsv.Exceptions;
-using FlameCsv.Extensions;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Binding;
@@ -61,7 +60,8 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
     /// </summary>
     /// <seealso cref="HasConstructorParameters"/>
     /// <exception cref="InvalidOperationException">There are no constructor bindings</exception>
-    public ConstructorInfo Constructor => _ctor ?? throw new InvalidOperationException("There are no constructor bindings.");
+    public ConstructorInfo Constructor
+        => _ctor ?? throw new InvalidOperationException("There are no constructor bindings.");
 
     private readonly List<CsvBinding<TValue>> _allBindings;
     private readonly List<MemberCsvBinding<TValue>> _memberBindings;
@@ -71,27 +71,21 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
     /// <summary>
     /// Initializes a new binding collection.
     /// </summary>
-    /// <param name="bindings">Field bindings</param>
+    /// <param name="typeBindings">Bindings to initialize the collection with</param>
     /// <param name="write">The bindings are for writing and not reading CSV</param>
     /// <exception cref="CsvBindingException">Bindings are invalid</exception>
-    public CsvBindingCollection(IEnumerable<CsvBinding<TValue>> bindings, bool write)
-        : this(
-              (bindings ?? throw new ArgumentNullException(nameof(bindings))).ToList(),
-              write)
-    {
-    }
-
-    /// <summary>
-    /// Internal use only. The parameter list is modified and retained.
-    /// </summary>
-    internal CsvBindingCollection(
-        List<CsvBinding<TValue>> bindingsList,
+    public CsvBindingCollection(
+        IEnumerable<CsvBinding<TValue>> typeBindings,
         bool write)
     {
-        ArgumentNullException.ThrowIfNull(bindingsList);
+        ArgumentNullException.ThrowIfNull(typeBindings);
+
+        List<CsvBinding<TValue>> bindingsList = typeBindings.ToList();
 
         if (bindingsList.Count == 0)
-            Throw.Argument("bindings", "Bindings were empty");
+        {
+            throw new ArgumentException("No bindings provided", nameof(typeBindings));
+        }
 
         Span<CsvBinding<TValue>> bindings = bindingsList.AsSpan();
         bindings.Sort(); // sort by index
@@ -110,8 +104,8 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
             if (binding.Index != expectedIndex)
             {
                 throw new CsvBindingException<TValue>(
-                    $"Invalid binding indices for {typeof(TValue)}, expected {expectedIndex} "
-                    + $"but the next binding was: {binding}",
+                    $"Invalid binding indices for {typeof(TValue)}, expected {expectedIndex} " +
+                    $"but the next binding was: {binding}",
                     bindingsList);
             }
 

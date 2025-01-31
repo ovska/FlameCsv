@@ -8,11 +8,8 @@ namespace FlameCsv.Binding.Attributes;
 /// Base attribute for overriding converters for the target member or parameter.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter, AllowMultiple = true)]
-public abstract class CsvConverterAttribute<T> : Attribute, ICsvBindingAttribute where T : unmanaged, IBinaryInteger<T>
+public abstract class CsvConverterAttribute<T> : Attribute where T : unmanaged, IBinaryInteger<T>
 {
-    /// <inheritdoc cref="CsvHeaderConfigurationAttribute.Scope"/>
-    public CsvBindingScope Scope { get; set; }
-
     /// <summary>
     /// Gets or creates a converter instance for the binding's member.
     /// </summary>

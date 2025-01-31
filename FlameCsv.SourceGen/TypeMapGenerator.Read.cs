@@ -22,22 +22,7 @@ public partial class TypeMapGenerator
         sb.Append(
             @"> options)
         {
-            ");
-
-        if (typeMap.Scope == CsvBindingScope.Write)
-        {
-            sb.Append(
-                """
-                
-                            throw new global::System.NotSupportedException(""This type map is write-only."");
-                        }
-
-                """);
-
-            return;
-        }
-
-        sb.Append(@"TypeMapMaterializer materializer = new TypeMapMaterializer(headers.Length);
+            TypeMapMaterializer materializer = new TypeMapMaterializer(headers.Length);
 
             global::System.Collections.Generic.IEqualityComparer<string> comparer = options.Comparer;
 
