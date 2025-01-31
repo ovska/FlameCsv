@@ -8,9 +8,9 @@ namespace FlameCsv.Binding.Attributes;
 /// </summary>
 /// <remarks>
 /// Intended to be used on third party types that cannot be configured directly with <see cref="CsvTypeFieldAttribute"/>.
-/// <br/>When targeting an interface, <see cref="CsvTypeAttribute.CreatedTypeProxy"/> must be set when reading.
+/// <br/>When targeting an interface, <see cref="CsvTypeAttribute.CreatedTypeProxy"/> must be set when reading.<br/>
+/// The source generator only recognizes this attribute if it is in the same assembly as the type map.
 /// </remarks>
-/// <seealso cref="CsvOptions{T}.ReflectionAssemblies"/>
 [PublicAPI]
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
 [EditorBrowsable(EditorBrowsableState.Advanced)]

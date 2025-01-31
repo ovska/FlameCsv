@@ -6,7 +6,9 @@ namespace FlameCsv.Binding.Attributes;
 /// <summary>
 /// Configures the target type for reading and writing CSV.
 /// </summary>
-/// <seealso cref="CsvOptions{T}.ReflectionAssemblies"/>
+/// <remarks>
+/// The source generator only recognizes this attribute if it is in the same assembly as the type map.
+/// </remarks>
 [PublicAPI]
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
 [EditorBrowsable(EditorBrowsableState.Advanced)]

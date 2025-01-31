@@ -7,7 +7,6 @@ using FlameCsv.Utilities;
 using FlameCsv.Writing;
 using CommunityToolkit.HighPerformance.Buffers;
 using System.Globalization;
-using System.Reflection;
 using JetBrains.Annotations;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding.Attributes;
@@ -86,7 +85,6 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         _null = other._null;
         _nullTokens = other._nullTokens?.Clone();
         _converters = other._converters?.Clone();
-        _assemblies = other._assemblies?.Clone();
 
         _delimiter = other._delimiter;
         _quote = other._quote;
@@ -139,14 +137,6 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
             ArgumentNullException.ThrowIfNull(value);
             this.SetValue(ref _typeBinder, value);
         }
-    }
-
-    /// <summary>
-    /// Assemblies used to look for <see cref="CsvAssemblyTypeFieldAttribute"/>. Default is empty.
-    /// </summary>
-    public virtual IList<Assembly> ReflectionAssemblies
-    {
-        get => _assemblies ??= (IsReadOnly ? SealableList<Assembly>.Empty : new(this, null));
     }
 
     /// <summary>
@@ -241,7 +231,6 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     private bool _noReadAhead;
     private StringPool? _stringPool;
     private ICsvTypeBinder<T>? _typeBinder;
-    private SealableList<Assembly>? _assemblies;
 
     private IEqualityComparer<string> _comparer = StringComparer.OrdinalIgnoreCase;
 
