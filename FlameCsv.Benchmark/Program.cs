@@ -1,8 +1,6 @@
-﻿using System.Reflection;
-using BenchmarkDotNet.Configs;
+﻿using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Engines;
 using BenchmarkDotNet.Jobs;
-using FlameCsv;
 
 // new CsvEnumerateBench().Flame_byte();
 // return;
@@ -16,34 +14,7 @@ var config = DefaultConfig.Instance
     //    .AsBaseline())
     .AddJob(Job.Default.WithStrategy(RunStrategy.Throughput));
 
-BenchmarkRunner.Run<AssemblyTestBench>(config);
-
-[MemoryDiagnoser]
-public class AssemblyTestBench
-{
-    [Benchmark]
-    public void All()
-    {
-        // load all loaded assemblies
-        foreach (var x in AppDomain.CurrentDomain.GetAssemblies())
-        {
-            foreach (var _ in x.GetCustomAttributes(false))
-            {
-            }
-        }
-    }
-
-    [Benchmark]
-    public void Targeted()
-    {
-        foreach (var x in new[] { typeof(CsvReader).Assembly, typeof(AssemblyTestBench).Assembly })
-        {
-            foreach (var _ in x.GetCustomAttributes(false))
-            {
-            }
-        }
-    }
-}
+BenchmarkRunner.Run<WriteBench>(config);
 
 //var bb = new BindingBench();
 
