@@ -6,6 +6,7 @@ using FlameCsv.Binding;
 using FlameCsv.Binding.Internal;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
+using FlameCsv.Reflection;
 
 namespace FlameCsv.Runtime;
 
@@ -63,6 +64,12 @@ internal sealed class ExpressionDelegateGenerator<T> : DelegateGenerator<T> wher
         // if there are ctor parameters: new T(arg0, arg1)
         NewExpression GetObjectInitialization()
         {
+            if (CsvTypeInfo<TResult>.Value.Proxy is not null)
+            {
+                // TODO: get full binding collection for proxy type
+                return Expression.New(CsvTypeInfo<TResult>.Value.Proxy!.Type);
+            }
+
             if (!bc.HasConstructorParameters)
                 return Expression.New(typeof(TResult));
 

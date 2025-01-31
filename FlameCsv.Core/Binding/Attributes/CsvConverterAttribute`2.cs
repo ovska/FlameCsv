@@ -17,6 +17,33 @@ public sealed class CsvConverterAttribute<T, [DAM(Messages.Ctors)] TConverter> :
     where T : unmanaged, IBinaryInteger<T>
     where TConverter : CsvConverter<T>
 {
+    private static readonly Lazy<(ConstructorInfo ctor, bool empty)> _converterConstructor = new(
+        static () =>
+        {
+            ConstructorInfo? empty = null;
+
+            foreach (var ctor in typeof(TConverter).GetConstructors())
+            {
+                var parameters = ctor.GetParameters();
+
+                if (parameters.Length == 0)
+                {
+                    empty ??= ctor;
+                }
+                else if (parameters.Length == 1 && parameters[0].ParameterType == typeof(CsvOptions<T>))
+                {
+                    return (ctor, false);
+                }
+            }
+
+            if (empty is not null)
+            {
+                return (empty, true);
+            }
+
+            throw new CsvConfigurationException($"{typeof(TConverter).FullName} has no parameterless constructor");
+        });
+
     /// <inheritdoc cref="CsvConverterAttribute{T, TParser}"/>
     public CsvConverterAttribute()
     {
@@ -25,50 +52,7 @@ public sealed class CsvConverterAttribute<T, [DAM(Messages.Ctors)] TConverter> :
     /// <inheritdoc/>
     protected override CsvConverter<T> CreateConverterOrFactory(Type targetType, CsvOptions<T> options)
     {
-        bool isInherited = options.GetType() != typeof(CsvOptions<T>);
-
-        ConstructorInfo? empty = null;
-        ConstructorInfo? inherited = null;
-        ConstructorInfo? notInherited = null;
-
-        foreach ((ConstructorInfo ctor, ParameterData[] parameters) in CsvTypeInfo.PublicConstructors<TConverter>())
-        {
-            if (parameters.Length == 0)
-            {
-                empty = ctor;
-            }
-            else if (parameters.Length == 1)
-            {
-                if (isInherited && options.GetType() == parameters[0].Value.ParameterType)
-                {
-                    inherited = ctor;
-                }
-                else if (parameters[0].Value.ParameterType == typeof(CsvOptions<T>))
-                {
-                    notInherited = ctor;
-                }
-            }
-        }
-
-        object[]? args = null;
-
-        if ((inherited ?? notInherited) is { } valid)
-        {
-            args = [options];
-        }
-        else if ((valid = empty) is not null)
-        {
-            args = [];
-        }
-
-        if (args is null || valid is null)
-        {
-            string suffix = isInherited ? $" or {options.GetType().FullName}" : "";
-
-            throw new CsvConfigurationException(
-                $"{typeof(TConverter).FullName} has constructor that accepts {typeof(CsvOptions<T>).FullName}{suffix} or no parameters");
-        }
-
-        return (CsvConverter<T>)valid.Invoke(args);
+        (ConstructorInfo ctor, bool empty) = _converterConstructor.Value;
+        return (CsvConverter<T>)ctor.Invoke(empty ? [] : [options]);
     }
 }

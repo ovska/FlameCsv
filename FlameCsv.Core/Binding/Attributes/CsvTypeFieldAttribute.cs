@@ -6,10 +6,11 @@ namespace FlameCsv.Binding.Attributes;
 /// Configures the target property, field, or parameter.
 /// </summary>
 /// <remarks>
-/// Intended to be used on types that cannot be configured directly with <see cref="CsvFieldAttribute"/>.
+/// Intended to be used on types that cannot be configured directly with <see cref="CsvFieldAttribute"/>.<br/>
+/// When placed on an interface, <see cref="CsvTypeAttribute.CreatedTypeProxy"/> must be set when reading.
 /// </remarks>
 [PublicAPI]
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface, AllowMultiple = true)]
 public class CsvTypeFieldAttribute : CsvFieldAttribute
 {
     /// <summary>

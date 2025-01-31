@@ -13,8 +13,8 @@ public static class TypeCacheTests
     [Fact]
     public static void Should_Cache_Members()
     {
-        var m1 = CsvTypeInfo.Members<Obj>().ToArray();
-        var m2 = CsvTypeInfo.Members<Obj>().ToArray();
+        var m1 = CsvTypeInfo<Obj>.Value.Members.ToArray();
+        var m2 = CsvTypeInfo<Obj>.Value.Members.ToArray();
         Assert.Equal(m1, m2, ReferenceEqualityComparer.Instance);
 
         Assert.Contains(
@@ -34,15 +34,15 @@ public static class TypeCacheTests
 
         foreach (var member in m1)
         {
-            Assert.Same(member, CsvTypeInfo.GetPropertyOrField<Obj>(member.Value.Name));
+            Assert.Same(member, CsvTypeInfo<Obj>.Value.GetPropertyOrField(member.Value.Name));
         }
     }
 
     [Fact]
     public static void Should_Cache_Attributes()
     {
-        var a1 = CsvTypeInfo.Attributes<Obj>().ToArray();
-        var a2 = CsvTypeInfo.Attributes<Obj>().ToArray();
+        var a1 = CsvTypeInfo<Obj>.Value.Attributes.ToArray();
+        var a2 = CsvTypeInfo<Obj>.Value.Attributes.ToArray();
         Assert.Equal(a1, a2, ReferenceEqualityComparer.Instance);
 
         // remove compiler generated attrs
@@ -54,22 +54,22 @@ public static class TypeCacheTests
     [Fact]
     public static void Should_Cache_Constructors()
     {
-        var ctors = CsvTypeInfo.PublicConstructors<Obj>().ToArray();
-        Assert.Equal(ctors, CsvTypeInfo.PublicConstructors<Obj>().ToArray());
+        var ctors = CsvTypeInfo<Obj>.Value.PublicConstructors.ToArray();
+        Assert.Equal(ctors, CsvTypeInfo<Obj>.Value.PublicConstructors.ToArray());
 
         Assert.Equal(2, ctors.Length);
 
         Assert.Single(ctors, x => x.Params.Length == 0 && x.Value.GetCustomAttributes<CsvConstructorAttribute>().Any());
         Assert.Single(ctors, x => x.Params.Length == 1 && x.Params[0].Value.ParameterType == typeof(int));
 
-        Assert.Empty(CsvTypeInfo.ConstructorParameters<Obj>().ToArray());
+        Assert.Empty(CsvTypeInfo<Obj>.Value.ConstructorParameters.ToArray());
     }
 
     [Fact]
     public static void Should_Cache_Ctor_Params()
     {
-        var p = CsvTypeInfo.ConstructorParameters<Obj2>().ToArray();
-        Assert.Equal(p, CsvTypeInfo.ConstructorParameters<Obj2>().ToArray(), ReferenceEqualityComparer.Instance);
+        var p = CsvTypeInfo<Obj2>.Value.ConstructorParameters.ToArray();
+        Assert.Equal(p, CsvTypeInfo<Obj2>.Value.ConstructorParameters.ToArray(), ReferenceEqualityComparer.Instance);
 
         Assert.Equal(2, p.Length);
         Assert.Equal(typeof(bool), p[0].Value.ParameterType);
