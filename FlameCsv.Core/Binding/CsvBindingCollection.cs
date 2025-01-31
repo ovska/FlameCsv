@@ -5,6 +5,7 @@ using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding.Internal;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Binding;
 
@@ -12,9 +13,20 @@ namespace FlameCsv.Binding;
 /// Represents a validated collection of CSV fields bound to properties, fields, or constructor parameters.
 /// </summary>
 /// <typeparam name="TValue">Type represented by the CSV</typeparam>
+[PublicAPI]
 [DebuggerDisplay("CsvBindingCollection<{typeof(TValue).Name,nq}>[{_allBindings.Count}]")]
 public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue>>
 {
+    /// <summary>
+    /// Returns <c>true</c> if the bindings are for writing CSV.
+    /// </summary>
+    public bool ForWriting { get; }
+
+    /// <summary>
+    /// Returns <c>true</c> if the bindings are for reading CSV.
+    /// </summary>
+    public bool ForReading => !ForWriting;
+
     /// <summary>
     /// All bindings, sorted by index. Guaranteed to be valid.
     /// </summary>
@@ -35,17 +47,20 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
     /// <summary>
     /// Returns <see langword="true"/> if the bindings will use a specific constructor.
     /// </summary>
+    /// <remarks>This is always <c>false</c> if <see cref="ForWriting"/> is <c>true</c>.</remarks>
     public bool HasConstructorParameters => _ctorParameters?.Count > 0;
 
     /// <summary>
     /// Return <see langword="true"/> is <see cref="MemberBindings"/> is not empty.
     /// </summary>
+    /// <remarks>This is always <c>true</c> if <see cref="ForWriting"/> is <c>true</c>.</remarks>
     public bool HasMemberInitializers => _memberBindings.Count > 0;
 
     /// <summary>
-    /// Returns the constructor used by the bindings, throwing if there are no constructor bindings.
+    /// Returns the constructor used by the bindings.
     /// </summary>
-    /// <exception cref="InvalidOperationException"/>
+    /// <seealso cref="HasConstructorParameters"/>
+    /// <exception cref="InvalidOperationException">There are no constructor bindings</exception>
     public ConstructorInfo Constructor => _ctor ?? throw new InvalidOperationException("There are no constructor bindings.");
 
     private readonly List<CsvBinding<TValue>> _allBindings;
@@ -115,9 +130,9 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
                 {
                     ctor = parameterBinding.Constructor;
                 }
-                else
+                else if (!ctor.Equals(parameterBinding.Constructor))
                 {
-                    ThrowIfMultipleCtors(ctor, parameterBinding);
+                    throw new CsvBindingException<TValue>(typeof(TValue), ctor, parameterBinding.Constructor);
                 }
 
                 ThrowIfDuplicate(ctorBindings, parameterBinding);
@@ -125,7 +140,7 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
             }
             else
             {
-                throw new UnreachableException("Invalid binding type");
+                throw new CsvBindingException($"Unrecognized binding type {binding.GetType().FullName}");
             }
         }
 
@@ -136,6 +151,7 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
                 bindingsList);
         }
 
+        ForWriting = write;
         _allBindings = bindingsList;
         _memberBindings = memberBindings;
         _ctor = ctor;
@@ -151,12 +167,6 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
                     throw new CsvBindingException<TValue>(duplicate, binding);
                 }
             }
-        }
-
-        static void ThrowIfMultipleCtors(ConstructorInfo ctor, ParameterCsvBinding<TValue> binding)
-        {
-            if (!ctor.Equals(binding.Constructor))
-                throw new CsvBindingException<TValue>(typeof(TValue), ctor, binding.Constructor);
         }
     }
 
