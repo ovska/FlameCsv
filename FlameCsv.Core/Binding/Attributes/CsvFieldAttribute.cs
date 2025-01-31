@@ -5,10 +5,6 @@ namespace FlameCsv.Binding.Attributes;
 /// <summary>
 /// Configures the property, field, or parameter.
 /// </summary>
-/// <remarks>
-/// Multiple instances of the attribute can be used with a different <see cref="Scope"/>. Multiple instances
-/// of the same scope are not supported.
-/// </remarks>
 [PublicAPI]
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
 public class CsvFieldAttribute : Attribute

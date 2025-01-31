@@ -72,6 +72,28 @@ public static class IndexAttributeBinderTests
         }
     }
 
+    [Theory, InlineData(true), InlineData(false)]
+    public static void Should_Handle_Interfaces(bool write)
+    {
+        Assert.True(IndexAttributeBinder<IFace>.TryGetBindings(write, out var result));
+        Assert.Equal(2, result.Bindings.Length);
+        Assert.Equal("A", ((MemberCsvBinding<IFace>)result.Bindings[0]).Member.Name);
+        Assert.Equal("B", ((MemberCsvBinding<IFace>)result.Bindings[1]).Member.Name);
+    }
+
+    private class ObjIFace : IFace
+    {
+        public int A { get; set; }
+        public string? B { get; set; }
+    }
+
+    [CsvType(CreatedTypeProxy = typeof(ObjIFace))]
+    private interface IFace
+    {
+        [CsvField(Index = 0)] int A { get; }
+        [CsvField(Index = 1)] string? B { get; }
+    }
+
     [CsvType(IgnoredIndexes = [1])]
     private class Ignored
     {

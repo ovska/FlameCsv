@@ -73,6 +73,7 @@ public abstract class CsvReflectionBinder
 
     private static readonly TrimmingCache<object, object> _dematerializerCache = [];
 
+    [RDC(Messages.Reflection)]
     private protected static CsvBindingCollection<TValue> GetReadBindings<T, [DAM(Messages.ReflectionBound)] TValue>(
         CsvOptions<T> options,
         ReadOnlySpan<string> headerFields,
@@ -168,6 +169,7 @@ public abstract class CsvReflectionBinder
         return created;
     }
 
+    [RDC(Messages.Reflection)]
     private static CsvBindingCollection<TValue> GetWriteHeaders<T, [DAM(Messages.ReflectionBound)] TValue>()
         where T : unmanaged, IBinaryInteger<T>
     {
@@ -214,25 +216,28 @@ public abstract class CsvReflectionBinder
     /// <summary>
     /// Returns members of <typeparamref name="TValue"/> that can be used for binding.
     /// </summary>
+    [RDC(Messages.Reflection)]
     private protected static HeaderData GetHeaderDataFor<[DAM(Messages.ReflectionBound)] TValue>(bool write)
     {
         if (!Cache.TryGetValue(typeof(TValue), out var entry))
         {
             entry = new HeaderDataEntry(
-                static () => GetHeaderDataCore<TValue>(write: false),
-                static () => GetHeaderDataCore<TValue>(write: true));
+                read: static () => GetHeaderDataCore(CsvTypeInfo<TValue>.Value.ProxyOrSelf, write: false),
+                write: static () => GetHeaderDataCore(CsvTypeInfo<TValue>.Value, write: true));
             Cache.Add(typeof(TValue), entry);
         }
 
         return write ? entry.Write : entry.Read;
     }
 
-    private static HeaderData GetHeaderDataCore<[DAM(Messages.ReflectionBound)] TValue>(bool write)
+    private static HeaderData GetHeaderDataCore(
+        CsvTypeInfo typeInfo,
+        bool write)
     {
         List<HeaderBindingCandidate> candidates = [];
         CsvTypeAttribute? typeAttribute = null;
 
-        foreach (var member in CsvTypeInfo.Members<TValue>())
+        foreach (var member in typeInfo.Members)
         {
             if (!write && member.IsReadOnly)
                 continue;
@@ -274,7 +279,7 @@ public abstract class CsvReflectionBinder
             }
         }
 
-        foreach (var attribute in CsvTypeInfo.Attributes<TValue>())
+        foreach (var attribute in typeInfo.Attributes)
         {
             if (attribute is CsvTypeAttribute typeAttr)
             {
@@ -288,7 +293,7 @@ public abstract class CsvReflectionBinder
             {
                 if (write) continue;
 
-                var parameter = CsvTypeInfo.GetParameter<TValue>(attr.MemberName).Value;
+                var parameter = typeInfo.GetParameter(attr.MemberName).Value;
 
                 foreach (var value in attr.Headers)
                 {
@@ -297,7 +302,7 @@ public abstract class CsvReflectionBinder
             }
             else
             {
-                var member = CsvTypeInfo.GetPropertyOrField<TValue>(attr.MemberName).Value;
+                var member = typeInfo.GetPropertyOrField(attr.MemberName).Value;
 
                 foreach (var value in attr.Headers)
                 {
@@ -306,7 +311,7 @@ public abstract class CsvReflectionBinder
             }
         }
 
-        foreach (var parameter in !write ? CsvTypeInfo.ConstructorParameters<TValue>() : default)
+        foreach (var parameter in !write ? typeInfo.ConstructorParameters : default)
         {
             CsvFieldAttribute? attr = null;
 
