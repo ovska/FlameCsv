@@ -66,20 +66,6 @@ internal static class CsvTypeInfo
             ?? ThrowExceptionForNoPrimaryConstructor(typeof(T));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ConstructorInfo? EmptyConstructor<[DAM(DAMT.PublicConstructors)] T>()
-    {
-        foreach ((ConstructorInfo ctor, ParameterData[] parameters) in PublicConstructors<T>())
-        {
-            if (parameters.Length == 0)
-            {
-                return ctor;
-            }
-        }
-
-        return null;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static MemberData GetPropertyOrField<[DAM(DAMT.PublicProperties | DAMT.PublicFields)] T>(string memberName)
     {
         foreach (var member in Members<T>())
