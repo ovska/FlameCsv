@@ -2,7 +2,6 @@
 using System.Globalization;
 using System.Text;
 using FlameCsv.Binding.Attributes;
-using FlameCsv.Extensions;
 
 namespace FlameCsv.Binding;
 
@@ -26,7 +25,7 @@ public abstract class CsvBinding<T> : CsvBinding, IEquatable<CsvBinding>, IEquat
     /// <summary>
     /// Returns the custom attributes on the binding, or empty if not applicable (e.g., ignored field).
     /// </summary>
-    protected internal abstract ReadOnlySpan<object> Attributes { get; }
+    protected abstract ReadOnlySpan<object> Attributes { get; }
 
     /// <summary>
     /// Attempts to return an attribute of type <typeparamref name="TAttribute"/> from the member/parameter.
@@ -92,12 +91,35 @@ public abstract class CsvBinding<T> : CsvBinding, IEquatable<CsvBinding>, IEquat
     {
         foreach (var attribute in Attributes)
         {
-            if (attribute is CsvConverterAttribute<TToken> @override && @override.Scope.IsValidFor(write))
+            if (attribute is CsvConverterAttribute<TToken> @override)
             {
                 return (CsvConverter<TToken, TResult>)@override.CreateConverter(Type, options);
             }
         }
 
         return options.GetConverter<TResult>();
+    }
+
+    /// <summary>
+    /// Comparer that compares bindings by their target property, field, or parameter.
+    /// </summary>
+    public static IEqualityComparer<CsvBinding<T>> TargetComparer { get; } = new TargetEqualityComparer();
+
+    private sealed class TargetEqualityComparer : IEqualityComparer<CsvBinding<T>>
+    {
+        public bool Equals(CsvBinding<T>? x, CsvBinding<T>? y)
+        {
+            if (x is null)
+            {
+                return y is null;
+            }
+
+            return x.TargetEquals(y);
+        }
+
+        public int GetHashCode(CsvBinding<T> obj)
+        {
+            return obj.Sentinel.GetHashCode();
+        }
     }
 }

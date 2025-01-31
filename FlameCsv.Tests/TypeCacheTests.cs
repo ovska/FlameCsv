@@ -19,18 +19,18 @@ public static class TypeCacheTests
 
         Assert.Contains(
             m1,
-            m => m.Value == typeof(Obj).GetProperty("Id")
-                && m.MemberType == typeof(int)
-                && m is { IsProperty: true, IsReadOnly: false, Attributes: [] });
+            m => m.Value == typeof(Obj).GetProperty("Id") &&
+                m.MemberType == typeof(int) &&
+                m is { IsProperty: true, IsReadOnly: false, Attributes: [] });
         Assert.Contains(
             m1,
-            m => m.Value == typeof(Obj).GetProperty("Name")
-                && m.MemberType == typeof(string)
-                && m is { IsProperty: true, IsReadOnly: true, Attributes: [] });
+            m => m.Value == typeof(Obj).GetProperty("Name") &&
+                m.MemberType == typeof(string) &&
+                m is { IsProperty: true, IsReadOnly: true, Attributes: [] });
         Assert.Contains(
             m1,
-            m => m.Value == typeof(Obj).GetField("Field")
-                && m is { IsProperty: false, IsReadOnly: false, Attributes: [CsvHeaderExcludeAttribute] });
+            m => m.Value == typeof(Obj).GetField("Field") &&
+                m is { IsProperty: false, IsReadOnly: false, Attributes: [CsvFieldAttribute { IsIgnored: true }] });
 
         foreach (var member in m1)
         {
@@ -80,7 +80,9 @@ public static class TypeCacheTests
 [method: CsvConstructor]
 file class Obj2(bool b, int i)
 {
-    public Obj2(string s) : this(s is null, 0) { }
+    public Obj2(string s) : this(s is null, 0)
+    {
+    }
 
     public bool B { get; set; } = b;
     public int I { get; set; } = i;
@@ -101,5 +103,5 @@ file class Obj
 
     public int Id { get; set; }
     public string? Name { get; }
-    [CsvHeaderExclude] public bool Field = true;
+    [CsvField(IsIgnored = true)] public bool Field = true;
 }

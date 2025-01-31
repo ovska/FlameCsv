@@ -6,6 +6,7 @@ namespace FlameCsv.Binding.Attributes;
 
 /// <summary>
 /// Overrides the converter for the target member or parameter.
+/// This attribute is recognized by the source generator.
 /// </summary>
 /// <remarks>
 /// Converters created this way are distinct from the cached converters in <see cref="CsvOptions{T}"/>.

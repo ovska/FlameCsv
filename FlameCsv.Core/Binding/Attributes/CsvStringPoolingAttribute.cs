@@ -13,7 +13,7 @@ namespace FlameCsv.Binding.Attributes;
 /// Configures the member to use pooled strings.
 /// </summary>
 /// <seealso cref="CsvOptions{T}.StringPool"/>
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
 public sealed class CsvStringPoolingAttribute<T> : CsvConverterAttribute<T> where T : unmanaged, IBinaryInteger<T>
 {
     /// <inheritdoc />

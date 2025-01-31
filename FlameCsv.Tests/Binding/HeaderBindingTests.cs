@@ -55,16 +55,16 @@ public static class HeaderBindingTests
     }
 }
 
-[CsvHeaderTarget(nameof(Targeted), "_targeted")]
+[CsvTypeField(nameof(Targeted), headers: "_targeted")]
 file class Shim
 {
-    [CsvHeaderExclude] public string? Name { get; set; }
-    [CsvHeader("Name")] public string? DisplayName { get; set; }
+    [CsvField(IsIgnored = true)] public string? Name { get; set; }
+    [CsvField("Name")] public string? DisplayName { get; set; }
     public bool IsEnabled { get; set; }
     public int Targeted { get; set; }
 }
 
-file class ShimWithCtor([CsvHeader("_targeted")] bool isEnabled)
+file class ShimWithCtor([CsvField("_targeted")] bool isEnabled)
 {
     public object? _Targeted { get; set; }
 

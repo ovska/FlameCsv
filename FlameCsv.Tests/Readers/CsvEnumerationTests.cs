@@ -9,8 +9,8 @@ public sealed class CsvEnumerationTests : IDisposable
 {
     private class Shim
     {
-        [CsvIndex(0)] public int Id { get; set; }
-        [CsvIndex(1)] public string? Name { get; set; }
+        [CsvField(Index = 0)] public int Id { get; set; }
+        [CsvField(Index = 1)] public string? Name { get; set; }
     }
 
     [Fact]
@@ -162,8 +162,7 @@ public sealed class CsvEnumerationTests : IDisposable
         return _enumerator.Current;
     }
 
-    [HandlesResourceDisposal]
-    private CsvRecordEnumerator<char>? _enumerator;
+    [HandlesResourceDisposal] private CsvRecordEnumerator<char>? _enumerator;
 
     public void Dispose() => _enumerator?.Dispose();
 }

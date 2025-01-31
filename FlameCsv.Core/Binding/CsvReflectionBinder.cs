@@ -214,8 +214,6 @@ public abstract class CsvReflectionBinder
     /// <summary>
     /// Returns members of <typeparamref name="TValue"/> that can be used for binding.
     /// </summary>
-    /// <seealso cref="CsvHeaderAttribute"/>
-    /// <seealso cref="CsvHeaderExcludeAttribute"/>
     private protected static HeaderData GetHeaderDataFor<[DAM(Messages.ReflectionBound)] TValue>(bool write)
     {
         if (!Cache.TryGetValue(typeof(TValue), out var entry))
@@ -232,37 +230,41 @@ public abstract class CsvReflectionBinder
     private static HeaderData GetHeaderDataCore<[DAM(Messages.ReflectionBound)] TValue>(bool write)
     {
         List<HeaderBindingCandidate> candidates = [];
+        CsvTypeAttribute? typeAttribute = null;
 
         foreach (var member in CsvTypeInfo.Members<TValue>())
         {
             if (!write && member.IsReadOnly)
                 continue;
 
-            if (member.IsExcluded(write))
-                continue;
-
             bool found = false;
 
             foreach (var attribute in member.Attributes)
             {
-                if (attribute is not CsvHeaderAttribute attr || !attr.Scope.IsValidFor(write))
+                if (attribute is not CsvFieldAttribute attr)
                 {
                     continue;
                 }
 
                 found = true;
 
-                if (attr.Values.Length == 0)
+                if (attr.IsIgnored)
                 {
-                    candidates.Add(
-                        new HeaderBindingCandidate(member.Value.Name, member.Value, attr.Order, attr.Required));
+                    // TODO: what to do here?
+                    continue;
+                }
+
+                if (attr.Headers is { Length: > 0 })
+                {
+                    foreach (var value in attr.Headers)
+                    {
+                        candidates.Add(new HeaderBindingCandidate(value, member.Value, attr.Order, attr.IsRequired));
+                    }
                 }
                 else
                 {
-                    foreach (var value in attr.Values)
-                    {
-                        candidates.Add(new HeaderBindingCandidate(value, member.Value, attr.Order, attr.Required));
-                    }
+                    candidates.Add(
+                        new HeaderBindingCandidate(member.Value.Name, member.Value, attr.Order, attr.IsRequired));
                 }
             }
 
@@ -272,35 +274,45 @@ public abstract class CsvReflectionBinder
             }
         }
 
-        CsvHeaderIgnoreAttribute? ignoreAttribute = null;
-
         foreach (var attribute in CsvTypeInfo.Attributes<TValue>())
         {
-            if (attribute is CsvHeaderTargetAttribute attr && attr.Scope.IsValidFor(write))
+            if (attribute is CsvTypeAttribute typeAttr)
             {
-                var member = CsvTypeInfo.GetPropertyOrField<TValue>(attr.MemberName);
-                candidates.EnsureCapacity(candidates.Count + attr.Values.Length);
+                typeAttribute = typeAttr;
+                continue;
+            }
 
-                foreach (var value in attr.Values)
+            if (attribute is not CsvTypeFieldAttribute attr) continue;
+
+            if (attr.IsParameter)
+            {
+                if (write) continue;
+
+                var parameter = CsvTypeInfo.GetParameter<TValue>(attr.MemberName).Value;
+
+                foreach (var value in attr.Headers)
                 {
-                    candidates.Add(new HeaderBindingCandidate(value, member.Value, attr.Order, attr.IsRequired));
+                    candidates.Add(new HeaderBindingCandidate(value, parameter, attr.Order, attr.IsRequired));
                 }
             }
-            else if (ignoreAttribute is null &&
-                     attribute is CsvHeaderIgnoreAttribute hia &&
-                     hia.Scope.IsValidFor(write))
+            else
             {
-                ignoreAttribute = hia;
+                var member = CsvTypeInfo.GetPropertyOrField<TValue>(attr.MemberName).Value;
+
+                foreach (var value in attr.Headers)
+                {
+                    candidates.Add(new HeaderBindingCandidate(value, member, attr.Order, attr.IsRequired));
+                }
             }
         }
 
         foreach (var parameter in !write ? CsvTypeInfo.ConstructorParameters<TValue>() : default)
         {
-            CsvHeaderAttribute? attr = null;
+            CsvFieldAttribute? attr = null;
 
             foreach (var attribute in parameter.Attributes)
             {
-                if (attribute is CsvHeaderAttribute match && match.Scope.IsValidFor(write))
+                if (attribute is CsvFieldAttribute match)
                 {
                     attr = match;
                     break;
@@ -309,20 +321,26 @@ public abstract class CsvReflectionBinder
 
             if (attr is not null)
             {
-                if (attr.Values.Length == 0)
+                if (attr.IsIgnored)
+                {
+                    // TODO: what to do here?
+                    continue;
+                }
+
+                if (attr.Headers.Length == 0)
                 {
                     candidates.Add(
                         new HeaderBindingCandidate(
                             parameter.Value.Name!,
                             parameter.Value,
                             attr.Order,
-                            attr.Required));
+                            attr.IsRequired));
                 }
                 else
                 {
-                    foreach (var value in attr.Values)
+                    foreach (var value in attr.Headers)
                     {
-                        candidates.Add(new HeaderBindingCandidate(value, parameter.Value, attr.Order, attr.Required));
+                        candidates.Add(new HeaderBindingCandidate(value, parameter.Value, attr.Order, attr.IsRequired));
                     }
                 }
             }
@@ -354,7 +372,7 @@ public abstract class CsvReflectionBinder
         }
 
         candidates.AsSpan().Sort(); // sorted by Order
-        return new HeaderData(ignoreAttribute?.Values, candidates);
+        return new HeaderData(typeAttribute?.IgnoredHeaders, candidates);
     }
 }
 

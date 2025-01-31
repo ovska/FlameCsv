@@ -8,50 +8,50 @@ internal readonly struct SymbolMetadata
     public ISymbol Symbol { get; }
     public string[] Names { get; }
     public bool IsRequired { get; }
+    public bool IsIgnored { get; }
     public int Order { get; }
-    public CsvBindingScope Scope { get; }
+    public int? Index { get; }
 
-    public SymbolMetadata(ISymbol token, ISymbol symbol, FlameSymbols flameSymbols)
+    public SymbolMetadata(ISymbol symbol, FlameSymbols flameSymbols)
     {
         Symbol = symbol;
 
         foreach (var attributeData in symbol.GetAttributes())
         {
-            if (SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, flameSymbols.CsvHeaderAttribute))
+            if (!SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, flameSymbols.CsvFieldAttribute))
             {
-                // params-array
-                if (attributeData.ConstructorArguments[0].Values is { IsDefaultOrEmpty: false } namesArray)
-                {
-                    var names = new string[namesArray.Length];
-
-                    for (int i = 0; i < namesArray.Length; i++)
-                        names[i] = namesArray[i].Value?.ToString() ?? "";
-
-                    Names = names;
-                }
-
-                foreach (var argument in attributeData.NamedArguments)
-                {
-                    switch (argument)
-                    {
-                        case { Key: "Required", Value.Value: bool requiredArg }:
-                            IsRequired = requiredArg;
-                            break;
-                        case { Key: "Order", Value.Value: int orderArg }:
-                            Order = orderArg;
-                            break;
-                        case { Key: "Scope", Value.Value: CsvBindingScope scopeArg }:
-                            Scope = scopeArg;
-                            break;
-                    }
-                }
+                continue;
             }
-            else if (attributeData.AttributeClass is { IsGenericType: true } attribute &&
-                     SymbolEqualityComparer.Default.Equals(token, attribute.TypeArguments[0]) &&
-                     SymbolEqualityComparer.Default.Equals(
-                         attribute.ConstructUnboundGenericType(),
-                         flameSymbols.CsvConverterOfTAttribute))
+
+            // params-array
+            if (attributeData.ConstructorArguments[0].Values is { IsDefaultOrEmpty: false } namesArray)
             {
+                var names = new string[namesArray.Length];
+
+                for (int i = 0; i < namesArray.Length; i++)
+                    names[i] = namesArray[i].Value?.ToString() ?? "";
+
+                Names = names;
+            }
+
+            foreach (var argument in attributeData.NamedArguments)
+            {
+                switch (argument.Key)
+                {
+                    case "IsIgnored":
+                        IsIgnored = argument.Value.Value is true;
+                        break;
+                    case "IsRequired":
+                        IsRequired = argument.Value.Value is true;
+                        break;
+                    case "Order":
+                        Order = argument.Value.Value as int? ?? 0;
+                        break;
+                    case "Index":
+                        Index = argument.Value.Value as int?;
+                        if (Index < 0) Index = null;
+                        break;
+                }
             }
         }
 

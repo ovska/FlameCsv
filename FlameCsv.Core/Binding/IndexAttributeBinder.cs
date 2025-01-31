@@ -1,9 +1,8 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Binding.Internal;
 using FlameCsv.Exceptions;
-using FlameCsv.Extensions;
 using FlameCsv.Reflection;
 
 namespace FlameCsv.Binding;
@@ -26,39 +25,59 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
     private static CsvBindingCollection<TValue>? CreateBindingCollection(bool write)
     {
         List<CsvBinding<TValue>> list = [];
+        List<CsvTypeFieldAttribute> parameterAttributes = [];
 
         foreach (var attr in CsvTypeInfo.Attributes<TValue>())
         {
-            if (attr is CsvIndexTargetAttribute target)
+            if (attr is CsvTypeAttribute typeAttr)
             {
-                if (!target.Scope.IsValidFor(write))
-                    continue;
-
-                list.Add(
-                    new MemberCsvBinding<TValue>(
-                        target.Index,
-                        CsvTypeInfo.GetPropertyOrField<TValue>(target.MemberName)));
-            }
-            else if (attr is CsvIndexIgnoreAttribute { Indexes: var ignoredIndices } ignoreAttr)
-            {
-                if (!ignoreAttr.Scope.IsValidFor(write))
-                    continue;
-
-                foreach (var index in ignoredIndices)
+                foreach (var ignoredIndex in typeAttr.IgnoredIndexes ?? [])
                 {
-                    // Ensure no duplicate ignores since it's not really harmful to have them
-                    if (!HasIgnoredIndex(index, list))
-                        list.Add(new IgnoredCsvBinding<TValue>(index));
+                    list.Add(new IgnoredCsvBinding<TValue>(ignoredIndex));
                 }
+
+                continue;
             }
+
+            if (attr is not CsvTypeFieldAttribute { Index: var index and >= 0 } fieldAttribute)
+            {
+                continue;
+            }
+
+            if (fieldAttribute.IsIgnored)
+            {
+                list.Add(new IgnoredCsvBinding<TValue>(index));
+                continue;
+            }
+
+            if (fieldAttribute.IsParameter)
+            {
+                if (!write)
+                {
+                    parameterAttributes.Add(fieldAttribute);
+                }
+
+                continue;
+            }
+
+            list.Add(
+                new MemberCsvBinding<TValue>(
+                    index,
+                    CsvTypeInfo.GetPropertyOrField<TValue>(fieldAttribute.MemberName)));
         }
 
         foreach (var member in CsvTypeInfo.Members<TValue>())
         {
             foreach (var attr in member.Attributes)
             {
-                if (attr is CsvIndexAttribute { Index: var index } indexAttr && indexAttr.Scope.IsValidFor(write))
+                if (attr is CsvFieldAttribute { Index: var index and >= 0 } fieldAttribute)
                 {
+                    if (fieldAttribute.IsIgnored)
+                    {
+                        list.Add(new IgnoredCsvBinding<TValue>(index));
+                        break;
+                    }
+
                     list.Add(new MemberCsvBinding<TValue>(index, member));
                     break;
                 }
@@ -67,13 +86,38 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
 
         if (!write)
         {
+            foreach (var targetAttr in parameterAttributes)
+            {
+                Debug.Assert(targetAttr.Index >= 0);
+
+                ParameterData? match = null;
+
+                foreach (var parameter in CsvTypeInfo.ConstructorParameters<TValue>())
+                {
+                    if (parameter.Value.Name == targetAttr.MemberName)
+                    {
+                        match = parameter;
+                        break;
+                    }
+                }
+
+                if (match is null)
+                {
+                    throw new CsvBindingException<TValue>($"Parameter '{targetAttr.MemberName}' not found");
+                }
+
+                list.Add(new ParameterCsvBinding<TValue>(targetAttr.Index, match.Value));
+            }
+
+            // TODO: find match from parameters
+
             foreach (var parameter in CsvTypeInfo.ConstructorParameters<TValue>())
             {
                 bool found = false;
 
                 foreach (var attr in parameter.Attributes)
                 {
-                    if (attr is CsvIndexAttribute { Index: var index })
+                    if (attr is CsvFieldAttribute { Index: { } index })
                     {
                         list.Add(new ParameterCsvBinding<TValue>(index, parameter));
                         found = true;
@@ -81,7 +125,7 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
                     }
                 }
 
-                if (!found && !parameter.Value.HasDefaultValue)
+                if (!found && !parameter.HasDefaultValue)
                 {
                     throw new CsvBindingException<TValue>(parameter.Value, Array.Empty<CsvBinding>());
                 }
@@ -89,18 +133,84 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
         }
 
         return list.Count > 0
-            ? new CsvBindingCollection<TValue>(list, write)
+            ? new CsvBindingCollection<TValue>(FixGaps(list, write), write)
             : null;
+    }
 
-        static bool HasIgnoredIndex(int index, List<CsvBinding<TValue>> list)
+    private static IEnumerable<CsvBinding<TValue>> FixGaps(List<CsvBinding<TValue>> allBindings, bool write)
+    {
+        SortedDictionary<int, List<CsvBinding<TValue>>> dict = [];
+
+        foreach (var binding in allBindings)
         {
-            foreach (var binding in list.AsSpan())
+            if (!dict.TryGetValue(binding.Index, out var list))
             {
-                if (binding.Index == index && binding.IsIgnored)
-                    return true;
+                dict.Add(binding.Index, list = []);
             }
 
-            return false;
+            // don't add duplicates
+            if (list.Contains(binding, CsvBinding<TValue>.TargetComparer))
+            {
+                continue;
+            }
+
+            list.Add(binding);
+        }
+
+        foreach ((_, List<CsvBinding<TValue>> bindings) in dict)
+        {
+            CsvBinding<TValue> first = bindings[0];
+
+            if (bindings.Count == 1)
+            {
+                yield return first;
+                continue;
+            }
+
+            // mix of ignored and non-ignored
+            if (bindings.Exists(static b => b.IsIgnored))
+            {
+                throw new CsvBindingException<TValue>(
+                    $"Index {first.Index} has a mix of ignored and non-ignored bindings",
+                    bindings);
+            }
+
+            if (!write)
+            {
+                CsvBinding<TValue>? parameter = null;
+
+                foreach (var binding in bindings)
+                {
+                    if (binding is ParameterCsvBinding<TValue>)
+                    {
+                        if (parameter is not null)
+                        {
+                            throw new CsvBindingException<TValue>(
+                                $"Index {first.Index} has multiple parameter bindings",
+                                bindings);
+                        }
+
+                        parameter = binding;
+                    }
+
+                    // must be a member binding
+                    Debug.Assert(binding is MemberCsvBinding<TValue>);
+                }
+
+                if (parameter is null)
+                {
+                    throw new CsvBindingException<TValue>(
+                        $"Index {first.Index} has multiple member bindings",
+                        bindings);
+                }
+
+                yield return parameter;
+                continue;
+            }
+
+            throw new CsvBindingException<TValue>(
+                $"Could not determine the binding to use for index {first.Index} ",
+                bindings);
         }
     }
 }
