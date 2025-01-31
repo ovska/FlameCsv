@@ -5,10 +5,33 @@ using FlameCsv.Tests.Utilities;
 
 // ReSharper disable all
 
+[assembly: CsvAssemblyType(typeof(FlameCsv.Tests.Binding.AssemblyScoped), IgnoredHeaders = ["xyz"])]
+[assembly: CsvAssemblyTypeField(typeof(FlameCsv.Tests.Binding.AssemblyScoped), "Id", ["_id"])]
+[assembly: CsvAssemblyTypeField(typeof(FlameCsv.Tests.Binding.AssemblyScoped), "Name", ["_name"] )]
+
 namespace FlameCsv.Tests.Binding;
+
+file sealed class AssemblyScoped
+{
+    public int Id { get; set; }
+    public string? Name { get; set; }
+}
 
 public static class HeaderBindingTests
 {
+    [Fact]
+    public static void Should_Bind_Using_Assembly_Attributes()
+    {
+        var binder = new CsvReflectionBinder<char>(new CsvOptions<char> { Comparer = StringComparer.Ordinal }, false);
+        var materializer = binder.GetMaterializer<AssemblyScoped>(["_id", "_name"]);
+
+        var record = new ConstantRecord<char>(["5", "Test"]);
+        var result = materializer.Parse(ref record);
+
+        Assert.Equal(5, result.Id);
+        Assert.Equal("Test", result.Name);
+    }
+
     [Fact]
     public static void Should_Bind_To_Ctor_Parameter()
     {

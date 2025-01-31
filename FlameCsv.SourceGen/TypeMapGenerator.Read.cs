@@ -482,6 +482,31 @@ public partial class TypeMapGenerator
         TypeMapModel typeMap,
         CancellationToken cancellationToken)
     {
+        if (typeMap.IgnoredHeaders.Count != 0)
+        {
+            sb.Append(
+                @"
+                // Ignored headers
+                if (comparer.Equals(name, ");
+            sb.Append(typeMap.IgnoredHeaders[0].ToStringLiteral());
+
+            for (int i = 1; i < typeMap.IgnoredHeaders.Count; i++)
+            {
+                sb.Append(
+                    @") ||
+                    comparer.Equals(name, ");
+                sb.Append(typeMap.IgnoredHeaders[i].ToStringLiteral());
+            }
+
+            sb.Append(
+                @"))
+                {
+                    materializer.Targets[index] = 0;
+                    continue;
+                }
+");
+        }
+
         HashSet<string> writtenNames = [];
 
         foreach (var member in typeMap.GetSortedReadableMembers())
