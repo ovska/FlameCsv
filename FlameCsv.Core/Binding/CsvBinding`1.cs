@@ -27,25 +27,6 @@ public abstract class CsvBinding<T> : CsvBinding, IEquatable<CsvBinding>, IEquat
     /// </summary>
     protected abstract ReadOnlySpan<object> Attributes { get; }
 
-    /// <summary>
-    /// Attempts to return an attribute of type <typeparamref name="TAttribute"/> from the member/parameter.
-    /// </summary>
-    public bool TryGetAttribute<TAttribute>([NotNullWhen(true)] out TAttribute? attribute)
-        where TAttribute : Attribute
-    {
-        foreach (var attr in Attributes)
-        {
-            if (attr is TAttribute tAttr)
-            {
-                attribute = tAttr;
-                return true;
-            }
-        }
-
-        attribute = null;
-        return false;
-    }
-
     /// <inheritdoc/>
     public bool Equals(CsvBinding<T>? other) => Equals(other as CsvBinding);
 

@@ -1,5 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
-using FlameCsv.Binding;
+using System.Reflection;
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
 using FlameCsv.Converters;
@@ -63,8 +63,7 @@ public static class CsvBooleanValuesAttributeTests
         Assert.Throws<CsvConfigurationException>(
             () =>
             {
-                var binding = CsvBinding.ForMember<Shim>(0, typeof(Shim).GetProperty(property)!);
-                Assert.True(binding.TryGetAttribute<CsvConverterAttribute<char>>(out var @override));
+                var @override = typeof(Shim).GetProperty(property)!.GetCustomAttribute<CsvConverterAttribute<char>>()!;
                 _ = @override.CreateConverter(typeof(bool), CsvOptions<char>.Default);
             });
     }
@@ -79,9 +78,7 @@ public static class CsvBooleanValuesAttributeTests
         {
             var options = CsvOptions<T>.Default;
 
-            var binding = CsvBinding.ForMember<Shim>(0, typeof(Shim).GetProperty("IsEnabled")!);
-
-            Assert.True(binding.TryGetAttribute<CsvConverterAttribute<T>>(out var @override));
+            var @override = typeof(Shim).GetProperty("IsEnabled")!.GetCustomAttribute<CsvConverterAttribute<T>>()!;
 
             var parser = (CsvConverter<T, bool>)@override.CreateConverter(typeof(bool), options);
             var inputSpan = options.GetFromString(input).Span;
@@ -111,9 +108,8 @@ public static class CsvBooleanValuesAttributeTests
         void Impl<T>() where T : unmanaged, IBinaryInteger<T>
         {
             var options = new CsvOptions<T> { Null = nullToken };
-            var binding = CsvBinding.ForMember<Shim>(0, typeof(Shim).GetProperty("IsEnabledN")!);
 
-            Assert.True(binding.TryGetAttribute<CsvConverterAttribute<T>>(out var @override));
+            var @override = typeof(Shim).GetProperty("IsEnabledN")!.GetCustomAttribute<CsvConverterAttribute<T>>()!;
 
             var parser = (CsvConverter<T, bool?>)@override.CreateConverter(typeof(bool?), options);
             var inputSpan = options.GetFromString(input).Span;
@@ -138,9 +134,7 @@ public static class CsvBooleanValuesAttributeTests
 
         static void Impl<T>() where T : unmanaged, IBinaryInteger<T>
         {
-            var binding = CsvBinding.ForMember<Shim>(0, typeof(Shim).GetProperty("IsEnabledN")!);
-
-            Assert.True(binding.TryGetAttribute<CsvConverterAttribute<T>>(out var @override));
+            var @override = typeof(Shim).GetProperty("IsEnabledN")!.GetCustomAttribute<CsvConverterAttribute<T>>()!;
 
             var parser = (CsvConverter<T, bool?>)@override.CreateConverter(typeof(bool?), CsvOptions<T>.Default);
 
@@ -156,9 +150,7 @@ public static class CsvBooleanValuesAttributeTests
     {
         var options = CsvOptions<char>.Default;
 
-        var binding = CsvBinding.ForMember<Shim>(0, typeof(Shim).GetProperty("IsEnabledN")!);
-
-        Assert.True(binding.TryGetAttribute<CsvConverterAttribute<char>>(out var @override));
+        var @override = typeof(Shim).GetProperty("IsEnabledN")!.GetCustomAttribute<CsvConverterAttribute<char>>()!;
 
         var parser = (NullableConverter<char, bool>)@override.CreateConverter(typeof(bool?), options);
         Assert.True(parser.TryParse("", out bool? parsed));

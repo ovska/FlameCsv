@@ -7,6 +7,7 @@ using FlameCsv.Reflection;
 
 namespace FlameCsv.Binding;
 
+[RDC(Messages.Reflection)]
 internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValue>
 {
     private static readonly Lazy<CsvBindingCollection<TValue>?> _read
@@ -27,7 +28,9 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
         List<CsvBinding<TValue>> list = [];
         List<CsvTypeFieldAttribute> parameterAttributes = [];
 
-        foreach (var attr in CsvTypeInfo.Attributes<TValue>())
+        CsvTypeInfo typeInfo = CsvTypeInfo<TValue>.Value;
+
+        foreach (var attr in typeInfo.Attributes)
         {
             if (attr is CsvTypeAttribute typeAttr)
             {
@@ -63,10 +66,10 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
             list.Add(
                 new MemberCsvBinding<TValue>(
                     index,
-                    CsvTypeInfo.GetPropertyOrField<TValue>(fieldAttribute.MemberName)));
+                    typeInfo.GetPropertyOrField(fieldAttribute.MemberName)));
         }
 
-        foreach (var member in CsvTypeInfo.Members<TValue>())
+        foreach (var member in typeInfo.Members)
         {
             foreach (var attr in member.Attributes)
             {
@@ -92,7 +95,7 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
 
                 ParameterData? match = null;
 
-                foreach (var parameter in CsvTypeInfo.ConstructorParameters<TValue>())
+                foreach (var parameter in CsvTypeInfo<TValue>.Value.ConstructorParameters)
                 {
                     if (parameter.Value.Name == targetAttr.MemberName)
                     {
@@ -111,7 +114,7 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
 
             // TODO: find match from parameters
 
-            foreach (var parameter in CsvTypeInfo.ConstructorParameters<TValue>())
+            foreach (var parameter in typeInfo.ConstructorParameters)
             {
                 bool found = false;
 
@@ -191,6 +194,7 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
                         }
 
                         parameter = binding;
+                        continue;
                     }
 
                     // must be a member binding

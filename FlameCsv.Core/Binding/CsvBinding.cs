@@ -54,6 +54,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// <summary>
     /// Returns a binding for the specified member.
     /// </summary>
+    [RDC(Messages.Reflection)]
     public static CsvBinding<T> For<[DAM(Messages.ReflectionBound)] T>(int index, Expression<Func<T, object?>> memberExpression)
     {
         ArgumentNullException.ThrowIfNull(memberExpression);
@@ -65,6 +66,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <exception cref="CsvBindingException{T}"></exception>
+    [RDC(Messages.Reflection)]
     public static CsvBinding<T> ForMember<[DAM(Messages.ReflectionBound)] T>(
         int index,
         MemberInfo member,
@@ -72,11 +74,22 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     {
         ArgumentNullException.ThrowIfNull(member);
 
-        foreach (var data in CsvTypeInfo.Members<T>())
+        foreach (var data in CsvTypeInfo<T>.Value.Members)
         {
             if (ReferenceEquals(data.Value, member) || AreSameMember(data.Value, member))
             {
                 return new MemberCsvBinding<T>(index, data, header ?? data.Value.Name);
+            }
+        }
+
+        if (CsvTypeInfo<T>.Value.Proxy is { } proxyTypeInfo)
+        {
+            foreach (var data in proxyTypeInfo.Members)
+            {
+                if (ReferenceEquals(data.Value, member) || AreSameMember(data.Value, member))
+                {
+                    return new MemberCsvBinding<T>(index, data, header ?? data.Value.Name);
+                }
             }
         }
 
@@ -91,7 +104,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     {
         ArgumentNullException.ThrowIfNull(parameter);
 
-        foreach (var data in CsvTypeInfo.ConstructorParameters<T>())
+        foreach (var data in CsvTypeInfo<T>.Value.ConstructorParameters)
         {
             if (parameter.Equals(data.Value))
                 return new ParameterCsvBinding<T>(index, data);
@@ -104,6 +117,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// <summary>
     /// Returns a binding targeting the specified header binding match.
     /// </summary>
+    [RDC(Messages.Reflection)]
     internal static CsvBinding<T> FromHeaderBinding<[DAM(Messages.ReflectionBound)] T>(
         int index,
         in HeaderBindingCandidate candidate)

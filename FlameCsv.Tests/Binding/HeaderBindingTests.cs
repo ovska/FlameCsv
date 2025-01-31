@@ -53,6 +53,36 @@ public static class HeaderBindingTests
         Assert.IsType<CsvParseException>(ex.InnerException);
         Assert.Contains("Targeted", ex.InnerException?.Message, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public static void Should_Use_Type_Proxy()
+    {
+        var materializer = CsvOptions<char>.Default.TypeBinder
+            .GetMaterializer<ISomething>(["IsEnabled", "Name", "Targeted"]);
+
+        var record = new ConstantRecord<char>(["true", "Test", "1"]);
+        ISomething result = materializer.Parse(ref record);
+
+        Assert.IsType<Something>(result);
+        Assert.True(result.IsEnabled);
+        Assert.Equal("Test", result.Name);
+        Assert.Equal(1, result.Targeted);
+    }
+}
+
+[CsvType(CreatedTypeProxy = typeof(Something))]
+file interface ISomething
+{
+    string? Name { get; }
+    bool IsEnabled { get; }
+    int Targeted { get; }
+}
+
+file class Something : ISomething
+{
+    public string? Name { get; set; }
+    public bool IsEnabled { get; set; }
+    public int Targeted { get; set; }
 }
 
 [CsvTypeField(nameof(Targeted), headers: "_targeted")]

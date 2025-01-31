@@ -6,7 +6,7 @@ namespace FlameCsv.Binding.Attributes;
 /// Configures the type for reading and writing CSV.
 /// </summary>
 [PublicAPI]
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface)]
 public sealed class CsvTypeAttribute : Attribute
 {
     /// <summary>
@@ -18,4 +18,14 @@ public sealed class CsvTypeAttribute : Attribute
     /// Indexes to always ignore when reading CSV.
     /// </summary>
     public int[]? IgnoredIndexes { get; init; }
+
+    /// <summary>
+    /// Type that will be created in place of the target type.
+    /// </summary>
+    /// <remarks>
+    /// Intended to be used for reading interfaces and abstract classes.<br/>
+    /// Has no effect when writing.
+    /// </remarks>
+    [DAM(Messages.ReflectionBound)]
+    public Type? CreatedTypeProxy { get; init; }
 }
