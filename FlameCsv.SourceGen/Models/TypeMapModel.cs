@@ -5,11 +5,6 @@ namespace FlameCsv.SourceGen.Models;
 internal sealed record TypeMapModel
 {
     /// <summary>
-    /// Scope of the TypeMap.
-    /// </summary>
-    public CsvBindingScope Scope { get; }
-
-    /// <summary>
     /// TypeRef to the TypeMap object
     /// </summary>
     public TypeRef TypeMap { get; }
@@ -71,6 +66,11 @@ internal sealed record TypeMapModel
     public ImmutableEquatableArray<TargetAttributeModel> TargetAttributes { get; }
 
     /// <summary>
+    /// Headers that are always ignored.
+    /// </summary>
+    public ImmutableEquatableArray<string> IgnoredHeaders { get; }
+
+    /// <summary>
     /// Whether the typemap has any required members or parameters.
     /// </summary>
     public bool HasRequiredMembers { get; }
@@ -97,11 +97,7 @@ internal sealed record TypeMapModel
 
         foreach (var kvp in attribute.NamedArguments)
         {
-            if (StringComparer.Ordinal.Equals(kvp.Key, "Scope"))
-            {
-                Scope = (kvp.Value.Value as CsvBindingScope?).GetValueOrDefault();
-            }
-            else if (StringComparer.Ordinal.Equals(kvp.Key, "IgnoreUnmatched"))
+            if (StringComparer.Ordinal.Equals(kvp.Key, "IgnoreUnmatched"))
             {
                 IgnoreUnmatched = kvp.Value.Value is true;
             }
@@ -118,61 +114,57 @@ internal sealed record TypeMapModel
         InGlobalNamespace = containingClass.ContainingNamespace.IsGlobalNamespace;
         Namespace = containingClass.ContainingNamespace.ToDisplayString();
 
-        if (Scope != CsvBindingScope.Write)
+        var ctors = containingClass.InstanceConstructors;
+
+        IMethodSymbol? candidate = null;
+
+        if (ctors.Length == 1)
         {
-            var ctors = containingClass.InstanceConstructors;
-
-            IMethodSymbol? candidate = null;
-
-            if (ctors.Length == 1)
+            candidate = ctors[0];
+        }
+        else
+        {
+            foreach (var ctor in ctors)
             {
-                candidate = ctors[0];
-            }
-            else
-            {
-                foreach (var ctor in ctors)
+                if (ctor.Parameters.IsDefaultOrEmpty)
                 {
-                    if (ctor.Parameters.IsDefaultOrEmpty)
-                    {
-                        candidate ??= ctor;
-                        continue;
-                    }
+                    candidate ??= ctor;
+                    continue;
+                }
 
-                    foreach (var attr in ctor.GetAttributes())
+                foreach (var attr in ctor.GetAttributes())
+                {
+                    if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, symbols.CsvConstructorAttribute))
                     {
-                        if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, symbols.CsvConstructorAttribute))
-                        {
-                            candidate = ctor;
-                        }
+                        candidate = ctor;
                     }
                 }
             }
+        }
 
-            if (candidate is not null)
+        if (candidate is not null)
+        {
+            Parameters = ParameterModel.Create(tokenSymbol, candidate.Parameters, symbols, _diagnostics);
+
+            for (int index = 0; index < Parameters.Count; index++)
             {
-                Parameters = ParameterModel.Create(tokenSymbol, candidate.Parameters, symbols, _diagnostics);
+                ParameterModel parameter = Parameters[index];
 
-                for (int index = 0; index < Parameters.Count; index++)
+                if (parameter.RefKind is not (RefKind.None or RefKind.In or RefKind.RefReadOnlyParameter))
                 {
-                    ParameterModel parameter = Parameters[index];
+                    _diagnostics.Add(Diagnostics.RefConstructorParameterFound(targetType, candidate.Parameters[index]));
+                }
 
-                    if (parameter.RefKind is not (RefKind.None or RefKind.In or RefKind.RefReadOnlyParameter))
-                    {
-                        _diagnostics.Add(
-                            Diagnostics.RefConstructorParameterFound(targetType, candidate.Parameters[index]));
-                    }
-
-                    if (parameter.ParameterType.IsRefLike)
-                    {
-                        _diagnostics.Add(
-                            Diagnostics.RefLikeConstructorParameterFound(targetType, candidate.Parameters[index]));
-                    }
+                if (parameter.ParameterType.IsRefLike)
+                {
+                    _diagnostics.Add(
+                        Diagnostics.RefLikeConstructorParameterFound(targetType, candidate.Parameters[index]));
                 }
             }
-            else
-            {
-                _diagnostics.Add(Diagnostics.NoConstructorFound(targetType));
-            }
+        }
+        else
+        {
+            _diagnostics.Add(Diagnostics.NoConstructorFound(targetType));
         }
 
         if (containingClass.ContainingType is null)
@@ -253,27 +245,45 @@ internal sealed record TypeMapModel
             }
         }
 
-        if (!hasReadableMembers && Scope != CsvBindingScope.Write)
+        if (!hasReadableMembers)
         {
             _diagnostics.Add(Diagnostics.NoReadableMembers(targetType));
         }
 
-        if (!hasWritableProperties && Scope != CsvBindingScope.Read)
+        if (!hasWritableProperties)
         {
             _diagnostics.Add(Diagnostics.NoWritableMembers(targetType));
         }
 
         List<TargetAttributeModel>? targetAttributes = null;
+        List<string>? ignoredHeaders = null;
 
         foreach (var attr in containingClass.GetAttributes())
         {
-            if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, symbols.CsvHeaderTargetAttribute))
+            if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, symbols.CsvTypeFieldAttribute))
             {
                 (targetAttributes ??= []).Add(new TargetAttributeModel(attr));
+            }
+            else if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, symbols.CsvTypeAttribute))
+            {
+                foreach (var arg in attr.NamedArguments)
+                {
+                    if (arg is { Key: "IgnoredHeaders", Value.Values.IsDefaultOrEmpty: false })
+                    {
+                        foreach (var value in arg.Value.Values)
+                        {
+                            if (value.Value?.ToString() is { Length: > 0 } headerName)
+                            {
+                                (ignoredHeaders ??= []).Add(headerName);
+                            }
+                        }
+                    }
+                }
             }
         }
 
         TargetAttributes = targetAttributes?.ToImmutableEquatableArray() ?? [];
+        IgnoredHeaders = ignoredHeaders?.ToImmutableEquatableArray() ?? [];
     }
 
     /// <summary>
@@ -303,7 +313,7 @@ internal sealed record TypeMapModel
 
             foreach (var member in PropertiesAndParameters)
             {
-                if (member.CanRead && member.Scope != CsvBindingScope.Write)
+                if (member.CanRead)
                 {
                     result.Add(member);
                 }

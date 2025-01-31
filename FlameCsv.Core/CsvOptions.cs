@@ -7,6 +7,7 @@ using FlameCsv.Utilities;
 using FlameCsv.Writing;
 using CommunityToolkit.HighPerformance.Buffers;
 using System.Globalization;
+using System.Reflection;
 using JetBrains.Annotations;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding.Attributes;
@@ -85,6 +86,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         _null = other._null;
         _nullTokens = other._nullTokens?.Clone();
         _converters = other._converters?.Clone();
+        _assemblies = other._assemblies?.Clone();
 
         _delimiter = other._delimiter;
         _quote = other._quote;
@@ -137,6 +139,14 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
             ArgumentNullException.ThrowIfNull(value);
             this.SetValue(ref _typeBinder, value);
         }
+    }
+
+    /// <summary>
+    /// Assemblies used to look for <see cref="CsvAssemblyTypeFieldAttribute"/>. Default is empty.
+    /// </summary>
+    public virtual IList<Assembly> ReflectionAssemblies
+    {
+        get => _assemblies ??= new(this, null);
     }
 
     /// <summary>
@@ -231,6 +241,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     private bool _noReadAhead;
     private StringPool? _stringPool;
     private ICsvTypeBinder<T>? _typeBinder;
+    private SealableList<Assembly>? _assemblies;
 
     private IEqualityComparer<string> _comparer = StringComparer.OrdinalIgnoreCase;
 
@@ -386,10 +397,6 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// <summary>
     /// Whether to read/write a header record. The default is <see langword="true"/>.
     /// </summary>
-    /// <remarks>
-    /// When <see langword="false"/>, types must be annotated with <see cref="Binding.Attributes.CsvIndexAttribute"/>
-    /// unless a custom <see cref="TypeBinder"/> is used.
-    /// </remarks>
     public bool HasHeader
     {
         get => _hasHeader;
@@ -477,7 +484,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         set
         {
             // validate
-            _ = Enum.TryFormat(default(CsvBindingScope), default, out _, value);
+            _ = Enum.TryFormat(default(CsvFieldQuoting), default, out _, value);
             this.SetValue(ref _enumFormat, value);
         }
     }

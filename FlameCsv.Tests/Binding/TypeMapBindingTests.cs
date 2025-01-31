@@ -107,9 +107,9 @@ public static partial class TypeMapBindingTests
 
     public sealed class Obj
     {
-        [CsvIndex(0)] public int Id { get; set; }
-        [CsvIndex(1)] public string Name { get; set; } = string.Empty;
-        [CsvIndex(2)] public bool IsEnabled { get; set; }
+        [CsvField(Index = 0)] public int Id { get; set; }
+        [CsvField(Index = 1)] public string Name { get; set; } = string.Empty;
+        [CsvField(Index = 2)] public bool IsEnabled { get; set; }
     }
 }
 

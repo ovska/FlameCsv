@@ -26,16 +26,9 @@ public partial class TypeMapGenerator
         {
             ");
 
-        if (writableProperties.Count == 0 || typeMap.Scope == CsvBindingScope.Read)
+        if (writableProperties.Count == 0)
         {
-            sb.Append("throw new global::System.NotSupportedException(\"");
-
-            sb.Append(
-                writableProperties.Count == 0
-                    ? "Type has no writable properties."
-                    : "This type map is read-only.");
-
-            sb.Append(@""");
+            sb.Append(@"throw new global::System.NotSupportedException(""Type has no writable properties"");
         }
 ");
 

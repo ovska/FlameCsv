@@ -14,12 +14,9 @@ internal sealed class FlameSymbols(Compilation compilation)
     public INamedTypeSymbol CsvConverterFactory { get; } = GetUnboundGeneric(compilation, "FlameCsv.CsvConverterFactory`1");
     public INamedTypeSymbol CsvConverterOfTAttribute { get; } = GetUnboundGeneric(compilation, "FlameCsv.Binding.Attributes.CsvConverterAttribute`2");
 
-    public INamedTypeSymbol CsvIndexTargetAttribute => Get(compilation, "FlameCsv.Binding.Attributes.CsvIndexTargetAttribute");
-    public INamedTypeSymbol CsvIndexIgnoreAttribute => Get(compilation, "FlameCsv.Binding.Attributes.CsvIndexIgnoreAttribute");
-    public INamedTypeSymbol CsvIndexAttribute => Get(compilation, "FlameCsv.Binding.Attributes.CsvIndexAttribute");
-    public INamedTypeSymbol CsvHeaderIgnoreAttribute => Get(compilation, "FlameCsv.Binding.Attributes.CsvHeaderIgnoreAttribute");
-    public INamedTypeSymbol CsvHeaderAttribute => Get(compilation, "FlameCsv.Binding.Attributes.CsvHeaderAttribute");
-    public INamedTypeSymbol CsvHeaderTargetAttribute => Get(compilation, "FlameCsv.Binding.Attributes.CsvHeaderTargetAttribute");
+    public INamedTypeSymbol CsvFieldAttribute => Get(compilation, "FlameCsv.Binding.Attributes.CsvFieldAttribute");
+    public INamedTypeSymbol CsvTypeFieldAttribute => Get(compilation, "FlameCsv.Binding.Attributes.CsvTypeFieldAttribute");
+    public INamedTypeSymbol CsvTypeAttribute => Get(compilation, "FlameCsv.Binding.Attributes.CsvTypeAttribute");
     public INamedTypeSymbol CsvConstructorAttribute => Get(compilation, "FlameCsv.Binding.Attributes.CsvConstructorAttribute");
 
     private readonly Dictionary<ISymbol, INamedTypeSymbol> _optionsTypes = new(SymbolEqualityComparer.Default);

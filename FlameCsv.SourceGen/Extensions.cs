@@ -5,6 +5,21 @@ namespace FlameCsv.SourceGen;
 
 internal static class Extensions
 {
+    public static bool TryFindNamedArgument<TValue>(this AttributeData attribute, string name,[NotNullWhen(true)] out TValue? value)
+    {
+        foreach (var kvp in attribute.NamedArguments)
+        {
+            if (kvp.Key == name)
+            {
+                value = (TValue)kvp.Value.Value!;
+                return true;
+            }
+        }
+
+        value = default;
+        return false;
+    }
+
     public static bool IsNullable(this ITypeSymbol type, [NotNullWhen(true)] out ITypeSymbol? baseType)
     {
         if (type is { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T })

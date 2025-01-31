@@ -30,11 +30,6 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
     public required int Order { get; init; }
 
     /// <summary>
-    /// Scope this property/field is valid for.
-    /// </summary>
-    public required CsvBindingScope Scope { get; init; }
-
-    /// <summary>
     /// If this member can be used when reading CSV.
     /// </summary>
     public required bool CanRead { get; init; }
@@ -79,11 +74,18 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
         bool canWrite;
         bool canRead;
 
+        SymbolMetadata meta;
+
         if (symbol is IPropertySymbol propertySymbol)
         {
-            if (propertySymbol.IsIndexer ||
-                propertySymbol.RefKind != RefKind.None ||
-                propertySymbol.HasAttribute(symbols.CsvHeaderIgnoreAttribute))
+            if (propertySymbol.IsIndexer || propertySymbol.RefKind != RefKind.None)
+            {
+                return null;
+            }
+
+            meta = new SymbolMetadata(propertySymbol, symbols);
+
+            if (meta.IsIgnored)
             {
                 return null;
             }
@@ -102,9 +104,14 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
         }
         else if (symbol is IFieldSymbol fieldSymbol)
         {
-            if (fieldSymbol.RefKind != RefKind.None ||
-                fieldSymbol.IsConst ||
-                fieldSymbol.HasAttribute(symbols.CsvHeaderIgnoreAttribute))
+            if (fieldSymbol.RefKind != RefKind.None || fieldSymbol.IsConst)
+            {
+                return null;
+            }
+
+            meta = new SymbolMetadata(fieldSymbol, symbols);
+
+            if (meta.IsIgnored)
             {
                 return null;
             }
@@ -119,8 +126,6 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
             return null;
         }
 
-        var meta = new SymbolMetadata(token, symbol, symbols);
-
         return new PropertyModel
         {
             Type = new TypeRef(type),
@@ -130,9 +135,8 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
             ExplicitInterfaceOriginalDefinition = explicitInterface,
             Names = meta.Names.ToImmutableEquatableArray(),
             Order = meta.Order,
-            Scope = meta.Scope,
-            CanRead = meta.Scope != CsvBindingScope.Write && canRead,
-            CanWrite = meta.Scope != CsvBindingScope.Read && canWrite,
+            CanRead = canRead,
+            CanWrite = canWrite,
             OverriddenConverter = ConverterModel.GetOverriddenConverter(token, symbol, type, symbols)
         };
     }

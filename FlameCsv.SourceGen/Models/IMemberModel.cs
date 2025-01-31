@@ -5,7 +5,6 @@ namespace FlameCsv.SourceGen.Models;
 internal interface IMemberModel
 {
     bool IsRequired {get; }
-    CsvBindingScope Scope { get; }
     bool CanRead { get; }
     bool CanWrite { get; }
     int Order { get; }
