@@ -39,7 +39,9 @@ internal sealed record TypeMapModel
     /// <summary>
     /// Constructor parameters of the converted type.
     /// </summary>
-    /// <seealso cref="HasConstructor"/>
+    /// <remarks>
+    /// Maybe empty when valid, see <see cref="Diagnostics.NoConstructorFound"/>
+    /// </remarks>
     public EquatableArray<ParameterModel> Parameters { get; }
 
     /// <summary>
@@ -47,11 +49,6 @@ internal sealed record TypeMapModel
     /// sorted using <see cref="TargetAttributes"/>.
     /// </summary>
     public EquatableArray<IMemberModel> AllMembers { get; }
-
-    /// <summary>
-    /// Whether the type has a valid constructor.
-    /// </summary>
-    public bool HasConstructor { get; }
 
     /// <summary>
     /// Whether the containing class has a parameterless constructor and no existing Instance property.
@@ -175,8 +172,6 @@ internal sealed record TypeMapModel
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-
-        HasConstructor = constructor is not null;
 
         if (constructor is not null)
         {

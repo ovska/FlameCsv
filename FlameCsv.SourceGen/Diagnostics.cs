@@ -150,7 +150,7 @@ internal static class Diagnostics
         return Diagnostic.Create(
             descriptor: _explicitInterfaceRequired,
             location: attributeLocation ?? GetLocation(property),
-            messageArgs: [property.ToDisplayString()]);
+            messageArgs: [property.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)]);
     }
 
     public static Diagnostic NoReadableMembers(ITypeSymbol type)
