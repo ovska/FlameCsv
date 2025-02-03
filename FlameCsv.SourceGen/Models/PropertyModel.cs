@@ -5,9 +5,14 @@ namespace FlameCsv.SourceGen.Models;
 internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
 {
     /// <summary>
-    /// Property/field name
+    /// Property/field name, including a possible interface name.
     /// </summary>
     public required string Name { get; init; }
+
+    /// <summary>
+    /// Actual name of the property/field, e.g. "Prop" if explicitly implemented via ISomething.Prop.
+    /// </summary>
+    public required string ActualName { get; init; }
 
     /// <summary>
     /// Property/field type
@@ -54,10 +59,19 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
     /// </summary>
     public required ConverterModel? OverriddenConverter { get; init; }
 
-    public string IndexPrefix => "@s__Index_";
-    public string ConverterPrefix => "@s__Converter_";
-
     public int CompareTo(PropertyModel other) => other.Order.CompareTo(Order); // reverse sort so higher order is first
+
+    public void WriteIndexName(StringBuilder sb)
+    {
+        sb.Append("@s__Index_");
+        sb.Append(Name);
+    }
+
+    public void WriteConverterName(StringBuilder sb)
+    {
+        sb.Append("@s__Converter_");
+        sb.Append(Name);
+    }
 
     public static PropertyModel? TryCreate(
         ITypeSymbol token,
@@ -78,6 +92,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
 
         INamedTypeSymbol? explicitInterface = null;
         string? explicitPropertyName = null;
+        string? explicitPropertyOriginalName = null;
 
         foreach (var explicitImplementation in propertySymbol.ExplicitInterfaceImplementations)
         {
@@ -86,6 +101,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
             if (originalDefinition.CanBeReferencedByName)
             {
                 explicitPropertyName = $"{originalDefinition.ContainingType.Name}_{originalDefinition.Name}";
+                explicitPropertyOriginalName = originalDefinition.Name;
                 explicitInterface = originalDefinition.ContainingType;
                 break;
             }
@@ -101,6 +117,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
         {
             Type = new TypeRef(propertySymbol.Type),
             Name = explicitPropertyName ?? propertySymbol.Name,
+            ActualName = explicitPropertyOriginalName ?? propertySymbol.Name,
             IsProperty = true,
             IsRequired = propertySymbol.IsRequired || propertySymbol.SetMethod is { IsInitOnly: true },
             Names = meta.Names,
@@ -137,6 +154,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
             IsProperty = false,
             IsRequired = fieldSymbol.IsRequired,
             Name = fieldSymbol.Name,
+            ActualName = fieldSymbol.Name,
             Names = meta.Names,
             Order = meta.Order,
             CanRead = !fieldSymbol.IsReadOnly,

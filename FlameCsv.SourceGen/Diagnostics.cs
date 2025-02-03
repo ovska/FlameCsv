@@ -8,6 +8,10 @@ namespace FlameCsv.SourceGen;
 
 internal static class Diagnostics
 {
+    // 1XX - general diagnostics
+    // 2XX - invalid configuration through attributes
+    // 3XX - invalid type configuration
+
     private static readonly DiagnosticDescriptor _fileScoped = new(
         id: "FLAMESG001",
         title: "File-scoped type",
@@ -45,6 +49,15 @@ internal static class Diagnostics
         id: "FLAMESG103",
         title: "Multiple type proxies",
         messageFormat: "Cannot generate reading code: Multiple type proxies found for {0}",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor _explicitInterfaceRequired = new(
+        id: "FLAMESG104",
+        title: "Required explicit interface implementation",
+        messageFormat:
+        "Cannot generate reading code: Explicitly implemented property {0} of {1} cannot be marked as required",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -130,6 +143,14 @@ internal static class Diagnostics
             location: GetLocation(targetType),
             additionalLocations: proxies.Select(l => l.AttributeLocation).OfType<Location>(),
             messageArgs: targetType.ToDisplayString());
+    }
+
+    public static Diagnostic ExplicitInterfaceRequired(ITypeSymbol targetType, ISymbol property)
+    {
+        return Diagnostic.Create(
+            descriptor: _explicitInterfaceRequired,
+            location: GetLocation(property),
+            messageArgs: [property.ToDisplayString(), targetType.ToDisplayString()]);
     }
 
     public static Diagnostic NoReadableMembers(ITypeSymbol type)

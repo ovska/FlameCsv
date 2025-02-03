@@ -45,8 +45,7 @@ public partial class TypeMapGenerator
 
             sb.Append(@"
                 ");
-            sb.Append(property.ConverterPrefix);
-            sb.Append(property.Name);
+            property.WriteConverterName(sb);
             sb.Append(" = ");
             WriteConverter(sb, property);
             sb.Append(',');
@@ -78,8 +77,7 @@ public partial class TypeMapGenerator
             sb.Append(", ");
             sb.Append(property.Type.FullyQualifiedName);
             sb.Append("> ");
-            sb.Append(property.ConverterPrefix);
-            sb.Append(property.Name);
+            property.WriteConverterName(sb);
             sb.Append(" { get; init; }");
         }
 
@@ -112,8 +110,7 @@ public partial class TypeMapGenerator
 
             sb.Append(@"
                 writer.WriteField(");
-            sb.Append(property.ConverterPrefix);
-            sb.Append(property.Name);
+            member.WriteConverterName(sb);
 
             if (!string.IsNullOrEmpty(property.ExplicitInterfaceOriginalDefinitionName))
             {
@@ -126,7 +123,7 @@ public partial class TypeMapGenerator
                 sb.Append(", obj.");
             }
 
-            sb.Append(property.Name);
+            sb.Append(property.ActualName);
             sb.Append(");");
         }
 
@@ -170,7 +167,7 @@ public partial class TypeMapGenerator
                 writer.");
             sb.Append(method);
             sb.Append('(');
-            sb.Append((member.Names.IsEmpty ? member.Name : member.Names[0]).ToStringLiteral());
+            sb.Append((member.Names.IsEmpty ? member.ActualName : member.Names[0]).ToStringLiteral());
             sb.Append(suffix);
             sb.Append(");");
         }
