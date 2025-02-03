@@ -125,7 +125,7 @@ public static class ModelTests
         for (int i = 0; i < parameters.Length; i++)
         {
             Assert.Equal(i, parameters[i].ParameterIndex);
-            Assert.Equal(expected[i].name, parameters[i].Name);
+            Assert.Equal(expected[i].name, parameters[i].Identifier);
             Assert.Equal(expected[i].hasDefaultValue, parameters[i].HasDefaultValue);
             Assert.Equal(expected[i].defaultValue, parameters[i].DefaultValue);
             Assert.Equal(expected[i].refKind, parameters[i].RefKind);
@@ -191,7 +191,7 @@ public static class ModelTests
 
         for (int i = 0; i < models.Length; i++)
         {
-            Assert.Equal(expected[i].name, models[i].Name);
+            Assert.Equal(expected[i].name, models[i].Identifier);
             Assert.Equal(expected[i].canRead, models[i].CanRead);
             Assert.Equal(expected[i].canWrite, models[i].CanWrite);
             Assert.Equal(expected[i].isRequired, models[i].IsRequired);
@@ -207,12 +207,18 @@ public static class ModelTests
         EquatableArray<PropertyModel> GetProperties(in FlameSymbols symbols)
         {
             List<PropertyModel> list = [];
+            List<Diagnostic>? diagnostics = [];
 
             foreach (var member in classSymbol.GetMembers().Where(m => !m.IsStatic))
             {
                 PropertyModel? model = member switch
                 {
-                    IPropertySymbol propertySymbol => PropertyModel.TryCreate(charSymbol, propertySymbol, in symbols),
+                    IPropertySymbol propertySymbol => PropertyModel.TryCreate(
+                        charSymbol,
+                        propertySymbol,
+                        in symbols,
+                        CancellationToken.None,
+                        ref diagnostics),
                     IFieldSymbol fieldSymbol => PropertyModel.TryCreate(charSymbol, fieldSymbol, in symbols),
                     _ => null
                 };
@@ -272,7 +278,7 @@ public static class ModelTests
                         public override bool CanConvert(Type type) => throw null;
                         public override CsvConverter<char> Create(Type type, CsvOptions<char> options) => throw null;
                     }
-                    
+
                     abstract class NotConstructible : CsvConverterFactory<char>
                     {
                     }
@@ -328,7 +334,7 @@ public static class ModelTests
             Assert.Equal(expected[i].argType, models[i].ConstructorArguments);
             Assert.Equal(expected[i].isFactory, models[i].IsFactory);
 
-            List<Diagnostic>? diagnostics =null;
+            List<Diagnostic>? diagnostics = null;
 
             models[i].TryAddDiagnostics(target: classSymbol, tokenType: charSymbol, ref diagnostics);
 
@@ -368,7 +374,7 @@ public static class ModelTests
                     [assembly: FlameCsv.Binding.Attributes.CsvAssemblyTypeAttribute(typeof(AssemblyTest.Target), IgnoredHeaders = new string[] { "value" })]
                     [assembly: FlameCsv.Binding.Attributes.CsvAssemblyTypeAttribute(typeof(AssemblyTest.Target), CreatedTypeProxy = typeof(object))]
                     [assembly: FlameCsv.Binding.Attributes.CsvAssemblyTypeAttribute(typeof(object), IgnoredHeaders = new string[] { "test" })]
-                    
+
                     namespace AssemblyTest
                     {
                         class Target

@@ -95,7 +95,7 @@ public partial class TypeMapGenerator
             sb.Append("            public ");
             sb.Append(member.Type.FullyQualifiedName);
             sb.Append(' ');
-            sb.Append(member.Name);
+            sb.Append(member.Identifier);
             sb.Append(
                 @";
 ");
@@ -180,7 +180,7 @@ public partial class TypeMapGenerator
             sb.Append(" => ");
             member.WriteConverterName(sb);
             sb.Append(".TryParse(@field, out state.");
-            sb.Append(member.Name);
+            sb.Append(member.Identifier);
             sb.Append(
                 @"),
 ");
@@ -280,7 +280,7 @@ public partial class TypeMapGenerator
             sb.Append(
                 @"
                 state.");
-            sb.Append(parameter.Name);
+            sb.Append(parameter.Identifier);
             sb.Append(" = ");
 
             // Enum values are resolved as their underlying type, so they need to be cast back to the enum type
@@ -313,7 +313,7 @@ public partial class TypeMapGenerator
                 sb.Append(
                     @"
                     ");
-                sb.Append(parameter.Name);
+                sb.Append(parameter.Identifier);
                 sb.Append(": ");
 
                 if (parameter.RefKind is RefKind.In or RefKind.RefReadOnlyParameter)
@@ -322,7 +322,7 @@ public partial class TypeMapGenerator
                 }
 
                 sb.Append("state.");
-                sb.Append(parameter.Name);
+                sb.Append(parameter.Identifier);
                 sb.Append(",");
             }
 
@@ -343,9 +343,9 @@ public partial class TypeMapGenerator
                 if (!property.IsRequired) continue;
 
                 sb.Append("    ");
-                sb.Append(property.Name);
+                sb.Append(property.Identifier);
                 sb.Append(" = state.");
-                sb.Append(property.Name);
+                sb.Append(property.Identifier);
                 sb.Append(
                     @",
                 ");
@@ -381,9 +381,9 @@ public partial class TypeMapGenerator
                 sb.Append("obj.");
             }
 
-            sb.Append(property.ActualName);
-            sb.Append(" = state.");
             sb.Append(property.Name);
+            sb.Append(" = state.");
+            sb.Append(property.Identifier);
             sb.Append(
                 @";
 ");
@@ -455,7 +455,7 @@ public partial class TypeMapGenerator
             if (materializer.");
             member.WriteConverterName(sb);
             sb.Append(" is null) yield return ");
-            sb.Append(member.Name.ToStringLiteral());
+            sb.Append(member.Identifier.ToStringLiteral());
             sb.Append(';');
         }
 
@@ -521,7 +521,7 @@ public partial class TypeMapGenerator
 
             if (member.Names.IsEmpty)
             {
-                WriteComparison(member.ActualName);
+                WriteComparison(member.Name);
             }
             else
             {
