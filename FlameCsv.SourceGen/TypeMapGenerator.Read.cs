@@ -313,7 +313,7 @@ public partial class TypeMapGenerator
                 sb.Append(
                     @"
                     ");
-                sb.Append(parameter.Identifier);
+                sb.Append(parameter.Name);
                 sb.Append(": ");
 
                 if (parameter.RefKind is RefKind.In or RefKind.RefReadOnlyParameter)

@@ -18,6 +18,11 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
     /// <summary>
     /// Parameter name.
     /// </summary>
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// Identifier of the parameter (name prefixed with <c>p_</c>).
+    /// </summary>
     public required string Identifier { get; init; }
 
     /// <summary>
@@ -64,23 +69,25 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
     /// </summary>
     public required bool IsIgnored { get; init; }
 
+    /// <summary>
+    /// Required to match to a header when reading CSV.
+    /// </summary>
     public bool IsRequired => IsRequiredByAttribute || !HasDefaultValue;
 
-    bool IMemberModel.CanRead => false;
-    bool IMemberModel.CanWrite => true;
+    bool IMemberModel.CanRead => true;
+    bool IMemberModel.CanWrite => false;
     TypeRef IMemberModel.Type => ParameterType;
-    string IMemberModel.Name => Identifier;
 
     public void WriteIndexName(StringBuilder sb)
     {
         sb.Append("@s__p_Index_");
-        sb.Append(Identifier);
+        sb.Append(Name);
     }
 
     public void WriteConverterName(StringBuilder sb)
     {
         sb.Append("@s__p_Converter_");
-        sb.Append(Identifier);
+        sb.Append(Name);
     }
 
     public static bool IsValidConstructor(ISymbol symbol, [NotNullWhen(true)] out IMethodSymbol? ctor)
@@ -120,7 +127,8 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
             {
                 ParameterIndex = i,
                 ParameterType = new TypeRef(parameter.Type),
-                Identifier = parameter.Name,
+                Name = parameter.Name,
+                Identifier = "p_" + parameter.Name,
                 Names = meta.Names,
                 Order = meta.Order,
                 IsIgnored = meta.IsIgnored,

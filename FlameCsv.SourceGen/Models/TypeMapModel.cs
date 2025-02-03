@@ -91,7 +91,7 @@ internal sealed record TypeMapModel
     public TypeRef? Proxy { get; }
 
     /// <summary>
-    /// Whether the typemap has any required members or parameters.
+    /// Whether the typemap has any members or parameters that must be matched when reading.
     /// </summary>
     public bool HasRequiredMembers { get; }
 
@@ -144,7 +144,12 @@ internal sealed record TypeMapModel
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var instanceConstructors = containingClass.InstanceConstructors;
+        var instanceConstructors = targetType switch
+        {
+            INamedTypeSymbol namedSymbol => namedSymbol.InstanceConstructors,
+            _ => [..targetType.GetMembers(".ctor").OfType<IMethodSymbol>()],
+        };
+
         IMethodSymbol? constructor = null;
 
         if (instanceConstructors.Length == 1)
@@ -312,9 +317,9 @@ internal sealed record TypeMapModel
             (diagnostics ??= []).Add(Diagnostics.NoWritableMembers(targetType));
         }
 
-        List<TargetAttributeModel>? targetAttributes = null;
-        List<string>? ignoredHeaders = null;
+        List<(TargetAttributeModel model, Location? location)>? targetAttributes = null;
         List<ProxyData>? proxies = null;
+        HashSet<string>? ignoredHeaders = null;
 
         foreach (var attr in targetType.GetAttributes())
         {
@@ -322,11 +327,14 @@ internal sealed record TypeMapModel
 
             if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, symbols.CsvTypeFieldAttribute))
             {
-                (targetAttributes ??= []).Add(new TargetAttributeModel(attr, false));
+                var model = new TargetAttributeModel(attr, false, cancellationToken);
+                var location = attr.ApplicationSyntaxReference?.GetSyntax(cancellationToken).GetLocation();
+
+                (targetAttributes ??= []).Add((model, location));
             }
             else if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, symbols.CsvTypeAttribute))
             {
-                TypeAttributeModel.Parse(attr, ref ignoredHeaders, ref proxies);
+                TypeAttributeModel.Parse(attr, cancellationToken, ref ignoredHeaders, ref proxies);
             }
         }
 
@@ -359,7 +367,59 @@ internal sealed record TypeMapModel
         Diagnostics.CheckIfFileScoped(containingClass, cancellationToken, ref diagnostics);
         Diagnostics.CheckIfFileScoped(targetType, cancellationToken, ref diagnostics);
 
-        TargetAttributes = targetAttributes?.ToEquatableArray() ?? [];
+        if (targetAttributes is not null)
+        {
+            foreach ((TargetAttributeModel model, Location? location) in targetAttributes)
+            {
+                bool found = false;
+
+                if (model.IsParameter)
+                {
+                    foreach (var parameter in Parameters)
+                    {
+                        if (parameter.Name == model.MemberName)
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    foreach (var property in Properties)
+                    {
+                        if (property.Name == model.MemberName)
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!found)
+                {
+                    (diagnostics ??= []).Add(
+                        Diagnostics.TargetMemberNotFound(targetType, location, in model));
+                }
+            }
+        }
+
+        if (targetAttributes is not null)
+        {
+            var targetBuilder = ImmutableArray.CreateBuilder<TargetAttributeModel>(targetAttributes.Count);
+
+            foreach ((TargetAttributeModel model, _) in targetAttributes)
+            {
+                targetBuilder.Add(model);
+            }
+
+            TargetAttributes = targetBuilder.ToEquatableArray();
+        }
+        else
+        {
+            TargetAttributes = [];
+        }
+
         IgnoredHeaders = ignoredHeaders?.ToEquatableArray() ?? [];
         ReportedDiagnostics = diagnostics?.ToEquatableArray() ?? [];
 

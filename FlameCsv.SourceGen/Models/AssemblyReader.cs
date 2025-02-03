@@ -7,8 +7,8 @@ internal static class AssemblyReader
         IAssemblySymbol assembly,
         ref readonly FlameSymbols symbols,
         CancellationToken cancellationToken,
-        ref List<TargetAttributeModel>? targetAttributeModels,
-        ref List<string>? ignoredHeaders,
+        ref List<(TargetAttributeModel model, Location? location)>? targetAttributeModels,
+        ref HashSet<string>? ignoredHeaders,
         ref List<ProxyData>? proxies)
     {
         foreach (var attribute in assembly.GetAttributes())
@@ -23,7 +23,9 @@ internal static class AssemblyReader
                         targetType,
                         attribute.ConstructorArguments[0].Value as ITypeSymbol))
                 {
-                    (targetAttributeModels ??= []).Add(new TargetAttributeModel(attribute, isAssemblyAttribute: true));
+                    var model = new TargetAttributeModel(attribute, isAssemblyAttribute: true, cancellationToken);
+                    var location = attribute.ApplicationSyntaxReference?.GetSyntax(cancellationToken).GetLocation();
+                    (targetAttributeModels ??= []).Add((model, location));
                 }
             }
             else if (SymbolEqualityComparer.Default.Equals(symbols.CsvAssemblyTypeAttribute, attrSymbol))
@@ -49,7 +51,7 @@ internal static class AssemblyReader
                             (proxies ??= []).Add(
                                 new ProxyData(
                                     new TypeRef((ITypeSymbol)args.Value.Value!),
-                                    attribute.ApplicationSyntaxReference?.GetSyntax().GetLocation()));
+                                    attribute.ApplicationSyntaxReference?.GetSyntax(cancellationToken).GetLocation()));
                         }
                     }
                 }
