@@ -119,7 +119,8 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
             Name = explicitPropertyName ?? propertySymbol.Name,
             ActualName = explicitPropertyOriginalName ?? propertySymbol.Name,
             IsProperty = true,
-            IsRequired = propertySymbol.IsRequired || propertySymbol.SetMethod is { IsInitOnly: true },
+            IsRequired
+                = meta.IsRequired || propertySymbol.IsRequired || propertySymbol.SetMethod is { IsInitOnly: true },
             Names = meta.Names,
             Order = meta.Order,
             CanRead = !propertySymbol.IsReadOnly,
@@ -152,7 +153,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
         {
             Type = new TypeRef(fieldSymbol.Type),
             IsProperty = false,
-            IsRequired = fieldSymbol.IsRequired,
+            IsRequired = meta.IsRequired || fieldSymbol.IsRequired,
             Name = fieldSymbol.Name,
             ActualName = fieldSymbol.Name,
             Names = meta.Names,
