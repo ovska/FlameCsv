@@ -118,6 +118,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
         IFieldSymbol fieldSymbol,
         ref readonly FlameSymbols symbols)
     {
+        // a lot of these are unspeakable backing fields
         if (!fieldSymbol.CanBeReferencedByName || fieldSymbol.RefKind != RefKind.None || fieldSymbol.IsConst)
         {
             return null;
@@ -145,5 +146,5 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
         };
     }
 
-    public bool Equals(IMemberModel other) => other is PropertyModel model && Equals(model);
+    public bool Equals(IMemberModel other) => Equals(other as PropertyModel);
 }

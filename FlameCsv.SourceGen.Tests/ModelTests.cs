@@ -245,6 +245,7 @@ public static class ModelTests
                         [CsvConverterAttribute<char, OptionsCtor>] public object Options { get; set; }
                         [CsvConverterAttribute<char, InvalidCtor>] public object Invalid { get; set; }
                         [CsvConverterAttribute<char, Factory>] public object Factory { get; set; }
+                        [CsvConverterAttribute<char, NotConstructible>] public object IsAbstract { get; set; }
                         public object None { get; set; }
                     }
 
@@ -270,6 +271,10 @@ public static class ModelTests
                     {
                         public override bool CanConvert(Type type) => throw null;
                         public override CsvConverter<char> Create(Type type, CsvOptions<char> options) => throw null;
+                    }
+                    
+                    abstract class NotConstructible : CsvConverterFactory<char>
+                    {
                     }
                     """)
             ],
@@ -307,20 +312,42 @@ public static class ModelTests
             models.Add(model);
         }
 
-        Assert.Equal(4, models.Count);
+        Assert.Equal(5, models.Count);
 
-        (ConstructorArgumentType argType, bool isFactory)[] expected =
+        (ConstructorArgumentType argType, bool isFactory, bool isAbstract)[] expected =
         [
-            (ConstructorArgumentType.Empty, false),
-            (ConstructorArgumentType.Options, false),
-            (ConstructorArgumentType.Invalid, false),
-            (ConstructorArgumentType.Empty, true),
+            (argType: ConstructorArgumentType.Empty, isFactory: false, isAbstract: false),
+            (argType: ConstructorArgumentType.Options, isFactory: false, isAbstract: false),
+            (argType: ConstructorArgumentType.Invalid, isFactory: false, isAbstract: false),
+            (argType: ConstructorArgumentType.Empty, isFactory: true, isAbstract: false),
+            (argType: ConstructorArgumentType.Empty, isFactory: true, isAbstract: true),
         ];
 
         for (int i = 0; i < models.Count; i++)
         {
             Assert.Equal(expected[i].argType, models[i].ConstructorArguments);
             Assert.Equal(expected[i].isFactory, models[i].IsFactory);
+
+            List<Diagnostic>? diagnostics =null;
+
+            models[i].TryAddDiagnostics(target: classSymbol, tokenType: charSymbol, ref diagnostics);
+
+            if (models[i].ConstructorArguments == ConstructorArgumentType.Invalid)
+            {
+                Assert.NotNull(diagnostics);
+                Assert.Single(diagnostics);
+                Assert.Equal("FLAMESG202", diagnostics[0].Id);
+            }
+            else if (models[i].ConverterType.IsAbstract)
+            {
+                Assert.NotNull(diagnostics);
+                Assert.Single(diagnostics);
+                Assert.Equal("FLAMESG203", diagnostics[0].Id);
+            }
+            else
+            {
+                Assert.Null(diagnostics);
+            }
         }
     }
 
