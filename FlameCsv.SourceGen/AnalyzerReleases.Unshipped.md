@@ -10,6 +10,7 @@ FLAMESG100 | Usage | Disabled | Diagnostics
 FLAMESG101 | Usage | Disabled | Diagnostics
 FLAMESG102 | Usage | Disabled | Diagnostics
 FLAMESG103 | Usage | Disabled | Diagnostics
+FLAMESG104 | Usage | Disabled | Diagnostics
 FLAMESG200 | Usage | Disabled | Diagnostics
 FLAMESG201 | Usage | Disabled | Diagnostics
 FLAMESG202 | Usage | Disabled | Diagnostics

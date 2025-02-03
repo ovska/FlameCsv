@@ -68,9 +68,20 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
 
     bool IMemberModel.CanRead => false;
     bool IMemberModel.CanWrite => true;
-    string IMemberModel.IndexPrefix => "@s__p_Index_";
-    string IMemberModel.ConverterPrefix => "@s__p_Converter_";
     TypeRef IMemberModel.Type => ParameterType;
+    string IMemberModel.ActualName => Name;
+
+    public void WriteIndexName(StringBuilder sb)
+    {
+        sb.Append("@s__p_Index_");
+        sb.Append(Name);
+    }
+
+    public void WriteConverterName(StringBuilder sb)
+    {
+        sb.Append("@s__p_Converter_");
+        sb.Append(Name);
+    }
 
     public static bool IsValidConstructor(ISymbol symbol, [NotNullWhen(true)] out IMethodSymbol? ctor)
     {

@@ -168,8 +168,7 @@ namespace ");
             sb.Append(
                 @"
         private const int ");
-            sb.Append(member.IndexPrefix);
-            sb.Append(member.Name);
+            member.WriteIndexName(sb);
             sb.Append(" = ");
             sb.Append(index++);
             sb.Append(';');

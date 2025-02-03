@@ -124,8 +124,7 @@ public partial class TypeMapGenerator
             sb.Append(", ");
             sb.Append(member.Type.FullyQualifiedName);
             sb.Append("> ");
-            sb.Append(member.ConverterPrefix);
-            sb.Append(member.Name);
+            member.WriteConverterName(sb);
             sb.Append(';');
         }
 
@@ -177,11 +176,9 @@ public partial class TypeMapGenerator
             cancellationToken.ThrowIfCancellationRequested();
 
             sb.Append("                        ");
-            sb.Append(member.IndexPrefix);
-            sb.Append(member.Name);
+            member.WriteIndexName(sb);
             sb.Append(" => ");
-            sb.Append(member.ConverterPrefix);
-            sb.Append(member.Name);
+            member.WriteConverterName(sb);
             sb.Append(".TryParse(@field, out state.");
             sb.Append(member.Name);
             sb.Append(
@@ -231,11 +228,9 @@ public partial class TypeMapGenerator
             cancellationToken.ThrowIfCancellationRequested();
 
             sb.Append("                if (target == ");
-            sb.Append(member.IndexPrefix);
-            sb.Append(member.Name);
+            member.WriteIndexName(sb);
             sb.Append(") global::FlameCsv.Exceptions.CsvParseException.Throw(@field, ");
-            sb.Append(member.ConverterPrefix);
-            sb.Append(member.Name);
+            member.WriteConverterName(sb);
             sb.Append("!, ");
             sb.Append(member.Name.ToStringLiteral());
             sb.Append(
@@ -372,8 +367,7 @@ public partial class TypeMapGenerator
                 continue;
 
             sb.Append("                if (");
-            sb.Append(property.ConverterPrefix);
-            sb.Append(property.Name);
+            property.WriteConverterName(sb);
             sb.Append($" is not null) ");
 
             if (!string.IsNullOrEmpty(property.ExplicitInterfaceOriginalDefinitionName))
@@ -387,7 +381,7 @@ public partial class TypeMapGenerator
                 sb.Append("obj.");
             }
 
-            sb.Append(property.Name);
+            sb.Append(property.ActualName);
             sb.Append(" = state.");
             sb.Append(property.Name);
             sb.Append(
@@ -431,8 +425,7 @@ public partial class TypeMapGenerator
             }
 
             sb.Append("materializer.");
-            sb.Append(member.ConverterPrefix);
-            sb.Append(member.Name);
+            member.WriteConverterName(sb);
             sb.Append(" is null");
         }
 
@@ -460,8 +453,7 @@ public partial class TypeMapGenerator
             sb.Append(
                 @"
             if (materializer.");
-            sb.Append(member.ConverterPrefix);
-            sb.Append(member.Name);
+            member.WriteConverterName(sb);
             sb.Append(" is null) yield return ");
             sb.Append(member.Name.ToStringLiteral());
             sb.Append(';');
@@ -519,8 +511,7 @@ public partial class TypeMapGenerator
             {
                 // add check to ignore already handled members
                 sb.Append("materializer.");
-                sb.Append(member.ConverterPrefix);
-                sb.Append(member.Name);
+                member.WriteConverterName(sb);
                 sb.Append(
                     @" is null &&
                     ");
@@ -530,7 +521,7 @@ public partial class TypeMapGenerator
 
             if (member.Names.IsEmpty)
             {
-                WriteComparison(member.Name);
+                WriteComparison(member.ActualName);
             }
             else
             {
@@ -575,8 +566,7 @@ public partial class TypeMapGenerator
                 sb.Append(
                     @"
                     if (materializer.");
-                sb.Append(member.ConverterPrefix);
-                sb.Append(member.Name);
+                member.WriteConverterName(sb);
                 sb.Append(" is not null) base.ThrowDuplicate(");
                 sb.Append(member.Name.ToStringLiteral());
                 sb.Append(
@@ -587,15 +577,13 @@ public partial class TypeMapGenerator
             sb.Append(
                 @"
                     materializer.");
-            sb.Append(member.ConverterPrefix);
-            sb.Append(member.Name);
+            member.WriteConverterName(sb);
             sb.Append(" = ");
             WriteConverter(sb, member);
             sb.Append(
                 @";
                     materializer.Targets[index] = ");
-            sb.Append(member.IndexPrefix);
-            sb.Append(member.Name);
+            member.WriteIndexName(sb);
             sb.Append(
                 @";
                     continue;

@@ -285,11 +285,17 @@ internal sealed record TypeMapModel
                 if (property is not null)
                 {
                     properties.Add(property);
-                    property.OverriddenConverter?.TryAddDiagnostics(member, tokenSymbol, ref diagnostics);
 
                     HasRequiredMembers |= property.IsRequired;
                     hasReadableMembers |= property.CanRead;
                     hasWritableProperties |= property.CanWrite;
+
+                    property.OverriddenConverter?.TryAddDiagnostics(member, tokenSymbol, ref diagnostics);
+
+                    if (property is { IsRequired: true, ExplicitInterfaceOriginalDefinitionName: not null })
+                    {
+                        (diagnostics ??= []).Add(Diagnostics.ExplicitInterfaceRequired(targetType, member));
+                    }
                 }
             }
 
