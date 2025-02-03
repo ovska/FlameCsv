@@ -18,7 +18,7 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
     /// <summary>
     /// Parameter name.
     /// </summary>
-    public required string Name { get; init; }
+    public required string Identifier { get; init; }
 
     /// <summary>
     /// Configured header names.
@@ -69,18 +69,18 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
     bool IMemberModel.CanRead => false;
     bool IMemberModel.CanWrite => true;
     TypeRef IMemberModel.Type => ParameterType;
-    string IMemberModel.ActualName => Name;
+    string IMemberModel.Name => Identifier;
 
     public void WriteIndexName(StringBuilder sb)
     {
         sb.Append("@s__p_Index_");
-        sb.Append(Name);
+        sb.Append(Identifier);
     }
 
     public void WriteConverterName(StringBuilder sb)
     {
         sb.Append("@s__p_Converter_");
-        sb.Append(Name);
+        sb.Append(Identifier);
     }
 
     public static bool IsValidConstructor(ISymbol symbol, [NotNullWhen(true)] out IMethodSymbol? ctor)
@@ -120,7 +120,7 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
             {
                 ParameterIndex = i,
                 ParameterType = new TypeRef(parameter.Type),
-                Name = parameter.Name,
+                Identifier = parameter.Name,
                 Names = meta.Names,
                 Order = meta.Order,
                 IsIgnored = meta.IsIgnored,

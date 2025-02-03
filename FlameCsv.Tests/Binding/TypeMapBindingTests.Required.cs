@@ -11,6 +11,7 @@ namespace FlameCsv.Tests.Binding;
 public static partial class TypeMapBindingTests
 {
     [CsvTypeField(memberName: "Id", "__id__")]
+    [CsvTypeField(memberName: "dof", "doeeeef", IsParameter = true)]
     private class _Obj : ISomething
     {
         [CsvConstructor]
@@ -28,7 +29,7 @@ public static partial class TypeMapBindingTests
         public int? NullableInt { get; set; }
         public DayOfWeek? NullableDOF { get; set; }
 
-        [CsvField(IsRequired = true)]
+        [CsvField(IsRequired = false)]
         bool ISomething.Xyzz { get; set; }
     }
 

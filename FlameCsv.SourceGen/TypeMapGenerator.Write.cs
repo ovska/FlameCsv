@@ -123,7 +123,7 @@ public partial class TypeMapGenerator
                 sb.Append(", obj.");
             }
 
-            sb.Append(property.ActualName);
+            sb.Append(property.Name);
             sb.Append(");");
         }
 
@@ -167,7 +167,7 @@ public partial class TypeMapGenerator
                 writer.");
             sb.Append(method);
             sb.Append('(');
-            sb.Append((member.Names.IsEmpty ? member.ActualName : member.Names[0]).ToStringLiteral());
+            sb.Append((member.Names.IsEmpty ? member.Name : member.Names[0]).ToStringLiteral());
             sb.Append(suffix);
             sb.Append(");");
         }
