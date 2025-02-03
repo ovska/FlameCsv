@@ -15,7 +15,7 @@ public partial class TypeMapGenerator
         sb.Append(typeMap.Token.Name);
         sb.Append(", ");
         sb.Append(typeMap.Type.FullyQualifiedName);
-        sb.Append("> BindForReading(global::System.ReadOnlySpan<string> headers, global::FlameCsv.CsvOptions<");
+        sb.Append("> BindForReading(scoped global::System.ReadOnlySpan<string> headers, global::FlameCsv.CsvOptions<");
         sb.Append(typeMap.Token.Name);
         sb.Append(
             @"> options)
@@ -37,7 +37,7 @@ public partial class TypeMapGenerator
         if (typeMap.IgnoreUnmatched)
         {
             sb.Append(
-                @"// ignoring unmatched header
+                @"// Unmatched fields are ignored
                 materializer.Targets[index] = -1;");
         }
         else
@@ -152,20 +152,23 @@ public partial class TypeMapGenerator
                     global::FlameCsv.Exceptions.CsvReadException.ThrowForInvalidFieldCount(expected: targets.Length, actual: reader.FieldCount);
                 }
 
-                ParseState state = default;");
-        // TODO: profile Unsafe.SkipInit
-        WriteDefaultParameterValues(sb, typeMap, cancellationToken);
+#if RELEASE
+                global::System.Runtime.CompilerServices.Unsafe.SkipInit(out ParseState state);
+#else
+                ParseState state = default;
+#endif");
+        WriteDefaultParameterValues(sb, typeMap, cancellationToken, out bool hasOptionalParameters);
         sb.Append(
             @"
 
-                for (int index = 0; index < targets.Length; index++)
+                for (int target = 0; target < targets.Length; target++)
                 {
                     global::System.ReadOnlySpan<");
         sb.Append(typeMap.Token.Name);
         sb.Append(
-            @"> @field = reader[index];
+            @"> @field = reader[target];
 
-                    bool result = targets[index] switch
+                    bool result = targets[target] switch
                     {
 ");
 
@@ -187,19 +190,26 @@ public partial class TypeMapGenerator
         }
 
         sb.Append(
-            @"                        0 => ThrowForInvalidTarget(index),
-                        _ => true, // ignored fields fall back to this
+            @"                        0 => ThrowForInvalidTarget(target), // Should never happen
+                        _ => true, // Ignored fields have target set to -1
                     };
 
                     if (!result)
                     {
-                        ThrowForFailedParse(@field, index);
+                        ThrowForFailedParse(@field, target);
                     }
                 }
 
-                // Create the value from parsed values. Required members are validated when creating the materializer,
-                // optional members are assigned only if parsed to not overwrite possible default values.
+                // Required fields are guaranteed to be non-null.
+                // Optional fields are null-checked to only write a value when one was read.
                 ");
+
+        if (hasOptionalParameters)
+        {
+            sb.Append(@"// Optional parameters are always passed, their default value is used when not read (see above)
+                ");
+        }
+
         sb.Append((typeMap.Proxy ?? typeMap.Type).FullyQualifiedName);
         sb.Append(" obj = new ");
         sb.Append((typeMap.Proxy ?? typeMap.Type).FullyQualifiedName);
@@ -211,7 +221,7 @@ public partial class TypeMapGenerator
 
             [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]
             [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-            private static bool ThrowForInvalidTarget(int index) => throw new global::System.Diagnostics.UnreachableException($""Converter at index {index} was uninitialized"");
+            private static bool ThrowForInvalidTarget(int target) => throw new global::System.Diagnostics.UnreachableException($""Converter {target} was uninitialized"");
 
             [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]
             [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
@@ -249,32 +259,30 @@ public partial class TypeMapGenerator
     private static void WriteDefaultParameterValues(
         StringBuilder sb,
         TypeMapModel typeMap,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        out bool hasOptionalParameters)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
+        hasOptionalParameters = false;
         if (typeMap.Parameters.IsEmpty) return;
-
-        bool commentWritten = false;
 
         foreach (var parameter in typeMap.Parameters)
         {
             // check if parameter can be omitted at all
             if (!parameter.HasDefaultValue ||
-                parameter.IsRequiredByAttribute ||
-                // Don't write common default values that a zeroed out struct would have
-                parameter.DefaultValue is null or false or 0 or 0u or 0L or 0D)
+                parameter.IsRequiredByAttribute)
             {
                 continue;
             }
 
-            if (!commentWritten)
+            if (!hasOptionalParameters)
             {
-                commentWritten = true;
+                hasOptionalParameters = true;
                 sb.Append(
                     @"
 
-                // write compile-time defaults for optional parameter(s) in case they don't get parsed");
+                // Default values of optional parameters (have a default value and are not required by attribute");
             }
 
             sb.Append(
@@ -398,7 +406,7 @@ public partial class TypeMapGenerator
         {
             sb.Append(
                 @"
-            // No check for required members, the type has none.
+            // No required fields
 ");
             return;
         }
@@ -553,7 +561,7 @@ public partial class TypeMapGenerator
 
             if (member.Order != 0)
             {
-                sb.Append(" // order: ");
+                sb.Append(" // Explicit order: ");
                 sb.Append(member.Order);
             }
 

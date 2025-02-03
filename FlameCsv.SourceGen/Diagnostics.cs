@@ -55,12 +55,12 @@ internal static class Diagnostics
             messageArgs: targetType.ToDisplayString());
     }
 
-    public static Diagnostic ExplicitInterfaceRequired(ISymbol property, Location? attributeLocation)
+    public static Diagnostic ExplicitInterfaceRequired(string propertyName, Location? attributeLocation)
     {
         return Diagnostic.Create(
             descriptor: Descriptors.ExplicitInterfaceRequired,
-            location: attributeLocation ?? GetLocation(property),
-            messageArgs: [property.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)]);
+            location: attributeLocation,
+            messageArgs: [propertyName]);
     }
 
     public static Diagnostic NoReadableMembers(ITypeSymbol type)

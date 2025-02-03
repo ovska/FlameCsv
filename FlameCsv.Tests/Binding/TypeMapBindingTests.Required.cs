@@ -11,11 +11,12 @@ namespace FlameCsv.Tests.Binding;
 public static partial class TypeMapBindingTests
 {
     [CsvTypeField(memberName: "Id", "__id__")]
-    // [CsvTypeField(memberName: "dof", "doeeeef", IsParameter = true)]
+    [CsvTypeField(memberName: "dof", "doeeeef", IsParameter = true)]
+    [CsvTypeField(memberName: "Xyzz", "aaaaasd", IsRequired = false)]
     private class _Obj : ISomething
     {
         [CsvConstructor]
-        public _Obj(string? name = "\\test", DayOfWeek dof = DayOfWeek.Tuesday, DayOfWeek? dof2 = DayOfWeek.Wednesday)
+        public _Obj(string? name = "\\test", DayOfWeek dof = DayOfWeek.Sunday, DayOfWeek? dof2 = DayOfWeek.Wednesday)
         {
             Name = name;
         }
