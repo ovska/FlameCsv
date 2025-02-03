@@ -119,7 +119,9 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
         if (explicitPropertyName is not null && meta.IsRequired)
         {
             (diagnostics ??= []).Add(
-                Diagnostics.ExplicitInterfaceRequired(propertySymbol, meta.GetLocation(cancellationToken)));
+                Diagnostics.ExplicitInterfaceRequired(
+                    propertySymbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
+                    meta.GetLocation(cancellationToken)));
         }
 
         return new PropertyModel

@@ -385,6 +385,12 @@ internal sealed record TypeMapModel
                     {
                         if (property.Name == model.MemberName)
                         {
+                            if (model.IsRequired && property.ExplicitInterfaceOriginalDefinitionName is not null)
+                            {
+                                (diagnostics ??= []).Add(
+                                    Diagnostics.ExplicitInterfaceRequired(property.Name, location));
+                            }
+
                             found = true;
                             break;
                         }

@@ -33,7 +33,7 @@ public abstract class CsvTypeMap<T, TValue> : CsvTypeMap where T : unmanaged, IB
     protected virtual bool NoCaching => false;
 
     /// <inheritdoc cref="GetMaterializer(ReadOnlySpan{string},CsvOptions{T})"/>
-    protected abstract IMaterializer<T, TValue> BindForReading(ReadOnlySpan<string> headers, CsvOptions<T> options);
+    protected abstract IMaterializer<T, TValue> BindForReading(scoped ReadOnlySpan<string> headers, CsvOptions<T> options);
 
     /// <inheritdoc cref="GetMaterializer(CsvOptions{T})"/>
     protected abstract IMaterializer<T, TValue> BindForReading(CsvOptions<T> options);
@@ -47,7 +47,7 @@ public abstract class CsvTypeMap<T, TValue> : CsvTypeMap where T : unmanaged, IB
     /// <remarks>
     /// Caches the materializer based on the type, headers, and options. This can be overridden per type map.
     /// </remarks>
-    public IMaterializer<T, TValue> GetMaterializer(ReadOnlySpan<string> headers, CsvOptions<T> options)
+    public IMaterializer<T, TValue> GetMaterializer(scoped ReadOnlySpan<string> headers, CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentOutOfRangeException.ThrowIfZero(headers.Length);
