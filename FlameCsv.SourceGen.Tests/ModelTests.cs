@@ -125,7 +125,7 @@ public static class ModelTests
         for (int i = 0; i < parameters.Length; i++)
         {
             Assert.Equal(i, parameters[i].ParameterIndex);
-            Assert.Equal(expected[i].name, parameters[i].Identifier);
+            Assert.Equal(expected[i].name, parameters[i].Name);
             Assert.Equal(expected[i].hasDefaultValue, parameters[i].HasDefaultValue);
             Assert.Equal(expected[i].defaultValue, parameters[i].DefaultValue);
             Assert.Equal(expected[i].refKind, parameters[i].RefKind);
@@ -400,8 +400,8 @@ public static class ModelTests
 
         var flameSymbols = new FlameSymbols(compilation);
 
-        List<TargetAttributeModel>? targetAttributeModels = null;
-        List<string>? ignoredHeaders = null;
+        List<(TargetAttributeModel model, Location? location)>? targetAttributeModels = null;
+        HashSet<string>? ignoredHeaders = null;
         List<ProxyData>? proxies = null;
 
         AssemblyReader.Read(
@@ -418,11 +418,12 @@ public static class ModelTests
         Assert.NotNull(proxies);
 
         Assert.Single(targetAttributeModels);
-        Assert.Equal("Prop", targetAttributeModels[0].MemberName);
-        Assert.Equal(["_prop"], targetAttributeModels[0].Names);
+        Assert.Equal("Prop", targetAttributeModels[0].model.MemberName);
+        Assert.Equal(["_prop"], targetAttributeModels[0].model.Names);
+        Assert.NotNull(targetAttributeModels[0].location);
 
         Assert.Single(ignoredHeaders);
-        Assert.Equal("value", ignoredHeaders[0]);
+        Assert.Equal("value", ignoredHeaders.Single());
 
         Assert.Single(proxies);
         Assert.Equal("object", proxies[0].Type.FullyQualifiedName);

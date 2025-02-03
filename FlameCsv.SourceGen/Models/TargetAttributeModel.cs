@@ -6,7 +6,8 @@ internal readonly record struct TypeAttributeModel
 {
     public static void Parse(
         AttributeData attribute,
-        ref List<string>? ignoredHeaders,
+        CancellationToken cancellationToken,
+        ref HashSet<string>? ignoredHeaders,
         ref List<ProxyData>? proxies)
     {
         foreach (var arg in attribute.NamedArguments)
@@ -30,7 +31,7 @@ internal readonly record struct TypeAttributeModel
                 (proxies ??= []).Add(
                     new ProxyData(
                         new TypeRef(proxySymbol),
-                        attribute.ApplicationSyntaxReference?.GetSyntax().GetLocation()));
+                        attribute.ApplicationSyntaxReference?.GetSyntax(cancellationToken).GetLocation()));
             }
         }
     }
@@ -38,18 +39,23 @@ internal readonly record struct TypeAttributeModel
 
 internal readonly record struct TargetAttributeModel
 {
+    public bool IsForAssembly { get; }
     public int? Index { get; }
     public string MemberName { get; }
+    public bool IsParameter { get; }
     public bool IsIgnored { get; }
     public bool IsRequired { get; }
     public int Order { get; }
     public EquatableArray<string> Names { get; }
-    // TODO: isparameter!
 
-    public TargetAttributeModel(AttributeData attribute, bool isAssemblyAttribute)
+    public TargetAttributeModel(
+        AttributeData attribute,
+        bool isAssemblyAttribute,
+        CancellationToken cancellationToken)
     {
         int startIndex = isAssemblyAttribute ? 1 : 0;
 
+        IsForAssembly = isAssemblyAttribute;
         MemberName = attribute.ConstructorArguments[startIndex].Value?.ToString() ?? "";
 
         // params-array
@@ -64,7 +70,13 @@ internal readonly record struct TargetAttributeModel
 
         foreach (var kvp in attribute.NamedArguments)
         {
-            if (kvp.Key == "IsIgnored")
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (kvp.Key == "IsParameter")
+            {
+                IsParameter = kvp.Value.Value is true;
+            }
+            else if (kvp.Key == "IsIgnored")
             {
                 IsIgnored = kvp.Value.Value is true;
             }

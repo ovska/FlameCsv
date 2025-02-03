@@ -4,8 +4,13 @@ namespace FlameCsv.SourceGen.Models;
 
 internal interface IMemberModel : IEquatable<IMemberModel>
 {
+    /// <inheritdoc cref="ParameterModel.IsRequired"/>
     bool IsRequired {get; }
+
+    /// <inheritdoc cref="PropertyModel.CanRead"/>
     bool CanRead { get; }
+
+    /// <inheritdoc cref="PropertyModel.CanWrite"/>
     bool CanWrite { get; }
     int Order { get; }
     string Identifier { get; }

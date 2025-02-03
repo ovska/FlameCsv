@@ -11,7 +11,7 @@ namespace FlameCsv.Tests.Binding;
 public static partial class TypeMapBindingTests
 {
     [CsvTypeField(memberName: "Id", "__id__")]
-    [CsvTypeField(memberName: "dof", "doeeeef", IsParameter = true)]
+    // [CsvTypeField(memberName: "dof", "doeeeef", IsParameter = true)]
     private class _Obj : ISomething
     {
         [CsvConstructor]

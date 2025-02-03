@@ -15,3 +15,4 @@ FLAMESG200 | Usage | Disabled | Diagnostics
 FLAMESG201 | Usage | Disabled | Diagnostics
 FLAMESG202 | Usage | Disabled | Diagnostics
 FLAMESG203 | Usage | Disabled | Diagnostics
+FLAMESG204 | Usage | Disabled | Diagnostics
