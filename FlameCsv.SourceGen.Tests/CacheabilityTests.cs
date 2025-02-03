@@ -112,7 +112,7 @@ public class TypeMapTests
         }
     }
 
-#if true // debugging
+#if false // debugging
     [Fact]
     public void A_Test()
     {
