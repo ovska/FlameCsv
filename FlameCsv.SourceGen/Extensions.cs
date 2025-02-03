@@ -1,10 +1,18 @@
-﻿using Microsoft.CodeAnalysis.CSharp.Syntax;
+﻿using System.Collections.Immutable;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp;
 
 namespace FlameCsv.SourceGen;
 
 internal static class Extensions
 {
+    public static ImmutableArray<IMethodSymbol> GetInstanceConstructors(this ITypeSymbol type)
+    {
+        return type is INamedTypeSymbol namedType
+            ? namedType.InstanceConstructors
+            : [..type.GetMembers(".ctor").OfType<IMethodSymbol>()];
+    }
+
     public static bool IsNullable(this ITypeSymbol type, [NotNullWhen(true)] out ITypeSymbol? baseType)
     {
         if (type is { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T })

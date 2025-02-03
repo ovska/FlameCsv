@@ -144,21 +144,16 @@ internal sealed record TypeMapModel
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var instanceConstructors = targetType switch
-        {
-            INamedTypeSymbol namedSymbol => namedSymbol.InstanceConstructors,
-            _ => [..targetType.GetMembers(".ctor").OfType<IMethodSymbol>()],
-        };
-
+        ImmutableArray<IMethodSymbol> constructors = targetType.GetInstanceConstructors();
         IMethodSymbol? constructor = null;
 
-        if (instanceConstructors.Length == 1)
+        if (constructors.Length == 1)
         {
-            constructor = instanceConstructors[0];
+            constructor = constructors[0];
         }
         else
         {
-            foreach (var ctor in instanceConstructors)
+            foreach (var ctor in constructors)
             {
                 if (ctor.Parameters.IsDefaultOrEmpty)
                 {
@@ -178,7 +173,7 @@ internal sealed record TypeMapModel
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (constructor is not null)
+        if (constructor is { DeclaredAccessibility: not (Accessibility.Private or Accessibility.Protected) })
         {
             Parameters = ParameterModel.Create(tokenSymbol, constructor.Parameters, in symbols, ref diagnostics);
 
@@ -210,7 +205,7 @@ internal sealed record TypeMapModel
         else
         {
             Parameters = [];
-            (diagnostics ??= []).Add(Diagnostics.NoConstructorFound(targetType));
+            (diagnostics ??= []).Add(Diagnostics.NoConstructorFound(targetType, constructor));
         }
 
         cancellationToken.ThrowIfCancellationRequested();
