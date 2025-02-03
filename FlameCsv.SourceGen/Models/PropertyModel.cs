@@ -7,12 +7,13 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
     /// <summary>
     /// Property/field name, including a possible interface name.
     /// </summary>
-    public required string Name { get; init; }
+    public required string Identifier { get; init; }
 
     /// <summary>
     /// Actual name of the property/field, e.g. "Prop" if explicitly implemented via ISomething.Prop.
+    /// Otherwise, same as <see cref="Identifier"/>.
     /// </summary>
-    public required string ActualName { get; init; }
+    public required string Name { get; init; }
 
     /// <summary>
     /// Property/field type
@@ -64,19 +65,21 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
     public void WriteIndexName(StringBuilder sb)
     {
         sb.Append("@s__Index_");
-        sb.Append(Name);
+        sb.Append(Identifier);
     }
 
     public void WriteConverterName(StringBuilder sb)
     {
         sb.Append("@s__Converter_");
-        sb.Append(Name);
+        sb.Append(Identifier);
     }
 
     public static PropertyModel? TryCreate(
         ITypeSymbol token,
         IPropertySymbol propertySymbol,
-        ref readonly FlameSymbols symbols)
+        ref readonly FlameSymbols symbols,
+        CancellationToken cancellationToken,
+        ref List<Diagnostic>? diagnostics)
     {
         if (propertySymbol.IsIndexer || propertySymbol.RefKind != RefKind.None)
         {
@@ -113,14 +116,20 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
             return null;
         }
 
+        if (explicitPropertyName is not null && meta.IsRequired)
+        {
+            (diagnostics ??= []).Add(
+                Diagnostics.ExplicitInterfaceRequired(propertySymbol, meta.GetLocation(cancellationToken)));
+        }
+
         return new PropertyModel
         {
             Type = new TypeRef(propertySymbol.Type),
-            Name = explicitPropertyName ?? propertySymbol.Name,
-            ActualName = explicitPropertyOriginalName ?? propertySymbol.Name,
+            Identifier = explicitPropertyName ?? propertySymbol.Name,
+            Name = explicitPropertyOriginalName ?? propertySymbol.Name,
             IsProperty = true,
             IsRequired
-                = meta.IsRequired || propertySymbol.IsRequired || propertySymbol.SetMethod is { IsInitOnly: true },
+                = meta.IsRequired || propertySymbol.IsRequired || propertySymbol is { SetMethod.IsInitOnly: true },
             Names = meta.Names,
             Order = meta.Order,
             CanRead = !propertySymbol.IsReadOnly,
@@ -154,8 +163,8 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
             Type = new TypeRef(fieldSymbol.Type),
             IsProperty = false,
             IsRequired = meta.IsRequired || fieldSymbol.IsRequired,
+            Identifier = fieldSymbol.Name,
             Name = fieldSymbol.Name,
-            ActualName = fieldSymbol.Name,
             Names = meta.Names,
             Order = meta.Order,
             CanRead = !fieldSymbol.IsReadOnly,

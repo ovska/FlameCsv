@@ -57,7 +57,7 @@ internal static class Diagnostics
         id: "FLAMESG104",
         title: "Required explicit interface implementation",
         messageFormat:
-        "Cannot generate reading code: Explicitly implemented property {0} of {1} cannot be marked as required",
+        "Cannot generate reading code: Explicitly implemented property {0} cannot be marked as required",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -145,12 +145,12 @@ internal static class Diagnostics
             messageArgs: targetType.ToDisplayString());
     }
 
-    public static Diagnostic ExplicitInterfaceRequired(ITypeSymbol targetType, ISymbol property)
+    public static Diagnostic ExplicitInterfaceRequired(ISymbol property, Location? attributeLocation)
     {
         return Diagnostic.Create(
             descriptor: _explicitInterfaceRequired,
-            location: GetLocation(property),
-            messageArgs: [property.ToDisplayString(), targetType.ToDisplayString()]);
+            location: attributeLocation ?? GetLocation(property),
+            messageArgs: [property.ToDisplayString()]);
     }
 
     public static Diagnostic NoReadableMembers(ITypeSymbol type)

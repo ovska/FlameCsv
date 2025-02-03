@@ -112,7 +112,7 @@ public class TypeMapTests
         }
     }
 
-#if false // debugging
+#if true // debugging
     [Fact]
     public void A_Test()
     {
@@ -146,6 +146,8 @@ public class TypeMapTests
                     
                         public int? NullableInt { get; set; }
                         public DayOfWeek? NullableDOF { get; set; }
+                       
+                        [CsvField(IsRequired = true)]
                         bool ISomething.Xyzz { get; set; }
                     }
 

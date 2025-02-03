@@ -277,8 +277,13 @@ internal sealed record TypeMapModel
 
                 PropertyModel? property = member switch
                 {
-                    IPropertySymbol propertySymbol => PropertyModel.TryCreate(tokenSymbol, propertySymbol, in symbols),
                     IFieldSymbol fieldSymbol => PropertyModel.TryCreate(tokenSymbol, fieldSymbol, in symbols),
+                    IPropertySymbol propertySymbol => PropertyModel.TryCreate(
+                        tokenSymbol,
+                        propertySymbol,
+                        in symbols,
+                        cancellationToken,
+                        ref diagnostics),
                     _ => null
                 };
 
@@ -291,11 +296,6 @@ internal sealed record TypeMapModel
                     hasWritableProperties |= property.CanWrite;
 
                     property.OverriddenConverter?.TryAddDiagnostics(member, tokenSymbol, ref diagnostics);
-
-                    if (property is { IsRequired: true, ExplicitInterfaceOriginalDefinitionName: not null })
-                    {
-                        (diagnostics ??= []).Add(Diagnostics.ExplicitInterfaceRequired(targetType, member));
-                    }
                 }
             }
 
@@ -380,11 +380,11 @@ internal sealed record TypeMapModel
 
                 foreach (var target in TargetAttributes)
                 {
-                    if (target.MemberName == b1.Name)
+                    if (target.MemberName == b1.Identifier)
                     {
                         b1Order = Math.Max(b1Order, target.Order);
                     }
-                    else if (target.MemberName == b2.Name)
+                    else if (target.MemberName == b2.Identifier)
                     {
                         b2Order = Math.Max(b2Order, target.Order);
                     }

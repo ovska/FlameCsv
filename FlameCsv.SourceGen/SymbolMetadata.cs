@@ -14,6 +14,11 @@ internal readonly ref struct SymbolMetadata
     public int Order { get; }
     public int? Index { get; }
 
+    public Location? GetLocation(CancellationToken cancellationToken)
+        => _attributeSyntax?.GetSyntax(cancellationToken).GetLocation();
+
+    private readonly SyntaxReference? _attributeSyntax;
+
     public SymbolMetadata(ISymbol symbol, ref readonly FlameSymbols flameSymbols)
     {
         Names = [];
@@ -24,6 +29,8 @@ internal readonly ref struct SymbolMetadata
             {
                 continue;
             }
+
+            _attributeSyntax = attributeData.ApplicationSyntaxReference;
 
             // params-array
             if (attributeData.ConstructorArguments[0].Values is { IsDefaultOrEmpty: false } namesArray)

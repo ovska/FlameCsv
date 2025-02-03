@@ -8,8 +8,8 @@ internal interface IMemberModel : IEquatable<IMemberModel>
     bool CanRead { get; }
     bool CanWrite { get; }
     int Order { get; }
+    string Identifier { get; }
     string Name { get; }
-    string ActualName { get; }
     EquatableArray<string> Names { get; }
     ConverterModel? OverriddenConverter { get; }
     TypeRef Type { get; }
