@@ -96,6 +96,14 @@ internal static class Diagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor _targetMemberNotFound = new(
+        id: "FLAMESG204",
+        title: "Target member not found",
+        messageFormat: "{0} '{1}' not found on type {2}",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public static Diagnostic FileScopedType(ITypeSymbol type)
     {
         return Diagnostic.Create(
@@ -183,6 +191,19 @@ internal static class Diagnostics
             descriptor: _converterAbstract,
             location: GetLocation(target),
             messageArgs: [converterType, target.ToDisplayString()]);
+    }
+
+    public static Diagnostic TargetMemberNotFound(ITypeSymbol targetType, Location? location, in TargetAttributeModel targetModel)
+    {
+        return Diagnostic.Create(
+            descriptor: _targetMemberNotFound,
+            location: location ?? GetLocation(targetType),
+            messageArgs:
+            [
+                targetModel.IsParameter ? "Parameter" : "Property/field",
+                targetModel.MemberName,
+                targetType.ToDisplayString(),
+            ]);
     }
 
     private static Location? GetLocation(ISymbol symbol)
