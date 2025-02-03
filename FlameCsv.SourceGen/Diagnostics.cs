@@ -112,11 +112,11 @@ internal static class Diagnostics
             messageArgs: type.ToDisplayString());
     }
 
-    public static Diagnostic NoConstructorFound(ITypeSymbol type)
+    public static Diagnostic NoConstructorFound(ITypeSymbol type, IMethodSymbol? constructor)
     {
         return Diagnostic.Create(
             descriptor: _noCtor,
-            location: GetLocation(type),
+            location: GetLocation(constructor) ?? GetLocation(type),
             messageArgs: type.ToDisplayString());
     }
 
@@ -193,7 +193,10 @@ internal static class Diagnostics
             messageArgs: [converterType, target.ToDisplayString()]);
     }
 
-    public static Diagnostic TargetMemberNotFound(ITypeSymbol targetType, Location? location, in TargetAttributeModel targetModel)
+    public static Diagnostic TargetMemberNotFound(
+        ITypeSymbol targetType,
+        Location? location,
+        in TargetAttributeModel targetModel)
     {
         return Diagnostic.Create(
             descriptor: _targetMemberNotFound,
@@ -206,22 +209,25 @@ internal static class Diagnostics
             ]);
     }
 
-    private static Location? GetLocation(ISymbol symbol)
+    private static Location? GetLocation(ISymbol? symbol)
     {
-        foreach (var location in symbol.Locations)
+        if (symbol is not null)
         {
-            if (location.IsInSource)
+            foreach (var location in symbol.Locations)
             {
-                return location;
+                if (location.IsInSource)
+                {
+                    return location;
+                }
             }
         }
 
         return null;
     }
 
-    private static IEnumerable<Location> GetLocations(ISymbol symbol)
+    private static IEnumerable<Location> GetLocations(ISymbol? symbol)
     {
-        return symbol.Locations.Where(l => l.IsInSource);
+        return symbol is null ? [] : symbol.Locations.Where(l => l.IsInSource);
     }
 
     internal static void CheckIfFileScoped(
