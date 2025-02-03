@@ -24,6 +24,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlameCsv.SourceGen", "FlameCsv.SourceGen\FlameCsv.SourceGen.csproj", "{F8DBA184-0F95-4D52-947A-6E07FDE503BC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlameCsv.SourceGen.Tests", "FlameCsv.SourceGen.Tests\FlameCsv.SourceGen.Tests.csproj", "{B1759006-B31F-4E93-B711-96A64E7C6669}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -50,6 +52,10 @@ Global
 		{F8DBA184-0F95-4D52-947A-6E07FDE503BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F8DBA184-0F95-4D52-947A-6E07FDE503BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F8DBA184-0F95-4D52-947A-6E07FDE503BC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1759006-B31F-4E93-B711-96A64E7C6669}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1759006-B31F-4E93-B711-96A64E7C6669}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1759006-B31F-4E93-B711-96A64E7C6669}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1759006-B31F-4E93-B711-96A64E7C6669}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
