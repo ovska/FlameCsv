@@ -46,7 +46,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
     public required bool CanWrite { get; init; }
 
     /// <summary>
-    /// List of strings to match this member for. Defaults to <see cref="Name"/>
+    /// List of strings to match this member for. If empty, <see cref="Name"/> should be used.
     /// </summary>
     public required EquatableArray<string> Names { get; init; }
 

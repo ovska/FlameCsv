@@ -57,16 +57,7 @@ internal readonly record struct TargetAttributeModel
 
         IsForAssembly = isAssemblyAttribute;
         MemberName = attribute.ConstructorArguments[startIndex].Value?.ToString() ?? "";
-
-        // params-array
-        if (attribute.ConstructorArguments[startIndex + 1].Values is { IsDefaultOrEmpty: false } namesArray)
-        {
-            Names = [..namesArray.Select(x => x.Value?.ToString()).OfType<string>()];
-        }
-        else
-        {
-            Names = EquatableArray<string>.Empty;
-        }
+        Names = attribute.ConstructorArguments[startIndex + 1].Values.TryToEquatableStringArray();
 
         foreach (var kvp in attribute.NamedArguments)
         {

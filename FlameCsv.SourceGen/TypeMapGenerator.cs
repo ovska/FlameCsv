@@ -153,6 +153,7 @@ namespace ");
 }");
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         return SourceText.From(sb.ToString(), Encoding.UTF8);
     }
 

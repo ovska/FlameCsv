@@ -21,8 +21,6 @@ internal readonly ref struct SymbolMetadata
 
     public SymbolMetadata(ISymbol symbol, ref readonly FlameSymbols flameSymbols)
     {
-        Names = [];
-
         foreach (var attributeData in symbol.GetAttributes())
         {
             if (!SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, flameSymbols.CsvFieldAttribute))
@@ -31,17 +29,7 @@ internal readonly ref struct SymbolMetadata
             }
 
             _attributeSyntax = attributeData.ApplicationSyntaxReference;
-
-            // params-array
-            if (attributeData.ConstructorArguments[0].Values is { IsDefaultOrEmpty: false } namesArray)
-            {
-                var names = new string[namesArray.Length];
-
-                for (int i = 0; i < namesArray.Length; i++)
-                    names[i] = namesArray[i].Value?.ToString() ?? "";
-
-                Names = names.ToEquatableArray();
-            }
+            Names = attributeData.ConstructorArguments[0].Values.TryToEquatableStringArray();
 
             foreach (var argument in attributeData.NamedArguments)
             {
