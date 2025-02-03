@@ -130,5 +130,5 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
 
     public int CompareTo(ParameterModel other) => ParameterIndex.CompareTo(other.ParameterIndex);
 
-    public bool Equals(IMemberModel other) => other is ParameterModel model && Equals(model);
+    public bool Equals(IMemberModel other) => Equals(other as ParameterModel);
 }

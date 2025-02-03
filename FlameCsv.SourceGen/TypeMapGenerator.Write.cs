@@ -48,7 +48,7 @@ public partial class TypeMapGenerator
             sb.Append(property.ConverterPrefix);
             sb.Append(property.Name);
             sb.Append(" = ");
-            WriteConverter(sb, typeMap, property);
+            WriteConverter(sb, property);
             sb.Append(',');
         }
 
@@ -141,11 +141,11 @@ public partial class TypeMapGenerator
             {");
 
         // write directly to the writer for char and byte
-        string suffix = typeMap.Token.SpecialType == SpecialType.System_Byte ? "u8" : "";
-        string method = typeMap.Token.SpecialType switch
+        (string suffix, string method) = typeMap.Token.SpecialType switch
         {
-            SpecialType.System_Char or SpecialType.System_Byte => "WriteRaw",
-            _ => "WriteText"
+            SpecialType.System_Char => ("", "WriteRaw"),
+            SpecialType.System_Byte => ("u8", "WriteRaw"),
+            _ => ("", "WriteText"),
         };
 
         first = true;

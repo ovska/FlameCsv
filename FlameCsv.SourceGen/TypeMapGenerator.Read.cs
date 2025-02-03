@@ -590,7 +590,7 @@ public partial class TypeMapGenerator
             sb.Append(member.ConverterPrefix);
             sb.Append(member.Name);
             sb.Append(" = ");
-            WriteConverter(sb, typeMap, member);
+            WriteConverter(sb, member);
             sb.Append(
                 @";
                     materializer.Targets[index] = ");

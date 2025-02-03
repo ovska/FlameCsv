@@ -112,7 +112,8 @@ public class TypeMapTests
         }
     }
 
-    [Fact(Skip = "For debugging")]
+#if false // debugging
+    [Fact]
     public void A_Test()
     {
         var compilation = CSharpCompilation.Create(
@@ -124,9 +125,9 @@ public class TypeMapTests
                     using FlameCsv.Binding.Attributes;
                     using FlameCsv.Converters;
                     using System;
-                    
+
                     namespace TestiCompile;
-                    
+
                     public static partial class TypeMapBindingTests {
                     [CsvTypeField(memberName: "Id", "__id__")]
                     private class _Obj : ISomething
@@ -147,10 +148,10 @@ public class TypeMapTests
                         public DayOfWeek? NullableDOF { get; set; }
                         bool ISomething.Xyzz { get; set; }
                     }
-                    
+
                     [CsvTypeMap<char, _Obj>]
                     private partial class Test;
-                    
+
                     private interface ISomething
                     {
                         bool Xyzz { get; set; }
@@ -191,6 +192,6 @@ public class TypeMapTests
         var allOutputs = result
             .TrackedOutputSteps.SelectMany(outputStep => outputStep.Value)
             .SelectMany(output => output.Outputs);
-
     }
+#endif
 }

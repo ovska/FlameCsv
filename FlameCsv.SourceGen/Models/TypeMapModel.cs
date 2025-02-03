@@ -191,13 +191,19 @@ internal sealed record TypeMapModel
                 if (parameter.RefKind is not (RefKind.None or RefKind.In or RefKind.RefReadOnlyParameter))
                 {
                     (diagnostics ??= []).Add(
-                        Diagnostics.RefConstructorParameterFound(targetType, constructor, constructor.Parameters[index]));
+                        Diagnostics.RefConstructorParameterFound(
+                            targetType,
+                            constructor,
+                            constructor.Parameters[index]));
                 }
 
                 if (parameter.ParameterType.IsRefLike)
                 {
                     (diagnostics ??= []).Add(
-                        Diagnostics.RefLikeConstructorParameterFound(targetType, constructor, constructor.Parameters[index]));
+                        Diagnostics.RefLikeConstructorParameterFound(
+                            targetType,
+                            constructor,
+                            constructor.Parameters[index]));
                 }
             }
         }
@@ -248,26 +254,46 @@ internal sealed record TypeMapModel
         bool hasWritableProperties = false;
         List<PropertyModel> properties = [];
 
-        foreach (var member in targetType.GetPublicMembersRecursive())
+        // loop through base types
+        ITypeSymbol? currentType = targetType;
+
+        while (currentType is { SpecialType: not (SpecialType.System_Object or SpecialType.System_ValueType) })
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var property = member switch
+            foreach (var member in currentType.GetMembers())
             {
-                IPropertySymbol propertySymbol => PropertyModel.TryCreate(tokenSymbol, propertySymbol, in symbols),
-                IFieldSymbol fieldSymbol => PropertyModel.TryCreate(tokenSymbol, fieldSymbol, in symbols),
-                _ => null
-            };
+                cancellationToken.ThrowIfCancellationRequested();
 
-            if (property is not null)
-            {
-                properties.Add(property);
-                property.OverriddenConverter?.TryAddDiagnostics(member, tokenSymbol, ref diagnostics);
+                if (member.IsStatic) continue;
 
-                HasRequiredMembers |= property.IsRequired;
-                hasReadableMembers |= property.CanRead;
-                hasWritableProperties |= property.CanWrite;
+                // private members are only possible if they are explicitly implemented properties
+                if (member.DeclaredAccessibility is Accessibility.Private or Accessibility.Protected &&
+                    member is not IPropertySymbol
+                    {
+                        CanBeReferencedByName: false, ExplicitInterfaceImplementations: { IsDefaultOrEmpty: false }
+                    })
+                {
+                    continue;
+                }
+
+                PropertyModel? property = member switch
+                {
+                    IPropertySymbol propertySymbol => PropertyModel.TryCreate(tokenSymbol, propertySymbol, in symbols),
+                    IFieldSymbol fieldSymbol => PropertyModel.TryCreate(tokenSymbol, fieldSymbol, in symbols),
+                    _ => null
+                };
+
+                if (property is not null)
+                {
+                    properties.Add(property);
+                    property.OverriddenConverter?.TryAddDiagnostics(member, tokenSymbol, ref diagnostics);
+
+                    HasRequiredMembers |= property.IsRequired;
+                    hasReadableMembers |= property.CanRead;
+                    hasWritableProperties |= property.CanWrite;
+                }
             }
+
+            currentType = currentType.BaseType;
         }
 
         properties.Sort();
@@ -291,6 +317,8 @@ internal sealed record TypeMapModel
 
         foreach (var attr in targetType.GetAttributes())
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, symbols.CsvTypeFieldAttribute))
             {
                 (targetAttributes ??= []).Add(new TargetAttributeModel(attr, false));
@@ -334,11 +362,11 @@ internal sealed record TypeMapModel
         IgnoredHeaders = ignoredHeaders?.ToEquatableArray() ?? [];
         ReportedDiagnostics = diagnostics?.ToEquatableArray() ?? [];
 
-        var builder = ImmutableArray.CreateBuilder<IMemberModel>(Properties.Length + Parameters.Length);
-        builder.AddRange(Properties.AsSpan());
-        builder.AddRange(Parameters.AsSpan());
+        var allMembersBuilder = ImmutableArray.CreateBuilder<IMemberModel>(Properties.Length + Parameters.Length);
+        allMembersBuilder.AddRange(Properties.AsSpan());
+        allMembersBuilder.AddRange(Parameters.AsSpan());
 
-        builder.Sort(
+        allMembersBuilder.Sort(
             (b1, b2) =>
             {
                 var b1Order = b1.Order;
@@ -356,15 +384,18 @@ internal sealed record TypeMapModel
                     }
                 }
 
+                // highest order first
                 int orderComparison = b2Order.CompareTo(b1Order);
                 if (orderComparison != 0) return orderComparison;
 
+                // parameters first
                 int parameterComparison = (b2 is ParameterModel).CompareTo(b1 is ParameterModel);
                 if (parameterComparison != 0) return parameterComparison;
 
+                // required members first
                 return b2.IsRequired.CompareTo(b1.IsRequired);
             });
 
-        AllMembers = new EquatableArray<IMemberModel>(builder.ToImmutable());
+        AllMembers = new EquatableArray<IMemberModel>(allMembersBuilder.ToImmutable());
     }
 }
