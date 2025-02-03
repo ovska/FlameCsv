@@ -13,9 +13,9 @@ internal static class AssemblyReader
     {
         foreach (var attribute in assembly.GetAttributes())
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
             if (attribute.AttributeClass is not { } attrSymbol) continue;
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             if (SymbolEqualityComparer.Default.Equals(symbols.CsvAssemblyTypeFieldAttribute, attrSymbol))
             {

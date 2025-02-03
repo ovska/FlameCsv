@@ -30,63 +30,6 @@ internal static class Extensions
         return false;
     }
 
-    public static IEnumerable<ISymbol> GetPublicMembersRecursive(this ITypeSymbol typeSymbol)
-    {
-        ITypeSymbol? current = typeSymbol;
-
-        // keep track of properties to not duplicate them for interfaces
-        // HashSet<ISymbol> properties = new(SymbolEqualityComparer.Default);
-
-        while (current is { SpecialType: not (SpecialType.System_Object or SpecialType.System_ValueType) })
-        {
-            foreach (var member in current.GetMembers())
-            {
-                if (member.IsStatic) continue;
-
-                if (member.DeclaredAccessibility is Accessibility.Private or Accessibility.Protected)
-                {
-                    if (member is IPropertySymbol
-                        {
-                            CanBeReferencedByName: false,
-                            ExplicitInterfaceImplementations: { IsDefaultOrEmpty: false }
-                        })
-                    {
-                        yield return member;
-                    }
-
-                    // check for explicit interface implementations here?
-                    continue;
-                }
-
-                yield return member;
-            }
-
-            current = current.BaseType;
-        }
-
-        // foreach (var iface in typeSymbol.AllInterfaces)
-        // {
-        //     foreach (var member in iface.GetMembers())
-        //     {
-        //         if (member is IPropertySymbol prop)
-        //
-        //         if (member.DeclaredAccessibility is Accessibility.Private or Accessibility.Protected)
-        //             continue;
-        //
-        //         if (member is IPropertySymbol prop)
-        //         {
-        //             if (typeSymbol.FindImplementationForInterfaceMember(prop) is not { } impl ||
-        //                 !properties.Add(impl.OriginalDefinition))
-        //             {
-        //                 continue;
-        //             }
-        //         }
-        //
-        //         yield return member;
-        //     }
-        // }
-    }
-
     public static string ToStringLiteral(this string? value)
     {
         if (value is null)

@@ -4,10 +4,7 @@ namespace FlameCsv.SourceGen;
 
 public partial class TypeMapGenerator
 {
-    private static void WriteConverter(
-        StringBuilder sb,
-        TypeMapModel typeMap,
-        IMemberModel member)
+    private static void WriteConverter(StringBuilder sb, IMemberModel member)
     {
         bool wrapInNullable = member.OverriddenConverter?.WrapInNullable ??
             member.Type.SpecialType == SpecialType.System_Nullable_T;
