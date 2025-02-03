@@ -1,5 +1,4 @@
-﻿using FlameCsv.SourceGen.Helpers;
-using FlameCsv.SourceGen.Models;
+﻿using FlameCsv.SourceGen.Models;
 
 namespace FlameCsv.SourceGen;
 
@@ -7,7 +6,6 @@ public partial class TypeMapGenerator
 {
     private static void GetReadCode(
         StringBuilder sb,
-        FlameSymbols symbols,
         TypeMapModel typeMap,
         CancellationToken cancellationToken)
     {
@@ -30,7 +28,7 @@ public partial class TypeMapGenerator
             {
                 string name = headers[index];
 ");
-        WriteMatchers(sb, symbols, typeMap, cancellationToken);
+        WriteMatchers(sb, typeMap, cancellationToken);
 
         sb.Append(
             @"
@@ -89,8 +87,9 @@ public partial class TypeMapGenerator
         {
 ");
 
-        foreach (var member in typeMap.GetSortedReadableMembers())
+        foreach (var member in typeMap.AllMembers)
         {
+            if (!member.CanRead) continue;
             cancellationToken.ThrowIfCancellationRequested();
 
             sb.Append("            public ");
@@ -113,8 +112,9 @@ public partial class TypeMapGenerator
             @">
         {");
 
-        foreach (var member in typeMap.GetSortedReadableMembers())
+        foreach (var member in typeMap.AllMembers)
         {
+            if (!member.CanRead) continue;
             cancellationToken.ThrowIfCancellationRequested();
 
             sb.Append(
@@ -123,7 +123,7 @@ public partial class TypeMapGenerator
             sb.Append(typeMap.Token.Name);
             sb.Append(", ");
             sb.Append(member.Type.FullyQualifiedName);
-            sb.Append(symbols.NullableContext ? ">? " : "> ");
+            sb.Append("> ");
             sb.Append(member.ConverterPrefix);
             sb.Append(member.Name);
             sb.Append(';');
@@ -153,7 +153,8 @@ public partial class TypeMapGenerator
                     global::FlameCsv.Exceptions.CsvReadException.ThrowForInvalidFieldCount(expected: targets.Length, actual: reader.FieldCount);
                 }
 
-                ParseState state = default;"); // TODO: profile Unsafe.SkipInit
+                ParseState state = default;");
+        // TODO: profile Unsafe.SkipInit
         WriteDefaultParameterValues(sb, typeMap, cancellationToken);
         sb.Append(
             @"
@@ -169,8 +170,10 @@ public partial class TypeMapGenerator
                     {
 ");
 
-        foreach (var member in typeMap.GetSortedReadableMembers())
+        foreach (var member in typeMap.AllMembers)
         {
+            if (!member.CanRead) continue;
+
             cancellationToken.ThrowIfCancellationRequested();
 
             sb.Append("                        ");
@@ -179,10 +182,8 @@ public partial class TypeMapGenerator
             sb.Append(" => ");
             sb.Append(member.ConverterPrefix);
             sb.Append(member.Name);
-            if (symbols.NullableContext) sb.Append('!');
             sb.Append(".TryParse(@field, out state.");
             sb.Append(member.Name);
-            if (symbols.NullableContext) sb.Append('!');
             sb.Append(
                 @"),
 ");
@@ -202,10 +203,10 @@ public partial class TypeMapGenerator
                 // Create the value from parsed values. Required members are validated when creating the materializer,
                 // optional members are assigned only if parsed to not overwrite possible default values.
                 ");
-        sb.Append(typeMap.Type.FullyQualifiedName);
+        sb.Append((typeMap.Proxy ?? typeMap.Type).FullyQualifiedName);
         sb.Append(" obj = new ");
-        sb.Append(typeMap.Type.FullyQualifiedName);
-        WriteSetters(sb, symbols, typeMap, cancellationToken);
+        sb.Append((typeMap.Proxy ?? typeMap.Type).FullyQualifiedName);
+        WriteSetters(sb, typeMap, cancellationToken);
         sb.Append(
             @"
                 return obj;
@@ -217,15 +218,16 @@ public partial class TypeMapGenerator
 
             [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]
             [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-            private void ThrowForFailedParse(global::System.ReadOnlySpan<");
+            private void ThrowForFailedParse(scoped global::System.ReadOnlySpan<");
         sb.Append(typeMap.Token.Name);
         sb.Append(
             @"> @field, int target)
             {
 ");
 
-        foreach (var member in typeMap.GetSortedReadableMembers())
+        foreach (var member in typeMap.AllMembers)
         {
+            if (!member.CanRead) continue;
             cancellationToken.ThrowIfCancellationRequested();
 
             sb.Append("                if (target == ");
@@ -256,7 +258,7 @@ public partial class TypeMapGenerator
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (typeMap.Parameters is null) return;
+        if (!typeMap.HasConstructor || typeMap.Parameters.IsEmpty) return;
 
         bool commentWritten = false;
 
@@ -288,7 +290,7 @@ public partial class TypeMapGenerator
 
             // Enum values are resolved as their underlying type, so they need to be cast back to the enum type
             // e.g. DayOfWeek.Friday would be "state.arg = (System.DayOfWeek)5;"
-            if (parameter.ParameterType is { IsEnum: true } or { UnderlyingNullableType.IsEnum: true })
+            if (parameter.ParameterType.IsEnumOrNullableEnum)
             {
                 sb.Append('(');
                 sb.Append(parameter.ParameterType.FullyQualifiedName);
@@ -302,7 +304,6 @@ public partial class TypeMapGenerator
 
     private static void WriteSetters(
         StringBuilder sb,
-        FlameSymbols symbols,
         TypeMapModel typeMap,
         CancellationToken cancellationToken)
     {
@@ -310,9 +311,9 @@ public partial class TypeMapGenerator
 
         sb.Append('(');
 
-        if (typeMap.Parameters is { Count: > 0 } parameters)
+        if (typeMap.HasConstructor && !typeMap.Parameters.IsEmpty)
         {
-            foreach (var parameter in parameters)
+            foreach (var parameter in typeMap.Parameters)
             {
                 sb.Append(
                     @"
@@ -327,8 +328,6 @@ public partial class TypeMapGenerator
 
                 sb.Append("state.");
                 sb.Append(parameter.Name);
-                if (symbols.NullableContext)
-                    sb.Append('!');
                 sb.Append(",");
             }
 
@@ -337,7 +336,7 @@ public partial class TypeMapGenerator
 
         sb.Append(')');
 
-        if (typeMap.Properties.Exists(static p => p.IsRequired))
+        if (typeMap.Properties.AsImmutableArray().Any(static p => p.IsRequired))
         {
             sb.Append(
                 @"
@@ -352,8 +351,6 @@ public partial class TypeMapGenerator
                 sb.Append(property.Name);
                 sb.Append(" = state.");
                 sb.Append(property.Name);
-                if (symbols.NullableContext)
-                    sb.Append('!');
                 sb.Append(
                     @",
                 ");
@@ -377,12 +374,12 @@ public partial class TypeMapGenerator
             sb.Append("                if (");
             sb.Append(property.ConverterPrefix);
             sb.Append(property.Name);
-            sb.Append(" is not null) ");
+            sb.Append($" is not null) ");
 
-            if (property.ExplicitInterfaceOriginalDefinition is { } iface)
+            if (!string.IsNullOrEmpty(property.ExplicitInterfaceOriginalDefinitionName))
             {
                 sb.Append("((");
-                sb.Append(iface.FullyQualifiedName);
+                sb.Append(property.ExplicitInterfaceOriginalDefinitionName);
                 sb.Append(")obj).");
             }
             else
@@ -393,8 +390,6 @@ public partial class TypeMapGenerator
             sb.Append(property.Name);
             sb.Append(" = state.");
             sb.Append(property.Name);
-            if (symbols.NullableContext)
-                sb.Append('!');
             sb.Append(
                 @";
 ");
@@ -403,9 +398,7 @@ public partial class TypeMapGenerator
         sb.Length--;
     }
 
-    private static void WriteRequiredCheck(
-        TypeMapModel typeMap,
-        StringBuilder sb)
+    private static void WriteRequiredCheck(TypeMapModel typeMap, StringBuilder sb)
     {
         if (!typeMap.HasRequiredMembers)
         {
@@ -422,8 +415,10 @@ public partial class TypeMapGenerator
 
         bool first = true;
 
-        foreach (var member in typeMap.PropertiesAndParameters)
+        foreach (var member in typeMap.AllMembers)
         {
+            if (!member.CanRead || !member.IsRequired) continue;
+
             if (first)
             {
                 first = false;
@@ -458,8 +453,10 @@ public partial class TypeMapGenerator
         private static System.Collections.Generic.IEnumerable<string> GetMissingRequiredFields(TypeMapMaterializer materializer)
         {");
 
-        foreach (var member in typeMap.GetSortedReadableMembers())
+        foreach (var member in typeMap.AllMembers)
         {
+            if (!member.CanRead) continue;
+
             sb.Append(
                 @"
             if (materializer.");
@@ -478,11 +475,10 @@ public partial class TypeMapGenerator
 
     private static void WriteMatchers(
         StringBuilder sb,
-        FlameSymbols symbols,
         TypeMapModel typeMap,
         CancellationToken cancellationToken)
     {
-        if (typeMap.IgnoredHeaders.Count != 0)
+        if (!typeMap.IgnoredHeaders.IsEmpty)
         {
             sb.Append(
                 @"
@@ -490,7 +486,7 @@ public partial class TypeMapGenerator
                 if (comparer.Equals(name, ");
             sb.Append(typeMap.IgnoredHeaders[0].ToStringLiteral());
 
-            for (int i = 1; i < typeMap.IgnoredHeaders.Count; i++)
+            for (int i = 1; i < typeMap.IgnoredHeaders.Length; i++)
             {
                 sb.Append(
                     @") ||
@@ -507,10 +503,12 @@ public partial class TypeMapGenerator
 ");
         }
 
-        HashSet<string> writtenNames = [];
+        HashSet<string>? writtenNames = null;
 
-        foreach (var member in typeMap.GetSortedReadableMembers())
+        foreach (var member in typeMap.AllMembers)
         {
+            if (!member.CanRead) continue;
+
             cancellationToken.ThrowIfCancellationRequested();
 
             sb.Append(
@@ -530,11 +528,19 @@ public partial class TypeMapGenerator
 
             bool firstName = true;
 
-            foreach (string name in member.Names)
+            if (member.Names.IsEmpty)
             {
-                if (writtenNames.Add(name))
-                    WriteComparison(name);
+                WriteComparison(member.Name);
             }
+            else
+            {
+                foreach (string name in member.Names)
+                {
+                    if ((writtenNames ??= []).Add(name))
+                        WriteComparison(name);
+                }
+            }
+
 
             if (member is PropertyModel)
             {
@@ -544,13 +550,13 @@ public partial class TypeMapGenerator
                     {
                         foreach (var name in attribute.Names)
                         {
-                            if (writtenNames.Add(name)) WriteComparison(name);
+                            if ((writtenNames ??= []).Add(name)) WriteComparison(name);
                         }
                     }
                 }
             }
 
-            writtenNames.Clear();
+            writtenNames?.Clear();
 
             sb.Append(")");
 
@@ -584,7 +590,7 @@ public partial class TypeMapGenerator
             sb.Append(member.ConverterPrefix);
             sb.Append(member.Name);
             sb.Append(" = ");
-            WriteConverter(sb, symbols, member);
+            WriteConverter(sb, typeMap, member);
             sb.Append(
                 @";
                     materializer.Targets[index] = ");

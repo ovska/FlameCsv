@@ -4,14 +4,12 @@ namespace FlameCsv.SourceGen;
 
 public partial class TypeMapGenerator
 {
-    private static void GetWriteCode(StringBuilder sb,
-        FlameSymbols symbols,
+    private static void GetWriteCode(
+        StringBuilder sb,
         TypeMapModel typeMap,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-
-        List<PropertyModel> writableProperties = typeMap.GetSortedWritableProperties();
 
         sb.Append(@"
 
@@ -26,7 +24,10 @@ public partial class TypeMapGenerator
         {
             ");
 
-        if (writableProperties.Count == 0)
+        int writableCount = 0;
+        foreach (var member in typeMap.AllMembers) if (member.CanWrite) writableCount++;
+
+        if (writableCount == 0)
         {
             sb.Append(@"throw new global::System.NotSupportedException(""Type has no writable properties"");
         }
@@ -38,14 +39,16 @@ public partial class TypeMapGenerator
         sb.Append(@"return new Dematerializer
             {");
 
-        foreach (var property in writableProperties)
+        foreach (var property in typeMap.AllMembers)
         {
+            if (!property.CanWrite) continue;
+
             sb.Append(@"
                 ");
             sb.Append(property.ConverterPrefix);
             sb.Append(property.Name);
             sb.Append(" = ");
-            WriteConverter(sb, symbols, property);
+            WriteConverter(sb, typeMap, property);
             sb.Append(',');
         }
 
@@ -62,11 +65,13 @@ public partial class TypeMapGenerator
         sb.Append(@">
         {
             public int FieldCount => ");
-        sb.Append(writableProperties.Count);
+        sb.Append(writableCount);
         sb.Append(';');
 
-        foreach (var property in writableProperties)
+        foreach (var property in typeMap.AllMembers)
         {
+            if (!property.CanWrite) continue;
+
             sb.Append(@"
             public required global::FlameCsv.CsvConverter<");
             sb.Append(typeMap.Token.FullyQualifiedName);
@@ -89,19 +94,31 @@ public partial class TypeMapGenerator
         sb.Append(@" obj)
             {");
 
-        for (int i = 0; i < writableProperties.Count; i++)
+        bool first = true;
+
+        foreach (var member in typeMap.AllMembers)
         {
-            var property = writableProperties[i];
+            if (member is not PropertyModel { CanWrite: true } property) continue;
+
+            if (first)
+            {
+                first = false;
+            }
+            else
+            {
+                sb.Append(@"
+                writer.WriteDelimiter();");
+            }
 
             sb.Append(@"
                 writer.WriteField(");
             sb.Append(property.ConverterPrefix);
             sb.Append(property.Name);
 
-            if (property.ExplicitInterfaceOriginalDefinition is { } iface)
+            if (!string.IsNullOrEmpty(property.ExplicitInterfaceOriginalDefinitionName))
             {
                 sb.Append(", ((");
-                sb.Append(iface.FullyQualifiedName);
+                sb.Append(property.ExplicitInterfaceOriginalDefinitionName);
                 sb.Append(")obj).");
             }
             else
@@ -111,12 +128,6 @@ public partial class TypeMapGenerator
 
             sb.Append(property.Name);
             sb.Append(");");
-
-            if (i < writableProperties.Count - 1)
-            {
-                sb.Append(@"
-                writer.WriteDelimiter();");
-            }
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -137,25 +148,31 @@ public partial class TypeMapGenerator
             _ => "WriteText"
         };
 
-        for (int i = 0; i < writableProperties.Count; i++)
+        first = true;
+
+        foreach (var member in typeMap.AllMembers)
         {
+            if (!member.CanWrite) continue;
+
             cancellationToken.ThrowIfCancellationRequested();
 
-            var binding = writableProperties[i];
+            if (first)
+            {
+                first = false;
+            }
+            else
+            {
+                sb.Append(@"
+                writer.WriteDelimiter();");
+            }
 
             sb.Append(@"
                 writer.");
             sb.Append(method);
             sb.Append('(');
-            sb.Append(binding.Names[0].ToStringLiteral());
+            sb.Append((member.Names.IsEmpty ? member.Name : member.Names[0]).ToStringLiteral());
             sb.Append(suffix);
             sb.Append(");");
-
-            if (i < writableProperties.Count - 1)
-            {
-                sb.Append(@"
-                writer.WriteDelimiter();");
-            }
         }
 
         sb.Append(@"

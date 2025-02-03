@@ -1,22 +1,25 @@
 ﻿namespace FlameCsv.SourceGen.Models;
 
-internal sealed record ConverterModel
+internal record ConverterModel
 {
-    public static ConverterModel? GetOverriddenConverter(
+    /// <summary>
+    /// Returns a converter override, or null.
+    /// </summary>
+    public static ConverterModel? Create(
         ITypeSymbol token,
         ISymbol propertyOrParameter,
         ITypeSymbol convertedType,
-        FlameSymbols symbols)
+        ref readonly FlameSymbols symbols)
     {
         foreach (var attributeData in propertyOrParameter.GetAttributes())
         {
-            if (attributeData.AttributeClass is { IsGenericType: true } attribute &&
+            if (attributeData.AttributeClass is { IsGenericType: true, Arity: 2 } attribute &&
                 SymbolEqualityComparer.Default.Equals(token, attribute.TypeArguments[0]) &&
                 SymbolEqualityComparer.Default.Equals(
                     attribute.ConstructUnboundGenericType(),
                     symbols.CsvConverterOfTAttribute))
             {
-                return new ConverterModel(token, convertedType, attribute.TypeArguments[1], symbols);
+                return new ConverterModel(token, convertedType, attribute.TypeArguments[1], in symbols);
             }
         }
 
@@ -33,37 +36,42 @@ internal sealed record ConverterModel
         ITypeSymbol token,
         ITypeSymbol convertedType,
         ITypeSymbol converter,
-        FlameSymbols symbols)
+        ref readonly FlameSymbols symbols)
     {
         ConvertedType = new TypeRef(convertedType);
         ConverterType = new TypeRef(converter);
-        IsFactory = converter.Inherits(symbols.GetCsvConverterFactoryType(convertedType));
+        IsFactory = converter.Inherits(symbols.GetCsvConverterFactoryType(token));
 
         ConstructorArguments = ConstructorArgumentType.Invalid;
-        INamedTypeSymbol csvOptionsSymbol = symbols.GetCsvOptionsType(token);
 
         foreach (var member in converter.GetMembers())
         {
             if (member.Kind == SymbolKind.Method &&
                 member is IMethodSymbol { MethodKind: MethodKind.Constructor } method)
             {
+                if (method.Parameters.IsEmpty)
+                {
+                    // don't break, we might find a better constructor
+                    ConstructorArguments = ConstructorArgumentType.Empty;
+                    continue;
+                }
+
                 if (method.Parameters.Length == 1)
                 {
-                    if (SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, csvOptionsSymbol))
+                    if (SymbolEqualityComparer.Default.Equals(
+                            method.Parameters[0].Type,
+                            symbols.GetCsvOptionsType(token)))
                     {
                         ConstructorArguments = ConstructorArgumentType.Options;
-                        break;
+                        break; // we found the best constructor
                     }
-                }
-                else if (method.Parameters.IsEmpty)
-                {
-                    ConstructorArguments = ConstructorArgumentType.None;
                 }
             }
         }
 
-        // wrap in a NullableConverter if needed, find base type
-        if (convertedType.IsNullable(out var baseType))
+        // wrap in nullable if needed, e.g., property is 'int?' but the converter is for int
+        // leave factories as they are since we can't statically analyze if they support nullable types
+        if (!IsFactory && convertedType.IsNullable(out var baseType))
         {
             INamedTypeSymbol? current = converter.BaseType;
             ITypeSymbol? resultType = null;
@@ -72,14 +80,9 @@ internal sealed record ConverterModel
             {
                 if (current.IsGenericType)
                 {
-                    INamedTypeSymbol generic = current.ConstructUnboundGenericType();
-
-                    if (SymbolEqualityComparer.Default.Equals(generic, symbols.CsvConverterFactory))
-                    {
-                        resultType = current.TypeArguments[0];
-                        break;
-                    }
-                    else if (SymbolEqualityComparer.Default.Equals(generic, symbols.CsvConverterTTValue))
+                    if (SymbolEqualityComparer.Default.Equals(
+                            current.ConstructUnboundGenericType(),
+                            symbols.CsvConverterTTValue))
                     {
                         resultType = current.TypeArguments[1];
                         break;
@@ -89,7 +92,23 @@ internal sealed record ConverterModel
                 current = current.BaseType;
             }
 
+            // if resultType is "int" here and convertedType is "int?", we need to wrap it in a NullableConverter
             WrapInNullable = SymbolEqualityComparer.Default.Equals(baseType, resultType);
+        }
+    }
+
+    /// <summary>
+    /// Adds diagnostic for invalid constructor if applicable.
+    /// </summary>
+    public void TryAddDiagnostics(ISymbol target, ITypeSymbol tokenType, ref List<Diagnostic>? diagnostics)
+    {
+        if (ConstructorArguments is ConstructorArgumentType.Invalid)
+        {
+            (diagnostics ??= []).Add(Diagnostics.NoCsvFactoryConstructorFound(target, ConverterType.Name, tokenType));
+        }
+        else if (ConverterType.IsAbstract)
+        {
+            (diagnostics ??= []).Add(Diagnostics.CsvConverterAbstract(target, ConverterType.Name));
         }
     }
 }

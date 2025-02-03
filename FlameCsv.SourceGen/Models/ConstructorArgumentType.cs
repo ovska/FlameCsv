@@ -3,6 +3,6 @@
 internal enum ConstructorArgumentType
 {
     Invalid = 0,
-    None = 1,
+    Empty = 1,
     Options = 2
 }

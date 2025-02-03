@@ -26,4 +26,10 @@ public sealed class CsvTypeMapAttribute<T, TValue> : Attribute where T : unmanag
     /// The default behavior does not attempt to match already matched members.
     /// </summary>
     public bool ThrowOnDuplicate { get; set; }
+
+    /// <summary>
+    /// If <see langword="true"/>, the source generator will scan for <see cref="Attributes.CsvAssemblyTypeAttribute"/>
+    /// and <see cref="Attributes.CsvAssemblyTypeFieldAttribute"/>.
+    /// </summary>
+    public bool SupportsAssemblyAttributes { get; set; }
 }

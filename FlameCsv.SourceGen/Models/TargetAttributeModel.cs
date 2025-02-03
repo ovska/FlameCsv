@@ -2,27 +2,63 @@
 
 namespace FlameCsv.SourceGen.Models;
 
-internal sealed record TargetAttributeModel
+internal readonly record struct TypeAttributeModel
+{
+    public static void Parse(
+        AttributeData attribute,
+        ref List<string>? ignoredHeaders,
+        ref List<ProxyData>? proxies)
+    {
+        foreach (var arg in attribute.NamedArguments)
+        {
+            if (arg is { Key: "IgnoredHeaders", Value.Values.IsDefaultOrEmpty: false })
+            {
+                foreach (var value in arg.Value.Values)
+                {
+                    if (value.Value?.ToString() is { Length: > 0 } headerName)
+                    {
+                        (ignoredHeaders ??= []).Add(headerName);
+                    }
+                }
+            }
+            else if (arg is
+                     {
+                         Key: "CreatedTypeProxy",
+                         Value: { Kind: TypedConstantKind.Type, Value: INamedTypeSymbol proxySymbol }
+                     })
+            {
+                (proxies ??= []).Add(
+                    new ProxyData(
+                        new TypeRef(proxySymbol),
+                        attribute.ApplicationSyntaxReference?.GetSyntax().GetLocation()));
+            }
+        }
+    }
+}
+
+internal readonly record struct TargetAttributeModel
 {
     public int? Index { get; }
     public string MemberName { get; }
     public bool IsIgnored { get; }
     public bool IsRequired { get; }
     public int Order { get; }
-    public ImmutableEquatableArray<string> Names { get; }
+    public EquatableArray<string> Names { get; }
 
-    public TargetAttributeModel(AttributeData attribute)
+    public TargetAttributeModel(AttributeData attribute, bool isAssemblyAttribute)
     {
-        MemberName = attribute.ConstructorArguments[0].Value?.ToString() ?? "";
+        int startIndex = isAssemblyAttribute ? 1 : 0;
+
+        MemberName = attribute.ConstructorArguments[startIndex].Value?.ToString() ?? "";
 
         // params-array
-        if (attribute.ConstructorArguments[1].Values is { IsDefaultOrEmpty: false } namesArray)
+        if (attribute.ConstructorArguments[startIndex + 1].Values is { IsDefaultOrEmpty: false } namesArray)
         {
             Names = [..namesArray.Select(x => x.Value?.ToString()).OfType<string>()];
         }
         else
         {
-            Names = ImmutableEquatableArray<string>.Empty;
+            Names = EquatableArray<string>.Empty;
         }
 
         foreach (var kvp in attribute.NamedArguments)
@@ -37,7 +73,7 @@ internal sealed record TargetAttributeModel
             }
             else if (kvp.Key == "Order")
             {
-                Order = (int)kvp.Value.Value!;
+                Order = kvp.Value.Value as int? ?? 0;
             }
             else if (kvp.Key == "Index")
             {
