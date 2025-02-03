@@ -253,7 +253,7 @@ public partial class TypeMapGenerator
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (!typeMap.HasConstructor || typeMap.Parameters.IsEmpty) return;
+        if (typeMap.Parameters.IsEmpty) return;
 
         bool commentWritten = false;
 
@@ -306,7 +306,7 @@ public partial class TypeMapGenerator
 
         sb.Append('(');
 
-        if (typeMap.HasConstructor && !typeMap.Parameters.IsEmpty)
+        if (!typeMap.Parameters.IsEmpty)
         {
             foreach (var parameter in typeMap.Parameters)
             {
