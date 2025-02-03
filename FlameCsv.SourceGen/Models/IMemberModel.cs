@@ -2,7 +2,7 @@
 
 namespace FlameCsv.SourceGen.Models;
 
-internal interface IMemberModel
+internal interface IMemberModel : IEquatable<IMemberModel>
 {
     bool IsRequired {get; }
     bool CanRead { get; }
@@ -11,7 +11,7 @@ internal interface IMemberModel
     string Name { get; }
     string IndexPrefix { get; }
     string ConverterPrefix { get; }
-    ImmutableEquatableArray<string> Names { get; }
+    EquatableArray<string> Names { get; }
     ConverterModel? OverriddenConverter { get; }
     TypeRef Type { get; }
 }

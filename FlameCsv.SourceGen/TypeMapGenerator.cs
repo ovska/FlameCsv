@@ -8,10 +8,6 @@ public partial class TypeMapGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        IncrementalValueProvider<FlameSymbols> flameCsvSymbols = context
-            .CompilationProvider
-            .Select((compilation, _) => new FlameSymbols(compilation));
-
         IncrementalValuesProvider<TypeMapModel> typeMapTargets = context
             .SyntaxProvider
             .ForAttributeWithMetadataName(
@@ -19,34 +15,32 @@ public partial class TypeMapGenerator : IIncrementalGenerator
                 static (syntaxNode, cancellationToken) =>
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    return syntaxNode is ClassDeclarationSyntax or RecordDeclarationSyntax;
+                    return syntaxNode is ClassDeclarationSyntax;
                 },
                 static (context, cancellationToken) =>
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     return (ContainingClass: (INamedTypeSymbol)context.TargetSymbol, Attribute: context.Attributes[0]);
                 })
-            // .Where(static tuple => tuple.ContainingClass.CanBeReferencedByName)
-            .Combine(flameCsvSymbols)
+            .Where(static tuple => tuple.ContainingClass.CanBeReferencedByName)
+            .WithTrackingName("FlameCsv_Target")
+            .Combine(context.CompilationProvider.WithTrackingName("FlameCsv_Compilation"))
             .Select(
-                static (tuple, cancellationToken) =>
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    return new TypeMapModel(
-                        symbols: tuple.Right,
-                        containingClass: tuple.Left.ContainingClass,
-                        attribute: tuple.Left.Attribute);
-                })
-            .WithTrackingName("FlameCsvSourceGen");
+                static (tuple, cancellationToken) => new TypeMapModel(
+                    compilation: tuple.Right,
+                    containingClass: tuple.Left.ContainingClass,
+                    attribute: tuple.Left.Attribute,
+                    cancellationToken))
+            .WithTrackingName("FlameCsv_TypeMap");
 
         context.RegisterSourceOutput(typeMapTargets, static (spc, source) => Execute(source, spc));
     }
 
     private static void Execute(TypeMapModel typeMap, SourceProductionContext context)
     {
-        if (typeMap.HasDiagnostics(out var diagnostics))
+        if (typeMap.ReportedDiagnostics.Length != 0)
         {
-            foreach (var diagnostic in diagnostics)
+            foreach (var diagnostic in typeMap.ReportedDiagnostics)
             {
                 context.ReportDiagnostic(diagnostic);
             }
@@ -65,13 +59,10 @@ public partial class TypeMapGenerator : IIncrementalGenerator
         sourceName.Append(typeMap.TypeMap.Name);
         sourceName.Append(".G.cs");
 
-        context.AddSource(
-            sourceName.ToString(),
-            CreateTypeMap(typeMap.GetSymbols(), typeMap, context.CancellationToken));
+        context.AddSource(sourceName.ToString(), CreateTypeMap(typeMap, context.CancellationToken));
     }
 
     private static SourceText CreateTypeMap(
-        FlameSymbols symbols,
         TypeMapModel typeMap,
         CancellationToken cancellationToken)
     {
@@ -89,10 +80,6 @@ public partial class TypeMapGenerator : IIncrementalGenerator
         sb.Append(
             @"
 // </auto-generated>
-#nullable ");
-        sb.Append(symbols.NullableContext ? "enable" : "disable");
-        sb.Append(
-            @"
 ");
 
         if (typeMap.InGlobalNamespace)
@@ -124,7 +111,7 @@ namespace ");
             @"
     partial class ");
         sb.Append(typeMap.TypeMap.Name);
-        sb.Append(" : FlameCsv.Binding.CsvTypeMap<");
+        sb.Append(" : global::FlameCsv.Binding.CsvTypeMap<");
         sb.Append(typeMap.Token.FullyQualifiedName);
         sb.Append(", ");
         sb.Append(typeMap.Type.FullyQualifiedName);
@@ -145,18 +132,18 @@ namespace ");
         }
 
         WriteIndexes(sb, typeMap);
-        GetReadCode(sb, symbols, typeMap, cancellationToken);
-        GetWriteCode(sb, symbols, typeMap, cancellationToken);
+        GetReadCode(sb, typeMap, cancellationToken);
+        GetWriteCode(sb, typeMap, cancellationToken);
         sb.Append(
             @"
     }");
 
-        if (typeMap.WrappingTypes.Count != 0)
+        if (typeMap.WrappingTypes.Length != 0)
         {
             sb.Append(
                 @"
     ");
-            sb.Append('}', typeMap.WrappingTypes.Count);
+            sb.Append('}', typeMap.WrappingTypes.Length);
         }
 
         if (!typeMap.InGlobalNamespace)
@@ -174,15 +161,15 @@ namespace ");
         // start from 1 so uninitialized members are zero and fail as expected
         int index = 1;
 
-        foreach (var conversion in typeMap.PropertiesAndParameters)
+        foreach (var member in typeMap.AllMembers)
         {
-            if (!conversion.CanRead) return;
+            if (!member.CanRead) continue;
 
             sb.Append(
                 @"
         private const int ");
-            sb.Append(conversion.IndexPrefix);
-            sb.Append(conversion.Name);
+            sb.Append(member.IndexPrefix);
+            sb.Append(member.Name);
             sb.Append(" = ");
             sb.Append(index++);
             sb.Append(';');

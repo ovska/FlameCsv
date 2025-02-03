@@ -5,21 +5,6 @@ namespace FlameCsv.SourceGen;
 
 internal static class Extensions
 {
-    public static bool TryFindNamedArgument<TValue>(this AttributeData attribute, string name,[NotNullWhen(true)] out TValue? value)
-    {
-        foreach (var kvp in attribute.NamedArguments)
-        {
-            if (kvp.Key == name)
-            {
-                value = (TValue)kvp.Value.Value!;
-                return true;
-            }
-        }
-
-        value = default;
-        return false;
-    }
-
     public static bool IsNullable(this ITypeSymbol type, [NotNullWhen(true)] out ITypeSymbol? baseType)
     {
         if (type is { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T })
@@ -50,20 +35,27 @@ internal static class Extensions
         ITypeSymbol? current = typeSymbol;
 
         // keep track of properties to not duplicate them for interfaces
-        HashSet<ISymbol> properties = new(SymbolEqualityComparer.Default);
+        // HashSet<ISymbol> properties = new(SymbolEqualityComparer.Default);
 
-        while (current is not null
-            && current.SpecialType != SpecialType.System_Object
-            && current.SpecialType != SpecialType.System_ValueType)
+        while (current is { SpecialType: not (SpecialType.System_Object or SpecialType.System_ValueType) })
         {
             foreach (var member in current.GetMembers())
             {
-                if (member.DeclaredAccessibility is Accessibility.Private or Accessibility.Protected)
-                    continue;
+                if (member.IsStatic) continue;
 
-                if (member is IPropertySymbol prop)
+                if (member.DeclaredAccessibility is Accessibility.Private or Accessibility.Protected)
                 {
-                    properties.Add(prop.OriginalDefinition);
+                    if (member is IPropertySymbol
+                        {
+                            CanBeReferencedByName: false,
+                            ExplicitInterfaceImplementations: { IsDefaultOrEmpty: false }
+                        })
+                    {
+                        yield return member;
+                    }
+
+                    // check for explicit interface implementations here?
+                    continue;
                 }
 
                 yield return member;
@@ -72,25 +64,27 @@ internal static class Extensions
             current = current.BaseType;
         }
 
-        foreach (var iface in typeSymbol.AllInterfaces)
-        {
-            foreach (var member in iface.GetMembers())
-            {
-                if (member.DeclaredAccessibility is Accessibility.Private or Accessibility.Protected)
-                    continue;
-
-                if (member is IPropertySymbol prop)
-                {
-                    if (typeSymbol.FindImplementationForInterfaceMember(prop) is not { } impl ||
-                        !properties.Add(impl.OriginalDefinition))
-                    {
-                        continue;
-                    }
-                }
-
-                yield return member;
-            }
-        }
+        // foreach (var iface in typeSymbol.AllInterfaces)
+        // {
+        //     foreach (var member in iface.GetMembers())
+        //     {
+        //         if (member is IPropertySymbol prop)
+        //
+        //         if (member.DeclaredAccessibility is Accessibility.Private or Accessibility.Protected)
+        //             continue;
+        //
+        //         if (member is IPropertySymbol prop)
+        //         {
+        //             if (typeSymbol.FindImplementationForInterfaceMember(prop) is not { } impl ||
+        //                 !properties.Add(impl.OriginalDefinition))
+        //             {
+        //                 continue;
+        //             }
+        //         }
+        //
+        //         yield return member;
+        //     }
+        // }
     }
 
     public static string ToStringLiteral(this string? value)
@@ -101,7 +95,9 @@ internal static class Extensions
         if (value == "")
             return "\"\"";
 
-        return SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(value)).ToFullString();
+        return SyntaxFactory
+            .LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(value))
+            .ToFullString();
     }
 
     public static string ToLiteral(this object? value)
@@ -110,6 +106,7 @@ internal static class Extensions
         {
             null => "default",
             bool b => b ? "true" : "false",
+            string s => ToStringLiteral(s),
             _ when GetLiteral(value) is { } les => les.ToFullString(),
             IFormattable f => f.ToString(null, System.Globalization.CultureInfo.InvariantCulture),
             _ => value.ToString()
@@ -117,6 +114,7 @@ internal static class Extensions
 
         static LiteralExpressionSyntax? GetLiteral(object? value)
         {
+            // @formatter:off
             return value switch
             {
                 char c => SyntaxFactory.LiteralExpression(SyntaxKind.CharacterLiteralExpression, SyntaxFactory.Literal(c)),
@@ -134,17 +132,7 @@ internal static class Extensions
                 sbyte sb => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(sb)),
                 _ => null,
             };
+            // @formatter:on
         }
-    }
-
-    public static bool HasAttribute(this ISymbol symbol, INamedTypeSymbol attribute)
-    {
-        foreach (var attr in symbol.GetAttributes())
-        {
-            if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, attribute))
-                return true;
-        }
-
-        return false;
     }
 }

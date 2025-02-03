@@ -30,24 +30,24 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
     public required int Order { get; init; }
 
     /// <summary>
-    /// If this member can be used when reading CSV.
+    /// If this member can be used when reading CSV, i.e., value can be written to the object.
     /// </summary>
     public required bool CanRead { get; init; }
 
     /// <summary>
-    /// If this member can be used when writing CSV.
+    /// If this member can be used when writing CSV, i.e., value can be read from the object.
     /// </summary>
     public required bool CanWrite { get; init; }
 
     /// <summary>
     /// List of strings to match this member for. Defaults to <see cref="Name"/>
     /// </summary>
-    public required ImmutableEquatableArray<string> Names { get; init; }
+    public required EquatableArray<string> Names { get; init; }
 
     /// <summary>
-    /// The interface type that this property was explicitly implemented from.
+    /// The fully qualified name of the interface type that this property was explicitly implemented from.
     /// </summary>
-    public required TypeRef? ExplicitInterfaceOriginalDefinition { get; init; }
+    public required string? ExplicitInterfaceOriginalDefinitionName { get; init; }
 
     /// <summary>
     /// Overridden converter for this property.
@@ -61,83 +61,89 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
 
     public static PropertyModel? TryCreate(
         ITypeSymbol token,
-        ISymbol typeSymbol,
-        ISymbol symbol,
-        FlameSymbols symbols)
+        IPropertySymbol propertySymbol,
+        ref readonly FlameSymbols symbols)
     {
-        if (!symbol.CanBeReferencedByName || symbol.IsStatic) return null;
-
-        ITypeSymbol type;
-        bool isProperty = false;
-        TypeRef? explicitInterface = null;
-        bool isRequired;
-        bool canWrite;
-        bool canRead;
-
-        SymbolMetadata meta;
-
-        if (symbol is IPropertySymbol propertySymbol)
+        if (propertySymbol.IsIndexer || propertySymbol.RefKind != RefKind.None)
         {
-            if (propertySymbol.IsIndexer || propertySymbol.RefKind != RefKind.None)
+            return null;
+        }
+
+        SymbolMetadata meta = new(propertySymbol, in symbols);
+
+        if (meta.IsIgnored)
+        {
+            return null;
+        }
+
+        INamedTypeSymbol? explicitInterface = null;
+        string? explicitPropertyName = null;
+
+        foreach (var explicitImplementation in propertySymbol.ExplicitInterfaceImplementations)
+        {
+            var originalDefinition = explicitImplementation.OriginalDefinition;
+
+            if (originalDefinition.CanBeReferencedByName)
             {
-                return null;
-            }
-
-            meta = new SymbolMetadata(propertySymbol, symbols);
-
-            if (meta.IsIgnored)
-            {
-                return null;
-            }
-
-            type = propertySymbol.Type;
-            isProperty = true;
-            isRequired = propertySymbol.IsRequired || propertySymbol.SetMethod is { IsInitOnly: true };
-            canWrite = !propertySymbol.IsWriteOnly;
-            canRead = !propertySymbol.IsReadOnly;
-
-            if (propertySymbol.ContainingType.TypeKind == TypeKind.Interface &&
-                !SymbolEqualityComparer.Default.Equals(propertySymbol.ContainingType, typeSymbol))
-            {
-                explicitInterface = new TypeRef(propertySymbol.OriginalDefinition.ContainingType);
+                explicitPropertyName = $"{originalDefinition.ContainingType.Name}_{originalDefinition.Name}";
+                explicitInterface = originalDefinition.ContainingType;
+                break;
             }
         }
-        else if (symbol is IFieldSymbol fieldSymbol)
+
+        if (!propertySymbol.CanBeReferencedByName && explicitInterface is null)
         {
-            if (fieldSymbol.RefKind != RefKind.None || fieldSymbol.IsConst)
-            {
-                return null;
-            }
-
-            meta = new SymbolMetadata(fieldSymbol, symbols);
-
-            if (meta.IsIgnored)
-            {
-                return null;
-            }
-
-            type = fieldSymbol.Type;
-            isRequired = fieldSymbol.IsRequired;
-            canWrite = true;
-            canRead = !fieldSymbol.IsReadOnly;
+            // cannot reference by name and not an explicit interface implementation
+            return null;
         }
-        else
+
+        return new PropertyModel
+        {
+            Type = new TypeRef(propertySymbol.Type),
+            Name = explicitPropertyName ?? propertySymbol.Name,
+            IsProperty = true,
+            IsRequired = propertySymbol.IsRequired || propertySymbol.SetMethod is { IsInitOnly: true },
+            Names = meta.Names,
+            Order = meta.Order,
+            CanRead = !propertySymbol.IsReadOnly,
+            CanWrite = !propertySymbol.IsWriteOnly,
+            OverriddenConverter = ConverterModel.Create(token, propertySymbol, propertySymbol.Type, in symbols),
+            ExplicitInterfaceOriginalDefinitionName
+                = explicitInterface?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+        };
+    }
+
+    public static PropertyModel? TryCreate(
+        ITypeSymbol token,
+        IFieldSymbol fieldSymbol,
+        ref readonly FlameSymbols symbols)
+    {
+        if (!fieldSymbol.CanBeReferencedByName || fieldSymbol.RefKind != RefKind.None || fieldSymbol.IsConst)
+        {
+            return null;
+        }
+
+        SymbolMetadata meta = new(fieldSymbol, in symbols);
+
+        if (meta.IsIgnored)
         {
             return null;
         }
 
         return new PropertyModel
         {
-            Type = new TypeRef(type),
-            IsProperty = isProperty,
-            IsRequired = isRequired || meta.IsRequired,
-            Name = symbol.Name,
-            ExplicitInterfaceOriginalDefinition = explicitInterface,
-            Names = meta.Names.ToImmutableEquatableArray(),
+            Type = new TypeRef(fieldSymbol.Type),
+            IsProperty = false,
+            IsRequired = fieldSymbol.IsRequired,
+            Name = fieldSymbol.Name,
+            Names = meta.Names,
             Order = meta.Order,
-            CanRead = canRead,
-            CanWrite = canWrite,
-            OverriddenConverter = ConverterModel.GetOverriddenConverter(token, symbol, type, symbols)
+            CanRead = !fieldSymbol.IsReadOnly,
+            CanWrite = true,
+            ExplicitInterfaceOriginalDefinitionName = null,
+            OverriddenConverter = ConverterModel.Create(token, fieldSymbol, fieldSymbol.Type, in symbols)
         };
     }
+
+    public bool Equals(IMemberModel other) => other is PropertyModel model && Equals(model);
 }

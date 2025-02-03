@@ -1,9 +1,21 @@
-﻿namespace FlameCsv.SourceGen;
+﻿using FlameCsv.SourceGen.Models;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+
+namespace FlameCsv.SourceGen;
 
 #pragma warning disable RS2001 // TODO: fix
 
-public static class Diagnostics
+internal static class Diagnostics
 {
+    private static readonly DiagnosticDescriptor _fileScoped = new(
+        id: "FLAMESG001",
+        title: "File-scoped type",
+        messageFormat: "File-scoped type {0} cannot participate in source generation",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     private static readonly DiagnosticDescriptor _noCtor = new(
         id: "FLAMESG100",
         title: "No usable constructor found",
@@ -25,6 +37,14 @@ public static class Diagnostics
         id: "FLAMESG102",
         title: "Constructor had a ref-like parameter",
         messageFormat: "Cannot generate reading code: {0} had a ref-like constructor parameter: {1}",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor _multipleProxies = new(
+        id: "FLAMESG103",
+        title: "Multiple type proxies",
+        messageFormat: "Cannot generate reading code: Multiple type proxies found for {0}",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -55,52 +75,133 @@ public static class Diagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor _converterAbstract = new(
+        id: "FLAMESG203",
+        title: "CsvConverter must not be abstract",
+        messageFormat: "CsvConverter {0} for {1} must not be abstract",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static Diagnostic FileScopedType(ITypeSymbol type)
+    {
+        return Diagnostic.Create(
+            descriptor: _fileScoped,
+            location: GetLocation(type),
+            messageArgs: type.ToDisplayString());
+    }
+
     public static Diagnostic NoConstructorFound(ITypeSymbol type)
     {
-        return Diagnostic.Create(_noCtor, GetLocation(type), type.ToDisplayString());
+        return Diagnostic.Create(
+            descriptor: _noCtor,
+            location: GetLocation(type),
+            messageArgs: type.ToDisplayString());
     }
 
-    public static Diagnostic RefConstructorParameterFound(ITypeSymbol type, IParameterSymbol parameter)
+    public static Diagnostic RefConstructorParameterFound(
+        ITypeSymbol type,
+        IMethodSymbol constructor,
+        IParameterSymbol parameter)
     {
         return Diagnostic.Create(
-            _refCtorParam,
-            GetLocation(parameter),
-            type.ToDisplayString(),
-            parameter.RefKind,
-            parameter.ToDisplayString());
+            descriptor: _refCtorParam,
+            location: GetLocation(parameter),
+            additionalLocations: GetLocations(constructor),
+            messageArgs: [type.ToDisplayString(), parameter.RefKind, parameter.ToDisplayString()]);
     }
 
-    public static Diagnostic RefLikeConstructorParameterFound(ITypeSymbol type, IParameterSymbol parameter)
+    public static Diagnostic RefLikeConstructorParameterFound(
+        ITypeSymbol type,
+        IMethodSymbol constructor,
+        IParameterSymbol parameter)
     {
         return Diagnostic.Create(
-            _refStructParam,
-            GetLocation(parameter),
-            type.ToDisplayString(),
-            parameter.ToDisplayString());
+            descriptor: _refStructParam,
+            location: GetLocation(parameter),
+            additionalLocations: GetLocations(constructor),
+            messageArgs: [type.ToDisplayString(), parameter.ToDisplayString()]);
+    }
+
+    public static Diagnostic MultipleTypeProxiesFound(ITypeSymbol targetType, List<ProxyData> proxies)
+    {
+        return Diagnostic.Create(
+            descriptor: _multipleProxies,
+            location: GetLocation(targetType),
+            additionalLocations: proxies.Select(l => l.AttributeLocation).OfType<Location>(),
+            messageArgs: targetType.ToDisplayString());
     }
 
     public static Diagnostic NoReadableMembers(ITypeSymbol type)
     {
-        return Diagnostic.Create(_noReadableMembers, GetLocation(type), type.ToDisplayString());
+        return Diagnostic.Create(
+            descriptor: _noReadableMembers,
+            location: GetLocation(type),
+            messageArgs: type.ToDisplayString());
     }
 
     public static Diagnostic NoWritableMembers(ITypeSymbol type)
     {
-        return Diagnostic.Create(_noWritableMembers, GetLocation(type), type.ToDisplayString());
+        return Diagnostic.Create(
+            descriptor: _noWritableMembers,
+            location: GetLocation(type),
+            messageArgs: type.ToDisplayString());
     }
 
     public static Diagnostic NoCsvFactoryConstructorFound(ISymbol target, string factoryType, ITypeSymbol tokenType)
     {
         return Diagnostic.Create(
-            _factoryNoCtorFound,
-            GetLocation(target),
-            target.ToDisplayString(),
-            factoryType,
-            tokenType.ToDisplayString());
+            descriptor: _factoryNoCtorFound,
+            location: GetLocation(target),
+            messageArgs: [target.ToDisplayString(), factoryType, tokenType.ToDisplayString()]);
+    }
+
+    public static Diagnostic CsvConverterAbstract(ISymbol target, string converterType)
+    {
+        return Diagnostic.Create(
+            descriptor: _converterAbstract,
+            location: GetLocation(target),
+            messageArgs: [converterType, target.ToDisplayString()]);
     }
 
     private static Location? GetLocation(ISymbol symbol)
     {
-        return symbol.Locations.IsDefaultOrEmpty ? null : symbol.Locations[0];
+        foreach (var location in symbol.Locations)
+        {
+            if (location.IsInSource)
+            {
+                return location;
+            }
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<Location> GetLocations(ISymbol symbol)
+    {
+        return symbol.Locations.Where(l => l.IsInSource);
+    }
+
+    internal static void CheckIfFileScoped(
+        ITypeSymbol type,
+        CancellationToken cancellationToken,
+        ref List<Diagnostic>? diagnostics)
+    {
+        foreach (var syntaxRef in type.DeclaringSyntaxReferences)
+        {
+            if (syntaxRef.GetSyntax(cancellationToken) is not TypeDeclarationSyntax classDeclaration)
+            {
+                continue;
+            }
+
+            foreach (var modifier in classDeclaration.Modifiers)
+            {
+                if (modifier.IsKind(SyntaxKind.FileKeyword))
+                {
+                    (diagnostics ??= []).Add(FileScopedType(type));
+                    return;
+                }
+            }
+        }
     }
 }

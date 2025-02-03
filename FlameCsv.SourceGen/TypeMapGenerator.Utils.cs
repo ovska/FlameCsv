@@ -6,7 +6,7 @@ public partial class TypeMapGenerator
 {
     private static void WriteConverter(
         StringBuilder sb,
-        FlameSymbols symbols,
+        TypeMapModel typeMap,
         IMemberModel member)
     {
         bool wrapInNullable = member.OverriddenConverter?.WrapInNullable ??
@@ -22,10 +22,7 @@ public partial class TypeMapGenerator
 
         if (member.OverriddenConverter is not { } converter)
         {
-            sb.Append(
-                member.Type is { IsEnum: true } or { UnderlyingNullableType.IsEnum: true }
-                    ? "options.GetOrCreateEnum<"
-                    : "options.GetConverter<");
+            sb.Append(member.Type.IsEnumOrNullableEnum ? "options.GetOrCreateEnum<" : "options.GetConverter<");
             sb.Append(member.Type.FullyQualifiedName);
             if (member.Type.SpecialType == SpecialType.System_Nullable_T) sb.Length--;
             sb.Append(">()");
@@ -52,6 +49,5 @@ public partial class TypeMapGenerator
         }
 
         if (wrapInNullable) sb.Append(')');
-        if (symbols.NullableContext) sb.Append('!');
     }
 }

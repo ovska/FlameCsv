@@ -1,20 +1,22 @@
-﻿namespace FlameCsv.SourceGen;
+﻿using FlameCsv.SourceGen.Helpers;
+
+namespace FlameCsv.SourceGen;
 
 /// <summary>
 /// Contains attribute data from a property, field, or parameter.
 /// </summary>
-internal readonly struct SymbolMetadata
+// ref struct to avoid accidental storage
+internal readonly ref struct SymbolMetadata
 {
-    public ISymbol Symbol { get; }
-    public string[] Names { get; }
+    public EquatableArray<string> Names { get; }
     public bool IsRequired { get; }
     public bool IsIgnored { get; }
     public int Order { get; }
     public int? Index { get; }
 
-    public SymbolMetadata(ISymbol symbol, FlameSymbols flameSymbols)
+    public SymbolMetadata(ISymbol symbol, ref readonly FlameSymbols flameSymbols)
     {
-        Symbol = symbol;
+        Names = [];
 
         foreach (var attributeData in symbol.GetAttributes())
         {
@@ -31,7 +33,7 @@ internal readonly struct SymbolMetadata
                 for (int i = 0; i < namesArray.Length; i++)
                     names[i] = namesArray[i].Value?.ToString() ?? "";
 
-                Names = names;
+                Names = names.ToEquatableArray();
             }
 
             foreach (var argument in attributeData.NamedArguments)
@@ -53,8 +55,9 @@ internal readonly struct SymbolMetadata
                         break;
                 }
             }
-        }
 
-        Names ??= [symbol.Name];
+            // [CsvField] has AllowMultiple = false
+            break;
+        }
     }
 }
