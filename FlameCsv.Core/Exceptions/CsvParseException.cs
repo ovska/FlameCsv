@@ -28,7 +28,7 @@ public sealed class CsvParseException(
     /// <exception cref="CsvParseException"></exception>
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void Throw<T, TValue>(ReadOnlySpan<T> value, CsvConverter<T, TValue> converter, string target)
+    public static void Throw<T, TValue>(scoped ReadOnlySpan<T> value, CsvConverter<T, TValue> converter, string target)
         where T : unmanaged, IBinaryInteger<T>
     {
         throw new CsvParseException(

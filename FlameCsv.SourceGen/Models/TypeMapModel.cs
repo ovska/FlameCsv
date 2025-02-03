@@ -1,4 +1,5 @@
-﻿using FlameCsv.SourceGen.Helpers;
+﻿using System.Collections.Immutable;
+using FlameCsv.SourceGen.Helpers;
 
 namespace FlameCsv.SourceGen.Models;
 
@@ -33,12 +34,24 @@ internal sealed record TypeMapModel
     /// <summary>
     /// Properties and fields of the converted type.
     /// </summary>
-    public ImmutableSortedArray<PropertyModel> Properties { get; }
+    public EquatableArray<PropertyModel> Properties { get; }
 
     /// <summary>
-    /// Constructor parameters of the converted type. Null if no valid constructor is found, or scope is "write".
+    /// Constructor parameters of the converted type.
     /// </summary>
-    public ImmutableSortedArray<ParameterModel>? Parameters { get; }
+    /// <seealso cref="HasConstructor"/>
+    public EquatableArray<ParameterModel> Parameters { get; }
+
+    /// <summary>
+    /// All values from <see cref="Properties"/> and <see cref="Parameters"/>,
+    /// sorted using <see cref="TargetAttributes"/>.
+    /// </summary>
+    public EquatableArray<IMemberModel> AllMembers { get; }
+
+    /// <summary>
+    /// Whether the type has a valid constructor.
+    /// </summary>
+    public bool HasConstructor { get; }
 
     /// <summary>
     /// Whether the containing class has a parameterless constructor and no existing Instance property.
@@ -56,36 +69,48 @@ internal sealed record TypeMapModel
     public bool ThrowOnDuplicate { get; }
 
     /// <summary>
+    /// Whether to scan for assembly attributes.
+    /// </summary>
+    public bool SupportsAssemblyAttributes { get; }
+
+    /// <summary>
     /// Wrapping types if the typemap is nested, empty otherwise.
     /// </summary>
-    public ImmutableEquatableArray<(string name, string display)> WrappingTypes { get; }
+    public EquatableArray<(string name, string display)> WrappingTypes { get; }
 
     /// <summary>
     /// CsvTargetAttribute instances on the containing class.
     /// </summary>
-    public ImmutableEquatableArray<TargetAttributeModel> TargetAttributes { get; }
+    public EquatableArray<TargetAttributeModel> TargetAttributes { get; }
 
     /// <summary>
     /// Headers that are always ignored.
     /// </summary>
-    public ImmutableEquatableArray<string> IgnoredHeaders { get; }
+    public EquatableArray<string> IgnoredHeaders { get; }
+
+    /// <summary>
+    /// Proxy used when creating the type.
+    /// </summary>
+    public TypeRef? Proxy { get; }
 
     /// <summary>
     /// Whether the typemap has any required members or parameters.
     /// </summary>
     public bool HasRequiredMembers { get; }
 
-    public FlameSymbols GetSymbols() => _symbols;
-    private readonly FlameSymbols _symbols; // must be excluded from equality
-
-    private readonly List<Diagnostic> _diagnostics = [];
+    /// <summary>
+    /// Problem diagnostics for the type map.
+    /// </summary>
+    public EquatableArray<Diagnostic> ReportedDiagnostics { get; }
 
     public TypeMapModel(
-        FlameSymbols symbols,
+        Compilation compilation,
         INamedTypeSymbol containingClass,
-        AttributeData attribute)
+        AttributeData attribute,
+        CancellationToken cancellationToken)
     {
-        _symbols = symbols;
+        var symbols = new FlameSymbols(compilation);
+        List<Diagnostic>? diagnostics = null;
 
         TypeMap = new TypeRef(containingClass);
 
@@ -97,38 +122,45 @@ internal sealed record TypeMapModel
 
         foreach (var kvp in attribute.NamedArguments)
         {
-            if (StringComparer.Ordinal.Equals(kvp.Key, "IgnoreUnmatched"))
+            if (kvp.Key == "IgnoreUnmatched")
             {
                 IgnoreUnmatched = kvp.Value.Value is true;
             }
-            else if (StringComparer.Ordinal.Equals(kvp.Key, "ThrowOnDuplicate"))
+            else if (kvp.Key == "ThrowOnDuplicate")
             {
                 ThrowOnDuplicate = kvp.Value.Value is true;
             }
+            else if (kvp.Key == "SupportsAssemblyAttributes")
+            {
+                SupportsAssemblyAttributes = kvp.Value.Value is true;
+            }
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
+
         CanWriteInstance =
-            containingClass.InstanceConstructors.Any(ctor => ctor.Parameters.IsDefaultOrEmpty) &&
+            containingClass.InstanceConstructors.Any(static ctor => ctor.Parameters.IsDefaultOrEmpty) &&
             !containingClass.MemberNames.Contains("Instance");
 
         InGlobalNamespace = containingClass.ContainingNamespace.IsGlobalNamespace;
         Namespace = containingClass.ContainingNamespace.ToDisplayString();
 
-        var ctors = containingClass.InstanceConstructors;
+        cancellationToken.ThrowIfCancellationRequested();
 
-        IMethodSymbol? candidate = null;
+        var instanceConstructors = containingClass.InstanceConstructors;
+        IMethodSymbol? constructor = null;
 
-        if (ctors.Length == 1)
+        if (instanceConstructors.Length == 1)
         {
-            candidate = ctors[0];
+            constructor = instanceConstructors[0];
         }
         else
         {
-            foreach (var ctor in ctors)
+            foreach (var ctor in instanceConstructors)
             {
                 if (ctor.Parameters.IsDefaultOrEmpty)
                 {
-                    candidate ??= ctor;
+                    constructor ??= ctor;
                     continue;
                 }
 
@@ -136,36 +168,46 @@ internal sealed record TypeMapModel
                 {
                     if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, symbols.CsvConstructorAttribute))
                     {
-                        candidate = ctor;
+                        constructor = ctor;
                     }
                 }
             }
         }
 
-        if (candidate is not null)
-        {
-            Parameters = ParameterModel.Create(tokenSymbol, candidate.Parameters, symbols, _diagnostics);
+        cancellationToken.ThrowIfCancellationRequested();
 
-            for (int index = 0; index < Parameters.Count; index++)
+        HasConstructor = constructor is not null;
+
+        if (constructor is not null)
+        {
+            Parameters = ParameterModel.Create(tokenSymbol, constructor.Parameters, in symbols, ref diagnostics);
+
+            for (int index = 0; index < Parameters.Length; index++)
             {
                 ParameterModel parameter = Parameters[index];
 
+                HasRequiredMembers |= parameter.IsRequired;
+
                 if (parameter.RefKind is not (RefKind.None or RefKind.In or RefKind.RefReadOnlyParameter))
                 {
-                    _diagnostics.Add(Diagnostics.RefConstructorParameterFound(targetType, candidate.Parameters[index]));
+                    (diagnostics ??= []).Add(
+                        Diagnostics.RefConstructorParameterFound(targetType, constructor, constructor.Parameters[index]));
                 }
 
                 if (parameter.ParameterType.IsRefLike)
                 {
-                    _diagnostics.Add(
-                        Diagnostics.RefLikeConstructorParameterFound(targetType, candidate.Parameters[index]));
+                    (diagnostics ??= []).Add(
+                        Diagnostics.RefLikeConstructorParameterFound(targetType, constructor, constructor.Parameters[index]));
                 }
             }
         }
         else
         {
-            _diagnostics.Add(Diagnostics.NoConstructorFound(targetType));
+            Parameters = [];
+            (diagnostics ??= []).Add(Diagnostics.NoConstructorFound(targetType));
         }
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (containingClass.ContainingType is null)
         {
@@ -173,7 +215,7 @@ internal sealed record TypeMapModel
         }
         else
         {
-            List<(string nameof, string display)> wrappers = [];
+            List<(string name, string display)> wrappers = [];
 
             INamedTypeSymbol? type = containingClass.ContainingType;
             StringBuilder sb = new(capacity: 64);
@@ -199,220 +241,130 @@ internal sealed record TypeMapModel
             }
 
             wrappers.Reverse();
-            WrappingTypes = wrappers.ToImmutableEquatableArray();
+            WrappingTypes = wrappers.ToEquatableArray();
         }
 
+        bool hasReadableMembers = false;
+        bool hasWritableProperties = false;
         List<PropertyModel> properties = [];
 
         foreach (var member in targetType.GetPublicMembersRecursive())
         {
-            if (member.DeclaredAccessibility is Accessibility.Private) continue;
+            cancellationToken.ThrowIfCancellationRequested();
 
-            var prop = PropertyModel.TryCreate(tokenSymbol, targetType, member, symbols);
-
-            if (prop is not null)
+            var property = member switch
             {
-                properties.Add(prop);
+                IPropertySymbol propertySymbol => PropertyModel.TryCreate(tokenSymbol, propertySymbol, in symbols),
+                IFieldSymbol fieldSymbol => PropertyModel.TryCreate(tokenSymbol, fieldSymbol, in symbols),
+                _ => null
+            };
 
-                if (prop.OverriddenConverter is { ConstructorArguments: ConstructorArgumentType.Invalid })
-                {
-                    _diagnostics.Add(
-                        Diagnostics.NoCsvFactoryConstructorFound(
-                            member,
-                            prop.OverriddenConverter.ConverterType.Name,
-                            tokenSymbol));
-                }
+            if (property is not null)
+            {
+                properties.Add(property);
+                property.OverriddenConverter?.TryAddDiagnostics(member, tokenSymbol, ref diagnostics);
+
+                HasRequiredMembers |= property.IsRequired;
+                hasReadableMembers |= property.CanRead;
+                hasWritableProperties |= property.CanWrite;
             }
         }
 
-        Properties = properties.ToImmutableSortedArray();
+        properties.Sort();
+        Properties = properties.ToEquatableArray();
 
-        bool hasReadableMembers = Parameters?.Count > 0;
-        bool hasWritableProperties = false;
-
-        foreach (var property in Properties)
-        {
-            HasRequiredMembers |= property.IsRequired;
-            hasReadableMembers |= property.CanRead;
-            hasWritableProperties |= property.CanWrite;
-        }
-
-        if (!HasRequiredMembers && Parameters is not null)
-        {
-            foreach (var parameter in Parameters)
-            {
-                HasRequiredMembers |= parameter.IsRequired;
-            }
-        }
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (!hasReadableMembers)
         {
-            _diagnostics.Add(Diagnostics.NoReadableMembers(targetType));
+            (diagnostics ??= []).Add(Diagnostics.NoReadableMembers(targetType));
         }
 
         if (!hasWritableProperties)
         {
-            _diagnostics.Add(Diagnostics.NoWritableMembers(targetType));
+            (diagnostics ??= []).Add(Diagnostics.NoWritableMembers(targetType));
         }
 
         List<TargetAttributeModel>? targetAttributes = null;
         List<string>? ignoredHeaders = null;
+        List<ProxyData>? proxies = null;
 
         foreach (var attr in targetType.GetAttributes())
         {
             if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, symbols.CsvTypeFieldAttribute))
             {
-                (targetAttributes ??= []).Add(new TargetAttributeModel(attr));
+                (targetAttributes ??= []).Add(new TargetAttributeModel(attr, false));
             }
             else if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, symbols.CsvTypeAttribute))
             {
-                foreach (var arg in attr.NamedArguments)
+                TypeAttributeModel.Parse(attr, ref ignoredHeaders, ref proxies);
+            }
+        }
+
+        if (SupportsAssemblyAttributes)
+        {
+            AssemblyReader.Read(
+                targetType,
+                compilation.Assembly,
+                in symbols,
+                cancellationToken,
+                ref targetAttributes,
+                ref ignoredHeaders,
+                ref proxies);
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (proxies is { Count: > 0 })
+        {
+            if (proxies.Count == 1)
+            {
+                Proxy = proxies[0].Type;
+            }
+            else
+            {
+                (diagnostics ??= []).Add(Diagnostics.MultipleTypeProxiesFound(targetType, proxies));
+            }
+        }
+
+        Diagnostics.CheckIfFileScoped(containingClass, cancellationToken, ref diagnostics);
+        Diagnostics.CheckIfFileScoped(targetType, cancellationToken, ref diagnostics);
+
+        TargetAttributes = targetAttributes?.ToEquatableArray() ?? [];
+        IgnoredHeaders = ignoredHeaders?.ToEquatableArray() ?? [];
+        ReportedDiagnostics = diagnostics?.ToEquatableArray() ?? [];
+
+        var builder = ImmutableArray.CreateBuilder<IMemberModel>(Properties.Length + Parameters.Length);
+        builder.AddRange(Properties.AsSpan());
+        builder.AddRange(Parameters.AsSpan());
+
+        builder.Sort(
+            (b1, b2) =>
+            {
+                var b1Order = b1.Order;
+                var b2Order = b2.Order;
+
+                foreach (var target in TargetAttributes)
                 {
-                    if (arg is { Key: "IgnoredHeaders", Value.Values.IsDefaultOrEmpty: false })
+                    if (target.MemberName == b1.Name)
                     {
-                        foreach (var value in arg.Value.Values)
-                        {
-                            if (value.Value?.ToString() is { Length: > 0 } headerName)
-                            {
-                                (ignoredHeaders ??= []).Add(headerName);
-                            }
-                        }
+                        b1Order = Math.Max(b1Order, target.Order);
                     }
-                    else if (arg is
-                             {
-                                 Key: "CreatedTypeProxy",
-                                 Value: { Kind: TypedConstantKind.Type, Value: INamedTypeSymbol proxy }
-                             })
+                    else if (target.MemberName == b2.Name)
                     {
-                        // TODO: implement
-                        _ = proxy;
+                        b2Order = Math.Max(b2Order, target.Order);
                     }
                 }
-            }
-        }
 
-        TargetAttributes = targetAttributes?.ToImmutableEquatableArray() ?? [];
-        IgnoredHeaders = ignoredHeaders?.ToImmutableEquatableArray() ?? [];
-    }
+                int orderComparison = b2Order.CompareTo(b1Order);
+                if (orderComparison != 0) return orderComparison;
 
-    /// <summary>
-    /// Enumerate <see cref="Properties"/> and <see cref="Parameters"/>.
-    /// </summary>
-    public MemberModelEnumerator PropertiesAndParameters => new(this);
+                int parameterComparison = (b2 is ParameterModel).CompareTo(b1 is ParameterModel);
+                if (parameterComparison != 0) return parameterComparison;
 
-    public bool HasDiagnostics([NotNullWhen(true)] out List<Diagnostic>? diagnostics)
-    {
-        if (_diagnostics.Count != 0)
-        {
-            diagnostics = _diagnostics;
-            return true;
-        }
-
-        diagnostics = null;
-        return false;
-    }
-
-    private List<IMemberModel>? _sortedReadMembers;
-
-    public List<IMemberModel> GetSortedReadableMembers()
-    {
-        if (_sortedReadMembers is null)
-        {
-            List<IMemberModel> result = new(Properties.Count + (Parameters?.Count ?? 0));
-
-            foreach (var member in PropertiesAndParameters)
-            {
-                if (member.CanRead)
-                {
-                    result.Add(member);
-                }
-            }
-
-            result.Sort(MemberComparison);
-            _sortedReadMembers = result;
-        }
-
-        return _sortedReadMembers;
-    }
-
-    private List<PropertyModel>? _sortedWriteMembers;
-
-    public List<PropertyModel> GetSortedWritableProperties()
-    {
-        if (_sortedWriteMembers is null)
-        {
-            List<PropertyModel> result = new(Properties.Count);
-
-            foreach (var member in Properties)
-            {
-                if (member.CanWrite)
-                {
-                    result.Add(member);
-                }
-            }
-
-            result.Sort(MemberComparison);
-            _sortedWriteMembers = result;
-        }
-
-        return _sortedWriteMembers;
-    }
-
-    private Comparison<IMemberModel>? _memberComparison;
-
-    private Comparison<IMemberModel> MemberComparison
-        => _memberComparison ??= (b1, b2) =>
-        {
-            var b1Order = b1.Order;
-            var b2Order = b2.Order;
-
-            foreach (var target in TargetAttributes)
-            {
-                if (StringComparer.Ordinal.Equals(target.MemberName, b1.Name))
-                {
-                    b1Order = Math.Max(b1Order, target.Order);
-                }
-                else if (StringComparer.Ordinal.Equals(target.MemberName, b2.Name))
-                {
-                    b2Order = Math.Max(b2Order, target.Order);
-                }
-            }
-
-            if (b1.Order != b2.Order)
-            {
-                return b2.Order.CompareTo(b1.Order);
-            }
-
-            if ((b1 is ParameterModel) != (b2 is ParameterModel))
-            {
-                return (b2 is ParameterModel).CompareTo(b1 is ParameterModel);
-            }
-
-            if (b1.IsRequired != b2.IsRequired)
-            {
                 return b2.IsRequired.CompareTo(b1.IsRequired);
-            }
+            });
 
-            return 0;
-        };
-}
-
-internal struct MemberModelEnumerator(TypeMapModel model)
-{
-    private ImmutableSortedArray<PropertyModel>.Enumerator _first = model.Properties.GetEnumerator();
-    private ImmutableSortedArray<ParameterModel>.Enumerator _second = model.Parameters?.GetEnumerator() ?? default;
-    private bool _firstDone;
-
-    public bool MoveNext()
-    {
-        if (!_firstDone && _first.MoveNext())
-            return true;
-
-        _firstDone = true;
-        return _second.MoveNext();
+        AllMembers = new EquatableArray<IMemberModel>(builder.ToImmutable());
     }
-
-    public IMemberModel Current => _firstDone ? _second.Current : _first.Current;
-
-    public MemberModelEnumerator GetEnumerator() => this;
 }

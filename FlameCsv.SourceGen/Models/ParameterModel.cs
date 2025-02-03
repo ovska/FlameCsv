@@ -21,9 +21,9 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
     public required string Name { get; init; }
 
     /// <summary>
-    /// Configured header names, always non-empty.
+    /// Configured header names.
     /// </summary>
-    public required ImmutableEquatableArray<string> Names { get; init; }
+    public required EquatableArray<string> Names { get; init; }
 
     /// <summary>
     /// Whether the parameter is required by an attribute.
@@ -92,52 +92,43 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
         return false;
     }
 
-    public static ImmutableSortedArray<ParameterModel> Create(
+    public static EquatableArray<ParameterModel> Create(
         ITypeSymbol token,
         ImmutableArray<IParameterSymbol> parameters,
-        FlameSymbols symbols,
-        List<Diagnostic> diagnostics)
+        ref readonly FlameSymbols symbols,
+        ref List<Diagnostic>? diagnostics)
     {
         List<ParameterModel> models = new(parameters.Length);
 
         for (int i = 0; i < parameters.Length; i++)
         {
-            var parameter = parameters[i];
-
-            var meta = new SymbolMetadata(parameter, symbols);
+            IParameterSymbol parameter = parameters[i];
+            SymbolMetadata meta = new(parameter, in symbols);
 
             ParameterModel parameterModel = new()
             {
                 ParameterIndex = i,
                 ParameterType = new TypeRef(parameter.Type),
                 Name = parameter.Name,
-                Names = meta.Names.ToImmutableEquatableArray(),
+                Names = meta.Names,
                 Order = meta.Order,
                 IsIgnored = meta.IsIgnored,
                 IsRequiredByAttribute = meta.IsRequired,
                 HasDefaultValue = parameter.HasExplicitDefaultValue,
                 DefaultValue = parameter.HasExplicitDefaultValue ? parameter.ExplicitDefaultValue : null,
                 RefKind = parameter.RefKind,
-                OverriddenConverter = ConverterModel.GetOverriddenConverter(
-                    token,
-                    parameter,
-                    parameter.Type,
-                    symbols)
+                OverriddenConverter = ConverterModel.Create(token, parameter, parameter.Type, in symbols)
             };
             models.Add(parameterModel);
 
-            if (parameterModel.OverriddenConverter is { ConstructorArguments: ConstructorArgumentType.Invalid })
-            {
-                diagnostics.Add(
-                    Diagnostics.NoCsvFactoryConstructorFound(
-                        parameter,
-                        parameterModel.OverriddenConverter.ConverterType.FullyQualifiedName,
-                        token));
-            }
+            parameterModel.OverriddenConverter?.TryAddDiagnostics(parameter, token, ref diagnostics);
         }
 
-        return models.ToImmutableSortedArray();
+        models.Sort();
+        return models.ToEquatableArray();
     }
 
     public int CompareTo(ParameterModel other) => ParameterIndex.CompareTo(other.ParameterIndex);
+
+    public bool Equals(IMemberModel other) => other is ParameterModel model && Equals(model);
 }
