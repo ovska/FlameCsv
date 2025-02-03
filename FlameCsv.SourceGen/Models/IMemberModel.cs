@@ -9,9 +9,11 @@ internal interface IMemberModel : IEquatable<IMemberModel>
     bool CanWrite { get; }
     int Order { get; }
     string Name { get; }
-    string IndexPrefix { get; }
-    string ConverterPrefix { get; }
+    string ActualName { get; }
     EquatableArray<string> Names { get; }
     ConverterModel? OverriddenConverter { get; }
     TypeRef Type { get; }
+
+    void WriteIndexName(StringBuilder sb);
+    void WriteConverterName(StringBuilder sb);
 }

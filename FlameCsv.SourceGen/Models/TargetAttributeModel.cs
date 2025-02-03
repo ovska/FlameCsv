@@ -44,6 +44,7 @@ internal readonly record struct TargetAttributeModel
     public bool IsRequired { get; }
     public int Order { get; }
     public EquatableArray<string> Names { get; }
+    // TODO: isparameter!
 
     public TargetAttributeModel(AttributeData attribute, bool isAssemblyAttribute)
     {

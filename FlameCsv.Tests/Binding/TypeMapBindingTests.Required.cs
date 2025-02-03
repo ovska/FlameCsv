@@ -27,6 +27,8 @@ public static partial class TypeMapBindingTests
 
         public int? NullableInt { get; set; }
         public DayOfWeek? NullableDOF { get; set; }
+
+        [CsvField(IsRequired = true)]
         bool ISomething.Xyzz { get; set; }
     }
 
