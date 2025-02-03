@@ -104,7 +104,7 @@ internal record ConverterModel
     {
         if (ConstructorArguments is ConstructorArgumentType.Invalid)
         {
-            (diagnostics ??= []).Add(Diagnostics.NoCsvFactoryConstructorFound(target, ConverterType.Name, tokenType));
+            (diagnostics ??= []).Add(Diagnostics.NoCsvFactoryConstructor(target, ConverterType.Name, tokenType));
         }
         else if (ConverterType.IsAbstract)
         {

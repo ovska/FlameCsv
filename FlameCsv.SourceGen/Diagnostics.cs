@@ -4,150 +4,52 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace FlameCsv.SourceGen;
 
-#pragma warning disable RS2001 // TODO: fix
-
 internal static class Diagnostics
 {
-    // 1XX - general diagnostics
-    // 2XX - invalid configuration through attributes
-    // 3XX - invalid type configuration
-
-    private static readonly DiagnosticDescriptor _fileScoped = new(
-        id: "FLAMESG001",
-        title: "File-scoped type",
-        messageFormat: "File-scoped type {0} cannot participate in source generation",
-        category: "Usage",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
-    private static readonly DiagnosticDescriptor _noCtor = new(
-        id: "FLAMESG100",
-        title: "No usable constructor found",
-        messageFormat:
-        "Cannot generate reading code: Could not find a valid public constructor for {0}: must have a constructor with [CsvConstructor], a single public constructor, or a parameterless constructor",
-        category: "Usage",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
-    private static readonly DiagnosticDescriptor _refCtorParam = new(
-        id: "FLAMESG101",
-        title: "Invalid constructor parameter ref kind",
-        messageFormat: "Cannot generate reading code: {0} had a constructor parameter with invalid ref kind {1}: {2}",
-        category: "Usage",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
-    private static readonly DiagnosticDescriptor _refStructParam = new(
-        id: "FLAMESG102",
-        title: "Constructor had a ref-like parameter",
-        messageFormat: "Cannot generate reading code: {0} had a ref-like constructor parameter: {1}",
-        category: "Usage",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
-    private static readonly DiagnosticDescriptor _multipleProxies = new(
-        id: "FLAMESG103",
-        title: "Multiple type proxies",
-        messageFormat: "Cannot generate reading code: Multiple type proxies found for {0}",
-        category: "Usage",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
-    private static readonly DiagnosticDescriptor _explicitInterfaceRequired = new(
-        id: "FLAMESG104",
-        title: "Required explicit interface implementation",
-        messageFormat:
-        "Cannot generate reading code: Explicitly implemented property {0} cannot be marked as required",
-        category: "Usage",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
-    private static readonly DiagnosticDescriptor _noReadableMembers = new(
-        id: "FLAMESG200",
-        title: "No valid members/parameters for reading",
-        messageFormat:
-        "Cannot generate reading code: {0} had no properties, fields, or parameters that support writing their value",
-        category: "Usage",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
-    private static readonly DiagnosticDescriptor _noWritableMembers = new(
-        id: "FLAMESG201",
-        title: "No valid members for writing",
-        messageFormat: "Cannot generate writing code: {0} had no properties or fields that support reading their value",
-        category: "Usage",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
-    private static readonly DiagnosticDescriptor _factoryNoCtorFound = new(
-        id: "FLAMESG202",
-        title: "CsvConverterFactory with no valid constructor",
-        messageFormat:
-        "Overridden converter factory type {0} on {1} must have an empty public constructor, or a constructor accepting CsvOptions<{2}>",
-        category: "Usage",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
-    private static readonly DiagnosticDescriptor _converterAbstract = new(
-        id: "FLAMESG203",
-        title: "CsvConverter must not be abstract",
-        messageFormat: "CsvConverter {0} for {1} must not be abstract",
-        category: "Usage",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
-    private static readonly DiagnosticDescriptor _targetMemberNotFound = new(
-        id: "FLAMESG204",
-        title: "Target member not found",
-        messageFormat: "{0} '{1}' not found on type {2}",
-        category: "Usage",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
     public static Diagnostic FileScopedType(ITypeSymbol type)
     {
         return Diagnostic.Create(
-            descriptor: _fileScoped,
+            descriptor: Descriptors.FileScopedType,
             location: GetLocation(type),
             messageArgs: type.ToDisplayString());
     }
 
-    public static Diagnostic NoConstructorFound(ITypeSymbol type, IMethodSymbol? constructor)
+    public static Diagnostic NoValidConstructor(ITypeSymbol type, IMethodSymbol? constructor)
     {
         return Diagnostic.Create(
-            descriptor: _noCtor,
+            descriptor: Descriptors.NoValidConstructor,
             location: GetLocation(constructor) ?? GetLocation(type),
             messageArgs: type.ToDisplayString());
     }
 
-    public static Diagnostic RefConstructorParameterFound(
+    public static Diagnostic RefConstructorParameter(
         ITypeSymbol type,
         IMethodSymbol constructor,
         IParameterSymbol parameter)
     {
         return Diagnostic.Create(
-            descriptor: _refCtorParam,
+            descriptor: Descriptors.RefConstructorParameter,
             location: GetLocation(parameter),
             additionalLocations: GetLocations(constructor),
             messageArgs: [type.ToDisplayString(), parameter.RefKind, parameter.ToDisplayString()]);
     }
 
-    public static Diagnostic RefLikeConstructorParameterFound(
+    public static Diagnostic RefLikeConstructorParameter(
         ITypeSymbol type,
         IMethodSymbol constructor,
         IParameterSymbol parameter)
     {
         return Diagnostic.Create(
-            descriptor: _refStructParam,
+            descriptor: Descriptors.RefLikeConstructorParameter,
             location: GetLocation(parameter),
             additionalLocations: GetLocations(constructor),
             messageArgs: [type.ToDisplayString(), parameter.ToDisplayString()]);
     }
 
-    public static Diagnostic MultipleTypeProxiesFound(ITypeSymbol targetType, List<ProxyData> proxies)
+    public static Diagnostic MultipleTypeProxies(ITypeSymbol targetType, List<ProxyData> proxies)
     {
         return Diagnostic.Create(
-            descriptor: _multipleProxies,
+            descriptor: Descriptors.MultipleTypeProxies,
             location: GetLocation(targetType),
             additionalLocations: proxies.Select(l => l.AttributeLocation).OfType<Location>(),
             messageArgs: targetType.ToDisplayString());
@@ -156,7 +58,7 @@ internal static class Diagnostics
     public static Diagnostic ExplicitInterfaceRequired(ISymbol property, Location? attributeLocation)
     {
         return Diagnostic.Create(
-            descriptor: _explicitInterfaceRequired,
+            descriptor: Descriptors.ExplicitInterfaceRequired,
             location: attributeLocation ?? GetLocation(property),
             messageArgs: [property.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)]);
     }
@@ -164,7 +66,7 @@ internal static class Diagnostics
     public static Diagnostic NoReadableMembers(ITypeSymbol type)
     {
         return Diagnostic.Create(
-            descriptor: _noReadableMembers,
+            descriptor: Descriptors.NoReadableMembers,
             location: GetLocation(type),
             messageArgs: type.ToDisplayString());
     }
@@ -172,15 +74,15 @@ internal static class Diagnostics
     public static Diagnostic NoWritableMembers(ITypeSymbol type)
     {
         return Diagnostic.Create(
-            descriptor: _noWritableMembers,
+            descriptor: Descriptors.NoWritableMembers,
             location: GetLocation(type),
             messageArgs: type.ToDisplayString());
     }
 
-    public static Diagnostic NoCsvFactoryConstructorFound(ISymbol target, string factoryType, ITypeSymbol tokenType)
+    public static Diagnostic NoCsvFactoryConstructor(ISymbol target, string factoryType, ITypeSymbol tokenType)
     {
         return Diagnostic.Create(
-            descriptor: _factoryNoCtorFound,
+            descriptor: Descriptors.NoCsvFactoryConstructor,
             location: GetLocation(target),
             messageArgs: [target.ToDisplayString(), factoryType, tokenType.ToDisplayString()]);
     }
@@ -188,7 +90,7 @@ internal static class Diagnostics
     public static Diagnostic CsvConverterAbstract(ISymbol target, string converterType)
     {
         return Diagnostic.Create(
-            descriptor: _converterAbstract,
+            descriptor: Descriptors.CsvConverterAbstract,
             location: GetLocation(target),
             messageArgs: [converterType, target.ToDisplayString()]);
     }
@@ -199,7 +101,7 @@ internal static class Diagnostics
         in TargetAttributeModel targetModel)
     {
         return Diagnostic.Create(
-            descriptor: _targetMemberNotFound,
+            descriptor: Descriptors.TargetMemberNotFound,
             location: location ?? GetLocation(targetType),
             messageArgs:
             [

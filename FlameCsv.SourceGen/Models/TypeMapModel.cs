@@ -40,7 +40,7 @@ internal sealed record TypeMapModel
     /// Constructor parameters of the converted type.
     /// </summary>
     /// <remarks>
-    /// Maybe empty when valid, see <see cref="Diagnostics.NoConstructorFound"/>
+    /// Maybe empty when valid, see <see cref="Diagnostics.NoValidConstructor"/>
     /// </remarks>
     public EquatableArray<ParameterModel> Parameters { get; }
 
@@ -186,7 +186,7 @@ internal sealed record TypeMapModel
                 if (parameter.RefKind is not (RefKind.None or RefKind.In or RefKind.RefReadOnlyParameter))
                 {
                     (diagnostics ??= []).Add(
-                        Diagnostics.RefConstructorParameterFound(
+                        Diagnostics.RefConstructorParameter(
                             targetType,
                             constructor,
                             constructor.Parameters[index]));
@@ -195,7 +195,7 @@ internal sealed record TypeMapModel
                 if (parameter.ParameterType.IsRefLike)
                 {
                     (diagnostics ??= []).Add(
-                        Diagnostics.RefLikeConstructorParameterFound(
+                        Diagnostics.RefLikeConstructorParameter(
                             targetType,
                             constructor,
                             constructor.Parameters[index]));
@@ -205,7 +205,7 @@ internal sealed record TypeMapModel
         else
         {
             Parameters = [];
-            (diagnostics ??= []).Add(Diagnostics.NoConstructorFound(targetType, constructor));
+            (diagnostics ??= []).Add(Diagnostics.NoValidConstructor(targetType, constructor));
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -355,7 +355,7 @@ internal sealed record TypeMapModel
             }
             else
             {
-                (diagnostics ??= []).Add(Diagnostics.MultipleTypeProxiesFound(targetType, proxies));
+                (diagnostics ??= []).Add(Diagnostics.MultipleTypeProxies(targetType, proxies));
             }
         }
 

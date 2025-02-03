@@ -342,13 +342,13 @@ public static class ModelTests
             {
                 Assert.NotNull(diagnostics);
                 Assert.Single(diagnostics);
-                Assert.Equal("FLAMESG202", diagnostics[0].Id);
+                Assert.Equal(Descriptors.NoCsvFactoryConstructor.Id, diagnostics[0].Id);
             }
             else if (models[i].ConverterType.IsAbstract)
             {
                 Assert.NotNull(diagnostics);
                 Assert.Single(diagnostics);
-                Assert.Equal("FLAMESG203", diagnostics[0].Id);
+                Assert.Equal(Descriptors.CsvConverterAbstract.Id, diagnostics[0].Id);
             }
             else
             {
