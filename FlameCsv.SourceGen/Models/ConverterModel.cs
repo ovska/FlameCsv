@@ -9,7 +9,8 @@ internal record ConverterModel
         ITypeSymbol token,
         ISymbol propertyOrParameter,
         ITypeSymbol convertedType,
-        ref readonly FlameSymbols symbols)
+        ref readonly FlameSymbols symbols,
+        ref AnalysisCollector collector)
     {
         foreach (var attributeData in propertyOrParameter.GetAttributes())
         {
@@ -17,7 +18,7 @@ internal record ConverterModel
                 SymbolEqualityComparer.Default.Equals(token, attribute.TypeArguments[0]) &&
                 symbols.IsCsvConverterOfTAttribute(attribute.ConstructUnboundGenericType()))
             {
-                return new ConverterModel(token, convertedType, attribute.TypeArguments[1], in symbols);
+                return new ConverterModel(token, convertedType, attribute.TypeArguments[1], in symbols, ref collector);
             }
         }
 
@@ -34,7 +35,8 @@ internal record ConverterModel
         ITypeSymbol token,
         ITypeSymbol convertedType,
         ITypeSymbol converter,
-        ref readonly FlameSymbols symbols)
+        ref readonly FlameSymbols symbols,
+        ref AnalysisCollector collector)
     {
         ConvertedType = new TypeRef(convertedType);
         ConverterType = new TypeRef(converter);
@@ -91,20 +93,14 @@ internal record ConverterModel
             // if resultType is "int" here and convertedType is "int?", we need to wrap it in a NullableConverter
             WrapInNullable = SymbolEqualityComparer.Default.Equals(baseType, resultType);
         }
-    }
 
-    /// <summary>
-    /// Adds diagnostic for invalid constructor if applicable.
-    /// </summary>
-    public void TryAddDiagnostics(ISymbol target, ITypeSymbol tokenType, ref List<Diagnostic>? diagnostics)
-    {
         if (ConstructorArguments is ConstructorArgumentType.Invalid)
         {
-            (diagnostics ??= []).Add(Diagnostics.NoCsvFactoryConstructor(target, ConverterType.Name, tokenType));
+            collector.AddDiagnostic(Diagnostics.NoCsvFactoryConstructor(converter, ConverterType.Name, convertedType));
         }
         else if (ConverterType.IsAbstract)
         {
-            (diagnostics ??= []).Add(Diagnostics.CsvConverterAbstract(target, ConverterType.Name));
+            collector.AddDiagnostic(Diagnostics.CsvConverterAbstract(converter, ConverterType.Name));
         }
     }
 }
