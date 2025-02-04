@@ -261,7 +261,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
             var parsed = sourceGen ? record.ParseRecord(TypeMap) : record.ParseRecord<Obj>();
             Assert.Equal(obj, parsed);
 
-            Assert.Equal(5, record.GetFieldCount());
+            Assert.Equal(5, record.FieldCount);
 
             yield return obj;
         }
