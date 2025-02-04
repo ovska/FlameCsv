@@ -88,8 +88,8 @@ public sealed class CsvEnumerationTests : IDisposable
     {
         CsvValueRecord<char> record = GetRecord();
 
-        Assert.Equal(3, record.GetFieldCount());
-        Assert.Equal(3, record.GetFieldCount());
+        Assert.Equal(3, record.FieldCount);
+        Assert.Equal(3, record.FieldCount);
     }
 
     [Fact]

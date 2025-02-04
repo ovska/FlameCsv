@@ -72,7 +72,7 @@ public interface ICsvRecord<T> where T : unmanaged, IBinaryInteger<T>
     /// <summary>
     /// Returns the number of fields in the current record.
     /// </summary>
-    int GetFieldCount();
+    int FieldCount { get; }
 
     /// <summary>
     /// Attempts to parse a <typeparamref name="TValue"/> from a specific field.

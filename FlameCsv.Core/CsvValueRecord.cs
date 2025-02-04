@@ -112,13 +112,16 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
         return field;
     }
 
-    /// <inheritdoc cref="ICsvRecord{T}.GetFieldCount"/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int GetFieldCount()
+    /// <inheritdoc cref="ICsvRecord{T}.FieldCount"/>
+    public int FieldCount
     {
-        _state.EnsureVersion(_version);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            _state.EnsureVersion(_version);
 
-        return _state.GetFieldCount();
+            return _state.GetFieldCount();
+        }
     }
 
     /// <inheritdoc/>

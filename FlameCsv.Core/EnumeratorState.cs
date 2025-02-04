@@ -139,21 +139,6 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryGetAtIndex(int index, out ReadOnlySpan<T> field)
-    {
-        Throw.IfEnumerationDisposed(Version == -1);
-
-        if (index < _fields.Length)
-        {
-            field = _fields[index].Span;
-            return true;
-        }
-
-        field = default;
-        return false;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int GetFieldCount()
     {
         return _fields.Length;
