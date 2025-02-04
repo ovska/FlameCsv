@@ -163,7 +163,7 @@ internal sealed record TypeMapModel
 
                 foreach (var attr in ctor.GetAttributes())
                 {
-                    if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, symbols.CsvConstructorAttribute))
+                    if (symbols.IsCsvConstructorAttribute(attr.AttributeClass))
                     {
                         constructor = ctor;
                     }
@@ -320,14 +320,14 @@ internal sealed record TypeMapModel
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, symbols.CsvTypeFieldAttribute))
+            if (symbols.IsCsvTypeFieldAttribute(attr.AttributeClass))
             {
                 var model = new TargetAttributeModel(attr, false, cancellationToken);
                 var location = attr.ApplicationSyntaxReference?.GetSyntax(cancellationToken).GetLocation();
 
                 (targetAttributes ??= []).Add((model, location));
             }
-            else if (SymbolEqualityComparer.Default.Equals(attr.AttributeClass, symbols.CsvTypeAttribute))
+            else if (symbols.IsCsvTypeAttribute(attr.AttributeClass))
             {
                 TypeAttributeModel.Parse(attr, cancellationToken, ref ignoredHeaders, ref proxies);
             }
