@@ -169,7 +169,7 @@ namespace ");
             sb.Append(
                 @"
         private const int ");
-            member.WriteIndexName(sb);
+            member.WriteId(sb);
             sb.Append(" = ");
             sb.Append(index++);
             sb.Append(';');
