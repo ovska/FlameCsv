@@ -79,7 +79,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
         IPropertySymbol propertySymbol,
         ref readonly FlameSymbols symbols,
         CancellationToken cancellationToken,
-        ref List<Diagnostic>? diagnostics)
+        ref AnalysisCollector collector)
     {
         if (propertySymbol.IsIndexer || propertySymbol.RefKind != RefKind.None)
         {
@@ -118,7 +118,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
 
         if (explicitPropertyName is not null && meta.IsRequired)
         {
-            (diagnostics ??= []).Add(
+            collector.AddDiagnostic(
                 Diagnostics.ExplicitInterfaceRequired(
                     propertySymbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
                     meta.GetLocation(cancellationToken)));
@@ -136,7 +136,8 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
             Order = meta.Order,
             CanRead = !propertySymbol.IsReadOnly,
             CanWrite = !propertySymbol.IsWriteOnly,
-            OverriddenConverter = ConverterModel.Create(token, propertySymbol, propertySymbol.Type, in symbols),
+            OverriddenConverter
+                = ConverterModel.Create(token, propertySymbol, propertySymbol.Type, in symbols, ref collector),
             ExplicitInterfaceOriginalDefinitionName
                 = explicitInterface?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
         };
@@ -145,7 +146,8 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
     public static PropertyModel? TryCreate(
         ITypeSymbol token,
         IFieldSymbol fieldSymbol,
-        ref readonly FlameSymbols symbols)
+        ref readonly FlameSymbols symbols,
+        ref AnalysisCollector collector)
     {
         // a lot of these are unspeakable backing fields
         if (!fieldSymbol.CanBeReferencedByName || fieldSymbol.RefKind != RefKind.None || fieldSymbol.IsConst)
@@ -172,9 +174,9 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
             CanRead = !fieldSymbol.IsReadOnly,
             CanWrite = true,
             ExplicitInterfaceOriginalDefinitionName = null,
-            OverriddenConverter = ConverterModel.Create(token, fieldSymbol, fieldSymbol.Type, in symbols)
+            OverriddenConverter = ConverterModel.Create(token, fieldSymbol, fieldSymbol.Type, in symbols, ref collector)
         };
     }
 
-    public bool Equals(IMemberModel other) => Equals(other as PropertyModel);
+    public bool Equals(IMemberModel? other) => Equals(other as PropertyModel);
 }

@@ -7,8 +7,7 @@ internal readonly record struct TypeAttributeModel
     public static void Parse(
         AttributeData attribute,
         CancellationToken cancellationToken,
-        ref HashSet<string>? ignoredHeaders,
-        ref List<ProxyData>? proxies)
+        ref AnalysisCollector collector)
     {
         foreach (var arg in attribute.NamedArguments)
         {
@@ -18,7 +17,7 @@ internal readonly record struct TypeAttributeModel
                 {
                     if (value.Value?.ToString() is { Length: > 0 } headerName)
                     {
-                        (ignoredHeaders ??= []).Add(headerName);
+                        collector.AddIgnoredHeader(headerName);
                     }
                 }
             }
@@ -28,10 +27,9 @@ internal readonly record struct TypeAttributeModel
                          Value: { Kind: TypedConstantKind.Type, Value: INamedTypeSymbol proxySymbol }
                      })
             {
-                (proxies ??= []).Add(
-                    new ProxyData(
-                        new TypeRef(proxySymbol),
-                        attribute.ApplicationSyntaxReference?.GetSyntax(cancellationToken).GetLocation()));
+                collector.AddProxy(
+                    proxySymbol,
+                    attribute.ApplicationSyntaxReference?.GetSyntax(cancellationToken).GetLocation());
             }
         }
     }

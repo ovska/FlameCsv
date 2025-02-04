@@ -104,13 +104,11 @@ public static class ModelTests
         // get token symbol for System.Char
         var charSymbol = compilation.GetTypeByMetadataName("System.Char")!;
         var flameSymbols = new FlameSymbols(compilation);
-        List<Diagnostic>? diagnostics = null;
+        AnalysisCollector collector = new(charSymbol);
 
-        var parameters = ParameterModel.Create(charSymbol, method.Parameters, in flameSymbols, ref diagnostics);
-        Assert.Equal(
-            parameters,
-            ParameterModel.Create(charSymbol, method.Parameters, in flameSymbols, ref diagnostics));
-        Assert.Null(diagnostics);
+        var parameters = ParameterModel.Create(charSymbol, charSymbol, method, in flameSymbols, ref collector);
+
+        Assert.Equal([Descriptors.RefConstructorParameter.Id], collector._diagnostics.Select(d => d.Id));
 
         (string name, bool hasDefaultValue, object? defaultValue, RefKind refKind, string[] names, int order)[] expected
             =
@@ -132,6 +130,13 @@ public static class ModelTests
             Assert.Equal(expected[i].names.ToEquatableArray(), parameters[i].Names);
             Assert.Equal(expected[i].order, parameters[i].Order);
         }
+
+        // equality
+        Assert.Equal(
+            parameters,
+            ParameterModel.Create(charSymbol, charSymbol, method, in flameSymbols, ref collector));
+
+        collector.Free(out _, out _, out _, out _);
     }
 
     [Fact]
@@ -173,9 +178,10 @@ public static class ModelTests
             semanticModel.SyntaxTree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>().Single())!;
 
         var flameSymbols = new FlameSymbols(compilation);
+        AnalysisCollector collector = new(classSymbol);
 
-        var models = GetProperties(in flameSymbols);
-        Assert.Equal(models, GetProperties(in flameSymbols));
+        var models = GetProperties(in flameSymbols, ref collector);
+        Assert.Equal(models, GetProperties(in flameSymbols, ref collector));
 
         // @formatter:off
         (string name, bool canRead, bool canWrite, bool isRequired, bool isExplicit, bool isProperty)[] expected=
@@ -204,10 +210,11 @@ public static class ModelTests
             }
         }
 
-        EquatableArray<PropertyModel> GetProperties(in FlameSymbols symbols)
+        collector.Free(out _, out _, out _, out _);
+
+        EquatableArray<PropertyModel> GetProperties(in FlameSymbols symbols, ref AnalysisCollector collector)
         {
             List<PropertyModel> list = [];
-            List<Diagnostic>? diagnostics = [];
 
             foreach (var member in classSymbol.GetMembers().Where(m => !m.IsStatic))
             {
@@ -218,8 +225,12 @@ public static class ModelTests
                         propertySymbol,
                         in symbols,
                         CancellationToken.None,
-                        ref diagnostics),
-                    IFieldSymbol fieldSymbol => PropertyModel.TryCreate(charSymbol, fieldSymbol, in symbols),
+                        ref collector),
+                    IFieldSymbol fieldSymbol => PropertyModel.TryCreate(
+                        charSymbol,
+                        fieldSymbol,
+                        in symbols,
+                        ref collector),
                     _ => null
                 };
 
@@ -300,12 +311,13 @@ public static class ModelTests
                 .Single(s => s.Identifier.Text == "TestClass"))!;
 
         var flameSymbols = new FlameSymbols(compilation);
+        AnalysisCollector collector = new(classSymbol);
 
         List<ConverterModel> models = [];
 
         foreach (var member in classSymbol.GetMembers().OfType<IPropertySymbol>())
         {
-            var model = ConverterModel.Create(charSymbol, member, objectSymbol, in flameSymbols);
+            var model = ConverterModel.Create(charSymbol, member, objectSymbol, in flameSymbols, ref collector);
 
             if (member.Name == "None")
             {
@@ -314,7 +326,6 @@ public static class ModelTests
             }
 
             Assert.NotNull(model);
-            Assert.Equal(model, ConverterModel.Create(charSymbol, member, objectSymbol, in flameSymbols));
             models.Add(model);
         }
 
@@ -333,28 +344,21 @@ public static class ModelTests
         {
             Assert.Equal(expected[i].argType, models[i].ConstructorArguments);
             Assert.Equal(expected[i].isFactory, models[i].IsFactory);
-
-            List<Diagnostic>? diagnostics = null;
-
-            models[i].TryAddDiagnostics(target: classSymbol, tokenType: charSymbol, ref diagnostics);
-
-            if (models[i].ConstructorArguments == ConstructorArgumentType.Invalid)
-            {
-                Assert.NotNull(diagnostics);
-                Assert.Single(diagnostics);
-                Assert.Equal(Descriptors.NoCsvFactoryConstructor.Id, diagnostics[0].Id);
-            }
-            else if (models[i].ConverterType.IsAbstract)
-            {
-                Assert.NotNull(diagnostics);
-                Assert.Single(diagnostics);
-                Assert.Equal(Descriptors.CsvConverterAbstract.Id, diagnostics[0].Id);
-            }
-            else
-            {
-                Assert.Null(diagnostics);
-            }
         }
+
+        Assert.Equal(
+            [Descriptors.NoCsvFactoryConstructor.Id, Descriptors.CsvConverterAbstract.Id,],
+            collector._diagnostics.Select(d => d.Id));
+
+        // equality
+        foreach (var member in classSymbol.GetMembers().OfType<IPropertySymbol>())
+        {
+            Assert.Equal(
+                ConverterModel.Create(charSymbol, member, objectSymbol, in flameSymbols, ref collector),
+                ConverterModel.Create(charSymbol, member, objectSymbol, in flameSymbols, ref collector));
+        }
+
+        collector.Free(out _, out _, out _, out _);
     }
 
     [Fact]
@@ -399,35 +403,26 @@ public static class ModelTests
         Assert.NotNull(classSymbol);
 
         var flameSymbols = new FlameSymbols(compilation);
-
-        List<(TargetAttributeModel model, Location? location)>? targetAttributeModels = null;
-        HashSet<string>? ignoredHeaders = null;
-        List<ProxyData>? proxies = null;
+        AnalysisCollector collector = new(classSymbol);
 
         AssemblyReader.Read(
             classSymbol,
             compilation.Assembly,
             ref flameSymbols,
             CancellationToken.None,
-            ref targetAttributeModels,
-            ref ignoredHeaders,
-            ref proxies);
+            ref collector);
 
-        Assert.NotNull(targetAttributeModels);
-        Assert.NotNull(ignoredHeaders);
-        Assert.NotNull(proxies);
+        Assert.Single(collector.TargetAttributes);
+        Assert.Equal("Prop", collector.TargetAttributes[0].MemberName);
+        Assert.Equal(["_prop"], collector.TargetAttributes[0].Names);
+        Assert.NotNull(collector.TargetAttributeLocations[0]);
 
-        Assert.Single(targetAttributeModels);
-        Assert.Equal("Prop", targetAttributeModels[0].model.MemberName);
-        Assert.Equal(["_prop"], targetAttributeModels[0].model.Names);
-        Assert.NotNull(targetAttributeModels[0].location);
+        Assert.Single(collector.IgnoredHeaders);
+        Assert.Equal("value", collector.IgnoredHeaders.Single());
 
-        Assert.Single(ignoredHeaders);
-        Assert.Equal("value", ignoredHeaders.Single());
+        Assert.Single(collector.Proxies);
+        Assert.Equal(SpecialType.System_Object, collector.Proxies[0].SpecialType);
 
-        Assert.Single(proxies);
-        Assert.Equal("object", proxies[0].Type.FullyQualifiedName);
-
-        Assert.Equal(targetAttributeModels.ToEquatableArray(), targetAttributeModels.ToEquatableArray());
+        collector.Free(out _, out _, out _, out _);
     }
 }

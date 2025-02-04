@@ -46,12 +46,12 @@ internal static class Diagnostics
             messageArgs: [type.ToDisplayString(), parameter.ToDisplayString()]);
     }
 
-    public static Diagnostic MultipleTypeProxies(ITypeSymbol targetType, List<ProxyData> proxies)
+    public static Diagnostic MultipleTypeProxies(ITypeSymbol targetType, IEnumerable<Location?> locations)
     {
         return Diagnostic.Create(
             descriptor: Descriptors.MultipleTypeProxies,
             location: GetLocation(targetType),
-            additionalLocations: proxies.Select(l => l.AttributeLocation).OfType<Location>(),
+            additionalLocations: locations.OfType<Location>(),
             messageArgs: targetType.ToDisplayString());
     }
 
@@ -135,7 +135,7 @@ internal static class Diagnostics
     internal static void CheckIfFileScoped(
         ITypeSymbol type,
         CancellationToken cancellationToken,
-        ref List<Diagnostic>? diagnostics)
+        ref AnalysisCollector collector)
     {
         foreach (var syntaxRef in type.DeclaringSyntaxReferences)
         {
@@ -148,7 +148,7 @@ internal static class Diagnostics
             {
                 if (modifier.IsKind(SyntaxKind.FileKeyword))
                 {
-                    (diagnostics ??= []).Add(FileScopedType(type));
+                    collector.AddDiagnostic(FileScopedType(type));
                     return;
                 }
             }

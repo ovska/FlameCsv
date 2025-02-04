@@ -90,42 +90,25 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
         sb.Append(Name);
     }
 
-    public static bool IsValidConstructor(ISymbol symbol, [NotNullWhen(true)] out IMethodSymbol? ctor)
-    {
-        if (symbol is IMethodSymbol
-            {
-                MethodKind: MethodKind.Constructor,
-                DeclaredAccessibility:
-                Accessibility.Public
-                or Accessibility.Internal
-                or Accessibility.ProtectedOrInternal
-                or Accessibility.NotApplicable
-            } constructor)
-        {
-            ctor = constructor;
-            return true;
-        }
-
-        ctor = null;
-        return false;
-    }
-
     public static EquatableArray<ParameterModel> Create(
         ITypeSymbol token,
-        ImmutableArray<IParameterSymbol> parameters,
+        ITypeSymbol targetType,
+        IMethodSymbol constructor,
         ref readonly FlameSymbols symbols,
-        ref List<Diagnostic>? diagnostics)
+        ref AnalysisCollector collector)
     {
-        List<ParameterModel> models = new(parameters.Length);
+        List<ParameterModel> models = PooledList<ParameterModel>.Acquire();
 
-        for (int i = 0; i < parameters.Length; i++)
+        ImmutableArray<IParameterSymbol> parameters = constructor.Parameters;
+
+        for (int index = 0; index < parameters.Length; index++)
         {
-            IParameterSymbol parameter = parameters[i];
+            IParameterSymbol parameter = parameters[index];
             SymbolMetadata meta = new(parameter, in symbols);
 
             ParameterModel parameterModel = new()
             {
-                ParameterIndex = i,
+                ParameterIndex = index,
                 ParameterType = new TypeRef(parameter.Type),
                 Name = parameter.Name,
                 Identifier = "p_" + parameter.Name,
@@ -136,18 +119,39 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
                 HasDefaultValue = parameter.HasExplicitDefaultValue,
                 DefaultValue = parameter.HasExplicitDefaultValue ? parameter.ExplicitDefaultValue : null,
                 RefKind = parameter.RefKind,
-                OverriddenConverter = ConverterModel.Create(token, parameter, parameter.Type, in symbols)
+                OverriddenConverter = ConverterModel.Create(
+                    token,
+                    parameter,
+                    parameter.Type,
+                    in symbols,
+                    ref collector)
             };
             models.Add(parameterModel);
 
-            parameterModel.OverriddenConverter?.TryAddDiagnostics(parameter, token, ref diagnostics);
+            if (parameter.RefKind is not (RefKind.None or RefKind.In or RefKind.RefReadOnlyParameter))
+            {
+                collector.AddDiagnostic(
+                    Diagnostics.RefConstructorParameter(
+                        targetType,
+                        constructor,
+                        constructor.Parameters[index]));
+            }
+
+            if (parameter.Type.IsRefLikeType)
+            {
+                collector.AddDiagnostic(
+                    Diagnostics.RefLikeConstructorParameter(
+                        targetType,
+                        constructor,
+                        constructor.Parameters[index]));
+            }
         }
 
         models.Sort();
-        return models.ToEquatableArray();
+        return models.ToEquatableArrayAndFree();
     }
 
     public int CompareTo(ParameterModel other) => ParameterIndex.CompareTo(other.ParameterIndex);
 
-    public bool Equals(IMemberModel other) => Equals(other as ParameterModel);
+    public bool Equals(IMemberModel? other) => Equals(other as ParameterModel);
 }
