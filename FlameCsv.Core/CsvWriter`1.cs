@@ -280,6 +280,7 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
 
             using (_cacheLock)
             {
+                HotReloadService.UnregisterForHotReload(this);
                 await _inner.Writer.CompleteAsync(exception, cancellationToken).ConfigureAwait(false);
             }
         }
@@ -479,6 +480,7 @@ public class CsvWriter<T> : CsvAsyncWriter<T>, IDisposable where T : unmanaged, 
 
             using (_cacheLock)
             {
+                HotReloadService.UnregisterForHotReload(this);
                 _inner.Writer.Complete(exception);
             }
         }

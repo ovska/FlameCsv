@@ -99,12 +99,9 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
             return;
 
         Version = -1;
-
         _fields.Dispose();
-
-#if DEBUG
-        GC.SuppressFinalize(this);
-#endif
+        _materializerCache = null;
+        HotReloadService.UnregisterForHotReload(this);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -181,14 +178,4 @@ internal sealed class EnumeratorState<T> : IDisposable where T : unmanaged, IBin
     {
         return _fields.Preserve();
     }
-
-#if DEBUG
-    ~EnumeratorState()
-    {
-        if (Version != -1)
-        {
-            throw new UnreachableException("CsvEnumerationState was not disposed");
-        }
-    }
-#endif
 }
