@@ -2,7 +2,7 @@
 
 namespace FlameCsv.SourceGen.Models;
 
-internal interface IMemberModel : IEquatable<IMemberModel>
+internal interface IMemberModel : IEquatable<IMemberModel?>
 {
     /// <inheritdoc cref="ParameterModel.IsRequired"/>
     bool IsRequired {get; }

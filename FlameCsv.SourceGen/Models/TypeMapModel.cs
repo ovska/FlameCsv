@@ -107,12 +107,12 @@ internal sealed record TypeMapModel
         CancellationToken cancellationToken)
     {
         var symbols = new FlameSymbols(compilation);
-        List<Diagnostic>? diagnostics = null;
-
         TypeMap = new TypeRef(containingClass);
 
         ITypeSymbol tokenSymbol = attribute.AttributeClass!.TypeArguments[0];
         ITypeSymbol targetType = attribute.AttributeClass.TypeArguments[1];
+
+        AnalysisCollector collector = new(targetType);
 
         Token = new TypeRef(tokenSymbol);
         Type = new TypeRef(targetType);
@@ -173,39 +173,24 @@ internal sealed record TypeMapModel
 
         cancellationToken.ThrowIfCancellationRequested();
 
+        // check if the constructor is not null and is accessible
         if (constructor is { DeclaredAccessibility: not (Accessibility.Private or Accessibility.Protected) })
         {
-            Parameters = ParameterModel.Create(tokenSymbol, constructor.Parameters, in symbols, ref diagnostics);
+            Parameters = ParameterModel.Create(tokenSymbol, targetType, constructor, in symbols, ref collector);
 
-            for (int index = 0; index < Parameters.Length; index++)
+            foreach (var parameter in Parameters)
             {
-                ParameterModel parameter = Parameters[index];
-
-                HasRequiredMembers |= parameter.IsRequired;
-
-                if (parameter.RefKind is not (RefKind.None or RefKind.In or RefKind.RefReadOnlyParameter))
+                if (parameter.IsRequired)
                 {
-                    (diagnostics ??= []).Add(
-                        Diagnostics.RefConstructorParameter(
-                            targetType,
-                            constructor,
-                            constructor.Parameters[index]));
-                }
-
-                if (parameter.ParameterType.IsRefLike)
-                {
-                    (diagnostics ??= []).Add(
-                        Diagnostics.RefLikeConstructorParameter(
-                            targetType,
-                            constructor,
-                            constructor.Parameters[index]));
+                    HasRequiredMembers = true;
+                    break;
                 }
             }
         }
         else
         {
             Parameters = [];
-            (diagnostics ??= []).Add(Diagnostics.NoValidConstructor(targetType, constructor));
+            collector.AddDiagnostic(Diagnostics.NoValidConstructor(targetType, constructor));
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -272,13 +257,17 @@ internal sealed record TypeMapModel
 
                 PropertyModel? property = member switch
                 {
-                    IFieldSymbol fieldSymbol => PropertyModel.TryCreate(tokenSymbol, fieldSymbol, in symbols),
+                    IFieldSymbol fieldSymbol => PropertyModel.TryCreate(
+                        tokenSymbol,
+                        fieldSymbol,
+                        in symbols,
+                        ref collector),
                     IPropertySymbol propertySymbol => PropertyModel.TryCreate(
                         tokenSymbol,
                         propertySymbol,
                         in symbols,
                         cancellationToken,
-                        ref diagnostics),
+                        ref collector),
                     _ => null
                 };
 
@@ -289,8 +278,6 @@ internal sealed record TypeMapModel
                     HasRequiredMembers |= property.IsRequired;
                     hasReadableMembers |= property.CanRead;
                     hasWritableProperties |= property.CanWrite;
-
-                    property.OverriddenConverter?.TryAddDiagnostics(member, tokenSymbol, ref diagnostics);
                 }
             }
 
@@ -304,17 +291,13 @@ internal sealed record TypeMapModel
 
         if (!hasReadableMembers)
         {
-            (diagnostics ??= []).Add(Diagnostics.NoReadableMembers(targetType));
+            collector.AddDiagnostic(Diagnostics.NoReadableMembers(targetType));
         }
 
         if (!hasWritableProperties)
         {
-            (diagnostics ??= []).Add(Diagnostics.NoWritableMembers(targetType));
+            collector.AddDiagnostic(Diagnostics.NoWritableMembers(targetType));
         }
-
-        List<(TargetAttributeModel model, Location? location)>? targetAttributes = null;
-        List<ProxyData>? proxies = null;
-        HashSet<string>? ignoredHeaders = null;
 
         foreach (var attr in targetType.GetAttributes())
         {
@@ -324,12 +307,11 @@ internal sealed record TypeMapModel
             {
                 var model = new TargetAttributeModel(attr, false, cancellationToken);
                 var location = attr.ApplicationSyntaxReference?.GetSyntax(cancellationToken).GetLocation();
-
-                (targetAttributes ??= []).Add((model, location));
+                collector.AddTargetAttribute(model, location);
             }
             else if (symbols.IsCsvTypeAttribute(attr.AttributeClass))
             {
-                TypeAttributeModel.Parse(attr, cancellationToken, ref ignoredHeaders, ref proxies);
+                TypeAttributeModel.Parse(attr, cancellationToken, ref collector);
             }
         }
 
@@ -340,90 +322,67 @@ internal sealed record TypeMapModel
                 compilation.Assembly,
                 in symbols,
                 cancellationToken,
-                ref targetAttributes,
-                ref ignoredHeaders,
-                ref proxies);
+                ref collector);
         }
 
-        cancellationToken.ThrowIfCancellationRequested();
+        Diagnostics.CheckIfFileScoped(containingClass, cancellationToken, ref collector);
+        Diagnostics.CheckIfFileScoped(targetType, cancellationToken, ref collector);
 
-        if (proxies is { Count: > 0 })
+        for (int i = 0; i < collector.TargetAttributes.Count; i++)
         {
-            if (proxies.Count == 1)
+            bool found = false;
+
+            TargetAttributeModel model = collector.TargetAttributes[i];
+
+            if (model.IsParameter)
             {
-                Proxy = proxies[0].Type;
+                foreach (var parameter in Parameters)
+                {
+                    if (parameter.Name == model.MemberName)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
             }
             else
             {
-                (diagnostics ??= []).Add(Diagnostics.MultipleTypeProxies(targetType, proxies));
-            }
-        }
-
-        Diagnostics.CheckIfFileScoped(containingClass, cancellationToken, ref diagnostics);
-        Diagnostics.CheckIfFileScoped(targetType, cancellationToken, ref diagnostics);
-
-        if (targetAttributes is not null)
-        {
-            foreach ((TargetAttributeModel model, Location? location) in targetAttributes)
-            {
-                bool found = false;
-
-                if (model.IsParameter)
+                foreach (var property in Properties)
                 {
-                    foreach (var parameter in Parameters)
+                    if (property.Name == model.MemberName)
                     {
-                        if (parameter.Name == model.MemberName)
+                        if (model.IsRequired && property.ExplicitInterfaceOriginalDefinitionName is not null)
                         {
-                            found = true;
-                            break;
+                            collector.AddDiagnostic(
+                                Diagnostics.ExplicitInterfaceRequired(
+                                    property.Name,
+                                    collector.TargetAttributeLocations[i]));
                         }
+
+                        found = true;
+                        break;
                     }
                 }
-                else
-                {
-                    foreach (var property in Properties)
-                    {
-                        if (property.Name == model.MemberName)
-                        {
-                            if (model.IsRequired && property.ExplicitInterfaceOriginalDefinitionName is not null)
-                            {
-                                (diagnostics ??= []).Add(
-                                    Diagnostics.ExplicitInterfaceRequired(property.Name, location));
-                            }
-
-                            found = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (!found)
-                {
-                    (diagnostics ??= []).Add(
-                        Diagnostics.TargetMemberNotFound(targetType, location, in model));
-                }
             }
-        }
 
-        if (targetAttributes is not null)
-        {
-            var targetBuilder = ImmutableArray.CreateBuilder<TargetAttributeModel>(targetAttributes.Count);
-
-            foreach ((TargetAttributeModel model, _) in targetAttributes)
+            if (!found)
             {
-                targetBuilder.Add(model);
+                collector.AddDiagnostic(
+                    Diagnostics.TargetMemberNotFound(
+                        targetType,
+                        collector.TargetAttributeLocations[i],
+                        in model));
             }
-
-            TargetAttributes = targetBuilder.ToEquatableArray();
-        }
-        else
-        {
-            TargetAttributes = [];
         }
 
-        IgnoredHeaders = ignoredHeaders?.ToEquatableArray() ?? [];
-        ReportedDiagnostics = diagnostics?.ToEquatableArray() ?? [];
+        collector.Free(out var diagnostics, out var targetAttributes, out var ignoredHeaders, out var proxy);
 
+        ReportedDiagnostics = diagnostics;
+        TargetAttributes = targetAttributes;
+        IgnoredHeaders = ignoredHeaders;
+        Proxy = proxy;
+
+        // must be done after TargetAttributes list is finalized
         var allMembersBuilder = ImmutableArray.CreateBuilder<IMemberModel>(Properties.Length + Parameters.Length);
         allMembersBuilder.AddRange(Properties.AsSpan());
         allMembersBuilder.AddRange(Parameters.AsSpan());

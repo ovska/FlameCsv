@@ -7,9 +7,7 @@ internal static class AssemblyReader
         IAssemblySymbol assembly,
         ref readonly FlameSymbols symbols,
         CancellationToken cancellationToken,
-        ref List<(TargetAttributeModel model, Location? location)>? targetAttributeModels,
-        ref HashSet<string>? ignoredHeaders,
-        ref List<ProxyData>? proxies)
+        ref AnalysisCollector collector)
     {
         foreach (var attribute in assembly.GetAttributes())
         {
@@ -25,7 +23,7 @@ internal static class AssemblyReader
                 {
                     var model = new TargetAttributeModel(attribute, isAssemblyAttribute: true, cancellationToken);
                     var location = attribute.ApplicationSyntaxReference?.GetSyntax(cancellationToken).GetLocation();
-                    (targetAttributeModels ??= []).Add((model, location));
+                    collector.AddTargetAttribute(model, location);
                 }
             }
             else if (symbols.IsCsvAssemblyTypeAttribute(attrSymbol))
@@ -42,16 +40,15 @@ internal static class AssemblyReader
                             {
                                 if (value.Value?.ToString() is { Length: > 0 } header)
                                 {
-                                    (ignoredHeaders ??= []).Add(header);
+                                    collector.AddIgnoredHeader(header);
                                 }
                             }
                         }
                         else if (args.Key == "CreatedTypeProxy")
                         {
-                            (proxies ??= []).Add(
-                                new ProxyData(
-                                    new TypeRef((ITypeSymbol)args.Value.Value!),
-                                    attribute.ApplicationSyntaxReference?.GetSyntax(cancellationToken).GetLocation()));
+                            collector.AddProxy(
+                                (ITypeSymbol)args.Value.Value!,
+                                attribute.ApplicationSyntaxReference?.GetSyntax(cancellationToken).GetLocation());
                         }
                     }
                 }
