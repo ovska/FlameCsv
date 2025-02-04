@@ -19,6 +19,6 @@ internal interface IMemberModel : IEquatable<IMemberModel>
     ConverterModel? OverriddenConverter { get; }
     TypeRef Type { get; }
 
-    void WriteIndexName(StringBuilder sb);
+    void WriteId(StringBuilder sb);
     void WriteConverterName(StringBuilder sb);
 }

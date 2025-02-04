@@ -62,9 +62,9 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
 
     public int CompareTo(PropertyModel other) => other.Order.CompareTo(Order); // reverse sort so higher order is first
 
-    public void WriteIndexName(StringBuilder sb)
+    public void WriteId(StringBuilder sb)
     {
-        sb.Append("@s__Index_");
+        sb.Append("@s__Id_");
         sb.Append(Identifier);
     }
 
