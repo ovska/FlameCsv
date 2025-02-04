@@ -15,9 +15,7 @@ internal record ConverterModel
         {
             if (attributeData.AttributeClass is { IsGenericType: true, Arity: 2 } attribute &&
                 SymbolEqualityComparer.Default.Equals(token, attribute.TypeArguments[0]) &&
-                SymbolEqualityComparer.Default.Equals(
-                    attribute.ConstructUnboundGenericType(),
-                    symbols.CsvConverterOfTAttribute))
+                symbols.IsCsvConverterOfTAttribute(attribute.ConstructUnboundGenericType()))
             {
                 return new ConverterModel(token, convertedType, attribute.TypeArguments[1], in symbols);
             }
@@ -80,9 +78,7 @@ internal record ConverterModel
             {
                 if (current.IsGenericType)
                 {
-                    if (SymbolEqualityComparer.Default.Equals(
-                            current.ConstructUnboundGenericType(),
-                            symbols.CsvConverterTTValue))
+                    if (symbols.IsCsvConverterTTValue(current.ConstructUnboundGenericType()))
                     {
                         resultType = current.TypeArguments[1];
                         break;

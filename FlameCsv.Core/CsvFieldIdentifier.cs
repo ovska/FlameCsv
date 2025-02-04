@@ -4,12 +4,11 @@ using System.Runtime.CompilerServices;
 namespace FlameCsv;
 
 /// <summary>
-/// Identifier for a CSV field, either by header name or field index.
+/// Identifier for a CSV field, pointing to a specific field by index, or by header name.
 /// Can be implicitly created from an integer or a string.
 /// </summary>
 /// <remarks>
-/// Field indexes are 0-based.<br/>
-/// <c>default(CsvFieldIdentifier)</c> points to the first field.
+/// Field indexes are 0-based, so <c>default(CsvFieldIdentifier)</c> points to the first field.<br/>
 /// </remarks>
 public readonly struct CsvFieldIdentifier
 {

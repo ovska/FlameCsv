@@ -23,7 +23,7 @@ internal readonly ref struct SymbolMetadata
     {
         foreach (var attributeData in symbol.GetAttributes())
         {
-            if (!SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, flameSymbols.CsvFieldAttribute))
+            if (!flameSymbols.IsCsvFieldAttribute(attributeData.AttributeClass))
             {
                 continue;
             }

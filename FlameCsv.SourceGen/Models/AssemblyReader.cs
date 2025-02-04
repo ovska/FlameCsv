@@ -17,7 +17,7 @@ internal static class AssemblyReader
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (SymbolEqualityComparer.Default.Equals(symbols.CsvAssemblyTypeFieldAttribute, attrSymbol))
+            if (symbols.IsCsvAssemblyTypeFieldAttribute(attrSymbol))
             {
                 if (SymbolEqualityComparer.Default.Equals(
                         targetType,
@@ -28,7 +28,7 @@ internal static class AssemblyReader
                     (targetAttributeModels ??= []).Add((model, location));
                 }
             }
-            else if (SymbolEqualityComparer.Default.Equals(symbols.CsvAssemblyTypeAttribute, attrSymbol))
+            else if (symbols.IsCsvAssemblyTypeAttribute(attrSymbol))
             {
                 if (SymbolEqualityComparer.Default.Equals(
                         targetType,

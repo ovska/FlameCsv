@@ -11,7 +11,11 @@ namespace FlameCsv.Utilities;
 [ExcludeFromCodeCoverage]
 internal static class HotReloadService
 {
-    public static bool IsActive { get; } = MetadataUpdater.IsSupported;
+    public static bool IsActive
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => MetadataUpdater.IsSupported;
+    }
 
     /// <summary>
     /// Contains registered callbacks for cache clearing.
@@ -38,21 +42,27 @@ internal static class HotReloadService
     /// </summary>
     /// <param name="instance">The instance to register.</param>
     /// <param name="onHotReload">The callback to invoke on the instance when a hot reload occurs.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void RegisterForHotReload(
         object instance,
         [RequireStaticDelegate] Action<object> onHotReload)
     {
-        if (!MetadataUpdater.IsSupported) return;
-        _callbacks.Add(instance, onHotReload);
+        if (MetadataUpdater.IsSupported)
+        {
+            _callbacks.AddOrUpdate(instance, onHotReload);
+        }
     }
 
     /// <summary>
     /// Unregisters an instance from hot reload notifications.
     /// </summary>
     /// <param name="instance">The instance to unregister.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void UnregisterForHotReload(object instance)
     {
-        if (!MetadataUpdater.IsSupported) return;
-        _callbacks.Remove(instance);
+        if (MetadataUpdater.IsSupported)
+        {
+            _callbacks.Remove(instance);
+        }
     }
 }

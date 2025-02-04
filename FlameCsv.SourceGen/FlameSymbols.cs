@@ -4,16 +4,16 @@
 // ref struct to avoid accidental storage
 internal readonly ref struct FlameSymbols
 {
-    public INamedTypeSymbol CsvOptions { get; }
-    public INamedTypeSymbol CsvConverterTTValue { get; }
-    public INamedTypeSymbol CsvConverterFactory { get; }
-    public INamedTypeSymbol CsvConverterOfTAttribute { get; }
-    public INamedTypeSymbol CsvFieldAttribute { get; }
-    public INamedTypeSymbol CsvTypeFieldAttribute { get; }
-    public INamedTypeSymbol CsvTypeAttribute { get; }
-    public INamedTypeSymbol CsvConstructorAttribute { get; }
-    public INamedTypeSymbol CsvAssemblyTypeAttribute { get; }
-    public INamedTypeSymbol CsvAssemblyTypeFieldAttribute { get; }
+    private INamedTypeSymbol CsvOptions { get; }
+    private INamedTypeSymbol CsvConverterTTValue { get; }
+    private INamedTypeSymbol CsvConverterFactory { get; }
+    private INamedTypeSymbol CsvConverterOfTAttribute { get; }
+    private INamedTypeSymbol CsvFieldAttribute { get; }
+    private INamedTypeSymbol CsvTypeFieldAttribute { get; }
+    private INamedTypeSymbol CsvTypeAttribute { get; }
+    private INamedTypeSymbol CsvConstructorAttribute { get; }
+    private INamedTypeSymbol CsvAssemblyTypeAttribute { get; }
+    private INamedTypeSymbol CsvAssemblyTypeFieldAttribute { get; }
 
     private readonly Dictionary<ISymbol, INamedTypeSymbol> _optionsTypes = new(SymbolEqualityComparer.Default);
     private readonly Dictionary<ISymbol, INamedTypeSymbol> _factoryTypes = new(SymbolEqualityComparer.Default);
@@ -48,11 +48,25 @@ internal readonly ref struct FlameSymbols
     {
         if (!_factoryTypes.TryGetValue(tokenType, out INamedTypeSymbol? type))
         {
-            _factoryTypes[tokenType] = type = CsvConverterFactory.ConstructedFrom.Construct(tokenType.OriginalDefinition);
+            _factoryTypes[tokenType]
+                = type = CsvConverterFactory.ConstructedFrom.Construct(tokenType.OriginalDefinition);
         }
 
         return type;
     }
+
+    // @formatter:off
+    public bool IsCsvOptions([NotNullWhen(true)] ISymbol? symbol) => SymbolEqualityComparer.Default.Equals(CsvOptions, symbol);
+    public bool IsCsvConverterTTValue([NotNullWhen(true)] ISymbol? symbol) => SymbolEqualityComparer.Default.Equals(CsvConverterTTValue, symbol);
+    public bool IsCsvConverterFactory([NotNullWhen(true)] ISymbol? symbol) => SymbolEqualityComparer.Default.Equals(CsvConverterFactory, symbol);
+    public bool IsCsvConverterOfTAttribute([NotNullWhen(true)] ISymbol? symbol) => SymbolEqualityComparer.Default.Equals(CsvConverterOfTAttribute, symbol);
+    public bool IsCsvFieldAttribute([NotNullWhen(true)] ISymbol? symbol) => SymbolEqualityComparer.Default.Equals(CsvFieldAttribute, symbol);
+    public bool IsCsvTypeFieldAttribute([NotNullWhen(true)] ISymbol? symbol) => SymbolEqualityComparer.Default.Equals(CsvTypeFieldAttribute, symbol);
+    public bool IsCsvTypeAttribute([NotNullWhen(true)] ISymbol? symbol) => SymbolEqualityComparer.Default.Equals(CsvTypeAttribute, symbol);
+    public bool IsCsvConstructorAttribute([NotNullWhen(true)] ISymbol? symbol) => SymbolEqualityComparer.Default.Equals(CsvConstructorAttribute, symbol);
+    public bool IsCsvAssemblyTypeAttribute([NotNullWhen(true)] ISymbol? symbol) => SymbolEqualityComparer.Default.Equals(CsvAssemblyTypeAttribute, symbol);
+    public bool IsCsvAssemblyTypeFieldAttribute([NotNullWhen(true)] ISymbol? symbol) => SymbolEqualityComparer.Default.Equals(CsvAssemblyTypeFieldAttribute, symbol);
+    // @formatter:on
 
     private static INamedTypeSymbol Get(Compilation compilation, string name)
     {
