@@ -179,7 +179,7 @@ public partial class TypeMapGenerator
             cancellationToken.ThrowIfCancellationRequested();
 
             sb.Append("                        ");
-            member.WriteIndexName(sb);
+            member.WriteId(sb);
             sb.Append(" => ");
             member.WriteConverterName(sb);
             sb.Append(".TryParse(@field, out state.");
@@ -238,7 +238,7 @@ public partial class TypeMapGenerator
             cancellationToken.ThrowIfCancellationRequested();
 
             sb.Append("                if (target == ");
-            member.WriteIndexName(sb);
+            member.WriteId(sb);
             sb.Append(") global::FlameCsv.Exceptions.CsvParseException.Throw(@field, ");
             member.WriteConverterName(sb);
             sb.Append("!, ");
@@ -591,7 +591,7 @@ public partial class TypeMapGenerator
             sb.Append(
                 @";
                     materializer.Targets[index] = ");
-            member.WriteIndexName(sb);
+            member.WriteId(sb);
             sb.Append(
                 @";
                     continue;

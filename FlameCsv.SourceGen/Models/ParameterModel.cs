@@ -78,9 +78,9 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
     bool IMemberModel.CanWrite => false;
     TypeRef IMemberModel.Type => ParameterType;
 
-    public void WriteIndexName(StringBuilder sb)
+    public void WriteId(StringBuilder sb)
     {
-        sb.Append("@s__p_Index_");
+        sb.Append("@s__p_Id_");
         sb.Append(Name);
     }
 
