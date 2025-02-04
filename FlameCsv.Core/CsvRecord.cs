@@ -7,11 +7,8 @@ using FlameCsv.Reading;
 namespace FlameCsv;
 
 /// <summary>
-/// Represents a single CSV record.
+/// Represents a self-contained copy of a single CSV record.
 /// </summary>
-/// <remarks>
-/// This class is a self-contained copy of a CSV record.
-/// </remarks>
 public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> where T : unmanaged, IBinaryInteger<T>
 {
     /// <inheritdoc/>
@@ -81,7 +78,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         _fields = record._state.PreserveFields();
     }
 
-    int IReadOnlyCollection<ReadOnlyMemory<T>>.Count => GetFieldCount();
+    int IReadOnlyCollection<ReadOnlyMemory<T>>.Count => FieldCount;
 
     ReadOnlyMemory<T> IReadOnlyList<ReadOnlyMemory<T>>.this[int index] => this[index];
 
@@ -140,7 +137,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     }
 
     /// <inheritdoc/>
-    public TValue ParseField<TValue>(CsvConverter<T, TValue> converter, CsvFieldIdentifier id)
+    public virtual TValue ParseField<TValue>(CsvConverter<T, TValue> converter, CsvFieldIdentifier id)
     {
         ArgumentNullException.ThrowIfNull(converter);
 
@@ -171,7 +168,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     }
 
     /// <inheritdoc/>
-    public virtual int GetFieldCount() => _fields.Length;
+    public virtual int FieldCount => _fields.Length;
 
     /// <inheritdoc/>
     [RUF(Messages.ConverterOverload), RDC(Messages.ConverterOverload)]
@@ -203,7 +200,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     protected readonly struct FieldEnumerator(CsvRecord<T> record) : ICsvRecordFields<T>
     {
         /// <inheritdoc cref="ICsvRecordFields{T}.FieldCount"/>
-        public int FieldCount => record.GetFieldCount();
+        public int FieldCount => record.FieldCount;
 
         /// <inheritdoc cref="ICsvRecordFields{T}.this"/>
         public ReadOnlySpan<T> this[int index] => record._fields[index].Span;
