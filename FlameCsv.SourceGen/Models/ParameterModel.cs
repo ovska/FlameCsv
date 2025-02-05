@@ -145,6 +145,11 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
                         constructor,
                         constructor.Parameters[index]));
             }
+
+            if (meta.IsIgnored && !parameter.HasExplicitDefaultValue)
+            {
+                // TODO
+            }
         }
 
         models.Sort();
