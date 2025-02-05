@@ -40,7 +40,19 @@ internal sealed record ConverterModel
     {
         ConvertedType = new TypeRef(convertedType);
         ConverterType = new TypeRef(converter);
-        IsFactory = converter.Inherits(symbols.GetCsvConverterFactoryType(token));
+
+        {
+            ITypeSymbol? current = converter;
+
+            do
+            {
+                if (symbols.IsGetCsvConverterFactoryOfT(token, current))
+                {
+                    IsFactory = true;
+                    break;
+                }
+            } while ((current = current?.BaseType) is not null);
+        }
 
         ConstructorArguments = ConstructorArgumentType.Invalid;
 
@@ -58,9 +70,7 @@ internal sealed record ConverterModel
 
                 if (method.Parameters.Length == 1)
                 {
-                    if (SymbolEqualityComparer.Default.Equals(
-                            method.Parameters[0].Type,
-                            symbols.GetCsvOptionsType(token)))
+                    if (symbols.IsCsvOptionsOfT(token, method.Parameters[0].Type))
                     {
                         ConstructorArguments = ConstructorArgumentType.Options;
                         break; // we found the best constructor
