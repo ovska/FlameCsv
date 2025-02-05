@@ -1,6 +1,6 @@
 ﻿namespace FlameCsv.SourceGen.Models;
 
-internal record ConverterModel
+internal sealed record ConverterModel
 {
     /// <summary>
     /// Returns a converter override, or null.

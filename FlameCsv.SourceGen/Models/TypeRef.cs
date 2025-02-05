@@ -5,7 +5,7 @@ namespace FlameCsv.SourceGen.Models;
 // source: dotnet runtime (MIT license)
 
 [DebuggerDisplay("Name = {Name}")]
-public sealed class TypeRef : IEquatable<TypeRef>, IComparable<TypeRef>
+public readonly struct TypeRef : IEquatable<TypeRef>, IComparable<TypeRef>
 {
     /// <summary>
     /// Name of the type, e.g., int, string, System.Numerics.BigInteger.
@@ -72,7 +72,7 @@ public sealed class TypeRef : IEquatable<TypeRef>, IComparable<TypeRef>
     public override string ToString() => $"{{ TypeRef: {Name} }}";
 
     public int CompareTo(TypeRef other) => StringComparer.Ordinal.Compare(FullyQualifiedName, other.FullyQualifiedName);
-    public bool Equals(TypeRef? other) => FullyQualifiedName == other?.FullyQualifiedName;
-    public override bool Equals(object? obj) => Equals(obj as TypeRef);
+    public bool Equals(TypeRef other) => FullyQualifiedName == other.FullyQualifiedName;
+    public override bool Equals(object? obj) => obj is TypeRef other && Equals(other);
     public override int GetHashCode() => FullyQualifiedName.GetHashCode();
 }

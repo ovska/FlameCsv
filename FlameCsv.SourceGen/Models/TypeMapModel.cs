@@ -271,11 +271,11 @@ internal sealed record TypeMapModel
 
                 if (member.IsStatic) continue;
 
-                // private members are only possible if they are explicitly implemented properties
+                // private members are only considered if they are explicitly implemented properties
                 if (member.DeclaredAccessibility is Accessibility.Private or Accessibility.Protected &&
                     member is not IPropertySymbol
                     {
-                        CanBeReferencedByName: false, ExplicitInterfaceImplementations: { IsDefaultOrEmpty: false }
+                        CanBeReferencedByName: false, ExplicitInterfaceImplementations.IsDefaultOrEmpty: false
                     })
                 {
                     continue;
