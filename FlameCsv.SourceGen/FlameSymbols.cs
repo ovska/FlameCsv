@@ -4,6 +4,8 @@
 // ref struct to avoid accidental storage
 internal readonly ref struct FlameSymbols
 {
+    public ITypeSymbol TargetType { get; }
+
     private INamedTypeSymbol CsvOptions { get; }
     private INamedTypeSymbol CsvConverterTTValue { get; }
     private INamedTypeSymbol CsvConverterFactory { get; }
@@ -18,9 +20,10 @@ internal readonly ref struct FlameSymbols
     private readonly Dictionary<ISymbol, INamedTypeSymbol> _optionsTypes = new(SymbolEqualityComparer.Default);
     private readonly Dictionary<ISymbol, INamedTypeSymbol> _factoryTypes = new(SymbolEqualityComparer.Default);
 
-    public FlameSymbols(Compilation compilation)
+    public FlameSymbols(Compilation compilation, ITypeSymbol targetType)
     {
         // @formatter:off
+        TargetType = targetType;
         CsvOptions = GetUnboundGeneric(compilation, "FlameCsv.CsvOptions`1");
         CsvConverterTTValue = GetUnboundGeneric(compilation, "FlameCsv.CsvConverter`2");
         CsvConverterFactory = GetUnboundGeneric(compilation, "FlameCsv.CsvConverterFactory`1");
