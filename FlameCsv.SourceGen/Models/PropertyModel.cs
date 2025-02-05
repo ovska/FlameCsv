@@ -86,8 +86,6 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
             return null;
         }
 
-        SymbolMetadata meta = new(propertySymbol, cancellationToken, in symbols, ref collector);
-
         INamedTypeSymbol? explicitInterface = null;
         string? explicitPropertyName = null;
         string? explicitPropertyOriginalName = null;
@@ -110,6 +108,13 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
             // cannot reference by name and not an explicit interface implementation
             return null;
         }
+
+        SymbolMetadata meta = new(
+            explicitPropertyOriginalName ?? propertySymbol.Name,
+            propertySymbol,
+            cancellationToken,
+            in symbols,
+            ref collector);
 
         if (explicitPropertyName is not null && meta.IsRequired is true)
         {
@@ -153,7 +158,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
             return null;
         }
 
-        SymbolMetadata meta = new(fieldSymbol, cancellationToken, in symbols, ref collector);
+        SymbolMetadata meta = new(fieldSymbol.Name, fieldSymbol, cancellationToken, in symbols, ref collector);
 
         return new PropertyModel
         {

@@ -503,7 +503,6 @@ public partial class TypeMapGenerator
 ");
         }
 
-
         foreach (var member in typeMap.AllMembers)
         {
             if (!member.CanRead) continue;

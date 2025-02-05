@@ -55,7 +55,6 @@ internal ref struct AnalysisCollector
                 }
             }
 
-            PooledList<TargetAttributeModel>.Release(TargetAttributes);
 
             ignoredHeaders = IgnoredHeaders.ToEquatableArrayAndFree();
 
@@ -77,6 +76,7 @@ internal ref struct AnalysisCollector
         {
             // do this last as diagnostics are added in this method
             diagnostics = Diagnostics.ToEquatableArrayAndFree();
+            PooledList<TargetAttributeModel>.Release(TargetAttributes);
             PooledList<ITypeSymbol>.Release(Proxies);
             PooledList<Location?>.Release(ProxyLocations);
             this = default;

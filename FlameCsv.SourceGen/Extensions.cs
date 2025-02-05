@@ -1,5 +1,4 @@
 ﻿using System.Collections.Immutable;
-using FlameCsv.SourceGen.Helpers;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -7,29 +6,6 @@ namespace FlameCsv.SourceGen;
 
 internal static class Extensions
 {
-    /// <summary>
-    /// Returns an <see cref="EquatableArray{T}"/> of the unique string values.
-    /// </summary>
-    public static EquatableArray<string> TryToEquatableStringArray(this ImmutableArray<TypedConstant> values)
-    {
-        if (values.IsDefaultOrEmpty)
-        {
-            return [];
-        }
-
-        HashSet<string> builder = PooledSet<string>.Acquire();
-
-        foreach (var value in values)
-        {
-            if (value.Value?.ToString() is { Length: > 0 } headerName)
-            {
-                builder.Add(headerName);
-            }
-        }
-
-        return builder.ToEquatableArrayAndFree();
-    }
-
     public static ImmutableArray<IMethodSymbol> GetInstanceConstructors(this ITypeSymbol type)
     {
         return type is INamedTypeSymbol namedType
