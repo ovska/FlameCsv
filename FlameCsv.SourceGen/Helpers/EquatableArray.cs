@@ -3,6 +3,7 @@
 
 using System.Collections;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 // ReSharper disable all
@@ -207,6 +208,21 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnu
     //     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     //     public bool MoveNext() => ++_index < _array.Length;
     // }
+
+    public override string ToString() => $"EquatableArray<{typeof(T)}>[{Length}]";
+
+    internal sealed class DebuggerTypeProxy
+    {
+        private readonly EquatableArray<T> _array;
+
+        public DebuggerTypeProxy(EquatableArray<T> array)
+        {
+            _array = array;
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public T[] Items => _array.ToArray();
+    }
 }
 
 [SuppressMessage("Style", "IDE0301:Simplify collection initialization")]

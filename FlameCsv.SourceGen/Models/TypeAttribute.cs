@@ -1,8 +1,38 @@
 ﻿namespace FlameCsv.SourceGen.Models;
 
-internal static class AssemblyReader
+internal static class TypeAttribute
 {
-    public static void Read(
+    public static void Parse(
+        AttributeData attribute,
+        CancellationToken cancellationToken,
+        ref AnalysisCollector collector)
+    {
+        foreach (var arg in attribute.NamedArguments)
+        {
+            if (arg is { Key: "IgnoredHeaders", Value.Values.IsDefaultOrEmpty: false })
+            {
+                foreach (var value in arg.Value.Values)
+                {
+                    if (value.Value?.ToString() is { } headerName)
+                    {
+                        collector.IgnoredHeaders.Add(headerName);
+                    }
+                }
+            }
+            else if (arg is
+                     {
+                         Key: "CreatedTypeProxy",
+                         Value: { Kind: TypedConstantKind.Type, Value: INamedTypeSymbol proxySymbol }
+                     })
+            {
+                collector.AddProxy(
+                    proxySymbol,
+                    attribute.ApplicationSyntaxReference?.GetSyntax(cancellationToken).GetLocation());
+            }
+        }
+    }
+
+    public static void ParseAssembly(
         ITypeSymbol targetType,
         IAssemblySymbol assembly,
         ref readonly FlameSymbols symbols,
@@ -30,7 +60,7 @@ internal static class AssemblyReader
                         targetType,
                         attribute.ConstructorArguments[0].Value as ITypeSymbol))
                 {
-                    TypeAttributeModel.Parse(attribute, cancellationToken, ref collector);
+                    Parse(attribute, cancellationToken, ref collector);
                 }
             }
         }
