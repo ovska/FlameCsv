@@ -105,7 +105,7 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
         for (int index = 0; index < parameters.Length; index++)
         {
             IParameterSymbol parameter = parameters[index];
-            SymbolMetadata meta = new(parameter, cancellationToken, in symbols, ref collector);
+            SymbolMetadata meta = new(parameter.Name, parameter, cancellationToken, in symbols, ref collector);
 
             ParameterModel parameterModel = new()
             {

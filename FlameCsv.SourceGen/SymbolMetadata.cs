@@ -21,6 +21,7 @@ internal readonly ref struct SymbolMetadata
     private readonly SyntaxReference? _attributeSyntax;
 
     public SymbolMetadata(
+        string symbolActualName,
         ISymbol symbol,
         CancellationToken cancellationToken,
         ref readonly FlameSymbols flameSymbols,
@@ -37,52 +38,49 @@ internal readonly ref struct SymbolMetadata
             }
         }
 
-        if (attribute is null)
-        {
-            this = default;
-            return;
-        }
-
-        _attributeSyntax = attribute.ApplicationSyntaxReference;
-
         HashSet<string> nameSet = PooledSet<string>.Acquire();
 
-        foreach (var value in attribute.ConstructorArguments[0].Values)
+        if (attribute is not null)
         {
-            if (value.Value?.ToString() is { Length: > 0 } headerName)
-            {
-                nameSet.Add(headerName);
-            }
-        }
+            _attributeSyntax = attribute.ApplicationSyntaxReference;
 
-        foreach (var argument in attribute.NamedArguments)
-        {
-            switch (argument.Key)
+            foreach (var value in attribute.ConstructorArguments[0].Values)
             {
-                case "IsIgnored":
-                    IsIgnored = argument.Value.Value is true;
-                    break;
-                case "IsRequired":
-                    IsRequired = argument.Value.Value is true;
-                    break;
-                case "Order":
-                    Order = argument.Value.Value as int? ?? 0;
-                    break;
-                case "Index":
-                    Index = argument.Value.Value as int? ?? 0;
-                    break;
+                if (value.Value?.ToString() is { Length: > 0 } headerName)
+                {
+                    nameSet.Add(headerName);
+                }
+            }
+
+            foreach (var argument in attribute.NamedArguments)
+            {
+                switch (argument.Key)
+                {
+                    case "IsIgnored":
+                        IsIgnored = argument.Value.Value is true;
+                        break;
+                    case "IsRequired":
+                        IsRequired = argument.Value.Value is true;
+                        break;
+                    case "Order":
+                        Order = argument.Value.Value as int? ?? 0;
+                        break;
+                    case "Index":
+                        Index = argument.Value.Value as int? ?? 0;
+                        break;
+                }
             }
         }
 
         bool isParameter = symbol.Kind == SymbolKind.Parameter;
 
-        List<string> conflictNames = PooledList<string>.Acquire();
-        List<Location?> conflictLocations = PooledList<Location?>.Acquire();
+        // keep track of targeted conflicts
+        List<string>? names = null;
+        List<Location?>? locations = null;
 
         foreach (var targeted in collector.TargetAttributes)
         {
-            if (targeted.IsParameter != isParameter ||
-                targeted.MemberName != symbol.Name)
+            if (targeted.IsParameter != isParameter || targeted.MemberName != symbolActualName)
             {
                 continue;
             }
@@ -101,8 +99,8 @@ internal readonly ref struct SymbolMetadata
             {
                 if (IsIgnored.HasValue && IsIgnored.Value != targeted.IsIgnored)
                 {
-                    conflictNames.Add("IsIgnored");
-                    conflictLocations.Add(targeted.GetLocation(cancellationToken));
+                    (names ??= PooledList<string>.Acquire()).Add("IsIgnored");
+                    (locations ??= PooledList<Location?>.Acquire()).Add(targeted.GetLocation(cancellationToken));
                 }
 
                 IsIgnored |= targeted.IsIgnored;
@@ -112,8 +110,8 @@ internal readonly ref struct SymbolMetadata
             {
                 if (IsRequired.HasValue && IsRequired.Value != targeted.IsRequired)
                 {
-                    conflictNames.Add("IsRequired");
-                    conflictLocations.Add(targeted.GetLocation(cancellationToken));
+                    (names ??= PooledList<string>.Acquire()).Add("IsRequired");
+                    (locations ??= PooledList<Location?>.Acquire()).Add(targeted.GetLocation(cancellationToken));
                 }
 
                 IsRequired |= targeted.IsRequired;
@@ -123,8 +121,8 @@ internal readonly ref struct SymbolMetadata
             {
                 if (Order.HasValue && Order.Value != targeted.Order)
                 {
-                    conflictNames.Add("Order");
-                    conflictLocations.Add(targeted.GetLocation(cancellationToken));
+                    (names ??= PooledList<string>.Acquire()).Add("Order");
+                    (locations ??= PooledList<Location?>.Acquire()).Add(targeted.GetLocation(cancellationToken));
                 }
 
                 Order = targeted.Order;
@@ -134,29 +132,31 @@ internal readonly ref struct SymbolMetadata
             {
                 if (Index.HasValue && Index.Value != targeted.Index)
                 {
-                    conflictNames.Add("Index");
-                    conflictLocations.Add(targeted.GetLocation(cancellationToken));
+                    (names ??= PooledList<string>.Acquire()).Add("Index");
+                    (locations ??= PooledList<Location?>.Acquire()).Add(targeted.GetLocation(cancellationToken));
                 }
 
                 Index = targeted.Index;
             }
         }
 
-        for (int i = 0; i < conflictNames.Count; i++)
+        if (names is not null && locations is not null)
         {
-            collector.AddDiagnostic(
-                Diagnostics.ConflictingConfiguration(
-                    targetType: flameSymbols.TargetType,
-                    memberType: isParameter ? "parameter" : "property/field",
-                    memberName: symbol.Name,
-                    configurationName: conflictNames[i],
-                    location: conflictLocations[i],
-                    additionalLocation: GetLocation(cancellationToken)));
+            for (int i = 0; i < names.Count; i++)
+            {
+                collector.AddDiagnostic(
+                    Diagnostics.ConflictingConfiguration(
+                        targetType: flameSymbols.TargetType,
+                        memberType: isParameter ? "parameter" : "property/field",
+                        memberName: symbol.Name,
+                        configurationName: names[i],
+                        location: locations[i],
+                        additionalLocation: GetLocation(cancellationToken)));
+            }
         }
 
-        PooledList<string>.Release(conflictNames);
-        PooledList<Location?>.Release(conflictLocations);
-
+        PooledList<string>.Release(names);
+        PooledList<Location?>.Release(locations);
         Names = nameSet.ToEquatableArrayAndFree();
     }
 }

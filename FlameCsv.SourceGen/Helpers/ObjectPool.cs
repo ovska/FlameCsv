@@ -29,8 +29,16 @@ internal static class PooledSet<T>
         return instance;
     }
 
-    public static void Release(HashSet<T> set)
+    public static void Release(HashSet<T>? set)
     {
+        if (set is null) return;
+
+        if (set.Count >= 256)
+        {
+            // don't pool large sets
+            return;
+        }
+
         set.Clear();
         _pool.Free(set);
     }
@@ -47,8 +55,16 @@ internal static class PooledList<T>
         return instance;
     }
 
-    public static void Release(List<T> list)
+    public static void Release(List<T>? list)
     {
+        if (list is null) return;
+
+        if (list.Count >= 256)
+        {
+            // don't pool large lists
+            return;
+        }
+
         list.Clear();
         _pool.Free(list);
     }
