@@ -45,8 +45,7 @@ internal sealed record TypeMapModel
     public EquatableArray<ParameterModel> Parameters { get; }
 
     /// <summary>
-    /// All values from <see cref="Properties"/> and <see cref="Parameters"/>,
-    /// sorted using <see cref="TargetAttributes"/>.
+    /// All values from <see cref="Properties"/> and <see cref="Parameters"/>, sorted by order.
     /// </summary>
     public EquatableArray<IMemberModel> AllMembers { get; }
 
@@ -76,11 +75,6 @@ internal sealed record TypeMapModel
     public EquatableArray<(string name, string display)> WrappingTypes { get; }
 
     /// <summary>
-    /// CsvTargetAttribute instances on the containing class.
-    /// </summary>
-    public EquatableArray<TargetAttributeModel> TargetAttributes { get; }
-
-    /// <summary>
     /// Headers that are always ignored.
     /// </summary>
     public EquatableArray<string> IgnoredHeaders { get; }
@@ -106,13 +100,13 @@ internal sealed record TypeMapModel
         AttributeData attribute,
         CancellationToken cancellationToken)
     {
-        var symbols = new FlameSymbols(compilation);
         TypeMap = new TypeRef(containingClass);
 
         ITypeSymbol tokenSymbol = attribute.AttributeClass!.TypeArguments[0];
         ITypeSymbol targetType = attribute.AttributeClass.TypeArguments[1];
 
         AnalysisCollector collector = new(targetType);
+        FlameSymbols symbols = new FlameSymbols(compilation, targetType);
 
         Token = new TypeRef(tokenSymbol);
         Type = new TypeRef(targetType);
@@ -141,6 +135,32 @@ internal sealed record TypeMapModel
 
         InGlobalNamespace = containingClass.ContainingNamespace.IsGlobalNamespace;
         Namespace = containingClass.ContainingNamespace.ToDisplayString();
+
+        foreach (var attr in targetType.GetAttributes())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (symbols.IsCsvTypeFieldAttribute(attr.AttributeClass))
+            {
+                collector.TargetAttributes.Add(new TargetAttributeModel(attr, isAssemblyAttribute: false));
+            }
+            else if (symbols.IsCsvTypeAttribute(attr.AttributeClass))
+            {
+                TypeAttributeModel.Parse(attr, cancellationToken, ref collector);
+            }
+        }
+
+        if (SupportsAssemblyAttributes)
+        {
+            AssemblyReader.Read(
+                targetType,
+                compilation.Assembly,
+                in symbols,
+                cancellationToken,
+                ref collector);
+        }
+
+        // Parameters and members must be looped after type and assembly attributes are handled
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -176,7 +196,13 @@ internal sealed record TypeMapModel
         // check if the constructor is not null and is accessible
         if (constructor is { DeclaredAccessibility: not (Accessibility.Private or Accessibility.Protected) })
         {
-            Parameters = ParameterModel.Create(tokenSymbol, targetType, constructor, in symbols, ref collector);
+            Parameters = ParameterModel.Create(
+                tokenSymbol,
+                targetType,
+                constructor,
+                cancellationToken,
+                in symbols,
+                ref collector);
 
             foreach (var parameter in Parameters)
             {
@@ -260,13 +286,14 @@ internal sealed record TypeMapModel
                     IFieldSymbol fieldSymbol => PropertyModel.TryCreate(
                         tokenSymbol,
                         fieldSymbol,
+                        cancellationToken,
                         in symbols,
                         ref collector),
                     IPropertySymbol propertySymbol => PropertyModel.TryCreate(
                         tokenSymbol,
                         propertySymbol,
-                        in symbols,
                         cancellationToken,
+                        in symbols,
                         ref collector),
                     _ => null
                 };
@@ -299,111 +326,24 @@ internal sealed record TypeMapModel
             collector.AddDiagnostic(Diagnostics.NoWritableMembers(targetType));
         }
 
-        foreach (var attr in targetType.GetAttributes())
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (symbols.IsCsvTypeFieldAttribute(attr.AttributeClass))
-            {
-                var model = new TargetAttributeModel(attr, false, cancellationToken);
-                var location = attr.ApplicationSyntaxReference?.GetSyntax(cancellationToken).GetLocation();
-                collector.AddTargetAttribute(model, location);
-            }
-            else if (symbols.IsCsvTypeAttribute(attr.AttributeClass))
-            {
-                TypeAttributeModel.Parse(attr, cancellationToken, ref collector);
-            }
-        }
-
-        if (SupportsAssemblyAttributes)
-        {
-            AssemblyReader.Read(
-                targetType,
-                compilation.Assembly,
-                in symbols,
-                cancellationToken,
-                ref collector);
-        }
-
         Diagnostics.CheckIfFileScoped(containingClass, cancellationToken, ref collector);
         Diagnostics.CheckIfFileScoped(targetType, cancellationToken, ref collector);
 
-        for (int i = 0; i < collector.TargetAttributes.Count; i++)
-        {
-            bool found = false;
-
-            TargetAttributeModel model = collector.TargetAttributes[i];
-
-            if (model.IsParameter)
-            {
-                foreach (var parameter in Parameters)
-                {
-                    if (parameter.Name == model.MemberName)
-                    {
-                        found = true;
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                foreach (var property in Properties)
-                {
-                    if (property.Name == model.MemberName)
-                    {
-                        if (model.IsRequired && property.ExplicitInterfaceOriginalDefinitionName is not null)
-                        {
-                            collector.AddDiagnostic(
-                                Diagnostics.ExplicitInterfaceRequired(
-                                    property.Name,
-                                    collector.TargetAttributeLocations[i]));
-                        }
-
-                        found = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!found)
-            {
-                collector.AddDiagnostic(
-                    Diagnostics.TargetMemberNotFound(
-                        targetType,
-                        collector.TargetAttributeLocations[i],
-                        in model));
-            }
-        }
-
-        collector.Free(out var diagnostics, out var targetAttributes, out var ignoredHeaders, out var proxy);
+        collector.Free(cancellationToken, out var diagnostics, out var ignoredHeaders, out var proxy);
 
         ReportedDiagnostics = diagnostics;
-        TargetAttributes = targetAttributes;
         IgnoredHeaders = ignoredHeaders;
         Proxy = proxy;
 
-        // must be done after TargetAttributes list is finalized
         var allMembersBuilder = ImmutableArray.CreateBuilder<IMemberModel>(Properties.Length + Parameters.Length);
         allMembersBuilder.AddRange(Properties.AsSpan());
         allMembersBuilder.AddRange(Parameters.AsSpan());
 
         allMembersBuilder.Sort(
-            (b1, b2) =>
+            static (b1, b2) =>
             {
                 var b1Order = b1.Order;
                 var b2Order = b2.Order;
-
-                foreach (var target in TargetAttributes)
-                {
-                    if (target.MemberName == b1.Identifier)
-                    {
-                        b1Order = Math.Max(b1Order, target.Order);
-                    }
-                    else if (target.MemberName == b2.Identifier)
-                    {
-                        b2Order = Math.Max(b2Order, target.Order);
-                    }
-                }
 
                 // highest order first
                 int orderComparison = b2Order.CompareTo(b1Order);

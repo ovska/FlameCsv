@@ -18,7 +18,7 @@ internal static class Diagnostics
     {
         return Diagnostic.Create(
             descriptor: Descriptors.NoValidConstructor,
-            location: GetLocation(constructor) ?? GetLocation(type),
+            location: GetLocation(constructor, type),
             messageArgs: type.ToDisplayString());
     }
 
@@ -29,8 +29,8 @@ internal static class Diagnostics
     {
         return Diagnostic.Create(
             descriptor: Descriptors.RefConstructorParameter,
-            location: GetLocation(parameter),
-            additionalLocations: GetLocations(constructor),
+            location: GetLocation(parameter, constructor),
+            additionalLocations: constructor?.Locations.Where(l => l.IsInSource),
             messageArgs: [type.ToDisplayString(), parameter.RefKind, parameter.ToDisplayString()]);
     }
 
@@ -41,16 +41,16 @@ internal static class Diagnostics
     {
         return Diagnostic.Create(
             descriptor: Descriptors.RefLikeConstructorParameter,
-            location: GetLocation(parameter),
-            additionalLocations: GetLocations(constructor),
+            location: GetLocation(parameter, constructor, type),
+            additionalLocations: constructor?.Locations.Where(l => l.IsInSource),
             messageArgs: [type.ToDisplayString(), parameter.ToDisplayString()]);
     }
 
-    public static Diagnostic MultipleTypeProxies(ITypeSymbol targetType, IEnumerable<Location?> locations)
+    public static Diagnostic MultipleTypeProxies(ITypeSymbol targetType, ICollection<Location?> locations)
     {
         return Diagnostic.Create(
             descriptor: Descriptors.MultipleTypeProxies,
-            location: GetLocation(targetType),
+            location: locations.FirstOrDefault() ?? GetLocation(targetType),
             additionalLocations: locations.OfType<Location>(),
             messageArgs: targetType.ToDisplayString());
     }
@@ -61,6 +61,29 @@ internal static class Diagnostics
             descriptor: Descriptors.ExplicitInterfaceRequired,
             location: attributeLocation,
             messageArgs: [propertyName]);
+    }
+
+    public static Diagnostic ConflictingConfiguration(
+        ITypeSymbol targetType,
+        string memberType,
+        string memberName,
+        string configurationName,
+        Location? location,
+        Location? additionalLocation)
+    {
+        return Diagnostic.Create(
+            descriptor: Descriptors.ConflictingConfiguration,
+            location: location ?? additionalLocation ?? GetLocation(targetType),
+            additionalLocations: additionalLocation is not null ? [additionalLocation] : null,
+            messageArgs: [memberType, memberName, targetType.ToDisplayString(), configurationName]);
+    }
+
+    public static Diagnostic IgnoredParameterWithoutDefaultValue(IParameterSymbol parameter, ITypeSymbol targetType)
+    {
+        return Diagnostic.Create(
+            descriptor: Descriptors.IgnoredParameterWithoutDefaultValue,
+            location: GetLocation(parameter, parameter.ContainingSymbol, targetType),
+            messageArgs: [parameter.ToDisplayString(), targetType.ToDisplayString()]);
     }
 
     public static Diagnostic NoReadableMembers(ITypeSymbol type)
@@ -111,10 +134,15 @@ internal static class Diagnostics
             ]);
     }
 
-    private static Location? GetLocation(ISymbol? symbol)
+    /// <summary>
+    /// Returns the first valid source location from the given symbols, checked in order.
+    /// </summary>
+    private static Location? GetLocation(params ReadOnlySpan<ISymbol?> symbols)
     {
-        if (symbol is not null)
+        foreach (var symbol in symbols)
         {
+            if (symbol is null) continue;
+
             foreach (var location in symbol.Locations)
             {
                 if (location.IsInSource)
@@ -125,11 +153,6 @@ internal static class Diagnostics
         }
 
         return null;
-    }
-
-    private static IEnumerable<Location> GetLocations(ISymbol? symbol)
-    {
-        return symbol is null ? [] : symbol.Locations.Where(l => l.IsInSource);
     }
 
     internal static void CheckIfFileScoped(

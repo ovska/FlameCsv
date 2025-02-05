@@ -52,6 +52,22 @@ internal static class Descriptors
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    public static readonly DiagnosticDescriptor ConflictingConfiguration = new(
+        id: "FLAMESG105",
+        title: "Conflicting CSV configuration",
+        messageFormat: "Conflicting configuration for {0} {1} in type {2}: {3}",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor IgnoredParameterWithoutDefaultValue = new(
+        id: "FLAMESG106",
+        title: "Ignored parameter without default value",
+        messageFormat: "Cannot generate reading code: Ignored parameter {0} on type {1} must have a default value",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public static readonly DiagnosticDescriptor NoReadableMembers = new(
         id: "FLAMESG200",
         title: "No valid members/parameters for reading",
