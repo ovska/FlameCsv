@@ -33,7 +33,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
     /// <summary>
     /// Order of the property/field.
     /// </summary>
-    public required int Order { get; init; }
+    public required int? Order { get; init; }
 
     /// <summary>
     /// If this member can be used when reading CSV, i.e., value can be written to the object.
@@ -60,18 +60,18 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
     /// </summary>
     public required ConverterModel? OverriddenConverter { get; init; }
 
-    public int CompareTo(PropertyModel other) => other.Order.CompareTo(Order); // reverse sort so higher order is first
+    public int CompareTo(PropertyModel other) => (other.Order ?? 0).CompareTo(Order ?? 0); // reverse sort so higher order is first
 
-    public void WriteId(StringBuilder sb)
+    public void WriteId(IndentedTextWriter writer)
     {
-        sb.Append("@s__Id_");
-        sb.Append(Identifier);
+        writer.Write("@s__Id_");
+        writer.Write(Identifier);
     }
 
-    public void WriteConverterName(StringBuilder sb)
+    public void WriteConverterName(IndentedTextWriter writer)
     {
-        sb.Append("@s__Converter_");
-        sb.Append(Identifier);
+        writer.Write("@s__Converter_");
+        writer.Write(Identifier);
     }
 
     public static PropertyModel? TryCreate(
@@ -135,7 +135,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
                 propertySymbol.IsRequired ||
                 propertySymbol is { SetMethod.IsInitOnly: true },
             Names = meta.Names,
-            Order = meta.Order ?? 0,
+            Order = meta.Order,
             CanRead = !propertySymbol.IsReadOnly,
             CanWrite = !propertySymbol.IsWriteOnly,
             OverriddenConverter

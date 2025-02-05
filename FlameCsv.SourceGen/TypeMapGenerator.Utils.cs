@@ -4,47 +4,48 @@ namespace FlameCsv.SourceGen;
 
 public partial class TypeMapGenerator
 {
-    private static void WriteConverter(StringBuilder sb, IMemberModel member)
+    private static void WriteConverter(IndentedTextWriter writer, IMemberModel member)
     {
         bool wrapInNullable = member.OverriddenConverter?.WrapInNullable ??
             member.Type.SpecialType == SpecialType.System_Nullable_T;
 
         if (wrapInNullable)
         {
-            sb.Append("options.GetOrCreateNullable<");
-            sb.Append(member.Type.FullyQualifiedName);
-            sb.Length--; // trim out the nullability question mark
-            sb.Append(">(static options => ");
+            writer.Write("options.GetOrCreateNullable<");
+            writer.Write(member.Type.FullyQualifiedName.AsSpan()[..^1]); // trim out the nullability question mark
+            writer.Write(">(static options => ");
         }
 
         if (member.OverriddenConverter is not { } converter)
         {
-            sb.Append(member.Type.IsEnumOrNullableEnum ? "options.GetOrCreateEnum<" : "options.GetConverter<");
-            sb.Append(member.Type.FullyQualifiedName);
-            if (member.Type.SpecialType == SpecialType.System_Nullable_T) sb.Length--;
-            sb.Append(">()");
+            writer.Write(member.Type.IsEnumOrNullableEnum ? "options.GetOrCreateEnum<" : "options.GetConverter<");
+
+            Range range = member.Type.SpecialType == SpecialType.System_Nullable_T ? ..^1 : Range.All;
+            writer.Write(member.Type.FullyQualifiedName.AsSpan()[range]);
+
+            writer.Write(">()");
         }
         else
         {
-            sb.Append("new ");
-            sb.Append(converter.ConverterType.FullyQualifiedName);
-            sb.Append('(');
-            sb.Append(
+            writer.Write("new ");
+            writer.Write(converter.ConverterType.FullyQualifiedName);
+            writer.Write("(");
+            writer.Write(
                 converter.ConstructorArguments switch
                 {
                     ConstructorArgumentType.Options => "options",
                     _ => "",
                 });
-            sb.Append(')');
+            writer.Write(")");
 
             if (converter.IsFactory)
             {
-                sb.Append(".Create<");
-                sb.Append(member.Type.FullyQualifiedName);
-                sb.Append(">(options)");
+                writer.Write(".Create<");
+                writer.Write(member.Type.FullyQualifiedName);
+                writer.Write(">(options)");
             }
         }
 
-        if (wrapInNullable) sb.Append(')');
+        if (wrapInNullable) writer.Write(")");
     }
 }

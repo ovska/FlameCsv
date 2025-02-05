@@ -12,13 +12,13 @@ internal interface IMemberModel : IEquatable<IMemberModel?>
 
     /// <inheritdoc cref="PropertyModel.CanWrite"/>
     bool CanWrite { get; }
-    int Order { get; }
+    int? Order { get; }
     string Identifier { get; }
     string Name { get; }
     EquatableArray<string> Names { get; }
     ConverterModel? OverriddenConverter { get; }
     TypeRef Type { get; }
 
-    void WriteId(StringBuilder sb);
-    void WriteConverterName(StringBuilder sb);
+    void WriteId(IndentedTextWriter writer);
+    void WriteConverterName(IndentedTextWriter writer);
 }

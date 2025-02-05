@@ -116,15 +116,16 @@ public static class ModelTests
 
         Assert.Equal([Descriptors.RefConstructorParameter.Id], collector.Diagnostics.Select(d => d.Id));
 
-        (string name, bool hasDefaultValue, object? defaultValue, RefKind refKind, string[] names, int order)[] expected
-            =
-            [
-                ("a", false, null, RefKind.None, ["A"], 0),
-                ("b", false, null, RefKind.None, [], 1),
-                ("c", false, null, RefKind.In, [], 0),
-                ("d", false, null, RefKind.Ref, [], 0),
-                ("b", true, true, RefKind.None, [], 0),
-            ];
+        (string name, bool hasDefaultValue, object? defaultValue, RefKind refKind, string[] names, int? order)[]
+            expected
+                =
+                [
+                    ("a", false, null, RefKind.None, ["A"], null),
+                    ("b", false, null, RefKind.None, [], 1),
+                    ("c", false, null, RefKind.In, [], null),
+                    ("d", false, null, RefKind.Ref, [], null),
+                    ("b", true, true, RefKind.None, [], null),
+                ];
 
         for (int i = 0; i < parameters.Length; i++)
         {

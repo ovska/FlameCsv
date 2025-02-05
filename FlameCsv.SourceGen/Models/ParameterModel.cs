@@ -62,7 +62,7 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
     /// <summary>
     /// Order of the parameter.
     /// </summary>
-    public required int Order { get; init; }
+    public required int? Order { get; init; }
 
     /// <summary>
     /// Whether the parameter is ignored.
@@ -78,16 +78,16 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
     bool IMemberModel.CanWrite => false;
     TypeRef IMemberModel.Type => ParameterType;
 
-    public void WriteId(StringBuilder sb)
+    public void WriteId(IndentedTextWriter writer)
     {
-        sb.Append("@s__p_Id_");
-        sb.Append(Name);
+        writer.Write("@s__p_Id_");
+        writer.Write(Name);
     }
 
-    public void WriteConverterName(StringBuilder sb)
+    public void WriteConverterName(IndentedTextWriter writer)
     {
-        sb.Append("@s__p_Converter_");
-        sb.Append(Name);
+        writer.Write("@s__p_Converter_");
+        writer.Write(Name);
     }
 
     public static EquatableArray<ParameterModel> Create(
@@ -114,7 +114,7 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
                 Name = parameter.Name,
                 Identifier = "p_" + parameter.Name,
                 Names = meta.Names,
-                Order = meta.Order ?? 0,
+                Order = meta.Order,
                 IsIgnored = meta.IsIgnored ?? false,
                 IsRequiredByAttribute = meta.IsRequired ?? false,
                 HasDefaultValue = parameter.HasExplicitDefaultValue,

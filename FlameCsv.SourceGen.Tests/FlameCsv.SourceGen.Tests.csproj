@@ -6,7 +6,7 @@
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
 
-<!--        <DefineConstants>USE_COMPILATION</DefineConstants>-->
+        <DefineConstants>USE_COMPILATION</DefineConstants>
     </PropertyGroup>
 
     <ItemGroup>

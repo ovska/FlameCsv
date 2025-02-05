@@ -5,259 +5,238 @@ namespace FlameCsv.SourceGen;
 public partial class TypeMapGenerator
 {
     private static void GetReadCode(
-        StringBuilder sb,
+        IndentedTextWriter writer,
         TypeMapModel typeMap,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        sb.Append("        protected override global::FlameCsv.Reading.IMaterializer<");
-        sb.Append(typeMap.Token.Name);
-        sb.Append(", ");
-        sb.Append(typeMap.Type.FullyQualifiedName);
-        sb.Append("> BindForReading(scoped global::System.ReadOnlySpan<string> headers, global::FlameCsv.CsvOptions<");
-        sb.Append(typeMap.Token.Name);
-        sb.Append(
-            @"> options)
+        writer.Write("protected override global::FlameCsv.Reading.IMaterializer<");
+        writer.Write(typeMap.Token.Name);
+        writer.Write(", ");
+        writer.Write(typeMap.Type.FullyQualifiedName);
+        writer.Write(
+            "> BindForReading(scoped global::System.ReadOnlySpan<string> headers, global::FlameCsv.CsvOptions<");
+        writer.Write(typeMap.Token.Name);
+        writer.WriteLine("> options)");
+
+        using (writer.WriteBlock())
         {
-            TypeMapMaterializer materializer = new TypeMapMaterializer(headers.Length);
+            writer.WriteLine("TypeMapMaterializer materializer = new TypeMapMaterializer(headers.Length);");
+            writer.WriteLine();
+            writer.WriteLine(
+                "global::System.Collections.Generic.IEqualityComparer<string> comparer = options.Comparer;");
+            writer.WriteLine();
+            writer.WriteLine("for (int index = 0; index < headers.Length; index++)");
 
-            global::System.Collections.Generic.IEqualityComparer<string> comparer = options.Comparer;
-
-            for (int index = 0; index < headers.Length; index++)
+            using (writer.WriteBlock())
             {
-                string name = headers[index];
-");
-        WriteMatchers(sb, typeMap, cancellationToken);
+                writer.WriteLine("string name = headers[index];");
 
-        sb.Append(
-            @"
-                ");
+                WriteMatchers(writer, typeMap, cancellationToken);
 
-        if (typeMap.IgnoreUnmatched)
-        {
-            sb.Append(
-                @"// Unmatched fields are ignored
-                materializer.Targets[index] = -1;");
-        }
-        else
-        {
-            sb.Append("base.ThrowUnmatched(name, index);");
-        }
-
-        sb.Append(
-            @"
+                if (typeMap.IgnoreUnmatched)
+                {
+                    writer.WriteLine("// Unmatched fields are ignored");
+                    writer.WriteLine("materializer.Targets[index] = -1;");
+                }
+                else
+                {
+                    writer.WriteLine("base.ThrowUnmatched(name, index);");
+                }
             }
 
-            if (!global::System.MemoryExtensions.ContainsAnyInRange(materializer.Targets, @s__MinIndex, @s__MaxIndex))
+            writer.WriteLine();
+            writer.WriteLine(
+                "if (!global::System.MemoryExtensions.ContainsAnyInRange(materializer.Targets, @s__MinIndex, @s__MaxIndex))");
+
+            using (writer.WriteBlock())
             {
-                base.ThrowNoFieldsBound(headers);
+                writer.WriteLine("base.ThrowNoFieldsBound(headers);");
             }
-");
 
-        WriteRequiredCheck(typeMap, sb);
+            WriteRequiredCheck(typeMap, writer);
 
-        sb.Append(
-            @"
-            return materializer;
+            writer.WriteLine();
+            writer.WriteLine("return materializer;");
         }
 
-        protected override global::FlameCsv.Reading.IMaterializer<");
-        sb.Append(typeMap.Token.Name);
-        sb.Append(", ");
-        sb.Append(typeMap.Type.FullyQualifiedName);
-        sb.Append(@"> BindForReading(global::FlameCsv.CsvOptions<");
-        sb.Append(typeMap.Token.Name);
-        sb.Append(
-            """
-            > options)
-                    {
-                        throw new global::System.NotSupportedException("Index binding is not yet supported for the source generator.");
-                    }
-            """);
+        writer.WriteLine();
+
+        writer.WriteLine(
+            $"protected override global::FlameCsv.Reading.IMaterializer<{typeMap.Token.Name}, {typeMap.Type.FullyQualifiedName}> BindForReading(global::FlameCsv.CsvOptions<{typeMap.Token.Name}> options)");
+
+        using (writer.WriteBlock())
+        {
+            writer.WriteLine(
+                "throw new global::System.NotSupportedException(\"Index binding is not yet supported for the source generator.\");");
+        }
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        WriteMissingRequiredFields(typeMap, sb);
+        WriteMissingRequiredFields(typeMap, writer);
 
-        sb.Append(
-            @"
-
-        private struct ParseState
+        writer.WriteLine();
+        writer.WriteLine("private struct ParseState");
+        using (writer.WriteBlock())
         {
-");
-
-        foreach (var member in typeMap.AllMembers)
-        {
-            if (!member.CanRead) continue;
-            cancellationToken.ThrowIfCancellationRequested();
-
-            sb.Append("            public ");
-            sb.Append(member.Type.FullyQualifiedName);
-            sb.Append(' ');
-            sb.Append(member.Identifier);
-            sb.Append(
-                @";
-");
-        }
-
-        sb.Append(
-            @"        }
-
-        private sealed class TypeMapMaterializer : global::FlameCsv.Reading.IMaterializer<");
-        sb.Append(typeMap.Token.Name);
-        sb.Append(", ");
-        sb.Append(typeMap.Type.FullyQualifiedName);
-        sb.Append(
-            @">
-        {");
-
-        foreach (var member in typeMap.AllMembers)
-        {
-            if (!member.CanRead) continue;
-            cancellationToken.ThrowIfCancellationRequested();
-
-            sb.Append(
-                @"
-            public global::FlameCsv.CsvConverter<");
-            sb.Append(typeMap.Token.Name);
-            sb.Append(", ");
-            sb.Append(member.Type.FullyQualifiedName);
-            sb.Append("> ");
-            member.WriteConverterName(sb);
-            sb.Append(';');
-        }
-
-        sb.Append(
-            @"
-
-            public readonly int[] Targets;
-
-            public TypeMapMaterializer(int length)
+            foreach (var member in typeMap.AllMembers)
             {
-                Targets = new int[length];
+                if (!member.CanRead) continue;
+                cancellationToken.ThrowIfCancellationRequested();
+                writer.WriteLine($"public {member.Type.FullyQualifiedName} {member.Identifier};");
+            }
+        }
+
+        writer.WriteLine();
+
+        writer.WriteLine(
+            $"private sealed class TypeMapMaterializer : global::FlameCsv.Reading.IMaterializer<{typeMap.Token.Name}, {typeMap.Type.FullyQualifiedName}>");
+
+        using (writer.WriteBlock())
+        {
+            foreach (var member in typeMap.AllMembers)
+            {
+                if (!member.CanRead) continue;
+                cancellationToken.ThrowIfCancellationRequested();
+                writer.Write(
+                    $"public global::FlameCsv.CsvConverter<{typeMap.Token.Name}, {member.Type.FullyQualifiedName}> ");
+                member.WriteConverterName(writer);
+                writer.WriteLine(";");
             }
 
-            public ");
-        sb.Append(typeMap.Type.FullyQualifiedName);
-        sb.Append(" Parse<TReader>(ref TReader reader) where TReader : global::FlameCsv.Reading.ICsvRecordFields<");
-        sb.Append(typeMap.Token.Name);
-        sb.Append(
-            @">, allows ref struct
-            {
-                int[] targets = Targets;
 
-                if (targets.Length != reader.FieldCount)
+            writer.WriteLine();
+            writer.WriteLine("public readonly int[] Targets;");
+            writer.WriteLine();
+            writer.WriteLine("public TypeMapMaterializer(int length)");
+            using (writer.WriteBlock())
+            {
+                writer.WriteLine("Targets = new int[length];");
+            }
+
+            writer.WriteLine();
+
+            writer.WriteLine(
+                $"public {typeMap.Type.FullyQualifiedName} Parse<TReader>(ref TReader reader) where TReader : global::FlameCsv.Reading.ICsvRecordFields<{typeMap.Token.Name}>, allows ref struct");
+
+            using (writer.WriteBlock())
+            {
+                writer.WriteLine("int[] targets = Targets;");
+                writer.WriteLine();
+                writer.WriteLine("if (targets.Length != reader.FieldCount)");
+
+                using (writer.WriteBlock())
                 {
-                    global::FlameCsv.Exceptions.CsvReadException.ThrowForInvalidFieldCount(expected: targets.Length, actual: reader.FieldCount);
+                    writer.WriteLine(
+                        "global::FlameCsv.Exceptions.CsvReadException.ThrowForInvalidFieldCount(expected: targets.Length, actual: reader.FieldCount);");
                 }
 
-#if RELEASE
-                global::System.Runtime.CompilerServices.Unsafe.SkipInit(out ParseState state);
-#else
-                ParseState state = default;
-#endif");
-        WriteDefaultParameterValues(sb, typeMap, cancellationToken, out bool hasOptionalParameters);
-        sb.Append(
-            @"
+                writer.WriteWithoutIndent(
+                    """
+                    #if RELEASE
+                                    global::System.Runtime.CompilerServices.Unsafe.SkipInit(out ParseState state);
+                    #else
+                                    ParseState state = default;
+                    #endif
 
-                for (int target = 0; target < targets.Length; target++)
+                    """);
+
+
+                WriteDefaultParameterValues(writer, typeMap, cancellationToken, out bool hasOptionalParameters);
+
+                writer.WriteLine("for (int target = 0; target < targets.Length; target++)");
+                using (writer.WriteBlock())
                 {
-                    global::System.ReadOnlySpan<");
-        sb.Append(typeMap.Token.Name);
-        sb.Append(
-            @"> @field = reader[target];
+                    writer.WriteLine($"global::System.ReadOnlySpan<{typeMap.Token.Name}> @field = reader[target];");
+                    writer.WriteLine();
+                    writer.WriteLine("bool result = targets[target] switch");
+                    writer.WriteLine("{");
+                    writer.IncreaseIndent();
 
-                    bool result = targets[target] switch
+                    foreach (var member in typeMap.AllMembers)
                     {
-");
+                        if (!member.CanRead) continue;
 
-        foreach (var member in typeMap.AllMembers)
-        {
-            if (!member.CanRead) continue;
+                        cancellationToken.ThrowIfCancellationRequested();
 
-            cancellationToken.ThrowIfCancellationRequested();
+                        member.WriteId(writer);
+                        writer.Write(" => ");
+                        member.WriteConverterName(writer);
+                        writer.Write(".TryParse(@field, out state.");
+                        writer.Write(member.Identifier);
+                        writer.WriteLine("),");
+                    }
 
-            sb.Append("                        ");
-            member.WriteId(sb);
-            sb.Append(" => ");
-            member.WriteConverterName(sb);
-            sb.Append(".TryParse(@field, out state.");
-            sb.Append(member.Identifier);
-            sb.Append(
-                @"),
-");
-        }
+                    writer.WriteLine("0 => ThrowForInvalidTarget(target), // Should never happen");
+                    writer.WriteLine("_ => true, // Ignored fields have target set to -1");
 
-        sb.Append(
-            @"                        0 => ThrowForInvalidTarget(target), // Should never happen
-                        _ => true, // Ignored fields have target set to -1
-                    };
+                    writer.DecreaseIndent();
+                    writer.WriteLine("};");
 
-                    if (!result)
+                    writer.WriteLine();
+
+                    writer.WriteLine("if (!result)");
+                    using (writer.WriteBlock())
                     {
-                        ThrowForFailedParse(@field, target);
+                        writer.WriteLine("ThrowForFailedParse(@field, target);");
                     }
                 }
 
-                // Required fields are guaranteed to be non-null.
-                // Optional fields are null-checked to only write a value when one was read.
-                ");
+                writer.WriteLine();
+                writer.WriteLine("// Required fields are guaranteed to be non-null.");
+                writer.WriteLine("// Optional fields are null-checked to only write a value when one was read.");
 
-        if (hasOptionalParameters)
-        {
-            sb.Append(@"// Optional parameters are always passed, their default value is used when not read (see above)
-                ");
-        }
+                writer.WriteLineIf(
+                    hasOptionalParameters,
+                    "// Optional parameters are always passed, their default value is used when not read (see above)");
 
-        sb.Append((typeMap.Proxy ?? typeMap.Type).FullyQualifiedName);
-        sb.Append(" obj = new ");
-        sb.Append((typeMap.Proxy ?? typeMap.Type).FullyQualifiedName);
-        WriteSetters(sb, typeMap, cancellationToken);
-        sb.Append(
-            @"
-                return obj;
+                string typeToWrite = typeMap.Proxy?.FullyQualifiedName ?? typeMap.Type.FullyQualifiedName;
+
+                writer.Write($"{typeToWrite} obj = new {typeToWrite}");
+
+                WriteSetters(writer, typeMap, cancellationToken);
+
+                writer.WriteLine("return obj;");
             }
 
-            [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]
-            [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-            private static bool ThrowForInvalidTarget(int target) => throw new global::System.Diagnostics.UnreachableException($""Converter {target} was uninitialized"");
+            const string doesNotReturnAttr = "[global::System.Diagnostics.CodeAnalysis.DoesNotReturn]";
+            const string noInliningAttr
+                = "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]";
 
-            [global::System.Diagnostics.CodeAnalysis.DoesNotReturn]
-            [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-            private void ThrowForFailedParse(scoped global::System.ReadOnlySpan<");
-        sb.Append(typeMap.Token.Name);
-        sb.Append(
-            @"> @field, int target)
+            writer.WriteLine();
+            writer.WriteLine(doesNotReturnAttr);
+            writer.WriteLine(noInliningAttr);
+            writer.WriteLine(
+                "private static bool ThrowForInvalidTarget(int target) => throw new global::System.Diagnostics.UnreachableException($\"Converter {target} was uninitialized\");");
+            writer.WriteLine();
+            writer.WriteLine(doesNotReturnAttr);
+            writer.WriteLine(noInliningAttr);
+            writer.WriteLine(
+                $"private void ThrowForFailedParse(scoped global::System.ReadOnlySpan<{typeMap.Token.Name}> field, int target)");
+
+            using (writer.WriteBlock())
             {
-");
+                foreach (var member in typeMap.AllMembers)
+                {
+                    if (!member.CanRead) continue;
+                    cancellationToken.ThrowIfCancellationRequested();
 
-        foreach (var member in typeMap.AllMembers)
-        {
-            if (!member.CanRead) continue;
-            cancellationToken.ThrowIfCancellationRequested();
+                    writer.Write("if (target == ");
+                    member.WriteId(writer);
+                    writer.Write(") global::FlameCsv.Exceptions.CsvParseException.Throw(@field, ");
+                    member.WriteConverterName(writer);
+                    writer.WriteLine($", {member.Name.ToStringLiteral()});");
+                }
 
-            sb.Append("                if (target == ");
-            member.WriteId(sb);
-            sb.Append(") global::FlameCsv.Exceptions.CsvParseException.Throw(@field, ");
-            member.WriteConverterName(sb);
-            sb.Append("!, ");
-            sb.Append(member.Name.ToStringLiteral());
-            sb.Append(
-                @");
-");
-        }
-
-        sb.Append(
-            @"                throw new global::System.Diagnostics.UnreachableException(""Invalid target: "" + target.ToString());
+                writer.WriteLine(
+                    "throw new global::System.Diagnostics.UnreachableException(\"Invalid target: \" + target.ToString());");
             }
         }
-
-        ");
     }
 
     private static void WriteDefaultParameterValues(
-        StringBuilder sb,
+        IndentedTextWriter writer,
         TypeMapModel typeMap,
         CancellationToken cancellationToken,
         out bool hasOptionalParameters)
@@ -279,141 +258,111 @@ public partial class TypeMapGenerator
             if (!hasOptionalParameters)
             {
                 hasOptionalParameters = true;
-                sb.Append(
-                    @"
-
-                // Default values of optional parameters (have a default value and are not required by attribute");
+                writer.WriteLine();
+                writer.WriteLine(
+                    "// Default values of optional parameters (have a default value and are not required by attribute");
             }
 
-            sb.Append(
-                @"
-                state.");
-            sb.Append(parameter.Identifier);
-            sb.Append(" = ");
+            writer.Write($"state.{parameter.Identifier} = ");
 
             // Enum values are resolved as their underlying type, so they need to be cast back to the enum type
             // e.g. DayOfWeek.Friday would be "state.arg = (System.DayOfWeek)5;"
             if (parameter.ParameterType.IsEnumOrNullableEnum)
             {
-                sb.Append('(');
-                sb.Append(parameter.ParameterType.FullyQualifiedName);
-                sb.Append(')');
+                writer.Write($"({parameter.ParameterType.FullyQualifiedName})");
             }
 
-            sb.Append(parameter.DefaultValue.ToLiteral());
-            sb.Append(';');
+            writer.WriteLine($"{parameter.DefaultValue.ToLiteral()};");
         }
+
+        if (hasOptionalParameters) writer.WriteLine();
     }
 
     private static void WriteSetters(
-        StringBuilder sb,
+        IndentedTextWriter writer,
         TypeMapModel typeMap,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        sb.Append('(');
+        writer.Write("(");
 
         if (!typeMap.Parameters.IsEmpty)
         {
-            foreach (var parameter in typeMap.Parameters)
+            writer.IncreaseIndent();
+
+            for (int index = 0; index < typeMap.Parameters.Length; index++)
             {
-                sb.Append(
-                    @"
-                    ");
-                sb.Append(parameter.Name);
-                sb.Append(": ");
+                ParameterModel parameter = typeMap.Parameters[index];
+                writer.WriteLine();
+                writer.Write(parameter.Name);
+                writer.Write(": ");
+                writer.WriteIf(
+                    parameter.RefKind is RefKind.In or RefKind.RefReadOnlyParameter,
+                    "in ");
 
-                if (parameter.RefKind is RefKind.In or RefKind.RefReadOnlyParameter)
-                {
-                    sb.Append("in ");
-                }
-
-                sb.Append("state.");
-                sb.Append(parameter.Identifier);
-                sb.Append(",");
+                writer.Write($"state.{parameter.Identifier}");
+                writer.WriteIf(index < typeMap.Parameters.Length - 1, ",");
             }
 
-            sb.Length--;
+            writer.DecreaseIndent();
         }
 
-        sb.Append(')');
+        writer.Write(")");
 
         if (typeMap.Properties.AsImmutableArray().Any(static p => p.IsRequired))
         {
-            sb.Append(
-                @"
-                {
-                ");
+            writer.WriteLine();
 
-            foreach (var property in typeMap.Properties)
+            using (writer.WriteBlock())
             {
-                if (!property.IsRequired) continue;
-
-                sb.Append("    ");
-                sb.Append(property.Identifier);
-                sb.Append(" = state.");
-                sb.Append(property.Identifier);
-                sb.Append(
-                    @",
-                ");
+                foreach (var property in typeMap.Properties)
+                {
+                    writer.WriteLineIf(
+                        property.IsRequired,
+                        $"{property.Identifier} = state.{property.Identifier},");
+                }
             }
-
-            sb.Append('}');
         }
 
-        sb.Append(
-            @";
-");
+        writer.WriteLine(";");
 
         foreach (var property in typeMap.Properties)
         {
-            if (property.IsRequired)
-                continue; // already handled
-
-            if (!property.CanRead)
+            // required already written above
+            if (property.IsRequired || !property.CanRead)
                 continue;
 
-            sb.Append("                if (");
-            property.WriteConverterName(sb);
-            sb.Append($" is not null) ");
+            writer.Write("if (");
+            property.WriteConverterName(writer);
+            writer.Write(" is not null) ");
 
             if (!string.IsNullOrEmpty(property.ExplicitInterfaceOriginalDefinitionName))
             {
-                sb.Append("((");
-                sb.Append(property.ExplicitInterfaceOriginalDefinitionName);
-                sb.Append(")obj).");
+                writer.Write($"(({property.ExplicitInterfaceOriginalDefinitionName})obj).");
             }
             else
             {
-                sb.Append("obj.");
+                writer.Write("obj.");
             }
 
-            sb.Append(property.Name);
-            sb.Append(" = state.");
-            sb.Append(property.Identifier);
-            sb.Append(
-                @";
-");
+            writer.Write(property.Name);
+            writer.Write(" = state.");
+            writer.Write(property.Identifier);
+            writer.WriteLine(";");
         }
-
-        sb.Length--;
     }
 
-    private static void WriteRequiredCheck(TypeMapModel typeMap, StringBuilder sb)
+    private static void WriteRequiredCheck(TypeMapModel typeMap, IndentedTextWriter writer)
     {
         if (!typeMap.HasRequiredMembers)
         {
-            sb.Append(
-                @"
-            // No required fields
-");
+            writer.WriteLine();
+            writer.WriteLine("// No required fields");
             return;
         }
 
-        sb.Append(
-            @"
-            if (");
+        writer.Write("if (");
 
         bool first = true;
 
@@ -421,86 +370,70 @@ public partial class TypeMapGenerator
         {
             if (!member.CanRead || !member.IsRequired) continue;
 
-            if (first)
-            {
-                first = false;
-            }
-            else
-            {
-                sb.Append(
-                    @" ||
-                ");
-            }
-
-            sb.Append("materializer.");
-            member.WriteConverterName(sb);
-            sb.Append(" is null");
+            writer.WriteLineIf(!first, " ||");
+            writer.Write("materializer.");
+            member.WriteConverterName(writer);
+            writer.Write(" is null");
+            first = false;
         }
 
-        sb.Append(
-            @")
-                base.ThrowRequiredNotRead(GetMissingRequiredFields(materializer), headers);
-");
+        writer.WriteLine(")");
+        using (writer.WriteBlock())
+        {
+            writer.WriteLine("base.ThrowRequiredNotRead(GetMissingRequiredFields(materializer), headers);");
+        }
     }
 
-    private static void WriteMissingRequiredFields(TypeMapModel typeMap, StringBuilder sb)
+    private static void WriteMissingRequiredFields(TypeMapModel typeMap, IndentedTextWriter writer)
     {
         if (!typeMap.HasRequiredMembers)
             return;
 
-        sb.Append(
-            @"
+        writer.WriteLine();
+        writer.WriteLine(
+            "private static System.Collections.Generic.IEnumerable<string> GetMissingRequiredFields(TypeMapMaterializer materializer)");
 
-        private static System.Collections.Generic.IEnumerable<string> GetMissingRequiredFields(TypeMapMaterializer materializer)
-        {");
-
-        foreach (var member in typeMap.AllMembers)
+        using (writer.WriteBlock())
         {
-            if (!member.CanRead) continue;
+            foreach (var member in typeMap.AllMembers)
+            {
+                if (!member.CanRead || !member.IsRequired) continue;
 
-            sb.Append(
-                @"
-            if (materializer.");
-            member.WriteConverterName(sb);
-            sb.Append(" is null) yield return ");
-            sb.Append(member.Identifier.ToStringLiteral());
-            sb.Append(';');
+                writer.Write("if (materializer.");
+                member.WriteConverterName(writer);
+                writer.WriteLine(" is null) yield return ");
+                writer.Write(member.Identifier.ToStringLiteral());
+                writer.WriteLine(";");
+            }
         }
-
-        sb.Append(
-            @"
-        }");
     }
 
-
     private static void WriteMatchers(
-        StringBuilder sb,
+        IndentedTextWriter writer,
         TypeMapModel typeMap,
         CancellationToken cancellationToken)
     {
         if (!typeMap.IgnoredHeaders.IsEmpty)
         {
-            sb.Append(
-                @"
-                // Ignored headers
-                if (comparer.Equals(name, ");
-            sb.Append(typeMap.IgnoredHeaders[0].ToStringLiteral());
+            writer.WriteLine("// Ignored headers");
+            writer.Write($"if (comparer.Equals(name, {typeMap.IgnoredHeaders[0].ToStringLiteral()}");
+
+            writer.IncreaseIndent();
 
             for (int i = 1; i < typeMap.IgnoredHeaders.Length; i++)
             {
-                sb.Append(
-                    @") ||
-                    comparer.Equals(name, ");
-                sb.Append(typeMap.IgnoredHeaders[i].ToStringLiteral());
+                writer.WriteLine(") ||");
+                writer.Write($"comparer.Equals(name, {typeMap.IgnoredHeaders[i].ToStringLiteral()}");
             }
 
-            sb.Append(
-                @"))
-                {
-                    materializer.Targets[index] = 0;
-                    continue;
-                }
-");
+            writer.WriteLine("))");
+            writer.DecreaseIndent();
+
+            using (writer.WriteBlock())
+            {
+                writer.WriteLine("materializer.Targets[index] = -1;");
+                writer.WriteLine("continue");
+            }
         }
 
         foreach (var member in typeMap.AllMembers)
@@ -509,91 +442,66 @@ public partial class TypeMapGenerator
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            sb.Append(
-                @"
-                if (");
+            writer.WriteLine();
+            writer.Write("if (");
+            writer.IncreaseIndent();
 
             if (!typeMap.ThrowOnDuplicate)
             {
                 // add check to ignore already handled members
-                sb.Append("materializer.");
-                member.WriteConverterName(sb);
-                sb.Append(
-                    @" is null &&
-                    ");
+                writer.Write("materializer.");
+                member.WriteConverterName(writer);
+                writer.WriteLine(" is null &&");
             }
-
-            bool firstName = true;
 
             if (member.Names.IsEmpty)
             {
-                WriteComparison(member.Name);
+                writer.Write($"comparer.Equals(name, {member.Name.ToStringLiteral()})");
             }
             else
             {
+                bool firstName = true;
+
                 foreach (string name in member.Names)
                 {
-                    WriteComparison(name);
-                }
-            }
-
-            sb.Append(")");
-
-            if (member.Order != 0)
-            {
-                sb.Append(" // Explicit order: ");
-                sb.Append(member.Order);
-            }
-
-            sb.Append(
-                @"
-                {");
-
-            if (typeMap.ThrowOnDuplicate)
-            {
-                sb.Append(
-                    @"
-                    if (materializer.");
-                member.WriteConverterName(sb);
-                sb.Append(" is not null) base.ThrowDuplicate(");
-                sb.Append(member.Name.ToStringLiteral());
-                sb.Append(
-                    @", name, headers);
-");
-            }
-
-            sb.Append(
-                @"
-                    materializer.");
-            member.WriteConverterName(sb);
-            sb.Append(" = ");
-            WriteConverter(sb, member);
-            sb.Append(
-                @";
-                    materializer.Targets[index] = ");
-            member.WriteId(sb);
-            sb.Append(
-                @";
-                    continue;
-                }
-");
-
-            void WriteComparison(string name)
-            {
-                if (firstName)
-                {
+                    writer.WriteIf(!firstName, " ||");
+                    writer.Write($"comparer.Equals(name, {name.ToStringLiteral()})");
                     firstName = false;
                 }
-                else
+            }
+
+            writer.DecreaseIndent();
+
+            writer.Write(")");
+
+            if (member.Order.HasValue)
+            {
+                writer.Write($" // Explicit order: {member.Order}");
+            }
+
+            writer.WriteLine();
+
+            using (writer.WriteBlock())
+            {
+                if (typeMap.ThrowOnDuplicate)
                 {
-                    sb.Append(
-                        @" ||
-                    ");
+                    writer.Write("if (materializer.");
+                    member.WriteConverterName(writer);
+                    writer.Write(" is not null) base.ThrowDuplicate(");
+                    writer.Write(member.Name.ToStringLiteral());
+                    writer.WriteLine(", name, headers);");
+                    writer.WriteLine();
                 }
 
-                sb.Append("comparer.Equals(name, ");
-                sb.Append(name.ToStringLiteral());
-                sb.Append(')');
+                writer.Write("materializer.");
+                member.WriteConverterName(writer);
+                writer.Write(" = ");
+                WriteConverter(writer, member);
+                writer.WriteLine(";");
+                writer.WriteLine("materializer.Targets[index] = ");
+                member.WriteId(writer);
+                writer.WriteLine(";");
+                writer.WriteLine("continue;");
             }
         }
     }
