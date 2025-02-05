@@ -94,6 +94,7 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
         ITypeSymbol token,
         ITypeSymbol targetType,
         IMethodSymbol constructor,
+        CancellationToken cancellationToken,
         ref readonly FlameSymbols symbols,
         ref AnalysisCollector collector)
     {
@@ -104,7 +105,7 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
         for (int index = 0; index < parameters.Length; index++)
         {
             IParameterSymbol parameter = parameters[index];
-            SymbolMetadata meta = new(parameter, in symbols);
+            SymbolMetadata meta = new(parameter, cancellationToken, in symbols, ref collector);
 
             ParameterModel parameterModel = new()
             {
@@ -113,9 +114,9 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
                 Name = parameter.Name,
                 Identifier = "p_" + parameter.Name,
                 Names = meta.Names,
-                Order = meta.Order,
-                IsIgnored = meta.IsIgnored,
-                IsRequiredByAttribute = meta.IsRequired,
+                Order = meta.Order ?? 0,
+                IsIgnored = meta.IsIgnored ?? false,
+                IsRequiredByAttribute = meta.IsRequired ?? false,
                 HasDefaultValue = parameter.HasExplicitDefaultValue,
                 DefaultValue = parameter.HasExplicitDefaultValue ? parameter.ExplicitDefaultValue : null,
                 RefKind = parameter.RefKind,
@@ -146,9 +147,9 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
                         constructor.Parameters[index]));
             }
 
-            if (meta.IsIgnored && !parameter.HasExplicitDefaultValue)
+            if (meta.IsIgnored is true && !parameter.HasExplicitDefaultValue)
             {
-                // TODO
+                collector.AddDiagnostic(Diagnostics.IgnoredParameterWithoutDefaultValue(parameter, targetType));
             }
         }
 

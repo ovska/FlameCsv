@@ -1,5 +1,4 @@
-﻿using FlameCsv.SourceGen.Helpers;
-using FlameCsv.SourceGen.Models;
+﻿using FlameCsv.SourceGen.Models;
 
 namespace FlameCsv.SourceGen;
 
@@ -505,8 +504,6 @@ public partial class TypeMapGenerator
         }
 
 
-        HashSet<string> writtenNames = PooledSet<string>.Acquire();
-
         foreach (var member in typeMap.AllMembers)
         {
             if (!member.CanRead) continue;
@@ -537,27 +534,9 @@ public partial class TypeMapGenerator
             {
                 foreach (string name in member.Names)
                 {
-                    if (writtenNames.Add(name))
-                        WriteComparison(name);
+                    WriteComparison(name);
                 }
             }
-
-
-            if (member is PropertyModel)
-            {
-                foreach (var attribute in typeMap.TargetAttributes)
-                {
-                    if (StringComparer.Ordinal.Equals(attribute.MemberName, member.Name))
-                    {
-                        foreach (var name in attribute.Names)
-                        {
-                            if (writtenNames.Add(name)) WriteComparison(name);
-                        }
-                    }
-                }
-            }
-
-            writtenNames.Clear();
 
             sb.Append(")");
 
@@ -618,7 +597,5 @@ public partial class TypeMapGenerator
                 sb.Append(')');
             }
         }
-
-        PooledSet<string>.Release(writtenNames);
     }
 }

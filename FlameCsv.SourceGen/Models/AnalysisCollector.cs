@@ -1,4 +1,5 @@
 ﻿using FlameCsv.SourceGen.Helpers;
+using DiagnosticsStatic = FlameCsv.SourceGen.Diagnostics;
 
 namespace FlameCsv.SourceGen.Models;
 
@@ -6,20 +7,18 @@ internal ref struct AnalysisCollector
 {
     private readonly ITypeSymbol _targetType;
 
-    public List<Diagnostic> _diagnostics;
-    public List<TargetAttributeModel> TargetAttributes;
-    public List<Location?> TargetAttributeLocations;
-    public HashSet<string> IgnoredHeaders;
-    public List<ITypeSymbol> Proxies;
-    public List<Location?> ProxyLocations;
+    public readonly List<Diagnostic> Diagnostics;
+    public readonly List<TargetAttributeModel> TargetAttributes;
+    public readonly HashSet<string> IgnoredHeaders;
+    public readonly List<ITypeSymbol> Proxies;
+    public readonly List<Location?> ProxyLocations;
 
     public AnalysisCollector(ITypeSymbol targetType)
     {
         _targetType = targetType;
 
-        _diagnostics = PooledList<Diagnostic>.Acquire();
+        Diagnostics = PooledList<Diagnostic>.Acquire();
         TargetAttributes = PooledList<TargetAttributeModel>.Acquire();
-        TargetAttributeLocations = PooledList<Location?>.Acquire();
         IgnoredHeaders = PooledSet<string>.Acquire();
         Proxies = PooledList<ITypeSymbol>.Acquire();
         ProxyLocations = PooledList<Location?>.Acquire();
@@ -27,18 +26,7 @@ internal ref struct AnalysisCollector
 
     public void AddDiagnostic(Diagnostic diagnostic)
     {
-        _diagnostics.Add(diagnostic);
-    }
-
-    public void AddTargetAttribute(TargetAttributeModel model, Location? location)
-    {
-        TargetAttributes.Add(model);
-        TargetAttributeLocations.Add(location);
-    }
-
-    public void AddIgnoredHeader(string header)
-    {
-        IgnoredHeaders.Add(header);
+        Diagnostics.Add(diagnostic);
     }
 
     public void AddProxy(ITypeSymbol proxy, Location? location)
@@ -48,38 +36,50 @@ internal ref struct AnalysisCollector
     }
 
     public void Free(
+        CancellationToken cancellationToken,
         out EquatableArray<Diagnostic> diagnostics,
-        out EquatableArray<TargetAttributeModel> targetAttributes,
         out EquatableArray<string> ignoredHeaders,
         out TypeRef? proxy)
     {
-        diagnostics = _diagnostics.ToEquatableArrayAndFree();
-        targetAttributes = TargetAttributes.ToEquatableArrayAndFree();
-        PooledList<Location?>.Release(TargetAttributeLocations);
-        ignoredHeaders = IgnoredHeaders.ToEquatableArrayAndFree();
-
-        if (Proxies.Count == 1)
+        try
         {
-            proxy = new TypeRef(Proxies[0]);
-        }
-        else
-        {
-            if (Proxies.Count > 1)
+            foreach (var targetAttribute in TargetAttributes)
             {
-                AddDiagnostic(Diagnostics.MultipleTypeProxies(_targetType, ProxyLocations));
+                if (!targetAttribute.MatchFound)
+                {
+                    AddDiagnostic(
+                        DiagnosticsStatic.TargetMemberNotFound(
+                            _targetType,
+                            targetAttribute.GetLocation(cancellationToken),
+                            targetAttribute));
+                }
             }
 
-            proxy = null;
+            PooledList<TargetAttributeModel>.Release(TargetAttributes);
+
+            ignoredHeaders = IgnoredHeaders.ToEquatableArrayAndFree();
+
+            if (Proxies.Count == 1)
+            {
+                proxy = new TypeRef(Proxies[0]);
+            }
+            else
+            {
+                if (Proxies.Count > 1)
+                {
+                    AddDiagnostic(DiagnosticsStatic.MultipleTypeProxies(_targetType, ProxyLocations));
+                }
+
+                proxy = null;
+            }
         }
-
-        PooledList<ITypeSymbol>.Release(Proxies);
-        PooledList<Location?>.Release(ProxyLocations);
-
-        _diagnostics = null!;
-        TargetAttributes = null!;
-        TargetAttributeLocations = null!;
-        IgnoredHeaders = null!;
-        Proxies = null!;
-        ProxyLocations = null!;
+        finally
+        {
+            // do this last as diagnostics are added in this method
+            diagnostics = Diagnostics.ToEquatableArrayAndFree();
+            PooledList<ITypeSymbol>.Release(Proxies);
+            PooledList<Location?>.Release(ProxyLocations);
+            this = default;
+        }
     }
 }

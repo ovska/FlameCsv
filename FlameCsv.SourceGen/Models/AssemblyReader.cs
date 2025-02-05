@@ -21,9 +21,7 @@ internal static class AssemblyReader
                         targetType,
                         attribute.ConstructorArguments[0].Value as ITypeSymbol))
                 {
-                    var model = new TargetAttributeModel(attribute, isAssemblyAttribute: true, cancellationToken);
-                    var location = attribute.ApplicationSyntaxReference?.GetSyntax(cancellationToken).GetLocation();
-                    collector.AddTargetAttribute(model, location);
+                    collector.TargetAttributes.Add(new TargetAttributeModel(attribute, isAssemblyAttribute: true));
                 }
             }
             else if (symbols.IsCsvAssemblyTypeAttribute(attrSymbol))
@@ -32,25 +30,7 @@ internal static class AssemblyReader
                         targetType,
                         attribute.ConstructorArguments[0].Value as ITypeSymbol))
                 {
-                    foreach (var args in attribute.NamedArguments)
-                    {
-                        if (args.Key == "IgnoredHeaders")
-                        {
-                            foreach (var value in args.Value.Values)
-                            {
-                                if (value.Value?.ToString() is { Length: > 0 } header)
-                                {
-                                    collector.AddIgnoredHeader(header);
-                                }
-                            }
-                        }
-                        else if (args.Key == "CreatedTypeProxy")
-                        {
-                            collector.AddProxy(
-                                (ITypeSymbol)args.Value.Value!,
-                                attribute.ApplicationSyntaxReference?.GetSyntax(cancellationToken).GetLocation());
-                        }
-                    }
+                    TypeAttributeModel.Parse(attribute, cancellationToken, ref collector);
                 }
             }
         }
