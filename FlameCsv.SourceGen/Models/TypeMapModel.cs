@@ -350,11 +350,8 @@ internal sealed record TypeMapModel
         allMembersBuilder.Sort(
             static (b1, b2) =>
             {
-                var b1Order = b1.Order;
-                var b2Order = b2.Order;
-
                 // highest order first
-                int orderComparison = b2Order.CompareTo(b1Order);
+                int orderComparison = b2.Order.GetValueOrDefault().CompareTo(b1.Order.GetValueOrDefault());
                 if (orderComparison != 0) return orderComparison;
 
                 // parameters first
