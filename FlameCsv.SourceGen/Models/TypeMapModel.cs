@@ -95,7 +95,9 @@ internal sealed record TypeMapModel
     public EquatableArray<Diagnostic> ReportedDiagnostics { get; }
 
     public TypeMapModel(
+#if USE_COMPILATION
         Compilation compilation,
+#endif
         INamedTypeSymbol containingClass,
         AttributeData attribute,
         CancellationToken cancellationToken)
@@ -106,7 +108,11 @@ internal sealed record TypeMapModel
         ITypeSymbol targetType = attribute.AttributeClass.TypeArguments[1];
 
         AnalysisCollector collector = new(targetType);
-        FlameSymbols symbols = new FlameSymbols(compilation, targetType);
+        FlameSymbols symbols = new(
+#if USE_COMPILATION
+            compilation,
+#endif
+            targetType);
 
         Token = new TypeRef(tokenSymbol);
         Type = new TypeRef(targetType);
@@ -152,12 +158,14 @@ internal sealed record TypeMapModel
 
         if (SupportsAssemblyAttributes)
         {
+#if USE_COMPILATION
             TypeAttribute.ParseAssembly(
                 targetType,
                 compilation.Assembly,
                 in symbols,
                 cancellationToken,
                 ref collector);
+#endif
         }
 
         // Parameters and members must be looped after type and assembly attributes are handled

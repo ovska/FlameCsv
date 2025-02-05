@@ -103,7 +103,7 @@ public static class ModelTests
 
         // get token symbol for System.Char
         var charSymbol = compilation.GetTypeByMetadataName("System.Char")!;
-        var flameSymbols = new FlameSymbols(compilation, charSymbol);
+        var flameSymbols = GetFlameSymbols(compilation, charSymbol);
         AnalysisCollector collector = new(charSymbol);
 
         var parameters = ParameterModel.Create(
@@ -189,7 +189,7 @@ public static class ModelTests
         var classSymbol = semanticModel.GetDeclaredSymbol(
             semanticModel.SyntaxTree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>().Single())!;
 
-        var flameSymbols = new FlameSymbols(compilation, classSymbol);
+        var flameSymbols = GetFlameSymbols(compilation, classSymbol);
         AnalysisCollector collector = new(classSymbol);
 
         var models = GetProperties(in flameSymbols, ref collector);
@@ -323,7 +323,7 @@ public static class ModelTests
                 .OfType<ClassDeclarationSyntax>()
                 .Single(s => s.Identifier.Text == "TestClass"))!;
 
-        var flameSymbols = new FlameSymbols(compilation, classSymbol);
+        var flameSymbols = GetFlameSymbols(compilation, classSymbol);
         AnalysisCollector collector = new(classSymbol);
 
         List<ConverterModel> models = [];
@@ -415,7 +415,7 @@ public static class ModelTests
                 .Single(s => s.Identifier.Text == "Target"))!;
         Assert.NotNull(classSymbol);
 
-        var flameSymbols = new FlameSymbols(compilation, classSymbol);
+        var flameSymbols = GetFlameSymbols(compilation, classSymbol);
         AnalysisCollector collector = new(classSymbol);
 
         TypeAttribute.ParseAssembly(
@@ -437,5 +437,15 @@ public static class ModelTests
         Assert.Equal(SpecialType.System_Object, collector.Proxies[0].SpecialType);
 
         collector.Free(CancellationToken.None, out _, out _, out _);
+    }
+
+    // ReSharper disable once UnusedParameter.Local
+    private static FlameSymbols GetFlameSymbols(Compilation compilation, ITypeSymbol arg)
+    {
+        return new FlameSymbols(
+#if USE_COMPILATION
+            compilation,
+#endif
+            arg);
     }
 }
