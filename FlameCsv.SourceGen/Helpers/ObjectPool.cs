@@ -84,10 +84,10 @@ internal class ObjectPool<T> where T : class
     private readonly Func<T> _factory;
 
 
-    internal ObjectPool(Func<T> factory)
+    internal ObjectPool(Func<T> factory, int size = 16)
     {
         _factory = factory;
-        _items = new Element[16];
+        _items = new Element[size - 1];
     }
 
     private T CreateInstance()

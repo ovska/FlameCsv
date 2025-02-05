@@ -5,14 +5,14 @@ namespace FlameCsv.SourceGen.Models;
 internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
 {
     /// <summary>
-    /// Property/field name, including a possible interface name.
+    /// Property/field name, including a possible interface name, e.g. "ISomething_Prop"
     /// </summary>
     public required string Identifier { get; init; }
 
     /// <summary>
-    /// Actual name of the property/field, e.g. "Prop" if explicitly implemented via ISomething.Prop.
-    /// Otherwise, same as <see cref="Identifier"/>.
+    /// Actual name of the property/field, e.g. "Prop".
     /// </summary>
+    /// <seealso cref="Identifier"/>.
     public required string Name { get; init; }
 
     /// <summary>
@@ -88,7 +88,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
 
         SymbolMetadata meta = new(propertySymbol, in symbols);
 
-        if (meta.IsIgnored)
+        if (meta.IsIgnored) // TODO: fixme
         {
             return null;
         }

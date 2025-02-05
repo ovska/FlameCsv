@@ -201,7 +201,7 @@ internal sealed record TypeMapModel
         }
         else
         {
-            List<(string name, string display)> wrappers = [];
+            var wrappers = ImmutableArray.CreateBuilder<(string name, string display)>();
 
             INamedTypeSymbol? type = containingClass.ContainingType;
             StringBuilder sb = new(capacity: 64);
@@ -227,12 +227,12 @@ internal sealed record TypeMapModel
             }
 
             wrappers.Reverse();
-            WrappingTypes = wrappers.ToEquatableArray();
+            WrappingTypes = wrappers.ToImmutable();
         }
 
         bool hasReadableMembers = false;
         bool hasWritableProperties = false;
-        List<PropertyModel> properties = [];
+        List<PropertyModel> properties = PooledList<PropertyModel>.Acquire();
 
         // loop through base types
         ITypeSymbol? currentType = targetType;
@@ -285,7 +285,7 @@ internal sealed record TypeMapModel
         }
 
         properties.Sort();
-        Properties = properties.ToEquatableArray();
+        Properties = properties.ToEquatableArrayAndFree();
 
         cancellationToken.ThrowIfCancellationRequested();
 
