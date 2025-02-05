@@ -4,7 +4,8 @@ namespace FlameCsv.SourceGen.Models;
 
 internal sealed class TargetAttributeModel
 {
-    public bool IsForAssembly { get; }
+    public override string ToString() => $"TargetAttribute '{MemberName}'{(IsParameter ? " (parameter)" : "")}";
+
     public string MemberName { get; }
     public bool IsParameter { get; }
 
@@ -31,7 +32,6 @@ internal sealed class TargetAttributeModel
         // assembly attributes have the target type as the first argument
         int startIndex = isAssemblyAttribute ? 1 : 0;
 
-        IsForAssembly = isAssemblyAttribute;
         MemberName = attribute.ConstructorArguments[startIndex].Value?.ToString() ?? "";
         Names = attribute.ConstructorArguments[startIndex + 1].Values; // defer equatable array creation
         _syntaxReference = attribute.ApplicationSyntaxReference;

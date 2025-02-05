@@ -418,7 +418,7 @@ public static class ModelTests
         var flameSymbols = new FlameSymbols(compilation, classSymbol);
         AnalysisCollector collector = new(classSymbol);
 
-        AssemblyReader.Read(
+        TypeAttribute.ParseAssembly(
             classSymbol,
             compilation.Assembly,
             ref flameSymbols,

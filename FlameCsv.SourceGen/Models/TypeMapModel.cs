@@ -146,13 +146,13 @@ internal sealed record TypeMapModel
             }
             else if (symbols.IsCsvTypeAttribute(attr.AttributeClass))
             {
-                TypeAttributeModel.Parse(attr, cancellationToken, ref collector);
+                TypeAttribute.Parse(attr, cancellationToken, ref collector);
             }
         }
 
         if (SupportsAssemblyAttributes)
         {
-            AssemblyReader.Read(
+            TypeAttribute.ParseAssembly(
                 targetType,
                 compilation.Assembly,
                 in symbols,
