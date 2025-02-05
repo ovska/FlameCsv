@@ -2,9 +2,7 @@
 using FlameCsv.Binding.Attributes;
 using FlameCsv.Converters;
 
-// ReSharper disable InconsistentNaming
-// ReSharper disable UnusedParameter.Local
-// ReSharper disable IdentifierTypo
+// ReSharper disable all
 
 namespace FlameCsv.Tests.Binding;
 

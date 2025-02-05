@@ -24,6 +24,7 @@ public partial class TypeMapGenerator : IIncrementalGenerator
                 })
             .Where(static tuple => tuple.ContainingClass.CanBeReferencedByName)
             .WithTrackingName("FlameCsv_Target")
+#if USE_COMPILATION
             .Combine(context.CompilationProvider.WithTrackingName("FlameCsv_Compilation"))
             .Select(
                 static (tuple, cancellationToken) => new TypeMapModel(
@@ -31,6 +32,13 @@ public partial class TypeMapGenerator : IIncrementalGenerator
                     containingClass: tuple.Left.ContainingClass,
                     attribute: tuple.Left.Attribute,
                     cancellationToken))
+#else
+            .Select(
+                static (value, cancellationToken) => new TypeMapModel(
+                    containingClass: value.ContainingClass,
+                    attribute: value.Attribute,
+                    cancellationToken))
+#endif
             .WithTrackingName("FlameCsv_TypeMap");
 
         context.RegisterSourceOutput(typeMapTargets, static (spc, source) => Execute(source, spc));
