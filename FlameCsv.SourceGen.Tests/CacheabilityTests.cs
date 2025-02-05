@@ -114,6 +114,42 @@ public class TypeMapTests
 
 #if false // debugging
     [Fact]
+    public void Diagnostics_Should_Equate()
+    {
+        Diagnostic d1 = GetDiagnostic();
+        Diagnostic d2 = GetDiagnostic();
+        Assert.Equal(d1, d2);
+
+        static Diagnostic GetDiagnostic()
+        {
+            var compilation = CSharpCompilation.Create(
+                nameof(Diagnostics_Should_Equate),
+                [
+                    CSharpSyntaxTree.ParseText(
+                        """
+                        class TestClass 
+                        {
+                            public int Id { get; set; }
+                            public string? Name { get; set; }
+                        }
+                        """)
+                ],
+                [Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+            var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
+            var namedTypeSymbol = semanticModel.GetDeclaredSymbol(
+                semanticModel
+                    .SyntaxTree.GetRoot()
+                    .DescendantNodes()
+                    .OfType<ClassDeclarationSyntax>()
+                    .Single(c => c.Identifier.Text == "TestClass"))!;
+
+            return Diagnostics.NoReadableMembers(namedTypeSymbol);
+        }
+    }
+
+    [Fact]
     public void A_Test()
     {
         var compilation = CSharpCompilation.Create(
