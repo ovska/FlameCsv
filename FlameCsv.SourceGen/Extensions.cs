@@ -25,19 +25,6 @@ internal static class Extensions
         return false;
     }
 
-    public static bool Inherits(this ITypeSymbol? type, ITypeSymbol baseClass)
-    {
-        while ((type = type?.BaseType) != null)
-        {
-            if (SymbolEqualityComparer.Default.Equals(type, baseClass))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     public static string ToStringLiteral(this string? value)
     {
         if (value is null)

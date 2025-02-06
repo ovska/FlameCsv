@@ -60,7 +60,7 @@ internal sealed class IndentedTextWriter : IDisposable
         this.builder = new ImmutableArrayBuilder<char>();
         this.currentIndentationLevel = 0;
         this.currentIndentation = "";
-        this.availableIndentations = new string[4];
+        this.availableIndentations = new string[6]; // generator writes up to 5 levels of indentation
         this.availableIndentations[0] = "";
 
         for (int i = 1, n = this.availableIndentations.Length; i < n; i++)

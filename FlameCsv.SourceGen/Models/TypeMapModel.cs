@@ -72,7 +72,7 @@ internal sealed record TypeMapModel
     /// <summary>
     /// Wrapping types if the typemap is nested, empty otherwise.
     /// </summary>
-    public EquatableArray<(string name, string display)> WrappingTypes { get; }
+    public EquatableArray<NestedType> WrappingTypes { get; }
 
     /// <summary>
     /// Headers that are always ignored.
@@ -230,40 +230,7 @@ internal sealed record TypeMapModel
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (containingClass.ContainingType is null)
-        {
-            WrappingTypes = [];
-        }
-        else
-        {
-            var wrappers = ImmutableArray.CreateBuilder<(string name, string display)>();
-
-            INamedTypeSymbol? type = containingClass.ContainingType;
-            StringBuilder sb = new(capacity: 64);
-
-            while (type is not null)
-            {
-                sb.Clear();
-
-                if (type.IsReadOnly)
-                    sb.Append("readonly ");
-                if (type.IsRefLikeType)
-                    sb.Append("ref ");
-                if (type.IsAbstract)
-                    sb.Append("abstract ");
-
-                sb.Append("partial ");
-                sb.Append(type.IsValueType ? "struct " : "class ");
-                sb.Append(type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
-                sb.Append(" {");
-                wrappers.Add((type.Name, sb.ToString()));
-
-                type = type.ContainingType;
-            }
-
-            wrappers.Reverse();
-            WrappingTypes = wrappers.ToImmutable();
-        }
+        WrappingTypes = NestedType.Parse(containingClass);
 
         bool hasReadableMembers = false;
         bool hasWritableProperties = false;
@@ -364,5 +331,50 @@ internal sealed record TypeMapModel
         CanGenerateCode = diagnostics.IsEmpty;
         IgnoredHeaders = ignoredHeaders;
         Proxy = proxy;
+    }
+}
+
+internal readonly record struct NestedType
+{
+    public required bool IsReadOnly { get; init; }
+    public required bool IsRefLikeType { get; init; }
+    public required bool IsAbstract { get; init; }
+    public required bool IsValueType { get; init; }
+    public required string Name { get; init; }
+
+    public static EquatableArray<NestedType> Parse(ITypeSymbol containingClass)
+    {
+        INamedTypeSymbol? type = containingClass.ContainingType;
+
+        if (type is null) return [];
+
+        List<NestedType> wrappers = PooledList<NestedType>.Acquire();
+
+        do
+        {
+            wrappers.Add(
+                new NestedType
+                {
+                    IsReadOnly = type.IsReadOnly,
+                    IsRefLikeType = type.IsRefLikeType,
+                    IsAbstract = type.IsAbstract,
+                    IsValueType = type.IsValueType,
+                    Name = type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)
+                });
+        } while ((type = type.ContainingType) is not null);
+
+        wrappers.Reverse();
+        return wrappers.ToEquatableArrayAndFree();
+    }
+
+    public void WriteTo(IndentedTextWriter writer)
+    {
+        writer.WriteIf(IsReadOnly, "readonly ");
+        writer.WriteIf(IsRefLikeType, "ref ");
+        writer.WriteIf(IsAbstract, "abstract ");
+        writer.Write("partial ");
+        writer.Write(IsValueType ? "struct " : "class ");
+        writer.Write(Name);
+        writer.WriteLine(" {");
     }
 }

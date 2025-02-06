@@ -406,9 +406,7 @@ public partial class TypeMapGenerator
 
                 writer.Write("if (materializer.");
                 member.WriteConverterName(writer);
-                writer.WriteLine(" is null) yield return ");
-                writer.Write(member.Identifier.ToStringLiteral());
-                writer.WriteLine(";");
+                writer.WriteLine($" is null) yield return {member.Identifier.ToStringLiteral()};");
             }
         }
     }
