@@ -11,12 +11,33 @@ namespace FlameCsv.Binding.Attributes;
 /// This attribute is only used when reading CSV.
 /// </remarks>
 [PublicAPI]
-[AttributeUsage(AttributeTargets.Constructor | AttributeTargets.Class | AttributeTargets.Struct)]
+[AttributeUsage(
+    AttributeTargets.Constructor |
+    AttributeTargets.Class |
+    AttributeTargets.Struct |
+    AttributeTargets.Assembly,
+    Inherited = false)]
 public sealed class CsvConstructorAttribute : Attribute
 {
+    private Type[]? _parameterTypes;
+    private Type? _targetType;
+
     /// <summary>
     /// When used on a class or struct, specifies the parameter types of the constructor to use.
     /// Has no effect when used directly on a constructor.
     /// </summary>
-    public Type[] ParameterTypes { get; init; } = null!;
+    public Type[] ParameterTypes
+    {
+        get => _parameterTypes!;
+        init => _parameterTypes = value ?? throw new ArgumentNullException(nameof(ParameterTypes));
+    }
+
+    /// <summary>
+    /// Type targeted by the attribute. Used when the attribute is applied to an assembly.
+    /// </summary>
+    public Type TargetType
+    {
+        get => _targetType!;
+        init => _targetType = value ?? throw new ArgumentNullException(nameof(TargetType));
+    }
 }

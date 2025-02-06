@@ -52,6 +52,10 @@ internal static class AssemblyAttributes
                 {
                     AddAttribute(attributes, cat.TargetType, cat);
                 }
+                else if (attribute is CsvConstructorAttribute cca)
+                {
+                    AddAttribute(attributes, cca.TargetType, cca);
+                }
             }
         }
 
