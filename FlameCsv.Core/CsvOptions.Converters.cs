@@ -4,11 +4,9 @@ using FlameCsv.Utilities;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
-using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Extensions;
-using JetBrains.Annotations;
 #if DEBUG
 using Unsafe = FlameCsv.Extensions.DebugUnsafe
 #else
@@ -148,7 +146,7 @@ partial class CsvOptions<T>
 
         var local = _converters;
 
-        // null of the Converters-property is never accessed (no custom converters)
+        // null if the Converters-property is never accessed (no custom converters)
         if (local is not null)
         {
             ReadOnlySpan<CsvConverter<T>> converters = local.Span;

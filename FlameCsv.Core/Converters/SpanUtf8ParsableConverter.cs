@@ -18,7 +18,6 @@ internal sealed class SpanUtf8ParsableConverter<TValue> : CsvConverter<byte, TVa
 
     public override bool TryFormat(Span<byte> destination, TValue value, out int charsWritten)
     {
-        // Enum doesn't support Utf8 formatting directly
         Utf8.TryWriteInterpolatedStringHandler handler = new(
             literalLength: 0,
             formattedCount: 1,

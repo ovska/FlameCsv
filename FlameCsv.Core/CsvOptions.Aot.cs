@@ -203,7 +203,7 @@ partial class CsvOptions<T>
 
             var local = _options._converters;
 
-            // null of the Converters-property is never accessed (no custom converters)
+            // null if the Converters-property is never accessed (no custom converters)
             if (local is not null)
             {
                 ReadOnlySpan<CsvConverter<T>> converters = local.Span;

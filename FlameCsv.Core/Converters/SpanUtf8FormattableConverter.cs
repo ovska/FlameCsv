@@ -26,18 +26,19 @@ internal sealed class SpanUtf8FormattableConverter<TValue> : CsvConverter<byte, 
     {
         if (source.Length == 0) return TValue.TryParse([], _provider, out value);
 
-        int len = Encoding.UTF8.GetMaxCharCount(source.Length);
+        int maxLength = Encoding.UTF8.GetMaxCharCount(source.Length);
 
         scoped Span<char> buffer;
         char[]? toReturn = null;
 
-        if (Token<char>.CanStackalloc(len))
+        if (Token<char>.CanStackalloc(maxLength) ||
+            Token<char>.CanStackalloc(maxLength = Encoding.UTF8.GetCharCount(source)))
         {
-            buffer = stackalloc char[len];
+            buffer = stackalloc char[maxLength];
         }
         else
         {
-            buffer = toReturn = ArrayPool<char>.Shared.Rent(len);
+            buffer = toReturn = ArrayPool<char>.Shared.Rent(maxLength);
         }
 
         int written = Encoding.UTF8.GetChars(source, buffer);

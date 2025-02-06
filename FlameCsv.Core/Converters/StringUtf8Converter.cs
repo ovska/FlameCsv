@@ -4,7 +4,7 @@ namespace FlameCsv.Converters;
 
 internal sealed class StringUtf8Converter : CsvConverter<byte, string>
 {
-    public static readonly StringUtf8Converter Instance = new();
+    public static StringUtf8Converter Instance { get; } = new();
 
     public override bool TryFormat(Span<byte> destination, string value, out int charsWritten)
     {

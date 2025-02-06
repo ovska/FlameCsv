@@ -91,7 +91,7 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
 
                 foreach (var attr in parameter.Attributes)
                 {
-                    if (attr is CsvFieldAttribute { Index: { } index })
+                    if (attr is CsvFieldAttribute { Index: var index })
                     {
                         list.Add(new ParameterCsvBinding<TValue>(index, parameter));
                         found = true;
