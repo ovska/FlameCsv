@@ -25,6 +25,7 @@ public static partial class TypeMapBindingTests
         [CsvConverter<char, EnumTextConverterFactory>]
         public DayOfWeek DOF { get; set; }
 
+        [CsvField(IsRequired = true)]
         public int? NullableInt { get; set; }
         public DayOfWeek? NullableDOF { get; set; }
 
