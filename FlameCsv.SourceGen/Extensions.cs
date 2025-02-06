@@ -6,6 +6,19 @@ namespace FlameCsv.SourceGen;
 
 internal static class Extensions
 {
+    public static object? GetNamedArgument(this AttributeData attribute, string argumentName)
+    {
+        foreach (var kvp in attribute.NamedArguments)
+        {
+            if (kvp.Key == argumentName)
+            {
+                return kvp.Value.Value;
+            }
+        }
+
+        return null;
+    }
+
     public static ImmutableArray<IMethodSymbol> GetInstanceConstructors(this ITypeSymbol type)
     {
         return type is INamedTypeSymbol namedType

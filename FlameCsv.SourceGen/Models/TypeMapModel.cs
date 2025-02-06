@@ -146,6 +146,19 @@ internal sealed record TypeMapModel
 
         ConstructorModel? typeConstructor = null;
 
+        if (SupportsAssemblyAttributes)
+        {
+#if USE_COMPILATION
+            TypeAttribute.ParseAssembly(
+                targetType,
+                compilation.Assembly,
+                cancellationToken,
+                ref typeConstructor,
+                in symbols,
+                ref collector);
+#endif
+        }
+
         foreach (var attr in targetType.GetAttributes())
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -158,32 +171,20 @@ internal sealed record TypeMapModel
             {
                 TypeAttribute.Parse(attr, cancellationToken, ref collector);
             }
-            else if (symbols.IsCsvConstructorAttribute(attr.AttributeClass))
+            else if (typeConstructor is null && symbols.IsCsvConstructorAttribute(attr.AttributeClass))
             {
-                typeConstructor = ConstructorModel.ParseConstructorAttribute(targetType, attr, false);
+                typeConstructor = ConstructorModel.ParseConstructorAttribute(targetType, attr);
             }
-        }
-
-        if (SupportsAssemblyAttributes)
-        {
-#if USE_COMPILATION
-            TypeAttribute.ParseAssembly(
-                targetType,
-                compilation.Assembly,
-                in symbols,
-                cancellationToken,
-                ref collector);
-#endif
         }
 
         // Parameters and members must be looped after type and assembly attributes are handled
 
         Parameters = ConstructorModel.ParseConstructor(
             targetType,
-            symbols,
             tokenSymbol,
             typeConstructor,
             cancellationToken,
+            in symbols,
             ref collector);
 
         cancellationToken.ThrowIfCancellationRequested();

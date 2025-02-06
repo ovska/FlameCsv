@@ -9,10 +9,7 @@ internal readonly struct ConstructorModel
     public AttributeData Attribute { get; init; }
     public ImmutableArray<TypedConstant> Types { get; init; }
 
-    public static ConstructorModel? ParseConstructorAttribute(
-        ITypeSymbol targetType,
-        AttributeData attribute,
-        bool _)
+    public static ConstructorModel? ParseConstructorAttribute(ITypeSymbol targetType, AttributeData attribute)
     {
         foreach (var arg in attribute.NamedArguments)
         {
@@ -32,10 +29,10 @@ internal readonly struct ConstructorModel
 
     public static EquatableArray<ParameterModel> ParseConstructor(
         ITypeSymbol targetType,
-        FlameSymbols symbols,
         ITypeSymbol tokenSymbol,
         ConstructorModel? typeConstructorAttribute,
         CancellationToken cancellationToken,
+        ref readonly FlameSymbols symbols,
         ref AnalysisCollector collector)
     {
         cancellationToken.ThrowIfCancellationRequested();
