@@ -32,6 +32,6 @@ public sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
     /// <inheritdoc/>
     public override bool TryParse(ReadOnlySpan<char> source, out TEnum value)
     {
-        return Enum.TryParse(source, _ignoreCase, out value)&& (_allowUndefinedValues || Enum.IsDefined(value));
+        return Enum.TryParse(source, _ignoreCase, out value) && (_allowUndefinedValues || Enum.IsDefined(value));
     }
 }
