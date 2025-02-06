@@ -59,6 +59,6 @@ internal sealed class TargetAttributeModel
         }
     }
 
-    public override bool Equals(object? obj) => throw new NotSupportedException();
-    public override int GetHashCode() => throw new NotSupportedException();
+    [ExcludeFromCodeCoverage] public override bool Equals(object? obj) => throw new NotSupportedException();
+    [ExcludeFromCodeCoverage] public override int GetHashCode() => throw new NotSupportedException();
 }

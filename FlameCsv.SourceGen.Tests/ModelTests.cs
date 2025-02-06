@@ -12,6 +12,37 @@ public static class ModelTests
         MetadataReference.CreateFromFile(typeof(Binding.CsvTypeMapAttribute<,>).Assembly.Location);
 
     [Fact]
+    public static void Test_AnalysisCollector()
+    {
+        var compilation = CSharpCompilation.Create(
+            nameof(Test_AnalysisCollector),
+            [
+                CSharpSyntaxTree.ParseText(
+                    """
+                    class First;
+                    class Second;
+                    """)
+            ],
+            [CoreAssembly, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+        var first = compilation.GetTypeByMetadataName("First")!;
+        var second = compilation.GetTypeByMetadataName("Second")!;
+        var objType = compilation.GetTypeByMetadataName("System.Object")!;
+
+        AnalysisCollector collector = new(objType);
+
+        collector.AddProxy(first, null);
+        collector.AddProxy(second, null);
+
+        collector.Free(out var diagnostics, out var ignoredHeaders, out var proxy);
+
+        Assert.Equal([Descriptors.MultipleTypeProxies.Id], diagnostics.Select(d => d.Id));
+        Assert.Empty(ignoredHeaders);
+        Assert.Null(proxy);
+    }
+
+    [Fact]
     public static void Test_TypeRef()
     {
         var compilation = CSharpCompilation.Create(
@@ -273,6 +304,7 @@ public static class ModelTests
                         [CsvConverterAttribute<char, InvalidCtor>] public object Invalid { get; set; }
                         [CsvConverterAttribute<char, Factory>] public object Factory { get; set; }
                         [CsvConverterAttribute<char, NotConstructible>] public object IsAbstract { get; set; }
+                        [CsvConverterAttribute<char, IntConverter>] public int? Wrappable { get; set; }
                         public object None { get; set; }
                     }
 
@@ -298,6 +330,12 @@ public static class ModelTests
                     {
                         public override bool CanConvert(Type type) => throw null;
                         public override CsvConverter<char> Create(Type type, CsvOptions<char> options) => throw null;
+                    }
+
+                    class IntConverter : CsvConverter<char, int>
+                    {
+                        public override bool TryFormat(Span<char> destination, int value, out int charsWritten) => throw null;
+                        public override bool TryParse(ReadOnlySpan<char> source, out int value) => throw null;
                     }
 
                     abstract class NotConstructible : CsvConverterFactory<char>
@@ -339,15 +377,16 @@ public static class ModelTests
             models.Add(model);
         }
 
-        Assert.Equal(5, models.Count);
+        Assert.Equal(6, models.Count);
 
-        (ConstructorArgumentType argType, bool isFactory, bool isAbstract)[] expected =
+        (ConstructorArgumentType argType, bool isFactory, bool isAbstract, bool wrap)[] expected =
         [
-            (argType: ConstructorArgumentType.Empty, isFactory: false, isAbstract: false),
-            (argType: ConstructorArgumentType.Options, isFactory: false, isAbstract: false),
-            (argType: ConstructorArgumentType.Invalid, isFactory: false, isAbstract: false),
-            (argType: ConstructorArgumentType.Empty, isFactory: true, isAbstract: false),
-            (argType: ConstructorArgumentType.Empty, isFactory: true, isAbstract: true),
+            (argType: ConstructorArgumentType.Empty, isFactory: false, isAbstract: false, wrap: false),
+            (argType: ConstructorArgumentType.Options, isFactory: false, isAbstract: false, wrap: false),
+            (argType: ConstructorArgumentType.Invalid, isFactory: false, isAbstract: false, wrap: false),
+            (argType: ConstructorArgumentType.Empty, isFactory: true, isAbstract: false, wrap: false),
+            (argType: ConstructorArgumentType.Empty, isFactory: true, isAbstract: true, wrap: false),
+            (argType: ConstructorArgumentType.Empty, isFactory: false, isAbstract: false, wrap: true),
         ];
 
         for (int i = 0; i < models.Count; i++)
@@ -355,10 +394,6 @@ public static class ModelTests
             Assert.Equal(expected[i].argType, models[i].ConstructorArguments);
             Assert.Equal(expected[i].isFactory, models[i].IsFactory);
         }
-
-        Assert.Equal(
-            [Descriptors.NoCsvFactoryConstructor.Id, Descriptors.CsvConverterAbstract.Id,],
-            collector.Diagnostics.Select(d => d.Id));
 
         // equality
         foreach (var member in classSymbol.GetMembers().OfType<IPropertySymbol>())
@@ -368,7 +403,11 @@ public static class ModelTests
                 ConverterModel.Create(charSymbol, member, objectSymbol, in flameSymbols, ref collector));
         }
 
-        collector.Free(out _, out _, out _);
+        collector.Free(out var diagnostics, out _, out _);
+
+        Assert.Equal(
+            [Descriptors.NoCsvFactoryConstructor.Id, Descriptors.CsvConverterAbstract.Id],
+            diagnostics.Select(d => d.Id));
     }
 
     [Fact]
@@ -434,6 +473,94 @@ public static class ModelTests
         Assert.Equal(SpecialType.System_Object, collector.Proxies[0].SpecialType);
 
         collector.Free(out _, out _, out _);
+    }
+
+    [Fact]
+    public static void Test_NestedType()
+    {
+        var compilation = CSharpCompilation.Create(
+            nameof(Test_NestedType),
+            [
+                CSharpSyntaxTree.ParseText(
+                    """
+                    partial class TestClass
+                    {
+                        partial abstract class Nested1
+                        {
+                            partial struct Nested2
+                            {
+                                partial ref struct Nested3
+                                {
+                                    partial readonly struct Nested4
+                                    {
+                                        partial class Target;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    """)
+            ],
+            [CoreAssembly, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+        var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
+
+        var nestedSymbol = semanticModel.GetDeclaredSymbol(
+            semanticModel
+                .SyntaxTree
+                .GetRoot()
+                .DescendantNodes()
+                .OfType<TypeDeclarationSyntax>()
+                .Single(s => s.Identifier.Text == "Target"))!;
+
+        var actual = NestedType.Parse(nestedSymbol);
+
+        EquatableArray<NestedType> expected =
+        [
+            new()
+            {
+                IsReadOnly = false,
+                IsRefLikeType = false,
+                IsAbstract = false,
+                IsValueType = false,
+                Name = "TestClass"
+            },
+            new()
+            {
+                IsReadOnly = false,
+                IsRefLikeType = false,
+                IsAbstract = true,
+                IsValueType = false,
+                Name = "Nested1"
+            },
+            new()
+            {
+                IsReadOnly = false,
+                IsRefLikeType = false,
+                IsAbstract = false,
+                IsValueType = true,
+                Name = "Nested2"
+            },
+            new()
+            {
+                IsReadOnly = false,
+                IsRefLikeType = true,
+                IsAbstract = false,
+                IsValueType = true,
+                Name = "Nested3"
+            },
+            new()
+            {
+                IsReadOnly = true,
+                IsRefLikeType = false,
+                IsAbstract = false,
+                IsValueType = true,
+                Name = "Nested4"
+            },
+        ];
+
+        Assert.Equal(expected, actual);
     }
 
     // ReSharper disable once UnusedParameter.Local
