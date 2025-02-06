@@ -15,15 +15,13 @@ internal readonly ref struct SymbolMetadata
     public int? Order { get; }
     public int? Index { get; }
 
-    public Location? GetLocation(CancellationToken cancellationToken)
-        => _attributeSyntax?.GetSyntax(cancellationToken).GetLocation();
+    public Location? Location => _attributeSyntax?.SyntaxTree.GetLocation(_attributeSyntax.Span);
 
     private readonly SyntaxReference? _attributeSyntax;
 
     public SymbolMetadata(
         string symbolActualName,
         ISymbol symbol,
-        CancellationToken cancellationToken,
         ref readonly FlameSymbols flameSymbols,
         ref AnalysisCollector collector)
     {
@@ -100,7 +98,7 @@ internal readonly ref struct SymbolMetadata
                 if (IsIgnored.HasValue && IsIgnored.Value != targeted.IsIgnored)
                 {
                     (names ??= PooledList<string>.Acquire()).Add("IsIgnored");
-                    (locations ??= PooledList<Location?>.Acquire()).Add(targeted.GetLocation(cancellationToken));
+                    (locations ??= PooledList<Location?>.Acquire()).Add(targeted.Location);
                 }
 
                 IsIgnored |= targeted.IsIgnored;
@@ -111,7 +109,7 @@ internal readonly ref struct SymbolMetadata
                 if (IsRequired.HasValue && IsRequired.Value != targeted.IsRequired)
                 {
                     (names ??= PooledList<string>.Acquire()).Add("IsRequired");
-                    (locations ??= PooledList<Location?>.Acquire()).Add(targeted.GetLocation(cancellationToken));
+                    (locations ??= PooledList<Location?>.Acquire()).Add(targeted.Location);
                 }
 
                 IsRequired |= targeted.IsRequired;
@@ -122,7 +120,7 @@ internal readonly ref struct SymbolMetadata
                 if (Order.HasValue && Order.Value != targeted.Order)
                 {
                     (names ??= PooledList<string>.Acquire()).Add("Order");
-                    (locations ??= PooledList<Location?>.Acquire()).Add(targeted.GetLocation(cancellationToken));
+                    (locations ??= PooledList<Location?>.Acquire()).Add(targeted.Location);
                 }
 
                 Order = targeted.Order;
@@ -133,7 +131,7 @@ internal readonly ref struct SymbolMetadata
                 if (Index.HasValue && Index.Value != targeted.Index)
                 {
                     (names ??= PooledList<string>.Acquire()).Add("Index");
-                    (locations ??= PooledList<Location?>.Acquire()).Add(targeted.GetLocation(cancellationToken));
+                    (locations ??= PooledList<Location?>.Acquire()).Add(targeted.Location);
                 }
 
                 Index = targeted.Index;
@@ -151,7 +149,7 @@ internal readonly ref struct SymbolMetadata
                         memberName: symbol.Name,
                         configurationName: names[i],
                         location: locations[i],
-                        additionalLocation: GetLocation(cancellationToken)));
+                        additionalLocation: Location));
             }
         }
 

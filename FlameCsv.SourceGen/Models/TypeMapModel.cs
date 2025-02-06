@@ -208,7 +208,6 @@ internal sealed record TypeMapModel
                 tokenSymbol,
                 targetType,
                 constructor,
-                cancellationToken,
                 in symbols,
                 ref collector);
 
@@ -294,13 +293,11 @@ internal sealed record TypeMapModel
                     IFieldSymbol fieldSymbol => PropertyModel.TryCreate(
                         tokenSymbol,
                         fieldSymbol,
-                        cancellationToken,
                         in symbols,
                         ref collector),
                     IPropertySymbol propertySymbol => PropertyModel.TryCreate(
                         tokenSymbol,
                         propertySymbol,
-                        cancellationToken,
                         in symbols,
                         ref collector),
                     _ => null
@@ -337,15 +334,17 @@ internal sealed record TypeMapModel
         Diagnostics.CheckIfFileScoped(containingClass, cancellationToken, ref collector);
         Diagnostics.CheckIfFileScoped(targetType, cancellationToken, ref collector);
 
-        collector.Free(cancellationToken, out var diagnostics, out var ignoredHeaders, out var proxy);
+        collector.Free(out var diagnostics, out var ignoredHeaders, out var proxy);
 
         ReportedDiagnostics = diagnostics;
         IgnoredHeaders = ignoredHeaders;
         Proxy = proxy;
 
+        cancellationToken.ThrowIfCancellationRequested();
+
         var allMembersBuilder = ImmutableArray.CreateBuilder<IMemberModel>(Properties.Length + Parameters.Length);
-        allMembersBuilder.AddRange(Properties.AsSpan());
         allMembersBuilder.AddRange(Parameters.AsSpan());
+        allMembersBuilder.AddRange(Properties.AsSpan());
 
         allMembersBuilder.Sort(
             static (b1, b2) =>

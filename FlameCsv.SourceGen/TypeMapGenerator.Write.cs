@@ -1,4 +1,5 @@
-﻿using FlameCsv.SourceGen.Models;
+﻿using FlameCsv.SourceGen.Helpers;
+using FlameCsv.SourceGen.Models;
 
 namespace FlameCsv.SourceGen;
 
@@ -12,33 +13,13 @@ public partial class TypeMapGenerator
         cancellationToken.ThrowIfCancellationRequested();
 
         writer.WriteLine();
-        writer.WriteLine(
-            $"protected override global::FlameCsv.Writing.IDematerializer<{typeMap.Token.Name}, {typeMap.Type.FullyQualifiedName}> BindForWriting(global::FlameCsv.CsvOptions<{typeMap.Token.FullyQualifiedName}> options)");
 
-        int writableCount = 0;
-
-        using (writer.WriteBlock())
-        {
-            writer.WriteLine("return new Dematerializer");
-
-            writer.WriteLine("{");
-            writer.IncreaseIndent();
-
-            foreach (var property in typeMap.AllMembers)
-            {
-                if (!property.CanWrite) continue;
-
-                property.WriteConverterName(writer);
-                writer.Write(" = ");
-                WriteConverter(writer, property);
-                writer.WriteLine(",");
-
-                writableCount++;
-            }
-
-            writer.DecreaseIndent();
-            writer.WriteLine("};");
-        }
+        WriteDematerializerCtor(
+            writer,
+            typeMap.Token.FullyQualifiedName,
+            typeMap.Type.FullyQualifiedName,
+            typeMap.AllMembers,
+            out int writableCount);
 
         writer.WriteLine();
 
@@ -124,6 +105,42 @@ public partial class TypeMapGenerator
                     first = false;
                 }
             }
+        }
+    }
+
+    internal static void WriteDematerializerCtor(
+        IndentedTextWriter writer,
+        string token,
+        string targetType,
+        EquatableArray<IMemberModel> members,
+        out int writableCount)
+    {
+        writer.WriteLine(
+            $"protected override global::FlameCsv.Writing.IDematerializer<{token}, {targetType}> BindForWriting(global::FlameCsv.CsvOptions<{token}> options)");
+
+        writableCount = 0;
+
+        using (writer.WriteBlock())
+        {
+            writer.WriteLine("return new Dematerializer");
+
+            writer.WriteLine("{");
+            writer.IncreaseIndent();
+
+            foreach (var property in members)
+            {
+                if (!property.CanWrite) continue;
+
+                property.WriteConverterName(writer);
+                writer.Write(" = ");
+                WriteConverter(writer, token, property);
+                writer.WriteLine(",");
+
+                writableCount++;
+            }
+
+            writer.DecreaseIndent();
+            writer.WriteLine("};");
         }
     }
 }

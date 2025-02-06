@@ -12,12 +12,12 @@ public partial class TypeMapGenerator
         cancellationToken.ThrowIfCancellationRequested();
 
         writer.Write("protected override global::FlameCsv.Reading.IMaterializer<");
-        writer.Write(typeMap.Token.Name);
+        writer.Write(typeMap.Token.FullyQualifiedName);
         writer.Write(", ");
         writer.Write(typeMap.Type.FullyQualifiedName);
         writer.Write(
             "> BindForReading(scoped global::System.ReadOnlySpan<string> headers, global::FlameCsv.CsvOptions<");
-        writer.Write(typeMap.Token.Name);
+        writer.Write(typeMap.Token.FullyQualifiedName);
         writer.WriteLine("> options)");
 
         using (writer.WriteBlock())
@@ -64,7 +64,7 @@ public partial class TypeMapGenerator
         writer.WriteLine();
 
         writer.WriteLine(
-            $"protected override global::FlameCsv.Reading.IMaterializer<{typeMap.Token.Name}, {typeMap.Type.FullyQualifiedName}> BindForReading(global::FlameCsv.CsvOptions<{typeMap.Token.Name}> options)");
+            $"protected override global::FlameCsv.Reading.IMaterializer<{typeMap.Token.FullyQualifiedName}, {typeMap.Type.FullyQualifiedName}> BindForReading(global::FlameCsv.CsvOptions<{typeMap.Token.FullyQualifiedName}> options)");
 
         using (writer.WriteBlock())
         {
@@ -91,7 +91,7 @@ public partial class TypeMapGenerator
         writer.WriteLine();
 
         writer.WriteLine(
-            $"private sealed class TypeMapMaterializer : global::FlameCsv.Reading.IMaterializer<{typeMap.Token.Name}, {typeMap.Type.FullyQualifiedName}>");
+            $"private sealed class TypeMapMaterializer : global::FlameCsv.Reading.IMaterializer<{typeMap.Token.FullyQualifiedName}, {typeMap.Type.FullyQualifiedName}>");
 
         using (writer.WriteBlock())
         {
@@ -100,7 +100,7 @@ public partial class TypeMapGenerator
                 if (!member.CanRead) continue;
                 cancellationToken.ThrowIfCancellationRequested();
                 writer.Write(
-                    $"public global::FlameCsv.CsvConverter<{typeMap.Token.Name}, {member.Type.FullyQualifiedName}> ");
+                    $"public global::FlameCsv.CsvConverter<{typeMap.Token.FullyQualifiedName}, {member.Type.FullyQualifiedName}> ");
                 member.WriteConverterName(writer);
                 writer.WriteLine(";");
             }
@@ -118,7 +118,7 @@ public partial class TypeMapGenerator
             writer.WriteLine();
 
             writer.WriteLine(
-                $"public {typeMap.Type.FullyQualifiedName} Parse<TReader>(ref TReader reader) where TReader : global::FlameCsv.Reading.ICsvRecordFields<{typeMap.Token.Name}>, allows ref struct");
+                $"public {typeMap.Type.FullyQualifiedName} Parse<TReader>(ref TReader reader) where TReader : global::FlameCsv.Reading.ICsvRecordFields<{typeMap.Token.FullyQualifiedName}>, allows ref struct");
 
             using (writer.WriteBlock())
             {
@@ -134,10 +134,11 @@ public partial class TypeMapGenerator
 
                 writer.WriteWithoutIndent(
                     """
+                    
                     #if RELEASE
-                                    global::System.Runtime.CompilerServices.Unsafe.SkipInit(out ParseState state);
+                                global::System.Runtime.CompilerServices.Unsafe.SkipInit(out ParseState state);
                     #else
-                                    ParseState state = default;
+                                ParseState state = default;
                     #endif
 
                     """);
@@ -148,7 +149,7 @@ public partial class TypeMapGenerator
                 writer.WriteLine("for (int target = 0; target < targets.Length; target++)");
                 using (writer.WriteBlock())
                 {
-                    writer.WriteLine($"global::System.ReadOnlySpan<{typeMap.Token.Name}> @field = reader[target];");
+                    writer.WriteLine($"global::System.ReadOnlySpan<{typeMap.Token.FullyQualifiedName}> @field = reader[target];");
                     writer.WriteLine();
                     writer.WriteLine("bool result = targets[target] switch");
                     writer.WriteLine("{");
@@ -213,7 +214,7 @@ public partial class TypeMapGenerator
             writer.WriteLine(doesNotReturnAttr);
             writer.WriteLine(noInliningAttr);
             writer.WriteLine(
-                $"private void ThrowForFailedParse(scoped global::System.ReadOnlySpan<{typeMap.Token.Name}> field, int target)");
+                $"private void ThrowForFailedParse(scoped global::System.ReadOnlySpan<{typeMap.Token.FullyQualifiedName}> field, int target)");
 
             using (writer.WriteBlock())
             {
@@ -259,8 +260,7 @@ public partial class TypeMapGenerator
             {
                 hasOptionalParameters = true;
                 writer.WriteLine();
-                writer.WriteLine(
-                    "// Default values of optional parameters (have a default value and are not required by attribute");
+                writer.WriteLine("// Default values of parameters that are not marked as required");
             }
 
             writer.Write($"state.{parameter.Identifier} = ");
@@ -496,9 +496,9 @@ public partial class TypeMapGenerator
                 writer.Write("materializer.");
                 member.WriteConverterName(writer);
                 writer.Write(" = ");
-                WriteConverter(writer, member);
+                WriteConverter(writer, typeMap.Token.FullyQualifiedName, member);
                 writer.WriteLine(";");
-                writer.WriteLine("materializer.Targets[index] = ");
+                writer.Write("materializer.Targets[index] = ");
                 member.WriteId(writer);
                 writer.WriteLine(";");
                 writer.WriteLine("continue;");
