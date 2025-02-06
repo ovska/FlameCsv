@@ -156,29 +156,49 @@ internal class CsvTypeInfo
     [MethodImpl(MethodImplOptions.NoInlining)]
     private ParameterData[] InitPrimaryCtorParams()
     {
-        foreach (var attribute in Attributes)
+        CsvConstructorAttribute? ctorAttr = null;
+
+        foreach (var attribute in AssemblyAttributes.Get(Type))
         {
-            if (attribute is CsvConstructorAttribute ctorAttr)
+            if (attribute is CsvConstructorAttribute csvCtor)
             {
-                if (ctorAttr.ParameterTypes is null)
-                {
-                    throw new CsvConfigurationException(
-                        $"Parameter types not set for [CsvConstructor] on type {Type.FullName}");
-                }
-
-                var ctor = Type.GetConstructor(
-                    BindingFlags.Instance | BindingFlags.Public,
-                    types: ctorAttr.ParameterTypes);
-
-                if (ctor is not null)
-                {
-                    return GetResult(ctor.GetParameters());
-                }
-
-                throw new CsvBindingException(
-                    Type,
-                    $"Constructor with parameter types {string.Join(", ", ctorAttr.ParameterTypes.Select(t => t.FullName))} not found.");
+                ctorAttr = csvCtor;
+                break;
             }
+        }
+
+        if (ctorAttr is null)
+        {
+            foreach (var attribute in Attributes)
+            {
+                if (attribute is CsvConstructorAttribute csvCtor)
+                {
+                    ctorAttr = csvCtor;
+                    break;
+                }
+            }
+        }
+
+        if (ctorAttr is not null)
+        {
+            if (ctorAttr.ParameterTypes is null)
+            {
+                throw new CsvConfigurationException(
+                    $"Parameter types not set for [CsvConstructor] on type {Type.FullName}");
+            }
+
+            var ctor = Type.GetConstructor(
+                BindingFlags.Instance | BindingFlags.Public,
+                types: ctorAttr.ParameterTypes);
+
+            if (ctor is not null)
+            {
+                return GetResult(ctor.GetParameters());
+            }
+
+            throw new CsvBindingException(
+                Type,
+                $"Constructor with parameter types {string.Join(", ", ctorAttr.ParameterTypes.Select(t => t.FullName))} not found.");
         }
 
         var ctors = Type.GetConstructors(BindingFlags.Instance | BindingFlags.Public);

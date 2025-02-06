@@ -35,8 +35,9 @@ internal static class TypeAttribute
     public static void ParseAssembly(
         ITypeSymbol targetType,
         IAssemblySymbol assembly,
-        ref readonly FlameSymbols symbols,
         CancellationToken cancellationToken,
+        ref ConstructorModel? typeConstructor,
+        ref readonly FlameSymbols symbols,
         ref AnalysisCollector collector)
     {
         foreach (var attribute in assembly.GetAttributes())
@@ -61,6 +62,14 @@ internal static class TypeAttribute
                         attribute.ConstructorArguments[0].Value as ITypeSymbol))
                 {
                     Parse(attribute, cancellationToken, ref collector);
+                }
+            }
+            else if (symbols.IsCsvConstructorAttribute(attrSymbol))
+            {
+                if (attribute.GetNamedArgument("TargetType") is ITypeSymbol target &&
+                    SymbolEqualityComparer.Default.Equals(targetType, target))
+                {
+                    typeConstructor = ConstructorModel.ParseConstructorAttribute(target, attribute);
                 }
             }
         }

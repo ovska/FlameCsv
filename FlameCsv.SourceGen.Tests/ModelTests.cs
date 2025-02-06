@@ -395,6 +395,11 @@ public static class ModelTests
             Assert.Equal(expected[i].isFactory, models[i].IsFactory);
         }
 
+        // need to do this here as we jam more diagnostics into the collector in the equality check below
+        Assert.Equal(
+            [Descriptors.NoCsvFactoryConstructor.Id, Descriptors.CsvConverterAbstract.Id],
+            collector.Diagnostics.Select(d => d.Id));
+
         // equality
         foreach (var member in classSymbol.GetMembers().OfType<IPropertySymbol>())
         {
@@ -403,11 +408,7 @@ public static class ModelTests
                 ConverterModel.Create(charSymbol, member, objectSymbol, in flameSymbols, ref collector));
         }
 
-        collector.Free(out var diagnostics, out _, out _);
-
-        Assert.Equal(
-            [Descriptors.NoCsvFactoryConstructor.Id, Descriptors.CsvConverterAbstract.Id],
-            diagnostics.Select(d => d.Id));
+        collector.Free(out _, out _, out _);
     }
 
     [Fact]
@@ -453,12 +454,14 @@ public static class ModelTests
 
         var flameSymbols = GetFlameSymbols(compilation, classSymbol);
         AnalysisCollector collector = new(classSymbol);
+        ConstructorModel? ctorModel = null;
 
         TypeAttribute.ParseAssembly(
             classSymbol,
             compilation.Assembly,
-            ref flameSymbols,
             CancellationToken.None,
+            ref ctorModel,
+            in flameSymbols,
             ref collector);
 
         Assert.Single(collector.TargetAttributes);
