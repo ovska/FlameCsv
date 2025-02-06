@@ -30,16 +30,37 @@ public abstract class CsvTypeMap<T, TValue> : CsvTypeMap where T : unmanaged, IB
     /// <summary>
     /// Disables caching of de/materializers for this type map.
     /// </summary>
+    /// <remarks>
+    /// Caching is enabled by default.
+    /// The cache is used on calls to public methods on the base class <see cref="CsvTypeMap"/>.
+    /// </remarks>
+    /// <seealso cref="GetMaterializer(ReadOnlySpan{string},CsvOptions{T})"/>
+    /// <seealso cref="GetMaterializer(FlameCsv.CsvOptions{T})"/>
+    /// <seealso cref="GetDematerializer"/>
     protected virtual bool NoCaching => false;
 
     /// <inheritdoc cref="GetMaterializer(ReadOnlySpan{string},CsvOptions{T})"/>
-    protected abstract IMaterializer<T, TValue> BindForReading(scoped ReadOnlySpan<string> headers, CsvOptions<T> options);
+    protected virtual IMaterializer<T, TValue> BindForReading(
+        scoped ReadOnlySpan<string> headers,
+        CsvOptions<T> options)
+    {
+        throw new CsvBindingException(
+            $"CsvTypeMap<{typeof(T)},{typeof(TValue)}>.{nameof(BindForReading)}(ReadOnlySpan<string>, CsvOptions<{typeof(T)}>) is not overridden by {GetType().FullName}.");
+    }
 
     /// <inheritdoc cref="GetMaterializer(CsvOptions{T})"/>
-    protected abstract IMaterializer<T, TValue> BindForReading(CsvOptions<T> options);
+    protected virtual IMaterializer<T, TValue> BindForReading(CsvOptions<T> options)
+    {
+        throw new CsvBindingException(
+            $"CsvTypeMap<{typeof(T)},{typeof(TValue)}>.{nameof(BindForReading)}() is not overridden by {GetType().FullName}.");
+    }
 
     /// <inheritdoc cref="GetDematerializer"/>
-    protected abstract IDematerializer<T, TValue> BindForWriting(CsvOptions<T> options);
+    protected virtual IDematerializer<T, TValue> BindForWriting(CsvOptions<T> options)
+    {
+        throw new CsvBindingException(
+            $"CsvTypeMap<{typeof(T)},{typeof(TValue)}>.{nameof(BindForWriting)}() is not overridden by {GetType().FullName}.");
+    }
 
     /// <summary>
     /// Returns a materializer for <typeparamref name="TValue"/> bound to CSV header.
@@ -123,9 +144,7 @@ public abstract class CsvTypeMap
 {
     private protected static readonly TrimmingCache<object, object> _readNoHeaderCache = new();
     private protected static readonly TrimmingCache<object, object> _writeCache = new();
-
-    private protected static readonly TrimmingCache<CacheKey, object> _readHeaderCache
-        = new(EqualityComparer<CacheKey>.Default);
+    private protected static readonly TrimmingCache<CacheKey, object> _readHeaderCache = new();
 
     /// <summary>
     /// Returns the mapped type.
