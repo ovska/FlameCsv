@@ -18,3 +18,4 @@
  FLAMESG202 | Usage    | Error    | Diagnostics 
  FLAMESG203 | Usage    | Error    | Diagnostics 
  FLAMESG204 | Usage    | Error    | Diagnostics 
+FLAMESG205 | Usage | Error | Descriptors
