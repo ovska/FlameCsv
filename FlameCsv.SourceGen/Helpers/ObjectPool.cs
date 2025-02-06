@@ -18,60 +18,15 @@ using System.Runtime.ConstrainedExecution;
 
 namespace FlameCsv.SourceGen.Helpers;
 
-internal static class PooledSet<T>
-{
-    private static readonly ObjectPool<HashSet<T>> _pool = new(() => []);
-
-    public static HashSet<T> Acquire()
-    {
-        var instance = _pool.Allocate();
-        Debug.Assert(instance.Count == 0);
-        return instance;
-    }
-
-    public static void Release(HashSet<T>? set)
-    {
-        if (set is null) return;
-
-        if (set.Count >= 256)
-        {
-            // don't pool large sets
-            return;
-        }
-
-        set.Clear();
-        _pool.Free(set);
-    }
-}
-
-internal static class PooledList<T>
-{
-    private static readonly ObjectPool<List<T>> _pool = new(() => []);
-
-    public static List<T> Acquire()
-    {
-        var instance = _pool.Allocate();
-        Debug.Assert(instance.Count == 0);
-        return instance;
-    }
-
-    public static void Release(List<T>? list)
-    {
-        if (list is null) return;
-
-        if (list.Count >= 256)
-        {
-            // don't pool large lists
-            return;
-        }
-
-        list.Clear();
-        _pool.Free(list);
-    }
-}
-
 internal static class ObjectPool
 {
+    public static string ToStringAndFree(this StringBuilder builder)
+    {
+        var result = builder.ToString();
+        PooledStringBuilder.Release(builder);
+        return result;
+    }
+
     public static EquatableArray<T> ToEquatableArrayAndFree<T>(this HashSet<T> set) where T : IEquatable<T?>
     {
         var result = set.Count == 0 ? [] : set.ToEquatableArray();
