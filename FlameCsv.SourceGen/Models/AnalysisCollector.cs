@@ -1,4 +1,5 @@
-﻿using FlameCsv.SourceGen.Helpers;
+﻿using System.Collections.Immutable;
+using FlameCsv.SourceGen.Helpers;
 using DiagnosticsStatic = FlameCsv.SourceGen.Diagnostics;
 
 namespace FlameCsv.SourceGen.Models;
@@ -59,7 +60,7 @@ internal ref struct AnalysisCollector
             }
 
 
-            ignoredHeaders = IgnoredHeaders.ToEquatableArrayAndFree();
+            ignoredHeaders = [..IgnoredHeaders];
 
             if (Proxies.Count == 1)
             {
@@ -74,12 +75,15 @@ internal ref struct AnalysisCollector
 
                 proxy = null;
             }
+
+            // do this last as diagnostics are added in this method
+            diagnostics = [..Diagnostics];
         }
         finally
         {
-            // do this last as diagnostics are added in this method
-            diagnostics = Diagnostics.ToEquatableArrayAndFree();
+            PooledList<Diagnostic>.Release(Diagnostics);
             PooledList<TargetAttributeModel>.Release(TargetAttributes);
+            PooledSet<string>.Release(IgnoredHeaders);
             PooledList<ITypeSymbol>.Release(Proxies);
             PooledList<Location?>.Release(ProxyLocations);
             this = default;

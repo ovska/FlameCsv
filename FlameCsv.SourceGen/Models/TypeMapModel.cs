@@ -90,9 +90,9 @@ internal sealed record TypeMapModel
     public bool HasRequiredMembers { get; }
 
     /// <summary>
-    /// Problem diagnostics for the type map.
+    /// Whether there are no error diagnostics.
     /// </summary>
-    public EquatableArray<Diagnostic> ReportedDiagnostics { get; }
+    public bool CanGenerateCode { get; }
 
     public TypeMapModel(
 #if USE_COMPILATION
@@ -100,7 +100,8 @@ internal sealed record TypeMapModel
 #endif
         INamedTypeSymbol containingClass,
         AttributeData attribute,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        out EquatableArray<Diagnostic> diagnostics)
     {
         TypeMap = new TypeRef(containingClass);
 
@@ -334,12 +335,6 @@ internal sealed record TypeMapModel
         Diagnostics.CheckIfFileScoped(containingClass, cancellationToken, ref collector);
         Diagnostics.CheckIfFileScoped(targetType, cancellationToken, ref collector);
 
-        collector.Free(out var diagnostics, out var ignoredHeaders, out var proxy);
-
-        ReportedDiagnostics = diagnostics;
-        IgnoredHeaders = ignoredHeaders;
-        Proxy = proxy;
-
         cancellationToken.ThrowIfCancellationRequested();
 
         var allMembersBuilder = ImmutableArray.CreateBuilder<IMemberModel>(Properties.Length + Parameters.Length);
@@ -362,5 +357,11 @@ internal sealed record TypeMapModel
             });
 
         AllMembers = new EquatableArray<IMemberModel>(allMembersBuilder.ToImmutable());
+
+        collector.Free(out diagnostics, out var ignoredHeaders, out var proxy);
+
+        CanGenerateCode = diagnostics.IsEmpty;
+        IgnoredHeaders = ignoredHeaders;
+        Proxy = proxy;
     }
 }

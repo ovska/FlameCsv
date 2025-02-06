@@ -1,4 +1,6 @@
-﻿using FlameCsv.SourceGen.Models;
+﻿using System.Collections.Immutable;
+using FlameCsv.SourceGen.Helpers;
+using FlameCsv.SourceGen.Models;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace FlameCsv.SourceGen;
@@ -8,53 +10,68 @@ public partial class TypeMapGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        IncrementalValuesProvider<TypeMapModel> typeMapTargets = context
-            .SyntaxProvider
-            .ForAttributeWithMetadataName(
-                "FlameCsv.Binding.CsvTypeMapAttribute`2",
-                static (syntaxNode, cancellationToken) =>
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    return syntaxNode is ClassDeclarationSyntax;
-                },
-                static (context, cancellationToken) =>
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    return (ContainingClass: (INamedTypeSymbol)context.TargetSymbol, Attribute: context.Attributes[0]);
-                })
-            .Where(static tuple => tuple.ContainingClass.CanBeReferencedByName)
-            .WithTrackingName("FlameCsv_Target")
+        IncrementalValuesProvider<(TypeMapModel typeMap, EquatableArray<Diagnostic> diagnostics)> typeMapDiagnostics
+            = context
+                .SyntaxProvider
+                .ForAttributeWithMetadataName(
+                    "FlameCsv.Binding.CsvTypeMapAttribute`2",
+                    static (syntaxNode, cancellationToken) =>
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        return syntaxNode is ClassDeclarationSyntax;
+                    },
+                    static (context, cancellationToken) =>
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        return (ContainingClass: (INamedTypeSymbol)context.TargetSymbol,
+                            Attribute: context.Attributes[0]);
+                    })
+                .Where(static tuple => tuple.ContainingClass.CanBeReferencedByName)
+                .WithTrackingName("FlameCsv_Target")
 #if USE_COMPILATION
-            .Combine(context.CompilationProvider.WithTrackingName("FlameCsv_Compilation"))
-            .Select(
-                static (tuple, cancellationToken) => new TypeMapModel(
-                    compilation: tuple.Right,
-                    containingClass: tuple.Left.ContainingClass,
-                    attribute: tuple.Left.Attribute,
-                    cancellationToken))
+                .Combine(context.CompilationProvider.WithTrackingName("FlameCsv_Compilation"))
+                .Select(
+                    static (tuple, cancellationToken) =>
+                    {
+                        var typeMap = new TypeMapModel(
+                            compilation: tuple.Right,
+                            containingClass: tuple.Left.ContainingClass,
+                            attribute: tuple.Left.Attribute,
+                            cancellationToken,
+                            out EquatableArray<Diagnostic> diagnostics);
+
+                        return (typeMap, diagnostics);
+                    })
 #else
             .Select(
-                static (value, cancellationToken) => new TypeMapModel(
-                    containingClass: value.ContainingClass,
-                    attribute: value.Attribute,
-                    cancellationToken))
-#endif
-            .WithTrackingName("FlameCsv_TypeMap");
+                static (value, cancellationToken) =>
+                {
+                    var typeMap = new TypeMapModel(
+                        containingClass: value.ContainingClass,
+                        attribute: value.Attribute,
+                        cancellationToken,
+                        out EquatableArray<Diagnostic> diagnostics);
 
-        context.RegisterSourceOutput(typeMapTargets, static (spc, source) => Execute(source, spc));
+                    return (typeMap, diagnostics);
+                })
+#endif
+                .WithTrackingName("FlameCsv_TypeMapAndDiagnostics");
+
+        context.RegisterSourceOutput(
+            typeMapDiagnostics.Select(static (tuple, _) => tuple.diagnostics).WithTrackingName("FlameCsv_Diagnostics"),
+            static (context, diagnostics) =>
+            {
+                foreach (var diagnostic in diagnostics) context.ReportDiagnostic(diagnostic);
+            });
+
+        context.RegisterSourceOutput(
+            typeMapDiagnostics.Select(static (tuple, _) => tuple.typeMap).WithTrackingName("FlameCsv_TypeMap"),
+            static (context, source) => Execute(source, context));
     }
 
     private static void Execute(TypeMapModel typeMap, SourceProductionContext context)
     {
-        if (typeMap.ReportedDiagnostics.Length != 0)
-        {
-            foreach (var diagnostic in typeMap.ReportedDiagnostics)
-            {
-                context.ReportDiagnostic(diagnostic);
-            }
-
-            return;
-        }
+        if (!typeMap.CanGenerateCode) return;
 
         StringBuilder sourceName = new(capacity: 32);
 
