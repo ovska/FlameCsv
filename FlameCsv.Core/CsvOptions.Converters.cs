@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using FlameCsv.Binding;
 using FlameCsv.Extensions;
 using JetBrains.Annotations;
 #if DEBUG
@@ -82,6 +83,11 @@ partial class CsvOptions<T>
     [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
     public CsvConverter<T, TResult> GetConverter<TResult>()
     {
+        if (typeof(TResult) == typeof(CsvIgnored))
+        {
+            return CsvIgnored.Converter<T, TResult>();
+        }
+
         return (CsvConverter<T, TResult>)GetConverter(typeof(TResult));
     }
 
