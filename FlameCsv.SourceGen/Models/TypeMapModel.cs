@@ -90,7 +90,8 @@ internal sealed record TypeMapModel
     public bool HasRequiredMembers { get; }
 
     /// <summary>
-    /// Whether there are no error diagnostics.
+    /// Whether there are no error diagnostics.<br/>
+    /// Code can never be generated when there is even a single error diagnostic.
     /// </summary>
     public bool CanGenerateCode { get; }
 

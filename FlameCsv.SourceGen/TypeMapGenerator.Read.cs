@@ -34,6 +34,7 @@ public partial class TypeMapGenerator
                 writer.WriteLine("string name = headers[index];");
 
                 WriteMatchers(writer, typeMap, cancellationToken);
+                writer.WriteLine();
 
                 if (typeMap.IgnoreUnmatched)
                 {
@@ -134,7 +135,7 @@ public partial class TypeMapGenerator
 
                 writer.WriteWithoutIndent(
                     """
-                    
+
                     #if RELEASE
                                 global::System.Runtime.CompilerServices.Unsafe.SkipInit(out ParseState state);
                     #else
@@ -149,7 +150,8 @@ public partial class TypeMapGenerator
                 writer.WriteLine("for (int target = 0; target < targets.Length; target++)");
                 using (writer.WriteBlock())
                 {
-                    writer.WriteLine($"global::System.ReadOnlySpan<{typeMap.Token.FullyQualifiedName}> @field = reader[target];");
+                    writer.WriteLine(
+                        $"global::System.ReadOnlySpan<{typeMap.Token.FullyQualifiedName}> @field = reader[target];");
                     writer.WriteLine();
                     writer.WriteLine("bool result = targets[target] switch");
                     writer.WriteLine("{");
@@ -314,15 +316,18 @@ public partial class TypeMapGenerator
         {
             writer.WriteLine();
 
-            using (writer.WriteBlock())
+            writer.WriteLine("{");
+            writer.IncreaseIndent();
+
+            foreach (var property in typeMap.Properties)
             {
-                foreach (var property in typeMap.Properties)
-                {
-                    writer.WriteLineIf(
-                        property.IsRequired,
-                        $"{property.Identifier} = state.{property.Identifier},");
-                }
+                writer.WriteLineIf(
+                    property.IsRequired,
+                    $"{property.Identifier} = state.{property.Identifier},");
             }
+
+            writer.DecreaseIndent();
+            writer.Write("}");
         }
 
         writer.WriteLine(";");
@@ -426,8 +431,8 @@ public partial class TypeMapGenerator
                 writer.Write($"comparer.Equals(name, {typeMap.IgnoredHeaders[i].ToStringLiteral()}");
             }
 
-            writer.WriteLine("))");
             writer.DecreaseIndent();
+            writer.WriteLine("))");
 
             using (writer.WriteBlock())
             {
