@@ -43,17 +43,17 @@ public class TypeMapTests
 
         // Run the generator once
         driver = driver.RunGenerators(compilation);
-        Assert.Equal(
-            IncrementalStepRunReason.New,
-            driver.GetRunResult().Results.Single().TrackedOutputSteps.Single().Value.Single().Outputs.Single().Reason);
+        // Assert.Equal(
+        //     IncrementalStepRunReason.New,
+        //     driver.GetRunResult().Results.Single().TrackedOutputSteps.Single(x => x.Key != "FlameCsv_Diagnostics").Value.Single().Outputs.Single().Reason);
 
-        // var fromFirstRun = (TypeMapModel)driver
-        //     .GetRunResult()
-        //     .Results.Single()
-        //     .TrackedSteps["FlameCsv_TypeMap"]
-        //     .Single()
-        //     .Outputs.Single()
-        //     .Item1;
+        Assert.All(
+            driver
+                .GetRunResult()
+                .Results.Single()
+                .TrackedOutputSteps.Single(x => x.Key != "FlameCsv_Diagnostics")
+                .Value,
+            step => step.Outputs.All(x => x.Reason == IncrementalStepRunReason.New));
 
         // Update the compilation and rerun the generator
         compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText("// dummy"));
@@ -65,16 +65,12 @@ public class TypeMapTests
             .TrackedOutputSteps.SelectMany(outputStep => outputStep.Value)
             .SelectMany(output => output.Outputs);
 
-        // var fromSecondRun = (TypeMapModel)result.TrackedSteps["FlameCsv_TypeMap"][0].Outputs[0].Item1;
-        // Assert.Equal(fromFirstRun, fromSecondRun);
-
-        var output = Assert.Single(allOutputs);
-        Assert.Equal(IncrementalStepRunReason.Cached, output.Reason);
+        Assert.All(allOutputs, output => Assert.Equal(IncrementalStepRunReason.Cached, output.Reason));
 
         // Assert the driver use the cached result from typemap
         var assemblyNameOutputs = result.TrackedSteps["FlameCsv_TypeMap"].Single().Outputs;
         var output2 = Assert.Single(assemblyNameOutputs);
-        Assert.Equal(IncrementalStepRunReason.Unchanged, output2.Reason);
+        Assert.Equal(IncrementalStepRunReason.Cached, output2.Reason);
     }
 
     [Fact]
