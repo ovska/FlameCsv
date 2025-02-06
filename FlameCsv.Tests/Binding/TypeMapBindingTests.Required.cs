@@ -22,13 +22,16 @@ public static partial class TypeMapBindingTests
         public int Id { get; set; }
         public string? Name { get; set; }
 
-        [CsvConverter<char, EnumTextConverter<DayOfWeek>>]
+        [CsvConverter<char, EnumTextConverterFactory>]
         public DayOfWeek DOF { get; set; }
 
         public int? NullableInt { get; set; }
         public DayOfWeek? NullableDOF { get; set; }
 
         bool ISomething.Xyzz { get; set; }
+
+        [CsvField(IsIgnored = true)]
+        public long SomeValue { get; set; }
     }
 
     [CsvTypeMap<char, _Obj>]

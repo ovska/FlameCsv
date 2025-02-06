@@ -94,7 +94,6 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
         ITypeSymbol token,
         ITypeSymbol targetType,
         IMethodSymbol constructor,
-        CancellationToken cancellationToken,
         ref readonly FlameSymbols symbols,
         ref AnalysisCollector collector)
     {
@@ -105,7 +104,7 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
         for (int index = 0; index < parameters.Length; index++)
         {
             IParameterSymbol parameter = parameters[index];
-            SymbolMetadata meta = new(parameter.Name, parameter, cancellationToken, in symbols, ref collector);
+            SymbolMetadata meta = new(parameter.Name, parameter, in symbols, ref collector);
 
             ParameterModel parameterModel = new()
             {

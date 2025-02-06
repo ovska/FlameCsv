@@ -40,7 +40,6 @@ internal ref struct AnalysisCollector
     }
 
     public void Free(
-        CancellationToken cancellationToken,
         out EquatableArray<Diagnostic> diagnostics,
         out EquatableArray<string> ignoredHeaders,
         out TypeRef? proxy)
@@ -54,7 +53,7 @@ internal ref struct AnalysisCollector
                     AddDiagnostic(
                         DiagnosticsStatic.TargetMemberNotFound(
                             _targetType,
-                            targetAttribute.GetLocation(cancellationToken),
+                            targetAttribute.Location,
                             targetAttribute));
                 }
             }

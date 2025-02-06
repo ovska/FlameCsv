@@ -4,9 +4,16 @@ namespace FlameCsv.SourceGen;
 
 public partial class TypeMapGenerator
 {
-    private static void WriteConverter(IndentedTextWriter writer, IMemberModel member)
+    internal static void WriteConverter(IndentedTextWriter writer, string token, IMemberModel member)
     {
-        bool wrapInNullable = member.OverriddenConverter?.WrapInNullable ??
+        if (member.IsIgnored)
+        {
+            writer.Write($"global::FlameCsv.Binding.CsvIgnored.Converter<{token}, {member.Type.FullyQualifiedName}>()");
+            return;
+        }
+
+        bool wrapInNullable =
+            member.OverriddenConverter?.WrapInNullable ??
             member.Type.SpecialType == SpecialType.System_Nullable_T;
 
         if (wrapInNullable)
@@ -20,29 +27,27 @@ public partial class TypeMapGenerator
         {
             writer.Write(member.Type.IsEnumOrNullableEnum ? "options.GetOrCreateEnum<" : "options.GetConverter<");
 
-            Range range = member.Type.SpecialType == SpecialType.System_Nullable_T ? ..^1 : Range.All;
+            Range range = member.Type.SpecialType == SpecialType.System_Nullable_T ? (..^1) : (..);
             writer.Write(member.Type.FullyQualifiedName.AsSpan()[range]);
 
             writer.Write(">()");
         }
         else
         {
+            if (converter.IsFactory)
+            {
+                writer.Write($"(global::FlameCsv.CsvConverter<{token}, {member.Type.FullyQualifiedName}>)");
+            }
+
             writer.Write("new ");
             writer.Write(converter.ConverterType.FullyQualifiedName);
-            writer.Write("(");
-            writer.Write(
-                converter.ConstructorArguments switch
-                {
-                    ConstructorArgumentType.Options => "options",
-                    _ => "",
-                });
-            writer.Write(")");
+            writer.Write(converter.ConstructorArguments == ConstructorArgumentType.Options ? "(options)" : "()");
 
             if (converter.IsFactory)
             {
-                writer.Write(".Create<");
+                writer.Write(".Create(typeof(");
                 writer.Write(member.Type.FullyQualifiedName);
-                writer.Write(">(options)");
+                writer.Write("), options)");
             }
         }
 

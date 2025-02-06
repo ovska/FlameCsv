@@ -31,6 +31,11 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
     public required bool IsRequired { get; init; }
 
     /// <summary>
+    /// Whether the property is ignored when reading CSV.
+    /// </summary>
+    public required bool IsIgnored { get; init; }
+
+    /// <summary>
     /// Order of the property/field.
     /// </summary>
     public required int? Order { get; init; }
@@ -77,7 +82,6 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
     public static PropertyModel? TryCreate(
         ITypeSymbol token,
         IPropertySymbol propertySymbol,
-        CancellationToken cancellationToken,
         ref readonly FlameSymbols symbols,
         ref AnalysisCollector collector)
     {
@@ -112,7 +116,6 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
         SymbolMetadata meta = new(
             explicitPropertyOriginalName ?? propertySymbol.Name,
             propertySymbol,
-            cancellationToken,
             in symbols,
             ref collector);
 
@@ -121,7 +124,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
             collector.AddDiagnostic(
                 Diagnostics.ExplicitInterfaceRequired(
                     propertySymbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
-                    meta.GetLocation(cancellationToken)));
+                    meta.Location));
         }
 
         return new PropertyModel
@@ -130,6 +133,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
             Identifier = explicitPropertyName ?? propertySymbol.Name,
             Name = explicitPropertyOriginalName ?? propertySymbol.Name,
             IsProperty = true,
+            IsIgnored = meta.IsIgnored ?? false,
             IsRequired
                 = meta.IsRequired is true ||
                 propertySymbol.IsRequired ||
@@ -137,7 +141,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
             Names = meta.Names,
             Order = meta.Order,
             CanRead = !propertySymbol.IsReadOnly,
-            CanWrite = !propertySymbol.IsWriteOnly,
+            CanWrite = !propertySymbol.IsWriteOnly && meta.IsIgnored is not true,
             OverriddenConverter
                 = ConverterModel.Create(token, propertySymbol, propertySymbol.Type, in symbols, ref collector),
             ExplicitInterfaceOriginalDefinitionName
@@ -148,7 +152,6 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
     public static PropertyModel? TryCreate(
         ITypeSymbol token,
         IFieldSymbol fieldSymbol,
-        CancellationToken cancellationToken,
         ref readonly FlameSymbols symbols,
         ref AnalysisCollector collector)
     {
@@ -158,19 +161,20 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
             return null;
         }
 
-        SymbolMetadata meta = new(fieldSymbol.Name, fieldSymbol, cancellationToken, in symbols, ref collector);
+        SymbolMetadata meta = new(fieldSymbol.Name, fieldSymbol, in symbols, ref collector);
 
         return new PropertyModel
         {
             Type = new TypeRef(fieldSymbol.Type),
             IsProperty = false,
             IsRequired = meta.IsRequired is true || fieldSymbol.IsRequired,
+            IsIgnored = meta.IsIgnored ?? false,
             Identifier = fieldSymbol.Name,
             Name = fieldSymbol.Name,
             Names = meta.Names,
             Order = meta.Order ?? 0,
             CanRead = !fieldSymbol.IsReadOnly,
-            CanWrite = true,
+            CanWrite = meta.IsIgnored is not true,
             ExplicitInterfaceOriginalDefinitionName = null,
             OverriddenConverter = ConverterModel.Create(
                 token,

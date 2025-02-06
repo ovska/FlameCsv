@@ -110,7 +110,6 @@ public static class ModelTests
             charSymbol,
             charSymbol,
             method,
-            CancellationToken.None,
             in flameSymbols,
             ref collector);
 
@@ -145,11 +144,10 @@ public static class ModelTests
                 charSymbol,
                 charSymbol,
                 method,
-                CancellationToken.None,
                 in flameSymbols,
                 ref collector));
 
-        collector.Free(CancellationToken.None, out _, out _, out _);
+        collector.Free(out _, out _, out _);
     }
 
     [Fact]
@@ -223,7 +221,7 @@ public static class ModelTests
             }
         }
 
-        collector.Free(CancellationToken.None, out _, out _, out _);
+        collector.Free(out _, out _, out _);
 
         EquatableArray<PropertyModel> GetProperties(in FlameSymbols symbols, ref AnalysisCollector collector)
         {
@@ -236,13 +234,11 @@ public static class ModelTests
                     IPropertySymbol propertySymbol => PropertyModel.TryCreate(
                         charSymbol,
                         propertySymbol,
-                        CancellationToken.None,
                         in symbols,
                         ref collector),
                     IFieldSymbol fieldSymbol => PropertyModel.TryCreate(
                         charSymbol,
                         fieldSymbol,
-                        CancellationToken.None,
                         in symbols,
                         ref collector),
                     _ => null
@@ -372,7 +368,7 @@ public static class ModelTests
                 ConverterModel.Create(charSymbol, member, objectSymbol, in flameSymbols, ref collector));
         }
 
-        collector.Free(CancellationToken.None, out _, out _, out _);
+        collector.Free(out _, out _, out _);
     }
 
     [Fact]
@@ -429,7 +425,7 @@ public static class ModelTests
         Assert.Single(collector.TargetAttributes);
         Assert.Equal("Prop", collector.TargetAttributes[0].MemberName);
         Assert.Equal(["_prop"], collector.TargetAttributes[0].Names.Select(x => x.Value?.ToString()));
-        Assert.NotNull(collector.TargetAttributes[0].GetLocation(CancellationToken.None));
+        Assert.NotNull(collector.TargetAttributes[0].Location);
 
         Assert.Single(collector.IgnoredHeaders);
         Assert.Equal("value", collector.IgnoredHeaders.Single());
@@ -437,7 +433,7 @@ public static class ModelTests
         Assert.Single(collector.Proxies);
         Assert.Equal(SpecialType.System_Object, collector.Proxies[0].SpecialType);
 
-        collector.Free(CancellationToken.None, out _, out _, out _);
+        collector.Free(out _, out _, out _);
     }
 
     // ReSharper disable once UnusedParameter.Local
