@@ -109,4 +109,12 @@ internal static class Descriptors
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor NoMatchingConstructor = new(
+        id: "FLAMESG205",
+        title: "No matching constructor",
+        messageFormat: "No constructor found for {0} with the parameter types [{1}]",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }

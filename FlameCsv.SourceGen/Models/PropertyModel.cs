@@ -65,7 +65,8 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
     /// </summary>
     public required ConverterModel? OverriddenConverter { get; init; }
 
-    public int CompareTo(PropertyModel other) => (other.Order ?? 0).CompareTo(Order ?? 0); // reverse sort so higher order is first
+    public int CompareTo(PropertyModel other)
+        => (other.Order ?? 0).CompareTo(Order ?? 0); // reverse sort so higher order is first
 
     public void WriteId(IndentedTextWriter writer)
     {
@@ -134,10 +135,10 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
             Name = explicitPropertyOriginalName ?? propertySymbol.Name,
             IsProperty = true,
             IsIgnored = meta.IsIgnored ?? false,
-            IsRequired
-                = meta.IsRequired is true ||
+            IsRequired =
+                meta.IsRequired is true ||
                 propertySymbol.IsRequired ||
-                propertySymbol is { SetMethod.IsInitOnly: true },
+                propertySymbol.SetMethod is { IsInitOnly: true },
             Names = meta.Names,
             Order = meta.Order,
             CanRead = !propertySymbol.IsReadOnly,
