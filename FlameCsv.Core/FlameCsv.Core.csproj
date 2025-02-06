@@ -116,6 +116,9 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>CsvWriter.Generated.cs.tt</DependentUpon>
     </Compile>
+    <Compile Update="CsvOptions.Aot.cs">
+      <DependentUpon>CsvOptions.cs</DependentUpon>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup>

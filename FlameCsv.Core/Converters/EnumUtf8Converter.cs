@@ -35,7 +35,8 @@ public sealed class EnumUtf8Converter<TEnum>
 
         scoped Span<char> chars;
 
-        if (Token<char>.CanStackalloc(maxLength))
+        if (Token<char>.CanStackalloc(maxLength) ||
+            Token<char>.CanStackalloc(maxLength = Encoding.UTF8.GetCharCount(source)))
         {
             chars = stackalloc char[maxLength];
         }
@@ -46,11 +47,14 @@ public sealed class EnumUtf8Converter<TEnum>
 
         int written = Encoding.UTF8.GetChars(source, chars);
 
-        bool result = Enum.TryParse(chars[..written], _ignoreCase, out value)
-            && (_allowUndefinedValues || Enum.IsDefined(value));
+        bool result =
+            Enum.TryParse(chars[..written], _ignoreCase, out value) &&
+            (_allowUndefinedValues || Enum.IsDefined(value));
 
         if (toReturn is not null)
+        {
             ArrayPool<char>.Shared.Return(toReturn);
+        }
 
         return result;
     }
