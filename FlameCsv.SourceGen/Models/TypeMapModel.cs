@@ -85,15 +85,15 @@ internal sealed record TypeMapModel
     public TypeRef? Proxy { get; }
 
     /// <summary>
-    /// Whether the typemap has any members or parameters that must be matched when reading.
-    /// </summary>
-    public bool HasRequiredMembers { get; }
-
-    /// <summary>
     /// Whether there are no error diagnostics.<br/>
     /// Code can never be generated when there is even a single error diagnostic.
     /// </summary>
     public bool CanGenerateCode { get; }
+
+    /// <summary>
+    /// Whether the typemap has any members or parameters that must be matched when reading.
+    /// </summary>
+    public bool HasRequiredMembers => AllMembers.AsImmutableArray().Any(static m => m.IsRequired);
 
     public TypeMapModel(
 #if USE_COMPILATION
@@ -144,6 +144,8 @@ internal sealed record TypeMapModel
         InGlobalNamespace = containingClass.ContainingNamespace.IsGlobalNamespace;
         Namespace = containingClass.ContainingNamespace.ToDisplayString();
 
+        ConstructorModel? typeConstructor = null;
+
         foreach (var attr in targetType.GetAttributes())
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -155,6 +157,10 @@ internal sealed record TypeMapModel
             else if (symbols.IsCsvTypeAttribute(attr.AttributeClass))
             {
                 TypeAttribute.Parse(attr, cancellationToken, ref collector);
+            }
+            else if (symbols.IsCsvConstructorAttribute(attr.AttributeClass))
+            {
+                typeConstructor = ConstructorModel.ParseConstructorAttribute(targetType, attr, false);
             }
         }
 
@@ -172,68 +178,18 @@ internal sealed record TypeMapModel
 
         // Parameters and members must be looped after type and assembly attributes are handled
 
-        cancellationToken.ThrowIfCancellationRequested();
-
-        ImmutableArray<IMethodSymbol> constructors = targetType.GetInstanceConstructors();
-        IMethodSymbol? constructor = null;
-
-        if (constructors.Length == 1)
-        {
-            constructor = constructors[0];
-        }
-        else
-        {
-            foreach (var ctor in constructors)
-            {
-                if (ctor.Parameters.IsDefaultOrEmpty)
-                {
-                    constructor ??= ctor;
-                    continue;
-                }
-
-                foreach (var attr in ctor.GetAttributes())
-                {
-                    if (symbols.IsCsvConstructorAttribute(attr.AttributeClass))
-                    {
-                        constructor = ctor;
-                    }
-                }
-            }
-        }
-
-        cancellationToken.ThrowIfCancellationRequested();
-
-        // check if the constructor is not null and is accessible
-        if (constructor is { DeclaredAccessibility: not (Accessibility.Private or Accessibility.Protected) })
-        {
-            Parameters = ParameterModel.Create(
-                tokenSymbol,
-                targetType,
-                constructor,
-                in symbols,
-                ref collector);
-
-            foreach (var parameter in Parameters)
-            {
-                if (parameter.IsRequired)
-                {
-                    HasRequiredMembers = true;
-                    break;
-                }
-            }
-        }
-        else
-        {
-            Parameters = [];
-            collector.AddDiagnostic(Diagnostics.NoValidConstructor(targetType, constructor));
-        }
+        Parameters = ConstructorModel.ParseConstructor(
+            targetType,
+            symbols,
+            tokenSymbol,
+            typeConstructor,
+            cancellationToken,
+            ref collector);
 
         cancellationToken.ThrowIfCancellationRequested();
 
         WrappingTypes = NestedType.Parse(containingClass);
 
-        bool hasReadableMembers = false;
-        bool hasWritableProperties = false;
         List<PropertyModel> properties = PooledList<PropertyModel>.Acquire();
 
         // loop through base types
@@ -275,10 +231,6 @@ internal sealed record TypeMapModel
                 if (property is not null)
                 {
                     properties.Add(property);
-
-                    HasRequiredMembers |= property.IsRequired;
-                    hasReadableMembers |= property.CanRead;
-                    hasWritableProperties |= property.CanWrite;
                 }
             }
 
@@ -287,21 +239,6 @@ internal sealed record TypeMapModel
 
         properties.Sort();
         Properties = properties.ToEquatableArrayAndFree();
-
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (!hasReadableMembers)
-        {
-            collector.AddDiagnostic(Diagnostics.NoReadableMembers(targetType));
-        }
-
-        if (!hasWritableProperties)
-        {
-            collector.AddDiagnostic(Diagnostics.NoWritableMembers(targetType));
-        }
-
-        Diagnostics.CheckIfFileScoped(containingClass, cancellationToken, ref collector);
-        Diagnostics.CheckIfFileScoped(targetType, cancellationToken, ref collector);
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -325,6 +262,21 @@ internal sealed record TypeMapModel
             });
 
         AllMembers = new EquatableArray<IMemberModel>(allMembersBuilder.ToImmutable());
+
+        if (AllMembers.AsImmutableArray().All(static m => !m.CanRead))
+        {
+            collector.AddDiagnostic(Diagnostics.NoReadableMembers(targetType));
+        }
+
+        if (AllMembers.AsImmutableArray().All(static m => !m.CanWrite))
+        {
+            collector.AddDiagnostic(Diagnostics.NoWritableMembers(targetType));
+        }
+
+        Diagnostics.CheckIfFileScoped(containingClass, cancellationToken, ref collector);
+        Diagnostics.CheckIfFileScoped(targetType, cancellationToken, ref collector);
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         collector.Free(out diagnostics, out var ignoredHeaders, out var proxy);
 

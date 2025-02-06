@@ -7,9 +7,92 @@ namespace FlameCsv.Tests;
 
 // ReSharper disable UnusedMember.Local
 #pragma warning disable CS0414 // Field is assigned but its value is never used
+#pragma warning disable CS9113 // Parameter is unread.
 
-public static class TypeCacheTests
+public static class TypeInfoTests
 {
+    [CsvConstructor(ParameterTypes = [typeof(int)])]
+    private class OnType
+    {
+        public OnType(int _)
+        {
+        }
+
+        public OnType(int i, bool b)
+        {
+        }
+    }
+
+    private class OnCtor
+    {
+        [CsvConstructor]
+        public OnCtor(int _)
+        {
+        }
+
+        public OnCtor()
+        {
+        }
+    }
+
+    private class OneCtor
+    {
+        public OneCtor(int _)
+        {
+        }
+    }
+
+    private class NoCtor;
+
+    private class EmptyCtor
+    {
+        // ReSharper disable once EmptyConstructor
+        public EmptyCtor()
+        {
+        }
+    }
+
+    [CsvConstructor(ParameterTypes = [typeof(int)])]
+    private class Both
+    {
+        public Both(int _)
+        {
+        }
+
+        [CsvConstructor]
+        public Both(int i, bool b)
+        {
+        }
+    }
+
+    [Fact]
+    public static void Should_Prioritize_Type_Ctor()
+    {
+        var info = new CsvTypeInfo(typeof(OnType));
+        Assert.Equal(1, info.ConstructorParameters.Length);
+        Assert.Equal(typeof(int), info.ConstructorParameters[0].Value.ParameterType);
+    }
+
+    [Theory]
+    [InlineData(typeof(OnType))]
+    [InlineData(typeof(OnCtor))]
+    [InlineData(typeof(OneCtor))]
+    public static void Should_Find_Ctor(Type type)
+    {
+        var info = new CsvTypeInfo(type);
+        Assert.Equal(1, info.ConstructorParameters.Length);
+        Assert.Equal(typeof(int), info.ConstructorParameters[0].Value.ParameterType);
+    }
+
+    [Theory]
+    [InlineData(typeof(NoCtor))]
+    [InlineData(typeof(EmptyCtor))]
+    public static void Should_Find_EmptyCtor(Type type)
+    {
+        var info = new CsvTypeInfo(type);
+        Assert.Equal(0, info.ConstructorParameters.Length);
+    }
+
     [Fact]
     public static void Should_Cache_Members()
     {
@@ -49,20 +132,6 @@ public static class TypeCacheTests
         a1 = a1.Where(a => a.GetType().Namespace != "System.Runtime.CompilerServices").ToArray();
         Assert.Single(a1);
         Assert.IsType<DataContractAttribute>(a1[0]);
-    }
-
-    [Fact]
-    public static void Should_Cache_Constructors()
-    {
-        var ctors = CsvTypeInfo<Obj>.Value.PublicConstructors.ToArray();
-        Assert.Equal(ctors, CsvTypeInfo<Obj>.Value.PublicConstructors.ToArray());
-
-        Assert.Equal(2, ctors.Length);
-
-        Assert.Single(ctors, x => x.Params.Length == 0 && x.Value.GetCustomAttributes<CsvConstructorAttribute>().Any());
-        Assert.Single(ctors, x => x.Params.Length == 1 && x.Params[0].Value.ParameterType == typeof(int));
-
-        Assert.Empty(CsvTypeInfo<Obj>.Value.ConstructorParameters.ToArray());
     }
 
     [Fact]

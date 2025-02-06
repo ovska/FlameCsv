@@ -10,7 +10,9 @@ namespace FlameCsv.Reflection;
 
 internal class CsvTypeInfo
 {
-    protected CsvTypeInfo([DAM(Messages.ReflectionBound)] Type type)
+    private static readonly ParameterData[] _noCtorFoundSentinel = [null!];
+
+    internal CsvTypeInfo([DAM(Messages.ReflectionBound)] Type type)
     {
         ArgumentNullException.ThrowIfNull(type);
         Type = type;
@@ -22,7 +24,6 @@ internal class CsvTypeInfo
                 var @this = (CsvTypeInfo)state;
                 @this._customAttributes = null;
                 @this._members = null;
-                @this._ctors = null;
                 @this._ctorParams = null;
                 @this._proxyType = null;
                 @this._proxyInfo = null;
@@ -33,23 +34,27 @@ internal class CsvTypeInfo
 
     private object[]? _customAttributes;
     private MemberData[]? _members;
-    private CtorData[]? _ctors;
-    private object? _ctorParams;
+    private ParameterData[]? _ctorParams;
 
     [DAM(Messages.ReflectionBound)] private Type? _proxyType;
     private CsvTypeInfo? _proxyInfo;
-
-    public readonly record struct CtorData(ConstructorInfo Value, ParameterData[] Params);
 
     public ReadOnlySpan<MemberData> Members => _members ??= InitPropertiesAndFields(Type);
 
     public ReadOnlySpan<object> Attributes => _customAttributes ??= InitCustomAttributes(Type);
 
-    public ReadOnlySpan<CtorData> PublicConstructors => _ctors ??= InitConstructors(Type);
-
     public ReadOnlySpan<ParameterData> ConstructorParameters
-        => (_ctorParams ??= InitPrimaryCtorParams()) as ParameterData[] ??
-            ThrowExceptionForNoPrimaryConstructor(Type);
+    {
+        get
+        {
+            if (ReferenceEquals(_ctorParams ??= InitPrimaryCtorParams(), _noCtorFoundSentinel))
+            {
+                return ThrowExceptionForNoPrimaryConstructor(Type);
+            }
+
+            return _ctorParams;
+        }
+    }
 
     public CsvTypeInfo ProxyOrSelf => Proxy ?? this;
 
@@ -116,7 +121,7 @@ internal class CsvTypeInfo
     private static object[] InitCustomAttributes(Type type) => type.GetCustomAttributes(inherit: true);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private bool TryGetTypeProxy([DAM(Messages.ReflectionBound)][NotNullWhen(true)] out Type? typeProxy)
+    private bool TryGetTypeProxy([DAM(Messages.ReflectionBound)] [NotNullWhen(true)] out Type? typeProxy)
     {
         if (!Type.IsValueType)
         {
@@ -149,48 +154,72 @@ internal class CsvTypeInfo
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private object InitPrimaryCtorParams()
+    private ParameterData[] InitPrimaryCtorParams()
     {
-        var ctors = PublicConstructors;
-
-        if (ctors.Length == 0)
+        foreach (var attribute in Attributes)
         {
-            return Array.Empty<ParameterData>();
-        }
-
-        if (ctors.Length == 1)
-        {
-            return ctors[0].Params;
-        }
-
-        ConstructorInfo? parameterlessCtor = null;
-
-        foreach ((ConstructorInfo ctor, ParameterData[] parameters) in ctors)
-        {
-            foreach (var attribute in ctor.GetCustomAttributes(inherit: false))
+            if (attribute is CsvConstructorAttribute ctorAttr)
             {
-                if (attribute is CsvConstructorAttribute)
-                    return parameters;
+                if (ctorAttr.ParameterTypes is null)
+                {
+                    throw new CsvConfigurationException(
+                        $"Parameter types not set for [CsvConstructor] on type {Type.FullName}");
+                }
+
+                var ctor = Type.GetConstructor(
+                    BindingFlags.Instance | BindingFlags.Public,
+                    types: ctorAttr.ParameterTypes);
+
+                if (ctor is not null)
+                {
+                    return GetResult(ctor.GetParameters());
+                }
+
+                throw new CsvBindingException(
+                    Type,
+                    $"Constructor with parameter types {string.Join(", ", ctorAttr.ParameterTypes.Select(t => t.FullName))} not found.");
             }
+        }
+
+        var ctors = Type.GetConstructors(BindingFlags.Instance | BindingFlags.Public);
+
+        if (ctors.Length == 0) return [];
+        if (ctors.Length == 1) return GetResult(ctors[0].GetParameters());
+
+        ParameterInfo[]? bestMatch = null;
+
+        foreach (var ctor in ctors)
+        {
+            var parameters = ctor.GetParameters();
 
             if (parameters.Length == 0)
             {
-                parameterlessCtor = ctor;
+                bestMatch ??= [];
+                continue;
             }
+
+            foreach (var attribute in ctor.GetCustomAttributes(inherit: false))
+            {
+                if (attribute is CsvConstructorAttribute)
+                {
+                    bestMatch = parameters;
+                    break;
+                }
+            }
+
+            if (bestMatch == parameters) break;
         }
 
-        // No explicit ctor found, but found parameterless
-        return parameterlessCtor is not null
-            ? Array.Empty<ParameterData>()
-            : Type.Missing;
-    }
+        if (bestMatch is null)
+        {
+            return _noCtorFoundSentinel;
+        }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static CtorData[] InitConstructors([DAM(DAMT.PublicConstructors)] Type type)
-        => type
-            .GetConstructors(BindingFlags.Instance | BindingFlags.Public)
-            .Select(c => new CtorData(c, c.GetParameters().Select(p => new ParameterData(p)).ToArray()))
-            .ToArray();
+        return GetResult(bestMatch);
+
+        static ParameterData[] GetResult(ParameterInfo[] parameters)
+            => parameters.Select(static p => (ParameterData)p).ToArray();
+    }
 
     private static ParameterData[] ThrowExceptionForNoPrimaryConstructor(Type type)
     {

@@ -1,4 +1,5 @@
-﻿using FlameCsv.SourceGen.Models;
+﻿using System.Collections.Immutable;
+using FlameCsv.SourceGen.Models;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -116,6 +117,17 @@ internal static class Diagnostics
             descriptor: Descriptors.CsvConverterAbstract,
             location: GetLocation(target),
             messageArgs: [converterType, target.ToDisplayString()]);
+    }
+
+    public static Diagnostic NoMatchingConstructor(
+        ITypeSymbol targetType,
+        IEnumerable<ITypeSymbol> types,
+        Location? location)
+    {
+        return Diagnostic.Create(
+            descriptor: Descriptors.NoMatchingConstructor,
+            location: location ?? GetLocation(targetType),
+            messageArgs: [targetType.ToDisplayString(), string.Join(", ", types)]);
     }
 
     public static Diagnostic TargetMemberNotFound(

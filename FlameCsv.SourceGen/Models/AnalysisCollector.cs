@@ -58,7 +58,6 @@ internal ref struct AnalysisCollector
                 }
             }
 
-
             ignoredHeaders = [..IgnoredHeaders];
 
             if (Proxies.Count == 1)
