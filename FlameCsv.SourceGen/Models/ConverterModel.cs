@@ -12,34 +12,25 @@ internal sealed record ConverterModel
         ref readonly FlameSymbols symbols,
         ref AnalysisCollector collector)
     {
+        ITypeSymbol? converter = null;
+
         foreach (var attributeData in propertyOrParameter.GetAttributes())
         {
             if (attributeData.AttributeClass is { IsGenericType: true, Arity: 2 } attribute &&
                 SymbolEqualityComparer.Default.Equals(token, attribute.TypeArguments[0]) &&
                 symbols.IsCsvConverterOfTAttribute(attribute.ConstructUnboundGenericType()))
             {
-                return new ConverterModel(token, convertedType, attribute.TypeArguments[1], in symbols, ref collector);
+                converter = attribute.TypeArguments[1];
+                break;
             }
         }
 
-        return null;
-    }
+        if (converter is null) return null;
 
-    public TypeRef ConvertedType { get; }
-    public TypeRef ConverterType { get; }
-    public ConstructorArgumentType ConstructorArguments { get; }
-    public bool WrapInNullable { get; }
-    public bool IsFactory { get; }
-
-    public ConverterModel(
-        ITypeSymbol token,
-        ITypeSymbol convertedType,
-        ITypeSymbol converter,
-        ref readonly FlameSymbols symbols,
-        ref AnalysisCollector collector)
-    {
-        ConvertedType = new TypeRef(convertedType);
-        ConverterType = new TypeRef(converter);
+        TypeRef converterType = new(converter);
+        bool isFactory = false;
+        ConstructorArgumentType constructorArguments = default;
+        bool wrapInNullable = false;
 
         {
             ITypeSymbol? current = converter;
@@ -48,13 +39,11 @@ internal sealed record ConverterModel
             {
                 if (symbols.IsGetCsvConverterFactoryOfT(token, current))
                 {
-                    IsFactory = true;
+                    isFactory = true;
                     break;
                 }
             } while ((current = current?.BaseType) is not null);
         }
-
-        ConstructorArguments = ConstructorArgumentType.Invalid;
 
         foreach (var member in converter.GetMembers())
         {
@@ -64,7 +53,7 @@ internal sealed record ConverterModel
                 if (method.Parameters.IsEmpty)
                 {
                     // don't break, we might find a better constructor
-                    ConstructorArguments = ConstructorArgumentType.Empty;
+                    constructorArguments = ConstructorArgumentType.Empty;
                     continue;
                 }
 
@@ -72,7 +61,7 @@ internal sealed record ConverterModel
                 {
                     if (symbols.IsCsvOptionsOfT(token, method.Parameters[0].Type))
                     {
-                        ConstructorArguments = ConstructorArgumentType.Options;
+                        constructorArguments = ConstructorArgumentType.Options;
                         break; // we found the best constructor
                     }
                 }
@@ -81,7 +70,7 @@ internal sealed record ConverterModel
 
         // wrap in nullable if needed, e.g., property is 'int?' but the converter is for int
         // leave factories as they are since we can't statically analyze if they support nullable types
-        if (!IsFactory && convertedType.IsNullable(out var baseType))
+        if (!isFactory && convertedType.IsNullable(out var baseType))
         {
             INamedTypeSymbol? current = converter.BaseType;
             ITypeSymbol? resultType = null;
@@ -101,16 +90,29 @@ internal sealed record ConverterModel
             }
 
             // if resultType is "int" here and convertedType is "int?", we need to wrap it in a NullableConverter
-            WrapInNullable = SymbolEqualityComparer.Default.Equals(baseType, resultType);
+            wrapInNullable = SymbolEqualityComparer.Default.Equals(baseType, resultType);
         }
 
-        if (ConstructorArguments is ConstructorArgumentType.Invalid)
+        if (constructorArguments is ConstructorArgumentType.Invalid)
         {
-            collector.AddDiagnostic(Diagnostics.NoCsvFactoryConstructor(converter, ConverterType.Name, convertedType));
+            collector.AddDiagnostic(Diagnostics.NoCsvFactoryConstructor(converter, converterType.Name, convertedType));
         }
-        else if (ConverterType.IsAbstract)
+        else if (converterType.IsAbstract)
         {
-            collector.AddDiagnostic(Diagnostics.CsvConverterAbstract(converter, ConverterType.Name));
+            collector.AddDiagnostic(Diagnostics.CsvConverterAbstract(converter, converterType.Name));
         }
+
+        return new ConverterModel
+        {
+            ConverterType = converterType,
+            ConstructorArguments = constructorArguments,
+            WrapInNullable = wrapInNullable,
+            IsFactory = isFactory,
+        };
     }
+
+    public required TypeRef ConverterType { get; init; }
+    public required ConstructorArgumentType ConstructorArguments { get; init; }
+    public required bool WrapInNullable { get; init; }
+    public required bool IsFactory { get; init; }
 }
