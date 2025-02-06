@@ -18,14 +18,14 @@ public partial class TypeMapGenerator
 
         if (wrapInNullable)
         {
-            writer.Write("options.GetOrCreateNullable<");
+            writer.Write("options.Aot.GetOrCreateNullable<");
             writer.Write(member.Type.FullyQualifiedName.AsSpan()[..^1]); // trim out the nullability question mark
             writer.Write(">(static options => ");
         }
 
         if (member.OverriddenConverter is not { } converter)
         {
-            writer.Write(member.Type.IsEnumOrNullableEnum ? "options.GetOrCreateEnum<" : "options.GetConverter<");
+            writer.Write(member.Type.IsEnumOrNullableEnum ? "options.Aot.GetOrCreateEnum<" : "options.Aot.GetConverter<");
 
             Range range = member.Type.SpecialType == SpecialType.System_Nullable_T ? (..^1) : (..);
             writer.Write(member.Type.FullyQualifiedName.AsSpan()[range]);
