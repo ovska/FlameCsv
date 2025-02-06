@@ -1,5 +1,4 @@
-﻿using System.Collections.Immutable;
-using FlameCsv.SourceGen.Helpers;
+﻿using FlameCsv.SourceGen.Helpers;
 using DiagnosticsStatic = FlameCsv.SourceGen.Diagnostics;
 
 namespace FlameCsv.SourceGen.Models;
