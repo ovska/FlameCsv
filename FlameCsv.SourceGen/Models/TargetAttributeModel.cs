@@ -21,11 +21,9 @@ internal sealed class TargetAttributeModel
     /// </summary>
     public bool MatchFound { get; set; }
 
-    public Location? GetLocation(CancellationToken cancellationToken)
-        => (_syntaxNode ??= _syntaxReference?.GetSyntax(cancellationToken))?.GetLocation();
+    public Location? Location => _syntaxReference?.SyntaxTree.GetLocation(_syntaxReference.Span);
 
     private readonly SyntaxReference? _syntaxReference;
-    private SyntaxNode? _syntaxNode;
 
     public TargetAttributeModel(AttributeData attribute, bool isAssemblyAttribute)
     {
