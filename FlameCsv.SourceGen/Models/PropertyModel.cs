@@ -120,14 +120,6 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
             in symbols,
             ref collector);
 
-        if (explicitPropertyName is not null && meta.IsRequired is true)
-        {
-            collector.AddDiagnostic(
-                Diagnostics.ExplicitInterfaceRequired(
-                    propertySymbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
-                    meta.Location));
-        }
-
         return new PropertyModel
         {
             Type = new TypeRef(propertySymbol.Type),

@@ -12,7 +12,6 @@
  FLAMESG103 | Usage    | Error    | Diagnostics 
  FLAMESG104 | Usage    | Error    | Diagnostics 
  FLAMESG105 | Usage    | Error    | Descriptors 
- FLAMESG106 | Usage    | Error    | Descriptors 
  FLAMESG200 | Usage    | Error    | Diagnostics 
  FLAMESG201 | Usage    | Error    | Diagnostics 
  FLAMESG202 | Usage    | Error    | Diagnostics 

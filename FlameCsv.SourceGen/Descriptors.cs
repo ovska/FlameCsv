@@ -43,17 +43,8 @@ internal static class Descriptors
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    public static readonly DiagnosticDescriptor ExplicitInterfaceRequired = new(
-        id: "FLAMESG104",
-        title: "Required explicit interface implementation",
-        messageFormat:
-        "Cannot generate reading code: Explicitly implemented property {0} cannot be marked as required",
-        category: "Usage",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
     public static readonly DiagnosticDescriptor ConflictingConfiguration = new(
-        id: "FLAMESG105",
+        id: "FLAMESG104",
         title: "Conflicting CSV configuration",
         messageFormat: "Conflicting configuration for {0} {1} in type {2}: {3}",
         category: "Usage",
@@ -61,7 +52,7 @@ internal static class Descriptors
         isEnabledByDefault: true);
 
     public static readonly DiagnosticDescriptor IgnoredParameterWithoutDefaultValue = new(
-        id: "FLAMESG106",
+        id: "FLAMESG105",
         title: "Ignored parameter without default value",
         messageFormat: "Cannot generate reading code: Ignored parameter {0} on type {1} must have a default value",
         category: "Usage",

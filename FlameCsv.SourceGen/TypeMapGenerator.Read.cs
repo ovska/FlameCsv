@@ -312,7 +312,11 @@ public partial class TypeMapGenerator
 
         writer.Write(")");
 
-        if (typeMap.Properties.AsImmutableArray().Any(static p => p.IsRequired))
+        // explicit interface implementations cannot be init only, and cannot be written in an initializer
+        if (typeMap
+            .Properties
+            .AsImmutableArray()
+            .Any(static p => p is { IsRequired: true, ExplicitInterfaceOriginalDefinitionName: null }))
         {
             writer.WriteLine();
 
@@ -322,7 +326,7 @@ public partial class TypeMapGenerator
             foreach (var property in typeMap.Properties)
             {
                 writer.WriteLineIf(
-                    property.IsRequired,
+                    property.IsRequired && property.ExplicitInterfaceOriginalDefinitionName is null,
                     $"{property.Identifier} = state.{property.Identifier},");
             }
 
@@ -335,12 +339,18 @@ public partial class TypeMapGenerator
         foreach (var property in typeMap.Properties)
         {
             // required already written above
-            if (property.IsRequired || !property.CanRead)
+            if (!property.CanRead ||
+                property is { IsRequired: true, ExplicitInterfaceOriginalDefinitionName: null })
+            {
                 continue;
+            }
 
-            writer.Write("if (");
-            property.WriteConverterName(writer);
-            writer.Write(" is not null) ");
+            if (!property.IsRequired)
+            {
+                writer.Write("if (");
+                property.WriteConverterName(writer);
+                writer.Write(" is not null) ");
+            }
 
             if (!string.IsNullOrEmpty(property.ExplicitInterfaceOriginalDefinitionName))
             {
