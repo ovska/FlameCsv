@@ -4,12 +4,11 @@ internal static class TypeAttribute
 {
     public static void Parse(
         AttributeData attribute,
-        CancellationToken cancellationToken,
         ref AnalysisCollector collector)
     {
         foreach (var arg in attribute.NamedArguments)
         {
-            if (arg is { Key: "IgnoredHeaders", Value.Values.IsDefaultOrEmpty: false })
+            if (arg.Key == "IgnoredHeaders")
             {
                 foreach (var value in arg.Value.Values)
                 {
@@ -22,12 +21,10 @@ internal static class TypeAttribute
             else if (arg is
                      {
                          Key: "CreatedTypeProxy",
-                         Value: { Kind: TypedConstantKind.Type, Value: INamedTypeSymbol proxySymbol }
+                         Value: { Kind: TypedConstantKind.Type, Value: ITypeSymbol proxySymbol }
                      })
             {
-                collector.AddProxy(
-                    proxySymbol,
-                    attribute.ApplicationSyntaxReference?.GetSyntax(cancellationToken).GetLocation());
+                collector.AddProxy(proxySymbol, attribute.GetLocation());
             }
         }
     }
@@ -61,7 +58,7 @@ internal static class TypeAttribute
                         targetType,
                         attribute.ConstructorArguments[0].Value as ITypeSymbol))
                 {
-                    Parse(attribute, cancellationToken, ref collector);
+                    Parse(attribute, ref collector);
                 }
             }
             else if (symbols.IsCsvConstructorAttribute(attrSymbol))

@@ -30,7 +30,7 @@ public partial class TypeMapGenerator : IIncrementalGenerator
                     })
                 .Where(static tuple => tuple.ContainingClass.CanBeReferencedByName)
                 .WithTrackingName("FlameCsv_Target")
-#if USE_COMPILATION
+#if SOURCEGEN_USE_COMPILATION
                 .Combine(context.CompilationProvider.WithTrackingName("FlameCsv_Compilation"))
                 .Select(
                     static (tuple, cancellationToken) =>
