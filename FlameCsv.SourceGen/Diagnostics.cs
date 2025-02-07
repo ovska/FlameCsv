@@ -55,14 +55,6 @@ internal static class Diagnostics
             messageArgs: targetType.ToDisplayString());
     }
 
-    public static Diagnostic ExplicitInterfaceRequired(string propertyName, Location? attributeLocation)
-    {
-        return Diagnostic.Create(
-            descriptor: Descriptors.ExplicitInterfaceRequired,
-            location: attributeLocation,
-            messageArgs: [propertyName]);
-    }
-
     public static Diagnostic ConflictingConfiguration(
         ITypeSymbol targetType,
         string memberType,

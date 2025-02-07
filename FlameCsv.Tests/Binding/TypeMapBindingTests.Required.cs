@@ -10,7 +10,7 @@ public static partial class TypeMapBindingTests
 {
     [CsvTypeField(memberName: "Id", "__id__")]
     [CsvTypeField(memberName: "dof", "doeeeef", IsParameter = true)]
-    [CsvTypeField(memberName: "Xyzz", "aaaaasd", IsRequired = false)]
+    [CsvTypeField(memberName: "Xyzz", "aaaaasd", IsRequired = true)]
     [CsvConstructor(ParameterTypes = [typeof(string), typeof(DayOfWeek), typeof(DayOfWeek?)])]
     private class _Obj : ISomething
     {
