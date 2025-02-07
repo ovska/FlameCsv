@@ -96,7 +96,7 @@ internal sealed record TypeMapModel
     public bool HasRequiredMembers => AllMembers.AsImmutableArray().Any(static m => m.IsRequired);
 
     public TypeMapModel(
-#if USE_COMPILATION
+#if SOURCEGEN_USE_COMPILATION
         Compilation compilation,
 #endif
         INamedTypeSymbol containingClass,
@@ -111,7 +111,7 @@ internal sealed record TypeMapModel
 
         AnalysisCollector collector = new(targetType);
         FlameSymbols symbols = new(
-#if USE_COMPILATION
+#if SOURCEGEN_USE_COMPILATION
             compilation,
 #endif
             targetType);
@@ -148,7 +148,7 @@ internal sealed record TypeMapModel
 
         if (SupportsAssemblyAttributes)
         {
-#if USE_COMPILATION
+#if SOURCEGEN_USE_COMPILATION
             TypeAttribute.ParseAssembly(
                 targetType,
                 compilation.Assembly,
@@ -169,7 +169,7 @@ internal sealed record TypeMapModel
             }
             else if (symbols.IsCsvTypeAttribute(attr.AttributeClass))
             {
-                TypeAttribute.Parse(attr, cancellationToken, ref collector);
+                TypeAttribute.Parse(attr, ref collector);
             }
             else if (typeConstructor is null && symbols.IsCsvConstructorAttribute(attr.AttributeClass))
             {

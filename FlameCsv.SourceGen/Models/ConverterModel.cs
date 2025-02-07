@@ -28,22 +28,9 @@ internal sealed record ConverterModel
         if (converter is null) return null;
 
         TypeRef converterType = new(converter);
-        bool isFactory = false;
         ConstructorArgumentType constructorArguments = default;
         bool wrapInNullable = false;
-
-        {
-            ITypeSymbol? current = converter;
-
-            do
-            {
-                if (symbols.IsGetCsvConverterFactoryOfT(token, current))
-                {
-                    isFactory = true;
-                    break;
-                }
-            } while ((current = current?.BaseType) is not null);
-        }
+        bool isFactory = IsConverterFactory(token, converter, in symbols);
 
         foreach (var member in converter.GetMembers())
         {
@@ -115,4 +102,19 @@ internal sealed record ConverterModel
     public required ConstructorArgumentType ConstructorArguments { get; init; }
     public required bool WrapInNullable { get; init; }
     public required bool IsFactory { get; init; }
+
+    public static bool IsConverterFactory(ITypeSymbol token, ITypeSymbol? type, ref readonly FlameSymbols symbols)
+    {
+        while (type is not null)
+        {
+            if (symbols.IsGetCsvConverterFactoryOfT(token, type))
+            {
+                return true;
+            }
+
+            type = type.BaseType;
+        }
+
+        return false;
+    }
 }

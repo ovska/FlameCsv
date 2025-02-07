@@ -21,18 +21,19 @@ internal sealed class TargetAttributeModel
     /// </summary>
     public bool MatchFound { get; set; }
 
-    public Location? Location => _syntaxReference?.SyntaxTree.GetLocation(_syntaxReference.Span);
+    public Location? Location => _attribute.GetLocation();
 
-    private readonly SyntaxReference? _syntaxReference;
+    private readonly AttributeData _attribute;
 
     public TargetAttributeModel(AttributeData attribute, bool isAssemblyAttribute)
     {
+        _attribute = attribute;
+
         // assembly attributes have the target type as the first argument
         int startIndex = isAssemblyAttribute ? 1 : 0;
 
         MemberName = attribute.ConstructorArguments[startIndex].Value?.ToString() ?? "";
         Names = attribute.ConstructorArguments[startIndex + 1].Values; // defer equatable array creation
-        _syntaxReference = attribute.ApplicationSyntaxReference;
 
         foreach (var kvp in attribute.NamedArguments)
         {

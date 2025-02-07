@@ -570,7 +570,7 @@ public static class ModelTests
     private static FlameSymbols GetFlameSymbols(Compilation compilation, ITypeSymbol arg)
     {
         return new FlameSymbols(
-#if USE_COMPILATION
+#if SOURCEGEN_USE_COMPILATION
             compilation,
 #endif
             arg);

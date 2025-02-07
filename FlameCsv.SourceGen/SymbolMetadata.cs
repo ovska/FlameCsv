@@ -15,9 +15,9 @@ internal readonly ref struct SymbolMetadata
     public int? Order { get; }
     public int? Index { get; }
 
-    public Location? Location => _attributeSyntax?.SyntaxTree.GetLocation(_attributeSyntax.Span);
+    public Location? Location => _attribute?.GetLocation();
 
-    private readonly SyntaxReference? _attributeSyntax;
+    private readonly AttributeData? _attribute;
 
     public SymbolMetadata(
         string symbolActualName,
@@ -25,24 +25,20 @@ internal readonly ref struct SymbolMetadata
         ref readonly FlameSymbols flameSymbols,
         ref AnalysisCollector collector)
     {
-        AttributeData? attribute = null;
-
         foreach (var attributeData in symbol.GetAttributes())
         {
             if (flameSymbols.IsCsvFieldAttribute(attributeData.AttributeClass))
             {
-                attribute = attributeData;
+                _attribute = attributeData;
                 break;
             }
         }
 
         HashSet<string> nameSet = PooledSet<string>.Acquire();
 
-        if (attribute is not null)
+        if (_attribute is not null)
         {
-            _attributeSyntax = attribute.ApplicationSyntaxReference;
-
-            foreach (var value in attribute.ConstructorArguments[0].Values)
+            foreach (var value in _attribute.ConstructorArguments[0].Values)
             {
                 if (value.Value?.ToString() is { Length: > 0 } headerName)
                 {
@@ -50,7 +46,7 @@ internal readonly ref struct SymbolMetadata
                 }
             }
 
-            foreach (var argument in attribute.NamedArguments)
+            foreach (var argument in _attribute.NamedArguments)
             {
                 switch (argument.Key)
                 {
