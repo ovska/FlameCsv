@@ -4,5 +4,7 @@
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+<!--    <DefineConstants>SOURCEGEN_USE_COMPILATION</DefineConstants>-->
   </PropertyGroup>
 </Project>

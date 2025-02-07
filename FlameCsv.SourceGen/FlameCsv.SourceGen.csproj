@@ -10,8 +10,6 @@
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <IncludeSymbols>false</IncludeSymbols>
     <DevelopmentDependency>true</DevelopmentDependency>
-
-    <DefineConstants>USE_COMPILATION</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

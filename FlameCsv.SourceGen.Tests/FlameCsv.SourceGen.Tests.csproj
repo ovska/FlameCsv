@@ -5,8 +5,6 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
-
-        <DefineConstants>USE_COMPILATION</DefineConstants>
     </PropertyGroup>
 
     <ItemGroup>

@@ -40,6 +40,7 @@ internal readonly struct ConstructorModel
         ImmutableArray<IMethodSymbol> constructors = targetType.GetInstanceConstructors();
         IMethodSymbol? constructor = null;
 
+        // [CsvConstructor] on type or assembly
         if (typeConstructorAttribute is { } typeAttr)
         {
             foreach (var ctor in constructors)
@@ -67,23 +68,25 @@ internal readonly struct ConstructorModel
                 }
             }
 
+            // there was a [CsvConstructor] on the type or assembly, but no matching constructor was found
             if (constructor is null)
             {
-                var syntaxRef = typeAttr.Attribute.ApplicationSyntaxReference;
-
                 collector.AddDiagnostic(
                     Diagnostics.NoMatchingConstructor(
                         targetType,
-                        typeAttr.Types.Select(t => t.Value).OfType<ITypeSymbol>(),
-                        syntaxRef?.SyntaxTree.GetLocation(syntaxRef.Span)));
+                        typeAttr.Types.Select(t => t.Value as ITypeSymbol),
+                        typeAttr.Attribute.GetLocation()));
 
+                MarkParametersAsHandled(ref collector);
                 return [];
             }
         }
+        // use a single public ctor if available
         else if (constructors.Length == 1)
         {
             constructor = constructors[0];
         }
+        // use either parameterless if available, or ctor annotated with [CsvConstructor]
         else
         {
             foreach (var ctor in constructors)
@@ -118,6 +121,22 @@ internal readonly struct ConstructorModel
         }
 
         collector.AddDiagnostic(Diagnostics.NoValidConstructor(targetType, constructor));
+        MarkParametersAsHandled(ref collector);
         return [];
+    }
+
+    /// <summary>
+    /// Marks all parameters as handled as the constructor is not valid we can't know about the validity of the params.
+    /// </summary>
+    private static void MarkParametersAsHandled(ref AnalysisCollector collector)
+    {
+        foreach (var targetAttribute in collector.TargetAttributes)
+        {
+            if (targetAttribute.IsParameter)
+            {
+                targetAttribute.MatchFound = true;
+
+            }
+        }
     }
 }
