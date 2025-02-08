@@ -50,11 +50,6 @@ internal sealed record TypeMapModel
     public EquatableArray<IMemberModel> AllMembers { get; }
 
     /// <summary>
-    /// Whether the containing class has a parameterless constructor and no existing Instance property.
-    /// </summary>
-    public bool CanWriteInstance { get; }
-
-    /// <summary>
     /// Whether to ignore unmatched headers when reading CSV.
     /// </summary>
     public bool IgnoreUnmatched { get; }
@@ -63,6 +58,11 @@ internal sealed record TypeMapModel
     /// Whether to throw on duplicate headers when reading CSV.
     /// </summary>
     public bool ThrowOnDuplicate { get; }
+
+    /// <summary>
+    /// Whether to disable caching by default.
+    /// </summary>
+    public bool NoCaching { get; }
 
     /// <summary>
     /// Whether to scan for assembly attributes.
@@ -130,6 +130,10 @@ internal sealed record TypeMapModel
             {
                 ThrowOnDuplicate = kvp.Value.Value is true;
             }
+            else if (kvp.Key == "NoCaching")
+            {
+                NoCaching = kvp.Value.Value is true;
+            }
             else if (kvp.Key == "SupportsAssemblyAttributes")
             {
                 SupportsAssemblyAttributes = kvp.Value.Value is true;
@@ -137,10 +141,6 @@ internal sealed record TypeMapModel
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-
-        CanWriteInstance =
-            containingClass.InstanceConstructors.Any(static ctor => ctor.Parameters.IsDefaultOrEmpty) &&
-            !containingClass.MemberNames.Contains("Instance");
 
         InGlobalNamespace = containingClass.ContainingNamespace.IsGlobalNamespace;
         Namespace = containingClass.ContainingNamespace.ToDisplayString();

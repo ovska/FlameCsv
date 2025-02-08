@@ -10,7 +10,7 @@ namespace FlameCsv.Tests.Readers;
 
 public sealed class CsvReaderTestsUtf8 : CsvReaderTestsBase<byte>
 {
-    protected override CsvTypeMap<byte, Obj> TypeMap => ObjByteTypeMap.Instance;
+    protected override CsvTypeMap<byte, Obj> TypeMap => ObjByteTypeMap.Default;
 
     protected override IAsyncEnumerable<Obj> GetObjects(
         Stream stream,

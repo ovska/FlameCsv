@@ -11,7 +11,7 @@ public static partial class TypeMapBindingTests
     public static void Should_Require_At_Least_One_Field()
     {
         Assert.ThrowsAny<CsvBindingException>(
-            () => { _ = CsvReader.Read("a,b,c\r\n", ObjTypeMap_Simple.Instance, CsvOptions<char>.Default).ToList(); });
+            () => { _ = CsvReader.Read("a,b,c\r\n", ObjTypeMap_Simple.Default, CsvOptions<char>.Default).ToList(); });
     }
 
     [Fact]
@@ -21,7 +21,7 @@ public static partial class TypeMapBindingTests
             () =>
             {
                 _ = CsvReader
-                    .Read("id,name,id\r\n", ObjTypeMap_ThrowDuplicate.Instance, CsvOptions<char>.Default)
+                    .Read("id,name,id\r\n", ObjTypeMap_ThrowDuplicate.Default, CsvOptions<char>.Default)
                     .ToList();
             });
     }
@@ -32,7 +32,7 @@ public static partial class TypeMapBindingTests
         const string data =
             "id,name,test,isenabled\r\n" + "1,Bob,This value is ignored,true\r\n" + "2,Alice,This as well!,false\r\n";
 
-        var items = CsvReader.Read(data, ObjTypeMap_Simple.Instance, CsvOptions<char>.Default).ToList();
+        var items = CsvReader.Read(data, ObjTypeMap_Simple.Default, CsvOptions<char>.Default).ToList();
         AssertItems(items);
     }
 
@@ -43,7 +43,7 @@ public static partial class TypeMapBindingTests
             "id,name,test,isenabled\r\n" + "1,Bob,This value is ignored,true\r\n" + "2,Alice,This as well!,false\r\n";
 
         Assert.ThrowsAny<CsvBindingException>(
-            () => { _ = CsvReader.Read(data, ObjTypeMap_ThrowUnmatched.Instance, CsvOptions<char>.Default).ToList(); });
+            () => { _ = CsvReader.Read(data, ObjTypeMap_ThrowUnmatched.Default, CsvOptions<char>.Default).ToList(); });
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public static partial class TypeMapBindingTests
     {
         const string data = "id,name,isenabled\r\n" + "1,Bob,true\r\n" + "2,Alice,false\r\n";
 
-        var items = CsvReader.Read(data, ObjTypeMap_Simple.Instance, CsvOptions<char>.Default).ToList();
+        var items = CsvReader.Read(data, ObjTypeMap_Simple.Default, CsvOptions<char>.Default).ToList();
         AssertItems(items);
     }
 
@@ -61,36 +61,36 @@ public static partial class TypeMapBindingTests
         string[] header = ["id", "name", "isenabled"];
 
         Assert.Same(
-            ObjTypeMap_Simple.Instance.GetMaterializer(header, CsvOptions<char>.Default),
-            ObjTypeMap_Simple.Instance.GetMaterializer(header, CsvOptions<char>.Default));
+            ObjTypeMap_Simple.Default.GetMaterializer(header, CsvOptions<char>.Default),
+            ObjTypeMap_Simple.Default.GetMaterializer(header, CsvOptions<char>.Default));
 
         // only reference equality for now for options
         Assert.NotSame(
-            ObjTypeMap_Simple.Instance.GetMaterializer(header, CsvOptions<char>.Default),
-            ObjTypeMap_Simple.Instance.GetMaterializer(header, new CsvOptions<char>()));
+            ObjTypeMap_Simple.Default.GetMaterializer(header, CsvOptions<char>.Default),
+            ObjTypeMap_Simple.Default.GetMaterializer(header, new CsvOptions<char>()));
 
         // different header, we can't be sure what comparer the options instance is using
         Assert.NotSame(
-            ObjTypeMap_Simple.Instance.GetMaterializer(["id", "name"], CsvOptions<char>.Default),
-            ObjTypeMap_Simple.Instance.GetMaterializer(["Id", "Name"], CsvOptions<char>.Default));
+            ObjTypeMap_Simple.Default.GetMaterializer(["id", "name"], CsvOptions<char>.Default),
+            ObjTypeMap_Simple.Default.GetMaterializer(["Id", "Name"], CsvOptions<char>.Default));
 
         // test order
         Assert.NotSame(
-            ObjTypeMap_Simple.Instance.GetMaterializer(["id", "name"], CsvOptions<char>.Default),
-            ObjTypeMap_Simple.Instance.GetMaterializer(["name", "id"], CsvOptions<char>.Default));
+            ObjTypeMap_Simple.Default.GetMaterializer(["id", "name"], CsvOptions<char>.Default),
+            ObjTypeMap_Simple.Default.GetMaterializer(["name", "id"], CsvOptions<char>.Default));
 
         // type map configured to not cache
         Assert.NotSame(
-            ObjTypeMap_NoCache.Instance.GetMaterializer(header, CsvOptions<char>.Default),
-            ObjTypeMap_NoCache.Instance.GetMaterializer(header, CsvOptions<char>.Default));
+            ObjTypeMap_NoCache.Default.GetMaterializer(header, CsvOptions<char>.Default),
+            ObjTypeMap_NoCache.Default.GetMaterializer(header, CsvOptions<char>.Default));
 
         var tooManyToCache = new string[32];
         tooManyToCache.AsSpan().Fill("");
         tooManyToCache[0] = "id";
         tooManyToCache[1] = "name";
         Assert.NotSame(
-            ObjTypeMap_Simple.Instance.GetMaterializer(tooManyToCache, CsvOptions<char>.Default),
-            ObjTypeMap_Simple.Instance.GetMaterializer(tooManyToCache, CsvOptions<char>.Default));
+            ObjTypeMap_Simple.Default.GetMaterializer(tooManyToCache, CsvOptions<char>.Default),
+            ObjTypeMap_Simple.Default.GetMaterializer(tooManyToCache, CsvOptions<char>.Default));
     }
 
     private static void AssertItems(List<Obj> items)
@@ -121,8 +121,5 @@ public partial class ObjTypeMap_ThrowUnmatched;
 [CsvTypeMap<char, TypeMapBindingTests.Obj>(ThrowOnDuplicate = true)]
 public partial class ObjTypeMap_ThrowDuplicate;
 
-[CsvTypeMap<char, TypeMapBindingTests.Obj>]
-public partial class ObjTypeMap_NoCache
-{
-    protected override bool NoCaching => true;
-}
+[CsvTypeMap<char, TypeMapBindingTests.Obj>(NoCaching = true)]
+public partial class ObjTypeMap_NoCache;
