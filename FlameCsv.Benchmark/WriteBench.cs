@@ -119,10 +119,10 @@ public partial class WriteBench
     {
         using var writer = CsvWriter.Create(TextWriter.Null, autoFlush: true);
 
-        writer.WriteHeader(ObjTypeMap.Instance);
+        writer.WriteHeader(ObjTypeMap.Default);
 
         foreach (var obj in _data)
-            writer.WriteRecord(ObjTypeMap.Instance, obj);
+            writer.WriteRecord(ObjTypeMap.Default, obj);
     }
 
     [Benchmark]
@@ -145,12 +145,12 @@ public partial class WriteBench
     {
         await using var writer = CsvWriter.Create(TextWriter.Null, autoFlush: true);
 
-        writer.WriteHeader(ObjTypeMap.Instance);
+        writer.WriteHeader(ObjTypeMap.Default);
         await writer.NextRecordAsync();
 
         foreach (var obj in _data)
         {
-            writer.WriteRecord(ObjTypeMap.Instance, obj);
+            writer.WriteRecord(ObjTypeMap.Default, obj);
             await writer.NextRecordAsync();
         }
     }
@@ -164,7 +164,7 @@ public partial class WriteBench
     [Benchmark]
     public void Generic_TypeMap()
     {
-        CsvWriter.Write(TextWriter.Null, _data, ObjTypeMap.Instance);
+        CsvWriter.Write(TextWriter.Null, _data, ObjTypeMap.Default);
     }
 
     [Benchmark]
@@ -176,7 +176,7 @@ public partial class WriteBench
     [Benchmark]
     public Task Async_Generic_TypeMap()
     {
-        return CsvWriter.WriteAsync(TextWriter.Null, _data, ObjTypeMap.Instance);
+        return CsvWriter.WriteAsync(TextWriter.Null, _data, ObjTypeMap.Default);
     }
 
     [Benchmark]

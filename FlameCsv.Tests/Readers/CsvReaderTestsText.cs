@@ -10,7 +10,7 @@ namespace FlameCsv.Tests.Readers;
 
 public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
 {
-    protected override CsvTypeMap<char, Obj> TypeMap => ObjCharTypeMap.Instance;
+    protected override CsvTypeMap<char, Obj> TypeMap => ObjCharTypeMap.Default;
 
     protected override CsvRecordAsyncEnumerable<char> GetRecords(
         Stream stream,

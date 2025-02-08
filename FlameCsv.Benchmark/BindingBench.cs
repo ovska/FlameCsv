@@ -39,7 +39,7 @@ public class BindingBench
     [Benchmark]
     public void FlameTypeMap()
     {
-        foreach (var _ in CsvReader.Read(CSV, TestTypeMap.Instance, CsvOptions<char>.Default))
+        foreach (var _ in CsvReader.Read(CSV, TestTypeMap.Default, CsvOptions<char>.Default))
         {
         }
     }
