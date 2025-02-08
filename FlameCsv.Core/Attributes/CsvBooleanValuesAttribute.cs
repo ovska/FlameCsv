@@ -1,7 +1,7 @@
-﻿using FlameCsv.Exceptions;
-using FlameCsv.Converters;
+﻿using FlameCsv.Converters;
+using FlameCsv.Exceptions;
 
-namespace FlameCsv.Binding.Attributes;
+namespace FlameCsv.Attributes;
 
 /// <summary>
 /// Overrides the converter for <c>bool</c> and <c>bool?</c>.

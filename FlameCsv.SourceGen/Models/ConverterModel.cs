@@ -30,7 +30,7 @@ internal sealed record ConverterModel
         TypeRef converterType = new(converter);
         ConstructorArgumentType constructorArguments = default;
         bool wrapInNullable = false;
-        bool isFactory = IsConverterFactory(token, converter, in symbols);
+        bool isFactory = IsConverterFactory(converter, in symbols);
 
         foreach (var member in converter.GetMembers())
         {
@@ -46,7 +46,7 @@ internal sealed record ConverterModel
 
                 if (method.Parameters.Length == 1)
                 {
-                    if (symbols.IsCsvOptionsOfT(token, method.Parameters[0].Type))
+                    if (symbols.IsCsvOptionsOfT(method.Parameters[0].Type))
                     {
                         constructorArguments = ConstructorArgumentType.Options;
                         break; // we found the best constructor
@@ -103,11 +103,11 @@ internal sealed record ConverterModel
     public required bool WrapInNullable { get; init; }
     public required bool IsFactory { get; init; }
 
-    public static bool IsConverterFactory(ITypeSymbol token, ITypeSymbol? type, ref readonly FlameSymbols symbols)
+    public static bool IsConverterFactory(ITypeSymbol? type, ref readonly FlameSymbols symbols)
     {
         while (type is not null)
         {
-            if (symbols.IsGetCsvConverterFactoryOfT(token, type))
+            if (symbols.IsGetCsvConverterFactoryOfT(type))
             {
                 return true;
             }

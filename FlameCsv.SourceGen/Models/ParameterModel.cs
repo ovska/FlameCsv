@@ -74,7 +74,7 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
     /// </summary>
     public bool IsRequired => IsRequiredByAttribute || !HasDefaultValue;
 
-    bool IMemberModel.CanRead => true;
+    bool IMemberModel.CanRead => !IsIgnored;
     bool IMemberModel.CanWrite => false;
     TypeRef IMemberModel.Type => ParameterType;
 
@@ -112,10 +112,10 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
                 ParameterType = new TypeRef(parameter.Type),
                 Name = parameter.Name,
                 Identifier = "p_" + parameter.Name,
-                Names = meta.Names,
+                Names = meta.Aliases,
                 Order = meta.Order,
-                IsIgnored = meta.IsIgnored ?? false,
-                IsRequiredByAttribute = meta.IsRequired ?? false,
+                IsIgnored = meta.IsIgnored,
+                IsRequiredByAttribute = meta.IsRequired,
                 HasDefaultValue = parameter.HasExplicitDefaultValue,
                 DefaultValue = parameter.HasExplicitDefaultValue ? parameter.ExplicitDefaultValue : null,
                 RefKind = parameter.RefKind,
@@ -146,7 +146,7 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
                         constructor.Parameters[index]));
             }
 
-            if (meta.IsIgnored is true && !parameter.HasExplicitDefaultValue)
+            if (meta.IsIgnored && !parameter.HasExplicitDefaultValue)
             {
                 collector.AddDiagnostic(Diagnostics.IgnoredParameterWithoutDefaultValue(parameter, targetType));
             }

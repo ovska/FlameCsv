@@ -3,8 +3,8 @@
 using System.Buffers;
 using System.Buffers.Text;
 using System.Diagnostics.CodeAnalysis;
+using FlameCsv.Attributes;
 using FlameCsv.Binding;
-using FlameCsv.Binding.Attributes;
 using FlameCsv.Converters;
 using FlameCsv.Reading;
 using JetBrains.Profiler.Api;
