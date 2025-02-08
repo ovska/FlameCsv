@@ -4,7 +4,7 @@ using JetBrains.Annotations;
 namespace FlameCsv.Attributes;
 
 /// <summary>
-/// Configures the header value(s) used when reading or writing CSV.<br/>
+/// Configures the header name used when reading or writing CSV.<br/>
 /// When not placed on a member or parameter, <see cref="CsvFieldConfigurationAttribute.MemberName"/> must be set.<br/>
 /// When placed on an assembly, <see cref="CsvConfigurationAttribute.TargetType"/> must be set.
 /// </summary>
@@ -29,26 +29,26 @@ public sealed class CsvHeaderAttribute : CsvFieldConfigurationAttribute
     /// Additional values that can be used to match the header when reading CSV.
     /// <see cref="Value"/> is always used when writing.
     /// </summary>
-    public ImmutableArray<string> AdditionalValues { get; }
+    public ImmutableArray<string> Aliases { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CsvHeaderAttribute"/> class.
     /// </summary>
     /// <param name="value">Header value used when reading or writing CSV.</param>
-    /// <param name="additionalValues">
+    /// <param name="aliases">
     /// Additional values that can be used to match the header when reading CSV.
     /// </param>
-    public CsvHeaderAttribute(string value, params string[] additionalValues)
+    public CsvHeaderAttribute(string value, params string[] aliases)
     {
         ArgumentNullException.ThrowIfNull(value);
-        ArgumentNullException.ThrowIfNull(additionalValues);
+        ArgumentNullException.ThrowIfNull(aliases);
 
-        for (int i = 0; i < additionalValues.Length; i++)
+        for (int i = 0; i < aliases.Length; i++)
         {
-            ArgumentNullException.ThrowIfNull(additionalValues[i]);
+            ArgumentNullException.ThrowIfNull(aliases[i]);
         }
 
         Value = value;
-        AdditionalValues = [..additionalValues];
+        this.Aliases = [..aliases];
     }
 }

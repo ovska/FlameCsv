@@ -1,4 +1,5 @@
-﻿using FlameCsv.SourceGen.Models;
+﻿using FlameCsv.SourceGen.Helpers;
+using FlameCsv.SourceGen.Models;
 
 namespace FlameCsv.SourceGen;
 
@@ -25,7 +26,8 @@ public partial class TypeMapGenerator
 
         if (member.OverriddenConverter is not { } converter)
         {
-            writer.Write(member.Type.IsEnumOrNullableEnum ? "options.Aot.GetOrCreateEnum<" : "options.Aot.GetConverter<");
+            writer.Write(
+                member.Type.IsEnumOrNullableEnum ? "options.Aot.GetOrCreateEnum<" : "options.Aot.GetConverter<");
 
             Range range = member.Type.SpecialType == SpecialType.System_Nullable_T ? (..^1) : (..);
             writer.Write(member.Type.FullyQualifiedName.AsSpan()[range]);
@@ -52,5 +54,72 @@ public partial class TypeMapGenerator
         }
 
         if (wrapInNullable) writer.Write(")");
+    }
+
+    internal static SortedDictionary<int, IMemberModel?>? TryGetIndexBindings(
+        bool write,
+        TypeMapModel model,
+        ref AnalysisCollector collector)
+    {
+        SortedDictionary<int, IMemberModel?>? dict = null;
+
+        foreach (var ignored in model.IgnoredIndexes)
+        {
+            dict ??= MemberDictPool.Acquire();
+            dict[ignored] = null;
+        }
+
+        foreach (var member in model.AllMembers)
+        {
+            if (write ? !member.CanWrite : !member.CanRead) continue;
+            if (member.Index is not { } index) continue;
+
+            dict ??= MemberDictPool.Acquire();
+
+            // first on this index
+            if (!dict.TryGetValue(index, out IMemberModel? existing))
+            {
+                dict[index] = member.IsIgnored ? null : member;
+                continue;
+            }
+
+            if (member.IsIgnored)
+            {
+                // current is ignored, don't touch existing
+                continue;
+            }
+
+            // check if existing is ignored, overwrite with current
+            if (existing is null)
+            {
+                dict[index] = member;
+                continue;
+            }
+
+            // conflicting bindings
+            // TODO: diagnostic
+            MemberDictPool.Release(dict);
+            return null;
+        }
+
+        // check indexes for gaps
+        if (dict is not null)
+        {
+            int lastIndex = -1;
+            foreach (var kvp in dict)
+            {
+                if (kvp.Key != lastIndex + 1)
+                {
+                    // gap in the indexes
+                    // TODO: diagnostic
+                    MemberDictPool.Release(dict);
+                    return null;
+                }
+
+                lastIndex = kvp.Key;
+            }
+        }
+
+        return dict;
     }
 }

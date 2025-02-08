@@ -15,11 +15,26 @@ internal interface IMemberModel : IEquatable<IMemberModel?>
 
     /// <inheritdoc cref="PropertyModel.CanWrite"/>
     bool CanWrite { get; }
+
+    /// <inheritdoc cref="PropertyModel.Order"/>
     int? Order { get; }
+
+    /// <inheritdoc cref="PropertyModel.Index"/>
+    int? Index { get; }
+
+    /// <inheritdoc cref="PropertyModel.Identifier"/>
     string Identifier { get; }
-    string Name { get; }
-    EquatableArray<string> Names { get; }
+
+    /// <inheritdoc cref="PropertyModel.HeaderName"/>
+    string HeaderName { get; }
+
+    /// <inheritdoc cref="PropertyModel.Aliases"/>
+    EquatableArray<string> Aliases { get; }
+
+    /// <inheritdoc cref="PropertyModel.OverriddenConverter"/>
     ConverterModel? OverriddenConverter { get; }
+
+    /// <inheritdoc cref="PropertyModel.Type"/>
     TypeRef Type { get; }
 
     void WriteId(IndentedTextWriter writer);

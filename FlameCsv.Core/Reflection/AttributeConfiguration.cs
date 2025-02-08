@@ -188,7 +188,7 @@ internal static class AttributeConfiguration
                     if (value is null)
                     {
                         value = headerAttr.Value;
-                        aliases = headerAttr.AdditionalValues;
+                        aliases = headerAttr.Aliases;
                     }
                     else
                     {
