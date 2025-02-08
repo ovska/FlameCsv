@@ -1,5 +1,4 @@
 ﻿using FlameCsv.Binding;
-using FlameCsv.Binding.Internal;
 using FlameCsv.Extensions;
 using FlameCsv.Writing;
 

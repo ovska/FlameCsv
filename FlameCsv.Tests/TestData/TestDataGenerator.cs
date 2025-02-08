@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 using FlameCsv.Attributes;
-using FlameCsv.Binding;
 using FlameCsv.Tests.Readers;
 using Utf8StringInterpolation;
 using U8 = Utf8StringInterpolation.Utf8String;

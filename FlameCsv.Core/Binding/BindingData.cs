@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using System.Reflection;
 
-namespace FlameCsv.Binding.Internal;
+namespace FlameCsv.Binding;
 
 internal readonly struct BindingData : IComparable<BindingData>
 {

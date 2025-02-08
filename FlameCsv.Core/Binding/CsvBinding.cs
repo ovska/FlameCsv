@@ -1,7 +1,7 @@
-﻿using System.Linq.Expressions;
+﻿using System.ComponentModel;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using FlameCsv.Binding.Internal;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reflection;
@@ -13,6 +13,7 @@ namespace FlameCsv.Binding;
 /// Base class representing a binding of a member or parameter to a CSV field.
 /// </summary>
 [PublicAPI]
+[EditorBrowsable(EditorBrowsableState.Advanced)]
 public abstract class CsvBinding : IComparable<CsvBinding>
 {
     /// <summary>

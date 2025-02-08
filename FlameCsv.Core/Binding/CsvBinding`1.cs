@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 using FlameCsv.Attributes;
@@ -9,9 +10,13 @@ namespace FlameCsv.Binding;
 /// A binding between a CSV field and a property, field, or parameter.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
+[EditorBrowsable(EditorBrowsableState.Advanced)]
 public abstract class CsvBinding<T> : CsvBinding, IEquatable<CsvBinding>, IEquatable<CsvBinding<T>>
 {
-    internal CsvBinding(int index, string? header) : base(index, header)
+    /// <summary>
+    /// Internal implementation detail.
+    /// </summary>
+    protected internal CsvBinding(int index, string? header) : base(index, header)
     {
     }
 

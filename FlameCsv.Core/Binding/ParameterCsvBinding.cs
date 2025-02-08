@@ -2,7 +2,7 @@
 using System.Text;
 using FlameCsv.Reflection;
 
-namespace FlameCsv.Binding.Internal;
+namespace FlameCsv.Binding;
 
 internal sealed class ParameterCsvBinding<T> : CsvBinding<T>
 {

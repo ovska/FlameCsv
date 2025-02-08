@@ -1,6 +1,5 @@
 using FlameCsv.Attributes;
 using FlameCsv.Binding;
-using FlameCsv.Binding.Internal;
 
 [assembly: CsvIndex(0, MemberName = "Id", TargetType = typeof(FlameCsv.Tests.Binding.AssemblyScoped))]
 [assembly: CsvIndex(1, MemberName = "Name", TargetType = typeof(FlameCsv.Tests.Binding.AssemblyScoped))]

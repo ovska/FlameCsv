@@ -1,5 +1,4 @@
 ﻿using FlameCsv.Attributes;
-using FlameCsv.Binding;
 using FlameCsv.Exceptions;
 
 // ReSharper disable InconsistentNaming

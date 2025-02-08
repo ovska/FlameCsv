@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
-using FlameCsv.Binding.Internal;
 using FlameCsv.Exceptions;
 using FlameCsv.Reading;
 using FlameCsv.Reflection;

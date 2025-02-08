@@ -2,7 +2,7 @@
 using System.Text;
 using FlameCsv.Reflection;
 
-namespace FlameCsv.Binding.Internal;
+namespace FlameCsv.Binding;
 
 internal sealed class MemberCsvBinding<T>(int index, MemberData member, string header) : CsvBinding<T>(index, header)
 {

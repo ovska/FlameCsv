@@ -3,7 +3,6 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
-using FlameCsv.Binding.Internal;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Reflection;

@@ -2,7 +2,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using FlameCsv.Binding;
-using FlameCsv.Binding.Internal;
 using FlameCsv.Writing;
 
 namespace FlameCsv.Runtime;
