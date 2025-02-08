@@ -118,15 +118,15 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// Returns a binding targeting the specified header binding match.
     /// </summary>
     [RDC(Messages.Reflection)]
-    internal static CsvBinding<T> FromHeaderBinding<[DAM(Messages.ReflectionBound)] T>(
+    internal static CsvBinding<T> FromBindingData<[DAM(Messages.ReflectionBound)] T>(
         int index,
-        in HeaderBindingCandidate candidate)
+        in BindingData data)
     {
-        return candidate.Target switch
+        return data.Target switch
         {
-            MemberInfo m => ForMember<T>(index, m, candidate.Value),
+            MemberInfo m => ForMember<T>(index, m, data.Name),
             ParameterInfo p => ForParameter<T>(index, p),
-            _ => throw new InvalidOperationException("Invalid HeaderBindingArgs"),
+            _ => throw new InvalidOperationException($"Invalid {nameof(BindingData)}.Target: {data.Target}"),
         };
     }
 

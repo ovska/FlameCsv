@@ -26,6 +26,6 @@ public class OptionsBench
     [Benchmark]
     public void FromDefault()
     {
-        _ = Options.GetOrCreate(static o => new EnumTextConverter<DayOfWeek>(o));
+        _ = Options.Aot.GetOrCreate(static o => new EnumTextConverter<DayOfWeek>(o));
     }
 }

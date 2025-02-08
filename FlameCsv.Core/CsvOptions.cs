@@ -9,7 +9,7 @@ using CommunityToolkit.HighPerformance.Buffers;
 using System.Globalization;
 using JetBrains.Annotations;
 using System.Runtime.CompilerServices;
-using FlameCsv.Binding.Attributes;
+using FlameCsv.Attributes;
 #if DEBUG
 using Unsafe = FlameCsv.Extensions.DebugUnsafe
 #else
@@ -376,7 +376,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// <remarks>
     /// Pooling reduces raw throughput, but can have a profound impact on allocations if the data has repeating strings.
     /// </remarks>
-    /// <seealso cref="Binding.Attributes.CsvStringPoolingAttribute{T}"/>
+    /// <seealso cref="CsvStringPoolingAttribute{T}"/>
     public StringPool? StringPool
     {
         get => _stringPool;

@@ -7,7 +7,7 @@ using Unsafe = System.Runtime.CompilerServices.Unsafe
 #endif
     ;
 
-namespace FlameCsv.Binding.Attributes;
+namespace FlameCsv.Attributes;
 
 /// <summary>
 /// Configures the member to use pooled strings.

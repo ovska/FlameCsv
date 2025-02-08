@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
-using FlameCsv.Binding.Attributes;
+using FlameCsv.Attributes;
 
 namespace FlameCsv.Binding;
 

@@ -1,5 +1,5 @@
 using System.Globalization;
-using FlameCsv.Binding.Attributes;
+using FlameCsv.Attributes;
 
 namespace FlameCsv.Tests.Binding;
 

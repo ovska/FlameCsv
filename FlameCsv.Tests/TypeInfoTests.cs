@@ -1,10 +1,10 @@
-﻿using System.Reflection;
-using System.Runtime.Serialization;
-using FlameCsv.Binding.Attributes;
+﻿using System.Runtime.Serialization;
+using FlameCsv.Attributes;
 using FlameCsv.Reflection;
 
 namespace FlameCsv.Tests;
 
+// ReSharper disable UnusedParameter.Local
 // ReSharper disable UnusedMember.Local
 #pragma warning disable CS0414 // Field is assigned but its value is never used
 #pragma warning disable CS9113 // Parameter is unread.
@@ -113,7 +113,7 @@ public static class TypeInfoTests
         Assert.Contains(
             m1,
             m => m.Value == typeof(Obj).GetField("Field") &&
-                m is { IsProperty: false, IsReadOnly: false, Attributes: [CsvFieldAttribute { IsIgnored: true }] });
+                m is { IsProperty: false, IsReadOnly: false, Attributes: [CsvIgnoreAttribute] });
 
         foreach (var member in m1)
         {
@@ -172,5 +172,5 @@ file class Obj
 
     public int Id { get; set; }
     public string? Name { get; }
-    [CsvField(IsIgnored = true)] public bool Field = true;
+    [CsvIgnore] public bool Field = true;
 }

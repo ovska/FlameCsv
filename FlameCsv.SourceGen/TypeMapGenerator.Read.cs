@@ -1,4 +1,5 @@
-﻿using FlameCsv.SourceGen.Models;
+﻿using FlameCsv.SourceGen.Helpers;
+using FlameCsv.SourceGen.Models;
 
 namespace FlameCsv.SourceGen;
 
@@ -32,6 +33,7 @@ public partial class TypeMapGenerator
             using (writer.WriteBlock())
             {
                 writer.WriteLine("string name = headers[index];");
+                writer.WriteLine();
 
                 WriteMatchers(writer, typeMap, cancellationToken);
                 writer.WriteLine();
@@ -426,17 +428,32 @@ public partial class TypeMapGenerator
         TypeMapModel typeMap,
         CancellationToken cancellationToken)
     {
-        if (!typeMap.IgnoredHeaders.IsEmpty)
+        HashSet<string>? ignoredSet = null;
+
+        foreach (var member in typeMap.AllMembers)
         {
+            if (member.IsIgnored)
+            {
+                ignoredSet ??= PooledSet<string>.Acquire();
+                ignoredSet.Add(member.Name);
+                foreach (var name in member.Names) ignoredSet.Add(name);
+            }
+        }
+
+        if (ignoredSet is { Count: > 0 })
+        {
+            using var enumerator = ignoredSet.GetEnumerator();
+            _ = enumerator.MoveNext(); // must succeed
+
             writer.WriteLine("// Ignored headers");
-            writer.Write($"if (comparer.Equals(name, {typeMap.IgnoredHeaders[0].ToStringLiteral()}");
+            writer.Write($"if (comparer.Equals(name, {enumerator.Current.ToStringLiteral()}");
 
             writer.IncreaseIndent();
 
-            for (int i = 1; i < typeMap.IgnoredHeaders.Length; i++)
+            while (enumerator.MoveNext())
             {
                 writer.WriteLine(") ||");
-                writer.Write($"comparer.Equals(name, {typeMap.IgnoredHeaders[i].ToStringLiteral()}");
+                writer.Write($"comparer.Equals(name, {enumerator.Current.ToStringLiteral()}");
             }
 
             writer.DecreaseIndent();
@@ -445,9 +462,13 @@ public partial class TypeMapGenerator
             using (writer.WriteBlock())
             {
                 writer.WriteLine("materializer.Targets[index] = -1;");
-                writer.WriteLine("continue");
+                writer.WriteLine("continue;");
             }
+
+            writer.WriteLine();
         }
+
+        PooledSet<string>.Release(ignoredSet);
 
         foreach (var member in typeMap.AllMembers)
         {

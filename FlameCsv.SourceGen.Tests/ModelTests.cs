@@ -114,11 +114,11 @@ public static class ModelTests
             [
                 CSharpSyntaxTree.ParseText(
                     """
-                    using FlameCsv.Binding.Attributes;
+                    using FlameCsv.Attributes;
 
                     void Func(
-                        [CsvField("A")] int a,
-                        [CsvField(Order = 1)] float b,
+                        [CsvHeader("A", "_a")] int a,
+                        [CsvOrder(1)] float b,
                         in long c,
                         ref string d,
                         bool b = true) { }
@@ -146,11 +146,11 @@ public static class ModelTests
 
         Assert.Equal([Descriptors.RefConstructorParameter.Id], collector.Diagnostics.Select(d => d.Id));
 
-        (string name, bool hasDefaultValue, object? defaultValue, RefKind refKind, string[] names, int? order)[]
+        (string name, bool hasDefaultValue, object? defaultValue, RefKind refKind, string[] aliases, int? order)[]
             expected
                 =
                 [
-                    ("a", false, null, RefKind.None, ["A"], null),
+                    ("a", false, null, RefKind.None, ["_a"], null),
                     ("b", false, null, RefKind.None, [], 1),
                     ("c", false, null, RefKind.In, [], null),
                     ("d", false, null, RefKind.Ref, [], null),
@@ -164,7 +164,7 @@ public static class ModelTests
             Assert.Equal(expected[i].hasDefaultValue, parameters[i].HasDefaultValue);
             Assert.Equal(expected[i].defaultValue, parameters[i].DefaultValue);
             Assert.Equal(expected[i].refKind, parameters[i].RefKind);
-            Assert.Equal(expected[i].names.ToEquatableArray(), parameters[i].Names);
+            Assert.Equal(expected[i].aliases.ToEquatableArray(), parameters[i].Names);
             Assert.Equal(expected[i].order, parameters[i].Order);
         }
 
@@ -295,7 +295,7 @@ public static class ModelTests
                     """
                     using System;
                     using FlameCsv;
-                    using FlameCsv.Binding.Attributes;
+                    using FlameCsv.Attributes;
 
                     class TestClass
                     {
@@ -422,12 +422,12 @@ public static class ModelTests
                     using System;
                     using FlameCsv;
                     using FlameCsv.Binding;
-                    using FlameCsv.Binding.Attributes;
+                    using FlameCsv.Attributes;
 
-                    [assembly: FlameCsv.Binding.Attributes.CsvAssemblyTypeFieldAttribute(typeof(AssemblyTest.Target), "Prop", "_prop")]
-                    [assembly: FlameCsv.Binding.Attributes.CsvAssemblyTypeAttribute(typeof(AssemblyTest.Target), IgnoredHeaders = new string[] { "value" })]
-                    [assembly: FlameCsv.Binding.Attributes.CsvAssemblyTypeAttribute(typeof(AssemblyTest.Target), CreatedTypeProxy = typeof(object))]
-                    [assembly: FlameCsv.Binding.Attributes.CsvAssemblyTypeAttribute(typeof(object), IgnoredHeaders = new string[] { "test" })]
+                    [assembly: CsvHeaderAttribute("_prop", "prop_", MemberName = "Prop", TargetType = typeof(AssemblyTest.Target))]
+                    [assembly: CsvIgnoredIndexesAttribute(new int[] { 1 }, TargetType = typeof(AssemblyTest.Target))]
+                    [assembly: CsvTypeProxyAttribute(typeof(object), TargetType = typeof(AssemblyTest.Target))]
+                    [assembly: CsvIgnoredIndexesAttribute(IgnoredIndexes = new int[] { 1 }, TargetType = typeof(object))]
 
                     namespace AssemblyTest
                     {
@@ -456,21 +456,37 @@ public static class ModelTests
         AnalysisCollector collector = new(classSymbol);
         ConstructorModel? ctorModel = null;
 
-        TypeAttribute.ParseAssembly(
-            classSymbol,
-            compilation.Assembly,
-            CancellationToken.None,
-            ref ctorModel,
-            in flameSymbols,
-            ref collector);
+        foreach (var attr in compilation.Assembly.GetAttributes())
+        {
+            var model = AttributeConfiguration.TryCreate(
+                classSymbol,
+                isOnAssembly: true,
+                attr,
+                in flameSymbols,
+                ref collector);
+
+            if (model is not null)
+            {
+                collector.TargetAttributes.Add(model.Value);
+            }
+            else
+            {
+                ctorModel ??= ConstructorModel.TryParseConstructorAttribute(
+                    isOnAssembly: true,
+                    classSymbol,
+                    attr,
+                    in flameSymbols);
+            }
+        }
 
         Assert.Single(collector.TargetAttributes);
         Assert.Equal("Prop", collector.TargetAttributes[0].MemberName);
-        Assert.Equal(["_prop"], collector.TargetAttributes[0].Names.Select(x => x.Value?.ToString()));
-        Assert.NotNull(collector.TargetAttributes[0].Location);
+        Assert.Equal("_prop", collector.TargetAttributes[0].HeaderName);
+        Assert.Equal(["prop_"], collector.TargetAttributes[0].Aliases.Select(x => x.Value?.ToString()));
+        Assert.NotNull(collector.TargetAttributes[0].Attribute.GetLocation());
 
-        Assert.Single(collector.IgnoredHeaders);
-        Assert.Equal("value", collector.IgnoredHeaders.Single());
+        Assert.Single(collector.IgnoredIndexes);
+        Assert.Equal(1, collector.IgnoredIndexes.Single());
 
         Assert.Single(collector.Proxies);
         Assert.Equal(SpecialType.System_Object, collector.Proxies[0].SpecialType);
@@ -573,6 +589,7 @@ public static class ModelTests
 #if SOURCEGEN_USE_COMPILATION
             compilation,
 #endif
+            tokenType: compilation.GetTypeByMetadataName("System.Char")!,
             arg);
     }
 }

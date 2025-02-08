@@ -126,14 +126,14 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
             Identifier = explicitPropertyName ?? propertySymbol.Name,
             Name = explicitPropertyOriginalName ?? propertySymbol.Name,
             IsProperty = true,
-            IsIgnored = meta.IsIgnored ?? false,
+            IsIgnored = meta.IsIgnored,
             IsRequired =
-                meta.IsRequired is true ||
+                meta.IsRequired ||
                 propertySymbol.IsRequired ||
                 propertySymbol.SetMethod is { IsInitOnly: true },
-            Names = meta.Names,
+            Names = meta.Aliases,
             Order = meta.Order,
-            CanRead = !propertySymbol.IsReadOnly,
+            CanRead = !propertySymbol.IsReadOnly && !meta.IsIgnored,
             CanWrite = !propertySymbol.IsWriteOnly && meta.IsIgnored is not true,
             OverriddenConverter
                 = ConverterModel.Create(token, propertySymbol, propertySymbol.Type, in symbols, ref collector),
@@ -160,13 +160,13 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
         {
             Type = new TypeRef(fieldSymbol.Type),
             IsProperty = false,
-            IsRequired = meta.IsRequired is true || fieldSymbol.IsRequired,
-            IsIgnored = meta.IsIgnored ?? false,
+            IsRequired = meta.IsRequired || fieldSymbol.IsRequired,
+            IsIgnored = meta.IsIgnored,
             Identifier = fieldSymbol.Name,
             Name = fieldSymbol.Name,
-            Names = meta.Names,
+            Names = meta.Aliases,
             Order = meta.Order ?? 0,
-            CanRead = !fieldSymbol.IsReadOnly,
+            CanRead = !fieldSymbol.IsReadOnly && !meta.IsIgnored,
             CanWrite = meta.IsIgnored is not true,
             ExplicitInterfaceOriginalDefinitionName = null,
             OverriddenConverter = ConverterModel.Create(

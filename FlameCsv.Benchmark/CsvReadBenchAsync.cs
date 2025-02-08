@@ -1,6 +1,6 @@
 ﻿using System.Text;
+using FlameCsv.Attributes;
 using FlameCsv.Binding;
-using FlameCsv.Binding.Attributes;
 
 namespace FlameCsv.Benchmark;
 
@@ -105,34 +105,34 @@ public partial class CsvReadBenchAsync
 
     public sealed class Entry
     {
-        [CsvHelper.Configuration.Attributes.Index(0), CsvField(Index = 0)]
+        [CsvHelper.Configuration.Attributes.Index(0), CsvIndex(0)]
         public int Index { get; set; }
 
-        [CsvHelper.Configuration.Attributes.Index(1), CsvField(Index = 1)]
+        [CsvHelper.Configuration.Attributes.Index(1), CsvIndex(1)]
         public string? Name { get; set; }
 
-        [CsvHelper.Configuration.Attributes.Index(2), CsvField(Index = 2)]
+        [CsvHelper.Configuration.Attributes.Index(2), CsvIndex(2)]
         public string? Contact { get; set; }
 
-        [CsvHelper.Configuration.Attributes.Index(3), CsvField(Index = 3)]
+        [CsvHelper.Configuration.Attributes.Index(3), CsvIndex(3)]
         public int Count { get; set; }
 
-        [CsvHelper.Configuration.Attributes.Index(4), CsvField(Index = 4)]
+        [CsvHelper.Configuration.Attributes.Index(4), CsvIndex(4)]
         public double Latitude { get; set; }
 
-        [CsvHelper.Configuration.Attributes.Index(5), CsvField(Index = 5)]
+        [CsvHelper.Configuration.Attributes.Index(5), CsvIndex(5)]
         public double Longitude { get; set; }
 
-        [CsvHelper.Configuration.Attributes.Index(6), CsvField(Index = 6)]
+        [CsvHelper.Configuration.Attributes.Index(6), CsvIndex(6)]
         public double Height { get; set; }
 
-        [CsvHelper.Configuration.Attributes.Index(7), CsvField(Index = 7)]
+        [CsvHelper.Configuration.Attributes.Index(7), CsvIndex(7)]
         public string? Location { get; set; }
 
-        [CsvHelper.Configuration.Attributes.Index(8), CsvField(Index = 8)]
+        [CsvHelper.Configuration.Attributes.Index(8), CsvIndex(8)]
         public string? Category { get; set; }
 
-        [CsvHelper.Configuration.Attributes.Index(9), CsvField(Index = 9)]
+        [CsvHelper.Configuration.Attributes.Index(9), CsvIndex(9)]
         public double? Popularity { get; set; }
     }
 

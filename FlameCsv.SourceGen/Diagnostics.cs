@@ -60,13 +60,11 @@ internal static class Diagnostics
         string memberType,
         string memberName,
         string configurationName,
-        Location? location,
-        Location? additionalLocation)
+        Location? location)
     {
         return Diagnostic.Create(
             descriptor: Descriptors.ConflictingConfiguration,
-            location: location ?? additionalLocation ?? GetLocation(targetType),
-            additionalLocations: additionalLocation is not null ? [additionalLocation] : null,
+            location: location ?? GetLocation(targetType),
             messageArgs: [memberType, memberName, targetType.ToDisplayString(), configurationName]);
     }
 
@@ -128,15 +126,15 @@ internal static class Diagnostics
     public static Diagnostic TargetMemberNotFound(
         ITypeSymbol targetType,
         Location? location,
-        in TargetAttributeModel targetModel)
+        in AttributeConfiguration configuration)
     {
         return Diagnostic.Create(
             descriptor: Descriptors.TargetMemberNotFound,
             location: location ?? GetLocation(targetType),
             messageArgs:
             [
-                targetModel.IsParameter ? "Parameter" : "Property/field",
-                targetModel.MemberName,
+                configuration.IsParameter ? "Parameter" : "Property/field",
+                configuration.MemberName,
                 targetType.ToDisplayString(),
             ]);
     }

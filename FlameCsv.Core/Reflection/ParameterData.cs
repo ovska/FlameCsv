@@ -1,5 +1,4 @@
-﻿using System.ComponentModel;
-using System.Reflection;
+﻿using System.Reflection;
 
 namespace FlameCsv.Reflection;
 
@@ -17,6 +16,7 @@ internal sealed class ParameterData(ParameterInfo parameter) : ReflectionData
                 return true;
             }
 
+#if false // TODO: Uncomment when DefaultValueAttribute is supported
             foreach (var attr in Attributes)
             {
                 if (attr is DefaultValueAttribute)
@@ -24,6 +24,7 @@ internal sealed class ParameterData(ParameterInfo parameter) : ReflectionData
                     return true;
                 }
             }
+#endif
 
             return false;
         }

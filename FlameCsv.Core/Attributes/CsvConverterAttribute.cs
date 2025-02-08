@@ -2,11 +2,15 @@ using FlameCsv.Converters;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 
-namespace FlameCsv.Binding.Attributes;
+namespace FlameCsv.Attributes;
 
 /// <summary>
 /// Base attribute for overriding converters for the target member or parameter.
 /// </summary>
+/// <remarks>
+/// This attribute is not recognized by the source generator,
+/// use <see cref="CsvConverterAttribute{T,TConverter}"/> instead.
+/// </remarks>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter, AllowMultiple = true)]
 public abstract class CsvConverterAttribute<T> : Attribute where T : unmanaged, IBinaryInteger<T>
 {
