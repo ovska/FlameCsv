@@ -11,7 +11,7 @@ namespace FlameCsv.Attributes;
     AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface | AttributeTargets.Assembly,
     AllowMultiple = true,
     Inherited = false)]
-public sealed class CsvIgnoredIndexesAttribute : CsvTypeConfigurableBaseAttribute
+public sealed class CsvIgnoredIndexesAttribute : CsvConfigurationAttribute
 {
     /// <summary>
     /// Indexes to ignore when reading CSV, and to leave empty when writing.
