@@ -1,4 +1,5 @@
-﻿using FlameCsv.SourceGen.Helpers;
+﻿using FlameCsv.Attributes;
+using FlameCsv.SourceGen.Helpers;
 using FlameCsv.SourceGen.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -9,7 +10,7 @@ namespace FlameCsv.SourceGen.Tests;
 public static class ModelTests
 {
     private static MetadataReference CoreAssembly { get; } =
-        MetadataReference.CreateFromFile(typeof(Binding.CsvTypeMapAttribute<,>).Assembly.Location);
+        MetadataReference.CreateFromFile(typeof(CsvTypeMapAttribute<,>).Assembly.Location);
 
     [Fact]
     public static void Test_AnalysisCollector()
