@@ -75,18 +75,23 @@ public partial class TypeMapGenerator : IIncrementalGenerator
     {
         if (!typeMap.CanGenerateCode) return;
 
-        StringBuilder sourceName = PooledStringBuilder.Acquire();
+        string sourceName;
 
-        foreach (var wrapping in typeMap.WrappingTypes)
+        using (var builder = new ImmutableArrayBuilder<char>())
         {
-            sourceName.Append(wrapping.Name);
-            sourceName.Append('_');
+            foreach (var wrapping in typeMap.WrappingTypes)
+            {
+                builder.AddRange(wrapping.Name.AsSpan());
+                builder.Add('_');
+            }
+
+            builder.AddRange(typeMap.TypeMap.Name.AsSpan());
+            builder.AddRange(".G.cs".AsSpan());
+
+            sourceName = builder.WrittenSpan.ToString();
         }
 
-        sourceName.Append(typeMap.TypeMap.Name);
-        sourceName.Append(".G.cs");
-
-        context.AddSource(sourceName.ToStringAndFree(), CreateTypeMap(typeMap, context.CancellationToken));
+        context.AddSource(sourceName, CreateTypeMap(typeMap, context.CancellationToken));
     }
 
     private static SourceText CreateTypeMap(
