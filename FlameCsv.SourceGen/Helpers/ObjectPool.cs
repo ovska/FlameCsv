@@ -20,13 +20,6 @@ namespace FlameCsv.SourceGen.Helpers;
 
 internal static class ObjectPool
 {
-    public static string ToStringAndFree(this StringBuilder builder)
-    {
-        var result = builder.ToString();
-        PooledStringBuilder.Release(builder);
-        return result;
-    }
-
     public static EquatableArray<T> ToEquatableArrayAndFree<T>(this HashSet<T> set) where T : IEquatable<T?>
     {
         var result = set.Count == 0 ? [] : set.ToEquatableArray();
