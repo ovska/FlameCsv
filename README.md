@@ -9,29 +9,35 @@
 </p>
 
 # Features
+- **TL;DR:** Blazingly fast, trimmable and easy-to-use feature-rich CSV library
 - **Usage**
-  - Straightforward API with minimal fiddling unless needed
-  - Supports reading both `char` and `byte` (UTF-8)
-  - Read from `TextReader`, `Stream`, `PipeReader`, `ReadOnlySequence`, `string`, etc.
-  - Write to `StringBuilder`, `TextWriter`, `Stream`, file, etc.
-  - Converter API similar to System.Text.Json
-  - Provides low-level types to manually parse CSV
+  - Straightforward API with sensible defaults but deep configuration
+  - Support both sync and async, using either `char` or `byte` (UTF-8)
+  - Read from almost any source, including `TextReader`, `Stream`, `PipeReader`, `ReadOnlySequence`, `string`
+  - Write to almost any source, including `TextWriter`, `Stream`, `StringBuilder`, `PipeWriter`, file, etc.
+  - Options and Converter API similar to System.Text.Json for familiarity
+  - Access to raw CSV field slices for high-performance manual processing
 - **Data binding**
-  - Supports both binding to classes/structs and reading records and individual fields manually
-  - Supports binding to CSV headers, or column indexes
-  - Supports complex object initialization, e.g. a combination of properties and constructor params
+  - Read classes/structs/records directly, or enumerate records and fields one-by-one
+  - Support for headerless CSV
+  - Supports complex object initialization patterns such as a mix of constructor parameters and properties
 - **Configuration**
-  - Easy configuration for converting numbers, dates and many other built-in types
+  - Built-in support for common .NET types, including enums and nullable value types
   - Supports both RFC4180/Excel and Unix/escaped CSV styles
-  - Automatic newline detection between `\n` and `\r\n`
+  - Customizable field separator, quotes, and escape characters
+  - Automatic newline detection between `\n` and `\r\n`, or explicit configuration
+  - Configure converters on a per-member basis
+  - Apply configuration to any type with assembly-targeted attributes
 - **Performance**
+  - SIMD-accelerated parsing for blazing (or flaming?) fast performance
   - Built with performance in mind from the ground up
-  - Minimal allocations when reading records asynchronously
-  - Near-zero allocations when reading records synchronously
-  - Near-zero allocations when enumerating CSV (e.g. peeking fields)
+  - Near-zero allocations internally when reading and writing CSV
+  - Fast manual field reading and writing of whole records or individual fields
+  - Benefit from either cached reflection-based or pre-compiled sourcegenerator-based binding
 - **Source generator**
-  - NativeAOT / trimming compatible
-  - Same feature list and API as reflection based binding
+  - No reflection or dynamic code needed even for complex type binding patterns
+  - All reading and writing APIs have a source-generator equivalent
+  - Ideal for NativeAOT and trimming scenarios
 
 # Examples
 
@@ -45,24 +51,9 @@ foreach (var user in CsvReader.Read<User>(data))
 {
     Console.WriteLine(user);
 }
-
-await foreach (var user in CsvReader.ReadAsync<User>(new TextReader(data)))
-{
-    Console.WriteLine(user);
-}
 ```
 
-## Reading UTF8 directly from bytes
-```csharp
-var options = new CsvOptions<byte> { FormatProvider = CultureInfo.CurrentCulture };
-
-await foreach (var user in CsvReader.ReadAsync<User>(File.OpenRead(@"C:\test.csv"), options))
-{
-    Console.WriteLine(user);
-}
-```
-
-## Reflection-free reading using source generator (for NativeAOT/trimming)
+## Reflection-free reading using source generator
 ```csharp
 record User(int Id, string Name, DateTime LastLogin, int? Age = null);
 
@@ -79,9 +70,11 @@ foreach (var user in CsvReader.Read<User>(data, UserTypeMap.Instance))
 ```csharp
 string data = "id,name,lastlogin,age\n1,Bob,2010-01-01,42\n2,Alice,2024-05-22,\n";
 
-var options = new CsvOptions<char> {
-  Comparer = StringComparer.Ordinal,
-  Converters = { new CustomDateTimeConverter() }
+CsvOptions<char> options = new()
+{
+    HasHeader = true,
+    Comparer = StringComparer.Ordinal,
+    Converters = { new CustomDateTimeConverter() },
 };
 
 foreach (CsvValueRecord<char> record in CsvReader.Enumerate(data, options))
@@ -91,24 +84,14 @@ foreach (CsvValueRecord<char> record in CsvReader.Enumerate(data, options))
         Id:        record.GetField<int>("Id"),
         Name:      record.GetField<string>("Name"),
         LastLogin: record.GetField<DateTime>("LastLogin"),
-        Age:       record.GetFieldCount() >= 3 ? record.GetField<int?>("Age") : null);
+        Age:       record.FieldCount >= 3 ? record.GetField<int?>("Age") : null);
 
     var u2 = new User(
         Id:        record.GetField<int>(0),
         Name:      record.GetField<string>(1),
         LastLogin: record.GetField<DateTime>(2),
-        Age:       record.GetFieldCount() >= 3 ? record.GetField<int?>(3) : null);
+        Age:       record.FieldCount >= 3 ? record.GetField<int?>(3) : null);
 }
-```
-
-## Copy CSV structure into objects for later use
-```csharp
-string data = "id,name,lastlogin,age\n1,Bob,2010-01-01,42\n2,Alice,2024-05-22,\n";
-
-// CsvRecord reference type copies the CSV fields for later use
-List<CsvRecord<char>> records = [.. CsvReader.Enumerate(data).Preserve()];
-Console.WriteLine("First name: " + records[0].GetField(1));
-return records[^1];
 ```
 
 ## Reading headerless CSV
@@ -132,37 +115,23 @@ foreach (var user in CsvReader.Read<User>(data, options))
 
 ## Writing records
 ```csharp
-User[] data =
-[
-    new User(1, "Bob", DateTime.UnixEpoch, 42),
-    new User(2, "Alice", DateTime.UnixEpoch, null),
-];
-
+User[] data = [new(1, "Bob", DateTime.Now, 42), new(2, "Alice", DateTime.UnixEpoch, null)];
 StringBuilder result = CsvWriter.WriteToString(data);
 Console.WriteLine(result);
-
-await CsvWriter.WriteAsync(data, stream, leaveOpen: true);
 ```
 
-# Performance
+## Writing manually
+```csharp
+using (CsvWriter<char> writer = CsvWriter.Create(TextWriter.Null))
+{
+    writer.WriteRecord(new User(1, "Bob", DateTime.Now, 42));
+    writer.NextRecord();
+    writer.Flush();
 
-Note: CsvHelper was chosen because it is the most popular CSV library for C#. This library isn't meant to be a replacement for CsvHelper.
-Example CSV file used in th benchmarks is found in the `TestData` folder in the tests-project.
-
----
-
-![image](https://user-images.githubusercontent.com/68028366/235344076-a82ccca6-b3a1-4a00-9509-dcf261aaad06.png)
-
-![image](https://user-images.githubusercontent.com/68028366/235345259-87c1013b-91b4-4d60-bcaf-5924ed467df4.png)
-
----
-
-![image](https://user-images.githubusercontent.com/68028366/235345278-67fef09b-b742-442b-a680-0e8675e8309c.png)
-
-![image](https://user-images.githubusercontent.com/68028366/235345292-c77d3870-9fc6-456e-9e6b-05effd1300f5.png)
-
---
-
-![image](https://user-images.githubusercontent.com/68028366/236668926-2e928850-36b8-4610-a50e-168fa56de8e0.png)
-
-![image](https://user-images.githubusercontent.com/68028366/236668945-440fff1a-3b2d-4f57-8f94-6231f62afacc.png)
+    writer.WriteField(1);
+    writer.WriteField("Alice");
+    writer.WriteField(DateTime.UnixEpoch);
+    writer.WriteField((int?)null);
+    writer.NextRecord();
+}
+```
