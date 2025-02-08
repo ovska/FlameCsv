@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using FlameCsv.Attributes;
 using FlameCsv.Binding;
 using FlameCsv.Writing;
 

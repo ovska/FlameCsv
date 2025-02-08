@@ -51,7 +51,7 @@ public partial class TypeMapGenerator
 
             writer.WriteLine();
             writer.WriteLine(
-                "if (!global::System.MemoryExtensions.ContainsAnyInRange(materializer.Targets, @s__MinIndex, @s__MaxIndex))");
+                "if (!global::System.MemoryExtensions.ContainsAnyInRange(materializer.Targets, @s__MinId, @s__MaxId))");
 
             using (writer.WriteBlock())
             {

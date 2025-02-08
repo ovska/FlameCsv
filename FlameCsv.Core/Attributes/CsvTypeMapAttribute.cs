@@ -1,12 +1,13 @@
-﻿using JetBrains.Annotations;
+﻿using FlameCsv.Binding;
+using JetBrains.Annotations;
 
-namespace FlameCsv.Binding;
+namespace FlameCsv.Attributes;
 
 /// <summary>
 /// Applies source generated binding logic to the annotated partial class.
 /// </summary>
 /// <remarks>
-/// <see cref="CsvTypeMap{T, TValue}"/> instances should be stateless and immutable.
+/// <see cref="CsvTypeMap{T,TValue}"/> instances should be stateless and immutable.
 /// <br/>To use custom value creation logic, create a parameterless instance or static method <c>CreateInstance()</c>
 /// that returns <typeparamref name="TValue"/> or a subtype.
 /// <br/>Automatically creates a <c>Instance</c>-property if the type has a parameterless constructor,

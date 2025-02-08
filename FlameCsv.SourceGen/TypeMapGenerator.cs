@@ -16,7 +16,7 @@ public partial class TypeMapGenerator : IIncrementalGenerator
             = context
                 .SyntaxProvider
                 .ForAttributeWithMetadataName(
-                    "FlameCsv.Binding.CsvTypeMapAttribute`2",
+                    "FlameCsv.Attributes.CsvTypeMapAttribute`2",
                     static (syntaxNode, cancellationToken) =>
                     {
                         cancellationToken.ThrowIfCancellationRequested();
@@ -165,8 +165,8 @@ public partial class TypeMapGenerator : IIncrementalGenerator
             writer.WriteLine($" = {index++};");
         }
 
-        writer.WriteLine("private const int s__MinIndex = 1;");
-        writer.WriteLine($"private const int s__MaxIndex = {index};");
+        writer.WriteLine("private const int @s__MinId = 1;");
+        writer.WriteLine($"private const int @s__MaxId = {index};");
         writer.WriteLine();
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using FlameCsv.Attributes;
 using FlameCsv.SourceGen.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -10,7 +11,7 @@ public class TypeMapTests
     private static readonly MetadataReference[] _metadataReferences =
     [
         Basic.Reference.Assemblies.Net90.References.SystemRuntime,
-        MetadataReference.CreateFromFile(typeof(Binding.CsvTypeMapAttribute<,>).Assembly.Location)
+        MetadataReference.CreateFromFile(typeof(CsvTypeMapAttribute<,>).Assembly.Location)
     ];
 
     [Fact]
@@ -21,7 +22,7 @@ public class TypeMapTests
             [
                 CSharpSyntaxTree.ParseText(
                     """
-                    [FlameCsv.Binding.CsvTypeMap<char, TestClass>]
+                    [FlameCsv.Attributes.CsvTypeMap<char, TestClass>]
                     partial class TestTypeMap;
 
                     public class TestClass
