@@ -3,10 +3,10 @@
 namespace FlameCsv.Attributes;
 
 /// <summary>
-/// Marks the member as required when reading CSV.
+/// Marks the member or parameter as required when reading CSV.
 /// <c>init</c> properties and parameters without a default value are implicitly required.<br/>
-/// When not placed on a member or parameter, <see cref="CsvFieldConfigurableBaseAttribute.MemberName"/> must be set.<br/>
-/// When placed on an assembly, <see cref="CsvTypeConfigurableBaseAttribute.TargetType"/> must be set.
+/// When not placed on a member or parameter, <see cref="CsvFieldConfigurationAttribute.MemberName"/> must be set.<br/>
+/// When placed on an assembly, <see cref="CsvConfigurationAttribute.TargetType"/> must be set.
 /// </summary>
 [AttributeUsage(
     AttributeTargets.Property |
@@ -18,4 +18,4 @@ namespace FlameCsv.Attributes;
     AttributeTargets.Assembly,
     AllowMultiple = true)]
 [PublicAPI]
-public sealed class CsvRequiredAttribute : CsvFieldConfigurableBaseAttribute;
+public sealed class CsvRequiredAttribute : CsvFieldConfigurationAttribute;

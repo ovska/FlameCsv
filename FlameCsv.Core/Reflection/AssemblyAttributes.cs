@@ -43,12 +43,12 @@ internal static class AssemblyAttributes
         foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
         {
             foreach (var attribute in assembly.GetCustomAttributes(
-                         typeof(CsvTypeConfigurableBaseAttribute),
+                         typeof(CsvConfigurationAttribute),
                          inherit: false))
             {
                 ref List<object>? list = ref CollectionsMarshal.GetValueRefOrAddDefault(
                     attributes,
-                    ((CsvTypeConfigurableBaseAttribute)attribute).TargetType,
+                    ((CsvConfigurationAttribute)attribute).TargetType,
                     out _);
 
                 (list ??= []).Add(attribute);

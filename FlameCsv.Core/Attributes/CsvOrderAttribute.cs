@@ -4,8 +4,8 @@ namespace FlameCsv.Attributes;
 
 /// <summary>
 /// Configures the order in which fields will be written when writing CSV (and headers matched when reading).<br/>
-/// When not placed on a member or parameter, <see cref="CsvFieldConfigurableBaseAttribute.MemberName"/> must be set.<br/>
-/// When placed on an assembly, <see cref="CsvTypeConfigurableBaseAttribute.TargetType"/> must be set.
+/// When not placed on a member or parameter, <see cref="CsvFieldConfigurationAttribute.MemberName"/> must be set.<br/>
+/// When placed on an assembly, <see cref="CsvConfigurationAttribute.TargetType"/> must be set.
 /// </summary>
 [AttributeUsage(
     AttributeTargets.Property |
@@ -13,10 +13,11 @@ namespace FlameCsv.Attributes;
     AttributeTargets.Parameter |
     AttributeTargets.Class |
     AttributeTargets.Struct |
+    AttributeTargets.Interface |
     AttributeTargets.Assembly,
     AllowMultiple = true)]
 [PublicAPI]
-public sealed class CsvOrderAttribute : CsvFieldConfigurableBaseAttribute
+public sealed class CsvOrderAttribute : CsvFieldConfigurationAttribute
 {
     /// <summary>
     /// Order value of the CSV field. The default value is zero for unconfigured fields.

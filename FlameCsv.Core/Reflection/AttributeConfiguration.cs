@@ -58,10 +58,10 @@ internal static class AttributeConfiguration
         List<BindingData> candidates = [];
         HashSet<int> ignoredIndexes = [];
 
-        Dictionary<(string nameof, bool isParameter), List<CsvFieldConfigurableBaseAttribute>> dict = [];
+        Dictionary<(string nameof, bool isParameter), List<CsvFieldConfigurationAttribute>> dict = [];
 
         void AddAttribute(
-            CsvFieldConfigurableBaseAttribute baseAttr,
+            CsvFieldConfigurationAttribute baseAttr,
             string? knownName = null,
             bool? knownParameter = null)
         {
@@ -86,7 +86,7 @@ internal static class AttributeConfiguration
 
         foreach (var attr in AssemblyAttributes.Get(typeInfo.Type))
         {
-            if (attr is CsvFieldConfigurableBaseAttribute baseAttr)
+            if (attr is CsvFieldConfigurationAttribute baseAttr)
             {
                 AddAttribute(baseAttr);
             }
@@ -101,7 +101,7 @@ internal static class AttributeConfiguration
 
         foreach (var attr in typeInfo.Attributes)
         {
-            if (attr is CsvFieldConfigurableBaseAttribute baseAttr)
+            if (attr is CsvFieldConfigurationAttribute baseAttr)
             {
                 AddAttribute(baseAttr);
             }
@@ -122,7 +122,7 @@ internal static class AttributeConfiguration
 
             foreach (var attr in member.Attributes)
             {
-                if (attr is CsvFieldConfigurableBaseAttribute baseAttr)
+                if (attr is CsvFieldConfigurationAttribute baseAttr)
                 {
                     AddAttribute(baseAttr, knownName: member.Value.Name, knownParameter: false);
                     found = true;
@@ -146,7 +146,7 @@ internal static class AttributeConfiguration
 
             foreach (var attr in parameter.Attributes)
             {
-                if (attr is CsvFieldConfigurableBaseAttribute baseAttr)
+                if (attr is CsvFieldConfigurationAttribute baseAttr)
                 {
                     AddAttribute(baseAttr, knownName: parameter.Value.Name, knownParameter: true);
                     found = true;
@@ -164,7 +164,7 @@ internal static class AttributeConfiguration
             }
         }
 
-        foreach (((string name, bool isParameter), List<CsvFieldConfigurableBaseAttribute> list) in dict)
+        foreach (((string name, bool isParameter), List<CsvFieldConfigurationAttribute> list) in dict)
         {
             string? value = null;
             ImmutableArray<string> aliases = [];

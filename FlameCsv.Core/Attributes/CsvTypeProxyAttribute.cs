@@ -9,7 +9,7 @@ namespace FlameCsv.Attributes;
 [AttributeUsage(
     AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface | AttributeTargets.Assembly,
     Inherited = false)]
-public sealed class CsvTypeProxyAttribute : CsvTypeConfigurableBaseAttribute
+public sealed class CsvTypeProxyAttribute : CsvConfigurationAttribute
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CsvTypeProxyAttribute"/> class.
