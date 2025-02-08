@@ -1,5 +1,5 @@
-﻿using FlameCsv.Binding;
-using FlameCsv.Binding.Attributes;
+﻿using FlameCsv.Attributes;
+using FlameCsv.Binding;
 using FlameCsv.Converters;
 
 // ReSharper disable all
@@ -8,9 +8,10 @@ namespace FlameCsv.Tests.Binding;
 
 public static partial class TypeMapBindingTests
 {
-    [CsvTypeField(memberName: "Id", "__id__")]
-    [CsvTypeField(memberName: "dof", "doeeeef", IsParameter = true)]
-    [CsvTypeField(memberName: "Xyzz", "aaaaasd", IsRequired = true)]
+    [CsvHeader("__id__", MemberName = "Id")]
+    [CsvHeader("doeeeef", IsParameter = true, MemberName = "dof")]
+    [CsvHeader("aaaaasd", MemberName = "Xyzz")]
+    [CsvRequired(MemberName = "Xyzz")]
     [CsvConstructor(ParameterTypes = [typeof(string), typeof(DayOfWeek), typeof(DayOfWeek?)])]
     private class _Obj : ISomething
     {
@@ -29,12 +30,12 @@ public static partial class TypeMapBindingTests
         [CsvConverter<char, EnumTextConverterFactory>]
         public DayOfWeek DOF { get; set; }
 
-        [CsvField(IsRequired = true)] public int? NullableInt { get; set; }
+        [CsvRequired] public int? NullableInt { get; set; }
         public DayOfWeek? NullableDOF { get; set; }
 
         bool ISomething.Xyzz { get; set; }
 
-        [CsvField(IsIgnored = true)] public long SomeValue { get; set; }
+        [CsvIgnore] public long SomeValue { get; set; }
     }
 
     [CsvTypeMap<char, _Obj>]

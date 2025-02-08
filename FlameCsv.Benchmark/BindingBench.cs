@@ -1,8 +1,8 @@
 ﻿// ReSharper disable all
 using System.Globalization;
 using System.Runtime.InteropServices;
+using FlameCsv.Attributes;
 using FlameCsv.Binding;
-using FlameCsv.Binding.Attributes;
 
 namespace FlameCsv.Benchmark;
 
@@ -48,7 +48,7 @@ public class BindingBench
     {
         public int Id { get; set; }
         public long Ticks { get; set; }
-        [CsvField("is_enabled")] public bool IsEnabled { get; set; }
+        [CsvHeader("is_enabled")] public bool IsEnabled { get; set; }
         public int Age { get; set; }
         public double Height { get; set; }
     }

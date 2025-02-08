@@ -9,22 +9,45 @@ internal readonly struct ConstructorModel
     public AttributeData Attribute { get; init; }
     public ImmutableArray<TypedConstant> Types { get; init; }
 
-    public static ConstructorModel? ParseConstructorAttribute(ITypeSymbol targetType, AttributeData attribute)
+    public static ConstructorModel? TryParseConstructorAttribute(
+        bool isOnAssembly,
+        ITypeSymbol targetType,
+        AttributeData attribute,
+        ref readonly FlameSymbols symbols)
     {
+        if (!symbols.IsCsvConstructorAttribute(attribute.AttributeClass)) return null;
+
+        bool needType = isOnAssembly;
+        ImmutableArray<TypedConstant> types = default;
+
         foreach (var arg in attribute.NamedArguments)
         {
-            if (arg.Key == "ParameterTypes")
+            if (arg is { Key: "ParameterTypes", Value.Kind: TypedConstantKind.Array })
             {
-                return new ConstructorModel
+                types = arg.Value.Values;
+            }
+            else if (needType && arg is { Key: "TargetType", Value.Kind: TypedConstantKind.Type })
+            {
+                if (!SymbolEqualityComparer.Default.Equals(targetType, arg.Value.Value as ITypeSymbol))
                 {
-                    TargetType = targetType,
-                    Attribute = attribute,
-                    Types = arg.Value.Values,
-                };
+                    return null;
+                }
+
+                needType = false;
             }
         }
 
-        return null;
+        if (types.IsDefault || needType)
+        {
+            return null;
+        }
+
+        return new ConstructorModel
+        {
+            TargetType = targetType,
+            Attribute = attribute,
+            Types = types,
+        };
     }
 
     public static EquatableArray<ParameterModel> ParseConstructor(
@@ -135,7 +158,6 @@ internal readonly struct ConstructorModel
             if (targetAttribute.IsParameter)
             {
                 targetAttribute.MatchFound = true;
-
             }
         }
     }

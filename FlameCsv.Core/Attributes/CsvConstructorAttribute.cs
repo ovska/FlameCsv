@@ -1,6 +1,6 @@
 ﻿using JetBrains.Annotations;
 
-namespace FlameCsv.Binding.Attributes;
+namespace FlameCsv.Attributes;
 
 /// <summary>
 /// Marks the constructor to be used when creating instances while reading records.
@@ -17,10 +17,9 @@ namespace FlameCsv.Binding.Attributes;
     AttributeTargets.Struct |
     AttributeTargets.Assembly,
     Inherited = false)]
-public sealed class CsvConstructorAttribute : Attribute
+public sealed class CsvConstructorAttribute : CsvTypeConfigurableBaseAttribute
 {
     private Type[]? _parameterTypes;
-    private Type? _targetType;
 
     /// <summary>
     /// When used on a class or struct, specifies the parameter types of the constructor to use.
@@ -30,14 +29,5 @@ public sealed class CsvConstructorAttribute : Attribute
     {
         get => _parameterTypes!;
         init => _parameterTypes = value ?? throw new ArgumentNullException(nameof(ParameterTypes));
-    }
-
-    /// <summary>
-    /// Type targeted by the attribute. Used when the attribute is applied to an assembly.
-    /// </summary>
-    public Type TargetType
-    {
-        get => _targetType!;
-        init => _targetType = value ?? throw new ArgumentNullException(nameof(TargetType));
     }
 }

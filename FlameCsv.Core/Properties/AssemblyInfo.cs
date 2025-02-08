@@ -6,11 +6,12 @@ global using System.Numerics;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
+[assembly: System.Reflection.Metadata.MetadataUpdateHandlerAttribute(typeof(FlameCsv.Utilities.HotReloadService))]
+
+// TODO: pragma filter these when building nuget package
 [assembly: InternalsVisibleTo("FlameCsv.Console")]
 [assembly: InternalsVisibleTo("FlameCsv.Benchmark")]
 [assembly: InternalsVisibleTo("FlameCsv.Tests")]
-
-[assembly: System.Reflection.Metadata.MetadataUpdateHandlerAttribute(typeof(FlameCsv.Utilities.HotReloadService))]
 
 [assembly: DebuggerDisplay(
     @"\{ StreamPipeReader, Buffered: {_bufferedBytes}, Stream completed: {_isStreamCompleted} \}",

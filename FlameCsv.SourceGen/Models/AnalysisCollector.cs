@@ -7,13 +7,13 @@ internal ref struct AnalysisCollector
 {
     public override string ToString()
         => $"AnalysisCollector: {Diagnostics?.Count} diagnostics, {TargetAttributes?.Count} targetAttributes, " +
-            $"{IgnoredHeaders?.Count} ignoredHeaders, {Proxies?.Count} proxies";
+            $"{IgnoredIndexes?.Count} ignoredIndexes, {Proxies?.Count} proxies";
 
     private readonly ITypeSymbol _targetType;
 
     public readonly List<Diagnostic> Diagnostics;
-    public readonly List<TargetAttributeModel> TargetAttributes;
-    public readonly HashSet<string> IgnoredHeaders;
+    public readonly List<AttributeConfiguration> TargetAttributes;
+    public readonly HashSet<int> IgnoredIndexes;
     public readonly List<ITypeSymbol> Proxies;
     public readonly List<Location?> ProxyLocations;
 
@@ -22,8 +22,8 @@ internal ref struct AnalysisCollector
         _targetType = targetType;
 
         Diagnostics = PooledList<Diagnostic>.Acquire();
-        TargetAttributes = PooledList<TargetAttributeModel>.Acquire();
-        IgnoredHeaders = PooledSet<string>.Acquire();
+        TargetAttributes = PooledList<AttributeConfiguration>.Acquire();
+        IgnoredIndexes = PooledSet<int>.Acquire();
         Proxies = PooledList<ITypeSymbol>.Acquire();
         ProxyLocations = PooledList<Location?>.Acquire();
     }
@@ -41,7 +41,7 @@ internal ref struct AnalysisCollector
 
     public void Free(
         out EquatableArray<Diagnostic> diagnostics,
-        out EquatableArray<string> ignoredHeaders,
+        out EquatableArray<int> ignoredIndexes,
         out TypeRef? proxy)
     {
         try
@@ -53,12 +53,12 @@ internal ref struct AnalysisCollector
                     AddDiagnostic(
                         DiagnosticsStatic.TargetMemberNotFound(
                             _targetType,
-                            targetAttribute.Location,
+                            targetAttribute.Attribute.GetLocation(),
                             targetAttribute));
                 }
             }
 
-            ignoredHeaders = [..IgnoredHeaders];
+            ignoredIndexes = EquatableArray.CreateSorted(IgnoredIndexes);
 
             if (Proxies.Count == 1)
             {
@@ -80,8 +80,8 @@ internal ref struct AnalysisCollector
         finally
         {
             PooledList<Diagnostic>.Release(Diagnostics);
-            PooledList<TargetAttributeModel>.Release(TargetAttributes);
-            PooledSet<string>.Release(IgnoredHeaders);
+            PooledList<AttributeConfiguration>.Release(TargetAttributes);
+            PooledSet<int>.Release(IgnoredIndexes);
             PooledList<ITypeSymbol>.Release(Proxies);
             PooledList<Location?>.Release(ProxyLocations);
             this = default;

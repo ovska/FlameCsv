@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
 using FlameCsv.Exceptions;
 
-namespace FlameCsv.Binding.Attributes;
+namespace FlameCsv.Attributes;
 
 /// <summary>
 /// Overrides the converter for the target member or parameter.

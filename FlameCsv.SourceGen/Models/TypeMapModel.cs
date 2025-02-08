@@ -75,9 +75,9 @@ internal sealed record TypeMapModel
     public EquatableArray<NestedType> WrappingTypes { get; }
 
     /// <summary>
-    /// Headers that are always ignored.
+    /// Configured ignored indexes.
     /// </summary>
-    public EquatableArray<string> IgnoredHeaders { get; }
+    public EquatableArray<int> IgnoredIndexes { get; }
 
     /// <summary>
     /// Proxy used when creating the type.
@@ -114,6 +114,7 @@ internal sealed record TypeMapModel
 #if SOURCEGEN_USE_COMPILATION
             compilation,
 #endif
+            tokenSymbol,
             targetType);
 
         Token = new TypeRef(tokenSymbol);
@@ -149,13 +150,30 @@ internal sealed record TypeMapModel
         if (SupportsAssemblyAttributes)
         {
 #if SOURCEGEN_USE_COMPILATION
-            TypeAttribute.ParseAssembly(
-                targetType,
-                compilation.Assembly,
-                cancellationToken,
-                ref typeConstructor,
-                in symbols,
-                ref collector);
+            foreach (var attr in compilation.Assembly.GetAttributes())
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var model = AttributeConfiguration.TryCreate(
+                    targetType,
+                    isOnAssembly: true,
+                    attr,
+                    in symbols,
+                    ref collector);
+
+                if (model is not null)
+                {
+                    collector.TargetAttributes.Add(model.Value);
+                }
+                else
+                {
+                    typeConstructor ??= ConstructorModel.TryParseConstructorAttribute(
+                        isOnAssembly: true,
+                        targetType,
+                        attr,
+                        in symbols);
+                }
+            }
 #endif
         }
 
@@ -163,17 +181,24 @@ internal sealed record TypeMapModel
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (symbols.IsCsvTypeFieldAttribute(attr.AttributeClass))
+            var model = AttributeConfiguration.TryCreate(
+                targetType,
+                isOnAssembly: false,
+                attr,
+                in symbols,
+                ref collector);
+
+            if (model is not null)
             {
-                collector.TargetAttributes.Add(new TargetAttributeModel(attr, isAssemblyAttribute: false));
+                collector.TargetAttributes.Add(model.Value);
             }
-            else if (symbols.IsCsvTypeAttribute(attr.AttributeClass))
+            else
             {
-                TypeAttribute.Parse(attr, ref collector);
-            }
-            else if (typeConstructor is null && symbols.IsCsvConstructorAttribute(attr.AttributeClass))
-            {
-                typeConstructor = ConstructorModel.ParseConstructorAttribute(targetType, attr);
+                typeConstructor ??= ConstructorModel.TryParseConstructorAttribute(
+                    isOnAssembly: false,
+                    targetType,
+                    attr,
+                    in symbols);
             }
         }
 
@@ -250,16 +275,16 @@ internal sealed record TypeMapModel
         allMembersBuilder.Sort(
             static (b1, b2) =>
             {
-                // highest order first
-                int orderComparison = b2.Order.GetValueOrDefault().CompareTo(b1.Order.GetValueOrDefault());
-                if (orderComparison != 0) return orderComparison;
-
-                // parameters first
-                int parameterComparison = (b2 is ParameterModel).CompareTo(b1 is ParameterModel);
-                if (parameterComparison != 0) return parameterComparison;
-
-                // required members first
-                return b2.IsRequired.CompareTo(b1.IsRequired);
+                int cmp = (b1.Order ?? 0).CompareTo(b2.Order ?? 0);
+                if (cmp == 0) cmp = b1.IsIgnored.CompareTo(b2.IsIgnored);
+                if (cmp == 0) cmp = (b2 is ParameterModel).CompareTo(b1 is ParameterModel);
+                if (cmp == 0) cmp = b2.IsRequired.CompareTo(b1.IsRequired);
+                if (cmp == 0)
+                {
+                    cmp = (b1 is PropertyModel { ExplicitInterfaceOriginalDefinitionName: not null })
+                        .CompareTo(b2 is PropertyModel { ExplicitInterfaceOriginalDefinitionName: not null });
+                }
+                return cmp;
             });
 
         AllMembers = new EquatableArray<IMemberModel>(allMembersBuilder.ToImmutable());
@@ -282,7 +307,7 @@ internal sealed record TypeMapModel
         collector.Free(out diagnostics, out var ignoredHeaders, out var proxy);
 
         CanGenerateCode = diagnostics.IsEmpty;
-        IgnoredHeaders = ignoredHeaders;
+        IgnoredIndexes = ignoredHeaders;
         Proxy = proxy;
     }
 }

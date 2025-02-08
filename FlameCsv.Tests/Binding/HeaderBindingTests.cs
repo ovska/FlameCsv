@@ -1,13 +1,12 @@
+using FlameCsv.Attributes;
 using FlameCsv.Binding;
-using FlameCsv.Binding.Attributes;
 using FlameCsv.Exceptions;
 using FlameCsv.Tests.Utilities;
 
 // ReSharper disable all
 
-[assembly: CsvAssemblyType(typeof(FlameCsv.Tests.Binding.AssemblyScoped), IgnoredHeaders = ["xyz"])]
-[assembly: CsvAssemblyTypeField(typeof(FlameCsv.Tests.Binding.AssemblyScoped), "Id", ["_id"])]
-[assembly: CsvAssemblyTypeField(typeof(FlameCsv.Tests.Binding.AssemblyScoped), "Name", ["_name"] )]
+[assembly: CsvHeader("_id", TargetType = typeof(FlameCsv.Tests.Binding.AssemblyScoped), MemberName = "Id")]
+[assembly: CsvHeader("_name", TargetType = typeof(FlameCsv.Tests.Binding.AssemblyScoped), MemberName = "Name")]
 
 namespace FlameCsv.Tests.Binding;
 
@@ -69,8 +68,7 @@ public static class HeaderBindingTests
     [Fact]
     public static void Should_Include_Name_In_Exception_Message()
     {
-        var ex = Record.Exception(
-            () => CsvReader.Read<Shim>("IsEnabled,Name,_targeted\r\ntrue,name,\0\r\n").ToList());
+        var ex = Record.Exception(() => CsvReader.Read<Shim>("IsEnabled,Name,_targeted\r\ntrue,name,\0\r\n").ToList());
 
         Assert.IsType<CsvUnhandledException>(ex);
         Assert.IsType<CsvParseException>(ex.InnerException);
@@ -93,7 +91,7 @@ public static class HeaderBindingTests
     }
 }
 
-[CsvType(CreatedTypeProxy = typeof(Something))]
+[CsvTypeProxy(typeof(Something))]
 file interface ISomething
 {
     string? Name { get; }
@@ -108,16 +106,16 @@ file class Something : ISomething
     public int Targeted { get; set; }
 }
 
-[CsvTypeField(nameof(Targeted), headers: "_targeted")]
+[CsvHeader("_targeted", MemberName = nameof(Targeted))]
 file class Shim
 {
-    [CsvField(IsIgnored = true)] public string? Name { get; set; }
-    [CsvField("Name")] public string? DisplayName { get; set; }
+    [CsvIgnore] public string? Name { get; set; }
+    [CsvHeader("Name")] public string? DisplayName { get; set; }
     public bool IsEnabled { get; set; }
     public int Targeted { get; set; }
 }
 
-file class ShimWithCtor([CsvField("_targeted")] bool isEnabled)
+file class ShimWithCtor([CsvHeader("_targeted")] bool isEnabled)
 {
     public object? _Targeted { get; set; }
 

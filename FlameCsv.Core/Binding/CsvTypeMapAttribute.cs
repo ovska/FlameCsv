@@ -28,8 +28,7 @@ public sealed class CsvTypeMapAttribute<T, TValue> : Attribute where T : unmanag
     public bool ThrowOnDuplicate { get; set; }
 
     /// <summary>
-    /// If <see langword="true"/>, the source generator will scan for <see cref="Attributes.CsvAssemblyTypeAttribute"/>
-    /// and <see cref="Attributes.CsvAssemblyTypeFieldAttribute"/>.
+    /// If <see langword="true"/>, the source generator will scan for attributes applied to the containing assembly.
     /// </summary>
     public bool SupportsAssemblyAttributes { get; set; }
 }

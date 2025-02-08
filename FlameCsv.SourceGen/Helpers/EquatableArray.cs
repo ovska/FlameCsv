@@ -261,6 +261,16 @@ internal static class EquatableArray
         return Unsafe.As<T[], ImmutableArray<T>>(ref items);
     }
 
+    public static EquatableArray<T> CreateSorted<T>(ICollection<T> items) where T : IEquatable<T?>, IComparable<T>
+    {
+        if (items is not { Count: > 0 }) return [];
+
+        T[] array = new T[items.Count];
+        items.CopyTo(array, 0);
+        Array.Sort(array);
+        return Create(array);
+    }
+
     public static EquatableArray<T> Create<T>(ReadOnlySpan<T> items) where T : IEquatable<T?>
     {
         if (items.IsEmpty)

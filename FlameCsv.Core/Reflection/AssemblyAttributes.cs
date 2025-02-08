@@ -1,6 +1,6 @@
 ﻿using System.Collections.Frozen;
 using System.Runtime.InteropServices;
-using FlameCsv.Binding.Attributes;
+using FlameCsv.Attributes;
 using FlameCsv.Utilities;
 
 namespace FlameCsv.Reflection;
@@ -11,7 +11,7 @@ internal static class AssemblyAttributes
 
     public static ReadOnlySpan<object> Get(Type type)
     {
-        var local = _attributes;
+        Lazy<FrozenDictionary<Type, List<object>>>? local = _attributes;
 
         if (local is null)
         {
@@ -42,29 +42,19 @@ internal static class AssemblyAttributes
 
         foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
         {
-            foreach (var attribute in assembly.GetCustomAttributes(false))
+            foreach (var attribute in assembly.GetCustomAttributes(
+                         typeof(CsvTypeConfigurableBaseAttribute),
+                         inherit: false))
             {
-                if (attribute is CsvAssemblyTypeFieldAttribute catf)
-                {
-                    AddAttribute(attributes, catf.TargetType, catf);
-                }
-                else if (attribute is CsvAssemblyTypeAttribute cat)
-                {
-                    AddAttribute(attributes, cat.TargetType, cat);
-                }
-                else if (attribute is CsvConstructorAttribute cca)
-                {
-                    AddAttribute(attributes, cca.TargetType, cca);
-                }
+                ref List<object>? list = ref CollectionsMarshal.GetValueRefOrAddDefault(
+                    attributes,
+                    ((CsvTypeConfigurableBaseAttribute)attribute).TargetType,
+                    out _);
+
+                (list ??= []).Add(attribute);
             }
         }
 
         return attributes.ToFrozenDictionary();
-
-        static void AddAttribute(Dictionary<Type, List<object>> attributes, Type type, object attribute)
-        {
-            ref List<object>? list = ref CollectionsMarshal.GetValueRefOrAddDefault(attributes, type, out _);
-            (list ??= []).Add(attribute);
-        }
     }
 }

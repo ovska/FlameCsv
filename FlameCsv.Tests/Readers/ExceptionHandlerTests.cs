@@ -1,4 +1,4 @@
-﻿using FlameCsv.Binding.Attributes;
+﻿using FlameCsv.Attributes;
 using FlameCsv.Exceptions;
 using FlameCsv.Converters;
 
@@ -8,8 +8,8 @@ public class ExceptionHandlerTests
 {
     private class Obj
     {
-        [CsvField(Index = 0)] public int Id { get; set; }
-        [CsvField(Index = 1)] public string? Name { get; set; }
+        [CsvIndex(0)] public int Id { get; set; }
+        [CsvIndex(1)] public string? Name { get; set; }
     }
 
     private static List<Obj> Run(CsvExceptionHandler<char>? handler)
