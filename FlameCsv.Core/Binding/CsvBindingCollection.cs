@@ -2,7 +2,6 @@ using System.Collections;
 using System.Diagnostics;
 using System.Reflection;
 using CommunityToolkit.HighPerformance;
-using FlameCsv.Binding.Internal;
 using FlameCsv.Exceptions;
 using JetBrains.Annotations;
 

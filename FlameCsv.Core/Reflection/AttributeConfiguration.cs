@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Attributes;
-using FlameCsv.Binding.Internal;
+using FlameCsv.Binding;
 using FlameCsv.Exceptions;
 using FlameCsv.Utilities;
 

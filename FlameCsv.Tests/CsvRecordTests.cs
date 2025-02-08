@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Attributes;
-using FlameCsv.Binding;
 using FlameCsv.Enumeration;
 
 // ReSharper disable RedundantTypeArgumentsOfMethod

@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace FlameCsv.Binding.Internal;
+namespace FlameCsv.Binding;
 
 internal sealed class IgnoredCsvBinding<T>(int index) : CsvBinding<T>(index, null)
 {
