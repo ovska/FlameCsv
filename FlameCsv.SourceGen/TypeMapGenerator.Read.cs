@@ -231,7 +231,7 @@ public partial class TypeMapGenerator
                     member.WriteId(writer);
                     writer.Write(") global::FlameCsv.Exceptions.CsvParseException.Throw(@field, ");
                     member.WriteConverterName(writer);
-                    writer.WriteLine($", {member.Name.ToStringLiteral()});");
+                    writer.WriteLine($", {member.HeaderName.ToStringLiteral()});");
                 }
 
                 writer.WriteLine(
@@ -299,7 +299,7 @@ public partial class TypeMapGenerator
             {
                 ParameterModel parameter = typeMap.Parameters[index];
                 writer.WriteLine();
-                writer.Write(parameter.Name);
+                writer.Write(parameter.HeaderName);
                 writer.Write(": ");
                 writer.WriteIf(
                     parameter.RefKind is RefKind.In or RefKind.RefReadOnlyParameter,
@@ -363,7 +363,7 @@ public partial class TypeMapGenerator
                 writer.Write("obj.");
             }
 
-            writer.Write(property.Name);
+            writer.Write(property.HeaderName);
             writer.Write(" = state.");
             writer.Write(property.Identifier);
             writer.WriteLine(";");
@@ -435,8 +435,8 @@ public partial class TypeMapGenerator
             if (member.IsIgnored)
             {
                 ignoredSet ??= PooledSet<string>.Acquire();
-                ignoredSet.Add(member.Name);
-                foreach (var name in member.Names) ignoredSet.Add(name);
+                ignoredSet.Add(member.HeaderName);
+                foreach (var name in member.Aliases) ignoredSet.Add(name);
             }
         }
 
@@ -464,8 +464,6 @@ public partial class TypeMapGenerator
                 writer.WriteLine("materializer.Targets[index] = -1;");
                 writer.WriteLine("continue;");
             }
-
-            writer.WriteLine();
         }
 
         PooledSet<string>.Release(ignoredSet);
@@ -488,15 +486,15 @@ public partial class TypeMapGenerator
                 writer.WriteLine(" is null &&");
             }
 
-            if (member.Names.IsEmpty)
+            if (member.Aliases.IsEmpty)
             {
-                writer.Write($"comparer.Equals(name, {member.Name.ToStringLiteral()})");
+                writer.Write($"comparer.Equals(name, {member.HeaderName.ToStringLiteral()})");
             }
             else
             {
                 bool firstName = true;
 
-                foreach (string name in member.Names)
+                foreach (string name in member.Aliases)
                 {
                     writer.WriteIf(!firstName, " ||");
                     writer.Write($"comparer.Equals(name, {name.ToStringLiteral()})");
@@ -522,7 +520,7 @@ public partial class TypeMapGenerator
                     writer.Write("if (materializer.");
                     member.WriteConverterName(writer);
                     writer.Write(" is not null) base.ThrowDuplicate(");
-                    writer.Write(member.Name.ToStringLiteral());
+                    writer.Write(member.HeaderName.ToStringLiteral());
                     writer.WriteLine(", name, headers);");
                     writer.WriteLine();
                 }

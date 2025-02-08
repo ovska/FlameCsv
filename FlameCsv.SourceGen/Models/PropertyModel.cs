@@ -13,7 +13,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
     /// Actual name of the property/field, e.g. "Prop".
     /// </summary>
     /// <seealso cref="Identifier"/>.
-    public required string Name { get; init; }
+    public required string HeaderName { get; init; }
 
     /// <summary>
     /// Property/field type
@@ -41,6 +41,11 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
     public required int? Order { get; init; }
 
     /// <summary>
+    /// Index of the property/field to use in headerless CSV.
+    /// </summary>
+    public required int? Index { get; init; }
+
+    /// <summary>
     /// If this member can be used when reading CSV, i.e., value can be written to the object.
     /// </summary>
     public required bool CanRead { get; init; }
@@ -51,9 +56,9 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
     public required bool CanWrite { get; init; }
 
     /// <summary>
-    /// List of strings to match this member for. If empty, <see cref="Name"/> should be used.
+    /// List of strings to match this member for. If empty, <see cref="HeaderName"/> should be used.
     /// </summary>
-    public required EquatableArray<string> Names { get; init; }
+    public required EquatableArray<string> Aliases { get; init; }
 
     /// <summary>
     /// The fully qualified name of the interface type that this property was explicitly implemented from.
@@ -124,15 +129,16 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
         {
             Type = new TypeRef(propertySymbol.Type),
             Identifier = explicitPropertyName ?? propertySymbol.Name,
-            Name = explicitPropertyOriginalName ?? propertySymbol.Name,
+            HeaderName = explicitPropertyOriginalName ?? propertySymbol.Name,
             IsProperty = true,
             IsIgnored = meta.IsIgnored,
             IsRequired =
                 meta.IsRequired ||
                 propertySymbol.IsRequired ||
                 propertySymbol.SetMethod is { IsInitOnly: true },
-            Names = meta.Aliases,
+            Aliases = meta.Aliases,
             Order = meta.Order,
+            Index = meta.Index,
             CanRead = !propertySymbol.IsReadOnly && !meta.IsIgnored,
             CanWrite = !propertySymbol.IsWriteOnly && meta.IsIgnored is not true,
             OverriddenConverter
@@ -163,9 +169,10 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
             IsRequired = meta.IsRequired || fieldSymbol.IsRequired,
             IsIgnored = meta.IsIgnored,
             Identifier = fieldSymbol.Name,
-            Name = fieldSymbol.Name,
-            Names = meta.Aliases,
-            Order = meta.Order ?? 0,
+            HeaderName = fieldSymbol.Name,
+            Aliases = meta.Aliases,
+            Order = meta.Order,
+            Index = meta.Index,
             CanRead = !fieldSymbol.IsReadOnly && !meta.IsIgnored,
             CanWrite = meta.IsIgnored is not true,
             ExplicitInterfaceOriginalDefinitionName = null,

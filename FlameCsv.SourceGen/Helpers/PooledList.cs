@@ -15,14 +15,8 @@ internal static class PooledList<T>
 
     public static void Release(List<T>? list)
     {
-        if (list is null) return;
-
-        if (list.Count >= 256)
-        {
-            // don't pool large lists
-            return;
-        }
-
+        // If the list is too big, don't return it to the pool.
+        if (list is not { Count: < 256 }) return;
         list.Clear();
         _pool.Free(list);
     }

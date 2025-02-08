@@ -71,7 +71,7 @@ public partial class TypeMapGenerator
                         writer.Write(", obj.");
                     }
 
-                    writer.Write(property.Name);
+                    writer.Write(property.HeaderName);
                     writer.WriteLine(");");
                     first = false;
                 }
@@ -100,7 +100,7 @@ public partial class TypeMapGenerator
 
                     writer.WriteLineIf(!first, "writer.WriteDelimiter();");
                     writer.Write($"writer.{method}(");
-                    writer.Write((property.Names.IsEmpty ? property.Name : property.Names[0]).ToStringLiteral());
+                    writer.Write((property.Aliases.IsEmpty ? property.HeaderName : property.Aliases[0]).ToStringLiteral());
                     writer.WriteLine($"{suffix});");
                     first = false;
                 }

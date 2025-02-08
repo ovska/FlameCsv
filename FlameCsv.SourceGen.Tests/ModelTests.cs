@@ -160,11 +160,11 @@ public static class ModelTests
         for (int i = 0; i < parameters.Length; i++)
         {
             Assert.Equal(i, parameters[i].ParameterIndex);
-            Assert.Equal(expected[i].name, parameters[i].Name);
+            Assert.Equal(expected[i].name, parameters[i].HeaderName);
             Assert.Equal(expected[i].hasDefaultValue, parameters[i].HasDefaultValue);
             Assert.Equal(expected[i].defaultValue, parameters[i].DefaultValue);
             Assert.Equal(expected[i].refKind, parameters[i].RefKind);
-            Assert.Equal(expected[i].aliases.ToEquatableArray(), parameters[i].Names);
+            Assert.Equal(expected[i].aliases.ToEquatableArray(), parameters[i].Aliases);
             Assert.Equal(expected[i].order, parameters[i].Order);
         }
 
