@@ -4,26 +4,40 @@ using FlameCsv.Exceptions;
 namespace FlameCsv.Attributes;
 
 /// <summary>
-/// Overrides the converter for the target member or parameter.
-/// This attribute is recognized by the source generator.
+/// Overrides the converter for the target member or parameter.<br/>
+/// <typeparamref name="TConverter"/> must have a parameterless constructor,
+/// or a public constructor with a single <see cref="CsvOptions{T}"/> parameter.
 /// </summary>
 /// <remarks>
-/// Converters created this way are distinct from the cached converters in <see cref="CsvOptions{T}"/>.
+/// Converters created this way are distinct from the cached converters in <see cref="CsvOptions{T}"/>.<br/>
+/// The resulting converter is cast to <see cref="CsvConverter{T,TValue}"/>.
 /// </remarks>
-/// <typeparam name="T"></typeparam>
-/// <typeparam name="TConverter"></typeparam>
+/// <typeparam name="T">Token type</typeparam>
+/// <typeparam name="TConverter">Converter or factory type</typeparam>
 public sealed class CsvConverterAttribute<T, [DAM(Messages.Ctors)] TConverter> : CsvConverterAttribute<T>
     where T : unmanaged, IBinaryInteger<T>
     where TConverter : CsvConverter<T>
 {
-    private static readonly Lazy<(ConstructorInfo ctor, bool empty)> _converterConstructor = new(
+    /// <inheritdoc cref="CsvConverterAttribute{T, TParser}"/>
+    public CsvConverterAttribute()
+    {
+    }
+
+    /// <inheritdoc/>
+    protected override CsvConverter<T> CreateConverterOrFactory(Type targetType, CsvOptions<T> options)
+    {
+        (ConstructorInfo ctor, bool empty) = _resolveConstructor.Value;
+        return (CsvConverter<T>)ctor.Invoke(empty ? [] : [options]);
+    }
+
+    private static readonly Lazy<(ConstructorInfo ctor, bool empty)> _resolveConstructor = new(
         static () =>
         {
             ConstructorInfo? empty = null;
 
             foreach (var ctor in typeof(TConverter).GetConstructors())
             {
-                var parameters = ctor.GetParameters();
+                ParameterInfo[] parameters = ctor.GetParameters();
 
                 if (parameters.Length == 0)
                 {
@@ -40,18 +54,8 @@ public sealed class CsvConverterAttribute<T, [DAM(Messages.Ctors)] TConverter> :
                 return (empty, true);
             }
 
-            throw new CsvConfigurationException($"{typeof(TConverter).FullName} has no parameterless constructor");
+            throw new CsvConfigurationException(
+                $"{typeof(TConverter).FullName} has no parameterless constructor " +
+                $"or constructor with a single {typeof(CsvOptions<T>).FullName} parameter.");
         });
-
-    /// <inheritdoc cref="CsvConverterAttribute{T, TParser}"/>
-    public CsvConverterAttribute()
-    {
-    }
-
-    /// <inheritdoc/>
-    protected override CsvConverter<T> CreateConverterOrFactory(Type targetType, CsvOptions<T> options)
-    {
-        (ConstructorInfo ctor, bool empty) = _converterConstructor.Value;
-        return (CsvConverter<T>)ctor.Invoke(empty ? [] : [options]);
-    }
 }

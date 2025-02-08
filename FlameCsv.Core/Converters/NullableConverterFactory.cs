@@ -54,6 +54,7 @@ internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
     {
         return
             TryGetEmpty(structType, converterOfT, nullToken) ??
+            TryGetKnownLength(structType, converterOfT, nullToken) ??
             TryGetString(structType, converterOfT, nullToken) ??
             TryGetArray(structType, converterOfT, nullToken) ??
             GetParserType(structType).CreateInstance<CsvConverter<T>>(converterOfT, nullToken);
@@ -71,6 +72,21 @@ internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
             return typeof(OptimizedNullEmptyConverter<,>)
                 .MakeGenericType(typeof(T), structType)
                 .CreateInstance<CsvConverter<T>>(converter);
+        }
+
+        return null;
+    }
+
+    private static CsvConverter<T>? TryGetKnownLength(
+        Type structType,
+        CsvConverter<T> converter,
+        ReadOnlyMemory<T> nullTokenT)
+    {
+        if (nullTokenT.Length <= Container<T>.MaxLength)
+        {
+            return typeof(OptimizedKnownLengthConverter<,>)
+                .MakeGenericType(typeof(T), structType)
+                .CreateInstance<CsvConverter<T>>(converter, nullTokenT);
         }
 
         return null;
@@ -108,35 +124,5 @@ internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
         }
 
         return null;
-    }
-}
-
-internal static class TrimmableNullableConverter
-{
-    public static CsvConverter<T, TValue?> Create<T, TValue>(
-        CsvConverter<T, TValue> inner,
-        ReadOnlyMemory<T> nullToken)
-        where T : unmanaged, IBinaryInteger<T>
-        where TValue : struct
-    {
-        if (nullToken.IsEmpty) return new OptimizedNullEmptyConverter<T, TValue>(inner);
-
-        if (MemoryMarshal.TryGetArray(nullToken, out var array))
-            return new OptimizedNullArrayConverter<T, TValue>(inner, array);
-
-        if (typeof(T) == typeof(char))
-        {
-            var nullTokenChar = Unsafe.As<ReadOnlyMemory<T>, ReadOnlyMemory<char>>(ref nullToken);
-            if (MemoryMarshal.TryGetString(nullTokenChar, out var value, out var start, out var length))
-            {
-                return (CsvConverter<T, TValue?>)(object)new OptimizedNullStringConverter<TValue>(
-                    Unsafe.As<CsvConverter<char, TValue>>(inner),
-                    value,
-                    start,
-                    length);
-            }
-        }
-
-        return new NullableConverter<T, TValue>(inner, nullToken);
     }
 }
