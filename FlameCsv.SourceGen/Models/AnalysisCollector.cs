@@ -6,13 +6,13 @@ namespace FlameCsv.SourceGen.Models;
 internal ref struct AnalysisCollector
 {
     public override string ToString()
-        => $"AnalysisCollector: {Diagnostics?.Count} diagnostics, {TargetAttributes?.Count} targetAttributes, " +
+        => $"AnalysisCollector: {Diagnostics?.Count} diagnostics, {TargetAttributes.Count} targetAttributes, " +
             $"{IgnoredIndexes?.Count} ignoredIndexes, {Proxies?.Count} proxies";
 
     private readonly ITypeSymbol _targetType;
 
     public readonly List<Diagnostic> Diagnostics;
-    public readonly List<AttributeConfiguration> TargetAttributes;
+    public ImmutableArrayBuilder<AttributeConfiguration> TargetAttributes;
     public readonly HashSet<int> IgnoredIndexes;
     public readonly List<ITypeSymbol> Proxies;
     public readonly List<Location?> ProxyLocations;
@@ -21,8 +21,8 @@ internal ref struct AnalysisCollector
     {
         _targetType = targetType;
 
+        TargetAttributes = new ImmutableArrayBuilder<AttributeConfiguration>();
         Diagnostics = PooledList<Diagnostic>.Acquire();
-        TargetAttributes = PooledList<AttributeConfiguration>.Acquire();
         IgnoredIndexes = PooledSet<int>.Acquire();
         Proxies = PooledList<ITypeSymbol>.Acquire();
         ProxyLocations = PooledList<Location?>.Acquire();
@@ -46,7 +46,7 @@ internal ref struct AnalysisCollector
     {
         try
         {
-            foreach (var targetAttribute in TargetAttributes)
+            foreach (ref readonly var targetAttribute in TargetAttributes.WrittenSpan)
             {
                 if (!targetAttribute.MatchFound)
                 {
@@ -79,8 +79,9 @@ internal ref struct AnalysisCollector
         }
         finally
         {
+            TargetAttributes.Dispose();
+            TargetAttributes = default;
             PooledList<Diagnostic>.Release(Diagnostics);
-            PooledList<AttributeConfiguration>.Release(TargetAttributes);
             PooledSet<int>.Release(IgnoredIndexes);
             PooledList<ITypeSymbol>.Release(Proxies);
             PooledList<Location?>.Release(ProxyLocations);

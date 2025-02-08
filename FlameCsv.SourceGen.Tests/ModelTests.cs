@@ -479,11 +479,11 @@ public static class ModelTests
             }
         }
 
-        Assert.Single(collector.TargetAttributes);
-        Assert.Equal("Prop", collector.TargetAttributes[0].MemberName);
-        Assert.Equal("_prop", collector.TargetAttributes[0].HeaderName);
-        Assert.Equal(["prop_"], collector.TargetAttributes[0].Aliases.Select(x => x.Value?.ToString()));
-        Assert.NotNull(collector.TargetAttributes[0].Attribute.GetLocation());
+        Assert.Single(collector.TargetAttributes.WrittenSpan.ToArray());
+        Assert.Equal("Prop", collector.TargetAttributes.WrittenSpan[0].MemberName);
+        Assert.Equal("_prop", collector.TargetAttributes.WrittenSpan[0].HeaderName);
+        Assert.Equal(["prop_"], collector.TargetAttributes.WrittenSpan[0].Aliases.Select(x => x.Value?.ToString()));
+        Assert.NotNull(collector.TargetAttributes.WrittenSpan[0].Attribute.GetLocation());
 
         Assert.Single(collector.IgnoredIndexes);
         Assert.Equal(1, collector.IgnoredIndexes.Single());

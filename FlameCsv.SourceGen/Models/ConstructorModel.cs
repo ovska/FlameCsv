@@ -153,7 +153,7 @@ internal readonly struct ConstructorModel
     /// </summary>
     private static void MarkParametersAsHandled(ref AnalysisCollector collector)
     {
-        foreach (var targetAttribute in collector.TargetAttributes)
+        foreach (ref readonly var targetAttribute in collector.TargetAttributes.WrittenSpan)
         {
             if (targetAttribute.IsParameter)
             {
