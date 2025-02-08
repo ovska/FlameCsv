@@ -47,7 +47,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             CsvWriter.Write(
                 output,
                 TestDataGenerator.Objects.Value,
-                ObjByteTypeMap.Instance,
+                ObjByteTypeMap.Default,
                 options,
                 bufferSize: bufferSize);
         }
@@ -98,7 +98,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                 await CsvWriter.WriteAsync(
                     PipeWriter.Create(output),
                     TestDataGenerator.Objects.Value,
-                    ObjByteTypeMap.Instance,
+                    ObjByteTypeMap.Default,
                     options);
             }
             else
@@ -106,7 +106,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                 await CsvWriter.WriteAsync(
                     output,
                     TestDataGenerator.Objects.Value,
-                    ObjByteTypeMap.Instance,
+                    ObjByteTypeMap.Default,
                     options,
                     bufferSize: bufferSize);
             }

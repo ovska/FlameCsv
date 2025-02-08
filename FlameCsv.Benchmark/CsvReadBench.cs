@@ -107,7 +107,7 @@ public partial class CsvReadBench
     {
         foreach (var record in CsvReader.Read(
                      Header ? _charsHeader : _chars,
-                     EntryTypeMap_Text.Instance,
+                     EntryTypeMap_Text.Default,
                      OptionsInstance))
         {
             _ = record;
@@ -119,7 +119,7 @@ public partial class CsvReadBench
     {
         foreach (var record in CsvReader.Read(
                      Header ? _bytesHeader : _bytes,
-                     EntryTypeMap_Utf8.Instance,
+                     EntryTypeMap_Utf8.Default,
                      OptionsInstanceB))
         {
             _ = record;

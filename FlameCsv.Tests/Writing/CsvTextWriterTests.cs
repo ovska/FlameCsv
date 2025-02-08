@@ -42,7 +42,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
                 CsvWriter.Write(
                     new StringWriter(output),
                     TestDataGenerator.Objects.Value,
-                    ObjCharTypeMap.Instance,
+                    ObjCharTypeMap.Default,
                     options,
                     bufferSize: bufferSize);
             }
@@ -50,7 +50,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             {
                 CsvWriter.WriteToString(
                     TestDataGenerator.Objects.Value,
-                    ObjCharTypeMap.Instance,
+                    ObjCharTypeMap.Default,
                     options,
                     output);
             }
@@ -109,7 +109,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             await CsvWriter.WriteAsync(
                 new StringWriter(output),
                 TestDataGenerator.Objects.Value,
-                ObjCharTypeMap.Instance,
+                ObjCharTypeMap.Default,
                 options,
                 bufferSize: bufferSize);
         }

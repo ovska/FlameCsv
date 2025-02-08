@@ -25,8 +25,9 @@ public partial class TypeMapGenerator
 
         cancellationToken.ThrowIfCancellationRequested();
 
+        writer.WriteLine(EditorBrowsableNever);
         writer.WriteLine(
-            $"private sealed class Dematerializer : global::FlameCsv.Writing.IDematerializer<{typeMap.Token.FullyQualifiedName}, {typeMap.Type.FullyQualifiedName}>");
+            $"internal sealed class Dematerializer : global::FlameCsv.Writing.IDematerializer<{typeMap.Token.FullyQualifiedName}, {typeMap.Type.FullyQualifiedName}>");
 
         using (writer.WriteBlock())
         {

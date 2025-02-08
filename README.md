@@ -60,7 +60,7 @@ record User(int Id, string Name, DateTime LastLogin, int? Age = null);
 [CsvTypeMap<char, User>]
 partial class UserTypeMap;
 
-foreach (var user in CsvReader.Read<User>(data, UserTypeMap.Instance))
+foreach (var user in CsvReader.Read<User>(data, UserTypeMap.Default))
 {
     Console.WriteLine(user);
 }

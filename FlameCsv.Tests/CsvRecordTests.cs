@@ -155,7 +155,7 @@ public static partial class CsvRecordTests
             Assert.Equal(2, record.Line);
             Assert.Equal(7L, record.Position);
 
-            Obj[] objs = [record.ParseRecord<Obj>(), record.ParseRecord(ObjTypeMap.Instance)];
+            Obj[] objs = [record.ParseRecord<Obj>(), record.ParseRecord(ObjTypeMap.Default)];
 
             foreach (var obj in objs)
             {

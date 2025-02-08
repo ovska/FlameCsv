@@ -7,6 +7,14 @@ namespace FlameCsv.SourceGen;
 [Generator(LanguageNames.CSharp)]
 public partial class TypeMapGenerator : IIncrementalGenerator
 {
+    const string DoesNotReturnAttr = "[global::System.Diagnostics.CodeAnalysis.DoesNotReturn]";
+
+    const string NoInliningAttr
+        = "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]";
+
+    const string EditorBrowsableNever
+        = "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]";
+
     private static readonly string _assemblyNameAndVersion
         = $"{typeof(TypeMapGenerator).Assembly.GetName().Name} v{typeof(TypeMapGenerator).Assembly.GetName().Version.ToString(3)}";
 
@@ -128,13 +136,7 @@ public partial class TypeMapGenerator : IIncrementalGenerator
 
         using (writer.WriteBlock())
         {
-            if (typeMap.CanWriteInstance)
-            {
-                writer.WriteLine(
-                    $"public static {typeMap.TypeMap.FullyQualifiedName} Instance {{ get; }} = new {typeMap.TypeMap.FullyQualifiedName}();");
-                writer.WriteLine();
-            }
-
+            WriteDefaultInstance(writer, typeMap);
             WriteIndexes(writer, typeMap);
             GetReadCode(writer, typeMap, cancellationToken);
             GetWriteCode(writer, typeMap, cancellationToken);
@@ -166,7 +168,7 @@ public partial class TypeMapGenerator : IIncrementalGenerator
         }
 
         writer.WriteLine("private const int @s__MinId = 1;");
-        writer.WriteLine($"private const int @s__MaxId = {index};");
+        writer.WriteLine($"private const int @s__MaxId = {index - 1};");
         writer.WriteLine();
     }
 }

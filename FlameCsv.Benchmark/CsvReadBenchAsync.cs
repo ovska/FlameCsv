@@ -82,7 +82,7 @@ public partial class CsvReadBenchAsync
     {
         await foreach (var record in CsvReader.ReadAsync(
                            GetFileStream(),
-                           EntryTypeMap_Text.Instance,
+                           EntryTypeMap_Text.Default,
                            OptionsInstance,
                            encoding: Encoding.UTF8))
         {
@@ -95,7 +95,7 @@ public partial class CsvReadBenchAsync
     {
         await foreach (var record in CsvReader.ReadAsync(
                            GetFileStream(),
-                           EntryTypeMap_Utf8.Instance,
+                           EntryTypeMap_Utf8.Default,
                            OptionsInstanceB))
         {
             _ = record;

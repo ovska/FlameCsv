@@ -38,12 +38,14 @@ public partial class TypeMapGenerator
                 WriteMatchers(writer, typeMap, cancellationToken);
                 writer.WriteLine();
 
-                if (typeMap.IgnoreUnmatched)
+                writer.WriteLine("if (this.IgnoreUnmatched)");
+                using (writer.WriteBlock())
                 {
-                    writer.WriteLine("// Unmatched fields are ignored");
                     writer.WriteLine("materializer.Targets[index] = -1;");
                 }
-                else
+
+                writer.WriteLine("else");
+                using (writer.WriteBlock())
                 {
                     writer.WriteLine("base.ThrowUnmatched(name, index);");
                 }
@@ -93,8 +95,9 @@ public partial class TypeMapGenerator
 
         writer.WriteLine();
 
+        writer.WriteLine(EditorBrowsableNever);
         writer.WriteLine(
-            $"private sealed class TypeMapMaterializer : global::FlameCsv.Reading.IMaterializer<{typeMap.Token.FullyQualifiedName}, {typeMap.Type.FullyQualifiedName}>");
+            $"internal sealed class TypeMapMaterializer : global::FlameCsv.Reading.IMaterializer<{typeMap.Token.FullyQualifiedName}, {typeMap.Type.FullyQualifiedName}>");
 
         using (writer.WriteBlock())
         {
@@ -205,18 +208,14 @@ public partial class TypeMapGenerator
                 writer.WriteLine("return obj;");
             }
 
-            const string doesNotReturnAttr = "[global::System.Diagnostics.CodeAnalysis.DoesNotReturn]";
-            const string noInliningAttr
-                = "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]";
-
             writer.WriteLine();
-            writer.WriteLine(doesNotReturnAttr);
-            writer.WriteLine(noInliningAttr);
+            writer.WriteLine(DoesNotReturnAttr);
+            writer.WriteLine(NoInliningAttr);
             writer.WriteLine(
                 "private static bool ThrowForInvalidTarget(int target) => throw new global::System.Diagnostics.UnreachableException($\"Converter {target} was uninitialized\");");
             writer.WriteLine();
-            writer.WriteLine(doesNotReturnAttr);
-            writer.WriteLine(noInliningAttr);
+            writer.WriteLine(DoesNotReturnAttr);
+            writer.WriteLine(NoInliningAttr);
             writer.WriteLine(
                 $"private void ThrowForFailedParse(scoped global::System.ReadOnlySpan<{typeMap.Token.FullyQualifiedName}> field, int target)");
 
@@ -476,15 +475,11 @@ public partial class TypeMapGenerator
 
             writer.WriteLine();
             writer.Write("if (");
-            writer.IncreaseIndent();
+            writer.Write("(materializer.");
+            member.WriteConverterName(writer);
+            writer.WriteLine(" is null || this.ThrowOnDuplicate) &&");
 
-            if (!typeMap.ThrowOnDuplicate)
-            {
-                // add check to ignore already handled members
-                writer.Write("materializer.");
-                member.WriteConverterName(writer);
-                writer.WriteLine(" is null &&");
-            }
+            writer.IncreaseIndent();
 
             if (member.Aliases.IsEmpty)
             {
@@ -515,25 +510,31 @@ public partial class TypeMapGenerator
 
             using (writer.WriteBlock())
             {
-                if (typeMap.ThrowOnDuplicate)
+                writer.Write("if (materializer.");
+                member.WriteConverterName(writer);
+                writer.WriteLine(" is null)");
+
+                using (writer.WriteBlock())
                 {
-                    writer.Write("if (materializer.");
+                    writer.Write("materializer.");
                     member.WriteConverterName(writer);
-                    writer.Write(" is not null) base.ThrowDuplicate(");
-                    writer.Write(member.HeaderName.ToStringLiteral());
-                    writer.WriteLine(", name, headers);");
-                    writer.WriteLine();
+                    writer.Write(" = ");
+                    WriteConverter(writer, typeMap.Token.FullyQualifiedName, member);
+                    writer.WriteLine(";");
+                    writer.Write("materializer.Targets[index] = ");
+                    member.WriteId(writer);
+                    writer.WriteLine(";");
+                    writer.WriteLine("continue;");
                 }
 
-                writer.Write("materializer.");
-                member.WriteConverterName(writer);
-                writer.Write(" = ");
-                WriteConverter(writer, typeMap.Token.FullyQualifiedName, member);
-                writer.WriteLine(";");
-                writer.Write("materializer.Targets[index] = ");
-                member.WriteId(writer);
-                writer.WriteLine(";");
-                writer.WriteLine("continue;");
+                writer.WriteLine();
+                writer.WriteLine("if (this.ThrowOnDuplicate)");
+                using (writer.WriteBlock())
+                {
+                    writer.Write("base.ThrowDuplicate(");
+                    writer.Write(member.HeaderName.ToStringLiteral());
+                    writer.WriteLine(", name, headers);");
+                }
             }
         }
     }

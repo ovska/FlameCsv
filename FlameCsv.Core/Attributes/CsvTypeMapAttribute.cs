@@ -17,16 +17,14 @@ namespace FlameCsv.Attributes;
 [PublicAPI]
 public sealed class CsvTypeMapAttribute<T, TValue> : Attribute where T : unmanaged, IBinaryInteger<T>
 {
-    /// <summary>
-    /// If <see langword="true"/>, headers that cannot be matched to a member are ignored instead of throwing.
-    /// </summary>
+    /// <inheritdoc cref="CsvTypeMap.IgnoreUnmatched"/>
     public bool IgnoreUnmatched { get; set; }
 
-    /// <summary>
-    /// If <see langword="true"/>, multiple header field matches to a single member throw an exception.
-    /// The default behavior does not attempt to match already matched members.
-    /// </summary>
+    /// <inheritdoc cref="CsvTypeMap.ThrowOnDuplicate"/>
     public bool ThrowOnDuplicate { get; set; }
+
+    /// <inheritdoc cref="CsvTypeMap.NoCaching"/>
+    public bool NoCaching { get; set; }
 
     /// <summary>
     /// If <see langword="true"/>, the source generator will scan for attributes applied to the containing assembly.
