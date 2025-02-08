@@ -61,7 +61,7 @@ internal readonly ref struct SymbolMetadata
 
         bool isParameter = symbol.Kind == SymbolKind.Parameter;
 
-        foreach (var targeted in collector.TargetAttributes)
+        foreach (ref readonly var targeted in collector.TargetAttributes.WrittenSpan)
         {
             if (targeted.IsParameter != isParameter || targeted.MemberName != symbolActualName)
             {

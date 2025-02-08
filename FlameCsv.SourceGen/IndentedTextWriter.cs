@@ -563,7 +563,7 @@ internal struct ImmutableArrayBuilder<T> : IDisposable
     public readonly int Count
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => this.writer!.Count;
+        get => this.writer?.Count ?? 0;
     }
 
     /// <summary>
@@ -773,9 +773,7 @@ internal struct ImmutableArrayBuilder<T> : IDisposable
         /// </summary>
         public void Clear()
         {
-            if (typeof(T) != typeof(byte) &&
-                typeof(T) != typeof(char) &&
-                typeof(T) != typeof(int))
+            if (!typeof(T).IsValueType)
             {
                 this.array.AsSpan(0, this.index).Clear();
             }
