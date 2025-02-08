@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 [assembly: System.Reflection.Metadata.MetadataUpdateHandlerAttribute(typeof(FlameCsv.Utilities.HotReloadService))]
 
 // TODO: pragma filter these when building nuget package
+#if true
 [assembly: InternalsVisibleTo("FlameCsv.Console")]
 [assembly: InternalsVisibleTo("FlameCsv.Benchmark")]
 [assembly: InternalsVisibleTo("FlameCsv.Tests")]
@@ -20,3 +21,4 @@ using System.Runtime.CompilerServices;
     @"\{ ReadResult, Buffer: {Buffer.Length}, IsCompleted: {IsCompleted} \}",
     Target = typeof(System.IO.Pipelines.ReadResult))]
 
+#endif

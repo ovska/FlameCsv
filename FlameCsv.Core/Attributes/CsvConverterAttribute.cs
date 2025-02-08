@@ -8,6 +8,7 @@ namespace FlameCsv.Attributes;
 /// Base attribute for overriding converters for the target member or parameter.
 /// </summary>
 /// <remarks>
+/// The resulting converter is cast to <see cref="CsvConverter{T,TValue}"/>.<br/>
 /// This attribute is not recognized by the source generator,
 /// use <see cref="CsvConverterAttribute{T,TConverter}"/> instead.
 /// </remarks>

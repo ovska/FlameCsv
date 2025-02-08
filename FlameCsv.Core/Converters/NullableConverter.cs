@@ -1,3 +1,6 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace FlameCsv.Converters;
 
 /// <summary>
@@ -135,4 +138,31 @@ internal sealed class OptimizedNullArrayConverter<T, TValue> : NullableConverter
     }
 
     protected override ReadOnlySpan<T> Null => _array.AsSpan();
+}
+
+[InlineArray(length: MaxLength)]
+internal struct Container<T>
+{
+    public const int MaxLength = 8;
+    public T elem0;
+}
+
+internal sealed class OptimizedKnownLengthConverter<T, TValue> : NullableConverterBase<T, TValue>
+    where T : unmanaged, IBinaryInteger<T>
+    where TValue : struct
+{
+    private readonly int _length;
+    private Container<T> _container;
+
+    public OptimizedKnownLengthConverter(CsvConverter<T, TValue> converter, ReadOnlyMemory<T> value)
+        : base(converter)
+    {
+        ArgumentNullException.ThrowIfNull(converter);
+
+        _container = default;
+        value.Span.CopyTo(_container);
+        _length = value.Length;
+    }
+
+    protected override ReadOnlySpan<T> Null => MemoryMarshal.CreateReadOnlySpan(ref _container.elem0, _length);
 }

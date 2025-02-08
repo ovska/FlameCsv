@@ -74,16 +74,22 @@ public static class NullableConverterTests
         Assert.IsType<OptimizedNullEmptyConverter<char, bool>>(
             NullableConverterFactory<char>.CreateCore(t, c, Array.Empty<char>()));
 
-        Assert.IsType<OptimizedNullStringConverter<bool>>(
+        Assert.IsType<OptimizedKnownLengthConverter<char, bool>>(
             NullableConverterFactory<char>.CreateCore(t, c, "null".AsMemory()));
 
+        Assert.IsType<OptimizedNullStringConverter<bool>>(
+            NullableConverterFactory<char>.CreateCore(t, c, "long_null_value".AsMemory()));
+
         Assert.IsType<OptimizedNullArrayConverter<char, bool>>(
-            NullableConverterFactory<char>.CreateCore(t, c, "null".ToCharArray()));
+            NullableConverterFactory<char>.CreateCore(t, c, "long_null_value".ToCharArray()));
 
         // can't be optimized if we can't get an array or string out of it
         // repeated Span-property access should be slower than using string or array directly
         Assert.IsType<NullableConverter<char, bool>>(
-            NullableConverterFactory<char>.CreateCore(t, c, new FakeMemoryManager(length: 1).Memory));
+            NullableConverterFactory<char>.CreateCore(
+                t,
+                c,
+                new FakeMemoryManager(length: Container<char>.MaxLength + 1).Memory));
     }
 
     private readonly record struct Shim(bool IsReadOnly) : ICanBeReadOnly;
