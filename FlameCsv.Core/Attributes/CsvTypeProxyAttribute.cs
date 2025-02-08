@@ -12,6 +12,16 @@ namespace FlameCsv.Attributes;
 public sealed class CsvTypeProxyAttribute : CsvConfigurationAttribute
 {
     /// <summary>
+    /// Type that will be created in place of the target type. Must be assignable to the target type.
+    /// </summary>
+    /// <remarks>
+    /// Intended to be used for reading interfaces and abstract classes.<br/>
+    /// Has no effect when writing.
+    /// </remarks>
+    [DAM(Messages.ReflectionBound)]
+    public Type CreatedTypeProxy { get; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="CsvTypeProxyAttribute"/> class.
     /// </summary>
     /// <param name="createdTypeProxy">
@@ -22,14 +32,4 @@ public sealed class CsvTypeProxyAttribute : CsvConfigurationAttribute
         ArgumentNullException.ThrowIfNull(createdTypeProxy);
         CreatedTypeProxy = createdTypeProxy;
     }
-
-    /// <summary>
-    /// Type that will be created in place of the target type. Must be assignable to the target type.
-    /// </summary>
-    /// <remarks>
-    /// Intended to be used for reading interfaces and abstract classes.<br/>
-    /// Has no effect when writing.
-    /// </remarks>
-    [DAM(Messages.ReflectionBound)]
-    public Type CreatedTypeProxy { get; }
 }

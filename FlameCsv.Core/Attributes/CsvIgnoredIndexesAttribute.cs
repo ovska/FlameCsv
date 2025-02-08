@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Attributes;
@@ -32,6 +33,6 @@ public sealed class CsvIgnoredIndexesAttribute : CsvConfigurationAttribute
             ArgumentOutOfRangeException.ThrowIfNegative(indexes[i]);
         }
 
-        Value = [..indexes];
+        Value = ImmutableCollectionsMarshal.AsImmutableArray(indexes);
     }
 }

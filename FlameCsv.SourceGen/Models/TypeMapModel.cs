@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+﻿using System.Runtime.InteropServices;
 using FlameCsv.SourceGen.Helpers;
 
 namespace FlameCsv.SourceGen.Models;
@@ -268,11 +268,10 @@ internal sealed record TypeMapModel
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var allMembersBuilder = ImmutableArray.CreateBuilder<IMemberModel>(Properties.Length + Parameters.Length);
-        allMembersBuilder.AddRange(Parameters.AsSpan());
-        allMembersBuilder.AddRange(Properties.AsSpan());
+        IMemberModel[] allMembersArray = [..Parameters.AsSpan(), ..Properties.AsSpan()];
 
-        allMembersBuilder.Sort(
+        Array.Sort(
+            allMembersArray,
             static (b1, b2) =>
             {
                 int cmp = (b1.Order ?? 0).CompareTo(b2.Order ?? 0);
@@ -284,17 +283,18 @@ internal sealed record TypeMapModel
                     cmp = (b1 is PropertyModel { ExplicitInterfaceOriginalDefinitionName: not null })
                         .CompareTo(b2 is PropertyModel { ExplicitInterfaceOriginalDefinitionName: not null });
                 }
+
                 return cmp;
             });
 
-        AllMembers = new EquatableArray<IMemberModel>(allMembersBuilder.ToImmutable());
+        AllMembers = new EquatableArray<IMemberModel>(ImmutableCollectionsMarshal.AsImmutableArray(allMembersArray));
 
-        if (AllMembers.AsImmutableArray().All(static m => !m.CanRead))
+        if (Array.TrueForAll(allMembersArray, static m => !m.CanRead))
         {
             collector.AddDiagnostic(Diagnostics.NoReadableMembers(targetType));
         }
 
-        if (AllMembers.AsImmutableArray().All(static m => !m.CanWrite))
+        if (Array.TrueForAll(allMembersArray, static m => !m.CanWrite))
         {
             collector.AddDiagnostic(Diagnostics.NoWritableMembers(targetType));
         }
