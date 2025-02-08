@@ -18,7 +18,7 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
     /// <summary>
     /// Parameter name.
     /// </summary>
-    public required string Name { get; init; }
+    public required string HeaderName { get; init; }
 
     /// <summary>
     /// Identifier of the parameter (name prefixed with <c>p_</c>).
@@ -28,7 +28,7 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
     /// <summary>
     /// Configured header names.
     /// </summary>
-    public required EquatableArray<string> Names { get; init; }
+    public required EquatableArray<string> Aliases { get; init; }
 
     /// <summary>
     /// Whether the parameter is required by an attribute.
@@ -65,6 +65,11 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
     public required int? Order { get; init; }
 
     /// <summary>
+    /// Index of the property/field to use in headerless CSV.
+    /// </summary>
+    public required int? Index { get; init; }
+
+    /// <summary>
     /// Whether the parameter is ignored.
     /// </summary>
     public required bool IsIgnored { get; init; }
@@ -81,13 +86,13 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
     public void WriteId(IndentedTextWriter writer)
     {
         writer.Write("@s__p_Id_");
-        writer.Write(Name);
+        writer.Write(HeaderName);
     }
 
     public void WriteConverterName(IndentedTextWriter writer)
     {
         writer.Write("@s__p_Converter_");
-        writer.Write(Name);
+        writer.Write(HeaderName);
     }
 
     public static EquatableArray<ParameterModel> Create(
@@ -110,10 +115,11 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
             {
                 ParameterIndex = index,
                 ParameterType = new TypeRef(parameter.Type),
-                Name = parameter.Name,
+                HeaderName = parameter.Name,
                 Identifier = "p_" + parameter.Name,
-                Names = meta.Aliases,
+                Aliases = meta.Aliases,
                 Order = meta.Order,
+                Index = meta.Index,
                 IsIgnored = meta.IsIgnored,
                 IsRequiredByAttribute = meta.IsRequired,
                 HasDefaultValue = parameter.HasExplicitDefaultValue,
