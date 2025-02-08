@@ -4,6 +4,7 @@ using FlameCsv.Exceptions;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance.Helpers;
+using FlameCsv.Attributes;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Utilities;
@@ -16,7 +17,7 @@ namespace FlameCsv.Binding;
 /// Provides compile-time mapping to parse <typeparamref name="TValue"/> records from CSV.
 /// </summary>
 /// <remarks>
-/// Decorate a non-generic <see langword="partial"/> <see langword="class"/> with <see cref="CsvTypeMapAttribute{T, TValue}"/>
+/// Decorate a non-generic <see langword="partial"/> <see langword="class"/> with <see cref="CsvTypeMapAttribute{T,TValue}"/>
 /// to generate the implementation.
 /// </remarks>
 /// <typeparam name="T">Token type</typeparam>
