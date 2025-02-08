@@ -3,12 +3,10 @@
 namespace FlameCsv.Attributes;
 
 /// <summary>
-/// Marks the constructor to be used when creating instances while reading records.
-/// If omitted and the type has only one public constructor, that constructor will be used.
-/// Otherwise, an empty constructor will be used if one is available.
+/// Defines the constructor to be used when creating instances while reading records.<br/>
 /// </summary>
 /// <remarks>
-/// This attribute is only used when reading CSV.
+/// Assembly attributes override class attributes, which override attributes directly on the constructor.
 /// </remarks>
 [PublicAPI]
 [AttributeUsage(
@@ -17,12 +15,12 @@ namespace FlameCsv.Attributes;
     AttributeTargets.Struct |
     AttributeTargets.Assembly,
     Inherited = false)]
-public sealed class CsvConstructorAttribute : CsvTypeConfigurableBaseAttribute
+public sealed class CsvConstructorAttribute : CsvConfigurationAttribute
 {
     private Type[]? _parameterTypes;
 
     /// <summary>
-    /// When used on a class or struct, specifies the parameter types of the constructor to use.
+    /// Specifies the parameter types of the constructor to use.<br/>
     /// Has no effect when used directly on a constructor.
     /// </summary>
     public Type[] ParameterTypes
