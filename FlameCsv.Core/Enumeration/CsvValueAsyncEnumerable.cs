@@ -1,4 +1,5 @@
-﻿using FlameCsv.Reading;
+﻿using System.ComponentModel;
+using FlameCsv.Reading;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Enumeration;
@@ -15,10 +16,14 @@ public sealed class CsvValueAsyncEnumerable<T, [DAM(Messages.ReflectionBound)] T
     private readonly ICsvPipeReader<T> _reader;
     private CsvExceptionHandler<T>? _exceptionHandler;
 
-    internal CsvValueAsyncEnumerable(
-        ICsvPipeReader<T> reader,
-        CsvOptions<T> options)
+    /// <summary>
+    /// Initializes a new instance of <see cref="CsvValueAsyncEnumerable{T,TValue}"/>.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Advanced)]
+    public CsvValueAsyncEnumerable(ICsvPipeReader<T> reader, CsvOptions<T> options)
     {
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(options);
         _reader = reader;
         _options = options;
     }

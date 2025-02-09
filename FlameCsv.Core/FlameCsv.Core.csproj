@@ -15,7 +15,6 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <AnalysisLevel>latest</AnalysisLevel>
     <AnalysisMode>All</AnalysisMode>
-    <DocumentationFile>bin\debug\ClassLibrary.xml</DocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>

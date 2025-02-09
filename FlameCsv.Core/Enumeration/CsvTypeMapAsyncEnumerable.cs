@@ -1,11 +1,12 @@
-﻿using FlameCsv.Binding;
+﻿using System.ComponentModel;
+using FlameCsv.Binding;
 using FlameCsv.Reading;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Enumeration;
 
 /// <summary>
-/// Reads <typeparamref name="TValue"/> records from CSV. Used through <see cref="CsvReader"/>.
+/// Reads <typeparamref name="TValue"/> records from CSV.
 /// </summary>
 [PublicAPI]
 public sealed class CsvTypeMapAsyncEnumerable<T, TValue> : IAsyncEnumerable<TValue>
@@ -16,7 +17,11 @@ public sealed class CsvTypeMapAsyncEnumerable<T, TValue> : IAsyncEnumerable<TVal
     private readonly CsvTypeMap<T, TValue> _typeMap;
     private CsvExceptionHandler<T>? _exceptionHandler;
 
-    internal CsvTypeMapAsyncEnumerable(
+    /// <summary>
+    /// Initializes a new instance of <see cref="CsvTypeMapAsyncEnumerable{T,TValue}"/>.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Advanced)]
+    public CsvTypeMapAsyncEnumerable(
         ICsvPipeReader<T> reader,
         CsvOptions<T> options,
         CsvTypeMap<T, TValue> typeMap)

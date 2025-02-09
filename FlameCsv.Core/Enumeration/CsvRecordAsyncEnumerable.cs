@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using JetBrains.Annotations;
@@ -6,7 +7,7 @@ using JetBrains.Annotations;
 namespace FlameCsv.Enumeration;
 
 /// <summary>
-/// Asynchronously reads data from a source into CSV records, use <see cref="CsvReader"/> to create.
+/// Asynchronously reads data from a source into CSV records.
 /// </summary>
 [PublicAPI]
 public readonly struct CsvRecordAsyncEnumerable<T> : IAsyncEnumerable<CsvValueRecord<T>>
@@ -15,7 +16,11 @@ public readonly struct CsvRecordAsyncEnumerable<T> : IAsyncEnumerable<CsvValueRe
     private readonly ICsvPipeReader<T> _reader;
     private readonly CsvOptions<T> _options;
 
-    internal CsvRecordAsyncEnumerable(ICsvPipeReader<T> reader, CsvOptions<T> options)
+    /// <summary>
+    /// Initializes a new instance of <see cref="CsvRecordAsyncEnumerable{T}"/>.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Advanced)]
+    public CsvRecordAsyncEnumerable(ICsvPipeReader<T> reader, CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(options);
