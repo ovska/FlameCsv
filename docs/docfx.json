@@ -1,0 +1,49 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/docfx/main/schemas/docfx.schema.json",
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": "../FlameCsv.Core",
+          "files": [
+            "**/*.csproj"
+          ]
+        }
+      ],
+      "dest": "api",
+      "filter": "filterConfig.yml"
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": [
+          "**/*.{md,yml}"
+        ],
+        "exclude": [
+          "_site/**"
+        ]
+      }
+    ],
+    "resource": [
+      {
+        "files": [
+          "data/**"
+        ]
+      }
+    ],
+    "output": "_site",
+    "template": [
+      "default",
+      "modern"
+    ],
+    "globalMetadata": {
+      "_appName": "FlameCSV",
+      "_appTitle": "FlameCSV",
+      "_appLogoPath": "data/logo.png",
+      "_appFaviconPath": "data/favicon.ico",
+      "_enableSearch": true,
+      "pdf": false
+    }
+  }
+}

@@ -369,6 +369,9 @@ FodyWeavers.xsd
 .idea
 !.idea/.idea.FlameCsv/.idea/icon.svg
 
-
 # Nuget temp
 .nuget/
+
+# Docfx
+docs/_site/
+docs/api/

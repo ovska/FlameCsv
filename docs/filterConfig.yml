@@ -1,0 +1,14 @@
+attributeRules:
+- exclude:
+    uidRegex: ^JetBrains\.Annotations
+    type: Namespace
+apiRules:
+- exclude:
+      uidRegex: ^System\.Object
+      type: Type
+- exclude:
+      uidRegex: ^System\.ValueType
+      type: Type
+- exclude:
+      uidRegex: ^System\.Attribute
+      type: Member
