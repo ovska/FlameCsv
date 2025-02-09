@@ -18,9 +18,7 @@ public sealed class CsvValueEnumerable<T, [DAM(Messages.ReflectionBound)] TValue
     /// <summary>
     /// Creates a new instance.
     /// </summary>
-    public CsvValueEnumerable(
-        in ReadOnlySequence<T> csv,
-        CsvOptions<T> options)
+    public CsvValueEnumerable(in ReadOnlySequence<T> csv, CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
         _data = csv;

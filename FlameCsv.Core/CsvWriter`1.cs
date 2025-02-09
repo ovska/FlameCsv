@@ -113,6 +113,7 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     /// <summary>
     /// Writes a field with the preceding delimiter if needed.
     /// </summary>
+    /// <remarks>Converter will be retrieved from options.</remarks>
     /// <param name="value">Value to write</param>
     /// <typeparam name="TField">Field type that will be converted</typeparam>
     [RDC(Messages.ConverterOverload), RUF(Messages.ConverterOverload)]
@@ -142,6 +143,7 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     /// </summary>
     /// <param name="text">Value to write</param>
     /// <param name="skipEscaping">Whether no escaping should be performed, use with care</param>
+    [OverloadResolutionPriority(1)] // prefer writing span instead of generic TField
     public void WriteField(ReadOnlySpan<T> text, bool skipEscaping = false)
     {
         WriteDelimiterIfNeeded();
@@ -260,15 +262,17 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     /// <param name="typeMap">Type map to use for writing</param>
     public void WriteHeader<TRecord>(CsvTypeMap<T, TRecord> typeMap)
     {
+        ArgumentNullException.ThrowIfNull(typeMap);
         WriteDelimiterIfNeeded();
         GetDematerializerAndIncrementFieldCount(typeMap).WriteHeader(in _inner);
     }
 
     /// <summary>
-    /// Completes the writer, flushing any remaining data if <paramref name="exception"/> is null.
+    /// Completes the writer, flushing any remaining data if <paramref name="exception"/> is null.<br/>
+    /// Multiple completions are no-ops.
     /// </summary>
     /// <param name="exception">
-    /// Observed exception when writing the data.
+    /// Observed exception when writing the data, passed to the inner <see cref="ICsvBufferWriter{T}"/>.
     /// If not null, the final buffer is not flushed and the exception is rethrown.
     /// </param>
     /// <param name="cancellationToken">Token to cancel the operation</param>
@@ -290,7 +294,9 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     /// Flushes the writer.
     /// </summary>
     /// <param name="cancellationToken">Token to cancel flushing</param>
-    /// <exception cref="ObjectDisposedException">The writer has completed</exception>
+    /// <exception cref="ObjectDisposedException">
+    /// Thrown if the writer has completed (see <see cref="CompleteAsync"/>).
+    /// </exception>
     public ValueTask FlushAsync(CancellationToken cancellationToken = default)
     {
         if (IsCompleted)
@@ -466,7 +472,8 @@ public class CsvWriter<T> : CsvAsyncWriter<T>, IDisposable where T : unmanaged, 
     }
 
     /// <summary>
-    /// Completes the writer, flushing any remaining data if <paramref name="exception"/> is null.
+    /// Completes the writer, flushing any remaining data if <paramref name="exception"/> is null.<br/>
+    /// Multiple completions are no-ops.
     /// </summary>
     /// <param name="exception">
     /// Observed exception when writing the data.
@@ -489,7 +496,9 @@ public class CsvWriter<T> : CsvAsyncWriter<T>, IDisposable where T : unmanaged, 
     /// <summary>
     /// Flushes the writer.
     /// </summary>
-    /// <exception cref="ObjectDisposedException">The writer has completed</exception>
+    /// <exception cref="ObjectDisposedException">
+    /// Thrown if the writer has completed (see <see cref="Complete"/>).
+    /// </exception>
     public void Flush()
     {
         ObjectDisposedException.ThrowIf(IsCompleted, this);
