@@ -11,7 +11,8 @@
         }
       ],
       "dest": "api",
-      "filter": "filterConfig.yml"
+      "filter": "filterConfig.yml",
+      "disableDefaultFilter": true
     }
   ],
   "build": {
@@ -35,7 +36,7 @@
     "output": "_site",
     "template": [
       "default",
-      "modern"
+      "statictoc"
     ],
     "globalMetadata": {
       "_appName": "FlameCSV",

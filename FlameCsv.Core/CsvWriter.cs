@@ -7,7 +7,7 @@ namespace FlameCsv;
 /// Provides static methods for writing CSV data.
 /// </summary>
 [PublicAPI]
-static partial class CsvWriter
+public static partial class CsvWriter
 {
     /// <summary>
     /// Default buffer size for writing CSV data.

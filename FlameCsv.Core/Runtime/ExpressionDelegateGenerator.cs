@@ -121,6 +121,7 @@ internal sealed class ExpressionDelegateGenerator<T> : DelegateGenerator<T> wher
                 result.Add(Expression.Bind(binding.Member, parameters[binding.Index]));
             }
 
+            // TODO: figure out if we can get rid of this and use LightExpression
             return Expression.MemberInit(newExpr, result);
         }
     }
