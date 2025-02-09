@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.ComponentModel;
 
 namespace FlameCsv.Writing;
 
@@ -6,6 +7,7 @@ namespace FlameCsv.Writing;
 /// An extended <see cref="IBufferWriter{T}"/> that can be flushed, and can report whether it should be flushed.
 /// </summary>
 /// <typeparam name="T"></typeparam>
+[EditorBrowsable(EditorBrowsableState.Advanced)]
 public interface ICsvBufferWriter<T> : IBufferWriter<T> where T : unmanaged
 {
     /// <summary>
