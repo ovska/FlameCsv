@@ -1,14 +1,30 @@
-attributeRules:
-- exclude:
-    uidRegex: ^JetBrains\.Annotations
-    type: Namespace
+### YamlMime:ManagedReference
 apiRules:
-- exclude:
-      uidRegex: ^System\.Object
-      type: Type
-- exclude:
-      uidRegex: ^System\.ValueType
-      type: Type
-- exclude:
-      uidRegex: ^System\.Attribute
-      type: Member
+      - exclude:
+              uidRegex: ^System\.Object
+              type: Type
+      - exclude:
+              uidRegex: ^System\.ValueType
+              type: Type
+      - exclude:
+              uidRegex: ^System\.Attribute
+              type: Member
+attributeRules:
+      - exclude:
+              uidRegex: ^JetBrains\.Annotations
+              type: Namespace
+      - exclude:
+              uidRegex: ^System\.Diagnostics\.CodeAnalysis$
+              type: Namespace
+      - exclude:
+              uidRegex: ^System\.CodeDom\.Compiler\.GeneratedCodeAttribute$
+              type: Type
+      - include:
+              uidRegex: ^System\.Runtime\.CompilerServices\.ExtensionAttribute$
+              type: Type
+      - exclude:
+              uidRegex: '^System\.Runtime\.CompilerServices\.[^.]+$'
+              type: Type
+      - exclude:
+              uidRegex: '^System\.Runtime\.InteropServices\.[^.]+$'
+              type: Type
