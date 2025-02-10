@@ -10,11 +10,7 @@ Read CSV records or .NET objects with @"FlameCsv.CsvReader", write CSV records o
 
 ## Customizing the CSV dialect
 
-The @"FlameCsv.CsvOptions`1.Delimiter", @"FlameCsv.CsvOptions`1.Quote", @"FlameCsv.CsvOptions`1.Newline", @"FlameCsv.CsvOptions`1.Whitespace", and optional @"FlameCsv.CsvOptions`1.Escape" properties can be used to configure the dialect used.
-
-If @"CsvOptions`1.Escape" is not null, it is used in quoted CSV fields (also referred to as strings) to escape quotes. The default RFC-4180 compliant parsing/formatting escapes quotes with another quote.
-
-The default configuration is `,` as field delimiter/separator and `"` as quote/string delimiter. The record separator (newline) is empty, which means it is auto-detected between `\r\n` and `\n` while reading, and `\r\n` while writing. Whitespace tokens are empty by default, which means the concept of whitespace does not exist and all characters in fields are treated the same. Escape token is `null` by default.
+The @"FlameCsv.CsvOptions`1.Delimiter", @"FlameCsv.CsvOptions`1.Quote", @"FlameCsv.CsvOptions`1.Newline", @"FlameCsv.CsvOptions`1.Whitespace", and @"FlameCsv.CsvOptions`1.Escape" can be used to configure the dialect used.
 
 For example, to read CSV delimited with semicolons, using linefeed record separators, and trimming spaces and tabs from unquoted fields:
 
@@ -27,6 +23,8 @@ CsvOptions<char> options = new()
     Whitespace " \t",
 };
 ```
+
+For more details, see @"configuration#dialect".
 
 ## Reading objects
 
@@ -154,7 +152,7 @@ After writing, @"FlameCsv.CsvWriter`1.Complete(System.Exception)" or @"FlameCsv.
 
 ## CSV without a header
 
-To read or write CSV without a header record the types need to be annotated with @"FlameCsv.Attributes.CsvIndexAttribute", and @"FlameCsv.CsvOptions`1.HasHeader?displayProperty=nameWithType" set to`false`.
+To read or write CSV without a header record the types need to be annotated with @"FlameCsv.Attributes.CsvIndexAttribute", and @"FlameCsv.CsvOptions`1.HasHeader?displayProperty=nameWithType" set to `false`.
 
 ```cs
 class User
@@ -171,3 +169,5 @@ foreach (var user in CsvReader.Read<User>(csv, options))
     ProcessUser(user);
 }
 ```
+
+See @"attribute-configuration#headerless-csv" for more details on how to customize the binding rules.

@@ -22,6 +22,21 @@ namespace FlameCsv.Console
 
         static void Main([NotNull] string[] args)
         {
+            CsvOptions<char> options = new()
+            {
+                RecordCallback = (ref readonly CsvRecordCallbackArgs<char> args) =>
+                {
+                    if (args.IsEmpty)
+                    {
+                        args.HeaderRead = false;
+                    }
+                    else if (args.Record[0] == '#')
+                    {
+                        args.SkipRecord = true;
+                    }
+                }
+            };
+
             Span<byte> unescapeBuffer = stackalloc byte[256];
             using var parser = CsvParser.Create(_options);
 
