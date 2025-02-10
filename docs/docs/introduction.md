@@ -1,3 +1,7 @@
+---
+uid: introduction
+---
+
 # Introduction
 
 FlameCSV is a high-performance C# library for reading and writing CSV data.
@@ -8,4 +12,4 @@ or a reflection based type binding that rivals the source generator
 in performance thanks to caching and the excellent
 [FastExpressionCompiler](https://github.com/dadhi/FastExpressionCompiler) libary.
 
-TODO: link to examples
+See @"getting-started", view the @"examples", or deep dive into the [API Reference](api/FlameCsv.html).

@@ -6,7 +6,7 @@ uid: configuration
 
 ## Overview
 
-Aside from [attributes](binding.md), the configuration mainly is done through the @"FlameCsv.CsvOptions`1" class. Similar to `System.Text.Json`, the options-instances should be configured once and reused for the application lifetime. After the options-instance is used to read or write CSV, it cannot be modified (see @"FlameCsv.CsvOptions`1.IsReadOnly"). The options-instaces are thread-safe to *use*, but not to *configure*. You can call @"FlameCsv.CsvOptions`1.MakeReadOnly?displayProperty=nameWithType" to ensure the options-instance is immutable.
+Aside from [attributes](attributes.md), the configuration mainly is done through the @"FlameCsv.CsvOptions`1" class. Similar to `System.Text.Json`, the options-instances should be configured once and reused for the application lifetime. After the options-instance is used to read or write CSV, it cannot be modified (see @"FlameCsv.CsvOptions`1.IsReadOnly"). The options-instaces are thread-safe to *use*, but not to *configure*. You can call @"FlameCsv.CsvOptions`1.MakeReadOnly?displayProperty=nameWithType" to ensure the options-instance is immutable.
 
 For convenience, a copy-constructor @"FlameCsv.CsvOptions`1.%23ctor(FlameCsv.CsvOptions{`0})" is available, for example if you need slightly different configuration for reading and writing. This copies over all the configurable properties, but not internal state or caches.
 
@@ -21,7 +21,15 @@ Default options are available for @"System.Char?text=char" and @"System.Byte?tex
 
 ## Dialect
 
-TODO
+**The delimiter** can be changed with @"FlameCsv.CsvOptions`1.Delimiter?displayProperty=nameWithType". The default value is `,` (comma). Other common values include `\t` and `;`.
+
+**The string delimiter** is configured with @"FlameCsv.CsvOptions`1.Quote?displayProperty=nameWithType". The default value is `"` (double-quote). CSV fields wrapped in quotes (also referred to as strings) can contain otherwise special characters such as delimiters. A quote inside a string is escaped with another quote, e.g. `"James ""007"" Bond"`.
+
+**The record separator** @"FlameCsv.CsvOptions`1.Newline?displayProperty=nameWithType" is `null`/empty. This means the record separator is auto-detected from the first occurence to be either `\n` or `\r\n`. When writing, `\r\n` is used in this case. You can choose any newline you want explicitly, with the caveat that the length must be exactly 1 or 2 if it is not empty.
+
+**Significant whitespace** is configured via @"FlameCsv.CsvOptions`1.Whitespace?displayProperty=nameWithType", and determines how fields are trimmed when reading, or if a field needs quoting when writing. The characters present in the whitespace-string are trimmed from each field, unless they are in a quoted field (whitespace is _not_ trimmed inside strings). When writing, written values that contain leading or trailing whitespace are wrapped in quotes if [automatic field quoting](#quoting-fields-when-writing) is enabled. The default value is null/empty, which means the concept of significant whitespace does not exist.
+
+**The escape character** @"FlameCsv.CsvOptions`1.Escape?displayProperty=nameWithType" can be set to a non-null value to escape any character after it in a string. The default value is null, which means @"FlameCsv.CsvOptions`1.Quote" is treated as the escape character (following the RFC 4180 spec).
 
 ## Header
 
@@ -29,7 +37,11 @@ The @"FlameCsv.CsvOptions`1.HasHeader?displayProperty=nameWithType" property is 
 
 For more information on which methods transcode the data into @"System.String", see [Transcoding](#transcoding).
 
-## Converters
+## Customizing field parsing
+
+### Converters
+
+Custom converters are added to @"FlameCsv.CsvOptions`1.Converters?displayProperty=nameWithType". Converters are checked in LIFO-order, falling back to built-in converters if no user configured converter can convert a specific type.
 
 Built-in converters are available for common .NET types, such as numbers implementing @"System.Numerics.INumberBase`1". Below are some examples.
 
@@ -49,7 +61,7 @@ CsvConverter<char, int> converter = options.GetConverter<int>();
 
 If you don't want to use the library's built in converters at all, set @"FlameCsv.CsvOptions`1.UseDefaultConverters?displayProperty=nameWithType" to `false`.
 
-## Culture and format providers
+### Culture and IFormatProvider
 
 The format provider can be configured on per-type basis with the @"FlameCsv.CsvOptions`1.FormatProviders?displayProperty=nameWithType" dictionary. If none is configured, the @"FlameCsv.CsvOptions`1.FormatProvider?displayProperty=nameWithType" property is used. This value defaults to @"System.Globalization.CultureInfo.InvariantCulture?displayProperty=nameWithType".
 
@@ -64,7 +76,7 @@ CsvOptions<char> options = new()
 > [!NOTE]
 > All the type-indexed dictionaries consider value types and their nullable counterparts equal, e.g., you only need to add either `int` or `int?` to the dictionary.
 
-## Formats
+### Format
 
 Similarly, formats used when writing formattable types are configured on a per-type basis using @"FlameCsv.CsvOptions`1.Formats?displayProperty=nameWithType". For unconfigured types `null` is used. The exception to this is are enums, which fall back to @"FlameCsv.CsvOptions`1.EnumFormat?displayProperty=nameWithType" if a specific enum type is not configured to have a different format.
 
@@ -77,7 +89,7 @@ CsvOptions<char> options = new()
 };
 ```
 
-## Number styles
+### Number styles
 
 For numeric types, the @"System.Globalization.NumberStyles" enumeration used when reading can be configured on per-type basis with @"FlameCsv.CsvOptions`1.NumberStyles?displayProperty=nameWithType". This defaults to @"System.Globalization.NumberStyles.Integer?displayProperty=nameWithType" for integer types and @"System.Globalization.NumberStyles.Float?displayProperty=nameWithType" for floating point types.
 
@@ -88,13 +100,13 @@ CsvOptions<char> options = new()
 };
 ```
 
-## Null values
+### Null values
 
-When reading nullable values, or writing any reference types or @"System.Nullable`1", a specific string or characters or bytes can be configured for each type. On per-type basis, the @"FlameCsv.CsvOptions`1.NullTokens?displayProperty=nameWithType" dictionary is used. If no specific null token is configured for a type, @"FlameCsv.CsvOptions`1.Null?displayProperty=nameWithType" is used (defaults to null/empty string).
+When reading nullable values, or writing any reference types or @"System.Nullable`1", a specific string can be configured for each type. On per-type basis, the @"FlameCsv.CsvOptions`1.NullTokens?displayProperty=nameWithType" dictionary is used. If no specific null token is configured for a type, @"FlameCsv.CsvOptions`1.Null?displayProperty=nameWithType" is used (defaults to null/empty string).
 
 Similarly, when writing any value that is null, @"FlameCsv.CsvOptions`1.GetNullToken(System.Type)?displayProperty=nameWithType" is used to get the value to write. Converters can additionally signal to the writer that they have their own null handling with the @"FlameCsv.CsvConverter`2.CanFormatNull?displayProperty=nameWithType".
 
-## Enums
+### Enums
 
 Aside from @"FlameCsv.CsvOptions`1.EnumFormat?displayProperty=nameWithType" and @"FlameCsv.CsvOptions`1.Formats?displayProperty=nameWithType", enum parsing can be further configured. The self-explanatory @"FlameCsv.CsvOptions`1.IgnoreEnumCase?displayProperty=nameWithType" property is passed to the enum's `TryParse` method. The @"FlameCsv.CsvOptions`1.AllowUndefinedEnumValues?displayProperty=nameWithType" property considers parsing an enum value success even if a value is not defined.
 
@@ -107,24 +119,11 @@ CsvOptions<char> options = new()
 };
 ```
 
-## Quoting fields when writing
+### Custom true/false values
 
-The @"FlameCsv.Writing.CsvFieldQuoting" enumeration and @"FlameCsv.CsvOptions`1.FieldQuoting?displayProperty=nameWithType" property are used to configure the behavior when writing CSV. The default, @"FlameCsv.CsvOptions`1.FieldQuoting.Auto?displayProperty=nameWithType" only quotes fields if they contain special characters or whitespace.
+Use @"FlameCsv.CsvOptions`1.BooleanValues?displayProperty=nameWithType" to customize what fields are parsed as booleans. At least one `true` and one `false` value must be present.
 
-```cs
-// quote all fields, e.g., for noncompliant 3rd party libraries
-CsvOptions<char> options = new() { FieldQuoting = CsvFieldQuoting.Always };
-```
-
-## Binding
-
-If you don't want to use the built-in attribute configuration when using reflection binding, set @"FlameCsv.CsvOptions`1.TypeBinder?displayProperty=nameWithType" property to your custom implementation implementing @"FlameCsv.Binding.ICsvTypeBinder`1".
-
-For info about how the attribute configuration works, see @binding.
-
-## Custom true/false values
-
-If you want a boolean value out of other fields than `true` and `false`, you can customize possible combinations with @"FlameCsv.CsvOptions`1.BooleanValues?displayProperty=nameWithType".
+Note that custom boolean values applied globally _replaces_ the default parsing. It might be useful to configure on a per-member-basis with @"FlameCsv.Attributes.CsvBooleanValuesAttribute`1".
 
 ```cs
 CsvOptions<char> options = new()
@@ -137,11 +136,27 @@ CsvOptions<char> options = new()
 };
 ```
 
-> [!NOTE]
-> Custom boolean values can be configured on per-member level with @"FlameCsv.Attributes.CsvBooleanValuesAttribute`1".
-
 > [!WARNING]
-> Custom boolean values _replaces_ the regular true/false parsing.
+> The built-in custom boolean converters have the following requirements for @"FlameCsv.CsvOptions`1.Comparer":
+> - When reading @"System.Char", the comparer must implement `IAlternateEqualityComparer<ReadOnlySpan<char>, string>`.
+> - When reading @"System.Byte"/UTF8, the comparer must be either @"System.StringComparer.Ordinal?displayProperty=nameWithType" or @"System.StringComparer.OrdinalIgnoreCase?displayProperty=nameWithType".
+
+## Quoting fields when writing
+
+The @"FlameCsv.Writing.CsvFieldQuoting" enumeration and @"FlameCsv.CsvOptions`1.FieldQuoting?displayProperty=nameWithType" property are used to configure the behavior when writing CSV. The default, @"FlameCsv.CsvOptions`1.FieldQuoting.Auto?displayProperty=nameWithType" only quotes fields if they contain special characters or whitespace.
+
+```cs
+// quote all fields, e.g., for noncompliant 3rd party libraries
+CsvOptions<char> options = new() { FieldQuoting = CsvFieldQuoting.Always };
+```
+
+If you are 100% sure your data does not contain any special characters, you can set it to @"FlameCsv.CsvOptions`1.FieldQuoting.Never?displayProperty=nameWithType" to squeeze out a little bit of performance by omitting the check if each written field needs to be quoted.
+
+## Binding
+
+If you don't want to use the built-in attribute configuration when using reflection binding, set @"FlameCsv.CsvOptions`1.TypeBinder?displayProperty=nameWithType" property to your custom implementation implementing @"FlameCsv.Binding.ICsvTypeBinder`1".
+
+For info about how the attribute configuration works, see @binding.
 
 ## Skipping records or resetting headers
 

@@ -1,10 +1,8 @@
 ---
-uid: binding
+uid: attributes
 ---
 
-# Binding
-
-## Attribute configuration
+# Attributes
 
 Configuration attributes can be applied on a member, type, or assembly. Attributes on a type can be used to configure classes that you have no direct control over, such as on partial typed in auto-generated code. Assembly scoped attributes can be used to configure types in other namespaces or assemblies that you cannot apply attributes on otherwise.
 
@@ -98,6 +96,10 @@ public class User
     // other members omitted
 }
 ```
+
+## Headerless CSV
+
+@"FlameCsv.Attributes.CsvIndexAttribute" can be used to mark members for specific field indexes. These attributes are _required_ when @"FlameCsv.CsvOptions`1.HasHeader?displayProperty=nameWithType" is `false`.
 
 ## Ignoring members
 
