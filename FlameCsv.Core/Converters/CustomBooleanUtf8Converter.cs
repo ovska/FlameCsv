@@ -21,13 +21,16 @@ internal sealed class CustomBooleanUtf8Converter : CsvConverter<byte, bool>
             Throw.Argument(nameof(CsvOptions<byte>.BooleanValues), "No values defined");
 
         var values = options._booleanValues;
+        var valuesBuilder = ImmutableArray.CreateBuilder<(bool, byte[])>(values.Count);
 
         List<byte[]> trues = new((values.Count / 2) + 1);
         List<byte[]> falses = new((values.Count / 2) + 1);
 
         foreach ((string text, bool value) in values)
         {
-            (value ? trues : falses).Add(options.GetFromString(text).ToArray());
+            byte[] bytes = options.GetFromString(text).ToArray();
+            valuesBuilder.Add((value, bytes));
+            (value ? trues : falses).Add(bytes);
         }
 
         if (trues.Count == 0)
@@ -46,6 +49,8 @@ internal sealed class CustomBooleanUtf8Converter : CsvConverter<byte, bool>
             throw new CsvConfigurationException(
                 "Utf8 BooleanValues is only supported with Comparer Ordinal or OrdinalIgnoreCase");
         }
+
+        _values = valuesBuilder.MoveToImmutable();
 
         InitializeTrueAndFalse(_values, out _firstTrue, out _firstFalse, out _allAscii);
     }
@@ -131,26 +136,12 @@ internal sealed class CustomBooleanUtf8Converter : CsvConverter<byte, bool>
 
         foreach ((bool value, byte[] bytes) in values)
         {
-            if (firstTrue is null && value)
-            {
-                firstTrue = bytes;
-            }
-
-            if (firstFalse is null && !value)
-            {
-                firstFalse = bytes;
-            }
-
-            if (allAscii && !Ascii.IsValid(bytes))
-            {
-                allAscii = false;
-            }
+            if (value) firstTrue ??= bytes;
+            if (!value) firstFalse ??= bytes;
+            if (!Ascii.IsValid(bytes)) allAscii = false;
         }
 
-        if (firstTrue is null)
-            Throw.Config_TrueOrFalseBooleanValues(true);
-
-        if (firstFalse is null)
-            Throw.Config_TrueOrFalseBooleanValues(false);
+        if (firstTrue is null) Throw.Config_TrueOrFalseBooleanValues(true);
+        if (firstFalse is null) Throw.Config_TrueOrFalseBooleanValues(false);
     }
 }
