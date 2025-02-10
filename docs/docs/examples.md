@@ -1,3 +1,7 @@
+---
+uid: examples
+---
+
 # Examples
 
 ## TL;DR
@@ -41,7 +45,7 @@ class User
 
 The `Read` and `ReadAsync` methods return an enumerable-object that can be used with `foreach` or LINQ.
 
-Thanks to the power of C# generics, all APIs can be used with data both `char` and `byte` interchangeably. The library expects bytes to represent UTF-8 text, so it can be used with ASCII data as well.
+Thanks to the power of C# generics, all APIs can be used with data both @"System.Char?text=char" and @"System.Byte?text=byte" interchangeably. The library expects bytes to represent UTF-8 text, so it can be used with ASCII data as well.
 
 The synchronous methods accept common .NET data types: @"System.String", @"System.ReadOnlyMemory`1". These types are converted internally to a @"System.Buffers.ReadOnlySequence`1", which can also be used directly.
 
