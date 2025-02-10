@@ -82,6 +82,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         _allowUndefinedEnumValues = other._allowUndefinedEnumValues;
         _noReadAhead = other._noReadAhead;
         _stringPool = other._stringPool;
+        _typeBinder = other._typeBinder;
         _null = other._null;
         _nullTokens = other._nullTokens?.Clone();
         _converters = other._converters?.Clone();
@@ -94,7 +95,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
 
         _converterCache = new(other._converterCache, other._converterCache.Comparer);
 
-        // either of these types can be a derived type with a different max size
+        // check in case either of these types is a derived type with a different max size
         CheckConverterCacheSize();
     }
 

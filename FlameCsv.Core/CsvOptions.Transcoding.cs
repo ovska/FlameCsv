@@ -32,7 +32,7 @@ public partial class CsvOptions<T>
             return Encoding.UTF8.GetString(value.Cast<T, byte>());
         }
 
-        throw InvalidTokenTypeEx(nameof(TryWriteChars));
+        throw InvalidTokenTypeEx(nameof(GetAsString));
     }
 
     /// <summary>
@@ -58,7 +58,7 @@ public partial class CsvOptions<T>
             return Encoding.UTF8.TryGetChars(value.Cast<T, byte>(), destination, out charsWritten);
         }
 
-        throw InvalidTokenTypeEx(nameof(TryWriteChars));
+        throw InvalidTokenTypeEx(nameof(TryGetChars));
     }
 
     /// <summary>
@@ -86,7 +86,7 @@ public partial class CsvOptions<T>
             return Unsafe.As<T[]>(Encoding.UTF8.GetBytes(value));
         }
 
-        throw InvalidTokenTypeEx(nameof(TryWriteChars));
+        throw InvalidTokenTypeEx(nameof(GetFromString));
     }
 
     /// <summary>

@@ -13,7 +13,7 @@ public enum CsvFieldQuoting
     /// <summary>
     /// Always quote fields, even if they don't contain any characters that need escaping.
     /// </summary>
-    AlwaysQuote = 1,
+    Always = 1,
 
     /// <summary>
     /// Never quote fields.

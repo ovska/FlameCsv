@@ -241,7 +241,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         // empty writes don't need escaping
         if (tokensWritten == 0)
         {
-            if (Options._fieldQuoting == CsvFieldQuoting.AlwaysQuote)
+            if (Options._fieldQuoting == CsvFieldQuoting.Always)
             {
                 // Ensure the buffer is large enough
                 if (destination.Length < 2)
@@ -295,7 +295,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         bool shouldQuote;
         int escapableCount;
 
-        if (Options._fieldQuoting == CsvFieldQuoting.AlwaysQuote)
+        if (Options._fieldQuoting == CsvFieldQuoting.Always)
         {
             shouldQuote = true;
             escapableCount = escaper.CountEscapable(written);

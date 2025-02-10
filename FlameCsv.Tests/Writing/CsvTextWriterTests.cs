@@ -159,7 +159,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             {
                 Assert.Equal(0, index);
                 Assert.Equal(
-                    quoting == CsvFieldQuoting.AlwaysQuote ? TestDataGenerator.HeaderQuoted : TestDataGenerator.Header,
+                    quoting == CsvFieldQuoting.Always ? TestDataGenerator.HeaderQuoted : TestDataGenerator.Header,
                     line);
                 headerRead = true;
                 continue;
@@ -178,7 +178,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
                 switch (columnIndex++)
                 {
                     case 0:
-                        Assert.Equal(quoting == CsvFieldQuoting.AlwaysQuote ? $"'{index}'" : $"{index}", column);
+                        Assert.Equal(quoting == CsvFieldQuoting.Always ? $"'{index}'" : $"{index}", column);
                         break;
                     case 1:
                         if (quoting == CsvFieldQuoting.Never)
@@ -197,14 +197,14 @@ public class CsvTextWriterTests : CsvWriterTestsBase
                         break;
                     case 2:
                         string val = index % 2 == 0 ? "true" : "false";
-                        Assert.Equal(quoting == CsvFieldQuoting.AlwaysQuote ? $"'{val}'" : $"{val}", column);
+                        Assert.Equal(quoting == CsvFieldQuoting.Always ? $"'{val}'" : $"{val}", column);
                         break;
                     case 3:
-                        Assert.Equal(quoting == CsvFieldQuoting.AlwaysQuote ? dateQuoted : date, column);
+                        Assert.Equal(quoting == CsvFieldQuoting.Always ? dateQuoted : date, column);
                         break;
                     case 4:
                         var guid = new Guid(index, 0, 0, TestDataGenerator.GuidBytes);
-                        Assert.Equal(quoting == CsvFieldQuoting.AlwaysQuote ? $"'{guid}'" : $"{guid}", column);
+                        Assert.Equal(quoting == CsvFieldQuoting.Always ? $"'{guid}'" : $"{guid}", column);
                         break;
                     default:
                         throw new XunitException($"Invalid column count on line {index}: {line}");
