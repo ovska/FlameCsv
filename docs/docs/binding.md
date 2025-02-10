@@ -1,3 +1,7 @@
+---
+uid: binding
+---
+
 # Binding
 
 ## Attribute configuration
@@ -101,7 +105,8 @@ TODO: figure out specific ignore semantics
 
 ## Ignoring indexes
 
-When reading CSV without a header, you can conditionally ignore one or more fields when reading by using @"FlameCsv.Attributes.CsvIgnoredIndexesAttribute" on the type. The fields are left empty when writing.
+When reading CSV without a header, you can choose to ignore one or more fields when reading by using @"FlameCsv.Attributes.CsvIgnoredIndexesAttribute" on the type.
+Ignored fields are left empty when writing, and do nothing when reading.
 
 ```cs
 [CsvIgnoredIndexes(1, 3)]
