@@ -36,8 +36,7 @@ public sealed class CsvBooleanValuesAttribute<T> : CsvConverterAttribute<T> wher
             converter = new CustomBooleanTextConverter(
                 trueValues: TrueValues,
                 falseValues: FalseValues,
-                comparison: IgnoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal,
-                options: (CsvOptions<char>)(object)options);
+                ignoreCase: IgnoreCase);
         }
 
         if (typeof(T) == typeof(byte))
