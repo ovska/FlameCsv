@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Runtime.InteropServices;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 
@@ -17,6 +18,10 @@ internal sealed class CustomBooleanTextConverter : CsvConverter<char, bool>
         if (options._booleanValues is not { Count: > 0 })
             Throw.Argument(nameof(CsvOptions<char>.BooleanValues), "No values defined");
 
+        _comparer = options.Comparer as IAlternateEqualityComparer<ReadOnlySpan<char>, string> ??
+            throw new CsvConfigurationException(
+                $"Comparer does not implement {nameof(IAlternateEqualityComparer<ReadOnlySpan<char>, string>)}.");
+
         _trueValues = [..options._booleanValues.Where(t => t.Item2).Select(t => t.Item1).Distinct(options.Comparer)];
         _falseValues = [..options._booleanValues.Where(t => !t.Item2).Select(t => t.Item1).Distinct(options.Comparer)];
 
@@ -25,14 +30,12 @@ internal sealed class CustomBooleanTextConverter : CsvConverter<char, bool>
 
         _firstTrue = _trueValues[0];
         _firstFalse = _falseValues[0];
-        _comparer = FromOptions(options);
     }
 
     internal CustomBooleanTextConverter(
         string[] trueValues,
         string[] falseValues,
-        StringComparison? comparison,
-        CsvOptions<char> options)
+        bool ignoreCase)
     {
         ArgumentNullException.ThrowIfNull(trueValues);
         ArgumentNullException.ThrowIfNull(falseValues);
@@ -43,13 +46,12 @@ internal sealed class CustomBooleanTextConverter : CsvConverter<char, bool>
         if (falseValues.Length == 0)
             Throw.Config_TrueOrFalseBooleanValues(false);
 
-        _trueValues = [.. trueValues];
-        _falseValues = [.. falseValues];
+        _trueValues = ImmutableCollectionsMarshal.AsImmutableArray(trueValues);
+        _falseValues = ImmutableCollectionsMarshal.AsImmutableArray(falseValues);
         _firstTrue = _trueValues[0];
         _firstFalse = _falseValues[0];
-        _comparer = comparison is null
-            ? FromOptions(options)
-            : (IAlternateEqualityComparer<ReadOnlySpan<char>, string>)StringComparer.FromComparison(comparison.Value);
+        _comparer = (IAlternateEqualityComparer<ReadOnlySpan<char>, string>)
+            (ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
     }
 
     public override bool TryFormat(Span<char> destination, bool value, out int charsWritten)
@@ -79,16 +81,5 @@ internal sealed class CustomBooleanTextConverter : CsvConverter<char, bool>
         }
 
         return value = false;
-    }
-
-    private static IAlternateEqualityComparer<ReadOnlySpan<char>, string> FromOptions(CsvOptions<char> options)
-    {
-        if (options.Comparer is IAlternateEqualityComparer<ReadOnlySpan<char>, string> alternateComparer)
-        {
-            return alternateComparer;
-        }
-
-        throw new CsvConfigurationException(
-            $"Comparer does not implement {nameof(IAlternateEqualityComparer<ReadOnlySpan<char>, string>)}.");
     }
 }
