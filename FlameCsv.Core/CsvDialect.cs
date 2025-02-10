@@ -25,8 +25,7 @@ namespace FlameCsv;
 /// <typeparam name="T">Token type</typeparam>
 /// <seealso cref="CsvOptions{T}.Dialect"/>
 [PublicAPI]
-public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>>
-    where T : unmanaged, IBinaryInteger<T>
+public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// The separator character between CSV fields.
@@ -84,7 +83,26 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>>
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _whitespace;
-        init => _whitespace = value.IsEmpty ? null : value.ToArray();
+        init
+        {
+            if (value.IsEmpty)
+            {
+                _whitespace = null;
+                return;
+            }
+
+            using ValueListBuilder<T> list = new(stackalloc T[8]);
+
+            foreach (var token in value)
+            {
+                if (!list.AsSpan().Contains(token))
+                {
+                    list.Append(token);
+                }
+            }
+
+            _whitespace = list.AsSpan().ToArray();
+        }
     }
 
     /// <summary>
