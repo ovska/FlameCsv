@@ -5,7 +5,10 @@ namespace FlameCsv;
 
 public partial class CsvOptions<T>
 {
-    internal ref readonly CsvDialect<T> Dialect
+    /// <summary>
+    /// Gets or creates the dialect using the configured options.
+    /// </summary>
+    protected internal ref readonly CsvDialect<T> Dialect
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
@@ -15,23 +18,30 @@ public partial class CsvOptions<T>
                 return ref Nullable.GetValueRefOrDefaultRef(in _dialect);
             }
 
-            return ref InitializeDialect();
+            return ref InitializeDialectCore();
         }
     }
 
     private CsvDialect<T>? _dialect;
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private ref readonly CsvDialect<T> InitializeDialectCore()
+    {
+        CsvDialect<T> result = InitializeDialect();
+        result.Validate();
+        _dialect = result;
+        return ref Nullable.GetValueRefOrDefaultRef(in _dialect);
+    }
+
     /// <summary>
-    /// Initializes <see cref="_dialect"/>.
+    /// Initializes the dialect.
     /// </summary>
     /// <remarks>
-    /// If overridden, the returned reference must be <see cref="_dialect"/> and must not be null reference.
-    /// The dialect must be valid (see <see cref="CsvDialect{T}.Validate"/>).
+    /// If overridden, the dialect must be valid (see <see cref="CsvDialect{T}.Validate"/>).
     /// </remarks>
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    protected virtual ref readonly CsvDialect<T> InitializeDialect()
+    protected virtual CsvDialect<T> InitializeDialect()
     {
-        var result = new CsvDialect<T>
+        return new CsvDialect<T>
         {
             Delimiter = T.CreateChecked(_delimiter),
             Quote = T.CreateChecked(_quote),
@@ -39,11 +49,6 @@ public partial class CsvOptions<T>
             Newline = GetSpan(this, _newline, stackalloc T[8]),
             Whitespace = GetSpan(this, _whitespace, stackalloc T[8])
         };
-
-        result.Validate();
-
-        _dialect = result;
-        return ref Nullable.GetValueRefOrDefaultRef(in _dialect);
 
         static ReadOnlySpan<T> GetSpan(CsvOptions<T> @this, string? value, Span<T> buffer)
         {

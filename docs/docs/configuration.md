@@ -21,15 +21,24 @@ Default options are available for @"System.Char?text=char" and @"System.Byte?tex
 
 ## Dialect
 
-**The delimiter** can be changed with @"FlameCsv.CsvOptions`1.Delimiter?displayProperty=nameWithType". The default value is `,` (comma). Other common values include `\t` and `;`.
+### Delimiter
+The field separator is configured with @"FlameCsv.CsvOptions`1.Delimiter?displayProperty=nameWithType". The default value is `,` (comma). Other common values include `\t` and `;`.
 
-**The string delimiter** is configured with @"FlameCsv.CsvOptions`1.Quote?displayProperty=nameWithType". The default value is `"` (double-quote). CSV fields wrapped in quotes (also referred to as strings) can contain otherwise special characters such as delimiters. A quote inside a string is escaped with another quote, e.g. `"James ""007"" Bond"`.
+### Quote
+The string delimiter is configured with @"FlameCsv.CsvOptions`1.Quote?displayProperty=nameWithType". The default value is `"` (double-quote). CSV fields wrapped in quotes (also referred to as strings) can contain otherwise special characters such as delimiters. A quote inside a string is escaped with another quote, e.g. `"James ""007"" Bond"`.
 
-**The record separator** @"FlameCsv.CsvOptions`1.Newline?displayProperty=nameWithType" is `null`/empty. This means the record separator is auto-detected from the first occurence to be either `\n` or `\r\n`. When writing, `\r\n` is used in this case. You can choose any newline you want explicitly, with the caveat that the length must be exactly 1 or 2 if it is not empty.
+### Newline
+The record separator is configured with @"FlameCsv.CsvOptions`1.Newline?displayProperty=nameWithType". The default value is `null`/empty. This means the record separator is auto-detected from the first occurence to be either `\n` or `\r\n`. When writing, `\r\n` is used in this case. You can choose any newline you want explicitly, with the caveat that the length must be exactly 1 or 2 if it is not empty.
 
-**Significant whitespace** is configured via @"FlameCsv.CsvOptions`1.Whitespace?displayProperty=nameWithType", and determines how fields are trimmed when reading, or if a field needs quoting when writing. The characters present in the whitespace-string are trimmed from each field, unless they are in a quoted field (whitespace is _not_ trimmed inside strings). When writing, written values that contain leading or trailing whitespace are wrapped in quotes if [automatic field quoting](#quoting-fields-when-writing) is enabled. The default value is null/empty, which means the concept of significant whitespace does not exist.
+### Whitespace
+Significant whitespace  is configured with @"FlameCsv.CsvOptions`1.Whitespace?displayProperty=nameWithType", and determines how fields are trimmed when reading, or if a field needs quoting when writing. The characters present in the whitespace-string are trimmed from each field, unless they are in a quoted field (whitespace is _not_ trimmed inside strings). When writing, written values that contain leading or trailing whitespace are wrapped in quotes if [automatic field quoting](#quoting-fields-when-writing) is enabled. The default value is null/empty, which means the concept of significant whitespace does not exist.
 
-**The escape character** @"FlameCsv.CsvOptions`1.Escape?displayProperty=nameWithType" can be set to a non-null value to escape any character after it in a string. The default value is null, which means @"FlameCsv.CsvOptions`1.Quote" is treated as the escape character (following the RFC 4180 spec).
+### Escape
+An explicit escape character @"FlameCsv.CsvOptions`1.Escape?displayProperty=nameWithType" can be set to a non-null value to escape any character after it in a string. The default value is null, which means @"FlameCsv.CsvOptions`1.Quote" is treated as the escape character (following the RFC 4180 spec).
+
+### Additional info
+
+Internally, FlameCsv uses the @"FlameCsv.CsvDialect`1" struct to handle the configured dialect. It is constructed from the options when they are used (this makes the options immutable), and contains the configured values and other things related to parsing, such as @"System.Buffers.SearchValues`1" used internally in parsing. The @"FlameCsv.CsvDialect`1.IsAscii?displayProperty=nameWithType" property can be used to ensure that SIMD-accelerated parsing is used.
 
 ## Header
 
@@ -43,10 +52,10 @@ For more information on which methods transcode the data into @"System.String", 
 
 Custom converters are added to @"FlameCsv.CsvOptions`1.Converters?displayProperty=nameWithType". Converters are checked in LIFO-order, falling back to built-in converters if no user configured converter can convert a specific type.
 
-Built-in converters are available for common .NET types, such as numbers implementing @"System.Numerics.INumberBase`1". Below are some examples.
+Built-in converters are available for common .NET types, including:
 
 - Primitives: @"System.String", @"System.Boolean", @"System.Enum", @"System.Nullable`1"
-- Numbers: @"System.Int32", @"System.Int64", @"System.Double?text=double", @"System.Single?text=float" and more
+- Numbers: @"System.Int32", @"System.Int64", @"System.Double?text=double", @"System.Single?text=float" and others implementing @"System.Numerics.INumberBase`1"
 - CLR types: @"System.DateTime", @"System.DateTimeOffset", @"System.TimeSpan", @"System.Guid"
 - For @"System.Char?text=char", any type implementing both @"System.ISpanParsable`1" and @"System.ISpanFormattable"
 - For @"System.Byte?text=byte", any type implementing @"System.IUtf8SpanFormattable" and @"System.IUtf8SpanParsable`1", or the non-UTF8 equivalents

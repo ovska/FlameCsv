@@ -117,7 +117,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     {
         if (!IsReadOnly)
         {
-            InitializeDialect();
+            _ = InitializeDialectCore();
 
             // set to readonly only after the dialect has been validated
             IsReadOnly = true;

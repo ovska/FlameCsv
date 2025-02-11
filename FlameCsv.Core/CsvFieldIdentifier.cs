@@ -48,8 +48,8 @@ public readonly struct CsvFieldIdentifier
     public static implicit operator CsvFieldIdentifier(string name) => new(name);
 
     /// <summary>
-    /// Returns <c>true</c> if the identifier points to a field index,
-    /// <c>false</c> if it points to a field by header name.
+    /// Returns <see langword="true"/> if the identifier points to a field index,
+    /// <see langword="false"/> if it points to a field by header name.
     /// </summary>
     /// <param name="index">Field index</param>
     /// <param name="name">Field header name</param>

@@ -36,7 +36,7 @@ internal interface IEscaper<T> where T : unmanaged, IBinaryInteger<T>
     /// Returns <see langword="true"/> if the value needs escaping.
     /// </summary>
     /// <param name="value">The value to check for escaping.</param>
-    /// <returns><c>true</c> if the value needs escaping; otherwise, <c>false</c>.</returns>
+    /// <returns><see langword="true"/> if the value needs escaping; otherwise, <see langword="false"/>.</returns>
     bool NeedsEscaping(T value);
 
     /// <summary>
