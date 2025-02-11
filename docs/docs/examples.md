@@ -170,4 +170,4 @@ foreach (var user in CsvReader.Read<User>(csv, options))
 }
 ```
 
-See @"attribute-configuration#headerless-csv" for more details on how to customize the binding rules.
+See @"attributes#headerless-csv" for more details on how to customize the binding rules.
