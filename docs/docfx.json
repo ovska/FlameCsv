@@ -39,7 +39,8 @@
     "output": "_site",
     "template": [
       "default",
-      "modern"
+      "modern",
+      "templates/material"
     ],
     "globalMetadata": {
       "_appName": "FlameCSV",
@@ -48,6 +49,9 @@
       "_appFaviconPath": "data/favicon.ico",
       "_enableSearch": true,
       "pdf": false
-    }
+    },
+    "postProcessors": [
+      "ExtractSearchIndex"
+    ]
   }
 }
