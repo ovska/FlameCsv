@@ -15,9 +15,13 @@ For convenience, a copy-constructor @"FlameCsv.CsvOptions`1.%23ctor(FlameCsv.Csv
 
 ## Default options instances
 
-The static @"FlameCsv.CsvOptions`1.Default?displayProperty=nameWithType" property can be used if you don't need any deviation from the defaults. This is the value used when @"FlameCsv.CsvReader" or @"FlameCsv.CsvWriter" is passed a `null` value. These options are read-only by default and have an identical configuration to creating an options instance with `new()`.
+The static @"FlameCsv.CsvOptions`1.Default?displayProperty=nameWithType" property can be used if you don't need any deviation from the defaults. This is the value used when `null` options are passed to @"FlameCsv.CsvReader" or @"FlameCsv.CsvWriter". The default options are read-only and have an identical configuration to creating an options instance with `new()`.
 
 Default options are available for @"System.Char?text=char" and @"System.Byte?text=byte" (UTF-8). Attempting to use the property with other generic types throws a runtime exception.
+
+```cs
+CsvConverter<byte, int> intConverter = CsvOptions<byte>.Default.GetConverter<int>();
+```
 
 ## Dialect
 
@@ -40,11 +44,28 @@ An explicit escape character @"FlameCsv.CsvOptions`1.Escape?displayProperty=name
 
 Internally, FlameCsv uses the @"FlameCsv.CsvDialect`1" struct to handle the configured dialect. It is constructed from the options when they are used (this makes the options immutable), and contains the configured values and other things related to parsing, such as @"System.Buffers.SearchValues`1" used internally in parsing. The @"FlameCsv.CsvDialect`1.IsAscii?displayProperty=nameWithType" property can be used to ensure that SIMD-accelerated parsing is used.
 
+```cs
+CsvOptions<byte> options = new()
+{
+    Delimiter = '\t',
+    Quote = '"',
+    Newline = "\r\n",
+    Whitespace = " ",
+    Escape = '\\',
+};
+```
+
 ## Header
 
 The @"FlameCsv.CsvOptions`1.HasHeader?displayProperty=nameWithType" property is `true` by default, which expects a header record on the first line/record. Header names are matched using the @"FlameCsv.CsvOptions`1.Comparer"-property, which defaults to @"System.StringComparer.OrdinalIgnoreCase?displayProperty=nameWithType".
 
 For more information on which methods transcode the data into @"System.String", see [Transcoding](#transcoding).
+
+```cs
+const string csv = "id,name\n1,Bob\n2,Alice\n";
+
+List<User> users = CsvReader.Read(csv, new CsvOptions<char> { HasHeader = true });
+```
 
 ## Customizing field parsing
 
@@ -65,7 +86,22 @@ CsvOptions<char> options = new()
 {
     Converters = { new CustomIntConverter() }
 };
+
+// returns an instance of CustomIntConverter
 CsvConverter<char, int> converter = options.GetConverter<int>();
+
+class CustomIntConverter : CsvConverter<char, int>
+{
+    public override bool TryParse(ReadOnlySpan<char> source, out int value)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override bool TryFormat(Span<char> destination, int value, out int charsWritten)
+    {
+        throw new NotImplementedException();
+    }
+}
 ```
 
 If you don't want to use the library's built in converters at all, set @"FlameCsv.CsvOptions`1.UseDefaultConverters?displayProperty=nameWithType" to `false`.
@@ -80,6 +116,10 @@ CsvOptions<char> options = new()
     FormatProvider = CultureInfo.CurrentCulture,
     FormatProviders = { [typeof(double)] = CultureInfo.InvariantCulture },
 };
+
+_ = options.GetFormatProvider(typeof(object)); // current
+_ = options.GetFormatProvider(typeof(double)); // invariant
+_ = options.GetFormatProvider(typeof(double?)); // invariant
 ```
 
 > [!NOTE]
@@ -96,17 +136,25 @@ CsvOptions<char> options = new()
     EnumFormat = "G",
     Formats = { [typeof(decimal)] = "C" },
 };
+
+// writes "Monday" instead of "1"
+options.GetConverter<DayOfWeek>().TryFormat(new char[6], DayOfWeek.Monday, out _);
 ```
 
 ### Number styles
 
 For numeric types, the @"System.Globalization.NumberStyles" enumeration used when reading can be configured on per-type basis with @"FlameCsv.CsvOptions`1.NumberStyles?displayProperty=nameWithType". This defaults to @"System.Globalization.NumberStyles.Integer?displayProperty=nameWithType" for integer types and @"System.Globalization.NumberStyles.Float?displayProperty=nameWithType" for floating point types.
 
+The @"FlameCsv.CsvOptions`1.GetNumberStyles(System.Type,System.Globalization.NumberStyles)"-method is used by the default converters to retrieve the configured value.
+
 ```cs
 CsvOptions<char> options = new()
 {
     NumberStyles = { [typeof(decimal)] = NumberStyles.Currency }
 };
+
+_ = options.GetNumberStyles(typeof(decimal), defaultValue: NumberStyles.Float); // returns Currency
+_ = options.GetNumberStyles(typeof(double), defaultValue: NumberStyles.Float); // returns Float
 ```
 
 ### Null values
@@ -114,6 +162,22 @@ CsvOptions<char> options = new()
 When reading nullable values, or writing any reference types or @"System.Nullable`1", a specific string can be configured for each type. On per-type basis, the @"FlameCsv.CsvOptions`1.NullTokens?displayProperty=nameWithType" dictionary is used. If no specific null token is configured for a type, @"FlameCsv.CsvOptions`1.Null?displayProperty=nameWithType" is used (defaults to null/empty string).
 
 Similarly, when writing any value that is null, @"FlameCsv.CsvOptions`1.GetNullToken(System.Type)?displayProperty=nameWithType" is used to get the value to write. Converters can additionally signal to the writer that they have their own null handling with the @"FlameCsv.CsvConverter`2.CanFormatNull?displayProperty=nameWithType".
+
+```cs
+CsvOptions<char> options = new()
+{
+    Null = "null",
+    NullTokens =
+    {
+        [typeof(int)] = "_",
+        [typeof(string)] = "",
+    }
+};
+
+options.GetNullToken(typeof(int?)); // returns "_"
+options.GetNullToken(typeof(string)); // returns ""
+options.GetNullToken(typeof(object)); // returns "null"
+```
 
 ### Enums
 
@@ -126,6 +190,12 @@ CsvOptions<char> options = new()
     IgnoreEnumCase = true,
     AllowUndefinedEnumValues = true,
 };
+
+var converter = options.GetConverter<DayOfWeek>();
+
+// both calls succeed
+converter.TryParse("SUNDAY", out _); // ignore case
+converter.TryParse("10", out _); // undefined but valid number
 ```
 
 ### Custom true/false values
@@ -156,16 +226,15 @@ The @"FlameCsv.Writing.CsvFieldQuoting" enumeration and @"FlameCsv.CsvOptions`1.
 
 ```cs
 // quote all fields, e.g., for noncompliant 3rd party libraries
-CsvOptions<char> options = new() { FieldQuoting = CsvFieldQuoting.Always };
+StringBuilder result = CsvWriter.WriteToString(
+    [new User(1, "Bob", true)],
+    new CsvOptions() { FieldQuoting = CsvFieldQuoting.Always });
+
+// "id","name","isadmin"
+// "1","Bob","true"
 ```
 
 If you are 100% sure your data does not contain any special characters, you can set it to @"FlameCsv.CsvOptions`1.FieldQuoting.Never?displayProperty=nameWithType" to squeeze out a little bit of performance by omitting the check if each written field needs to be quoted.
-
-## Binding
-
-If you don't want to use the built-in attribute configuration when using reflection binding, set @"FlameCsv.CsvOptions`1.TypeBinder?displayProperty=nameWithType" property to your custom implementation implementing @"FlameCsv.Binding.ICsvTypeBinder`1".
-
-For info about how the attribute configuration works, see @binding.
 
 ## Skipping records or resetting headers
 
@@ -202,6 +271,12 @@ CsvOptions<char> options = new()
 Since any implementation of @"FlameCsv.CsvConverterFactory`1" (including the built-in nullable and enum factories) can potentially require unreferenced types or dynamic code, the default @"FlameCsv.CsvOptions`1.GetConverter``1?displayProperty=nameWithType" method is not AOT-compatible.
 
 Use @"FlameCsv.CsvOptions`1.Aot?displayProperty=nameWithType" to retrieve a wrapper around the configured converters, which provides convenience methods to safely retrieve converters for types known at runtime. See the documentation on methods of @"FlameCsv.CsvOptions`1.AotSafeConverters" for more info. This property is utilized by the source generator.
+
+```cs
+// aot-safe default nullable and enum converters if not configured by user
+CsvConverter<char, int?> c1 = options.Aot.GetOrCreateNullable(static o => o.Aot.GetConverter<int>());
+CsvConverter<char, DayOfWeek> c2 = options.Aot.GetOrCreateEnum<DayOfWeek>();
+```
 
 ### Parsing performance and read-ahead
 
@@ -240,3 +315,7 @@ The following methods are used by the library to convert `T` values to @"System.
 You can configure the @"System.Buffers.MemoryPool`1" instance used internally with the @"FlameCsv.CsvOptions`1.MemoryPool?displayProperty=nameWithType" property. Pooled memory is used to handle escaping, unescaping, and records split across multiple sequence segments. The default value is @"System.Buffers.MemoryPool`1.Shared?displayProperty=nameWithType".
 
 If set to `null`, no pooled memory is used and all needed buffers are heap allocated.
+
+### Custom binding
+
+If you don't want to use the built-in @"FlameCsv.Binding.CsvReflectionBinder`1" (attribute configuration), set @"FlameCsv.CsvOptions`1.TypeBinder?displayProperty=nameWithType" property to your custom implementation implementing @"FlameCsv.Binding.ICsvTypeBinder`1".

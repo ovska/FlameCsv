@@ -25,7 +25,11 @@
           "**/*.{md,yml}"
         ],
         "exclude": [
-          "_site/**"
+          "_site/**",
+          "data/node_modules/**",
+          "data/*.json",
+          "data/*.js",
+          "data/js/**"
         ]
       }
     ],

@@ -49,14 +49,12 @@ The synchronous methods accept common .NET data types: @"System.String", @"Syste
 
 Records can be asynchronously read in a streaming manner from @"System.IO.TextReader", @"System.IO.Stream", and @"System.IO.Pipelines.PipeReader".
 
-The data is read in chunks, and records are yielded by the enumerator on line-by-line basis. Internally, the library uses SIMD operations to read up to N fields ahead in the data for significantly improved performance. You can however turn this option off if you wish with @"FlameCsv.CsvOptions`1.NoReadAhead?displayProperty=nameWithType".
+The data is read in chunks, and records are yielded by the enumerator on line-by-line basis. Internally, the library uses SIMD operations to read up to N fields ahead in the data for significantly improved performance. More info: @"configuration#parsing-performance-and-read-ahead".
 
 ```cs
 string csv = "id,name,isadmin\r\n1,Bob,true\r\n2,Alice,false\r\n";
 List<User> users = CsvReader.Read<User>(csv).ToList();
-```
 
-```cs
 await foreach (var user in CsvReader.ReadAsync<User>(stream))
 {
     ProcessUser(user);
@@ -69,6 +67,10 @@ await foreach (var user in CsvReader.ReadAsync<User>(stream))
 ## Reading CSV records and fields manually
 
 The @"FlameCsv.CsvReader" class contains the `Enumerate` and `EnumerateAsync` methods to read @"FlameCsv.CsvValueRecord`1" that wraps the CSV data, and can be used to inspect details about the records, such has field counts, unescaped record or field, line numbers, and exact character/byte offsets in the file.
+
+Fields can be accessed directly using the @"FlameCsv.CsvFieldIdentifier"-struct, which is implicitly convertible from @"System.String" and @"System.Int32". In the example below, passing `"id"` and `0` to `ParseField` are functionally equivalent. The string-overload however includes and additional array/dictionary-lookup. The @"FlameCsv.CsvValueRecord`1.Header" and @"FlameCsv.CsvValueRecord`1.FieldCount" properties can be used to determine if a specific field can be accessed, along with @"FlameCsv.CsvValueRecord`1.Contains(FlameCsv.CsvFieldIdentifier)".
+
+The @"FlameCsv.CsvValueRecord`1" struct can also be used in a `foreach`-statement to iterate the escaped field values.
 
 ```cs
 foreach (var rec in CsvReader.Enumerate(csv))
@@ -171,3 +173,52 @@ foreach (var user in CsvReader.Read<User>(csv, options))
 ```
 
 See @"attributes#headerless-csv" for more details on how to customize the binding rules.
+
+## Custom converters
+
+The converters in FlameCsv follow the common .NET pattern TryParse/TryFormat.
+
+When reading CSV, @"FlameCsv.CsvConverter`2.TryParse(System.ReadOnlySpan{`0},`1@)" is used to convert the CSV field into a .NET type instance. If parsing fails the converter returns `false` and the library throws an appropriate exception.
+
+When writing, @"FlameCsv.CsvConverter`2.TryFormat(System.Span{`0},`1,System.Int32@)" should attempt to write the value to the destination buffer. If the value was successfully written, the method returns `true` and sets the amount of written characters (or bytes). If the destination buffer is too small, the method returns `false`. In this case, the value of `charsWritten` and any data possibly written to the buffer are ignored.
+
+```cs
+class YesNoConverter : CsvConverter<char, bool>
+{
+    public override bool TryParse(ReadOnlySpan<char> source, out bool value)
+    {
+        if (source.Equals("yes", StringComparison.OrdinalIgnoreCase))
+        {
+            value = true;
+            return true;
+        }
+        else if (source.Equals("no", StringComparison.OrdinalIgnoreCase))
+        {
+            value = false;
+            return true;
+        }
+        else
+        {
+            value = default;
+            return false;
+        }
+    }
+
+    public override bool TryFormat(Span<char> destination, bool value, out int charsWritten)
+    {
+        string toWrite = value ? "yes" : "no";
+
+        if (destination.Length >= toWrite.Length)
+        {
+            toWrite.AsSpan().CopyTo(destination);
+            charsWritten = toWrite.Length;
+            return true;
+        }
+        else
+        {
+            charsWritten = 0;
+            return false;
+        }
+    }
+}
+```
