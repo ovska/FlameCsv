@@ -212,22 +212,19 @@ partial class CsvOptions<T>
     }
 }
 
-[RUF(Messages.ConverterFactories)]
+[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 file static class DefaultConverterFactories
 {
     public static CsvConverter<char>? TryCreateChar(Type type, CsvOptions<char> options)
     {
-        if (RuntimeFeature.IsDynamicCodeSupported)
+        if (EnumTextConverterFactory.Instance.CanConvert(type))
         {
-            if (EnumTextConverterFactory.Instance.CanConvert(type))
-            {
-                return EnumTextConverterFactory.Instance.Create(type, options);
-            }
+            return EnumTextConverterFactory.Instance.Create(type, options);
+        }
 
-            if (SpanTextConverterFactory.Instance.CanConvert(type))
-            {
-                return SpanTextConverterFactory.Instance.Create(type, options);
-            }
+        if (SpanTextConverterFactory.Instance.CanConvert(type))
+        {
+            return SpanTextConverterFactory.Instance.Create(type, options);
         }
 
         return null;
@@ -235,17 +232,14 @@ file static class DefaultConverterFactories
 
     public static CsvConverter<byte>? TryCreateByte(Type type, CsvOptions<byte> options)
     {
-        if (RuntimeFeature.IsDynamicCodeSupported)
+        if (EnumUtf8ConverterFactory.Instance.CanConvert(type))
         {
-            if (EnumUtf8ConverterFactory.Instance.CanConvert(type))
-            {
-                return EnumUtf8ConverterFactory.Instance.Create(type, options);
-            }
+            return EnumUtf8ConverterFactory.Instance.Create(type, options);
+        }
 
-            if (SpanUtf8ConverterFactory.Instance.CanConvert(type))
-            {
-                return SpanUtf8ConverterFactory.Instance.Create(type, options);
-            }
+        if (SpanUtf8ConverterFactory.Instance.CanConvert(type))
+        {
+            return SpanUtf8ConverterFactory.Instance.Create(type, options);
         }
 
         return null;

@@ -8,6 +8,13 @@ using Unsafe = System.Runtime.CompilerServices.Unsafe
 
 namespace FlameCsv.Converters;
 
+/// <summary>
+/// Factory for <see cref="NullableConverter{T,TValue}"/> with AOT/trimming support.
+/// </summary>
+/// <remarks>
+/// Separate class as the whole <see cref="NullableConverterFactory{T}"/>-class must be annotated with
+/// dynamic/unreferencedcode attribute.
+/// </remarks>
 internal static class TrimmableNullableConverter
 {
     public static CsvConverter<T, TValue?> Create<T, TValue>(

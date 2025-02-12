@@ -6,7 +6,7 @@ namespace FlameCsv.Converters;
 /// <summary>
 /// Base class for converters that handle <see cref="Nullable{T}"/>.
 /// </summary>
-public abstract class NullableConverterBase<T, TValue> : CsvConverter<T, TValue?>
+internal abstract class NullableConverterBase<T, TValue> : CsvConverter<T, TValue?>
     where T : unmanaged, IBinaryInteger<T>
     where TValue : struct
 {
@@ -73,7 +73,7 @@ public abstract class NullableConverterBase<T, TValue> : CsvConverter<T, TValue?
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 /// <typeparam name="TValue">Parsed value and the type parameter of <see cref="Nullable{T}"/></typeparam>
-public sealed class NullableConverter<T, TValue> : NullableConverterBase<T, TValue>
+internal sealed class NullableConverter<T, TValue> : NullableConverterBase<T, TValue>
     where T : unmanaged, IBinaryInteger<T>
     where TValue : struct
 {

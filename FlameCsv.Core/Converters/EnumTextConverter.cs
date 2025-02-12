@@ -3,7 +3,7 @@ namespace FlameCsv.Converters;
 /// <summary>
 /// The default converter for non-flags enums.
 /// </summary>
-public sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
+internal sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
     where TEnum : struct, Enum
 {
     private readonly bool _allowUndefinedValues;
