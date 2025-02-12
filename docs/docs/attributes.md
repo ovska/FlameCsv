@@ -21,7 +21,7 @@ class User
 
 ## Header names
 
-@"FlameCsv.Attributes.CsvHeaderAttribute" is used to configure the header name used when reading and writing CSV. Default is the name of the property, field, or parameter. Additional aliases can be provided as follow up arguments to allow matching the member to header values. The first parameter is always used when writing.
+@"FlameCsv.Attributes.CsvHeaderAttribute" is used to configure the header name used when reading and writing CSV. This defaults. Additional aliases can be provided as follow up arguments to allow matching the member to header values. The first parameter is always used when writing.
 
 ```cs
 [CsvHeader("is_admin")]
@@ -32,7 +32,7 @@ public int Id { get; set; }
 ```
 
 > [!NOTE]
-> Case sensitivity is configured on per-options basis with @"FlameCsv.CsvOptions`1.Comparer", with the default being @"System.StringComparer.OrdinalIgnoreCase".
+> Case sensitivity is configured on per-options basis with @"FlameCsv.CsvOptions`1.Comparer?displayProperty=nameWithType", with the default being @"System.StringComparer.OrdinalIgnoreCase?displayProperty=nameWithType".
 
 ## Constructor
 
@@ -44,7 +44,6 @@ public class User
     [CsvConstructor]
     public User(int id, string name)
     {
-        // omitted
     }
 
     public User(int id)
@@ -56,14 +55,16 @@ public class User
 If used on a type or assembly, specify the parameter types of the specific constructor:
 
 ```cs
-[assembly: CsvConstructor(
-    ParameterTypes = [typeof(int), typeof(string)],
-    TargetType = typeof(User))]
+[CsvConstructor(ParameterTypes = [typeof(int), typeof(string)])]
+partial class User;
+
+[assembly: CsvConstructor(TargetType = TargetType = typeof(User), ParameterTypes = [typeof(int), typeof(string)])]
 ```
 
 ## Required fields
 
 To mark a property, field or parameter as required, use @"FlameCsv.Attributes.CsvRequiredAttribute".
+If a required member has no match in a CSV header, an exception is thrown.
 
 ```cs
 public class User
@@ -99,7 +100,21 @@ public class User
 
 ## Headerless CSV
 
-@"FlameCsv.Attributes.CsvIndexAttribute" can be used to mark members for specific field indexes. These attributes are _required_ when @"FlameCsv.CsvOptions`1.HasHeader?displayProperty=nameWithType" is `false`.
+@"FlameCsv.Attributes.CsvIndexAttribute" can be used to mark members for specific field indexes. These attributes **must** be set if @"FlameCsv.CsvOptions`1.HasHeader?displayProperty=nameWithType" is `false`.
+
+```cs
+public class User
+{
+    [CsvIndex(0)]
+    public int Id { get; set; }
+
+    [CsvIndex(1)]
+    public string Name { get; set; }
+
+    [CsvIndex(2)]
+    public bool IsAdmin { get; set; }
+}
+```
 
 ## Ignoring members
 

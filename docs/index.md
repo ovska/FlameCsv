@@ -11,8 +11,8 @@ See @"getting-started", view the @"examples", or deep dive into the @"FlameCsv?t
 # Features
 
 - 💡 **Ease of Use**
-  - Simple API for reading and writing CSV
-  - Built-in support for common CLR types
+  - Simple API for reading and writing CSV <a class="bi bi-link-45deg" href="docs/examples.md#reading-objects"></i>
+  - Built-in support for common CLR types <a class="bi bi-link-45deg" href="docs/configuration.md#converters"></i>
   - Supports both synchronous and asynchronous operations
   - Flexible; read or write almost any data source
   - Automatic newline detection

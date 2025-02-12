@@ -27,6 +27,9 @@
   --material-danger-header: #d32f2f1a;
   --material-danger-background: #ffebee;
   --material-danger-background-dark: #572c2c;
+
+  /* custom */
+  --card-box-shadow: 0 1px 2px 0 #00000038, 0 1px 3px 1px #00000038;
 }
 
 /* HEADINGS */
@@ -176,10 +179,11 @@ form.filter {
 }
 
 /* CODE HIGHLIGHT */
-code {
-  border-radius: var(--bs-border-radius-lg);
+code[data-highlighted="yes"] {
+  border-radius: var(--bs-border-radius-lg); /* custom */
   margin: 4px 2px;
   box-shadow: var(--card-box-shadow);
+  font-size: 1rem;
 }
 
 /* CUSTOM */
@@ -187,9 +191,14 @@ code {
   width: 360px !important;
 }
 
+#search-query {
+  width: 366px;
+}
+
 #logo {
   height: 40px;
   width: 40px;
+  margin: 1rem;
 }
 
 [data-bs-theme='dark'] a.link-secondary {
@@ -201,4 +210,51 @@ code {
 [data-bs-theme="dark"] {
   --bs-secondary-bg: #7b8694;
   --bs-secondary-bg-rgb: 123, 134, 148;
+}
+
+.nav-item {
+  margin: 1em;
+}
+
+article h2,
+article h3,
+article h4 {
+  margin-bottom: 6px;
+}
+
+article h3,
+article h4 {
+  margin-top: 20px;
+}
+
+article h2 {
+  margin-top: 30px;
+}
+
+/* target li that has a a.link-secondary as a direct child */
+
+.affix li > a.link-secondary {
+  margin-left: 1rem;
+}
+
+/* .affix {
+  a.link-secondary:before {
+    font-family: bootstrap-icons;
+    content: "\F231";
+    font-size: .6rem;
+    margin: 0 .2em;
+    display: inline-block;
+  }
+} */
+
+pre.shiki {
+  margin-bottom: 0;
+}
+
+[data-bs-theme='dark'] {
+  .shiki,
+  .shiki span {
+    color: var(--shiki-dark) !important;
+    background-color: var(--shiki-dark-bg) !important;
+  }
 }
