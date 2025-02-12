@@ -118,6 +118,12 @@
     <Compile Update="CsvOptions.Aot.cs">
       <DependentUpon>CsvOptions.cs</DependentUpon>
     </Compile>
+    <Compile Update="CsvConverter`1.cs">
+      <DependentUpon>CsvConverter.cs</DependentUpon>
+    </Compile>
+    <Compile Update="CsvConverterFactory.cs">
+      <DependentUpon>CsvConverter.cs</DependentUpon>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup>

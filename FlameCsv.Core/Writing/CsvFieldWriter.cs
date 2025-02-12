@@ -222,20 +222,6 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         Writer.Advance(_newline.Length);
     }
 
-    /// <summary>
-    /// Writes the header with <paramref name="dematerializer"/> if <see cref="CsvOptions{T}.HasHeader"/> is true.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void TryWriteHeader<TValue>(IDematerializer<T, TValue> dematerializer)
-    {
-        ArgumentNullException.ThrowIfNull(dematerializer);
-
-        if (Options._hasHeader)
-        {
-            dematerializer.WriteHeader(in this);
-        }
-    }
-
     private void AdvanceAndHandleQuoting(scoped Span<T> destination, int tokensWritten)
     {
         // empty writes don't need escaping

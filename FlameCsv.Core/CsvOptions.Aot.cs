@@ -140,7 +140,7 @@ partial class CsvOptions<T>
             CsvConverter<T, TValue> inner = GetOrCreate(factory);
             if (inner is null) InvalidConverter.Throw(factory, typeof(TValue));
 
-            var result = TrimmableNullableConverter.Create(inner, _options.GetNullToken(typeof(TValue)));
+            var result = NullableConverterFactory<T>.Create(inner, _options.GetNullToken(typeof(TValue)));
 
             if (canCache)
             {

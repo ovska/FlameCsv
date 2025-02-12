@@ -180,14 +180,14 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         if (typeof(T) == typeof(char))
         {
             Debug.Assert(_null is string, $"Invalid null type for {typeof(T)}: {_null.GetType()}");
-            var value = Unsafe.As<string?>(_null).AsMemory();
+            var value = Unsafe.As<string>(_null).AsMemory();
             return Unsafe.As<ReadOnlyMemory<char>, ReadOnlyMemory<T>>(ref value);
         }
 
         if (typeof(T) == typeof(byte))
         {
             Debug.Assert(_null is Utf8String, $"Invalid null type for {typeof(T)}: {_null.GetType()}");
-            var value = (ReadOnlyMemory<byte>)(Utf8String)_null;
+            var value = (ReadOnlyMemory<byte>)Unsafe.As<Utf8String>(_null);
             return Unsafe.As<ReadOnlyMemory<byte>, ReadOnlyMemory<T>>(ref value);
         }
 
