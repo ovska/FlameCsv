@@ -7,8 +7,7 @@ namespace FlameCsv.Converters;
 /// <summary>
 /// The default converter for non-flags enums.
 /// </summary>
-public sealed class EnumUtf8Converter<TEnum>
-    : CsvConverter<byte, TEnum> where TEnum : struct, Enum
+internal sealed class EnumUtf8Converter<TEnum> : CsvConverter<byte, TEnum> where TEnum : struct, Enum
 {
     private readonly bool _allowUndefinedValues;
     private readonly bool _ignoreCase;
