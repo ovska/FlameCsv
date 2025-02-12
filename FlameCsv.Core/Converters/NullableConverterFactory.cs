@@ -12,8 +12,7 @@ namespace FlameCsv.Converters;
 /// <summary>
 /// Factory for <see cref="NullableConverter{T,TValue}"/>
 /// </summary>
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
-internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
+internal sealed partial class NullableConverterFactory<T> : CsvConverterFactory<T>
     where T : unmanaged, IBinaryInteger<T>
 {
     public static NullableConverterFactory<T> Instance { get; } = new();
@@ -23,6 +22,7 @@ internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
         return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>);
     }
 
+    [RUF(Messages.FactoryMethod), RDC(Messages.FactoryMethod)]
     public override CsvConverter<T> Create(Type type, CsvOptions<T> options)
     {
         var structType = type.GetGenericArguments()[0];
@@ -35,9 +35,6 @@ internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
         // this matches the behavior of System.Text.Json
         if (structType.IsValueType && converterOfT.ConvertedType is { IsValueType: false })
         {
-            if (!RuntimeFeature.IsDynamicCodeSupported)
-                throw new NotSupportedException();
-
 #pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
             return CastingConverter.Create(converterOfT.ConvertedType, type, converterOfT);
 #pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
@@ -47,6 +44,7 @@ internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
         return CreateCore(structType, converterOfT, nullToken);
     }
 
+    [RUF(Messages.FactoryMethod), RDC(Messages.FactoryMethod)]
     internal static CsvConverter<T> CreateCore(
         Type structType,
         CsvConverter<T> converterOfT,
@@ -60,8 +58,10 @@ internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
             GetParserType(structType).CreateInstance<CsvConverter<T>>(converterOfT, nullToken);
     }
 
+    [RUF(Messages.FactoryMethod), RDC(Messages.FactoryMethod)]
     internal static Type GetParserType(Type type) => typeof(NullableConverter<,>).MakeGenericType(typeof(T), type);
 
+    [RUF(Messages.FactoryMethod), RDC(Messages.FactoryMethod)]
     private static CsvConverter<T>? TryGetEmpty(
         Type structType,
         CsvConverter<T> converter,
@@ -77,6 +77,7 @@ internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
         return null;
     }
 
+    [RUF(Messages.FactoryMethod), RDC(Messages.FactoryMethod)]
     private static CsvConverter<T>? TryGetKnownLength(
         Type structType,
         CsvConverter<T> converter,
@@ -92,6 +93,7 @@ internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
         return null;
     }
 
+    [RUF(Messages.FactoryMethod), RDC(Messages.FactoryMethod)]
     private static CsvConverter<T>? TryGetArray(
         Type structType,
         CsvConverter<T> converter,
@@ -107,6 +109,7 @@ internal sealed class NullableConverterFactory<T> : CsvConverterFactory<T>
         return null;
     }
 
+    [RUF(Messages.FactoryMethod), RDC(Messages.FactoryMethod)]
     private static CsvConverter<T>? TryGetString(
         Type structType,
         CsvConverter<T> converter,

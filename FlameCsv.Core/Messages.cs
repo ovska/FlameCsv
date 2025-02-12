@@ -22,4 +22,8 @@ internal static class Messages
 
     public const string ConverterFactories = Prefix + "Use the source generator APIs for native AOT applications.";
     public const string ConverterOverload = Prefix + "Use an alternative overload for native AOT applications.";
+
+    public const string FactoryMethod =
+        "This method may require reflection, runtime code generation, or types that cannot be statically analyzed. " +
+        "It may not work properly in native AOT applications, and is not supported by the source generator.";
 }
