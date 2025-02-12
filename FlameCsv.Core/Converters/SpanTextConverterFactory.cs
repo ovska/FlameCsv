@@ -2,7 +2,7 @@
 
 namespace FlameCsv.Converters;
 
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RUF(Messages.ConverterFactories)]
 internal sealed class SpanTextConverterFactory : CsvConverterFactory<char>
 {
     public static readonly SpanTextConverterFactory Instance = new();
@@ -31,6 +31,7 @@ internal sealed class SpanTextConverterFactory : CsvConverterFactory<char>
         return formattable && parsable;
     }
 
+    [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
     public override CsvConverter<char> Create(Type type, CsvOptions<char> options)
     {
         return typeof(SpanTextConverter<>).MakeGenericType(type).CreateInstance<CsvConverter<char>>(options);

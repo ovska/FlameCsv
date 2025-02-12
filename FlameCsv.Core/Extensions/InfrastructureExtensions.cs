@@ -4,6 +4,7 @@ namespace FlameCsv.Extensions;
 
 internal static class InfrastructureExtensions
 {
+    [RUF(Messages.FactoryMethod), RDC(Messages.FactoryMethod)]
     public static CsvConverter<T> GetOrCreateConverter<T>(
         this CsvConverter<T> parserOrFactory,
         Type targetType,

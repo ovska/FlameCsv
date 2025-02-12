@@ -1,31 +1,30 @@
-﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using FlameCsv.Extensions;
+﻿using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
 
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RUF(Messages.ConverterFactories)]
 internal sealed class SpanUtf8ConverterFactory : CsvConverterFactory<byte>
 {
     public static readonly SpanUtf8ConverterFactory Instance = new();
 
-    private SpanUtf8ConverterFactory() { }
+    private SpanUtf8ConverterFactory()
+    {
+    }
 
     public override bool CanConvert(Type type)
     {
-        return RuntimeFeature.IsDynamicCodeSupported && CheckInterfaces(type) is not Implements.None;
+        return CheckInterfaces(type) is not Implements.None;
     }
 
+    [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
     public override CsvConverter<byte> Create(Type type, CsvOptions<byte> options)
     {
-        Debug.Assert(RuntimeFeature.IsDynamicCodeSupported);
-
         Type toCreate = CheckInterfaces(type) switch
         {
             Implements.Both => typeof(SpanUtf8Converter<>),
             Implements.Formattable => typeof(SpanUtf8FormattableConverter<>),
             Implements.Parsable => typeof(SpanUtf8ParsableConverter<>),
-            _ => throw new InvalidOperationException($"{GetType().FullName}.Create called with invalid type: {type.FullName}"),
+            _ => throw new ArgumentException("Invalid type", nameof(type)),
         };
 
         return toCreate.MakeGenericType(type).CreateInstance<CsvConverter<byte>>(options);
@@ -33,8 +32,8 @@ internal sealed class SpanUtf8ConverterFactory : CsvConverterFactory<byte>
 
     private static Implements CheckInterfaces(Type type)
     {
-        bool? formattable = null;
-        bool? parsable = null;
+        InterfaceType? formattable = null;
+        InterfaceType? parsable = null;
 
         foreach (var iface in type.GetInterfaces())
         {
@@ -44,34 +43,52 @@ internal sealed class SpanUtf8ConverterFactory : CsvConverterFactory<byte>
 
                 if (def == typeof(IUtf8SpanParsable<>))
                 {
-                    parsable = iface.GetGenericArguments()[0] == type;
+                    if (iface.GetGenericArguments()[0] == type)
+                    {
+                        parsable = InterfaceType.Byte;
+                    }
                 }
                 else if (def == typeof(ISpanParsable<>))
                 {
-                    parsable = iface.GetGenericArguments()[0] == type;
+                    if (iface.GetGenericArguments()[0] == type)
+                    {
+                        parsable ??= InterfaceType.Char;
+                    }
                 }
             }
             else
             {
                 if (iface == typeof(IUtf8SpanFormattable))
                 {
-                    formattable = true;
+                    formattable = InterfaceType.Byte;
                 }
                 else if (iface == typeof(ISpanFormattable))
                 {
-                    formattable ??= false;
+                    formattable ??= InterfaceType.Char;
                 }
             }
         }
 
         return (formattable, parsable) switch
         {
-            (true, true) => Implements.Both,
-            (true, false) => Implements.Formattable,
-            (false, true) => Implements.Parsable,
+            (formattable: InterfaceType.Byte, parsable: InterfaceType.Byte) => Implements.Both,
+            (formattable: InterfaceType.Byte, parsable: InterfaceType.Char) => Implements.Formattable,
+            (formattable: InterfaceType.Char, parsable: InterfaceType.Byte) => Implements.Parsable,
             _ => Implements.None,
         };
     }
 
-    private enum Implements { None, Formattable, Parsable, Both }
+    private enum InterfaceType : byte
+    {
+        Char,
+        Byte
+    }
+
+    private enum Implements : byte
+    {
+        None,
+        Formattable,
+        Parsable,
+        Both
+    }
 }
