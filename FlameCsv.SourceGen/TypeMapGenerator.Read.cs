@@ -97,7 +97,7 @@ public partial class TypeMapGenerator
 
         writer.WriteLine(EditorBrowsableNever);
         writer.WriteLine(
-            $"internal sealed class TypeMapMaterializer : global::FlameCsv.Reading.IMaterializer<{typeMap.Token.FullyQualifiedName}, {typeMap.Type.FullyQualifiedName}>");
+            $"internal sealed partial class TypeMapMaterializer : global::FlameCsv.Reading.IMaterializer<{typeMap.Token.FullyQualifiedName}, {typeMap.Type.FullyQualifiedName}>");
 
         using (writer.WriteBlock())
         {
