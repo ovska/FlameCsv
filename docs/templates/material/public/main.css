@@ -222,22 +222,23 @@ article h4 {
   margin-bottom: 6px;
 }
 
-article h3,
-article h4 {
-  margin-top: 20px;
-}
-
 article h2 {
   margin-top: 30px;
 }
 
-/* target li that has a a.link-secondary as a direct child */
-
-.affix li > a.link-secondary {
-  margin-left: 1rem;
+article h3 {
+  margin-top: 25px;
 }
 
-/* .affix {
+article h4 {
+  margin-top: 20px;
+}
+
+/* .affix li > a.link-secondary {
+  margin-left: 1rem;
+} */
+
+.affix {
   a.link-secondary:before {
     font-family: bootstrap-icons;
     content: "\F231";
@@ -245,7 +246,7 @@ article h2 {
     margin: 0 .2em;
     display: inline-block;
   }
-} */
+}
 
 pre.shiki {
   margin-bottom: 0;
