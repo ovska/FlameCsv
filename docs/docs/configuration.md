@@ -38,7 +38,7 @@ The record separator is configured with @"FlameCsv.CsvOptions`1.Newline?displayP
 Significant whitespace  is configured with @"FlameCsv.CsvOptions`1.Whitespace?displayProperty=nameWithType", and determines how fields are trimmed when reading, or if a field needs quoting when writing. The characters present in the whitespace-string are trimmed from each field, unless they are in a quoted field (whitespace is _not_ trimmed inside strings). When writing, written values that contain leading or trailing whitespace are wrapped in quotes if [automatic field quoting](#quoting-fields-when-writing) is enabled. The default value is null/empty, which means the concept of significant whitespace does not exist.
 
 ### Escape
-An explicit escape character @"FlameCsv.CsvOptions`1.Escape?displayProperty=nameWithType" can be set to a non-null value to escape any character after it in a string. The default value is null, which means @"FlameCsv.CsvOptions`1.Quote" is treated as the escape character (following the RFC 4180 spec).
+An explicit escape character @"FlameCsv.CsvOptions`1.Escape?displayProperty=nameWithType" can be set to a non-null value to escape any character after it in a string. The default value is null, which follows the RFC 4180 spec.
 
 ### Additional info
 

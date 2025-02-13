@@ -4,6 +4,14 @@ uid: source-generator
 
 # Source Generator
 
+## Foreword
+
+_There is nothing inherently bad about reflection and compiled expressions._
+
+For 99% of applications, they work perfectly
+and are easy to set up and require less manual fiddling, and the performance differences are negligible in FlameCsv.
+However, they are incompatible with AOT and trimming so an alternative API is provided.
+
 ## Introduction
 
 FlameCsv includes a source-generator that writes the code binding .NET types to/from CSV headers. This allows you to
