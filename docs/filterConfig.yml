@@ -17,9 +17,6 @@ attributeRules:
               uidRegex: ^JetBrains\.Annotations
               type: Namespace
       - exclude:
-              uidRegex: ^System\.Diagnostics\.CodeAnalysis$
-              type: Namespace
-      - exclude:
               uidRegex: ^System\.CodeDom\.Compiler\.GeneratedCodeAttribute$
               type: Type
       - include:
@@ -30,4 +27,7 @@ attributeRules:
               type: Type
       - exclude:
               uidRegex: '^System\.Runtime\.InteropServices\.[^.]+$'
+              type: Type
+      - exclude:
+              uidRegex: ^System\.Diagnostics\.CodeAnalysis\.ExcludeFromCodeCoverageAttribute$
               type: Type

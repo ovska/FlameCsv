@@ -212,7 +212,7 @@ code[data-highlighted="yes"] {
   --bs-secondary-bg-rgb: 123, 134, 148;
 }
 
-.nav-item {
+#navbar .nav-item {
   margin: 1em;
 }
 
@@ -257,4 +257,11 @@ pre.shiki {
     color: var(--shiki-dark) !important;
     background-color: var(--shiki-dark-bg) !important;
   }
+}
+
+/* rounded corners and subtle border */
+span.attrhidden {
+  border-radius: var(--bs-border-radius);
+  border: 1px solid #ccc6;
+  padding: 2px 5px;
 }

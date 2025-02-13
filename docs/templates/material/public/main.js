@@ -1,4 +1,5 @@
 import { createHighlighter, createJavaScriptRegexEngine } from 'https://esm.sh/shiki@2.3.2'
+// https://esm.sh/@shikijs/transformers@2.3.2
 
 const highlighter = await createHighlighter({
     themes: ['light-plus', 'dark-plus'],
@@ -17,13 +18,17 @@ export default {
         const previousHighlightElement = hljs.highlightElement;
 
         hljs.highlightElement = function(elem) {
+            console.log(elem);
+
             // use previous version if not C#
-            if (!elem.classList.contains('lang-cs')) {
+            if (!elem.classList.contains('lang-cs') && !elem.classList.contains('lang-csharp')) {
                 previousHighlightElement.bind(hljs)(elem);
                 return;
             }
 
-            const result = highlighter.codeToHtml(elem.textContent, {
+            const code = elem.textContent;
+
+            const result = highlighter.codeToHtml(code, {
                 lang: 'csharp',
                 engine: jsEngine,
                 themes: {
@@ -36,6 +41,41 @@ export default {
             elem.dataset.highlighted = 'yes';
             elem.className += ' hljs';
             elem.firstChild.style['background-color'] = '#f5f5f5'
+            elem.firstChild.style['overflow'] = 'visible';
+
+            for (const attr of ["RequiresDynamicCode", "RequiresUnreferencedCode"]) {
+                if (code.includes(`[${attr}("`)) {
+                    for (const span of elem.querySelectorAll('span:not(.line)')) {
+                        if (span.previousElementSibling?.previousElementSibling?.textContent === attr) {
+                            span.classList.add('attrhidden');
+                            span.style.cursor = 'pointer';
+
+                            // replace the contents of the span with "..." with the attribute
+                            // when clicked, toggle between the ellipsis and the original span value,
+                            // removing the class if the original value is shown
+                            const spanValue = span.textContent;
+
+                            span.title = spanValue;
+                            span.textContent = '...';
+                            span.onclick = () => {
+                                if (span.textContent === '...') {
+                                    span.textContent = spanValue;
+                                    span.title = '';
+                                    span.classList.remove('attrhidden');
+                                } else {
+                                    span.textContent = '...';
+                                    span.title = spanValue;
+                                    span.classList.add('attrhidden');
+                                }
+                            };
+                        }
+                    }
+                }
+            }
+
+            // // check if the string "[RequiresUnreferencedCode" is present
+            // if (elem.textContent.includes('[RequiresUnreferencedCode')) {
+            // }
         };
     },
 }

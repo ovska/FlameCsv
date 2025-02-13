@@ -3,6 +3,7 @@
 using System.Buffers;
 using System.Buffers.Text;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using FlameCsv.Attributes;
 using FlameCsv.Binding;
 using FlameCsv.Converters;
@@ -22,6 +23,8 @@ namespace FlameCsv.Console
 
         static void Main([NotNull] string[] args)
         {
+            var xyz = CsvWriter.Create(Stream.Null);
+
             CsvOptions<char> options = new()
             {
                 RecordCallback = (ref readonly CsvRecordCallbackArgs<char> args) =>
