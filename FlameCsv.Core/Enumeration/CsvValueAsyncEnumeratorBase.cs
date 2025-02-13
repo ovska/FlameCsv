@@ -23,6 +23,7 @@ public abstract class CsvValueAsyncEnumeratorBase<T, TValue> : CsvValueEnumerato
         CancellationToken cancellationToken)
         : base(options)
     {
+        ArgumentNullException.ThrowIfNull(reader);
         _reader = reader;
         _cancellationToken = cancellationToken;
     }
