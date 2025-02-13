@@ -10,26 +10,26 @@ See @"getting-started", view the @"examples", or deep dive into the @"FlameCsv?t
 
 # Features
 
-- 💡 **Ease of Use**
-  - Simple API for reading and writing CSV <a class="bi bi-link-45deg" href="docs/examples.md#reading-objects"></i>
-  - Built-in support for common CLR types <a class="bi bi-link-45deg" href="docs/configuration.md#converters"></i>
+- 💡 **[Ease of Use](docs/examples.md)**
+  - Simple API for reading and writing CSV
+  - Built-in support for common CLR types
   - Supports both synchronous and asynchronous operations
   - Flexible; read or write almost any data source
   - Automatic newline detection
   - UTF-8/ASCII support directly to/from bytes without additional transcoding
   - Supports hot reload
-- 🚀 **High Performance**
+- 🚀 **[High Performance](docs/architecture.md)**
   - Optimized for speed and low memory usage
   - SIMD-accelerated parsing routines with hardware intrinsics
   - Batteries-included internal caching and memory pooling for near-zero allocations
   - Reflection code paths that rival manually written code in performance
-- 🛠️ **Deep Customization Options**
+- 🛠️ **[Deep Customization](docs/configuration.md)**
   - Read or write either .NET objects, or raw CSV records and fields
   - Attribute configuration for header names, constructors, field order, and more
   - Support for custom converters and converter factories
   - Read or write multiple CSV documents from/to a single data stream
-- ✍️ **Source Generator**
-  - Fully compatible with NativeAOT
+- ✍️ **[Source Generator](docs/source-generator.md)**
+  - Fully annotated and compatible with NativeAOT
   - Supports trimming to reduce application size
   - View and debug the code instead of opaque reflection
   - Compile-time diagnostics instead of runtime errors
