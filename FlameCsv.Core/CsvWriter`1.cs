@@ -322,9 +322,11 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     }
 
     /// <summary>
-    /// Returns or creates a cached dematerializer using the type map.
+    /// Returns or creates a cached dematerializer using the type map,
+    /// and pre-increments <see cref="ColumnIndex"/> by <see cref="IDematerializer{T,TValue}.FieldCount"/>.
     /// </summary>
     /// <param name="typeMap">Type map instance</param>
+    /// <typeparam name="TRecord">Type to write</typeparam>
     protected IDematerializer<T, TRecord> GetDematerializerAndIncrementFieldCount<TRecord>(
         CsvTypeMap<T, TRecord> typeMap)
     {
@@ -335,11 +337,13 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     }
 
     /// <summary>
-    /// Returns or creates a cached dematerializer using <see cref="CsvOptions{T}.TypeBinder"/>.
+    /// Returns or creates a cached dematerializer using <see cref="CsvOptions{T}.TypeBinder"/>,
+    /// and pre-increments <see cref="ColumnIndex"/> by <see cref="IDematerializer{T,TValue}.FieldCount"/>.
     /// </summary>
+    /// <typeparam name="TRecord">Type to write</typeparam>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    protected IDematerializer<T, TRecord>
-        GetDematerializerAndIncrementFieldCount<[DAM(Messages.ReflectionBound)] TRecord>()
+    protected IDematerializer<T, TRecord> GetDematerializerAndIncrementFieldCount<
+        [DAM(Messages.ReflectionBound)] TRecord>()
     {
         return GetDematerializerAndIncrementFieldCountCore(
             cacheKey: typeof(TRecord),
