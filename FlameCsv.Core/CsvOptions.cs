@@ -409,7 +409,8 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     }
 
     /// <summary>
-    /// If <see langword="true"/> validates that all records have the same number of fields when reading or writing CSV.
+    /// If <see langword="true"/>, validates that all records have the same number of fields
+    /// when reading <see cref="CsvValueRecord{T}"/> or writing with <see cref="CsvWriter{T}"/>.
     /// Default is <see langword="false"/>.
     /// </summary>
     public bool ValidateFieldCount

@@ -1,7 +1,9 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
+using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Utilities;
 using FlameCsv.Writing;
@@ -23,6 +25,15 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     /// </summary>
     /// <seealso cref="ICsvBufferWriter{T}.NeedsFlush"/>
     public bool AutoFlush { get; set; }
+
+    /// <summary>
+    /// Field count required for each record, if set.
+    /// </summary>
+    /// <remarks>
+    /// Set automatically after the first non-empty record if <see cref="CsvOptions{T}.ValidateFieldCount"/>
+    /// is <see langword="true"/>.
+    /// </remarks>
+    public int? ExpectedFieldCount { get; set; }
 
     /// <summary>
     /// Inner field writer instance.
@@ -196,6 +207,8 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
 
         if (cancellationToken.IsCancellationRequested)
             return ValueTask.FromCanceled(cancellationToken);
+
+        ValidateFieldCount();
 
         _inner.WriteNewline();
         ColumnIndex = 0;
@@ -392,6 +405,26 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     }
 
     /// <summary>
+    /// Validates the current record's field count if <see cref="CsvOptions{T}.ValidateFieldCount"/>
+    /// is <see langword="true"/>. Called when moving to the next record.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected void ValidateFieldCount()
+    {
+        if (ColumnIndex > 0 && (_inner.Options._validateFieldCount || ExpectedFieldCount.HasValue))
+        {
+            if (ExpectedFieldCount is null)
+            {
+                ExpectedFieldCount = ColumnIndex;
+            }
+            else if (ExpectedFieldCount.GetValueOrDefault() != ColumnIndex)
+            {
+                ThrowHelper.InvalidFieldCount(LineIndex, ExpectedFieldCount.GetValueOrDefault(), ColumnIndex);
+            }
+        }
+    }
+
+    /// <summary>
     /// Calls <see cref="CompleteAsync"/>.
     /// </summary>
     /// <remarks>
@@ -463,6 +496,8 @@ public class CsvWriter<T> : CsvAsyncWriter<T>, IDisposable where T : unmanaged, 
     {
         ObjectDisposedException.ThrowIf(IsCompleted, this);
 
+        ValidateFieldCount();
+
         _inner.WriteNewline();
         ColumnIndex = 0;
         LineIndex++;
@@ -515,5 +550,15 @@ public class CsvWriter<T> : CsvAsyncWriter<T>, IDisposable where T : unmanaged, 
     {
         GC.SuppressFinalize(this);
         Complete();
+    }
+}
+
+file static class ThrowHelper
+{
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void InvalidFieldCount(int lineIndex, int expected, int actual)
+    {
+        throw new CsvWriteException($"Invalid field count at line {lineIndex}. Expected {expected}, got {actual}.");
     }
 }
