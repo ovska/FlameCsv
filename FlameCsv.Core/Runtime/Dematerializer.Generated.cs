@@ -6,6 +6,7 @@ using FlameCsv.Writing;
 
 namespace FlameCsv.Runtime;
 
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal abstract partial class Dematerializer<T>
 {
     /// <summary>
@@ -53,6 +54,7 @@ internal abstract partial class Dematerializer<T>
 
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class Dematerializer<T, T0, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
@@ -81,6 +83,7 @@ internal sealed class Dematerializer<T, T0, TValue>
 
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class Dematerializer<T, T0, T1, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
@@ -116,6 +119,7 @@ internal sealed class Dematerializer<T, T0, T1, TValue>
 
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class Dematerializer<T, T0, T1, T2, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
@@ -158,6 +162,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, TValue>
 
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class Dematerializer<T, T0, T1, T2, T3, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
@@ -207,6 +212,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, TValue>
 
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
@@ -263,6 +269,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, TValue>
 
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
@@ -326,6 +333,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, TValue>
 
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
@@ -396,6 +404,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, TValue>
 
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
@@ -473,6 +482,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TValue>
 
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
@@ -557,6 +567,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TVal
 
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
@@ -648,6 +659,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
 
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
@@ -746,6 +758,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
 
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
@@ -851,6 +864,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
 
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
@@ -963,6 +977,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
 
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
@@ -1082,6 +1097,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
 
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
@@ -1208,6 +1224,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
 
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TValue>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>

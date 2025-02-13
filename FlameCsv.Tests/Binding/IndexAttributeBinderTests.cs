@@ -107,22 +107,22 @@ public static class IndexAttributeBinderTests
     [CsvTypeProxy(typeof(ObjIFace))]
     private interface IFace
     {
-        [CsvIndex( 0)] int A { get; }
-        [CsvIndex( 1)] string? B { get; }
+        [CsvIndex(0)] int A { get; }
+        [CsvIndex(1)] string? B { get; }
     }
 
     [CsvIgnoredIndexes(1)]
     private class Ignored
     {
-        [CsvIndex( 0)] public int A { get; set; }
-        [CsvIndex( 2)] public int B { get; set; }
+        [CsvIndex(0)] public int A { get; set; }
+        [CsvIndex(2)] public int B { get; set; }
     }
 
     private class Members
     {
-        [CsvIndex( 0)] public int A { get; set; }
-        [CsvIndex( 1)] public string? B { get; set; }
-        [CsvIndex( 2)] public bool C { get; set; }
+        [CsvIndex(0)] public int A { get; set; }
+        [CsvIndex(1)] public string? B { get; set; }
+        [CsvIndex(2)] public bool C { get; set; }
     }
 
     [CsvIndex(0, MemberName = nameof(A))]

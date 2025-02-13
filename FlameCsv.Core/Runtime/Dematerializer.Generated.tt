@@ -13,11 +13,11 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using FlameCsv.Binding;
-using FlameCsv.Binding.Internal;
 using FlameCsv.Writing;
 
 namespace FlameCsv.Runtime;
 
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal abstract partial class Dematerializer<T>
 {
     /// <summary>
@@ -69,6 +69,7 @@ internal abstract partial class Dematerializer<T>
 #>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class Dematerializer<T, <#= generics #>>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>

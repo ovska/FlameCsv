@@ -18,6 +18,7 @@ using FlameCsv.Reading;
 
 namespace FlameCsv.Runtime;
 
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal static class Materializer<T>
 {
     /// <summary>
@@ -70,6 +71,7 @@ internal static class Materializer<T>
 #>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class Materializer<T, <#= generics #>> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {

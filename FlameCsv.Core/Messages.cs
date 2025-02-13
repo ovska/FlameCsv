@@ -26,4 +26,6 @@ internal static class Messages
     public const string FactoryMethod =
         "This method may require reflection, runtime code generation, or types that cannot be statically analyzed. " +
         "It may not work properly in native AOT applications, and is not supported by the source generator.";
+
+    public const string T4Template = "FlameCSV T4 template";
 }

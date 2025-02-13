@@ -8,6 +8,7 @@ using System.Text;
 
 namespace FlameCsv.Reading.Internal;
 
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal static class SimdVector
 {
     /// <summary>
@@ -66,6 +67,7 @@ internal static class SimdVector
 }
 
 /// <summary>Generic type wrapping a byte vector.</summary>
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal interface ISimdVector<T, TVector>
     where T : unmanaged, IBinaryInteger<T>
     where TVector : struct, ISimdVector<T, TVector>
@@ -82,6 +84,7 @@ internal interface ISimdVector<T, TVector>
     [JetBrains.Annotations.Pure] nuint ExtractMostSignificantBits();
 }
 
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal readonly struct Vec64Char : ISimdVector<char, Vec64Char>
 {
     private readonly Vector64<byte> _value;
@@ -147,6 +150,7 @@ internal readonly struct Vec64Char : ISimdVector<char, Vec64Char>
     public override int GetHashCode() => throw new NotSupportedException();
 }
 
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal readonly struct Vec128Char : ISimdVector<char, Vec128Char>
 {
     private readonly Vector128<byte> _value;
@@ -212,6 +216,7 @@ internal readonly struct Vec128Char : ISimdVector<char, Vec128Char>
     public override int GetHashCode() => throw new NotSupportedException();
 }
 
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal readonly struct Vec256Char : ISimdVector<char, Vec256Char>
 {
     private readonly Vector256<byte> _value;
@@ -277,6 +282,7 @@ internal readonly struct Vec256Char : ISimdVector<char, Vec256Char>
     public override int GetHashCode() => throw new NotSupportedException();
 }
 
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal readonly struct Vec64Byte : ISimdVector<byte, Vec64Byte>
 {
     private readonly Vector64<byte> _value;
@@ -333,6 +339,7 @@ internal readonly struct Vec64Byte : ISimdVector<byte, Vec64Byte>
     public override int GetHashCode() => throw new NotSupportedException();
 }
 
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal readonly struct Vec128Byte : ISimdVector<byte, Vec128Byte>
 {
     private readonly Vector128<byte> _value;
@@ -389,6 +396,7 @@ internal readonly struct Vec128Byte : ISimdVector<byte, Vec128Byte>
     public override int GetHashCode() => throw new NotSupportedException();
 }
 
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal readonly struct Vec256Byte : ISimdVector<byte, Vec256Byte>
 {
     private readonly Vector256<byte> _value;

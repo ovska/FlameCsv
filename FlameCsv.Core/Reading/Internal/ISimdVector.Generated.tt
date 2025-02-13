@@ -23,6 +23,7 @@ using System.Text;
 
 namespace FlameCsv.Reading.Internal;
 
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal static class SimdVector
 {
     /// <summary>
@@ -88,6 +89,7 @@ internal static class SimdVector
 }
 
 /// <summary>Generic type wrapping a byte vector.</summary>
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal interface ISimdVector<T, TVector>
     where T : unmanaged, IBinaryInteger<T>
     where TVector : struct, ISimdVector<T, TVector>
@@ -110,6 +112,7 @@ internal interface ISimdVector<T, TVector>
             string typeName = $"Vec{size}{name}";
 #>
 
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal readonly struct <#= typeName #> : ISimdVector<<#= keyword #>, <#= typeName #>>
 {
     private readonly Vector<#= size #><byte> _value;
