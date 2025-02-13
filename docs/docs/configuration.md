@@ -236,6 +236,7 @@ StringBuilder result = CsvWriter.WriteToString(
 
 If you are 100% sure your data does not contain any special characters, you can set it to @"FlameCsv.CsvOptions`1.FieldQuoting.Never?displayProperty=nameWithType" to squeeze out a little bit of performance by omitting the check if each written field needs to be quoted.
 
+
 ## Skipping records or resetting headers
 
 The @"FlameCsv.CsvOptions`1.RecordCallback?displayProperty=nameWithType" property is used to configure a custom callback. The callback arguments provide information such as the current line number and character position, and whether a header has been read. The current record can be skipped, or the current header can be reset. This can be used to read multiple different "documents" out of the same data stream.
@@ -263,6 +264,18 @@ CsvOptions<char> options = new()
 
 > [!WARNING]
 > Comments are not yet fully supported by FlameCSV. For example, even if you configure the callback to skip rows that start with `#`, the rows are still parsed and expected to be properly structured CSV (e.g., no unbalanced quotes). File an issue if you desperately need this feature.
+
+
+## Field count validation
+
+@"FlameCsv.CsvOptions`1.ValidateFieldCount?displayProperty=nameWithType" can be used to validate the field count both when reading and writing.
+
+When reading @"FlameCsv.CsvValueRecord`1", setting the property to `true` ensures that all records have the same field count as the first record.
+The expected field count is reset if you [reset the headers with a callback](#skipping-records-or-resetting-headers).
+
+You can automatically ensure that all non-empty records written with @"FlameCsv.CsvWriter`1" or writing with @"FlameCsv.CsvWriter`1" have the same field count.
+Alternatively, you can use the @"FlameCsv.CsvWriter`1.ExpectedFieldCount"-property. The property can also be used to reset the expected count by setting it to `null`,
+for example when writing multiple CSV documents into one output.
 
 ## Advanced topics
 
@@ -295,6 +308,8 @@ CsvOptions<char> options = new()
 Debug.Assert(options.Dialect.IsAscii);
 ```
 
+Further reading: @"architecture#reading".
+
 ### Transcoding
 
 The following methods are used by the library to convert `T` values to @"System.Char?text=char" and back:
@@ -308,13 +323,16 @@ The following methods are used by the library to convert `T` values to @"System.
 > The library maintains a small pool of @"System.String"-instances of previously encountered headers, so unless your data is exceptionally varied, the allocation cost is paid only once.
 
 > [!WARNING]
-> While you can inherit the options-type and override these methods, the library expects both of the the @"System.String" and @"System.ReadOnlySpan`1" methods to return the same sequences for the same inputs. Make sure you override both transcoding methods in either direction, and keep the implementations in sync.
+> While you can inherit the options-type and override these methods, the library expects both of the the @"System.String" and @"System.ReadOnlySpan`1" methods to return the same sequences for the same inputs. Make sure you override both transcoding methods in either direction, and keep the implementations in sync.<br/>
+> Most likely you can achieve the same goals easier by using @"FlameCsv.CsvOptions`1.Comparer" and [custom converters](examples.md#converters).
 
 ### Memory pooling
 
 You can configure the @"System.Buffers.MemoryPool`1" instance used internally with the @"FlameCsv.CsvOptions`1.MemoryPool?displayProperty=nameWithType" property. Pooled memory is used to handle escaping, unescaping, and records split across multiple sequence segments. The default value is @"System.Buffers.MemoryPool`1.Shared?displayProperty=nameWithType".
 
 If set to `null`, no pooled memory is used and all needed buffers are heap allocated.
+
+Further reading: @"architecture".
 
 ### Custom binding
 
