@@ -14,6 +14,7 @@ internal sealed class CsvCharBufferWriter : ICsvBufferWriter<char>
     private readonly TextWriter _writer;
     private readonly MemoryPool<char> _allocator;
     private readonly int _bufferSize;
+    private readonly int _flushThreshold;
     private readonly bool _leaveOpen;
     private int _unflushed;
     private Memory<char> Buffer => _memoryOwner.Memory;
@@ -34,7 +35,7 @@ internal sealed class CsvCharBufferWriter : ICsvBufferWriter<char>
     public bool NeedsFlush
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (_unflushed / (double)Buffer.Length) >= 0.875;
+        get => _unflushed >= _flushThreshold;
     }
 
     public CsvCharBufferWriter(TextWriter writer, MemoryPool<char> allocator, int bufferSize, bool leaveOpen)
@@ -50,6 +51,7 @@ internal sealed class CsvCharBufferWriter : ICsvBufferWriter<char>
         _allocator = allocator;
         _leaveOpen = leaveOpen;
         _bufferSize = Math.Max(256, bufferSize);
+        _flushThreshold = (int)(_bufferSize * 0.875);
         _memoryOwner = allocator.Rent(_bufferSize);
     }
 
