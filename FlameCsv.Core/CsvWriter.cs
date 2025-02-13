@@ -1,6 +1,8 @@
 ﻿using FlameCsv.Writing;
 using JetBrains.Annotations;
 
+// ReSharper disable InlineTemporaryVariable
+
 namespace FlameCsv;
 
 /// <summary>
@@ -27,10 +29,12 @@ public static partial class CsvWriter
 
     private static void WriteCore<T, TValue>(
         IEnumerable<TValue> values,
-        CsvFieldWriter<T> writer,
-        IDematerializer<T, TValue> dematerializer)
+        CsvFieldWriter<T> writerArg,
+        IDematerializer<T, TValue> dematerializerArg)
         where T : unmanaged, IBinaryInteger<T>
     {
+        CsvFieldWriter<T> writer = writerArg;
+        IDematerializer<T, TValue> dematerializer = dematerializerArg;
         Exception? exception = null;
 
         try
@@ -64,11 +68,13 @@ public static partial class CsvWriter
 
     private static async Task WriteAsyncCore<T, TValue>(
         IEnumerable<TValue> values,
-        CsvFieldWriter<T> writer,
-        IDematerializer<T, TValue> dematerializer,
+        CsvFieldWriter<T> writerArg,
+        IDematerializer<T, TValue> dematerializerArg,
         CancellationToken cancellationToken)
         where T : unmanaged, IBinaryInteger<T>
     {
+        CsvFieldWriter<T> writer = writerArg;
+        IDematerializer<T, TValue> dematerializer = dematerializerArg;
         Exception? exception = null;
 
         try
@@ -107,11 +113,13 @@ public static partial class CsvWriter
 
     private static async Task WriteAsyncCore<T, TValue>(
         IAsyncEnumerable<TValue> values,
-        CsvFieldWriter<T> writer,
-        IDematerializer<T, TValue> dematerializer,
+        CsvFieldWriter<T> writerArg,
+        IDematerializer<T, TValue> dematerializerArg,
         CancellationToken cancellationToken)
         where T : unmanaged, IBinaryInteger<T>
     {
+        CsvFieldWriter<T> writer = writerArg;
+        IDematerializer<T, TValue> dematerializer = dematerializerArg;
         Exception? exception = null;
 
         try
