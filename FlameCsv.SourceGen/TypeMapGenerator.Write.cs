@@ -101,7 +101,7 @@ public partial class TypeMapGenerator
 
                     writer.WriteLineIf(!first, "writer.WriteDelimiter();");
                     writer.Write($"writer.{method}(");
-                    writer.Write((property.Aliases.IsEmpty ? property.HeaderName : property.Aliases[0]).ToStringLiteral());
+                    writer.Write(property.HeaderName.ToStringLiteral());
                     writer.WriteLine($"{suffix});");
                     first = false;
                 }
