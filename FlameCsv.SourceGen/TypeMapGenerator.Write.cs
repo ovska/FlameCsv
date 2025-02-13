@@ -27,7 +27,7 @@ public partial class TypeMapGenerator
 
         writer.WriteLine(EditorBrowsableNever);
         writer.WriteLine(
-            $"internal sealed class Dematerializer : global::FlameCsv.Writing.IDematerializer<{typeMap.Token.FullyQualifiedName}, {typeMap.Type.FullyQualifiedName}>");
+            $"internal sealed partial class TypeMapDematerializer : global::FlameCsv.Writing.IDematerializer<{typeMap.Token.FullyQualifiedName}, {typeMap.Type.FullyQualifiedName}>");
 
         using (writer.WriteBlock())
         {
@@ -123,7 +123,7 @@ public partial class TypeMapGenerator
 
         using (writer.WriteBlock())
         {
-            writer.WriteLine("return new Dematerializer");
+            writer.WriteLine("return new TypeMapDematerializer");
 
             writer.WriteLine("{");
             writer.IncreaseIndent();
