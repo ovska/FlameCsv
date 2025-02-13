@@ -13,7 +13,7 @@ internal sealed class BooleanTextConverter : CsvConverter<char, bool>
         {
             if (destination.Length > 3)
             {
-                ulong trueVal = BitConverter.IsLittleEndian ? 0x65007500720074ul : 0x74007200750065ul; // "True"
+                ulong trueVal = BitConverter.IsLittleEndian ? 0x65007500720074ul : 0x74007200750065ul; // "true"
                 MemoryMarshal.Write(MemoryMarshal.AsBytes(destination), in trueVal);
                 charsWritten = 4;
                 return true;
@@ -23,7 +23,7 @@ internal sealed class BooleanTextConverter : CsvConverter<char, bool>
         {
             if (destination.Length > 4)
             {
-                ulong falsVal = BitConverter.IsLittleEndian ? 0x73006C00610066ul : 0x660061006C0073ul; // "Fals"
+                ulong falsVal = BitConverter.IsLittleEndian ? 0x73006C00610066ul : 0x660061006C0073ul; // "fals"
                 MemoryMarshal.Write(MemoryMarshal.AsBytes(destination), in falsVal);
                 destination[4] = 'e';
                 charsWritten = 5;
