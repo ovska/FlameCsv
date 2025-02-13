@@ -28,19 +28,6 @@ internal sealed partial class NullableConverterFactory<T> : CsvConverterFactory<
         var structType = type.GetGenericArguments()[0];
         var converterOfT = options.GetConverter(structType);
         var nullToken = options.GetNullToken(type);
-
-#if false
-        // if the value type has an interface or object converter, return that converter directly.
-        // e.g., a struct that implements IEnumerable<T>
-        // this matches the behavior of System.Text.Json
-        if (structType.IsValueType && converterOfT.ConvertedType is { IsValueType: false })
-        {
-#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
-            return CastingConverter.Create(converterOfT.ConvertedType, type, converterOfT);
-#pragma warning restore IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
-        }
-#endif
-
         return CreateCore(structType, converterOfT, nullToken);
     }
 
