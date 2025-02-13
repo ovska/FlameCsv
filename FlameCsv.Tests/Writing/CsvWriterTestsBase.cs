@@ -13,7 +13,7 @@ public abstract class CsvWriterTestsBase
         foreach (var escape in (char?[]) ['^', null])
         foreach (var quoting in GlobalData.Enum<CsvFieldQuoting>())
         foreach (var sourceGen in GlobalData.Booleans)
-        foreach (var bufferSize in (int[]) [-1, 17, 128, 1024, 4096])
+        foreach (var bufferSize in (int[]) [-1, 256, 1024])
         foreach (var outputType in GlobalData.Booleans)
         foreach (var guarded in GlobalData.GuardedMemory)
         {

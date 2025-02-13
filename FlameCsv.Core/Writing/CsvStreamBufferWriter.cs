@@ -48,9 +48,9 @@ internal sealed class CsvStreamBufferWriter : ICsvBufferWriter<byte>
 
         _stream = stream;
         _allocator = allocator;
-        _bufferSize = bufferSize;
         _leaveOpen = leaveOpen;
-        _memoryOwner = allocator.Rent(bufferSize);
+        _bufferSize = Math.Max(256, bufferSize);
+        _memoryOwner = allocator.Rent(_bufferSize);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
