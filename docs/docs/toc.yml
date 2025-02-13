@@ -6,3 +6,7 @@
   href: configuration.md
 - name: Attributes
   href: attributes.md
+- name: Source Generator
+  href: source-generator.md
+- name: Architecture
+  href: architecture.md
