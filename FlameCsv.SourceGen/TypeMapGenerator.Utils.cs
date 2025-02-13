@@ -53,7 +53,16 @@ public partial class TypeMapGenerator
             }
         }
 
-        if (wrapInNullable) writer.Write(")");
+        if (wrapInNullable)
+        {
+            if (member.OverriddenConverter?.WrapInNullable ?? false)
+            {
+                // explicit converter override, don't cache this one
+                writer.Write(", canCache: false");
+            }
+
+            writer.Write(")");
+        }
     }
 
     internal static SortedDictionary<int, IMemberModel?>? TryGetIndexBindings(

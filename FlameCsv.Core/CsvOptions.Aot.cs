@@ -130,12 +130,12 @@ partial class CsvOptions<T>
             bool canCache = false)
             where TValue : struct
         {
-            if (TryGetExistingOrCustomConverter(out CsvConverter<T, TValue?>? converter))
+            if (canCache && TryGetExistingOrCustomConverter(out CsvConverter<T, TValue?>? converter))
             {
                 return converter;
             }
 
-            if (!_options.UseDefaultConverters) CsvConverterMissingException.Throw(typeof(TValue?));
+            if (canCache && !_options.UseDefaultConverters) CsvConverterMissingException.Throw(typeof(TValue?));
 
             CsvConverter<T, TValue> inner = GetOrCreate(factory);
             if (inner is null) InvalidConverter.Throw(factory, typeof(TValue));
