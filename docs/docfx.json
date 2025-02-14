@@ -49,7 +49,7 @@
     "globalMetadata": {
       "_appName": "FlameCSV",
       "_appTitle": "FlameCSV",
-      "_appLogoPath": "data/logo.png",
+      "_appLogoPath": "data/logo.csv",
       "_appFaviconPath": "data/favicon.ico",
       "_enableSearch": true,
       "pdf": false
