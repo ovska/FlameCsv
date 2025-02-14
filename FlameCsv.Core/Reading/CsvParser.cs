@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
@@ -10,8 +11,15 @@ using JetBrains.Annotations;
 
 namespace FlameCsv.Reading;
 
-internal static class CsvParser
+/// <summary>
+/// Provides a factory method for creating <see cref="CsvParser{T}"/> instances.
+/// </summary>
+public static class CsvParser
 {
+    /// <summary>
+    /// Creates a new instance of a CSV parser.
+    /// </summary>
+    /// <param name="options">Options-instance that determines the dialect and memory pool to use</param>
     [MustDisposeResource]
     public static CsvParser<T> Create<T>(CsvOptions<T> options) where T : unmanaged, IBinaryInteger<T>
     {
@@ -26,16 +34,19 @@ internal static class CsvParser
 /// <summary>
 /// Reads CSV records from a <see cref="ReadOnlySequence{T}"/>.
 /// </summary>
-/// <remarks>Internal implementation detail.</remarks>
+/// <remarks>
+/// Internal implementation detail, this type should not be used directly unless you know what you are doing.
+/// </remarks>
 [MustDisposeResource]
-internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryInteger<T>
+public abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryInteger<T>
 {
-    public const int BufferedFields = 1024;
+    // TODO: profile and adjust
+    private protected const int BufferedFields = 1024;
 
     /// <summary>
     /// Current options instance.
     /// </summary>
-    public CsvOptions<T> Options => _options;
+    public CsvOptions<T> Options { get; }
 
     /// <summary>
     /// Length of the newline sequence.
@@ -63,20 +74,22 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
         pipeReader.AdvanceTo(consumed: _sequence.Start, examined: _sequence.End);
     }
 
-    internal MemoryPool<T> Allocator => _options._memoryPool;
-
     internal readonly CsvDialect<T> _dialect;
     internal NewlineBuffer<T> _newline;
-    private protected readonly CsvOptions<T> _options;
     internal ReadOnlySequence<T> _sequence;
 
     private protected IMemoryOwner<T>? _multisegmentBuffer;
-    internal IMemoryOwner<T>? _unescapeBuffer;
+    private IMemoryOwner<T>? _unescapeBuffer;
+
+    /// <summary>
+    /// Whether the instance has been disposed.
+    /// </summary>
+    protected bool IsDisposed { get; private set; }
 
     /// <summary>
     /// Buffer to read fields into.
     /// </summary>
-    protected Span<Meta> MetaBuffer
+    private protected Span<Meta> MetaBuffer
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _metaArray.AsSpan(start: 1);
@@ -116,7 +129,7 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
     {
         Debug.Assert(options.IsReadOnly);
 
-        _options = options;
+        Options = options;
         _dialect = options.Dialect;
         _newline = options.Dialect.GetNewlineOrDefault();
         _metaArray = [];
@@ -142,23 +155,13 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
     /// <inheritdoc/>
     public void Dispose()
     {
-        using (_unescapeBuffer)
-        using (_multisegmentBuffer)
-        {
-            // don't hold on to any references to the data after disposing
-            _sequence = default;
-            _metaMemory = default;
-
-            ArrayPool<Meta>.Shared.Return(_metaArray);
-            _metaArray = [];
-        }
-
-        _unescapeBuffer = null;
-        _multisegmentBuffer = null;
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
     /// Resets the data of the reader.
+    /// Call this after initialization, and after reading a new sequence from an async data source.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Reset(in ReadOnlySequence<T> sequence)
@@ -169,16 +172,25 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
         _sequence = sequence;
     }
 
-    public Span<T> GetUnescapeBuffer(int length)
+    /// <summary>
+    /// Returns a buffer to unescape fields into.
+    /// </summary>
+    /// <param name="length">Minimum length of the returned span</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected internal Span<T> GetUnescapeBuffer(int length)
     {
-        return Allocator.EnsureCapacity(ref _unescapeBuffer, length, copyOnResize: false).Span;
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+        return Options._memoryPool.EnsureCapacity(ref _unescapeBuffer, length, copyOnResize: false).Span;
     }
 
     /// <summary>
     /// Attempts to read a complete well-formed line (CSV record) from the underlying data.
     /// </summary>
     /// <param name="line">CSV record</param>
-    /// <param name="isFinalBlock">Whether no more data is possible to read</param>
+    /// <param name="isFinalBlock">
+    /// Determines whether any more data can be expected after this read.
+    /// When <see langword="true"/>, the parser will return leftover data even without a trailing newline.
+    /// </param>
     /// <returns>True if a record was read</returns>
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -204,27 +216,6 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
         }
 
         return TryReadSlow(out line, isFinalBlock);
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private void AdvanceAndResetMeta()
-    {
-        Debug.Assert(_canUseFastPath && _metaIndex != 0);
-        Debug.Assert(_newline.Length != 0);
-        Debug.Assert(_metaCount >= _metaIndex);
-
-        _metaMemory = default; // don't hold on to the memory from last read
-
-        var lastEOL = _metaArray[_metaIndex];
-
-        if (!lastEOL.IsEOL)
-        {
-            InvalidState.Throw(GetType(), _metaArray, _metaIndex, _metaCount);
-        }
-
-        _sequence = _sequence.Slice(lastEOL.GetNextStart(_newline.Length));
-        _metaCount = 0;
-        _metaIndex = 0;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -278,6 +269,30 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
         return false;
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void AdvanceAndResetMeta()
+    {
+        Debug.Assert(_canUseFastPath && _metaIndex != 0);
+        Debug.Assert(_newline.Length != 0);
+        Debug.Assert(_metaCount >= _metaIndex);
+
+        _metaMemory = default; // don't hold on to the memory from last read
+
+        var lastEOL = _metaArray[_metaIndex];
+
+        if (!lastEOL.IsEOL)
+        {
+            InvalidState.Throw(GetType(), _metaArray, _metaIndex, _metaCount);
+        }
+
+        _sequence = _sequence.Slice(lastEOL.GetNextStart(_newline.Length));
+        _metaCount = 0;
+        _metaIndex = 0;
+    }
+
+    /// <summary>
+    /// Maximum amount of data to read before throwing when auto-detecting newline.
+    /// </summary>
     public const int MaxNewlineDetectionLength = 1024;
 
     /// <summary>
@@ -386,9 +401,42 @@ internal abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryI
         fields.CopyTo(_metaArray.AsSpan(start: 1));
         return _metaArray.AsSpan(0, fields.Length + 1);
     }
+
+    /// <summary>
+    /// Disposes the instance.
+    /// </summary>
+    /// <param name="disposing">Whether the method was called from <see cref="Dispose"/></param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (IsDisposed)
+            return;
+
+        IsDisposed = true;
+
+        // the memory owners should have their own finalizers if needed
+        if (disposing)
+        {
+            using (_unescapeBuffer)
+            using (_multisegmentBuffer)
+            {
+                _metaCount = 0;
+                _metaIndex = 0;
+
+                // don't hold on to any references to the data after disposing
+                _sequence = default;
+                _metaMemory = default;
+
+                ArrayPool<Meta>.Shared.Return(_metaArray);
+                _metaArray = [];
+            }
+
+            _unescapeBuffer = null;
+            _multisegmentBuffer = null;
+        }
+    }
 }
 
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[ExcludeFromCodeCoverage]
 file static class InvalidState
 {
     public static void Throw(Type parserType, Meta[] metaArray, int metaIndex, int metaCount)

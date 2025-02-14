@@ -105,7 +105,7 @@ internal sealed class CsvParserRFC4180<T>(CsvOptions<T> options) : CsvParser<T>(
                         this,
                         reader
                             .Sequence.Slice(reader.Sequence.Start, crPosition)
-                            .AsMemory(Allocator, ref _multisegmentBuffer),
+                            .AsMemory(Options._memoryPool, ref _multisegmentBuffer),
                         GetSegmentMeta(fields.AsSpan()));
 
                     _sequence = reader.UnreadSequence;
@@ -124,7 +124,7 @@ internal sealed class CsvParserRFC4180<T>(CsvOptions<T> options) : CsvParser<T>(
 
         if (isFinalBlock && !_sequence.IsEmpty)
         {
-            var lastLine = _sequence.AsMemory(Allocator, ref _multisegmentBuffer);
+            var lastLine = _sequence.AsMemory(Options._memoryPool, ref _multisegmentBuffer);
             _sequence = default;
 
             // the last field ended in a delimiter, so there must be at least one field after it

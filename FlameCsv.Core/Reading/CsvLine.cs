@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 using FlameCsv.Reading.Internal;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Reading;
 
@@ -9,6 +10,7 @@ namespace FlameCsv.Reading;
 /// Represents a CSV record spanning one line, before the individual fields are read.
 /// </summary>
 /// <typeparam name="T"></typeparam>
+[PublicAPI]
 [DebuggerDisplay("{ToString(),nq}")]
 [DebuggerTypeProxy(typeof(CsvLine<>.CsvLineDebugView))]
 public readonly ref struct CsvLine<T> : ICsvRecordFields<T> where T : unmanaged, IBinaryInteger<T>
@@ -117,4 +119,48 @@ public readonly ref struct CsvLine<T> : ICsvRecordFields<T> where T : unmanaged,
         return Fields[index + 1]
             .GetField(dialect: in Parser._dialect, start: start, data: data, buffer: buffer, parser: Parser);
     }
+
+    /// <summary>
+    /// Returns an enumerator that iterates over the fields in the record.
+    /// </summary>
+    public Enumerator GetEnumerator()
+    {
+        return new Enumerator(Parser, Data.Span, Fields);
+    }
+
+    /// <summary>
+    /// Enumerates the fields in the record, unescaping them if needed.
+    /// </summary>
+    public ref struct Enumerator
+    {
+        /// <summary>
+        /// Current field in the enumerator.
+        /// </summary>
+        public ReadOnlySpan<T> Current { get; private set; }
+
+        private readonly MetaFieldReader<T> _reader;
+        private int _index;
+
+        internal Enumerator(CsvParser<T> parser, ReadOnlySpan<T> data, ReadOnlySpan<Meta> fields)
+        {
+            _reader = new MetaFieldReader<T>(parser, data, fields);
+        }
+
+        /// <summary>
+        /// Attempts to read the next field in the record.
+        /// </summary>
+        /// <returns></returns>
+        public bool MoveNext()
+        {
+            if ((uint)_index < (uint)_reader.FieldCount)
+            {
+                Current = _reader[_index++];
+                return true;
+            }
+
+            Current = default;
+            return false;
+        }
+    }
 }
+
