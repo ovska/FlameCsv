@@ -10,16 +10,26 @@ const jsEngine = createJavaScriptRegexEngine();
 
 export default {
     start: () => {
-        // console.log(codeToHtml);
+        // add GitHub icon to the navbar
+        // wait for the navbar to be loaded
+        const interval = setInterval(() => {
+            const navbar = document.querySelector('#navbar form.icons');
+            if (navbar || document.querySelector('#github-icon')) {
+                clearInterval(interval);
+
+                const githubIcon = document.createElement('a');
+                githubIcon.id = 'github-icon';
+                githubIcon.classList = 'bi bi-github';
+                githubIcon.target = '_blank';
+                githubIcon.href = 'https://github.com/ovska/FlameCsv';
+                navbar.insertBefore(githubIcon, navbar.firstChild);
+            }
+        }, 100);
     },
     configureHljs: (hljs) => {
-        // console.log(hljs);
-
         const previousHighlightElement = hljs.highlightElement;
 
         hljs.highlightElement = function(elem) {
-            console.log(elem);
-
             // use previous version if not C#
             if (!elem.classList.contains('lang-cs') && !elem.classList.contains('lang-csharp')) {
                 previousHighlightElement.bind(hljs)(elem);

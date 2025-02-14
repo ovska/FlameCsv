@@ -123,7 +123,7 @@ _ = options.GetFormatProvider(typeof(double?)); // invariant
 ```
 
 > [!NOTE]
-> All the type-indexed dictionaries consider value types and their nullable counterparts equal, e.g., you only need to add either `int` or `int?` to the dictionary.
+> All the type-indexed dictionaries consider value types and their nullable counterparts [equal](https://github.com/ovska/FlameCsv/blob/main/FlameCsv.Core/Utilities/NullableTypeEqualityComparer.cs), e.g., you only need to add either `int` or `int?` to the dictionary.
 
 ### Format
 
