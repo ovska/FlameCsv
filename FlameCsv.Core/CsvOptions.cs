@@ -485,6 +485,9 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// Default value is <see cref="MemoryPool{T}.Shared"/>.
     /// Set to <see langword="null"/> to disable pooling and always heap allocate.
     /// </summary>
+    /// <remarks>
+    /// Buffers that are larger than <see cref="MemoryPool{T}.MaxBufferSize"/> size are heap allocated.
+    /// </remarks>
     public MemoryPool<T>? MemoryPool
     {
         get => ReferenceEquals(_memoryPool, HeapMemoryPool<T>.Instance) ? null : _memoryPool;
