@@ -277,13 +277,16 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
         }
 
         bool IEnumerator.MoveNext() => MoveNext();
-        void IEnumerator.Reset() => _index = 0;
+        void IEnumerator.Reset()
+        {
+            _state.EnsureVersion(_version);
+            _index = 0;
+        }
 
         readonly void IDisposable.Dispose()
         {
         }
 
-        readonly ReadOnlyMemory<T> IEnumerator<ReadOnlyMemory<T>>.Current => Current;
         readonly object IEnumerator.Current => Current;
     }
 
