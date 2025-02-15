@@ -82,21 +82,21 @@ internal struct WritableBuffer<T> : IDisposable where T : unmanaged, IBinaryInte
     /// <summary>
     /// Copies the buffer to a new array and returns individual fields as <see cref="ReadOnlyMemory{T}"/>.
     /// </summary>
-    public readonly ReadOnlyMemory<T>[] Preserve()
+    public readonly ArraySegment<T>[] Preserve()
     {
         ObjectDisposedException.ThrowIf(_items is null, typeof(WritableBuffer<T>));
 
         if (_items.Count == 0)
             return [];
 
-        var array = new ReadOnlyMemory<T>[_items.Count];
+        var array = new ArraySegment<T>[_items.Count];
         var buffer = new T[_items[^1].End.GetOffset(_memory.Length)];
 
         _memory.Slice(0, buffer.Length).CopyTo(buffer);
 
         for (int i = 0; i < _items.Count; i++)
         {
-            array[i] = buffer.AsMemory(_items[i]);
+            array[i] = new ArraySegment<T>(buffer)[_items[i]];
         }
 
         return array;
