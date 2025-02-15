@@ -119,27 +119,14 @@ internal static class Throw
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void Argument_FieldIndex<T>(int index, EnumeratorState<T>? state = null, string? name = null)
-            where T : unmanaged, IBinaryInteger<T>
+    public static void Argument_FieldIndex(int index, int? fieldCount = null, string? name = null)
     {
-        string? knownFieldCount = null;
+        string? knownFieldCount = fieldCount is not null
+            ? $" (there were {fieldCount.Value} fields in the record)"
+            : null;
         name = name is null ? "" : $"'{name}' ";
-        Exception? inner = null;
 
-        if (state is not null)
-        {
-            try
-            {
-                knownFieldCount = $" (there were {state.GetFieldCount()} fields in the record)";
-            }
-            catch (Exception e)
-            {
-                knownFieldCount = " (could not determine the number of fields in the record, see inner exception for details)";
-                inner = e;
-            }
-        }
-
-        throw new ArgumentOutOfRangeException($"Could not get field {name}at index {index}{knownFieldCount}.", inner);
+        throw new ArgumentOutOfRangeException($"Could not get field {name}at index {index}{knownFieldCount}");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]

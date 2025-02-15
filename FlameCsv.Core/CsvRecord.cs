@@ -74,8 +74,8 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         Line = record.Line;
         Options = record._options;
         RawRecord = record.RawRecord.SafeCopy();
-        _header = record._state.Header;
-        _fields = record._state.PreserveFields();
+        _header = record._owner.Header;
+        _fields = record._owner._fields.Preserve();
     }
 
     int IReadOnlyCollection<ReadOnlyMemory<T>>.Count => FieldCount;

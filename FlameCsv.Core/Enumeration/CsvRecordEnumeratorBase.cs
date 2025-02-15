@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -41,62 +42,184 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
     /// </summary>
     public long Position { get; protected set; }
 
-    [HandlesResourceDisposal] private readonly EnumeratorState<T> _state;
+    /// <summary>
+    /// Whether the enumerator has been disposed.
+    /// </summary>
+    protected bool IsDisposed => _version == -1;
+
+    private int _version;
 
     [HandlesResourceDisposal] private protected readonly CsvParser<T> _parser;
     private protected CsvValueRecord<T> _current;
-    private protected bool _disposed;
 
-    internal CsvRecordEnumeratorBase(CsvOptions<T> options)
+    internal readonly bool _hasHeader;
+    private readonly bool _validateFieldCount;
+    private readonly CsvRecordCallback<T>? _callback;
+
+    private Dictionary<object, object>? _materializerCache;
+    private int? _expectedFieldCount;
+    private CsvHeader? _header;
+
+    internal WritableBuffer<T> _fields;
+
+    internal Dictionary<object, object> MaterializerCache
+        => _materializerCache ??= new(ReferenceEqualityComparer.Instance);
+
+    /// <summary>
+    /// Current header value. May be null if a header is not yet read, header is reset, or if the CSV has no header.
+    /// </summary>
+    /// <exception cref="ObjectDisposedException"/>
+    /// <exception cref="NotSupportedException">Thrown when the CSV has no header and a non-null value is set.</exception>
+    public CsvHeader? Header
     {
+        get => _header;
+        set
+        {
+            Throw.IfEnumerationDisposed(_version == -1);
+
+            if (!_hasHeader && value is not null)
+                Throw.NotSupported_CsvHasNoHeader();
+
+            if (EqualityComparer<CsvHeader>.Default.Equals(Header, value))
+                return;
+
+            if (Header is not null && value is not null)
+                Throw.Unreachable_AlreadyHasHeader();
+
+            _header = value;
+            _expectedFieldCount = value?.Count;
+            _materializerCache?.Clear();
+        }
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CsvRecordEnumeratorBase{T}"/> class.
+    /// </summary>
+    protected CsvRecordEnumeratorBase(CsvOptions<T> options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
         _parser = CsvParser.Create(options);
-        _state = new EnumeratorState<T>(options);
+        _hasHeader = options._hasHeader;
+        _validateFieldCount = options._validateFieldCount;
+        _callback = options._recordCallback;
+        _fields = new WritableBuffer<T>(options._memoryPool);
+
+        // clear the materializer cache on hot reload
+        HotReloadService.RegisterForHotReload(
+            this,
+            static state => ((CsvRecordEnumeratorBase<T>)state)._materializerCache = null);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private protected bool MoveNextCore(bool isFinalBlock)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        Throw.IfEnumerationDisposed(_version == -1);
 
     Retry:
-        if (_parser.TryReadLine(out CsvLine<T> line, isFinalBlock))
+        if (!_parser.TryReadLine(out CsvLine<T> line, isFinalBlock))
         {
-            long oldPosition = Position;
+            return false;
+        }
 
-            Position += line.RecordLength + (_parser._newline.Length * (!isFinalBlock).ToByte());
-            Line++;
+        long recordPosition = Position;
 
-            if (_parser.Options._recordCallback is { } callback)
-            {
-                bool skip = false;
-                bool headerRead = _state.Header is not null;
+        Position += line.RecordLength + (_parser._newline.Length * (!isFinalBlock).ToByte());
+        Line++;
 
-                CsvRecordCallbackArgs<T> args = new(
-                    line,
-                    _state.Header is { } header ? header.Values : [],
-                    Line,
-                    oldPosition,
-                    ref skip,
-                    ref headerRead);
-                callback(in args);
+        if (_callback is not null)
+        {
+            bool skip = false;
+            bool headerRead = Header is not null;
 
-                if (!headerRead) _state.Header = null;
-                if (skip) goto Retry;
-            }
+            CsvRecordCallbackArgs<T> args = new(
+                in line,
+                Header is { } header ? header.Values : [],
+                Line,
+                recordPosition,
+                ref skip,
+                ref headerRead);
+            _callback.Invoke(in args);
 
-            CsvValueRecord<T> record = new(oldPosition, Line, in line, _parser.Options, _state);
+            if (!headerRead) Header = null;
+            if (skip) goto Retry;
+        }
 
-            if (_state.NeedsHeader)
-            {
-                _state.Header = CreateHeader(in record);
-                goto Retry;
-            }
+        // header needs to be read
+        if (_hasHeader && _header is null)
+        {
+            Header = CreateHeader(in line);
+            goto Retry;
+        }
 
-            _current = record;
+        _version++;
+        _fields.Clear();
+
+        Span<T> unescapeBuffer = stackalloc T[Token<T>.StackLength];
+        MetaFieldReader<T> reader = new(in line, unescapeBuffer);
+
+        for (int i = 0; i < reader.FieldCount; i++)
+        {
+            _fields.Push(reader[i]);
+        }
+
+        if (_validateFieldCount) ValidateFieldCount();
+
+        _current = new CsvValueRecord<T>(_version, recordPosition, Line, in line, _parser.Options, this);
+        return true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void EnsureVersion(int version)
+    {
+        if (_version == -1)
+            Throw.ObjectDisposed_Enumeration();
+
+        if (version != _version)
+            Throw.InvalidOp_EnumerationChanged();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MemberNotNull(nameof(Header))]
+    internal bool TryGetHeaderIndex(string name, out int index)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        Throw.IfEnumerationDisposed(_version == -1);
+
+        if (!_hasHeader)
+            Throw.NotSupported_CsvHasNoHeader();
+
+        if (Header is null)
+            Throw.InvalidOperation_HeaderNotRead();
+
+        return Header.TryGetValue(name, out index);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal bool TryGetAtIndex(int index, out ReadOnlyMemory<T> field)
+    {
+        Throw.IfEnumerationDisposed(_version == -1);
+
+        if (index < _fields.Length)
+        {
+            field = _fields[index];
             return true;
         }
 
+        field = default;
         return false;
+    }
+
+    private void ValidateFieldCount()
+    {
+        if (_expectedFieldCount is null)
+        {
+            _expectedFieldCount = _fields.Length;
+        }
+        else if (_fields.Length != _expectedFieldCount.Value)
+        {
+            Throw.InvalidData_FieldCount(_expectedFieldCount.Value, _fields.Length);
+        }
     }
 
     /// <summary>
@@ -108,30 +231,35 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
         GC.SuppressFinalize(this);
     }
 
-    private protected virtual void Dispose(bool disposing)
+    /// <summary>
+    /// Disposes the underlying data source and internal states, and returns pooled memory.
+    /// </summary>
+    protected virtual void Dispose(bool disposing)
     {
-        if (_disposed)
+        if (_version == -1)
             return;
 
-        _disposed = true;
+        _version = -1;
 
         if (disposing)
         {
-            using (_state)
+            using (_fields)
             using (_parser)
             {
+                _version = -1;
                 _current = default;
+                _materializerCache = null;
             }
         }
     }
 
-    private CsvHeader CreateHeader(ref readonly CsvValueRecord<T> headerRecord)
+    private CsvHeader CreateHeader(ref readonly CsvLine<T> headerRecord)
     {
         StringScratch scratch = default;
         using ValueListBuilder<string> list = new(scratch);
-
-        BufferFieldReader<T> reader = headerRecord._state.CreateFieldReader();
         Span<char> charBuffer = stackalloc char[128];
+
+        MetaFieldReader<T> reader = new(in headerRecord, stackalloc T[Token<T>.StackLength]);
 
         for (int field = 0; field < reader.FieldCount; field++)
         {
@@ -146,18 +274,17 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
             {
                 if (i != j && _parser.Options.Comparer.Equals(headers[i], headers[j]))
                 {
-                    ThrowExceptionForDuplicateHeaderField(i, j, headers[i], headerRecord);
+                    ThrowExceptionForDuplicateHeaderField(i, j, headers[i], headerRecord.Record);
                 }
             }
         }
 
-        // TODO: use a stack based list for the start of it?
-        return new CsvHeader(_parser.Options.Comparer, headers.ToArray());
+        return new CsvHeader(_parser.Options.Comparer, headers);
     }
 
     private CsvValueRecord<T> ThrowInvalidCurrentAccess()
     {
-        if (_disposed)
+        if (_version == -1)
             Throw.ObjectDisposed_Enumeration();
 
         throw new InvalidOperationException("Current was accessed before the enumeration started.");
@@ -167,10 +294,10 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
         int index1,
         int index2,
         string field,
-        CsvValueRecord<T> record)
+        ReadOnlyMemory<T> record)
     {
         throw new CsvFormatException(
             $"Duplicate header field \"{field}\" in fields {index1} and {index2} in CSV: " +
-            record.RawRecord.Span.AsPrintableString());
+            record.Span.AsPrintableString());
     }
 }
