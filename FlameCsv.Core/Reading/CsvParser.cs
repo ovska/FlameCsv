@@ -405,7 +405,7 @@ public abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryInt
     /// <summary>
     /// Disposes the instance.
     /// </summary>
-    /// <param name="disposing">Whether the method was called from <see cref="Dispose"/></param>
+    /// <param name="disposing">Whether the method was called from <see cref="Dispose()"/></param>
     protected virtual void Dispose(bool disposing)
     {
         if (IsDisposed)
