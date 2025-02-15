@@ -98,7 +98,7 @@ public static partial class CsvReader
 
         options ??= CsvOptions<char>.Default;
         return new CsvRecordAsyncEnumerable<char>(
-            new TextPipeReader(textReader, DefaultBufferSize, options._memoryPool),
+            CreatePipeReader(textReader, options._memoryPool, DefaultBufferSize),
             options);
     }
 
