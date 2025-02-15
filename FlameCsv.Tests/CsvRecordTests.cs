@@ -25,7 +25,8 @@ public static partial class CsvRecordTests
     {
         CsvValueRecord<char>.Enumerator secondRecordEnumerator;
 
-        await using (var enumerator = CsvReader.EnumerateAsync(new StringReader("A,B,C\r\n1,2,3\r\n4,5,6\r\n"))
+        await using (var enumerator = CsvReader
+                         .EnumerateAsync(new StringReader("A,B,C\r\n1,2,3\r\n4,5,6\r\n"))
                          .GetAsyncEnumerator())
         {
             Assert.Equal(0, enumerator.Line);
@@ -40,7 +41,10 @@ public static partial class CsvRecordTests
 
             Assert.True(firstRecord.HasHeader);
             Assert.Equal("1,2,3", firstRecord.RawRecord.ToString());
-            Assert.Equal(["1", "2", "3"], firstRecord.Select(f => f.ToString()));
+
+            List<string> fields = [];
+            foreach (var field in firstRecord) fields.Add(field.ToString());
+            Assert.Equal(["1", "2", "3"], fields);
 
             var firstRecordEnumerator = firstRecord.GetEnumerator();
 
@@ -82,7 +86,10 @@ public static partial class CsvRecordTests
 
             Assert.True(firstRecord.HasHeader);
             Assert.Equal("1,2,3", firstRecord.RawRecord.ToString());
-            Assert.Equal(["1", "2", "3"], firstRecord.Select(f => f.ToString()));
+
+            List<string> fields = [];
+            foreach (var field in firstRecord) fields.Add(field.ToString());
+            Assert.Equal(["1", "2", "3"], fields);
 
             var firstRecordEnumerator = firstRecord.GetEnumerator();
 
@@ -112,13 +119,17 @@ public static partial class CsvRecordTests
 
         switch (recordType)
         {
-            case RecordType.Struct: Impl<CsvValueRecord<char>>(enumerable); break;
-            case RecordType.Class: Impl<CsvRecord<char>>(enumerable.Preserve()); break;
-            case RecordType.Boxed: Impl<ICsvRecord<char>>(enumerable.OfType<ICsvRecord<char>>()); break;
+            case RecordType.Struct: Impl<CsvValueRecord<char>, ReadOnlySpan<char>>(enumerable, s => s.ToString()); break;
+            case RecordType.Class: Impl<CsvRecord<char>, ReadOnlyMemory<char>>(enumerable.Preserve(), s => s.ToString()); break;
+            case RecordType.Boxed:
+                Impl<ICsvRecord<char, ReadOnlySpan<char>>, ReadOnlySpan<char>>(
+                    enumerable.OfType<ICsvRecord<char, ReadOnlySpan<char>>>(), s => s.ToString()); break;
             default: throw new UnreachableException();
         }
 
-        void Impl<TRecord>(IEnumerable<TRecord> recordEnumerable) where TRecord : ICsvRecord<char>
+        void Impl<TRecord, TMemory>(IEnumerable<TRecord> recordEnumerable, Func<TMemory, string> toString)
+            where TRecord : ICsvRecord<char, TMemory>
+            where TMemory : allows ref struct
         {
             using var enumerator = recordEnumerable.GetEnumerator();
 
@@ -129,21 +140,21 @@ public static partial class CsvRecordTests
             Assert.True(record.HasHeader);
             Assert.Equal((string[]) ["A", "B", "C"], record.Header);
 
-            Assert.Equal("1,2,3", record.RawRecord.ToString());
+            Assert.Equal("1,2,3", toString(record.RawRecord));
 
-            Assert.Equal("1", record[0].ToString());
-            Assert.Equal("2", record[1].ToString());
-            Assert.Equal("3", record[2].ToString());
-            Assert.Equal("1", record.GetField(0).ToString());
-            Assert.Equal("2", record.GetField(1).ToString());
-            Assert.Equal("3", record.GetField(2).ToString());
+            Assert.Equal("1", toString(record[0]));
+            Assert.Equal("2", toString(record[1]));
+            Assert.Equal("3", toString(record[2]));
+            Assert.Equal("1", toString(record.GetField(0)));
+            Assert.Equal("2", toString(record.GetField(1)));
+            Assert.Equal("3", toString(record.GetField(2)));
 
-            Assert.Equal("1", record["A"].ToString());
-            Assert.Equal("2", record["B"].ToString());
-            Assert.Equal("3", record["C"].ToString());
-            Assert.Equal("1", record.GetField("A").ToString());
-            Assert.Equal("2", record.GetField("B").ToString());
-            Assert.Equal("3", record.GetField("C").ToString());
+            Assert.Equal("1", toString(record["A"]));
+            Assert.Equal("2", toString(record["B"]));
+            Assert.Equal("3", toString(record["C"]));
+            Assert.Equal("1", toString(record.GetField("A")));
+            Assert.Equal("2", toString(record.GetField("B")));
+            Assert.Equal("3", toString(record.GetField("C")));
 
             Assert.Equal(1, record.ParseField<int>(0));
             Assert.Equal(1, record.ParseField<int>("A"));

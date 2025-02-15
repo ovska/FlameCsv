@@ -3,13 +3,17 @@ using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Binding;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
+using FlameCsv.Utilities;
 
 namespace FlameCsv;
 
 /// <summary>
 /// Represents a self-contained copy of a single CSV record.
 /// </summary>
-public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> where T : unmanaged, IBinaryInteger<T>
+public class CsvRecord<T> :
+    ICsvRecord<T, ReadOnlyMemory<T>>,
+    IReadOnlyList<ReadOnlyMemory<T>>
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <inheritdoc/>
     public virtual ReadOnlyMemory<T> this[CsvFieldIdentifier id] => GetField(id);
@@ -59,7 +63,7 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         }
     }
 
-    private readonly ReadOnlyMemory<T>[] _fields;
+    private readonly ArraySegment<T>[] _fields;
     private readonly CsvHeader? _header;
 
     /// <summary>
@@ -73,9 +77,12 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         Position = record.Position;
         Line = record.Line;
         Options = record._options;
-        RawRecord = record.RawRecord.SafeCopy();
+        RawRecord = record._line.Record.SafeCopy();
         _header = record._owner.Header;
-        _fields = record._owner._fields.Preserve();
+
+        using WritableBuffer<T> buffer = new(Options._memoryPool);
+        foreach (var field in record) buffer.Push(field);
+        _fields = buffer.Preserve();
     }
 
     int IReadOnlyCollection<ReadOnlyMemory<T>>.Count => FieldCount;
@@ -189,7 +196,12 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
     }
 
     IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator()
-        => _fields.AsEnumerable().GetEnumerator();
+    {
+        for (int i = 0; i < _fields.Length; i++)
+        {
+            yield return _fields[i];
+        }
+    }
 
     IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<ReadOnlyMemory<T>>)this).GetEnumerator();
 
@@ -203,6 +215,6 @@ public class CsvRecord<T> : ICsvRecord<T>, IReadOnlyList<ReadOnlyMemory<T>> wher
         public int FieldCount => record.FieldCount;
 
         /// <inheritdoc cref="ICsvRecordFields{T}.this"/>
-        public ReadOnlySpan<T> this[int index] => record._fields[index].Span;
+        public ReadOnlySpan<T> this[int index] => record._fields[index];
     }
 }
