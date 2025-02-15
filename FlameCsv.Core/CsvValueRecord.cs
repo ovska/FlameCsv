@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
+using FlameCsv.Enumeration;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Utilities;
@@ -30,7 +31,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
     {
         get
         {
-            _state.EnsureVersion(_version);
+            _owner.EnsureVersion(_version);
             return _record;
         }
     }
@@ -38,22 +39,22 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
     /// <summary>
     /// Whether the current CSV enumeration has a header.
     /// </summary>
-    public bool HasHeader => _state.Header is not null;
+    public bool HasHeader => _owner.Header is not null;
 
     /// <inheritdoc/>
     public ReadOnlySpan<string> Header
     {
         get
         {
-            _state.EnsureVersion(_version);
+            _owner.EnsureVersion(_version);
 
-            if (!_state.Options._hasHeader)
+            if (!_owner._hasHeader)
                 Throw.NotSupported_CsvHasNoHeader();
 
-            if (_state.Header is null)
+            if (_owner.Header is null)
                 Throw.InvalidOperation_HeaderNotRead();
 
-            return _state.Header.Values;
+            return _owner.Header.Values;
         }
     }
 
@@ -61,8 +62,8 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
     public bool Contains(CsvFieldIdentifier id)
     {
         return id.TryGetIndex(out int index, out string? name)
-            ? (uint)index < (uint)_state.GetFieldCount()
-            : _state.ContainsHeader(name);
+            ? (uint)index < (uint)_owner._fields.Length
+            : _owner.Header?.ContainsKey(name) ?? false;
     }
 
     /// <inheritdoc/>
@@ -71,7 +72,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
     /// <inheritdoc/>
     public ReadOnlyMemory<T> this[CsvFieldIdentifier id] => GetField(id);
 
-    internal readonly EnumeratorState<T> _state;
+    internal readonly CsvRecordEnumeratorBase<T> _owner;
     internal readonly CsvOptions<T> _options;
 
     private readonly int _version;
@@ -79,34 +80,35 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvValueRecord(
+        int version,
         long position,
         int lineIndex,
         ref readonly CsvLine<T> line,
         CsvOptions<T> options,
-        EnumeratorState<T> state)
+        CsvRecordEnumeratorBase<T> owner)
     {
         Position = position;
         Line = lineIndex;
         _record = line.Record;
         _options = options;
-        _state = state;
-        _version = _state.Initialize(in line);
+        _owner = owner;
+        _version = version;
     }
 
     /// <inheritdoc cref="ICsvRecord{T}.GetField(CsvFieldIdentifier)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlyMemory<T> GetField(CsvFieldIdentifier id)
     {
-        _state.EnsureVersion(_version);
+        _owner.EnsureVersion(_version);
 
-        if (!id.TryGetIndex(out int index, out string? name) && !_state.TryGetHeaderIndex(name, out index))
+        if (!id.TryGetIndex(out int index, out string? name) && !_owner.TryGetHeaderIndex(name, out index))
         {
-            Throw.Argument_HeaderNameNotFound(name, _state.Header.HeaderNames);
+            Throw.Argument_HeaderNameNotFound(name, _owner.Header.HeaderNames);
         }
 
-        if (!_state.TryGetAtIndex(index, out ReadOnlyMemory<T> field))
+        if (!_owner.TryGetAtIndex(index, out ReadOnlyMemory<T> field))
         {
-            Throw.Argument_FieldIndex(index, _state);
+            Throw.Argument_FieldIndex(index, _owner._fields.Length, id.UnsafeName);
         }
 
         return field;
@@ -118,9 +120,8 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            _state.EnsureVersion(_version);
-
-            return _state.GetFieldCount();
+            _owner.EnsureVersion(_version);
+            return _owner._fields.Length;
         }
     }
 
@@ -174,11 +175,11 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void ResetHeader() => _state.Header = null;
+    internal void ResetHeader() => _owner.Header = null;
 
     /// <inheritdoc cref="IEnumerable{T}.GetEnumerator"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Enumerator GetEnumerator() => new(_version, _state);
+    public Enumerator GetEnumerator() => new(_version, _owner);
 
     IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator() => GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -187,20 +188,23 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public TRecord ParseRecord<[DAM(Messages.ReflectionBound)] TRecord>()
     {
-        _state.EnsureVersion(_version);
+        _owner.EnsureVersion(_version);
 
-        if (!_state.MaterializerCache.TryGetValue(typeof(TRecord), out object? obj))
+        // read to local as hot reload can reset the cache
+        Dictionary<object, object> cache = _owner.MaterializerCache;
+
+        if (!cache.TryGetValue(typeof(TRecord), out object? obj))
         {
-            var header = _state.Header;
+            var header = _owner.Header;
 
             obj = header is not null
                 ? _options.TypeBinder.GetMaterializer<TRecord>(header.Values)
                 : _options.TypeBinder.GetMaterializer<TRecord>();
 
-            _state.MaterializerCache[typeof(TRecord)] = obj;
+            cache[typeof(TRecord)] = obj;
         }
 
-        BufferFieldReader<T> reader = _state.CreateFieldReader();
+        BufferFieldReader<T> reader = _owner._fields.CreateReader(_options, _record);
         return ((IMaterializer<T, TRecord>)obj).Parse(ref reader);
     }
 
@@ -209,18 +213,21 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
     {
         ArgumentNullException.ThrowIfNull(typeMap);
 
-        _state.EnsureVersion(_version);
+        _owner.EnsureVersion(_version);
 
-        if (!_state.MaterializerCache.TryGetValue(typeMap, out object? obj))
+        // read to local as hot reload can reset the cache
+        Dictionary<object, object> cache = _owner.MaterializerCache;
+
+        if (!cache.TryGetValue(typeMap, out object? obj))
         {
-            obj = _state.Header is not null
-                ? typeMap.GetMaterializer(_state.Header.Values, _options)
+            obj = _owner.Header is not null
+                ? typeMap.GetMaterializer(_owner.Header.Values, _options)
                 : typeMap.GetMaterializer(_options);
 
-            _state.MaterializerCache[typeMap] = obj;
+            cache[typeMap] = obj;
         }
 
-        BufferFieldReader<T> reader = _state.CreateFieldReader();
+        BufferFieldReader<T> reader = _owner._fields.CreateReader(_options, _record);
         return ((IMaterializer<T, TRecord>)obj).Parse(ref reader);
     }
 
@@ -241,11 +248,11 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
         public ReadOnlyMemory<T> Current { get; private set; }
 
         private readonly int _version;
-        private readonly EnumeratorState<T> _state;
+        private readonly CsvRecordEnumeratorBase<T> _state;
         private int _index;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Enumerator(int version, EnumeratorState<T> state)
+        internal Enumerator(int version, CsvRecordEnumeratorBase<T> state)
         {
             state.EnsureVersion(version);
 
@@ -259,11 +266,9 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
         {
             _state.EnsureVersion(_version);
 
-            ref var fields = ref _state.GetFields();
-
-            if (_index < fields.Length)
+            if (_index < _state._fields.Length)
             {
-                Current = fields[_index++];
+                Current = _state._fields[_index++];
                 return true;
             }
 
@@ -288,7 +293,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlyMe
 
         public int Line => _record.Line;
         public long Position => _record.Position;
-        public string[] Headers => _record._state.Header?.Values.ToArray() ?? [];
+        public string[] Headers => _record._owner.Header?.Values.ToArray() ?? [];
         public ReadOnlyMemory<T>[] Fields => [.. _record];
         public string[] FieldValues => [.. Fields.Select(f => _record._options.GetAsString(f.Span))];
     }
