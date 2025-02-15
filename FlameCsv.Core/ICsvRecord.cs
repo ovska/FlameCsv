@@ -9,10 +9,13 @@ namespace FlameCsv;
 /// An instance representing a single CSV record.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
+/// <typeparam name="TMemory">Type of memory returned</typeparam>
 /// <seealso cref="CsvValueRecord{T}"/>
 /// <seealso cref="CsvRecord{T}"/>
 [PublicAPI]
-public interface ICsvRecord<T> where T : unmanaged, IBinaryInteger<T>
+public interface ICsvRecord<T, out TMemory>
+    where T : unmanaged, IBinaryInteger<T>
+    where TMemory : allows ref struct
 {
     /// <summary>
     /// The options-instance associated with the current CSV.
@@ -20,7 +23,7 @@ public interface ICsvRecord<T> where T : unmanaged, IBinaryInteger<T>
     CsvOptions<T> Options { get; }
 
     /// <inheritdoc cref="GetField(CsvFieldIdentifier)"/>
-    ReadOnlyMemory<T> this[CsvFieldIdentifier id] { get; }
+    TMemory this[CsvFieldIdentifier id] { get; }
 
     /// <summary>
     /// Returns true if the record contains the specified field.
@@ -56,18 +59,14 @@ public interface ICsvRecord<T> where T : unmanaged, IBinaryInteger<T>
     /// <summary>
     /// The complete unescaped data on the line without trailing newline tokens.
     /// </summary>
-    /// <remarks>
-    /// Reference to the data must not be held onto after the next record has been read.
-    /// If the data is needed later, copy the data into a separate array.
-    /// </remarks>
-    ReadOnlyMemory<T> RawRecord { get; }
+    TMemory RawRecord { get; }
 
     /// <summary>
     /// Returns the value of the field at the specified index.
     /// </summary>
     /// <param name="id">Field index of name</param>
     /// <returns>Field value, unescaped and stripped of quotes when applicable</returns>
-    ReadOnlyMemory<T> GetField(CsvFieldIdentifier id);
+    TMemory GetField(CsvFieldIdentifier id);
 
     /// <summary>
     /// Returns the number of fields in the current record.

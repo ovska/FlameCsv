@@ -60,8 +60,6 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
     private int? _expectedFieldCount;
     private CsvHeader? _header;
 
-    internal WritableBuffer<T> _fields;
-
     internal Dictionary<object, object> MaterializerCache
         => _materializerCache ??= new(ReferenceEqualityComparer.Instance);
 
@@ -103,7 +101,6 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
         _hasHeader = options._hasHeader;
         _validateFieldCount = options._validateFieldCount;
         _callback = options._recordCallback;
-        _fields = new WritableBuffer<T>(options._memoryPool);
 
         // clear the materializer cache on hot reload
         HotReloadService.RegisterForHotReload(
@@ -153,17 +150,18 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
         }
 
         _version++;
-        _fields.Clear();
 
-        Span<T> unescapeBuffer = stackalloc T[Token<T>.StackLength];
-        MetaFieldReader<T> reader = new(in line, unescapeBuffer);
-
-        for (int i = 0; i < reader.FieldCount; i++)
+        if (_validateFieldCount)
         {
-            _fields.Push(reader[i]);
+            if (_expectedFieldCount is null)
+            {
+                _expectedFieldCount = line.FieldCount;
+            }
+            else if (line.FieldCount != _expectedFieldCount.Value)
+            {
+                Throw.InvalidData_FieldCount(_expectedFieldCount.Value, line.FieldCount);
+            }
         }
-
-        if (_validateFieldCount) ValidateFieldCount();
 
         _current = new CsvValueRecord<T>(_version, recordPosition, Line, in line, _parser.Options, this);
         return true;
@@ -195,33 +193,6 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
         return Header.TryGetValue(name, out index);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal bool TryGetAtIndex(int index, out ReadOnlyMemory<T> field)
-    {
-        Throw.IfEnumerationDisposed(_version == -1);
-
-        if (index < _fields.Length)
-        {
-            field = _fields[index];
-            return true;
-        }
-
-        field = default;
-        return false;
-    }
-
-    private void ValidateFieldCount()
-    {
-        if (_expectedFieldCount is null)
-        {
-            _expectedFieldCount = _fields.Length;
-        }
-        else if (_fields.Length != _expectedFieldCount.Value)
-        {
-            Throw.InvalidData_FieldCount(_expectedFieldCount.Value, _fields.Length);
-        }
-    }
-
     /// <summary>
     /// Disposes the underlying data source and internal states, and returns pooled memory.
     /// </summary>
@@ -243,7 +214,6 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
 
         if (disposing)
         {
-            using (_fields)
             using (_parser)
             {
                 _version = -1;
