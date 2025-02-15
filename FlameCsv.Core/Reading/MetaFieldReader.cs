@@ -21,7 +21,7 @@ internal readonly ref struct MetaFieldReader<T> : ICsvRecordFields<T> where T : 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public MetaFieldReader(
-        ref readonly CsvLine<T> line,
+        scoped ref readonly CsvLine<T> line,
         Span<T> unescapeBuffer = default)
     {
         _dialect = ref line.Parser._dialect;
@@ -31,21 +31,6 @@ internal readonly ref struct MetaFieldReader<T> : ICsvRecordFields<T> where T : 
         _firstMeta = ref MemoryMarshal.GetReference(line.Fields);
         _fieldCount = line.Fields.Length - 1;
         _unescapeBuffer = unescapeBuffer;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public MetaFieldReader(
-        CsvParser<T> parser,
-        ReadOnlySpan<T> data,
-        ReadOnlySpan<Meta> fields)
-    {
-        _dialect = ref parser._dialect;
-        _newlineLength = parser._newline.Length;
-        _parser = parser;
-        _data = data;
-        _firstMeta = ref MemoryMarshal.GetReference(fields);
-        _fieldCount = fields.Length - 1;
-        _unescapeBuffer = default;
     }
 
     public int FieldCount

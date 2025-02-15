@@ -24,7 +24,8 @@ internal struct WritableBuffer<T> : IDisposable where T : unmanaged, IBinaryInte
         get
         {
             ObjectDisposedException.ThrowIf(_items is null, typeof(WritableBuffer<T>));
-            return _memory[_items[index]];
+            Range range = _items[index];
+            return _memory[range];
         }
     }
 

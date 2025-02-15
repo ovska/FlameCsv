@@ -16,7 +16,7 @@ internal readonly ref struct RawFieldReader<T> : ICsvRecordFields<T> where T : u
     private readonly int _fieldCount;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public RawFieldReader(ref readonly CsvLine<T> line)
+    public RawFieldReader(scoped ref readonly CsvLine<T> line)
     {
         Options = line.Parser.Options;
         _newlineLength = line.Parser._newline.Length;

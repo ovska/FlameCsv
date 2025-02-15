@@ -10,7 +10,7 @@ namespace FlameCsv;
 [PublicAPI]
 public readonly ref struct CsvRecordCallbackArgs<T> where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly CsvLine<T> _line;
+    private readonly ref readonly CsvLine<T> _line;
     private readonly ref bool _skip;
     private readonly ref bool _headerRead;
 
@@ -22,7 +22,7 @@ public readonly ref struct CsvRecordCallbackArgs<T> where T : unmanaged, IBinary
         ref bool skip,
         ref bool headerRead)
     {
-        _line = line;
+        _line = ref line;
         Line = lineIndex;
         Position = position;
         Header = header;

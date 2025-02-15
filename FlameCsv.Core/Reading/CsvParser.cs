@@ -205,10 +205,11 @@ public abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryInt
                     end: _metaCount - _metaIndex + 1,
                     index: out int fieldCount))
             {
+                MetaSegment fields = new() { array = _metaArray, count = fieldCount + 1, offset = _metaIndex };
                 line = new CsvLine<T>(
                     parser: this,
                     data: _metaMemory,
-                    fields: MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref metaRef, _metaIndex), fieldCount + 1));
+                    fields: Unsafe.As<MetaSegment, ArraySegment<Meta>>(ref fields));
 
                 _metaIndex += fieldCount;
                 return true;
@@ -391,7 +392,7 @@ public abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryInt
         }
     }
 
-    private protected ReadOnlySpan<Meta> GetSegmentMeta(scoped ReadOnlySpan<Meta> fields)
+    private protected ArraySegment<Meta> GetSegmentMeta(scoped ReadOnlySpan<Meta> fields)
     {
         Debug.Assert(fields.Length != 0);
         Debug.Assert(_metaIndex == _metaCount);
@@ -399,7 +400,7 @@ public abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryInt
         ArrayPool<Meta>.Shared.EnsureCapacity(ref _metaArray, Math.Max(BufferedFields, fields.Length + 1));
         _metaArray[0] = Meta.StartOfData;
         fields.CopyTo(_metaArray.AsSpan(start: 1));
-        return _metaArray.AsSpan(0, fields.Length + 1);
+        return new ArraySegment<Meta>(_metaArray, 0, fields.Length + 1);
     }
 
     /// <summary>
@@ -435,6 +436,33 @@ public abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryInt
         }
     }
 }
+
+// ReSharper disable NotAccessedField.Local
+file struct MetaSegment
+{
+    public Meta[]? array;
+    public int offset;
+    public int count;
+
+#if DEBUG
+    static MetaSegment()
+    {
+        if (Unsafe.SizeOf<MetaSegment>() != Unsafe.SizeOf<ArraySegment<Meta>>())
+        {
+            throw new InvalidOperationException("MetaSegment has unexpected size");
+        }
+
+        var array = new Meta[4];
+        array[1] = Meta.StartOfData;
+        var segment = new MetaSegment { array = array, offset = 1, count = 2 };
+        var cast = Unsafe.As<MetaSegment, ArraySegment<Meta>>(ref segment);
+        Debug.Assert(cast.Array == array);
+        Debug.Assert(cast.Offset == 1);
+        Debug.Assert(cast.Count == 2);
+    }
+#endif
+}
+// ReSharper restore NotAccessedField.Local
 
 [ExcludeFromCodeCoverage]
 file static class InvalidState

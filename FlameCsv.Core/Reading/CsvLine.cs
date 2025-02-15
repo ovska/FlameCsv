@@ -13,15 +13,17 @@ namespace FlameCsv.Reading;
 [PublicAPI]
 [DebuggerDisplay("{ToString(),nq}")]
 [DebuggerTypeProxy(typeof(CsvLine<>.CsvLineDebugView))]
-public readonly ref struct CsvLine<T> : ICsvRecordFields<T> where T : unmanaged, IBinaryInteger<T>
+public readonly struct CsvLine<T> : ICsvRecordFields<T> where T : unmanaged, IBinaryInteger<T>
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal CsvLine(CsvParser<T> parser, ReadOnlyMemory<T> data, ReadOnlySpan<Meta> fields)
+    internal CsvLine(CsvParser<T> parser, ReadOnlyMemory<T> data, ArraySegment<Meta> fields)
     {
-        Data = data;
-        Fields = fields;
         Parser = parser;
+        Data = data;
+        _fields = fields;
     }
+
+    private readonly ArraySegment<Meta> _fields;
 
     /// <summary>
     /// Raw value the fields point to.
@@ -34,7 +36,11 @@ public readonly ref struct CsvLine<T> : ICsvRecordFields<T> where T : unmanaged,
     /// <remarks>
     /// Contains one extra field at start denoting the start index inf <see cref="Data"/>.
     /// </remarks>
-    internal ReadOnlySpan<Meta> Fields { get; }
+    internal ReadOnlySpan<Meta> Fields
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _fields.AsSpan();
+    }
 
     internal CsvParser<T> Parser { get; }
 
@@ -125,26 +131,29 @@ public readonly ref struct CsvLine<T> : ICsvRecordFields<T> where T : unmanaged,
     /// </summary>
     public Enumerator GetEnumerator()
     {
-        return new Enumerator(Parser, Data.Span, Fields);
+        Throw.IfDefaultStruct(Parser is null, typeof(CsvLine<T>));
+        var reader = new MetaFieldReader<T>(in this);
+        return new Enumerator(reader);
     }
 
     /// <summary>
     /// Enumerates the fields in the record, unescaping them if needed.
     /// </summary>
+    [PublicAPI]
     public ref struct Enumerator
     {
+        private readonly MetaFieldReader<T> _reader;
+        private int _index;
+
+        internal Enumerator(MetaFieldReader<T> reader)
+        {
+            _reader = reader;
+        }
+
         /// <summary>
         /// Current field in the enumerator.
         /// </summary>
         public ReadOnlySpan<T> Current { get; private set; }
-
-        private readonly MetaFieldReader<T> _reader;
-        private int _index;
-
-        internal Enumerator(CsvParser<T> parser, ReadOnlySpan<T> data, ReadOnlySpan<Meta> fields)
-        {
-            _reader = new MetaFieldReader<T>(parser, data, fields);
-        }
 
         /// <summary>
         /// Attempts to read the next field in the record.
