@@ -81,7 +81,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
             bool headerRead = _parser.Options._hasHeader && _materializer is not null;
 
             CsvRecordCallbackArgs<T> args = new(
-                line,
+                in line,
                 _headersArray,
                 Line,
                 position,

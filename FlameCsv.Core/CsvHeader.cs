@@ -6,7 +6,10 @@ using FlameCsv.Utilities;
 
 namespace FlameCsv;
 
-internal sealed class CsvHeader
+/// <summary>
+/// Represents the header of a CSV file.
+/// </summary>
+public sealed class CsvHeader
 {
     /// <summary>
     /// Retrieves a string representation of the given value using the provided options.
@@ -29,6 +32,9 @@ internal sealed class CsvHeader
 
     internal static readonly StringPool HeaderPool = new(minimumSize: 32);
 
+    /// <summary>
+    /// Returns the header values.
+    /// </summary>
     public ReadOnlySpan<string> Values => _header ?? ((ReadOnlySpan<string>)_scratch!).Slice(0, _scratchLength);
 
     private readonly IEqualityComparer<string> _comparer;
@@ -73,6 +79,11 @@ internal sealed class CsvHeader
         return _dictionary ??= result.ToFrozenDictionary(_comparer);
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CsvHeader"/> class.
+    /// </summary>
+    /// <param name="comparer">Comparer to use</param>
+    /// <param name="header">Header values</param>
     public CsvHeader(IEqualityComparer<string> comparer, ReadOnlySpan<string> header)
     {
         ArgumentNullException.ThrowIfNull(comparer);
@@ -94,8 +105,15 @@ internal sealed class CsvHeader
         }
     }
 
+    /// <summary>
+    /// Returns the number of header values.
+    /// </summary>
     public int Count => _header?.Length ?? _scratchLength;
 
+    /// <summary>
+    /// Returns <see langword="true"/> if the specified header is present.
+    /// </summary>
+    /// <param name="key">Header name</param>
     public bool ContainsKey(string key)
     {
         if (Dictionary is { } dict)
@@ -110,6 +128,9 @@ internal sealed class CsvHeader
         return false;
     }
 
+    /// <summary>
+    /// Attempts to return the index of the specified header.
+    /// </summary>
     public bool TryGetValue(string key, out int value)
     {
         if (Dictionary is { } dict)
@@ -129,8 +150,16 @@ internal sealed class CsvHeader
         return false;
     }
 
+    /// <summary>
+    /// Returns the index of the specified header.
+    /// </summary>
+    /// <exception cref="ArgumentException">The header is not found.</exception>
     public int this[string key] => TryGetValue(key, out int value) ? value : Throw.Argument_FieldName(key);
 
+    /// <summary>
+    /// Returns the header names as an enumerable.
+    /// </summary>
+    /// <seealso cref="Values"/>
     public IEnumerable<string> HeaderNames
     {
         get

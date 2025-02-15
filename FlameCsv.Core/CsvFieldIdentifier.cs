@@ -1,5 +1,9 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using JetBrains.Annotations;
+
+// ReSharper disable ConvertToAutoPropertyWhenPossible
 
 namespace FlameCsv;
 
@@ -10,6 +14,7 @@ namespace FlameCsv;
 /// <remarks>
 /// Field indexes are 0-based, so <c>default(CsvFieldIdentifier)</c> points to the first field.<br/>
 /// </remarks>
+[PublicAPI]
 public readonly struct CsvFieldIdentifier
 {
     private readonly int _index;
@@ -60,4 +65,16 @@ public readonly struct CsvFieldIdentifier
         name = _name;
         return _name is null;
     }
+
+    /// <summary>
+    /// Returns the raw string value.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public string? UnsafeName => _name;
+
+    /// <summary>
+    /// Returns the raw index value.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public int UnsafeIndex => _index;
 }

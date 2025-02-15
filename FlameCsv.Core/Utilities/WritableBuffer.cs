@@ -38,12 +38,12 @@ internal struct WritableBuffer<T> : IDisposable where T : unmanaged, IBinaryInte
     private IMemoryOwner<T> _owner;
     private Memory<T> _memory;
 
-    private readonly MemoryPool<T> _allocator;
+    private readonly MemoryPool<T> _memoryPool;
     private readonly List<Range> _items = [];
 
     public WritableBuffer(MemoryPool<T> allocator)
     {
-        _allocator = allocator;
+        _memoryPool = allocator;
         _owner = HeapMemoryOwner<T>.Empty;
     }
 
@@ -54,7 +54,7 @@ internal struct WritableBuffer<T> : IDisposable where T : unmanaged, IBinaryInte
 
         if ((_memory.Length - _index) < value.Length)
         {
-            _memory = _allocator.EnsureCapacity(ref _owner, Math.Max(value.Length + _index, 256), copyOnResize: true);
+            _memory = _memoryPool.EnsureCapacity(ref _owner, Math.Max(value.Length + _index, 256), copyOnResize: true);
         }
 
         int start = _index;

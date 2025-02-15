@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Reflection;
 using System.Reflection.Metadata;
+using FlameCsv.Enumeration;
 using FlameCsv.Tests.Binding;
 using FlameCsv.Tests.TestData;
 using FlameCsv.Utilities;
@@ -32,7 +33,7 @@ public static class HotReloadTests
         Assert.Same(mh, ObjTypeMap_Simple.Default.GetMaterializer(["a", "b", "c"], CsvOptions<char>.Default));
 
         // record
-        using var state = new EnumeratorState<char>(CsvOptions<char>.Default);
+        using var state = new CsvRecordEnumerator<char>(default, CsvOptions<char>.Default);
         state.MaterializerCache.Add(new object(), new object());
 
         // trimming caches

@@ -15,7 +15,7 @@ public readonly ref struct CsvRecordCallbackArgs<T> where T : unmanaged, IBinary
     private readonly ref bool _headerRead;
 
     internal CsvRecordCallbackArgs(
-        CsvLine<T> line,
+        ref readonly CsvLine<T> line,
         ReadOnlySpan<string> header,
         int lineIndex,
         long position,

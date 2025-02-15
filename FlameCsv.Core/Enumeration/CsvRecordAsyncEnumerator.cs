@@ -88,7 +88,7 @@ public sealed class CsvRecordAsyncEnumerator<T> : CsvRecordEnumeratorBase<T>, IA
     /// <summary>Disposes the undlerying data source.</summary>
     public async ValueTask DisposeAsync()
     {
-        if (!_disposed)
+        if (!IsDisposed)
         {
             await using (_reader.ConfigureAwait(false))
             {
@@ -97,9 +97,10 @@ public sealed class CsvRecordAsyncEnumerator<T> : CsvRecordEnumeratorBase<T>, IA
         }
     }
 
-    private protected override void Dispose(bool disposing)
+    /// <inheritdoc />
+    protected override void Dispose(bool disposing)
     {
-        if (!_disposed)
+        if (!IsDisposed)
         {
             using (_reader)
             {
