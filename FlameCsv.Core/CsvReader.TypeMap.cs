@@ -128,8 +128,8 @@ public static partial class CsvReader
             ArgumentOutOfRangeException.ThrowIfLessThan(bufferSize, 1);
 
         options ??= CsvOptions<char>.Default;
-        var textReader = new StreamReader(stream, encoding: encoding, bufferSize: bufferSize, leaveOpen: leaveOpen);
-        var reader = new TextPipeReader(textReader, bufferSize, options._memoryPool);
+        StreamReader textReader = new(stream, encoding: encoding, bufferSize: bufferSize, leaveOpen: leaveOpen);
+        ICsvPipeReader<char> reader = CreatePipeReader(textReader, options._memoryPool, bufferSize);
         return new CsvTypeMapAsyncEnumerable<char, TValue>(
             reader,
             options,
@@ -151,7 +151,7 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(typeMap);
 
         options ??= CsvOptions<char>.Default;
-        var reader = new TextPipeReader(textReader, DefaultBufferSize, options._memoryPool);
+        ICsvPipeReader<char> reader = CreatePipeReader(textReader, options._memoryPool, DefaultBufferSize);
         return new CsvTypeMapAsyncEnumerable<char, TValue>(reader, options, typeMap);
     }
 
