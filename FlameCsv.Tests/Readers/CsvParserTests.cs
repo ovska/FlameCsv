@@ -92,7 +92,7 @@ public class CsvParserTests
             "Oslo, Norway",
         ];
 
-        parser.Reset(MemorySegment<char>.AsSequence(data.AsMemory(), 64));
+        parser.SetData(MemorySegment<char>.AsSequence(data.AsMemory(), 64));
         var buffer = new char[64];
 
         for (int lineIndex = 0; lineIndex < 3; lineIndex++)
@@ -114,7 +114,7 @@ public class CsvParserTests
     public void Should_Fail_If_Autodetected_Newline_Not_Found()
     {
         using var parser = CsvParser.Create(new CsvOptions<char> { Newline = null });
-        parser.Reset(new ReadOnlySequence<char>(new string('x', 4096).AsMemory()));
+        parser.SetData(new ReadOnlySequence<char>(new string('x', 4096).AsMemory()));
         Assert.Throws<CsvFormatException>(() => parser.TryReadLine(out _, false));
     }
 
@@ -130,7 +130,7 @@ public class CsvParserTests
             """;
 
         using var parser = CsvParser.Create(new CsvOptions<char> { Newline = "\n" });
-        parser.Reset(new(data.AsMemory()));
+        parser.SetData(new(data.AsMemory()));
 
         Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
         Assert.Equal("1,2,3", line.Record.ToString());
@@ -143,5 +143,56 @@ public class CsvParserTests
 
         Assert.False(parser.TryReadLine(out _, isFinalBlock: false));
         Assert.False(parser.TryReadLine(out _, isFinalBlock: true));
+    }
+
+    [Fact]
+    public async Task Should_Handle_Advance_Before_Buffered_Lines_Read()
+    {
+        const string data =
+            """
+            1,2,3
+            4,5,6
+            7,8,9
+            """;
+
+        await using var reader = new ConstantPipeReader<char>(
+            data.AsMemory(),
+            Stream.Null,
+            false,
+            static (_, _) => { });
+
+        CsvReadResult<char> result = await reader.ReadAsync();
+
+        Assert.Equal(data.AsMemory(), result.Buffer.ToArray());
+
+        using var parser = CsvParser.Create(CsvOptions<char>.Default);
+        parser.SetData(result.Buffer);
+
+        Assert.False(parser.TryGetBuffered(out _));
+
+        Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
+        Assert.Equal("1,2,3", line.Record.ToString());
+
+        parser.AdvanceReader(reader);
+
+        result = await reader.ReadAsync();
+        Assert.Equal(
+            """
+                4,5,6
+                7,8,9
+                """
+                .ToCharArray(),
+            result.Buffer.ToArray());
+
+        Assert.False(parser.TryGetBuffered(out line)); // buffer is cleared on Advance
+        Assert.True(parser.TryReadLine(out line, false));
+        Assert.Equal("4,5,6", line.Record.ToString());
+
+        // no trailing newline
+        Assert.False(parser.TryGetBuffered(out _));
+        Assert.False(parser.TryReadLine(out _, false));
+
+        Assert.True(parser.TryReadLine(out line, isFinalBlock: true));
+        Assert.Equal("7,8,9", line.Record.ToString());
     }
 }

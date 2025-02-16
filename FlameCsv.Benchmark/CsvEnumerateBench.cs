@@ -33,7 +33,7 @@ public class CsvEnumerateBench
     {
         Span<byte> unescapeBuffer = stackalloc byte[256];
         using var parser = CsvParser.Create(_optionsByte);
-        parser.Reset(in _byteSeq);
+        parser.SetData(in _byteSeq);
 
         while (parser.TryReadLine(out var line, isFinalBlock: false))
         {
@@ -50,7 +50,7 @@ public class CsvEnumerateBench
     {
         Span<char> unescapeBuffer = stackalloc char[128];
         using var parser = CsvParser.Create(_optionsChar);
-        parser.Reset(in _charSeq);
+        parser.SetData(in _charSeq);
 
         while (parser.TryReadLine(out var line, isFinalBlock: false))
         {

@@ -48,13 +48,13 @@ public sealed class CsvRecordAsyncEnumerator<T> : CsvRecordEnumeratorBase<T>, IA
     {
         while (!_readerCompleted)
         {
-            _parser.Advance(_reader);
+            _parser.AdvanceReader(_reader);
 
             (ReadOnlySequence<T> sequence, bool completed) = await _reader
                 .ReadAsync(_cancellationToken)
                 .ConfigureAwait(false);
 
-            _parser.Reset(in sequence);
+            _parser.SetData(in sequence);
             _readerCompleted = completed;
 
             if (MoveNextCore())

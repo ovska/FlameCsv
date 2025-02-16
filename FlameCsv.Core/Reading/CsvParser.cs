@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -66,12 +67,6 @@ public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged,
     /// Current options instance.
     /// </summary>
     public CsvOptions<T> Options { get; }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void Advance(ICsvPipeReader<T> pipeReader)
-    {
-        pipeReader.AdvanceTo(consumed: _sequence.Start, examined: _sequence.End);
-    }
 
     internal readonly CsvDialect<T> _dialect;
     internal NewlineBuffer<T> _newline;
@@ -159,11 +154,11 @@ public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged,
     }
 
     /// <summary>
-    /// Resets the data of the reader.
-    /// Call this after initialization, and after reading a new sequence from an async data source.
+    /// Sets or resets the data of the parser.<br/>
+    /// This method should be called after initialization, and after reading a new sequence from an async data source.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Reset(in ReadOnlySequence<T> sequence)
+    public void SetData(in ReadOnlySequence<T> sequence)
     {
         _metaCount = 0;
         _metaIndex = 0;
@@ -183,14 +178,55 @@ public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged,
     }
 
     /// <summary>
-    /// Attempts to read a complete well-formed line (CSV record) from the underlying data.
+    /// Attempts to return a complete CSV record from the read-ahead buffer.
+    /// </summary>
+    /// <param name="line">Line containing the record's fields up to the newline</param>
+    /// <returns>
+    /// <see langword="true"/> if a record was read,
+    /// <see langword="false"/> if the buffer is empty or the record is incomplete.
+    /// </returns>
+    [SkipLocalsInit]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public bool TryGetBuffered(out CsvLine<T> line)
+    {
+        if (_metaIndex < _metaCount)
+        {
+            ref Meta metaRef = ref MemoryMarshal.GetArrayDataReference(_metaArray);
+
+            if (Meta.TryFindNextEOL(
+                    first: ref Unsafe.Add(ref metaRef, 1 + _metaIndex),
+                    end: _metaCount - _metaIndex + 1,
+                    index: out int fieldCount))
+            {
+                MetaSegment fields = new() { array = _metaArray, count = fieldCount + 1, offset = _metaIndex };
+                line = new CsvLine<T>(
+                    parser: this,
+                    data: _metaMemory,
+                    fields: Unsafe.As<MetaSegment, ArraySegment<Meta>>(ref fields));
+
+                _metaIndex += fieldCount;
+                return true;
+            }
+        }
+
+        Unsafe.SkipInit(out line);
+        return false;
+    }
+
+    /// <summary>
+    /// Attempts to read a complete CSV record from the read-ahead buffer,
+    /// or from the underlying data supplied in <see cref="SetData"/>.
     /// </summary>
     /// <param name="line">CSV record</param>
     /// <param name="isFinalBlock">
     /// Determines whether any more data can be expected after this read.
     /// When <see langword="true"/>, the parser will return leftover data even without a trailing newline.
     /// </param>
-    /// <returns>True if a record was read</returns>
+    /// <returns>
+    /// <see langword="true"/> if a record was read,
+    /// <see langword="false"/> if no record can be read from the underlying data or the read-ahead buffer.
+    /// </returns>
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryReadLine(out CsvLine<T> line, bool isFinalBlock)
@@ -215,11 +251,24 @@ public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged,
             }
         }
 
-        return TryReadSlow(out line, isFinalBlock);
+        return TryReadUnbuffered(out line, isFinalBlock);
     }
 
+    /// <summary>
+    /// Attempts to read a complete CSV record from the underlying data supplied in <see cref="SetData"/>.
+    /// If newline is empty, first call to this method will auto-detect the newline.
+    /// </summary>
+    /// <param name="line">CSV record</param>
+    /// <param name="isFinalBlock">
+    /// Determines whether any more data can be expected after this read.
+    /// When <see langword="true"/>, the parser will return leftover data even without a trailing newline.
+    /// </param>
+    /// <returns>
+    /// <see langword="true"/> if a record was read,
+    /// <see langword="false"/> if no record can be read from the underlying data.
+    /// </returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private bool TryReadSlow(out CsvLine<T> line, bool isFinalBlock)
+    public bool TryReadUnbuffered(out CsvLine<T> line, bool isFinalBlock)
     {
         if (_newline.Length == 0 && !TryPeekNewline())
         {
@@ -291,6 +340,21 @@ public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged,
     }
 
     /// <summary>
+    /// Advances the reader by how much data was read from the sequence passed with <see cref="SetData"/>.
+    /// </summary>
+    /// <param name="reader">Reader instance</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void AdvanceReader(ICsvPipeReader<T> reader)
+    {
+        if (_metaIndex != 0)
+        {
+            AdvanceAndResetMeta();
+        }
+
+        reader.AdvanceTo(consumed: _sequence.Start, examined: _sequence.End);
+    }
+
+    /// <summary>
     /// Maximum amount of data to read before throwing when auto-detecting newline.
     /// </summary>
     public const int MaxNewlineDetectionLength = 1024;
@@ -299,7 +363,6 @@ public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged,
     /// Attempt to auto-detect newline from the data.
     /// </summary>
     /// <returns>True if the current sequence contained a CRLF or LF (checked in that order)</returns>
-    [MethodImpl(MethodImplOptions.NoInlining)]
     protected bool TryPeekNewline()
     {
         if (_newline.Length != 0)

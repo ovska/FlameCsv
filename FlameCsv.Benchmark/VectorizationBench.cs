@@ -43,7 +43,7 @@ public class VectorizationBench
     public void NoBuffering()
     {
         using var parser = CsvParser.Create(_nobuffering);
-        parser.Reset(new(GetData()));
+        parser.SetData(new(GetData()));
 
         int i = 0;
         while (parser.TryReadLine(out var line, false) && ((i += (line.Fields.Length - 1)) < 131072))
