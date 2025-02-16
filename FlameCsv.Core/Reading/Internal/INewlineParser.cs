@@ -57,7 +57,7 @@ internal interface INewlineParser<T, TVector> : INewline<T>
 }
 
 [SkipLocalsInit]
-internal readonly ref struct NewlineParserOne<T, TVector>(T first) : INewlineParser<T, TVector>
+internal readonly struct NewlineParserOne<T, TVector>(T first) : INewlineParser<T, TVector>
     where T : unmanaged, IBinaryInteger<T>
     where TVector : struct, ISimdVector<T, TVector>
 {
@@ -91,7 +91,7 @@ internal readonly ref struct NewlineParserOne<T, TVector>(T first) : INewlinePar
 }
 
 [SkipLocalsInit]
-internal readonly ref struct NewlineParserTwo<T, TVector>(T first, T second) : INewlineParser<T, TVector>
+internal readonly struct NewlineParserTwo<T, TVector>(T first, T second) : INewlineParser<T, TVector>
     where T : unmanaged, IBinaryInteger<T>
     where TVector : struct, ISimdVector<T, TVector>
 {

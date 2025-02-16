@@ -91,6 +91,12 @@ internal static class Throw
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public static void NotSupported(string message)
+    {
+        throw new NotSupportedException(message);
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void InvalidData_FieldCount(int expected, int actual)
     {
         throw new CsvReadException($"The CSV record has {actual} fields, but {expected} were expected.");

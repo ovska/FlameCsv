@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using FlameCsv.Enumeration;
 
 namespace FlameCsv.Exceptions;
@@ -11,4 +13,12 @@ namespace FlameCsv.Exceptions;
 /// </remarks>
 public sealed class CsvFormatException(
     string? message = null,
-    Exception? innerException = null) : Exception(message, innerException);
+    Exception? innerException = null) : Exception(message, innerException)
+{
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    internal static void Throw(string? message = null, Exception? innerException = null)
+    {
+        throw new CsvFormatException(message, innerException);
+    }
+}

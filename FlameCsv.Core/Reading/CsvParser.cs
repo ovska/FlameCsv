@@ -128,6 +128,12 @@ public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged,
         _newline = options.Dialect.GetNewlineOrDefault();
         _metaArray = [];
         _canUseFastPath = !options.NoReadAhead && _dialect.IsAscii;
+
+        GetUnescapeBuffer = (length =>
+        {
+            ObjectDisposedException.ThrowIf(IsDisposed, this);
+            return Options._memoryPool.EnsureCapacity(ref _unescapeBuffer, length, copyOnResize: false).Span;
+        });
     }
 
     /// <summary>
@@ -164,17 +170,6 @@ public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged,
         _metaIndex = 0;
         _metaMemory = default; // don't hold on to the memory from last read
         _sequence = sequence;
-    }
-
-    /// <summary>
-    /// Returns a buffer to unescape fields into.
-    /// </summary>
-    /// <param name="length">Minimum length of the returned span</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected internal Span<T> GetUnescapeBuffer(int length)
-    {
-        ObjectDisposedException.ThrowIf(IsDisposed, this);
-        return Options._memoryPool.EnsureCapacity(ref _unescapeBuffer, length, copyOnResize: false).Span;
     }
 
     /// <summary>
@@ -465,9 +460,9 @@ public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged,
         }
 
         // over a thousand fields?
-        if (_metaArray.Length < fields.Length)
+        if (_metaArray.Length < (fields.Length + 1))
         {
-            _metaArray = new Meta[fields.Length];
+            _metaArray = new Meta[fields.Length + 1];
         }
 
         _metaArray[0] = Meta.StartOfData;
@@ -507,6 +502,8 @@ public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged,
             _multisegmentBuffer = null;
         }
     }
+
+    internal readonly Func<int, Span<T>> GetUnescapeBuffer;
 }
 
 // ReSharper disable NotAccessedField.Local

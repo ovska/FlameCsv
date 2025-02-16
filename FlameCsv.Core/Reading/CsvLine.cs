@@ -123,7 +123,12 @@ public readonly struct CsvLine<T> : ICsvRecordFields<T> where T : unmanaged, IBi
         }
 
         return Fields[index + 1]
-            .GetField(dialect: in Parser._dialect, start: start, data: data, buffer: buffer, parser: Parser);
+            .GetField(
+                dialect: in Parser._dialect,
+                start: start,
+                data: data,
+                buffer: buffer,
+                getBuffer: Parser.GetUnescapeBuffer);
     }
 
     /// <summary>
@@ -132,7 +137,7 @@ public readonly struct CsvLine<T> : ICsvRecordFields<T> where T : unmanaged, IBi
     public Enumerator GetEnumerator()
     {
         Throw.IfDefaultStruct(Parser is null, typeof(CsvLine<T>));
-        var reader = new MetaFieldReader<T>(in this);
+        var reader = new MetaFieldReader<T>(in this, Parser.GetUnescapeBuffer);
         return new Enumerator(reader);
     }
 
@@ -171,5 +176,22 @@ public readonly struct CsvLine<T> : ICsvRecordFields<T> where T : unmanaged, IBi
             return false;
         }
     }
-}
 
+    /// <summary>
+    /// Returns true if the record cannot be considered "self-contained", e.g., data needs to be copied to an
+    /// unescape buffer.
+    /// </summary>
+    internal bool NeedsUnescapeBuffer
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            foreach (var meta in Fields)
+            {
+                if (meta.SpecialCount > 2) return true;
+            }
+
+            return false;
+        }
+    }
+}

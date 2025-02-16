@@ -1,16 +1,64 @@
 ﻿using System.Collections.Frozen;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance.Buffers;
+using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
+using FlameCsv.Reading;
 using FlameCsv.Utilities;
+using JetBrains.Annotations;
 
 namespace FlameCsv;
 
 /// <summary>
 /// Represents the header of a CSV file.
 /// </summary>
+[PublicAPI]
 public sealed class CsvHeader
 {
+    /// <summary>
+    /// Parses headers from the reader.
+    /// </summary>
+    /// <param name="options">Options instance to get the comparer and transcoding functions from</param>
+    /// <param name="reader">CSV record reader</param>
+    /// <typeparam name="T">Token type</typeparam>
+    /// <typeparam name="TReader">Record field reader</typeparam>
+    /// <returns>Parsed CSV header</returns>
+    /// <exception cref="CsvFormatException">Thrown when a duplicate header field is found</exception>
+    internal static CsvHeader Parse<T, TReader>(
+        CsvOptions<T> options,
+        ref TReader reader)
+        where T : unmanaged, IBinaryInteger<T>
+        where TReader : ICsvRecordFields<T>, allows ref struct
+    {
+        IEqualityComparer<string> comparer = options.Comparer;
+
+        StringScratch scratch = default;
+        using ValueListBuilder<string> list = new(scratch);
+        Span<char> charBuffer = stackalloc char[128];
+
+        for (int field = 0; field < reader.FieldCount; field++)
+        {
+            list.Append(Get(options, reader[field], charBuffer));
+        }
+
+        ReadOnlySpan<string> headers = list.AsSpan();
+
+        if (headers.IsEmpty) CsvFormatException.Throw("CSV header was empty");
+
+        for (int i = 0; i < headers.Length; i++)
+        {
+            for (int j = 0; j < headers.Length; j++)
+            {
+                if (i != j && comparer.Equals(headers[i], headers[j]))
+                {
+                    ThrowExceptionForDuplicateHeaderField(i, j, headers);
+                }
+            }
+        }
+
+        return new CsvHeader(comparer, headers);
+    }
+
     /// <summary>
     /// Retrieves a string representation of the given value using the provided options.
     /// </summary>
@@ -178,7 +226,15 @@ public sealed class CsvHeader
                     yield return _scratch[index]!;
                 }
             }
-
         }
+    }
+
+    private static void ThrowExceptionForDuplicateHeaderField(
+        int index1,
+        int index2,
+        ReadOnlySpan<string> headers)
+    {
+        throw new CsvFormatException(
+            $"Duplicate header field \"{headers[index1]}\" in at indexes {index1} and {index2}: [{UtilityExtensions.JoinValues(headers)}]");
     }
 }

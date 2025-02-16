@@ -1,6 +1,10 @@
-﻿using System.Text;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Text;
 using FlameCsv.Binding;
 using FlameCsv.Enumeration;
+using FlameCsv.Parallel;
+using FlameCsv.Reading;
 using FlameCsv.Tests.TestData;
 
 // ReSharper disable ConvertIfStatementToSwitchStatement
@@ -56,5 +60,34 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
         Assert.True(obj.IsEnabled);
         Assert.Equal(DateTime.UnixEpoch, obj.LastLogin);
         Assert.Equal(Guid.Empty, obj.Token);
+    }
+
+    [Fact]
+    public void AAAATEST()
+    {
+        var data = TestDataGenerator.Generate<char>(NewlineToken.CRLF, true, true, Mode.RFC);
+        var test = CsvParallelReader.Enumerate<Obj, Selector>(new(data),new()).WithExecutionMode(ParallelExecutionMode.ForceParallelism).WithMergeOptions(ParallelMergeOptions.NotBuffered).ToList();
+    }
+
+    readonly struct Selector() : ICsvParallelTryInvoke<char, Obj>
+    {
+        private readonly StrongBox<IMaterializer<char, Obj>> _materializer = new();
+
+        public bool TryInvoke<TReader>(scoped ref TReader reader, in CsvParallelState state, [NotNullWhen(true)] out Obj? result)
+            where TReader : ICsvRecordFields<char>, allows ref struct
+        {
+            if (_materializer.Value is null)
+            {
+                _materializer.Value = ObjCharTypeMap.Default.GetMaterializer(
+                    ["Id", "Name", "IsEnabled", "LastLogin", "Token"],
+                    CsvOptions<char>.Default);
+
+                result = null;
+                return false;
+            }
+
+            result = _materializer.Value.Parse(ref reader);
+            return true;
+        }
     }
 }

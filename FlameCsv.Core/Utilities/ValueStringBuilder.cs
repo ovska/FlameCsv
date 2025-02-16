@@ -87,6 +87,9 @@ internal ref partial struct ValueStringBuilder
         }
     }
 
+    /// <summary>
+    /// Returns the string and disposes.
+    /// </summary>
     public override string ToString()
     {
         string s = _chars.Slice(0, _pos).ToString();

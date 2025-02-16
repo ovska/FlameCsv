@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
-using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Utilities;
@@ -18,27 +17,15 @@ namespace FlameCsv.Enumeration;
 /// The enumerator should always be disposed after use, either explicitly or using <c>foreach</c>.
 /// </remarks>
 [MustDisposeResource]
-public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanaged, IBinaryInteger<T>
+public abstract class CsvRecordEnumeratorBase<T> where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
-    /// Gets the current record.
-    /// </summary>
-    /// <remarks>
-    /// The value should not be held onto after the enumeration continues or ends, as the records might wrap
-    /// shared or pooled memory.
-    /// If you must, convert the record to <see cref="CsvRecord{T}"/>.
-    /// </remarks>
-    /// <exception cref="ObjectDisposedException"/>
-    /// <exception cref="InvalidOperationException"/>
-    public CsvValueRecord<T> Current => _current._options is not null ? _current : ThrowInvalidCurrentAccess();
-
-    /// <summary>
-    /// Logical 1-based line where <see cref="Current"/> is in the CSV.
+    /// Logical 1-based line where the current record is in the CSV.
     /// </summary>
     public int Line { get; protected set; }
 
     /// <summary>
-    /// Absolute position in the data source where <see cref="Current"/> starts.
+    /// Absolute position in the data source where current record starts.
     /// </summary>
     public long Position { get; protected set; }
 
@@ -223,51 +210,21 @@ public abstract class CsvRecordEnumeratorBase<T> : IDisposable where T : unmanag
         }
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private CsvHeader CreateHeader(ref readonly CsvLine<T> headerRecord)
     {
-        StringScratch scratch = default;
-        using ValueListBuilder<string> list = new(scratch);
-        Span<char> charBuffer = stackalloc char[128];
-
         MetaFieldReader<T> reader = new(in headerRecord, stackalloc T[Token<T>.StackLength]);
-
-        for (int field = 0; field < reader.FieldCount; field++)
-        {
-            list.Append(CsvHeader.Get(_parser.Options, reader[field], charBuffer));
-        }
-
-        ReadOnlySpan<string> headers = list.AsSpan();
-
-        for (int i = 0; i < headers.Length; i++)
-        {
-            for (int j = 0; j < headers.Length; j++)
-            {
-                if (i != j && _parser.Options.Comparer.Equals(headers[i], headers[j]))
-                {
-                    ThrowExceptionForDuplicateHeaderField(i, j, headers[i], headerRecord.Record);
-                }
-            }
-        }
-
-        return new CsvHeader(_parser.Options.Comparer, headers);
+        return CsvHeader.Parse(_parser.Options, ref reader);
     }
 
-    private CsvValueRecord<T> ThrowInvalidCurrentAccess()
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private protected void ThrowInvalidCurrentAccess()
     {
         if (_version == -1)
             Throw.ObjectDisposed_Enumeration();
 
         throw new InvalidOperationException("Current was accessed before the enumeration started.");
     }
-
-    private static void ThrowExceptionForDuplicateHeaderField(
-        int index1,
-        int index2,
-        string field,
-        ReadOnlyMemory<T> record)
-    {
-        throw new CsvFormatException(
-            $"Duplicate header field \"{field}\" in fields {index1} and {index2} in CSV: " +
-            record.Span.AsPrintableString());
-    }
 }
+

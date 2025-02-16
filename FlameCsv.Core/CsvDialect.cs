@@ -118,6 +118,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     /// <summary>
     /// Returns the underlying storage for <see cref="Whitespace"/>.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal T[]? GetWhitespaceArray() => _whitespace;
 
     /// <summary>
