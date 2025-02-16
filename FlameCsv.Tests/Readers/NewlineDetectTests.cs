@@ -47,7 +47,6 @@ public static class NewlineDetectTests
             ReadOnlyMemory<T> input) where T : unmanaged, IBinaryInteger<T>
         {
             using var parser = CsvParser.Create(options);
-            Assert.ThrowsAny<InvalidOperationException>(() => parser.NewlineLength);
 
             parser.Reset(new ReadOnlySequence<T>(input));
             Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
@@ -56,7 +55,6 @@ public static class NewlineDetectTests
             Assert.Equal([T.CreateChecked('A')], reader[0]);
             Assert.Equal([T.CreateChecked('B')], reader[1]);
             Assert.Equal([T.CreateChecked('C')], reader[2]);
-
 
             Assert.True(parser.TryReadLine(out _, isFinalBlock: false));
         }

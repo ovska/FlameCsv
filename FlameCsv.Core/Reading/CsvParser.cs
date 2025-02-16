@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading.Internal;
@@ -14,8 +13,31 @@ namespace FlameCsv.Reading;
 /// <summary>
 /// Provides a factory method for creating <see cref="CsvParser{T}"/> instances.
 /// </summary>
-public static class CsvParser
+public abstract class CsvParser
 {
+    // TODO: profile and adjust
+    private protected const int BufferedFields = 4096;
+
+    [ThreadStatic] private static Meta[]? StaticMetaBuffer;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private protected static Meta[] GetMetaBuffer()
+    {
+        Meta[] array = StaticMetaBuffer ?? new Meta[BufferedFields];
+        StaticMetaBuffer = null;
+        return array;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private protected static void ReturnMetaBuffer(ref Meta[] array)
+    {
+        // return the buffer to the thread-static unless someone read over a thousand fields into it
+        if (array.Length == BufferedFields)
+        {
+            StaticMetaBuffer ??= array;
+        }
+    }
+
     /// <summary>
     /// Creates a new instance of a CSV parser.
     /// </summary>
@@ -38,35 +60,12 @@ public static class CsvParser
 /// Internal implementation detail, this type should not be used directly unless you know what you are doing.
 /// </remarks>
 [MustDisposeResource]
-public abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryInteger<T>
+public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged, IBinaryInteger<T>
 {
-    // TODO: profile and adjust
-    private protected const int BufferedFields = 1024;
-
     /// <summary>
     /// Current options instance.
     /// </summary>
     public CsvOptions<T> Options { get; }
-
-    /// <summary>
-    /// Length of the newline sequence.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">
-    /// Options has no explicit newline configured, and the parser hasn't auto-detected a newline yet.
-    /// </exception>
-    public int NewlineLength
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            if (_newline.Length == 0)
-            {
-                Throw.InvalidOperation("Auto-detected newline not initialized");
-            }
-
-            return _newline.Length;
-        }
-    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void Advance(ICsvPipeReader<T> pipeReader)
@@ -245,7 +244,7 @@ public abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryInt
             // delay the rent until first read
             if (_metaArray.Length == 0)
             {
-                _metaArray = ArrayPool<Meta>.Shared.Rent(BufferedFields);
+                _metaArray = GetMetaBuffer();
                 _metaArray[0] = Meta.StartOfData; // the first meta should be one delimiter "behind"
             }
 
@@ -397,7 +396,17 @@ public abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryInt
         Debug.Assert(fields.Length != 0);
         Debug.Assert(_metaIndex == _metaCount);
 
-        ArrayPool<Meta>.Shared.EnsureCapacity(ref _metaArray, Math.Max(BufferedFields, fields.Length + 1));
+        if (_metaArray.Length == 0)
+        {
+            _metaArray = GetMetaBuffer();
+        }
+
+        // over a thousand fields?
+        if (_metaArray.Length < fields.Length)
+        {
+            _metaArray = new Meta[fields.Length];
+        }
+
         _metaArray[0] = Meta.StartOfData;
         fields.CopyTo(_metaArray.AsSpan(start: 1));
         return new ArraySegment<Meta>(_metaArray, 0, fields.Length + 1);
@@ -427,7 +436,7 @@ public abstract class CsvParser<T> : IDisposable where T : unmanaged, IBinaryInt
                 _sequence = default;
                 _metaMemory = default;
 
-                ArrayPool<Meta>.Shared.Return(_metaArray);
+                ReturnMetaBuffer(ref _metaArray);
                 _metaArray = [];
             }
 
