@@ -49,13 +49,13 @@ public abstract class CsvValueAsyncEnumeratorBase<T, TValue> : CsvValueEnumerato
     {
         while (!_readerCompleted)
         {
-            _parser.Advance(_reader);
+            _parser.AdvanceReader(_reader);
 
             (ReadOnlySequence<T> sequence, bool readerCompleted) = await _reader
                 .ReadAsync(_cancellationToken)
                 .ConfigureAwait(false);
 
-            _parser.Reset(in sequence);
+            _parser.SetData(in sequence);
             _readerCompleted = readerCompleted;
 
             if (TryRead(isFinalBlock: false))

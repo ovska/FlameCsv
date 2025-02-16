@@ -16,7 +16,7 @@ public sealed class CsvValueEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TV
     internal CsvValueEnumerator(in ReadOnlySequence<T> csv, CsvOptions<T> options) : base(options)
     {
         _csv = csv;
-        _parser.Reset(in csv);
+        _parser.SetData(in csv);
     }
 
     /// <inheritdoc cref="IEnumerator.MoveNext"/>
@@ -44,5 +44,5 @@ public sealed class CsvValueEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TV
     object IEnumerator.Current => Current!;
 
     /// <inheritdoc />
-    public void Reset() => _parser.Reset(in _csv);
+    public void Reset() => _parser.SetData(in _csv);
 }

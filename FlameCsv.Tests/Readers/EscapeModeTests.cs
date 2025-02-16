@@ -12,7 +12,7 @@ file static class Extensions
         CsvOptions<char> options)
     {
         using var parser = CsvParser.Create(options);
-        parser.Reset(input);
+        parser.SetData(input);
 
         List<List<string>> records = [];
         IMemoryOwner<char>? memoryOwner = null;
