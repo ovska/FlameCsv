@@ -20,7 +20,7 @@ public sealed class CsvTypeMapEnumerator<T, TValue> : CsvValueEnumeratorBase<T, 
         ArgumentNullException.ThrowIfNull(typeMap);
         _typeMap = typeMap;
         _csv = csv;
-        _parser.Reset(in csv);
+        _parser.SetData(in csv);
     }
 
     /// <inheritdoc cref="IEnumerator.MoveNext"/>
@@ -48,5 +48,5 @@ public sealed class CsvTypeMapEnumerator<T, TValue> : CsvValueEnumeratorBase<T, 
     object IEnumerator.Current => Current!;
 
     /// <inheritdoc />
-    public void Reset() => _parser.Reset(in _csv);
+    public void Reset() => _parser.SetData(in _csv);
 }

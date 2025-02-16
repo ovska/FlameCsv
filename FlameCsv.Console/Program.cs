@@ -45,7 +45,7 @@ namespace FlameCsv.Console
 
             for (int x = 0; x < 1_000; x++)
             {
-                parser.Reset(in _byteSeq);
+                parser.SetData(in _byteSeq);
 
                 if (x == 100) MeasureProfiler.StartCollectingData();
 

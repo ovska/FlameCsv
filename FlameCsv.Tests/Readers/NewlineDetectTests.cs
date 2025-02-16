@@ -48,7 +48,7 @@ public static class NewlineDetectTests
         {
             using var parser = CsvParser.Create(options);
 
-            parser.Reset(new ReadOnlySequence<T>(input));
+            parser.SetData(new ReadOnlySequence<T>(input));
             Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
 
             var reader = new MetaFieldReader<T>(in line, stackalloc T[8]);
@@ -76,7 +76,7 @@ public static class NewlineDetectTests
             (new string('x', 4096) + newlineStr).AsMemory(),
             bufferSize: segments ? 2048 : -1);
 
-        parser.Reset(in data);
+        parser.SetData(in data);
         if (shouldThrow) Assert.Throws<CsvFormatException>(() => { _ = parser.TryReadLine(out _, false); });
     }
 

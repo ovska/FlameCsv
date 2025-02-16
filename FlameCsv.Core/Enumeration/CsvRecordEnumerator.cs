@@ -15,7 +15,7 @@ public sealed class CsvRecordEnumerator<T> : CsvRecordEnumeratorBase<T>, IEnumer
         CsvOptions<T> options)
         : base(options)
     {
-        _parser.Reset(new ReadOnlySequence<T>(data));
+        _parser.SetData(new ReadOnlySequence<T>(data));
     }
 
     internal CsvRecordEnumerator(
@@ -23,7 +23,7 @@ public sealed class CsvRecordEnumerator<T> : CsvRecordEnumeratorBase<T>, IEnumer
         CsvOptions<T> options)
         : base(options)
     {
-        _parser.Reset(in data);
+        _parser.SetData(in data);
     }
 
     /// <inheritdoc />
