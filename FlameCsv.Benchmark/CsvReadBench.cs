@@ -15,14 +15,22 @@ public partial class CsvReadBench
         _bytes = File.ReadAllBytes(
             "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv");
 
-        var header = "Index,Name,Contact,Count,Latitude,Longitude,Height,Location,Category,Popularity\r\n"u8;
+        _newline = _bytes[_bytes.AsSpan().IndexOf((byte)'\n') - 1] == (byte)'\r' ? "\r\n" : "\n";
+
+        var header = "Index,Name,Contact,Count,Latitude,Longitude,Height,Location,Category,Popularity"u8
+            .ToArray()
+            .Concat(Encoding.UTF8.GetBytes(_newline))
+            .ToArray();
+
         _bytesHeader = new byte[header.Length + _bytes.Length];
-        header.CopyTo(_bytesHeader);
+        header.AsSpan().CopyTo(_bytesHeader);
         _bytes.CopyTo(_bytesHeader, header.Length);
 
         _chars = Encoding.UTF8.GetString(_bytes);
         _charsHeader = Encoding.UTF8.GetString(_bytesHeader);
     }
+
+    private static string _newline;
 
     private static readonly byte[] _bytes;
     private static readonly byte[] _bytesHeader;
@@ -36,16 +44,16 @@ public partial class CsvReadBench
     public bool Header { get; set; } = true;
 
     private static readonly CsvOptions<char> _withHeader
-        = new() { HasHeader = true, Converters = { new FloatTextParser() } };
+        = new() { HasHeader = true, Newline = _newline, Converters = { new FloatTextParser() } };
 
     private static readonly CsvOptions<char> _withoutHeader
-        = new() { HasHeader = false, Converters = { new FloatTextParser() } };
+        = new() { HasHeader = false, Newline = _newline, Converters = { new FloatTextParser() } };
 
     private static readonly CsvOptions<byte> _bwithHeader
-        = new() { HasHeader = true, Converters = { new FloatUtf8Parser() } };
+        = new() { HasHeader = true, Newline = _newline, Converters = { new FloatUtf8Parser() } };
 
     private static readonly CsvOptions<byte> _bwithoutHeader
-        = new() { HasHeader = false, Converters = { new FloatUtf8Parser() } };
+        = new() { HasHeader = false, Newline = _newline, Converters = { new FloatUtf8Parser() } };
 
     private CsvOptions<char> OptionsInstance => Header ? _withHeader : _withoutHeader;
     private CsvOptions<byte> OptionsInstanceB => Header ? _bwithHeader : _bwithoutHeader;
@@ -55,7 +63,7 @@ public partial class CsvReadBench
     {
         var config = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture)
         {
-            NewLine = Environment.NewLine, HasHeaderRecord = Header,
+            NewLine = _newline, HasHeaderRecord = Header,
         };
 
         using var reader = new StreamReader(GetFileStream(), Encoding.UTF8);
@@ -67,7 +75,7 @@ public partial class CsvReadBench
         }
     }
 
-    [Benchmark(Baseline = true)]
+    // [Benchmark(Baseline = true)]
     public void HelperText()
     {
         var config = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture)
@@ -84,7 +92,7 @@ public partial class CsvReadBench
         }
     }
 
-    [Benchmark]
+    // [Benchmark]
     public void FlameText()
     {
         foreach (var record in CsvReader.Read<Entry>(Header ? _charsHeader : _chars, OptionsInstance))
@@ -102,7 +110,7 @@ public partial class CsvReadBench
         }
     }
 
-    [Benchmark]
+    // [Benchmark]
     public void FlameText_SG()
     {
         foreach (var record in CsvReader.Read(
@@ -114,7 +122,7 @@ public partial class CsvReadBench
         }
     }
 
-    // [Benchmark]
+    [Benchmark]
     public void FlameUtf8_SG()
     {
         foreach (var record in CsvReader.Read(
@@ -123,6 +131,19 @@ public partial class CsvReadBench
                      OptionsInstanceB))
         {
             _ = record;
+        }
+    }
+
+    [Benchmark]
+    public void FlameParallel()
+    {
+        var query = CsvParallelReader.Read(
+            Header ? _bytesHeader : _bytes,
+            EntryTypeMap_Utf8.Default,
+            OptionsInstanceB);
+
+        foreach (var record in query.AsOrdered().WithMergeOptions(ParallelMergeOptions.NotBuffered))
+        {
         }
     }
 

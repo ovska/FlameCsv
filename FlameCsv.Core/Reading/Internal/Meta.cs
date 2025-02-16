@@ -143,7 +143,7 @@ internal readonly struct Meta
         int start,
         ReadOnlySpan<T> data,
         Span<T> buffer,
-        CsvParser<T> parser)
+        Func<int, Span<T>> getBuffer)
         where T : unmanaged, IBinaryInteger<T>
     {
         // Preliminary testing with a small amount of real world data:
@@ -164,7 +164,7 @@ internal readonly struct Meta
                 length - offset - offset);
         }
 
-        return GetFieldSlow(in dialect, start, data, buffer, parser);
+        return GetFieldSlow(in dialect, start, data, buffer, getBuffer);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -173,7 +173,7 @@ internal readonly struct Meta
         int start,
         ReadOnlySpan<T> data,
         Span<T> buffer,
-        CsvParser<T> parser)
+        Func<int, Span<T>> getBuffer)
         where T : unmanaged, IBinaryInteger<T>
     {
         ReadOnlySpan<T> field = MemoryMarshal.CreateReadOnlySpan(
@@ -204,7 +204,7 @@ internal readonly struct Meta
 
                 if (length > buffer.Length)
                 {
-                    buffer = parser.GetUnescapeBuffer(length);
+                    buffer = getBuffer(length)[..length];
                 }
 
                 Unescape.Field(field, unescaper, buffer);
@@ -217,7 +217,7 @@ internal readonly struct Meta
 
                 if (length > buffer.Length)
                 {
-                    buffer = parser.GetUnescapeBuffer(length);
+                    buffer = getBuffer(length)[..length];
                 }
 
                 Unescape.Field(field, unescaper, buffer);

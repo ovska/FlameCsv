@@ -100,6 +100,12 @@ public static class MetaTests
     }
 
     [Fact]
+    public static void Should_Have_No_Specials_For_Start()
+    {
+        Assert.Equal(0u, Meta.StartOfData.SpecialCount);
+    }
+
+    [Fact]
     public static void Should_Slice()
     {
         const string data = "abc,def,ghi,jkl,mno\r\npqr,stu,vwx,yz\r\n";
