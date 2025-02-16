@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using CommunityToolkit.HighPerformance;
+using FlameCsv.Utilities;
 
 // ReSharper disable UnusedMember.Global
 
@@ -11,6 +12,29 @@ namespace FlameCsv.Extensions;
 
 internal static class UtilityExtensions
 {
+    public static string JoinValues(ReadOnlySpan<string> values)
+    {
+        // should never happen
+        if (values.IsEmpty)
+            return "";
+
+        var sb = new ValueStringBuilder(stackalloc char[128]);
+
+        sb.Append('[');
+
+        foreach (var value in values)
+        {
+            sb.Append('"');
+            sb.Append(value);
+            sb.Append("\", ");
+        }
+
+        sb.Length -= 2;
+        sb.Append(']');
+
+        return sb.ToString();
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static string AsPrintableString<T>(this ReadOnlySpan<T> value)
         where T : unmanaged, IBinaryInteger<T>

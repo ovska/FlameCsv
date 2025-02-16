@@ -29,13 +29,13 @@ internal struct WritableBuffer<T> : IDisposable where T : unmanaged, IBinaryInte
         }
     }
 
-    public readonly BufferFieldReader<T> CreateReader(CsvOptions<T> options, ReadOnlyMemory<T> record)
+    public readonly BufferFieldReader<T> CreateReader()
     {
         ObjectDisposedException.ThrowIf(_items is null, typeof(WritableBuffer<T>));
-        return new(options, _memory, _items.AsSpan());
+        return new(_memory.Span, _items.AsSpan());
     }
 
-    private int _index;
+    private int _written;
     private IMemoryOwner<T> _owner;
     private Memory<T> _memory;
 
@@ -53,15 +53,15 @@ internal struct WritableBuffer<T> : IDisposable where T : unmanaged, IBinaryInte
     {
         ObjectDisposedException.ThrowIf(_items is null, typeof(WritableBuffer<T>));
 
-        if ((_memory.Length - _index) < value.Length)
+        if ((_memory.Length - _written) < value.Length)
         {
-            _memory = _memoryPool.EnsureCapacity(ref _owner, Math.Max(value.Length + _index, 256), copyOnResize: true);
+            _memory = _memoryPool.EnsureCapacity(ref _owner, Math.Max(value.Length + _written, 256), copyOnResize: true);
         }
 
-        int start = _index;
+        int start = _written;
 
         value.CopyTo(_memory.Span.Slice(start));
-        _index += value.Length;
+        _written += value.Length;
         _items.Add(new Range(start, start + value.Length));
     }
 
@@ -70,7 +70,7 @@ internal struct WritableBuffer<T> : IDisposable where T : unmanaged, IBinaryInte
     {
         ObjectDisposedException.ThrowIf(_items is null, typeof(WritableBuffer<T>));
         _items.Clear();
-        _index = 0;
+        _written = 0;
     }
 
     public void Dispose()

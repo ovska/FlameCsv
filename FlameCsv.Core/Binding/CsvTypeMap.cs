@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance.Helpers;
 using FlameCsv.Attributes;
+using FlameCsv.Extensions;
 using FlameCsv.Utilities;
 using JetBrains.Annotations;
 
@@ -62,7 +63,7 @@ public abstract class CsvTypeMap
     {
         throw new CsvBindingException(
             TargetType,
-            $"\"{member}\" matched to multiple headers, including '{field}' in {JoinValues(headers)}.");
+            $"\"{member}\" matched to multiple headers, including '{field}' in {UtilityExtensions.JoinValues(headers)}.");
     }
 
     /// <summary>
@@ -88,7 +89,7 @@ public abstract class CsvTypeMap
         string missingMembers = string.Join(", ", members.Select(x => $"\"{x}\""));
         throw new CsvBindingException(
             TargetType,
-            $"Required members/parameters [{missingMembers}] were not matched to any header field: [{JoinValues(headers)}]");
+            $"Required members/parameters [{missingMembers}] were not matched to any header field: [{UtilityExtensions.JoinValues(headers)}]");
     }
 
     /// <summary>
@@ -102,30 +103,7 @@ public abstract class CsvTypeMap
     {
         throw new CsvBindingException(
             TargetType,
-            $"No header fields were matched to a member or parameter: {JoinValues(headers)}");
-    }
-
-    private static string JoinValues(ReadOnlySpan<string> values)
-    {
-        // should never happen
-        if (values.IsEmpty)
-            return "";
-
-        var sb = new ValueStringBuilder(stackalloc char[128]);
-
-        sb.Append('[');
-
-        foreach (var value in values)
-        {
-            sb.Append('"');
-            sb.Append(value);
-            sb.Append("\", ");
-        }
-
-        sb.Length -= 2;
-        sb.Append(']');
-
-        return sb.ToString();
+            $"No header fields were matched to a member or parameter: {UtilityExtensions.JoinValues(headers)}");
     }
 
     private protected sealed class CacheKey : IEquatable<CacheKey>

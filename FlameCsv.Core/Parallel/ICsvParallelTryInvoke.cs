@@ -1,0 +1,30 @@
+﻿using System.Diagnostics.CodeAnalysis;
+using FlameCsv.Reading;
+using JetBrains.Annotations;
+
+namespace FlameCsv.Parallel;
+
+/// <summary>
+/// Interface for providing a value selector for parallel reading.
+/// </summary>
+/// <typeparam name="T">Token type</typeparam>
+/// <typeparam name="TResult">Returned value</typeparam>
+[PublicAPI]
+public interface ICsvParallelTryInvoke<T, TResult> where T : unmanaged, IBinaryInteger<T>
+{
+    /// <summary>
+    /// Attempts to return <typeparamref name="TResult"/> from the fields in <paramref name="reader"/>.
+    /// </summary>
+    /// <param name="reader">Reader for the current CSV record</param>
+    /// <param name="state">State of the enumeration</param>
+    /// <param name="result">Result read from the record</param>
+    /// <typeparam name="TReader">Reader type</typeparam>
+    /// <returns>
+    /// <see langword="true"/> if the operation was successful; otherwise, <see langword="false"/>.
+    /// </returns>
+    bool TryInvoke<TReader>(
+        scoped ref TReader reader,
+        in CsvParallelState state,
+        [MaybeNullWhen(false)] out TResult result)
+        where TReader : ICsvRecordFields<T>, allows ref struct;
+}

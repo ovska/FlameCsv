@@ -2,10 +2,12 @@
 
 using System.Buffers;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using FlameCsv.Extensions;
+using FlameCsv.Parallel;
 using FlameCsv.Reading;
 using FlameCsv.Reading.Internal;
 using nietras.SeparatedValues;
@@ -19,14 +21,15 @@ public class CsvEnumerateBench
 {
     private static readonly byte[] _bytes
         = File.ReadAllBytes("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv");
+    // = File.ReadAllBytes(@"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\Data\65K_Records_Data.csv");
 
     private static readonly string _chars = Encoding.UTF8.GetString(_bytes);
     private static MemoryStream GetFileStream() => new MemoryStream(_bytes);
     private static readonly ReadOnlySequence<byte> _byteSeq = new(_bytes.AsMemory());
     private static readonly ReadOnlySequence<char> _charSeq = new(_chars.AsMemory());
 
-    private static readonly CsvOptions<byte> _optionsByte = new() { Newline = "\r\n" };
-    private static readonly CsvOptions<char> _optionsChar = new() { Newline = "\r\n" };
+    private static readonly CsvOptions<byte> _optionsByte = new() { Newline = "\n" };
+    private static readonly CsvOptions<char> _optionsChar = new() { Newline = "\n" };
 
     [Benchmark(Baseline = true)]
     public void Flame_byte()
@@ -45,7 +48,7 @@ public class CsvEnumerateBench
         }
     }
 
-    [Benchmark]
+    // [Benchmark]
     public void Flame_char()
     {
         Span<char> unescapeBuffer = stackalloc char[128];
@@ -62,7 +65,7 @@ public class CsvEnumerateBench
         }
     }
 
-    [Benchmark]
+    // [Benchmark]
     public void Sep_byte()
     {
         var reader = nietras
@@ -105,6 +108,29 @@ public class CsvEnumerateBench
             {
                 _ = row[i].Span;
             }
+        }
+    }
+
+    // [Benchmark]
+    public void Flame_Parallel()
+    {
+        CsvParallelReader.Enumerate<object?, Invoker>(in _byteSeq, new()).ForAll(_ => { });
+    }
+
+    private readonly struct Invoker : ICsvParallelTryInvoke<byte, object?>
+    {
+        public bool TryInvoke<TReader>(
+            scoped ref TReader reader,
+            in CsvParallelState state,
+            [MaybeNullWhen(false)] out object? result) where TReader : ICsvRecordFields<byte>, allows ref struct
+        {
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                _ = reader[i];
+            }
+
+            result = default;
+            return false;
         }
     }
 }

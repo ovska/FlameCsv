@@ -43,6 +43,16 @@ public sealed class CsvRecordAsyncEnumerator<T> : CsvRecordEnumeratorBase<T>, IA
         return ReadAndMoveNextAsync();
     }
 
+    /// <inheritdoc cref="CsvRecordEnumerator{T}.Current"/>
+    public CsvValueRecord<T> Current
+    {
+        get
+        {
+            if (_current._options is null) ThrowInvalidCurrentAccess();
+            return _current;
+        }
+    }
+
     [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))]
     private async ValueTask<bool> ReadAndMoveNextAsync()
     {
