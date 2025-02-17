@@ -28,7 +28,7 @@ public sealed class CsvEnumerationTests : IDisposable
 
         Assert.True(enumerator.MoveNext());
         Assert.True(enumerator.Current.RawRecord.IsEmpty);
-        enumerator.Current.ResetHeader();
+        enumerator.Header = null;
 
         Assert.True(enumerator.MoveNext());
         var record2 = enumerator.Current.ParseRecord<Shim>();

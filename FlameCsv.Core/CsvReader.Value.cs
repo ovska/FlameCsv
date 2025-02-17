@@ -5,6 +5,7 @@ using System.Text;
 using FlameCsv.Enumeration;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
+using FlameCsv.Reading.Internal;
 
 namespace FlameCsv;
 
@@ -76,23 +77,25 @@ public static partial class CsvReader
     /// <param name="stream">Stream to read the records from</param>
     /// <param name="encoding">Encoding to initialize the <see cref="StreamWriter"/> with</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    /// <param name="leaveOpen">If <see langword="true"/>, the stream is not disposed after the enumeration ends.</param>
-    /// <param name="bufferSize">Optional buffer size</param>
+    /// <param name="readerOptions">Options to configure the inner reader</param>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public static CsvValueAsyncEnumerable<char, TValue> ReadAsync<[DAM(Messages.ReflectionBound)] TValue>(
+    public static CsvValueEnumerable<char, TValue> ReadAsync<[DAM(Messages.ReflectionBound)] TValue>(
         Stream stream,
         Encoding? encoding = null,
         CsvOptions<char>? options = null,
-        bool leaveOpen = false,
-        int bufferSize = -1)
+        CsvReaderOptions readerOptions = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
         Guard.CanRead(stream);
 
         options ??= CsvOptions<char>.Default;
-        using StreamReader textReader = new StreamReader(stream, encoding: encoding, bufferSize: bufferSize, leaveOpen: leaveOpen);
-        ICsvPipeReader<char> reader = CreatePipeReader(textReader, options._memoryPool, bufferSize);
-        return new CsvValueAsyncEnumerable<char, TValue>(reader, options);
+        StreamReader textReader = new(
+            stream,
+            encoding: encoding,
+            bufferSize: readerOptions.BufferSize,
+            leaveOpen: readerOptions.LeaveOpen);
+        ICsvPipeReader<char> reader = CsvPipeReader.Create(textReader, options._memoryPool, readerOptions);
+        return new CsvValueEnumerable<char, TValue>(reader, options);
     }
 
     /// <summary>
@@ -100,16 +103,18 @@ public static partial class CsvReader
     /// </summary>
     /// <param name="textReader">Text reader to read the records from</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="readerOptions">Options to configure the inner reader</param>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public static CsvValueAsyncEnumerable<char, TValue> ReadAsync<[DAM(Messages.ReflectionBound)] TValue>(
+    public static CsvValueEnumerable<char, TValue> ReadAsync<[DAM(Messages.ReflectionBound)] TValue>(
         TextReader textReader,
-        CsvOptions<char>? options = null)
+        CsvOptions<char>? options = null,
+        CsvReaderOptions readerOptions = default)
     {
         ArgumentNullException.ThrowIfNull(textReader);
 
         options ??= CsvOptions<char>.Default;
-        var reader = CreatePipeReader(textReader, options._memoryPool, DefaultBufferSize);
-        return new CsvValueAsyncEnumerable<char, TValue>(reader, options);
+        var reader = CsvPipeReader.Create(textReader, options._memoryPool, readerOptions);
+        return new CsvValueEnumerable<char, TValue>(reader, options);
     }
 
     /// <summary>
@@ -117,19 +122,19 @@ public static partial class CsvReader
     /// </summary>
     /// <param name="stream">Stream to read the records from</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    /// <param name="leaveOpen">If <see langword="true"/>, the stream is not disposed after the enumeration ends.</param>
+    /// <param name="readerOptions">Options to configure the inner reader</param>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public static CsvValueAsyncEnumerable<byte, TValue> ReadAsync<[DAM(Messages.ReflectionBound)] TValue>(
+    public static CsvValueEnumerable<byte, TValue> ReadAsync<[DAM(Messages.ReflectionBound)] TValue>(
         Stream stream,
         CsvOptions<byte>? options = null,
-        bool leaveOpen = false)
+        CsvReaderOptions readerOptions = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
         Guard.CanRead(stream);
 
         options ??= CsvOptions<byte>.Default;
-        var reader = CreatePipeReader(stream, options._memoryPool, leaveOpen);
-        return new CsvValueAsyncEnumerable<byte, TValue>(reader, options);
+        var reader = CsvPipeReader.Create(stream, options._memoryPool, readerOptions);
+        return new CsvValueEnumerable<byte, TValue>(reader, options);
     }
 
     /// <summary>
@@ -138,13 +143,13 @@ public static partial class CsvReader
     /// <param name="reader">Pipe to read the records from</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public static CsvValueAsyncEnumerable<byte, TValue> ReadAsync<[DAM(Messages.ReflectionBound)] TValue>(
+    public static ICsvValueAsyncEnumerable<byte, TValue> ReadAsync<[DAM(Messages.ReflectionBound)] TValue>(
         PipeReader reader,
         CsvOptions<byte>? options = null)
     {
         ArgumentNullException.ThrowIfNull(reader);
 
-        return new CsvValueAsyncEnumerable<byte, TValue>(
+        return new CsvValueEnumerable<byte, TValue>(
             new PipeReaderWrapper(reader),
             options ?? CsvOptions<byte>.Default);
     }

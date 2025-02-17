@@ -155,6 +155,7 @@ internal readonly struct Meta
 
         Debug.Assert(data.Length >= End - start);
 
+        // no trimming and 0 or 2 quotes
         if ((dialect.Whitespace.Length | (_specialCountAndStart & ~2)) == 0)
         {
             int offset = (_specialCountAndStart >> 31 | -_specialCountAndStart >> 31) & 1;

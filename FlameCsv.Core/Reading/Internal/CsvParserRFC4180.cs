@@ -128,7 +128,8 @@ internal sealed class CsvParserRFC4180<T>(CsvOptions<T> options) : CsvParser<T>(
             _sequence = default;
 
             // the last field ended in a delimiter, so there must be at least one field after it
-            fields.Append(Meta.RFC(lastLine.Length, quoteCount, isEOL: true)); // TODO: should this be EOL or not?
+            // this should _not_ be an EOL as that flag is used for determining record length w/ the newline
+            fields.Append(Meta.RFC(lastLine.Length, quoteCount, isEOL: false));
 
             line = new CsvLine<T>(this, lastLine, GetSegmentMeta(fields.AsSpan()));
             return true;

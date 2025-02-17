@@ -1,7 +1,6 @@
 using System.Buffers;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
-using FlameCsv.Enumeration;
 using FlameCsv.Tests.TestData;
 using FlameCsv.Tests.Utilities;
 
@@ -81,7 +80,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
 {
     protected abstract CsvTypeMap<T, Obj> TypeMap { get; }
 
-    protected abstract CsvRecordAsyncEnumerable<T> GetRecords(
+    protected abstract IAsyncEnumerable<CsvValueRecord<T>> GetRecords(
         Stream stream,
         CsvOptions<T> options,
         int bufferSize);
@@ -236,13 +235,13 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
             _ => 2,
         };
 
+        if(hasHeader)
+        {
+            tokenPosition = TestDataGenerator.Header.Length + newlineLength;
+        }
+
         await foreach (var record in enumerable.ConfigureAwait(false))
         {
-            if (tokenPosition == 0 && hasHeader)
-            {
-                tokenPosition = TestDataGenerator.Header.Length + newlineLength;
-            }
-
             index++;
             Assert.Equal(hasHeader ? index + 1 : index, record.Line);
             Assert.Equal(tokenPosition, record.Position);
@@ -277,7 +276,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
             {
                 NewlineToken.LF => "\n",
                 NewlineToken.CRLF => "\r\n",
-                _ => default,
+                _ => null,
             },
             HasHeader = header,
             MemoryPool = pool,

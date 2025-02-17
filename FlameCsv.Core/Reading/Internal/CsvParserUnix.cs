@@ -145,8 +145,8 @@ internal sealed class CsvParserUnix<T>(CsvOptions<T> options) : CsvParser<T>(opt
 
             // the remaining data is either after a delimiter if fields is non-empty, or
             // some trailing data after the last newline.
-            // TODO: should this be EOL or not?
-            fields.Append(Meta.Unix(lastLine.Length, quoteCount, escapeCount, isEOL: true));
+            // this should _not_ be an EOL as that flag is used for determining record length w/ the newline
+            fields.Append(Meta.Unix(lastLine.Length, quoteCount, escapeCount, isEOL: false));
 
             line = new CsvLine<T>(this, lastLine, GetSegmentMeta(fields.AsSpan()));
             return true;

@@ -6,6 +6,7 @@ using FlameCsv.Binding;
 using FlameCsv.Reading;
 using FlameCsv.Enumeration;
 using FlameCsv.Extensions;
+using FlameCsv.Reading.Internal;
 
 namespace FlameCsv;
 
@@ -109,28 +110,27 @@ public static partial class CsvReader
     /// <param name="stream">Stream to read the records from</param>
     /// <param name="typeMap">Precompiled type map</param>
     /// <param name="encoding">Encoding to initialize the <see cref="StreamWriter"/> with</param>
-    /// <param name="options"><inheritdoc cref="Read{TValue}(string?,FlameCsv.CsvOptions{char}?)" path="/param[@name='options']"/></param>
-    /// <param name="leaveOpen">If <see langword="true"/>, the stream is not disposed after the enumeration ends.</param>
-    /// <param name="bufferSize">Optional buffer size</param>
-    public static CsvTypeMapAsyncEnumerable<char, TValue> ReadAsync<TValue>(
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="readerOptions">Options to configure the inner reader</param>
+    public static CsvTypeMapEnumerable<char, TValue> ReadAsync<TValue>(
         Stream stream,
         CsvTypeMap<char, TValue> typeMap,
         CsvOptions<char>? options = null,
         Encoding? encoding = null,
-        bool leaveOpen = false,
-        int bufferSize = -1)
+        CsvReaderOptions readerOptions = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(typeMap);
         Guard.CanRead(stream);
 
-        if (bufferSize != -1)
-            ArgumentOutOfRangeException.ThrowIfLessThan(bufferSize, 1);
-
         options ??= CsvOptions<char>.Default;
-        StreamReader textReader = new(stream, encoding: encoding, bufferSize: bufferSize, leaveOpen: leaveOpen);
-        ICsvPipeReader<char> reader = CreatePipeReader(textReader, options._memoryPool, bufferSize);
-        return new CsvTypeMapAsyncEnumerable<char, TValue>(
+        StreamReader textReader = new(
+            stream,
+            encoding: encoding,
+            bufferSize: readerOptions.BufferSize,
+            leaveOpen: readerOptions.LeaveOpen);
+        ICsvPipeReader<char> reader = CsvPipeReader.Create(textReader, options._memoryPool, readerOptions);
+        return new CsvTypeMapEnumerable<char, TValue>(
             reader,
             options,
             typeMap);
@@ -141,18 +141,20 @@ public static partial class CsvReader
     /// </summary>
     /// <param name="textReader">Text reader to read the records from</param>
     /// <param name="typeMap">Precompiled type map</param>
-    /// <param name="options"><inheritdoc cref="Read{TValue}(string?,FlameCsv.CsvOptions{char}?)" path="/param[@name='options']"/></param>
-    public static CsvTypeMapAsyncEnumerable<char, TValue> ReadAsync<TValue>(
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="readerOptions">Options to configure the inner reader</param>
+    public static CsvTypeMapEnumerable<char, TValue> ReadAsync<TValue>(
         TextReader textReader,
         CsvTypeMap<char, TValue> typeMap,
-        CsvOptions<char>? options = null)
+        CsvOptions<char>? options = null,
+        CsvReaderOptions readerOptions = default)
     {
         ArgumentNullException.ThrowIfNull(textReader);
         ArgumentNullException.ThrowIfNull(typeMap);
 
         options ??= CsvOptions<char>.Default;
-        ICsvPipeReader<char> reader = CreatePipeReader(textReader, options._memoryPool, DefaultBufferSize);
-        return new CsvTypeMapAsyncEnumerable<char, TValue>(reader, options, typeMap);
+        ICsvPipeReader<char> reader = CsvPipeReader.Create(textReader, options._memoryPool, readerOptions);
+        return new CsvTypeMapEnumerable<char, TValue>(reader, options, typeMap);
     }
 
     /// <summary>
@@ -160,21 +162,21 @@ public static partial class CsvReader
     /// </summary>
     /// <param name="stream">Stream to read the records from</param>
     /// <param name="typeMap">Precompiled type map</param>
-    /// <param name="options"><inheritdoc cref="Read{TValue}(string?,FlameCsv.CsvOptions{char}?)" path="/param[@name='options']"/></param>
-    /// <param name="leaveOpen">If <see langword="true"/>, the stream is not disposed after the enumeration ends.</param>
-    public static CsvTypeMapAsyncEnumerable<byte, TValue> ReadAsync<TValue>(
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="readerOptions">Options to configure the inner reader</param>
+    public static CsvTypeMapEnumerable<byte, TValue> ReadAsync<TValue>(
         Stream stream,
         CsvTypeMap<byte, TValue> typeMap,
         CsvOptions<byte>? options = null,
-        bool leaveOpen = false)
+        CsvReaderOptions readerOptions = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(typeMap);
         Guard.CanRead(stream);
 
         options ??= CsvOptions<byte>.Default;
-        var reader = CreatePipeReader(stream, options._memoryPool, leaveOpen);
-        return new CsvTypeMapAsyncEnumerable<byte, TValue>(reader, options, typeMap);
+        var reader = CsvPipeReader.Create(stream, options._memoryPool, readerOptions);
+        return new CsvTypeMapEnumerable<byte, TValue>(reader, options, typeMap);
     }
 
     /// <summary>
@@ -182,8 +184,8 @@ public static partial class CsvReader
     /// </summary>
     /// <param name="reader">Pipe to read the records from</param>
     /// <param name="typeMap">Precompiled type map</param>
-    /// <param name="options"><inheritdoc cref="Read{TValue}(string?,FlameCsv.CsvOptions{char}?)" path="/param[@name='options']"/></param>
-    public static CsvTypeMapAsyncEnumerable<byte, TValue> ReadAsync<TValue>(
+    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    public static ICsvValueAsyncEnumerable<byte, TValue> ReadAsync<TValue>(
         PipeReader reader,
         CsvTypeMap<byte, TValue> typeMap,
         CsvOptions<byte>? options = null)
@@ -191,6 +193,9 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(typeMap);
 
-        return new CsvTypeMapAsyncEnumerable<byte, TValue>(new PipeReaderWrapper(reader), options ?? CsvOptions<byte>.Default, typeMap);
+        return new CsvTypeMapEnumerable<byte, TValue>(
+            new PipeReaderWrapper(reader),
+            options ?? CsvOptions<byte>.Default,
+            typeMap);
     }
 }
