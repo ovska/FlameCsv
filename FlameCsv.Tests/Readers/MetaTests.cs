@@ -70,7 +70,7 @@ public static class MetaTests
             () =>
             {
                 _ = escapeCount == 0
-                    ? Meta.RFC(0, quoteCount)
+                    ? Meta.RFC(0, quoteCount, isEOL: false)
                     : Meta.Unix(0, quoteCount, escapeCount);
             });
     }
@@ -106,6 +106,17 @@ public static class MetaTests
     }
 
     [Fact]
+    public static void Should_Check_SpecialCount()
+    {
+        const int max = 0x3FFF_FFFF;
+
+        Assert.Throws<NotSupportedException>(() => Meta.RFC(0, max + 1, true));
+        Assert.Throws<NotSupportedException>(() => Meta.RFC(0, max + 1, false));
+        Assert.Throws<NotSupportedException>(() => Meta.Unix(0, 2, max + 1));
+        Assert.Throws<NotSupportedException>(() => Meta.Unix(0, 2, max + 1, true));
+    }
+
+    [Fact]
     public static void Should_Slice()
     {
         const string data = "abc,def,ghi,jkl,mno\r\npqr,stu,vwx,yz\r\n";
@@ -129,6 +140,7 @@ public static class MetaTests
         for (int i = 0; i < metaBuffer.Length; i++)
         {
             Meta meta = metaBuffer[i];
+
             ReadOnlySpan<char> field = meta.GetField(
                 in CsvOptions<char>.Default.Dialect,
                 start,

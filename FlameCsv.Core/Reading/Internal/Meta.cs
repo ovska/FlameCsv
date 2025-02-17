@@ -33,7 +33,6 @@ internal readonly struct Meta
     private const int SpecialCountMask = 0x3FFF_FFFF; // 30 bits for special count
 
     [FieldOffset(0)] private readonly int _endAndFlags;
-
     [FieldOffset(4)] private readonly int _specialCountAndStart;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -45,27 +44,29 @@ internal readonly struct Meta
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Meta(int endAndFlags, int startMask)
-    {
-        _endAndFlags = endAndFlags;
-        _specialCountAndStart = startMask;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Meta RFC(int end, uint quoteCount, bool isEOL = false)
+    public static Meta RFC(int end, uint quoteCount, bool isEOL)
     {
         // ensure quote count is even and not too large
-        if (((quoteCount & 1) | (quoteCount & ~SpecialCountMask)) != 0)
+        if ((quoteCount & (1 | ~SpecialCountMask)) != 0)
         {
             ThrowInvalidRFC(quoteCount, isEOL);
         }
 
-        return new(end, quoteCount, isEscape: false, isEOL);
+        return Unsafe.BitCast<long, Meta>(
+            (uint)(isEOL ? end | EOLMask : end) | ((long)(quoteCount & SpecialCountMask) << 32));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Meta Plain(int end, bool isEOL = false)
-        => new(endAndFlags: end | (isEOL ? EOLMask : 0), startMask: 0);
+    public static Meta Plain(int end)
+    {
+        return Unsafe.BitCast<long, Meta>(end & uint.MaxValue);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Meta Plain(int end, bool isEOL)
+    {
+        return Unsafe.BitCast<long, Meta>((end | (isEOL ? EOLMask : 0)) & uint.MaxValue);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Meta Unix(int end, uint quoteCount, uint escapeCount, bool isEOL = false)
@@ -89,7 +90,7 @@ internal readonly struct Meta
     public static Meta StartOfData
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => new(endAndFlags: 0, startMask: StartMask);
+        get => Unsafe.BitCast<long, Meta>((long)(StartMask) << 32);
     }
 
     public int End
