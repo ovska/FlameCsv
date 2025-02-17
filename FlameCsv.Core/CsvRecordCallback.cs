@@ -37,7 +37,7 @@ public readonly ref struct CsvRecordCallbackArgs<T> where T : unmanaged, IBinary
     /// An empty record's <see cref="FieldCount"/> is not zero,
     /// is considered to have exactly one field with length of 0.
     /// </remarks>
-    public bool IsEmpty => _line.RecordLength == 0;
+    public bool IsEmpty => _line.GetRecordLength() == 0;
 
     /// <summary>
     /// The current CSV record (unescaped/untrimmed).

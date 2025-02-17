@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using FlameCsv.Exceptions;
 using FlameCsv.Reading;
+using FlameCsv.Reading.Internal;
 using FlameCsv.Tests.TestData;
 using FlameCsv.Tests.Utilities;
 
@@ -136,7 +137,7 @@ public class CsvParserTests
         Assert.Equal("1,2,3", line.Record.ToString());
 
         Assert.True(parser.TryReadLine(out line, isFinalBlock: false));
-        Assert.Equal(0, line.RecordLength);
+        Assert.Equal(0, line.GetRecordLength());
 
         Assert.True(parser.TryReadLine(out line, isFinalBlock: false));
         Assert.Equal("4,5,6", line.Record.ToString());
@@ -156,7 +157,7 @@ public class CsvParserTests
             """;
 
         await using var reader = new ConstantPipeReader<char>(
-            data.AsMemory(),
+            new(data.AsMemory()),
             Stream.Null,
             false,
             static (_, _) => { });

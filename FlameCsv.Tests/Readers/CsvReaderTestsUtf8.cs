@@ -31,7 +31,7 @@ public sealed class CsvReaderTestsUtf8 : CsvReaderTestsBase<byte>
             options);
     }
 
-    protected override CsvRecordAsyncEnumerable<byte> GetRecords(
+    protected override IAsyncEnumerable<CsvValueRecord<byte>> GetRecords(
         Stream stream,
         CsvOptions<byte> options,
         int bufferSize)

@@ -47,10 +47,12 @@ public readonly struct CsvLine<T> : ICsvRecordFields<T> where T : unmanaged, IBi
     /// <summary>
     /// Length of the raw record, not including possible trailing newline.
     /// </summary>
-    public int RecordLength
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int GetRecordLength(bool includeTrailingNewline = false)
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Fields[^1].End - Fields[0].GetNextStart(Parser._newline.Length);
+        int start = Fields[0].GetNextStart(Parser._newline.Length);
+        int end = includeTrailingNewline ? Fields[^1].GetNextStart(Parser._newline.Length) : Fields[^1].GetNextStart(0);
+        return end - start;
     }
 
     /// <summary>

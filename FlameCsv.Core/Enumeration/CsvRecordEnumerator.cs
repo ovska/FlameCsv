@@ -1,65 +1,239 @@
-using System.Buffers;
+﻿using System.Buffers;
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using FlameCsv.Extensions;
+using FlameCsv.Reading;
+using FlameCsv.Reading.Internal;
+using FlameCsv.Utilities;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Enumeration;
 
-/// <inheritdoc cref="CsvRecordEnumeratorBase{T}"/>
-[PublicAPI]
-public sealed class CsvRecordEnumerator<T> : CsvRecordEnumeratorBase<T>, IEnumerator<CsvValueRecord<T>>
+/// <summary>
+/// An enumerator that parses CSV records.
+/// </summary>
+/// <remarks>
+/// If the options are configured to read a header record, it will be processed first before any records are yielded.<br/>
+/// This class is not thread-safe, and should not be used concurrently.<br/>
+/// The enumerator should always be disposed after use, either explicitly or using <c>foreach</c>.
+/// </remarks>
+[MustDisposeResource]
+public sealed class CsvRecordEnumerator<T>
+    : CsvEnumeratorBase<T>, IEnumerator<CsvValueRecord<T>>, IAsyncEnumerator<CsvValueRecord<T>>
     where T : unmanaged, IBinaryInteger<T>
 {
-    internal CsvRecordEnumerator(
-        ReadOnlyMemory<T> data,
-        CsvOptions<T> options)
-        : base(options)
-    {
-        _parser.SetData(new ReadOnlySequence<T>(data));
-    }
-
-    internal CsvRecordEnumerator(
-        in ReadOnlySequence<T> data,
-        CsvOptions<T> options)
-        : base(options)
-    {
-        _parser.SetData(in data);
-    }
-
-    /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool MoveNext()
-    {
-        if (MoveNextCore(isFinalBlock: false) || MoveNextCore(isFinalBlock: true))
-        {
-            return true;
-        }
-
-        // reached the end of data
-        _current = default;
-        return false;
-    }
-
-    void IEnumerator.Reset() => throw new NotSupportedException();
-    object IEnumerator.Current => Current;
-    CsvValueRecord<T> IEnumerator<CsvValueRecord<T>>.Current => Current;
-
     /// <summary>
     /// Gets the current record.
     /// </summary>
     /// <remarks>
-    /// The value should not be held onto after the enumeration continues or ends, as the records might wrap
-    /// shared or pooled memory.
+    /// The value should not be held onto after the enumeration continues or ends, as the records wrap
+    /// shared and/or pooled memory.
     /// If you must, convert the record to <see cref="CsvRecord{T}"/>.
     /// </remarks>
     /// <exception cref="ObjectDisposedException">Thrown when the enumerator has been disposed.</exception>
     /// <exception cref="InvalidOperationException">Thrown when enumeration has not yet started.</exception>
     public ref readonly CsvValueRecord<T> Current
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            if (_current._options is null) ThrowInvalidCurrentAccess();
+            if (_current._options is null)
+            {
+                ThrowInvalidCurrentAccess();
+            }
+
             return ref _current;
         }
+    }
+
+    CsvValueRecord<T> IEnumerator<CsvValueRecord<T>>.Current => _current;
+    CsvValueRecord<T> IAsyncEnumerator<CsvValueRecord<T>>.Current => _current;
+    object IEnumerator.Current => _current;
+    void IEnumerator.Reset() => ResetCore();
+
+    internal CsvRecordEnumerator(ReadOnlyMemory<T> csv, CsvOptions<T> options)
+        : this(new ReadOnlySequence<T>(csv), options)
+    {
+    }
+
+    internal CsvRecordEnumerator(in ReadOnlySequence<T> csv, CsvOptions<T> options)
+        : this(options, new ConstantPipeReader<T>(in csv))
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="CsvRecordEnumerator{T}"/>.
+    /// </summary>
+    /// <param name="options">Options-instance</param>
+    /// <param name="reader">Reader for the CSV data</param>
+    /// <param name="cancellationToken">Cancellation token used for asynchronous enumeration</param>
+    public CsvRecordEnumerator(
+        CsvOptions<T> options,
+        ICsvPipeReader<T> reader,
+        CancellationToken cancellationToken = default)
+        : base(options, reader, cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        _hasHeader = options._hasHeader;
+        _validateFieldCount = options._validateFieldCount;
+        _callback = options._recordCallback;
+
+        // clear the materializer cache on hot reload
+        HotReloadService.RegisterForHotReload(
+            this,
+            static state => ((CsvRecordEnumerator<T>)state)._materializerCache = null);
+    }
+
+    private int _version;
+
+    private CsvValueRecord<T> _current;
+    internal readonly bool _hasHeader;
+    private readonly bool _validateFieldCount;
+    private readonly CsvRecordCallback<T>? _callback;
+    private Dictionary<object, object>? _materializerCache;
+    private int? _expectedFieldCount;
+    private CsvHeader? _header;
+
+    internal Dictionary<object, object> MaterializerCache
+        => _materializerCache ??= new(ReferenceEqualityComparer.Instance);
+
+    /// <summary>
+    /// Current header value. May be null if a header is not yet read, header is reset, or if the CSV has no header.
+    /// </summary>
+    /// <exception cref="ObjectDisposedException"/>
+    /// <exception cref="NotSupportedException">Thrown when the CSV has no header and a non-null value is set.</exception>
+    public CsvHeader? Header
+    {
+        get => _header;
+        set
+        {
+            Throw.IfEnumerationDisposed(_version == -1);
+
+            if (!_hasHeader && value is not null)
+                Throw.NotSupported_CsvHasNoHeader();
+
+            if (EqualityComparer<CsvHeader>.Default.Equals(Header, value))
+                return;
+
+            if (Header is not null && value is not null)
+                Throw.Unreachable_AlreadyHasHeader();
+
+            _header = value;
+            _expectedFieldCount = value?.Count;
+            _materializerCache?.Clear();
+        }
+    }
+
+    /// <inheritdoc/>
+    protected override bool MoveNextCore(ref readonly CsvLine<T> line)
+    {
+        Throw.IfEnumerationDisposed(_version == -1);
+
+        if (_callback is not null)
+        {
+            bool skip = false;
+            bool headerRead = Header is not null;
+
+            CsvRecordCallbackArgs<T> args = new(
+                in line,
+                Header is { } header ? header.Values : [],
+                Line,
+                Position,
+                ref skip,
+                ref headerRead);
+            _callback.Invoke(in args);
+
+            if (!headerRead) Header = null;
+            if (skip) return false;
+        }
+
+        // header needs to be read
+        if (_hasHeader && _header is null)
+        {
+            Header = CreateHeader(in line);
+            return false;
+        }
+
+        _version++;
+
+        if (_validateFieldCount)
+        {
+            if (_expectedFieldCount is null)
+            {
+                _expectedFieldCount = line.FieldCount;
+            }
+            else if (line.FieldCount != _expectedFieldCount.Value)
+            {
+                Throw.InvalidData_FieldCount(_expectedFieldCount.Value, line.FieldCount);
+            }
+        }
+
+        _current = new CsvValueRecord<T>(_version, Position, Line, in line, Parser.Options, this);
+        return true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void EnsureVersion(int version)
+    {
+        if (_version == -1)
+            Throw.ObjectDisposed_Enumeration();
+
+        if (version != _version)
+            Throw.InvalidOp_EnumerationChanged();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MemberNotNull(nameof(Header))]
+    internal bool TryGetHeaderIndex(string name, out int index)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        Throw.IfEnumerationDisposed(_version == -1);
+
+        if (!_hasHeader)
+            Throw.NotSupported_CsvHasNoHeader();
+
+        if (Header is null)
+            Throw.InvalidOperation_HeaderNotRead();
+
+        return Header.TryGetValue(name, out index);
+    }
+
+    /// <inheritdoc/>
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _version = -1;
+            _current = default;
+            _materializerCache = null;
+        }
+    }
+
+    /// <inheritdoc/>
+    protected override ValueTask DisposeAsyncCore()
+    {
+        _version = -1;
+        _current = default;
+        _materializerCache = null;
+        return default;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private CsvHeader CreateHeader(ref readonly CsvLine<T> headerRecord)
+    {
+        MetaFieldReader<T> reader = new(in headerRecord, stackalloc T[Token<T>.StackLength]);
+        return CsvHeader.Parse(Parser.Options, ref reader);
+    }
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void ThrowInvalidCurrentAccess()
+    {
+        if (_version == -1)
+            Throw.ObjectDisposed_Enumeration();
+
+        throw new InvalidOperationException("Current was accessed before the enumeration started.");
     }
 }

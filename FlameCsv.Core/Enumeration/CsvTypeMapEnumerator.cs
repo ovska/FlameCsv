@@ -1,52 +1,43 @@
-﻿using System.Buffers;
-using System.Collections;
-using FlameCsv.Binding;
+﻿using FlameCsv.Binding;
 using FlameCsv.Reading;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Enumeration;
 
-/// <inheritdoc cref="CsvValueAsyncEnumeratorBase{T,TValue}"/>
+/// <inheritdoc cref="CsvValueEnumeratorBase{T,TValue}"/>
 [PublicAPI]
-public sealed class CsvTypeMapEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TValue>, IEnumerator<TValue>
+public sealed class CsvTypeMapEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TValue>
     where T : unmanaged, IBinaryInteger<T>
 {
     private readonly CsvTypeMap<T, TValue> _typeMap;
-    private readonly ReadOnlySequence<T> _csv;
 
-    internal CsvTypeMapEnumerator(in ReadOnlySequence<T> csv, CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
-        : base(options)
+    /// <summary>
+    /// Initializes a new instance of <see cref="CsvValueEnumerator{T, TValue}"/>.
+    /// </summary>
+    /// <param name="options">Options to use for reading</param>
+    /// <param name="typeMap">Type map used for binding</param>
+    /// <param name="reader">Data source</param>
+    /// <param name="cancellationToken">Token to cancel asynchronous enumeration</param>
+    public CsvTypeMapEnumerator(
+        CsvOptions<T> options,
+        CsvTypeMap<T, TValue> typeMap,
+        ICsvPipeReader<T> reader,
+        CancellationToken cancellationToken = default)
+        : base(options, reader, cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(typeMap);
         _typeMap = typeMap;
-        _csv = csv;
-        _parser.SetData(in csv);
     }
-
-    /// <inheritdoc cref="IEnumerator.MoveNext"/>
-    public bool MoveNext()
-    {
-        return TryRead(isFinalBlock: false) || TryRead(isFinalBlock: true);
-    }
-
-    // RIDER complains about this class otherwise
-    /// <inheritdoc cref="IEnumerator{T}.Current"/>
-    public new TValue Current => base.Current;
 
     /// <inheritdoc/>
     protected override IMaterializer<T, TValue> BindToHeaders(ReadOnlySpan<string> headers)
     {
-        return _typeMap.GetMaterializer(headers, _parser.Options);
+        return _typeMap.GetMaterializer(headers, Options);
     }
 
     /// <inheritdoc/>
     protected override IMaterializer<T, TValue> BindToHeaderless()
     {
-        return _typeMap.GetMaterializer(_parser.Options);
+        return _typeMap.GetMaterializer(Options);
     }
-
-    object IEnumerator.Current => Current!;
-
-    /// <inheritdoc />
-    public void Reset() => _parser.SetData(in _csv);
 }

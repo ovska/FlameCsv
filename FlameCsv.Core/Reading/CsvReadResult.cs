@@ -19,7 +19,7 @@ public readonly struct CsvReadResult<T>(in ReadOnlySequence<T> buffer, bool isCo
     /// <summary>
     /// Data read from the data source, e.g., PipeReader or TextReader.
     /// </summary>
-    public ReadOnlySequence<T> Buffer { get; } = buffer;
+    public readonly ReadOnlySequence<T> Buffer = buffer;
 
     /// <summary>
     /// If true, no more data can be read from the data source and all further reads will return an empty buffer.

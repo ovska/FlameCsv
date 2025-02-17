@@ -17,14 +17,36 @@ namespace FlameCsv.Console
         private static readonly byte[] _bytes
             = File.ReadAllBytes("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv");
 
+        private static readonly byte[] _bytes2 = File.ReadAllBytes(
+            @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\Data\65K_Records_Data.csv");
+
         private static readonly ReadOnlySequence<byte> _byteSeq = new(_bytes.AsMemory());
 
         private static readonly CsvOptions<byte> _options = new() { Newline = "\r\n" };
 
         static void Main([NotNull] string[] args)
         {
-            var xyz = CsvWriter.Create(Stream.Null);
+            Span<byte> buffer = stackalloc byte[256];
 
+            foreach (var a in Enumerable.Repeat(0, 100))
+            {
+                foreach (var data in (byte[][]) [_bytes, _bytes2])
+                {
+                    using var parser = CsvParser.Create(_options);
+                    parser.SetData(new(data));
+
+                    while (parser.TryReadLine(out var line, isFinalBlock: false))
+                    {
+                        var reader = new MetaFieldReader<byte>(in line, buffer);
+                        for (int i = 0; i < reader.FieldCount; i++)
+                        {
+                            _ = reader[i];
+                        }
+                    }
+                }
+            }
+
+#if false
             CsvOptions<char> options = new()
             {
                 RecordCallback = (ref readonly CsvRecordCallbackArgs<char> args) =>
@@ -60,6 +82,7 @@ namespace FlameCsv.Console
             }
 
             MeasureProfiler.StopCollectingData();
+#endif
         }
     }
 

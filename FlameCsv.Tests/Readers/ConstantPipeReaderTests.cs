@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
+using FlameCsv.Reading.Internal;
 using FlameCsv.Tests.Utilities;
 
 namespace FlameCsv.Tests.Readers;
@@ -17,7 +18,10 @@ public static class ConstantPipeReaderTests
         static void Impl(Stream stream)
         {
             using (stream)
-            using (var pipe = CsvReader.CreatePipeReader(stream, HeapMemoryPool<byte>.Instance, leaveOpen: true))
+            using (var pipe = CsvPipeReader.Create(
+                       stream,
+                       HeapMemoryPool<byte>.Instance,
+                       new() { LeaveOpen = true }))
             {
                 Assert.IsNotType<ConstantPipeReader<byte>>(pipe);
             }
@@ -26,7 +30,9 @@ public static class ConstantPipeReaderTests
 
     private class DerivedStringReader : StringReader
     {
-        public DerivedStringReader(string s) : base(s) { }
+        public DerivedStringReader(string s) : base(s)
+        {
+        }
     }
 
     [Fact]
@@ -39,7 +45,7 @@ public static class ConstantPipeReaderTests
         static void Impl(TextReader reader)
         {
             using (reader)
-            using (var pipe = CsvReader.CreatePipeReader(reader, HeapMemoryPool<char>.Instance, 4096))
+            using (var pipe = CsvPipeReader.Create(reader, HeapMemoryPool<char>.Instance, new() { BufferSize = 4096 }))
             {
                 Assert.IsNotType<ConstantPipeReader<char>>(pipe);
             }
@@ -55,7 +61,7 @@ public static class ConstantPipeReaderTests
         stream.Write("Hello, World!"u8);
         stream.Position = 0;
 
-        await using (var reader = CsvReader.CreatePipeReader(stream, pool, leaveOpen: true))
+        await using (var reader = CsvPipeReader.Create(stream, pool, new() { LeaveOpen = true }))
         {
             Assert.IsType<ConstantPipeReader<byte>>(reader);
 
@@ -88,7 +94,7 @@ public static class ConstantPipeReaderTests
         using var reader = new StringReader("Hello, World!");
         Assert.Equal(pos, reader.Read(new char[pos]));
 
-        await using var pipeReader = CsvReader.CreatePipeReader(reader, pool, 4096);
+        await using var pipeReader = CsvPipeReader.Create(reader, pool, new() { LeaveOpen = true });
 
         Assert.IsType<ConstantPipeReader<char>>(pipeReader);
 

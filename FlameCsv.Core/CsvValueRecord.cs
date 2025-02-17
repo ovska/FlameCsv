@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Enumeration;
+using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using JetBrains.Annotations;
@@ -16,16 +17,16 @@ namespace FlameCsv;
 /// <typeparam name="T">Token type</typeparam>
 [PublicAPI]
 [DebuggerTypeProxy(typeof(CsvValueRecord<>.CsvRecordDebugView))]
-public readonly struct CsvValueRecord<T> : ICsvRecord<T, ReadOnlySpan<T>>
+public readonly struct CsvValueRecord<T> : ICsvRecordFields<T>
     where T : unmanaged, IBinaryInteger<T>
 {
-    /// <inheritdoc/>
+    /// <inheritdoc cref="CsvRecord{T}.Position"/>
     public long Position { get; }
 
-    /// <inheritdoc/>
+    /// <inheritdoc cref="CsvRecord{T}.Line"/>
     public int Line { get; }
 
-    /// <inheritdoc/>
+    /// <inheritdoc cref="CsvRecord{T}.RawRecord"/>
     public ReadOnlySpan<T> RawRecord
     {
         get
@@ -35,12 +36,10 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T, ReadOnlySpan<T>>
         }
     }
 
-    /// <summary>
-    /// Whether the current CSV enumeration has a header.
-    /// </summary>
+    /// <inheritdoc cref="CsvRecord{T}.HasHeader"/>
     public bool HasHeader => _owner.Header is not null;
 
-    /// <inheritdoc/>
+    /// <inheritdoc cref="CsvRecord{T}.Header"/>
     public ReadOnlySpan<string> Header
     {
         get
@@ -57,7 +56,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T, ReadOnlySpan<T>>
         }
     }
 
-    /// <inheritdoc/>
+    /// <inheritdoc cref="CsvRecord{T}.Contains(CsvFieldIdentifier)"/>
     public bool Contains(CsvFieldIdentifier id)
     {
         _owner.EnsureVersion(_version);
@@ -66,13 +65,15 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T, ReadOnlySpan<T>>
             (uint)index < (uint)_line.FieldCount;
     }
 
-    /// <inheritdoc/>
+    /// <inheritdoc cref="CsvRecord{T}.Options"/>
     public CsvOptions<T> Options => _options;
 
-    /// <inheritdoc/>
+    /// <inheritdoc cref="CsvRecord{T}.this[CsvFieldIdentifier]"/>
     public ReadOnlySpan<T> this[CsvFieldIdentifier id] => GetField(id);
 
-    internal readonly CsvRecordEnumeratorBase<T> _owner;
+    ReadOnlySpan<T> ICsvRecordFields<T>.this[int index] => GetField(index);
+
+    internal readonly CsvRecordEnumerator<T> _owner;
     internal readonly CsvOptions<T> _options;
     internal readonly CsvLine<T> _line;
     private readonly int _version;
@@ -84,18 +85,17 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T, ReadOnlySpan<T>>
         int lineIndex,
         ref readonly CsvLine<T> line,
         CsvOptions<T> options,
-        CsvRecordEnumeratorBase<T> owner)
+        CsvRecordEnumerator<T> owner)
     {
+        _version = version;
         Position = position;
         Line = lineIndex;
         _line = line;
         _options = options;
         _owner = owner;
-        _version = version;
     }
 
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    /// <inheritdoc cref="CsvRecord{T}.GetField(CsvFieldIdentifier)"/>
     public ReadOnlySpan<T> GetField(CsvFieldIdentifier id)
     {
         _owner.EnsureVersion(_version);
@@ -113,7 +113,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T, ReadOnlySpan<T>>
         return _line.GetField(index);
     }
 
-    /// <inheritdoc/>
+    /// <inheritdoc cref="CsvRecord{T}.FieldCount"/>
     public int FieldCount
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -124,7 +124,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T, ReadOnlySpan<T>>
         }
     }
 
-    /// <inheritdoc/>
+    /// <inheritdoc cref="CsvRecord{T}.TryParseField{TValue}(FlameCsv.CsvFieldIdentifier,out TValue)"/>
     [RUF(Messages.ConverterOverload), RDC(Messages.ConverterOverload)]
     public bool TryParseField<TValue>(CsvFieldIdentifier id, [MaybeNullWhen(false)] out TValue value)
     {
@@ -132,7 +132,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T, ReadOnlySpan<T>>
         return _options.GetConverter<TValue>().TryParse(field, out value);
     }
 
-    /// <inheritdoc/>
+    /// <inheritdoc cref="CsvRecord{T}.TryParseField{TValue}(FlameCsv.CsvConverter{T,TValue},FlameCsv.CsvFieldIdentifier,out TValue)"/>
     public bool TryParseField<TValue>(
         CsvConverter<T, TValue> converter,
         CsvFieldIdentifier id,
@@ -143,7 +143,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T, ReadOnlySpan<T>>
         return converter.TryParse(field, out value);
     }
 
-    /// <inheritdoc/>
+    /// <inheritdoc cref="CsvRecord{T}.ParseField{TValue}(FlameCsv.CsvFieldIdentifier)"/>
     [RUF(Messages.ConverterOverload), RDC(Messages.ConverterOverload)]
     public TValue ParseField<TValue>(CsvFieldIdentifier id)
     {
@@ -159,7 +159,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T, ReadOnlySpan<T>>
         return value;
     }
 
-    /// <inheritdoc/>
+    /// <inheritdoc cref="CsvRecord{T}.ParseField{TValue}(FlameCsv.CsvConverter{T,TValue},FlameCsv.CsvFieldIdentifier)"/>
     public TValue ParseField<TValue>(CsvConverter<T, TValue> converter, CsvFieldIdentifier id)
     {
         ArgumentNullException.ThrowIfNull(converter);
@@ -174,9 +174,6 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T, ReadOnlySpan<T>>
         return value;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void ResetHeader() => _owner.Header = null;
-
     /// <summary>
     /// Returns an enumerator that can be used to read the fields one by one.
     /// </summary>
@@ -184,7 +181,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T, ReadOnlySpan<T>>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Enumerator GetEnumerator() => new(_version, _owner, in _line);
 
-    /// <inheritdoc/>
+    /// <inheritdoc cref="CsvRecord{T}.ParseRecord{TRecord>()"/>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public TRecord ParseRecord<[DAM(Messages.ReflectionBound)] TRecord>()
     {
@@ -209,7 +206,7 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T, ReadOnlySpan<T>>
         return materializer.Parse(ref reader);
     }
 
-    /// <inheritdoc/>
+    /// <inheritdoc cref="CsvRecord{T}.ParseRecord{TRecord}(FlameCsv.Binding.CsvTypeMap{T,TRecord})"/>
     public TRecord ParseRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap)
     {
         ArgumentNullException.ThrowIfNull(typeMap);
@@ -250,12 +247,12 @@ public readonly struct CsvValueRecord<T> : ICsvRecord<T, ReadOnlySpan<T>>
         public ReadOnlySpan<T> Current => _line.GetField(_index - 1);
 
         private readonly int _version;
-        private readonly CsvRecordEnumeratorBase<T> _state;
+        private readonly CsvRecordEnumerator<T> _state;
         private readonly CsvLine<T> _line;
         private int _index;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Enumerator(int version, CsvRecordEnumeratorBase<T> state, scoped ref readonly CsvLine<T> line)
+        internal Enumerator(int version, CsvRecordEnumerator<T> state, scoped ref readonly CsvLine<T> line)
         {
             state.EnsureVersion(version);
 

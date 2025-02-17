@@ -5,6 +5,7 @@ using FlameCsv.Extensions;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using FlameCsv.Enumeration;
+using FlameCsv.Reading.Internal;
 
 namespace FlameCsv;
 
@@ -69,18 +70,22 @@ public static partial class CsvReader
     /// <param name="stream">Stream to read the records from</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="encoding">Encoding to use for the inner <see cref="StreamReader"/></param>
-    /// <param name="leaveOpen">Whether to leave the stream open after reading</param>
-    public static CsvRecordAsyncEnumerable<char> EnumerateAsync(
+    /// <param name="readerOptions">Options to configure the inner reader</param>
+    public static CsvRecordEnumerable<char> EnumerateAsync(
         Stream stream,
         CsvOptions<char>? options = null,
         Encoding? encoding = null,
-        bool leaveOpen = false)
+        CsvReaderOptions readerOptions = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
         Guard.CanRead(stream);
 
         return EnumerateAsync(
-            new StreamReader(stream, encoding: encoding, bufferSize: DefaultBufferSize, leaveOpen: leaveOpen),
+            new StreamReader(
+                stream,
+                encoding: encoding,
+                bufferSize: readerOptions.BufferSize,
+                leaveOpen: readerOptions.LeaveOpen),
             options ?? CsvOptions<char>.Default);
     }
 
@@ -90,15 +95,17 @@ public static partial class CsvReader
     /// <remarks><inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)" path="/remarks"/></remarks>
     /// <param name="textReader">Text reader to read the records from</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    public static CsvRecordAsyncEnumerable<char> EnumerateAsync(
+    /// <param name="readerOptions">Options to configure the inner reader</param>
+    public static CsvRecordEnumerable<char> EnumerateAsync(
         TextReader textReader,
-        CsvOptions<char>? options = null)
+        CsvOptions<char>? options = null,
+        CsvReaderOptions readerOptions = default)
     {
         ArgumentNullException.ThrowIfNull(textReader);
 
         options ??= CsvOptions<char>.Default;
-        return new CsvRecordAsyncEnumerable<char>(
-            CreatePipeReader(textReader, options._memoryPool, DefaultBufferSize),
+        return new CsvRecordEnumerable<char>(
+            CsvPipeReader.Create(textReader, options._memoryPool, readerOptions),
             options);
     }
 
@@ -108,18 +115,18 @@ public static partial class CsvReader
     /// <remarks><inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)" path="/remarks"/></remarks>
     /// <param name="stream">Stream to read the records from</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    /// <param name="leaveOpen">Whether to leave the stream open after reading</param>
+    /// <param name="readerOptions">Options to configure the inner reader</param>
     [OverloadResolutionPriority(1)] // Prefer byte to char for ambiguous streams
-    public static CsvRecordAsyncEnumerable<byte> EnumerateAsync(
+    public static CsvRecordEnumerable<byte> EnumerateAsync(
         Stream stream,
         CsvOptions<byte>? options = null,
-        bool leaveOpen = false)
+        CsvReaderOptions readerOptions = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
 
         options ??= CsvOptions<byte>.Default;
-        return new CsvRecordAsyncEnumerable<byte>(
-            CreatePipeReader(stream, options._memoryPool, leaveOpen),
+        return new CsvRecordEnumerable<byte>(
+            CsvPipeReader.Create(stream, options._memoryPool, readerOptions),
             options);
     }
 
@@ -129,12 +136,12 @@ public static partial class CsvReader
     /// <remarks><inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)" path="/remarks"/></remarks>
     /// <param name="pipeReader">Pipe to read the records from</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    public static CsvRecordAsyncEnumerable<byte> EnumerateAsync(
+    public static CsvRecordEnumerable<byte> EnumerateAsync(
         PipeReader pipeReader,
         CsvOptions<byte>? options = null)
     {
         ArgumentNullException.ThrowIfNull(pipeReader);
-        return new CsvRecordAsyncEnumerable<byte>(
+        return new CsvRecordEnumerable<byte>(
             new PipeReaderWrapper(pipeReader),
             options ?? CsvOptions<byte>.Default);
     }
