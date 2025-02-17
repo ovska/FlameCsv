@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using System.Runtime.CompilerServices;
@@ -9,7 +10,7 @@ using JetBrains.Annotations;
 namespace FlameCsv.Enumeration;
 
 /// <summary>
-/// An enumerator that parses instances of <typeparamref name="TValue"/> from CSV records.
+/// An enumerator that parses CSV records as <typeparamref name="TValue"/>.
 /// </summary>
 /// <remarks>
 /// If the options are configured to read a header record, it will be processed first before any records are yielded.<br/>
@@ -17,18 +18,17 @@ namespace FlameCsv.Enumeration;
 /// The enumerator should always be disposed after use, either explicitly or using <c>foreach</c>.
 /// </remarks>
 [MustDisposeResource]
-public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : unmanaged, IBinaryInteger<T>
+public abstract class CsvValueEnumeratorBase<T, TValue>
+    : CsvEnumeratorBase<T>, IEnumerator<TValue>, IAsyncEnumerator<TValue>
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Value parsed from the current CSV record.
     /// </summary>
     public TValue Current { get; private set; }
 
-    /// <inheritdoc cref="CsvRecordEnumeratorBase{T}.Line"/>
-    public int Line { get; private set; }
-
-    /// <inheritdoc cref="CsvRecordEnumeratorBase{T}.Position"/>
-    public long Position { get; private set; }
+    object? IEnumerator.Current => Current;
+    void IEnumerator.Reset() => ResetCore();
 
     /// <summary>
     /// Delegate that is called when an exception is thrown while parsing class records.
@@ -39,16 +39,27 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     /// </remarks>
     public CsvExceptionHandler<T>? ExceptionHandler { get; init; }
 
+    private readonly CsvRecordCallback<T>? _recordCallback;
+    private readonly bool _hasHeader;
+
     private IMaterializer<T, TValue>? _materializer;
     private string[]? _headersArray;
 
-    [HandlesResourceDisposal] private protected readonly CsvParser<T> _parser;
-
-    private protected CsvValueEnumeratorBase(CsvOptions<T> options)
+    /// <summary>
+    /// Initializes a new instance of <see cref="CsvValueEnumeratorBase{T, TValue}"/>.
+    /// </summary>
+    /// <param name="options">Options to use for reading</param>
+    /// <param name="reader">Data source</param>
+    /// <param name="cancellationToken">Token to cancel asynchronous enumeration</param>
+    protected CsvValueEnumeratorBase(
+        CsvOptions<T> options,
+        ICsvPipeReader<T> reader,
+        CancellationToken cancellationToken)
+        : base(options, reader, cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(options);
-
-        _parser = CsvParser.Create(options);
+        _recordCallback = options.RecordCallback;
+        _hasHeader = options._hasHeader;
         Current = default!;
     }
 
@@ -62,23 +73,15 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
     /// </summary>
     protected abstract IMaterializer<T, TValue> BindToHeaderless();
 
-    private protected bool TryRead(bool isFinalBlock)
+    /// <inheritdoc/>
+    protected override bool MoveNextCore(ref readonly CsvLine<T> line)
     {
-    ReadNextRecord:
-        if (!_parser.TryReadLine(out CsvLine<T> line, isFinalBlock))
-        {
-            return false;
-        }
-
         long position = Position;
 
-        Line++;
-        Position += line.RecordLength + (isFinalBlock ? 0 : _parser._newline.Length);
-
-        if (_parser.Options._recordCallback is { } callback)
+        if (_recordCallback is not null)
         {
             bool skip = false;
-            bool headerRead = _parser.Options._hasHeader && _materializer is not null;
+            bool headerRead = _hasHeader && _materializer is not null;
 
             CsvRecordCallbackArgs<T> args = new(
                 in line,
@@ -87,21 +90,15 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
                 position,
                 ref skip,
                 ref headerRead);
-            callback(in args);
+            _recordCallback(in args);
 
-            if (!headerRead && _parser.Options._hasHeader) _materializer = null; // null to re-read headers
-            if (skip) goto ReadNextRecord;
+            if (!headerRead && _hasHeader) _materializer = null; // null to re-read headers
+            if (skip) return false;
         }
 
         if (_materializer is null && TryReadHeader(in line))
         {
-            // csv only had the header
-            if (isFinalBlock)
-            {
-                return false;
-            }
-
-            goto ReadNextRecord;
+            return false;
         }
 
         try
@@ -126,7 +123,8 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
 
                 if (handler(in args))
                 {
-                    goto ReadNextRecord;
+                    // try again
+                    return false;
                 }
             }
 
@@ -135,10 +133,16 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         }
     }
 
+    /// <summary>
+    /// Initializes the materializer.
+    /// </summary>
+    /// <returns>
+    /// <see langword="true"/> if the record was consumed, <see langword="false"/> otherwise.
+    /// </returns>
     [MemberNotNull(nameof(_materializer))]
     private bool TryReadHeader(ref readonly CsvLine<T> record)
     {
-        if (!_parser.Options.HasHeader)
+        if (!_hasHeader)
         {
             _materializer = BindToHeaderless();
             return false;
@@ -152,7 +156,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
 
         for (int field = 0; field < reader.FieldCount; field++)
         {
-            list.Append(CsvHeader.Get(_parser.Options, reader[field], charBuffer));
+            list.Append(CsvHeader.Get(Parser.Options, reader[field], charBuffer));
         }
 
         ReadOnlySpan<string> headers = list.AsSpan();
@@ -160,7 +164,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
         _materializer = BindToHeaders(headers);
 
         // we need a copy of the headers for the callbacks
-        if (ExceptionHandler is not null || _parser.Options._recordCallback is not null)
+        if (ExceptionHandler is not null || _recordCallback is not null)
         {
             _headersArray = headers.ToArray();
         }
@@ -190,22 +194,5 @@ public abstract class CsvValueEnumeratorBase<T, TValue> : IDisposable where T : 
             Line,
             position,
             innerException);
-    }
-
-    /// <summary>
-    /// Disposes the underlying data source and internal states, and returns pooled memory.
-    /// </summary>
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    private protected virtual void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            _parser.Dispose();
-        }
     }
 }

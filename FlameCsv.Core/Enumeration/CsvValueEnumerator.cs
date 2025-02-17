@@ -1,48 +1,37 @@
-﻿using System.Buffers;
-using System.Collections;
-using FlameCsv.Reading;
+﻿using FlameCsv.Reading;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Enumeration;
 
-/// <inheritdoc cref="CsvValueAsyncEnumeratorBase{T,TValue}"/>
+/// <inheritdoc cref="CsvValueEnumeratorBase{T,TValue}"/>
 [PublicAPI]
 [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-public sealed class CsvValueEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TValue>, IEnumerator<TValue>
+public sealed class CsvValueEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TValue>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly ReadOnlySequence<T> _csv;
-
-    internal CsvValueEnumerator(in ReadOnlySequence<T> csv, CsvOptions<T> options) : base(options)
+    /// <summary>
+    /// Initializes a new instance of <see cref="CsvValueEnumerator{T, TValue}"/>.
+    /// </summary>
+    /// <param name="options">Options to use for reading</param>
+    /// <param name="reader">Data source</param>
+    /// <param name="cancellationToken">Token to cancel asynchronous enumeration</param>
+    public CsvValueEnumerator(
+        CsvOptions<T> options,
+        ICsvPipeReader<T> reader,
+        CancellationToken cancellationToken = default)
+        : base(options, reader, cancellationToken)
     {
-        _csv = csv;
-        _parser.SetData(in csv);
     }
-
-    /// <inheritdoc cref="IEnumerator.MoveNext"/>
-    public bool MoveNext()
-    {
-        return TryRead(isFinalBlock: false) || TryRead(isFinalBlock: true);
-    }
-
-    // RIDER complains about this class otherwise
-    /// <inheritdoc cref="IEnumerator{T}.Current"/>
-    public new TValue Current => base.Current;
 
     /// <inheritdoc/>
     protected override IMaterializer<T, TValue> BindToHeaders(ReadOnlySpan<string> headers)
     {
-        return _parser.Options.TypeBinder.GetMaterializer<TValue>(headers);
+        return Parser.Options.TypeBinder.GetMaterializer<TValue>(headers);
     }
 
     /// <inheritdoc/>
     protected override IMaterializer<T, TValue> BindToHeaderless()
     {
-        return _parser.Options.TypeBinder.GetMaterializer<TValue>();
+        return Parser.Options.TypeBinder.GetMaterializer<TValue>();
     }
-
-    object IEnumerator.Current => Current!;
-
-    /// <inheritdoc />
-    public void Reset() => _parser.SetData(in _csv);
 }

@@ -220,7 +220,7 @@ public static class CsvParallelReader
                         ? bufferCache.Value!.GetBuffer
                         : null;
 
-                    MetaFieldReader<T> reader = new(in line, getBuffer: getBuffer);
+                    MetaFieldReader<T> reader = new(in line, getBuffer: getBuffer!);
 
                     if (needsHeader)
                     {

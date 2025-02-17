@@ -30,6 +30,8 @@ internal readonly struct VoidParallelInvoke<T, TInvoke>(TInvoke invoke) : ICsvPa
         in CsvParallelState state,
         [NotNullWhen(true)] out object? result) where TReader : ICsvRecordFields<T>, allows ref struct
     {
-        throw new NotImplementedException();
+        invoke.Invoke(ref reader, state);
+        result = null!;
+        return true;
     }
 }

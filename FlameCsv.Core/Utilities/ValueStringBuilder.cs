@@ -260,6 +260,18 @@ internal ref partial struct ValueStringBuilder
         return _chars.Slice(origPos, length);
     }
 
+    public void AppendFormatted<T>(T value, ReadOnlySpan<char> format = default) where T : ISpanFormattable
+    {
+        int charsWritten;
+
+        while (!value.TryFormat(_chars.Slice(_pos), out charsWritten, format, null))
+        {
+            Grow(Math.Max(16, (_chars.Length - _pos) + 1));
+        }
+
+        _pos += charsWritten;
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void GrowAndAppend(char c)
     {
@@ -298,7 +310,8 @@ internal ref partial struct ValueStringBuilder
         _chars.Slice(0, _pos).CopyTo(poolArray);
 
         char[]? toReturn = _arrayToReturnToPool;
-        _chars = _arrayToReturnToPool = poolArray;
+        _arrayToReturnToPool = poolArray;
+        _chars = poolArray;
         if (toReturn != null)
         {
             ArrayPool<char>.Shared.Return(toReturn);

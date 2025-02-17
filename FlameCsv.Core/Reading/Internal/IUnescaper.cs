@@ -3,9 +3,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
-using FlameCsv.Reading.Internal;
 
-namespace FlameCsv.Reading;
+namespace FlameCsv.Reading.Internal;
 
 internal static class Unescape
 {
