@@ -127,7 +127,7 @@ public sealed class CsvRecordEnumerator<T>
     }
 
     /// <inheritdoc/>
-    protected override bool MoveNextCore(ref readonly CsvLine<T> line)
+    protected override bool MoveNextCore(ref readonly CsvFields<T> fields)
     {
         Throw.IfEnumerationDisposed(_version == -1);
 
@@ -137,7 +137,7 @@ public sealed class CsvRecordEnumerator<T>
             bool headerRead = Header is not null;
 
             CsvRecordCallbackArgs<T> args = new(
-                in line,
+                in fields,
                 Header is { } header ? header.Values : [],
                 Line,
                 Position,
@@ -152,7 +152,7 @@ public sealed class CsvRecordEnumerator<T>
         // header needs to be read
         if (_hasHeader && _header is null)
         {
-            Header = CreateHeader(in line);
+            Header = CreateHeader(in fields);
             return false;
         }
 
@@ -162,15 +162,15 @@ public sealed class CsvRecordEnumerator<T>
         {
             if (_expectedFieldCount is null)
             {
-                _expectedFieldCount = line.FieldCount;
+                _expectedFieldCount = fields.FieldCount;
             }
-            else if (line.FieldCount != _expectedFieldCount.Value)
+            else if (fields.FieldCount != _expectedFieldCount.Value)
             {
-                Throw.InvalidData_FieldCount(_expectedFieldCount.Value, line.FieldCount);
+                Throw.InvalidData_FieldCount(_expectedFieldCount.Value, fields.FieldCount);
             }
         }
 
-        _current = new CsvValueRecord<T>(_version, Position, Line, in line, Parser.Options, this);
+        _current = new CsvValueRecord<T>(_version, Position, Line, in fields, Parser.Options, this);
         return true;
     }
 
@@ -221,9 +221,9 @@ public sealed class CsvRecordEnumerator<T>
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private CsvHeader CreateHeader(ref readonly CsvLine<T> headerRecord)
+    private CsvHeader CreateHeader(ref readonly CsvFields<T> headerRecord)
     {
-        MetaFieldReader<T> reader = new(in headerRecord, stackalloc T[Token<T>.StackLength]);
+        CsvFieldsRef<T> reader = new(in headerRecord, stackalloc T[Token<T>.StackLength]);
         return CsvHeader.Parse(Parser.Options, ref reader);
     }
 

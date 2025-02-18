@@ -19,16 +19,16 @@ public sealed class CsvHeader
     /// Parses headers from the reader.
     /// </summary>
     /// <param name="options">Options instance to get the comparer and transcoding functions from</param>
-    /// <param name="reader">CSV record reader</param>
+    /// <param name="record">CSV record reader</param>
     /// <typeparam name="T">Token type</typeparam>
-    /// <typeparam name="TReader">Record field reader</typeparam>
+    /// <typeparam name="TRecord">Record field reader</typeparam>
     /// <returns>Parsed CSV header</returns>
     /// <exception cref="CsvFormatException">Thrown when a duplicate header field is found</exception>
-    internal static CsvHeader Parse<T, TReader>(
+    internal static CsvHeader Parse<T, TRecord>(
         CsvOptions<T> options,
-        ref TReader reader)
+        ref TRecord record)
         where T : unmanaged, IBinaryInteger<T>
-        where TReader : ICsvRecordFields<T>, allows ref struct
+        where TRecord : ICsvFields<T>, allows ref struct
     {
         IEqualityComparer<string> comparer = options.Comparer;
 
@@ -36,9 +36,9 @@ public sealed class CsvHeader
         using ValueListBuilder<string> list = new(scratch);
         Span<char> charBuffer = stackalloc char[128];
 
-        for (int field = 0; field < reader.FieldCount; field++)
+        for (int field = 0; field < record.FieldCount; field++)
         {
-            list.Append(Get(options, reader[field], charBuffer));
+            list.Append(Get(options, record[field], charBuffer));
         }
 
         ReadOnlySpan<string> headers = list.AsSpan();

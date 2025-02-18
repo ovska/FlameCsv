@@ -12,25 +12,25 @@ namespace FlameCsv.Parallel;
 public interface ICsvParallelInvoke<T> where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
-    /// Applies the effects of this instance to the fields in <paramref name="reader"/>.
+    /// Applies the effects of this instance to the fields in <paramref name="record"/>.
     /// </summary>
-    /// <param name="reader">Reader for the current CSV record</param>
+    /// <param name="record">Reader for the current CSV record</param>
     /// <param name="state">State of the enumeration</param>
-    /// <typeparam name="TReader">Reader type</typeparam>
-    void Invoke<TReader>(scoped ref TReader reader, in CsvParallelState state)
-        where TReader : ICsvRecordFields<T>, allows ref struct;
+    /// <typeparam name="TRecord">Reader type</typeparam>
+    void Invoke<TRecord>(scoped ref TRecord record, in CsvParallelState state)
+        where TRecord : ICsvFields<T>, allows ref struct;
 }
 
 internal readonly struct VoidParallelInvoke<T, TInvoke>(TInvoke invoke) : ICsvParallelTryInvoke<T, object?>
     where T : unmanaged, IBinaryInteger<T>
     where TInvoke : ICsvParallelInvoke<T>
 {
-    public bool TryInvoke<TReader>(
-        scoped ref TReader reader,
+    public bool TryInvoke<TRecord>(
+        scoped ref TRecord record,
         in CsvParallelState state,
-        [NotNullWhen(true)] out object? result) where TReader : ICsvRecordFields<T>, allows ref struct
+        [NotNullWhen(true)] out object? result) where TRecord : ICsvFields<T>, allows ref struct
     {
-        invoke.Invoke(ref reader, state);
+        invoke.Invoke(ref record, state);
         result = null!;
         return true;
     }

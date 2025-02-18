@@ -125,7 +125,7 @@ public partial class TypeMapGenerator
             writer.WriteLine();
 
             writer.WriteLine(
-                $"public {typeMap.Type.FullyQualifiedName} Parse<TReader>(ref TReader reader) where TReader : global::FlameCsv.Reading.ICsvRecordFields<{typeMap.Token.FullyQualifiedName}>, allows ref struct");
+                $"public {typeMap.Type.FullyQualifiedName} Parse<TRecord>(ref TRecord reader) where TRecord : global::FlameCsv.Reading.ICsvFields<{typeMap.Token.FullyQualifiedName}>, allows ref struct");
 
             using (writer.WriteBlock())
             {

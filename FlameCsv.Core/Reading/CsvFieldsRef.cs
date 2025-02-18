@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using FlameCsv.Extensions;
@@ -6,8 +7,12 @@ using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Reading;
 
+/// <summary>
+/// Internal implementation detail. This type should probably not be used directly.
+/// </summary>
 [SkipLocalsInit]
-internal readonly ref struct MetaFieldReader<T> : ICsvRecordFields<T> where T : unmanaged, IBinaryInteger<T>
+[EditorBrowsable(EditorBrowsableState.Never)]
+public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, IBinaryInteger<T>
 {
     private readonly ref readonly CsvDialect<T> _dialect;
     private readonly int _newlineLength;
@@ -17,41 +22,51 @@ internal readonly ref struct MetaFieldReader<T> : ICsvRecordFields<T> where T : 
     private readonly ref Meta _firstMeta;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public MetaFieldReader(scoped ref readonly CsvLine<T> line, Span<T> unescapeBuffer)
+    internal CsvFieldsRef(scoped ref readonly CsvFields<T> fields, Span<T> unescapeBuffer)
     {
-        CsvParser<T> parser = line.Parser;
-        ReadOnlySpan<Meta> fields = line.Fields;
+        CsvParser<T> parser = fields.Parser;
+        ReadOnlySpan<Meta> fieldMeta = fields.Fields;
 
         _dialect = ref parser._dialect;
         _newlineLength = parser._newline.Length;
         _getBuffer = parser.GetUnescapeBuffer;
-        _data = line.Data.Span;
-        _firstMeta = ref MemoryMarshal.GetReference(fields);
-        FieldCount = fields.Length - 1;
+        _data = fields.Data.Span;
+        _firstMeta = ref MemoryMarshal.GetReference(fieldMeta);
+        FieldCount = fieldMeta.Length - 1;
         _unescapeBuffer = unescapeBuffer;
     }
 
+    /// <summary>
+    /// Initializes a new instance of <see cref="CsvFieldsRef{T}"/>.
+    /// </summary>
+    /// <param name="fields"></param>
+    /// <param name="getBuffer"></param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public MetaFieldReader(scoped ref readonly CsvLine<T> line, Func<int, Span<T>> getBuffer)
+    public CsvFieldsRef(scoped ref readonly CsvFields<T> fields, Func<int, Span<T>> getBuffer)
     {
-        CsvParser<T> parser = line.Parser;
-        ReadOnlySpan<Meta> fields = line.Fields;
+        if (fields.Parser is null) Throw.InvalidOp_DefaultStruct(typeof(CsvFields<T>));
+        ArgumentNullException.ThrowIfNull(getBuffer);
+
+        CsvParser<T> parser = fields.Parser;
+        ReadOnlySpan<Meta> fieldMeta = fields.Fields;
 
         _dialect = ref parser._dialect;
         _newlineLength = parser._newline.Length;
         _getBuffer = getBuffer;
-        _data = line.Data.Span;
-        _firstMeta = ref MemoryMarshal.GetReference(fields);
-        FieldCount = fields.Length - 1;
+        _data = fields.Data.Span;
+        _firstMeta = ref Unsafe.AsRef(in fieldMeta[0]);
+        FieldCount = fieldMeta.Length - 1;
         _unescapeBuffer = [];
     }
 
+    /// <inheritdoc/>
     public int FieldCount
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get;
     }
 
+    /// <inheritdoc/>
     public ReadOnlySpan<T> this[int index]
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
