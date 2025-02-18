@@ -41,12 +41,12 @@ internal readonly struct ValueParallelInvoke<T, TValue>
         _materializerFactory = materializerFactory;
     }
 
-    public bool TryInvoke<TReader>(
-        scoped ref TReader reader,
+    public bool TryInvoke<TRecord>(
+        scoped ref TRecord record,
         in CsvParallelState state,
-        [NotNullWhen(true)] out TValue? result) where TReader : ICsvRecordFields<T>, allows ref struct
+        [NotNullWhen(true)] out TValue? result) where TRecord : ICsvFields<T>, allows ref struct
     {
-        result = (_materializer.Value ??= _materializerFactory(_arg, state.Header)).Parse(ref reader)!;
+        result = (_materializer.Value ??= _materializerFactory(_arg, state.Header)).Parse(ref record)!;
         return true;
     }
 

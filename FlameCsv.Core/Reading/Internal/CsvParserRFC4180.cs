@@ -10,11 +10,11 @@ namespace FlameCsv.Reading.Internal;
 internal sealed class CsvParserRFC4180<T>(CsvOptions<T> options) : CsvParser<T>(options)
     where T : unmanaged, IBinaryInteger<T>
 {
-    private protected override bool TryReadFromSequence(out CsvLine<T> line, bool isFinalBlock)
+    private protected override bool TryReadFromSequence(out CsvFields<T> fields, bool isFinalBlock)
     {
         Debug.Assert(_dialect.Escape is null);
 
-        using ValueListBuilder<Meta> fields = new(stackalloc Meta[16]);
+        using ValueListBuilder<Meta> fieldMeta = new(stackalloc Meta[16]);
 
         uint quoteCount = 0;
         SequenceReader<T> reader = new(_sequence);
@@ -86,7 +86,7 @@ internal sealed class CsvParserRFC4180<T>(CsvOptions<T> options) : CsvParser<T>(
                 goto FoundNewline;
 
             FoundDelimiter:
-                fields.Append(Meta.RFC((int)reader.Consumed - 1, quoteCount, isEOL: false));
+                fieldMeta.Append(Meta.RFC((int)reader.Consumed - 1, quoteCount, isEOL: false));
                 quoteCount = 0;
                 goto Seek;
 
@@ -99,14 +99,14 @@ internal sealed class CsvParserRFC4180<T>(CsvOptions<T> options) : CsvParser<T>(
 
                 if (newline.Length == 1 || reader.IsNext(newline.Second, advancePast: true))
                 {
-                    fields.Append(Meta.RFC((int)reader.Consumed - newline.Length, quoteCount, isEOL: true));
+                    fieldMeta.Append(Meta.RFC((int)reader.Consumed - newline.Length, quoteCount, isEOL: true));
 
-                    line = new CsvLine<T>(
+                    fields = new CsvFields<T>(
                         this,
                         reader
                             .Sequence.Slice(reader.Sequence.Start, crPosition)
                             .AsMemory(Options._memoryPool, ref _multisegmentBuffer),
-                        GetSegmentMeta(fields.AsSpan()));
+                        GetSegmentMeta(fieldMeta.AsSpan()));
 
                     _sequence = reader.UnreadSequence;
                     return true;
@@ -129,13 +129,13 @@ internal sealed class CsvParserRFC4180<T>(CsvOptions<T> options) : CsvParser<T>(
 
             // the last field ended in a delimiter, so there must be at least one field after it
             // this should _not_ be an EOL as that flag is used for determining record length w/ the newline
-            fields.Append(Meta.RFC(lastLine.Length, quoteCount, isEOL: false));
+            fieldMeta.Append(Meta.RFC(lastLine.Length, quoteCount, isEOL: false));
 
-            line = new CsvLine<T>(this, lastLine, GetSegmentMeta(fields.AsSpan()));
+            fields = new CsvFields<T>(this, lastLine, GetSegmentMeta(fieldMeta.AsSpan()));
             return true;
         }
 
-        Unsafe.SkipInit(out line);
+        Unsafe.SkipInit(out fields);
         return false;
     }
 

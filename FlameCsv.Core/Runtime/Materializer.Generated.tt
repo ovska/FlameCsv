@@ -108,21 +108,21 @@ internal sealed class Materializer<T, <#= generics #>> : Materializer<T, TResult
         }
 #>
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
+    public TResult Parse<TRecord>(ref TRecord record) where TRecord : ICsvRecord<T>, allows ref struct
     {
-        if (reader.FieldCount != <#= current #>) CsvReadException.ThrowForInvalidFieldCount(<#= current #>, reader.FieldCount);
+        if (record.FieldCount != <#= current #>) CsvReadException.ThrowForInvalidFieldCount(<#= current #>, record.FieldCount);
 <#
         for (var i = 0; i < current; i++)
         {
             Write($"        if (!converter");
             Write(i.ToString());
-            Write(".TryParse(reader[");
+            Write(".TryParse(record[");
             Write(i.ToString());
             Write("], out ");
             Write(genericTypes[i]);
             Write(" ");
             Write(values[i]);
-            Write(")) CsvParseException.Throw(reader[");
+            Write(")) CsvParseException.Throw(record[");
             Write(i.ToString());
             Write("], converter");
             Write(i.ToString());

@@ -75,10 +75,10 @@ internal sealed class Materializer<T, T0, TResult> : Materializer<T, TResult>, I
 
     private readonly CsvConverter<T, T0> converter0;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
+    public TResult Parse<TRecord>(ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
     {
-        if (reader.FieldCount != 1) CsvReadException.ThrowForInvalidFieldCount(1, reader.FieldCount);
-        if (!converter0.TryParse(reader[0], out T0 v0)) CsvParseException.Throw(reader[0], converter0, GetName(0));
+        if (record.FieldCount != 1) CsvReadException.ThrowForInvalidFieldCount(1, record.FieldCount);
+        if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(record[0], converter0, GetName(0));
         return valueFactory(v0);
     }
 }
@@ -106,11 +106,11 @@ internal sealed class Materializer<T, T0, T1, TResult> : Materializer<T, TResult
     private readonly CsvConverter<T, T0> converter0;
     private readonly CsvConverter<T, T1> converter1;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
+    public TResult Parse<TRecord>(ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
     {
-        if (reader.FieldCount != 2) CsvReadException.ThrowForInvalidFieldCount(2, reader.FieldCount);
-        if (!converter0.TryParse(reader[0], out T0 v0)) CsvParseException.Throw(reader[0], converter0, GetName(0));
-        if (!converter1.TryParse(reader[1], out T1 v1)) CsvParseException.Throw(reader[1], converter1, GetName(1));
+        if (record.FieldCount != 2) CsvReadException.ThrowForInvalidFieldCount(2, record.FieldCount);
+        if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(record[0], converter0, GetName(0));
+        if (!converter1.TryParse(record[1], out T1 v1)) CsvParseException.Throw(record[1], converter1, GetName(1));
         return valueFactory(v0, v1);
     }
 }
@@ -140,12 +140,12 @@ internal sealed class Materializer<T, T0, T1, T2, TResult> : Materializer<T, TRe
     private readonly CsvConverter<T, T1> converter1;
     private readonly CsvConverter<T, T2> converter2;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
+    public TResult Parse<TRecord>(ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
     {
-        if (reader.FieldCount != 3) CsvReadException.ThrowForInvalidFieldCount(3, reader.FieldCount);
-        if (!converter0.TryParse(reader[0], out T0 v0)) CsvParseException.Throw(reader[0], converter0, GetName(0));
-        if (!converter1.TryParse(reader[1], out T1 v1)) CsvParseException.Throw(reader[1], converter1, GetName(1));
-        if (!converter2.TryParse(reader[2], out T2 v2)) CsvParseException.Throw(reader[2], converter2, GetName(2));
+        if (record.FieldCount != 3) CsvReadException.ThrowForInvalidFieldCount(3, record.FieldCount);
+        if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(record[0], converter0, GetName(0));
+        if (!converter1.TryParse(record[1], out T1 v1)) CsvParseException.Throw(record[1], converter1, GetName(1));
+        if (!converter2.TryParse(record[2], out T2 v2)) CsvParseException.Throw(record[2], converter2, GetName(2));
         return valueFactory(v0, v1, v2);
     }
 }
@@ -177,13 +177,13 @@ internal sealed class Materializer<T, T0, T1, T2, T3, TResult> : Materializer<T,
     private readonly CsvConverter<T, T2> converter2;
     private readonly CsvConverter<T, T3> converter3;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
+    public TResult Parse<TRecord>(ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
     {
-        if (reader.FieldCount != 4) CsvReadException.ThrowForInvalidFieldCount(4, reader.FieldCount);
-        if (!converter0.TryParse(reader[0], out T0 v0)) CsvParseException.Throw(reader[0], converter0, GetName(0));
-        if (!converter1.TryParse(reader[1], out T1 v1)) CsvParseException.Throw(reader[1], converter1, GetName(1));
-        if (!converter2.TryParse(reader[2], out T2 v2)) CsvParseException.Throw(reader[2], converter2, GetName(2));
-        if (!converter3.TryParse(reader[3], out T3 v3)) CsvParseException.Throw(reader[3], converter3, GetName(3));
+        if (record.FieldCount != 4) CsvReadException.ThrowForInvalidFieldCount(4, record.FieldCount);
+        if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(record[0], converter0, GetName(0));
+        if (!converter1.TryParse(record[1], out T1 v1)) CsvParseException.Throw(record[1], converter1, GetName(1));
+        if (!converter2.TryParse(record[2], out T2 v2)) CsvParseException.Throw(record[2], converter2, GetName(2));
+        if (!converter3.TryParse(record[3], out T3 v3)) CsvParseException.Throw(record[3], converter3, GetName(3));
         return valueFactory(v0, v1, v2, v3);
     }
 }
@@ -217,14 +217,14 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult> : Materialize
     private readonly CsvConverter<T, T3> converter3;
     private readonly CsvConverter<T, T4> converter4;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
+    public TResult Parse<TRecord>(ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
     {
-        if (reader.FieldCount != 5) CsvReadException.ThrowForInvalidFieldCount(5, reader.FieldCount);
-        if (!converter0.TryParse(reader[0], out T0 v0)) CsvParseException.Throw(reader[0], converter0, GetName(0));
-        if (!converter1.TryParse(reader[1], out T1 v1)) CsvParseException.Throw(reader[1], converter1, GetName(1));
-        if (!converter2.TryParse(reader[2], out T2 v2)) CsvParseException.Throw(reader[2], converter2, GetName(2));
-        if (!converter3.TryParse(reader[3], out T3 v3)) CsvParseException.Throw(reader[3], converter3, GetName(3));
-        if (!converter4.TryParse(reader[4], out T4 v4)) CsvParseException.Throw(reader[4], converter4, GetName(4));
+        if (record.FieldCount != 5) CsvReadException.ThrowForInvalidFieldCount(5, record.FieldCount);
+        if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(record[0], converter0, GetName(0));
+        if (!converter1.TryParse(record[1], out T1 v1)) CsvParseException.Throw(record[1], converter1, GetName(1));
+        if (!converter2.TryParse(record[2], out T2 v2)) CsvParseException.Throw(record[2], converter2, GetName(2));
+        if (!converter3.TryParse(record[3], out T3 v3)) CsvParseException.Throw(record[3], converter3, GetName(3));
+        if (!converter4.TryParse(record[4], out T4 v4)) CsvParseException.Throw(record[4], converter4, GetName(4));
         return valueFactory(v0, v1, v2, v3, v4);
     }
 }
@@ -260,15 +260,15 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult> : Materia
     private readonly CsvConverter<T, T4> converter4;
     private readonly CsvConverter<T, T5> converter5;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
+    public TResult Parse<TRecord>(ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
     {
-        if (reader.FieldCount != 6) CsvReadException.ThrowForInvalidFieldCount(6, reader.FieldCount);
-        if (!converter0.TryParse(reader[0], out T0 v0)) CsvParseException.Throw(reader[0], converter0, GetName(0));
-        if (!converter1.TryParse(reader[1], out T1 v1)) CsvParseException.Throw(reader[1], converter1, GetName(1));
-        if (!converter2.TryParse(reader[2], out T2 v2)) CsvParseException.Throw(reader[2], converter2, GetName(2));
-        if (!converter3.TryParse(reader[3], out T3 v3)) CsvParseException.Throw(reader[3], converter3, GetName(3));
-        if (!converter4.TryParse(reader[4], out T4 v4)) CsvParseException.Throw(reader[4], converter4, GetName(4));
-        if (!converter5.TryParse(reader[5], out T5 v5)) CsvParseException.Throw(reader[5], converter5, GetName(5));
+        if (record.FieldCount != 6) CsvReadException.ThrowForInvalidFieldCount(6, record.FieldCount);
+        if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(record[0], converter0, GetName(0));
+        if (!converter1.TryParse(record[1], out T1 v1)) CsvParseException.Throw(record[1], converter1, GetName(1));
+        if (!converter2.TryParse(record[2], out T2 v2)) CsvParseException.Throw(record[2], converter2, GetName(2));
+        if (!converter3.TryParse(record[3], out T3 v3)) CsvParseException.Throw(record[3], converter3, GetName(3));
+        if (!converter4.TryParse(record[4], out T4 v4)) CsvParseException.Throw(record[4], converter4, GetName(4));
+        if (!converter5.TryParse(record[5], out T5 v5)) CsvParseException.Throw(record[5], converter5, GetName(5));
         return valueFactory(v0, v1, v2, v3, v4, v5);
     }
 }
@@ -306,16 +306,16 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult> : Mat
     private readonly CsvConverter<T, T5> converter5;
     private readonly CsvConverter<T, T6> converter6;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
+    public TResult Parse<TRecord>(ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
     {
-        if (reader.FieldCount != 7) CsvReadException.ThrowForInvalidFieldCount(7, reader.FieldCount);
-        if (!converter0.TryParse(reader[0], out T0 v0)) CsvParseException.Throw(reader[0], converter0, GetName(0));
-        if (!converter1.TryParse(reader[1], out T1 v1)) CsvParseException.Throw(reader[1], converter1, GetName(1));
-        if (!converter2.TryParse(reader[2], out T2 v2)) CsvParseException.Throw(reader[2], converter2, GetName(2));
-        if (!converter3.TryParse(reader[3], out T3 v3)) CsvParseException.Throw(reader[3], converter3, GetName(3));
-        if (!converter4.TryParse(reader[4], out T4 v4)) CsvParseException.Throw(reader[4], converter4, GetName(4));
-        if (!converter5.TryParse(reader[5], out T5 v5)) CsvParseException.Throw(reader[5], converter5, GetName(5));
-        if (!converter6.TryParse(reader[6], out T6 v6)) CsvParseException.Throw(reader[6], converter6, GetName(6));
+        if (record.FieldCount != 7) CsvReadException.ThrowForInvalidFieldCount(7, record.FieldCount);
+        if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(record[0], converter0, GetName(0));
+        if (!converter1.TryParse(record[1], out T1 v1)) CsvParseException.Throw(record[1], converter1, GetName(1));
+        if (!converter2.TryParse(record[2], out T2 v2)) CsvParseException.Throw(record[2], converter2, GetName(2));
+        if (!converter3.TryParse(record[3], out T3 v3)) CsvParseException.Throw(record[3], converter3, GetName(3));
+        if (!converter4.TryParse(record[4], out T4 v4)) CsvParseException.Throw(record[4], converter4, GetName(4));
+        if (!converter5.TryParse(record[5], out T5 v5)) CsvParseException.Throw(record[5], converter5, GetName(5));
+        if (!converter6.TryParse(record[6], out T6 v6)) CsvParseException.Throw(record[6], converter6, GetName(6));
         return valueFactory(v0, v1, v2, v3, v4, v5, v6);
     }
 }
@@ -355,17 +355,17 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult> :
     private readonly CsvConverter<T, T6> converter6;
     private readonly CsvConverter<T, T7> converter7;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
+    public TResult Parse<TRecord>(ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
     {
-        if (reader.FieldCount != 8) CsvReadException.ThrowForInvalidFieldCount(8, reader.FieldCount);
-        if (!converter0.TryParse(reader[0], out T0 v0)) CsvParseException.Throw(reader[0], converter0, GetName(0));
-        if (!converter1.TryParse(reader[1], out T1 v1)) CsvParseException.Throw(reader[1], converter1, GetName(1));
-        if (!converter2.TryParse(reader[2], out T2 v2)) CsvParseException.Throw(reader[2], converter2, GetName(2));
-        if (!converter3.TryParse(reader[3], out T3 v3)) CsvParseException.Throw(reader[3], converter3, GetName(3));
-        if (!converter4.TryParse(reader[4], out T4 v4)) CsvParseException.Throw(reader[4], converter4, GetName(4));
-        if (!converter5.TryParse(reader[5], out T5 v5)) CsvParseException.Throw(reader[5], converter5, GetName(5));
-        if (!converter6.TryParse(reader[6], out T6 v6)) CsvParseException.Throw(reader[6], converter6, GetName(6));
-        if (!converter7.TryParse(reader[7], out T7 v7)) CsvParseException.Throw(reader[7], converter7, GetName(7));
+        if (record.FieldCount != 8) CsvReadException.ThrowForInvalidFieldCount(8, record.FieldCount);
+        if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(record[0], converter0, GetName(0));
+        if (!converter1.TryParse(record[1], out T1 v1)) CsvParseException.Throw(record[1], converter1, GetName(1));
+        if (!converter2.TryParse(record[2], out T2 v2)) CsvParseException.Throw(record[2], converter2, GetName(2));
+        if (!converter3.TryParse(record[3], out T3 v3)) CsvParseException.Throw(record[3], converter3, GetName(3));
+        if (!converter4.TryParse(record[4], out T4 v4)) CsvParseException.Throw(record[4], converter4, GetName(4));
+        if (!converter5.TryParse(record[5], out T5 v5)) CsvParseException.Throw(record[5], converter5, GetName(5));
+        if (!converter6.TryParse(record[6], out T6 v6)) CsvParseException.Throw(record[6], converter6, GetName(6));
+        if (!converter7.TryParse(record[7], out T7 v7)) CsvParseException.Throw(record[7], converter7, GetName(7));
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7);
     }
 }
@@ -407,18 +407,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
     private readonly CsvConverter<T, T7> converter7;
     private readonly CsvConverter<T, T8> converter8;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
+    public TResult Parse<TRecord>(ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
     {
-        if (reader.FieldCount != 9) CsvReadException.ThrowForInvalidFieldCount(9, reader.FieldCount);
-        if (!converter0.TryParse(reader[0], out T0 v0)) CsvParseException.Throw(reader[0], converter0, GetName(0));
-        if (!converter1.TryParse(reader[1], out T1 v1)) CsvParseException.Throw(reader[1], converter1, GetName(1));
-        if (!converter2.TryParse(reader[2], out T2 v2)) CsvParseException.Throw(reader[2], converter2, GetName(2));
-        if (!converter3.TryParse(reader[3], out T3 v3)) CsvParseException.Throw(reader[3], converter3, GetName(3));
-        if (!converter4.TryParse(reader[4], out T4 v4)) CsvParseException.Throw(reader[4], converter4, GetName(4));
-        if (!converter5.TryParse(reader[5], out T5 v5)) CsvParseException.Throw(reader[5], converter5, GetName(5));
-        if (!converter6.TryParse(reader[6], out T6 v6)) CsvParseException.Throw(reader[6], converter6, GetName(6));
-        if (!converter7.TryParse(reader[7], out T7 v7)) CsvParseException.Throw(reader[7], converter7, GetName(7));
-        if (!converter8.TryParse(reader[8], out T8 v8)) CsvParseException.Throw(reader[8], converter8, GetName(8));
+        if (record.FieldCount != 9) CsvReadException.ThrowForInvalidFieldCount(9, record.FieldCount);
+        if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(record[0], converter0, GetName(0));
+        if (!converter1.TryParse(record[1], out T1 v1)) CsvParseException.Throw(record[1], converter1, GetName(1));
+        if (!converter2.TryParse(record[2], out T2 v2)) CsvParseException.Throw(record[2], converter2, GetName(2));
+        if (!converter3.TryParse(record[3], out T3 v3)) CsvParseException.Throw(record[3], converter3, GetName(3));
+        if (!converter4.TryParse(record[4], out T4 v4)) CsvParseException.Throw(record[4], converter4, GetName(4));
+        if (!converter5.TryParse(record[5], out T5 v5)) CsvParseException.Throw(record[5], converter5, GetName(5));
+        if (!converter6.TryParse(record[6], out T6 v6)) CsvParseException.Throw(record[6], converter6, GetName(6));
+        if (!converter7.TryParse(record[7], out T7 v7)) CsvParseException.Throw(record[7], converter7, GetName(7));
+        if (!converter8.TryParse(record[8], out T8 v8)) CsvParseException.Throw(record[8], converter8, GetName(8));
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8);
     }
 }
@@ -462,19 +462,19 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
     private readonly CsvConverter<T, T8> converter8;
     private readonly CsvConverter<T, T9> converter9;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
+    public TResult Parse<TRecord>(ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
     {
-        if (reader.FieldCount != 10) CsvReadException.ThrowForInvalidFieldCount(10, reader.FieldCount);
-        if (!converter0.TryParse(reader[0], out T0 v0)) CsvParseException.Throw(reader[0], converter0, GetName(0));
-        if (!converter1.TryParse(reader[1], out T1 v1)) CsvParseException.Throw(reader[1], converter1, GetName(1));
-        if (!converter2.TryParse(reader[2], out T2 v2)) CsvParseException.Throw(reader[2], converter2, GetName(2));
-        if (!converter3.TryParse(reader[3], out T3 v3)) CsvParseException.Throw(reader[3], converter3, GetName(3));
-        if (!converter4.TryParse(reader[4], out T4 v4)) CsvParseException.Throw(reader[4], converter4, GetName(4));
-        if (!converter5.TryParse(reader[5], out T5 v5)) CsvParseException.Throw(reader[5], converter5, GetName(5));
-        if (!converter6.TryParse(reader[6], out T6 v6)) CsvParseException.Throw(reader[6], converter6, GetName(6));
-        if (!converter7.TryParse(reader[7], out T7 v7)) CsvParseException.Throw(reader[7], converter7, GetName(7));
-        if (!converter8.TryParse(reader[8], out T8 v8)) CsvParseException.Throw(reader[8], converter8, GetName(8));
-        if (!converter9.TryParse(reader[9], out T9 v9)) CsvParseException.Throw(reader[9], converter9, GetName(9));
+        if (record.FieldCount != 10) CsvReadException.ThrowForInvalidFieldCount(10, record.FieldCount);
+        if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(record[0], converter0, GetName(0));
+        if (!converter1.TryParse(record[1], out T1 v1)) CsvParseException.Throw(record[1], converter1, GetName(1));
+        if (!converter2.TryParse(record[2], out T2 v2)) CsvParseException.Throw(record[2], converter2, GetName(2));
+        if (!converter3.TryParse(record[3], out T3 v3)) CsvParseException.Throw(record[3], converter3, GetName(3));
+        if (!converter4.TryParse(record[4], out T4 v4)) CsvParseException.Throw(record[4], converter4, GetName(4));
+        if (!converter5.TryParse(record[5], out T5 v5)) CsvParseException.Throw(record[5], converter5, GetName(5));
+        if (!converter6.TryParse(record[6], out T6 v6)) CsvParseException.Throw(record[6], converter6, GetName(6));
+        if (!converter7.TryParse(record[7], out T7 v7)) CsvParseException.Throw(record[7], converter7, GetName(7));
+        if (!converter8.TryParse(record[8], out T8 v8)) CsvParseException.Throw(record[8], converter8, GetName(8));
+        if (!converter9.TryParse(record[9], out T9 v9)) CsvParseException.Throw(record[9], converter9, GetName(9));
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9);
     }
 }
@@ -520,20 +520,20 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T9> converter9;
     private readonly CsvConverter<T, T10> converter10;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
+    public TResult Parse<TRecord>(ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
     {
-        if (reader.FieldCount != 11) CsvReadException.ThrowForInvalidFieldCount(11, reader.FieldCount);
-        if (!converter0.TryParse(reader[0], out T0 v0)) CsvParseException.Throw(reader[0], converter0, GetName(0));
-        if (!converter1.TryParse(reader[1], out T1 v1)) CsvParseException.Throw(reader[1], converter1, GetName(1));
-        if (!converter2.TryParse(reader[2], out T2 v2)) CsvParseException.Throw(reader[2], converter2, GetName(2));
-        if (!converter3.TryParse(reader[3], out T3 v3)) CsvParseException.Throw(reader[3], converter3, GetName(3));
-        if (!converter4.TryParse(reader[4], out T4 v4)) CsvParseException.Throw(reader[4], converter4, GetName(4));
-        if (!converter5.TryParse(reader[5], out T5 v5)) CsvParseException.Throw(reader[5], converter5, GetName(5));
-        if (!converter6.TryParse(reader[6], out T6 v6)) CsvParseException.Throw(reader[6], converter6, GetName(6));
-        if (!converter7.TryParse(reader[7], out T7 v7)) CsvParseException.Throw(reader[7], converter7, GetName(7));
-        if (!converter8.TryParse(reader[8], out T8 v8)) CsvParseException.Throw(reader[8], converter8, GetName(8));
-        if (!converter9.TryParse(reader[9], out T9 v9)) CsvParseException.Throw(reader[9], converter9, GetName(9));
-        if (!converter10.TryParse(reader[10], out T10 v10)) CsvParseException.Throw(reader[10], converter10, GetName(10));
+        if (record.FieldCount != 11) CsvReadException.ThrowForInvalidFieldCount(11, record.FieldCount);
+        if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(record[0], converter0, GetName(0));
+        if (!converter1.TryParse(record[1], out T1 v1)) CsvParseException.Throw(record[1], converter1, GetName(1));
+        if (!converter2.TryParse(record[2], out T2 v2)) CsvParseException.Throw(record[2], converter2, GetName(2));
+        if (!converter3.TryParse(record[3], out T3 v3)) CsvParseException.Throw(record[3], converter3, GetName(3));
+        if (!converter4.TryParse(record[4], out T4 v4)) CsvParseException.Throw(record[4], converter4, GetName(4));
+        if (!converter5.TryParse(record[5], out T5 v5)) CsvParseException.Throw(record[5], converter5, GetName(5));
+        if (!converter6.TryParse(record[6], out T6 v6)) CsvParseException.Throw(record[6], converter6, GetName(6));
+        if (!converter7.TryParse(record[7], out T7 v7)) CsvParseException.Throw(record[7], converter7, GetName(7));
+        if (!converter8.TryParse(record[8], out T8 v8)) CsvParseException.Throw(record[8], converter8, GetName(8));
+        if (!converter9.TryParse(record[9], out T9 v9)) CsvParseException.Throw(record[9], converter9, GetName(9));
+        if (!converter10.TryParse(record[10], out T10 v10)) CsvParseException.Throw(record[10], converter10, GetName(10));
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10);
     }
 }
@@ -581,21 +581,21 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T10> converter10;
     private readonly CsvConverter<T, T11> converter11;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
+    public TResult Parse<TRecord>(ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
     {
-        if (reader.FieldCount != 12) CsvReadException.ThrowForInvalidFieldCount(12, reader.FieldCount);
-        if (!converter0.TryParse(reader[0], out T0 v0)) CsvParseException.Throw(reader[0], converter0, GetName(0));
-        if (!converter1.TryParse(reader[1], out T1 v1)) CsvParseException.Throw(reader[1], converter1, GetName(1));
-        if (!converter2.TryParse(reader[2], out T2 v2)) CsvParseException.Throw(reader[2], converter2, GetName(2));
-        if (!converter3.TryParse(reader[3], out T3 v3)) CsvParseException.Throw(reader[3], converter3, GetName(3));
-        if (!converter4.TryParse(reader[4], out T4 v4)) CsvParseException.Throw(reader[4], converter4, GetName(4));
-        if (!converter5.TryParse(reader[5], out T5 v5)) CsvParseException.Throw(reader[5], converter5, GetName(5));
-        if (!converter6.TryParse(reader[6], out T6 v6)) CsvParseException.Throw(reader[6], converter6, GetName(6));
-        if (!converter7.TryParse(reader[7], out T7 v7)) CsvParseException.Throw(reader[7], converter7, GetName(7));
-        if (!converter8.TryParse(reader[8], out T8 v8)) CsvParseException.Throw(reader[8], converter8, GetName(8));
-        if (!converter9.TryParse(reader[9], out T9 v9)) CsvParseException.Throw(reader[9], converter9, GetName(9));
-        if (!converter10.TryParse(reader[10], out T10 v10)) CsvParseException.Throw(reader[10], converter10, GetName(10));
-        if (!converter11.TryParse(reader[11], out T11 v11)) CsvParseException.Throw(reader[11], converter11, GetName(11));
+        if (record.FieldCount != 12) CsvReadException.ThrowForInvalidFieldCount(12, record.FieldCount);
+        if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(record[0], converter0, GetName(0));
+        if (!converter1.TryParse(record[1], out T1 v1)) CsvParseException.Throw(record[1], converter1, GetName(1));
+        if (!converter2.TryParse(record[2], out T2 v2)) CsvParseException.Throw(record[2], converter2, GetName(2));
+        if (!converter3.TryParse(record[3], out T3 v3)) CsvParseException.Throw(record[3], converter3, GetName(3));
+        if (!converter4.TryParse(record[4], out T4 v4)) CsvParseException.Throw(record[4], converter4, GetName(4));
+        if (!converter5.TryParse(record[5], out T5 v5)) CsvParseException.Throw(record[5], converter5, GetName(5));
+        if (!converter6.TryParse(record[6], out T6 v6)) CsvParseException.Throw(record[6], converter6, GetName(6));
+        if (!converter7.TryParse(record[7], out T7 v7)) CsvParseException.Throw(record[7], converter7, GetName(7));
+        if (!converter8.TryParse(record[8], out T8 v8)) CsvParseException.Throw(record[8], converter8, GetName(8));
+        if (!converter9.TryParse(record[9], out T9 v9)) CsvParseException.Throw(record[9], converter9, GetName(9));
+        if (!converter10.TryParse(record[10], out T10 v10)) CsvParseException.Throw(record[10], converter10, GetName(10));
+        if (!converter11.TryParse(record[11], out T11 v11)) CsvParseException.Throw(record[11], converter11, GetName(11));
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11);
     }
 }
@@ -645,22 +645,22 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T11> converter11;
     private readonly CsvConverter<T, T12> converter12;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
+    public TResult Parse<TRecord>(ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
     {
-        if (reader.FieldCount != 13) CsvReadException.ThrowForInvalidFieldCount(13, reader.FieldCount);
-        if (!converter0.TryParse(reader[0], out T0 v0)) CsvParseException.Throw(reader[0], converter0, GetName(0));
-        if (!converter1.TryParse(reader[1], out T1 v1)) CsvParseException.Throw(reader[1], converter1, GetName(1));
-        if (!converter2.TryParse(reader[2], out T2 v2)) CsvParseException.Throw(reader[2], converter2, GetName(2));
-        if (!converter3.TryParse(reader[3], out T3 v3)) CsvParseException.Throw(reader[3], converter3, GetName(3));
-        if (!converter4.TryParse(reader[4], out T4 v4)) CsvParseException.Throw(reader[4], converter4, GetName(4));
-        if (!converter5.TryParse(reader[5], out T5 v5)) CsvParseException.Throw(reader[5], converter5, GetName(5));
-        if (!converter6.TryParse(reader[6], out T6 v6)) CsvParseException.Throw(reader[6], converter6, GetName(6));
-        if (!converter7.TryParse(reader[7], out T7 v7)) CsvParseException.Throw(reader[7], converter7, GetName(7));
-        if (!converter8.TryParse(reader[8], out T8 v8)) CsvParseException.Throw(reader[8], converter8, GetName(8));
-        if (!converter9.TryParse(reader[9], out T9 v9)) CsvParseException.Throw(reader[9], converter9, GetName(9));
-        if (!converter10.TryParse(reader[10], out T10 v10)) CsvParseException.Throw(reader[10], converter10, GetName(10));
-        if (!converter11.TryParse(reader[11], out T11 v11)) CsvParseException.Throw(reader[11], converter11, GetName(11));
-        if (!converter12.TryParse(reader[12], out T12 v12)) CsvParseException.Throw(reader[12], converter12, GetName(12));
+        if (record.FieldCount != 13) CsvReadException.ThrowForInvalidFieldCount(13, record.FieldCount);
+        if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(record[0], converter0, GetName(0));
+        if (!converter1.TryParse(record[1], out T1 v1)) CsvParseException.Throw(record[1], converter1, GetName(1));
+        if (!converter2.TryParse(record[2], out T2 v2)) CsvParseException.Throw(record[2], converter2, GetName(2));
+        if (!converter3.TryParse(record[3], out T3 v3)) CsvParseException.Throw(record[3], converter3, GetName(3));
+        if (!converter4.TryParse(record[4], out T4 v4)) CsvParseException.Throw(record[4], converter4, GetName(4));
+        if (!converter5.TryParse(record[5], out T5 v5)) CsvParseException.Throw(record[5], converter5, GetName(5));
+        if (!converter6.TryParse(record[6], out T6 v6)) CsvParseException.Throw(record[6], converter6, GetName(6));
+        if (!converter7.TryParse(record[7], out T7 v7)) CsvParseException.Throw(record[7], converter7, GetName(7));
+        if (!converter8.TryParse(record[8], out T8 v8)) CsvParseException.Throw(record[8], converter8, GetName(8));
+        if (!converter9.TryParse(record[9], out T9 v9)) CsvParseException.Throw(record[9], converter9, GetName(9));
+        if (!converter10.TryParse(record[10], out T10 v10)) CsvParseException.Throw(record[10], converter10, GetName(10));
+        if (!converter11.TryParse(record[11], out T11 v11)) CsvParseException.Throw(record[11], converter11, GetName(11));
+        if (!converter12.TryParse(record[12], out T12 v12)) CsvParseException.Throw(record[12], converter12, GetName(12));
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12);
     }
 }
@@ -712,23 +712,23 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T12> converter12;
     private readonly CsvConverter<T, T13> converter13;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
+    public TResult Parse<TRecord>(ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
     {
-        if (reader.FieldCount != 14) CsvReadException.ThrowForInvalidFieldCount(14, reader.FieldCount);
-        if (!converter0.TryParse(reader[0], out T0 v0)) CsvParseException.Throw(reader[0], converter0, GetName(0));
-        if (!converter1.TryParse(reader[1], out T1 v1)) CsvParseException.Throw(reader[1], converter1, GetName(1));
-        if (!converter2.TryParse(reader[2], out T2 v2)) CsvParseException.Throw(reader[2], converter2, GetName(2));
-        if (!converter3.TryParse(reader[3], out T3 v3)) CsvParseException.Throw(reader[3], converter3, GetName(3));
-        if (!converter4.TryParse(reader[4], out T4 v4)) CsvParseException.Throw(reader[4], converter4, GetName(4));
-        if (!converter5.TryParse(reader[5], out T5 v5)) CsvParseException.Throw(reader[5], converter5, GetName(5));
-        if (!converter6.TryParse(reader[6], out T6 v6)) CsvParseException.Throw(reader[6], converter6, GetName(6));
-        if (!converter7.TryParse(reader[7], out T7 v7)) CsvParseException.Throw(reader[7], converter7, GetName(7));
-        if (!converter8.TryParse(reader[8], out T8 v8)) CsvParseException.Throw(reader[8], converter8, GetName(8));
-        if (!converter9.TryParse(reader[9], out T9 v9)) CsvParseException.Throw(reader[9], converter9, GetName(9));
-        if (!converter10.TryParse(reader[10], out T10 v10)) CsvParseException.Throw(reader[10], converter10, GetName(10));
-        if (!converter11.TryParse(reader[11], out T11 v11)) CsvParseException.Throw(reader[11], converter11, GetName(11));
-        if (!converter12.TryParse(reader[12], out T12 v12)) CsvParseException.Throw(reader[12], converter12, GetName(12));
-        if (!converter13.TryParse(reader[13], out T13 v13)) CsvParseException.Throw(reader[13], converter13, GetName(13));
+        if (record.FieldCount != 14) CsvReadException.ThrowForInvalidFieldCount(14, record.FieldCount);
+        if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(record[0], converter0, GetName(0));
+        if (!converter1.TryParse(record[1], out T1 v1)) CsvParseException.Throw(record[1], converter1, GetName(1));
+        if (!converter2.TryParse(record[2], out T2 v2)) CsvParseException.Throw(record[2], converter2, GetName(2));
+        if (!converter3.TryParse(record[3], out T3 v3)) CsvParseException.Throw(record[3], converter3, GetName(3));
+        if (!converter4.TryParse(record[4], out T4 v4)) CsvParseException.Throw(record[4], converter4, GetName(4));
+        if (!converter5.TryParse(record[5], out T5 v5)) CsvParseException.Throw(record[5], converter5, GetName(5));
+        if (!converter6.TryParse(record[6], out T6 v6)) CsvParseException.Throw(record[6], converter6, GetName(6));
+        if (!converter7.TryParse(record[7], out T7 v7)) CsvParseException.Throw(record[7], converter7, GetName(7));
+        if (!converter8.TryParse(record[8], out T8 v8)) CsvParseException.Throw(record[8], converter8, GetName(8));
+        if (!converter9.TryParse(record[9], out T9 v9)) CsvParseException.Throw(record[9], converter9, GetName(9));
+        if (!converter10.TryParse(record[10], out T10 v10)) CsvParseException.Throw(record[10], converter10, GetName(10));
+        if (!converter11.TryParse(record[11], out T11 v11)) CsvParseException.Throw(record[11], converter11, GetName(11));
+        if (!converter12.TryParse(record[12], out T12 v12)) CsvParseException.Throw(record[12], converter12, GetName(12));
+        if (!converter13.TryParse(record[13], out T13 v13)) CsvParseException.Throw(record[13], converter13, GetName(13));
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13);
     }
 }
@@ -782,24 +782,24 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T13> converter13;
     private readonly CsvConverter<T, T14> converter14;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
+    public TResult Parse<TRecord>(ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
     {
-        if (reader.FieldCount != 15) CsvReadException.ThrowForInvalidFieldCount(15, reader.FieldCount);
-        if (!converter0.TryParse(reader[0], out T0 v0)) CsvParseException.Throw(reader[0], converter0, GetName(0));
-        if (!converter1.TryParse(reader[1], out T1 v1)) CsvParseException.Throw(reader[1], converter1, GetName(1));
-        if (!converter2.TryParse(reader[2], out T2 v2)) CsvParseException.Throw(reader[2], converter2, GetName(2));
-        if (!converter3.TryParse(reader[3], out T3 v3)) CsvParseException.Throw(reader[3], converter3, GetName(3));
-        if (!converter4.TryParse(reader[4], out T4 v4)) CsvParseException.Throw(reader[4], converter4, GetName(4));
-        if (!converter5.TryParse(reader[5], out T5 v5)) CsvParseException.Throw(reader[5], converter5, GetName(5));
-        if (!converter6.TryParse(reader[6], out T6 v6)) CsvParseException.Throw(reader[6], converter6, GetName(6));
-        if (!converter7.TryParse(reader[7], out T7 v7)) CsvParseException.Throw(reader[7], converter7, GetName(7));
-        if (!converter8.TryParse(reader[8], out T8 v8)) CsvParseException.Throw(reader[8], converter8, GetName(8));
-        if (!converter9.TryParse(reader[9], out T9 v9)) CsvParseException.Throw(reader[9], converter9, GetName(9));
-        if (!converter10.TryParse(reader[10], out T10 v10)) CsvParseException.Throw(reader[10], converter10, GetName(10));
-        if (!converter11.TryParse(reader[11], out T11 v11)) CsvParseException.Throw(reader[11], converter11, GetName(11));
-        if (!converter12.TryParse(reader[12], out T12 v12)) CsvParseException.Throw(reader[12], converter12, GetName(12));
-        if (!converter13.TryParse(reader[13], out T13 v13)) CsvParseException.Throw(reader[13], converter13, GetName(13));
-        if (!converter14.TryParse(reader[14], out T14 v14)) CsvParseException.Throw(reader[14], converter14, GetName(14));
+        if (record.FieldCount != 15) CsvReadException.ThrowForInvalidFieldCount(15, record.FieldCount);
+        if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(record[0], converter0, GetName(0));
+        if (!converter1.TryParse(record[1], out T1 v1)) CsvParseException.Throw(record[1], converter1, GetName(1));
+        if (!converter2.TryParse(record[2], out T2 v2)) CsvParseException.Throw(record[2], converter2, GetName(2));
+        if (!converter3.TryParse(record[3], out T3 v3)) CsvParseException.Throw(record[3], converter3, GetName(3));
+        if (!converter4.TryParse(record[4], out T4 v4)) CsvParseException.Throw(record[4], converter4, GetName(4));
+        if (!converter5.TryParse(record[5], out T5 v5)) CsvParseException.Throw(record[5], converter5, GetName(5));
+        if (!converter6.TryParse(record[6], out T6 v6)) CsvParseException.Throw(record[6], converter6, GetName(6));
+        if (!converter7.TryParse(record[7], out T7 v7)) CsvParseException.Throw(record[7], converter7, GetName(7));
+        if (!converter8.TryParse(record[8], out T8 v8)) CsvParseException.Throw(record[8], converter8, GetName(8));
+        if (!converter9.TryParse(record[9], out T9 v9)) CsvParseException.Throw(record[9], converter9, GetName(9));
+        if (!converter10.TryParse(record[10], out T10 v10)) CsvParseException.Throw(record[10], converter10, GetName(10));
+        if (!converter11.TryParse(record[11], out T11 v11)) CsvParseException.Throw(record[11], converter11, GetName(11));
+        if (!converter12.TryParse(record[12], out T12 v12)) CsvParseException.Throw(record[12], converter12, GetName(12));
+        if (!converter13.TryParse(record[13], out T13 v13)) CsvParseException.Throw(record[13], converter13, GetName(13));
+        if (!converter14.TryParse(record[14], out T14 v14)) CsvParseException.Throw(record[14], converter14, GetName(14));
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14);
     }
 }
@@ -855,25 +855,25 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T14> converter14;
     private readonly CsvConverter<T, T15> converter15;
 
-    public TResult Parse<TReader>(ref TReader reader) where TReader : ICsvRecordFields<T>, allows ref struct
+    public TResult Parse<TRecord>(ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
     {
-        if (reader.FieldCount != 16) CsvReadException.ThrowForInvalidFieldCount(16, reader.FieldCount);
-        if (!converter0.TryParse(reader[0], out T0 v0)) CsvParseException.Throw(reader[0], converter0, GetName(0));
-        if (!converter1.TryParse(reader[1], out T1 v1)) CsvParseException.Throw(reader[1], converter1, GetName(1));
-        if (!converter2.TryParse(reader[2], out T2 v2)) CsvParseException.Throw(reader[2], converter2, GetName(2));
-        if (!converter3.TryParse(reader[3], out T3 v3)) CsvParseException.Throw(reader[3], converter3, GetName(3));
-        if (!converter4.TryParse(reader[4], out T4 v4)) CsvParseException.Throw(reader[4], converter4, GetName(4));
-        if (!converter5.TryParse(reader[5], out T5 v5)) CsvParseException.Throw(reader[5], converter5, GetName(5));
-        if (!converter6.TryParse(reader[6], out T6 v6)) CsvParseException.Throw(reader[6], converter6, GetName(6));
-        if (!converter7.TryParse(reader[7], out T7 v7)) CsvParseException.Throw(reader[7], converter7, GetName(7));
-        if (!converter8.TryParse(reader[8], out T8 v8)) CsvParseException.Throw(reader[8], converter8, GetName(8));
-        if (!converter9.TryParse(reader[9], out T9 v9)) CsvParseException.Throw(reader[9], converter9, GetName(9));
-        if (!converter10.TryParse(reader[10], out T10 v10)) CsvParseException.Throw(reader[10], converter10, GetName(10));
-        if (!converter11.TryParse(reader[11], out T11 v11)) CsvParseException.Throw(reader[11], converter11, GetName(11));
-        if (!converter12.TryParse(reader[12], out T12 v12)) CsvParseException.Throw(reader[12], converter12, GetName(12));
-        if (!converter13.TryParse(reader[13], out T13 v13)) CsvParseException.Throw(reader[13], converter13, GetName(13));
-        if (!converter14.TryParse(reader[14], out T14 v14)) CsvParseException.Throw(reader[14], converter14, GetName(14));
-        if (!converter15.TryParse(reader[15], out T15 v15)) CsvParseException.Throw(reader[15], converter15, GetName(15));
+        if (record.FieldCount != 16) CsvReadException.ThrowForInvalidFieldCount(16, record.FieldCount);
+        if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(record[0], converter0, GetName(0));
+        if (!converter1.TryParse(record[1], out T1 v1)) CsvParseException.Throw(record[1], converter1, GetName(1));
+        if (!converter2.TryParse(record[2], out T2 v2)) CsvParseException.Throw(record[2], converter2, GetName(2));
+        if (!converter3.TryParse(record[3], out T3 v3)) CsvParseException.Throw(record[3], converter3, GetName(3));
+        if (!converter4.TryParse(record[4], out T4 v4)) CsvParseException.Throw(record[4], converter4, GetName(4));
+        if (!converter5.TryParse(record[5], out T5 v5)) CsvParseException.Throw(record[5], converter5, GetName(5));
+        if (!converter6.TryParse(record[6], out T6 v6)) CsvParseException.Throw(record[6], converter6, GetName(6));
+        if (!converter7.TryParse(record[7], out T7 v7)) CsvParseException.Throw(record[7], converter7, GetName(7));
+        if (!converter8.TryParse(record[8], out T8 v8)) CsvParseException.Throw(record[8], converter8, GetName(8));
+        if (!converter9.TryParse(record[9], out T9 v9)) CsvParseException.Throw(record[9], converter9, GetName(9));
+        if (!converter10.TryParse(record[10], out T10 v10)) CsvParseException.Throw(record[10], converter10, GetName(10));
+        if (!converter11.TryParse(record[11], out T11 v11)) CsvParseException.Throw(record[11], converter11, GetName(11));
+        if (!converter12.TryParse(record[12], out T12 v12)) CsvParseException.Throw(record[12], converter12, GetName(12));
+        if (!converter13.TryParse(record[13], out T13 v13)) CsvParseException.Throw(record[13], converter13, GetName(13));
+        if (!converter14.TryParse(record[14], out T14 v14)) CsvParseException.Throw(record[14], converter14, GetName(14));
+        if (!converter15.TryParse(record[15], out T15 v15)) CsvParseException.Throw(record[15], converter15, GetName(15));
         return valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
     }
 }

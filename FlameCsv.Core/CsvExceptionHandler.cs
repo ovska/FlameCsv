@@ -18,16 +18,16 @@ public delegate bool CsvExceptionHandler<T>(in CsvExceptionHandlerArgs<T> args) 
 [PublicAPI]
 public readonly ref struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly CsvLine<T> _line;
+    private readonly CsvFields<T> _fields;
 
     internal CsvExceptionHandlerArgs(
-        CsvLine<T> line,
+        CsvFields<T> fields,
         ReadOnlySpan<string> header,
         Exception exception,
         int lineIndex,
         long position)
     {
-        _line = line;
+        _fields = fields;
         Header = header;
         Line = lineIndex;
         Position = position;
@@ -39,8 +39,8 @@ public readonly ref struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBina
     /// </summary>
     public ReadOnlySpan<string> Header { get; }
 
-    /// <inheritdoc cref="ICsvRecordFields{T}.FieldCount"/>
-    public int FieldCount => _line.FieldCount;
+    /// <inheritdoc cref="ICsvFields{T}.FieldCount"/>
+    public int FieldCount => _fields.FieldCount;
 
     /// <summary>
     /// Exception thrown.
@@ -50,12 +50,12 @@ public readonly ref struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBina
     /// <summary>
     /// The current CSV record (unescaped/untrimmed).
     /// </summary>
-    public ReadOnlySpan<T> Record => _line.Record.Span;
+    public ReadOnlySpan<T> Record => _fields.Record.Span;
 
     /// <summary>
     /// Options instance.
     /// </summary>
-    public CsvOptions<T> Options => _line.Parser.Options;
+    public CsvOptions<T> Options => _fields.Parser.Options;
 
     /// <summary>
     /// 1-based line number.
@@ -73,5 +73,5 @@ public readonly ref struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBina
     /// <param name="index">0-based field index</param>
     /// <param name="raw">Don't unescape the value</param>
     /// <returns>Value of the field</returns>
-    public ReadOnlySpan<T> GetField(int index, bool raw = false) => _line.GetField(index, raw);
+    public ReadOnlySpan<T> GetField(int index, bool raw = false) => _fields.GetField(index, raw);
 }

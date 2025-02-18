@@ -2,7 +2,7 @@
 
 namespace FlameCsv.Utilities;
 
-internal readonly ref struct BufferFieldReader<T> : ICsvRecordFields<T> where T : unmanaged, IBinaryInteger<T>
+internal readonly ref struct BufferFieldReader<T> : ICsvFields<T> where T : unmanaged, IBinaryInteger<T>
 {
     private readonly ReadOnlySpan<T> _rawValue;
     private readonly ReadOnlySpan<Range> _ranges;
