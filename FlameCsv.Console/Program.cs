@@ -37,7 +37,7 @@ namespace FlameCsv.Console
 
                     while (parser.TryReadLine(out var line, isFinalBlock: false))
                     {
-                        var reader = new MetaFieldReader<byte>(in line, buffer);
+                        var reader = new CsvFieldsRef<byte>(in line, buffer);
                         for (int i = 0; i < reader.FieldCount; i++)
                         {
                             _ = reader[i];

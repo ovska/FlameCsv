@@ -8,7 +8,7 @@ using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Benchmark.Utils;
 
-internal readonly ref struct RawFieldReader<T> : ICsvRecordFields<T> where T : unmanaged, IBinaryInteger<T>
+internal readonly ref struct RawFieldReader<T> : ICsvFields<T> where T : unmanaged, IBinaryInteger<T>
 {
     private readonly int _newlineLength;
     private readonly ReadOnlySpan<T> _data;
@@ -16,13 +16,13 @@ internal readonly ref struct RawFieldReader<T> : ICsvRecordFields<T> where T : u
     private readonly int _fieldCount;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public RawFieldReader(scoped ref readonly CsvLine<T> line)
+    public RawFieldReader(scoped ref readonly CsvFields<T> fields)
     {
-        Options = line.Parser.Options;
-        _newlineLength = line.Parser._newline.Length;
-        _data = line.Data.Span;
-        _firstMeta = ref MemoryMarshal.GetReference(line.Fields);
-        _fieldCount = line.Fields.Length - 1;
+        Options = fields.Parser.Options;
+        _newlineLength = fields.Parser._newline.Length;
+        _data = fields.Data.Span;
+        _firstMeta = ref MemoryMarshal.GetReference(fields.Fields);
+        _fieldCount = fields.Fields.Length - 1;
     }
 
     public int FieldCount => _fieldCount;

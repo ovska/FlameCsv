@@ -100,7 +100,7 @@ public class CsvParserTests
         {
             Assert.True(parser.TryReadLine(out var line, isFinalBlock: lineIndex == 2 && !trailingNewline));
 
-            var reader = new MetaFieldReader<char>(in line, unescapeBuffer: buffer);
+            var reader = new CsvFieldsRef<char>(in line, unescapeBuffer: buffer);
 
             Assert.Equal(5, reader.FieldCount);
 

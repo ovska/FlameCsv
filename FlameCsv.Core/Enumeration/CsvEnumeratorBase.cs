@@ -55,11 +55,11 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool CallMoveNextAndIncrementPosition(ref readonly CsvLine<T> line)
+    private bool CallMoveNextAndIncrementPosition(ref readonly CsvFields<T> fields)
     {
         Line++;
-        bool result = MoveNextCore(in line);
-        Position += line.GetRecordLength(includeTrailingNewline: true);
+        bool result = MoveNextCore(in fields);
+        Position += fields.GetRecordLength(includeTrailingNewline: true);
         return result;
     }
 
@@ -70,7 +70,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     /// </remarks>
     public bool MoveNext()
     {
-        while (_parser.TryReadLine(out CsvLine<T> line, isFinalBlock: false))
+        while (_parser.TryReadLine(out CsvFields<T> line, isFinalBlock: false))
         {
             if (CallMoveNextAndIncrementPosition(in line))
             {
@@ -89,7 +89,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
             return ValueTask.FromCanceled<bool>(_cancellationToken);
         }
 
-        while (_parser.TryReadLine(out CsvLine<T> line, isFinalBlock: false))
+        while (_parser.TryReadLine(out CsvFields<T> line, isFinalBlock: false))
         {
             if (CallMoveNextAndIncrementPosition(in line))
             {
@@ -103,7 +103,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     /// <summary>
     /// Attempts to read the next CSV record from the inner parser.
     /// </summary>
-    /// <param name="line">Current CSV record</param>
+    /// <param name="fields">Current CSV record</param>
     /// <returns>
     /// <see langword="true"/> if the enumerator produced the next value,
     /// <see langword="false"/> if the record was a header record, or was skipped.
@@ -111,12 +111,12 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     /// <remarks>
     /// When this method is called, <see cref="Position"/> points to the start of the record.
     /// </remarks>
-    protected abstract bool MoveNextCore(ref readonly CsvLine<T> line);
+    protected abstract bool MoveNextCore(ref readonly CsvFields<T> fields);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private protected bool ReadFromPipeAndMoveNext()
     {
-        CsvLine<T> line;
+        CsvFields<T> fields;
 
         while (!_readerCompleted)
         {
@@ -125,20 +125,20 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
             _parser.SetData(in result.Buffer);
             _readerCompleted = result.IsCompleted;
 
-            while (_parser.TryReadLine(out line, isFinalBlock: false))
+            while (_parser.TryReadLine(out fields, isFinalBlock: false))
             {
-                if (CallMoveNextAndIncrementPosition(in line)) return true;
+                if (CallMoveNextAndIncrementPosition(in fields)) return true;
             }
         }
 
-        return _parser.TryReadLine(out line, isFinalBlock: true) && CallMoveNextAndIncrementPosition(in line);
+        return _parser.TryReadLine(out fields, isFinalBlock: true) && CallMoveNextAndIncrementPosition(in fields);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))]
     private protected async ValueTask<bool> ReadFromPipeAndMoveNextAsync()
     {
-        CsvLine<T> line;
+        CsvFields<T> fields;
 
         while (!_readerCompleted)
         {
@@ -147,13 +147,13 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
             _parser.SetData(in result.Buffer);
             _readerCompleted = result.IsCompleted;
 
-            while (_parser.TryReadLine(out line, isFinalBlock: false))
+            while (_parser.TryReadLine(out fields, isFinalBlock: false))
             {
-                if (CallMoveNextAndIncrementPosition(in line)) return true;
+                if (CallMoveNextAndIncrementPosition(in fields)) return true;
             }
         }
 
-        return _parser.TryReadLine(out line, isFinalBlock: true) && CallMoveNextAndIncrementPosition(in line);
+        return _parser.TryReadLine(out fields, isFinalBlock: true) && CallMoveNextAndIncrementPosition(in fields);
     }
 
     /// <summary>

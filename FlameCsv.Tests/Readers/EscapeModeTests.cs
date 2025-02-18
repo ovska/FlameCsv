@@ -18,11 +18,11 @@ file static class Extensions
         IMemoryOwner<char>? memoryOwner = null;
         char[] buffer = new char[64];
 
-        while (parser.TryReadLine(out CsvLine<char> line, isFinalBlock: true) ||
+        while (parser.TryReadLine(out CsvFields<char> line, isFinalBlock: true) ||
                parser.TryReadLine(out line, isFinalBlock: false))
         {
             List<string> fields = [];
-            var reader = new MetaFieldReader<char>(in line, buffer);
+            var reader = new CsvFieldsRef<char>(in line, buffer);
 
             for (int i = 0; i < reader.FieldCount; i++)
             {

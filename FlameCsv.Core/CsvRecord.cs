@@ -12,7 +12,7 @@ namespace FlameCsv;
 /// A self-contained copy of a single CSV record.
 /// </summary>
 public class CsvRecord<T> :
-    ICsvRecordFields<T>,
+    ICsvFields<T>,
     IReadOnlyList<ReadOnlyMemory<T>>,
     IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>
     where T : unmanaged, IBinaryInteger<T>
@@ -96,7 +96,7 @@ public class CsvRecord<T> :
         Position = record.Position;
         Line = record.Line;
         Options = record._options;
-        RawRecord = record._line.Record.SafeCopy();
+        RawRecord = record._fields.Record.SafeCopy();
         _header = record._owner.Header;
 
         using WritableBuffer<T> buffer = new(Options._memoryPool);
@@ -220,7 +220,7 @@ public class CsvRecord<T> :
     /// </summary>
     public virtual int FieldCount => _fields.Length;
 
-    ReadOnlySpan<T> ICsvRecordFields<T>.this[int index] => _fields[index];
+    ReadOnlySpan<T> ICsvFields<T>.this[int index] => _fields[index];
 
     /// <summary>
     /// Attempts to parse a <typeparamref name="TValue"/> from a specific field.

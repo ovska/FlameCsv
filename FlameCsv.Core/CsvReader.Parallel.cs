@@ -207,20 +207,20 @@ public static class CsvParallelReader
 
         try
         {
-            CsvLine<T> line;
+            CsvFields<T> fields;
 
-            while (parser.TryReadUnbuffered(out line, false))
+            while (parser.TryReadUnbuffered(out fields, false))
             {
                 do
                 {
                     Interlocked.Increment(ref activeOperations);
                     Interlocked.Increment(ref index);
 
-                    Func<int, Span<T>>? getBuffer = line.NeedsUnescapeBuffer
+                    Func<int, Span<T>>? getBuffer = fields.NeedsUnescapeBuffer
                         ? bufferCache.Value!.GetBuffer
                         : null;
 
-                    MetaFieldReader<T> reader = new(in line, getBuffer: getBuffer!);
+                    CsvFieldsRef<T> reader = new(in fields, getBuffer: getBuffer!);
 
                     if (needsHeader)
                     {
@@ -238,7 +238,7 @@ public static class CsvParallelReader
                     }
 
                     Interlocked.Decrement(ref activeOperations);
-                } while (parser.TryGetBuffered(out line));
+                } while (parser.TryGetBuffered(out fields));
 
                 while (Interlocked.Read(in activeOperations) != 0)
                 {
@@ -251,11 +251,11 @@ public static class CsvParallelReader
                 spin.SpinOnce();
             }
 
-            if (parser.TryReadUnbuffered(out line, isFinalBlock: true))
+            if (parser.TryReadUnbuffered(out fields, isFinalBlock: true))
             {
                 index++;
 
-                MetaFieldReader<T> reader = new(in line, getBuffer: bufferCache.Value!.GetBuffer);
+                CsvFieldsRef<T> reader = new(in fields, getBuffer: bufferCache.Value!.GetBuffer);
 
                 // maybe we *only* have a header record without a newline? validate the data and return
                 if (needsHeader)

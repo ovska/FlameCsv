@@ -74,7 +74,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     protected abstract IMaterializer<T, TValue> BindToHeaderless();
 
     /// <inheritdoc/>
-    protected override bool MoveNextCore(ref readonly CsvLine<T> line)
+    protected override bool MoveNextCore(ref readonly CsvFields<T> fields)
     {
         long position = Position;
 
@@ -84,7 +84,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
             bool headerRead = _hasHeader && _materializer is not null;
 
             CsvRecordCallbackArgs<T> args = new(
-                in line,
+                in fields,
                 _headersArray,
                 Line,
                 position,
@@ -96,14 +96,14 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
             if (skip) return false;
         }
 
-        if (_materializer is null && TryReadHeader(in line))
+        if (_materializer is null && TryReadHeader(in fields))
         {
             return false;
         }
 
         try
         {
-            MetaFieldReader<T> reader = new(in line, stackalloc T[Token<T>.StackLength]);
+            CsvFieldsRef<T> reader = new(in fields, stackalloc T[Token<T>.StackLength]);
             Current = _materializer.Parse(ref reader);
             return true;
         }
@@ -112,14 +112,14 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
             // this is treated as an unrecoverable exception
             if (ex is CsvFormatException)
             {
-                ThrowInvalidFormatException(ex, in line);
+                ThrowInvalidFormatException(ex, in fields);
             }
 
             var handler = ExceptionHandler;
 
             if (handler is not null)
             {
-                CsvExceptionHandlerArgs<T> args = new(line, _headersArray, ex, Line, position);
+                CsvExceptionHandlerArgs<T> args = new(fields, _headersArray, ex, Line, position);
 
                 if (handler(in args))
                 {
@@ -128,7 +128,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
                 }
             }
 
-            ThrowUnhandledException(ex, in line, position);
+            ThrowUnhandledException(ex, in fields, position);
             throw; // unreachable
         }
     }
@@ -140,7 +140,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     /// <see langword="true"/> if the record was consumed, <see langword="false"/> otherwise.
     /// </returns>
     [MemberNotNull(nameof(_materializer))]
-    private bool TryReadHeader(ref readonly CsvLine<T> record)
+    private bool TryReadHeader(ref readonly CsvFields<T> record)
     {
         if (!_hasHeader)
         {
@@ -151,7 +151,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         StringScratch scratch = default;
         using ValueListBuilder<string> list = new(scratch);
 
-        MetaFieldReader<T> reader = new(in record, stackalloc T[Token<T>.StackLength]);
+        CsvFieldsRef<T> reader = new(in record, stackalloc T[Token<T>.StackLength]);
         Span<char> charBuffer = stackalloc char[128];
 
         for (int field = 0; field < reader.FieldCount; field++)
@@ -173,24 +173,24 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private void ThrowInvalidFormatException(Exception innerException, in CsvLine<T> line)
+    private void ThrowInvalidFormatException(Exception innerException, in CsvFields<T> fields)
     {
         throw new CsvFormatException(
             $"The CSV was in an invalid format. The record was on line {Line} at character " +
-            $"position {Position} in the CSV. Record: {line.Data.Span.AsPrintableString()}",
+            $"position {Position} in the CSV. Record: {fields.Data.Span.AsPrintableString()}",
             innerException);
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private void ThrowUnhandledException(
         Exception innerException,
-        in CsvLine<T> line,
+        in CsvFields<T> fields,
         long position)
     {
         throw new CsvUnhandledException(
             $"Unhandled exception while reading records of type {typeof(TValue).FullName} from the CSV. The record was on " +
             $"line {Line} at character position {position} in the CSV. Record: " +
-            line.Data.Span.AsPrintableString(),
+            fields.Data.Span.AsPrintableString(),
             Line,
             position,
             innerException);

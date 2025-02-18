@@ -7,23 +7,23 @@ using JetBrains.Annotations;
 namespace FlameCsv.Reading;
 
 /// <summary>
-/// Represents a CSV record spanning one line, before the individual fields are read.
+/// Contains the fields of a single CSV record.
 /// </summary>
 /// <typeparam name="T"></typeparam>
 [PublicAPI]
 [DebuggerDisplay("{ToString(),nq}")]
-[DebuggerTypeProxy(typeof(CsvLine<>.CsvLineDebugView))]
-public readonly struct CsvLine<T> : ICsvRecordFields<T> where T : unmanaged, IBinaryInteger<T>
+[DebuggerTypeProxy(typeof(CsvFields<>.CsvLineDebugView))]
+public readonly struct CsvFields<T> : ICsvFields<T> where T : unmanaged, IBinaryInteger<T>
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal CsvLine(CsvParser<T> parser, ReadOnlyMemory<T> data, ArraySegment<Meta> fields)
+    internal CsvFields(CsvParser<T> parser, ReadOnlyMemory<T> data, ArraySegment<Meta> fieldMeta)
     {
         Parser = parser;
         Data = data;
-        _fields = fields;
+        _fieldMeta = fieldMeta;
     }
 
-    private readonly ArraySegment<Meta> _fields;
+    private readonly ArraySegment<Meta> _fieldMeta;
 
     /// <summary>
     /// Raw value the fields point to.
@@ -39,7 +39,7 @@ public readonly struct CsvLine<T> : ICsvRecordFields<T> where T : unmanaged, IBi
     internal ReadOnlySpan<Meta> Fields
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _fields.AsSpan();
+        get => _fieldMeta.AsSpan();
     }
 
     internal CsvParser<T> Parser { get; }
@@ -77,10 +77,10 @@ public readonly struct CsvLine<T> : ICsvRecordFields<T> where T : unmanaged, IBi
 
     private class CsvLineDebugView
     {
-        public CsvLineDebugView(CsvLine<T> line)
+        public CsvLineDebugView(CsvFields<T> fields)
         {
             Span<T> unescapeBuffer = stackalloc T[Token<T>.StackLength];
-            var reader = new MetaFieldReader<T>(in line, unescapeBuffer);
+            var reader = new CsvFieldsRef<T>(in fields, unescapeBuffer);
 
             Items = new string[reader.FieldCount];
 
@@ -100,7 +100,7 @@ public readonly struct CsvLine<T> : ICsvRecordFields<T> where T : unmanaged, IBi
     /// </summary>
     public int FieldCount => Fields.Length - 1;
 
-    ReadOnlySpan<T> ICsvRecordFields<T>.this[int index] => GetField(index);
+    ReadOnlySpan<T> ICsvFields<T>.this[int index] => GetField(index);
 
     /// <summary>
     /// Returns the value of a field.
@@ -138,8 +138,8 @@ public readonly struct CsvLine<T> : ICsvRecordFields<T> where T : unmanaged, IBi
     /// </summary>
     public Enumerator GetEnumerator()
     {
-        Throw.IfDefaultStruct(Parser is null, typeof(CsvLine<T>));
-        var reader = new MetaFieldReader<T>(in this, Parser.GetUnescapeBuffer);
+        Throw.IfDefaultStruct(Parser is null, typeof(CsvFields<T>));
+        var reader = new CsvFieldsRef<T>(in this, Parser.GetUnescapeBuffer);
         return new Enumerator(reader);
     }
 
@@ -149,10 +149,10 @@ public readonly struct CsvLine<T> : ICsvRecordFields<T> where T : unmanaged, IBi
     [PublicAPI]
     public ref struct Enumerator
     {
-        private readonly MetaFieldReader<T> _reader;
+        private readonly CsvFieldsRef<T> _reader;
         private int _index;
 
-        internal Enumerator(MetaFieldReader<T> reader)
+        internal Enumerator(CsvFieldsRef<T> reader)
         {
             _reader = reader;
         }

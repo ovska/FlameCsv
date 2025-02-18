@@ -9,14 +9,14 @@ namespace FlameCsv.Reading.Internal;
 internal sealed class CsvParserUnix<T>(CsvOptions<T> options) : CsvParser<T>(options)
     where T : unmanaged, IBinaryInteger<T>
 {
-    private protected override bool TryReadFromSequence(out CsvLine<T> line, bool isFinalBlock)
+    private protected override bool TryReadFromSequence(out CsvFields<T> fields, bool isFinalBlock)
     {
         if (!_dialect.Escape.HasValue)
         {
             Throw.Unreachable("Escape character not set.");
         }
 
-        using ValueListBuilder<Meta> fields = new(stackalloc Meta[16]);
+        using ValueListBuilder<Meta> fieldMeta = new(stackalloc Meta[16]);
 
         // load into locals for faster access
         T delimiter = _dialect.Delimiter;
@@ -100,7 +100,7 @@ internal sealed class CsvParserUnix<T>(CsvOptions<T> options) : CsvParser<T>(opt
                 goto FoundNewline;
 
             FoundDelimiter:
-                fields.Append(Meta.Unix((int)reader.Consumed - 1, quoteCount, escapeCount, isEOL: false));
+                fieldMeta.Append(Meta.Unix((int)reader.Consumed - 1, quoteCount, escapeCount, isEOL: false));
                 quoteCount = 0;
                 escapeCount = 0;
                 goto Seek;
@@ -114,14 +114,14 @@ internal sealed class CsvParserUnix<T>(CsvOptions<T> options) : CsvParser<T>(opt
 
                 if (newline.Length == 1 || reader.IsNext(newline.Second, advancePast: true))
                 {
-                    fields.Append(Meta.Unix((int)reader.Consumed - newline.Length, quoteCount, escapeCount, isEOL: true));
+                    fieldMeta.Append(Meta.Unix((int)reader.Consumed - newline.Length, quoteCount, escapeCount, isEOL: true));
 
-                    line = new CsvLine<T>(
+                    fields = new CsvFields<T>(
                         this,
                         reader
                             .Sequence.Slice(reader.Sequence.Start, crPosition)
                             .AsMemory(Options._memoryPool, ref _multisegmentBuffer),
-                        GetSegmentMeta(fields.AsSpan()));
+                        GetSegmentMeta(fieldMeta.AsSpan()));
 
                     _sequence = reader.UnreadSequence;
                     return true;
@@ -146,13 +146,13 @@ internal sealed class CsvParserUnix<T>(CsvOptions<T> options) : CsvParser<T>(opt
             // the remaining data is either after a delimiter if fields is non-empty, or
             // some trailing data after the last newline.
             // this should _not_ be an EOL as that flag is used for determining record length w/ the newline
-            fields.Append(Meta.Unix(lastLine.Length, quoteCount, escapeCount, isEOL: false));
+            fieldMeta.Append(Meta.Unix(lastLine.Length, quoteCount, escapeCount, isEOL: false));
 
-            line = new CsvLine<T>(this, lastLine, GetSegmentMeta(fields.AsSpan()));
+            fields = new CsvFields<T>(this, lastLine, GetSegmentMeta(fieldMeta.AsSpan()));
             return true;
         }
 
-        Unsafe.SkipInit(out line);
+        Unsafe.SkipInit(out fields);
         return false;
     }
 

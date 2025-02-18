@@ -65,8 +65,8 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
     {
         private readonly StrongBox<IMaterializer<char, Obj>> _materializer = new();
 
-        public bool TryInvoke<TReader>(scoped ref TReader reader, in CsvParallelState state, [NotNullWhen(true)] out Obj? result)
-            where TReader : ICsvRecordFields<char>, allows ref struct
+        public bool TryInvoke<TRecord>(scoped ref TRecord record, in CsvParallelState state, [NotNullWhen(true)] out Obj? result)
+            where TRecord : ICsvFields<char>, allows ref struct
         {
             if (_materializer.Value is null)
             {
@@ -78,7 +78,7 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
                 return false;
             }
 
-            result = _materializer.Value.Parse(ref reader);
+            result = _materializer.Value.Parse(ref record);
             return true;
         }
     }

@@ -40,7 +40,7 @@ public class CsvEnumerateBench
 
         while (parser.TryReadLine(out var line, isFinalBlock: false))
         {
-            var reader = new MetaFieldReader<byte>(in line, unescapeBuffer);
+            var reader = new CsvFieldsRef<byte>(in line, unescapeBuffer);
             for (int i = 0; i < reader.FieldCount; i++)
             {
                 _ = reader[i];
@@ -57,7 +57,7 @@ public class CsvEnumerateBench
 
         while (parser.TryReadLine(out var line, isFinalBlock: false))
         {
-            var reader = new MetaFieldReader<char>(in line, unescapeBuffer);
+            var reader = new CsvFieldsRef<char>(in line, unescapeBuffer);
             for (int i = 0; i < reader.FieldCount; i++)
             {
                 _ = reader[i];
@@ -119,14 +119,14 @@ public class CsvEnumerateBench
 
     private readonly struct Invoker : ICsvParallelTryInvoke<byte, object?>
     {
-        public bool TryInvoke<TReader>(
-            scoped ref TReader reader,
+        public bool TryInvoke<TRecord>(
+            scoped ref TRecord record,
             in CsvParallelState state,
-            [MaybeNullWhen(false)] out object? result) where TReader : ICsvRecordFields<byte>, allows ref struct
+            [MaybeNullWhen(false)] out object? result) where TRecord : ICsvFields<byte>, allows ref struct
         {
-            for (int i = 0; i < reader.FieldCount; i++)
+            for (int i = 0; i < record.FieldCount; i++)
             {
-                _ = reader[i];
+                _ = record[i];
             }
 
             result = default;

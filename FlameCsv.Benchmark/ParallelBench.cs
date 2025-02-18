@@ -89,17 +89,17 @@ public class ParallelBench
             _tsbcl = _unitsSoldByCountry.GetAlternateLookup<ReadOnlySpan<char>>();
         }
 
-        public bool TryInvoke<TReader>(
-            scoped ref TReader reader,
+        public bool TryInvoke<TRecord>(
+            scoped ref TRecord record,
             in CsvParallelState state,
             [NotNullWhen(true)] out object? result)
-            where TReader : ICsvRecordFields<char>, allows ref struct
+            where TRecord : ICsvFields<char>, allows ref struct
         {
             result = null!;
 
-            ReadOnlySpan<char> country = reader[1];
-            _ = _cint.TryParse(reader[8], out int unitsSold);
-            _ = _cdecimal.TryParse(reader[11], out decimal totalRevenue);
+            ReadOnlySpan<char> country = record[1];
+            _ = _cint.TryParse(record[8], out int unitsSold);
+            _ = _cdecimal.TryParse(record[11], out decimal totalRevenue);
 
             Interlocked.Add(ref _totalUnitsSold.Value, unitsSold);
 

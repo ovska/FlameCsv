@@ -51,7 +51,7 @@ public static class NewlineDetectTests
             parser.SetData(new ReadOnlySequence<T>(input));
             Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
 
-            var reader = new MetaFieldReader<T>(in line, stackalloc T[8]);
+            var reader = new CsvFieldsRef<T>(in line, stackalloc T[8]);
             Assert.Equal([T.CreateChecked('A')], reader[0]);
             Assert.Equal([T.CreateChecked('B')], reader[1]);
             Assert.Equal([T.CreateChecked('C')], reader[2]);

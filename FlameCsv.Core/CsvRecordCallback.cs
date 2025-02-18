@@ -10,19 +10,19 @@ namespace FlameCsv;
 [PublicAPI]
 public readonly ref struct CsvRecordCallbackArgs<T> where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly ref readonly CsvLine<T> _line;
+    private readonly ref readonly CsvFields<T> _fields;
     private readonly ref bool _skip;
     private readonly ref bool _headerRead;
 
     internal CsvRecordCallbackArgs(
-        ref readonly CsvLine<T> line,
+        ref readonly CsvFields<T> fields,
         ReadOnlySpan<string> header,
         int lineIndex,
         long position,
         ref bool skip,
         ref bool headerRead)
     {
-        _line = ref line;
+        _fields = ref fields;
         Line = lineIndex;
         Position = position;
         Header = header;
@@ -37,17 +37,17 @@ public readonly ref struct CsvRecordCallbackArgs<T> where T : unmanaged, IBinary
     /// An empty record's <see cref="FieldCount"/> is not zero,
     /// is considered to have exactly one field with length of 0.
     /// </remarks>
-    public bool IsEmpty => _line.GetRecordLength() == 0;
+    public bool IsEmpty => _fields.GetRecordLength() == 0;
 
     /// <summary>
     /// The current CSV record (unescaped/untrimmed).
     /// </summary>
-    public ReadOnlySpan<T> Record => _line.Record.Span;
+    public ReadOnlySpan<T> Record => _fields.Record.Span;
 
     /// <summary>
     /// Options instance.
     /// </summary>
-    public CsvOptions<T> Options => _line.Parser.Options;
+    public CsvOptions<T> Options => _fields.Parser.Options;
 
     /// <summary>
     /// 1-based line number.
@@ -90,7 +90,7 @@ public readonly ref struct CsvRecordCallbackArgs<T> where T : unmanaged, IBinary
     /// <summary>
     /// Number of fields in the record.
     /// </summary>
-    public int FieldCount => _line.FieldCount;
+    public int FieldCount => _fields.FieldCount;
 
     /// <summary>
     /// Returns the value of a field.
@@ -98,7 +98,7 @@ public readonly ref struct CsvRecordCallbackArgs<T> where T : unmanaged, IBinary
     /// <param name="index">0-based field index</param>
     /// <param name="raw">Don't unescape the value</param>
     /// <returns>Value of the field</returns>
-    public ReadOnlySpan<T> GetField(int index, bool raw = false) => _line.GetField(index, raw);
+    public ReadOnlySpan<T> GetField(int index, bool raw = false) => _fields.GetField(index, raw);
 }
 
 /// <summary>

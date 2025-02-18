@@ -2,7 +2,7 @@
 
 namespace FlameCsv.Tests.Utilities;
 
-public readonly struct ConstantRecord<T> : ICsvRecordFields<T> where T : unmanaged, IBinaryInteger<T>
+public readonly struct ConstantRecord<T> : ICsvFields<T> where T : unmanaged, IBinaryInteger<T>
 {
     public ConstantRecord(IEnumerable<string> values, CsvOptions<T>? options = null)
     {
