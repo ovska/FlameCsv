@@ -134,6 +134,7 @@ public partial class CsvReadBench
         }
     }
 
+#if FEATURE_PARALLEL
     [Benchmark]
     public void FlameParallel()
     {
@@ -146,6 +147,7 @@ public partial class CsvReadBench
         {
         }
     }
+#endif
 
     public sealed class Entry
     {

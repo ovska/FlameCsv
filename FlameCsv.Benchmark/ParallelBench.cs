@@ -1,8 +1,9 @@
-﻿using System.Collections.Concurrent;
+﻿#if FEATURE_PARALLEL
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using FlameCsv.Parallel;
 using FlameCsv.Reading;
+using FlameCsv.Reading.Parallel;
 
 // ReSharper disable UnusedType.Local
 // ReSharper disable UnusedMember.Local
@@ -155,3 +156,4 @@ Asia,Slovakia,Beverages,Offline,L,2016-10-26,174590194,2016-12-04,3973,47.45,31.
         public decimal TotalProfit { get; set; }
     }
 }
+#endif

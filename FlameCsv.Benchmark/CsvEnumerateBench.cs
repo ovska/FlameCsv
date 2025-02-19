@@ -7,7 +7,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using FlameCsv.Extensions;
-using FlameCsv.Parallel;
 using FlameCsv.Reading;
 using FlameCsv.Reading.Internal;
 using nietras.SeparatedValues;
@@ -101,12 +100,6 @@ public class CsvEnumerateBench
         }
     }
 
-    // [Benchmark]
-    public void Flame_Parallel()
-    {
-        CsvParallel.Enumerate<object?, Invoker>(in _byteSeq, new()).ForAll(_ => { });
-    }
-
     [Benchmark]
     public async Task Flame_byte_async()
     {
@@ -119,20 +112,25 @@ public class CsvEnumerateBench
         }
     }
 
+    #if FEATURE_PARALLEL
+    [Benchmark]
+    public void Flame_Parallel()
+    {
+        CsvParallel.Enumerate<object?, Invoker>(in _byteSeq, new()).ForAll(_ => { });
+    }
+
     private readonly struct Invoker : ICsvParallelTryInvoke<byte, object?>
     {
-        public bool TryInvoke<TRecord>(
-            scoped ref TRecord record,
-            in CsvParallelState state,
-            [MaybeNullWhen(false)] out object? result) where TRecord : ICsvFields<byte>, allows ref struct
+        public bool TryInvoke(scoped ref CsvFieldsRef<byte> fields, in CsvParallelState state, [MaybeNullWhen(false)] out object? result)
         {
-            for (int i = 0; i < record.FieldCount; i++)
+            for (int i = 0; i < fields.FieldCount; i++)
             {
-                _ = record[i];
+                _ = fields[i];
             }
 
             result = default;
             return false;
         }
     }
+#endif
 }

@@ -1,13 +1,12 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿#if FEATURE_PARALLEL
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
-using FlameCsv.Reading;
 using JetBrains.Annotations;
 
-namespace FlameCsv.Parallel;
+namespace FlameCsv.Reading.Parallel;
 
-internal readonly struct ValueParallelInvoke<T, TValue>
-    : ICsvParallelTryInvoke<T, TValue>
+internal readonly struct ValueParallelInvoke<T, TValue> : ICsvParallelTryInvoke<T, TValue>
     where T : unmanaged, IBinaryInteger<T>
 {
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
@@ -41,14 +40,15 @@ internal readonly struct ValueParallelInvoke<T, TValue>
         _materializerFactory = materializerFactory;
     }
 
-    public bool TryInvoke<TRecord>(
-        scoped ref TRecord record,
+    public bool TryInvoke(
+        scoped ref CsvFieldsRef<T> fields,
         in CsvParallelState state,
-        [NotNullWhen(true)] out TValue? result) where TRecord : ICsvFields<T>, allows ref struct
+        [NotNullWhen(true)] out TValue? result)
     {
-        result = (_materializer.Value ??= _materializerFactory(_arg, state.Header)).Parse(ref record)!;
+        result = (_materializer.Value ??= _materializerFactory(_arg, state.Header)).Parse(ref fields)!;
         return true;
     }
 
     private readonly record struct Arg(CsvOptions<T> Options, CsvTypeMap<T, TValue>? TypeMap);
 }
+#endif
