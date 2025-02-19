@@ -64,13 +64,9 @@ internal sealed class ConstantPipeReader<T> : ICsvPipeReader<T> where T : unmana
 
     public bool TryReset()
     {
-        if (!_disposed)
-        {
-            _data = _originalData;
-            return true;
-        }
-
-        return false;
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _data = _originalData;
+        return true;
     }
 
     public void Dispose()
