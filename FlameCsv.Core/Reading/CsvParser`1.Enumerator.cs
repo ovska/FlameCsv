@@ -1,0 +1,188 @@
+﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using FlameCsv.Reading.Internal;
+using JetBrains.Annotations;
+
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
+namespace FlameCsv.Reading;
+
+partial class CsvParser<T>
+{
+    public Enumerator GetEnumerator() => new(this);
+
+    public AsyncEnumerator GetAsyncEnumerator(CancellationToken cancellationToken = default)
+        => new(this, cancellationToken);
+
+    [PublicAPI]
+    [SkipLocalsInit]
+    public struct Enumerator : IDisposable
+    {
+        private readonly CsvParser<T> _parser;
+        private EnumeratorStack _stackMemory;
+        private CsvFields<T> _field = new();
+
+        internal Enumerator(CsvParser<T> parser)
+        {
+            _parser = parser;
+        }
+
+        public readonly CsvFieldsRef<T> Current
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => new(in _field, Unsafe.AsRef(in _stackMemory).AsSpan());
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool MoveNext()
+        {
+            CsvParser<T> parser = _parser;
+
+            if (parser._metaIndex < parser._metaCount)
+            {
+                ref Meta metaRef = ref MemoryMarshal.GetArrayDataReference(parser._metaArray);
+
+                if (Meta.TryFindNextEOL(
+                        first: ref Unsafe.Add(ref metaRef, 1 + parser._metaIndex),
+                        end: parser._metaCount - parser._metaIndex + 1,
+                        index: out int fieldCount))
+                {
+                    MetaSegment fieldMeta = new()
+                    {
+                        array = parser._metaArray, count = fieldCount + 1, offset = parser._metaIndex
+                    };
+
+                    _field = new CsvFields<T>(
+                        parser: parser,
+                        data: parser._metaMemory,
+                        fieldMeta: Unsafe.As<MetaSegment, ArraySegment<Meta>>(ref fieldMeta));
+
+                    parser._metaIndex += fieldCount;
+                    return true;
+                }
+            }
+
+            return MoveNextSlow();
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private bool MoveNextSlow()
+        {
+            if (_parser.TryReadUnbuffered(out _field, isFinalBlock: false))
+            {
+                return true;
+            }
+
+            while (_parser.TryAdvanceReader())
+            {
+                if (_parser.TryReadLine(out _field, isFinalBlock: false))
+                {
+                    return true;
+                }
+            }
+
+            return _parser.TryReadUnbuffered(out _field, isFinalBlock: true);
+        }
+
+        public void Dispose()
+        {
+            _parser.Dispose();
+            this = default;
+        }
+    }
+
+    [PublicAPI]
+    public readonly struct AsyncEnumerator
+    {
+        // this struct needs to be readonly to play nice with async
+        private sealed class Box
+        {
+            public CsvFields<T> Value;
+        }
+
+        private readonly CsvParser<T> _parser;
+        private readonly CancellationToken _cancellationToken;
+        private readonly Box _field;
+
+        public AsyncEnumerator(CsvParser<T> parser, CancellationToken cancellationToken)
+        {
+            _parser = parser;
+            _cancellationToken = cancellationToken;
+            _field = new();
+        }
+
+        public CsvFieldsRef<T> Current
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => new(in _field.Value, []);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ValueTask<bool> MoveNextAsync()
+        {
+            if (_cancellationToken.IsCancellationRequested)
+            {
+                return ValueTask.FromCanceled<bool>(_cancellationToken);
+            }
+
+            if (_parser.TryGetBuffered(out _field.Value))
+            {
+                return new ValueTask<bool>(true);
+            }
+
+            return MoveNextSlowAsync();
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private async ValueTask<bool> MoveNextSlowAsync()
+        {
+            if (_parser.TryReadUnbuffered(out _field.Value, isFinalBlock: false))
+            {
+                return true;
+            }
+
+            while (await _parser.TryAdvanceReaderAsync(_cancellationToken).ConfigureAwait(false))
+            {
+                if (_parser.TryReadLine(out _field.Value, isFinalBlock: false))
+                {
+                    return true;
+                }
+            }
+
+            return _parser.TryReadUnbuffered(out _field.Value, isFinalBlock: true);
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            _field.Value = default; // don't hold on to data
+            return _parser.DisposeAsync();
+        }
+    }
+
+    [SkipLocalsInit]
+    [InlineArray(Length)]
+    internal struct EnumeratorStack
+    {
+        public const int Length = 256;
+        public byte elem0;
+    }
+}
+
+[SkipLocalsInit]
+file static class LocalExtensions
+{
+    private const int Length = CsvParser<byte>.EnumeratorStack.Length;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Span<T> AsSpan<T>(ref this CsvParser<T>.EnumeratorStack memory)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        if (typeof(T) == typeof(byte))
+            return MemoryMarshal.CreateSpan(ref Unsafe.As<byte, T>(ref memory.elem0), Length);
+
+        if (typeof(T) == typeof(char))
+            return MemoryMarshal.CreateSpan(ref Unsafe.As<byte, T>(ref memory.elem0), Length / sizeof(char));
+
+        return MemoryMarshal.Cast<byte, T>(MemoryMarshal.CreateSpan(ref memory.elem0, Length));
+    }
+}

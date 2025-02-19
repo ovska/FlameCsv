@@ -6,7 +6,8 @@ using FlameCsv.Utilities;
 
 namespace FlameCsv.Reading.Internal;
 
-internal sealed class CsvParserUnix<T>(CsvOptions<T> options) : CsvParser<T>(options)
+internal sealed class CsvParserUnix<T>(CsvOptions<T> options, ICsvPipeReader<T> reader)
+    : CsvParser<T>(options, reader)
     where T : unmanaged, IBinaryInteger<T>
 {
     private protected override bool TryReadFromSequence(out CsvFields<T> fields, bool isFinalBlock)
@@ -114,7 +115,8 @@ internal sealed class CsvParserUnix<T>(CsvOptions<T> options) : CsvParser<T>(opt
 
                 if (newline.Length == 1 || reader.IsNext(newline.Second, advancePast: true))
                 {
-                    fieldMeta.Append(Meta.Unix((int)reader.Consumed - newline.Length, quoteCount, escapeCount, isEOL: true));
+                    fieldMeta.Append(
+                        Meta.Unix((int)reader.Consumed - newline.Length, quoteCount, escapeCount, isEOL: true));
 
                     fields = new CsvFields<T>(
                         this,

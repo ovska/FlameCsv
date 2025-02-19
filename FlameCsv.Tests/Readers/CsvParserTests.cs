@@ -37,19 +37,6 @@ public class CsvParserTests
     [MemberData(nameof(ReadLineData))]
     public void Should_Read_Lines(NewlineToken newline, Mode mode, bool trailingNewline)
     {
-        using var parser = CsvParser.Create(
-            new CsvOptions<char>
-            {
-                NoReadAhead = true,
-                Newline = newline switch
-                {
-                    NewlineToken.CRLF => "\r\n",
-                    NewlineToken.LF => "\n",
-                    _ => null,
-                },
-                Escape = mode == Mode.Escape ? '^' : null,
-            });
-
         string nlt = newline switch
         {
             NewlineToken.LF or NewlineToken.AutoLF => "\n",
@@ -93,7 +80,20 @@ public class CsvParserTests
             "Oslo, Norway",
         ];
 
-        parser.SetData(MemorySegment<char>.AsSequence(data.AsMemory(), 64));
+        using var parser = CsvParser.Create(
+            new CsvOptions<char>
+            {
+                NoReadAhead = true,
+                Newline = newline switch
+                {
+                    NewlineToken.CRLF => "\r\n",
+                    NewlineToken.LF => "\n",
+                    _ => null,
+                },
+                Escape = mode == Mode.Escape ? '^' : null,
+            },
+            CsvPipeReader.Create(MemorySegment<char>.AsSequence(data.AsMemory(), 64)));
+
         var buffer = new char[64];
 
         for (int lineIndex = 0; lineIndex < 3; lineIndex++)
@@ -114,8 +114,9 @@ public class CsvParserTests
     [Fact]
     public void Should_Fail_If_Autodetected_Newline_Not_Found()
     {
-        using var parser = CsvParser.Create(new CsvOptions<char> { Newline = null });
-        parser.SetData(new ReadOnlySequence<char>(new string('x', 4096).AsMemory()));
+        using var parser = CsvParser.Create(
+            new CsvOptions<char> { Newline = null },
+            new ReadOnlySequence<char>(new string('x', 4096).AsMemory()));
         Assert.Throws<CsvFormatException>(() => parser.TryReadLine(out _, false));
     }
 
@@ -130,8 +131,9 @@ public class CsvParserTests
 
             """;
 
-        using var parser = CsvParser.Create(new CsvOptions<char> { Newline = "\n" });
-        parser.SetData(new(data.AsMemory()));
+        using var parser = CsvParser.Create(
+            new CsvOptions<char> { Newline = "\n" },
+            new ReadOnlySequence<char>(data.AsMemory()));
 
         Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
         Assert.Equal("1,2,3", line.Record.ToString());
@@ -166,15 +168,14 @@ public class CsvParserTests
 
         Assert.Equal(data.AsMemory(), result.Buffer.ToArray());
 
-        using var parser = CsvParser.Create(CsvOptions<char>.Default);
-        parser.SetData(result.Buffer);
+        await using var parser = CsvParser.Create(CsvOptions<char>.Default, result.Buffer);
 
         Assert.False(parser.TryGetBuffered(out _));
 
         Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
         Assert.Equal("1,2,3", line.Record.ToString());
 
-        parser.AdvanceReader(reader);
+        await parser.TryAdvanceReaderAsync();
 
         result = await reader.ReadAsync();
         Assert.Equal(

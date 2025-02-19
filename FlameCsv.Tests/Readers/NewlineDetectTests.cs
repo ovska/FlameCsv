@@ -46,9 +46,8 @@ public static class NewlineDetectTests
             CsvOptions<T> options,
             ReadOnlyMemory<T> input) where T : unmanaged, IBinaryInteger<T>
         {
-            using var parser = CsvParser.Create(options);
+            using var parser = CsvParser.Create(options, new ReadOnlySequence<T>(input));
 
-            parser.SetData(new ReadOnlySequence<T>(input));
             Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
 
             var reader = new CsvFieldsRef<T>(in line, stackalloc T[8]);
@@ -63,8 +62,6 @@ public static class NewlineDetectTests
     [Theory, MemberData(nameof(NewlineData))]
     public static void Should_Throw_On_Very_Long_Inputs(bool segments, NewlineToken? newline, bool shouldThrow)
     {
-        using var parser = CsvParser.Create(new CsvOptions<char> { Newline = null });
-
         string newlineStr = newline switch
         {
             NewlineToken.CRLF => "\r\n",
@@ -76,7 +73,8 @@ public static class NewlineDetectTests
             (new string('x', 4096) + newlineStr).AsMemory(),
             bufferSize: segments ? 2048 : -1);
 
-        parser.SetData(in data);
+        using var parser = CsvParser.Create(new CsvOptions<char> { Newline = null }, in data);
+
         if (shouldThrow) Assert.Throws<CsvFormatException>(() => { _ = parser.TryReadLine(out _, false); });
     }
 

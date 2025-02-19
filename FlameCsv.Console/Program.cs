@@ -32,8 +32,7 @@ namespace FlameCsv.Console
             {
                 foreach (var data in (byte[][]) [_bytes, _bytes2])
                 {
-                    using var parser = CsvParser.Create(_options);
-                    parser.SetData(new(data));
+                    using var parser = CsvParser.Create(_options, new ReadOnlySequence<byte>(data));
 
                     while (parser.TryReadLine(out var line, isFinalBlock: false))
                     {
