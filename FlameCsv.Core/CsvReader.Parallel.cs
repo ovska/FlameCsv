@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Extensions;
 using FlameCsv.Parallel;
@@ -208,49 +209,50 @@ public static class CsvParallelReader
         {
             CsvFields<T> fields;
 
-            while (parser.TryReadUnbuffered(out fields, false))
+            while (parser.TryAdvanceReader())
             {
-                do
-                {
-                    Interlocked.Increment(ref activeOperations);
-                    Interlocked.Increment(ref index);
-
-                    Func<int, Span<T>>? getBuffer = fields.NeedsUnescapeBuffer
-                        ? bufferCache.Value!.GetBuffer
-                        : null;
-
-                    CsvFieldsRef<T> reader = new(in fields, getBuffer: getBuffer!);
-
-                    if (needsHeader)
-                    {
-                        header = CsvHeader.Parse(parser.Options, ref reader);
-                        needsHeader = false;
-                        Interlocked.Decrement(ref activeOperations);
-                        continue;
-                    }
-
-                    CsvParallelState state = new() { Header = header, RecordIndex = index };
-
-                    if (selector.TryInvoke(ref reader, in state, out var result))
-                    {
-                        yield return result;
-                    }
-
-                    Interlocked.Decrement(ref activeOperations);
-                } while (parser.TryGetBuffered(out fields));
-
                 while (Interlocked.Read(in activeOperations) != 0)
                 {
                     spin.SpinOnce();
                 }
+
+                while (parser.TryReadUnbuffered(out fields, false))
+                {
+                    do
+                    {
+                        Interlocked.Increment(ref index);
+                        Interlocked.Increment(ref activeOperations);
+
+                        CsvFieldsRef<T> reader = new(in fields, getBuffer: bufferCache.Value!.GetBuffer);
+
+                        if (needsHeader)
+                        {
+                            header = CsvHeader.Parse(parser.Options, ref reader);
+                            needsHeader = false;
+                            Interlocked.Decrement(ref activeOperations);
+                            continue;
+                        }
+
+                        CsvParallelState state = new() { Header = header, RecordIndex = index };
+
+                        if (selector.TryInvoke(ref reader, in state, out var result))
+                        {
+                            yield return result;
+                        }
+
+                        Interlocked.Decrement(ref activeOperations);
+                    } while (parser.TryGetBuffered(out fields));
+                }
             }
 
+            // reader cannot be advanced anymore, wait until all previous reads are done
             while (Interlocked.Read(in activeOperations) != 0)
             {
                 spin.SpinOnce();
             }
 
-            if (parser.TryReadUnbuffered(out fields, isFinalBlock: true))
+            // read the final block
+            while (parser.TryReadUnbuffered(out fields, isFinalBlock: true))
             {
                 index++;
 
@@ -275,10 +277,117 @@ public static class CsvParallelReader
         {
             using (parser)
             {
-                foreach (var buffer in bufferCache.Values)
+                foreach (var buffer in bufferCache.Values) buffer.Dispose();
+            }
+        }
+    }
+
+    public static IAsyncEnumerable<TResult> Test<T,TResult>(
+        in ReadOnlySequence<T> csv,
+        CsvOptions<T>? options = null,
+        CancellationToken cancellationToken = default)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        return CoreAsync<T, TResult, ValueParallelInvoke<T, TResult>>(CsvParser.Create(options ?? CsvOptions<T>.Default, CsvPipeReader.Create(csv)), ValueParallelInvoke<T,TResult>.Create(options), cancellationToken);
+    }
+
+    private static async IAsyncEnumerable<TResult> CoreAsync<T, TResult, TSelector>(
+        [HandlesResourceDisposal] CsvParser<T> parser,
+        TSelector selector,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+        where T : unmanaged, IBinaryInteger<T>
+        where TSelector : ICsvParallelTryInvoke<T, TResult>
+    {
+        // use a separate memory-owner for each thread
+        ThreadLocal<BufferFactory<T>> bufferCache = new(
+            () => new(parser.Options._memoryPool),
+            trackAllValues: true);
+
+        int index = 0;
+        bool needsHeader = parser.Options._hasHeader;
+        CsvHeader? header = null;
+
+        // Semaphore to control the number of concurrent operations
+        SemaphoreSlim semaphore = new(0);
+        long activeOperations = 0;
+
+        try
+        {
+            CsvFields<T> fields;
+
+            while (await parser.TryAdvanceReaderAsync(cancellationToken).ConfigureAwait(false))
+            {
+                while (Interlocked.Read(ref activeOperations) != 0)
                 {
-                    buffer.Dispose();
+                    await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                 }
+
+                while (parser.TryReadUnbuffered(out fields, false))
+                {
+                    do
+                    {
+                        Interlocked.Increment(ref index);
+                        Interlocked.Increment(ref activeOperations);
+
+                        CsvFieldsRef<T> reader = new(in fields, getBuffer: bufferCache.Value!.GetBuffer);
+
+                        if (needsHeader)
+                        {
+                            header = CsvHeader.Parse(parser.Options, ref reader);
+                            needsHeader = false;
+                            Interlocked.Decrement(ref activeOperations);
+                            semaphore.Release();
+                            continue;
+                        }
+
+                        CsvParallelState state = new() { Header = header, RecordIndex = index };
+
+                        if (selector.TryInvoke(ref reader, in state, out var result))
+                        {
+                            yield return result;
+                        }
+
+                        Interlocked.Decrement(ref activeOperations);
+                        semaphore.Release();
+                    } while (parser.TryGetBuffered(out fields));
+                }
+            }
+
+            // reader cannot be advanced anymore, wait until all previous reads are done
+            while (Interlocked.Read(ref activeOperations) != 0)
+            {
+                await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            // read the final block
+            while (parser.TryReadUnbuffered(out fields, isFinalBlock: true))
+            {
+                index++;
+
+                CsvFieldsRef<T> reader = new(in fields, getBuffer: bufferCache.Value!.GetBuffer);
+
+                // maybe we *only* have a header record without a newline? validate the data and return
+                if (needsHeader)
+                {
+                    _ = CsvHeader.Parse(parser.Options, ref reader);
+                    yield break;
+                }
+
+                CsvParallelState state = new() { Header = header, RecordIndex = index };
+
+                if (selector.TryInvoke(ref reader, in state, out var result))
+                {
+                    yield return result;
+                }
+
+                semaphore.Release();
+            }
+        }
+        finally
+        {
+            await using (parser)
+            {
+                foreach (var buffer in bufferCache.Values) buffer.Dispose();
             }
         }
     }
@@ -295,9 +404,8 @@ public static class CsvParallelReader
 
         public BufferFactory(MemoryPool<T> pool)
         {
-            // TODO: handle multiple unescaped fields!
             // slice the span to ensure exact length
-            GetBuffer = length => pool.EnsureCapacity(ref _owner, length).Span;
+            GetBuffer = length => pool.EnsureCapacity(ref _owner, length).Span[..length];
         }
 
         public void Dispose() => _owner?.Dispose();

@@ -1,10 +1,13 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Buffers;
+using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.Binding;
 using FlameCsv.Parallel;
 using FlameCsv.Reading;
 using FlameCsv.Tests.TestData;
+using FlameCsv.Tests.Utilities;
 
 // ReSharper disable ConvertIfStatementToSwitchStatement
 // ReSharper disable LoopCanBeConvertedToQuery
@@ -61,11 +64,59 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
         Assert.Equal(Guid.Empty, obj.Token);
     }
 
+    [Theory, InlineData(false), InlineData(true)]
+    public async Task Should_Read_Parallel(bool isAsync)
+    {
+        const NewlineToken newline = NewlineToken.LF;
+        const bool header = true;
+        const bool trailingLF = true;
+        const Mode escaping = Mode.RFC;
+
+        using var pool = ReturnTrackingMemoryPool<char>.Create();
+
+        var data = TestDataGenerator.Generate<char>(newline, header, trailingLF, escaping);
+        var options = GetOptions(newline, header, escaping, pool);
+
+        List<Obj> objs;
+
+        if (isAsync)
+        {
+            var bag = new ConcurrentBag<Obj>();
+
+            await System.Threading.Tasks.Parallel.ForEachAsync(
+                CsvParallelReader.Test<char, Obj>(new ReadOnlySequence<char>(data), options),
+                CancellationToken.None,
+                (obj, _) =>
+                {
+                    bag.Add(obj);
+                    return default;
+                });
+
+            objs = bag.ToList();
+        }
+        else
+        {
+            ParallelQuery<Obj> query = CsvParallelReader
+                .Read<char, Obj>(data, options)
+                .WithExecutionMode(ParallelExecutionMode.ForceParallelism)
+                .WithMergeOptions(ParallelMergeOptions.NotBuffered);
+
+            objs = [..query];
+        }
+
+        objs.Sort((a, b) => a.Id.CompareTo(b.Id));
+
+        await Validate(new SyncAsyncEnumerable<Obj>(objs), escaping);
+    }
+
     readonly struct Selector() : ICsvParallelTryInvoke<char, Obj>
     {
         private readonly StrongBox<IMaterializer<char, Obj>> _materializer = new();
 
-        public bool TryInvoke<TRecord>(scoped ref TRecord record, in CsvParallelState state, [NotNullWhen(true)] out Obj? result)
+        public bool TryInvoke<TRecord>(
+            scoped ref TRecord record,
+            in CsvParallelState state,
+            [NotNullWhen(true)] out Obj? result)
             where TRecord : ICsvFields<char>, allows ref struct
         {
             if (_materializer.Value is null)

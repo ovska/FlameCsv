@@ -9,7 +9,13 @@ using FlameCsv.Tests.Utilities;
 
 namespace FlameCsv.Tests.Readers;
 
-public enum NewlineToken { CRLF, LF, AutoCRLF, AutoLF }
+public enum NewlineToken
+{
+    CRLF,
+    LF,
+    AutoCRLF,
+    AutoLF
+}
 
 public abstract class CsvReaderTestsBase
 {
@@ -39,7 +45,15 @@ public abstract class CsvReaderTestsBase
                 if (sourceGen && !writeHeader)
                     continue;
 
-                data.Add(crlf, writeHeader, writeTrailingNewline, bufferSize, emptySegmentFrequency, escaping, sourceGen, guarded);
+                data.Add(
+                    crlf,
+                    writeHeader,
+                    writeTrailingNewline,
+                    bufferSize,
+                    emptySegmentFrequency,
+                    escaping,
+                    sourceGen,
+                    guarded);
             }
 
             return data;
@@ -84,6 +98,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
         Stream stream,
         CsvOptions<T> options,
         int bufferSize);
+
     protected abstract IAsyncEnumerable<Obj> GetObjects(
         Stream stream,
         CsvOptions<T> options,
@@ -202,7 +217,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
         }
     }
 
-    private static async Task Validate(IAsyncEnumerable<Obj> enumerable, Mode escaping)
+    protected static async Task Validate(IAsyncEnumerable<Obj> enumerable, Mode escaping)
     {
         int i = 0;
 
@@ -220,7 +235,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
         Assert.Equal(1_000, i);
     }
 
-    private async IAsyncEnumerable<Obj> GetItems(
+    protected async IAsyncEnumerable<Obj> GetItems(
         IAsyncEnumerable<CsvValueRecord<T>> enumerable,
         bool sourceGen,
         bool hasHeader,
@@ -235,7 +250,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
             _ => 2,
         };
 
-        if(hasHeader)
+        if (hasHeader)
         {
             tokenPosition = TestDataGenerator.Header.Length + newlineLength;
         }
@@ -266,7 +281,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
         }
     }
 
-    private CsvOptions<T> GetOptions(NewlineToken newline, bool header, Mode escaping, MemoryPool<T> pool)
+    protected static CsvOptions<T> GetOptions(NewlineToken newline, bool header, Mode escaping, MemoryPool<T> pool)
     {
         return new CsvOptions<T>
         {
