@@ -17,6 +17,11 @@ public readonly struct CsvReadResult<T>(in ReadOnlySequence<T> buffer, bool isCo
     where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
+    /// A read result with an empty buffer and <see cref="IsCompleted"/> set to <see langword="false"/>.
+    /// </summary>
+    public static readonly CsvReadResult<T> Empty = new();
+
+    /// <summary>
     /// Data read from the data source, e.g., PipeReader or TextReader.
     /// </summary>
     public readonly ReadOnlySequence<T> Buffer = buffer;

@@ -46,6 +46,13 @@ public static class CsvPipeReader
         return new ConstantPipeReader<byte>(in csv);
     }
 
+    /// <inheritdoc cref="Create(string?)"/>
+    [OverloadResolutionPriority(-1)]
+    public static ICsvPipeReader<T> Create<T>(in ReadOnlySequence<T> csv) where T : unmanaged, IBinaryInteger<T>
+    {
+        return new ConstantPipeReader<T>(in csv);
+    }
+
     /// <summary>
     /// Creates a new CSV reader instance from a <see cref="Stream"/>.
     /// </summary>
