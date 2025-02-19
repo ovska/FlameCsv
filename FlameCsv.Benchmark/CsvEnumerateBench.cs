@@ -104,7 +104,7 @@ public class CsvEnumerateBench
     // [Benchmark]
     public void Flame_Parallel()
     {
-        CsvParallelReader.Enumerate<object?, Invoker>(in _byteSeq, new()).ForAll(_ => { });
+        CsvParallel.Enumerate<object?, Invoker>(in _byteSeq, new()).ForAll(_ => { });
     }
 
     [Benchmark]

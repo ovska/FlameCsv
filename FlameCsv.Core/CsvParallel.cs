@@ -12,7 +12,7 @@ namespace FlameCsv;
 /// Provides methods for parallel processing of CSV data.
 /// </summary>
 [PublicAPI]
-public static class CsvParallelReader
+public static class CsvParallel
 {
     /// <summary>
     /// Returns <see langword="true"/> if the options can be used for parallel reading.
@@ -26,29 +26,6 @@ public static class CsvParallelReader
     {
         ArgumentNullException.ThrowIfNull(options);
         return !options.NoReadAhead && options.Dialect.IsAscii;
-    }
-
-    /// <summary>
-    /// Returns a parallel query for the records in the provided CSV data using a custom selector.
-    /// </summary>
-    /// <param name="csv">Csv data</param>
-    /// <param name="invoker">
-    /// Instance used to process each record into <typeparamref name="TValue"/>.
-    /// For optimal performance, this type should be a <see langword="readonly"/> <see langword="struct"/>.
-    /// </param>
-    /// <param name="options">Options-instance</param>
-    /// <typeparam name="TValue">Value returned by the invoker</typeparam>
-    /// <typeparam name="TInvoke">Invoker type</typeparam>
-    /// <returns>
-    /// An unordered and unconfigured parallel query of the results.
-    /// </returns>
-    public static ParallelQuery<TValue> Enumerate<TValue, TInvoke>(
-        in ReadOnlySequence<char> csv,
-        TInvoke invoker,
-        CsvOptions<char>? options = null)
-        where TInvoke : ICsvParallelTryInvoke<char, TValue>
-    {
-        return GetParallelQuery<char, TValue, TInvoke>(options ?? CsvOptions<char>.Default, invoker, in csv);
     }
 
     /// <inheritdoc cref="Enumerate{TValue,TInvoke}(in System.Buffers.ReadOnlySequence{char},TInvoke,FlameCsv.CsvOptions{char}?)"/>

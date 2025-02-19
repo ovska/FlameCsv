@@ -76,9 +76,8 @@ public sealed class CsvRecordEnumerator<T>
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        _hasHeader = options._hasHeader;
-        _validateFieldCount = options._validateFieldCount;
-        _callback = options._recordCallback;
+        _hasHeader = options.HasHeader;
+        _validateFieldCount = options.ValidateFieldCount;
 
         // clear the materializer cache on hot reload
         HotReloadService.RegisterForHotReload(
@@ -91,7 +90,6 @@ public sealed class CsvRecordEnumerator<T>
     private CsvValueRecord<T> _current;
     internal readonly bool _hasHeader;
     private readonly bool _validateFieldCount;
-    private readonly CsvRecordCallback<T>? _callback;
     private Dictionary<object, object>? _materializerCache;
     private int? _expectedFieldCount;
     private CsvHeader? _header;
@@ -127,27 +125,15 @@ public sealed class CsvRecordEnumerator<T>
     }
 
     /// <inheritdoc/>
+    protected override ReadOnlySpan<string> GetHeader() => Header is { } header ? header.Values : default;
+
+    /// <inheritdoc/>
+    protected override void ResetHeader() => Header = null;
+
+    /// <inheritdoc/>
     protected override bool MoveNextCore(ref readonly CsvFields<T> fields)
     {
         Throw.IfEnumerationDisposed(_version == -1);
-
-        if (_callback is not null)
-        {
-            bool skip = false;
-            bool headerRead = Header is not null;
-
-            CsvRecordCallbackArgs<T> args = new(
-                in fields,
-                Header is { } header ? header.Values : [],
-                Line,
-                Position,
-                ref skip,
-                ref headerRead);
-            _callback.Invoke(in args);
-
-            if (!headerRead) Header = null;
-            if (skip) return false;
-        }
 
         // header needs to be read
         if (_hasHeader && _header is null)
