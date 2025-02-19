@@ -18,7 +18,9 @@ namespace FlameCsv.Reading;
 /// Internal implementation detail, this type should probably not be used directly.
 /// </remarks>
 [MustDisposeResource]
-public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged, IBinaryInteger<T>
+// [SkipLocalsInit]
+public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDisposable
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Current options instance.
@@ -27,7 +29,6 @@ public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged,
 
     internal readonly CsvDialect<T> _dialect;
     internal NewlineBuffer<T> _newline;
-    internal ReadOnlySequence<T> _sequence;
 
     private protected IMemoryOwner<T>? _multisegmentBuffer;
     private IMemoryOwner<T>? _unescapeBuffer;
@@ -76,7 +77,11 @@ public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged,
     /// </summary>
     private readonly bool _canUseFastPath;
 
-    private protected CsvParser(CsvOptions<T> options)
+    private protected ReadOnlySequence<T> _sequence;
+    private readonly ICsvPipeReader<T> _reader;
+    private bool _readerCompleted;
+
+    private protected CsvParser(CsvOptions<T> options, ICsvPipeReader<T> reader)
     {
         Debug.Assert(options.IsReadOnly);
 
@@ -85,6 +90,7 @@ public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged,
         _newline = options.Dialect.GetNewlineOrDefault();
         _metaArray = [];
         _canUseFastPath = !options.NoReadAhead && _dialect.IsAscii;
+        _reader = reader;
 
         GetUnescapeBuffer = (length =>
         {
@@ -109,33 +115,13 @@ public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged,
     /// <seealso cref="_metaArray"/>
     private protected abstract int ReadFromFirstSpan();
 
-    /// <inheritdoc/>
-    public void Dispose()
-    {
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
-    /// Sets or resets the data of the parser.<br/>
-    /// This method should be called after initialization, and after reading a new sequence from an async data source.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetData(in ReadOnlySequence<T> sequence)
-    {
-        _metaCount = 0;
-        _metaIndex = 0;
-        _metaMemory = default; // don't hold on to the memory from last read
-        _sequence = sequence;
-    }
-
     /// <summary>
     /// Attempts to return a complete CSV record from the read-ahead buffer.
     /// </summary>
     /// <param name="fields">Fields of the CSV record up to the newline</param>
     /// <returns>
     /// <see langword="true"/> if a record was read,
-    /// <see langword="false"/> if the buffer is empty or the record is incomplete.
+    /// <see langword="false"/> if the read-ahead buffer is empty or the record is incomplete.
     /// </returns>
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -168,7 +154,7 @@ public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged,
 
     /// <summary>
     /// Attempts to read a complete CSV record from the read-ahead buffer,
-    /// or from the underlying data supplied in <see cref="SetData"/>.
+    /// or from the data buffered from the inner reader.
     /// </summary>
     /// <param name="fields">Fields of the CSV record up to the newline</param>
     /// <param name="isFinalBlock">
@@ -207,7 +193,7 @@ public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged,
     }
 
     /// <summary>
-    /// Attempts to read a complete CSV record from the underlying data supplied in <see cref="SetData"/>.
+    /// Attempts to read a complete CSV record from the underlying data source.
     /// If newline is empty, the first call to this method will auto-detect the newline.
     /// </summary>
     /// <param name="fields">Fields of the CSV record up to the newline</param>
@@ -222,6 +208,9 @@ public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged,
     [MethodImpl(MethodImplOptions.NoInlining)]
     public bool TryReadUnbuffered(out CsvFields<T> fields, bool isFinalBlock)
     {
+        if (_sequence.IsEmpty)
+            goto Fail;
+
         if (_newline.Length == 0 && !TryPeekNewline())
         {
             if (isFinalBlock)
@@ -232,14 +221,11 @@ public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged,
 
         Debug.Assert(_newline.Length != 0, "TryPeekNewline should have initialized newline");
 
-        if (_sequence.IsEmpty)
-            goto Fail;
-
         if (_canUseFastPath && !isFinalBlock)
         {
             if (_metaIndex != 0)
             {
-                AdvanceAndResetMeta();
+                ResetMetaBuffer();
             }
 
             // delay the rent until first read
@@ -257,7 +243,9 @@ public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged,
                 _metaIndex = 0;
                 _metaCount = lastIndex + 1;
                 _metaMemory = _sequence.First; // cache to avoid calling GetFirstBuffer on every record
-                return TryReadLine(out fields, isFinalBlock);
+                bool result = TryGetBuffered(out fields);
+                Debug.Assert(result, "At least one record should have been read");
+                return result;
             }
         }
 
@@ -270,8 +258,66 @@ public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged,
         return false;
     }
 
+    /// <summary>
+    /// Attempts to reset the parser to the beginning of the data source.
+    /// </summary>
+    /// <returns>
+    /// <see langword="true"/> if the inner data source supports resetion and was successfully reset;
+    /// otherwise <see langword="false"/>.
+    /// </returns>
+    public bool TryReset()
+    {
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+
+        if (_reader.TryReset())
+        {
+            SetReadResult(in CsvReadResult<T>.Empty);
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Attempt to read more data from the underlying data source into the parser's buffer.
+    /// </summary>
+    /// <returns>
+    /// <see langword="true"/> if more data was read; otherwise <see langword="false"/>.
+    /// </returns>
+    public bool TryAdvanceReader()
+    {
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+
+        if (!_readerCompleted)
+        {
+            AdvanceReader();
+            CsvReadResult<T> result = _reader.Read();
+            SetReadResult(in result);
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <inheritdoc cref="TryAdvanceReader"/>
+    public async ValueTask<bool> TryAdvanceReaderAsync(CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!_readerCompleted)
+        {
+            AdvanceReader();
+            CsvReadResult<T> result = await _reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            SetReadResult(in result);
+            return true;
+        }
+
+        return false;
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void AdvanceAndResetMeta()
+    private void ResetMetaBuffer()
     {
         Debug.Assert(_canUseFastPath && _metaIndex != 0);
         Debug.Assert(_newline.Length != 0);
@@ -292,18 +338,31 @@ public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged,
     }
 
     /// <summary>
-    /// Advances the reader by how much data was read from the sequence passed with <see cref="SetData"/>.
+    /// Advances the reader.
     /// </summary>
-    /// <param name="reader">Reader instance</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void AdvanceReader(ICsvPipeReader<T> reader)
+    private void AdvanceReader()
     {
         if (_metaIndex != 0)
         {
-            AdvanceAndResetMeta();
+            ResetMetaBuffer();
         }
 
-        reader.AdvanceTo(consumed: _sequence.Start, examined: _sequence.End);
+        _reader.AdvanceTo(consumed: _sequence.Start, examined: _sequence.End);
+    }
+
+    /// <summary>
+    /// Sets the result of a read operation.
+    /// </summary>
+    /// <param name="result">Result of the previous read to <see cref="ICsvPipeReader{T}"/></param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void SetReadResult(ref readonly CsvReadResult<T> result)
+    {
+        _metaCount = 0;
+        _metaIndex = 0;
+        _metaMemory = default; // don't hold on to the memory from last read
+        _sequence = result.Buffer;
+        _readerCompleted = result.IsCompleted;
     }
 
     /// <summary>
@@ -427,6 +486,22 @@ public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged,
         return new ArraySegment<Meta>(_metaArray, 0, fields.Length + 1);
     }
 
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        if (IsDisposed) return;
+        using (_reader) Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <inheritdoc/>
+    public async ValueTask DisposeAsync()
+    {
+        if (IsDisposed) return;
+        await using (_reader.ConfigureAwait(false)) Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
     /// <summary>
     /// Disposes the instance.
     /// </summary>
@@ -462,33 +537,6 @@ public abstract class CsvParser<T> : CsvParser, IDisposable where T : unmanaged,
 
     internal readonly Func<int, Span<T>> GetUnescapeBuffer;
 }
-
-// ReSharper disable NotAccessedField.Local
-file struct MetaSegment
-{
-    public Meta[]? array;
-    public int offset;
-    public int count;
-
-#if DEBUG
-    static MetaSegment()
-    {
-        if (Unsafe.SizeOf<MetaSegment>() != Unsafe.SizeOf<ArraySegment<Meta>>())
-        {
-            throw new InvalidOperationException("MetaSegment has unexpected size");
-        }
-
-        var array = new Meta[4];
-        array[1] = Meta.StartOfData;
-        var segment = new MetaSegment { array = array, offset = 1, count = 2 };
-        var cast = Unsafe.As<MetaSegment, ArraySegment<Meta>>(ref segment);
-        Debug.Assert(cast.Array == array);
-        Debug.Assert(cast.Offset == 1);
-        Debug.Assert(cast.Count == 2);
-    }
-#endif
-}
-// ReSharper restore NotAccessedField.Local
 
 [ExcludeFromCodeCoverage]
 file static class InvalidState

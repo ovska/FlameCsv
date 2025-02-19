@@ -11,8 +11,7 @@ file static class Extensions
         in this ReadOnlySequence<char> input,
         CsvOptions<char> options)
     {
-        using var parser = CsvParser.Create(options);
-        parser.SetData(input);
+        using var parser = CsvParser.Create(options, in input);
 
         List<List<string>> records = [];
         IMemoryOwner<char>? memoryOwner = null;

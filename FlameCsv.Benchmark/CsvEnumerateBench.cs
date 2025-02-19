@@ -35,15 +35,13 @@ public class CsvEnumerateBench
     public void Flame_byte()
     {
         Span<byte> unescapeBuffer = stackalloc byte[256];
-        using var parser = CsvParser.Create(_optionsByte);
-        parser.SetData(in _byteSeq);
+        using var parser = CsvParser.Create(_optionsByte, in _byteSeq);
 
-        while (parser.TryReadLine(out var line, isFinalBlock: false))
+        foreach (var record in parser)
         {
-            var reader = new CsvFieldsRef<byte>(in line, unescapeBuffer);
-            for (int i = 0; i < reader.FieldCount; i++)
+            for (int i = 0; i < record.FieldCount; i++)
             {
-                _ = reader[i];
+                _ = record[i];
             }
         }
     }
@@ -52,15 +50,13 @@ public class CsvEnumerateBench
     public void Flame_char()
     {
         Span<char> unescapeBuffer = stackalloc char[128];
-        using var parser = CsvParser.Create(_optionsChar);
-        parser.SetData(in _charSeq);
+        using var parser = CsvParser.Create(_optionsChar, in _charSeq);
 
-        while (parser.TryReadLine(out var line, isFinalBlock: false))
+        foreach (var record in parser)
         {
-            var reader = new CsvFieldsRef<char>(in line, unescapeBuffer);
-            for (int i = 0; i < reader.FieldCount; i++)
+            for (int i = 0; i < record.FieldCount; i++)
             {
-                _ = reader[i];
+                _ = record[i];
             }
         }
     }

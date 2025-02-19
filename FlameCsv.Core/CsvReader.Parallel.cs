@@ -180,8 +180,7 @@ public static class CsvParallelReader
             return ParallelEnumerable.Empty<TResult>();
         }
 
-        CsvParser<T> parser = CsvParser.Create(options);
-        parser.SetData(in data);
+        CsvParser<T> parser = CsvParser.Create(options, CsvPipeReader.Create(in data));
         return Core<T, TResult, TSelector>(parser, selector).AsParallel();
     }
 

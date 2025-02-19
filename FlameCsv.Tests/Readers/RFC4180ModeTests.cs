@@ -77,8 +77,7 @@ file static class Extensions
 {
     public static List<List<string>> Read(in this ReadOnlySequence<char> input, CsvOptions<char> options)
     {
-        using var parser = CsvParser.Create(options);
-        parser.SetData(input);
+        using var parser = CsvParser.Create(options, in input);
 
         List<List<string>> records = [];
         char[] buffer = new char[64];

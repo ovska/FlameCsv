@@ -1,4 +1,5 @@
-﻿using FlameCsv.Reading;
+﻿using System.Buffers;
+using FlameCsv.Reading;
 using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Benchmark;
@@ -42,8 +43,7 @@ public class VectorizationBench
     [Benchmark(Baseline = false)]
     public void NoBuffering()
     {
-        using var parser = CsvParser.Create(_nobuffering);
-        parser.SetData(new(GetData()));
+        using var parser = CsvParser.Create(_nobuffering, new ReadOnlySequence<byte>(GetData()));
 
         int i = 0;
         while (parser.TryReadLine(out var line, false) && ((i += (line.Fields.Length - 1)) < 131072))
