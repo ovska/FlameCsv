@@ -39,8 +39,8 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     /// </remarks>
     public CsvExceptionHandler<T>? ExceptionHandler { get; init; }
 
-    private readonly CsvRecordCallback<T>? _recordCallback;
     private readonly bool _hasHeader;
+    private readonly bool _hasCallback;
 
     private IMaterializer<T, TValue>? _materializer;
     private string[]? _headersArray;
@@ -58,8 +58,8 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         : base(options, reader, cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(options);
-        _recordCallback = options.RecordCallback;
-        _hasHeader = options._hasHeader;
+        _hasCallback = options.RecordCallback is not null;
+        _hasHeader = options.HasHeader;
         Current = default!;
     }
 
@@ -74,28 +74,18 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     protected abstract IMaterializer<T, TValue> BindToHeaderless();
 
     /// <inheritdoc/>
+    protected override ReadOnlySpan<string> GetHeader() => _headersArray;
+
+    /// <inheritdoc/>
+    protected override void ResetHeader()
+    {
+        _materializer = null;
+        _headersArray = null;
+    }
+
+    /// <inheritdoc/>
     protected override bool MoveNextCore(ref readonly CsvFields<T> fields)
     {
-        long position = Position;
-
-        if (_recordCallback is not null)
-        {
-            bool skip = false;
-            bool headerRead = _hasHeader && _materializer is not null;
-
-            CsvRecordCallbackArgs<T> args = new(
-                in fields,
-                _headersArray,
-                Line,
-                position,
-                ref skip,
-                ref headerRead);
-            _recordCallback(in args);
-
-            if (!headerRead && _hasHeader) _materializer = null; // null to re-read headers
-            if (skip) return false;
-        }
-
         if (_materializer is null && TryReadHeader(in fields))
         {
             return false;
@@ -119,7 +109,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
 
             if (handler is not null)
             {
-                CsvExceptionHandlerArgs<T> args = new(fields, _headersArray, ex, Line, position);
+                CsvExceptionHandlerArgs<T> args = new(fields, _headersArray, ex, Line, Position);
 
                 if (handler(in args))
                 {
@@ -128,7 +118,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
                 }
             }
 
-            ThrowUnhandledException(ex, in fields, position);
+            ThrowUnhandledException(ex, in fields, Position);
             throw; // unreachable
         }
     }
@@ -164,7 +154,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         _materializer = BindToHeaders(headers);
 
         // we need a copy of the headers for the callbacks
-        if (ExceptionHandler is not null || _recordCallback is not null)
+        if (_hasCallback || ExceptionHandler is not null)
         {
             _headersArray = headers.ToArray();
         }

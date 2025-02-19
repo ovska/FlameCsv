@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using FlameCsv.Exceptions;
+using FlameCsv.Reading;
 
 namespace FlameCsv.Extensions;
 
@@ -32,20 +33,25 @@ internal static class Throw
         ObjectDisposed_Enumeration();
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void IfEnumerationChanged(int version, int expected)
-    {
-        if (expected == -1)
-            ObjectDisposed_Enumeration();
-
-        if (version != expected)
-            InvalidOp_EnumerationChanged();
-    }
-
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void InvalidOp_EnumerationChanged()
     {
         throw new InvalidOperationException("The CSV enumeration state has been modified.");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void IfSyncReadingNotSupported([DoesNotReturnIf(true)] bool isSupported, Type type)
+    {
+        if (isSupported)
+            return;
+
+        NotSupported_SyncRead(type);
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public static void NotSupported_SyncRead(object reader)
+    {
+        throw new NotSupportedException($"{reader.GetType().FullName} does not support synchronous reads.");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]

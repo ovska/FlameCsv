@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using FlameCsv.Reading.Internal;
 using JetBrains.Annotations;
@@ -39,6 +40,9 @@ partial class CsvParser<T>
         {
             _parser = parser;
         }
+
+        [UnscopedRef]
+        internal readonly ref readonly CsvFields<T> Field => ref _field;
 
         /// <summary>
         /// Current record.

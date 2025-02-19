@@ -62,7 +62,7 @@ public class ParallelBench
     [Benchmark]
     public void Parallel()
     {
-        CsvParallelReader
+        CsvParallel
             .Enumerate<object?, Accumulator>(new(_data.AsMemory()), new Accumulator())
             .ForAll(_ => { });
     }

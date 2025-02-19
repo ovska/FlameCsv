@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using FlameCsv.Reading;
 using JetBrains.Annotations;
 
@@ -36,6 +37,18 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     /// </summary>
     public CsvOptions<T> Options => _parser.Options;
 
+    private readonly CsvRecordCallback<T>? _callback;
+
+    /// <summary>
+    /// Returns the header record's fields, or empty if none is read.
+    /// </summary>
+    protected abstract ReadOnlySpan<string> GetHeader();
+
+    /// <summary>
+    /// Resets the header. No-op if the header is not read.
+    /// </summary>
+    protected abstract void ResetHeader();
+
     /// <summary>
     /// Creates a new instance of the enumerator.
     /// </summary>
@@ -48,22 +61,50 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
         ArgumentNullException.ThrowIfNull(reader);
         _parser = CsvParser.Create(options, reader);
         _cancellationToken = cancellationToken;
+        _callback = options.RecordCallback;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool CallMoveNextAndIncrementPosition(ref readonly CsvFields<T> fields)
     {
         Line++;
-        bool result = MoveNextCore(in fields);
+        bool result = false;
+
+        if (_callback is null || !TrySkipRecord(in fields))
+        {
+            result = MoveNextCore(in fields);
+        }
+
         Position += fields.GetRecordLength(includeTrailingNewline: true);
         return result;
     }
 
+    private bool TrySkipRecord(in CsvFields<T> fields)
+    {
+        Debug.Assert(_callback is not null);
+
+        ReadOnlySpan<string> header = GetHeader();
+        bool skip = false;
+        bool headerRead = !header.IsEmpty;
+
+        CsvRecordCallbackArgs<T> args = new(
+            in fields,
+            header,
+            Line,
+            Position,
+            ref skip,
+            ref headerRead);
+
+        _callback(in args);
+
+        if (!headerRead && !header.IsEmpty)
+        {
+            ResetHeader();
+        }
+
+        return skip;
+    }
+
     /// <inheritdoc cref="System.Collections.IEnumerator.MoveNext"/>
-    /// <remarks>
-    /// Calling the synchronous method when reading from a <see cref="System.IO.Pipelines.PipeReader"/>
-    /// will throw a runtime exception.
-    /// </remarks>
     public bool MoveNext()
     {
         while (_parser.TryReadLine(out CsvFields<T> line, isFinalBlock: false))
