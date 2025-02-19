@@ -41,7 +41,9 @@ internal sealed class StreamPipeReader : CsvPipeReader<byte>
 
     public override bool TryReset()
     {
-        if (!IsDisposed && _stream.CanSeek)
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+
+        if (_stream.CanSeek)
         {
             _stream.Seek(0, SeekOrigin.Begin);
             return true;
