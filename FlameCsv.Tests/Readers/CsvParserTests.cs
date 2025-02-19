@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Text;
 using FlameCsv.Exceptions;
 using FlameCsv.Reading;
 using FlameCsv.Reading.Internal;
@@ -94,13 +95,13 @@ public class CsvParserTests
             },
             CsvPipeReader.Create(MemorySegment<char>.AsSequence(data.AsMemory(), 64)));
 
-        var buffer = new char[64];
+        using var enumerator = parser.GetEnumerator();
 
         for (int lineIndex = 0; lineIndex < 3; lineIndex++)
         {
-            Assert.True(parser.TryReadLine(out var line, isFinalBlock: lineIndex == 2 && !trailingNewline));
+            Assert.True(enumerator.MoveNext());
 
-            var reader = new CsvFieldsRef<char>(in line, unescapeBuffer: buffer);
+            var reader = enumerator.Current;
 
             Assert.Equal(5, reader.FieldCount);
 
@@ -117,7 +118,8 @@ public class CsvParserTests
         using var parser = CsvParser.Create(
             new CsvOptions<char> { Newline = null },
             new ReadOnlySequence<char>(new string('x', 4096).AsMemory()));
-        Assert.Throws<CsvFormatException>(() => parser.TryReadLine(out _, false));
+        // ReSharper disable once GenericEnumeratorNotDisposed
+        Assert.Throws<CsvFormatException>(() => parser.GetEnumerator().MoveNext());
     }
 
     [Fact]
@@ -135,66 +137,62 @@ public class CsvParserTests
             new CsvOptions<char> { Newline = "\n" },
             new ReadOnlySequence<char>(data.AsMemory()));
 
-        Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
-        Assert.Equal("1,2,3", line.Record.ToString());
+        using var enumerator = parser.GetEnumerator();
 
-        Assert.True(parser.TryReadLine(out line, isFinalBlock: false));
-        Assert.Equal(0, line.GetRecordLength());
+        Assert.True(enumerator.MoveNext());
+        Assert.Equal("1,2,3", enumerator.Current.Record.ToString());
 
-        Assert.True(parser.TryReadLine(out line, isFinalBlock: false));
-        Assert.Equal("4,5,6", line.Record.ToString());
+        Assert.True(enumerator.MoveNext());
+        Assert.Equal(0, enumerator.Current.GetRecordLength());
 
-        Assert.False(parser.TryReadLine(out _, isFinalBlock: false));
-        Assert.False(parser.TryReadLine(out _, isFinalBlock: true));
+        Assert.True(enumerator.MoveNext());
+        Assert.Equal("4,5,6", enumerator.Current.Record.ToString());
+
+        Assert.False(enumerator.MoveNext());
+        Assert.False(enumerator.MoveNext());
     }
 
     [Fact]
     public async Task Should_Handle_Advance_Before_Buffered_Lines_Read()
     {
-        const string data =
+        byte[] data =
             """
-            1,2,3
-            4,5,6
-            7,8,9
-            """;
+                1,2,3
+                4,5,6
+                7,8,9
+                """u8.ToArray();
 
-        await using var reader = new ConstantPipeReader<char>(
-            new(data.AsMemory()),
-            Stream.Null,
-            false,
-            static (_, _) => { });
+        await using var reader = CsvPipeReader.Create(
+            new StreamReader(
+                new MemoryStream(data),
+                Encoding.UTF8,
+                bufferSize: data.Length - 1));
 
         CsvReadResult<char> result = await reader.ReadAsync();
 
-        Assert.Equal(data.AsMemory(), result.Buffer.ToArray());
+        Assert.Equal(Encoding.UTF8.GetString(data).ToCharArray(), result.Buffer.ToArray());
 
-        await using var parser = CsvParser.Create(CsvOptions<char>.Default, result.Buffer);
+        await using var parser = CsvParser.Create(CsvOptions<char>.Default, reader);
+
+        await using var enumerator = parser.GetAsyncEnumerator();
 
         Assert.False(parser.TryGetBuffered(out _));
 
-        Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
-        Assert.Equal("1,2,3", line.Record.ToString());
+        Assert.True(await enumerator.MoveNextAsync());
+        Assert.Equal("1,2,3", enumerator.Current.Record.ToString());
 
-        await parser.TryAdvanceReaderAsync();
+        // buffer is cleared on Advance
+        Assert.True(await parser.TryAdvanceReaderAsync());
 
-        result = await reader.ReadAsync();
-        Assert.Equal(
-            """
-                4,5,6
-                7,8,9
-                """
-                .ToCharArray(),
-            result.Buffer.ToArray());
-
-        Assert.False(parser.TryGetBuffered(out line)); // buffer is cleared on Advance
-        Assert.True(parser.TryReadLine(out line, false));
-        Assert.Equal("4,5,6", line.Record.ToString());
+        Assert.False(parser.TryGetBuffered(out _)); // buffer is cleared on Advance
+        Assert.True(await enumerator.MoveNextAsync());
+        Assert.Equal("4,5,6", enumerator.Current.Record.ToString());
 
         // no trailing newline
         Assert.False(parser.TryGetBuffered(out _));
-        Assert.False(parser.TryReadLine(out _, false));
+        Assert.False(parser.TryReadLine(out _, isFinalBlock: false));
 
-        Assert.True(parser.TryReadLine(out line, isFinalBlock: true));
+        Assert.True(parser.TryReadLine(out var line, isFinalBlock: true));
         Assert.Equal("7,8,9", line.Record.ToString());
     }
 }

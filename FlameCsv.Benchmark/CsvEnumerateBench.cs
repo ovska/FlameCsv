@@ -34,10 +34,7 @@ public class CsvEnumerateBench
     [Benchmark(Baseline = true)]
     public void Flame_byte()
     {
-        Span<byte> unescapeBuffer = stackalloc byte[256];
-        using var parser = CsvParser.Create(_optionsByte, in _byteSeq);
-
-        foreach (var record in parser)
+        foreach (var record in CsvParser.Create(_optionsByte, in _byteSeq))
         {
             for (int i = 0; i < record.FieldCount; i++)
             {
@@ -49,10 +46,7 @@ public class CsvEnumerateBench
     // [Benchmark]
     public void Flame_char()
     {
-        Span<char> unescapeBuffer = stackalloc char[128];
-        using var parser = CsvParser.Create(_optionsChar, in _charSeq);
-
-        foreach (var record in parser)
+        foreach (var record in CsvParser.Create(_optionsChar, in _charSeq))
         {
             for (int i = 0; i < record.FieldCount; i++)
             {
@@ -111,6 +105,18 @@ public class CsvEnumerateBench
     public void Flame_Parallel()
     {
         CsvParallelReader.Enumerate<object?, Invoker>(in _byteSeq, new()).ForAll(_ => { });
+    }
+
+    [Benchmark]
+    public async Task Flame_byte_async()
+    {
+        await foreach (var record in CsvParser.Create(_optionsByte, in _byteSeq))
+        {
+            for (int i = 0; i < record.FieldCount; i++)
+            {
+                _ = record[i];
+            }
+        }
     }
 
     private readonly struct Invoker : ICsvParallelTryInvoke<byte, object?>

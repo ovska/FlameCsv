@@ -279,11 +279,14 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     }
 
     /// <summary>
-    /// Attempt to read more data from the underlying data source into the parser's buffer.
+    /// Attempt to read more data from the underlying data.
     /// </summary>
     /// <returns>
     /// <see langword="true"/> if more data was read; otherwise <see langword="false"/>.
     /// </returns>
+    /// <remarks>
+    /// All further reads after returning <see langword="false"/> will also return <see langword="false"/>.
+    /// </remarks>
     public bool TryAdvanceReader()
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);

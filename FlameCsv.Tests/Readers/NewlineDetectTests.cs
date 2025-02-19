@@ -48,14 +48,13 @@ public static class NewlineDetectTests
         {
             using var parser = CsvParser.Create(options, new ReadOnlySequence<T>(input));
 
-            Assert.True(parser.TryReadLine(out var line, isFinalBlock: false));
-
-            var reader = new CsvFieldsRef<T>(in line, stackalloc T[8]);
-            Assert.Equal([T.CreateChecked('A')], reader[0]);
-            Assert.Equal([T.CreateChecked('B')], reader[1]);
-            Assert.Equal([T.CreateChecked('C')], reader[2]);
-
-            Assert.True(parser.TryReadLine(out _, isFinalBlock: false));
+            foreach (var reader in parser)
+            {
+                Assert.Equal([T.CreateChecked('A')], reader[0]);
+                Assert.Equal([T.CreateChecked('B')], reader[1]);
+                Assert.Equal([T.CreateChecked('C')], reader[2]);
+                break;
+            }
         }
     }
 
@@ -75,7 +74,8 @@ public static class NewlineDetectTests
 
         using var parser = CsvParser.Create(new CsvOptions<char> { Newline = null }, in data);
 
-        if (shouldThrow) Assert.Throws<CsvFormatException>(() => { _ = parser.TryReadLine(out _, false); });
+        // ReSharper disable once GenericEnumeratorNotDisposed
+        if (shouldThrow) Assert.Throws<CsvFormatException>(() => parser.GetEnumerator().MoveNext());
     }
 
     public static TheoryData<bool, NewlineToken?, bool> NewlineData

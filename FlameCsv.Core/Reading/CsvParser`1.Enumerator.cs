@@ -3,22 +3,35 @@ using System.Runtime.InteropServices;
 using FlameCsv.Reading.Internal;
 using JetBrains.Annotations;
 
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
-
 namespace FlameCsv.Reading;
 
 partial class CsvParser<T>
 {
+    /// <summary>
+    /// Returns an enumerator that iterates through the CSV data.
+    /// </summary>
+    /// <remarks>
+    /// The enumerator advances the inner reader, and disposes the parser after use.
+    /// </remarks>
     public Enumerator GetEnumerator() => new(this);
 
+    /// <summary>
+    /// Returns an enumerator that asynchronously iterates through the CSV data.
+    /// </summary>
+    /// <remarks>
+    /// The enumerator advances the inner reader, and disposes the parser after use.
+    /// </remarks>
     public AsyncEnumerator GetAsyncEnumerator(CancellationToken cancellationToken = default)
         => new(this, cancellationToken);
 
+    /// <summary>
+    /// Enumerator for raw CSV record fields.
+    /// </summary>
     [PublicAPI]
     [SkipLocalsInit]
     public struct Enumerator : IDisposable
     {
-        private readonly CsvParser<T> _parser;
+        [HandlesResourceDisposal] private readonly CsvParser<T> _parser;
         private EnumeratorStack _stackMemory;
         private CsvFields<T> _field = new();
 
@@ -27,12 +40,21 @@ partial class CsvParser<T>
             _parser = parser;
         }
 
+        /// <summary>
+        /// Current record.
+        /// </summary>
         public readonly CsvFieldsRef<T> Current
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => new(in _field, Unsafe.AsRef(in _stackMemory).AsSpan());
         }
 
+        /// <summary>
+        /// Attempts to read the next record.
+        /// </summary>
+        /// <returns>
+        /// <see langword="true"/> if a record was read; otherwise, <see langword="false"/>.
+        /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool MoveNext()
         {
@@ -84,6 +106,9 @@ partial class CsvParser<T>
             return _parser.TryReadUnbuffered(out _field, isFinalBlock: true);
         }
 
+        /// <summary>
+        /// Disposes the parser.
+        /// </summary>
         public void Dispose()
         {
             _parser.Dispose();
@@ -91,10 +116,11 @@ partial class CsvParser<T>
         }
     }
 
+    /// <inheritdoc cref="Enumerator"/>
     [PublicAPI]
     public readonly struct AsyncEnumerator
     {
-        // this struct needs to be readonly to play nice with async
+        // the asyncenumerator struct needs to be readonly to play nice with async
         private sealed class Box
         {
             public CsvFields<T> Value;
@@ -104,19 +130,21 @@ partial class CsvParser<T>
         private readonly CancellationToken _cancellationToken;
         private readonly Box _field;
 
-        public AsyncEnumerator(CsvParser<T> parser, CancellationToken cancellationToken)
+        internal AsyncEnumerator(CsvParser<T> parser, CancellationToken cancellationToken)
         {
             _parser = parser;
             _cancellationToken = cancellationToken;
             _field = new();
         }
 
+        /// <inheritdoc cref="Enumerator.Current"/>
         public CsvFieldsRef<T> Current
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => new(in _field.Value, []);
         }
 
+        /// <inheritdoc cref="Enumerator.MoveNext"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ValueTask<bool> MoveNextAsync()
         {
@@ -152,6 +180,7 @@ partial class CsvParser<T>
             return _parser.TryReadUnbuffered(out _field.Value, isFinalBlock: true);
         }
 
+        /// <inheritdoc cref="Enumerator.Dispose"/>
         public ValueTask DisposeAsync()
         {
             _field.Value = default; // don't hold on to data

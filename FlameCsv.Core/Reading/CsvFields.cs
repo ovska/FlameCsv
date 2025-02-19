@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using FlameCsv.Extensions;
 using FlameCsv.Reading.Internal;
 using JetBrains.Annotations;
@@ -45,13 +46,13 @@ public readonly struct CsvFields<T> : ICsvFields<T> where T : unmanaged, IBinary
     internal CsvParser<T> Parser { get; }
 
     /// <summary>
-    /// Length of the raw record, not including possible trailing newline.
+    /// Returns length of the raw record.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int GetRecordLength(bool includeTrailingNewline = false)
     {
         int start = Fields[0].GetNextStart(Parser._newline.Length);
-        int end = includeTrailingNewline ? Fields[^1].GetNextStart(Parser._newline.Length) : Fields[^1].GetNextStart(0);
+        int end = Fields[^1].GetNextStart(includeTrailingNewline ? Parser._newline.Length : 0);
         return end - start;
     }
 
@@ -69,10 +70,10 @@ public readonly struct CsvFields<T> : ICsvFields<T> where T : unmanaged, IBinary
     {
         if (Fields.IsEmpty)
         {
-            return $"{{ CsvLine<{Token<T>.Name}>: Empty }}";
+            return $"{{ CsvFields<{Token<T>.Name}>: Empty }}";
         }
 
-        return $"{{ CsvLine<{Token<T>.Name}>[{Fields.Length - 1}]: \"{Parser.Options.GetAsString(Record.Span)}\" }}";
+        return $"{{ CsvFields<{Token<T>.Name}>[{Fields.Length - 1}]: \"{Parser.Options.GetAsString(Record.Span)}\" }}";
     }
 
     private class CsvLineDebugView
@@ -128,7 +129,7 @@ public readonly struct CsvFields<T> : ICsvFields<T> where T : unmanaged, IBinary
             .GetField(
                 dialect: in Parser._dialect,
                 start: start,
-                data: data,
+                data: ref MemoryMarshal.GetReference(data),
                 buffer: buffer,
                 getBuffer: Parser.GetUnescapeBuffer);
     }
