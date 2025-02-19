@@ -1,11 +1,7 @@
 ﻿using System.Buffers;
 using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.Binding;
-using FlameCsv.Parallel;
-using FlameCsv.Reading;
 using FlameCsv.Tests.TestData;
 using FlameCsv.Tests.Utilities;
 
@@ -64,6 +60,7 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
         Assert.Equal(Guid.Empty, obj.Token);
     }
 
+#if FEATURE_PARALLEL
     [Theory, InlineData(false), InlineData(true)]
     public async Task Should_Read_Parallel(bool isAsync)
     {
@@ -83,7 +80,7 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
         {
             var bag = new ConcurrentBag<Obj>();
 
-            await System.Threading.Tasks.Parallel.ForEachAsync(
+            await Parallel.ForEachAsync(
                 CsvParallel.Test<char, Obj>(new ReadOnlySequence<char>(data), options),
                 CancellationToken.None,
                 (obj, _) =>
@@ -108,29 +105,5 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
 
         await Validate(new SyncAsyncEnumerable<Obj>(objs), escaping);
     }
-
-    readonly struct Selector() : ICsvParallelTryInvoke<char, Obj>
-    {
-        private readonly StrongBox<IMaterializer<char, Obj>> _materializer = new();
-
-        public bool TryInvoke<TRecord>(
-            scoped ref TRecord record,
-            in CsvParallelState state,
-            [NotNullWhen(true)] out Obj? result)
-            where TRecord : ICsvFields<char>, allows ref struct
-        {
-            if (_materializer.Value is null)
-            {
-                _materializer.Value = ObjCharTypeMap.Default.GetMaterializer(
-                    ["Id", "Name", "IsEnabled", "LastLogin", "Token"],
-                    CsvOptions<char>.Default);
-
-                result = null;
-                return false;
-            }
-
-            result = _materializer.Value.Parse(ref record);
-            return true;
-        }
-    }
+#endif
 }

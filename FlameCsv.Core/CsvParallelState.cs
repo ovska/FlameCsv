@@ -1,9 +1,9 @@
 ﻿using JetBrains.Annotations;
 
-namespace FlameCsv.Parallel;
+namespace FlameCsv;
 
 /// <summary>
-/// State passed to invoke instances.
+/// State containing information about the current parallel reading.
 /// </summary>
 [PublicAPI]
 public readonly struct CsvParallelState
@@ -14,7 +14,7 @@ public readonly struct CsvParallelState
     /// <remarks>
     /// If a header record is read, the first yielded record will have an index of 2.
     /// </remarks>
-    public int RecordIndex { get; init; }
+    public int Index { get; init; }
 
     /// <summary>
     /// The header record in the CSV.
@@ -24,4 +24,14 @@ public readonly struct CsvParallelState
     /// the return value will be <see langword="null"/>.
     /// </remarks>
     public CsvHeader? Header { get; init; }
+
+    /// <summary>
+    /// When available, contains the state of the internal <see cref="Parallel"/> call.
+    /// </summary>
+    public ParallelLoopState? LoopState { get; init; }
+
+    /// <summary>
+    /// When available, contains the cancellation token for the parallel operation.
+    /// </summary>
+    public CancellationToken CancellationToken { get; init; }
 }
