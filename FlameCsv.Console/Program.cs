@@ -3,6 +3,7 @@
 using System.Buffers;
 using System.Buffers.Text;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.Attributes;
 using FlameCsv.Binding;
@@ -32,11 +33,14 @@ namespace FlameCsv.Console
             {
                 foreach (var data in (byte[][]) [_bytes, _bytes2])
                 {
-                    using var parser = CsvParser.Create(_options, new ReadOnlySequence<byte>(data));
-
-                    while (parser.TryReadLine(out var line, isFinalBlock: false))
+                    foreach (var reader in CsvParser.Create(_options, new ReadOnlySequence<byte>(data)))
                     {
-                        var reader = new CsvFieldsRef<byte>(in line, buffer);
+                        var x0 = Unsafe.SizeOf<CsvFieldsRef<char>>();
+                        var y0 = Unsafe.SizeOf<CsvFieldsRef<byte>>();
+                        var x1 = Unsafe.SizeOf<CsvFields<char>>();
+                        var y1 = Unsafe.SizeOf<CsvFields<byte>>();
+
+
                         for (int i = 0; i < reader.FieldCount; i++)
                         {
                             _ = reader[i];

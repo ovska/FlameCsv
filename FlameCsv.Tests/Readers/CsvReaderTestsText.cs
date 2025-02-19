@@ -84,7 +84,7 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
             var bag = new ConcurrentBag<Obj>();
 
             await System.Threading.Tasks.Parallel.ForEachAsync(
-                CsvParallelReader.Test<char, Obj>(new ReadOnlySequence<char>(data), options),
+                CsvParallel.Test<char, Obj>(new ReadOnlySequence<char>(data), options),
                 CancellationToken.None,
                 (obj, _) =>
                 {
@@ -96,7 +96,7 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
         }
         else
         {
-            ParallelQuery<Obj> query = CsvParallelReader
+            ParallelQuery<Obj> query = CsvParallel
                 .Read<char, Obj>(data, options)
                 .WithExecutionMode(ParallelExecutionMode.ForceParallelism)
                 .WithMergeOptions(ParallelMergeOptions.NotBuffered);

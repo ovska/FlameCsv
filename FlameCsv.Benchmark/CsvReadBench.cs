@@ -137,7 +137,7 @@ public partial class CsvReadBench
     [Benchmark]
     public void FlameParallel()
     {
-        var query = CsvParallelReader.Read(
+        var query = CsvParallel.Read(
             Header ? _bytesHeader : _bytes,
             EntryTypeMap_Utf8.Default,
             OptionsInstanceB);
