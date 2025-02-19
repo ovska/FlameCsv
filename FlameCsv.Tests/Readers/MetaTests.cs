@@ -1,4 +1,5 @@
-﻿using FlameCsv.Exceptions;
+﻿using System.Runtime.InteropServices;
+using FlameCsv.Exceptions;
 using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Tests.Readers;
@@ -144,7 +145,7 @@ public static class MetaTests
             ReadOnlySpan<char> field = meta.GetField(
                 in CsvOptions<char>.Default.Dialect,
                 start,
-                data.AsSpan(),
+                ref MemoryMarshal.GetReference(data.AsSpan()),
                 [],
                 null!);
             Assert.Equal(expected[i], field.ToString());

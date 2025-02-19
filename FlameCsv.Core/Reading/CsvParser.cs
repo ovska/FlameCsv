@@ -9,6 +9,7 @@ namespace FlameCsv.Reading;
 /// <summary>
 /// Provides a static factory method for creating <see cref="CsvParser{T}"/> instances.
 /// </summary>
+[PublicAPI]
 public abstract class CsvParser
 {
     // TODO: profile and adjust
@@ -75,7 +76,7 @@ public abstract class CsvParser
     {
     }
 
-    // ReSharper disable NotAccessedField.Local
+    // ReSharper disable NotAccessedField.Global
     private protected struct MetaSegment
     {
         public Meta[]? array;
@@ -100,5 +101,5 @@ public abstract class CsvParser
         }
 #endif
     }
-    // ReSharper restore NotAccessedField.Local
+    // ReSharper restore NotAccessedField.Global
 }
