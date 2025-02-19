@@ -149,7 +149,7 @@ internal readonly struct Meta
     public ReadOnlySpan<T> GetField<T>(
         scoped ref readonly CsvDialect<T> dialect,
         int start,
-        ReadOnlySpan<T> data,
+        scoped ref T data,
         Span<T> buffer,
         Func<int, Span<T>> getBuffer)
         where T : unmanaged, IBinaryInteger<T>
@@ -160,33 +160,40 @@ internal readonly struct Meta
         // - 0,08% of fields have quotes embedded, i.e. "John ""The Man"" Smith"
         // Optimizing the unescaping routine might not be worth it.
 
-        Debug.Assert(data.Length >= End - start);
-
         // no trimming and 0 or 2 quotes
         if ((dialect._whitespaceLength | (_specialCountAndStart & ~2)) == 0)
         {
-            int offset = (_specialCountAndStart >> 31 | -_specialCountAndStart >> 31) & 1;
+            if (_specialCountAndStart == 0)
+            {
+                return MemoryMarshal.CreateReadOnlySpan(
+                    ref Unsafe.Add(ref data, start),
+                    (_endAndFlags & ~EOLMask) - start);
+            }
+
             int length = (_endAndFlags & ~EOLMask) - start;
 
-            return MemoryMarshal.CreateReadOnlySpan(
-                ref Unsafe.Add(ref MemoryMarshal.GetReference(data), start + offset),
-                length - offset - offset);
+            // if quotes don't wrap the value, refer to the slower routine that throws an exception
+            if (dialect.Quote == Unsafe.Add(ref data, start) &&
+                dialect.Quote == Unsafe.Add(ref data, start + length - 1))
+            {
+                return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, start + 1), length - 2);
+            }
         }
 
-        return GetFieldSlow(in dialect, start, data, buffer, getBuffer);
+        return GetFieldSlow(in dialect, start, ref data, buffer, getBuffer);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private ReadOnlySpan<T> GetFieldSlow<T>(
         scoped ref readonly CsvDialect<T> dialect,
         int start,
-        ReadOnlySpan<T> data,
+        scoped ref T data,
         Span<T> buffer,
         Func<int, Span<T>> getBuffer)
         where T : unmanaged, IBinaryInteger<T>
     {
         ReadOnlySpan<T> field = MemoryMarshal.CreateReadOnlySpan(
-            ref Unsafe.Add(ref MemoryMarshal.GetReference(data), (nint)(uint)start),
+            ref Unsafe.Add(ref data, (nint)(uint)start),
             (_endAndFlags & ~EOLMask) - start);
 
         // trim before unquoting to preserve whitespace in strings

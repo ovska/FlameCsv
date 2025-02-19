@@ -14,14 +14,10 @@ file static class Extensions
         using var parser = CsvParser.Create(options, in input);
 
         List<List<string>> records = [];
-        IMemoryOwner<char>? memoryOwner = null;
-        char[] buffer = new char[64];
 
-        while (parser.TryReadLine(out CsvFields<char> line, isFinalBlock: true) ||
-               parser.TryReadLine(out line, isFinalBlock: false))
+        foreach (var reader in parser)
         {
             List<string> fields = [];
-            var reader = new CsvFieldsRef<char>(in line, buffer);
 
             for (int i = 0; i < reader.FieldCount; i++)
             {
@@ -31,7 +27,6 @@ file static class Extensions
             records.Add(fields);
         }
 
-        memoryOwner?.Dispose();
         return records;
     }
 

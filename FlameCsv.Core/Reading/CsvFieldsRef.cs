@@ -2,6 +2,8 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 using FlameCsv.Reading.Internal;
 
@@ -16,7 +18,7 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
 {
     private readonly ref readonly CsvDialect<T> _dialect;
     private readonly int _newlineLength;
-    private readonly ReadOnlySpan<T> _data;
+    private readonly ref T _data;
     private readonly Span<T> _unescapeBuffer;
     private readonly Func<int, Span<T>> _getBuffer;
     private readonly ref Meta _firstMeta;
@@ -30,7 +32,7 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
         _dialect = ref parser._dialect;
         _newlineLength = parser._newline.Length;
         _getBuffer = parser.GetUnescapeBuffer;
-        _data = fields.Data.Span;
+        _data = ref MemoryMarshal.GetReference(fields.Data.Span);
         _firstMeta = ref MemoryMarshal.GetReference(fieldMeta);
         FieldCount = fieldMeta.Length - 1;
         _unescapeBuffer = unescapeBuffer;
@@ -53,7 +55,7 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
         _dialect = ref parser._dialect;
         _newlineLength = parser._newline.Length;
         _getBuffer = getBuffer;
-        _data = fields.Data.Span;
+        _data = ref MemoryMarshal.GetReference(fields.Data.Span);
         _firstMeta = ref Unsafe.AsRef(in fieldMeta[0]);
         FieldCount = fieldMeta.Length - 1;
         _unescapeBuffer = [];
@@ -83,9 +85,68 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
             return meta.GetField(
                 dialect: in _dialect,
                 start: start,
-                data: _data,
+                data: ref _data,
                 buffer: _unescapeBuffer,
                 getBuffer: _getBuffer);
         }
+    }
+
+    /// <inheritdoc cref="CsvFields{T}.Record"/>
+    public ReadOnlySpan<T> Record
+    {
+        get
+        {
+            EnsureInitialized();
+
+            int start = _firstMeta.GetNextStart(_newlineLength);
+            int end = Unsafe.Add(ref _firstMeta, FieldCount).End;
+
+            return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), end - start);
+        }
+    }
+
+    /// <inheritdoc cref="CsvFields{T}.GetRecordLength"/>
+    public int GetRecordLength(bool includeTrailingNewline = false)
+    {
+        EnsureInitialized();
+
+        int start = _firstMeta.GetNextStart(_newlineLength);
+        int end = Unsafe.Add(ref _firstMeta, FieldCount).GetNextStart(includeTrailingNewline ? _newlineLength : 0);
+        return end - start;
+    }
+
+    /// <summary>
+    /// Returns a diagnostic string representation of the current instance.
+    /// </summary>
+    /// <remarks>
+    /// See <see cref="Record"/> to get the actual record span.
+    /// </remarks>
+    public override string ToString()
+    {
+        if (FieldCount == 0)
+        {
+            return $"{{ CsvFieldsRef<{Token<T>.Name}>: Uninitialized }}";
+        }
+
+        ReadOnlySpan<T> value = Record;
+
+        if (typeof(T) == typeof(char))
+        {
+            return $"{{ CsvLine<{Token<T>.Name}>[{FieldCount}]: \"{MemoryMarshal.Cast<T, char>(Record)}\" }}";
+        }
+
+        if (typeof(T) == typeof(byte))
+        {
+            return
+                $"{{ CsvLine<{Token<T>.Name}>[{FieldCount}]: \"{Encoding.UTF8.GetString(MemoryMarshal.Cast<T, byte>(Record))}\" }}";
+        }
+
+        return $"{{ CsvLine<{Token<T>.Name}>[{FieldCount}]: Length: {value.Length} }}";
+    }
+
+    private void EnsureInitialized()
+    {
+        if (FieldCount == 0 || Unsafe.IsNullRef(in _data) || Unsafe.IsNullRef(in _firstMeta))
+            Throw.InvalidOp_DefaultStruct(typeof(CsvFieldsRef<T>));
     }
 }
