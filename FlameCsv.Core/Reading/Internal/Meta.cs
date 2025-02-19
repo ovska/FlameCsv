@@ -123,6 +123,13 @@ internal readonly struct Meta
         get => (_specialCountAndStart & StartMask) != 0;
     }
 
+    /// <summary>
+    /// Returns the start index of the next field.<br/>
+    /// The calculated index is offset from <see cref="End"/> by 1 if the field has a trailing delimiter (not EOL),
+    /// by <paramref name="newlineLength"/> if the field is the last in the record, and 0 if the field is
+    /// <see cref="StartOfData"/>.
+    /// </summary>
+    /// <param name="newlineLength">Newline length used if <see cref="IsEOL"/> is <see langword="true"/></param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int GetNextStart(int newlineLength)
     {
