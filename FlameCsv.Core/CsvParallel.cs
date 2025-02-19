@@ -1,9 +1,10 @@
-﻿using System.Buffers;
+﻿#if FEATURE_PARALLEL
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Extensions;
-using FlameCsv.Parallel;
 using FlameCsv.Reading;
+using FlameCsv.Reading.Parallel;
 using JetBrains.Annotations;
 
 namespace FlameCsv;
@@ -12,7 +13,7 @@ namespace FlameCsv;
 /// Provides methods for parallel processing of CSV data.
 /// </summary>
 [PublicAPI]
-public static class CsvParallel
+public static partial class CsvParallel
 {
     /// <summary>
     /// Returns <see langword="true"/> if the options can be used for parallel reading.
@@ -28,7 +29,7 @@ public static class CsvParallel
         return !options.NoReadAhead && options.Dialect.IsAscii;
     }
 
-    /// <inheritdoc cref="Enumerate{TValue,TInvoke}(in System.Buffers.ReadOnlySequence{char},TInvoke,FlameCsv.CsvOptions{char}?)"/>
+
     public static ParallelQuery<TValue> Enumerate<TValue, TInvoke>(
         in ReadOnlySequence<byte> csv,
         TInvoke invoker,
@@ -163,8 +164,7 @@ public static class CsvParallel
     }
 
     private static IEnumerable<TResult> Core<T, TResult, TSelector>(
-        [HandlesResourceDisposal] CsvParser<T> parser,
-        TSelector selector)
+        [HandlesResourceDisposal] CsvParser<T> parser)
         where T : unmanaged, IBinaryInteger<T>
         where TSelector : ICsvParallelTryInvoke<T, TResult>
     {
@@ -174,7 +174,7 @@ public static class CsvParallel
             trackAllValues: true);
 
         int index = 0;
-        bool needsHeader = parser.Options._hasHeader;
+        bool needsHeader = parser.Options.HasHeader;
         CsvHeader? header = null;
 
         // while the read-ahead buffer is being drained, we can't more data from the sequence
@@ -210,7 +210,7 @@ public static class CsvParallel
                             continue;
                         }
 
-                        CsvParallelState state = new() { Header = header, RecordIndex = index };
+                        CsvParallelState state = new() { Header = header, Index = index };
 
                         if (selector.TryInvoke(ref reader, in state, out var result))
                         {
@@ -242,7 +242,7 @@ public static class CsvParallel
                     yield break;
                 }
 
-                CsvParallelState state = new() { Header = header, RecordIndex = index };
+                CsvParallelState state = new() { Header = header, Index = index };
 
                 if (selector.TryInvoke(ref reader, in state, out var result))
                 {
@@ -259,13 +259,16 @@ public static class CsvParallel
         }
     }
 
-    public static IAsyncEnumerable<TResult> Test<T,TResult>(
+    public static IAsyncEnumerable<TResult> Test<T, TResult>(
         in ReadOnlySequence<T> csv,
         CsvOptions<T>? options = null,
         CancellationToken cancellationToken = default)
         where T : unmanaged, IBinaryInteger<T>
     {
-        return CoreAsync<T, TResult, ValueParallelInvoke<T, TResult>>(CsvParser.Create(options ?? CsvOptions<T>.Default, CsvPipeReader.Create(csv)), ValueParallelInvoke<T,TResult>.Create(options), cancellationToken);
+        return CoreAsync<T, TResult, ValueParallelInvoke<T, TResult>>(
+            CsvParser.Create(options ?? CsvOptions<T>.Default, CsvPipeReader.Create(csv)),
+            ValueParallelInvoke<T, TResult>.Create(options),
+            cancellationToken);
     }
 
     private static async IAsyncEnumerable<TResult> CoreAsync<T, TResult, TSelector>(
@@ -317,7 +320,7 @@ public static class CsvParallel
                             continue;
                         }
 
-                        CsvParallelState state = new() { Header = header, RecordIndex = index };
+                        CsvParallelState state = new() { Header = header, Index = index };
 
                         if (selector.TryInvoke(ref reader, in state, out var result))
                         {
@@ -350,7 +353,7 @@ public static class CsvParallel
                     yield break;
                 }
 
-                CsvParallelState state = new() { Header = header, RecordIndex = index };
+                CsvParallelState state = new() { Header = header, Index = index };
 
                 if (selector.TryInvoke(ref reader, in state, out var result))
                 {
@@ -388,3 +391,4 @@ public static class CsvParallel
         public void Dispose() => _owner?.Dispose();
     }
 }
+#endif
