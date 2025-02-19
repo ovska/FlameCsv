@@ -102,6 +102,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
             }
 
             _whitespace = list.AsSpan().ToArray();
+            _whitespaceLength = _whitespace.Length;
         }
     }
 
@@ -112,6 +113,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
 
     private readonly LazyValues _lazyValues = new();
 
+    internal readonly int _whitespaceLength;
     private readonly T[]? _newline;
     private readonly T[]? _whitespace;
 
