@@ -14,7 +14,7 @@ var config = DefaultConfig.Instance
     //    .AsBaseline())
     .AddJob(Job.Default.WithStrategy(RunStrategy.Throughput));
 
-BenchmarkRunner.Run<InvokeBench>(config);
+BenchmarkRunner.Run<CsvEnumerateBench>(config);
 
 //var bb = new BindingBench();
 
@@ -58,53 +58,3 @@ BenchmarkRunner.Run<InvokeBench>(config);
 // {
 //     cts.Dispose();
 // }
-
-public class InvokeBench
-{
-    [Benchmark]
-    public void WithRef()
-    {
-        var value = new BigStruct();
-
-        for (int i = 0; i < 1000; i++)
-        {
-            _withRef(ref value);
-        }
-    }
-
-    [Benchmark]
-    public void WithoutRef()
-    {
-        var value = new BigStruct();
-
-        for (int i = 0; i < 1000; i++)
-        {
-            _withoutRef(value);
-        }
-    }
-
-    private readonly Action<BigStruct> _withoutRef = value => { };
-    private readonly DoSomething _withRef = (ref BigStruct value) => { };
-
-    delegate void DoSomething(ref BigStruct value);
-
-    public ref struct BigStruct
-    {
-        public int A;
-        public int B;
-        public int C;
-        public int D;
-        public int E;
-        public int F;
-        public int G;
-        public int H;
-        public int I;
-        public int J;
-        public int K;
-        public int L;
-        public int M;
-        public int N;
-        public int O;
-        public int P;
-    }
-}
