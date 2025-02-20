@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Text;
 using FlameCsv.Extensions;
+using FlameCsv.IO;
 using FlameCsv.Writing;
 
 // ReSharper disable InconsistentNaming
@@ -44,10 +45,10 @@ public sealed class PipeBufferWriterTests : IAsyncDisposable
     public static void Should_Validate_Constructor_Params()
     {
         Assert.Throws<ArgumentNullException>(
-            () => new CsvCharBufferWriter(null!, HeapMemoryPool<char>.Instance, 1024, false));
+            () => new CsvCharPipeWriter(null!, HeapMemoryPool<char>.Instance, 1024, false));
 
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => new CsvCharBufferWriter(new StringWriter(), HeapMemoryPool<char>.Instance, bufferSize: 0, false));
+            () => new CsvCharPipeWriter(new StringWriter(), HeapMemoryPool<char>.Instance, bufferSize: 0, false));
     }
 
     [Fact]

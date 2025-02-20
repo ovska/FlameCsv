@@ -1,4 +1,5 @@
-﻿using FlameCsv.Reading;
+﻿using FlameCsv.IO;
+using FlameCsv.Reading;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Enumeration;

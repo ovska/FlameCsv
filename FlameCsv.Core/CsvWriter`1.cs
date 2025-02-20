@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
+using FlameCsv.IO;
 using FlameCsv.Utilities;
 using FlameCsv.Writing;
 using JetBrains.Annotations;
@@ -23,7 +24,7 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     /// <summary>
     /// Whether to automatically check if the writer needs to be flushed after each record.
     /// </summary>
-    /// <seealso cref="ICsvBufferWriter{T}.NeedsFlush"/>
+    /// <seealso cref="ICsvPipeWriter{T}.NeedsFlush"/>
     public bool AutoFlush { get; set; }
 
     /// <summary>
@@ -285,7 +286,7 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     /// Multiple completions are no-ops.
     /// </summary>
     /// <param name="exception">
-    /// Observed exception when writing the data, passed to the inner <see cref="ICsvBufferWriter{T}"/>.
+    /// Observed exception when writing the data, passed to the inner <see cref="ICsvPipeWriter{T}"/>.
     /// If not null, the final buffer is not flushed and the exception is rethrown.
     /// </param>
     /// <param name="cancellationToken">Token to cancel the operation</param>
