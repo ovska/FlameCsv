@@ -1,16 +1,18 @@
 ﻿using System.Buffers;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.Extensions;
-using FlameCsv.Reading.Internal;
+using FlameCsv.Utilities;
 using JetBrains.Annotations;
 
-namespace FlameCsv.Reading;
+namespace FlameCsv.IO;
 
 /// <summary>
 /// Static class that can be used to create <see cref="ICsvPipeReader{T}"/> instances.
 /// </summary>
 [PublicAPI]
+[EditorBrowsable(EditorBrowsableState.Advanced)]
 public static class CsvPipeReader
 {
     /// <summary>
@@ -128,46 +130,5 @@ public static class CsvPipeReader
 
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_pos")]
         static extern ref int PositionRef(StringReader stringReader);
-    }
-}
-
-file sealed class StringBuilderSegment : ReadOnlySequenceSegment<char>
-{
-    public static ReadOnlySequence<char> Create(StringBuilder? builder)
-    {
-        if (builder is null) return default;
-
-        var enumerator = builder.GetChunks();
-
-        if (!enumerator.MoveNext()) return default;
-
-        ReadOnlyMemory<char> firstMemory = enumerator.Current;
-
-        // optimization: use the memory directly for single-segment strings
-        if (!enumerator.MoveNext()) return new ReadOnlySequence<char>(firstMemory);
-
-        StringBuilderSegment first = new(firstMemory);
-        StringBuilderSegment last = first;
-
-        do
-        {
-            last = last.Append(enumerator.Current);
-        } while (enumerator.MoveNext());
-
-        return new(first, 0, last, last.Memory.Length);
-    }
-
-    private StringBuilderSegment(ReadOnlyMemory<char> memory)
-    {
-        Memory = memory;
-    }
-
-    private StringBuilderSegment Append(ReadOnlyMemory<char> memory)
-    {
-        var segment = new StringBuilderSegment(memory) { RunningIndex = RunningIndex + Memory.Length, };
-
-        Next = segment;
-
-        return segment;
     }
 }

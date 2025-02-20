@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using FlameCsv.IO;
 
 namespace FlameCsv.Writing;
 
@@ -18,7 +19,7 @@ internal static class CsvFieldWriter
         try
         {
             return new CsvFieldWriter<char>(
-                new CsvCharBufferWriter(textWriter, options._memoryPool, bufferSize, leaveOpen),
+                new CsvCharPipeWriter(textWriter, options._memoryPool, bufferSize, leaveOpen),
                 options);
         }
         catch
@@ -54,7 +55,7 @@ internal static class CsvFieldWriter
         try
         {
             return new CsvFieldWriter<byte>(
-                new CsvStreamBufferWriter(stream, options._memoryPool, bufferSize, leaveOpen),
+                new CsvStreamPipeWriter(stream, options._memoryPool, bufferSize, leaveOpen),
                 options);
         }
         catch
@@ -73,7 +74,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
     /// <summary>
     /// The <see cref="System.Buffers.IBufferWriter{T}"/> this instance writes to.
     /// </summary>
-    public ICsvBufferWriter<T> Writer { get; }
+    public ICsvPipeWriter<T> Writer { get; }
 
     /// <summary>
     /// The options-instance for this writer.
@@ -90,7 +91,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
     /// <summary>
     /// Creates a new instance.
     /// </summary>
-    public CsvFieldWriter(ICsvBufferWriter<T> writer, CsvOptions<T> options)
+    public CsvFieldWriter(ICsvPipeWriter<T> writer, CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(writer);
         ArgumentNullException.ThrowIfNull(options);

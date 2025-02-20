@@ -4,12 +4,16 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 
-namespace FlameCsv.Reading.Internal;
+namespace FlameCsv.IO;
 
+/// <summary>
+/// Abstract base class for CSV pipe readers.
+/// </summary>
+/// <typeparam name="T"></typeparam>
 [DebuggerDisplay(@"\{ CsvPipeReader, Buffered: {_bufferedBytes}, Completed: {_innerCompleted} \}")]
-internal abstract class CsvPipeReader<T> : ICsvPipeReader<T> where T : unmanaged, IBinaryInteger<T>
+public abstract class CsvPipeReader<T> : ICsvPipeReader<T> where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly MemoryPool<T> _allocator;
+    private readonly MemoryPool<T> _memoryPool;
 
     private CsvBufferSegment<T>? _readHead;
     private int _readIndex;
@@ -21,39 +25,59 @@ internal abstract class CsvPipeReader<T> : ICsvPipeReader<T> where T : unmanaged
 
     private readonly int _bufferSize;
     private readonly int _minimumReadSize;
-    protected readonly bool _leaveOpen;
 
     // Mutable struct! Don't make this readonly
     private BufferSegmentStack<T> _segmentPool;
 
+    /// <summary>
+    /// Whether the reader has been disposed.
+    /// </summary>
     protected bool IsDisposed { get; private set; }
 
-    protected CsvPipeReader(MemoryPool<T> allocator, in CsvReaderOptions options)
+    /// <summary>
+    /// Whether to leave the underlying data source open after completion.
+    /// </summary>
+    protected bool LeaveOpen { get; }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="CsvPipeReader{T}"/>.
+    /// </summary>
+    /// <param name="memoryPool">Pool to use for the segments</param>
+    /// <param name="options"></param>
+    protected CsvPipeReader(MemoryPool<T> memoryPool, in CsvReaderOptions options)
     {
-        ArgumentNullException.ThrowIfNull(allocator);
+        options.EnsureValid(memoryPool);
 
-        Throw.IfInvalidArgument(
-            options.BufferSize > allocator.MaxBufferSize,
-            "The default buffer size is too large for the memory pool",
-            nameof(options.MinimumReadSize));
-
-        Throw.IfInvalidArgument(
-            options.MinimumReadSize > allocator.MaxBufferSize,
-            "The minimum read size is too large for the memory pool",
-            nameof(options.MinimumReadSize));
-
-        _allocator = allocator;
+        _memoryPool = memoryPool;
         _segmentPool = new BufferSegmentStack<T>(4);
         _bufferSize = options.BufferSize;
         _minimumReadSize = options.MinimumReadSize;
-        _leaveOpen = options.LeaveOpen;
+        LeaveOpen = options.LeaveOpen;
     }
 
+    /// <summary>
+    /// Reads data from the inner source into the buffer.
+    /// </summary>
+    /// <param name="buffer">Buffer to read data into</param>
+    /// <returns>How much data was read; or zero if no more data can be read</returns>
     protected abstract int ReadFromInner(Span<T> buffer);
+
+    /// <inheritdoc cref="ReadFromInner" />
     protected abstract ValueTask<int> ReadFromInnerAsync(Memory<T> buffer, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Disposes the inner data source according to <see cref="LeaveOpen"/>
+    /// </summary>
+    /// <remarks>
+    /// <see cref="DisposeCore"/> and <see cref="DisposeAsyncCore"/> should provide similar implementations;
+    /// only one will be called.
+    /// </remarks>
     protected abstract void DisposeCore();
+
+    /// <inheritdoc cref="DisposeCore" />
     protected abstract ValueTask DisposeAsyncCore();
 
+    /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CsvReadResult<T> Read()
     {
@@ -72,8 +96,10 @@ internal abstract class CsvPipeReader<T> : ICsvPipeReader<T> where T : unmanaged
         return ReadSyncCore();
     }
 
+    /// <inheritdoc/>
     public virtual bool TryReset() => false;
 
+    /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask<CsvReadResult<T>> ReadAsync(CancellationToken cancellationToken = default)
     {
@@ -179,6 +205,7 @@ internal abstract class CsvPipeReader<T> : ICsvPipeReader<T> where T : unmanaged
         return nextSegment;
     }
 
+    /// <inheritdoc/>
     public void AdvanceTo(SequencePosition consumed, SequencePosition examined)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
@@ -243,20 +270,24 @@ internal abstract class CsvPipeReader<T> : ICsvPipeReader<T> where T : unmanaged
         }
     }
 
+    /// <inheritdoc/>
     public void Dispose()
     {
         if (IsDisposed) return;
         IsDisposed = true;
         DisposeSegments();
         DisposeCore();
+        GC.SuppressFinalize(this);
     }
 
-    public ValueTask DisposeAsync()
+    /// <inheritdoc/>
+    public async ValueTask DisposeAsync()
     {
-        if (IsDisposed) return default;
+        if (IsDisposed) return;
         IsDisposed = true;
         DisposeSegments();
-        return DisposeAsyncCore();
+        await DisposeAsyncCore().ConfigureAwait(false);
+        GC.SuppressFinalize(this);
     }
 
     private void DisposeSegments()
@@ -277,7 +308,7 @@ internal abstract class CsvPipeReader<T> : ICsvPipeReader<T> where T : unmanaged
             return segment;
         }
 
-        return new CsvBufferSegment<T>(_allocator);
+        return new CsvBufferSegment<T>(_memoryPool);
     }
 
     private void ReturnSegmentUnsynchronized(CsvBufferSegment<T> segment)

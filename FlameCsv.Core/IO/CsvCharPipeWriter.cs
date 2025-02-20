@@ -4,10 +4,10 @@ using System.Runtime.CompilerServices;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 
-namespace FlameCsv.Writing;
+namespace FlameCsv.IO;
 
 [DebuggerDisplay("[CsvCharBufferWriter] Written: {_unflushed} / {Buffer.Length})")]
-internal sealed class CsvCharBufferWriter : ICsvBufferWriter<char>
+internal sealed class CsvCharPipeWriter : ICsvPipeWriter<char>
 {
     private static readonly int _defaultBufferSize = 4 * Environment.SystemPageSize / sizeof(char);
 
@@ -38,7 +38,7 @@ internal sealed class CsvCharBufferWriter : ICsvBufferWriter<char>
         get => _unflushed >= _flushThreshold;
     }
 
-    public CsvCharBufferWriter(TextWriter writer, MemoryPool<char> allocator, int bufferSize, bool leaveOpen)
+    public CsvCharPipeWriter(TextWriter writer, MemoryPool<char> allocator, int bufferSize, bool leaveOpen)
     {
         ArgumentNullException.ThrowIfNull(writer);
 
