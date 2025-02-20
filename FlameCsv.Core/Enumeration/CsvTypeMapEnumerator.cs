@@ -1,4 +1,5 @@
 ﻿using FlameCsv.Binding;
+using FlameCsv.IO;
 using FlameCsv.Reading;
 using JetBrains.Annotations;
 

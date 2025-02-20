@@ -1,12 +1,13 @@
 ﻿using System.Diagnostics;
 using FlameCsv.Extensions;
+using FlameCsv.IO;
 using FlameCsv.Writing;
 
 namespace FlameCsv.Tests.Writing;
 
-public sealed class CsvCharBufferWriterTests : IAsyncDisposable
+public sealed class CsvCharPipeWriterTests : IAsyncDisposable
 {
-    private CsvCharBufferWriter _writer = null!;
+    private CsvCharPipeWriter _writer = null!;
     private StringWriter? _textWriter;
 
     private string Written => _textWriter?.ToString() ?? string.Empty;
@@ -36,10 +37,10 @@ public sealed class CsvCharBufferWriterTests : IAsyncDisposable
     public static void Should_Validate_Constructor_Params()
     {
         Assert.Throws<ArgumentNullException>(
-            () => new CsvCharBufferWriter(null!, HeapMemoryPool<char>.Instance, 1024, false));
+            () => new CsvCharPipeWriter(null!, HeapMemoryPool<char>.Instance, 1024, false));
 
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => new CsvCharBufferWriter(
+            () => new CsvCharPipeWriter(
                 new StringWriter(),
                 HeapMemoryPool<char>.Instance,
                 bufferSize: int.MinValue,
@@ -157,7 +158,7 @@ public sealed class CsvCharBufferWriterTests : IAsyncDisposable
 
     private void Initialize(int bufferSize = 1024)
     {
-        _writer = new CsvCharBufferWriter(
+        _writer = new CsvCharPipeWriter(
             _textWriter = new StringWriter(),
             HeapMemoryPool<char>.Instance,
             bufferSize,

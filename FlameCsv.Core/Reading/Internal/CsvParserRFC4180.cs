@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using FlameCsv.Extensions;
+using FlameCsv.IO;
 using FlameCsv.Utilities;
 
 namespace FlameCsv.Reading.Internal;

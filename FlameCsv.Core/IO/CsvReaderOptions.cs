@@ -1,6 +1,8 @@
-﻿using JetBrains.Annotations;
+﻿using System.Buffers;
+using FlameCsv.Extensions;
+using JetBrains.Annotations;
 
-namespace FlameCsv.Reading;
+namespace FlameCsv.IO;
 
 /// <summary>
 /// Represents options for configuring <see cref="ICsvPipeReader{T}"/>.
@@ -54,4 +56,23 @@ public readonly struct CsvReaderOptions
     /// Gets or sets a value indicating whether the inner stream/reader should be left open after reading.
     /// </summary>
     public bool LeaveOpen { get; init; }
+
+    /// <summary>
+    /// Ensures the configured buffer sizes are valid for the specified memory pool.
+    /// </summary>
+    /// <param name="memoryPool">Pool instance</param>
+    public void EnsureValid<T>(MemoryPool<T> memoryPool)
+    {
+        ArgumentNullException.ThrowIfNull(memoryPool);
+
+        Throw.IfInvalidArgument(
+            BufferSize > memoryPool.MaxBufferSize,
+            "The default buffer size is too large for the memory pool",
+            nameof(MinimumReadSize));
+
+        Throw.IfInvalidArgument(
+            MinimumReadSize > memoryPool.MaxBufferSize,
+            "The minimum read size is too large for the memory pool",
+            nameof(MinimumReadSize));
+    }
 }

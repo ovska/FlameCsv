@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Extensions;
+using FlameCsv.IO;
 using FlameCsv.Writing;
 
 namespace FlameCsv.Tests.Writing;
@@ -163,7 +164,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
     {
         _textWriter = new StringWriter();
         _writer = new CsvFieldWriter<char>(
-            new CsvCharBufferWriter(_textWriter, HeapMemoryPool<char>.Instance, bufferSize, false),
+            new CsvCharPipeWriter(_textWriter, HeapMemoryPool<char>.Instance, bufferSize, false),
             new CsvOptions<char> { FieldQuoting = quoting, Null = "null", Escape = escape });
     }
 

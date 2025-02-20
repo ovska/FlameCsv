@@ -8,7 +8,14 @@ internal sealed class DisposableCollection : Collection<IDisposable?>, IDisposab
     {
         foreach (var item in this)
         {
-            item?.Dispose();
+            try
+            {
+                item?.Dispose();
+            }
+            catch
+            {
+                // ignored
+            }
         }
     }
 }

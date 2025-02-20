@@ -1,6 +1,6 @@
 ﻿using System.Buffers;
 
-namespace FlameCsv.Reading.Internal;
+namespace FlameCsv.IO;
 
 internal sealed class StreamPipeReader : CsvPipeReader<byte>
 {
@@ -8,9 +8,9 @@ internal sealed class StreamPipeReader : CsvPipeReader<byte>
 
     public StreamPipeReader(
         Stream stream,
-        MemoryPool<byte> allocator,
+        MemoryPool<byte> memoryPool,
         in CsvReaderOptions options)
-        : base(allocator, in options)
+        : base(memoryPool, in options)
     {
         ArgumentNullException.ThrowIfNull(stream);
         _stream = stream;
@@ -28,7 +28,7 @@ internal sealed class StreamPipeReader : CsvPipeReader<byte>
 
     protected override void DisposeCore()
     {
-        if (!_leaveOpen)
+        if (!LeaveOpen)
         {
             _stream.Dispose();
         }
@@ -36,7 +36,7 @@ internal sealed class StreamPipeReader : CsvPipeReader<byte>
 
     protected override ValueTask DisposeAsyncCore()
     {
-        return _leaveOpen ? default : _stream.DisposeAsync();
+        return LeaveOpen ? default : _stream.DisposeAsync();
     }
 
     public override bool TryReset()

@@ -3,10 +3,10 @@ using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using FlameCsv.Exceptions;
 
-namespace FlameCsv.Writing;
+namespace FlameCsv.IO;
 
 [DebuggerDisplay(@"\{ CsvByteBufferWriter, Unflushed: {_unflushed} \}")]
-internal sealed class PipeBufferWriter : ICsvBufferWriter<byte>
+internal sealed class PipeBufferWriter : ICsvPipeWriter<byte>
 {
     public static readonly int InternalFlushThreshold = (int)(Environment.SystemPageSize * 15d / 16d);
 

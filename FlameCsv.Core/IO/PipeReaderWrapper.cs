@@ -1,6 +1,6 @@
 ﻿using System.IO.Pipelines;
 
-namespace FlameCsv.Reading.Internal;
+namespace FlameCsv.IO;
 
 // wrap pipereader to use as ICsvPipeReader<> to avoid duplicate code
 internal sealed class PipeReaderWrapper(PipeReader inner) : ICsvPipeReader<byte>

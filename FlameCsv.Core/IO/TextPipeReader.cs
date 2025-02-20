@@ -1,6 +1,6 @@
 ﻿using System.Buffers;
 
-namespace FlameCsv.Reading.Internal;
+namespace FlameCsv.IO;
 
 internal sealed class TextPipeReader : CsvPipeReader<char>
 {
@@ -8,9 +8,9 @@ internal sealed class TextPipeReader : CsvPipeReader<char>
 
     public TextPipeReader(
         TextReader reader,
-        MemoryPool<char> allocator,
+        MemoryPool<char> memoryPool,
         in CsvReaderOptions options)
-        : base(allocator, in options)
+        : base(memoryPool, in options)
     {
         ArgumentNullException.ThrowIfNull(reader);
         _reader = reader;
@@ -28,7 +28,7 @@ internal sealed class TextPipeReader : CsvPipeReader<char>
 
     protected override void DisposeCore()
     {
-        if (!_leaveOpen)
+        if (!LeaveOpen)
         {
             _reader.Dispose();
         }

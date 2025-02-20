@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using FlameCsv.IO;
 using FlameCsv.Reading.Internal;
 using JetBrains.Annotations;
 

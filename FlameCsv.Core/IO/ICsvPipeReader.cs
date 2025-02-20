@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using JetBrains.Annotations;
 
-namespace FlameCsv.Reading;
+namespace FlameCsv.IO;
 
 /// <summary>
 /// Internal implementation detail.

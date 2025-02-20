@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
-namespace FlameCsv.Reading;
+namespace FlameCsv.IO;
 
 /// <summary>
 /// Internal implementation detail.

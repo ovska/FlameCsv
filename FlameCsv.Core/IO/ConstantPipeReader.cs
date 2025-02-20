@@ -1,7 +1,7 @@
 ﻿using System.Buffers;
 using JetBrains.Annotations;
 
-namespace FlameCsv.Reading.Internal;
+namespace FlameCsv.IO;
 
 /// <summary>
 /// Performance optimization for reading from a constant data source to avoid unnecessary copying.
