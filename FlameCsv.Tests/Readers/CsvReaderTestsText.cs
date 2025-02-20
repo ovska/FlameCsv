@@ -1,9 +1,6 @@
-﻿using System.Buffers;
-using System.Collections.Concurrent;
-using System.Text;
+﻿using System.Text;
 using FlameCsv.Binding;
 using FlameCsv.Tests.TestData;
-using FlameCsv.Tests.Utilities;
 
 // ReSharper disable ConvertIfStatementToSwitchStatement
 // ReSharper disable LoopCanBeConvertedToQuery

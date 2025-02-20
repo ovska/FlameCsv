@@ -3,7 +3,6 @@ using System.Text;
 using FlameCsv.Exceptions;
 using FlameCsv.IO;
 using FlameCsv.Reading;
-using FlameCsv.Reading.Internal;
 using FlameCsv.Tests.TestData;
 using FlameCsv.Tests.Utilities;
 
