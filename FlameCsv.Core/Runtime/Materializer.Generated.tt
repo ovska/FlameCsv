@@ -122,9 +122,11 @@ internal sealed class Materializer<T, <#= generics #>> : Materializer<T, TResult
             Write(genericTypes[i]);
             Write(" ");
             Write(values[i]);
-            Write(")) CsvParseException.Throw(record[");
+            Write(")) CsvParseException.Throw(");
             Write(i.ToString());
-            Write("], converter");
+            Write(", typeof(");
+            Write(genericTypes[i]);
+            Write("), converter");
             Write(i.ToString());
             Write(", GetName(");
             Write(i.ToString());

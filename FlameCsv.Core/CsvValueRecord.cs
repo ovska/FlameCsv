@@ -96,11 +96,11 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
     }
 
     /// <inheritdoc cref="CsvRecord{T}.GetField(CsvFieldIdentifier)"/>
-    public ReadOnlySpan<T> GetField(CsvFieldIdentifier id)
+    private ReadOnlySpan<T> GetField(CsvFieldIdentifier id, out int index)
     {
         _owner.EnsureVersion(_version);
 
-        if (!id.TryGetIndex(out int index, out string? name) && !_owner.TryGetHeaderIndex(name, out index))
+        if (!id.TryGetIndex(out index, out string? name) && !_owner.TryGetHeaderIndex(name, out index))
         {
             Throw.Argument_HeaderNameNotFound(name, _owner.Header.HeaderNames);
         }
@@ -112,6 +112,9 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
 
         return _fields.GetField(index);
     }
+
+    /// <inheritdoc cref="CsvRecord{T}.GetField(CsvFieldIdentifier)"/>
+    public ReadOnlySpan<T> GetField(CsvFieldIdentifier id) => GetField(id, out _);
 
     /// <inheritdoc cref="CsvRecord{T}.FieldCount"/>
     public int FieldCount
@@ -147,13 +150,13 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
     [RUF(Messages.ConverterOverload), RDC(Messages.ConverterOverload)]
     public TValue ParseField<TValue>(CsvFieldIdentifier id)
     {
-        var field = GetField(id);
+        var field = GetField(id, out int fieldIndex);
 
         var converter = _options.GetConverter<TValue>();
 
-        if (!_options.GetConverter<TValue>().TryParse(field, out var value))
+        if (!converter.TryParse(field, out var value))
         {
-            Throw.ParseFailed(field, converter, typeof(TValue));
+            CsvParseException.ThrowInternal(fieldIndex, typeof(TValue), converter, id.ToString(), in _fields, _owner);
         }
 
         return value;
@@ -164,11 +167,11 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
     {
         ArgumentNullException.ThrowIfNull(converter);
 
-        var field = GetField(id);
+        var field = GetField(id, out int fieldIndex);
 
         if (!converter.TryParse(field, out var value))
         {
-            Throw.ParseFailed(field, converter, typeof(TValue));
+            CsvParseException.ThrowInternal(fieldIndex, typeof(TValue), converter, id.ToString(), in _fields, _owner);
         }
 
         return value;
