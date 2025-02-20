@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Collections.Concurrent;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
 using FlameCsv.Tests.TestData;
@@ -22,9 +23,9 @@ public abstract class CsvReaderTestsBase
     protected static readonly int[] _bufferSizes = [-1, 17, 128, 1024, 8096];
     protected static readonly int[] _emptySegmentsEvery = [0, 1, 7];
 
-    public sealed class SyncData : TheoryData<NewlineToken, bool, bool, int, int, Mode, bool, bool?>;
+    public sealed class SyncData : TheoryData<NewlineToken, bool, bool, int, int, Mode, bool, bool, bool?>;
 
-    public sealed class AsyncData : TheoryData<NewlineToken, bool, bool, int, Mode, bool, bool?>;
+    public sealed class AsyncData : TheoryData<NewlineToken, bool, bool, int, Mode, bool, bool, bool?>;
 
     public static SyncData SyncParams
     {
@@ -38,6 +39,7 @@ public abstract class CsvReaderTestsBase
             foreach (var bufferSize in _bufferSizes)
             foreach (var emptySegmentFrequency in _emptySegmentsEvery)
             foreach (var escaping in GlobalData.Enum<Mode>())
+            foreach (var parallel in GlobalData.Booleans)
             foreach (var sourceGen in GlobalData.Booleans)
             foreach (var guarded in GlobalData.GuardedMemory)
             {
@@ -52,6 +54,7 @@ public abstract class CsvReaderTestsBase
                     bufferSize,
                     emptySegmentFrequency,
                     escaping,
+                    parallel,
                     sourceGen,
                     guarded);
             }
@@ -71,6 +74,7 @@ public abstract class CsvReaderTestsBase
             foreach (var writeTrailingNewline in GlobalData.Booleans)
             foreach (var bufferSize in _bufferSizes)
             foreach (var escaping in GlobalData.Enum<Mode>())
+            foreach (var parallel in GlobalData.Booleans)
             foreach (var sourceGen in GlobalData.Booleans)
             foreach (var guarded in GlobalData.GuardedMemory)
             {
@@ -78,7 +82,7 @@ public abstract class CsvReaderTestsBase
                 if (sourceGen && !writeHeader)
                     continue;
 
-                data.Add(crlf, writeHeader, writeTrailingNewline, bufferSize, escaping, sourceGen, guarded);
+                data.Add(crlf, writeHeader, writeTrailingNewline, bufferSize, escaping, parallel, sourceGen, guarded);
             }
 
             return data;
@@ -113,6 +117,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
         int bufferSize,
         int emptySegmentFreq,
         Mode escaping,
+        bool parallel,
         bool sourceGen,
         bool? guarded)
     {
@@ -122,12 +127,13 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
 
         using (MemorySegment<T>.Create(memory, bufferSize, emptySegmentFreq, pool, out var sequence))
         {
-            var enumerable = SyncAsyncEnumerable.Create<Obj>(
-                sourceGen
-                    ? CsvReader.Read(sequence, TypeMap, options)
-                    : CsvReader.Read<T, Obj>(sequence, options));
+            IEnumerable<Obj> enumerable = sourceGen
+                ? CsvReader.Read(sequence, TypeMap, options)
+                : CsvReader.Read<T, Obj>(sequence, options);
 
-            await Validate(enumerable, escaping);
+            if (parallel) enumerable = WrapParallel(enumerable);
+
+            await Validate(SyncAsyncEnumerable.Create(enumerable), escaping);
         }
     }
 
@@ -139,9 +145,12 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
         int bufferSize,
         int emptySegmentFreq,
         Mode escaping,
+        bool parallel,
         bool sourceGen,
         bool? guarded)
     {
+        if (parallel) return; // TODO
+
         using var pool = ReturnTrackingMemoryPool<T>.Create(guarded);
         await Validate(Enumerate(), escaping);
 
@@ -169,6 +178,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
         bool trailingLF,
         int bufferSize,
         Mode escaping,
+        bool parallel,
         bool sourceGen,
         bool? guarded)
     {
@@ -182,7 +192,12 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
             var data = TestDataGenerator.Generate<byte>(newline, header, trailingLF, escaping);
 
             await using var stream = data.AsStream();
-            await foreach (var obj in GetObjects(stream, options, bufferSize, sourceGen).ConfigureAwait(false))
+
+            IAsyncEnumerable<Obj> source = GetObjects(stream, options, bufferSize, sourceGen);
+
+            if (parallel) source = WrapParallel(source);
+
+            await foreach (var obj in source.ConfigureAwait(false))
             {
                 yield return obj;
             }
@@ -196,9 +211,12 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
         bool trailingLF,
         int bufferSize,
         Mode escaping,
+        bool parallel,
         bool sourceGen,
         bool? guarded)
     {
+        if (parallel) return; // TODO
+
         using var pool = ReturnTrackingMemoryPool<T>.Create(guarded);
         await Validate(Enumerate(), escaping);
 
@@ -307,5 +325,27 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
             },
 #endif
         };
+    }
+
+    protected static IEnumerable<Obj> WrapParallel(IEnumerable<Obj> enumerable)
+        => enumerable
+            .AsParallel()
+            .AsOrdered()
+            .WithMergeOptions(ParallelMergeOptions.NotBuffered)
+            .WithExecutionMode(ParallelExecutionMode.ForceParallelism);
+
+    protected static async IAsyncEnumerable<Obj> WrapParallel(IAsyncEnumerable<Obj> asyncEnumerable)
+    {
+        ConcurrentBag<Obj> bag = [];
+
+        await Parallel.ForEachAsync(
+            asyncEnumerable,
+            (obj, _) =>
+            {
+                bag.Add(obj);
+                return default;
+            });
+
+        foreach (var obj in bag.OrderBy(o => o.Id)) yield return obj;
     }
 }

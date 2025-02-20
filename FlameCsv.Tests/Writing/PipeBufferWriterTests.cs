@@ -4,7 +4,6 @@ using System.IO.Pipelines;
 using System.Text;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
-using FlameCsv.Writing;
 
 // ReSharper disable InconsistentNaming
 
