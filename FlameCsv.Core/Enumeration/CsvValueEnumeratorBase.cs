@@ -110,7 +110,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
 
             if (handler is not null)
             {
-                CsvExceptionHandlerArgs<T> args = new(fields, _headersArray, ex, Line, Position);
+                CsvExceptionHandlerArgs<T> args = new(in fields, _headersArray, ex, Line, Position);
 
                 if (handler(in args))
                 {
@@ -119,8 +119,9 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
                 }
             }
 
-            ThrowUnhandledException(ex, in fields, Position);
-            throw; // unreachable
+            EnrichParseException(ex as CsvParseException, in fields);
+            ThrowUnhandledException(ex, in fields);
+            return false; // unreachable
         }
     }
 
@@ -164,26 +165,16 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private void ThrowInvalidFormatException(Exception innerException, in CsvFields<T> fields)
+    private void ThrowUnhandledException(Exception innerException, in CsvFields<T> fields)
     {
-        throw new CsvFormatException(
-            $"The CSV was in an invalid format. The record was on line {Line} at character " +
-            $"position {Position} in the CSV. Record: {fields.Data.Span.AsPrintableString()}",
-            innerException);
-    }
+        string message = $"Unhandled exception while reading records of type {typeof(TValue).FullName} from the CSV.";
 
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private void ThrowUnhandledException(
-        Exception innerException,
-        in CsvFields<T> fields,
-        long position)
-    {
-        throw new CsvUnhandledException(
-            $"Unhandled exception while reading records of type {typeof(TValue).FullName} from the CSV. The record was on " +
-            $"line {Line} at character position {position} in the CSV. Record: " +
-            fields.Data.Span.AsPrintableString(),
-            Line,
-            position,
-            innerException);
+        if (innerException is not CsvParseException { AdditionalMessage: not null })
+        {
+            message
+                += $" The record was at position {Position} on line {Line} in the CSV. Record: {fields.Data.Span.AsPrintableString()}";
+        }
+
+        throw new CsvUnhandledException(message, Line, Position, innerException);
     }
 }

@@ -3,7 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using FlameCsv.Exceptions;
-using FlameCsv.Reading;
 
 namespace FlameCsv.Extensions;
 
@@ -118,16 +117,9 @@ internal static class Throw
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void Argument_HeaderNameNotFound(string name, IEnumerable<string> header)
     {
-        throw new ArgumentException($"Header \"{name}\" was not found among the CSV headers: {string.Join(", ", header)}", nameof(name));
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ParseFailed<T>(ReadOnlySpan<T> field, CsvConverter<T> converter, Type toParse)
-            where T : unmanaged, IBinaryInteger<T>
-    {
-        throw new CsvParseException(
-            $"Failed to parse {toParse.FullName} using {converter.GetType().FullName} " +
-            $"from {field.AsPrintableString()}");
+        throw new ArgumentException(
+            $"Header \"{name}\" was not found among the CSV headers: {string.Join(", ", header)}",
+            nameof(name));
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -164,12 +156,13 @@ internal static class Throw
     public static void IfInvalidArgument(
         [DoesNotReturnIf(true)] bool condition,
         string message,
-        [CallerArgumentExpression(nameof(condition))] string paramName = "")
+        [CallerArgumentExpression(nameof(condition))]
+        string paramName = "")
     {
         if (!condition)
             return;
 
-        Throw.Argument(paramName, message);
+        Argument(paramName, message);
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]

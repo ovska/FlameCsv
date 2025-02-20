@@ -39,17 +39,19 @@ internal static class UtilityExtensions
     public static string AsPrintableString<T>(this ReadOnlySpan<T> value)
         where T : unmanaged, IBinaryInteger<T>
     {
-        if (typeof(T) == typeof(char))
-        {
-            return $"Content: [{value.Cast<T, char>()}]";
-        }
-
         if (typeof(T) == typeof(byte))
         {
-            return $"Content: [{Encoding.UTF8.GetString(value.Cast<T, byte>())}]";
+            try
+            {
+                return Encoding.UTF8.GetString(value.Cast<T, byte>());
+            }
+            catch
+            {
+                return $"[{string.Join(',', value.ToArray())}]";
+            }
         }
 
-        return $"Content: [{value.ToString()}]";
+        return value.ToString();
     }
 
     public static bool SequenceEquals<T>(in this ReadOnlySequence<T> sequence, ReadOnlySpan<T> other)
