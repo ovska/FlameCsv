@@ -1,10 +1,7 @@
 ﻿using System.Buffers;
 using System.Collections;
 using FlameCsv.Binding;
-using FlameCsv.Extensions;
 using FlameCsv.IO;
-using FlameCsv.Reading;
-using FlameCsv.Reading.Internal;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Enumeration;

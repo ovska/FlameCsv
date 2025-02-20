@@ -1,4 +1,5 @@
-﻿using FlameCsv.Reading;
+﻿using System.Runtime.CompilerServices;
+using FlameCsv.Reading;
 using JetBrains.Annotations;
 
 namespace FlameCsv;
@@ -18,16 +19,21 @@ public delegate bool CsvExceptionHandler<T>(in CsvExceptionHandlerArgs<T> args) 
 [PublicAPI]
 public readonly ref struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly CsvFields<T> _fields;
+    private readonly ref readonly CsvFields<T> _fields;
 
-    internal CsvExceptionHandlerArgs(
-        CsvFields<T> fields,
+    /// <summary>
+    /// Initializes a new instance of <see cref="CsvExceptionHandlerArgs{T}"/>.
+    /// </summary>
+    public CsvExceptionHandlerArgs(
+        ref readonly CsvFields<T> fields,
         ReadOnlySpan<string> header,
         Exception exception,
         int lineIndex,
         long position)
     {
-        _fields = fields;
+        if (Unsafe.IsNullRef(in fields)) ThrowHelper.ArgumentNull(nameof(fields));
+
+        _fields = ref fields;
         Header = header;
         Line = lineIndex;
         Position = position;
@@ -74,4 +80,9 @@ public readonly ref struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBina
     /// <param name="raw">Don't unescape the value</param>
     /// <returns>Value of the field</returns>
     public ReadOnlySpan<T> GetField(int index, bool raw = false) => _fields.GetField(index, raw);
+}
+
+file static class ThrowHelper
+{
+    public static void ArgumentNull(string paramName) => throw new ArgumentNullException(paramName);
 }

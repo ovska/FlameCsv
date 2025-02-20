@@ -156,8 +156,6 @@ public partial class TypeMapGenerator
                 writer.WriteLine("for (int target = 0; target < targets.Length; target++)");
                 using (writer.WriteBlock())
                 {
-                    writer.WriteLine(
-                        $"global::System.ReadOnlySpan<{typeMap.Token.FullyQualifiedName}> @field = reader[target];");
                     writer.WriteLine();
                     writer.WriteLine("bool result = targets[target] switch");
                     writer.WriteLine("{");
@@ -172,7 +170,7 @@ public partial class TypeMapGenerator
                         member.WriteId(writer);
                         writer.Write(" => ");
                         member.WriteConverterName(writer);
-                        writer.Write(".TryParse(@field, out state.");
+                        writer.Write(".TryParse(reader[target], out state.");
                         writer.Write(member.Identifier);
                         writer.WriteLine("),");
                     }
@@ -188,7 +186,7 @@ public partial class TypeMapGenerator
                     writer.WriteLine("if (!result)");
                     using (writer.WriteBlock())
                     {
-                        writer.WriteLine("ThrowForFailedParse(@field, target);");
+                        writer.WriteLine("ThrowForFailedParse(target);");
                     }
                 }
 
@@ -217,8 +215,7 @@ public partial class TypeMapGenerator
             writer.WriteLine();
             writer.WriteLine(DoesNotReturnAttr);
             writer.WriteLine(NoInliningAttr);
-            writer.WriteLine(
-                $"private void ThrowForFailedParse(scoped global::System.ReadOnlySpan<{typeMap.Token.FullyQualifiedName}> field, int target)");
+            writer.WriteLine("private void ThrowForFailedParse(int target)");
 
             using (writer.WriteBlock())
             {
@@ -229,7 +226,8 @@ public partial class TypeMapGenerator
 
                     writer.Write("if (target == ");
                     member.WriteId(writer);
-                    writer.Write(") global::FlameCsv.Exceptions.CsvParseException.Throw(@field, ");
+                    writer.Write(
+                        $") global::FlameCsv.Exceptions.CsvParseException.Throw(target, typeof({member.Type.FullyQualifiedName}), ");
                     member.WriteConverterName(writer);
                     writer.WriteLine($", {member.HeaderName.ToStringLiteral()});");
                 }

@@ -3,11 +3,9 @@ using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.Binding;
-using FlameCsv.Reading;
 using FlameCsv.Enumeration;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
-using FlameCsv.Reading.Internal;
 
 namespace FlameCsv;
 

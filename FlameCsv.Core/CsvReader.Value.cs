@@ -5,8 +5,6 @@ using System.Text;
 using FlameCsv.Enumeration;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
-using FlameCsv.Reading;
-using FlameCsv.Reading.Internal;
 
 namespace FlameCsv;
 

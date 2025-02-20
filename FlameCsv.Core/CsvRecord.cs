@@ -5,12 +5,14 @@ using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Utilities;
+using JetBrains.Annotations;
 
 namespace FlameCsv;
 
 /// <summary>
 /// A self-contained copy of a single CSV record.
 /// </summary>
+[PublicAPI]
 public class CsvRecord<T> :
     ICsvFields<T>,
     IReadOnlyList<ReadOnlyMemory<T>>,
@@ -144,9 +146,12 @@ public class CsvRecord<T> :
     /// <returns>Field value, unescaped and stripped of quotes when applicable</returns>
     /// <exception cref="ArgumentException">The ID points to a field that does not exist</exception>
     /// <exception cref="NotSupportedException"><paramref name="id"/> points to a header name, but the CSV has no header</exception>
-    public virtual ReadOnlyMemory<T> GetField(CsvFieldIdentifier id)
+    public ReadOnlyMemory<T> GetField(CsvFieldIdentifier id) => GetField(id, out _);
+
+    /// <inheritdoc cref="GetField(CsvFieldIdentifier)"/>
+    protected virtual ReadOnlyMemory<T> GetField(CsvFieldIdentifier id, out int index)
     {
-        if (!id.TryGetIndex(out int index, out string? name))
+        if (!id.TryGetIndex(out index, out string? name))
         {
             if (!HasHeader || _header is null)
             {
@@ -181,11 +186,11 @@ public class CsvRecord<T> :
     {
         ArgumentNullException.ThrowIfNull(converter);
 
-        var field = GetField(id).Span;
+        var field = GetField(id, out int fieldIndex).Span;
 
         if (!converter.TryParse(field, out TValue? value))
         {
-            Throw.ParseFailed(field, converter, typeof(TValue));
+            CsvParseException.Throw(fieldIndex, typeof(TValue), converter, id.ToString());
         }
 
         return value;
@@ -203,13 +208,13 @@ public class CsvRecord<T> :
     [RUF(Messages.ConverterOverload), RDC(Messages.ConverterOverload)]
     public virtual TValue ParseField<TValue>(CsvFieldIdentifier id)
     {
-        var field = GetField(id).Span;
+        var field = GetField(id, out int fieldIndex).Span;
 
         var converter = Options.GetConverter<TValue>();
 
         if (!converter.TryParse(field, out TValue? value))
         {
-            Throw.ParseFailed(field, converter, typeof(TValue));
+            CsvParseException.Throw(fieldIndex, typeof(TValue), converter, id.ToString());
         }
 
         return value;

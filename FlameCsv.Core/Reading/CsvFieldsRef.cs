@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 using FlameCsv.Reading.Internal;
 
@@ -11,6 +10,7 @@ namespace FlameCsv.Reading;
 
 /// <summary>
 /// Internal implementation detail. This type should probably not be used directly.
+/// Using an unitialized instance leads to undefined behavior.
 /// </summary>
 [SkipLocalsInit]
 [EditorBrowsable(EditorBrowsableState.Never)]
@@ -146,7 +146,12 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
 
     private void EnsureInitialized()
     {
-        if (FieldCount == 0 || Unsafe.IsNullRef(in _data) || Unsafe.IsNullRef(in _firstMeta))
+        if (FieldCount == 0 ||
+            Unsafe.IsNullRef(in _dialect) ||
+            Unsafe.IsNullRef(in _data) ||
+            Unsafe.IsNullRef(in _firstMeta))
+        {
             Throw.InvalidOp_DefaultStruct(typeof(CsvFieldsRef<T>));
+        }
     }
 }

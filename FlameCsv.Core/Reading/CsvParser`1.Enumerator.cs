@@ -12,7 +12,7 @@ partial class CsvParser<T>
     /// Returns an enumerator that iterates through the CSV data.
     /// </summary>
     /// <remarks>
-    /// The enumerator advances the inner reader, and disposes the parser after use.
+    /// The enumerator advances the inner reader and parser, and disposes them after use.
     /// </remarks>
     public Enumerator GetEnumerator() => new(this);
 
@@ -20,7 +20,7 @@ partial class CsvParser<T>
     /// Returns an enumerator that asynchronously iterates through the CSV data.
     /// </summary>
     /// <remarks>
-    /// The enumerator advances the inner reader, and disposes the parser after use.
+    /// The enumerator advances the inner reader and parser, and disposes them after use.
     /// </remarks>
     public AsyncEnumerator GetAsyncEnumerator(CancellationToken cancellationToken = default)
         => new(this, cancellationToken);
