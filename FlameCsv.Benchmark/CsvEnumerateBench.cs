@@ -57,7 +57,7 @@ public class CsvEnumerateBench
     // [Benchmark]
     public void Sep_byte()
     {
-        var reader = nietras
+        using var reader = nietras
             .SeparatedValues.Sep.Reader(
                 o => o with
                 {
@@ -80,7 +80,7 @@ public class CsvEnumerateBench
     [Benchmark]
     public void Sep_char()
     {
-        var reader = nietras
+        using var reader = nietras
             .SeparatedValues.Sep.Reader(
                 o => o with
                 {
