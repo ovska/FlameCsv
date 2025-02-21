@@ -1,6 +1,9 @@
 ﻿#if DEBUG
 namespace FlameCsv.Extensions;
 
+/// <summary>
+/// Drop-in for <see cref="System.Runtime.CompilerServices.Unsafe"/> for validation in debug builds.
+/// </summary>
 internal static class DebugUnsafe
 {
     public static int SizeOf<T>() where T : allows ref struct
@@ -20,7 +23,5 @@ internal static class DebugUnsafe
     {
         return (TTo)(object)value;
     }
-
-    public static void SkipInit<T>(out T value) => value = default!;
 }
 #endif

@@ -144,22 +144,22 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         using ValueListBuilder<string> list = new(scratch);
 
         CsvFieldsRef<T> reader = new(in record, stackalloc T[Token<T>.StackLength]);
-        Span<char> charBuffer = stackalloc char[128];
 
-        for (int field = 0; field < reader.FieldCount; field++)
-        {
-            list.Append(CsvHeader.Get(Parser.Options, reader[field], charBuffer));
-        }
+        _materializer = CsvHeader.Parse(
+            Parser.Options,
+            ref reader,
+            this,
+            static (@this, headers) =>
+            {
+                IMaterializer<T, TValue> materializer = @this.BindToHeaders(headers);
 
-        ReadOnlySpan<string> headers = list.AsSpan();
+                if (@this._hasCallback || @this.ExceptionHandler is not null)
+                {
+                    @this._headersArray = headers.ToArray();
+                }
 
-        _materializer = BindToHeaders(headers);
-
-        // we need a copy of the headers for the callbacks
-        if (_hasCallback || ExceptionHandler is not null)
-        {
-            _headersArray = headers.ToArray();
-        }
+                return materializer;
+            });
 
         return true;
     }
@@ -169,6 +169,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     {
         string message = $"Unhandled exception while reading records of type {typeof(TValue).FullName} from the CSV.";
 
+        // HACK: don't include the record if the exception is already enriched
         if (innerException is not CsvParseException { AdditionalMessage: not null })
         {
             message
