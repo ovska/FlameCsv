@@ -5,7 +5,6 @@ using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Reading;
-using FlameCsv.Utilities;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Enumeration;
@@ -240,40 +239,6 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     /// The default implementation does nothing. Override both this and <see cref="Dispose(bool)"/>
     /// </remarks>
     protected virtual ValueTask DisposeAsyncCore() => default;
-
-    internal void EnrichParseException(CsvParseException? exception, in CsvFields<T> fields)
-    {
-        if (exception is null) return;
-
-        if (exception.FieldIndex is { } index && (uint)index < (uint)fields.FieldCount)
-        {
-            using var vsb = new ValueStringBuilder(
-                RuntimeHelpers.TryEnsureSufficientExecutionStack()
-                    ? stackalloc char[512]
-                    : []);
-
-            long recordStart = Position - fields.GetRecordLength(includeTrailingNewline: true);
-            int offset =
-                fields.Fields[index].GetNextStart(Parser._newline.Length) -
-                fields.Fields[0].GetNextStart(Parser._newline.Length);
-
-            vsb.Append("The field was at position ");
-            vsb.AppendFormatted(recordStart + offset);
-            vsb.Append(" in the data, and at position ");
-            vsb.AppendFormatted(offset);
-            vsb.Append(" at index ");
-            vsb.AppendFormatted(index);
-            vsb.Append(" in the record. Raw field value: ");
-            vsb.Append(fields.GetField(index, raw: true, stackalloc T[Token<T>.StackLength]).AsPrintableString());
-            exception.AdditionalMessage = vsb.ToString();
-        }
-        else
-        {
-            exception.AdditionalMessage =
-                $"The record was at position {Position} in the data on line {Line}. " +
-                $"Record data: {fields.Record.Span.AsPrintableString()}";
-        }
-    }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private protected void ThrowInvalidFormatException(Exception innerException, in CsvFields<T> fields)

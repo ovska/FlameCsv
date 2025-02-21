@@ -1,8 +1,9 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using FlameCsv.Enumeration;
+using FlameCsv.Extensions;
 using FlameCsv.Reading;
+using FlameCsv.Utilities;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Exceptions;
@@ -38,14 +39,6 @@ public sealed class CsvParseException(
     /// </summary>
     public Type? TargetType { get; init; }
 
-    /// <inheritdoc/>
-    public override string Message
-        => string.IsNullOrEmpty(AdditionalMessage)
-            ? base.Message
-            : $"{base.Message}{Environment.NewLine}{AdditionalMessage}";
-
-    internal string? AdditionalMessage { get; set; }
-
     /// <summary>
     /// Line of the record where the exception occurred.
     /// </summary>
@@ -60,6 +53,16 @@ public sealed class CsvParseException(
     /// Start position of the field where the exception occurred.
     /// </summary>
     public long? FieldPosition { get; set; }
+
+    /// <summary>
+    /// Raw value of the record as a <see cref="string"/>.
+    /// </summary>
+    public string? RecordValue { get; set; }
+
+    /// <summary>
+    /// Raw value of the field as a <see cref="string"/>.
+    /// </summary>
+    public string? FieldValue { get; set; }
 
     /// <summary>
     /// Throws an exception for a field that could not be parsed.
@@ -80,22 +83,85 @@ public sealed class CsvParseException(
         };
     }
 
-    [DoesNotReturn]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    internal static void ThrowInternal<T>(
-        int fieldIndex,
-        Type parsedType,
-        object converter,
-        string target,
-        ref readonly CsvFields<T> fields,
-        CsvEnumeratorBase<T> enumerator) where T : unmanaged, IBinaryInteger<T>
+    /// <inheritdoc/>
+    public override string Message
     {
-        var ex = new CsvParseException($"Failed to parse {parsedType.Name} {target} using {converter.GetType().Name}.")
+        get
         {
-            Converter = converter, FieldIndex = fieldIndex, Target = target,
-        };
-        enumerator.EnrichParseException(ex, in fields);
-        throw ex;
+            if (!RuntimeHelpers.TryEnsureSufficientExecutionStack()) return base.Message;
+
+            using var vsb = new ValueStringBuilder(stackalloc char[256]);
+
+            vsb.Append(Message);
+
+            bool comma = false;
+
+            if (Line is { } line)
+            {
+                vsb.Append("Line: ");
+                vsb.AppendFormatted(line);
+                comma = true;
+            }
+
+            if (RecordPosition is { } recordPosition)
+            {
+                vsb.Append(comma ? ", " : " ");
+                vsb.Append("Record start position: ");
+                vsb.AppendFormatted(recordPosition);
+                comma = true;
+            }
+
+            if (FieldPosition is { } fieldPosition)
+            {
+                vsb.Append(comma ? ", " : " ");
+                vsb.Append("Field start position: ");
+                vsb.AppendFormatted(fieldPosition);
+                comma = true;
+            }
+
+            if (FieldIndex is { } fieldIndex)
+            {
+                vsb.Append(comma ? ", " : " ");
+                vsb.Append("Field index: ");
+                vsb.AppendFormatted(fieldIndex);
+                comma = true;
+            }
+
+            if (RecordValue is { Length: > 0 } recordValue)
+            {
+                vsb.Append(comma ? ", " : " ");
+                vsb.Append("Record value: [");
+                vsb.Append(recordValue);
+                vsb.Append(']');
+                comma = true;
+            }
+
+            if (FieldValue is { Length: > 0 } fieldValue)
+            {
+                vsb.Append(comma ? ", " : " ");
+                vsb.Append("Field value: [");
+                vsb.Append(fieldValue);
+                vsb.Append(']');
+            }
+
+            return vsb.ToString();
+        }
+    }
+
+    internal void Enrich<T>(int line, long position, in CsvFields<T> fields) where T : unmanaged, IBinaryInteger<T>
+    {
+        Line ??= line;
+        RecordPosition ??= position;
+        RecordValue ??= fields.Record.Span.AsPrintableString();
+
+        if (FieldIndex is { } index && (uint)index < (uint)fields.FieldCount)
+        {
+            int offset =
+                fields.Fields[index].GetNextStart(fields.Parser._newline.Length) -
+                fields.Fields[0].GetNextStart(fields.Parser._newline.Length);
+
+            FieldPosition ??= position + offset;
+            FieldValue ??= fields.GetField(index, raw: true).AsPrintableString();
+        }
     }
 }

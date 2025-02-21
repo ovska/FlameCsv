@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Reading;
+using FlameCsv.Reading.Internal;
 using FlameCsv.Utilities;
 using JetBrains.Annotations;
 
@@ -20,7 +21,7 @@ namespace FlameCsv.Enumeration;
 /// </remarks>
 [MustDisposeResource]
 public sealed class CsvRecordEnumerator<T>
-    : CsvEnumeratorBase<T>, IEnumerator<CsvValueRecord<T>>, IAsyncEnumerator<CsvValueRecord<T>>
+    : CsvEnumeratorBase<T>, IEnumerator<CsvValueRecord<T>>, IAsyncEnumerator<CsvValueRecord<T>>, IRecordOwner
     where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
@@ -94,7 +95,7 @@ public sealed class CsvRecordEnumerator<T>
     private int? _expectedFieldCount;
     private CsvHeader? _header;
 
-    internal Dictionary<object, object> MaterializerCache
+    IDictionary<object, object> IRecordOwner.MaterializerCache
         => _materializerCache ??= new(ReferenceEqualityComparer.Instance);
 
     /// <summary>
@@ -161,29 +162,13 @@ public sealed class CsvRecordEnumerator<T>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void EnsureVersion(int version)
+    void IRecordOwner.EnsureVersion(int version)
     {
         if (_version == -1)
             Throw.ObjectDisposed_Enumeration();
 
         if (version != _version)
             Throw.InvalidOp_EnumerationChanged();
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [MemberNotNull(nameof(Header))]
-    internal bool TryGetHeaderIndex(string name, out int index)
-    {
-        ArgumentNullException.ThrowIfNull(name);
-        Throw.IfEnumerationDisposed(_version == -1);
-
-        if (!_hasHeader)
-            Throw.NotSupported_CsvHasNoHeader();
-
-        if (Header is null)
-            Throw.InvalidOperation_HeaderNotRead();
-
-        return Header.TryGetValue(name, out index);
     }
 
     /// <inheritdoc/>
