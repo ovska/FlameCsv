@@ -1,6 +1,4 @@
-﻿using System.Collections.Frozen;
-using System.Runtime.CompilerServices;
-using CommunityToolkit.HighPerformance.Buffers;
+﻿using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
@@ -10,28 +8,26 @@ using JetBrains.Annotations;
 namespace FlameCsv;
 
 /// <summary>
-/// Represents the header of a CSV file.
+/// Read-only CSV header record.
 /// </summary>
 [PublicAPI]
 public sealed class CsvHeader
 {
-    /// <summary>
-    /// Parses headers from the reader.
-    /// </summary>
-    /// <param name="options">Options instance to get the comparer and transcoding functions from</param>
-    /// <param name="record">CSV record reader</param>
-    /// <typeparam name="T">Token type</typeparam>
-    /// <typeparam name="TRecord">Record field reader</typeparam>
-    /// <returns>Parsed CSV header</returns>
-    /// <exception cref="CsvFormatException">Thrown when a duplicate header field is found</exception>
-    internal static CsvHeader Parse<T, TRecord>(
-        CsvOptions<T> options,
-        ref TRecord record)
-        where T : unmanaged, IBinaryInteger<T>
-        where TRecord : ICsvFields<T>, allows ref struct
+    static CsvHeader()
     {
-        IEqualityComparer<string> comparer = options.Comparer;
+        HeaderPool = new(minimumSize: 32);
+        HotReloadService.RegisterForHotReload(HeaderPool, static state => ((StringPool)state).Reset());
+    }
 
+    internal static readonly StringPool HeaderPool;
+
+    internal static TResult Parse<T, TState, TResult>(
+        CsvOptions<T> options,
+        ref CsvFieldsRef<T> record,
+        TState state,
+        [RequireStaticDelegate] Func<TState, ReadOnlySpan<string>, TResult> callback)
+        where T : unmanaged, IBinaryInteger<T>
+    {
         StringScratch scratch = default;
         using ValueListBuilder<string> list = new(scratch);
         Span<char> charBuffer = stackalloc char[128];
@@ -49,14 +45,14 @@ public sealed class CsvHeader
         {
             for (int j = 0; j < headers.Length; j++)
             {
-                if (i != j && comparer.Equals(headers[i], headers[j]))
+                if (i != j && options.Comparer.Equals(headers[i], headers[j]))
                 {
                     ThrowExceptionForDuplicateHeaderField(i, j, headers);
                 }
             }
         }
 
-        return new CsvHeader(comparer, headers);
+        return callback(state, headers);
     }
 
     /// <summary>
@@ -67,65 +63,30 @@ public sealed class CsvHeader
     /// <param name="buffer">A buffer to write the characters to.</param>
     /// <returns>
     /// A string representation of the value.
-    /// The header values are pooled if they fit in the buffer using <see cref="CsvOptions{T}.TryGetChars"/>.
+    /// The header values are pooled if they fit in the buffer using <see cref="CsvOptions{T}.TryGetChars"/>,
+    /// and the options-type is not inherited.
     /// Otherwise, it is converted to a string using <see cref="CsvOptions{T}.GetAsString"/>.
     /// </returns>
     public static string Get<T>(CsvOptions<T> options, scoped ReadOnlySpan<T> value, scoped Span<char> buffer)
         where T : unmanaged, IBinaryInteger<T>
     {
-        return options.TryGetChars(value, buffer, out int length)
-            ? HeaderPool.GetOrAdd(buffer.Slice(0, length))
-            : options.GetAsString(value);
-    }
+        // pool headers if we know someone hasn't overridden the default implementation
+        if (options.GetType() == typeof(CsvOptions<T>) && options.TryGetChars(value, buffer, out int length))
+        {
+            return HeaderPool.GetOrAdd(buffer.Slice(0, length));
+        }
 
-    internal static readonly StringPool HeaderPool = new(minimumSize: 32);
+        return options.GetAsString(value);
+    }
 
     /// <summary>
     /// Returns the header values.
     /// </summary>
-    public ReadOnlySpan<string> Values => _header ?? ((ReadOnlySpan<string>)_scratch!).Slice(0, _scratchLength);
+    public ReadOnlySpan<string> Values => _header;
 
     private readonly IEqualityComparer<string> _comparer;
-    private FrozenDictionary<string, int>? _dictionary;
-    private int _accessCount;
-
-    private readonly string[]? _header;
-
-    private readonly StringScratch _scratch;
-    private readonly int _scratchLength;
-
-    private FrozenDictionary<string, int>? Dictionary
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            if (_dictionary is not null)
-                return _dictionary;
-
-            // TODO: profile
-            if (++_accessCount > 4)
-            {
-                return InitDictionary();
-            }
-
-            return null;
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private FrozenDictionary<string, int> InitDictionary()
-    {
-        Dictionary<string, int> result = new(Count, _comparer);
-
-        ReadOnlySpan<string> values = Values;
-
-        for (int index = 0; index < values.Length; index++)
-        {
-            result[values[index]] = index;
-        }
-
-        return _dictionary ??= result.ToFrozenDictionary(_comparer);
-    }
+    private readonly string[] _header;
+    private readonly int[] _hashCodes;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CsvHeader"/> class.
@@ -140,23 +101,19 @@ public sealed class CsvHeader
             Throw.Argument("Header cannot be empty.", nameof(header));
 
         _comparer = comparer;
+        _header = header.ToArray();
+        _hashCodes = new int[_header.Length];
 
-        if (header.Length <= StringScratch.MaxLength)
+        for (int i = 0; i < _header.Length; i++)
         {
-            _scratch = default;
-            header.CopyTo(_scratch!);
-            _scratchLength = header.Length;
-        }
-        else
-        {
-            _header = header.ToArray();
+            _hashCodes[i] = comparer.GetHashCode(_header[i]);
         }
     }
 
     /// <summary>
     /// Returns the number of header values.
     /// </summary>
-    public int Count => _header?.Length ?? _scratchLength;
+    public int Count => _header.Length;
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified header is present.
@@ -164,13 +121,16 @@ public sealed class CsvHeader
     /// <param name="key">Header name</param>
     public bool ContainsKey(string key)
     {
-        if (Dictionary is { } dict)
-            return dict.ContainsKey(key);
+        ArgumentNullException.ThrowIfNull(key);
+
+        int hash = _comparer.GetHashCode(key);
 
         foreach (var header in Values)
         {
-            if (_comparer.Equals(header, key))
+            if (_comparer.GetHashCode(header) == hash && _comparer.Equals(header, key))
+            {
                 return true;
+            }
         }
 
         return false;
@@ -181,13 +141,14 @@ public sealed class CsvHeader
     /// </summary>
     public bool TryGetValue(string key, out int value)
     {
-        if (Dictionary is { } dict)
-            return dict.TryGetValue(key, out value);
+        ArgumentNullException.ThrowIfNull(key);
 
+        int hash = _comparer.GetHashCode(key);
         ReadOnlySpan<string> values = Values;
+
         for (int index = 0; index < values.Length; index++)
         {
-            if (_comparer.Equals(values[index], key))
+            if (_hashCodes[index] == hash && _comparer.Equals(values[index], key))
             {
                 value = index;
                 return true;
@@ -212,20 +173,8 @@ public sealed class CsvHeader
     {
         get
         {
-            if (_header is not null)
-            {
-                foreach (var header in _header)
-                {
-                    yield return header;
-                }
-            }
-            else
-            {
-                for (int index = 0; index < _scratchLength; index++)
-                {
-                    yield return _scratch[index]!;
-                }
-            }
+            // intentionally iterate to avoid exposing the array as an IEnumerable
+            foreach (var header in _header) yield return header;
         }
     }
 

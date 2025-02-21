@@ -138,7 +138,7 @@ public sealed class CsvRecordEnumerator<T>
         // header needs to be read
         if (_hasHeader && _header is null)
         {
-            Header = CreateHeader(in fields);
+            CreateHeader(in fields);
             return false;
         }
 
@@ -206,11 +206,17 @@ public sealed class CsvRecordEnumerator<T>
         return default;
     }
 
+    [MemberNotNull(nameof(Header))]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private CsvHeader CreateHeader(ref readonly CsvFields<T> headerRecord)
+    private void CreateHeader(ref readonly CsvFields<T> headerRecord)
     {
         CsvFieldsRef<T> reader = new(in headerRecord, stackalloc T[Token<T>.StackLength]);
-        return CsvHeader.Parse(Parser.Options, ref reader);
+
+        Header = CsvHeader.Parse(
+            Parser.Options,
+            ref reader,
+            this,
+            static (@this, header) => new CsvHeader(@this.Parser.Options.Comparer, header));
     }
 
     [DoesNotReturn]

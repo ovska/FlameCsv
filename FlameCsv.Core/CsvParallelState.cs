@@ -1,4 +1,6 @@
-﻿using JetBrains.Annotations;
+﻿using System.ComponentModel;
+using FlameCsv.Reading;
+using JetBrains.Annotations;
 
 namespace FlameCsv;
 
@@ -6,7 +8,7 @@ namespace FlameCsv;
 /// State containing information about the current parallel reading.
 /// </summary>
 [PublicAPI]
-public readonly struct CsvParallelState
+public readonly struct CsvParallelState<T> where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// 1-based index of the current record.
@@ -26,12 +28,21 @@ public readonly struct CsvParallelState
     public CsvHeader? Header { get; init; }
 
     /// <summary>
-    /// When available, contains the state of the internal <see cref="Parallel"/> call.
+    /// The options used for reading the CSV.
     /// </summary>
-    public ParallelLoopState? LoopState { get; init; }
+    public CsvOptions<T> Options => Parser.Options;
 
     /// <summary>
-    /// When available, contains the cancellation token for the parallel operation.
+    /// The parser instance.
     /// </summary>
-    public CancellationToken CancellationToken { get; init; }
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public required CsvParser<T> Parser
+    {
+        get => field;
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            field = value;
+        }
+    }
 }
