@@ -50,8 +50,8 @@ public abstract class CsvParser
 
         options.MakeReadOnly();
         return !options.Dialect.Escape.HasValue
-            ? new CsvParserRFC4180<T>(options, reader)
-            : new CsvParserUnix<T>(options, reader);
+            ? new CsvParserRFC4180<T>(options, reader, multiThreaded: false)
+            : new CsvParserUnix<T>(options, reader, multiThreaded: false);
     }
 
     /// <summary>
@@ -69,8 +69,8 @@ public abstract class CsvParser
 
         options.MakeReadOnly();
         return !options.Dialect.Escape.HasValue
-            ? new CsvParserRFC4180<T>(options, reader)
-            : new CsvParserUnix<T>(options, reader);
+            ? new CsvParserRFC4180<T>(options, reader, multiThreaded: false)
+            : new CsvParserUnix<T>(options, reader, multiThreaded: false);
     }
 
     private protected CsvParser()

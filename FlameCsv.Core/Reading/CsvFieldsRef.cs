@@ -20,7 +20,7 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
     private readonly int _newlineLength;
     private readonly ref T _data;
     private readonly Span<T> _unescapeBuffer;
-    private readonly Func<int, Span<T>> _getBuffer;
+    private readonly Allocator<T> _allocator;
     private readonly ref Meta _firstMeta;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -31,7 +31,7 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
 
         _dialect = ref parser._dialect;
         _newlineLength = parser._newline.Length;
-        _getBuffer = parser.GetUnescapeBuffer;
+        _allocator = parser._unescapeAllocator;
         _data = ref MemoryMarshal.GetReference(fields.Data.Span);
         _firstMeta = ref MemoryMarshal.GetReference(fieldMeta);
         FieldCount = fieldMeta.Length - 1;
@@ -42,19 +42,19 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
     /// Initializes a new instance of <see cref="CsvFieldsRef{T}"/>.
     /// </summary>
     /// <param name="fields"></param>
-    /// <param name="getBuffer"></param>
+    /// <param name="allocator"></param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public CsvFieldsRef(scoped ref readonly CsvFields<T> fields, Func<int, Span<T>> getBuffer)
+    internal CsvFieldsRef(scoped ref readonly CsvFields<T> fields, Allocator<T> allocator)
     {
         if (fields.Parser is null) Throw.InvalidOp_DefaultStruct(typeof(CsvFields<T>));
-        ArgumentNullException.ThrowIfNull(getBuffer);
+        ArgumentNullException.ThrowIfNull(allocator);
 
         CsvParser<T> parser = fields.Parser;
         ReadOnlySpan<Meta> fieldMeta = fields.Fields;
 
         _dialect = ref parser._dialect;
         _newlineLength = parser._newline.Length;
-        _getBuffer = getBuffer;
+        _allocator = allocator;
         _data = ref MemoryMarshal.GetReference(fields.Data.Span);
         _firstMeta = ref Unsafe.AsRef(in fieldMeta[0]);
         FieldCount = fieldMeta.Length - 1;
@@ -87,7 +87,7 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
                 start: start,
                 data: ref _data,
                 buffer: _unescapeBuffer,
-                getBuffer: _getBuffer);
+                allocator: _allocator);
         }
     }
 

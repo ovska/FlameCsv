@@ -31,8 +31,8 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     internal readonly CsvDialect<T> _dialect;
     internal NewlineBuffer<T> _newline;
 
-    private protected IMemoryOwner<T>? _multisegmentBuffer;
-    private IMemoryOwner<T>? _unescapeBuffer;
+    private protected readonly Allocator<T> _multisegmentAllocator;
+    internal readonly Allocator<T> _unescapeAllocator;
 
     /// <summary>
     /// Whether the instance has been disposed.
@@ -82,7 +82,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     private readonly ICsvPipeReader<T> _reader;
     private bool _readerCompleted;
 
-    private protected CsvParser(CsvOptions<T> options, ICsvPipeReader<T> reader)
+    private protected CsvParser(CsvOptions<T> options, ICsvPipeReader<T> reader, bool multiThreaded)
     {
         Debug.Assert(options.IsReadOnly);
 
@@ -93,11 +93,16 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
         _canUseFastPath = !options.NoReadAhead && _dialect.IsAscii;
         _reader = reader;
 
-        GetUnescapeBuffer = (length =>
+        if (multiThreaded)
         {
-            ObjectDisposedException.ThrowIf(IsDisposed, this);
-            return Options._memoryPool.EnsureCapacity(ref _unescapeBuffer, length, copyOnResize: false).Span;
-        });
+            _multisegmentAllocator = new ThreadLocalAllocator<T>(options._memoryPool);
+            _unescapeAllocator = new ThreadLocalAllocator<T>(options._memoryPool);
+        }
+        else
+        {
+            _multisegmentAllocator = new MemoryPoolAllocator<T>(options._memoryPool);
+            _unescapeAllocator = new MemoryPoolAllocator<T>(options._memoryPool);
+        }
     }
 
     /// <summary>
@@ -520,8 +525,8 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
         // the memory owners should have their own finalizers if needed
         if (disposing)
         {
-            using (_unescapeBuffer)
-            using (_multisegmentBuffer)
+            using (_unescapeAllocator)
+            using (_multisegmentAllocator)
             {
                 _metaCount = 0;
                 _metaIndex = 0;
@@ -533,13 +538,8 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
                 ReturnMetaBuffer(ref _metaArray);
                 _metaArray = [];
             }
-
-            _unescapeBuffer = null;
-            _multisegmentBuffer = null;
         }
     }
-
-    internal readonly Func<int, Span<T>> GetUnescapeBuffer;
 }
 
 [ExcludeFromCodeCoverage]

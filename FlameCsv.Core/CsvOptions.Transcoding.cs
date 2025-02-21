@@ -118,6 +118,6 @@ public partial class CsvOptions<T>
     private static NotSupportedException InvalidTokenTypeEx(string? memberName)
     {
         return new NotSupportedException(
-            $"{typeof(CsvOptions<T>).FullName}.{memberName} is not supported by default, inherit the class and override the member.");
+            $"{typeof(CsvOptions<T>).Name}.{memberName} is not supported by default, inherit the class and override the member.");
     }
 }
