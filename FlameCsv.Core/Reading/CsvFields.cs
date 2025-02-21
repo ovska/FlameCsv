@@ -131,7 +131,7 @@ public readonly struct CsvFields<T> : ICsvFields<T> where T : unmanaged, IBinary
                 start: start,
                 data: ref MemoryMarshal.GetReference(data),
                 buffer: buffer,
-                getBuffer: Parser.GetUnescapeBuffer);
+                allocator: Parser._unescapeAllocator);
     }
 
     /// <summary>
@@ -140,7 +140,7 @@ public readonly struct CsvFields<T> : ICsvFields<T> where T : unmanaged, IBinary
     public Enumerator GetEnumerator()
     {
         Throw.IfDefaultStruct(Parser is null, typeof(CsvFields<T>));
-        var reader = new CsvFieldsRef<T>(in this, Parser.GetUnescapeBuffer);
+        var reader = new CsvFieldsRef<T>(in this, Parser._unescapeAllocator);
         return new Enumerator(reader);
     }
 

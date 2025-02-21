@@ -21,7 +21,7 @@ public static partial class TypeMapBindingTests
             () =>
             {
                 _ = CsvReader
-                    .Read("id,name,id\r\n", ObjTypeMap_ThrowDuplicate.Default, CsvOptions<char>.Default)
+                    .Read("id,name,_id\r\n", ObjTypeMap_ThrowDuplicate.Default, CsvOptions<char>.Default)
                     .ToList();
             });
     }

@@ -70,8 +70,9 @@ public sealed class CsvHeader
     public static string Get<T>(CsvOptions<T> options, scoped ReadOnlySpan<T> value, scoped Span<char> buffer)
         where T : unmanaged, IBinaryInteger<T>
     {
-        // pool headers if we know someone hasn't overridden the default implementation
-        if (options.GetType() == typeof(CsvOptions<T>) && options.TryGetChars(value, buffer, out int length))
+        // pool headers if we know someone hasn't overridden the default implementation,
+        // so multiple different options-types don't write their own intrepretation to the same cache
+        if (!options.IsInherited && options.TryGetChars(value, buffer, out int length))
         {
             return HeaderPool.GetOrAdd(buffer.Slice(0, length));
         }

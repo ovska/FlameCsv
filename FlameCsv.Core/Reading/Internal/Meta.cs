@@ -151,7 +151,7 @@ internal readonly struct Meta
         int start,
         scoped ref T data,
         Span<T> buffer,
-        Func<int, Span<T>> getBuffer)
+        Allocator<T> allocator)
         where T : unmanaged, IBinaryInteger<T>
     {
         // Preliminary testing with a small amount of real world data:
@@ -180,7 +180,7 @@ internal readonly struct Meta
             }
         }
 
-        return GetFieldSlow(in dialect, start, ref data, buffer, getBuffer);
+        return GetFieldSlow(in dialect, start, ref data, buffer, allocator);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -189,7 +189,7 @@ internal readonly struct Meta
         int start,
         scoped ref T data,
         Span<T> buffer,
-        Func<int, Span<T>> getBuffer)
+        Allocator<T> allocator)
         where T : unmanaged, IBinaryInteger<T>
     {
         ReadOnlySpan<T> field = MemoryMarshal.CreateReadOnlySpan(
@@ -220,7 +220,7 @@ internal readonly struct Meta
 
                 if (length > buffer.Length)
                 {
-                    buffer = getBuffer(length)[..length];
+                    buffer = allocator.GetSpan(length);
                 }
 
                 Unescape.Field(field, unescaper, buffer);
@@ -233,7 +233,7 @@ internal readonly struct Meta
 
                 if (length > buffer.Length)
                 {
-                    buffer = getBuffer(length)[..length];
+                    buffer = allocator.GetSpan(length);
                 }
 
                 Unescape.Field(field, unescaper, buffer);

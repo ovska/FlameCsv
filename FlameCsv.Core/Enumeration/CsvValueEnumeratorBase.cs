@@ -119,7 +119,6 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
                 }
             }
 
-            EnrichParseException(ex as CsvParseException, in fields);
             ThrowUnhandledException(ex, in fields);
             return false; // unreachable
         }
@@ -167,15 +166,12 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private void ThrowUnhandledException(Exception innerException, in CsvFields<T> fields)
     {
-        string message = $"Unhandled exception while reading records of type {typeof(TValue).FullName} from the CSV.";
-
-        // HACK: don't include the record if the exception is already enriched
-        if (innerException is not CsvParseException { AdditionalMessage: not null })
-        {
-            message
-                += $" The record was at position {Position} on line {Line} in the CSV. Record: {fields.Data.Span.AsPrintableString()}";
-        }
-
-        throw new CsvUnhandledException(message, Line, Position, innerException);
+        (innerException as CsvParseException)?.Enrich(Line, Position, in fields);
+        throw new CsvUnhandledException(
+            $"Unhandled exception while reading records of type {typeof(TValue).FullName} from the CSV." +
+            $" The record was at position {Position} on line {Line} in the CSV. Record: {fields.Data.Span.AsPrintableString()}",
+            Line,
+            Position,
+            innerException);
     }
 }

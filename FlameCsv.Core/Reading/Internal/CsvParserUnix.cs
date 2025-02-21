@@ -7,8 +7,8 @@ using FlameCsv.Utilities;
 
 namespace FlameCsv.Reading.Internal;
 
-internal sealed class CsvParserUnix<T>(CsvOptions<T> options, ICsvPipeReader<T> reader)
-    : CsvParser<T>(options, reader)
+internal sealed class CsvParserUnix<T>(CsvOptions<T> options, ICsvPipeReader<T> reader, bool multiThreaded)
+    : CsvParser<T>(options, reader, multiThreaded)
     where T : unmanaged, IBinaryInteger<T>
 {
     private protected override bool TryReadFromSequence(out CsvFields<T> fields, bool isFinalBlock)
@@ -121,9 +121,7 @@ internal sealed class CsvParserUnix<T>(CsvOptions<T> options, ICsvPipeReader<T> 
 
                     fields = new CsvFields<T>(
                         this,
-                        reader
-                            .Sequence.Slice(reader.Sequence.Start, crPosition)
-                            .AsMemory(Options._memoryPool, ref _multisegmentBuffer),
+                        _multisegmentAllocator.AsMemory(reader.Sequence.Slice(reader.Sequence.Start, crPosition)),
                         GetSegmentMeta(fieldMeta.AsSpan()));
 
                     _sequence = reader.UnreadSequence;
@@ -143,7 +141,7 @@ internal sealed class CsvParserUnix<T>(CsvOptions<T> options, ICsvPipeReader<T> 
 
         if (isFinalBlock && !_sequence.IsEmpty)
         {
-            var lastLine = _sequence.AsMemory(Options._memoryPool, ref _multisegmentBuffer);
+            var lastLine = _multisegmentAllocator.AsMemory(_sequence);
             _sequence = default;
 
             // the remaining data is either after a delimiter if fields is non-empty, or

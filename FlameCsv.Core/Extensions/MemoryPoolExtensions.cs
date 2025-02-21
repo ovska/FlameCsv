@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -7,40 +6,6 @@ namespace FlameCsv.Extensions;
 
 internal static class MemoryPoolExtensions
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ReadOnlyMemory<T> AsMemory<T>(
-        in this ReadOnlySequence<T> sequence,
-        MemoryPool<T> pool,
-        ref IMemoryOwner<T>? owner)
-        where T : unmanaged
-    {
-        if (sequence.IsSingleSegment)
-            return sequence.First;
-
-        return AsMemoryMultisegment(in sequence, pool, ref owner);
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static ReadOnlyMemory<T> AsMemoryMultisegment<T>(
-        in ReadOnlySequence<T> sequence,
-        MemoryPool<T> pool,
-        ref IMemoryOwner<T>? owner)
-        where T : unmanaged
-    {
-        Debug.Assert(!sequence.IsSingleSegment);
-
-        int length = checked((int)sequence.Length);
-
-        if (length == 0L)
-        {
-            return ReadOnlyMemory<T>.Empty;
-        }
-
-        Memory<T> memory = pool.EnsureCapacity(ref owner, length, copyOnResize: false);
-        sequence.CopyTo(memory.Span);
-        return memory[..length];
-    }
-
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static Memory<T> EnsureCapacity<T>(
         this MemoryPool<T> pool,
@@ -84,9 +49,31 @@ internal static class MemoryPoolExtensions
 
 internal class HeapMemoryOwner<T>(T[] array) : IMemoryOwner<T>
 {
+#if DEBUG
+    private bool _disposed;
+#endif
+
     public static HeapMemoryOwner<T> Empty { get; } = new([]);
-    public Memory<T> Memory => array;
-    public void Dispose() { }
+
+    public Memory<T> Memory
+    {
+        get
+        {
+#if DEBUG
+            ObjectDisposedException.ThrowIf(_disposed, this);
+#endif
+
+            return array;
+        }
+    }
+
+    public void Dispose()
+    {
+#if DEBUG
+        // Don't dispose the empty instance
+        if (array.Length != 0) _disposed = true;
+#endif
+    }
 }
 
 internal class HeapMemoryPool<T> : MemoryPool<T>

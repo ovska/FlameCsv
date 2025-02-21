@@ -508,6 +508,11 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// <seealso cref="CsvBooleanValuesAttribute{T}"/>
     public IList<(string text, bool value)> BooleanValues
         => _booleanValues ??= (IsReadOnly ? SealableList<(string, bool)>.Empty : new(this, null));
+
+    /// <summary>
+    /// Returns <see langword="true"/> if this instance's type is inherited by user code.
+    /// </summary>
+    internal virtual bool IsInherited => GetType() != typeof(CsvOptions<T>);
 }
 
 file static class TypeDictExtensions
@@ -534,6 +539,8 @@ file sealed class CsvOptionsCharSealed : CsvOptions<char>
         Instance = new();
         Instance.MakeReadOnly();
     }
+
+    internal override bool IsInherited => false;
 }
 
 file sealed class CsvOptionsByteSealed : CsvOptions<byte>
@@ -545,4 +552,6 @@ file sealed class CsvOptionsByteSealed : CsvOptions<byte>
         Instance = new();
         Instance.MakeReadOnly();
     }
+
+    internal override bool IsInherited => false;
 }

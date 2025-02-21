@@ -2,14 +2,13 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Utilities;
 
 namespace FlameCsv.Reading.Internal;
 
-internal sealed class CsvParserRFC4180<T>(CsvOptions<T> options, ICsvPipeReader<T> reader)
-    : CsvParser<T>(options, reader)
+internal sealed class CsvParserRFC4180<T>(CsvOptions<T> options, ICsvPipeReader<T> reader, bool multiThreaded)
+    : CsvParser<T>(options, reader, multiThreaded)
     where T : unmanaged, IBinaryInteger<T>
 {
     private protected override bool TryReadFromSequence(out CsvFields<T> fields, bool isFinalBlock)
@@ -105,9 +104,7 @@ internal sealed class CsvParserRFC4180<T>(CsvOptions<T> options, ICsvPipeReader<
 
                     fields = new CsvFields<T>(
                         this,
-                        reader
-                            .Sequence.Slice(reader.Sequence.Start, crPosition)
-                            .AsMemory(Options._memoryPool, ref _multisegmentBuffer),
+                        _multisegmentAllocator.AsMemory(reader.Sequence.Slice(reader.Sequence.Start, crPosition)),
                         GetSegmentMeta(fieldMeta.AsSpan()));
 
                     _sequence = reader.UnreadSequence;
@@ -126,7 +123,7 @@ internal sealed class CsvParserRFC4180<T>(CsvOptions<T> options, ICsvPipeReader<
 
         if (isFinalBlock && !_sequence.IsEmpty)
         {
-            var lastLine = _sequence.AsMemory(Options._memoryPool, ref _multisegmentBuffer);
+            var lastLine = _multisegmentAllocator.AsMemory(_sequence);
             _sequence = default;
 
             // the last field ended in a delimiter, so there must be at least one field after it

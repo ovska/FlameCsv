@@ -3,10 +3,10 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
-using FlameCsv.Enumeration;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
+using FlameCsv.Reading.Internal;
 using JetBrains.Annotations;
 
 namespace FlameCsv;
@@ -45,13 +45,7 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
         get
         {
             _owner.EnsureVersion(_version);
-
-            if (!_owner._hasHeader)
-                Throw.NotSupported_CsvHasNoHeader();
-
-            if (_owner.Header is null)
-                Throw.InvalidOperation_HeaderNotRead();
-
+            if (_owner.Header is null) Throw.NotSupported_CsvHasNoHeader();
             return _owner.Header.Values;
         }
     }
@@ -61,8 +55,17 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
     {
         _owner.EnsureVersion(_version);
 
-        return (id.TryGetIndex(out int index, out string? name) || _owner.TryGetHeaderIndex(name, out index)) &&
-            (uint)index < (uint)_fields.FieldCount;
+        if (!id.TryGetIndex(out int index, out string? name))
+        {
+            if (_owner.Header is null) Throw.NotSupported_CsvHasNoHeader();
+
+            if (!_owner.Header.TryGetValue(name, out index))
+            {
+                return false;
+            }
+        }
+
+        return (uint)index < (uint)_fields.FieldCount;
     }
 
     /// <inheritdoc cref="CsvRecord{T}.Options"/>
@@ -73,7 +76,7 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
 
     ReadOnlySpan<T> ICsvFields<T>.this[int index] => GetField(index);
 
-    internal readonly CsvRecordEnumerator<T> _owner;
+    internal readonly IRecordOwner _owner;
     internal readonly CsvOptions<T> _options;
     internal readonly CsvFields<T> _fields;
     private readonly int _version;
@@ -85,7 +88,7 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
         int lineIndex,
         ref readonly CsvFields<T> fields,
         CsvOptions<T> options,
-        CsvRecordEnumerator<T> owner)
+        IRecordOwner owner)
     {
         _version = version;
         Position = position;
@@ -95,14 +98,35 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
         _owner = owner;
     }
 
+    private bool TryGetIndex(CsvFieldIdentifier id, out int index)
+    {
+        _owner.EnsureVersion(_version);
+
+        if (id.TryGetIndex(out index, out string? name))
+        {
+            return true;
+        }
+
+        if (_owner.Header is null) Throw.NotSupported_CsvHasNoHeader();
+        return _owner.Header.TryGetValue(name, out index);
+    }
+
     /// <inheritdoc cref="CsvRecord{T}.GetField(CsvFieldIdentifier)"/>
     private ReadOnlySpan<T> GetField(CsvFieldIdentifier id, out int index)
     {
         _owner.EnsureVersion(_version);
 
-        if (!id.TryGetIndex(out index, out string? name) && !_owner.TryGetHeaderIndex(name, out index))
+        if (!id.TryGetIndex(out index, out string? name))
         {
-            Throw.Argument_HeaderNameNotFound(name, _owner.Header.HeaderNames);
+            if (_owner.Header is null)
+            {
+                Throw.NotSupported_CsvHasNoHeader();
+            }
+
+            if (!_owner.Header.TryGetValue(name, out index))
+            {
+                Throw.Argument_HeaderNameNotFound(name, _owner.Header!.HeaderNames);
+            }
         }
 
         if ((uint)index >= (uint)_fields.FieldCount)
@@ -156,7 +180,7 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
 
         if (!converter.TryParse(field, out var value))
         {
-            CsvParseException.ThrowInternal(fieldIndex, typeof(TValue), converter, id.ToString(), in _fields, _owner);
+            ThrowParseException(typeof(TValue), fieldIndex, id, converter);
         }
 
         return value;
@@ -171,7 +195,7 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
 
         if (!converter.TryParse(field, out var value))
         {
-            CsvParseException.ThrowInternal(fieldIndex, typeof(TValue), converter, id.ToString(), in _fields, _owner);
+            ThrowParseException(typeof(TValue), fieldIndex, id, converter);
         }
 
         return value;
@@ -191,7 +215,7 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
         _owner.EnsureVersion(_version);
 
         // read to local as hot reload can reset the cache
-        Dictionary<object, object> cache = _owner.MaterializerCache;
+        IDictionary<object, object> cache = _owner.MaterializerCache;
 
         if (!cache.TryGetValue(typeof(TRecord), out object? obj))
         {
@@ -217,7 +241,7 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
         _owner.EnsureVersion(_version);
 
         // read to local as hot reload can reset the cache
-        Dictionary<object, object> cache = _owner.MaterializerCache;
+        IDictionary<object, object> cache = _owner.MaterializerCache;
 
         if (!cache.TryGetValue(typeMap, out object? obj))
         {
@@ -250,17 +274,17 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
         public ReadOnlySpan<T> Current => _fields.GetField(_index - 1);
 
         private readonly int _version;
-        private readonly CsvRecordEnumerator<T> _state;
+        private readonly IRecordOwner _owner;
         private readonly CsvFields<T> _fields;
         private int _index;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Enumerator(int version, CsvRecordEnumerator<T> state, scoped ref readonly CsvFields<T> fields)
+        internal Enumerator(int version, IRecordOwner owner, scoped ref readonly CsvFields<T> fields)
         {
-            state.EnsureVersion(version);
+            owner.EnsureVersion(version);
 
             _version = version;
-            _state = state;
+            _owner = owner;
             _fields = fields;
         }
 
@@ -268,7 +292,7 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool MoveNext()
         {
-            _state.EnsureVersion(_version);
+            _owner.EnsureVersion(_version);
 
             if (_index < _fields.FieldCount)
             {
@@ -320,4 +344,21 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
 
     /// <inheritdoc cref="Preserve"/>
     public static explicit operator CsvRecord<T>(in CsvValueRecord<T> record) => new(in record);
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void ThrowParseException(Type type, int index, CsvFieldIdentifier id, object converter)
+    {
+        string target = id.ToString();
+
+        var ex = new CsvParseException($"Failed to parse {type.Name} {target} using {converter.GetType().Name}.")
+        {
+            Converter = converter,
+            FieldIndex = index,
+            Target = target,
+        };
+
+        ex.Enrich(Line, Position, in _fields);
+        throw ex;
+    }
 }
