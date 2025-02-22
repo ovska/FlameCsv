@@ -7,8 +7,11 @@ using FlameCsv.Utilities;
 
 namespace FlameCsv.Reading.Internal;
 
-internal sealed class CsvParserRFC4180<T>(CsvOptions<T> options, ICsvPipeReader<T> reader, bool multiThreaded)
-    : CsvParser<T>(options, reader, multiThreaded)
+internal sealed class CsvParserRFC4180<T>(
+    CsvOptions<T> options,
+    ICsvPipeReader<T> reader,
+    in CsvParserOptions<T> parserOptions)
+    : CsvParser<T>(options, reader, in parserOptions)
     where T : unmanaged, IBinaryInteger<T>
 {
     private protected override bool TryReadFromSequence(out CsvFields<T> fields, bool isFinalBlock)

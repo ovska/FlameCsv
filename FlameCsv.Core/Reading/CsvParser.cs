@@ -45,13 +45,7 @@ public abstract class CsvParser
     public static CsvParser<T> Create<T>(CsvOptions<T> options, ICsvPipeReader<T> reader)
         where T : unmanaged, IBinaryInteger<T>
     {
-        ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(reader);
-
-        options.MakeReadOnly();
-        return !options.Dialect.Escape.HasValue
-            ? new CsvParserRFC4180<T>(options, reader, multiThreaded: false)
-            : new CsvParserUnix<T>(options, reader, multiThreaded: false);
+        return CreateCore(options, reader);
     }
 
     /// <summary>
@@ -63,14 +57,23 @@ public abstract class CsvParser
     public static CsvParser<T> Create<T>(CsvOptions<T> options, in ReadOnlySequence<T> csv)
         where T : unmanaged, IBinaryInteger<T>
     {
-        ArgumentNullException.ThrowIfNull(options);
+        return CreateCore(options, CsvPipeReader.Create(in csv));
+    }
 
-        var reader = CsvPipeReader.Create(in csv);
+    [MustDisposeResource]
+    internal static CsvParser<T> CreateCore<T>(
+        CsvOptions<T> options,
+        ICsvPipeReader<T> reader,
+        CsvParserOptions<T> parserOptions = default)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(reader);
 
         options.MakeReadOnly();
         return !options.Dialect.Escape.HasValue
-            ? new CsvParserRFC4180<T>(options, reader, multiThreaded: false)
-            : new CsvParserUnix<T>(options, reader, multiThreaded: false);
+            ? new CsvParserRFC4180<T>(options, reader, in parserOptions)
+            : new CsvParserUnix<T>(options, reader, in parserOptions);
     }
 
     private protected CsvParser()

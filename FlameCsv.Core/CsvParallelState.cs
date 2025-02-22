@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿#if FEATURE_PARALLEL
+using System.ComponentModel;
 using FlameCsv.Reading;
 using JetBrains.Annotations;
 
@@ -46,3 +47,4 @@ public readonly struct CsvParallelState<T> where T : unmanaged, IBinaryInteger<T
         }
     }
 }
+#endif

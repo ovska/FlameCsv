@@ -1,10 +1,9 @@
-﻿#if FEATURE_PARALLEL
-using System.Buffers;
-using System.Runtime.CompilerServices;
-using FlameCsv.Binding;
+﻿// #if FEATURE_PARALLEL
+
 using FlameCsv.Extensions;
+using FlameCsv.IO;
 using FlameCsv.Reading;
-using FlameCsv.Reading.Parallel;
+using FlameCsv.Reading.Internal;
 using JetBrains.Annotations;
 
 namespace FlameCsv;
@@ -15,250 +14,105 @@ namespace FlameCsv;
 [PublicAPI]
 public static partial class CsvParallel
 {
-    /// <summary>
-    /// Returns <see langword="true"/> if the options can be used for parallel reading.
-    /// </summary>
-    /// <param name="options">Options-instance</param>
-    /// <typeparam name="T">Token type</typeparam>
-    /// <returns>
-    /// Whether the options can be used for parallel reading.
-    /// </returns>
-    public static bool IsSupported<T>(CsvOptions<T> options) where T : unmanaged, IBinaryInteger<T>
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        return !options.NoReadAhead && options.Dialect.IsAscii;
-    }
-
-
-    public static ParallelQuery<TValue> Enumerate<TValue, TInvoke>(
-        in ReadOnlySequence<byte> csv,
-        TInvoke invoker,
-        CsvOptions<byte>? options = null)
-        where TInvoke : ICsvParallelTryInvoke<byte, TValue>
-    {
-        return GetParallelQuery<byte, TValue, TInvoke>(options ?? CsvOptions<byte>.Default, invoker, in csv);
-    }
-
-    /// <summary>
-    /// Reads instances of <typeparamref name="TValue"/> from the provided CSV data in parallel.
-    /// </summary>
-    /// <param name="csv">CSV data</param>
-    /// <param name="options">Options-instance</param>
-    /// <typeparam name="T"></typeparam>
-    /// <typeparam name="TValue"></typeparam>
-    /// <returns>An unordered parallel query for the records</returns>
-    /// <remarks>
-    /// Call <see cref="ParallelEnumerable.AsOrdered"/> if you need the records in their original order.
-    /// No other parallel options such as merging strategies are set by default, configure them yourself as needed.
-    /// </remarks>
-    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public static ParallelQuery<TValue> Read<T, TValue>(
-        ReadOnlyMemory<T> csv,
-        CsvOptions<T>? options = null)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        return Read<T, TValue>(new ReadOnlySequence<T>(csv), options);
-    }
-
-    /// <summary>
-    /// Reads instances of <typeparamref name="TValue"/> from the provided CSV data in parallel.
-    /// </summary>
-    /// <param name="csv">CSV data</param>
-    /// <param name="options">Options-instance</param>
-    /// <typeparam name="T"></typeparam>
-    /// <typeparam name="TValue"></typeparam>
-    /// <returns>An unordered parallel query for the records</returns>
-    /// <remarks>
-    /// Call <see cref="ParallelEnumerable.AsOrdered"/> if you need the records in their original order.
-    /// No other parallel options such as merging strategies are set by default, configure them yourself as needed.
-    /// </remarks>
-    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public static ParallelQuery<TValue> Read<T, TValue>(
-        in ReadOnlySequence<T> csv,
-        CsvOptions<T>? options = null)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        options ??= CsvOptions<T>.Default;
-        return GetParallelQuery<T, TValue, ValueParallelInvoke<T, TValue>>(
-            options,
-            ValueParallelInvoke<T, TValue>.Create(options),
-            in csv);
-    }
-
-    /// <summary>
-    /// Reads instances of <typeparamref name="TValue"/> from the provided CSV data in parallel.
-    /// </summary>
-    /// <param name="csv">CSV data</param>
-    /// <param name="typeMap">Type map used for binding</param>
-    /// <param name="options">Options-instance</param>
-    /// <typeparam name="T">Token type</typeparam>
-    /// <typeparam name="TValue">Parsed value</typeparam>
-    /// <returns>An unordered parallel query for the records</returns>
-    /// <remarks>
-    /// Call <see cref="ParallelEnumerable.AsOrdered"/> if you need the records in their original order.
-    /// No other parallel options such as merging strategies are set by default, configure them yourself as needed.
-    /// </remarks>
-    public static ParallelQuery<TValue> Read<T, TValue>(
-        ReadOnlyMemory<T> csv,
-        CsvTypeMap<T, TValue> typeMap,
-        CsvOptions<T>? options = null)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        ArgumentNullException.ThrowIfNull(typeMap);
-        options ??= CsvOptions<T>.Default;
-        return GetParallelQuery<T, TValue, ValueParallelInvoke<T, TValue>>(
-            options,
-            ValueParallelInvoke<T, TValue>.Create(options, typeMap),
-            new ReadOnlySequence<T>(csv));
-    }
-
-    /// <summary>
-    /// Reads instances of <typeparamref name="TValue"/> from the provided CSV data in parallel.
-    /// </summary>
-    /// <param name="csv">CSV data</param>
-    /// <param name="typeMap">Type map used for binding</param>
-    /// <param name="options">Options-instance</param>
-    /// <typeparam name="T">Token type</typeparam>
-    /// <typeparam name="TValue">Parsed value</typeparam>
-    /// <returns>An unordered parallel query for the records</returns>
-    /// <remarks>
-    /// Call <see cref="ParallelEnumerable.AsOrdered"/> if you need the records in their original order.
-    /// No other parallel options such as merging strategies are set by default, configure them yourself as needed.
-    /// </remarks>
-    public static ParallelQuery<TValue> Read<T, TValue>(
-        in ReadOnlySequence<T> csv,
-        CsvTypeMap<T, TValue> typeMap,
-        CsvOptions<T>? options = null)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        ArgumentNullException.ThrowIfNull(typeMap);
-        options ??= CsvOptions<T>.Default;
-        return GetParallelQuery<T, TValue, ValueParallelInvoke<T, TValue>>(
-            options,
-            ValueParallelInvoke<T, TValue>.Create(options, typeMap),
-            in csv);
-    }
-
-    private static ParallelQuery<TResult> GetParallelQuery<T, TResult, TSelector>(
+    internal static IEnumerable<TResult> GetParallelQuery<T, TResult>(
         CsvOptions<T> options,
-        TSelector selector,
-        in ReadOnlySequence<T> data)
+        ICsvPipeReader<T> reader2,
+        Func<CsvValueRecord<T>, TResult> selector)
         where T : unmanaged, IBinaryInteger<T>
-        where TSelector : ICsvParallelTryInvoke<T, TResult>
     {
         ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(selector);
+        ArgumentNullException.ThrowIfNull(reader2);
 
-        if (!IsSupported(options))
-        {
-            Throw.NotSupported("Parallel reading is not supported: read-ahead is disabled or dialect is not ASCII");
-        }
+        using var allocator = new SlabAllocator<T>(options._memoryPool);
 
-        if (data.IsEmpty)
-        {
-            return ParallelEnumerable.Empty<TResult>();
-        }
+        using CsvParser<T> parser = CsvParser.CreateCore(
+            options,
+            reader2,
+            new CsvParserOptions<T> { UnescapeAllocator = allocator, MultiSegmentAllocator = allocator });
 
-        CsvParser<T> parser = CsvParser.Create(options, CsvPipeReader.Create(in data));
-        return Core<T, TResult, TSelector>(parser, selector).AsParallel();
-    }
+        using ParallelEnumerationOwner owner = new();
+        using CancellationTokenSource cts = new();
+        using SemaphoreSlim semaphore = new(1, 1);
 
-    private static IEnumerable<TResult> Core<T, TResult, TSelector>(
-        [HandlesResourceDisposal] CsvParser<T> parser)
-        where T : unmanaged, IBinaryInteger<T>
-        where TSelector : ICsvParallelTryInvoke<T, TResult>
-    {
-        // use a separate memory-owner for each thread
-        ThreadLocal<BufferFactory<T>> bufferCache = new(
-            () => new(parser.Options._memoryPool),
-            trackAllValues: true);
-
-        int index = 0;
+        int version = owner.Version;
+        int line = 0;
+        long position = 0;
         bool needsHeader = parser.Options.HasHeader;
-        CsvHeader? header = null;
 
-        // while the read-ahead buffer is being drained, we can't more data from the sequence
-        // keep track of active operations and spin if needed until they are done
-        SpinWait spin = new();
-        long activeOperations = 0;
+        CsvFields<T> fields;
 
-        try
+        while (parser.TryAdvanceReader())
         {
-            CsvFields<T> fields;
+            using var scope = semaphore.Lock(cts.Token);
 
-            while (parser.TryAdvanceReader())
+            while (parser.TryReadUnbuffered(out fields, false))
             {
-                while (Interlocked.Read(in activeOperations) != 0)
+                do
                 {
-                    spin.SpinOnce();
-                }
+                    Interlocked.Increment(ref line);
 
-                while (parser.TryReadUnbuffered(out fields, false))
-                {
-                    do
+                    if (needsHeader)
                     {
-                        Interlocked.Increment(ref index);
-                        Interlocked.Increment(ref activeOperations);
+                        CsvFieldsRef<T> fieldsRef = new(in fields, parser._unescapeAllocator);
 
-                        CsvFieldsRef<T> reader = new(in fields, getBuffer: bufferCache.Value!.GetBuffer);
+                        owner.Header = CsvHeader.Parse(
+                            parser.Options,
+                            ref fieldsRef,
+                            options.Comparer,
+                            static (comparer, headers) => new CsvHeader(comparer, headers));
 
-                        if (needsHeader)
-                        {
-                            header = CsvHeader.Parse(parser.Options, ref reader);
-                            needsHeader = false;
-                            Interlocked.Decrement(ref activeOperations);
-                            continue;
-                        }
+                        needsHeader = false;
+                        continue;
+                    }
 
-                        CsvParallelState state = new() { Header = header, Index = index };
+                    TResult result;
 
-                        if (selector.TryInvoke(ref reader, in state, out var result))
-                        {
-                            yield return result;
-                        }
+                    try
+                    {
+                        result = selector(new CsvValueRecord<T>(version, position, line, in fields, options, owner));
+                    }
+                    catch
+                    {
+                        cts.Cancel();
+                        throw;
+                    }
 
-                        Interlocked.Decrement(ref activeOperations);
-                    } while (parser.TryGetBuffered(out fields));
-                }
-            }
+                    Interlocked.Add(ref position, fields.GetRecordLength(includeTrailingNewline: true));
 
-            // reader cannot be advanced anymore, wait until all previous reads are done
-            while (Interlocked.Read(in activeOperations) != 0)
-            {
-                spin.SpinOnce();
-            }
-
-            // read the final block
-            while (parser.TryReadUnbuffered(out fields, isFinalBlock: true))
-            {
-                index++;
-
-                CsvFieldsRef<T> reader = new(in fields, getBuffer: bufferCache.Value!.GetBuffer);
-
-                // maybe we *only* have a header record without a newline? validate the data and return
-                if (needsHeader)
-                {
-                    _ = CsvHeader.Parse(parser.Options, ref reader);
-                    yield break;
-                }
-
-                CsvParallelState state = new() { Header = header, Index = index };
-
-                if (selector.TryInvoke(ref reader, in state, out var result))
-                {
                     yield return result;
-                }
+                } while (parser.TryGetBuffered(out fields));
             }
+
+            // increment version for every read
+            version = owner.NextVersion();
+            allocator.Reset();
         }
-        finally
+
+        // read the final block
+        while (parser.TryReadUnbuffered(out fields, isFinalBlock: true))
         {
-            using (parser)
+            line++;
+
+            // maybe we *only* have a header record without a newline? validate the data and return
+            if (needsHeader)
             {
-                foreach (var buffer in bufferCache.Values) buffer.Dispose();
+                CsvFieldsRef<T> fieldsRef = new(in fields, parser._unescapeAllocator);
+
+                _ = CsvHeader.Parse(
+                    parser.Options,
+                    ref fieldsRef,
+                    options.Comparer,
+                    static (comparer, headers) => new CsvHeader(comparer, headers));
+                yield break;
             }
+
+            yield return selector(new CsvValueRecord<T>(version, position, line, in fields, options, owner));
+
+            Interlocked.Add(ref position, fields.GetRecordLength(includeTrailingNewline: true));
         }
     }
 
+#if false
     public static IAsyncEnumerable<TResult> Test<T, TResult>(
         in ReadOnlySequence<T> csv,
         CsvOptions<T>? options = null,
@@ -371,24 +225,6 @@ public static partial class CsvParallel
             }
         }
     }
-
-    /// <summary>
-    /// Factory for creating buffers for unescaping.
-    /// By default, unescaping is done using the shared buffer in the parser.
-    /// </summary>
-    private sealed class BufferFactory<T> : IDisposable where T : unmanaged, IEquatable<T>
-    {
-        public Func<int, Span<T>> GetBuffer { get; }
-
-        private IMemoryOwner<T>? _owner;
-
-        public BufferFactory(MemoryPool<T> pool)
-        {
-            // slice the span to ensure exact length
-            GetBuffer = length => pool.EnsureCapacity(ref _owner, length).Span[..length];
-        }
-
-        public void Dispose() => _owner?.Dispose();
-    }
-}
 #endif
+}
+// #endif

@@ -161,6 +161,17 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
             var memory = TestDataGenerator.Generate<T>(newline, header, trailingLF, escaping);
             var sequence = MemorySegment<T>.AsSequence(memory, bufferSize, emptySegmentFreq);
 
+            IEnumerable<CsvValueRecord<T>> enumerable;
+
+            if (parallel)
+            {
+                throw null!;
+            }
+            else
+            {
+                enumerable = CsvReader.Enumerate(sequence, options);
+            }
+
             var items = GetItems(
                 SyncAsyncEnumerable.Create(CsvReader.Enumerate(sequence, options)),
                 sourceGen,
