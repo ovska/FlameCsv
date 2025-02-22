@@ -90,7 +90,7 @@ internal sealed class CsvParserRFC4180<T>(
                 goto FoundNewline;
 
             FoundDelimiter:
-                fieldMeta.Append(Meta.RFC((int)reader.Consumed - 1, quoteCount, isEOL: false));
+                fieldMeta.Append(Meta.RFC((int)reader.Consumed - 1, quoteCount, isEOL: false, _newline.Length));
                 quoteCount = 0;
                 goto Seek;
 
@@ -103,7 +103,7 @@ internal sealed class CsvParserRFC4180<T>(
 
                 if (newline.Length == 1 || reader.IsNext(newline.Second, advancePast: true))
                 {
-                    fieldMeta.Append(Meta.RFC((int)reader.Consumed - newline.Length, quoteCount, isEOL: true));
+                    fieldMeta.Append(Meta.RFC((int)reader.Consumed - newline.Length, quoteCount, isEOL: true, _newline.Length));
 
                     fields = new CsvFields<T>(
                         this,
@@ -131,7 +131,7 @@ internal sealed class CsvParserRFC4180<T>(
 
             // the last field ended in a delimiter, so there must be at least one field after it
             // this should _not_ be an EOL as that flag is used for determining record length w/ the newline
-            fieldMeta.Append(Meta.RFC(lastLine.Length, quoteCount, isEOL: false));
+            fieldMeta.Append(Meta.RFC(lastLine.Length, quoteCount, isEOL: false, _newline.Length));
 
             fields = new CsvFields<T>(this, lastLine, GetSegmentMeta(fieldMeta.AsSpan()));
             return true;

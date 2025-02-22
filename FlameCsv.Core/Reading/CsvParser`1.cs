@@ -333,7 +333,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
             InvalidState.Throw(GetType(), _metaArray, _metaIndex, _metaCount);
         }
 
-        _sequence = _sequence.Slice(lastEOL.GetNextStart(_newline.Length));
+        _sequence = _sequence.Slice(lastEOL.NextStart);
         _metaCount = 0;
         _metaIndex = 0;
     }

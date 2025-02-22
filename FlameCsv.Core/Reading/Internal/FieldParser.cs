@@ -78,6 +78,8 @@ internal static class FieldParser<T, TNewline, TVector>
                 continue;
             }
 
+            // TODO: profile with different data; if quote count is not 0, it might be faster to just go to ParseAny
+
             nuint maskDelimiter = hasDelimiter.ExtractMostSignificantBits();
 
             // only delimiters? skip this if there are any quotes in the current field
@@ -204,7 +206,7 @@ internal static class FieldParser<T, TNewline, TVector>
 
             if (newline.IsNewline(ref Unsafe.Add(ref first, runningIndex + (nuint)offset)))
             {
-                currentMeta = Meta.Plain((int)runningIndex + offset, isEOL: true);
+                currentMeta = Meta.Plain((int)runningIndex + offset, isEOL: true, TNewline.Length);
                 currentMeta = ref Unsafe.Add(ref currentMeta, 1);
 
                 // clear the second bit if needed
@@ -241,7 +243,7 @@ internal static class FieldParser<T, TNewline, TVector>
                     ref Unsafe.Add(ref first, runningIndex + (nuint)offset),
                     out bool isEOL))
             {
-                currentMeta = Meta.Plain((int)runningIndex + offset, isEOL);
+                currentMeta = Meta.Plain((int)runningIndex + offset, isEOL, TNewline.Length);
                 currentMeta = ref Unsafe.Add(ref currentMeta, 1);
 
                 // clear the second bit if needed
@@ -287,7 +289,7 @@ internal static class FieldParser<T, TNewline, TVector>
                          ref Unsafe.Add(ref first, runningIndex + (nuint)offset),
                          out bool isEOL))
             {
-                currentMeta = Meta.RFC((int)runningIndex + offset, quotesConsumed, isEOL);
+                currentMeta = Meta.RFC((int)runningIndex + offset, quotesConsumed, isEOL, TNewline.Length);
                 currentMeta = ref Unsafe.Add(ref currentMeta, 1);
                 quotesConsumed = 0;
 

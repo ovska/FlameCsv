@@ -30,8 +30,8 @@ public static class MetaTests
     public static void Should_Handle_Special_And_Flags(int end, uint quoteCount, uint escapeCount, bool isEOL)
     {
         Meta meta = escapeCount == 0
-            ? Meta.RFC(end, quoteCount, isEOL)
-            : Meta.Unix(end, quoteCount, escapeCount, isEOL);
+            ? Meta.RFC(end, quoteCount, isEOL, 2)
+            : Meta.Unix(end, quoteCount, escapeCount, isEOL, 2);
 
         Assert.Equal(end, meta.End);
         Assert.Equal(isEOL, meta.IsEOL);
@@ -47,7 +47,14 @@ public static class MetaTests
             Assert.Equal(escapeCount, meta.SpecialCount);
         }
 
-        Assert.False(meta.IsStart);
+        if (isEOL)
+        {
+            Assert.Equal(meta.End + 2, meta.NextStart);
+        }
+        else
+        {
+            Assert.Equal(meta.End + 1, meta.NextStart);
+        }
     }
 
     public static TheoryData<uint, uint> InvalidMetaData
@@ -71,20 +78,19 @@ public static class MetaTests
             () =>
             {
                 _ = escapeCount == 0
-                    ? Meta.RFC(0, quoteCount, isEOL: false)
-                    : Meta.Unix(0, quoteCount, escapeCount);
+                    ? Meta.RFC(0, quoteCount, isEOL: false, newlineLength: 2)
+                    : Meta.Unix(0, quoteCount, escapeCount, false, newlineLength: 2);
             });
     }
 
     [Fact]
     public static void Should_Handle_Start_of_Data()
     {
-        Assert.True(Meta.StartOfData.IsStart);
         Assert.Equal(0u, Meta.StartOfData.SpecialCount);
         Assert.False(Meta.StartOfData.IsEscape);
         Assert.False(Meta.StartOfData.IsEOL);
-        Assert.Equal(0, Meta.StartOfData.GetNextStart(1));
-        Assert.Equal(0, Meta.StartOfData.GetNextStart(2));
+        Assert.Equal(0, Meta.StartOfData.End);
+        Assert.Equal(0, Meta.StartOfData.NextStart);
     }
 
     [Theory]
@@ -96,14 +102,8 @@ public static class MetaTests
     [InlineData(572, true, 2, 574)]
     public static void Should_Get_Start_Of_Next(int end, bool isEOL, int newlineLength, int expected)
     {
-        var meta = Meta.RFC(end, 0, isEOL);
-        Assert.Equal(expected, meta.GetNextStart(newlineLength));
-    }
-
-    [Fact]
-    public static void Should_Have_No_Specials_For_Start()
-    {
-        Assert.Equal(0u, Meta.StartOfData.SpecialCount);
+        var meta = Meta.RFC(end, 0, isEOL, newlineLength);
+        Assert.Equal(expected, meta.NextStart);
     }
 
     [Fact]
@@ -111,15 +111,24 @@ public static class MetaTests
     {
         const int max = 0x3FFF_FFFF;
 
-        Assert.Throws<NotSupportedException>(() => Meta.RFC(0, max + 1, true));
-        Assert.Throws<NotSupportedException>(() => Meta.RFC(0, max + 1, false));
-        Assert.Throws<NotSupportedException>(() => Meta.Unix(0, 2, max + 1));
-        Assert.Throws<NotSupportedException>(() => Meta.Unix(0, 2, max + 1, true));
+        Assert.Throws<NotSupportedException>(() => Meta.RFC(0, max + 1, true, 2));
+        Assert.Throws<NotSupportedException>(() => Meta.RFC(0, max + 1, false, 2));
+        Assert.Throws<NotSupportedException>(() => Meta.Unix(0, 2, max + 1, false, 2));
+        Assert.Throws<NotSupportedException>(() => Meta.Unix(0, 2, max + 1, true, 2));
+    }
+
+    [Fact]
+    public static void Should_Have_IsEscape_Off_If_No_Escapes()
+    {
+        var meta = Meta.Unix(5, 2, 0, isEOL: false, 1);
+        Assert.False(meta.IsEscape); // unix-style meta but no escapes
     }
 
     [Fact]
     public static void Should_Slice()
     {
+        var xxx = Meta.Plain(14, isEOL: true, 2);
+
         const string data = "abc,def,ghi,jkl,mno\r\npqr,stu,vwx,yz\r\n";
         Span<Meta> metaBuffer =
         [
@@ -127,11 +136,11 @@ public static class MetaTests
             Meta.Plain(7),
             Meta.Plain(11),
             Meta.Plain(15),
-            Meta.Plain(19, isEOL: true),
+            Meta.Plain(19, isEOL: true, 2),
             Meta.Plain(24),
             Meta.Plain(28),
             Meta.Plain(32),
-            Meta.Plain(35, isEOL: true),
+            Meta.Plain(35, isEOL: true, 2),
         ];
 
         int start = 0;
@@ -150,7 +159,7 @@ public static class MetaTests
                 null!);
             Assert.Equal(expected[i], field.ToString());
 
-            start = meta.GetNextStart(2);
+            start = meta.NextStart;
         }
 
         Assert.Equal(data.Length, start);
@@ -160,7 +169,7 @@ public static class MetaTests
     [MemberData(nameof(NewlineData))]
     public static void Should_Find_Newline(bool[] values, int expected)
     {
-        var metas = values.Select(b => Meta.Plain(0, isEOL: b)).ToArray();
+        var metas = values.Select(static b => Meta.Plain(0, isEOL: b, 2)).ToArray();
 
         ref Meta first = ref metas[0];
 

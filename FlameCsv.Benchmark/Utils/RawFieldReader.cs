@@ -38,7 +38,7 @@ internal readonly ref struct RawFieldReader<T> : ICsvFields<T> where T : unmanag
                 Throw.Argument_FieldIndex(index, _fieldCount);
 
             ref Meta meta = ref Unsafe.Add(ref _firstMeta, index + 1);
-            int start = Unsafe.Add(ref _firstMeta, index).GetNextStart(_newlineLength);
+            int start = Unsafe.Add(ref _firstMeta, index).NextStart;
 
             return _data[start..meta.End];
         }

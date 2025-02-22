@@ -3,12 +3,15 @@
 using System.Buffers;
 using System.Buffers.Text;
 using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Attributes;
 using FlameCsv.Binding;
 using FlameCsv.Converters;
 using FlameCsv.Reading;
+using FlameCsv.Reading.Internal;
 using JetBrains.Profiler.Api;
 
 namespace FlameCsv.Console
@@ -31,7 +34,7 @@ namespace FlameCsv.Console
 
             foreach (var a in Enumerable.Repeat(0, 100))
             {
-                foreach (var data in (byte[][]) [_bytes, _bytes2])
+                foreach (var data in (byte[][])[_bytes, _bytes2])
                 {
                     foreach (var reader in CsvParser.Create(_options, new ReadOnlySequence<byte>(data)))
                     {
@@ -116,5 +119,18 @@ namespace FlameCsv.Console
         {
             System.Console.WriteLine(Id);
         }
+
+        internal static Meta M0(int end) => Meta.Plain(end);
+
+        internal static Meta M1(int end, bool isEOL, int newlineLength) => Meta.Plain(end, isEOL, 1);
+        internal static Meta M2(int end, bool isEOL, int newlineLength) => Meta.Plain(end, isEOL, 2);
+
+        internal static Meta Rfc1(int end, uint quoteCount, bool isEOL, int newlineLength) => Meta.RFC(end, quoteCount, isEOL, 1);
+        internal static Meta Rfc2(int end, uint quoteCount, bool isEOL, int newlineLength) => Meta.RFC(end, quoteCount, isEOL, 2);
+        internal static long T(bool b) => b.ToBitwiseMask64();
+
+        internal static int NS(Meta m) => m.NextStart;
+
+        internal static bool TryGetField(CsvParser<byte> parser, out CsvFields<byte> line) => parser.TryGetBuffered(out line);
     }
 }

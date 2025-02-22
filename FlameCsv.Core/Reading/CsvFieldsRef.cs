@@ -79,12 +79,9 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
             if ((uint)index >= (uint)FieldCount)
                 Throw.Argument_FieldIndex(index, FieldCount);
 
-            ref Meta meta = ref Unsafe.Add(ref _firstMeta, index + 1);
-            int start = Unsafe.Add(ref _firstMeta, index).GetNextStart(_newlineLength);
-
-            return meta.GetField(
+            return Unsafe.Add(ref _firstMeta, index + 1).GetField(
                 dialect: in _dialect,
-                start: start,
+                start: Unsafe.Add(ref _firstMeta, index).NextStart,
                 data: ref _data,
                 buffer: _unescapeBuffer,
                 allocator: _allocator);
@@ -98,7 +95,7 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
         {
             EnsureInitialized();
 
-            int start = _firstMeta.GetNextStart(_newlineLength);
+            int start = _firstMeta.NextStart;
             int end = Unsafe.Add(ref _firstMeta, FieldCount).End;
 
             return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), end - start);
@@ -110,8 +107,9 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
     {
         EnsureInitialized();
 
-        int start = _firstMeta.GetNextStart(_newlineLength);
-        int end = Unsafe.Add(ref _firstMeta, FieldCount).GetNextStart(includeTrailingNewline ? _newlineLength : 0);
+        int start = _firstMeta.NextStart;
+        Meta lastMeta = Unsafe.Add(ref _firstMeta, FieldCount);
+        int end = includeTrailingNewline ? lastMeta.NextStart : lastMeta.End;
         return end - start;
     }
 

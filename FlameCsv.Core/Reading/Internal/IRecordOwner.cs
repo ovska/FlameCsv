@@ -39,6 +39,6 @@ internal sealed class ParallelEnumerationOwner : IRecordOwner, IDisposable
 
     public void Dispose()
     {
-        Interlocked.Exchange(ref _version, -1);
+        while (Interlocked.Exchange(ref _version, -1) != -1) ;
     }
 }
