@@ -138,7 +138,7 @@ internal static class SequentialParser<T> where T : unmanaged, IBinaryInteger<T>
         Found:
             if (Unsafe.Add(ref first, runningIndex) == delimiter)
             {
-                currentMeta = Meta.RFC((int)runningIndex, quotesConsumed, isEOL: false);
+                currentMeta = Meta.RFC((int)runningIndex, quotesConsumed, isEOL: false, (int)newlineLength);
                 currentMeta = ref Unsafe.Add(ref currentMeta, 1);
                 runningIndex++;
                 quotesConsumed = 0;
@@ -162,7 +162,7 @@ internal static class SequentialParser<T> where T : unmanaged, IBinaryInteger<T>
                 continue;
             }
 
-            currentMeta = Meta.RFC((int)runningIndex, quotesConsumed, isEOL: true);
+            currentMeta = Meta.RFC((int)runningIndex, quotesConsumed, isEOL: true, (int)newlineLength);
             currentMeta = ref Unsafe.Add(ref currentMeta, 1);
             runningIndex++;
             quotesConsumed = 0;
