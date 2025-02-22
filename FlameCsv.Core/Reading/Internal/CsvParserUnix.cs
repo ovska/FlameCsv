@@ -105,7 +105,7 @@ internal sealed class CsvParserUnix<T>(
                 goto FoundNewline;
 
             FoundDelimiter:
-                fieldMeta.Append(Meta.Unix((int)reader.Consumed - 1, quoteCount, escapeCount, isEOL: false));
+                fieldMeta.Append(Meta.Unix((int)reader.Consumed - 1, quoteCount, escapeCount, isEOL: false, _newline.Length));
                 quoteCount = 0;
                 escapeCount = 0;
                 goto Seek;
@@ -120,7 +120,7 @@ internal sealed class CsvParserUnix<T>(
                 if (newline.Length == 1 || reader.IsNext(newline.Second, advancePast: true))
                 {
                     fieldMeta.Append(
-                        Meta.Unix((int)reader.Consumed - newline.Length, quoteCount, escapeCount, isEOL: true));
+                        Meta.Unix((int)reader.Consumed - newline.Length, quoteCount, escapeCount, isEOL: true, _newline.Length));
 
                     fields = new CsvFields<T>(
                         this,
@@ -150,7 +150,7 @@ internal sealed class CsvParserUnix<T>(
             // the remaining data is either after a delimiter if fields is non-empty, or
             // some trailing data after the last newline.
             // this should _not_ be an EOL as that flag is used for determining record length w/ the newline
-            fieldMeta.Append(Meta.Unix(lastLine.Length, quoteCount, escapeCount, isEOL: false));
+            fieldMeta.Append(Meta.Unix(lastLine.Length, quoteCount, escapeCount, isEOL: false, _newline.Length));
 
             fields = new CsvFields<T>(this, lastLine, GetSegmentMeta(fieldMeta.AsSpan()));
             return true;

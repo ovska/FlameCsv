@@ -157,8 +157,8 @@ public sealed class CsvParseException(
         if (FieldIndex is { } index && (uint)index < (uint)fields.FieldCount)
         {
             int offset =
-                fields.Fields[index].GetNextStart(fields.Parser._newline.Length) -
-                fields.Fields[0].GetNextStart(fields.Parser._newline.Length);
+                fields.Fields[index].NextStart -
+                fields.Fields[0].NextStart;
 
             FieldPosition ??= position + offset;
             FieldValue ??= fields.GetField(index, raw: true).AsPrintableString();

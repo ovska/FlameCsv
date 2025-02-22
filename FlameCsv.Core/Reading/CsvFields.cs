@@ -51,8 +51,8 @@ public readonly struct CsvFields<T> : ICsvFields<T> where T : unmanaged, IBinary
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int GetRecordLength(bool includeTrailingNewline = false)
     {
-        int start = Fields[0].GetNextStart(Parser._newline.Length);
-        int end = Fields[^1].GetNextStart(includeTrailingNewline ? Parser._newline.Length : 0);
+        int start = Fields[0].NextStart;
+        int end = includeTrailingNewline ? Fields[^1].NextStart : Fields[^1].End;
         return end - start;
     }
 
@@ -62,7 +62,7 @@ public readonly struct CsvFields<T> : ICsvFields<T> where T : unmanaged, IBinary
     public ReadOnlyMemory<T> Record
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Data[Fields[0].GetNextStart(Parser._newline.Length)..Fields[^1].End];
+        get => Data[Fields[0].NextStart..Fields[^1].End];
     }
 
     /// <inheritdoc />
@@ -117,7 +117,7 @@ public readonly struct CsvFields<T> : ICsvFields<T> where T : unmanaged, IBinary
         if ((uint)index >= (uint)(Fields.Length - 1))
             Throw.Argument_FieldIndex(index, Fields.Length - 1);
 
-        int start = Fields[index].GetNextStart(Parser._newline.Length);
+        int start = Fields[index].NextStart;
         ReadOnlySpan<T> data = Data.Span;
 
         if (raw)

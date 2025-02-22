@@ -4,11 +4,13 @@ using JetBrains.Annotations;
 
 namespace FlameCsv.Reading.Internal;
 
-/// <summary>
-/// Interface to provide high-performance generic handling for variable length newlines.
-/// </summary>
-internal interface INewline<T> where T : unmanaged, IBinaryInteger<T>
+internal interface INewline
 {
+    /// <summary>
+    /// Returns a mask for the length of the newline contained in the two highest bits.
+    /// </summary>
+    static abstract int Length { get; }
+
     /// <summary>
     /// Returns the offset required in the search space to be able to read the whole newline value.
     /// </summary>
@@ -19,13 +21,19 @@ internal interface INewline<T> where T : unmanaged, IBinaryInteger<T>
     /// </summary>
     /// <param name="mask">The mask to modify.</param>
     static abstract void ClearSecondBitIfNeeded(ref nuint mask);
+}
 
+/// <summary>
+/// Interface to provide high-performance generic handling for variable length newlines.
+/// </summary>
+internal interface INewline<T> : INewline where T : unmanaged, IBinaryInteger<T>
+{
     /// <summary>
     /// Determines if the specified value represents a newline.
     /// </summary>
     /// <param name="value">The value to check.</param>
     /// <remarks>
-    /// Possibly reads the next value in the sequence, see <see cref="OffsetFromEnd"/>.
+    /// Possibly reads the next value in the sequence, see <see cref="INewline.OffsetFromEnd"/>.
     /// </remarks>
     /// <returns>True if the value represents a newline; otherwise, false.</returns>
     [Pure]
@@ -61,6 +69,12 @@ internal readonly struct NewlineParserOne<T, TVector>(T first) : INewlineParser<
     where T : unmanaged, IBinaryInteger<T>
     where TVector : struct, ISimdVector<T, TVector>
 {
+    public static int Length
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => 1;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TVector HasNewline(TVector input) => TVector.Equals(input, _firstVec);
 
@@ -95,6 +109,12 @@ internal readonly struct NewlineParserTwo<T, TVector>(T first, T second) : INewl
     where T : unmanaged, IBinaryInteger<T>
     where TVector : struct, ISimdVector<T, TVector>
 {
+    public static int Length
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => 2;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TVector HasNewline(TVector input)
         => TVector.Or(TVector.Equals(input, _firstVec), TVector.Equals(input, _secondVec));
