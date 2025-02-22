@@ -82,7 +82,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     private readonly ICsvPipeReader<T> _reader;
     private bool _readerCompleted;
 
-    private protected CsvParser(CsvOptions<T> options, ICsvPipeReader<T> reader, bool multiThreaded)
+    private protected CsvParser(CsvOptions<T> options, ICsvPipeReader<T> reader, in CsvParserOptions<T> parserOptions)
     {
         Debug.Assert(options.IsReadOnly);
 
@@ -93,16 +93,8 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
         _canUseFastPath = !options.NoReadAhead && _dialect.IsAscii;
         _reader = reader;
 
-        if (multiThreaded)
-        {
-            _multisegmentAllocator = new ThreadLocalAllocator<T>(options._memoryPool);
-            _unescapeAllocator = new ThreadLocalAllocator<T>(options._memoryPool);
-        }
-        else
-        {
-            _multisegmentAllocator = new MemoryPoolAllocator<T>(options._memoryPool);
-            _unescapeAllocator = new MemoryPoolAllocator<T>(options._memoryPool);
-        }
+        _multisegmentAllocator = parserOptions.MultiSegmentAllocator ?? new MemoryPoolAllocator<T>(options._memoryPool);
+        _unescapeAllocator = parserOptions.UnescapeAllocator ?? new MemoryPoolAllocator<T>(options._memoryPool);
     }
 
     /// <summary>

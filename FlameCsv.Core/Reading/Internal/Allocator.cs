@@ -1,4 +1,6 @@
 ﻿using System.Buffers;
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 
@@ -7,28 +9,8 @@ namespace FlameCsv.Reading.Internal;
 internal abstract class Allocator<T> : IDisposable where T : unmanaged
 {
     protected bool IsDisposed { get; private set; }
-    protected abstract MemoryPool<T> Pool { get; }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Memory<T> GetMemory(int length)
-    {
-        ObjectDisposedException.ThrowIf(IsDisposed, this);
-
-        if (length == 0)
-        {
-            return Memory<T>.Empty;
-        }
-
-        Memory<T> memory = MemoryOwner.Memory;
-
-        if (memory.Length < length)
-        {
-            memory = EnsureCapacity(length, copyOnResize: false);
-        }
-
-        return memory.Slice(0, length);
-    }
-
+    public abstract Memory<T> GetMemory(int length);
     public Span<T> GetSpan(int length) => GetMemory(length).Span;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -39,6 +21,8 @@ internal abstract class Allocator<T> : IDisposable where T : unmanaged
 
     private ReadOnlyMemory<T> GetAsMemoryMultiSegment(in ReadOnlySequence<T> sequence)
     {
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+
         int length = checked((int)sequence.Length);
         Memory<T> memory = GetMemory(length);
         sequence.CopyTo(memory.Span);
@@ -53,16 +37,42 @@ internal abstract class Allocator<T> : IDisposable where T : unmanaged
         GC.SuppressFinalize(this);
     }
 
-    protected abstract ref IMemoryOwner<T> MemoryOwner { get; }
-
     protected abstract void Dispose(bool disposing);
+}
+
+internal sealed class MemoryPoolAllocator<T>(MemoryPool<T> pool) : Allocator<T> where T : unmanaged
+{
+    private IMemoryOwner<T> _memoryOwner = HeapMemoryOwner<T>.Empty;
+
+    public override Memory<T> GetMemory(int length)
+    {
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+
+        Memory<T> memory = _memoryOwner.Memory;
+
+        if (memory.Length < length)
+        {
+            memory = EnsureCapacity(ref _memoryOwner, length, copyOnResize: true);
+        }
+
+        return memory.Slice(0, length);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _memoryOwner.Dispose();
+            _memoryOwner = HeapMemoryOwner<T>.Empty;
+        }
+    }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    protected Memory<T> EnsureCapacity(int minimumLength, bool copyOnResize)
+    private Memory<T> EnsureCapacity(ref IMemoryOwner<T> memoryOwner, int minimumLength, bool copyOnResize)
     {
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
         ArgumentOutOfRangeException.ThrowIfNegative(minimumLength);
 
-        ref IMemoryOwner<T> memoryOwner = ref MemoryOwner;
         Memory<T> oldMemory = memoryOwner.Memory;
 
         if (oldMemory.Length >= minimumLength)
@@ -70,14 +80,14 @@ internal abstract class Allocator<T> : IDisposable where T : unmanaged
             return oldMemory;
         }
 
-        if (minimumLength > Pool.MaxBufferSize)
+        if (minimumLength > pool.MaxBufferSize)
         {
-            Metrics.TooLargeRent(minimumLength, Pool);
+            Metrics.TooLargeRent(minimumLength, pool);
             memoryOwner = HeapMemoryPool<T>.Instance.Rent(minimumLength);
             return memoryOwner.Memory;
         }
 
-        IMemoryOwner<T> newMemoryOwner = Pool.Rent(minimumLength);
+        IMemoryOwner<T> newMemoryOwner = pool.Rent(minimumLength);
         Memory<T> newMemory = newMemoryOwner.Memory;
 
         if (copyOnResize && !oldMemory.IsEmpty)
@@ -91,50 +101,83 @@ internal abstract class Allocator<T> : IDisposable where T : unmanaged
     }
 }
 
-internal sealed class MemoryPoolAllocator<T>(MemoryPool<T> pool) : Allocator<T> where T : unmanaged
+internal sealed class SlabAllocator<T>(MemoryPool<T> pool) : Allocator<T> where T : unmanaged
 {
-    protected override MemoryPool<T> Pool => pool;
-
-    private IMemoryOwner<T> _memoryOwner = HeapMemoryOwner<T>.Empty;
-
-    protected override ref IMemoryOwner<T> MemoryOwner => ref _memoryOwner;
-
-    protected override void Dispose(bool disposing)
+    public void Reset()
     {
-        if (disposing)
+        foreach (var entry in _queue)
         {
-            MemoryOwner.Dispose();
-            MemoryOwner = HeapMemoryOwner<T>.Empty;
+            lock (entry)
+            {
+                entry.Remaining = entry.MemoryOwner.Memory;
+            }
         }
     }
-}
 
-internal sealed class ThreadLocalAllocator<T>(MemoryPool<T> pool) : Allocator<T> where T : unmanaged
-{
-    // wrap in a strongbox so we can pass the memoryowner as ref
-    private readonly ThreadLocal<StrongBox<IMemoryOwner<T>>> _threadLocal = new(
-        () => new StrongBox<IMemoryOwner<T>>(HeapMemoryOwner<T>.Empty),
-        trackAllValues: true);
+    private readonly ConcurrentQueue<Entry> _queue = [];
 
-    protected override MemoryPool<T> Pool => pool;
-
-    protected override ref IMemoryOwner<T> MemoryOwner => ref _threadLocal.Value!.Value!;
-
-    protected override void Dispose(bool disposing)
+    public override Memory<T> GetMemory(int length)
     {
-        if (disposing)
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+        if (length == 0) return Memory<T>.Empty;
+
+        foreach (var entry in _queue)
         {
-            using (_threadLocal)
+            if (entry.Remaining.Length >= length)
             {
-                foreach (StrongBox<IMemoryOwner<T>> value in _threadLocal.Values)
+                lock (entry)
                 {
-                    if (value is not null)
+                    if (entry.Remaining.Length >= length)
                     {
-                        value.Value?.Dispose();
-                        value.Value = HeapMemoryOwner<T>.Empty;
+                        Memory<T> memory = entry.Remaining.Slice(0, length);
+                        entry.Remaining = entry.Remaining.Slice(length);
+                        return memory;
                     }
                 }
             }
         }
+
+        _queue.Enqueue(Allocate(length, out Memory<T> allocatedMemory));
+        Debug.Assert(allocatedMemory.Length == length);
+        return allocatedMemory;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            while (_queue.TryDequeue(out Entry? entry))
+            {
+                entry.MemoryOwner.Dispose();
+                entry.MemoryOwner = HeapMemoryOwner<T>.Empty;
+                entry.Remaining = Memory<T>.Empty;
+            }
+        }
+    }
+
+    private Entry Allocate(int requiredLength, out Memory<T> memory)
+    {
+        IMemoryOwner<T> owner;
+
+        if (requiredLength > pool.MaxBufferSize)
+        {
+            Metrics.TooLargeRent(requiredLength, pool);
+            owner = HeapMemoryPool<T>.Instance.Rent(requiredLength);
+        }
+        else
+        {
+            owner = pool.Rent(requiredLength);
+        }
+
+        Memory<T> ownedMemory = owner.Memory;
+        memory = ownedMemory.Slice(0, requiredLength);
+
+        return new Entry { MemoryOwner = owner, Remaining = ownedMemory.Slice(requiredLength) };
+    }
+
+    private sealed class Entry
+    {
+        public required IMemoryOwner<T> MemoryOwner { get; set; }
+        public required Memory<T> Remaining { get; set; }
     }
 }

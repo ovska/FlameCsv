@@ -12,6 +12,36 @@ namespace FlameCsv.Extensions;
 
 internal static class UtilityExtensions
 {
+    public readonly struct SemaphoreScope(SemaphoreSlim semaphore) : IDisposable
+    {
+        public void Dispose() => semaphore?.Release();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static SemaphoreScope Lock(this SemaphoreSlim semaphore, CancellationToken token = default)
+    {
+        semaphore.Wait(token);
+        return new SemaphoreScope(semaphore);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ValueTask<SemaphoreScope> LockAsync(this SemaphoreSlim semaphore, CancellationToken token = default)
+    {
+        if (semaphore.Wait(millisecondsTimeout: 0, CancellationToken.None))
+        {
+            return new ValueTask<SemaphoreScope>(new SemaphoreScope(semaphore));
+        }
+
+        return AwaitLockAsync(semaphore, token);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static async ValueTask<SemaphoreScope> AwaitLockAsync(SemaphoreSlim semaphore, CancellationToken token)
+        {
+            await semaphore.WaitAsync(token).ConfigureAwait(false);
+            return new SemaphoreScope(semaphore);
+        }
+    }
+
     public static string JoinValues(ReadOnlySpan<string> values)
     {
         // should never happen
@@ -82,8 +112,8 @@ internal static class UtilityExtensions
             return data;
 
         // strings are immutable and safe to return as-is
-        if (typeof(T) == typeof(char)
-            && MemoryMarshal.TryGetString((ReadOnlyMemory<char>)(object)data, out _, out _, out _))
+        if (typeof(T) == typeof(char) &&
+            MemoryMarshal.TryGetString((ReadOnlyMemory<char>)(object)data, out _, out _, out _))
         {
             return data;
         }
@@ -95,8 +125,8 @@ internal static class UtilityExtensions
     {
         try
         {
-            var instance = Activator.CreateInstance(type, parameters)
-                ?? throw new InvalidOperationException($"Instance of {type.FullName} could not be created");
+            var instance = Activator.CreateInstance(type, parameters) ??
+                throw new InvalidOperationException($"Instance of {type.FullName} could not be created");
             return (T)instance;
         }
         catch (Exception e)
