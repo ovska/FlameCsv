@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading.Internal;
@@ -12,8 +13,11 @@ internal interface IRecordOwner
 
 internal sealed class ParallelEnumerationOwner : IRecordOwner, IDisposable
 {
+    public int Version => Interlocked.CompareExchange(ref _version, 0, 0);
+
     private int _version;
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void EnsureVersion(int version)
     {
         if (_version != Interlocked.CompareExchange(ref _version, 0, 0))
@@ -26,6 +30,7 @@ internal sealed class ParallelEnumerationOwner : IRecordOwner, IDisposable
 
     private readonly ConcurrentDictionary<object, object> _materializerCache = [];
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int NextVersion()
     {
         ObjectDisposedException.ThrowIf(_version == -1, this);

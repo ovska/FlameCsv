@@ -10,6 +10,9 @@ namespace FlameCsv.Enumeration;
 /// Enumerates known data into CSV records.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
+/// <remarks>
+/// This enumerable does not support parallel enumeration.
+/// </remarks>
 [PublicAPI]
 public sealed class CsvRecordEnumerable<T>
     : IEnumerable<CsvValueRecord<T>>, IAsyncEnumerable<CsvValueRecord<T>>
