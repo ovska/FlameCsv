@@ -22,7 +22,8 @@ public static class ModelTests
                     """
                     class First;
                     class Second;
-                    """)
+                    """,
+                    cancellationToken: TestContext.Current.CancellationToken)
             ],
             [CoreAssembly, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
@@ -60,7 +61,8 @@ public static class ModelTests
                     }
 
                     abstract class AbstractClass { }
-                    """)
+                    """,
+                    cancellationToken: TestContext.Current.CancellationToken)
             ],
             [CoreAssembly, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
@@ -68,7 +70,12 @@ public static class ModelTests
         var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
 
         var enumType = semanticModel.GetDeclaredSymbol(
-            semanticModel.SyntaxTree.GetRoot().DescendantNodes().OfType<EnumDeclarationSyntax>().Single())!;
+            semanticModel
+                .SyntaxTree.GetRoot(TestContext.Current.CancellationToken)
+                .DescendantNodes()
+                .OfType<EnumDeclarationSyntax>()
+                .Single(),
+            cancellationToken: TestContext.Current.CancellationToken)!;
         var enumRef = new TypeRef(enumType);
         Assert.Equal(enumRef, new TypeRef(enumType));
         Assert.True(enumRef.IsEnumOrNullableEnum);
@@ -83,10 +90,11 @@ public static class ModelTests
 
         var classType = semanticModel.GetDeclaredSymbol(
             semanticModel
-                .SyntaxTree.GetRoot()
+                .SyntaxTree.GetRoot(TestContext.Current.CancellationToken)
                 .DescendantNodes()
                 .OfType<ClassDeclarationSyntax>()
-                .Single(c => c.Identifier.Text == "TestClass"))!;
+                .Single(c => c.Identifier.Text == "TestClass"),
+            cancellationToken: TestContext.Current.CancellationToken)!;
         var classRef = new TypeRef(classType);
         Assert.Equal(classRef, new TypeRef(classType));
         Assert.False(classRef.IsEnumOrNullableEnum);
@@ -98,10 +106,11 @@ public static class ModelTests
 
         var baseType = semanticModel.GetDeclaredSymbol(
             semanticModel
-                .SyntaxTree.GetRoot()
+                .SyntaxTree.GetRoot(TestContext.Current.CancellationToken)
                 .DescendantNodes()
                 .OfType<ClassDeclarationSyntax>()
-                .Single(c => c.Identifier.Text == "AbstractClass"))!;
+                .Single(c => c.Identifier.Text == "AbstractClass"),
+            cancellationToken: TestContext.Current.CancellationToken)!;
         var baseRef = new TypeRef(baseType);
         Assert.Equal(baseRef, new TypeRef(baseType));
         Assert.True(baseRef.IsAbstract);
@@ -123,7 +132,8 @@ public static class ModelTests
                         in long c,
                         ref string d,
                         bool b = true) { }
-                    """)
+                    """,
+                    cancellationToken: TestContext.Current.CancellationToken)
             ],
             [CoreAssembly, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
@@ -131,7 +141,12 @@ public static class ModelTests
         var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
 
         var method = semanticModel.GetDeclaredSymbol(
-            semanticModel.SyntaxTree.GetRoot().DescendantNodes().OfType<LocalFunctionStatementSyntax>().Single())!;
+            semanticModel
+                .SyntaxTree.GetRoot(TestContext.Current.CancellationToken)
+                .DescendantNodes()
+                .OfType<LocalFunctionStatementSyntax>()
+                .Single(),
+            cancellationToken: TestContext.Current.CancellationToken)!;
 
         // get token symbol for System.Char
         var charSymbol = compilation.GetTypeByMetadataName("System.Char")!;
@@ -208,7 +223,8 @@ public static class ModelTests
                         object? ISomething.Explicit { get; set; }
                         public int Field;
                     }
-                    """)
+                    """,
+                    cancellationToken: TestContext.Current.CancellationToken)
             ],
             [CoreAssembly, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
@@ -218,7 +234,12 @@ public static class ModelTests
         var charSymbol = compilation.GetTypeByMetadataName("System.Char")!;
 
         var classSymbol = semanticModel.GetDeclaredSymbol(
-            semanticModel.SyntaxTree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>().Single())!;
+            semanticModel
+                .SyntaxTree.GetRoot(TestContext.Current.CancellationToken)
+                .DescendantNodes()
+                .OfType<ClassDeclarationSyntax>()
+                .Single(),
+            cancellationToken: TestContext.Current.CancellationToken)!;
 
         var flameSymbols = GetFlameSymbols(compilation, classSymbol);
         AnalysisCollector collector = new(classSymbol);
@@ -342,7 +363,8 @@ public static class ModelTests
                     abstract class NotConstructible : CsvConverterFactory<char>
                     {
                     }
-                    """)
+                    """,
+                    cancellationToken: TestContext.Current.CancellationToken)
             ],
             [CoreAssembly, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
@@ -354,10 +376,11 @@ public static class ModelTests
         var classSymbol = semanticModel.GetDeclaredSymbol(
             semanticModel
                 .SyntaxTree
-                .GetRoot()
+                .GetRoot(TestContext.Current.CancellationToken)
                 .DescendantNodes()
                 .OfType<ClassDeclarationSyntax>()
-                .Single(s => s.Identifier.Text == "TestClass"))!;
+                .Single(s => s.Identifier.Text == "TestClass"),
+            cancellationToken: TestContext.Current.CancellationToken)!;
 
         var flameSymbols = GetFlameSymbols(compilation, classSymbol);
         AnalysisCollector collector = new(classSymbol);
@@ -437,7 +460,8 @@ public static class ModelTests
                             public int Prop { get; set; }
                         }
                     }
-                    """)
+                    """,
+                    cancellationToken: TestContext.Current.CancellationToken)
             ],
             [CoreAssembly, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
@@ -447,10 +471,11 @@ public static class ModelTests
         var classSymbol = semanticModel.GetDeclaredSymbol(
             semanticModel
                 .SyntaxTree
-                .GetRoot()
+                .GetRoot(TestContext.Current.CancellationToken)
                 .DescendantNodes()
                 .OfType<ClassDeclarationSyntax>()
-                .Single(s => s.Identifier.Text == "Target"))!;
+                .Single(s => s.Identifier.Text == "Target"),
+            cancellationToken: TestContext.Current.CancellationToken)!;
         Assert.NotNull(classSymbol);
 
         var flameSymbols = GetFlameSymbols(compilation, classSymbol);
@@ -519,7 +544,8 @@ public static class ModelTests
                             }
                         }
                     }
-                    """)
+                    """,
+                    cancellationToken: TestContext.Current.CancellationToken)
             ],
             [CoreAssembly, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
@@ -529,10 +555,11 @@ public static class ModelTests
         var nestedSymbol = semanticModel.GetDeclaredSymbol(
             semanticModel
                 .SyntaxTree
-                .GetRoot()
+                .GetRoot(TestContext.Current.CancellationToken)
                 .DescendantNodes()
                 .OfType<TypeDeclarationSyntax>()
-                .Single(s => s.Identifier.Text == "Target"))!;
+                .Single(s => s.Identifier.Text == "Target"),
+            cancellationToken: TestContext.Current.CancellationToken)!;
 
         var actual = NestedType.Parse(nestedSymbol);
 

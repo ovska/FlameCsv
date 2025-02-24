@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using System.Text;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Tests.Utilities;
@@ -67,7 +66,7 @@ public static class ConstantPipeReaderTests
 
             Assert.Equal(0, stream.Position);
 
-            var result = await reader.ReadAsync();
+            var result = await reader.ReadAsync(TestContext.Current.CancellationToken);
 
             Assert.Equal(13, result.Buffer.Length);
             Assert.True(result.IsCompleted);
@@ -75,7 +74,7 @@ public static class ConstantPipeReaderTests
 
             // read again
             reader.AdvanceTo(result.Buffer.End, result.Buffer.End);
-            result = await reader.ReadAsync();
+            result = await reader.ReadAsync(TestContext.Current.CancellationToken);
 
             Assert.True(result.IsCompleted);
             Assert.Empty(result.Buffer.ToArray());
@@ -98,7 +97,7 @@ public static class ConstantPipeReaderTests
 
         Assert.IsType<ConstantPipeReader<char>>(pipeReader);
 
-        var result = await pipeReader.ReadAsync();
+        var result = await pipeReader.ReadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(13 - pos, result.Buffer.Length);
         Assert.True(result.IsCompleted);
@@ -106,7 +105,7 @@ public static class ConstantPipeReaderTests
 
         // read again
         pipeReader.AdvanceTo(result.Buffer.End, result.Buffer.End);
-        result = await pipeReader.ReadAsync();
+        result = await pipeReader.ReadAsync(TestContext.Current.CancellationToken);
 
         Assert.True(result.IsCompleted);
         Assert.Empty(result.Buffer.ToArray());

@@ -29,7 +29,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
         Initialize();
 
         _writer.WriteDelimiter();
-        await _writer.Writer.CompleteAsync(null);
+        await _writer.Writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal(",", Written);
     }
@@ -40,7 +40,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
         Initialize();
 
         _writer.WriteNewline();
-        await _writer.Writer.CompleteAsync(null);
+        await _writer.Writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal("\r\n", Written);
     }
@@ -53,7 +53,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
         _writer.WriteText("Test");
         _writer.WriteText("");
 
-        await _writer.Writer.CompleteAsync(null);
+        await _writer.Writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal("Test", Written);
     }
@@ -64,7 +64,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
         Initialize();
 
         _writer.WriteField(Formatter.Instance, null);
-        await _writer.Writer.CompleteAsync(null);
+        await _writer.Writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal("null", Written);
     }
@@ -77,7 +77,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
         _writer.WriteText("header1");
         _writer.WriteDelimiter();
         _writer.WriteText("header,withcomma");
-        await _writer.Writer.CompleteAsync(null);
+        await _writer.Writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal("header1,\"header,withcomma\"", Written);
     }
@@ -90,7 +90,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
         var value = new string('x', 500);
 
         _writer.WriteField(Formatter.Instance, value);
-        await _writer.Writer.CompleteAsync(null);
+        await _writer.Writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal(value, Written);
     }
@@ -104,16 +104,13 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
         var value = $"Test \"{new string('x', 114)}\" test";
 
         _writer.WriteField(Formatter.Instance, value);
-        await _writer.Writer.CompleteAsync(null);
+        await _writer.Writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
-        if (escapeMode)
-        {
-            Assert.Equal($"\"Test ^\"{new string('x', 114)}^\" test\"", Written);
-        }
-        else
-        {
-            Assert.Equal($"\"Test \"\"{new string('x', 114)}\"\" test\"", Written);
-        }
+        Assert.Equal(
+            escapeMode
+                ? $"\"Test ^\"{new string('x', 114)}^\" test\""
+                : $"\"Test \"\"{new string('x', 114)}\"\" test\"",
+            Written);
     }
 
     [Theory, InlineData(-1), InlineData(int.MaxValue)]
@@ -131,7 +128,13 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
     {
         var writer = CsvFieldWriter.Create(
             TextWriter.Null,
-            new BrokenOptions { Delimiter = ',', Quote = '"', Newline = "\n", Write = tokensWritten },
+            new BrokenOptions
+            {
+                Delimiter = ',',
+                Quote = '"',
+                Newline = "\n",
+                Write = tokensWritten
+            },
             bufferSize: 4096,
             false);
         Assert.Throws<InvalidOperationException>(() => writer.WriteText("test"));
@@ -150,8 +153,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
         Initialize(quoting);
 
         _writer.WriteField(Formatter.Instance, input);
-        await _writer.Writer.
-            CompleteAsync(null);
+        await _writer.Writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal(expected, Written);
     }

@@ -21,6 +21,7 @@ public class WritableBufferTests
 
         buffer.Clear();
         Assert.Equal(0, buffer.Length);
+        // ReSharper disable once AccessToDisposedClosure
         Assert.ThrowsAny<ArgumentOutOfRangeException>(() => buffer[0]);
 
         buffer.Dispose();

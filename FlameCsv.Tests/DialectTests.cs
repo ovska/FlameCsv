@@ -26,7 +26,7 @@ public static class DialectTests
         static void Assertions(CsvOptions<char> options, string expected, int newlineLength)
         {
             SearchValues<char> v = options.Dialect.GetFindToken(newlineLength);
-            Assert.Empty(expected.Where(c => !v.Contains(c)));
+            Assert.DoesNotContain(expected, c => !v.Contains(c));
         }
     }
 

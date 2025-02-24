@@ -14,7 +14,7 @@ public static partial class CsvRecordTests
 
         await using (var enumerator = CsvReader
                          .EnumerateAsync(new StringReader("A,B,C\r\n1,2,3\r\n4,5,6\r\n"))
-                         .GetAsyncEnumerator())
+                         .GetAsyncEnumerator(TestContext.Current.CancellationToken))
         {
             Assert.Equal(0, enumerator.Line);
             Assert.Equal(0, enumerator.Position);

@@ -25,6 +25,7 @@ public static class WriterInstanceTests
 
         writer.WriteField("a");
         writer.WriteField("b");
+        // ReSharper disable once AccessToDisposedClosure
         Assert.ThrowsAny<CsvWriteException>(() => writer.NextRecord());
     }
 }

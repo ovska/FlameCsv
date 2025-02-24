@@ -127,8 +127,6 @@ public static class MetaTests
     [Fact]
     public static void Should_Slice()
     {
-        var xxx = Meta.Plain(14, isEOL: true, 2);
-
         const string data = "abc,def,ghi,jkl,mno\r\npqr,stu,vwx,yz\r\n";
         Span<Meta> metaBuffer =
         [

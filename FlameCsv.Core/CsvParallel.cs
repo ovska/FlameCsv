@@ -12,7 +12,7 @@ namespace FlameCsv;
 /// Provides methods for parallel processing of CSV data.
 /// </summary>
 [PublicAPI]
-public static partial class CsvParallel
+public static class CsvParallel
 {
     internal static IEnumerable<TResult> GetParallelQuery<T, TResult>(
         CsvOptions<T> options,

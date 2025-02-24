@@ -99,7 +99,8 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                     PipeWriter.Create(output),
                     TestDataGenerator.Objects.Value,
                     ObjByteTypeMap.Default,
-                    options);
+                    options,
+                    TestContext.Current.CancellationToken);
             }
             else
             {
@@ -108,7 +109,8 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                     TestDataGenerator.Objects.Value,
                     ObjByteTypeMap.Default,
                     options,
-                    bufferSize: bufferSize);
+                    bufferSize: bufferSize,
+                    cancellationToken: TestContext.Current.CancellationToken);
             }
         }
         else
@@ -118,7 +120,8 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                 await CsvWriter.WriteAsync(
                     PipeWriter.Create(output),
                     TestDataGenerator.Objects.Value,
-                    options);
+                    options,
+                    TestContext.Current.CancellationToken);
             }
             else
             {
@@ -126,7 +129,8 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                     output,
                     TestDataGenerator.Objects.Value,
                     options,
-                    bufferSize: bufferSize);
+                    bufferSize: bufferSize,
+                    cancellationToken: TestContext.Current.CancellationToken);
             }
         }
 

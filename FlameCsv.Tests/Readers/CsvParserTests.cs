@@ -115,11 +115,16 @@ public class CsvParserTests
     [Fact]
     public void Should_Fail_If_Autodetected_Newline_Not_Found()
     {
-        using var parser = CsvParser.Create(
-            new CsvOptions<char> { Newline = null },
-            new ReadOnlySequence<char>(new string('x', 4096).AsMemory()));
-        // ReSharper disable once GenericEnumeratorNotDisposed
-        Assert.Throws<CsvFormatException>(() => parser.GetEnumerator().MoveNext());
+        Assert.Throws<CsvFormatException>(() =>
+        {
+            using var parser = CsvParser.Create(
+                new CsvOptions<char> { Newline = null },
+                new ReadOnlySequence<char>(new string('x', 4096).AsMemory()));
+
+            foreach (var _ in parser)
+            {
+            }
+        });
     }
 
     [Fact]
@@ -168,13 +173,13 @@ public class CsvParserTests
                 Encoding.UTF8,
                 bufferSize: data.Length - 1));
 
-        CsvReadResult<char> result = await reader.ReadAsync();
+        CsvReadResult<char> result = await reader.ReadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(Encoding.UTF8.GetString(data).ToCharArray(), result.Buffer.ToArray());
 
         await using var parser = CsvParser.Create(CsvOptions<char>.Default, reader);
 
-        await using var enumerator = parser.GetAsyncEnumerator();
+        await using var enumerator = parser.GetAsyncEnumerator(TestContext.Current.CancellationToken);
 
         Assert.False(parser.TryGetBuffered(out _));
 
@@ -182,7 +187,7 @@ public class CsvParserTests
         Assert.Equal("1,2,3", enumerator.Current.Record.ToString());
 
         // buffer is cleared on Advance
-        Assert.True(await parser.TryAdvanceReaderAsync());
+        Assert.True(await parser.TryAdvanceReaderAsync(TestContext.Current.CancellationToken));
 
         Assert.False(parser.TryGetBuffered(out _)); // buffer is cleared on Advance
         Assert.True(await enumerator.MoveNextAsync());

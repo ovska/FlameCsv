@@ -66,7 +66,7 @@ public sealed class PipeBufferWriterTests : IAsyncDisposable
 
         "Hello"u8.CopyTo(_writer.GetSpan());
         _writer.Advance("Hello".Length);
-        await _writer.CompleteAsync(null);
+        await _writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal("Hello", Written);
     }
@@ -78,7 +78,7 @@ public sealed class PipeBufferWriterTests : IAsyncDisposable
 
         "Hello"u8.ToArray().CopyTo(_writer.GetMemory());
         _writer.Advance("Hello".Length);
-        await _writer.CompleteAsync(null);
+        await _writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal("Hello", Written);
     }
@@ -97,7 +97,7 @@ public sealed class PipeBufferWriterTests : IAsyncDisposable
         "Xyz"u8.CopyTo(_writer.GetSpan());
         _writer.Advance("Xyz".Length);
 
-        await _writer.CompleteAsync(null);
+        await _writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal("FooBarXyz", Written);
     }
@@ -115,7 +115,7 @@ public sealed class PipeBufferWriterTests : IAsyncDisposable
         x28.CopyTo(_writer.GetSpan(28));
         _writer.Advance(x28.Length);
 
-        await _writer.CompleteAsync(null);
+        await _writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal(_x28 + _x28, Written);
     }
@@ -136,7 +136,7 @@ public sealed class PipeBufferWriterTests : IAsyncDisposable
         y64.CopyTo(dst.Span);
         _writer.Advance(y64.Length);
 
-        await _writer.CompleteAsync(null);
+        await _writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal(_x28 + _y64, Written);
     }
