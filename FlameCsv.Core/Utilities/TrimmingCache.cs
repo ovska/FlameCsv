@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -116,7 +115,7 @@ internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKe
 
         foreach ((TKey key, Entry entry) in @this._entries)
         {
-            if (Stopwatch.GetElapsedTime(entry.LastAccess, now) > threshold)
+            if (TimeSpan.FromMilliseconds(now - entry.LastAccess) > threshold)
             {
                 @this._entries.TryRemove(key, out _);
             }
