@@ -5,7 +5,6 @@ using FlameCsv.Tests.TestData;
 using FlameCsv.Tests.Utilities;
 using FlameCsv.Writing;
 using Xunit.Sdk;
-using static FlameCsv.CsvWriter;
 
 namespace FlameCsv.Tests.Writing;
 
@@ -40,7 +39,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         {
             if (outputType)
             {
-                Write(
+                CsvWriter.Write(
                     new StringWriter(output),
                     TestDataGenerator.Objects.Value,
                     ObjCharTypeMap.Default,
@@ -49,7 +48,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             }
             else
             {
-                WriteToString(
+                CsvWriter.WriteToString(
                     TestDataGenerator.Objects.Value,
                     ObjCharTypeMap.Default,
                     options,
@@ -60,7 +59,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         {
             if (outputType)
             {
-                Write(
+                CsvWriter.Write(
                     new StringWriter(output),
                     TestDataGenerator.Objects.Value,
                     options,
@@ -68,7 +67,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             }
             else
             {
-                WriteToString(
+                CsvWriter.WriteToString(
                     TestDataGenerator.Objects.Value,
                     options,
                     output);
@@ -107,7 +106,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
 
         if (sourceGen)
         {
-            await WriteAsync(
+            await CsvWriter.WriteAsync(
                 new StringWriter(output),
                 TestDataGenerator.Objects.Value,
                 ObjCharTypeMap.Default,
@@ -117,7 +116,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         }
         else
         {
-            await WriteAsync(
+            await CsvWriter.WriteAsync(
                 new StringWriter(output),
                 TestDataGenerator.Objects.Value,
                 options,
@@ -148,8 +147,12 @@ public class CsvTextWriterTests : CsvWriterTestsBase
 
         var tokenizer = new ReadOnlySpanTokenizer<char>(result, '\n');
 
+        CancellationToken token = TestContext.Current.CancellationToken;
+
         while (tokenizer.MoveNext())
         {
+            token.ThrowIfCancellationRequested();
+
             ReadOnlySpan<char> line = tokenizer.Current;
 
             if (crlf && !line.IsEmpty)
