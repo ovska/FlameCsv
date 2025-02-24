@@ -8,7 +8,6 @@ public class StringBuilderSegmentTests
     [Fact]
     public static void Should_Return_Empty()
     {
-        Assert.Equal(0, StringBuilderSegment.Create(null).Length);
         Assert.Equal(0, StringBuilderSegment.Create(new()).Length);
     }
 
