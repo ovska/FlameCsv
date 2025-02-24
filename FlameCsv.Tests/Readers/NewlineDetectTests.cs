@@ -73,9 +73,13 @@ public static class NewlineDetectTests
             bufferSize: segments ? 2048 : -1);
 
         using var parser = CsvParser.Create(new CsvOptions<char> { Newline = null }, in data);
+        using var enumerator = parser.GetEnumerator();
 
-        // ReSharper disable once GenericEnumeratorNotDisposed
-        if (shouldThrow) Assert.Throws<CsvFormatException>(() => parser.GetEnumerator().MoveNext());
+        if (shouldThrow)
+        {
+            // ReSharper disable once AccessToDisposedClosure
+            Assert.Throws<CsvFormatException>(() => enumerator.MoveNext());
+        }
     }
 
     public static TheoryData<bool, NewlineToken?, bool> NewlineData

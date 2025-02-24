@@ -35,7 +35,7 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
         Initialize();
 
         _writer.WriteDelimiter();
-        await _writer.Writer.CompleteAsync(null);
+        await _writer.Writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal(",", Written);
     }
@@ -46,7 +46,7 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
         Initialize();
 
         _writer.WriteNewline();
-        await _writer.Writer.CompleteAsync(null);
+        await _writer.Writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal("\r\n", Written);
     }
@@ -59,7 +59,7 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
         _writer.WriteText("Test");
         _writer.WriteText("");
 
-        await _writer.Writer.CompleteAsync(null);
+        await _writer.Writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal("Test", Written);
     }
@@ -70,7 +70,7 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
         Initialize();
 
         _writer.WriteField(Formatter.Instance, null);
-        await _writer.Writer.CompleteAsync(null);
+        await _writer.Writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal("null", Written);
     }
@@ -83,7 +83,7 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
         var value = new string('x', 500);
 
         _writer.WriteField(Formatter.Instance, value);
-        await _writer.Writer.CompleteAsync(null);
+        await _writer.Writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal(value, Written);
     }
@@ -97,7 +97,7 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
         var value = $"Test \"{new string('x', 114)}\" test";
 
         _writer.WriteField(Formatter.Instance, value);
-        await _writer.Writer.CompleteAsync(null);
+        await _writer.Writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal($"\"Test \"\"{new string('x', 114)}\"\" test\"", Written);
     }
@@ -124,7 +124,7 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
         Initialize(quoting);
 
         _writer.WriteField(Formatter.Instance, input);
-        await _writer.Writer.CompleteAsync(null);
+        await _writer.Writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal(expected, Written);
     }

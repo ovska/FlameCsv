@@ -5,6 +5,7 @@ using FlameCsv.Tests.TestData;
 using FlameCsv.Tests.Utilities;
 using FlameCsv.Writing;
 using Xunit.Sdk;
+using static FlameCsv.CsvWriter;
 
 namespace FlameCsv.Tests.Writing;
 
@@ -39,7 +40,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         {
             if (outputType)
             {
-                CsvWriter.Write(
+                Write(
                     new StringWriter(output),
                     TestDataGenerator.Objects.Value,
                     ObjCharTypeMap.Default,
@@ -48,7 +49,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             }
             else
             {
-                CsvWriter.WriteToString(
+                WriteToString(
                     TestDataGenerator.Objects.Value,
                     ObjCharTypeMap.Default,
                     options,
@@ -59,7 +60,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         {
             if (outputType)
             {
-                CsvWriter.Write(
+                Write(
                     new StringWriter(output),
                     TestDataGenerator.Objects.Value,
                     options,
@@ -67,7 +68,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             }
             else
             {
-                CsvWriter.WriteToString(
+                WriteToString(
                     TestDataGenerator.Objects.Value,
                     options,
                     output);
@@ -106,20 +107,22 @@ public class CsvTextWriterTests : CsvWriterTestsBase
 
         if (sourceGen)
         {
-            await CsvWriter.WriteAsync(
+            await WriteAsync(
                 new StringWriter(output),
                 TestDataGenerator.Objects.Value,
                 ObjCharTypeMap.Default,
                 options,
-                bufferSize: bufferSize);
+                bufferSize: bufferSize,
+                cancellationToken: TestContext.Current.CancellationToken);
         }
         else
         {
-            await CsvWriter.WriteAsync(
+            await WriteAsync(
                 new StringWriter(output),
                 TestDataGenerator.Objects.Value,
                 options,
-                bufferSize: bufferSize);
+                bufferSize: bufferSize,
+                cancellationToken: TestContext.Current.CancellationToken);
         }
 
         Validate(output, escape.HasValue, newline == "\r\n", header, quoting);
