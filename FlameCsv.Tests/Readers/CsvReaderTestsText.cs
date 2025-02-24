@@ -3,9 +3,6 @@ using FlameCsv.Binding;
 using FlameCsv.Enumeration;
 using FlameCsv.Tests.TestData;
 
-// ReSharper disable ConvertIfStatementToSwitchStatement
-// ReSharper disable LoopCanBeConvertedToQuery
-
 namespace FlameCsv.Tests.Readers;
 
 public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
@@ -57,51 +54,4 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
         Assert.Equal(DateTime.UnixEpoch, obj.LastLogin);
         Assert.Equal(Guid.Empty, obj.Token);
     }
-
-#if FEATURE_PARALLEL
-    [Theory, InlineData(false), InlineData(true)]
-    public async Task Should_Read_Parallel(bool isAsync)
-    {
-        const NewlineToken newline = NewlineToken.LF;
-        const bool header = true;
-        const bool trailingLF = true;
-        const Mode escaping = Mode.RFC;
-
-        using var pool = ReturnTrackingMemoryPool<char>.Create();
-
-        var data = TestDataGenerator.Generate<char>(newline, header, trailingLF, escaping);
-        var options = GetOptions(newline, header, escaping, pool);
-
-        List<Obj> objs;
-
-        if (isAsync)
-        {
-            var bag = new ConcurrentBag<Obj>();
-
-            await Parallel.ForEachAsync(
-                CsvParallel.Test<char, Obj>(new ReadOnlySequence<char>(data), options),
-                CancellationToken.None,
-                (obj, _) =>
-                {
-                    bag.Add(obj);
-                    return default;
-                });
-
-            objs = bag.ToList();
-        }
-        else
-        {
-            ParallelQuery<Obj> query = CsvParallel
-                .Read<char, Obj>(data, options)
-                .WithExecutionMode(ParallelExecutionMode.ForceParallelism)
-                .WithMergeOptions(ParallelMergeOptions.NotBuffered);
-
-            objs = [..query];
-        }
-
-        objs.Sort((a, b) => a.Id.CompareTo(b.Id));
-
-        await Validate(new SyncAsyncEnumerable<Obj>(objs), escaping);
-    }
-#endif
 }

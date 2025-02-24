@@ -87,7 +87,7 @@ internal static class TestDataGenerator
             key,
             static key => new Lazy<ReadOnlyMemory<char>>(() =>
             {
-                var (newLine, writeHeader, writeTrailingNewline, escaping) = key;
+                (string newLine, bool writeHeader, bool writeTrailingNewline, Mode escaping) = key;
 
                 var writer = new StringBuilder(capacity: RequiredCapacity);
 
@@ -97,8 +97,12 @@ internal static class TestDataGenerator
                     writer.Append(newLine);
                 }
 
+                CancellationToken token = TestContext.Current.CancellationToken;
+
                 for (int i = 0; i < 1_000; i++)
                 {
+                    token.ThrowIfCancellationRequested();
+
                     if (i != 0)
                         writer.Append(newLine);
 
@@ -174,7 +178,7 @@ internal static class TestDataGenerator
             key,
             static key => new Lazy<ReadOnlyMemory<byte>>(() =>
             {
-                var (newLine, writeHeader, writeTrailingNewline, escaping) = key;
+                (string newLine, bool writeHeader, bool writeTrailingNewline, Mode escaping) = key;
 
                 var innerWriter = new ArrayBufferWriter<byte>(initialCapacity: RequiredCapacity);
                 var writer = U8.CreateWriter(innerWriter);
@@ -185,8 +189,12 @@ internal static class TestDataGenerator
                     writer.Append(newLine);
                 }
 
+                CancellationToken token = TestContext.Current.CancellationToken;
+
                 for (int i = 0; i < 1_000; i++)
                 {
+                    token.ThrowIfCancellationRequested();
+
                     if (i != 0)
                         writer.Append(newLine);
 

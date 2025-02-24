@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Collections;
 using System.Runtime.CompilerServices;
 using FlameCsv.IO;
 using JetBrains.Annotations;
@@ -10,12 +11,12 @@ namespace FlameCsv.Enumeration;
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 /// <remarks>
-/// This type intentionally does not implement <see cref="IEnumerable{T}"/>, as it's incompatible with many
-/// LINQ methods, and parallel queries.
-/// It can be used in a sync or async <see langword="foreach"/>-loop.
+/// This type does not support <see cref="Parallel"/> or most LINQ operators.
 /// </remarks>
 [PublicAPI]
-public sealed class CsvRecordEnumerable<T> where T : unmanaged, IBinaryInteger<T>
+public sealed class CsvRecordEnumerable<T>
+    : IEnumerable<CsvValueRecord<T>>, IAsyncEnumerable<CsvValueRecord<T>>
+    where T : unmanaged, IBinaryInteger<T>
 {
     private readonly ICsvPipeReader<T> _reader;
     private readonly CsvOptions<T> _options;
@@ -88,4 +89,15 @@ public sealed class CsvRecordEnumerable<T> where T : unmanaged, IBinaryInteger<T
             }
         }
     }
+
+    [MustDisposeResource]
+    IEnumerator<CsvValueRecord<T>> IEnumerable<CsvValueRecord<T>>.GetEnumerator() => GetEnumerator();
+
+    [MustDisposeResource]
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    [MustDisposeResource]
+    IAsyncEnumerator<CsvValueRecord<T>> IAsyncEnumerable<CsvValueRecord<T>>.GetAsyncEnumerator(
+        CancellationToken cancellationToken)
+        => GetAsyncEnumerator(cancellationToken);
 }

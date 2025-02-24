@@ -7,7 +7,6 @@ using FlameCsv.Tests.TestData;
 using FlameCsv.Tests.Utilities;
 
 // ReSharper disable AccessToDisposedClosure
-// ReSharper disable InconsistentNaming
 
 namespace FlameCsv.Tests.Readers;
 
@@ -234,7 +233,8 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
 
             async IAsyncEnumerable<CsvValueRecord<T>> GetEnumerable()
             {
-                await foreach (var record in GetRecords(stream, options, bufferSize))
+                await foreach (var record in GetRecords(stream, options, bufferSize)
+                                   .WithCancellation(TestContext.Current.CancellationToken))
                 {
                     yield return record;
                 }
@@ -252,7 +252,9 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
     {
         int i = 0;
 
-        await foreach (var obj in enumerable.ConfigureAwait(false))
+        await foreach (var obj in enumerable
+                           .ConfigureAwait(false)
+                           .WithCancellation(TestContext.Current.CancellationToken))
         {
             Assert.Equal(i, obj.Id);
             Assert.Equal(escaping != Mode.None ? $"Name\"{i}" : $"Name-{i}", obj.Name);
@@ -345,17 +347,19 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
             .AsParallel()
             .AsOrdered()
             .WithMergeOptions(ParallelMergeOptions.NotBuffered)
-            .WithExecutionMode(ParallelExecutionMode.ForceParallelism);
+            .WithExecutionMode(ParallelExecutionMode.ForceParallelism)
+            .WithCancellation(TestContext.Current.CancellationToken);
 
     protected static async IAsyncEnumerable<Obj> WrapParallel(IAsyncEnumerable<Obj> asyncEnumerable)
     {
-        ConcurrentBag<Obj> bag = [];
+        ConcurrentQueue<Obj> bag = [];
 
         await Parallel.ForEachAsync(
             asyncEnumerable,
+            TestContext.Current.CancellationToken,
             (obj, _) =>
             {
-                bag.Add(obj);
+                bag.Enqueue(obj);
                 return default;
             });
 
