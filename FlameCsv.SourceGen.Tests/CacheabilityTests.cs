@@ -1,4 +1,6 @@
-﻿using System.Reflection;
+﻿using System.Collections.Immutable;
+using System.Reflection;
+using Basic.Reference.Assemblies;
 using FlameCsv.Attributes;
 using FlameCsv.SourceGen.Models;
 using Microsoft.CodeAnalysis;
@@ -10,14 +12,14 @@ public class TypeMapTests
 {
     private static readonly MetadataReference[] _metadataReferences =
     [
-        Basic.Reference.Assemblies.Net90.References.SystemRuntime,
-        MetadataReference.CreateFromFile(typeof(CsvTypeMapAttribute<,>).Assembly.Location)
+        Net90.References.SystemRuntime,
+        MetadataReference.CreateFromFile(typeof(CsvTypeMapAttribute<,>).Assembly.Location),
     ];
 
     [Fact]
     public void Test_Cacheability()
     {
-        var compilation = CSharpCompilation.Create(
+        CSharpCompilation compilation = CSharpCompilation.Create(
             "TestProject",
             [
                 CSharpSyntaxTree.ParseText(
@@ -30,20 +32,21 @@ public class TypeMapTests
                         public int Id { get; set; }
                         public string? Name { get; set; }
                     }
-                    """)
+                    """,
+                    cancellationToken: TestContext.Current.CancellationToken),
             ],
             _metadataReferences,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
-        var generator = new TypeMapGenerator();
-        var sourceGenerator = generator.AsSourceGenerator();
+        TypeMapGenerator generator = new();
+        ISourceGenerator sourceGenerator = generator.AsSourceGenerator();
 
         GeneratorDriver driver = CSharpGeneratorDriver.Create(
-            generators: [sourceGenerator],
-            driverOptions: new GeneratorDriverOptions(default, trackIncrementalGeneratorSteps: true));
+            [sourceGenerator],
+            driverOptions: new GeneratorDriverOptions(default, true));
 
         // Run the generator once
-        driver = driver.RunGenerators(compilation);
+        driver = driver.RunGenerators(compilation, TestContext.Current.CancellationToken);
         // Assert.Equal(
         //     IncrementalStepRunReason.New,
         //     driver.GetRunResult().Results.Single().TrackedOutputSteps.Single(x => x.Key != "FlameCsv_Diagnostics").Value.Single().Outputs.Single().Reason);
@@ -57,20 +60,22 @@ public class TypeMapTests
             step => step.Outputs.All(x => x.Reason == IncrementalStepRunReason.New));
 
         // Update the compilation and rerun the generator
-        compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText("// dummy"));
-        driver = driver.RunGenerators(compilation);
+        compilation = compilation.AddSyntaxTrees(
+            CSharpSyntaxTree.ParseText("// dummy", cancellationToken: TestContext.Current.CancellationToken));
+        driver = driver.RunGenerators(compilation, TestContext.Current.CancellationToken);
 
         // Assert the driver doesn't recompute the output
-        var result = driver.GetRunResult().Results.Single();
-        var allOutputs = result
+        GeneratorRunResult result = driver.GetRunResult().Results.Single();
+        IEnumerable<(object Value, IncrementalStepRunReason Reason)> allOutputs = result
             .TrackedOutputSteps.SelectMany(outputStep => outputStep.Value)
             .SelectMany(output => output.Outputs);
 
         Assert.All(allOutputs, output => Assert.Equal(IncrementalStepRunReason.Cached, output.Reason));
 
         // Assert the driver use the cached result from typemap
-        var assemblyNameOutputs = result.TrackedSteps["FlameCsv_TypeMap"].Single().Outputs;
-        var output2 = Assert.Single(assemblyNameOutputs);
+        ImmutableArray<(object Value, IncrementalStepRunReason Reason)> assemblyNameOutputs
+            = result.TrackedSteps["FlameCsv_TypeMap"].Single().Outputs;
+        (object Value, IncrementalStepRunReason Reason) output2 = Assert.Single(assemblyNameOutputs);
         Assert.Equal(IncrementalStepRunReason.Cached, output2.Reason);
     }
 
@@ -82,20 +87,31 @@ public class TypeMapTests
 
         static void AssertEquatable(Type type, HashSet<Type> handled)
         {
-            if (!handled.Add(type)) return;
-            if (type.IsPrimitive || type == typeof(string)) return;
-            if (type.IsAssignableTo(typeof(IEquatable<>).MakeGenericType(type))) return;
+            if (!handled.Add(type))
+            {
+                return;
+            }
+
+            if (type.IsPrimitive || type == typeof(string))
+            {
+                return;
+            }
+
+            if (type.IsAssignableTo(typeof(IEquatable<>).MakeGenericType(type)))
+            {
+                return;
+            }
 
             if (type.GetInterfaces().Any(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IEnumerable<>)))
             {
-                var elementType = type.GetElementType() ?? type.GetGenericArguments()[0];
+                Type elementType = type.GetElementType() ?? type.GetGenericArguments()[0];
 
                 // ReSharper disable once TailRecursiveCall
                 AssertEquatable(elementType, handled);
                 return;
             }
 
-            foreach (var member in type.GetMembers(BindingFlags.Public | BindingFlags.Instance))
+            foreach (MemberInfo member in type.GetMembers(BindingFlags.Public | BindingFlags.Instance))
             {
                 if (member is PropertyInfo property)
                 {

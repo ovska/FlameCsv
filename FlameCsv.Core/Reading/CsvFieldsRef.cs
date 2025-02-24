@@ -17,7 +17,6 @@ namespace FlameCsv.Reading;
 public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, IBinaryInteger<T>
 {
     private readonly ref readonly CsvDialect<T> _dialect;
-    private readonly int _newlineLength;
     private readonly ref T _data;
     private readonly Span<T> _unescapeBuffer;
     private readonly Allocator<T> _allocator;
@@ -30,7 +29,6 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
         ReadOnlySpan<Meta> fieldMeta = fields.Fields;
 
         _dialect = ref parser._dialect;
-        _newlineLength = parser._newline.Length;
         _allocator = parser._unescapeAllocator;
         _data = ref MemoryMarshal.GetReference(fields.Data.Span);
         _firstMeta = ref MemoryMarshal.GetReference(fieldMeta);
@@ -53,7 +51,6 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
         ReadOnlySpan<Meta> fieldMeta = fields.Fields;
 
         _dialect = ref parser._dialect;
-        _newlineLength = parser._newline.Length;
         _allocator = allocator;
         _data = ref MemoryMarshal.GetReference(fields.Data.Span);
         _firstMeta = ref Unsafe.AsRef(in fieldMeta[0]);

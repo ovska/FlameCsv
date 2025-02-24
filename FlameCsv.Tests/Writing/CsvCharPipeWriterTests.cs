@@ -62,7 +62,7 @@ public sealed class CsvCharPipeWriterTests : IAsyncDisposable
 
         "Hello".CopyTo(_writer.GetSpan());
         _writer.Advance("Hello".Length);
-        await _writer.CompleteAsync(null);
+        await _writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal("Hello", Written);
     }
@@ -74,7 +74,7 @@ public sealed class CsvCharPipeWriterTests : IAsyncDisposable
 
         "Hello".AsMemory().CopyTo(_writer.GetMemory());
         _writer.Advance("Hello".Length);
-        await _writer.CompleteAsync(null);
+        await _writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal("Hello", Written);
     }
@@ -93,7 +93,7 @@ public sealed class CsvCharPipeWriterTests : IAsyncDisposable
         "Xyz".CopyTo(_writer.GetSpan());
         _writer.Advance("Xyz".Length);
 
-        await _writer.CompleteAsync(null);
+        await _writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal("FooBarXyz", Written);
     }
@@ -110,7 +110,7 @@ public sealed class CsvCharPipeWriterTests : IAsyncDisposable
         x28.CopyTo(_writer.GetSpan(28));
         _writer.Advance(x28.Length);
 
-        await _writer.CompleteAsync(null);
+        await _writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal(x28 + x28, Written);
     }
@@ -129,7 +129,7 @@ public sealed class CsvCharPipeWriterTests : IAsyncDisposable
         y64.CopyTo(dst.Span);
         _writer.Advance(y64.Length);
 
-        await _writer.CompleteAsync(null);
+        await _writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal(x28 + y64, Written);
     }
