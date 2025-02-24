@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Text;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Tests.Utilities;

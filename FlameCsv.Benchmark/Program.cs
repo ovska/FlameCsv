@@ -2,9 +2,6 @@
 using BenchmarkDotNet.Engines;
 using BenchmarkDotNet.Jobs;
 
-// new CsvEnumerateBench().Flame_byte();
-// return;
-
 var config = DefaultConfig.Instance
     //.AddJob(Job.Default
     //    .WithStrategy(RunStrategy.Throughput)

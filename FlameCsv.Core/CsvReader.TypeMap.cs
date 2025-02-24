@@ -123,16 +123,8 @@ public static partial class CsvReader
         Guard.CanRead(stream);
 
         options ??= CsvOptions<char>.Default;
-        StreamReader textReader = new(
-            stream,
-            encoding: encoding,
-            bufferSize: readerOptions.BufferSize,
-            leaveOpen: readerOptions.LeaveOpen);
-        ICsvPipeReader<char> reader = CsvPipeReader.Create(textReader, options._memoryPool, readerOptions);
-        return new CsvTypeMapEnumerable<char, TValue>(
-            reader,
-            options,
-            typeMap);
+        var reader = CsvPipeReader.Create(stream, encoding, options._memoryPool, readerOptions);
+        return new CsvTypeMapEnumerable<char, TValue>(reader, options, typeMap);
     }
 
     /// <summary>
