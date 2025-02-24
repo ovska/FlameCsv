@@ -1,5 +1,6 @@
 ﻿using System.IO.Pipelines;
 using FlameCsv.Binding;
+using FlameCsv.Enumeration;
 using FlameCsv.Tests.TestData;
 
 // ReSharper disable ConvertIfStatementToSwitchStatement
@@ -30,7 +31,7 @@ public sealed class CsvReaderTestsUtf8 : CsvReaderTestsBase<byte>
             options);
     }
 
-    protected override IAsyncEnumerable<CsvValueRecord<byte>> GetRecords(
+    protected override CsvRecordEnumerable<byte> GetRecords(
         Stream stream,
         CsvOptions<byte> options,
         int bufferSize)

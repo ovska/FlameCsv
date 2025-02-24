@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using System.Collections;
 using System.Runtime.CompilerServices;
 using FlameCsv.IO;
 using JetBrains.Annotations;
@@ -11,12 +10,12 @@ namespace FlameCsv.Enumeration;
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 /// <remarks>
-/// This enumerable does not support parallel enumeration.
+/// This type intentionally does not implement <see cref="IEnumerable{T}"/>, as it's incompatible with many
+/// LINQ methods, and parallel queries.
+/// It can be used in a sync or async <see langword="foreach"/>-loop.
 /// </remarks>
 [PublicAPI]
-public sealed class CsvRecordEnumerable<T>
-    : IEnumerable<CsvValueRecord<T>>, IAsyncEnumerable<CsvValueRecord<T>>
-    where T : unmanaged, IBinaryInteger<T>
+public sealed class CsvRecordEnumerable<T> where T : unmanaged, IBinaryInteger<T>
 {
     private readonly ICsvPipeReader<T> _reader;
     private readonly CsvOptions<T> _options;
@@ -79,28 +78,14 @@ public sealed class CsvRecordEnumerable<T>
     public async IAsyncEnumerable<CsvRecord<T>> PreserveAsync(
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        // the ref-property is masked by the wrapping type
-#pragma warning disable CA2007
-        await using var enumerator = GetAsyncEnumerator(cancellationToken);
-#pragma warning restore CA2007
+        var enumerator = GetAsyncEnumerator(cancellationToken);
 
-        while (await enumerator.MoveNextAsync().ConfigureAwait(false))
+        await using (enumerator.ConfigureAwait(false))
         {
-            yield return new CsvRecord<T>(in enumerator.Current);
+            while (await enumerator.MoveNextAsync().ConfigureAwait(false))
+            {
+                yield return new CsvRecord<T>(in enumerator.Current);
+            }
         }
-    }
-
-    [MustDisposeResource]
-    IEnumerator<CsvValueRecord<T>> IEnumerable<CsvValueRecord<T>>.GetEnumerator() => GetEnumerator();
-
-    [MustDisposeResource]
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-    /// <inheritdoc />
-    [MustDisposeResource]
-    IAsyncEnumerator<CsvValueRecord<T>> IAsyncEnumerable<CsvValueRecord<T>>.GetAsyncEnumerator(
-        CancellationToken cancellationToken)
-    {
-        return new CsvRecordEnumerator<T>(_options, _reader, cancellationToken);
     }
 }

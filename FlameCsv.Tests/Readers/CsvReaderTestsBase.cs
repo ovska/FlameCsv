@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
+using FlameCsv.Enumeration;
 using FlameCsv.Tests.TestData;
 using FlameCsv.Tests.Utilities;
 
@@ -98,7 +99,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
 {
     protected abstract CsvTypeMap<T, Obj> TypeMap { get; }
 
-    protected abstract IAsyncEnumerable<CsvValueRecord<T>> GetRecords(
+    protected abstract CsvRecordEnumerable<T> GetRecords(
         Stream stream,
         CsvOptions<T> options,
         int bufferSize);
@@ -161,19 +162,13 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
             var memory = TestDataGenerator.Generate<T>(newline, header, trailingLF, escaping);
             var sequence = MemorySegment<T>.AsSequence(memory, bufferSize, emptySegmentFreq);
 
-            IEnumerable<CsvValueRecord<T>> enumerable;
-
-            if (parallel)
+            IEnumerable<CsvValueRecord<T>> GetEnumerable()
             {
-                throw null!;
-            }
-            else
-            {
-                enumerable = CsvReader.Enumerate(sequence, options);
+                foreach (var record in CsvReader.Enumerate(sequence, options)) yield return record;
             }
 
             var items = GetItems(
-                SyncAsyncEnumerable.Create(CsvReader.Enumerate(sequence, options)),
+                SyncAsyncEnumerable.Create(GetEnumerable()),
                 sourceGen,
                 header,
                 newline);
@@ -236,9 +231,17 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
             CsvOptions<T> options = GetOptions(newline, header, escaping, pool);
 
             var data = TestDataGenerator.Generate<byte>(newline, header, trailingLF, escaping);
-
             await using var stream = data.AsStream();
-            var items = GetItems(GetRecords(stream, options, bufferSize), sourceGen, header, newline);
+
+            async IAsyncEnumerable<CsvValueRecord<T>> GetEnumerable()
+            {
+                await foreach (var record in GetRecords(stream, options, bufferSize))
+                {
+                    yield return record;
+                }
+            }
+
+            var items = GetItems(GetEnumerable(), sourceGen, header, newline);
             await foreach (var item in items.ConfigureAwait(false))
             {
                 yield return item;
