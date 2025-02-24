@@ -36,5 +36,8 @@
         <ProjectReference Include="..\FlameCsv.SourceGen\FlameCsv.SourceGen.csproj"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest"/>
+    </ItemGroup>
 
 </Project>

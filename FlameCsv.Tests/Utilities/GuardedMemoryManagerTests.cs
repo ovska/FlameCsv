@@ -1,14 +1,23 @@
 ﻿using System.Runtime.Versioning;
 
+// ReSharper disable UnusedMember.Global
+
 namespace FlameCsv.Tests.Utilities;
 
-public class GuardedMemoryManagerCharTests : GuardedMemoryManagerTestsBase<char>;
-public class GuardedMemoryManagerByteTests : GuardedMemoryManagerTestsBase<byte>;
+public class GuardedMemoryManagerCharTests : GuardedMemoryManagerTestsBase<char>
+{
+    public static bool IsNotWindows => !OperatingSystem.IsWindows();
+}
+
+public class GuardedMemoryManagerByteTests : GuardedMemoryManagerTestsBase<byte>
+{
+    public static bool IsNotWindows => !OperatingSystem.IsWindows();
+}
 
 [SupportedOSPlatform("windows")]
 public abstract class GuardedMemoryManagerTestsBase<T> where T : unmanaged
 {
-    [Theory, MemberData(nameof(AllocationData))]
+    [Theory(Skip = "GMM is windows only", SkipWhen = "IsNotWindows"), MemberData(nameof(AllocationData))]
     public void Should_Allocate_Guarded_Memory(bool fromEnd, int size)
     {
         Assert.Equal(4096, Environment.SystemPageSize);
