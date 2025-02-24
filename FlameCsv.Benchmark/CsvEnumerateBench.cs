@@ -18,17 +18,34 @@ namespace FlameCsv.Benchmark;
 // [BenchmarkDotNet.Diagnostics.Windows.Configs.EtwProfiler]
 public class CsvEnumerateBench
 {
-    private static readonly byte[] _bytes
-        = File.ReadAllBytes("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv");
-    // = File.ReadAllBytes(@"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\Data\65K_Records_Data.csv");
+    [Params(true, false)] public bool AltData { get; set; }
+    [Params(true, false)] public bool CRLF { get; set; }
 
-    private static readonly string _chars = Encoding.UTF8.GetString(_bytes);
-    private static MemoryStream GetFileStream() => new MemoryStream(_bytes);
-    private static readonly ReadOnlySequence<byte> _byteSeq = new(_bytes.AsMemory());
-    private static readonly ReadOnlySequence<char> _charSeq = new(_chars.AsMemory());
+    [GlobalSetup]
+    public void Setup()
+    {
+        string path = AltData
+            ? @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\Data\65K_Records_Data.csv"
+            : @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Tests\TestData\SampleCSVFile_556kb.csv";
 
-    private static readonly CsvOptions<byte> _optionsByte = new() { Newline = "\n" };
-    private static readonly CsvOptions<char> _optionsChar = new() { Newline = "\n" };
+        _string = File
+            .ReadAllText(path, Encoding.UTF8)
+            .ReplaceLineEndings(CRLF ? "\r\n" : "\n");
+
+        _byteArray = Encoding.UTF8.GetBytes(_string);
+        _byteSeq = new ReadOnlySequence<byte>(_byteArray);
+        _charSeq = new ReadOnlySequence<char>(_string.AsMemory());
+
+        _optionsByte = new() { Newline = CRLF ? "\r\n" : "\n" };
+        _optionsChar = new() { Newline = CRLF ? "\r\n" : "\n" };
+    }
+
+    private byte[] _byteArray = [];
+    private string _string = "";
+    private ReadOnlySequence<byte> _byteSeq;
+    private ReadOnlySequence<char> _charSeq;
+    private CsvOptions<byte> _optionsByte = null!;
+    private CsvOptions<char> _optionsChar = null!;
 
     [Benchmark(Baseline = true)]
     public void Flame_byte()
@@ -42,7 +59,7 @@ public class CsvEnumerateBench
         }
     }
 
-    // [Benchmark]
+    [Benchmark]
     public void Flame_char()
     {
         foreach (var record in CsvParser.Create(_optionsChar, in _charSeq))
@@ -54,7 +71,7 @@ public class CsvEnumerateBench
         }
     }
 
-    // [Benchmark]
+    [Benchmark]
     public void Sep_byte()
     {
         using var reader = nietras
@@ -66,7 +83,7 @@ public class CsvEnumerateBench
                     HasHeader = false,
                     Unescape = true,
                 })
-            .From(_bytes);
+            .From(_byteArray);
 
         foreach (var row in reader)
         {
@@ -89,7 +106,7 @@ public class CsvEnumerateBench
                     HasHeader = false,
                     Unescape = true,
                 })
-            .FromText(_chars);
+            .FromText(_string);
 
         foreach (var row in reader)
         {
@@ -112,7 +129,7 @@ public class CsvEnumerateBench
         }
     }
 
-    #if FEATURE_PARALLEL
+#if FEATURE_PARALLEL
     [Benchmark]
     public void Flame_Parallel()
     {

@@ -79,13 +79,10 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(stream);
         Guard.CanRead(stream);
 
-        return EnumerateAsync(
-            new StreamReader(
-                stream,
-                encoding: encoding,
-                bufferSize: readerOptions.BufferSize,
-                leaveOpen: readerOptions.LeaveOpen),
-            options ?? CsvOptions<char>.Default);
+        options ??= CsvOptions<char>.Default;
+        return new CsvRecordEnumerable<char>(
+            CsvPipeReader.Create(stream, encoding, options._memoryPool, readerOptions),
+            options);
     }
 
     /// <summary>

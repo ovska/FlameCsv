@@ -1,13 +1,14 @@
 ﻿using System.Buffers;
+using System.Diagnostics;
 using System.Text;
 
 namespace FlameCsv.Utilities;
 
 internal sealed class StringBuilderSegment : ReadOnlySequenceSegment<char>
 {
-    public static ReadOnlySequence<char> Create(StringBuilder? builder)
+    public static ReadOnlySequence<char> Create(StringBuilder builder)
     {
-        if (builder is null) return default;
+        ArgumentNullException.ThrowIfNull(builder);
 
         var enumerator = builder.GetChunks();
 
@@ -25,6 +26,8 @@ internal sealed class StringBuilderSegment : ReadOnlySequenceSegment<char>
         {
             last = last.Append(enumerator.Current);
         } while (enumerator.MoveNext());
+
+        Debug.Assert((last.Memory.Length + last.RunningIndex) == builder.Length);
 
         return new(first, 0, last, last.Memory.Length);
     }

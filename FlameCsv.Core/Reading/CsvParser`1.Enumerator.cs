@@ -41,8 +41,7 @@ partial class CsvParser<T>
             _parser = parser;
         }
 
-        [UnscopedRef]
-        internal readonly ref readonly CsvFields<T> Field => ref _field;
+        [UnscopedRef] internal readonly ref readonly CsvFields<T> Field => ref _field;
 
         /// <summary>
         /// Current record.
@@ -128,6 +127,9 @@ partial class CsvParser<T>
         private sealed class Box
         {
             public CsvFields<T> Value;
+
+            // ReSharper disable once UnassignedField.Local
+            public EnumeratorStack Stack;
         }
 
         private readonly CsvParser<T> _parser;
@@ -145,7 +147,7 @@ partial class CsvParser<T>
         public CsvFieldsRef<T> Current
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => new(in _field.Value, []);
+            get => new(in _field.Value, Unsafe.AsRef(in _field.Stack).AsSpan());
         }
 
         /// <inheritdoc cref="Enumerator.MoveNext"/>

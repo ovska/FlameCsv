@@ -44,6 +44,8 @@ internal sealed class ConstantPipeReader<T> : ICsvPipeReader<T> where T : unmana
 
     public CsvReadResult<T> Read()
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         // simulate reading; advance the data source to keep this perf optimization transparent to the caller
         _onRead?.Invoke(_state, _data.Length);
 
@@ -52,13 +54,23 @@ internal sealed class ConstantPipeReader<T> : ICsvPipeReader<T> where T : unmana
 
     public ValueTask<CsvReadResult<T>> ReadAsync(CancellationToken cancellationToken = default)
     {
-        return cancellationToken.IsCancellationRequested
-            ? ValueTask.FromCanceled<CsvReadResult<T>>(cancellationToken)
-            : new ValueTask<CsvReadResult<T>>(Read());
+        if (_disposed)
+        {
+            return ValueTask.FromException<CsvReadResult<T>>(
+                new ObjectDisposedException(typeof(ConstantPipeReader<T>).FullName));
+        }
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return ValueTask.FromCanceled<CsvReadResult<T>>(cancellationToken);
+        }
+
+        return new ValueTask<CsvReadResult<T>>(Read());
     }
 
     public void AdvanceTo(SequencePosition consumed, SequencePosition examined)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         _data = _data.Slice(consumed);
     }
 

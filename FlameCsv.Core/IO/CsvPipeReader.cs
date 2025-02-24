@@ -22,7 +22,8 @@ public static class CsvPipeReader
     /// The <see cref="StringBuilder"/> must not be modified while the reader is in use.
     /// </remarks>
     /// <param name="csv">String builder containing the CSV</param>
-    public static ICsvPipeReader<char> Create(StringBuilder? csv) => Create(StringBuilderSegment.Create(csv));
+    public static ICsvPipeReader<char> Create(StringBuilder? csv)
+        => Create(csv is null ? ReadOnlySequence<char>.Empty : StringBuilderSegment.Create(csv));
 
     /// <summary>
     /// Creates a new pipe reader over the CSV data.
@@ -130,5 +131,28 @@ public static class CsvPipeReader
 
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_pos")]
         static extern ref int PositionRef(StringReader stringReader);
+    }
+
+    /// <summary>
+    /// Creates a new CSV reader instance from a <see cref="Stream"/> and an <see cref="Encoding"/>.
+    /// </summary>
+    /// <param name="stream">The stream</param>
+    /// <param name="encoding">Encoding used to read the bytes</param>
+    /// <param name="memoryPool">Memory pool used; defaults to <see cref="MemoryPool{T}.Shared"/>.</param>
+    /// <param name="options">Options to configure the reader</param>
+    /// <returns></returns>
+    public static ICsvPipeReader<char> Create(
+        Stream stream,
+        Encoding? encoding,
+        MemoryPool<char>? memoryPool = null,
+        CsvReaderOptions options = default)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        Guard.CanRead(stream);
+
+        return new TextPipeReader(
+            new StreamReader(stream, encoding, bufferSize: options.BufferSize, leaveOpen: options.LeaveOpen),
+            memoryPool ?? MemoryPool<char>.Shared,
+            in options);
     }
 }
