@@ -46,18 +46,15 @@ in a [Meta-struct](https://github.com/ovska/FlameCsv/blob/main/FlameCsv.Core/Rea
 the `End` index of the field in the data, whether the field is the last field in a record (`IsEOL`), and the amount of
 special characters in the field.
 
-Because the metadata only contains the end index, and additional special case exists that specifies the start of the data.
-`End` and `IsEOL` are used to determine the start index of the next field, while the special count is used to determine
-if the quotes need to be trimmed or the value needs to be unescaped. The very first field in the data is preceded by the special
-"start"-value, which has and `End` of zero.
+In addition to the end of the _data_ in each field, each field stores the offset needed to get the start index
+of each field. These are stored in the lowest two bits of the quote/escape count (so they can be bitmasked out quickly).
+This is either 1 for the delimiter, or for end-of-line fields 1 or 2 depending on newline length. The third bit
+of special count is reserved for the info if the field contains escape characters (unix-style escaping). The meta-struct
+creation is nearly branchless.
 
-Since a field metadata only knows its' end index, a record with 5 fields actually contains 6 metadata fields, with the first
-field being either the special start-value, or the `IsEOL` field of the previous record. The `IsEOL`-flag is used to
-determine the total length of the field; in the case of 2-character newline, the next record starts 1 character later
-than with a non-newline (only a delimiter) or single character newline (e.g., just `\n`).
-
-The metadata struct has been jammed into 8 bytes (size of a `long`) by using ugly bit mask hacks and the expectation
-that no single CSV field needs over 30 bits (1&nbsp;073&nbsp;741&nbsp;824) to store the quote/escape count.
+The metadata struct has been jammed into 8 bytes (size of a `long`) by using bit flags in some extra space (such
+as the sign-bit of the end index), and the expectation that no single CSV field needs over 29 bits
+(536&nbsp;870&nbsp;912) to store the quote/escape count.
 
 
 ## Writing
@@ -66,18 +63,18 @@ The writing routines are based on @"System.Buffers.IBufferWriter`1" which allows
 writer's buffer. In practice, the writer returns an arbitrarily sized destination buffer, which is passed to
 a converter or other code that writes directly to the buffer.
 
-FlameCsv augments the writer type with a few extra APIs using @"FlameCsv.Writing.ICsvBufferWriter`1":
- - The writer keeps tracks of the written data, and contains the @"FlameCsv.Writing.ICsvBufferWriter`1.NeedsFlush" property that
+FlameCsv augments the writer type with a few extra APIs using @"FlameCsv.Writing.ICsvPipeWriter`1":
+ - The writer keeps tracks of the written data, and contains the @"FlameCsv.Writing.ICsvPipeWriter`1.NeedsFlush" property that
    determines if the internal buffers are close to full, and the written data should be flushed. The limit of "close to full"
    is arbitrarily determined, and future performance profiling might be needed (you are free to do so, or file an issue for it).
- - @"FlameCsv.Writing.ICsvBufferWriter`1.Flush" and @"FlameCsv.Writing.ICsvBufferWriter`1.FlushAsync(System.Threading.CancellationToken)"
+ - @"FlameCsv.Writing.ICsvPipeWriter`1.Flush" and @"FlameCsv.Writing.ICsvPipeWriter`1.FlushAsync(System.Threading.CancellationToken)"
    flush the writer to the destination, be it a @"System.IO.Stream", @"System.IO.TextWriter" or @"System.IO.Pipelines.PipeWriter".
- - @"FlameCsv.Writing.ICsvBufferWriter`1.Complete(System.Exception)" and @"FlameCsv.Writing.ICsvBufferWriter`1.CompleteAsync(System.Exception,System.Threading.CancellationToken)"
+ - @"FlameCsv.Writing.ICsvPipeWriter`1.Complete(System.Exception)" and @"FlameCsv.Writing.ICsvPipeWriter`1.CompleteAsync(System.Exception,System.Threading.CancellationToken)"
    that mirrors the pipelines-API. Completion disposes the writer and returns pooled buffers,
    and flushes the leftover data unless an exception was observed while writing.
 
 When writing to @"System.IO.Stream" or @"System.IO.TextWriter", the destination memory is rented, and is written in large
-blocks when flushing. Writing to @"System.IO.Pipelines.PipeWriter" delegates this aspect to the pipe and uses its' buffer directly.
+blocks when flushing. Writing to @"System.IO.Pipelines.PipeWriter" delegates all of this to the pipe.
 
 ### Escaping and quoting
 
@@ -116,6 +113,7 @@ Note that buffers larger than @"System.Buffers.MemoryPool`1.MaxBufferSize?displa
 heap allocated. This is a non-issue for the default array-backed pool, and even for e.g., pagesize-limited
 native memory pools would only apply if the CSV contained records or fields over 4096 bytes long.
 You can track when this happens by collecting metrics from counter `memory.buffer_too_large` in the meter `FlameCsv`.
+The default pool is array-backed, so you never need to worry about this when not using a custom implementation.
 
 
 ## Dynamic code generation
