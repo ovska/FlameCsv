@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using FlameCsv.Binding;
+using FlameCsv.Enumeration;
 using FlameCsv.Tests.TestData;
 
 // ReSharper disable ConvertIfStatementToSwitchStatement
@@ -11,7 +12,7 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
 {
     protected override CsvTypeMap<char, Obj> TypeMap => ObjCharTypeMap.Default;
 
-    protected override IAsyncEnumerable<CsvValueRecord<char>> GetRecords(
+    protected override CsvRecordEnumerable<char> GetRecords(
         Stream stream,
         CsvOptions<char> options,
         int bufferSize)
