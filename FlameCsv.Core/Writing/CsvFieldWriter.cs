@@ -24,7 +24,7 @@ internal static class CsvFieldWriter
         }
         catch
         {
-            textWriter.Dispose();
+            if (!leaveOpen) textWriter.Dispose();
             throw;
         }
     }
@@ -60,7 +60,7 @@ internal static class CsvFieldWriter
         }
         catch
         {
-            stream.Dispose();
+            if (!leaveOpen) stream.Dispose();
             throw;
         }
     }
