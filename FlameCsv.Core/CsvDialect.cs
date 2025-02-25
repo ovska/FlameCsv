@@ -41,7 +41,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     /// 1-2 characters long newline string, or empty if newline is automatically detected
     /// (<c>CRLF</c> is used while writing in this case).
     /// </summary>
-    public required ReadOnlySpan<T> Newline
+    public ReadOnlySpan<T> Newline
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _newline;
@@ -109,7 +109,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     /// <summary>
     /// Optional character used for escaping special characters.
     /// </summary>
-    public required T? Escape { get; init; }
+    public T? Escape { get; init; }
 
     private readonly LazyValues _lazyValues = new();
 

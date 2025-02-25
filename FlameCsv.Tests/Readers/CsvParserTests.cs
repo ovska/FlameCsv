@@ -1,4 +1,6 @@
 ﻿using System.Buffers;
+using System.IO.Compression;
+using System.IO.Pipelines;
 using System.Text;
 using FlameCsv.Exceptions;
 using FlameCsv.IO;
@@ -115,16 +117,17 @@ public class CsvParserTests
     [Fact]
     public void Should_Fail_If_Autodetected_Newline_Not_Found()
     {
-        Assert.Throws<CsvFormatException>(() =>
-        {
-            using var parser = CsvParser.Create(
-                new CsvOptions<char> { Newline = null },
-                new ReadOnlySequence<char>(new string('x', 4096).AsMemory()));
-
-            foreach (var _ in parser)
+        Assert.Throws<CsvFormatException>(
+            () =>
             {
-            }
-        });
+                using var parser = CsvParser.Create(
+                    new CsvOptions<char> { Newline = null },
+                    new ReadOnlySequence<char>(new string('x', 4096).AsMemory()));
+
+                foreach (var _ in parser)
+                {
+                }
+            });
     }
 
     [Fact]
@@ -199,5 +202,39 @@ public class CsvParserTests
 
         Assert.True(parser.TryReadLine(out var line, isFinalBlock: true));
         Assert.Equal("7,8,9", line.Record.ToString());
+    }
+
+    [Fact]
+    public void Should_Reset()
+    {
+        (ICsvPipeReader<char> reader, bool resetable)[] charData =
+        [
+            (CsvPipeReader.Create(ReadOnlySequence<char>.Empty), true),
+            (CsvPipeReader.Create(new StringBuilder("test")), true),
+            (CsvPipeReader.Create(new StringReader("wrapped in constant")), true),
+            (CsvPipeReader.Create(new StreamReader(new MemoryStream())), false),
+            (CsvPipeReader.Create(new MemoryStream(), Encoding.UTF8), false),
+        ];
+
+        foreach ((ICsvPipeReader<char> reader, bool resetable) in charData)
+        {
+            using var parser = CsvParser.Create(CsvOptions<char>.Default, reader);
+            Assert.Equal(resetable, parser.TryReset());
+        }
+
+        (ICsvPipeReader<byte> reader, bool resetable)[] byteData =
+        [
+            (CsvPipeReader.Create(ReadOnlySequence<byte>.Empty), true),
+            (CsvPipeReader.Create(new MemoryStream()), true),
+            (CsvPipeReader.Create(new MemoryStream([1, 2, 3])), true),
+            (CsvPipeReader.Create(new GZipStream(Stream.Null, CompressionMode.Decompress)), false),
+            (new PipeReaderWrapper(PipeReader.Create(new MemoryStream())), false), // pipereader is not
+        ];
+
+        foreach ((ICsvPipeReader<byte> reader, bool resetable) in byteData)
+        {
+            using var parser = CsvParser.Create(CsvOptions<byte>.Default, reader);
+            Assert.Equal(resetable, parser.TryReset());
+        }
     }
 }

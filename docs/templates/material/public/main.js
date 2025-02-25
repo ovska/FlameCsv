@@ -82,10 +82,6 @@ export default {
                     }
                 }
             }
-
-            // // check if the string "[RequiresUnreferencedCode" is present
-            // if (elem.textContent.includes('[RequiresUnreferencedCode')) {
-            // }
         };
     },
 }

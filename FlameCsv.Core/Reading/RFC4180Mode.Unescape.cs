@@ -10,6 +10,7 @@ using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Reading;
 
+[ExcludeFromCodeCoverage]
 internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
 {
     [MethodImpl(MethodImplOptions.NoInlining)]
