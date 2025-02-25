@@ -8,6 +8,7 @@ using System.Text;
 
 namespace FlameCsv.Reading.Internal;
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal static class SimdVector
 {
@@ -84,6 +85,7 @@ internal interface ISimdVector<T, TVector>
     [JetBrains.Annotations.Pure] nuint ExtractMostSignificantBits();
 }
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal readonly struct Vec64Char : ISimdVector<char, Vec64Char>
 {
@@ -150,6 +152,7 @@ internal readonly struct Vec64Char : ISimdVector<char, Vec64Char>
     public override int GetHashCode() => throw new NotSupportedException();
 }
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal readonly struct Vec128Char : ISimdVector<char, Vec128Char>
 {
@@ -216,6 +219,7 @@ internal readonly struct Vec128Char : ISimdVector<char, Vec128Char>
     public override int GetHashCode() => throw new NotSupportedException();
 }
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal readonly struct Vec256Char : ISimdVector<char, Vec256Char>
 {
@@ -282,6 +286,7 @@ internal readonly struct Vec256Char : ISimdVector<char, Vec256Char>
     public override int GetHashCode() => throw new NotSupportedException();
 }
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal readonly struct Vec64Byte : ISimdVector<byte, Vec64Byte>
 {
@@ -339,6 +344,7 @@ internal readonly struct Vec64Byte : ISimdVector<byte, Vec64Byte>
     public override int GetHashCode() => throw new NotSupportedException();
 }
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal readonly struct Vec128Byte : ISimdVector<byte, Vec128Byte>
 {
@@ -396,6 +402,7 @@ internal readonly struct Vec128Byte : ISimdVector<byte, Vec128Byte>
     public override int GetHashCode() => throw new NotSupportedException();
 }
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal readonly struct Vec256Byte : ISimdVector<byte, Vec256Byte>
 {
@@ -453,6 +460,7 @@ internal readonly struct Vec256Byte : ISimdVector<byte, Vec256Byte>
     public override int GetHashCode() => throw new NotSupportedException();
 }
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal readonly struct NoOpVector<T> : ISimdVector<T, NoOpVector<T>> where T : unmanaged, IBinaryInteger<T>
 {
     public static bool IsSupported => false;

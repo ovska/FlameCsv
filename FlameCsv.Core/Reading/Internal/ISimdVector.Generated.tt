@@ -23,6 +23,7 @@ using System.Text;
 
 namespace FlameCsv.Reading.Internal;
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal static class SimdVector
 {
@@ -112,6 +113,7 @@ internal interface ISimdVector<T, TVector>
             string typeName = $"Vec{size}{name}";
 #>
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal readonly struct <#= typeName #> : ISimdVector<<#= keyword #>, <#= typeName #>>
 {
@@ -221,6 +223,7 @@ internal readonly struct <#= typeName #> : ISimdVector<<#= keyword #>, <#= typeN
         }
 #>
 
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal readonly struct NoOpVector<T> : ISimdVector<T, NoOpVector<T>> where T : unmanaged, IBinaryInteger<T>
 {
     public static bool IsSupported => false;

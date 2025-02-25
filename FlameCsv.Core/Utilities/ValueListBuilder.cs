@@ -3,10 +3,12 @@
 #nullable enable
 using System.Buffers;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace FlameCsv.Utilities;
 
+[ExcludeFromCodeCoverage]
 internal ref struct ValueListBuilder<T>
 {
     private Span<T> _span;

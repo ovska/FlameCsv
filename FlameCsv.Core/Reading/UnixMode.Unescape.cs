@@ -6,6 +6,7 @@ using System.Text;
 
 namespace FlameCsv.Reading;
 
+[ExcludeFromCodeCoverage]
 internal static class UnixMode<T> where T : unmanaged, IBinaryInteger<T>
 {
     public static void Unescape(

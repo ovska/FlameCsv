@@ -112,4 +112,54 @@ public static class DialectTests
         Assert.False(SimdVector.IsSupported(in inNewline));
 #endif
     }
+
+    [Fact]
+    public static void Should_Validate_Newline_Length()
+    {
+        _ = new NewlineBuffer<char>(['x']);
+        _ = new NewlineBuffer<char>(['x', 'x']);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new NewlineBuffer<char>(Array.Empty<char>()));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new NewlineBuffer<char>(['x', 'x', 'x']));
+    }
+
+    [Fact]
+    public static void Should_Override_NeedsQuoting()
+    {
+        var sv = SearchValues.Create("test".AsSpan());
+        var dialect = new CsvDialect<char>
+        {
+            NeedsQuoting = sv,
+            Delimiter = ',',
+            Quote = '"',
+        };
+        Assert.Same(sv, dialect.NeedsQuoting);
+    }
+
+    [Fact]
+    public static void Should_Equal()
+    {
+        var def = CsvOptions<char>.Default.Dialect;
+        var def2 = CsvOptions<char>.Default.Dialect;
+        var withEscape = new CsvOptions<char> { Escape = '\\' }.Dialect;
+        var withNewline = new CsvOptions<char> { Newline = "\n" }.Dialect;
+        var withWhitespace = new CsvOptions<char> { Whitespace = " " }.Dialect;
+
+        Assert.Equal(def, def2);
+        Assert.NotEqual(def, withEscape);
+        Assert.NotEqual(def, withNewline);
+        Assert.NotEqual(def, withWhitespace);
+
+        // ReSharper disable once RedundantWithExpression
+        Assert.Equal(def, def with { });
+
+        Assert.Equal(def.GetHashCode(), def2.GetHashCode());
+        Assert.NotEqual(def.GetHashCode(), withEscape.GetHashCode());
+        Assert.NotEqual(def.GetHashCode(), withNewline.GetHashCode());
+        Assert.NotEqual(def.GetHashCode(), withWhitespace.GetHashCode());
+
+        Assert.True(def.Equals((object)def2));
+        Assert.False(def.Equals(new object()));
+        Assert.True(def == def2);
+        Assert.False(def != def2);
+    }
 }

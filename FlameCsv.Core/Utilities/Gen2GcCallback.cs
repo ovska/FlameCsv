@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
@@ -16,6 +17,7 @@ namespace FlameCsv.Utilities;
 /// Schedules a callback roughly every gen 2 GC (you may see a Gen 0 and Gen 1 but only once)
 /// (We can fix this by capturing the Gen 2 count at startup and testing, but I mostly don't care)
 /// </summary>
+[ExcludeFromCodeCoverage]
 internal sealed class Gen2GcCallback : CriticalFinalizerObject
 {
     private readonly Func<bool>? _callback0;
