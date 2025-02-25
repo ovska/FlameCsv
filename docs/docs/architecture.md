@@ -6,9 +6,9 @@ uid: architecture
 
 ## Foreword
 
-This document is a general info-dump on the inner workings and design philosophy of FlameCsv. Not one wordo of it is
-required (or perhaps even useful) to use the library. It should provide some insight for those interested in the
-design choices and inner workings.
+This document is a general info-dump on the inner workings and design philosophy of FlameCsv. Not one word of it is
+required (or perhaps even useful) to use the library, but should provide some insight for those interested in the
+internals.
 
 ## Reading
 
