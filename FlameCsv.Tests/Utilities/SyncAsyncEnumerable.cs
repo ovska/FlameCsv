@@ -11,6 +11,7 @@ internal sealed class SyncAsyncEnumerable<T>(IEnumerable<T> inner) : IAsyncEnume
 {
     public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
+        if (!cancellationToken.CanBeCanceled) cancellationToken = TestContext.Current.CancellationToken;
         return new Enumerator(inner.GetEnumerator(), cancellationToken);
     }
 
