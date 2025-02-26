@@ -2,11 +2,16 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
+using System.Runtime.Intrinsics.Wasm;
+using System.Runtime.Intrinsics.X86;
 using System.Text;
 
 #pragma warning disable CS0649 // Field is never assigned to, and will always have its default value
 
 namespace FlameCsv.Reading.Internal;
+
+// this code borrows heavily from Ascii.Utility.cs in System.Text.Ascii (MIT license)
 
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
@@ -17,11 +22,10 @@ internal static class SimdVector
     /// all tokens are ASCII.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsSupported<T>(ref readonly CsvDialect<T> d)
-        where T : unmanaged, IBinaryInteger<T> =>
-        d.IsAscii &&
-        ((Unsafe.SizeOf<T>() == sizeof(byte) && (Vec256Byte.IsSupported || Vec128Byte.IsSupported || Vec64Byte.IsSupported)) ||
-         (Unsafe.SizeOf<T>() == sizeof(char) && (Vec256Char.IsSupported || Vec128Char.IsSupported || Vec64Char.IsSupported)));
+    public static bool IsSupported<T>(ref readonly CsvDialect<T> dialect) where T : unmanaged, IBinaryInteger<T>
+    {
+        return dialect.IsAscii && TryGetMaxSupportedCount<T>(out int count) && count > 0;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryGetMaxSupportedCount<T>(out int count) where T : unmanaged
@@ -147,6 +151,9 @@ internal readonly struct Vec64Char : ISimdVector<char, Vec64Char>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator Vec64Char(Vector64<byte> value) => Unsafe.As<Vector64<byte>, Vec64Char>(ref value);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static explicit operator Vector64<byte>(Vec64Char value) => Unsafe.As<Vec64Char, Vector64<byte>>(ref value);
+
     public override string ToString() => _value.ToString();
     public override bool Equals(object obj) => throw new NotSupportedException();
     public override int GetHashCode() => throw new NotSupportedException();
@@ -196,14 +203,33 @@ internal readonly struct Vec128Char : ISimdVector<char, Vec128Char>
         var maxAscii = Vector128.Create((ushort)127);
         var lower = Vector128.Min(v0, maxAscii);
         var upper = Vector128.Min(v1, maxAscii);
-        return Vector128.Narrow(lower, upper);
+
+        if (Sse2.IsSupported)
+        {
+            return Sse2.PackUnsignedSaturate(lower.AsInt16(), upper.AsInt16());
+        }
+        else if (AdvSimd.Arm64.IsSupported)
+        {
+            return AdvSimd.Arm64.UnzipEven(lower.AsByte(), upper.AsByte());
+        }
+        else if (PackedSimd.IsSupported)
+        {
+            return PackedSimd.ConvertNarrowingSaturateUnsigned(lower.AsInt16(), upper.AsInt16());
+        }
+        else
+        {
+            return Vector128.Narrow(lower, upper);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec128Char Or(Vec128Char left, Vec128Char right) => Vector128.BitwiseOr(left._value, right._value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public nuint ExtractMostSignificantBits() => (nuint)_value.ExtractMostSignificantBits();
+    public nuint ExtractMostSignificantBits() => 
+        Avx.IsSupported ? (nuint)(uint)Avx.MoveMask(_value) : 
+        Sse2.IsSupported ? (nuint)(uint)Sse2.MoveMask(_value) : 
+        (nuint)_value.ExtractMostSignificantBits();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(Vec128Char left, Vec128Char right) => left._value == right._value;
@@ -213,6 +239,9 @@ internal readonly struct Vec128Char : ISimdVector<char, Vec128Char>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator Vec128Char(Vector128<byte> value) => Unsafe.As<Vector128<byte>, Vec128Char>(ref value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static explicit operator Vector128<byte>(Vec128Char value) => Unsafe.As<Vec128Char, Vector128<byte>>(ref value);
 
     public override string ToString() => _value.ToString();
     public override bool Equals(object obj) => throw new NotSupportedException();
@@ -263,14 +292,25 @@ internal readonly struct Vec256Char : ISimdVector<char, Vec256Char>
         var maxAscii = Vector256.Create((ushort)127);
         var lower = Vector256.Min(v0, maxAscii);
         var upper = Vector256.Min(v1, maxAscii);
-        return Vector256.Narrow(lower, upper);
+
+        if (Avx2.IsSupported)
+        {
+            var packed = Avx2.PackUnsignedSaturate(lower.AsInt16(), upper.AsInt16());
+            return Avx2.Permute4x64(packed.AsInt64(), 0b_11_01_10_00).AsByte();
+        }
+        else
+        {
+            return Vector256.Narrow(lower, upper);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vec256Char Or(Vec256Char left, Vec256Char right) => Vector256.BitwiseOr(left._value, right._value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public nuint ExtractMostSignificantBits() => (nuint)_value.ExtractMostSignificantBits();
+    public nuint ExtractMostSignificantBits() => 
+        Avx2.IsSupported ? (nuint)(uint)Avx2.MoveMask(_value) : 
+        (nuint)_value.ExtractMostSignificantBits();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(Vec256Char left, Vec256Char right) => left._value == right._value;
@@ -280,6 +320,9 @@ internal readonly struct Vec256Char : ISimdVector<char, Vec256Char>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator Vec256Char(Vector256<byte> value) => Unsafe.As<Vector256<byte>, Vec256Char>(ref value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static explicit operator Vector256<byte>(Vec256Char value) => Unsafe.As<Vec256Char, Vector256<byte>>(ref value);
 
     public override string ToString() => _value.ToString();
     public override bool Equals(object obj) => throw new NotSupportedException();
@@ -339,6 +382,9 @@ internal readonly struct Vec64Byte : ISimdVector<byte, Vec64Byte>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator Vec64Byte(Vector64<byte> value) => Unsafe.As<Vector64<byte>, Vec64Byte>(ref value);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static explicit operator Vector64<byte>(Vec64Byte value) => Unsafe.As<Vec64Byte, Vector64<byte>>(ref value);
+
     public override string ToString() => _value.ToString();
     public override bool Equals(object obj) => throw new NotSupportedException();
     public override int GetHashCode() => throw new NotSupportedException();
@@ -386,7 +432,10 @@ internal readonly struct Vec128Byte : ISimdVector<byte, Vec128Byte>
     public static Vec128Byte Or(Vec128Byte left, Vec128Byte right) => Vector128.BitwiseOr(left._value, right._value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public nuint ExtractMostSignificantBits() => (nuint)_value.ExtractMostSignificantBits();
+    public nuint ExtractMostSignificantBits() => 
+        Avx.IsSupported ? (nuint)(uint)Avx.MoveMask(_value) : 
+        Sse2.IsSupported ? (nuint)(uint)Sse2.MoveMask(_value) : 
+        (nuint)_value.ExtractMostSignificantBits();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(Vec128Byte left, Vec128Byte right) => left._value == right._value;
@@ -396,6 +445,9 @@ internal readonly struct Vec128Byte : ISimdVector<byte, Vec128Byte>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator Vec128Byte(Vector128<byte> value) => Unsafe.As<Vector128<byte>, Vec128Byte>(ref value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static explicit operator Vector128<byte>(Vec128Byte value) => Unsafe.As<Vec128Byte, Vector128<byte>>(ref value);
 
     public override string ToString() => _value.ToString();
     public override bool Equals(object obj) => throw new NotSupportedException();
@@ -444,7 +496,9 @@ internal readonly struct Vec256Byte : ISimdVector<byte, Vec256Byte>
     public static Vec256Byte Or(Vec256Byte left, Vec256Byte right) => Vector256.BitwiseOr(left._value, right._value);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public nuint ExtractMostSignificantBits() => (nuint)_value.ExtractMostSignificantBits();
+    public nuint ExtractMostSignificantBits() => 
+        Avx2.IsSupported ? (nuint)(uint)Avx2.MoveMask(_value) : 
+        (nuint)_value.ExtractMostSignificantBits();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(Vec256Byte left, Vec256Byte right) => left._value == right._value;
@@ -454,6 +508,9 @@ internal readonly struct Vec256Byte : ISimdVector<byte, Vec256Byte>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator Vec256Byte(Vector256<byte> value) => Unsafe.As<Vector256<byte>, Vec256Byte>(ref value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static explicit operator Vector256<byte>(Vec256Byte value) => Unsafe.As<Vec256Byte, Vector256<byte>>(ref value);
 
     public override string ToString() => _value.ToString();
     public override bool Equals(object obj) => throw new NotSupportedException();
