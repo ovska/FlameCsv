@@ -182,6 +182,25 @@ public static class MetaTests
         }
     }
 
+    [Theory]
+    [MemberData(nameof(NewlineData))]
+    public static void Should_Find_Last_Newline(bool[] values, int expected)
+    {
+        var metas = values.Select(static b => Meta.Plain(0, isEOL: b, 2)).ToArray();
+
+        if (expected == -1)
+        {
+            Assert.False(Meta.HasEOL(metas, out _));
+        }
+        else
+        {
+            Assert.True(Meta.HasEOL(metas, out int index));
+            Assert.Equal(Array.FindLastIndex(metas, m => m.IsEOL), index);
+        }
+
+        Assert.False(Meta.HasEOL([], out _));
+    }
+
     public static TheoryData<bool[], int> NewlineData
         => new()
         {

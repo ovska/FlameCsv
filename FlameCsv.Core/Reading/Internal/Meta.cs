@@ -374,19 +374,50 @@ internal readonly struct Meta : IEquatable<Meta>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool HasEOL(scoped ReadOnlySpan<Meta> meta, out int lastIndex)
     {
-        lastIndex = meta.Length - 1;
+        nint index = meta.Length - 1;
+        ref Meta first = ref MemoryMarshal.GetReference(meta);
 
-        // TODO: vectorize me?
-        while (lastIndex >= 0)
+        while (index >= 3)
         {
-            if (meta[lastIndex].IsEOL)
+            if ((Unsafe.Add(ref first, index)._endAndEol & EOLMask) != 0)
             {
+                lastIndex = (int)index;
                 return true;
             }
 
-            lastIndex--;
+            if ((Unsafe.Add(ref first, index - 1)._endAndEol & EOLMask) != 0)
+            {
+                lastIndex = (int)(index - 1);
+                return true;
+            }
+
+            if ((Unsafe.Add(ref first, index - 2)._endAndEol & EOLMask) != 0)
+            {
+                lastIndex = (int)(index - 2);
+                return true;
+            }
+
+            if ((Unsafe.Add(ref first, index - 3)._endAndEol & EOLMask) != 0)
+            {
+                lastIndex = (int)(index - 3);
+                return true;
+            }
+
+            index -= 4;
         }
 
+        while (index >= 0)
+        {
+            if ((Unsafe.Add(ref first, index)._endAndEol & EOLMask) != 0)
+            {
+                lastIndex = (int)index;
+                return true;
+            }
+
+            index--;
+        }
+
+        Unsafe.SkipInit(out lastIndex);
         return false;
     }
 
