@@ -3,10 +3,13 @@
   <PropertyGroup>
     <Version>0.1.0</Version>
     <RootNamespace>FlameCsv</RootNamespace>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IsTrimmable>true</IsTrimmable>
     <IsAotCompatible>true</IsAotCompatible>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <PropertyGroup Condition="false">
@@ -26,14 +29,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FlameCsv.SourceGen\FlameCsv.SourceGen.csproj" ReferenceOutputAssembly="false" PackAsAnalyzer="true" />
-  </ItemGroup>
-
-  <!--Can be enabled intermittently-->
-  <ItemGroup Condition="false">
-    <PackageReference Include="ErrorProne.NET.Structs" Version="0.6.1-beta.1">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
