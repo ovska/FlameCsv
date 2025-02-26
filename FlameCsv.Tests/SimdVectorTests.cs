@@ -1,5 +1,4 @@
 ﻿using System.Runtime.Intrinsics;
-using System.Text;
 using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Tests;

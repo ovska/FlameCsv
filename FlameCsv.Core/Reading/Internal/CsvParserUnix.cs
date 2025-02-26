@@ -147,13 +147,17 @@ internal sealed class CsvParserUnix<T>(
             var lastLine = _multisegmentAllocator.AsMemory(_sequence);
             _sequence = default;
 
-            // the remaining data is either after a delimiter if fields is non-empty, or
-            // some trailing data after the last newline.
-            // this should _not_ be an EOL as that flag is used for determining record length w/ the newline
-            fieldMeta.Append(Meta.Unix(lastLine.Length, quoteCount, escapeCount, isEOL: false, _newline.Length));
+            // check if the last line was only whitespace
+            if (_dialect.Whitespace.IsEmpty || !(lastLine = lastLine.Trim(_dialect.Whitespace)).IsEmpty)
+            {
+                // the remaining data is either after a delimiter if fields is non-empty, or
+                // some trailing data after the last newline.
+                // this should be an EOL with newline length 0
+                fieldMeta.Append(Meta.Unix(lastLine.Length, quoteCount, escapeCount, isEOL: true, newlineLength: 0));
 
-            fields = new CsvFields<T>(this, lastLine, GetSegmentMeta(fieldMeta.AsSpan()));
-            return true;
+                fields = new CsvFields<T>(this, lastLine, GetSegmentMeta(fieldMeta.AsSpan()));
+                return true;
+            }
         }
 
         Unsafe.SkipInit(out fields);

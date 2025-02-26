@@ -103,7 +103,8 @@ internal sealed class CsvParserRFC4180<T>(
 
                 if (newline.Length == 1 || reader.IsNext(newline.Second, advancePast: true))
                 {
-                    fieldMeta.Append(Meta.RFC((int)reader.Consumed - newline.Length, quoteCount, isEOL: true, _newline.Length));
+                    fieldMeta.Append(
+                        Meta.RFC((int)reader.Consumed - newline.Length, quoteCount, isEOL: true, _newline.Length));
 
                     fields = new CsvFields<T>(
                         this,
@@ -129,12 +130,16 @@ internal sealed class CsvParserRFC4180<T>(
             var lastLine = _multisegmentAllocator.AsMemory(_sequence);
             _sequence = default;
 
-            // the last field ended in a delimiter, so there must be at least one field after it
-            // this should _not_ be an EOL as that flag is used for determining record length w/ the newline
-            fieldMeta.Append(Meta.RFC(lastLine.Length, quoteCount, isEOL: false, _newline.Length));
+            // check if the last line was only whitespace
+            if (_dialect.Whitespace.IsEmpty || !(lastLine = lastLine.Trim(_dialect.Whitespace)).IsEmpty)
+            {
+                // the last field ended in a delimiter, so there must be at least one field after it
+                // this should be an EOL with newline length 0
+                fieldMeta.Append(Meta.RFC(lastLine.Length, quoteCount, isEOL: true, newlineLength: 0));
 
-            fields = new CsvFields<T>(this, lastLine, GetSegmentMeta(fieldMeta.AsSpan()));
-            return true;
+                fields = new CsvFields<T>(this, lastLine, GetSegmentMeta(fieldMeta.AsSpan()));
+                return true;
+            }
         }
 
         Unsafe.SkipInit(out fields);
