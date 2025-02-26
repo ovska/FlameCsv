@@ -15,7 +15,7 @@ public sealed class CsvCharPipeWriterTests : IAsyncDisposable
     {
         await using (_textWriter)
         {
-            await _writer.CompleteAsync(null);
+            await _writer.CompleteAsync(null, TestContext.Current.CancellationToken);
         }
     }
 
