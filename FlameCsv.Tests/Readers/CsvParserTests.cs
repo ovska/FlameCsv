@@ -228,7 +228,7 @@ public class CsvParserTests
             (CsvPipeReader.Create(new MemoryStream()), true),
             (CsvPipeReader.Create(new MemoryStream([1, 2, 3])), true),
             (CsvPipeReader.Create(new GZipStream(Stream.Null, CompressionMode.Decompress)), false),
-            (new PipeReaderWrapper(PipeReader.Create(new MemoryStream())), false), // pipereader is not
+            (new PipeReaderWrapper(PipeReader.Create(new MemoryStream())), false), // pipereader is not resetable
         ];
 
         foreach ((ICsvPipeReader<byte> reader, bool resetable) in byteData)
@@ -236,5 +236,26 @@ public class CsvParserTests
             using var parser = CsvParser.Create(CsvOptions<byte>.Default, reader);
             Assert.Equal(resetable, parser.TryReset());
         }
+    }
+
+    [Theory, InlineData(true), InlineData(false)]
+    public void Should_Skip_Whitespace_Last_Line(bool unix)
+    {
+        const string data = "A,B,C\nD,E,F\n\t \t";
+
+        CsvOptions<char> options = new()
+        {
+            Whitespace = " \t", Newline = "\n", Escape = unix ? '\\' : null,
+        };
+
+        List<string> lines = [];
+
+        // ReSharper disable once NotDisposedResource
+        foreach (var line in CsvParser.Create(options, CsvPipeReader.Create(data.AsMemory())))
+        {
+            lines.Add(line.Record.ToString());
+        }
+
+        Assert.Equal(["A,B,C", "D,E,F"], lines);
     }
 }

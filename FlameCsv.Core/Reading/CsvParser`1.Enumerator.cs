@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using FlameCsv.Reading.Internal;
@@ -41,7 +42,13 @@ partial class CsvParser<T>
             _parser = parser;
         }
 
-        [UnscopedRef] internal readonly ref readonly CsvFields<T> Field => ref _field;
+        /// <summary>
+        /// Returns an unscoped read-only reference to the field value that <see cref="Current"/>
+        /// is constructed from.
+        /// </summary>
+        [UnscopedRef]
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public readonly ref readonly CsvFields<T> UnsafeGetFields() => ref _field;
 
         /// <summary>
         /// Current record.
@@ -142,6 +149,12 @@ partial class CsvParser<T>
             _cancellationToken = cancellationToken;
             _field = new();
         }
+
+        /// <summary>
+        /// Returns a read-only reference to the field value that <see cref="Current"/> is constructed from.
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public ref readonly CsvFields<T> UnsafeGetFields() => ref _field.Value;
 
         /// <inheritdoc cref="Enumerator.Current"/>
         public CsvFieldsRef<T> Current
