@@ -141,14 +141,13 @@ internal sealed class CsvParserRFC4180<T>(
         return false;
     }
 
+    [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private protected override int ReadFromFirstSpan()
+    private protected override int ReadFromSpan(ReadOnlySpan<T> data)
     {
         Debug.Assert(_newline.Length != 0);
 
         const int minimumVectors = 1; // TODO: fine-tune
-
-        ReadOnlySpan<T> data = _sequence.FirstSpan;
 
         if (Unsafe.SizeOf<T>() == sizeof(char))
         {

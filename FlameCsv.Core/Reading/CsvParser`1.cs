@@ -19,7 +19,6 @@ namespace FlameCsv.Reading;
 /// Internal implementation detail, this type should probably not be used directly.
 /// </remarks>
 [MustDisposeResource]
-// [SkipLocalsInit]
 public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDisposable
     where T : unmanaged, IBinaryInteger<T>
 {
@@ -55,7 +54,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     private Meta[] _metaArray;
 
     /// <summary>
-    /// Number of fields read by <see cref="ReadFromFirstSpan"/>.
+    /// Number of fields read by <see cref="ReadFromSpan"/>.
     /// </summary>
     /// <remarks>
     /// Does not include the start-of-data meta.
@@ -111,7 +110,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     /// </summary>
     /// <returns>Number of fields parsed</returns>
     /// <seealso cref="_metaArray"/>
-    private protected abstract int ReadFromFirstSpan();
+    private protected abstract int ReadFromSpan(ReadOnlySpan<T> data);
 
     /// <summary>
     /// Attempts to return a complete CSV record from the read-ahead buffer.
@@ -233,14 +232,16 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
                 _metaArray[0] = Meta.StartOfData; // the first meta should be one delimiter "behind"
             }
 
-            int fieldCount = ReadFromFirstSpan();
+            ReadOnlyMemory<T> metaMemory = _sequence.First;
+
+            int fieldCount = ReadFromSpan(metaMemory.Span);
 
             // see if we read at least one fully formed line
             if (fieldCount != 0 && Meta.HasEOL(MetaBuffer[..fieldCount], out int lastIndex))
             {
                 _metaIndex = 0;
                 _metaCount = lastIndex + 1;
-                _metaMemory = _sequence.First; // cache to avoid calling GetFirstBuffer on every record
+                _metaMemory = metaMemory; // cache to avoid calling GetFirstBuffer on every record
                 bool result = TryGetBuffered(out fields);
                 Debug.Assert(result, "At least one record should have been read");
                 return result;

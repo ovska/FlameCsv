@@ -160,7 +160,7 @@ internal sealed class CsvParserUnix<T>(
         return false;
     }
 
-    private protected override int ReadFromFirstSpan()
+    private protected override int ReadFromSpan(ReadOnlySpan<T> data)
     {
         // TODO: implement
         return 0;
