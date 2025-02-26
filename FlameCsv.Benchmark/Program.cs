@@ -1,57 +1,41 @@
 ﻿using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Engines;
+using BenchmarkDotNet.Exporters.Csv;
+using BenchmarkDotNet.Exporters.Json;
 using BenchmarkDotNet.Jobs;
+using BenchmarkDotNet.Reports;
+using Perfolizer.Metrology;
 
-var config = DefaultConfig.Instance
-    //.AddJob(Job.Default
-    //    .WithStrategy(RunStrategy.Throughput)
-    //    .WithId("Scalar")
-    //    .WithEnvironmentVariable("DOTNET_EnableAVX2", "0")
-    //    .WithEnvironmentVariable("DOTNET_EnableAVX512F", "0")
-    //    .AsBaseline())
-    .AddJob(Job.Default.WithStrategy(RunStrategy.Throughput));
+#if RELEASE
+IConfig config = DefaultConfig.Instance;
+#else
+IConfig config = new DebugInProcessConfig();
+#endif
 
-BenchmarkRunner.Run<CsvEnumerateBench>(config);
+//config.AddJob(Job.Default
+//    .WithStrategy(RunStrategy.Throughput)
+//    .WithId("Scalar")
+//    .WithEnvironmentVariable("DOTNET_EnableAVX2", "0")
+//    .WithEnvironmentVariable("DOTNET_EnableAVX", "0")
+//    .WithEnvironmentVariable("DOTNET_EnableAVX2", "0")
+//    .WithEnvironmentVariable("DOTNET_EnableSSE", "0")
+//    .WithEnvironmentVariable("DOTNET_EnableSSE2", "0")
+//    .WithEnvironmentVariable("DOTNET_EnableSSE3", "0")
+//    .WithEnvironmentVariable("DOTNET_EnableSSSE3", "0")
+//    .WithEnvironmentVariable("DOTNET_EnableSSE41", "0")
+//    .WithEnvironmentVariable("DOTNET_EnableSSE42", "0")
+//    .WithEnvironmentVariable("DOTNET_EnableAVX512F", "0");
+config.AddJob(Job.Default.WithStrategy(RunStrategy.Throughput).AsBaseline());
 
-//var bb = new BindingBench();
+config.AddExporter(JsonExporter.BriefCompressed);
+config.AddExporter(
+    new CsvExporter(
+        CsvSeparator.CurrentCulture,
+        new SummaryStyle(
+            cultureInfo: System.Globalization.CultureInfo.InvariantCulture,
+            printUnitsInHeader: true,
+            printUnitsInContent: false,
+            timeUnit: Perfolizer.Horology.TimeUnit.Millisecond,
+            sizeUnit: SizeUnit.KB)));
 
-//// Repeat 10 times
-//for (var i = 0; i < 10; i++)
-//{
-//    bb.FlameTypeMap();
-//}
-
-//Console.ReadLine();
-
-//bb.FlameTypeMap();
-
-//Console.ReadLine();
-
-//new ModeBench2().Old();
-
-// Console.WriteLine("Process started: {0}", Environment.ProcessId);
-//
-// var cts = new CancellationTokenSource();
-//
-// // ReSharper disable once AccessToDisposedClosure
-// Console.CancelKeyPress += (_, _) => cts.Cancel();
-//
-// var bench = new CsvStringEnumerateBench();
-//
-// try
-// {
-//     while (true)
-//     {
-//         bench.FlameCsv_Utf8();
-//
-//         if (cts.IsCancellationRequested)
-//             break;
-//     }
-// }
-// catch (OperationCanceledException) when (cts.IsCancellationRequested)
-// {
-// }
-// finally
-// {
-//     cts.Dispose();
-// }
+BenchmarkRunner.Run<CsvEnumerateBench>(config, args);
