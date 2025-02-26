@@ -21,7 +21,7 @@ public sealed class PipeBufferWriterTests : IAsyncDisposable
         await using (_memoryStream.ConfigureAwait(false))
         {
             if (_writer is not null)
-                await _writer.CompleteAsync(null);
+                await _writer.CompleteAsync(null, TestContext.Current.CancellationToken);
         }
     }
 

@@ -18,7 +18,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
         {
             if (_writer.Writer is not null)
             {
-                await _writer.Writer.CompleteAsync(null);
+                await _writer.Writer.CompleteAsync(null, TestContext.Current.CancellationToken);
             }
         }
     }
