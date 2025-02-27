@@ -92,13 +92,13 @@ public sealed class CsvParseException(
 
             using var vsb = new ValueStringBuilder(stackalloc char[256]);
 
-            vsb.Append(Message);
+            vsb.Append(base.Message);
 
             bool comma = false;
 
             if (Line is { } line)
             {
-                vsb.Append("Line: ");
+                vsb.Append(" Line: ");
                 vsb.AppendFormatted(line);
                 comma = true;
             }
