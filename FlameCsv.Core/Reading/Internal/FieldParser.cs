@@ -26,7 +26,7 @@ namespace FlameCsv.Reading.Internal;
 [SuppressMessage("ReSharper", "InlineTemporaryVariable")]
 internal static class FieldParser<T, TNewline, TVector>
     where T : unmanaged, IBinaryInteger<T>
-    where TNewline : struct, INewlineParser<T, TVector>, allows ref struct
+    where TNewline : struct, INewline<T, TVector>, allows ref struct
     where TVector : struct, ISimdVector<T, TVector>
 {
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -66,8 +66,8 @@ internal static class FieldParser<T, TNewline, TVector>
             TVector hasDelimiter = TVector.Equals(vector, delimiterVec);
             TVector hasQuote = TVector.Equals(vector, quoteVec);
             TVector hasNewline = newline.HasNewline(vector);
-            TVector hasNewlineOrDelimiter = TVector.Or(hasNewline, hasDelimiter);
-            TVector hasAny = TVector.Or(hasQuote, hasNewlineOrDelimiter);
+            TVector hasNewlineOrDelimiter = hasNewline | hasDelimiter;
+            TVector hasAny = hasQuote | hasNewlineOrDelimiter;
 
             nuint maskAny = hasAny.ExtractMostSignificantBits();
 
@@ -209,13 +209,12 @@ internal static class FieldParser<T, TNewline, TVector>
                 currentMeta = Meta.Plain((int)runningIndex + offset, isEOL: true, TNewline.Length);
                 currentMeta = ref Unsafe.Add(ref currentMeta, 1);
 
-                // clear the second bit if needed
-                TNewline.ClearSecondBitIfNeeded(ref mask);
-
-                // adjust the index if we crossed a vector boundary
-                if (TNewline.OffsetFromEnd != 0u && offset == TVector.Count - 1)
+                if (TNewline.OffsetFromEnd != 0)
                 {
-                    runningIndex += TNewline.OffsetFromEnd;
+                    // clear the next bit, or adjust the index if we crossed a vector boundary
+                    mask &= (mask - 1);
+                    runningIndex += (nuint)((offset == TVector.Count - 1 ? 1 : 0) * (int)TNewline.OffsetFromEnd);
+                    // ^ Disasmo shows this is branchless
                 }
             }
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
@@ -246,16 +245,11 @@ internal static class FieldParser<T, TNewline, TVector>
                 currentMeta = Meta.Plain((int)runningIndex + offset, isEOL, TNewline.Length);
                 currentMeta = ref Unsafe.Add(ref currentMeta, 1);
 
-                // clear the second bit if needed
-                if (isEOL)
+                if (TNewline.OffsetFromEnd != 0 && isEOL)
                 {
-                    TNewline.ClearSecondBitIfNeeded(ref mask);
-
-                    // adjust the index if we crossed a vector boundary
-                    if (TNewline.OffsetFromEnd != 0u && offset == TVector.Count - 1)
-                    {
-                        runningIndex += TNewline.OffsetFromEnd;
-                    }
+                    // clear the next bit, or adjust the index if we crossed a vector boundary
+                    mask &= (mask - 1);
+                    runningIndex += (nuint)((offset == TVector.Count - 1 ? 1 : 0) * (int)TNewline.OffsetFromEnd);
                 }
             }
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
@@ -293,16 +287,11 @@ internal static class FieldParser<T, TNewline, TVector>
                 currentMeta = ref Unsafe.Add(ref currentMeta, 1);
                 quotesConsumed = 0;
 
-                // clear the second bit if needed
-                if (isEOL)
+                if (TNewline.OffsetFromEnd != 0 && isEOL)
                 {
-                    TNewline.ClearSecondBitIfNeeded(ref mask);
-
-                    // adjust the index if we crossed a vector boundary
-                    if (TNewline.OffsetFromEnd != 0u && offset == TVector.Count - 1)
-                    {
-                        runningIndex += TNewline.OffsetFromEnd;
-                    }
+                    // clear the next bit, or adjust the index if we crossed a vector boundary
+                    mask &= (mask - 1);
+                    runningIndex += (nuint)((offset == TVector.Count - 1 ? 1 : 0) * (int)TNewline.OffsetFromEnd);
                 }
             }
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector

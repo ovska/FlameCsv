@@ -203,7 +203,7 @@ internal class ObjectPool<T> where T : class
 #if DETECT_LEAKS
     private static readonly ConditionalWeakTable<T, LeakTracker> _leakTrackers = new();
 
-    private sealed class LeakTracker : CriticalFinalizerObject, IDisposable
+    private sealed class LeakTracker : System.Runtime.ConstrainedExecution.CriticalFinalizerObject, IDisposable
     {
         private volatile bool _disposed;
 
