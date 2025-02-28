@@ -78,8 +78,7 @@ internal static class FieldParser<T, TNewline, TVector>
             // nothing of note in this slice
             if (maskAny == 0)
             {
-                runningIndex += (nuint)TVector.Count;
-                continue;
+                goto ContinueRead;
             }
 
             // TODO: profile with different data; if quote count is not 0, it might be faster to just go to ParseAny
@@ -91,8 +90,7 @@ internal static class FieldParser<T, TNewline, TVector>
             {
                 if (quotesConsumed != 0) goto TrySkipQuoted;
                 currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
-                runningIndex += (nuint)TVector.Count;
-                continue;
+                goto ContinueRead;
             }
 
             nuint maskNewlineOrDelimiter = hasNewlineOrDelimiter.ExtractMostSignificantBits();
@@ -128,8 +126,7 @@ internal static class FieldParser<T, TNewline, TVector>
                             delimiter,
                             in newline,
                             ref nextVector);
-                        runningIndex += (nuint)TVector.Count;
-                        continue;
+                        goto ContinueRead;
                     }
                 }
 
@@ -140,8 +137,7 @@ internal static class FieldParser<T, TNewline, TVector>
                     ref currentMeta,
                     in newline,
                     ref nextVector);
-                runningIndex += (nuint)TVector.Count;
-                continue;
+                goto ContinueRead;
             }
 
         ParseAny:
@@ -157,8 +153,7 @@ internal static class FieldParser<T, TNewline, TVector>
                 ref quotesConsumed,
                 ref nextVector);
 
-            runningIndex += (nuint)TVector.Count;
-            continue;
+            goto ContinueRead;
 
         TrySkipQuoted:
             // there are unresolved quotes but the current vector had none
@@ -167,13 +162,15 @@ internal static class FieldParser<T, TNewline, TVector>
             // verifiably in a string?
             if (quotesConsumed == 1)
             {
-                runningIndex += (nuint)TVector.Count;
-                continue;
+                goto ContinueRead;
             }
 
             // we are in a string, but we can't know if we are in a string, or one just ended in the last vector
             Debug.Assert(quotesConsumed > 1);
             goto ParseAny;
+
+            ContinueRead:
+            runningIndex += (nuint)TVector.Count;
         }
 
         return (int)Unsafe.ByteOffset(in MemoryMarshal.GetReference(metaBuffer), in currentMeta) /
