@@ -165,7 +165,10 @@ internal static class FieldParser<T, TNewline, TVector>
                 goto ContinueRead;
             }
 
-            // we are in a string, but we can't know if we are in a string, or one just ended in the last vector
+            // quote count is not 0 or 1
+            // we can't know for sure if we are in a string, or one just ended in the last vector
+            // e.g., ["James ""007"] ["Bond,..."]
+            //                      ^ quoteCount % 2 is 0 here, but we are still actually in a string
             Debug.Assert(quotesConsumed > 1);
             goto ParseAny;
 

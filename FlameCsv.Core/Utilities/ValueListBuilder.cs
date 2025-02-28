@@ -15,7 +15,7 @@ internal ref struct ValueListBuilder<T>
     private T[]? _arrayFromPool;
     private int _pos;
 
-    public ValueListBuilder(Span<T?> scratchBuffer)
+    public ValueListBuilder(Span<T> scratchBuffer)
     {
         _span = scratchBuffer!;
     }
