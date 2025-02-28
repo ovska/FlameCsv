@@ -152,7 +152,8 @@ internal sealed class CsvParserRFC4180<T>(
     {
         Debug.Assert(_newline.Length != 0);
 
-        const int minimumVectors = 1; // TODO: fine-tune
+        // the prefetch reads one vector ahead
+        const int minimumVectors = 2;
 
         if (Unsafe.SizeOf<T>() == sizeof(char))
         {
