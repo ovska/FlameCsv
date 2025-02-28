@@ -36,21 +36,29 @@ public class CsvEnumerateBench
         _byteSeq = new ReadOnlySequence<byte>(_byteArray);
         _charSeq = new ReadOnlySequence<char>(_string.AsMemory());
 
-        _optionsByte = new() { Newline = CRLF ? "\r\n" : "\n" };
-        _optionsChar = new() { Newline = CRLF ? "\r\n" : "\n" };
+        _optionsByteLF = new() { Newline = "\n" };
+        _optionsCharLF = new() { Newline = "\n" };
+        _optionsByteCRLF = new() { Newline = "\r\n" };
+        _optionsCharCRLF = new() { Newline = "\r\n" };
     }
 
     private byte[] _byteArray = [];
     private string _string = "";
     private ReadOnlySequence<byte> _byteSeq;
     private ReadOnlySequence<char> _charSeq;
-    private CsvOptions<byte> _optionsByte = null!;
-    private CsvOptions<char> _optionsChar = null!;
+
+    private CsvOptions<byte> _optionsByteLF = null!;
+    private CsvOptions<char> _optionsCharLF = null!;
+    private CsvOptions<byte> _optionsByteCRLF = null!;
+    private CsvOptions<char> _optionsCharCRLF = null!;
+
+    private CsvOptions<byte> OptionsByte => CRLF ? _optionsByteCRLF : _optionsByteLF;
+    private CsvOptions<char> OptionsChar => CRLF ? _optionsCharCRLF : _optionsCharLF;
 
     [Benchmark(Baseline = true)]
     public void Flame_byte()
     {
-        foreach (var record in CsvParser.Create(_optionsByte, in _byteSeq))
+        foreach (var record in CsvParser.Create(OptionsByte, in _byteSeq))
         {
             for (int i = 0; i < record.FieldCount; i++)
             {
@@ -62,7 +70,7 @@ public class CsvEnumerateBench
     [Benchmark]
     public void Flame_char()
     {
-        foreach (var record in CsvParser.Create(_optionsChar, in _charSeq))
+        foreach (var record in CsvParser.Create(OptionsChar, in _charSeq))
         {
             for (int i = 0; i < record.FieldCount; i++)
             {
@@ -120,7 +128,19 @@ public class CsvEnumerateBench
     [Benchmark]
     public async Task Flame_byte_async()
     {
-        await foreach (var record in CsvParser.Create(_optionsByte, in _byteSeq))
+        await foreach (var record in CsvParser.Create(OptionsByte, in _byteSeq))
+        {
+            for (int i = 0; i < record.FieldCount; i++)
+            {
+                _ = record[i];
+            }
+        }
+    }
+
+    [Benchmark]
+    public async Task Flame_char_async()
+    {
+        await foreach (var record in CsvParser.Create(OptionsChar, in _charSeq))
         {
             for (int i = 0; i < record.FieldCount; i++)
             {
