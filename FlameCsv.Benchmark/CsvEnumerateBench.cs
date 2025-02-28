@@ -14,7 +14,7 @@ using nietras.SeparatedValues;
 namespace FlameCsv.Benchmark;
 
 [MemoryDiagnoser(displayGenColumns: false)]
-[HideColumns("Error", "StdDev")]
+[HideColumns("Error", "RatioSD")]
 // [BenchmarkDotNet.Diagnostics.Windows.Configs.EtwProfiler]
 public class CsvEnumerateBench
 {
