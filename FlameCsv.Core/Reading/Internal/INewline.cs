@@ -4,30 +4,23 @@ using JetBrains.Annotations;
 
 namespace FlameCsv.Reading.Internal;
 
-internal interface INewline
+/// <summary>
+/// Interface to provide high-performance generic handling for variable length newlines.
+/// </summary>
+internal interface INewline<T, TVector> where T : unmanaged, IBinaryInteger<T> where TVector : struct
 {
     /// <summary>
-    /// Returns a mask for the length of the newline contained in the two highest bits.
+    /// Returns a mask for the length of the newline contained in the two highest bits.<br/>
+    /// This is always <c>1</c> or <c>2</c>.
     /// </summary>
     static abstract int Length { get; }
 
     /// <summary>
-    /// Returns the offset required in the search space to be able to read the whole newline value.
+    /// Returns the offset required in the search space to be able to read the whole newline value.<br/>
+    /// This is always <c>0</c> or <c>1</c>.
     /// </summary>
     static abstract nuint OffsetFromEnd { get; }
 
-    /// <summary>
-    /// Clears the second bit in the mask if needed. No-op for single newline sequences.
-    /// </summary>
-    /// <param name="mask">The mask to modify.</param>
-    static abstract void ClearSecondBitIfNeeded(ref nuint mask);
-}
-
-/// <summary>
-/// Interface to provide high-performance generic handling for variable length newlines.
-/// </summary>
-internal interface INewline<T> : INewline where T : unmanaged, IBinaryInteger<T>
-{
     /// <summary>
     /// Determines if the specified value represents a newline.
     /// </summary>
@@ -49,12 +42,7 @@ internal interface INewline<T> : INewline where T : unmanaged, IBinaryInteger<T>
     /// <remarks>For single token newlines, always returns true</remarks>
     [Pure]
     bool IsDelimiterOrNewline(T delimiter, ref T value, out bool isEOL);
-}
 
-internal interface INewlineParser<T, TVector> : INewline<T>
-    where T : unmanaged, IBinaryInteger<T>
-    where TVector : struct
-{
     /// <summary>
     /// Determines if the input vector contains any token of the newline.
     /// </summary>
@@ -65,7 +53,7 @@ internal interface INewlineParser<T, TVector> : INewline<T>
 }
 
 [SkipLocalsInit]
-internal readonly struct NewlineParserOne<T, TVector>(T first) : INewlineParser<T, TVector>
+internal readonly struct NewlineParserOne<T, TVector>(T first) : INewline<T, TVector>
     where T : unmanaged, IBinaryInteger<T>
     where TVector : struct, ISimdVector<T, TVector>
 {
@@ -96,16 +84,10 @@ internal readonly struct NewlineParserOne<T, TVector>(T first) : INewlineParser<
         isEOL = value != delimiter;
         return true;
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ClearSecondBitIfNeeded(ref nuint mask)
-    {
-        // no-op
-    }
 }
 
 [SkipLocalsInit]
-internal readonly struct NewlineParserTwo<T, TVector>(T first, T second) : INewlineParser<T, TVector>
+internal readonly struct NewlineParserTwo<T, TVector>(T first, T second) : INewline<T, TVector>
     where T : unmanaged, IBinaryInteger<T>
     where TVector : struct, ISimdVector<T, TVector>
 {
@@ -116,8 +98,7 @@ internal readonly struct NewlineParserTwo<T, TVector>(T first, T second) : INewl
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TVector HasNewline(TVector input)
-        => TVector.Or(TVector.Equals(input, _firstVec), TVector.Equals(input, _secondVec));
+    public TVector HasNewline(TVector input) => TVector.Equals(input, _firstVec) | TVector.Equals(input, _secondVec);
 
     private readonly TVector _firstVec = TVector.Create(first);
     private readonly TVector _secondVec = TVector.Create(second);
@@ -143,12 +124,5 @@ internal readonly struct NewlineParserTwo<T, TVector>(T first, T second) : INewl
 
         isEOL = true;
         return value == first && Unsafe.Add(ref value, 1) == second;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ClearSecondBitIfNeeded(ref nuint mask)
-    {
-        // only works properly if IsDelimiterOrNewline check is valid
-        mask &= (mask - 1);
     }
 }
