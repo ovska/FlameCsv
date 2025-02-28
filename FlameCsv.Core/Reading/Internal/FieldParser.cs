@@ -59,9 +59,13 @@ internal static class FieldParser<T, TNewline, TVector>
         TVector quoteVec = TVector.Create(quoteArg);
         uint quotesConsumed = 0;
 
+        TVector nextVector = TVector.LoadUnsafe(in first, runningIndex);
+
         while (Unsafe.IsAddressLessThan(in currentMeta, in metaEnd) && runningIndex <= searchSpaceEnd)
         {
-            TVector vector = TVector.LoadUnsafe(in first, runningIndex);
+            // prefetch the next vector so we can process the current without waiting for it to load
+            TVector vector = nextVector;
+            nextVector = TVector.LoadUnsafe(in first, runningIndex + (nuint)TVector.Count);
 
             TVector hasDelimiter = TVector.Equals(vector, delimiterVec);
             TVector hasQuote = TVector.Equals(vector, quoteVec);
@@ -122,7 +126,8 @@ internal static class FieldParser<T, TNewline, TVector>
                             ref runningIndex,
                             ref currentMeta,
                             delimiter,
-                            in newline);
+                            in newline,
+                            ref nextVector);
                         runningIndex += (nuint)TVector.Count;
                         continue;
                     }
@@ -133,7 +138,8 @@ internal static class FieldParser<T, TNewline, TVector>
                     ref first,
                     ref runningIndex,
                     ref currentMeta,
-                    in newline);
+                    in newline,
+                    ref nextVector);
                 runningIndex += (nuint)TVector.Count;
                 continue;
             }
@@ -148,7 +154,8 @@ internal static class FieldParser<T, TNewline, TVector>
                 delimiter,
                 quote,
                 in newline,
-                ref quotesConsumed);
+                ref quotesConsumed,
+                ref nextVector);
 
             runningIndex += (nuint)TVector.Count;
             continue;
@@ -197,7 +204,8 @@ internal static class FieldParser<T, TNewline, TVector>
         scoped ref T first,
         scoped ref nuint runningIndex,
         ref Meta currentMeta,
-        scoped ref readonly TNewline newline)
+        scoped ref readonly TNewline newline,
+        ref TVector nextVector)
     {
         do
         {
@@ -213,8 +221,12 @@ internal static class FieldParser<T, TNewline, TVector>
                 {
                     // clear the next bit, or adjust the index if we crossed a vector boundary
                     mask &= (mask - 1);
-                    runningIndex += (nuint)((offset == TVector.Count - 1 ? 1 : 0) * (int)TNewline.OffsetFromEnd);
-                    // ^ Disasmo shows this is branchless
+
+                    if (offset == TVector.Count - 1)
+                    {
+                        runningIndex += TNewline.OffsetFromEnd;
+                        nextVector = TVector.LoadUnsafe(in first, runningIndex + (nuint)TVector.Count);
+                    }
                 }
             }
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
@@ -229,7 +241,8 @@ internal static class FieldParser<T, TNewline, TVector>
         scoped ref nuint runningIndex,
         ref Meta currentMeta,
         T delimiter,
-        scoped ref readonly TNewline newline)
+        scoped ref readonly TNewline newline,
+        ref TVector nextVector)
     {
         do
         {
@@ -249,7 +262,12 @@ internal static class FieldParser<T, TNewline, TVector>
                 {
                     // clear the next bit, or adjust the index if we crossed a vector boundary
                     mask &= (mask - 1);
-                    runningIndex += (nuint)((offset == TVector.Count - 1 ? 1 : 0) * (int)TNewline.OffsetFromEnd);
+
+                    if (offset == TVector.Count - 1)
+                    {
+                        runningIndex += TNewline.OffsetFromEnd;
+                        nextVector = TVector.LoadUnsafe(in first, runningIndex + (nuint)TVector.Count);
+                    }
                 }
             }
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
@@ -266,7 +284,8 @@ internal static class FieldParser<T, TNewline, TVector>
         T delimiter,
         T quote,
         scoped ref readonly TNewline newline,
-        scoped ref uint quotesConsumed)
+        scoped ref uint quotesConsumed,
+        ref TVector nextVector)
     {
         do
         {
@@ -291,7 +310,12 @@ internal static class FieldParser<T, TNewline, TVector>
                 {
                     // clear the next bit, or adjust the index if we crossed a vector boundary
                     mask &= (mask - 1);
-                    runningIndex += (nuint)((offset == TVector.Count - 1 ? 1 : 0) * (int)TNewline.OffsetFromEnd);
+
+                    if (offset == TVector.Count - 1)
+                    {
+                        runningIndex += TNewline.OffsetFromEnd;
+                        nextVector = TVector.LoadUnsafe(in first, runningIndex + (nuint)TVector.Count);
+                    }
                 }
             }
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
