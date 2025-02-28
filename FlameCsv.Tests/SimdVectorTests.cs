@@ -43,7 +43,7 @@ public static class SimdVectorTests
 
             for (int i = 0; i < data.Length; i += TVector.Count)
             {
-                var vec = TVector.LoadUnsafe(in data.AsSpan()[i], 0);
+                var vec = TVector.LoadUnaligned(in data.AsSpan()[i], 0);
                 var commaCheck = TVector.Create(token);
 
                 var eq = TVector.Equals(vec, commaCheck);
@@ -69,10 +69,10 @@ public static class SimdVectorTests
     {
         if (!TVector.IsSupported) return;
 
-        var abcVec = TVector.LoadUnsafe(in data[0], 0);
+        var abcVec = TVector.LoadUnaligned(in data[0], 0);
         var aVec = TVector.Create(data[0]);
 
-        Assert.True(abcVec == TVector.LoadUnsafe(in data[0], 0));
+        Assert.True(abcVec == TVector.LoadUnaligned(in data[0], 0));
         Assert.True(aVec == TVector.Create(data[0]));
         Assert.False(abcVec == aVec);
 
