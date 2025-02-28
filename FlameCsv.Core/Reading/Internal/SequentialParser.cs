@@ -23,7 +23,7 @@ internal static class SequentialParser<T> where T : unmanaged, IBinaryInteger<T>
         T delimiter = dialect.Delimiter;
         T newlineFirst = newlineArg.First;
         T newlineSecond = newlineArg.Second;
-        nuint newlineLength = (nuint)newlineArg.Length;
+        int newlineLength = newlineArg.Length;
 
         ref T first = ref MemoryMarshal.GetReference(data);
         nuint runningIndex = 0;
@@ -138,7 +138,7 @@ internal static class SequentialParser<T> where T : unmanaged, IBinaryInteger<T>
         Found:
             if (Unsafe.Add(ref first, runningIndex) == delimiter)
             {
-                currentMeta = Meta.RFC((int)runningIndex, quotesConsumed, isEOL: false, (int)newlineLength);
+                currentMeta = Meta.RFC((int)runningIndex, quotesConsumed, isEOL: false, newlineLength);
                 currentMeta = ref Unsafe.Add(ref currentMeta, 1);
                 runningIndex++;
                 quotesConsumed = 0;
@@ -162,7 +162,7 @@ internal static class SequentialParser<T> where T : unmanaged, IBinaryInteger<T>
                 continue;
             }
 
-            currentMeta = Meta.RFC((int)runningIndex, quotesConsumed, isEOL: true, (int)newlineLength);
+            currentMeta = Meta.RFC((int)runningIndex, quotesConsumed, isEOL: true, newlineLength);
             currentMeta = ref Unsafe.Add(ref currentMeta, 1);
             runningIndex++;
             quotesConsumed = 0;
