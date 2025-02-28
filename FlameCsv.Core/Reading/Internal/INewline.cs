@@ -75,7 +75,12 @@ internal readonly struct NewlineParserOne<T, TVector>(T first) : INewline<T, TVe
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool IsNewline(ref T value) => value == first;
+    public bool IsNewline(ref T value)
+    {
+        // the HasNewline vector only contains the correct values, e.g., \n, so this check should always succeed
+        Debug.Assert(value == first);
+        return true;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsDelimiterOrNewline(T delimiter, ref T value, out bool isEOL)
