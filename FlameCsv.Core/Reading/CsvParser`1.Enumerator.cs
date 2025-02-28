@@ -35,8 +35,11 @@ partial class CsvParser<T>
     {
         [HandlesResourceDisposal] private readonly CsvParser<T> _parser;
         private EnumeratorStack _stackMemory;
-        private ReadOnlySpan<Meta> _metas;
-        private ReadOnlySpan<T> _data;
+
+        private ref Meta _meta;
+        private int _metaLength;
+
+        private ref T _data;
 
         internal Enumerator(CsvParser<T> parser)
         {
@@ -47,7 +50,7 @@ partial class CsvParser<T>
         /// Current record.
         /// </summary>
         [UnscopedRef]
-        public CsvFieldsRef<T> Current => new(_parser, _data, _metas, _stackMemory.AsSpan());
+        public CsvFieldsRef<T> Current => new(_parser, ref _data, ref _meta, _metaLength, _stackMemory.AsSpan());
 
         /// <summary>
         /// Attempts to read the next record.
@@ -69,9 +72,8 @@ partial class CsvParser<T>
                         end: parser._metaCount - parser._metaIndex + 1,
                         index: out int fieldCount))
                 {
-                    _metas = MemoryMarshal.CreateReadOnlySpan(
-                        ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(parser._metaArray), parser._metaIndex),
-                        length: fieldCount + 1);
+                    _meta = ref Unsafe.Add(ref metaRef, parser._metaIndex);
+                    _metaLength = fieldCount + 1;
                     parser._metaIndex += fieldCount;
                     return true;
                 }
@@ -85,29 +87,30 @@ partial class CsvParser<T>
         {
             if (_parser.TryReadUnbuffered(out CsvFields<T> fields, isFinalBlock: false))
             {
-                _data = fields.Data.Span;
-                _metas = fields.Fields;
-                return true;
+                goto ConstructValue;
             }
 
             while (_parser.TryAdvanceReader())
             {
                 if (_parser.TryReadLine(out fields, isFinalBlock: false))
                 {
-                    _data = fields.Data.Span;
-                    _metas = fields.Fields;
-                    return true;
+                    goto ConstructValue;
                 }
             }
 
-            if (_parser.TryReadUnbuffered(out fields, isFinalBlock: true))
+            if (!_parser.TryReadUnbuffered(out fields, isFinalBlock: true))
             {
-                _data = fields.Data.Span;
-                _metas = fields.Fields;
-                return true;
+                _data = ref Unsafe.NullRef<T>();
+                _meta = ref Unsafe.NullRef<Meta>();
+                _metaLength = 0;
+                return false;
             }
 
-            return false;
+        ConstructValue:
+            _data = ref MemoryMarshal.GetReference(fields.Data.Span);
+            _meta = ref MemoryMarshal.GetReference(fields.Fields);
+            _metaLength = fields.Fields.Length;
+            return true;
         }
 
         /// <summary>

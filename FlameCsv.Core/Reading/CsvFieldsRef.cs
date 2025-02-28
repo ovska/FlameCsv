@@ -39,15 +39,16 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvFieldsRef(
         CsvParser<T> parser,
-        ReadOnlySpan<T> data,
-        ReadOnlySpan<Meta> fields,
+        ref T data,
+        ref Meta fieldsRef,
+        int fieldsLength,
         Span<T> unescapeBuffer)
     {
         _dialect = ref parser._dialect;
         _allocator = parser._unescapeAllocator;
-        _data = ref MemoryMarshal.GetReference(data);
-        _firstMeta = ref MemoryMarshal.GetReference(fields);
-        FieldCount = fields.Length - 1;
+        _data = ref data;
+        _firstMeta = ref fieldsRef;
+        FieldCount = fieldsLength - 1;
         _unescapeBuffer = unescapeBuffer;
     }
 
