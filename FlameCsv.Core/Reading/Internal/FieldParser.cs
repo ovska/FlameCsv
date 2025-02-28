@@ -183,15 +183,18 @@ internal static class FieldParser<T, TNewline, TVector>
         nuint runningIndex,
         ref Meta currentMeta)
     {
-        do
+        // Process one delimiter at a time, but with minimal branching
+        while (mask != 0)
         {
+            ref Meta target = ref currentMeta;
+
+            // Get position and clear in one operation
             int offset = BitOperations.TrailingZeroCount(mask);
-            mask &= (mask - 1); // clear lowest bit
+            mask &= (mask - 1);
 
-            currentMeta = Meta.Plain((int)runningIndex + offset);
+            target = Meta.Plain((int)runningIndex + offset);
             currentMeta = ref Unsafe.Add(ref currentMeta, 1);
-        } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
-
+        }
         return ref currentMeta;
     }
 
