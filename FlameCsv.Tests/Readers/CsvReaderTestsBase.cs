@@ -162,7 +162,12 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
 
             IEnumerable<CsvValueRecord<T>> GetEnumerable()
             {
-                foreach (var record in CsvReader.Enumerate(sequence, options)) yield return record;
+                CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+                foreach (var record in CsvReader.Enumerate(sequence, options))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    yield return record;
+                }
             }
 
             var items = GetItems(
@@ -201,8 +206,10 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
 
             if (parallel) source = WrapParallel(source);
 
+            CancellationToken cancellationToken = TestContext.Current.CancellationToken;
             await foreach (var obj in source.ConfigureAwait(false))
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 yield return obj;
             }
         }

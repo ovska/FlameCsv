@@ -136,16 +136,65 @@ internal interface ISimdVector<T, TVector>
     where T : unmanaged, IBinaryInteger<T>
     where TVector : struct, ISimdVector<T, TVector>
 {
+    /// <summary>
+    /// Returns <c>true</c> if the vector type is hardware accelerated (on release configuration).
+    /// </summary>
     static abstract bool IsSupported { get; }
+
+    /// <summary>
+    /// Returns the number of bytes in the vector.
+    /// </summary>
     static abstract int Count { get; }
+
+    /// <summary>
+    /// Returns a vector with all elements set to zero.
+    /// </summary>
     static abstract TVector Zero { get; }
+
+    /// <summary>
+    /// Returns an equality vector of the two input vectors.
+    /// </summary>
     static abstract TVector Equals(TVector left, TVector right);
+
+    /// <summary>
+    /// Creates a vector with all elements set to the specified value.
+    /// </summary>
     static abstract TVector Create(T value);
-    static abstract TVector LoadUnsafe(ref readonly T source, nuint offset);
+
+    /// <summary>
+    /// Loads a vector from the specified address.
+    /// </summary>
+    static abstract TVector LoadUnaligned(ref readonly T source, nuint offset);
+
+    /// <summary>
+    /// Loads a vector from the specified aligned address.
+    /// </summary>
+    static abstract TVector LoadAligned(ref T source, nuint offset);
+
+    /// <summary>
+    /// Returns a bitwise OR of the two input vectors.
+    /// </summary>
     static abstract TVector operator |(TVector left, TVector right);
+
+    /// <summary>
+    /// Returns <c>true</c> if the two vectors are equal; otherwise, <c>false</c>.
+    /// </summary>
     static abstract bool operator ==(TVector left, TVector right);
+
+    /// <summary>
+    /// Returns <c>true</c> if the two vectors are not equal; otherwise, <c>false</c>.
+    /// </summary>
     static abstract bool operator !=(TVector left, TVector right);
+
+    /// <summary>
+    /// Creates a bitmask of the vector.
+    /// </summary>
     [JetBrains.Annotations.Pure] nuint ExtractMostSignificantBits();
+
+    /// <summary>
+    /// Returns a copy of the vector with the first element set to zero.
+    /// </summary>
+    [JetBrains.Annotations.Pure] TVector WithZeroFirstElement();
 }
 <#
     foreach (var (keyword, name) in types)
@@ -195,22 +244,43 @@ internal readonly struct <#= typeName #> : ISimdVector<<#= keyword #>, <#= typeN
             Write(keyword != "byte" ? "unchecked((byte)value)" : "value");
 #>);
     }
+<#
+            foreach (var isAligned in (bool[])[false, true])
+            {
+#>
 
     [<#= MethodImpl #>]
-    public static <#= typeName #> LoadUnsafe(ref readonly <#= keyword #> source, nuint offset)<#
+    public static<#= isAligned ? " unsafe" : "" #> <#= typeName #> Load<#= isAligned ? "Aligned" : "Unaligned" #>(ref<#= isAligned ? "" : " readonly" #> <#= keyword #> source, nuint offset)<#
             if (keyword == "byte")
             {
                 Write(" => Vector");
                 Write(size);
-                Write(".LoadUnsafe(in source, offset);");
+                Write(
+                    isAligned
+                        ? ".LoadAligned((byte*)Unsafe.AsPointer(ref Unsafe.AsRef(in source)) + offset);"
+                        : ".LoadUnsafe(in source, offset);");
             }
             else if (size is "64" or "128" or "256" or "512")
             {
 #>
 
     {
+<#
+                    if (isAligned)
+                    {
+#>
+        var v0 = Vector<#= size #>.LoadAlignedNonTemporal((ushort*)Unsafe.AsPointer(ref Unsafe.Add(ref source, offset)));
+        var v1 = Vector<#= size #>.LoadAlignedNonTemporal((ushort*)Unsafe.AsPointer(ref Unsafe.Add(ref source, offset + ((nuint)Vector<#= size #><byte>.Count / sizeof(ushort)))));
+<#
+                    }
+                    else
+                    {
+#>
         var v0 = Vector<#= size #>.LoadUnsafe(ref Unsafe.As<char, ushort>(ref Unsafe.AsRef(in source)), offset);
         var v1 = Vector<#= size #>.LoadUnsafe(ref Unsafe.As<char, ushort>(ref Unsafe.AsRef(in source)), offset + ((nuint)Vector<#= size #><byte>.Count / sizeof(ushort)));
+<#
+                    }
+#>
         var lower = Vector<#= size #>.Min(v0, Vector<#= size #>.Create((ushort)127));
         var upper = Vector<#= size #>.Min(v1, Vector<#= size #>.Create((ushort)127));
 <#
@@ -224,6 +294,9 @@ internal readonly struct <#= typeName #> : ISimdVector<<#= keyword #>, <#= typeN
             }
 #>
 
+<#
+            }
+#>
 
     [<#= MethodImpl #>]
     public nuint ExtractMostSignificantBits() => (nuint)<#= size == "512" ? "(ulong)" : "" #>_value.ExtractMostSignificantBits();
@@ -249,6 +322,9 @@ internal readonly struct <#= typeName #> : ISimdVector<<#= keyword #>, <#= typeN
             //     WriteLine("        (nuint)_value.ExtractMostSignificantBits();");
             // }
 #>
+
+    [<#= MethodImpl #>]
+    public <#= typeName #> WithZeroFirstElement() => _value.WithElement(0, default);
 
     [<#= MethodImpl #>]
     public static <#= typeName #> operator |(<#= typeName #> left, <#= typeName #> right) => left._value | right._value;

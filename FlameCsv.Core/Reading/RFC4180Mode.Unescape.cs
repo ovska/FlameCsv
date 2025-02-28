@@ -321,7 +321,7 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
 
             do
             {
-                TVector current = TVector.LoadUnsafe(ref src, srcIndex);
+                TVector current = TVector.LoadUnaligned(ref src, srcIndex);
                 TVector equals = TVector.Equals(current, quoteVector);
 
                 if (equals == TVector.Zero)
