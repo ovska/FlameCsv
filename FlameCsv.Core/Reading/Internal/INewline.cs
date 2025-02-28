@@ -26,7 +26,7 @@ internal interface INewline<T, TVector> where T : unmanaged, IBinaryInteger<T> w
     /// </summary>
     /// <param name="value">The value to check.</param>
     /// <remarks>
-    /// Possibly reads the next value in the sequence, see <see cref="INewline.OffsetFromEnd"/>.
+    /// Possibly reads the next value in the sequence, see <see cref="OffsetFromEnd"/>.
     /// </remarks>
     /// <returns>True if the value represents a newline; otherwise, false.</returns>
     [Pure]
