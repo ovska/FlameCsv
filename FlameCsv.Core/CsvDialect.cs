@@ -318,6 +318,12 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
             ? [T.CreateChecked('\r'), T.CreateChecked('\n')]
             : Newline;
 
+        if (delimiter == T.Zero) InvalidDialect.Throw([NullError("Delimiter")]);
+        if (quote == T.Zero) InvalidDialect.Throw([NullError("Quote")]);
+        if (escape.HasValue && escape.Value == T.Zero) InvalidDialect.Throw([NullError("Escape")]);
+        if (newline.Contains(T.Zero)) InvalidDialect.Throw([NullError("Newline")]);
+        // allow zero in newline
+
         if (delimiter.Equals(quote))
         {
             errors.Append("Delimiter and Quote must not be equal.");
@@ -438,6 +444,13 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
                 case ' ': vsb.Append(" "); break;
                 default: vsb.Append(v); break;
             }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static string NullError(string name)
+        {
+            string zeroName = typeof(T) == typeof(char) ? "'\\0'" : "0";
+            return $"Dialect can not contain {zeroName} in a searchable property ({name}).";
         }
     }
 

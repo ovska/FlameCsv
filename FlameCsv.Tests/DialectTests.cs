@@ -10,6 +10,20 @@ namespace FlameCsv.Tests;
 public static class DialectTests
 {
     [Fact]
+    public static void Should_Check_For_Null()
+    {
+        Impl(d => d with { Delimiter = '\0' });
+        Impl(d => d with { Quote = '\0' });
+        Impl(d => d with { Escape = '\0' });
+        Impl(d => d with { Newline = "x\0" });
+
+        void Impl(Func<CsvDialect<char>, CsvDialect<char>> action)
+        {
+            Assert.Throws<CsvConfigurationException>(() => action(CsvOptions<char>.Default.Dialect).Validate());
+        }
+    }
+
+    [Fact]
     public static void Should_Return_FindToken()
     {
         Assertions(CsvOptions<char>.Default, ",\"", 0);
@@ -128,9 +142,7 @@ public static class DialectTests
         var sv = SearchValues.Create("test".AsSpan());
         var dialect = new CsvDialect<char>
         {
-            NeedsQuoting = sv,
-            Delimiter = ',',
-            Quote = '"',
+            NeedsQuoting = sv, Delimiter = ',', Quote = '"',
         };
         Assert.Same(sv, dialect.NeedsQuoting);
     }
