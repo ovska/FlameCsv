@@ -72,13 +72,24 @@ public static class NewlineDetectTests
             (new string('x', 4096) + newlineStr).AsMemory(),
             bufferSize: segments ? 2048 : -1);
 
-        using var parser = CsvParser.Create(new CsvOptions<char> { Newline = null }, in data);
-        using var enumerator = parser.GetEnumerator();
+
+        var ex = Record.Exception(() =>
+        {
+            using var parser = CsvParser.Create(new CsvOptions<char> { Newline = null }, in data);
+
+            foreach (var _ in parser)
+            {
+
+            }
+        });
 
         if (shouldThrow)
         {
-            // ReSharper disable once AccessToDisposedClosure
-            Assert.Throws<CsvFormatException>(() => enumerator.MoveNext());
+            Assert.IsType<CsvFormatException>(ex);
+        }
+        else
+        {
+            Assert.Null(ex);
         }
     }
 

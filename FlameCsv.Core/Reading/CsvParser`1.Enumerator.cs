@@ -31,11 +31,12 @@ partial class CsvParser<T>
     /// </summary>
     [PublicAPI]
     [SkipLocalsInit]
-    public struct Enumerator : IDisposable
+    public ref struct Enumerator : IDisposable
     {
         [HandlesResourceDisposal] private readonly CsvParser<T> _parser;
         private EnumeratorStack _stackMemory;
-        private CsvFields<T> _field = new();
+        private ReadOnlySpan<Meta> _metas;
+        private ReadOnlySpan<T> _data;
 
         internal Enumerator(CsvParser<T> parser)
         {
@@ -43,21 +44,10 @@ partial class CsvParser<T>
         }
 
         /// <summary>
-        /// Returns an unscoped read-only reference to the field value that <see cref="Current"/>
-        /// is constructed from.
-        /// </summary>
-        [UnscopedRef]
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public readonly ref readonly CsvFields<T> UnsafeGetFields() => ref _field;
-
-        /// <summary>
         /// Current record.
         /// </summary>
-        public readonly CsvFieldsRef<T> Current
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => new(in _field, Unsafe.AsRef(in _stackMemory).AsSpan());
-        }
+        [UnscopedRef]
+        public CsvFieldsRef<T> Current => new(_parser, _data, _metas, _stackMemory.AsSpan());
 
         /// <summary>
         /// Attempts to read the next record.
@@ -79,16 +69,9 @@ partial class CsvParser<T>
                         end: parser._metaCount - parser._metaIndex + 1,
                         index: out int fieldCount))
                 {
-                    MetaSegment fieldMeta = new()
-                    {
-                        array = parser._metaArray, count = fieldCount + 1, offset = parser._metaIndex
-                    };
-
-                    _field = new CsvFields<T>(
-                        parser: parser,
-                        data: parser._metaMemory,
-                        fieldMeta: Unsafe.As<MetaSegment, ArraySegment<Meta>>(ref fieldMeta));
-
+                    _metas = MemoryMarshal.CreateReadOnlySpan(
+                        ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(parser._metaArray), parser._metaIndex),
+                        length: fieldCount + 1);
                     parser._metaIndex += fieldCount;
                     return true;
                 }
@@ -100,20 +83,31 @@ partial class CsvParser<T>
         [MethodImpl(MethodImplOptions.NoInlining)]
         private bool MoveNextSlow()
         {
-            if (_parser.TryReadUnbuffered(out _field, isFinalBlock: false))
+            if (_parser.TryReadUnbuffered(out CsvFields<T> fields, isFinalBlock: false))
             {
+                _data = fields.Data.Span;
+                _metas = fields.Fields;
                 return true;
             }
 
             while (_parser.TryAdvanceReader())
             {
-                if (_parser.TryReadLine(out _field, isFinalBlock: false))
+                if (_parser.TryReadLine(out fields, isFinalBlock: false))
                 {
+                    _data = fields.Data.Span;
+                    _metas = fields.Fields;
                     return true;
                 }
             }
 
-            return _parser.TryReadUnbuffered(out _field, isFinalBlock: true);
+            if (_parser.TryReadUnbuffered(out fields, isFinalBlock: true))
+            {
+                _data = fields.Data.Span;
+                _metas = fields.Fields;
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>

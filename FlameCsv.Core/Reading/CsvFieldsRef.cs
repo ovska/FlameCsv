@@ -36,6 +36,21 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
         _unescapeBuffer = unescapeBuffer;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal CsvFieldsRef(
+        CsvParser<T> parser,
+        ReadOnlySpan<T> data,
+        ReadOnlySpan<Meta> fields,
+        Span<T> unescapeBuffer)
+    {
+        _dialect = ref parser._dialect;
+        _allocator = parser._unescapeAllocator;
+        _data = ref MemoryMarshal.GetReference(data);
+        _firstMeta = ref MemoryMarshal.GetReference(fields);
+        FieldCount = fields.Length - 1;
+        _unescapeBuffer = unescapeBuffer;
+    }
+
     /// <summary>
     /// Initializes a new instance of <see cref="CsvFieldsRef{T}"/>.
     /// </summary>
@@ -76,12 +91,14 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
             if ((uint)index >= (uint)FieldCount)
                 Throw.Argument_FieldIndex(index, FieldCount);
 
-            return Unsafe.Add(ref _firstMeta, index + 1).GetField(
-                dialect: in _dialect,
-                start: Unsafe.Add(ref _firstMeta, index).NextStart,
-                data: ref _data,
-                buffer: _unescapeBuffer,
-                allocator: _allocator);
+            return Unsafe
+                .Add(ref _firstMeta, index + 1)
+                .GetField(
+                    dialect: in _dialect,
+                    start: Unsafe.Add(ref _firstMeta, index).NextStart,
+                    data: ref _data,
+                    buffer: _unescapeBuffer,
+                    allocator: _allocator);
         }
     }
 
