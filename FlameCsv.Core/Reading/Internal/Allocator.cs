@@ -52,7 +52,7 @@ internal sealed class MemoryPoolAllocator<T>(MemoryPool<T> pool) : Allocator<T> 
 
         if (memory.Length < length)
         {
-            memory = EnsureCapacity(ref _memoryOwner, length, copyOnResize: true);
+            memory = EnsureCapacity(ref _memoryOwner, length, copyOnResize: false);
         }
 
         return memory.Slice(0, length);
