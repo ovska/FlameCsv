@@ -165,14 +165,16 @@ internal static class FieldParser<T, TNewline, TVector>
                 goto ContinueRead;
             }
 
-            // quote count is not 0 or 1
+            // if the quote count is not 0 or 1,
             // we can't know for sure if we are in a string, or one just ended in the last vector
-            // e.g., ["James ""007"] ["Bond,..."]
+            // e.g., ["James ""007"] ["Bond",...]
             //                      ^ quoteCount % 2 is 0 here, but we are still actually in a string
+            //       [""007"""Bond"] [,..."]
+            //                      ^ quoteCount % 2 is 0 here, but we are not in a string
             Debug.Assert(quotesConsumed > 1);
             goto ParseAny;
 
-            ContinueRead:
+        ContinueRead:
             runningIndex += (nuint)TVector.Count;
         }
 
@@ -186,18 +188,17 @@ internal static class FieldParser<T, TNewline, TVector>
         nuint runningIndex,
         ref Meta currentMeta)
     {
-        // Process one delimiter at a time, but with minimal branching
         while (mask != 0)
         {
             ref Meta target = ref currentMeta;
 
-            // Get position and clear in one operation
             int offset = BitOperations.TrailingZeroCount(mask);
             mask &= (mask - 1);
 
             target = Meta.Plain((int)runningIndex + offset);
             currentMeta = ref Unsafe.Add(ref currentMeta, 1);
         }
+
         return ref currentMeta;
     }
 
@@ -227,6 +228,7 @@ internal static class FieldParser<T, TNewline, TVector>
 
                     if (offset == TVector.Count - 1)
                     {
+                        // TODO: attempt reorder to improve pipelining
                         runningIndex += TNewline.OffsetFromEnd;
                         nextVector = TVector.LoadUnaligned(in first, runningIndex + (nuint)TVector.Count);
                     }
