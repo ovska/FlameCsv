@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <NoWarn>$(NoWarn);IDE0008;IDE0011;IDE0040;CA1822;CS1591;CA2007</NoWarn>
+    <NoWarn>$(NoWarn);IDE0008;IDE0011;IDE0040;CA1822;CS1591;CA2007;CS8002</NoWarn>
 
     <AnalysisLevel>latest-minimum</AnalysisLevel>
 
