@@ -3,18 +3,19 @@
 
 ### New Rules
 
+
  Rule ID    | Category | Severity | Notes       
 ------------|----------|----------|-------------
- FLAMESG001 | Usage    | Error    | Diagnostics 
- FLAMESG100 | Usage    | Error    | Diagnostics 
- FLAMESG101 | Usage    | Error    | Diagnostics 
- FLAMESG102 | Usage    | Error    | Diagnostics 
- FLAMESG103 | Usage    | Error    | Diagnostics 
- FLAMESG104 | Usage    | Error    | Diagnostics 
- FLAMESG105 | Usage    | Error    | Descriptors 
- FLAMESG200 | Usage    | Error    | Diagnostics 
- FLAMESG201 | Usage    | Error    | Diagnostics 
- FLAMESG202 | Usage    | Error    | Diagnostics 
- FLAMESG203 | Usage    | Error    | Diagnostics 
- FLAMESG204 | Usage    | Error    | Diagnostics 
-FLAMESG205 | Usage | Error | Descriptors
+ FLAMESG101 | Design   | Error    | File-scoped TypeMap
+ FLAMESG102 | Design   | Error    | No ctor found
+ FLAMESG103 | Design   | Error    | Invalid ctor param ref kind
+ FLAMESG104 | Design   | Error    | Ref-like ctor param
+ FLAMESG105 | Design   | Error    | No members to read
+ FLAMESG106 | Design   | Error    | No members to write
+ FLAMESG201 | Usage    | Error    | Conflicting attributes
+ FLAMESG202 | Usage    | Error    | Target member not found
+ FLAMESG203 | Usage    | Error    | No matching constructor
+ FLAMESG204 | Usage    | Error    | Ignored parameter without default value
+ FLAMESG205 | Usage    | Error    | Multiple type proxies
+ FLAMESG206 | Usage    | Error    | No CsvConverterFactory ctor
+ FLAMESG207 | Usage    | Error    | Abstract CsvConverter
