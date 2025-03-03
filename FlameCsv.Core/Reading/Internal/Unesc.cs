@@ -33,33 +33,40 @@ internal static class Unesc
         ref char dst = ref MemoryMarshal.GetReference(destination);
         ref uint maskRef = ref MemoryMarshal.GetReference(masks);
 
-        nint srcIndex = 0;
-        nint dstIndex = 0;
+        nint srcIndex = 0; // index of examined characters in the source
+        nint dstIndex = 0; // count of copied characters in the destination
+        nint pendingCopyStart = 0; // index of the first uncopied character
 
         // Process first mask with special offset handling
-        uint mask = maskRef >> (UInt32Bits - offset);
-        int maskRemaining = UInt32Bits;
-        int maskConsumed = (UInt32Bits + UInt32Bits - offset) % UInt32Bits;
-
-        ProcessMask(ref src, ref dst, ref srcIndex, ref dstIndex, mask, ref maskRemaining, ref maskConsumed);
+        ProcessMask(
+            ref src,
+            ref dst,
+            ref srcIndex,
+            ref dstIndex,
+            ref pendingCopyStart,
+            maskRef >> (UInt32Bits - offset), // shift by the difference
+            maskConsumed: (UInt32Bits + UInt32Bits - offset) % UInt32Bits); // pass bits untouched if offset is 0
 
         // Process remaining masks if any
         nuint maskPos = 1;
 
         while (maskPos < maskCount)
         {
-            maskRemaining = UInt32Bits;
-            maskConsumed = 0;
-
             ProcessMask(
                 ref src,
                 ref dst,
                 ref srcIndex,
                 ref dstIndex,
+                ref pendingCopyStart,
                 Unsafe.Add(ref maskRef, maskPos),
-                ref maskRemaining,
-                ref maskConsumed);
+                0);
             maskPos++;
+        }
+
+        // Copy any remaining pending data at the end
+        if (srcIndex > pendingCopyStart)
+        {
+            Copy(ref src, pendingCopyStart, ref dst, dstIndex, srcIndex - pendingCopyStart);
         }
     }
 
@@ -69,28 +76,72 @@ internal static class Unesc
         ref char dst,
         ref nint srcIndex,
         ref nint dstIndex,
+        ref nint pendingCopyStart,
         uint mask,
-        ref int maskRemaining,
-        ref int maskConsumed)
+        int maskConsumed)
     {
         while (mask != 0)
         {
-            int current = BitOperations.TrailingZeroCount(mask) - maskConsumed;
-            Copy(ref src, srcIndex, ref dst, dstIndex, current);
+            // Find position of next quote
+            int quoteOffset = BitOperations.TrailingZeroCount(mask) - maskConsumed;
+            nint quotePosition = srcIndex + quoteOffset;
 
-            srcIndex += current + 1;
-            dstIndex += current;
-            maskConsumed += current + 1;
+            nint length = quotePosition - pendingCopyStart;
+            Copy(ref src, pendingCopyStart, ref dst, dstIndex, length);
+            dstIndex += length;
 
+            // Skip the quote character
+            srcIndex = quotePosition + 1;
+            maskConsumed += quoteOffset + 1;
+            pendingCopyStart = srcIndex; // the next copy will start after this quote
+
+            // Clear the processed quote bit
             mask &= mask - 1;
         }
 
-        maskRemaining -= maskConsumed;
-
-        Copy(ref src, srcIndex, ref dst, dstIndex, maskRemaining);
-        srcIndex += maskRemaining;
-        dstIndex += maskRemaining;
+        // Update srcIndex for remaining characters but don't copy them yet
+        srcIndex += UInt32Bits - maskConsumed;
     }
+
+    /*
+[MethodImpl(MethodImplOptions.AggressiveInlining)]
+private static void ProcessMask(
+    ref char src,
+    ref char dst,
+    ref nint srcIndex,
+    ref nint dstIndex,
+    ref nint pendingCopyStart,
+    uint mask,
+    int maskConsumed)
+{
+    // Process quotes in the mask
+    while (mask != 0)
+    {
+        // Find position of next quote
+        int quoteOffset = BitOperations.TrailingZeroCount(mask) - maskConsumed;
+        nint quotePosition = srcIndex + quoteOffset;
+
+        // Copy characters from pendingCopyStart up to but not including the quote
+        if (quotePosition > pendingCopyStart)
+        {
+            nint length = quotePosition - pendingCopyStart;
+            Copy(ref src, pendingCopyStart, ref dst, dstIndex, length);
+            dstIndex += length;
+        }
+
+        // Skip the quote character
+        srcIndex = quotePosition + 1;
+        pendingCopyStart = srcIndex; // Next copy will start after this quote
+        maskConsumed += quoteOffset + 1;
+
+        // Clear the processed quote bit
+        mask &= mask - 1;
+    }
+
+    // Update srcIndex for remaining characters but don't copy them yet
+    srcIndex += UInt32Bits - maskConsumed;
+}
+*/
 
     private static void Sequential<T>(T quote, int quoteCount, ReadOnlySpan<T> source, ReadOnlySpan<T> destination)
         where T : unmanaged, IBinaryInteger<T>
@@ -216,12 +267,12 @@ internal static class Unesc
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void Copy<T>(ref T src, nint srcIndex, ref T dst, nint dstIndex, nint length) where T : unmanaged
+    private static unsafe void Copy<T>(ref T src, nint srcIndex, ref T dst, nint dstIndex, nint length) where T : unmanaged
     {
         Unsafe.CopyBlockUnaligned(
-            ref Unsafe.As<T, byte>(ref Unsafe.Add(ref dst, dstIndex)),
-            ref Unsafe.As<T, byte>(ref Unsafe.Add(ref src, srcIndex)),
-            (uint)(length) * (uint)Unsafe.SizeOf<T>());
+            Unsafe.AsPointer(ref Unsafe.Add(ref dst, dstIndex)),
+            Unsafe.AsPointer(ref Unsafe.Add(ref src, srcIndex)),
+            (uint)length * (uint)Unsafe.SizeOf<T>());
     }
 
     [DoesNotReturn]
