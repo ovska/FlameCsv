@@ -125,14 +125,19 @@
         <Description>FlameCsv is a blazing fast fully-featured CSV library.</Description>
         <PackageProjectUrl>http://ovska.github.io/FlameCsv</PackageProjectUrl>
         <PackageTags>csv, tsv, simd</PackageTags>
+        <Copyright>Copyright (c) Sipi Ovaska 2022-$([System.DateTime]::Now.Year)</Copyright>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <PackageIcon>icon.png</PackageIcon>
+        <RepositoryUrl>https://github.com/ovska/FlameCSV</RepositoryUrl>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
         <!--<PackageReadmeFile>README.md</PackageReadmeFile> TODO-->
 
         <DebugSymbols>true</DebugSymbols>
         <DebugType>portable</DebugType>
         <EmbedAllSources>true</EmbedAllSources>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
     </PropertyGroup>
 
     <ItemGroup>
@@ -145,6 +150,8 @@
               PackagePath="analyzers/dotnet/cs"
               Visible="false"/>
         <None Include="Properties/icon.png" Pack="true" PackagePath=""/>
+
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
     </ItemGroup>
 
     <ItemGroup>
