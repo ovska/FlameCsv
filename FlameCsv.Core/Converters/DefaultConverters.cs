@@ -14,7 +14,7 @@ internal static partial class DefaultConverters
         Dictionary<Type, ConverterFactory<char>> value = new(capacity: 32);
         RegisterNumberConverters(value);
         value.Add(typeof(string), o => o.StringPool is not null ? new PoolingStringTextConverter(o) : StringTextConverter.Instance);
-        value.Add(typeof(bool), o => o._booleanValues is { Count: > 0 } ? new CustomBooleanTextConverter(o) : BooleanTextConverter.Instance);
+        value.Add(typeof(bool), o => o.HasBooleanValues ? new CustomBooleanTextConverter(o) : BooleanTextConverter.Instance);
         value.Add(typeof(DateTime), o => new SpanTextConverter<DateTime>(o));
         value.Add(typeof(DateTimeOffset), o => new SpanTextConverter<DateTimeOffset>(o));
         value.Add(typeof(TimeSpan), o => new SpanTextConverter<TimeSpan>(o));
@@ -27,7 +27,7 @@ internal static partial class DefaultConverters
         Dictionary<Type, ConverterFactory<byte>> value = new(capacity: 32);
         RegisterNumberConverters(value);
         value.Add(typeof(string), o => o.StringPool is not null ? new PoolingStringUtf8Converter(o) : StringUtf8Converter.Instance);
-        value.Add(typeof(bool), o => o._booleanValues is { Count: > 0 } ? new CustomBooleanUtf8Converter(o) : BooleanUtf8Converter.Instance);
+        value.Add(typeof(bool), o => o.HasBooleanValues ? new CustomBooleanUtf8Converter(o) : BooleanUtf8Converter.Instance);
         value.Add(typeof(DateTime), o => new SpanUtf8FormattableConverter<DateTime>(o));
         value.Add(typeof(DateTimeOffset), o => new SpanUtf8FormattableConverter<DateTimeOffset>(o));
         value.Add(typeof(TimeSpan), o => new SpanUtf8FormattableConverter<TimeSpan>(o));

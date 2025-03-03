@@ -77,7 +77,7 @@ partial class CsvOptions<T>
                 CsvConverterMissingException.Throw(typeof(TResult));
             }
 
-            if (_options._converterCache.TryAdd(typeof(TResult), converter))
+            if (_options.ConverterCache.TryAdd(typeof(TResult), converter))
             {
                 _options.CheckConverterCacheSize();
             }
@@ -108,7 +108,7 @@ partial class CsvOptions<T>
 
             if (converter is null) InvalidConverter.Throw(factory, typeof(TValue));
 
-            if (canCache && _options._converterCache.TryAdd(typeof(TValue), converter))
+            if (canCache && _options.ConverterCache.TryAdd(typeof(TValue), converter))
             {
                 _options.CheckConverterCacheSize();
             }
@@ -145,7 +145,7 @@ partial class CsvOptions<T>
             if (canCache)
             {
                 _options.CheckConverterCacheSize();
-                _options._converterCache.TryAdd(typeof(TValue?), result);
+                _options.ConverterCache.TryAdd(typeof(TValue?), result);
             }
 
             return result;
@@ -195,7 +195,7 @@ partial class CsvOptions<T>
         {
             _options.MakeReadOnly();
 
-            if (_options._converterCache.TryGetValue(typeof(TValue), out var cached))
+            if (_options.ConverterCache.TryGetValue(typeof(TValue), out var cached))
             {
                 converter = (CsvConverter<T, TValue>)cached;
                 return true;
@@ -213,7 +213,7 @@ partial class CsvOptions<T>
                 {
                     if (converters[i] is CsvConverter<T, TValue> converterOfT)
                     {
-                        if (_options._converterCache.TryAdd(typeof(TValue), converter = converterOfT))
+                        if (_options.ConverterCache.TryAdd(typeof(TValue), converter = converterOfT))
                         {
                             _options.CheckConverterCacheSize();
                         }

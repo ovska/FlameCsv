@@ -54,7 +54,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
             static state =>
             {
                 var @this = (CsvOptions<T>)state;
-                @this._converterCache.Clear();
+                @this.ConverterCache.Clear();
             });
     }
 
@@ -93,7 +93,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         _newline = other._newline;
         _whitespace = other._whitespace;
 
-        _converterCache = new(other._converterCache, other._converterCache.Comparer);
+        ConverterCache = new(other.ConverterCache, other.ConverterCache.Comparer);
 
         // check in case either of these types is a derived type with a different max size
         CheckConverterCacheSize();
@@ -219,12 +219,12 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     public virtual NumberStyles GetNumberStyles(Type resultType, NumberStyles defaultValue)
         => _styles.TryGetExt(resultType, defaultValue);
 
-    internal CsvRecordCallback<T>? _recordCallback;
-    internal bool _hasHeader = true;
-    internal bool _validateFieldCount;
-    internal CsvFieldQuoting _fieldQuoting;
-    internal MemoryPool<T> _memoryPool = MemoryPool<T>.Shared;
-    internal SealableList<(string, bool)>? _booleanValues;
+    private CsvRecordCallback<T>? _recordCallback;
+    private bool _hasHeader = true;
+    private bool _validateFieldCount;
+    private CsvFieldQuoting _fieldQuoting;
+    private MemoryPool<T> _memoryPool = MemoryPool<T>.Shared;
+    private SealableList<(string, bool)>? _booleanValues;
     private bool _useDefaultConverters = true;
     private bool _ignoreEnumCase = true;
     private string? _enumFormat;
@@ -513,6 +513,9 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// Returns <see langword="true"/> if this instance's type is inherited by user code.
     /// </summary>
     internal virtual bool IsInherited => GetType() != typeof(CsvOptions<T>);
+
+    internal bool HasBooleanValues => _booleanValues is { Count: > 0 };
+    internal MemoryPool<T> Allocator => _memoryPool;
 }
 
 file static class TypeDictExtensions
