@@ -15,4 +15,10 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" PrivateAssets="all" />
   </ItemGroup>
 
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>FlameCsv.SourceGen.Tests, PublicKey=$(FlameCsvPublicKey)</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
 </Project>
