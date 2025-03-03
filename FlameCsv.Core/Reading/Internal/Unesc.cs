@@ -25,8 +25,8 @@ internal static class Unesc
         // 000000010000100000
 
         // 1 extra bit for the shift
-        int requiredSize = (source.Length + 1) / (8 * sizeof(uint)) + 1;
-        Span<uint> masks = stackalloc uint[requiredSize];
+        nuint maskCount = (nuint)(source.Length + (UInt32Bits - 1)) / (nuint)UInt32Bits;
+        Span<uint> masks = stackalloc uint[(int)maskCount];
         int offset = FillBitmask<char, Vec256Char>(quote, (int)quoteCount, source, masks);
 
         ref char src = ref MemoryMarshal.GetReference(source);
@@ -39,10 +39,10 @@ internal static class Unesc
         // consider offset in the first mask
         uint mask = maskRef >> (UInt32Bits - offset);
         int maskRemaining = UInt32Bits;
-        int maskConsumed = UInt32Bits - offset;
+        int maskConsumed = (UInt32Bits + UInt32Bits - offset) % UInt32Bits;
         nuint maskPos = 0;
 
-        while (maskPos < (nuint)requiredSize)
+        while (maskPos < maskCount)
         {
             while (mask != 0)
             {
@@ -106,8 +106,8 @@ internal static class Unesc
         where TVector : struct, ISimdVector<T, TVector>, IMoveMask<uint>
     {
         Debug.Assert(source.Length >= TVector.Count); // source must fit at least one vector
-        Debug.Assert(source.Length > sizeof(uint)); // source must fit at least one mask
-        Debug.Assert(UInt32Bits * destination.Length > source.Length); // all bits of the source must fit
+        Debug.Assert(source.Length >= sizeof(uint)); // source must fit at least one mask
+        Debug.Assert(UInt32Bits * destination.Length >= source.Length); // all bits of the source must fit
         Debug.Assert(BitOperations.IsPow2(TVector.Count)); // vector size must be a power of 2
         Debug.Assert(!destination.ContainsAnyExcept(0u)); // destination must be zeroed
         Debug.Assert(quoteCount % 2 == 0); // quotes must be in pairs
@@ -115,49 +115,80 @@ internal static class Unesc
         TVector quoteVec = TVector.Create(quote);
 
         ref T src = ref MemoryMarshal.GetReference(source);
-        nuint srcPos = 0;
-        nint remaining = source.Length;
-
         ref uint mask = ref MemoryMarshal.GetReference(destination);
+
+        int offsetFromEnd = source.Length & (TVector.Count - 1);
+        nuint srcPos = 0;
         nuint maskPos = 0;
+        nint remaining = source.Length;
+        uint carry = 0;
 
-        // read the first vector from the beginning, and the rest so it aligns with the source length
-        // we read some data twice, but this is worth it to avoid any branching in the later loop
-        int offsetFromEnd = source.Length & (TVector.Count - 1);;
+        // Process first vector with special offset handling
+        ProcessVector(
+            ref quoteCount,
+            ref src,
+            ref mask,
+            ref srcPos,
+            ref maskPos,
+            ref remaining,
+            ref carry,
+            quoteVec,
+            offsetFromEnd,
+            true);
 
-        TVector current = TVector.LoadUnaligned(ref src, srcPos);
-        TVector eq = TVector.Equals(current, quoteVec);
-
-        uint bits = eq.MoveMask() << (TVector.Count - offsetFromEnd);
-        uint shifted = bits << 1;
-        uint carry = bits >> 31;
-
-        Unsafe.Add(ref mask, maskPos) = bits & shifted;
-
-        quoteCount -= BitOperations.PopCount(bits);
-        srcPos += (nuint)offsetFromEnd;
-        remaining -= offsetFromEnd;
-        maskPos++;
-
+        // Process remaining vectors
         while (remaining > 0 && quoteCount > 0)
         {
-            current = TVector.LoadUnaligned(ref src, srcPos);
-            eq = TVector.Equals(current, quoteVec);
-
-            bits = eq.MoveMask();
-            shifted = bits << 1 | carry;
-
-            Unsafe.Add(ref mask, maskPos) = bits & shifted;
-
-            quoteCount -= BitOperations.PopCount(bits);
-            carry = bits >> 31;
-            srcPos += (nuint)TVector.Count;
-            remaining -= TVector.Count;
-            maskPos++;
+            ProcessVector(
+                ref quoteCount,
+                ref src,
+                ref mask,
+                ref srcPos,
+                ref maskPos,
+                ref remaining,
+                ref carry,
+                quoteVec,
+                TVector.Count,
+                false);
         }
 
         if (quoteCount != 0) Invalid(source);
         return offsetFromEnd;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ProcessVector<T, TVector>(
+        ref int quoteCount,
+        ref T src,
+        ref uint mask,
+        ref nuint srcPos,
+        ref nuint maskPos,
+        ref nint remaining,
+        ref uint carry,
+        TVector quoteVec,
+        int advanceBy,
+        bool isFirstVector)
+        where T : unmanaged, IBinaryInteger<T>
+        where TVector : struct, ISimdVector<T, TVector>, IMoveMask<uint>
+    {
+        TVector current = TVector.LoadUnaligned(ref src, srcPos);
+        TVector eq = TVector.Equals(current, quoteVec);
+
+        uint bits = eq.MoveMask();
+
+        if (isFirstVector)
+        {
+            bits <<= (TVector.Count - advanceBy);
+        }
+
+        uint shifted = bits << 1 | carry;
+        Unsafe.Add(ref mask, maskPos) = bits & shifted;
+
+        quoteCount -= BitOperations.PopCount(bits);
+        carry = bits >> 31;
+        srcPos += (nuint)advanceBy;
+        remaining -= advanceBy;
+        maskPos++;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -15,6 +15,7 @@ public class AAAAAAAA
     [InlineData(
         "GBC Pre-Punched Binding Paper, Plastic, White, 8-1/2\"\" x 11\"\"",
         "GBC Pre-Punched Binding Paper, Plastic, White, 8-1/2\" x 11\"")]
+    [InlineData("Exactly \"\"32\"\" characters input!", "Exactly \"32\" characters input!")]
     public void AAAAA(string inp, string expected)
     {
         var buffer = new char[128];
