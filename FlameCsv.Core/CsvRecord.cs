@@ -13,10 +13,10 @@ namespace FlameCsv;
 /// A self-contained copy of a single CSV record.
 /// </summary>
 [PublicAPI]
-public class CsvRecord<T> :
-    ICsvFields<T>,
-    IReadOnlyList<ReadOnlyMemory<T>>,
-    IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>
+public class CsvRecord<T>
+    : ICsvFields<T>,
+        IReadOnlyList<ReadOnlyMemory<T>>,
+        IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>
     where T : unmanaged, IBinaryInteger<T>
 {
     /// <inheritdoc cref="GetField(CsvFieldIdentifier)"/>
@@ -74,12 +74,8 @@ public class CsvRecord<T> :
     {
         get
         {
-            if (!Options._hasHeader)
-                Throw.NotSupported_CsvHasNoHeader();
-
-            if (!HasHeader)
-                Throw.InvalidOperation_HeaderNotRead();
-
+            if (!Options.HasHeader) Throw.NotSupported_CsvHasNoHeader();
+            if (!HasHeader) Throw.InvalidOperation_HeaderNotRead();
             return _header.Values;
         }
     }
@@ -101,7 +97,7 @@ public class CsvRecord<T> :
         RawRecord = record._fields.Record.SafeCopy();
         _header = record._owner.Header;
 
-        using WritableBuffer<T> buffer = new(Options._memoryPool);
+        using WritableBuffer<T> buffer = new(Options.Allocator);
         foreach (var field in record) buffer.Push(field);
         _fields = buffer.Preserve();
     }
@@ -296,7 +292,7 @@ public class CsvRecord<T> :
         get
         {
             foreach (var f in _fields) yield return f;
-    }
+        }
     }
 
     bool IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>.ContainsKey(CsvFieldIdentifier key)

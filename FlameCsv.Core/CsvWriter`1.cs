@@ -81,6 +81,7 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     public bool IsCompleted { get; private protected set; }
 
     private protected readonly CsvFieldWriter<T> _inner;
+    private readonly bool _validateFieldCount;
 
     /// <summary>
     /// Initializes a new writer instance.
@@ -95,6 +96,7 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
         Throw.IfDefaultStruct(inner.Writer is null, typeof(CsvFieldWriter<T>));
 
         _inner = inner;
+        _validateFieldCount = inner.Options.ValidateFieldCount;
         AutoFlush = autoFlush;
         LineIndex = 1;
 
@@ -416,7 +418,7 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected void ValidateFieldCount()
     {
-        if (ColumnIndex > 0 && (_inner.Options._validateFieldCount || ExpectedFieldCount.HasValue))
+        if (ColumnIndex > 0 && (_validateFieldCount || ExpectedFieldCount.HasValue))
         {
             if (ExpectedFieldCount is null)
             {

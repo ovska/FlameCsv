@@ -81,7 +81,7 @@ public static partial class CsvReader
 
         options ??= CsvOptions<char>.Default;
         return new CsvRecordEnumerable<char>(
-            CsvPipeReader.Create(stream, encoding, options._memoryPool, readerOptions),
+            CsvPipeReader.Create(stream, encoding, options.Allocator, readerOptions),
             options);
     }
 
@@ -101,7 +101,7 @@ public static partial class CsvReader
 
         options ??= CsvOptions<char>.Default;
         return new CsvRecordEnumerable<char>(
-            CsvPipeReader.Create(textReader, options._memoryPool, readerOptions),
+            CsvPipeReader.Create(textReader, options.Allocator, readerOptions),
             options);
     }
 
@@ -122,7 +122,7 @@ public static partial class CsvReader
 
         options ??= CsvOptions<byte>.Default;
         return new CsvRecordEnumerable<byte>(
-            CsvPipeReader.Create(stream, options._memoryPool, readerOptions),
+            CsvPipeReader.Create(stream, options.Allocator, readerOptions),
             options);
     }
 

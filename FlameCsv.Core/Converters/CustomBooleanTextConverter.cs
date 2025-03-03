@@ -15,7 +15,7 @@ internal sealed class CustomBooleanTextConverter : CsvConverter<char, bool>
 
     internal CustomBooleanTextConverter(CsvOptions<char> options)
     {
-        if (options._booleanValues is not { Count: > 0 })
+        if (!options.HasBooleanValues)
             Throw.Argument(nameof(CsvOptions<char>.BooleanValues), "No values defined");
 
         // ReSharper disable once SuspiciousTypeConversion.Global
@@ -23,8 +23,8 @@ internal sealed class CustomBooleanTextConverter : CsvConverter<char, bool>
             throw new CsvConfigurationException(
                 $"Comparer does not implement {nameof(IAlternateEqualityComparer<ReadOnlySpan<char>, string>)}.");
 
-        _trueValues = [..options._booleanValues.Where(t => t.Item2).Select(t => t.Item1).Distinct(options.Comparer)];
-        _falseValues = [..options._booleanValues.Where(t => !t.Item2).Select(t => t.Item1).Distinct(options.Comparer)];
+        _trueValues = [..options.BooleanValues.Where(t => t.Item2).Select(t => t.Item1).Distinct(options.Comparer)];
+        _falseValues = [..options.BooleanValues.Where(t => !t.Item2).Select(t => t.Item1).Distinct(options.Comparer)];
 
         if (_trueValues.Length == 0) Throw.Config_TrueOrFalseBooleanValues(true);
         if (_falseValues.Length == 0) Throw.Config_TrueOrFalseBooleanValues(false);

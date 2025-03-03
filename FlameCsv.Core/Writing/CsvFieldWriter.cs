@@ -19,7 +19,7 @@ internal static class CsvFieldWriter
         try
         {
             return new CsvFieldWriter<char>(
-                new CsvCharPipeWriter(textWriter, options._memoryPool, bufferSize, leaveOpen),
+                new CsvCharPipeWriter(textWriter, options.Allocator, bufferSize, leaveOpen),
                 options);
         }
         catch
@@ -55,7 +55,7 @@ internal static class CsvFieldWriter
         try
         {
             return new CsvFieldWriter<byte>(
-                new CsvStreamPipeWriter(stream, options._memoryPool, bufferSize, leaveOpen),
+                new CsvStreamPipeWriter(stream, options.Allocator, bufferSize, leaveOpen),
                 options);
         }
         catch
@@ -87,6 +87,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
     private readonly T? _escape;
     private readonly T[]? _whitespace;
     private readonly SearchValues<T> _needsQuoting;
+    private readonly CsvFieldQuoting _fieldQuoting;
 
     /// <summary>
     /// Creates a new instance.
@@ -108,6 +109,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         _whitespace = dialect.GetWhitespaceArray();
         _newline = dialect.GetNewlineOrDefault(forWriting: true);
         _needsQuoting = dialect.NeedsQuoting;
+        _fieldQuoting = options.FieldQuoting;
     }
 
     /// <summary>
@@ -228,7 +230,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         // empty writes don't need escaping
         if (tokensWritten == 0)
         {
-            if (Options._fieldQuoting == CsvFieldQuoting.Always)
+            if (_fieldQuoting == CsvFieldQuoting.Always)
             {
                 // Ensure the buffer is large enough
                 if (destination.Length < 2)
@@ -243,7 +245,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         }
 
         // Value formatted, check if it needs to be wrapped in quotes
-        if (Options._fieldQuoting != CsvFieldQuoting.Never)
+        if (_fieldQuoting != CsvFieldQuoting.Never)
         {
             if (_escape is null)
             {
@@ -275,14 +277,14 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         where TEscaper : struct, IEscaper<T>, allows ref struct
     {
         Debug.Assert(tokensWritten != 0);
-        Debug.Assert(Options._fieldQuoting != CsvFieldQuoting.Never);
+        Debug.Assert(_fieldQuoting != CsvFieldQuoting.Never);
 
         ReadOnlySpan<T> written = destination[..tokensWritten];
 
         bool shouldQuote;
         int escapableCount;
 
-        if (Options._fieldQuoting == CsvFieldQuoting.Always)
+        if (_fieldQuoting == CsvFieldQuoting.Always)
         {
             shouldQuote = true;
             escapableCount = escaper.CountEscapable(written);
@@ -339,7 +341,7 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
                     source: written,
                     destination: destination,
                     specialCount: escapableCount,
-                    allocator: Options._memoryPool);
+                    allocator: Options.Allocator);
             }
 
             return true;

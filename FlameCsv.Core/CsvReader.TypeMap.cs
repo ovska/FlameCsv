@@ -123,7 +123,7 @@ public static partial class CsvReader
         Guard.CanRead(stream);
 
         options ??= CsvOptions<char>.Default;
-        var reader = CsvPipeReader.Create(stream, encoding, options._memoryPool, readerOptions);
+        var reader = CsvPipeReader.Create(stream, encoding, options.Allocator, readerOptions);
         return new CsvTypeMapEnumerable<char, TValue>(reader, options, typeMap);
     }
 
@@ -144,7 +144,7 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(typeMap);
 
         options ??= CsvOptions<char>.Default;
-        ICsvPipeReader<char> reader = CsvPipeReader.Create(textReader, options._memoryPool, readerOptions);
+        ICsvPipeReader<char> reader = CsvPipeReader.Create(textReader, options.Allocator, readerOptions);
         return new CsvTypeMapEnumerable<char, TValue>(reader, options, typeMap);
     }
 
@@ -166,7 +166,7 @@ public static partial class CsvReader
         Guard.CanRead(stream);
 
         options ??= CsvOptions<byte>.Default;
-        var reader = CsvPipeReader.Create(stream, options._memoryPool, readerOptions);
+        var reader = CsvPipeReader.Create(stream, options.Allocator, readerOptions);
         return new CsvTypeMapEnumerable<byte, TValue>(reader, options, typeMap);
     }
 

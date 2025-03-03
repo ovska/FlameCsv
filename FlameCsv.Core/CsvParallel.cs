@@ -23,7 +23,7 @@ public static class CsvParallel
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(reader2);
 
-        using var allocator = new SlabAllocator<T>(options._memoryPool);
+        using var allocator = new SlabAllocator<T>(options.Allocator);
 
         using CsvParser<T> parser = CsvParser.CreateCore(
             options,

@@ -17,10 +17,10 @@ internal sealed class CustomBooleanUtf8Converter : CsvConverter<byte, bool>
 
     internal CustomBooleanUtf8Converter(CsvOptions<byte> options)
     {
-        if (options._booleanValues is not { Count: > 0 })
+        if (!options.HasBooleanValues)
             Throw.Argument(nameof(CsvOptions<byte>.BooleanValues), "No values defined");
 
-        var values = options._booleanValues;
+        var values = options.BooleanValues;
         var valuesBuilder = ImmutableArray.CreateBuilder<(bool, byte[])>(values.Count);
 
         List<byte[]> trues = new((values.Count / 2) + 1);

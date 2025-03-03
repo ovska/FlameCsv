@@ -92,8 +92,8 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
         _canUseFastPath = !options.NoReadAhead && _dialect.IsAscii;
         _reader = reader;
 
-        _multisegmentAllocator = parserOptions.MultiSegmentAllocator ?? new MemoryPoolAllocator<T>(options._memoryPool);
-        _unescapeAllocator = parserOptions.UnescapeAllocator ?? new MemoryPoolAllocator<T>(options._memoryPool);
+        _multisegmentAllocator = parserOptions.MultiSegmentAllocator ?? new MemoryPoolAllocator<T>(options.Allocator);
+        _unescapeAllocator = parserOptions.UnescapeAllocator ?? new MemoryPoolAllocator<T>(options.Allocator);
     }
 
     /// <summary>
