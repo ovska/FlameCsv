@@ -21,7 +21,7 @@ public class AAAAAAAA
         var buffer = new char[128];
         int quoteCount = inp.AsSpan().Count('"');
         int expectedLength = inp.Length - quoteCount / 2;
-        Unesc.FillBitmask('"', (uint)quoteCount, inp, buffer);
+        Unesc.Exec('"', quoteCount, inp, buffer);
         Assert.Equal(expected, buffer.AsSpan(..expectedLength).ToString());
         Assert.Equal(new string('\0', 128 - expectedLength), buffer.AsSpan(expectedLength..).ToString());
     }

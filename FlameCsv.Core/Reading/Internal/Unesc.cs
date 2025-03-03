@@ -7,15 +7,76 @@ namespace FlameCsv.Reading.Internal;
 
 internal static class Unesc
 {
-    const int UInt32Bits = 8 * sizeof(uint);
-
-    internal static void FillBitmask(char quote, uint quoteCount, ReadOnlySpan<char> source, Span<char> destination)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void Exec<T>(T quote, int quoteCount, ReadOnlySpan<T> source, Span<T> destination)
+        where T : unmanaged, IBinaryInteger<T>
     {
-        if (source.Length < UInt32Bits)
+        Debug.Assert(source.Length >= 2);
+
+        if (typeof(T) == typeof(char))
         {
-            Sequential(quote, (int)quoteCount, source, destination);
-            return;
+            char quoteChar = Unsafe.As<T, char>(ref quote);
+            ReadOnlySpan<char> sourceChars = MemoryMarshal.Cast<T, char>(source);
+            Span<char> destinationChars = MemoryMarshal.Cast<T, char>(destination);
+
+            if (Vec256Char.IsSupported && source.Length >= Vec256Char.Count)
+            {
+                FillBitmask<char, Vec256Char, uint>(quoteChar, quoteCount, sourceChars, destinationChars);
+                return;
+            }
+
+            if (Vec128Char.IsSupported && source.Length >= Vec128Char.Count)
+            {
+                FillBitmask<char, Vec128Char, ushort>(quoteChar, quoteCount, sourceChars, destinationChars);
+                return;
+            }
+
+            if (Vec64Char.IsSupported && source.Length >= Vec64Char.Count)
+            {
+                FillBitmask<char, Vec64Char, byte>(quoteChar, quoteCount, sourceChars, destinationChars);
+                return;
+            }
         }
+
+        if (typeof(T) == typeof(byte))
+        {
+            byte quoteByte = Unsafe.As<T, byte>(ref quote);
+            ReadOnlySpan<byte> sourceBytes = MemoryMarshal.Cast<T, byte>(source);
+            Span<byte> destinationBytes = MemoryMarshal.Cast<T, byte>(destination);
+
+            if (Vec256Byte.IsSupported && source.Length >= Vec256Byte.Count)
+            {
+                FillBitmask<byte, Vec256Byte, uint>(quoteByte, quoteCount, sourceBytes, destinationBytes);
+                return;
+            }
+
+            if (Vec128Byte.IsSupported && source.Length >= Vec128Byte.Count)
+            {
+                FillBitmask<byte, Vec128Byte, ushort>(quoteByte, quoteCount, sourceBytes, destinationBytes);
+                return;
+            }
+
+            if (Vec64Byte.IsSupported && source.Length >= Vec64Byte.Count)
+            {
+                FillBitmask<byte, Vec64Byte, byte>(quoteByte, quoteCount, sourceBytes, destinationBytes);
+                return;
+            }
+        }
+
+        Sequential(quote, quoteCount, source, destination);
+    }
+
+    internal static void FillBitmask<T, TVector, TMask>(
+        T quote,
+        int quoteCount,
+        ReadOnlySpan<T> source,
+        Span<T> destination)
+        where T : unmanaged, IBinaryInteger<T>
+        where TVector : struct, ISimdVector<T, TVector>, IMoveMask<TMask>
+        where TMask : unmanaged, IUnsignedNumber<TMask>, IBinaryInteger<TMask>
+    {
+        Debug.Assert(source.Length >= TVector.Count);
+        Debug.Assert(TVector.MaskSize == TVector.Count);
 
         // fill the bits in destination with source.Length bytes, each bit set if the corresponding character is a quote
         // the quote bits are shifted finally to find pairs of quotes, e.g.:
@@ -25,41 +86,42 @@ internal static class Unesc
         // 000000010000100000
 
         // 1 extra bit for the shift
-        nuint maskCount = (nuint)(source.Length + (UInt32Bits - 1)) / UInt32Bits;
-        Span<uint> masks = stackalloc uint[(int)maskCount];
-        int offset = FillBitmask<char, Vec256Char>(quote, (int)quoteCount, source, masks);
+        nuint maskCount = (nuint)(source.Length + (TVector.Count - 1)) / (nuint)TVector.Count;
+        Span<TMask> masks = stackalloc TMask[(int)maskCount];
+        int offset = FillMaskArray<T, TVector, TMask>(quote, quoteCount, source, masks);
 
-        ref char src = ref MemoryMarshal.GetReference(source);
-        ref char dst = ref MemoryMarshal.GetReference(destination);
-        ref uint maskRef = ref MemoryMarshal.GetReference(masks);
+        ref T src = ref MemoryMarshal.GetReference(source);
+        ref T dst = ref MemoryMarshal.GetReference(destination);
+        ref TMask maskRef = ref MemoryMarshal.GetReference(masks);
 
         nint srcIndex = 0; // index of examined characters in the source
         nint dstIndex = 0; // count of copied characters in the destination
         nint pendingCopyStart = 0; // index of the first uncopied character
 
         // Process first mask with special offset handling
-        ProcessMask(
+        ProcessMask<T, TVector, TMask>(
             ref src,
             ref dst,
             ref srcIndex,
             ref dstIndex,
             ref pendingCopyStart,
-            maskRef >> (UInt32Bits - offset), // shift by the difference
-            maskConsumed: (UInt32Bits + UInt32Bits - offset) % UInt32Bits); // pass bits untouched if offset is 0
+            maskRef >> (offset == 0 ? 0 : TVector.MaskSize - offset), // shift by the difference
+            maskConsumed: (TVector.MaskSize + TVector.MaskSize - offset) %
+            TVector.MaskSize); // pass bits untouched if offset is 0
 
         // Process remaining masks if any
         nuint maskPos = 1;
 
         while (maskPos < maskCount)
         {
-            ProcessMask(
+            ProcessMask<T, TVector, TMask>(
                 ref src,
                 ref dst,
                 ref srcIndex,
                 ref dstIndex,
                 ref pendingCopyStart,
                 Unsafe.Add(ref maskRef, maskPos),
-                0);
+                maskConsumed: 0);
             maskPos++;
         }
 
@@ -71,19 +133,22 @@ internal static class Unesc
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ProcessMask(
-        ref char src,
-        ref char dst,
+    private static void ProcessMask<T, TVector, TMask>(
+        ref T src,
+        ref T dst,
         ref nint srcIndex,
         ref nint dstIndex,
         ref nint pendingCopyStart,
-        uint mask,
+        TMask mask,
         int maskConsumed)
+        where T : unmanaged, IBinaryInteger<T>
+        where TVector : struct, ISimdVector<T, TVector>, IMoveMask<TMask>
+        where TMask : unmanaged, IUnsignedNumber<TMask>, IBinaryInteger<TMask>
     {
-        while (mask != 0)
+        while (mask != TMask.Zero)
         {
             // Find position of next quote
-            int quoteOffset = BitOperations.TrailingZeroCount(mask) - maskConsumed;
+            int quoteOffset = int.CreateTruncating(TMask.TrailingZeroCount(mask)) - maskConsumed;
             nint quotePosition = srcIndex + quoteOffset;
 
             nint length = quotePosition - pendingCopyStart;
@@ -96,11 +161,11 @@ internal static class Unesc
             pendingCopyStart = srcIndex; // the next copy will start after this quote
 
             // Clear the processed quote bit
-            mask &= mask - 1;
+            mask &= mask - TMask.One;
         }
 
         // Update srcIndex for remaining characters but don't copy them yet
-        srcIndex += UInt32Bits - maskConsumed;
+        srcIndex += TVector.MaskSize - maskConsumed;
     }
 
     /*
@@ -172,31 +237,32 @@ private static void ProcessMask(
         if (srcRemaining == 1) Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
     }
 
-    private static int FillBitmask<T, TVector>(
+    private static int FillMaskArray<T, TVector, TMask>(
         T quote,
         int quoteCount,
         ReadOnlySpan<T> source,
-        Span<uint> destination)
+        Span<TMask> destination)
         where T : unmanaged, IBinaryInteger<T>
-        where TVector : struct, ISimdVector<T, TVector>, IMoveMask<uint>
+        where TVector : struct, ISimdVector<T, TVector>, IMoveMask<TMask>
+        where TMask : unmanaged, IUnsignedNumber<TMask>, IBinaryInteger<TMask>
     {
         Debug.Assert(source.Length >= TVector.Count); // source must fit at least one vector
         Debug.Assert(source.Length >= sizeof(uint)); // source must fit at least one mask
-        Debug.Assert(UInt32Bits * destination.Length >= source.Length); // all bits of the source must fit
+        Debug.Assert(TVector.MaskSize * destination.Length >= source.Length); // all bits of the source must fit
         Debug.Assert(BitOperations.IsPow2(TVector.Count)); // vector size must be a power of 2
-        Debug.Assert(!destination.ContainsAnyExcept(0u)); // destination must be zeroed
+        Debug.Assert(!destination.ContainsAnyExcept(TMask.Zero)); // destination must be zeroed
         Debug.Assert(quoteCount % 2 == 0); // quotes must be in pairs
 
         TVector quoteVec = TVector.Create(quote);
 
         ref T src = ref MemoryMarshal.GetReference(source);
-        ref uint mask = ref MemoryMarshal.GetReference(destination);
+        ref TMask mask = ref MemoryMarshal.GetReference(destination);
 
         int offsetFromEnd = source.Length & (TVector.Count - 1);
         nuint srcPos = 0;
         nuint maskPos = 0;
         nint remaining = source.Length;
-        uint carry = 0;
+        TMask carry = TMask.Zero;
 
         // Process first vector with special offset handling
         ProcessVector(
@@ -208,7 +274,7 @@ private static void ProcessMask(
             ref remaining,
             ref carry,
             quoteVec,
-            offsetFromEnd,
+            offsetFromEnd != 0 ? offsetFromEnd : TVector.Count,
             true);
 
         // Process remaining vectors
@@ -232,34 +298,35 @@ private static void ProcessMask(
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ProcessVector<T, TVector>(
+    private static void ProcessVector<T, TVector, TMask>(
         ref int quoteCount,
         ref T src,
-        ref uint mask,
+        ref TMask mask,
         ref nuint srcPos,
         ref nuint maskPos,
         ref nint remaining,
-        ref uint carry,
+        ref TMask carry,
         TVector quoteVec,
         int advanceBy,
         bool isFirstVector)
         where T : unmanaged, IBinaryInteger<T>
-        where TVector : struct, ISimdVector<T, TVector>, IMoveMask<uint>
+        where TVector : struct, ISimdVector<T, TVector>, IMoveMask<TMask>
+        where TMask : unmanaged, IUnsignedNumber<TMask>, IBinaryInteger<TMask>
     {
         TVector current = TVector.LoadUnaligned(ref src, srcPos);
         TVector eq = TVector.Equals(current, quoteVec);
 
-        uint bits = eq.MoveMask();
+        TMask bits = eq.MoveMask();
 
         if (isFirstVector)
         {
             bits <<= (TVector.Count - advanceBy);
         }
 
-        uint shifted = bits << 1 | carry;
+        TMask shifted = bits << 1 | carry;
         Unsafe.Add(ref mask, maskPos) = bits & shifted;
 
-        quoteCount -= BitOperations.PopCount(bits);
+        quoteCount -= int.CreateTruncating(TMask.PopCount(bits));
         carry = bits >> 31;
         srcPos += (nuint)advanceBy;
         remaining -= advanceBy;
@@ -267,7 +334,8 @@ private static void ProcessMask(
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe void Copy<T>(ref T src, nint srcIndex, ref T dst, nint dstIndex, nint length) where T : unmanaged
+    private static unsafe void Copy<T>(ref T src, nint srcIndex, ref T dst, nint dstIndex, nint length)
+        where T : unmanaged
     {
         Unsafe.CopyBlockUnaligned(
             Unsafe.AsPointer(ref Unsafe.Add(ref dst, dstIndex)),
