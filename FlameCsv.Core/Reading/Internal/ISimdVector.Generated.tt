@@ -196,6 +196,20 @@ internal interface ISimdVector<T, TVector>
     /// </summary>
     [JetBrains.Annotations.Pure] TVector WithZeroFirstElement();
 }
+
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
+internal interface IMoveMask<TResult> where TResult : unmanaged, IUnsignedNumber<TResult>, IBinaryInteger<TResult>
+{
+    /// <summary>
+    /// Returns the number of bits in each <see cref="MoveMask"/> result.
+    /// </summary>
+    static abstract int MaskSize { get; }
+
+    /// <summary>
+    /// Returns the most significant bits in the current instance.
+    /// </summary>
+    [JetBrains.Annotations.Pure] TResult MoveMask();
+}
 <#
     foreach (var (keyword, name) in types)
         foreach (var (size, isa) in intrinsics)
@@ -206,7 +220,7 @@ internal interface ISimdVector<T, TVector>
 [SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-internal readonly struct <#= typeName #> : ISimdVector<<#= keyword #>, <#= typeName #>>
+internal readonly struct <#= typeName #> : ISimdVector<<#= keyword #>, <#= typeName #>>, IMoveMask<<#= size == "512" ? "ulong" : "uint" #>>
 {
     private readonly Vector<#= size #><byte> _value;
 
@@ -322,6 +336,15 @@ internal readonly struct <#= typeName #> : ISimdVector<<#= keyword #>, <#= typeN
             //     WriteLine("        (nuint)_value.ExtractMostSignificantBits();");
             // }
 #>
+
+    [<#= MethodImpl #>]
+    public <#= size == "512" ? "ulong" : "uint" #> MoveMask() => _value.ExtractMostSignificantBits();
+
+    public static int MaskSize
+    {
+        [<#= MethodImpl #>]
+        get => sizeof(<#= size == "512" ? "ulong" : "uint" #>) * 8;
+    }
 
     [<#= MethodImpl #>]
     public <#= typeName #> WithZeroFirstElement() => _value.WithElement(0, default);
