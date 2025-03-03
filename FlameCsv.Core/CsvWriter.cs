@@ -39,7 +39,7 @@ public static partial class CsvWriter
 
         try
         {
-            if (writer.Options._hasHeader)
+            if (writer.Options.HasHeader)
             {
                 dematerializer.WriteHeader(in writer);
                 writer.WriteNewline();
@@ -81,7 +81,7 @@ public static partial class CsvWriter
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (writer.Options._hasHeader)
+            if (writer.Options.HasHeader)
             {
                 dematerializer.WriteHeader(in writer);
                 writer.WriteNewline();
@@ -126,7 +126,7 @@ public static partial class CsvWriter
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (writer.Options._hasHeader)
+            if (writer.Options.HasHeader)
             {
                 dematerializer.WriteHeader(in writer);
                 writer.WriteNewline();

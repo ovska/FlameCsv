@@ -19,7 +19,7 @@ public static class HotReloadTests
         // options
         var o = new CsvOptions<char>();
         var c1 = o.GetConverter<int>();
-        Assert.NotEmpty(o._converterCache);
+        Assert.NotEmpty(o.ConverterCache);
         Assert.Same(c1, o.GetConverter<int>());
 
         // typemap
@@ -53,7 +53,7 @@ public static class HotReloadTests
         HotReloadService.ClearCache(null);
 
         // options
-        Assert.Empty(o._converterCache);
+        Assert.Empty(o.ConverterCache);
         Assert.NotSame(c1, o.GetConverter<int>());
 
         // typemap

@@ -51,7 +51,7 @@ partial class CsvOptions<T>
     /// Contains cached converters for types that have been requested with <see cref="GetConverter(Type)"/>.
     /// </summary>
     /// <seealso cref="MaxConverterCacheSize"/>
-    protected internal readonly ConcurrentDictionary<Type, CsvConverter<T>> _converterCache
+    protected internal ConcurrentDictionary<Type, CsvConverter<T>> ConverterCache { get; }
         = new(ReferenceEqualityComparer.Instance);
 
     /// <summary>
@@ -121,7 +121,7 @@ partial class CsvOptions<T>
             CheckConverterCacheSize();
 
             // ensure we return the same instance that was cached
-            return _converterCache.GetOrAdd(resultType, converter);
+            return ConverterCache.GetOrAdd(resultType, converter);
         }
 
         return converter;
@@ -136,7 +136,7 @@ partial class CsvOptions<T>
         ArgumentNullException.ThrowIfNull(resultType);
         MakeReadOnly();
 
-        if (_converterCache.TryGetValue(resultType, out var cached))
+        if (ConverterCache.TryGetValue(resultType, out var cached))
         {
             Debug.Assert(cached.CanConvert(resultType));
             converter = cached;
@@ -208,7 +208,7 @@ partial class CsvOptions<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void CheckConverterCacheSize()
     {
-        if (_converterCache.Count >= MaxConverterCacheSize) _converterCache.Clear();
+        if (ConverterCache.Count >= MaxConverterCacheSize) ConverterCache.Clear();
     }
 }
 
