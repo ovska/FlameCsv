@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using JetBrains.Annotations;
 
 namespace FlameCsv.IO;
 
@@ -10,6 +11,7 @@ namespace FlameCsv.IO;
 /// </summary>
 /// <param name="buffer">Read data</param>
 /// <param name="isCompleted">Whether any more data can be read from the reader after this</param>
+[PublicAPI]
 [DebuggerDisplay(@"\{ ReadResult<{typeof(T).Name,nq}> Length: {Buffer.Length}, IsCompleted: {IsCompleted} \}")]
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
 [EditorBrowsable(EditorBrowsableState.Advanced)]
@@ -19,7 +21,7 @@ public readonly struct CsvReadResult<T>(in ReadOnlySequence<T> buffer, bool isCo
     /// <summary>
     /// A read result with an empty buffer and <see cref="IsCompleted"/> set to <see langword="false"/>.
     /// </summary>
-    public static readonly CsvReadResult<T> Empty = new();
+    public static readonly CsvReadResult<T> Empty;
 
     /// <summary>
     /// Data read from the data source, e.g., PipeReader or TextReader.
