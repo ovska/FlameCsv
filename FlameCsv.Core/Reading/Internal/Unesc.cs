@@ -25,7 +25,7 @@ internal static class Unesc
         // 000000010000100000
 
         // 1 extra bit for the shift
-        nuint maskCount = (nuint)(source.Length + (UInt32Bits - 1)) / (nuint)UInt32Bits;
+        nuint maskCount = (nuint)(source.Length + (UInt32Bits - 1)) / UInt32Bits;
         Span<uint> masks = stackalloc uint[(int)maskCount];
         int offset = FillBitmask<char, Vec256Char>(quote, (int)quoteCount, source, masks);
 
@@ -36,36 +36,60 @@ internal static class Unesc
         nint srcIndex = 0;
         nint dstIndex = 0;
 
-        // consider offset in the first mask
+        // Process first mask with special offset handling
         uint mask = maskRef >> (UInt32Bits - offset);
         int maskRemaining = UInt32Bits;
         int maskConsumed = (UInt32Bits + UInt32Bits - offset) % UInt32Bits;
-        nuint maskPos = 0;
+
+        ProcessMask(ref src, ref dst, ref srcIndex, ref dstIndex, mask, ref maskRemaining, ref maskConsumed);
+
+        // Process remaining masks if any
+        nuint maskPos = 1;
 
         while (maskPos < maskCount)
         {
-            while (mask != 0)
-            {
-                int current = BitOperations.TrailingZeroCount(mask) - maskConsumed;
-                Copy(ref src, srcIndex, ref dst, dstIndex, current);
-
-                srcIndex += current + 1;
-                dstIndex += current;
-                maskConsumed += current + 1;
-
-                mask &= mask - 1;
-            }
-
-            maskRemaining -= maskConsumed;
-
-            Copy(ref src, srcIndex, ref dst, dstIndex, maskRemaining);
-            srcIndex += maskRemaining;
-            dstIndex += maskRemaining;
-
-            mask = Unsafe.Add(ref maskRef, ++maskPos);
             maskRemaining = UInt32Bits;
             maskConsumed = 0;
+
+            ProcessMask(
+                ref src,
+                ref dst,
+                ref srcIndex,
+                ref dstIndex,
+                Unsafe.Add(ref maskRef, maskPos),
+                ref maskRemaining,
+                ref maskConsumed);
+            maskPos++;
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ProcessMask(
+        ref char src,
+        ref char dst,
+        ref nint srcIndex,
+        ref nint dstIndex,
+        uint mask,
+        ref int maskRemaining,
+        ref int maskConsumed)
+    {
+        while (mask != 0)
+        {
+            int current = BitOperations.TrailingZeroCount(mask) - maskConsumed;
+            Copy(ref src, srcIndex, ref dst, dstIndex, current);
+
+            srcIndex += current + 1;
+            dstIndex += current;
+            maskConsumed += current + 1;
+
+            mask &= mask - 1;
+        }
+
+        maskRemaining -= maskConsumed;
+
+        Copy(ref src, srcIndex, ref dst, dstIndex, maskRemaining);
+        srcIndex += maskRemaining;
+        dstIndex += maskRemaining;
     }
 
     private static void Sequential<T>(T quote, int quoteCount, ReadOnlySpan<T> source, ReadOnlySpan<T> destination)
