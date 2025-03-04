@@ -75,8 +75,8 @@ internal static class Unesc
         where TVector : struct, ISimdVector<T, TVector>, IMoveMask<TMask>
         where TMask : unmanaged, IUnsignedNumber<TMask>, IBinaryInteger<TMask>
     {
+        Debug.Assert(Unsafe.SizeOf<TMask>() * 8 == TVector.Count);
         Debug.Assert(source.Length >= TVector.Count);
-        Debug.Assert(TVector.MaskSize == TVector.Count);
 
         // fill the bits in destination with source.Length bytes, each bit set if the corresponding character is a quote
         // the quote bits are shifted finally to find pairs of quotes, e.g.:
@@ -88,7 +88,7 @@ internal static class Unesc
         // 1 extra bit for the shift
         nuint maskCount = (nuint)(source.Length + (TVector.Count - 1)) / (nuint)TVector.Count;
         Span<TMask> masks = stackalloc TMask[(int)maskCount];
-        int offset = FillMaskArray<T, TVector, TMask>(quote, quoteCount, source, masks);
+        int firstLength = FillMaskArray<T, TVector, TMask>(quote, quoteCount, source, masks);
 
         ref T src = ref MemoryMarshal.GetReference(source);
         ref T dst = ref MemoryMarshal.GetReference(destination);
@@ -105,9 +105,8 @@ internal static class Unesc
             ref srcIndex,
             ref dstIndex,
             ref pendingCopyStart,
-            maskRef >> (offset == 0 ? 0 : TVector.MaskSize - offset), // shift by the difference
-            maskConsumed: (TVector.MaskSize + TVector.MaskSize - offset) %
-            TVector.MaskSize); // pass bits untouched if offset is 0
+            maskRef >> (firstLength & (TVector.Count - 1)), // shift by the difference
+            maskConsumed: TVector.Count - firstLength);
 
         // Process remaining masks if any
         nuint maskPos = 1;
@@ -149,6 +148,7 @@ internal static class Unesc
         {
             // Find position of next quote
             int quoteOffset = int.CreateTruncating(TMask.TrailingZeroCount(mask)) - maskConsumed;
+            // int quoteOffset = Math.Max(0, int.CreateTruncating(TMask.TrailingZeroCount(mask)) - maskConsumed);
             nint quotePosition = srcIndex + quoteOffset;
 
             nint length = quotePosition - pendingCopyStart;
@@ -165,7 +165,7 @@ internal static class Unesc
         }
 
         // Update srcIndex for remaining characters but don't copy them yet
-        srcIndex += TVector.MaskSize - maskConsumed;
+        srcIndex += TVector.Count - maskConsumed;
     }
 
     /*
@@ -221,7 +221,7 @@ private static void ProcessMask(
         {
             if (Unsafe.Add(ref src, srcIndex) == quote)
             {
-                if (Unsafe.Add(ref src, srcIndex + 1) != quote) Invalid(source);
+                if (Unsafe.Add(ref src, srcIndex + 1) != quote) Invalid(source, Reason.NonConsecutive);
                 quoteCount -= 2;
                 srcIndex++;
                 srcRemaining--;
@@ -233,10 +233,14 @@ private static void ProcessMask(
             srcRemaining--;
         }
 
-        if (quoteCount != 0) Invalid(source);
+        if (quoteCount != 0) Invalid(source, Reason.QuoteCount);
         if (srcRemaining == 1) Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
     }
 
+    /// <summary>
+    ///
+    /// </summary>
+    /// <returns>Length of the first bitmask</returns>
     private static int FillMaskArray<T, TVector, TMask>(
         T quote,
         int quoteCount,
@@ -247,8 +251,7 @@ private static void ProcessMask(
         where TMask : unmanaged, IUnsignedNumber<TMask>, IBinaryInteger<TMask>
     {
         Debug.Assert(source.Length >= TVector.Count); // source must fit at least one vector
-        Debug.Assert(source.Length >= sizeof(uint)); // source must fit at least one mask
-        Debug.Assert(TVector.MaskSize * destination.Length >= source.Length); // all bits of the source must fit
+        Debug.Assert(TVector.Count * destination.Length >= source.Length); // all bits of the source must fit
         Debug.Assert(BitOperations.IsPow2(TVector.Count)); // vector size must be a power of 2
         Debug.Assert(!destination.ContainsAnyExcept(TMask.Zero)); // destination must be zeroed
         Debug.Assert(quoteCount % 2 == 0); // quotes must be in pairs
@@ -259,6 +262,7 @@ private static void ProcessMask(
         ref TMask mask = ref MemoryMarshal.GetReference(destination);
 
         int offsetFromEnd = source.Length & (TVector.Count - 1);
+        int firstMaskLength = offsetFromEnd == 0 ? TVector.Count : offsetFromEnd;
         nuint srcPos = 0;
         nuint maskPos = 0;
         nint remaining = source.Length;
@@ -274,10 +278,11 @@ private static void ProcessMask(
             ref remaining,
             ref carry,
             quoteVec,
-            offsetFromEnd != 0 ? offsetFromEnd : TVector.Count,
+            firstMaskLength,
             true);
 
-        // Process remaining vectors
+        // Process remaining vectors. if we run out of quotes before end of data, we can leave the rest at zero
+        // if we run out of data before quotes, the field is invalid
         while (remaining > 0 && quoteCount > 0)
         {
             ProcessVector(
@@ -293,8 +298,8 @@ private static void ProcessMask(
                 false);
         }
 
-        if (quoteCount != 0) Invalid(source);
-        return offsetFromEnd;
+        if (quoteCount != 0) Invalid(source, Reason.QuoteCount);
+        return firstMaskLength;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -337,6 +342,12 @@ private static void ProcessMask(
     private static unsafe void Copy<T>(ref T src, nint srcIndex, ref T dst, nint dstIndex, nint length)
         where T : unmanaged
     {
+        Debug.Assert(!Unsafe.IsNullRef(ref src));
+        Debug.Assert(srcIndex >= 0);
+        Debug.Assert(!Unsafe.IsNullRef(ref dst));
+        Debug.Assert(dstIndex >= 0);
+        Debug.Assert(length >= 0);
+
         Unsafe.CopyBlockUnaligned(
             Unsafe.AsPointer(ref Unsafe.Add(ref dst, dstIndex)),
             Unsafe.AsPointer(ref Unsafe.Add(ref src, srcIndex)),
@@ -344,5 +355,17 @@ private static void ProcessMask(
     }
 
     [DoesNotReturn]
-    static void Invalid<T>(ReadOnlySpan<T> input) => throw new InvalidOperationException(input.ToString());
+    static void Invalid<T>(
+        ReadOnlySpan<T> input,
+        Reason reason,
+        [CallerMemberName] string memberName = "")
+    {
+        throw new InvalidOperationException($"Invalid unescape in {memberName}: {reason} {input.ToString()}");
+    }
+
+    enum Reason
+    {
+        QuoteCount,
+        NonConsecutive,
+    }
 }

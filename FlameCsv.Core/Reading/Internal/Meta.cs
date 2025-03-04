@@ -273,7 +273,7 @@ internal readonly struct Meta : IEquatable<Meta>
             }
             else if (!IsEscape && specialCount != 2) // already trimmed the quotes
             {
-                var unescaper = new DoubleQuoteUnescaper<T>(dialect.Quote, specialCount - 2);
+                // var unescaper = new DoubleQuoteUnescaper<T>(dialect.Quote, specialCount - 2);
                 int length = DoubleQuoteUnescaper<T>.UnescapedLength(field.Length, specialCount - 2);
 
                 if (length > buffer.Length)
@@ -281,7 +281,7 @@ internal readonly struct Meta : IEquatable<Meta>
                     buffer = allocator.GetSpan(length);
                 }
 
-                Unescape.Field(field, unescaper, buffer);
+                Unesc.Exec(dialect.Quote, (int)(specialCount - 2), field, buffer);
                 field = buffer.Slice(0, length);
             }
         }

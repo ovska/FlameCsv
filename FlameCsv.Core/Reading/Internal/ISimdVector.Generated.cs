@@ -139,14 +139,13 @@ internal interface ISimdVector<T, TVector>
     [JetBrains.Annotations.Pure] TVector WithZeroFirstElement();
 }
 
+/// <summary>
+/// Interface for extracting the most significant bits from a vector.
+/// Count of the vector is the number of bits in <typeparamref name="TMask"/>.
+/// </summary>
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal interface IMoveMask<TMask> where TMask : unmanaged, IUnsignedNumber<TMask>, IBinaryInteger<TMask>
 {
-    /// <summary>
-    /// Returns the number of bits in each <see cref="MoveMask"/> result.
-    /// </summary>
-    static abstract int MaskSize { get; }
-
     /// <summary>
     /// Returns the most significant bits in the current instance.
     /// </summary>
@@ -218,8 +217,6 @@ internal readonly struct Vec64Char : ISimdVector<char, Vec64Char>, IMoveMask<byt
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte MoveMask() => (byte)_value.ExtractMostSignificantBits();
-
-    public static int MaskSize { [MethodImpl(MethodImplOptions.AggressiveInlining)] get => sizeof(byte) * 8; }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vec64Char WithZeroFirstElement() => _value.WithElement(0, default);
@@ -344,8 +341,6 @@ internal readonly struct Vec128Char : ISimdVector<char, Vec128Char>, IMoveMask<u
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ushort MoveMask() => (ushort)_value.ExtractMostSignificantBits();
 
-    public static int MaskSize { [MethodImpl(MethodImplOptions.AggressiveInlining)] get => sizeof(ushort) * 8; }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vec128Char WithZeroFirstElement() => _value.WithElement(0, default);
 
@@ -461,8 +456,6 @@ internal readonly struct Vec256Char : ISimdVector<char, Vec256Char>, IMoveMask<u
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public uint MoveMask() => (uint)_value.ExtractMostSignificantBits();
 
-    public static int MaskSize { [MethodImpl(MethodImplOptions.AggressiveInlining)] get => sizeof(uint) * 8; }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vec256Char WithZeroFirstElement() => _value.WithElement(0, default);
 
@@ -537,8 +530,6 @@ internal readonly struct Vec64Byte : ISimdVector<byte, Vec64Byte>, IMoveMask<byt
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte MoveMask() => (byte)_value.ExtractMostSignificantBits();
-
-    public static int MaskSize { [MethodImpl(MethodImplOptions.AggressiveInlining)] get => sizeof(byte) * 8; }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vec64Byte WithZeroFirstElement() => _value.WithElement(0, default);
@@ -615,8 +606,6 @@ internal readonly struct Vec128Byte : ISimdVector<byte, Vec128Byte>, IMoveMask<u
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ushort MoveMask() => (ushort)_value.ExtractMostSignificantBits();
 
-    public static int MaskSize { [MethodImpl(MethodImplOptions.AggressiveInlining)] get => sizeof(ushort) * 8; }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vec128Byte WithZeroFirstElement() => _value.WithElement(0, default);
 
@@ -691,8 +680,6 @@ internal readonly struct Vec256Byte : ISimdVector<byte, Vec256Byte>, IMoveMask<u
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public uint MoveMask() => (uint)_value.ExtractMostSignificantBits();
-
-    public static int MaskSize { [MethodImpl(MethodImplOptions.AggressiveInlining)] get => sizeof(uint) * 8; }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Vec256Byte WithZeroFirstElement() => _value.WithElement(0, default);
