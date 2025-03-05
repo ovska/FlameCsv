@@ -2,6 +2,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 
 namespace FlameCsv.Reading.Internal;
 
@@ -106,7 +108,7 @@ internal static class Unesc
             ref dstIndex,
             ref pendingCopyStart,
             maskRef >> (firstLength & (TVector.Count - 1)), // shift by the difference
-            maskConsumed: TVector.Count - firstLength);
+            batchLength: firstLength);
 
         // Process remaining masks if any
         nuint maskPos = 1;
@@ -120,7 +122,7 @@ internal static class Unesc
                 ref dstIndex,
                 ref pendingCopyStart,
                 Unsafe.Add(ref maskRef, maskPos),
-                maskConsumed: 0);
+                batchLength: TVector.Count);
             maskPos++;
         }
 
@@ -139,16 +141,17 @@ internal static class Unesc
         ref nint dstIndex,
         ref nint pendingCopyStart,
         TMask mask,
-        int maskConsumed)
+        int batchLength)
         where T : unmanaged, IBinaryInteger<T>
         where TVector : struct, ISimdVector<T, TVector>, IMoveMask<TMask>
         where TMask : unmanaged, IUnsignedNumber<TMask>, IBinaryInteger<TMask>
     {
+        int maskConsumed = 0;
+
         while (mask != TMask.Zero)
         {
             // Find position of next quote
             int quoteOffset = int.CreateTruncating(TMask.TrailingZeroCount(mask)) - maskConsumed;
-            // int quoteOffset = Math.Max(0, int.CreateTruncating(TMask.TrailingZeroCount(mask)) - maskConsumed);
             nint quotePosition = srcIndex + quoteOffset;
 
             nint length = quotePosition - pendingCopyStart;
@@ -165,48 +168,8 @@ internal static class Unesc
         }
 
         // Update srcIndex for remaining characters but don't copy them yet
-        srcIndex += TVector.Count - maskConsumed;
+        srcIndex += batchLength - maskConsumed;
     }
-
-    /*
-[MethodImpl(MethodImplOptions.AggressiveInlining)]
-private static void ProcessMask(
-    ref char src,
-    ref char dst,
-    ref nint srcIndex,
-    ref nint dstIndex,
-    ref nint pendingCopyStart,
-    uint mask,
-    int maskConsumed)
-{
-    // Process quotes in the mask
-    while (mask != 0)
-    {
-        // Find position of next quote
-        int quoteOffset = BitOperations.TrailingZeroCount(mask) - maskConsumed;
-        nint quotePosition = srcIndex + quoteOffset;
-
-        // Copy characters from pendingCopyStart up to but not including the quote
-        if (quotePosition > pendingCopyStart)
-        {
-            nint length = quotePosition - pendingCopyStart;
-            Copy(ref src, pendingCopyStart, ref dst, dstIndex, length);
-            dstIndex += length;
-        }
-
-        // Skip the quote character
-        srcIndex = quotePosition + 1;
-        pendingCopyStart = srcIndex; // Next copy will start after this quote
-        maskConsumed += quoteOffset + 1;
-
-        // Clear the processed quote bit
-        mask &= mask - 1;
-    }
-
-    // Update srcIndex for remaining characters but don't copy them yet
-    srcIndex += UInt32Bits - maskConsumed;
-}
-*/
 
     private static void Sequential<T>(T quote, int quoteCount, ReadOnlySpan<T> source, ReadOnlySpan<T> destination)
         where T : unmanaged, IBinaryInteger<T>
@@ -281,8 +244,8 @@ private static void ProcessMask(
             firstMaskLength,
             true);
 
-        // Process remaining vectors. if we run out of quotes before end of data, we can leave the rest at zero
-        // if we run out of data before quotes, the field is invalid
+        // Process remaining vectors; if we run out of quotes before the end of data, we can leave the rest at zero.
+        // If we run out of data before quotes, the field is invalid.
         while (remaining > 0 && quoteCount > 0)
         {
             ProcessVector(
@@ -325,7 +288,7 @@ private static void ProcessMask(
 
         if (isFirstVector)
         {
-            bits <<= (TVector.Count - advanceBy);
+            bits <<= TVector.Count - advanceBy;
         }
 
         TMask shifted = bits << 1 | carry;
@@ -336,6 +299,24 @@ private static void ProcessMask(
         srcPos += (nuint)advanceBy;
         remaining -= advanceBy;
         maskPos++;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TMask ConvertBitmask<TMask>(TMask mask) where TMask : unmanaged, IBinaryInteger<TMask>
+    {
+        // mask & (mask >> 1) creates a mask of consecutive bits, but consecutive bits don't produce the wanted results
+        // e.g., 0b1111 produces 0b0111 instead of 0b0101
+
+        // every 11-bit pair is a "3" bit shifted into some position, divide by 3 by multiplying with
+        // the magic number, shift the results back
+
+        if (Unsafe.SizeOf<TMask>() <= sizeof(uint))
+        {
+            return TMask.CreateTruncating((ulong.CreateTruncating(mask) * 0xAAAAAAABUL) >> 33);
+        }
+
+        // TODO: untested, no avx512 cpu available
+        return (mask & TMask.CreateTruncating(0xAAAAAAAAAAAAAAABUL)) >> 65;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
