@@ -206,29 +206,6 @@ internal sealed class CsvParserRFC4180<T>(
                         MetaBuffer);
                 }
             }
-
-            if (Vec64Char.IsSupported && dataT.Length > Vec64Char.Count * minimumVectors)
-            {
-                if (newline.Length == 1)
-                {
-                    return FieldParser<char, NewlineParserOne<char, Vec64Char>, Vec64Char>.Core(
-                        dialect.Delimiter,
-                        dialect.Quote,
-                        new(newline.First),
-                        dataT,
-                        MetaBuffer);
-                }
-
-                if (newline.Length == 2)
-                {
-                    return FieldParser<char, NewlineParserTwo<char, Vec64Char>, Vec64Char>.Core(
-                        dialect.Delimiter,
-                        dialect.Quote,
-                        new(newline.First, newline.Second),
-                        dataT,
-                        MetaBuffer);
-                }
-            }
         }
 
         if (Unsafe.SizeOf<T>() == sizeof(byte))
@@ -275,29 +252,6 @@ internal sealed class CsvParserRFC4180<T>(
                 if (newline.Length == 2)
                 {
                     return FieldParser<byte, NewlineParserTwo<byte, Vec128Byte>, Vec128Byte>.Core(
-                        dialect.Delimiter,
-                        dialect.Quote,
-                        new(newline.First, newline.Second),
-                        dataT,
-                        MetaBuffer);
-                }
-            }
-
-            if (Vec64Byte.IsSupported && dataT.Length > Vec64Byte.Count * minimumVectors)
-            {
-                if (newline.Length == 1)
-                {
-                    return FieldParser<byte, NewlineParserOne<byte, Vec64Byte>, Vec64Byte>.Core(
-                        dialect.Delimiter,
-                        dialect.Quote,
-                        new(newline.First),
-                        dataT,
-                        MetaBuffer);
-                }
-
-                if (newline.Length == 2)
-                {
-                    return FieldParser<byte, NewlineParserTwo<byte, Vec64Byte>, Vec64Byte>.Core(
                         dialect.Delimiter,
                         dialect.Quote,
                         new(newline.First, newline.Second),

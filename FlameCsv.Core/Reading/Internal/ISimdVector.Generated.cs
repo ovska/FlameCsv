@@ -22,13 +22,13 @@ internal static class SimdVector
     /// Returns true if T is supported by SIMD vector types, and in case of <see langword="char"/>,
     /// all tokens are ASCII.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static bool IsSupported<T>(ref readonly CsvDialect<T> dialect) where T : unmanaged, IBinaryInteger<T>
     {
         return dialect.IsAscii && TryGetMaxSupportedCount<T>(out int count) && count > 0;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static bool TryGetMaxSupportedCount<T>(out int count) where T : unmanaged
     {
         if (Unsafe.SizeOf<T>() == sizeof(char))
@@ -43,11 +43,6 @@ internal static class SimdVector
                 count = Vec128Char.Count;
                 return true;
             }
-            if (Vec64Char.IsSupported)
-            {
-                count = Vec64Char.Count;
-                return true;
-            }
         }
         if (Unsafe.SizeOf<T>() == sizeof(byte))
         {
@@ -59,11 +54,6 @@ internal static class SimdVector
             if (Vec128Byte.IsSupported)
             {
                 count = Vec128Byte.Count;
-                return true;
-            }
-            if (Vec64Byte.IsSupported)
-            {
-                count = Vec64Byte.Count;
                 return true;
             }
         }
@@ -139,91 +129,6 @@ internal interface ISimdVector<T, TVector>
     [JetBrains.Annotations.Pure] TVector WithZeroFirstElement();
 }
 
-[SkipLocalsInit]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-internal readonly struct Vec64Char : ISimdVector<char, Vec64Char>
-{
-    private readonly Vector64<byte> _value;
-
-    public static bool IsSupported
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-            => Vector64<byte>.IsSupported
-#if RELEASE
-            && Vector64.IsHardwareAccelerated
-#endif
-        ;
-    }
-
-    public static int Count
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Vector64<byte>.Count;
-    }
-
-    public static Vec64Char Zero
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Vector64<byte>.Zero;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec64Char Equals(Vec64Char left, Vec64Char right) => Vector64.Equals(left._value, right._value);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec64Char Create(char value)
-    {
-        Debug.Assert(value < 128);
-        return Vector64.Create(unchecked((byte)value));
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec64Char LoadUnaligned(ref readonly char source, nuint offset)
-    {
-        var v0 = Vector64.LoadUnsafe(ref Unsafe.As<char, ushort>(ref Unsafe.AsRef(in source)), offset);
-        var v1 = Vector64.LoadUnsafe(ref Unsafe.As<char, ushort>(ref Unsafe.AsRef(in source)), offset + ((nuint)Vector64<byte>.Count / sizeof(ushort)));
-        var lower = Vector64.Min(v0, Vector64.Create((ushort)127));
-        var upper = Vector64.Min(v1, Vector64.Create((ushort)127));
-        return Vector64.Narrow(lower, upper);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe Vec64Char LoadAligned(ref char source, nuint offset)
-    {
-        var v0 = Vector64.LoadAlignedNonTemporal((ushort*)Unsafe.AsPointer(ref Unsafe.Add(ref source, offset)));
-        var v1 = Vector64.LoadAlignedNonTemporal((ushort*)Unsafe.AsPointer(ref Unsafe.Add(ref source, offset + ((nuint)Vector64<byte>.Count / sizeof(ushort)))));
-        var lower = Vector64.Min(v0, Vector64.Create((ushort)127));
-        var upper = Vector64.Min(v1, Vector64.Create((ushort)127));
-        return Vector64.Narrow(lower, upper);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public nuint ExtractMostSignificantBits() => (nuint)_value.ExtractMostSignificantBits();
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vec64Char WithZeroFirstElement() => _value.WithElement(0, default);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec64Char operator |(Vec64Char left, Vec64Char right) => left._value | right._value;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator ==(Vec64Char left, Vec64Char right) => left._value == right._value;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator !=(Vec64Char left, Vec64Char right) => left._value != right._value;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator Vec64Char(Vector64<byte> value) => Unsafe.As<Vector64<byte>, Vec64Char>(ref value);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static explicit operator Vector64<byte>(Vec64Char value) => Unsafe.As<Vec64Char, Vector64<byte>>(ref value);
-
-    public override string ToString() => _value.ToString();
-    public override bool Equals(object obj) => throw new NotSupportedException();
-    public override int GetHashCode() => throw new NotSupportedException();
-}
 
 [SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
@@ -234,7 +139,7 @@ internal readonly struct Vec128Char : ISimdVector<char, Vec128Char>
 
     public static bool IsSupported
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
         get
             => Vector128<byte>.IsSupported
 #if RELEASE
@@ -245,27 +150,27 @@ internal readonly struct Vec128Char : ISimdVector<char, Vec128Char>
 
     public static int Count
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
         get => Vector128<byte>.Count;
     }
 
     public static Vec128Char Zero
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
         get => Vector128<byte>.Zero;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static Vec128Char Equals(Vec128Char left, Vec128Char right) => Vector128.Equals(left._value, right._value);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static Vec128Char Create(char value)
     {
         Debug.Assert(value < 128);
         return Vector128.Create(unchecked((byte)value));
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static Vec128Char LoadUnaligned(ref readonly char source, nuint offset)
     {
         var v0 = Vector128.LoadUnsafe(ref Unsafe.As<char, ushort>(ref Unsafe.AsRef(in source)), offset);
@@ -292,7 +197,7 @@ internal readonly struct Vec128Char : ISimdVector<char, Vec128Char>
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static unsafe Vec128Char LoadAligned(ref char source, nuint offset)
     {
         var v0 = Vector128.LoadAlignedNonTemporal((ushort*)Unsafe.AsPointer(ref Unsafe.Add(ref source, offset)));
@@ -319,25 +224,25 @@ internal readonly struct Vec128Char : ISimdVector<char, Vec128Char>
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public nuint ExtractMostSignificantBits() => (nuint)_value.ExtractMostSignificantBits();
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public Vec128Char WithZeroFirstElement() => _value.WithElement(0, default);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static Vec128Char operator |(Vec128Char left, Vec128Char right) => left._value | right._value;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static bool operator ==(Vec128Char left, Vec128Char right) => left._value == right._value;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static bool operator !=(Vec128Char left, Vec128Char right) => left._value != right._value;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static implicit operator Vec128Char(Vector128<byte> value) => Unsafe.As<Vector128<byte>, Vec128Char>(ref value);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static explicit operator Vector128<byte>(Vec128Char value) => Unsafe.As<Vec128Char, Vector128<byte>>(ref value);
 
     public override string ToString() => _value.ToString();
@@ -354,7 +259,7 @@ internal readonly struct Vec256Char : ISimdVector<char, Vec256Char>
 
     public static bool IsSupported
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
         get
             => Vector256<byte>.IsSupported
 #if RELEASE
@@ -365,27 +270,27 @@ internal readonly struct Vec256Char : ISimdVector<char, Vec256Char>
 
     public static int Count
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
         get => Vector256<byte>.Count;
     }
 
     public static Vec256Char Zero
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
         get => Vector256<byte>.Zero;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static Vec256Char Equals(Vec256Char left, Vec256Char right) => Vector256.Equals(left._value, right._value);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static Vec256Char Create(char value)
     {
         Debug.Assert(value < 128);
         return Vector256.Create(unchecked((byte)value));
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static Vec256Char LoadUnaligned(ref readonly char source, nuint offset)
     {
         var v0 = Vector256.LoadUnsafe(ref Unsafe.As<char, ushort>(ref Unsafe.AsRef(in source)), offset);
@@ -408,7 +313,7 @@ internal readonly struct Vec256Char : ISimdVector<char, Vec256Char>
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static unsafe Vec256Char LoadAligned(ref char source, nuint offset)
     {
         var v0 = Vector256.LoadAlignedNonTemporal((ushort*)Unsafe.AsPointer(ref Unsafe.Add(ref source, offset)));
@@ -431,98 +336,26 @@ internal readonly struct Vec256Char : ISimdVector<char, Vec256Char>
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public nuint ExtractMostSignificantBits() => (nuint)_value.ExtractMostSignificantBits();
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public Vec256Char WithZeroFirstElement() => _value.WithElement(0, default);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static Vec256Char operator |(Vec256Char left, Vec256Char right) => left._value | right._value;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static bool operator ==(Vec256Char left, Vec256Char right) => left._value == right._value;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static bool operator !=(Vec256Char left, Vec256Char right) => left._value != right._value;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static implicit operator Vec256Char(Vector256<byte> value) => Unsafe.As<Vector256<byte>, Vec256Char>(ref value);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static explicit operator Vector256<byte>(Vec256Char value) => Unsafe.As<Vec256Char, Vector256<byte>>(ref value);
-
-    public override string ToString() => _value.ToString();
-    public override bool Equals(object obj) => throw new NotSupportedException();
-    public override int GetHashCode() => throw new NotSupportedException();
-}
-
-[SkipLocalsInit]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-internal readonly struct Vec64Byte : ISimdVector<byte, Vec64Byte>
-{
-    private readonly Vector64<byte> _value;
-
-    public static bool IsSupported
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-            => Vector64<byte>.IsSupported
-#if RELEASE
-            && Vector64.IsHardwareAccelerated
-#endif
-        ;
-    }
-
-    public static int Count
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Vector64<byte>.Count;
-    }
-
-    public static Vec64Byte Zero
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Vector64<byte>.Zero;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec64Byte Equals(Vec64Byte left, Vec64Byte right) => Vector64.Equals(left._value, right._value);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec64Byte Create(byte value)
-    {
-        Debug.Assert(value < 128);
-        return Vector64.Create(value);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec64Byte LoadUnaligned(ref readonly byte source, nuint offset) => Vector64.LoadUnsafe(in source, offset);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static unsafe Vec64Byte LoadAligned(ref byte source, nuint offset) => Vector64.LoadAligned((byte*)Unsafe.AsPointer(ref Unsafe.AsRef(in source)) + offset);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public nuint ExtractMostSignificantBits() => (nuint)_value.ExtractMostSignificantBits();
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Vec64Byte WithZeroFirstElement() => _value.WithElement(0, default);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vec64Byte operator |(Vec64Byte left, Vec64Byte right) => left._value | right._value;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator ==(Vec64Byte left, Vec64Byte right) => left._value == right._value;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator !=(Vec64Byte left, Vec64Byte right) => left._value != right._value;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator Vec64Byte(Vector64<byte> value) => Unsafe.As<Vector64<byte>, Vec64Byte>(ref value);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static explicit operator Vector64<byte>(Vec64Byte value) => Unsafe.As<Vec64Byte, Vector64<byte>>(ref value);
 
     public override string ToString() => _value.ToString();
     public override bool Equals(object obj) => throw new NotSupportedException();
@@ -538,7 +371,7 @@ internal readonly struct Vec128Byte : ISimdVector<byte, Vec128Byte>
 
     public static bool IsSupported
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
         get
             => Vector128<byte>.IsSupported
 #if RELEASE
@@ -549,51 +382,51 @@ internal readonly struct Vec128Byte : ISimdVector<byte, Vec128Byte>
 
     public static int Count
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
         get => Vector128<byte>.Count;
     }
 
     public static Vec128Byte Zero
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
         get => Vector128<byte>.Zero;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static Vec128Byte Equals(Vec128Byte left, Vec128Byte right) => Vector128.Equals(left._value, right._value);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static Vec128Byte Create(byte value)
     {
         Debug.Assert(value < 128);
         return Vector128.Create(value);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static Vec128Byte LoadUnaligned(ref readonly byte source, nuint offset) => Vector128.LoadUnsafe(in source, offset);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static unsafe Vec128Byte LoadAligned(ref byte source, nuint offset) => Vector128.LoadAligned((byte*)Unsafe.AsPointer(ref Unsafe.AsRef(in source)) + offset);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public nuint ExtractMostSignificantBits() => (nuint)_value.ExtractMostSignificantBits();
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public Vec128Byte WithZeroFirstElement() => _value.WithElement(0, default);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static Vec128Byte operator |(Vec128Byte left, Vec128Byte right) => left._value | right._value;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static bool operator ==(Vec128Byte left, Vec128Byte right) => left._value == right._value;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static bool operator !=(Vec128Byte left, Vec128Byte right) => left._value != right._value;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static implicit operator Vec128Byte(Vector128<byte> value) => Unsafe.As<Vector128<byte>, Vec128Byte>(ref value);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static explicit operator Vector128<byte>(Vec128Byte value) => Unsafe.As<Vec128Byte, Vector128<byte>>(ref value);
 
     public override string ToString() => _value.ToString();
@@ -610,7 +443,7 @@ internal readonly struct Vec256Byte : ISimdVector<byte, Vec256Byte>
 
     public static bool IsSupported
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
         get
             => Vector256<byte>.IsSupported
 #if RELEASE
@@ -621,54 +454,73 @@ internal readonly struct Vec256Byte : ISimdVector<byte, Vec256Byte>
 
     public static int Count
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
         get => Vector256<byte>.Count;
     }
 
     public static Vec256Byte Zero
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
         get => Vector256<byte>.Zero;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static Vec256Byte Equals(Vec256Byte left, Vec256Byte right) => Vector256.Equals(left._value, right._value);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static Vec256Byte Create(byte value)
     {
         Debug.Assert(value < 128);
         return Vector256.Create(value);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static Vec256Byte LoadUnaligned(ref readonly byte source, nuint offset) => Vector256.LoadUnsafe(in source, offset);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static unsafe Vec256Byte LoadAligned(ref byte source, nuint offset) => Vector256.LoadAligned((byte*)Unsafe.AsPointer(ref Unsafe.AsRef(in source)) + offset);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public nuint ExtractMostSignificantBits() => (nuint)_value.ExtractMostSignificantBits();
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public Vec256Byte WithZeroFirstElement() => _value.WithElement(0, default);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static Vec256Byte operator |(Vec256Byte left, Vec256Byte right) => left._value | right._value;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static bool operator ==(Vec256Byte left, Vec256Byte right) => left._value == right._value;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static bool operator !=(Vec256Byte left, Vec256Byte right) => left._value != right._value;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static implicit operator Vec256Byte(Vector256<byte> value) => Unsafe.As<Vector256<byte>, Vec256Byte>(ref value);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static explicit operator Vector256<byte>(Vec256Byte value) => Unsafe.As<Vec256Byte, Vector256<byte>>(ref value);
 
     public override string ToString() => _value.ToString();
+    public override bool Equals(object obj) => throw new NotSupportedException();
+    public override int GetHashCode() => throw new NotSupportedException();
+}
+
+/// <summary>Vector type that that is not supported and does nothing.</summary>
+internal readonly struct NoOpVector<T> : ISimdVector<T, NoOpVector<T>> where T : unmanaged, IBinaryInteger<T>
+{
+    public static bool IsSupported => false;
+    public static int Count => 0;
+    public static NoOpVector<T> Zero => throw new NotSupportedException();
+    public static NoOpVector<T> Equals(NoOpVector<T> left, NoOpVector<T> right) => throw new NotSupportedException();
+    public static NoOpVector<T> Create(T value) => throw new NotSupportedException();
+    public static NoOpVector<T> LoadUnaligned(ref readonly T source, nuint offset) => throw new NotSupportedException();
+    public static NoOpVector<T> LoadAligned(ref T source, nuint offset) => throw new NotSupportedException();
+    public nuint ExtractMostSignificantBits() => throw new NotSupportedException();
+    public NoOpVector<T> WithZeroFirstElement() => throw new NotSupportedException();
+    public static NoOpVector<T> operator |(NoOpVector<T> left, NoOpVector<T> right) => throw new NotSupportedException();
+    public static bool operator ==(NoOpVector<T> left, NoOpVector<T> right) => throw new NotSupportedException();
+    public static bool operator !=(NoOpVector<T> left, NoOpVector<T> right) => throw new NotSupportedException();
     public override bool Equals(object obj) => throw new NotSupportedException();
     public override int GetHashCode() => throw new NotSupportedException();
 }
