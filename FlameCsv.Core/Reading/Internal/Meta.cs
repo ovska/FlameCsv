@@ -2,8 +2,10 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
+using FlameCsv.Reading.Unescaping;
 
 namespace FlameCsv.Reading.Internal;
 
@@ -244,7 +246,7 @@ internal readonly struct Meta : IEquatable<Meta>
         // trim before unquoting to preserve whitespace in strings
         if (!dialect.Whitespace.IsEmpty)
         {
-            field = field.Trim(dialect.Whitespace);
+            field = TrimCore(field, in dialect);
         }
 
         if ((_specialCountAndOffset & (IsEscapeMask | SpecialCountMask)) != 0)
@@ -253,40 +255,102 @@ internal readonly struct Meta : IEquatable<Meta>
 
             if (field.Length <= 1 || field[0] != dialect.Quote || field[^1] != dialect.Quote)
             {
-                Unescape.Invalid(field, in this);
+                IndexOfUnescaper.Invalid(field, in this);
             }
 
             field = field[1..^1];
 
             if (IsEscape && specialCount != 0)
             {
-                var unescaper = new BackslashUnescaper<T>(dialect.Escape.GetValueOrDefault(), specialCount);
-                int length = BackslashUnescaper<T>.UnescapedLength(field.Length, specialCount);
+                var unescaper = new IndexOfUnixUnescaper<T>(dialect.Escape.GetValueOrDefault(), specialCount);
+                int length = IndexOfUnixUnescaper<T>.UnescapedLength(field.Length, specialCount);
 
                 if (length > buffer.Length)
                 {
                     buffer = allocator.GetSpan(length);
                 }
 
-                Unescape.Field(field, unescaper, buffer);
+                IndexOfUnescaper.Field(field, unescaper, buffer);
                 field = buffer.Slice(0, length);
             }
             else if (!IsEscape && specialCount != 2) // already trimmed the quotes
             {
-                var unescaper = new DoubleQuoteUnescaper<T>(dialect.Quote, specialCount - 2);
-                int length = DoubleQuoteUnescaper<T>.UnescapedLength(field.Length, specialCount - 2);
+                if (Unsafe.SizeOf<T>() == sizeof(byte))
+                {
+                    if (ByteAvx2Unescaper.IsSupported)
+                    {
+                        int requiredSize = Unescaper.GetBufferLength<ByteAvx2Unescaper>(field.Length);
+                        if (buffer.Length < requiredSize) buffer = allocator.GetSpan(requiredSize);
+
+                        int unescapedLength = Unescaper.Unescape<byte, uint, Vector256<byte>, ByteAvx2Unescaper>(
+                            byte.CreateTruncating(dialect.Quote),
+                            MemoryMarshal.Cast<T, byte>(field),
+                            MemoryMarshal.Cast<T, byte>(buffer));
+
+                        Debug.Assert(unescapedLength == (field.Length - ((specialCount - 2) / 2)));
+
+                        return buffer.Slice(0, unescapedLength);
+                    }
+
+                    if (ByteSsse3Unescaper.IsSupported)
+                    {
+                        int requiredSize = Unescaper.GetBufferLength<ByteSsse3Unescaper>(field.Length);
+                        if (buffer.Length < requiredSize) buffer = allocator.GetSpan(requiredSize);
+
+                        int unescapedLength = Unescaper.Unescape<byte, ushort, Vector128<byte>, ByteSsse3Unescaper>(
+                            byte.CreateTruncating(dialect.Quote),
+                            MemoryMarshal.Cast<T, byte>(field),
+                            MemoryMarshal.Cast<T, byte>(buffer));
+
+                        Debug.Assert(unescapedLength == (field.Length - ((specialCount - 2) / 2)));
+
+                        return buffer.Slice(0, unescapedLength);
+                    }
+                }
+                else if (Unsafe.SizeOf<T>() == sizeof(char))
+                {
+                    if (CharAvxUnescaper.IsSupported)
+                    {
+                        int requiredSize = Unescaper.GetBufferLength<CharAvxUnescaper>(field.Length);
+                        if (buffer.Length < requiredSize) buffer = allocator.GetSpan(requiredSize);
+
+                        int unescapedLength = Unescaper.Unescape<char, ushort, Vector256<short>, CharAvxUnescaper>(
+                            (char)ushort.CreateTruncating(dialect.Quote),
+                            MemoryMarshal.Cast<T, char>(field),
+                            MemoryMarshal.Cast<T, char>(buffer));
+
+                        Debug.Assert(unescapedLength == (field.Length - ((specialCount - 2) / 2)));
+
+                        return buffer.Slice(0, unescapedLength);
+                    }
+                }
+
+                var unescaper = new IndexOfRFC4180Unescaper<T>(dialect.Quote, specialCount - 2);
+                int length = IndexOfRFC4180Unescaper<T>.UnescapedLength(field.Length, specialCount - 2);
 
                 if (length > buffer.Length)
                 {
                     buffer = allocator.GetSpan(length);
                 }
 
-                Unescape.Field(field, unescaper, buffer);
+                IndexOfUnescaper.Field(field, unescaper, buffer);
                 field = buffer.Slice(0, length);
             }
         }
 
         return field;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static ReadOnlySpan<T> TrimCore<T>(ReadOnlySpan<T> field, scoped ref readonly CsvDialect<T> dialect)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        return dialect._whitespaceLength switch
+        {
+            1 => Trimmer.Trim(new SingleTrimmer<T>(dialect.Whitespace[0]), field),
+            2 => Trimmer.Trim(new DoubleTrimmer<T>(dialect.Whitespace[0], dialect.Whitespace[1]), field),
+            _ => Trimmer.Trim(new AnyTrimmer<T>(dialect.Whitespace), field),
+        };
     }
 
     /// <summary>

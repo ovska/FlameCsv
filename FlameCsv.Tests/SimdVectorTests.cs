@@ -11,12 +11,10 @@ public static class SimdVectorTests
     [Fact]
     public static void Should_Create_Vector()
     {
-        Impl<byte, Vec64Byte>(ByteData, (v, b) => ((Vector64<byte>)v).CopyTo(b));
         Impl<byte, Vec128Byte>(ByteData, (v, b) => ((Vector128<byte>)v).CopyTo(b));
         Impl<byte, Vec256Byte>(ByteData, (v, b) => ((Vector256<byte>)v).CopyTo(b));
         // Impl<byte, Vec512Byte>(ByteData, (v, b) => ((Vector512<byte>)v).CopyTo(b));
 
-        Impl<char, Vec64Char>(CharData, (v, b) => ((Vector64<byte>)v).CopyTo(b));
         Impl<char, Vec128Char>(CharData, (v, b) => ((Vector128<byte>)v).CopyTo(b));
         Impl<char, Vec256Char>(CharData, (v, b) => ((Vector256<byte>)v).CopyTo(b));
         // Impl<char, Vec512Char>(CharData, (v, b) => ((Vector512<byte>)v).CopyTo(b));
@@ -27,7 +25,6 @@ public static class SimdVectorTests
     {
         foreach (var c in (char[]) [',', '"', '\n', '\r', '\0', '\t', '\\'])
         {
-            Impl2<Vec64Char>(c);
             Impl2<Vec128Char>(c);
             Impl2<Vec256Char>(c);
             // Impl2<Vec512Char>(c);

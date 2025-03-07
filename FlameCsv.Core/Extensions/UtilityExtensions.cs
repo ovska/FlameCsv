@@ -69,6 +69,11 @@ internal static class UtilityExtensions
     public static string AsPrintableString<T>(this ReadOnlySpan<T> value)
         where T : unmanaged, IBinaryInteger<T>
     {
+        if (typeof(T) == typeof(char))
+        {
+            return value.ToString();
+        }
+
         if (typeof(T) == typeof(byte))
         {
             try
@@ -77,11 +82,11 @@ internal static class UtilityExtensions
             }
             catch
             {
-                return $"[{string.Join(',', value.ToArray())}]";
+                // ignored
             }
         }
 
-        return value.ToString();
+        return $"[{string.Join(',', value.ToArray())}]";
     }
 
     public static bool SequenceEquals<T>(in this ReadOnlySequence<T> sequence, ReadOnlySpan<T> other)

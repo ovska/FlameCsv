@@ -15,7 +15,7 @@ public interface ICsvFields<T> where T : unmanaged, IBinaryInteger<T>
     /// </summary>
     /// <param name="index">Zero-based index of the field to get.</param>
     /// <remarks>
-    /// The contract of this interface only ensures that the returned span is provably valid for one field at a time.
+    /// The span is only valid until another field or the next record is read.
     /// </remarks>
     ReadOnlySpan<T> this[int index] { get; }
 }
