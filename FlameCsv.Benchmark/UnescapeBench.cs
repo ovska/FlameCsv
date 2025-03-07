@@ -1,10 +1,12 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Reading;
 using System.Text;
 using FlameCsv.Reading.Internal;
+using FlameCsv.Reading.Unescaping;
 
 namespace FlameCsv.Benchmark;
 
@@ -37,17 +39,17 @@ public class UnescapeBench
 
     private readonly byte[] _buffer2 = new byte[1024];
 
-    //[Benchmark(Baseline = false)]
-    public void Old()
-    {
-        Memory<char> buf = _buffer;
-
-        foreach (ref readonly var tuple in _testData.AsSpan())
-        {
-            _ = UnescapeRare2(tuple.value, '"', tuple.quoteCount, ref buf);
-        }
-    }
-
+    // [Benchmark(Baseline = false)]
+    // public void Old()
+    // {
+    //     Memory<char> buf = _buffer;
+    //
+    //     foreach (ref readonly var tuple in _testData.AsSpan())
+    //     {
+    //         _ = UnescapeRare2(tuple.value, '"', tuple.quoteCount, ref buf);
+    //     }
+    // }
+    //
     // [Benchmark(Baseline = true)]
     // public void New()
     // {
@@ -66,22 +68,56 @@ public class UnescapeBench
     //     {
     //         RFC4180Mode<ushort>.Unescape(
     //             '"',
-    //             buf.UnsafeCast<char, ushort>(),
-    //             tuple.value.AsSpan().UnsafeCast<char, ushort>(),
+    //             buf.Cast<char, ushort>(),
+    //             tuple.value.AsSpan().Cast<char, ushort>(),
     //             tuple.quoteCount);
+    //     }
+    // }
+    //
+    // [Benchmark] // this code is broken
+    // public void SimdVec_Char()
+    // {
+    //     Span<char> buf = _buffer;
+    //
+    //     foreach (var tuple in _testData)
+    //     {
+    //         RFC4180Mode<char>.Unescape<Vec128Char>('"', buf, tuple.value.AsSpan(), tuple.quoteCount);
     //     }
     // }
 
     [Benchmark]
-    public void New4()
+    public void SimdVec_Byte()
     {
-        Span<char> buf = _buffer;
+        Span<byte> buf = _buffer2;
 
-        foreach (ref readonly var tuple in _testData.AsSpan())
+        foreach (var tuple in _testData2)
         {
-            RFC4180Mode<char>.Unescape<Vec128Char>('"', buf, tuple.value.AsSpan(), tuple.quoteCount);
+            RFC4180Mode<byte>.Unescape<Vec128Byte>((byte)'"', buf, tuple.value.AsSpan(), tuple.quoteCount);
         }
     }
+
+    // [Benchmark]
+    // public void Vec_Byte()
+    // {
+    //     Span<byte> buf = _buffer2;
+    //
+    //     foreach (var tuple in _testData2)
+    //     {
+    //         // Unescaper.Unescape<byte, ushort, Vector128<byte>, ByteSsse3Unescaper>((byte)'"', tuple.value, buf);
+    //         Unescaper.Unescape<byte, uint, Vector256<byte>, ByteAvx2Unescaper>((byte)'"', tuple.value, buf);
+    //     }
+    // }
+    //
+    // [Benchmark]
+    // public void Vec_Char()
+    // {
+    //     Span<char> buf = _buffer;
+    //
+    //     foreach (var tuple in _testData)
+    //     {
+    //         Unescaper.Unescape<char, ushort, Vector256<short>, CharAvxUnescaper>('"', tuple.value, buf);
+    //     }
+    // }
 
     internal static ReadOnlyMemory<T> UnescapeRare<T>(
         ReadOnlyMemory<T> sourceMemory,

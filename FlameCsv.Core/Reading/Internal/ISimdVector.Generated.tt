@@ -1,11 +1,11 @@
 ﻿<#@ template language="C#" #>
 <#
-    const string MethodImpl = "MethodImpl(MethodImplOptions.AggressiveInlining)";
+    const string MethodImpl = "MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough";
     const string PragmaCondition = "RELEASE";
 
+    // TODO: remove 64
     // TODO: Add support for AVX-512 etc.
     (string size, string[] moveMask)[] intrinsics = [
-        ("64", []),
         ("128", ["Sse2", "Avx"]),
         ("256", ["Avx2"]),
         // ("512", ["Avx512F", "Avx512BW"]),
@@ -196,6 +196,7 @@ internal interface ISimdVector<T, TVector>
     /// </summary>
     [JetBrains.Annotations.Pure] TVector WithZeroFirstElement();
 }
+
 <#
     foreach (var (keyword, name) in types)
         foreach (var (size, isa) in intrinsics)
@@ -260,7 +261,7 @@ internal readonly struct <#= typeName #> : ISimdVector<<#= keyword #>, <#= typeN
                         ? ".LoadAligned((byte*)Unsafe.AsPointer(ref Unsafe.AsRef(in source)) + offset);"
                         : ".LoadUnsafe(in source, offset);");
             }
-            else if (size is "64" or "128" or "256" or "512")
+            else if (size is "128" or "256" or "512")
             {
 #>
 
@@ -348,3 +349,22 @@ internal readonly struct <#= typeName #> : ISimdVector<<#= keyword #>, <#= typeN
 <#
         }
 #>
+
+/// <summary>Vector type that that is not supported and does nothing.</summary>
+internal readonly struct NoOpVector<T> : ISimdVector<T, NoOpVector<T>> where T : unmanaged, IBinaryInteger<T>
+{
+    public static bool IsSupported => false;
+    public static int Count => 0;
+    public static NoOpVector<T> Zero => throw new NotSupportedException();
+    public static NoOpVector<T> Equals(NoOpVector<T> left, NoOpVector<T> right) => throw new NotSupportedException();
+    public static NoOpVector<T> Create(T value) => throw new NotSupportedException();
+    public static NoOpVector<T> LoadUnaligned(ref readonly T source, nuint offset) => throw new NotSupportedException();
+    public static NoOpVector<T> LoadAligned(ref T source, nuint offset) => throw new NotSupportedException();
+    public nuint ExtractMostSignificantBits() => throw new NotSupportedException();
+    public NoOpVector<T> WithZeroFirstElement() => throw new NotSupportedException();
+    public static NoOpVector<T> operator |(NoOpVector<T> left, NoOpVector<T> right) => throw new NotSupportedException();
+    public static bool operator ==(NoOpVector<T> left, NoOpVector<T> right) => throw new NotSupportedException();
+    public static bool operator !=(NoOpVector<T> left, NoOpVector<T> right) => throw new NotSupportedException();
+    public override bool Equals(object obj) => throw new NotSupportedException();
+    public override int GetHashCode() => throw new NotSupportedException();
+}

@@ -111,7 +111,7 @@ public class CsvEnumerateBench
                 {
                     Sep = new Sep(','),
                     CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
-                    HasHeader = false,
+                    HasHeader = false, // omit header overhead
                     Unescape = true,
                 })
             .FromText(_string);
