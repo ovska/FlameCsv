@@ -5,14 +5,18 @@ namespace FlameCsv.Tests;
 
 public static class SimdVectorTests
 {
-    private const string CharData = "abcdefghijklmnopqrstuvwxyz0123456789";
-    private static ReadOnlySpan<byte> ByteData => "abcdefghijklmnopqrstuvwxyz0123456789"u8;
+    private const string CharData = "abcdefghijklmnopqrstuvwxyz0123456789ABCEFGHIJKLMNOPQRSTUVWXYZ-_!";
+    private static ReadOnlySpan<byte> ByteData => "abcdefghijklmnopqrstuvwxyz0123456789ABCEFGHIJKLMNOPQRSTUVWXYZ-_!"u8;
 
     [Fact]
     public static void Should_Create_Vector()
     {
         Impl<byte, Vec128Byte>(ByteData, (v, b) => ((Vector128<byte>)v).CopyTo(b));
-        Impl<byte, Vec256Byte>(ByteData, (v, b) => ((Vector256<byte>)v).CopyTo(b));
+        Impl<byte, Vec256Byte>(ByteData, (v, b) =>
+        {
+            v._lower.CopyTo(b);
+            v._upper.CopyTo(b.Slice(Vector256<byte>.Count));
+        });
         // Impl<byte, Vec512Byte>(ByteData, (v, b) => ((Vector512<byte>)v).CopyTo(b));
 
         Impl<char, Vec128Char>(CharData, (v, b) => ((Vector128<byte>)v).CopyTo(b));
