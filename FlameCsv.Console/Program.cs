@@ -30,20 +30,22 @@ namespace FlameCsv.Console
 
         static void Main([NotNull] string[] args)
         {
-            for (int x = 0; x < 20; x++)
+            for (int x = 0; x < 1_000; x++)
             {
-                if (x == 5) MeasureProfiler.StartCollectingData();
+                if (x == 100) MeasureProfiler.StartCollectingData();
 
-                foreach (var data in (byte[][])[_bytes, _bytes2])
-                {
-                    foreach (var reader in CsvParser.Create(_options, new ReadOnlySequence<byte>(data)))
-                    {
-                        for (int i = 0; i < reader.FieldCount; i++)
-                        {
-                            _ = reader[i];
-                        }
-                    }
-                }
+                CsvWriter.Write(Stream.Null, _entries, EntryTypeMap.Default);
+
+                // foreach (var data in (byte[][])[_bytes, _bytes2])
+                // {
+                //     foreach (var reader in CsvParser.Create(_options, new ReadOnlySequence<byte>(data)))
+                //     {
+                //         for (int i = 0; i < reader.FieldCount; i++)
+                //         {
+                //             _ = reader[i];
+                //         }
+                //     }
+                // }
             }
 
 #if false
@@ -85,6 +87,15 @@ namespace FlameCsv.Console
 
             MeasureProfiler.StopCollectingData();
         }
+
+#pragma warning disable IL2026
+        private static Entry[] _entries = CsvReader
+            .Read<Entry>(
+                File.ReadAllBytes(
+                    "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv"),
+                new() { HasHeader = false })
+            .ToArray();
+#pragma warning restore IL2026
     }
 
     [CsvTypeMap<char, Obj>(ThrowOnDuplicate = false, IgnoreUnmatched = true)]
@@ -101,31 +112,20 @@ namespace FlameCsv.Console
         public long? Age { get; set; }
     }
 
-    class X : Base
+    public sealed class Entry
     {
-        protected override int Id => 123;
+        [CsvIndex(0)] public int Index { get; set; }
+        [CsvIndex(1)] public string? Name { get; set; }
+        [CsvIndex(2)] public string? Contact { get; set; }
+        [CsvIndex(3)] public int Count { get; set; }
+        [CsvIndex(4)] public double Latitude { get; set; }
+        [CsvIndex(5)] public double Longitude { get; set; }
+        [CsvIndex(6)] public double Height { get; set; }
+        [CsvIndex(7)] public string? Location { get; set; }
+        [CsvIndex(8)] public string? Category { get; set; }
+        [CsvIndex(9)] public double? Popularity { get; set; }
     }
 
-    abstract class Base
-    {
-        protected abstract int Id { get; }
-
-        public Base()
-        {
-            System.Console.WriteLine(Id);
-        }
-
-        internal static Meta M0(int end) => Meta.Plain(end);
-
-        internal static Meta M1(int end, bool isEOL, int newlineLength) => Meta.Plain(end, isEOL, 1);
-        internal static Meta M2(int end, bool isEOL, int newlineLength) => Meta.Plain(end, isEOL, 2);
-
-        internal static Meta Rfc1(int end, uint quoteCount, bool isEOL, int newlineLength) => Meta.RFC(end, quoteCount, isEOL, 1);
-        internal static Meta Rfc2(int end, uint quoteCount, bool isEOL, int newlineLength) => Meta.RFC(end, quoteCount, isEOL, 2);
-        internal static long T(bool b) => b.ToBitwiseMask64();
-
-        internal static int NS(Meta m) => m.NextStart;
-
-        internal static bool TryGetField(CsvParser<byte> parser, out CsvFields<byte> line) => parser.TryGetBuffered(out line);
-    }
+    [CsvTypeMap<byte, Entry>]
+    public partial class EntryTypeMap;
 }

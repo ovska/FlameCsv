@@ -2,6 +2,7 @@
 using System.Globalization;
 using FlameCsv.Attributes;
 using FlameCsv.Writing;
+using nietras.SeparatedValues;
 
 // ReSharper disable InconsistentNaming
 // ReSharper disable ClassNeverInstantiated.Global
@@ -12,8 +13,9 @@ namespace FlameCsv.Benchmark;
 [HideColumns("Error", "StdDev")]
 public partial class WriteBench
 {
-    [Params(5, 1_000, 10_000)] public int Count { get; set; }
+    [Params(/*5, 1_000,*/ 10_000)] public int Count { get; set; }
 
+#if false
     [Benchmark]
     public void CsvHelper_Records()
     {
@@ -41,19 +43,31 @@ public partial class WriteBench
     {
         using var writer = new CsvHelper.CsvWriter(TextWriter.Null, CultureInfo.InvariantCulture);
 
-        writer.WriteField("Id");
+        writer.WriteField("Index");
         writer.WriteField("Name");
-        writer.WriteField("IsEnabled");
-        writer.WriteField("LastLogin");
+        writer.WriteField("Contact");
+        writer.WriteField("Count");
+        writer.WriteField("Latitude");
+        writer.WriteField("Longitude");
+        writer.WriteField("Height");
+        writer.WriteField("Location");
+        writer.WriteField("Category");
+        writer.WriteField("Popularity");
         writer.NextRecord();
 
         for (int i = 0; i < _data.Length; i++)
         {
             Obj obj = _data[i];
-            writer.WriteField(obj.Id);
+            writer.WriteField(obj.Index);
             writer.WriteField(obj.Name);
-            writer.WriteField(obj.IsEnabled);
-            writer.WriteField(obj.LastLogin);
+            writer.WriteField(obj.Contact);
+            writer.WriteField(obj.Count);
+            writer.WriteField(obj.Latitude);
+            writer.WriteField(obj.Longitude);
+            writer.WriteField(obj.Height);
+            writer.WriteField(obj.Location);
+            writer.WriteField(obj.Category);
+            writer.WriteField(obj.Popularity);
             writer.NextRecord();
         }
     }
@@ -86,19 +100,31 @@ public partial class WriteBench
     {
         await using var writer = new CsvHelper.CsvWriter(TextWriter.Null, CultureInfo.InvariantCulture);
 
-        writer.WriteField("Id");
+        writer.WriteField("Index");
         writer.WriteField("Name");
-        writer.WriteField("IsEnabled");
-        writer.WriteField("LastLogin");
+        writer.WriteField("Contact");
+        writer.WriteField("Count");
+        writer.WriteField("Latitude");
+        writer.WriteField("Longitude");
+        writer.WriteField("Height");
+        writer.WriteField("Location");
+        writer.WriteField("Category");
+        writer.WriteField("Popularity");
         await writer.NextRecordAsync().ConfigureAwait(false);
 
         for (int i = 0; i < _data.Length; i++)
         {
             Obj obj = _data[i];
-            writer.WriteField(obj.Id);
+            writer.WriteField(obj.Index);
             writer.WriteField(obj.Name);
-            writer.WriteField(obj.IsEnabled);
-            writer.WriteField(obj.LastLogin);
+            writer.WriteField(obj.Contact);
+            writer.WriteField(obj.Count);
+            writer.WriteField(obj.Latitude);
+            writer.WriteField(obj.Longitude);
+            writer.WriteField(obj.Height);
+            writer.WriteField(obj.Location);
+            writer.WriteField(obj.Category);
+            writer.WriteField(obj.Popularity);
             await writer.NextRecordAsync().ConfigureAwait(false);
         }
     }
@@ -178,69 +204,138 @@ public partial class WriteBench
     {
         return CsvWriter.WriteAsync(TextWriter.Null, _data, ObjTypeMap.Default);
     }
+#endif
 
     [Benchmark]
     public void Generic_Fields()
     {
         var writer = CsvFieldWriter.Create(TextWriter.Null, CsvOptions<char>.Default, -1, false);
 
-        var c1 = CsvOptions<char>.Default.GetConverter<int>();
-        var c2 = CsvOptions<char>.Default.GetConverter<string>();
-        var c3 = CsvOptions<char>.Default.GetConverter<bool>();
-        var c4 = CsvOptions<char>.Default.GetConverter<DateTime>();
+        var c1 = CsvOptions<char>.Default.Aot.GetConverter<int>();
+        var c2 = CsvOptions<char>.Default.Aot.GetConverter<string>();
+        var c5 = CsvOptions<char>.Default.Aot.GetConverter<double>();
+        var c6 = CsvOptions<char>.Default.Aot.GetOrCreateNullable(static o => o.Aot.GetConverter<double>(), true);
 
-        writer.WriteText("Id");
+        writer.WriteText("Index");
         writer.WriteDelimiter();
         writer.WriteText("Name");
         writer.WriteDelimiter();
-        writer.WriteText("IsEnabled");
+        writer.WriteText("Contact");
         writer.WriteDelimiter();
-        writer.WriteText("LastLogin");
+        writer.WriteText("Count");
+        writer.WriteDelimiter();
+        writer.WriteText("Latitude");
+        writer.WriteDelimiter();
+        writer.WriteText("Longitude");
+        writer.WriteDelimiter();
+        writer.WriteText("Height");
+        writer.WriteDelimiter();
+        writer.WriteText("Location");
+        writer.WriteDelimiter();
+        writer.WriteText("Category");
+        writer.WriteDelimiter();
+        writer.WriteText("Popularity");
         writer.WriteNewline();
 
         for (int i = 0; i < _data.Length; i++)
         {
-            if (writer.Writer.NeedsFlush)
-                writer.Writer.Flush();
+            if (writer.Writer.NeedsFlush) writer.Writer.Flush();
 
             Obj obj = _data[i];
-            writer.WriteField(c1, obj.Id);
+            writer.WriteField(c1, obj.Index);
             writer.WriteDelimiter();
             writer.WriteField(c2, obj.Name);
             writer.WriteDelimiter();
-            writer.WriteField(c3, obj.IsEnabled);
+            writer.WriteField(c2, obj.Contact);
             writer.WriteDelimiter();
-            writer.WriteField(c4, obj.LastLogin);
+            writer.WriteField(c1, obj.Count);
+            writer.WriteDelimiter();
+            writer.WriteField(c5, obj.Latitude);
+            writer.WriteDelimiter();
+            writer.WriteField(c5, obj.Longitude);
+            writer.WriteDelimiter();
+            writer.WriteField(c5, obj.Height);
+            writer.WriteDelimiter();
+            writer.WriteField(c2, obj.Location);
+            writer.WriteDelimiter();
+            writer.WriteField(c2, obj.Category);
+            writer.WriteDelimiter();
+            writer.WriteField(c6, obj.Popularity);
             writer.WriteNewline();
         }
 
         writer.Writer.Complete(null);
     }
 
+    [Benchmark]
+    public void Sepp()
+    {
+        using var writer = Sep
+            .Writer(
+                c => c with
+                {
+                    Sep = new(','), Escape = true, WriteHeader = true,
+                })
+            .To(TextWriter.Null);
+
+        writer.Header.Add("Index", "Name", "Contact", "Count", "Latitude", "Longitude", "Height", "Location", "Category", "Popularity");
+
+        foreach (var obj in _data)
+        {
+            using var row = writer.NewRow();
+            row[0].Format(obj.Index);
+            row[1].Set(obj.Name);
+            row[2].Set(obj.Contact);
+            row[3].Format(obj.Count);
+            row[4].Format(obj.Latitude);
+            row[5].Format(obj.Longitude);
+            row[6].Format(obj.Height);
+            row[7].Set(obj.Location);
+            row[8].Set(obj.Category);
+            row[9].Set($"{obj.Popularity}");
+        }
+    }
+
     [GlobalSetup]
     public void Setup()
     {
-        _data = Enumerable
-            .Range(0, Count)
-            .Select(
-                i => new Obj
-                {
-                    Id = i,
-                    Name = i % 10 == 0 ? $"name,{i}" : $"name-{i}",
-                    IsEnabled = i % 2 == 0,
-                    LastLogin = DateTime.UnixEpoch.AddDays(i),
-                })
-            .ToArray();
+        _data = CsvReader.Read<Obj>(File.ReadAllBytes(
+            "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv"), new(){HasHeader = false}).ToArray();
     }
 
     private Obj[] _data = null!;
 
-    public class Obj
+    public sealed class Obj
     {
-        public int Id { get; set; }
-        public required string Name { get; set; }
-        public bool IsEnabled { get; set; }
-        public DateTime LastLogin { get; set; }
+        [CsvHelper.Configuration.Attributes.Index(0), CsvIndex(0)]
+        public int Index { get; set; }
+
+        [CsvHelper.Configuration.Attributes.Index(1), CsvIndex(1)]
+        public string? Name { get; set; }
+
+        [CsvHelper.Configuration.Attributes.Index(2), CsvIndex(2)]
+        public string? Contact { get; set; }
+
+        [CsvHelper.Configuration.Attributes.Index(3), CsvIndex(3)]
+        public int Count { get; set; }
+
+        [CsvHelper.Configuration.Attributes.Index(4), CsvIndex(4)]
+        public double Latitude { get; set; }
+
+        [CsvHelper.Configuration.Attributes.Index(5), CsvIndex(5)]
+        public double Longitude { get; set; }
+
+        [CsvHelper.Configuration.Attributes.Index(6), CsvIndex(6)]
+        public double Height { get; set; }
+
+        [CsvHelper.Configuration.Attributes.Index(7), CsvIndex(7)]
+        public string? Location { get; set; }
+
+        [CsvHelper.Configuration.Attributes.Index(8), CsvIndex(8)]
+        public string? Category { get; set; }
+
+        [CsvHelper.Configuration.Attributes.Index(9), CsvIndex(9)]
+        public double? Popularity { get; set; }
     }
 
     [CsvTypeMap<char, Obj>]
