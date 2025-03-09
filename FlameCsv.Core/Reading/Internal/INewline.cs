@@ -4,29 +4,37 @@ using JetBrains.Annotations;
 
 namespace FlameCsv.Reading.Internal;
 
-/// <summary>
-/// Interface to provide high-performance generic handling for variable length newlines.
-/// </summary>
-internal interface INewline<T, TVector> where T : unmanaged, IBinaryInteger<T> where TVector : struct
+internal interface INewline
 {
     /// <summary>
-    /// Returns a mask for the length of the newline contained in the two highest bits.<br/>
-    /// This is always <c>1</c> or <c>2</c>.
+    /// Returns a mask for the length of the newline contained in the two highest bits.
     /// </summary>
     static abstract int Length { get; }
 
     /// <summary>
-    /// Returns the offset required in the search space to be able to read the whole newline value.<br/>
-    /// This is always <c>0</c> or <c>1</c>.
+    /// Returns the offset required in the search space to be able to read the whole newline value.
     /// </summary>
     static abstract nuint OffsetFromEnd { get; }
 
+    /// <summary>
+    /// Whether the newline is a single token or a sequence of tokens.
+    /// </summary>
+    static abstract bool IsMultitoken { get; }
+
+    bool TryConsumeBoundary();
+}
+
+/// <summary>
+/// Interface to provide high-performance generic handling for variable length newlines.
+/// </summary>
+internal interface INewline<T> : INewline where T : unmanaged, IBinaryInteger<T>
+{
     /// <summary>
     /// Determines if the specified value represents a newline.
     /// </summary>
     /// <param name="value">The value to check.</param>
     /// <remarks>
-    /// Possibly reads the next value in the sequence, see <see cref="OffsetFromEnd"/>.
+    /// Possibly reads the next value in the sequence, see <see cref="INewline.OffsetFromEnd"/>.
     /// </remarks>
     /// <returns>True if the value represents a newline; otherwise, false.</returns>
     [Pure]
@@ -42,7 +50,12 @@ internal interface INewline<T, TVector> where T : unmanaged, IBinaryInteger<T> w
     /// <remarks>For single token newlines, always returns true</remarks>
     [Pure]
     bool IsDelimiterOrNewline(T delimiter, ref T value, out bool isEOL);
+}
 
+internal interface INewline<T, TVector> : INewline<T>
+    where T : unmanaged, IBinaryInteger<T>
+    where TVector : struct, allows ref struct
+{
     /// <summary>
     /// Determines if the input vector contains any token of the newline.
     /// </summary>
@@ -50,12 +63,14 @@ internal interface INewline<T, TVector> where T : unmanaged, IBinaryInteger<T> w
     /// <returns>A vector indicating the positions of newline sequences.</returns>
     [Pure]
     TVector HasNewline(TVector input);
+
+    void ClearSecondBitAndHandleBoundary(ref nuint mask, int offset);
 }
 
 [SkipLocalsInit]
-internal readonly struct NewlineParserOne<T, TVector>(T first) : INewline<T, TVector>
+internal readonly ref struct NewlineParserOne<T, TVector>(T first) : INewline<T, TVector>
     where T : unmanaged, IBinaryInteger<T>
-    where TVector : struct, ISimdVector<T, TVector>
+    where TVector : struct, ISimdVector<T, TVector>, allows ref struct
 {
     public static int Length
     {
@@ -63,10 +78,11 @@ internal readonly struct NewlineParserOne<T, TVector>(T first) : INewline<T, TVe
         get => 1;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TVector HasNewline(TVector input) => TVector.Equals(input, _firstVec);
-
-    private readonly TVector _firstVec = TVector.Create(first);
+    public static bool IsMultitoken
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => false;
+    }
 
     public static nuint OffsetFromEnd
     {
@@ -75,12 +91,21 @@ internal readonly struct NewlineParserOne<T, TVector>(T first) : INewline<T, TVe
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool IsNewline(ref T value)
+    public bool TryConsumeBoundary() => false;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public TVector HasNewline(TVector input) => TVector.Equals(input, _firstVec);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void ClearSecondBitAndHandleBoundary(ref nuint mask, int offset)
     {
-        // the HasNewline vector only contains the correct values, e.g., \n, so this check should always succeed
-        Debug.Assert(value == first);
-        return true;
+        // no-op
     }
+
+    private readonly TVector _firstVec = TVector.Create(first);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool IsNewline(ref T value) => value == first;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsDelimiterOrNewline(T delimiter, ref T value, out bool isEOL)
@@ -92,9 +117,9 @@ internal readonly struct NewlineParserOne<T, TVector>(T first) : INewline<T, TVe
 }
 
 [SkipLocalsInit]
-internal readonly struct NewlineParserTwo<T, TVector>(T first, T second) : INewline<T, TVector>
+internal ref struct NewlineParserTwo<T, TVector>(T first, T second) : INewline<T, TVector>
     where T : unmanaged, IBinaryInteger<T>
-    where TVector : struct, ISimdVector<T, TVector>
+    where TVector : struct, ISimdVector<T, TVector>, allows ref struct
 {
     public static int Length
     {
@@ -102,8 +127,32 @@ internal readonly struct NewlineParserTwo<T, TVector>(T first, T second) : INewl
         get => 2;
     }
 
+    public static bool IsMultitoken
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => true;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TVector HasNewline(TVector input) => TVector.Equals(input, _firstVec) | TVector.Equals(input, _secondVec);
+    public bool TryConsumeBoundary()
+    {
+        bool retVal = _boundaryCrossed;
+        _boundaryCrossed = false;
+        return retVal;
+    }
+
+    private bool _boundaryCrossed;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public TVector HasNewline(TVector input)
+        => TVector.Equals(input, _firstVec) | TVector.Equals(input, _secondVec);
+
+    public void ClearSecondBitAndHandleBoundary(ref nuint mask, int offset)
+    {
+        // only works properly if IsDelimiterOrNewline check is valid
+        mask &= (mask - 1);
+        _boundaryCrossed = offset == TVector.Count - 1;
+    }
 
     private readonly TVector _firstVec = TVector.Create(first);
     private readonly TVector _secondVec = TVector.Create(second);

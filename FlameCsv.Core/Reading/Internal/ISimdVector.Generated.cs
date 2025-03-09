@@ -66,7 +66,7 @@ internal static class SimdVector
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal interface ISimdVector<T, TVector>
     where T : unmanaged, IBinaryInteger<T>
-    where TVector : struct, ISimdVector<T, TVector>
+    where TVector : struct, ISimdVector<T, TVector>, allows ref struct
 {
     /// <summary>
     /// Returns <c>true</c> if the vector type is hardware accelerated (on release configuration).
@@ -96,12 +96,12 @@ internal interface ISimdVector<T, TVector>
     /// <summary>
     /// Loads a vector from the specified address.
     /// </summary>
-    static abstract TVector LoadUnaligned(ref readonly T source, nuint offset);
+    static abstract TVector LoadUnaligned(scoped ref readonly T source, nuint offset);
 
     /// <summary>
     /// Loads a vector from the specified aligned address.
     /// </summary>
-    static abstract TVector LoadAligned(ref T source, nuint offset);
+    static abstract TVector LoadAligned(scoped ref T source, nuint offset);
 
     /// <summary>
     /// Returns a bitwise OR of the two input vectors.

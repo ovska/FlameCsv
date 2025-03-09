@@ -27,7 +27,7 @@ namespace FlameCsv.Reading.Internal;
 internal static class FieldParser<T, TNewline, TVector>
     where T : unmanaged, IBinaryInteger<T>
     where TNewline : struct, INewline<T, TVector>, allows ref struct
-    where TVector : struct, ISimdVector<T, TVector>
+    where TVector : struct, ISimdVector<T, TVector>, allows ref struct
 {
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static int Core(
@@ -41,7 +41,7 @@ internal static class FieldParser<T, TNewline, TVector>
         // to do bounds checks in the loops
         ref T first = ref MemoryMarshal.GetReference(data);
         nuint runningIndex = 0;
-        nuint searchSpaceEnd = (nuint)data.Length - (nuint)(TVector.Count * 2) - TNewline.OffsetFromEnd;
+        nuint searchSpaceEnd = (nuint)data.Length - (nuint)TVector.Count - TNewline.OffsetFromEnd;
 
         Debug.Assert(searchSpaceEnd < (nuint)data.Length);
 
@@ -49,7 +49,7 @@ internal static class FieldParser<T, TNewline, TVector>
         scoped ref Meta currentMeta = ref MemoryMarshal.GetReference(metaBuffer);
         scoped ref readonly Meta metaEnd = ref Unsafe.Add(
             ref MemoryMarshal.GetReference(metaBuffer),
-            metaBuffer.Length - (TVector.Count * 2)); // the worst case: data ends in Vector.Count delimiters
+            metaBuffer.Length - TVector.Count); // the worst case: data ends in Vector.Count delimiters
 
         // load the constants into registers
         T delimiter = delimiterArg;
@@ -58,30 +58,82 @@ internal static class FieldParser<T, TNewline, TVector>
         TVector delimiterVec = TVector.Create(delimiterArg);
         TVector quoteVec = TVector.Create(quoteArg);
         uint quotesConsumed = 0;
+        TVector vector;
 
-        TVector nextVector = TVector.LoadUnaligned(in first, runningIndex);
+        unsafe
+        {
+            ref T current = ref Unsafe.Add(ref first, runningIndex);
+            byte* currentAddress = (byte*)Unsafe.AsPointer(ref current);
+
+            // if the address is not aligned, we need to read a single vector's worth of data
+            if (((nuint)currentAddress & (nuint)(TVector.Count - 1)) != 0)
+            {
+                byte* aligned = (byte*)(((nuint)currentAddress + (nuint)TVector.Count) & ~(nuint)(TVector.Count - 1));
+                nuint offsetElements = (nuint)(aligned - currentAddress) / (nuint)Unsafe.SizeOf<T>();
+
+                // we can end here if the very tail of the data contained a newline between vector boundaries
+                if ((runningIndex + offsetElements) > searchSpaceEnd) goto End;
+
+                // ensure the aligned address is still within our search space
+                Debug.Assert(offsetElements != 0);
+                Debug.Assert((nuint)aligned % (ulong)TVector.Count == 0);
+                Debug.Assert(
+                    Unsafe.IsAddressLessThan(ref Unsafe.AsRef<T>(aligned), ref Unsafe.Add(ref first, searchSpaceEnd)));
+
+                // read first vector's worth of data, up to the aligned address
+                vector = TVector.LoadUnaligned(in first, runningIndex);
+                TVector hasQuote = TVector.Equals(vector, quoteVec);
+                TVector hasNewlineOrDelimiter = TVector.Equals(vector, delimiterVec) | newline.HasNewline(vector);
+                TVector hasAny = hasQuote | hasNewlineOrDelimiter;
+
+                // mask out the bits that spill over to the aligned address, so we only process them once
+                nuint maskAny = hasAny.ExtractMostSignificantBits() & (((nuint)1UL << (int)offsetElements) - 1);
+
+                // for simplicity, always use ParseAny
+                if (maskAny != 0)
+                {
+                    currentMeta = ref ParseAny(
+                        maskAny,
+                        ref first,
+                        runningIndex,
+                        ref currentMeta,
+                        delimiter,
+                        quote,
+                        ref newline,
+                        ref quotesConsumed);
+
+                    Debug.Assert(newline.TryConsumeBoundary() == false, "This can never happen");
+                }
+
+                runningIndex += offsetElements;
+            }
+        }
+
+        Debug.Assert(runningIndex <= searchSpaceEnd, "Should be able to read at least one vector");
 
         while (Unsafe.IsAddressLessThan(in currentMeta, in metaEnd) && runningIndex <= searchSpaceEnd)
         {
-            // prefetch the next vector so we can process the current without waiting for it to load
-            TVector vector = nextVector;
-            nextVector = TVector.LoadUnaligned(in first, runningIndex + (nuint)TVector.Count);
+            vector = TVector.LoadAligned(ref first, runningIndex);
 
+            ReadZeroed:
             TVector hasDelimiter = TVector.Equals(vector, delimiterVec);
             TVector hasQuote = TVector.Equals(vector, quoteVec);
             TVector hasNewline = newline.HasNewline(vector);
-            TVector hasNewlineOrDelimiter = hasNewline | hasDelimiter;
-            TVector hasAny = hasQuote | hasNewlineOrDelimiter;
+            TVector hasNewlineOrDelimiter = (hasNewline | hasDelimiter);
+            TVector hasAny = (hasQuote | hasNewlineOrDelimiter);
 
             nuint maskAny = hasAny.ExtractMostSignificantBits();
 
             // nothing of note in this slice
+            // we always need maskAny, so we might as try to skip the whole vector w/ it
             if (maskAny == 0)
             {
-                goto ContinueRead;
+                runningIndex += (nuint)TVector.Count;
+                continue;
             }
 
             // TODO: profile with different data; if quote count is not 0, it might be faster to just go to ParseAny
+            // this will also simplify the code
 
             nuint maskDelimiter = hasDelimiter.ExtractMostSignificantBits();
 
@@ -90,7 +142,8 @@ internal static class FieldParser<T, TNewline, TVector>
             {
                 if (quotesConsumed != 0) goto TrySkipQuoted;
                 currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
-                goto ContinueRead;
+                runningIndex += (nuint)TVector.Count;
+                continue;
             }
 
             nuint maskNewlineOrDelimiter = hasNewlineOrDelimiter.ExtractMostSignificantBits();
@@ -105,6 +158,7 @@ internal static class FieldParser<T, TNewline, TVector>
                     int indexNewline = BitOperations.TrailingZeroCount(maskNewline);
 
                     // check if the delimiters and newlines are interleaved
+                    // surprisingly common is that the newline is after all delimiters
                     if ((Unsafe.SizeOf<nuint>() * 8 - 1) - BitOperations.LeadingZeroCount(maskDelimiter) <
                         indexNewline)
                     {
@@ -121,23 +175,37 @@ internal static class FieldParser<T, TNewline, TVector>
                         currentMeta = ref ParseDelimitersAndLineEnds(
                             maskNewlineOrDelimiter,
                             ref first,
-                            ref runningIndex,
+                            runningIndex,
                             ref currentMeta,
                             delimiter,
-                            in newline,
-                            ref nextVector);
-                        goto ContinueRead;
+                            ref newline);
+                        runningIndex += (nuint)TVector.Count;
+
+                        if (TNewline.IsMultitoken && newline.TryConsumeBoundary())
+                        {
+                            vector = TVector.LoadAligned(ref first, runningIndex).WithZeroFirstElement();
+                            goto ReadZeroed;
+                        }
+
+                        continue;
                     }
                 }
 
                 currentMeta = ref ParseLineEnds(
                     maskNewlineOrDelimiter,
                     ref first,
-                    ref runningIndex,
+                    runningIndex,
                     ref currentMeta,
-                    in newline,
-                    ref nextVector);
-                goto ContinueRead;
+                    ref newline);
+                runningIndex += (nuint)TVector.Count;
+
+                if (TNewline.IsMultitoken && newline.TryConsumeBoundary())
+                {
+                    vector = TVector.LoadAligned(ref first, runningIndex).WithZeroFirstElement();
+                    goto ReadZeroed;
+                }
+
+                continue;
             }
 
         ParseAny:
@@ -145,15 +213,22 @@ internal static class FieldParser<T, TNewline, TVector>
             currentMeta = ref ParseAny(
                 maskAny,
                 ref first,
-                ref runningIndex,
+                runningIndex,
                 ref currentMeta,
                 delimiter,
                 quote,
-                in newline,
-                ref quotesConsumed,
-                ref nextVector);
+                ref newline,
+                ref quotesConsumed);
 
-            goto ContinueRead;
+            runningIndex += (nuint)TVector.Count;
+
+            if (TNewline.IsMultitoken && newline.TryConsumeBoundary())
+            {
+                vector = TVector.LoadAligned(ref first, runningIndex).WithZeroFirstElement();
+                goto ReadZeroed;
+            }
+
+            continue;
 
         TrySkipQuoted:
             // there are unresolved quotes but the current vector had none
@@ -162,22 +237,16 @@ internal static class FieldParser<T, TNewline, TVector>
             // verifiably in a string?
             if (quotesConsumed == 1)
             {
-                goto ContinueRead;
+                runningIndex += (nuint)TVector.Count;
+                continue;
             }
 
-            // if the quote count is not 0 or 1,
-            // we can't know for sure if we are in a string, or one just ended in the last vector
-            // e.g., ["James ""007"] ["Bond",...]
-            //                      ^ quoteCount % 2 is 0 here, but we are still actually in a string
-            //       [""007"""Bond"] [,..."]
-            //                      ^ quoteCount % 2 is 0 here, but we are not in a string
+            // we are in a string, but we can't know if we are in a string, or one just ended in the last vector
             Debug.Assert(quotesConsumed > 1);
             goto ParseAny;
-
-        ContinueRead:
-            runningIndex += (nuint)TVector.Count;
         }
 
+    End:
         return (int)Unsafe.ByteOffset(in MemoryMarshal.GetReference(metaBuffer), in currentMeta) /
             Unsafe.SizeOf<Meta>();
     }
@@ -188,16 +257,14 @@ internal static class FieldParser<T, TNewline, TVector>
         nuint runningIndex,
         ref Meta currentMeta)
     {
-        while (mask != 0)
+        do
         {
-            ref Meta target = ref currentMeta;
-
             int offset = BitOperations.TrailingZeroCount(mask);
-            mask &= (mask - 1);
+            mask &= (mask - 1); // clear lowest bit
 
-            target = Meta.Plain((int)runningIndex + offset);
+            currentMeta = Meta.Plain((int)runningIndex + offset);
             currentMeta = ref Unsafe.Add(ref currentMeta, 1);
-        }
+        } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
 
         return ref currentMeta;
     }
@@ -206,10 +273,9 @@ internal static class FieldParser<T, TNewline, TVector>
     private static ref Meta ParseLineEnds(
         nuint mask,
         scoped ref T first,
-        scoped ref nuint runningIndex,
+        nuint runningIndex,
         ref Meta currentMeta,
-        scoped ref readonly TNewline newline,
-        ref TVector nextVector)
+        scoped ref TNewline newline)
     {
         do
         {
@@ -221,17 +287,10 @@ internal static class FieldParser<T, TNewline, TVector>
                 currentMeta = Meta.Plain((int)runningIndex + offset, isEOL: true, TNewline.Length);
                 currentMeta = ref Unsafe.Add(ref currentMeta, 1);
 
-                if (TNewline.OffsetFromEnd != 0)
+                // clear the second newline bit if needed
+                if (TNewline.IsMultitoken)
                 {
-                    // clear the next bit, or adjust the index if we crossed a vector boundary
-                    mask &= (mask - 1);
-
-                    if (offset == TVector.Count - 1)
-                    {
-                        // TODO: attempt reorder to improve pipelining
-                        runningIndex += TNewline.OffsetFromEnd;
-                        nextVector = TVector.LoadUnaligned(in first, runningIndex + (nuint)TVector.Count);
-                    }
+                    newline.ClearSecondBitAndHandleBoundary(ref mask, offset);
                 }
             }
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
@@ -243,11 +302,10 @@ internal static class FieldParser<T, TNewline, TVector>
     private static ref Meta ParseDelimitersAndLineEnds(
         nuint mask,
         scoped ref T first,
-        scoped ref nuint runningIndex,
+        nuint runningIndex,
         ref Meta currentMeta,
         T delimiter,
-        scoped ref readonly TNewline newline,
-        ref TVector nextVector)
+        scoped ref TNewline newline)
     {
         do
         {
@@ -263,16 +321,10 @@ internal static class FieldParser<T, TNewline, TVector>
                 currentMeta = Meta.Plain((int)runningIndex + offset, isEOL, TNewline.Length);
                 currentMeta = ref Unsafe.Add(ref currentMeta, 1);
 
-                if (TNewline.OffsetFromEnd != 0 && isEOL)
+                // clear the second newline bit if needed
+                if (TNewline.IsMultitoken && isEOL)
                 {
-                    // clear the next bit, or adjust the index if we crossed a vector boundary
-                    mask &= (mask - 1);
-
-                    if (offset == TVector.Count - 1)
-                    {
-                        runningIndex += TNewline.OffsetFromEnd;
-                        nextVector = TVector.LoadUnaligned(in first, runningIndex + (nuint)TVector.Count);
-                    }
+                    newline.ClearSecondBitAndHandleBoundary(ref mask, offset);
                 }
             }
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
@@ -284,13 +336,12 @@ internal static class FieldParser<T, TNewline, TVector>
     private static ref Meta ParseAny(
         nuint mask,
         ref T first,
-        scoped ref nuint runningIndex,
+        nuint runningIndex,
         ref Meta currentMeta,
         T delimiter,
         T quote,
-        scoped ref readonly TNewline newline,
-        scoped ref uint quotesConsumed,
-        ref TVector nextVector)
+        scoped ref TNewline newline,
+        scoped ref uint quotesConsumed)
     {
         do
         {
@@ -311,16 +362,10 @@ internal static class FieldParser<T, TNewline, TVector>
                 currentMeta = ref Unsafe.Add(ref currentMeta, 1);
                 quotesConsumed = 0;
 
-                if (TNewline.OffsetFromEnd != 0 && isEOL)
+                // clear the second newline bit if needed
+                if (TNewline.IsMultitoken && isEOL)
                 {
-                    // clear the next bit, or adjust the index if we crossed a vector boundary
-                    mask &= (mask - 1);
-
-                    if (offset == TVector.Count - 1)
-                    {
-                        runningIndex += TNewline.OffsetFromEnd;
-                        nextVector = TVector.LoadUnaligned(in first, runningIndex + (nuint)TVector.Count);
-                    }
+                    newline.ClearSecondBitAndHandleBoundary(ref mask, offset);
                 }
             }
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
@@ -328,90 +373,3 @@ internal static class FieldParser<T, TNewline, TVector>
         return ref currentMeta;
     }
 }
-
-/*
-    private static unsafe ref Meta EnsureAlignment(
-        nuint searchSpaceEnd,
-        T quote,
-        T delimiter,
-        TVector quoteVec,
-        TVector delimiterVec,
-        scoped ref readonly TNewline newline,
-        scoped ref T first,
-        ref Meta currentMeta,
-        scoped ref nuint runningIndex,
-        scoped ref uint quotesConsumed,
-        ref TVector nextVector)
-    {
-        byte* currentAddress = (byte*)Unsafe.AsPointer(ref Unsafe.Add(ref first, runningIndex));
-
-        // if the address is not aligned, we need to read a single vector's worth of data
-        if (((nuint)currentAddress & (nuint)(TVector.Count - 1)) != 0)
-        {
-            bool crossedVectorBoundary = false;
-
-            byte* aligned = (byte*)(((nuint)currentAddress + (nuint)TVector.Count) & ~(nuint)(TVector.Count - 1));
-
-            // early exit, should never happen?
-            if (!Unsafe.IsAddressLessThan(ref Unsafe.AsRef<T>(aligned), ref Unsafe.Add(ref first, searchSpaceEnd)))
-            {
-                runningIndex = searchSpaceEnd + 1;
-                return ref currentMeta;
-            }
-
-            // read first vector's worth of data
-            TVector vector = TVector.LoadUnaligned(in first, runningIndex);
-            TVector hasQuote = TVector.Equals(vector, quoteVec);
-            TVector hasNewlineOrDelimiter = TVector.Equals(vector, delimiterVec) | newline.HasNewline(vector);
-            TVector hasAny = hasQuote | hasNewlineOrDelimiter;
-
-            // mask out the bits that spill over to the aligned address, so we only process them once
-            nuint offsetElements = (nuint)(aligned - currentAddress) / (nuint)Unsafe.SizeOf<T>();
-            nuint mask = hasAny.ExtractMostSignificantBits() & (((nuint)1UL << (int)offsetElements) - 1);
-
-            while (mask != 0) // no bounds-check, meta-buffer always has space for a full vector
-            {
-                int offset = BitOperations.TrailingZeroCount(mask);
-                mask &= (mask - 1); // clear lowest bit
-
-                if (Unsafe.Add(ref first, runningIndex + (nuint)offset) == quote)
-                {
-                    ++quotesConsumed;
-                }
-                else if ((quotesConsumed & 1) == 0 &&
-                         newline.IsDelimiterOrNewline(
-                             delimiter,
-                             ref Unsafe.Add(ref first, runningIndex + (nuint)offset),
-                             out bool isEOL))
-                {
-                    currentMeta = Meta.RFC((int)runningIndex + offset, quotesConsumed, isEOL, TNewline.Length);
-                    currentMeta = ref Unsafe.Add(ref currentMeta, 1);
-                    quotesConsumed = 0;
-
-                    if (TNewline.OffsetFromEnd != 0 && isEOL)
-                    {
-                        // clear the next bit, or adjust the index if we crossed a vector boundary
-                        mask &= (mask - 1);
-
-                        if (offset == TVector.Count - 1)
-                        {
-                            crossedVectorBoundary = true;
-                        }
-                    }
-                }
-            }
-
-            Debug.Assert((nuint)aligned % (ulong)TVector.Count == 0);
-
-            runningIndex += offsetElements;
-            nextVector = TVector.LoadAligned(ref first, runningIndex);
-
-            if (crossedVectorBoundary)
-            {
-                nextVector = nextVector.WithZeroFirstElement();
-            }
-        }
-
-        return ref currentMeta;
-    }
-*/
