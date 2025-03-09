@@ -26,24 +26,18 @@ namespace FlameCsv.Console
 
         private static readonly ReadOnlySequence<byte> _byteSeq = new(_bytes.AsMemory());
 
-        private static readonly CsvOptions<byte> _options = new() { Newline = "\r\n" };
+        private static readonly CsvOptions<byte> _options = new() { Newline = "\n" };
 
         static void Main([NotNull] string[] args)
         {
-            Span<byte> buffer = stackalloc byte[256];
-
-            foreach (var a in Enumerable.Repeat(0, 100))
+            for (int x = 0; x < 20; x++)
             {
+                if (x == 5) MeasureProfiler.StartCollectingData();
+
                 foreach (var data in (byte[][])[_bytes, _bytes2])
                 {
                     foreach (var reader in CsvParser.Create(_options, new ReadOnlySequence<byte>(data)))
                     {
-                        var x0 = Unsafe.SizeOf<CsvFieldsRef<char>>();
-                        var y0 = Unsafe.SizeOf<CsvFieldsRef<byte>>();
-                        var x1 = Unsafe.SizeOf<CsvFields<char>>();
-                        var y1 = Unsafe.SizeOf<CsvFields<byte>>();
-
-
                         for (int i = 0; i < reader.FieldCount; i++)
                         {
                             _ = reader[i];
@@ -87,8 +81,9 @@ namespace FlameCsv.Console
                 }
             }
 
-            MeasureProfiler.StopCollectingData();
 #endif
+
+            MeasureProfiler.StopCollectingData();
         }
     }
 
