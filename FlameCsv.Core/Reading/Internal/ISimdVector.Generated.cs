@@ -253,9 +253,11 @@ internal readonly struct Vec128Char : ISimdVector<char, Vec128Char>
 [SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-internal readonly struct Vec256Char : ISimdVector<char, Vec256Char>
+[method: MethodImpl(MethodImplOptions.AggressiveInlining)]
+internal readonly struct Vec256Char(Vector256<byte> lower, Vector256<byte> upper) : ISimdVector<char, Vec256Char>
 {
-    private readonly Vector256<byte> _value;
+    private readonly Vector256<byte> _lower = lower;
+    private readonly Vector256<byte> _upper = upper;
 
     public static bool IsSupported
     {
@@ -271,23 +273,28 @@ internal readonly struct Vec256Char : ISimdVector<char, Vec256Char>
     public static int Count
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-        get => Vector256<byte>.Count;
+        get => Vector256<byte>.Count + Vector256<byte>.Count;
     }
 
     public static Vec256Char Zero
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-        get => Vector256<byte>.Zero;
+        get => default;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    public static Vec256Char Equals(Vec256Char left, Vec256Char right) => Vector256.Equals(left._value, right._value);
+    public static Vec256Char Equals(Vec256Char left, Vec256Char right)
+    {
+        return new(
+            Vector256.Equals(left._lower, right._lower),
+            Vector256.Equals(left._upper, right._upper));
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static Vec256Char Create(char value)
     {
         Debug.Assert(value < 128);
-        return Vector256.Create(unchecked((byte)value));
+        return new(Vector256.Create(unchecked((byte)value)), Vector256.Create(unchecked((byte)value)));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
@@ -295,8 +302,13 @@ internal readonly struct Vec256Char : ISimdVector<char, Vec256Char>
     {
         var v0 = Vector256.LoadUnsafe(ref Unsafe.As<char, ushort>(ref Unsafe.AsRef(in source)), offset);
         var v1 = Vector256.LoadUnsafe(ref Unsafe.As<char, ushort>(ref Unsafe.AsRef(in source)), offset + ((nuint)Vector256<byte>.Count / sizeof(ushort)));
-        var lower = Vector256.Min(v0, Vector256.Create((ushort)127));
-        var upper = Vector256.Min(v1, Vector256.Create((ushort)127));
+        var v2 = Vector256.LoadUnsafe(ref Unsafe.As<char, ushort>(ref Unsafe.AsRef(in source)), offset + ((nuint)(Vector256<byte>.Count * 2) / sizeof(ushort)));
+        var v3 = Vector256.LoadUnsafe(ref Unsafe.As<char, ushort>(ref Unsafe.AsRef(in source)), offset + ((nuint)(Vector256<byte>.Count * 3) / sizeof(ushort)));
+
+        var lower1 = Vector256.Min(v0, Vector256.Create((ushort)127));
+        var upper1 = Vector256.Min(v1, Vector256.Create((ushort)127));
+        var lower2 = Vector256.Min(v2, Vector256.Create((ushort)127));
+        var upper2 = Vector256.Min(v3, Vector256.Create((ushort)127));
 
         if (Avx2.IsSupported)
         {
@@ -304,22 +316,29 @@ internal readonly struct Vec256Char : ISimdVector<char, Vec256Char>
             // 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2
             // We want to swap the X and Y bits
             // 1, 1, 1, 1, 1, 1, 1, 1, X, X, X, X, X, X, X, X, Y, Y, Y, Y, Y, Y, Y, Y, 2, 2, 2, 2, 2, 2, 2, 2
-            var packed = Avx2.PackUnsignedSaturate(lower.AsInt16(), upper.AsInt16());
-            return Avx2.Permute4x64(packed.AsInt64(), 0b_11_01_10_00).AsByte();
+            var packed1 = Avx2.PackUnsignedSaturate(lower1.AsInt16(), upper1.AsInt16());
+            var packed2 = Avx2.PackUnsignedSaturate(lower2.AsInt16(), upper2.AsInt16());
+            return new(
+                Avx2.Permute4x64(packed1.AsInt64(), 0b_11_01_10_00).AsByte(),
+                Avx2.Permute4x64(packed2.AsInt64(), 0b_11_01_10_00).AsByte());
         }
         else
         {
-            return Vector256.Narrow(lower, upper);
+            return new(Vector256.Narrow(lower1, upper1), Vector256.Narrow(lower2, upper2));
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static unsafe Vec256Char LoadAligned(ref char source, nuint offset)
     {
-        var v0 = Vector256.LoadAlignedNonTemporal((ushort*)Unsafe.AsPointer(ref Unsafe.Add(ref source, offset)));
-        var v1 = Vector256.LoadAlignedNonTemporal((ushort*)Unsafe.AsPointer(ref Unsafe.Add(ref source, offset + ((nuint)Vector256<byte>.Count / sizeof(ushort)))));
-        var lower = Vector256.Min(v0, Vector256.Create((ushort)127));
-        var upper = Vector256.Min(v1, Vector256.Create((ushort)127));
+        var v0 = Vector256.LoadAligned((ushort*)Unsafe.AsPointer(ref Unsafe.Add(ref source, offset)));
+        var v1 = Vector256.LoadAligned((ushort*)Unsafe.AsPointer(ref Unsafe.Add(ref source, offset + ((nuint)Vector256<byte>.Count / sizeof(ushort)))));
+        var v2 = Vector256.LoadAligned((ushort*)Unsafe.AsPointer(ref Unsafe.Add(ref source, offset + ((nuint)(Vector256<byte>.Count * 2) / sizeof(ushort)))));
+        var v3 = Vector256.LoadAligned((ushort*)Unsafe.AsPointer(ref Unsafe.Add(ref source, offset + ((nuint)(Vector256<byte>.Count * 3) / sizeof(ushort)))));
+        var lower1 = Vector256.Min(v0, Vector256.Create((ushort)127));
+        var upper1 = Vector256.Min(v1, Vector256.Create((ushort)127));
+        var lower2 = Vector256.Min(v2, Vector256.Create((ushort)127));
+        var upper2 = Vector256.Min(v3, Vector256.Create((ushort)127));
 
         if (Avx2.IsSupported)
         {
@@ -327,37 +346,49 @@ internal readonly struct Vec256Char : ISimdVector<char, Vec256Char>
             // 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2
             // We want to swap the X and Y bits
             // 1, 1, 1, 1, 1, 1, 1, 1, X, X, X, X, X, X, X, X, Y, Y, Y, Y, Y, Y, Y, Y, 2, 2, 2, 2, 2, 2, 2, 2
-            var packed = Avx2.PackUnsignedSaturate(lower.AsInt16(), upper.AsInt16());
-            return Avx2.Permute4x64(packed.AsInt64(), 0b_11_01_10_00).AsByte();
+            var packed1 = Avx2.PackUnsignedSaturate(lower1.AsInt16(), upper1.AsInt16());
+            var packed2 = Avx2.PackUnsignedSaturate(lower2.AsInt16(), upper2.AsInt16());
+            return new(
+                Avx2.Permute4x64(packed1.AsInt64(), 0b_11_01_10_00).AsByte(),
+                Avx2.Permute4x64(packed2.AsInt64(), 0b_11_01_10_00).AsByte());
         }
         else
         {
-            return Vector256.Narrow(lower, upper);
+            return new(Vector256.Narrow(lower1, upper1), Vector256.Narrow(lower2, upper2));
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    public nuint ExtractMostSignificantBits() => (nuint)_value.ExtractMostSignificantBits();
+    public nuint ExtractMostSignificantBits()
+    {
+        return _lower.ExtractMostSignificantBits() | ((nuint)_upper.ExtractMostSignificantBits() << Vector256<byte>.Count);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    public Vec256Char WithZeroFirstElement() => _value.WithElement(0, default);
+    public Vec256Char WithZeroFirstElement()
+    {
+        return new(_lower.WithElement(0, default), _upper);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    public static Vec256Char operator |(Vec256Char left, Vec256Char right) => left._value | right._value;
+    public static Vec256Char operator |(Vec256Char left, Vec256Char right)
+    {
+        return new(left._lower | right._lower, left._upper | right._upper);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    public static bool operator ==(Vec256Char left, Vec256Char right) => left._value == right._value;
+    public static bool operator ==(Vec256Char left, Vec256Char right)
+    {
+        return left._lower == right._lower && left._upper == right._upper;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    public static bool operator !=(Vec256Char left, Vec256Char right) => left._value != right._value;
+    public static bool operator !=(Vec256Char left, Vec256Char right)
+    {
+        return left._lower != right._lower || left._upper != right._upper;
+    }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    public static implicit operator Vec256Char(Vector256<byte> value) => Unsafe.As<Vector256<byte>, Vec256Char>(ref value);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    public static explicit operator Vector256<byte>(Vec256Char value) => Unsafe.As<Vec256Char, Vector256<byte>>(ref value);
-
-    public override string ToString() => _value.ToString();
+    public override string ToString() => _lower.ToString() + " / " + _upper.ToString();
     public override bool Equals(object obj) => throw new NotSupportedException();
     public override int GetHashCode() => throw new NotSupportedException();
 }
@@ -437,6 +468,7 @@ internal readonly struct Vec128Byte : ISimdVector<byte, Vec128Byte>
 [SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
+[method: MethodImpl(MethodImplOptions.AggressiveInlining)]
 internal readonly struct Vec256Byte(Vector256<byte> lower, Vector256<byte> upper) : ISimdVector<byte, Vec256Byte>
 {
     internal readonly Vector256<byte> _lower = lower;

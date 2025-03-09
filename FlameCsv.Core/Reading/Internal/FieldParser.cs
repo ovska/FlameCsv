@@ -132,9 +132,6 @@ internal static class FieldParser<T, TNewline, TVector>
                 continue;
             }
 
-            // TODO: profile with different data; if quote count is not 0, it might be faster to just go to ParseAny
-            // this will also simplify the code
-
             nuint maskDelimiter = hasDelimiter.ExtractMostSignificantBits();
 
             // only delimiters? skip this if there are any quotes in the current field
