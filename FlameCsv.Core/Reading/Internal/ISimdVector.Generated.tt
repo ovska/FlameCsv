@@ -270,8 +270,8 @@ internal readonly struct <#= typeName #> : ISimdVector<<#= keyword #>, <#= typeN
                     if (isAligned)
                     {
 #>
-        var v0 = Vector<#= size #>.LoadAlignedNonTemporal((ushort*)Unsafe.AsPointer(ref Unsafe.Add(ref source, offset)));
-        var v1 = Vector<#= size #>.LoadAlignedNonTemporal((ushort*)Unsafe.AsPointer(ref Unsafe.Add(ref source, offset + ((nuint)Vector<#= size #><byte>.Count / sizeof(ushort)))));
+        var v0 = Vector<#= size #>.LoadAligned((ushort*)Unsafe.AsPointer(ref Unsafe.Add(ref source, offset)));
+        var v1 = Vector<#= size #>.LoadAligned((ushort*)Unsafe.AsPointer(ref Unsafe.Add(ref source, offset + ((nuint)Vector<#= size #><byte>.Count / sizeof(ushort)))));
 <#
                     }
                     else

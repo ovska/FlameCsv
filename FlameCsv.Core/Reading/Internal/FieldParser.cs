@@ -27,7 +27,7 @@ namespace FlameCsv.Reading.Internal;
 internal static class FieldParser<T, TNewline, TVector>
     where T : unmanaged, IBinaryInteger<T>
     where TNewline : struct, INewline<T, TVector>, allows ref struct
-    where TVector : struct, ISimdVector<T, TVector>, allows ref struct
+    where TVector : struct, ISimdVector<T, TVector>
 {
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static int Core(
