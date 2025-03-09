@@ -74,6 +74,8 @@ internal static class FieldParser<T, TNewline, TVector>
             TVector hasAny = hasQuote | hasNewlineOrDelimiter;
 
             nuint maskAny = hasAny.ExtractMostSignificantBits();
+            nuint maskDelimiter = hasDelimiter.ExtractMostSignificantBits();
+            nuint maskNewlineOrDelimiter = hasNewlineOrDelimiter.ExtractMostSignificantBits();
 
             // nothing of note in this slice
             if (maskAny == 0)
@@ -81,11 +83,7 @@ internal static class FieldParser<T, TNewline, TVector>
                 goto ContinueRead;
             }
 
-            // TODO: profile with different data; if quote count is not 0, it might be faster to just go to ParseAny
-
-            nuint maskDelimiter = hasDelimiter.ExtractMostSignificantBits();
-
-            // only delimiters? skip this if there are any quotes in the current field
+            // only delimiters
             if (maskDelimiter == maskAny)
             {
                 if (quotesConsumed != 0) goto TrySkipQuoted;
@@ -93,14 +91,14 @@ internal static class FieldParser<T, TNewline, TVector>
                 goto ContinueRead;
             }
 
-            nuint maskNewlineOrDelimiter = hasNewlineOrDelimiter.ExtractMostSignificantBits();
-
+            // only newlines or delimiters
             if (maskNewlineOrDelimiter == maskAny)
             {
                 if (quotesConsumed != 0) goto TrySkipQuoted;
 
                 if (maskDelimiter != 0)
                 {
+#if false
                     nuint maskNewline = maskNewlineOrDelimiter & ~maskDelimiter;
                     int indexNewline = BitOperations.TrailingZeroCount(maskNewline);
 
@@ -116,6 +114,7 @@ internal static class FieldParser<T, TNewline, TVector>
                         maskNewlineOrDelimiter = maskNewline;
                     }
                     else
+#endif
                     {
                         Debug.Assert(quotesConsumed == 0);
                         currentMeta = ref ParseDelimitersAndLineEnds(
@@ -160,18 +159,11 @@ internal static class FieldParser<T, TNewline, TVector>
             Debug.Assert(hasQuote == TVector.Zero);
 
             // verifiably in a string?
-            if (quotesConsumed == 1)
+            if (quotesConsumed % 2 == 1)
             {
                 goto ContinueRead;
             }
 
-            // if the quote count is not 0 or 1,
-            // we can't know for sure if we are in a string, or one just ended in the last vector
-            // e.g., ["James ""007"] ["Bond",...]
-            //                      ^ quoteCount % 2 is 0 here, but we are still actually in a string
-            //       [""007"""Bond"] [,..."]
-            //                      ^ quoteCount % 2 is 0 here, but we are not in a string
-            Debug.Assert(quotesConsumed > 1);
             goto ParseAny;
 
         ContinueRead:
@@ -188,16 +180,13 @@ internal static class FieldParser<T, TNewline, TVector>
         nuint runningIndex,
         ref Meta currentMeta)
     {
-        while (mask != 0)
+        do
         {
-            ref Meta target = ref currentMeta;
-
             int offset = BitOperations.TrailingZeroCount(mask);
-            mask &= (mask - 1);
-
-            target = Meta.Plain((int)runningIndex + offset);
+            mask &= (mask - 1); // clear lowest bit
+            currentMeta = Meta.Plain((int)runningIndex + offset);
             currentMeta = ref Unsafe.Add(ref currentMeta, 1);
-        }
+        } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
 
         return ref currentMeta;
     }
@@ -228,7 +217,7 @@ internal static class FieldParser<T, TNewline, TVector>
 
                     if (offset == TVector.Count - 1)
                     {
-                        // TODO: attempt reorder to improve pipelining
+                        // do not reorder
                         runningIndex += TNewline.OffsetFromEnd;
                         nextVector = TVector.LoadUnaligned(in first, runningIndex + (nuint)TVector.Count);
                     }
@@ -270,6 +259,7 @@ internal static class FieldParser<T, TNewline, TVector>
 
                     if (offset == TVector.Count - 1)
                     {
+                        // do not reorder
                         runningIndex += TNewline.OffsetFromEnd;
                         nextVector = TVector.LoadUnaligned(in first, runningIndex + (nuint)TVector.Count);
                     }
@@ -318,6 +308,7 @@ internal static class FieldParser<T, TNewline, TVector>
 
                     if (offset == TVector.Count - 1)
                     {
+                        // do not reorder
                         runningIndex += TNewline.OffsetFromEnd;
                         nextVector = TVector.LoadUnaligned(in first, runningIndex + (nuint)TVector.Count);
                     }
