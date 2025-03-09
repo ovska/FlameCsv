@@ -6,7 +6,7 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.IO;
 
-[DebuggerDisplay("[CsvCharBufferWriter] Written: {_unflushed} / {Buffer.Length})")]
+[DebuggerDisplay("[CsvCharBufferWriter] Written: {_unflushed} / {_buffer.Length})")]
 internal sealed class CsvCharPipeWriter : ICsvPipeWriter<char>
 {
     private static readonly int _defaultBufferSize = 4 * Environment.SystemPageSize / sizeof(char);
@@ -17,13 +17,13 @@ internal sealed class CsvCharPipeWriter : ICsvPipeWriter<char>
     private readonly int _flushThreshold;
     private readonly bool _leaveOpen;
     private int _unflushed;
-    private Memory<char> Buffer => _memoryOwner.Memory;
+    private Memory<char> _buffer;
     private IMemoryOwner<char> _memoryOwner;
 
     public int Remaining
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Buffer.Length - _unflushed;
+        get => _buffer.Length - _unflushed;
     }
 
     public bool HasUnflushedData
@@ -53,6 +53,7 @@ internal sealed class CsvCharPipeWriter : ICsvPipeWriter<char>
         _bufferSize = Math.Max(256, bufferSize);
         _flushThreshold = (int)(_bufferSize * 0.875);
         _memoryOwner = allocator.Rent(_bufferSize);
+        _buffer = _memoryOwner.Memory;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -66,10 +67,11 @@ internal sealed class CsvCharPipeWriter : ICsvPipeWriter<char>
                 ref _memoryOwner,
                 minimumLength: _unflushed + Math.Max(sizeHint, _bufferSize),
                 copyOnResize: true);
+            _buffer = _memoryOwner.Memory;
         }
 
         Debug.Assert(Remaining >= sizeHint);
-        return Buffer.Slice(_unflushed).Span;
+        return _buffer.Slice(_unflushed).Span;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -83,10 +85,11 @@ internal sealed class CsvCharPipeWriter : ICsvPipeWriter<char>
                 ref _memoryOwner,
                 minimumLength: _unflushed + Math.Max(sizeHint, _bufferSize),
                 copyOnResize: true);
+            _buffer = _memoryOwner.Memory;
         }
 
         Debug.Assert(Remaining >= sizeHint);
-        return Buffer.Slice(_unflushed);
+        return _buffer.Slice(_unflushed);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -103,7 +106,7 @@ internal sealed class CsvCharPipeWriter : ICsvPipeWriter<char>
     {
         if (HasUnflushedData)
         {
-            await _writer.WriteAsync(Buffer.Slice(0, _unflushed), cancellationToken).ConfigureAwait(false);
+            await _writer.WriteAsync(_buffer.Slice(0, _unflushed), cancellationToken).ConfigureAwait(false);
             _unflushed = 0;
         }
     }
@@ -112,7 +115,7 @@ internal sealed class CsvCharPipeWriter : ICsvPipeWriter<char>
     {
         if (HasUnflushedData)
         {
-            _writer.Write(Buffer.Slice(0, _unflushed).Span);
+            _writer.Write(_buffer.Slice(0, _unflushed).Span);
             _unflushed = 0;
         }
     }
@@ -153,6 +156,9 @@ internal sealed class CsvCharPipeWriter : ICsvPipeWriter<char>
             {
                 if (!_leaveOpen) await _writer.DisposeAsync().ConfigureAwait(false);
             }
+
+            _memoryOwner = HeapMemoryOwner<char>.Empty;
+            _buffer = default;
         }
     }
 
@@ -187,6 +193,9 @@ internal sealed class CsvCharPipeWriter : ICsvPipeWriter<char>
             {
                 if (!_leaveOpen) _writer.Dispose();
             }
+
+            _memoryOwner = HeapMemoryOwner<char>.Empty;
+            _buffer = default;
         }
     }
 }
