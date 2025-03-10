@@ -25,12 +25,19 @@ internal static class Unescaper
     public static TMask ShiftMask32<TMask>(TMask mask)
         where TMask : unmanaged, IBinaryInteger<TMask>, IUnsignedNumber<TMask>
     {
-        Debug.Assert(sizeof(byte) < Unsafe.SizeOf<TMask>(), "Multiplication trick doesn't work on 8bit values");
-        Debug.Assert(sizeof(uint) >= Unsafe.SizeOf<TMask>(), "Multiplication trick doesn't work on 64bit values");
-        ulong result = ((ulong.CreateTruncating(mask) * 0xAAAAAAABUL) >> 33);
-        TMask converted = TMask.CreateTruncating(result);
-        Debug.Assert(ulong.CreateTruncating(converted) == result);
-        return converted;
+        if (Unsafe.SizeOf<TMask>() == sizeof(uint))
+        {
+            ulong result = ((ulong.CreateTruncating(mask) * 0xAAAAAAABUL) >> 33);
+            return TMask.CreateTruncating(result);
+        }
+
+        if (Unsafe.SizeOf<TMask>() == sizeof(ushort))
+        {
+            uint result = ((uint.CreateTruncating(mask) * 0xAAAAAAABU) >> 17);
+            return TMask.CreateTruncating(result);
+        }
+
+        throw new NotSupportedException(typeof(TMask).Name);
     }
 
     public static int Unescape<T, TMask, TVector, TUnescaper>(T quote, ReadOnlySpan<T> source, Span<T> destination)
@@ -52,7 +59,7 @@ internal static class Unescaper
         TMask carry = TMask.Zero;
 
         int remainder = source.Length & (TUnescaper.Count - 1);
-        int firstLength = remainder | ((remainder - 1) >> 31 & TUnescaper.Count);
+        int firstLength = remainder | ((remainder - 1) >> TUnescaper.Count & TUnescaper.Count);
         int padding = TUnescaper.Count - firstLength;
 
         TVector data = TUnescaper.LoadVector(in src);

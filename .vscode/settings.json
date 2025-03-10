@@ -4,18 +4,35 @@
         "files.insertFinalNewline": true,
         "editor.insertSpaces": true,
         "editor.tabSize": 4,
-        "editor.formatOnSave": true,
+        "editor.formatOnSave": false,
         "editor.bracketPairColorization.enabled": true,
-        "files.trimTrailingWhitespace": true,
+        "files.trimTrailingWhitespace": false,
+        "editor.trimAutoWhitespace": false,
         "editor.defaultFormatter": "ms-dotnettools.csharp",
-        "editor.codeActionsOnSave": {
-            "source.fixAll": "explicit",
-            "source.organizeImports": "explicit"
-        }
+        // "editor.codeActionsOnSave": {
+        //     "source.fixAll": "explicit",
+        //     "source.organizeImports": "explicit",
+        // }
     },
+    "files.trimTrailingWhitespace": false,
+    "editor.trimAutoWhitespace": false,
     "csharp.format.enable": true,
     "dotnet.defaultSolution": "FlameCsv.sln",
     "omnisharp.enableEditorConfigSupport": true,
     "csharp.suppressHiddenDiagnostics": false,
     "csharp.suppressDotnetRestoreNotification": false,
+    "dotnet.unitTestDebuggingOptions": {
+        "debugTestMethod": true,
+        "debugTestClass": true,
+        "debugTestProject": true,
+        "justMyCode": true,
+        "suppressJITOptimizations": true,
+        "type": "coreclr"
+    },
+    "dotnet.autoInsert.enableAutoInsert": true,
+    "dotnet.backgroundAnalysis.analyzerDiagnosticsScope": "fullSolution",
+    "dotnet.backgroundAnalysis.compilerDiagnosticsScope": "fullSolution",
+    "dotnet.completion.showCompletionItemsFromUnimportedNamespaces": true,
+    "dotnet.quickInfo.showRemarksInQuickInfo": true,
+    "dotnet.server.useServerGC": true,
 }
