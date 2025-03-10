@@ -1,1 +1,21 @@
-{}
+{
+    "[csharp]": {
+        "files.eol": "\n",
+        "files.insertFinalNewline": true,
+        "editor.insertSpaces": true,
+        "editor.tabSize": 4,
+        "editor.formatOnSave": true,
+        "editor.bracketPairColorization.enabled": true,
+        "files.trimTrailingWhitespace": true,
+        "editor.defaultFormatter": "ms-dotnettools.csharp",
+        "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit",
+            "source.organizeImports": "explicit"
+        }
+    },
+    "csharp.format.enable": true,
+    "dotnet.defaultSolution": "FlameCsv.sln",
+    "omnisharp.enableEditorConfigSupport": true,
+    "csharp.suppressHiddenDiagnostics": false,
+    "csharp.suppressDotnetRestoreNotification": false,
+}
