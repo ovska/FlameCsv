@@ -1,5 +1,10 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
+using FlameCsv.IO;
+using FlameCsv.Reading;
+using FlameCsv.Reading.Internal;
+using FlameCsv.Utilities;
 using FlameCsv.Writing;
 
 namespace FlameCsv.Benchmark;
@@ -7,69 +12,76 @@ namespace FlameCsv.Benchmark;
 public class NeedsEscapingBench
 {
     private char[][] _fields = [];
-    private readonly char? _escape = null;
 
     [GlobalSetup]
     public void Setup()
     {
-        _ = _escape;
-        throw new NotImplementedException();
-        // List<char[]> fields = [];
-        //
-        // var data = File.ReadLines(
-        //     "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv",
-        //     Encoding.ASCII);
-        //
-        // IMemoryOwner<char>? buffer = null;
-        // char[] unescapeBuffer = new char[1024];
-        //
-        // using var parser = CsvParser<char>.Create(CsvOptions<char>.Default);
-        //
-        // foreach (var line in data)
-        // {
-        //     var meta = parser.GetAsCsvLine(line.AsMemory());
-        //     var reader = new CsvFieldReader<char>(CsvOptions<char>.Default, in meta, unescapeBuffer, ref buffer);
-        //
-        //     while (reader.MoveNext())
-        //     {
-        //         fields.Add(reader.Current.ToArray());
-        //     }
-        // }
-        //
-        // buffer?.Dispose();
-        //
-        // _fields = fields.ToArray();
+        List<char[]> fields = [];
+
+        using var data = CsvPipeReader.Create(
+            File.OpenRead("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv"),
+            Encoding.UTF8);
+
+        foreach (var record in CsvParser.Create(CsvOptions<char>.Default, data))
+        {
+            for (int i = 0; i < record.FieldCount; i++)
+            {
+                fields.Add(record[i].ToArray());
+            }
+        }
+
+        _fields = fields.ToArray();
     }
 
     [Benchmark(Baseline = true)]
-    public void Old()
-    {
-        var escaper = new OldEscaper<char>(',', '"', '\r', '\n', 2, default);
-
-        foreach (var field in _fields)
-        {
-            _ = escaper.MustBeQuoted(field, out _);
-        }
-    }
-
-    [Benchmark(Baseline = false)]
-    public void New()
+    public void Scalar()
     {
         var escaper = new RFC4180Escaper<char>('"');
         var searchValues = CsvOptions<char>.Default.Dialect.NeedsQuoting;
+        Span<char> buffer = stackalloc char[512];
 
         foreach (var field in _fields)
         {
             ReadOnlySpan<char> written = field.AsSpan();
 
-            if (!written.IsEmpty)
+            if (written.Length >= 32)
             {
                 int index = written.IndexOfAny(searchValues);
 
                 if (index != -1)
                 {
-                    _ = escaper.CountEscapable(written[index..]);
+                    int count = escaper.CountEscapable(written[index..]);
+                    Escape.Field(ref escaper, field, buffer, count);
                 }
+            }
+        }
+    }
+
+    [Benchmark(Baseline = false)]
+    public void Simd()
+    {
+        Span<char> buffer = stackalloc char[512];
+        Span<uint> bitBuffer = stackalloc uint[128];
+        var newline = new NewlineParserOne<char, Vec256Char>('\n');
+
+        foreach (var field in _fields)
+        {
+            ReadOnlySpan<char> written = field.AsSpan();
+            if (written.Length < 32) continue;
+
+            var bits = EscapeHandler.GetBitBuffer(written.Length, bitBuffer);
+            bool retVal = EscapeHandler.NeedsEscaping<char, NewlineParserOne<char, Vec256Char>, Vec256Char>(
+                written,
+                written.Length,
+                bits,
+                ',',
+                '"',
+                in newline,
+                out int quoteCount);
+
+            if (retVal)
+            {
+                EscapeHandler.Escape<char>(written, buffer, bits, '"');
             }
         }
     }
@@ -167,7 +179,7 @@ file readonly struct OldEscaper<T> : IEscaper<T> where T : unmanaged, IBinaryInt
 
         return false;
 
-    FoundQuoteOrDelimiter:
+        FoundQuoteOrDelimiter:
         escapableCount = CountEscapable(field.Slice(index));
         return true;
     }

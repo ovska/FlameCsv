@@ -22,6 +22,10 @@ public static class UnescaperTests
             { "James \"\"\"\"\"\"\"\"007\"\"\"\"\"\"\"\" Bond", "James \"\"\"\"007\"\"\"\" Bond" },
             { "\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"", "\"\"\"\"\"\"\"\"" },
             { "012345678901234\"\"\"\"", "012345678901234\"\"" },
+            {
+                "Wilson Jones 1\"\" Hanging DublLock\u00ae Ring Binders",
+                "Wilson Jones 1\" Hanging DublLock\u00ae Ring Binders"
+            },
             { "012345678901234\"\"\"\"zzzzzzzzzzzzzzzzzzzzzzzzz", "012345678901234\"\"zzzzzzzzzzzzzzzzzzzzzzzzz" },
             {
                 "The quick \"\"brown\"\" fox jumps over the \"\"lazy\"\" dog",

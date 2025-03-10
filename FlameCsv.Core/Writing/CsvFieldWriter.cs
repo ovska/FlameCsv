@@ -4,7 +4,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.IO;
+using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Writing;
 
@@ -249,6 +251,21 @@ public readonly struct CsvFieldWriter<T> where T : unmanaged, IBinaryInteger<T>
         {
             if (_escape is null)
             {
+                // TODO: refactor this mess
+/*                 if (Unsafe.SizeOf<T>() == sizeof(char) &&
+                    Vec256Char.IsSupported &&
+                    destination.Length >= Vec256Char.Count)
+                {
+                    // Vectorized escape
+                    ref readonly CsvFieldWriter<char> fw = ref Unsafe.As<CsvFieldWriter<T>, CsvFieldWriter<char>>(ref Unsafe.AsRef(in this));
+                    EscapeHack.EscapeAndAdvanceVectorized<char, NewlineParserOne<char, Vec256Char>, Vec256Char>(
+                        in fw,
+                        destination.Cast<T, char>(),
+                        tokensWritten);
+                    return;
+                } */
+
+
                 RFC4180Escaper<T> escaper = new(quote: _quote);
                 if (TryEscapeAndAdvance(ref escaper, destination, tokensWritten))
                     return;
@@ -358,5 +375,38 @@ file static class InvalidTokensWritten
     {
         throw new InvalidOperationException(
             $"{source.GetType().FullName} reported {tokensWritten} tokens written to a buffer of length {destinationLength}.");
+    }
+}
+
+file static class EscapeHack
+{
+    public static void EscapeAndAdvanceVectorized<T, TNewline, TVector>(
+        ref readonly CsvFieldWriter<T> writer,
+        ref readonly TNewline newline,
+        Span<T> destination,
+        int tokensWritten)
+        where T : unmanaged, IBinaryInteger<T>
+        where TNewline : INewline<T, TVector>
+        where TVector : struct, ISimdVector<T, TVector>
+    {
+        bool needsQuoting = EscapeHandler.NeedsEscaping<T, TNewline, TVector>(
+            destination,
+            tokensWritten,
+            Span<uint>.Empty,
+            writer.Options.Dialect.Delimiter,
+            writer.Options.Dialect.Quote,
+            in newline,
+            out int quoteCount);
+
+        if (!needsQuoting)
+        {
+            writer.Writer.Advance(tokensWritten);
+            return;
+        }
+
+        if (quoteCount == 0)
+        {
+            
+        }
     }
 }
