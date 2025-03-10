@@ -275,55 +275,55 @@ internal readonly struct Meta : IEquatable<Meta>
             }
             else if (!IsEscape && specialCount != 2) // already trimmed the quotes
             {
-                if (Unsafe.SizeOf<T>() == sizeof(byte))
-                {
-                    if (ByteAvx2Unescaper.IsSupported)
-                    {
-                        int requiredSize = Unescaper.GetBufferLength<ByteAvx2Unescaper>(field.Length);
-                        if (buffer.Length < requiredSize) buffer = allocator.GetSpan(requiredSize);
-
-                        int unescapedLength = Unescaper.Unescape<byte, uint, Vector256<byte>, ByteAvx2Unescaper>(
-                            byte.CreateTruncating(dialect.Quote),
-                            MemoryMarshal.Cast<T, byte>(field),
-                            MemoryMarshal.Cast<T, byte>(buffer));
-
-                        Debug.Assert(unescapedLength == (field.Length - ((specialCount - 2) / 2)));
-
-                        return buffer.Slice(0, unescapedLength);
-                    }
-
-                    if (ByteSsse3Unescaper.IsSupported)
-                    {
-                        int requiredSize = Unescaper.GetBufferLength<ByteSsse3Unescaper>(field.Length);
-                        if (buffer.Length < requiredSize) buffer = allocator.GetSpan(requiredSize);
-
-                        int unescapedLength = Unescaper.Unescape<byte, ushort, Vector128<byte>, ByteSsse3Unescaper>(
-                            byte.CreateTruncating(dialect.Quote),
-                            MemoryMarshal.Cast<T, byte>(field),
-                            MemoryMarshal.Cast<T, byte>(buffer));
-
-                        Debug.Assert(unescapedLength == (field.Length - ((specialCount - 2) / 2)));
-
-                        return buffer.Slice(0, unescapedLength);
-                    }
-                }
-                else if (Unsafe.SizeOf<T>() == sizeof(char))
-                {
-                    if (CharAvxUnescaper.IsSupported)
-                    {
-                        int requiredSize = Unescaper.GetBufferLength<CharAvxUnescaper>(field.Length);
-                        if (buffer.Length < requiredSize) buffer = allocator.GetSpan(requiredSize);
-
-                        int unescapedLength = Unescaper.Unescape<char, ushort, Vector256<short>, CharAvxUnescaper>(
-                            (char)ushort.CreateTruncating(dialect.Quote),
-                            MemoryMarshal.Cast<T, char>(field),
-                            MemoryMarshal.Cast<T, char>(buffer));
-
-                        Debug.Assert(unescapedLength == (field.Length - ((specialCount - 2) / 2)));
-
-                        return buffer.Slice(0, unescapedLength);
-                    }
-                }
+                // if (Unsafe.SizeOf<T>() == sizeof(byte))
+                // {
+                //     if (ByteAvx2Unescaper.IsSupported)
+                //     {
+                //         int requiredSize = Unescaper.GetBufferLength<ByteAvx2Unescaper>(field.Length);
+                //         if (buffer.Length < requiredSize) buffer = allocator.GetSpan(requiredSize);
+                //
+                //         int unescapedLength = Unescaper.Unescape<byte, uint, Vector256<byte>, ByteAvx2Unescaper>(
+                //             byte.CreateTruncating(dialect.Quote),
+                //             MemoryMarshal.Cast<T, byte>(field),
+                //             MemoryMarshal.Cast<T, byte>(buffer));
+                //
+                //         Debug.Assert(unescapedLength == (field.Length - ((specialCount - 2) / 2)));
+                //
+                //         return buffer.Slice(0, unescapedLength);
+                //     }
+                //
+                //     if (ByteSsse3Unescaper.IsSupported)
+                //     {
+                //         int requiredSize = Unescaper.GetBufferLength<ByteSsse3Unescaper>(field.Length);
+                //         if (buffer.Length < requiredSize) buffer = allocator.GetSpan(requiredSize);
+                //
+                //         int unescapedLength = Unescaper.Unescape<byte, ushort, Vector128<byte>, ByteSsse3Unescaper>(
+                //             byte.CreateTruncating(dialect.Quote),
+                //             MemoryMarshal.Cast<T, byte>(field),
+                //             MemoryMarshal.Cast<T, byte>(buffer));
+                //
+                //         Debug.Assert(unescapedLength == (field.Length - ((specialCount - 2) / 2)));
+                //
+                //         return buffer.Slice(0, unescapedLength);
+                //     }
+                // }
+                // else if (Unsafe.SizeOf<T>() == sizeof(char))
+                // {
+                //     if (CharAvxUnescaper.IsSupported)
+                //     {
+                //         int requiredSize = Unescaper.GetBufferLength<CharAvxUnescaper>(field.Length);
+                //         if (buffer.Length < requiredSize) buffer = allocator.GetSpan(requiredSize);
+                //
+                //         int unescapedLength = Unescaper.Unescape<char, ushort, Vector256<short>, CharAvxUnescaper>(
+                //             (char)ushort.CreateTruncating(dialect.Quote),
+                //             MemoryMarshal.Cast<T, char>(field),
+                //             MemoryMarshal.Cast<T, char>(buffer));
+                //
+                //         Debug.Assert(unescapedLength == (field.Length - ((specialCount - 2) / 2)));
+                //
+                //         return buffer.Slice(0, unescapedLength);
+                //     }
+                // }
 
                 var unescaper = new IndexOfRFC4180Unescaper<T>(dialect.Quote, specialCount - 2);
                 int length = IndexOfRFC4180Unescaper<T>.UnescapedLength(field.Length, specialCount - 2);
