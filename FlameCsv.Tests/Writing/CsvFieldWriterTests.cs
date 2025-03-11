@@ -2,12 +2,13 @@
 using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Writing;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Tests.Writing;
 
 public sealed class CsvFieldWriterTests : IAsyncDisposable
 {
-    private CsvFieldWriter<char> _writer;
+    [HandlesResourceDisposal] private CsvFieldWriter<char> _writer;
     private StringWriter? _textWriter;
 
     private string Written => _textWriter?.ToString() ?? string.Empty;
@@ -15,6 +16,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
         await using (_textWriter)
+        using (_writer)
         {
             if (_writer.Writer is not null)
             {
@@ -126,7 +128,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
     [Theory, InlineData(-1), InlineData((int)short.MaxValue)]
     public void Should_Guard_Against_Broken_Options(int tokensWritten)
     {
-        var writer = CsvFieldWriter.Create(
+        using var writer = CsvFieldWriter.Create(
             TextWriter.Null,
             new BrokenOptions
             {
@@ -137,6 +139,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
             },
             bufferSize: 4096,
             false);
+        // ReSharper disable once AccessToDisposedClosure
         Assert.Throws<InvalidOperationException>(() => writer.WriteText("test"));
         writer.Writer.Complete(null);
     }

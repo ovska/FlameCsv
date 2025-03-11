@@ -1,7 +1,6 @@
 ﻿using System.Runtime.Intrinsics;
 using System.Text;
 using FlameCsv.Extensions;
-using FlameCsv.Reading;
 using FlameCsv.Reading.Internal;
 using FlameCsv.Reading.Unescaping;
 
