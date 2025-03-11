@@ -245,7 +245,13 @@ internal readonly struct Vec128Char : ISimdVector<char, Vec128Char>
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static explicit operator Vector128<byte>(Vec128Char value) => Unsafe.As<Vec128Char, Vector128<byte>>(ref value);
 
-    public override string ToString() => _value.ToString();
+    public override string ToString()
+    {
+        byte[] values = new byte[Count];
+        _value.AsByte().CopyTo(values);
+        return _value.ToString() + " " + System.Text.Encoding.ASCII.GetString(values);
+    }
+
     public override bool Equals(object obj) => throw new NotSupportedException();
     public override int GetHashCode() => throw new NotSupportedException();
 }
@@ -357,7 +363,13 @@ internal readonly struct Vec256Char : ISimdVector<char, Vec256Char>
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static explicit operator Vector256<byte>(Vec256Char value) => Unsafe.As<Vec256Char, Vector256<byte>>(ref value);
 
-    public override string ToString() => _value.ToString();
+    public override string ToString()
+    {
+        byte[] values = new byte[Count];
+        _value.AsByte().CopyTo(values);
+        return _value.ToString() + " " + System.Text.Encoding.ASCII.GetString(values);
+    }
+
     public override bool Equals(object obj) => throw new NotSupportedException();
     public override int GetHashCode() => throw new NotSupportedException();
 }
@@ -429,7 +441,13 @@ internal readonly struct Vec128Byte : ISimdVector<byte, Vec128Byte>
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static explicit operator Vector128<byte>(Vec128Byte value) => Unsafe.As<Vec128Byte, Vector128<byte>>(ref value);
 
-    public override string ToString() => _value.ToString();
+    public override string ToString()
+    {
+        byte[] values = new byte[Count];
+        _value.CopyTo(values);
+        return _value.ToString() + " " + System.Text.Encoding.ASCII.GetString(values);
+    }
+
     public override bool Equals(object obj) => throw new NotSupportedException();
     public override int GetHashCode() => throw new NotSupportedException();
 }
@@ -501,7 +519,13 @@ internal readonly struct Vec256Byte : ISimdVector<byte, Vec256Byte>
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static explicit operator Vector256<byte>(Vec256Byte value) => Unsafe.As<Vec256Byte, Vector256<byte>>(ref value);
 
-    public override string ToString() => _value.ToString();
+    public override string ToString()
+    {
+        byte[] values = new byte[Count];
+        _value.CopyTo(values);
+        return _value.ToString() + " " + System.Text.Encoding.ASCII.GetString(values);
+    }
+
     public override bool Equals(object obj) => throw new NotSupportedException();
     public override int GetHashCode() => throw new NotSupportedException();
 }

@@ -44,7 +44,6 @@ internal static class EscapeHandler
     /// Determines if the value needs escaping.
     /// </summary>
     /// <param name="value">Value containing the field to check.</param>
-    /// <param name="valueLength">Length of the field</param>
     /// <param name="bitbuffer">A buffer to store the positions of quote characters.</param>
     /// <param name="delimiterArg">The delimiter.</param>
     /// <param name="quoteArg">The quote.</param>
@@ -53,7 +52,6 @@ internal static class EscapeHandler
     /// <returns><c>true</c> if the value needs escaping (contains delimiters, quotes, or newlines); otherwise, <c>false</c>.</returns>
     public static bool NeedsEscaping<T, TNewline, TVector>(
         ReadOnlySpan<T> value,
-        int valueLength,
         Span<uint> bitbuffer,
         T delimiterArg,
         T quoteArg,
@@ -63,7 +61,6 @@ internal static class EscapeHandler
         where TNewline : INewline<T, TVector>
         where TVector : struct, ISimdVector<T, TVector>
     {
-        Debug.Assert(valueLength >= value.Length, "Value length should be at least the length of the value.");
         Debug.Assert(value.Length >= TVector.Count, "NeedsEscaping needs a value at least one vector's length.");
         Debug.Assert(bitbuffer.Length >= (value.Length + MaskSize - 1) / MaskSize, "Bitbuffer is too small for the value length.");
         Debug.Assert(TVector.Count == MaskSize, "TVector.Count should be 32 for this implementation.");
@@ -77,7 +74,7 @@ internal static class EscapeHandler
         ref uint bitRef = ref MemoryMarshal.GetReference(bitbuffer);
         nuint offset = 0;
         uint bitOffset = 0;
-        nint remaining = valueLength;
+        nint remaining = value.Length;
 
         // Handle the first (potentially partial) vector
         (int firstLength, int padding) = GetPadding(value.Length, TVector.Count);
@@ -143,7 +140,7 @@ internal static class EscapeHandler
             // JIT should get rid of this in the loop
             if (padding != 0)
             {
-                mask >>= padding;
+                mask <<= padding;
             }
 
             Unsafe.Add(ref bitRef, bitOffset) = mask;
@@ -206,13 +203,15 @@ internal static class EscapeHandler
             scoped ref T dst,
             scoped ref nint dstRemaining)
         {
+            int previousQuotePosition = 0;
+
             while (mask != 0)
             {
                 int quotePos = BitOperations.LeadingZeroCount(mask) + 1;
-                mask &= uint.MaxValue >> (quotePos); // clear the leading bit
+                mask &= (uint)((ulong)uint.MaxValue >> quotePos); // clear the leading bit
 
-                int quoteOffset = quotePos - maskConsumed;
-                maskConsumed = quotePos; // store the previous quote position
+                int quoteOffset = quotePos - previousQuotePosition;
+                previousQuotePosition = quotePos; // store the previous quote position
 
                 // copy the data between the quotes, including the quote
                 srcRemaining -= quoteOffset;
@@ -222,7 +221,7 @@ internal static class EscapeHandler
             }
 
             // copy the remaining data
-            int maskRemaining = (sizeof(uint) * 8) - maskConsumed;
+            int maskRemaining = (sizeof(uint) * 8) - previousQuotePosition - maskConsumed;
             srcRemaining -= maskRemaining;
             dstRemaining -= maskRemaining;
             Copy(ref src, srcRemaining, ref dst, dstRemaining, (uint)maskRemaining);
@@ -233,7 +232,7 @@ internal static class EscapeHandler
         {
             Debug.Assert(srcIndex >= 0);
             Debug.Assert(dstIndex >= 0);
-            Debug.Assert(length >= 0);
+            Debug.Assert(length < int.MaxValue);
 
             Unsafe.CopyBlockUnaligned(
                 destination: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref dst, dstIndex)),
