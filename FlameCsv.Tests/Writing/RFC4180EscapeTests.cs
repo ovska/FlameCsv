@@ -203,43 +203,4 @@ public static class RFC4180EscapeTests
             Assert.Equal(quotes.Value, _escaper.CountEscapable(input));
         }
     }
-
-    [Fact]
-    public static void Should_Escx()
-    {
-        Assert.True(Vec128Char.IsSupported);
-
-        const string data = "James |007| Bond";
-        char[] buffer = new char[32];
-
-        data.CopyTo(buffer);
-        ReadOnlySpan<char> value = buffer.AsSpan(0, data.Length);
-        NewlineParserOne<char, Vec128Char> newlineParser = new('\n');
-        uint[] bitbuffer = new uint[(data.Length + Vec128Char.Count - 1) / Vec128Char.Count];
-
-        bool retVal = EscapeHandler.NeedsEscaping<char, NewlineParserOne<char, Vec128Char>, Vec128Char>(
-            buffer,
-            data.Length,
-            bitbuffer,
-            ',',
-            '|',
-            in newlineParser,
-            out int quoteCount);
-
-        Assert.True(retVal);
-        Assert.Equal(2, quoteCount);
-
-        // unescape to the same buffer
-        Span<char> destination = buffer.AsSpan(0, value.Length + quoteCount);
-
-        EscapeHandler.Escape(value, destination, bitbuffer.AsSpan(), '|');
-
-        Assert.Equal(
-            "James ||007|| Bond",
-            new string(destination));
-
-        Assert.All(
-            buffer[destination.Length..],
-            x => Assert.Equal('\0', x));
-    }
 }

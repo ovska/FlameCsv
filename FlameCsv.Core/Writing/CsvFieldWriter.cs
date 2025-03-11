@@ -378,35 +378,35 @@ file static class InvalidTokensWritten
     }
 }
 
-file static class EscapeHack
-{
-    public static void EscapeAndAdvanceVectorized<T, TNewline, TVector>(
-        ref readonly CsvFieldWriter<T> writer,
-        ref readonly TNewline newline,
-        Span<T> destination,
-        int tokensWritten)
-        where T : unmanaged, IBinaryInteger<T>
-        where TNewline : INewline<T, TVector>
-        where TVector : struct, ISimdVector<T, TVector>
-    {
-        bool needsQuoting = EscapeHandler.NeedsEscaping<T, TNewline, TVector>(
-            destination,
-            tokensWritten,
-            Span<uint>.Empty,
-            writer.Options.Dialect.Delimiter,
-            writer.Options.Dialect.Quote,
-            in newline,
-            out int quoteCount);
-
-        if (!needsQuoting)
-        {
-            writer.Writer.Advance(tokensWritten);
-            return;
-        }
-
-        if (quoteCount == 0)
-        {
-            
-        }
-    }
-}
+// file static class EscapeHack
+// {
+//     public static void EscapeAndAdvanceVectorized<T, TNewline, TVector>(
+//         ref readonly CsvFieldWriter<T> writer,
+//         ref readonly TNewline newline,
+//         Span<T> destination,
+//         int tokensWritten)
+//         where T : unmanaged, IBinaryInteger<T>
+//         where TNewline : INewline<T, TVector>
+//         where TVector : struct, ISimdVector<T, TVector>
+//     {
+//         bool needsQuoting = EscapeHandler.NeedsEscaping<T, TNewline, TVector>(
+//             destination,
+//             tokensWritten,
+//             Span<uint>.Empty,
+//             writer.Options.Dialect.Delimiter,
+//             writer.Options.Dialect.Quote,
+//             in newline,
+//             out int quoteCount);
+//
+//         if (!needsQuoting)
+//         {
+//             writer.Writer.Advance(tokensWritten);
+//             return;
+//         }
+//
+//         if (quoteCount == 0)
+//         {
+//
+//         }
+//     }
+// }

@@ -342,7 +342,13 @@ internal readonly struct <#= typeName #> : ISimdVector<<#= keyword #>, <#= typeN
     [<#= MethodImpl #>]
     public static explicit operator Vector<#= size #><byte>(<#= typeName #> value) => Unsafe.As<<#= typeName #>, Vector<#= size #><byte>>(ref value);
 
-    public override string ToString() => _value.ToString();
+    public override string ToString()
+    {
+        byte[] values = new byte[Count];
+        _value<#= keyword == "byte" ? "" : ".AsByte()" #>.CopyTo(values);
+        return _value.ToString() + " " + System.Text.Encoding.ASCII.GetString(values);
+    }
+
     public override bool Equals(object obj) => throw new NotSupportedException();
     public override int GetHashCode() => throw new NotSupportedException();
 }

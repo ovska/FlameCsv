@@ -48,14 +48,14 @@ public class EscapeBench
         // _input = fields.ToArray();
     }
 
-    [Benchmark(Baseline = true)]
-    public void Old()
-    {
-        foreach ((string input, int specialCount) in _input)
-        {
-            Escape2.Field(ref _escaper, input, _buffer.AsSpan(0, input.Length + 2 + specialCount), specialCount);
-        }
-    }
+    // [Benchmark(Baseline = true)]
+    // public void Old()
+    // {
+    //     foreach ((string input, int specialCount) in _input)
+    //     {
+    //         Escape2.Field(ref _escaper, input, _buffer.AsSpan(0, input.Length + 2 + specialCount), specialCount);
+    //     }
+    // }
 
     [Benchmark(Baseline = false)]
     public void New()
