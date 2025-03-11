@@ -2,6 +2,7 @@
 using FlameCsv.Extensions;
 using FlameCsv.Reading.Internal;
 using FlameCsv.Writing;
+using FlameCsv.Writing.Escaping;
 
 namespace FlameCsv.Tests.Writing;
 
@@ -10,7 +11,9 @@ public static class VecEscapeTests
     public static TheoryData<string, string> Data
         => new()
         {
-            { "James |007| Bond, at Her Majesty's Secret Servce", "James ||007|| Bond, at Her Majesty's Secret Servce" },
+            {
+                "James |007| Bond, at Her Majesty's Secret Servce", "James ||007|| Bond, at Her Majesty's Secret Servce"
+            },
             {
                 "Wilson Jones 1| Hanging DublLock\u00ae Ring Binders",
                 "Wilson Jones 1|| Hanging DublLock\u00ae Ring Binders"
@@ -25,30 +28,39 @@ public static class VecEscapeTests
             { "|012345678901234abcdefghijklmnopqrstuvwxyz|", "||012345678901234abcdefghijklmnopqrstuvwxyz||" },
         };
 
-    private static readonly NewlineParserOne<char, Vec256Char> _newline = new('\n');
+    private static readonly EscapeTokensRFCOne<char, Vec256Char> _cTokens = new('|', ',', '\n');
+    private static readonly EscapeTokensRFCOne<byte, Vec256Byte> _bTokens = new((byte)'|', (byte)',', (byte)'\n');
 
     [Theory]
     [MemberData(nameof(Data))]
     public static void Should_Escape_Char(string input, string expected)
     {
-        Impl<char, NewlineParserOne<char, Vec256Char>, Vec256Char>(input, expected, in _newline);
+        Impl<char, EscapeTokensRFCOne<char, Vec256Char>, Vec256Char>(input, expected, in _cTokens);
     }
 
-    static void Impl<T, TNewline, TVector>(ReadOnlySpan<T> value, string expected, in TNewline newline)
+    [Theory]
+    [MemberData(nameof(Data))]
+    public static void Should_Escape_Byte(string input, string expected)
+    {
+        Impl<byte, EscapeTokensRFCOne<byte, Vec256Byte>, Vec256Byte>(
+            Encoding.UTF8.GetBytes(input),
+            expected,
+            in _bTokens);
+    }
+
+    static void Impl<T, TTokens, TVector>(ReadOnlySpan<T> value, string expected, in TTokens tokens)
         where T : unmanaged, IBinaryInteger<T>
-        where TNewline : INewline<T, TVector>
+        where TTokens : struct, IEscapeTokens<T, TVector>
         where TVector : struct, ISimdVector<T, TVector>
     {
         Assert.True(TVector.IsSupported);
 
         Span<uint> bits = EscapeHandler.GetBitBuffer(value.Length, stackalloc uint[128]);
 
-        bool retVal = EscapeHandler.NeedsEscaping<T, TNewline, TVector>(
+        bool retVal = EscapeHandler.NeedsEscaping<T, TTokens, TVector>(
             value,
             bits,
-            T.CreateChecked(','),
-            T.CreateChecked('|'),
-            in newline,
+            in tokens,
             out int quoteCount);
 
         Assert.True(retVal);
@@ -76,6 +88,7 @@ public static class VecEscapeTests
 
         Assert.Equal(expected, ((ReadOnlySpan<T>)destination).AsPrintableString());
 
+        // data before and after the escaped value should be all zeroes
         Assert.All(buffer[..TVector.Count], x => Assert.Equal(T.Zero, x));
         Assert.All(buffer[(TVector.Count + destination.Length)..], x => Assert.Equal(T.Zero, x));
     }

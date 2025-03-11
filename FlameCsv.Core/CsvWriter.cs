@@ -29,11 +29,11 @@ public static partial class CsvWriter
 
     private static void WriteCore<T, TValue>(
         IEnumerable<TValue> values,
-        CsvFieldWriter<T> writerArg,
+        [HandlesResourceDisposal] CsvFieldWriter<T> writerArg,
         IDematerializer<T, TValue> dematerializerArg)
         where T : unmanaged, IBinaryInteger<T>
     {
-        CsvFieldWriter<T> writer = writerArg;
+        using CsvFieldWriter<T> writer = writerArg;
         IDematerializer<T, TValue> dematerializer = dematerializerArg;
         Exception? exception = null;
 
@@ -68,12 +68,12 @@ public static partial class CsvWriter
 
     private static async Task WriteAsyncCore<T, TValue>(
         IEnumerable<TValue> values,
-        CsvFieldWriter<T> writerArg,
+        [HandlesResourceDisposal] CsvFieldWriter<T> writerArg,
         IDematerializer<T, TValue> dematerializerArg,
         CancellationToken cancellationToken)
         where T : unmanaged, IBinaryInteger<T>
     {
-        CsvFieldWriter<T> writer = writerArg;
+        using CsvFieldWriter<T> writer = writerArg;
         IDematerializer<T, TValue> dematerializer = dematerializerArg;
         Exception? exception = null;
 
@@ -113,12 +113,12 @@ public static partial class CsvWriter
 
     private static async Task WriteAsyncCore<T, TValue>(
         IAsyncEnumerable<TValue> values,
-        CsvFieldWriter<T> writerArg,
+        [HandlesResourceDisposal] CsvFieldWriter<T> writerArg,
         IDematerializer<T, TValue> dematerializerArg,
         CancellationToken cancellationToken)
         where T : unmanaged, IBinaryInteger<T>
     {
-        CsvFieldWriter<T> writer = writerArg;
+        using CsvFieldWriter<T> writer = writerArg;
         IDematerializer<T, TValue> dematerializer = dematerializerArg;
         Exception? exception = null;
 

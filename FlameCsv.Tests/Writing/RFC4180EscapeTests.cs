@@ -1,6 +1,3 @@
-using System.Buffers;
-using FlameCsv.Reading.Internal;
-using FlameCsv.Tests.Utilities;
 using FlameCsv.Writing;
 
 namespace FlameCsv.Tests.Writing;
@@ -29,60 +26,6 @@ file static class EscapeExt
 public static class RFC4180EscapeTests
 {
     private static readonly RFC4180Escaper<char> _escaper = new(quote: EscapeExt.Options.Quote);
-
-    [Fact]
-    public static void Should_Partial_Escape_Larger_Destination()
-    {
-        ReadOnlySpan<char> input = "|t|e|s|t|";
-
-        Assert.True(_escaper.MustBeQuoted(input, out int specialCount));
-        Assert.Equal(5, specialCount);
-
-        using var arrayPool = new ReturnTrackingArrayMemoryPool<char>();
-        var writer = new ArrayBufferWriter<char>();
-        var destination = writer.GetSpan(14)[..14];
-        input.CopyTo(destination);
-
-        var escaper = _escaper;
-        Escape.FieldWithOverflow(
-            ref escaper,
-            writer,
-            source: destination[..input.Length],
-            destination: destination,
-            specialCount: specialCount,
-            allocator: arrayPool);
-
-        Assert.Equal("|||t||e||s||t|||", writer.WrittenSpan.ToString());
-    }
-
-    [Theory]
-    [InlineData(",test ", "|,test |")]
-    [InlineData("test,", "|test,|")]
-    [InlineData(",test", "|,test|")]
-    [InlineData(" te|st ", "| te||st |")]
-    [InlineData("|", "||||")]
-    [InlineData("|t", "|||t|")]
-    public static void Should_Partial_Escape(string input, string expected)
-    {
-        Assert.True(_escaper.MustBeQuoted(input, out int specialCount));
-
-        var writer = new ArrayBufferWriter<char>();
-        Span<char> firstBuffer = writer.GetSpan(input.Length)[..input.Length];
-        input.CopyTo(firstBuffer);
-
-        using var arrayPool = new ReturnTrackingArrayMemoryPool<char>();
-
-        var escaper = _escaper;
-        Escape.FieldWithOverflow(
-            ref escaper,
-            writer,
-            source: firstBuffer,
-            destination: firstBuffer,
-            specialCount: specialCount,
-            allocator: arrayPool);
-
-        Assert.Equal(expected, writer.WrittenSpan.ToString());
-    }
 
     [Theory]
     [InlineData("", "||")]

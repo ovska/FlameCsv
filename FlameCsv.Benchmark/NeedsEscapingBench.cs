@@ -26,7 +26,8 @@ public class NeedsEscapingBench
         {
             for (int i = 0; i < record.FieldCount; i++)
             {
-                fields.Add(record[i].ToArray());
+                if (record[i].Length >= 32)
+                    fields.Add(record[i].ToArray());
             }
         }
 
@@ -44,7 +45,7 @@ public class NeedsEscapingBench
         {
             ReadOnlySpan<char> written = field.AsSpan();
 
-            if (written.Length >= 32)
+            // if (written.Length >= 32)
             {
                 int index = written.IndexOfAny(searchValues);
 
@@ -67,12 +68,11 @@ public class NeedsEscapingBench
         foreach (var field in _fields)
         {
             ReadOnlySpan<char> written = field.AsSpan();
-            if (written.Length < 32) continue;
+            // if (written.Length < 32) continue;
 
             var bits = EscapeHandler.GetBitBuffer(written.Length, bitBuffer);
             bool retVal = EscapeHandler.NeedsEscaping<char, NewlineParserOne<char, Vec256Char>, Vec256Char>(
                 written,
-                written.Length,
                 bits,
                 ',',
                 '"',
@@ -81,7 +81,7 @@ public class NeedsEscapingBench
 
             if (retVal)
             {
-                EscapeHandler.Escape<char>(written, buffer, bits, '"');
+                EscapeHandler.Escape<char>(written, buffer.Slice(0, written.Length + quoteCount), bits, '"');
             }
         }
     }

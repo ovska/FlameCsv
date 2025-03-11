@@ -91,7 +91,7 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     /// Whether to automatically flush after each record if the writer's buffer pressure is high enough.
     /// Automatic flushing is performed in <see cref="CsvWriter{T}.NextRecord"/> and <see cref="NextRecordAsync"/>.
     /// </param>
-    public CsvAsyncWriter(CsvFieldWriter<T> inner, bool autoFlush)
+    public CsvAsyncWriter([HandlesResourceDisposal] CsvFieldWriter<T> inner, bool autoFlush)
     {
         Throw.IfDefaultStruct(inner.Writer is null, typeof(CsvFieldWriter<T>));
 
@@ -490,7 +490,7 @@ public class CsvWriter<T> : CsvAsyncWriter<T>, IDisposable where T : unmanaged, 
     /// </summary>
     /// <param name="inner"></param>
     /// <param name="autoFlush"></param>
-    public CsvWriter(CsvFieldWriter<T> inner, bool autoFlush) : base(inner, autoFlush)
+    public CsvWriter([HandlesResourceDisposal] CsvFieldWriter<T> inner, bool autoFlush) : base(inner, autoFlush)
     {
         Debug.Assert(inner.Writer is not PipeBufferWriter);
     }

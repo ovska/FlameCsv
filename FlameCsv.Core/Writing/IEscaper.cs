@@ -1,9 +1,10 @@
-﻿namespace FlameCsv.Writing;
+﻿using JetBrains.Annotations;
+
+namespace FlameCsv.Writing;
 
 /// <summary>
 /// Provides tokens and methods to escape special characters when quoting fields.
 /// </summary>
-/// <seealso cref="CsvDialect{T}.NeedsQuoting"/>
 internal interface IEscaper<T> where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
@@ -21,6 +22,7 @@ internal interface IEscaper<T> where T : unmanaged, IBinaryInteger<T>
     /// </summary>
     /// <param name="value">The span to search for escapable characters.</param>
     /// <returns>The last index of escapable characters, or -1 if none are found.</returns>
+    [Pure]
     int LastIndexOfEscapable(scoped ReadOnlySpan<T> value);
 
     /// <summary>
@@ -30,6 +32,7 @@ internal interface IEscaper<T> where T : unmanaged, IBinaryInteger<T>
     /// <param name="field">The span to search for special characters.</param>
     /// <returns>The number of special characters found.</returns>
     /// <remarks>Called after <see cref="CsvDialect{T}.NeedsQuoting"/> matches a token.</remarks>
+    [Pure]
     int CountEscapable(scoped ReadOnlySpan<T> field);
 
     /// <summary>
@@ -37,10 +40,6 @@ internal interface IEscaper<T> where T : unmanaged, IBinaryInteger<T>
     /// </summary>
     /// <param name="value">The value to check for escaping.</param>
     /// <returns><see langword="true"/> if the value needs escaping; otherwise, <see langword="false"/>.</returns>
+    [Pure]
     bool NeedsEscaping(T value);
-
-    /// <summary>
-    /// Gets a value indicating whether vectorization is supported (all tokens are ASCII).
-    /// </summary>
-    bool SupportsVectorization { get; }
 }
