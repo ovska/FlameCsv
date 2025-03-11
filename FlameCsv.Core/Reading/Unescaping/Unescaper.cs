@@ -25,19 +25,13 @@ internal static class Unescaper
     public static TMask ShiftMask32<TMask>(TMask mask)
         where TMask : unmanaged, IBinaryInteger<TMask>, IUnsignedNumber<TMask>
     {
-        if (Unsafe.SizeOf<TMask>() == sizeof(uint))
+        if (Unsafe.SizeOf<TMask>() is sizeof(uint) or sizeof(ushort))
         {
             ulong result = ((ulong.CreateTruncating(mask) * 0xAAAAAAABUL) >> 33);
             return TMask.CreateTruncating(result);
         }
 
-        if (Unsafe.SizeOf<TMask>() == sizeof(ushort))
-        {
-            uint result = ((uint.CreateTruncating(mask) * 0xAAAAAAABU) >> 17);
-            return TMask.CreateTruncating(result);
-        }
-
-        throw new NotSupportedException(typeof(TMask).Name);
+        throw new NotSupportedException("Mask must be 32 or 16 bytes: " + typeof(TMask).Name);
     }
 
     public static int Unescape<T, TMask, TVector, TUnescaper>(T quote, ReadOnlySpan<T> source, Span<T> destination)
@@ -73,6 +67,10 @@ internal static class Unescaper
 
         // shift the mask back so we work from the beginning of the value
         mask >>= padding;
+
+        // Fix for the edge case: if padding is 1 and carry is 1, add back the carry bit
+        // This prevents ShiftMask32 from seeing an unpaired quote
+        mask |= ((carry & TMask.CreateTruncating(padding) & TMask.One) << (TUnescaper.Count - 1));
 
         // merge the bits of each quote pair
         mask = ShiftMask32(mask);

@@ -22,15 +22,18 @@ public static class UnescaperTests
             { "James \"\"\"\"\"\"\"\"007\"\"\"\"\"\"\"\" Bond", "James \"\"\"\"007\"\"\"\" Bond" },
             { "\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"", "\"\"\"\"\"\"\"\"" },
             { "012345678901234\"\"\"\"", "012345678901234\"\"" },
-            {
-                "Wilson Jones 1\"\" Hanging DublLock\u00ae Ring Binders",
-                "Wilson Jones 1\" Hanging DublLock\u00ae Ring Binders"
-            },
             { "012345678901234\"\"\"\"zzzzzzzzzzzzzzzzzzzzzzzzz", "012345678901234\"\"zzzzzzzzzzzzzzzzzzzzzzzzz" },
             {
                 "The quick \"\"brown\"\" fox jumps over the \"\"lazy\"\" dog",
                 "The quick \"brown\" fox jumps over the \"lazy\" dog"
-            }
+            },
+            // Odd case: firstlength is 1 under vector length, and the first vector ends in two quotes
+            // this will cause the first to be shifted away, while the second will be added to carry,
+            // but not ignored because it was shifted back
+            {
+                "Wilson Jones 1\"\" Hanging DublLock\u00ae Ring Binders",
+                "Wilson Jones 1\" Hanging DublLock\u00ae Ring Binders"
+            },
         };
 
     [Theory]
