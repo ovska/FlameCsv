@@ -1,12 +1,12 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using FlameCsv.Reading.Internal;
 
-namespace FlameCsv.Reading;
+namespace FlameCsv.Reading.Unescaping;
 
 [SkipLocalsInit]
 internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>

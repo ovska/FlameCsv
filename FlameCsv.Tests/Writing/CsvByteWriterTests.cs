@@ -5,12 +5,13 @@ using System.Text;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Writing;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Tests.Writing;
 
 public sealed class CsvByteWriterTests : IAsyncDisposable
 {
-    private CsvFieldWriter<byte> _writer;
+    [HandlesResourceDisposal] private CsvFieldWriter<byte> _writer;
     private MemoryStream? _stream;
 
     private string Written
@@ -21,6 +22,7 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
         await using (_stream)
+        using (_writer)
         {
             if (_writer.Writer is not null)
             {
