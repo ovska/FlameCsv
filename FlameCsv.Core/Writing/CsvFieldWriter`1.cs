@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using FlameCsv.IO;
 using FlameCsv.Reading.Internal;
+using FlameCsv.Writing.Escaping;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Writing;
@@ -36,6 +37,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
     private readonly SearchValues<T> _needsQuoting;
     private readonly CsvFieldQuoting _fieldQuoting;
     private readonly Allocator<T> _allocator;
+    private readonly bool _canVectorizeEscaping;
 
     /// <summary>
     /// Creates a new instance.
@@ -58,7 +60,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
         _newline = dialect.GetNewlineOrDefault(forWriting: true);
         _needsQuoting = dialect.NeedsQuoting;
         _fieldQuoting = options.FieldQuoting;
-
+        _canVectorizeEscaping = _fieldQuoting is not CsvFieldQuoting.Never && dialect.IsAscii;
         _allocator = new MemoryPoolAllocator<T>(options.Allocator);
     }
 
@@ -283,7 +285,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
                 destination = Writer.GetSpan(escapedLength);
             }
 
-            Escape.Field(ref escaper, written, destination[..escapedLength], escapableCount);
+            Escape.Scalar(ref escaper, written, destination[..escapedLength], escapableCount);
             Writer.Advance(escapedLength);
             return true;
         }

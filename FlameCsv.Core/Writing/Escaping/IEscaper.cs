@@ -1,6 +1,6 @@
 ﻿using JetBrains.Annotations;
 
-namespace FlameCsv.Writing;
+namespace FlameCsv.Writing.Escaping;
 
 /// <summary>
 /// Provides tokens and methods to escape special characters when quoting fields.

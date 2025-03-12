@@ -2,11 +2,10 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using FlameCsv.Reading.Internal;
-using FlameCsv.Writing.Escaping;
 
-namespace FlameCsv.Writing;
+namespace FlameCsv.Writing.Escaping;
 
-internal static class EscapeHandler
+internal static partial class Escape
 {
     /// <summary>
     /// Number of bits in a single mask.
@@ -28,7 +27,7 @@ internal static class EscapeHandler
     /// <param name="valueLength">Value length.</param>
     /// <param name="buffer">A stack-allocated buffer to use if large enough.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Span<uint> GetBitBuffer(int valueLength, Span<uint> buffer)
+    public static Span<uint> GetMaskBuffer(int valueLength, Span<uint> buffer)
     {
         int requiredLength = (valueLength + MaskSize - 1) / MaskSize;
 
@@ -45,23 +44,23 @@ internal static class EscapeHandler
     /// Determines if the value needs escaping.
     /// </summary>
     /// <param name="value">Value containing the field to check.</param>
-    /// <param name="bitbuffer">A buffer to store the positions of quote characters.</param>
+    /// <param name="masks">A buffer to store the positions of quote characters.</param>
     /// <param name="tokens"></param>
     /// <param name="quoteCount">The number of quote characters found in the value.</param>
     /// <returns><c>true</c> if the value needs escaping (contains delimiters, quotes, or newlines); otherwise, <c>false</c>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool NeedsEscaping<T, TTokens, TVector>(
+    public static bool IsRequired<T, TTokens, TVector>(
         ReadOnlySpan<T> value,
-        Span<uint> bitbuffer,
+        Span<uint> masks,
         scoped ref readonly TTokens tokens,
         out int quoteCount)
         where T : unmanaged, IBinaryInteger<T>
-        where TTokens : struct, IEscapeTokens<T, TVector>
+        where TTokens : struct, ISimdEscaper<T, TVector>
         where TVector : struct, ISimdVector<T, TVector>
     {
         Debug.Assert(value.Length >= TVector.Count, "NeedsEscaping needs a value at least one vector's length.");
         Debug.Assert(
-            bitbuffer.Length >= (value.Length + MaskSize - 1) / MaskSize,
+            masks.Length >= (value.Length + MaskSize - 1) / MaskSize,
             "Bitbuffer is too small for the value length.");
         Debug.Assert(TVector.Count == MaskSize, "TVector.Count should be 32 for this implementation.");
 
@@ -69,7 +68,7 @@ internal static class EscapeHandler
         TVector needsQuoting = TVector.Zero;
 
         ref T first = ref MemoryMarshal.GetReference(value);
-        ref uint bitRef = ref MemoryMarshal.GetReference(bitbuffer);
+        ref uint maskDst = ref MemoryMarshal.GetReference(masks);
         nuint offset = 0;
         uint bitOffset = 0;
         nint remaining = value.Length;
@@ -86,7 +85,7 @@ internal static class EscapeHandler
             mask <<= padding;
         }
 
-        Unsafe.Add(ref bitRef, bitOffset) = mask;
+        Unsafe.Add(ref maskDst, bitOffset) = mask;
         quoteCount += BitOperations.PopCount(mask);
 
         offset += (nuint)firstLength;
@@ -98,7 +97,7 @@ internal static class EscapeHandler
         {
             current = TVector.LoadUnaligned(ref first, offset);
             mask = tokens.FindEscapable(in current, ref needsQuoting);
-            Unsafe.Add(ref bitRef, bitOffset) = mask;
+            Unsafe.Add(ref maskDst, bitOffset) = mask;
             quoteCount += BitOperations.PopCount(mask);
             offset += (nuint)TVector.Count;
             remaining -= TVector.Count;
@@ -110,20 +109,20 @@ internal static class EscapeHandler
 
     /// <summary>
     /// Escapes the source value into the destination buffer, inserting <paramref name="escape"/> characters
-    /// before set bits in the <paramref name="bitbuffer"/>.
+    /// before set bits in the <paramref name="masks"/>.
     /// </summary>
     /// <param name="source">Value to escape</param>
     /// <param name="destination">Destination buffer to escape to; must be exactly the required length</param>
-    /// <param name="bitbuffer">Buffer containing masks for characters that need escaping</param>
+    /// <param name="masks">Buffer containing masks for characters that need escaping</param>
     /// <param name="escape">Escape character to write before quotes/escapes in the source</param>
     /// <remarks>
     /// Does not write the wrapping quotes.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Escape<T>(
+    public static void FromMasks<T>(
         ReadOnlySpan<T> source,
         Span<T> destination,
-        Span<uint> bitbuffer,
+        Span<uint> masks,
         T escape)
         where T : unmanaged, IBinaryInteger<T>
     {
@@ -137,8 +136,8 @@ internal static class EscapeHandler
         nint srcRemaining = source.Length;
         nint dstRemaining = destination.Length;
 
-        ref uint firstMask = ref MemoryMarshal.GetReference(bitbuffer);
-        nint masksRemaining = bitbuffer.Length - 1;
+        ref uint firstMask = ref MemoryMarshal.GetReference(masks);
+        nint masksRemaining = masks.Length - 1;
 
         // read all but the last mask: copy the data in reverse order so the source and destination can share a buffer
         while (masksRemaining > 0)
