@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using FlameCsv.Attributes;
+using FlameCsv.Converters;
 using FlameCsv.Writing;
 using nietras.SeparatedValues;
 
@@ -209,12 +210,12 @@ public partial class WriteBench
     [Benchmark]
     public void Generic_Fields()
     {
-        var writer = CsvFieldWriter.Create(TextWriter.Null, CsvOptions<char>.Default, -1, false);
+        using var writer = CsvFieldWriter.Create(TextWriter.Null, CsvOptions<char>.Default, -1, false);
 
-        var c1 = CsvOptions<char>.Default.Aot.GetConverter<int>();
-        var c2 = CsvOptions<char>.Default.Aot.GetConverter<string>();
-        var c5 = CsvOptions<char>.Default.Aot.GetConverter<double>();
-        var c6 = CsvOptions<char>.Default.Aot.GetOrCreateNullable(static o => o.Aot.GetConverter<double>(), true);
+        var c1 = new NumberTextConverter<int, IntegerStyles>(CsvOptions<char>.Default);
+        var c2 = StringTextConverter.Instance;
+        var c5 = new NumberTextConverter<double, FloatStyles>(CsvOptions<char>.Default);
+        var c6 = new OptimizedNullEmptyConverter<char, double>(c5);
 
         writer.WriteText("Index");
         writer.WriteDelimiter();

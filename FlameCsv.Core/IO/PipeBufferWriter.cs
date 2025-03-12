@@ -73,10 +73,18 @@ internal sealed class PipeBufferWriter : ICsvPipeWriter<byte>
             }
         }
 
+        // TODO: what to throw here?
         await _pipeWriter.CompleteAsync(exception).ConfigureAwait(false);
 
         if (exception is not null)
+        {
+            if (exception is not CsvWriteException)
+            {
+                throw new CsvWriteException($"Exception occured while writing to {GetType()}.", exception);
+            }
+
             throw exception;
+        }
     }
 
     public void Complete(Exception? exception) => _pipeWriter.Complete(exception);

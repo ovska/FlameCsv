@@ -50,7 +50,7 @@ internal sealed class CsvCharPipeWriter : ICsvPipeWriter<char>
         _writer = writer;
         _allocator = allocator;
         _leaveOpen = leaveOpen;
-        _bufferSize = Math.Max(256, bufferSize);
+        _bufferSize = Math.Max(128, bufferSize);
         _flushThreshold = (int)(_bufferSize * 0.875);
         _memoryOwner = allocator.Rent(_bufferSize);
         _buffer = _memoryOwner.Memory;
@@ -185,7 +185,14 @@ internal sealed class CsvCharPipeWriter : ICsvPipeWriter<char>
             }
 
             if (exception is not null)
+            {
+                if (exception is not CsvWriteException)
+                {
+                    throw new CsvWriteException($"Exception occured while writing to {GetType()}.", exception);
+                }
+
                 throw exception;
+            }
         }
         finally
         {

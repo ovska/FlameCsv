@@ -28,21 +28,26 @@ public static class VecEscapeTests
             { "|012345678901234abcdefghijklmnopqrstuvwxyz|", "||012345678901234abcdefghijklmnopqrstuvwxyz||" },
         };
 
-    private static readonly SimdEscaperRFCOne<char, Vec256Char> _cTokens = new('|', ',', '\n');
-    private static readonly SimdEscaperRFCOne<byte, Vec256Byte> _bTokens = new((byte)'|', (byte)',', (byte)'\n');
+    private static readonly SimdEscaperRFC<char, Vec256Char> _cTokens = new('|', ',', '\r', '\n');
+
+    private static readonly SimdEscaperRFC<byte, Vec256Byte> _bTokens = new(
+        (byte)'|',
+        (byte)',',
+        (byte)'\r',
+        (byte)'\n');
 
     [Theory]
     [MemberData(nameof(Data))]
     public static void Should_Escape_Char(string input, string expected)
     {
-        Impl<char, SimdEscaperRFCOne<char, Vec256Char>, Vec256Char>(input, expected, in _cTokens);
+        Impl<char, SimdEscaperRFC<char, Vec256Char>, Vec256Char>(input, expected, in _cTokens);
     }
 
     [Theory]
     [MemberData(nameof(Data))]
     public static void Should_Escape_Byte(string input, string expected)
     {
-        Impl<byte, SimdEscaperRFCOne<byte, Vec256Byte>, Vec256Byte>(
+        Impl<byte, SimdEscaperRFC<byte, Vec256Byte>, Vec256Byte>(
             Encoding.UTF8.GetBytes(input),
             expected,
             in _bTokens);
@@ -55,7 +60,9 @@ public static class VecEscapeTests
     {
         Assert.True(TVector.IsSupported);
 
-        Span<uint> bits = Escape.GetMaskBuffer(value.Length, stackalloc uint[128]);
+        uint[]? array = null;
+        Span<uint> bits = Escape.GetMaskBuffer(value.Length, stackalloc uint[128], ref array);
+        Assert.Null(array);
 
         bool retVal = Escape.IsRequired<T, TTokens, TVector>(
             value,
