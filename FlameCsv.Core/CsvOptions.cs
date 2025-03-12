@@ -512,6 +512,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// <summary>
     /// Returns <see langword="true"/> if this instance's type is inherited by user code.
     /// </summary>
+    // TODO: figure out a more elegant way to do this
     internal virtual bool IsInherited => GetType() != typeof(CsvOptions<T>);
 
     internal bool HasBooleanValues => _booleanValues is { Count: > 0 };

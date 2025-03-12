@@ -6,20 +6,18 @@ public abstract class CsvWriterTestsBase
 {
     public static TheoryData<string, bool, char?, CsvFieldQuoting, bool, int, bool, bool?> Args()
     {
-        var data = new TheoryData<string, bool, char?, CsvFieldQuoting, bool, int, bool, bool?>();
-
-        foreach (var newline in (string[]) ["\r\n", "\n"])
-        foreach (var header in GlobalData.Booleans)
-        foreach (var escape in (char?[]) ['^', null])
-        foreach (var quoting in GlobalData.Enum<CsvFieldQuoting>())
-        foreach (var sourceGen in GlobalData.Booleans)
-        foreach (var bufferSize in (int[]) [-1, 256, 1024])
-        foreach (var outputType in GlobalData.Booleans)
-        foreach (var guarded in GlobalData.GuardedMemory)
-        {
-            data.Add(newline, header, escape, quoting, sourceGen, bufferSize, outputType, guarded);
-        }
-
-        return data;
+        return
+        [
+            ..
+            from newline in (string[]) ["\r\n", "\n"]
+            from header in GlobalData.Booleans
+            from escape in (char?[]) ['^', null]
+            from quoting in GlobalData.Enum<CsvFieldQuoting>()
+            from sourceGen in GlobalData.Booleans
+            from bufferSize in (int[]) [-1, 256]
+            from outputType in GlobalData.Booleans
+            from guarded in GlobalData.GuardedMemory
+            select (newline, header, escape, quoting, sourceGen, bufferSize, outputType, guarded)
+        ];
     }
 }
