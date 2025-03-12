@@ -16,7 +16,6 @@ public partial class WriteBench
 {
     [Params(/*5, 1_000,*/ 10_000)] public int Count { get; set; }
 
-#if false
     [Benchmark]
     public void CsvHelper_Records()
     {
@@ -205,7 +204,6 @@ public partial class WriteBench
     {
         return CsvWriter.WriteAsync(TextWriter.Null, _data, ObjTypeMap.Default);
     }
-#endif
 
     [Benchmark]
     public void Generic_Fields()
