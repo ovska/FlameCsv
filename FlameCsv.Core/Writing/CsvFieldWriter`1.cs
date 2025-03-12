@@ -383,7 +383,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
     /// <inheritdoc />
     public void Dispose()
     {
-        _allocator.Dispose();
+        _allocator?.Dispose();
     }
 }
 

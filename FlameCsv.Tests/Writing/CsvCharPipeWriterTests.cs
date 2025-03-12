@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
 
@@ -6,7 +7,7 @@ namespace FlameCsv.Tests.Writing;
 
 public sealed class CsvCharPipeWriterTests : IAsyncDisposable
 {
-    private CsvCharPipeWriter _writer = null!;
+    private CsvCharPipeWriter? _writer;
     private StringWriter? _textWriter;
 
     private string Written => _textWriter?.ToString() ?? string.Empty;
@@ -15,7 +16,10 @@ public sealed class CsvCharPipeWriterTests : IAsyncDisposable
     {
         await using (_textWriter)
         {
-            await _writer.CompleteAsync(null, TestContext.Current.CancellationToken);
+            if (_writer is not null)
+            {
+                await _writer.CompleteAsync(null);
+            }
         }
     }
 
@@ -155,6 +159,7 @@ public sealed class CsvCharPipeWriterTests : IAsyncDisposable
             });
     }
 
+    [MemberNotNull(nameof(_writer))]
     private void Initialize(int bufferSize = 1024)
     {
         _writer = new CsvCharPipeWriter(

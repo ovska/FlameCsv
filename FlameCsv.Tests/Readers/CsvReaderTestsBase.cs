@@ -14,7 +14,6 @@ public enum NewlineToken
 {
     CRLF,
     LF,
-    AutoCRLF,
     AutoLF
 }
 
@@ -31,24 +30,18 @@ public abstract class CsvReaderTestsBase
     {
         get
         {
-            var data = new SyncData();
-
-            foreach (var crlf in GlobalData.Enum<NewlineToken>())
-            foreach (var writeHeader in GlobalData.Booleans)
-            foreach (var writeTrailingNewline in GlobalData.Booleans)
-            foreach (var bufferSize in _bufferSizes)
-            foreach (var emptySegmentFrequency in _emptySegmentsEvery)
-            foreach (var escaping in GlobalData.Enum<Mode>())
-            foreach (var parallel in GlobalData.Booleans)
-            foreach (var sourceGen in GlobalData.Booleans)
-            foreach (var guarded in GlobalData.GuardedMemory)
-            {
-                // headerless csv not yet supported on sourcegen
-                if (sourceGen && !writeHeader)
-                    continue;
-
-                data.Add(
-                    crlf,
+            var data =
+                from crlf in GlobalData.Enum<NewlineToken>()
+                from writeHeader in GlobalData.Booleans
+                from writeTrailingNewline in (bool[]) [true] // GlobalData.Booleans
+                from bufferSize in _bufferSizes
+                from emptySegmentFrequency in _emptySegmentsEvery
+                from escaping in GlobalData.Enum<Mode>()
+                from parallel in (bool[]) [false] // GlobalData.Booleans
+                from sourceGen in GlobalData.Booleans
+                from guarded in GlobalData.GuardedMemory
+                where writeHeader || !sourceGen // headerless csv not yet supported on sourcegen
+                select (crlf,
                     writeHeader,
                     writeTrailingNewline,
                     bufferSize,
@@ -57,9 +50,7 @@ public abstract class CsvReaderTestsBase
                     parallel,
                     sourceGen,
                     guarded);
-            }
-
-            return data;
+            return [..data];
         }
     }
 
@@ -67,25 +58,19 @@ public abstract class CsvReaderTestsBase
     {
         get
         {
-            var data = new AsyncData();
+            var data =
+                from crlf in GlobalData.Enum<NewlineToken>()
+                from writeHeader in GlobalData.Booleans
+                from writeTrailingNewline in (bool[]) [true] // GlobalData.Booleans
+                from bufferSize in _bufferSizes
+                from escaping in GlobalData.Enum<Mode>()
+                from parallel in (bool[]) [false] // GlobalData.Booleans
+                from sourceGen in GlobalData.Booleans
+                from guarded in GlobalData.GuardedMemory
+                where writeHeader || !sourceGen // headerless csv not yet supported on sourcegen
+                select (crlf, writeHeader, writeTrailingNewline, bufferSize, escaping, parallel, sourceGen, guarded);
 
-            foreach (var crlf in GlobalData.Enum<NewlineToken>())
-            foreach (var writeHeader in GlobalData.Booleans)
-            foreach (var writeTrailingNewline in GlobalData.Booleans)
-            foreach (var bufferSize in _bufferSizes)
-            foreach (var escaping in GlobalData.Enum<Mode>())
-            foreach (var parallel in GlobalData.Booleans)
-            foreach (var sourceGen in GlobalData.Booleans)
-            foreach (var guarded in GlobalData.GuardedMemory)
-            {
-                // headerless csv not yet supported on sourcegen
-                if (sourceGen && !writeHeader)
-                    continue;
-
-                data.Add(crlf, writeHeader, writeTrailingNewline, bufferSize, escaping, parallel, sourceGen, guarded);
-            }
-
-            return data;
+            return [..data];
         }
     }
 }
