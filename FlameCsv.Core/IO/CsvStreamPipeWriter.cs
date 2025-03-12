@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 
@@ -129,72 +130,59 @@ internal sealed class CsvStreamPipeWriter : ICsvPipeWriter<byte>
 
         using (_memoryOwner)
         {
-            if (exception is null)
+            try
             {
-                try
+                if (exception is null)
                 {
                     await FlushAsync(cancellationToken).ConfigureAwait(false);
                 }
-                catch (Exception e)
-                {
-                    exception = new CsvWriteException(
-                        "Exception occured while flushing the writer for the final time.",
-                        e);
-                }
-                finally
-                {
-                    _unflushed = -1;
-
-                    if (!_leaveOpen)
-                        await _stream.DisposeAsync().ConfigureAwait(false);
-                }
+            }
+            catch (Exception e)
+            {
+                exception = CsvWriteException.OnComplete(e);
+            }
+            finally
+            {
+                _unflushed = -1;
+                _memoryOwner = HeapMemoryOwner<byte>.Empty;
+                _buffer = default;
+                if (!_leaveOpen) await _stream.DisposeAsync().ConfigureAwait(false);
             }
         }
 
-        _memoryOwner = HeapMemoryOwner<byte>.Empty;
-        _buffer = default;
-
         if (exception is not null)
-            throw exception;
+        {
+            ExceptionDispatchInfo.Capture(exception).Throw();
+        }
     }
 
     public void Complete(Exception? exception)
     {
         using (_memoryOwner)
         {
-            if (exception is null && HasUnflushedData)
+            try
             {
-                try
+                if (exception is null)
                 {
                     Flush();
                 }
-                catch (Exception e)
-                {
-                    exception = new CsvWriteException(
-                        "Exception occured while flushing the writer for the final time.",
-                        e);
-                }
-                finally
-                {
-                    _unflushed = -1;
-
-                    if (!_leaveOpen)
-                        _stream.Dispose();
-                }
+            }
+            catch (Exception e)
+            {
+                exception = CsvWriteException.OnComplete(e);
+            }
+            finally
+            {
+                _unflushed = -1;
+                _memoryOwner = HeapMemoryOwner<byte>.Empty;
+                _buffer = default;
+                if (!_leaveOpen) _stream.Dispose();
             }
         }
 
-        _memoryOwner = HeapMemoryOwner<byte>.Empty;
-        _buffer = default;
-
         if (exception is not null)
         {
-            if (exception is not CsvWriteException)
-            {
-                throw new CsvWriteException($"Exception occured while writing to {GetType()}.", exception);
-            }
-
-            throw exception;
+            ExceptionDispatchInfo.Capture(exception).Throw();
         }
     }
 }

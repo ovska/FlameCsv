@@ -66,6 +66,7 @@ internal ref struct ValueListBuilder<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(scoped ReadOnlySpan<T> source)
     {
+        if (source.IsEmpty) return;
         int pos = _pos;
         Span<T> span = _span;
         if (source.Length == 1 && (uint)pos < (uint)span.Length)

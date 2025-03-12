@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using FlameCsv.Exceptions;
 
 namespace FlameCsv.IO;
@@ -69,21 +70,15 @@ internal sealed class PipeBufferWriter : ICsvPipeWriter<byte>
             }
             catch (Exception e)
             {
-                exception = new CsvWriteException("Exception occured while flushing the writer for the final time.", e);
+                exception = CsvWriteException.OnComplete(e);
             }
         }
 
-        // TODO: what to throw here?
         await _pipeWriter.CompleteAsync(exception).ConfigureAwait(false);
 
         if (exception is not null)
         {
-            if (exception is not CsvWriteException)
-            {
-                throw new CsvWriteException($"Exception occured while writing to {GetType()}.", exception);
-            }
-
-            throw exception;
+            ExceptionDispatchInfo.Capture(exception).Throw();
         }
     }
 
