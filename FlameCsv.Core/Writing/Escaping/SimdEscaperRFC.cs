@@ -4,7 +4,7 @@ using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Writing.Escaping;
 
-internal readonly struct SimdEscaperRFCTwo<T, TVector> : ISimdEscaper<T, TVector>
+internal readonly struct SimdEscaperRFC<T, TVector> : ISimdEscaper<T, TVector>
     where T : unmanaged, IBinaryInteger<T>
     where TVector : struct, ISimdVector<T, TVector>
 {
@@ -13,12 +13,15 @@ internal readonly struct SimdEscaperRFCTwo<T, TVector> : ISimdEscaper<T, TVector
     private readonly TVector _newline1;
     private readonly TVector _newline2;
 
+    public T Escape { get; }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public SimdEscaperRFCTwo(T quote, T delimiter, T newline1, T newline2)
+    public SimdEscaperRFC(T quote, T delimiter, T newline1, T newline2)
     {
         Debug.Assert(TVector.IsSupported);
         Debug.Assert(TVector.Count == 32);
 
+        Escape = quote;
         _quote = TVector.Create(quote);
         _delimiter = TVector.Create(delimiter);
         _newline1 = TVector.Create(newline1);

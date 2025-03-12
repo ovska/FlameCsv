@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿#if false
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using FlameCsv.IO;
@@ -179,7 +180,7 @@ file readonly struct OldEscaper<T> : IEscaper<T> where T : unmanaged, IBinaryInt
 
         return false;
 
-        FoundQuoteOrDelimiter:
+    FoundQuoteOrDelimiter:
         escapableCount = CountEscapable(field.Slice(index));
         return true;
     }
@@ -190,3 +191,5 @@ file readonly struct OldEscaper<T> : IEscaper<T> where T : unmanaged, IBinaryInt
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int CountEscapable(ReadOnlySpan<T> value) => value.Count(_quote);
 }
+
+#endif

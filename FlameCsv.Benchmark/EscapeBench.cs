@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿#if false
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using FlameCsv.Writing;
 
@@ -106,3 +107,4 @@ file static class Escape2
         destination[0] = escaper.Quote;
     }
 }
+#endif

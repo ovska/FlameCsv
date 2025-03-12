@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -26,8 +27,9 @@ internal static partial class Escape
     /// </summary>
     /// <param name="valueLength">Value length.</param>
     /// <param name="buffer">A stack-allocated buffer to use if large enough.</param>
+    /// <param name="arrayPoolBuffer">A buffer from the array pool to use if the stack buffer is too small.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Span<uint> GetMaskBuffer(int valueLength, Span<uint> buffer)
+    public static Span<uint> GetMaskBuffer(int valueLength, Span<uint> buffer, ref uint[]? arrayPoolBuffer)
     {
         int requiredLength = (valueLength + MaskSize - 1) / MaskSize;
 
@@ -36,8 +38,12 @@ internal static partial class Escape
             return buffer[..requiredLength];
         }
 
-        // TODO: Use ArrayPool
-        return GC.AllocateUninitializedArray<uint>(requiredLength);
+        if (arrayPoolBuffer == null || arrayPoolBuffer.Length < requiredLength)
+        {
+            arrayPoolBuffer = ArrayPool<uint>.Shared.Rent(requiredLength);
+        }
+
+        return arrayPoolBuffer.AsSpan(0, requiredLength);
     }
 
     /// <summary>

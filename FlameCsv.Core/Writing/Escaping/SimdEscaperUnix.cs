@@ -14,12 +14,15 @@ internal readonly struct SimdEscaperUnix<T, TVector> : ISimdEscaper<T, TVector>
     private readonly TVector _newline1;
     private readonly TVector _newline2;
 
+    public T Escape { get; }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public SimdEscaperUnix(T escape, T quote, T delimiter, in NewlineBuffer<T> newline)
     {
         Debug.Assert(TVector.IsSupported);
         Debug.Assert(TVector.Count == 32);
 
+        Escape = escape;
         _quote = TVector.Create(quote);
         _escape = TVector.Create(escape);
         _delimiter = TVector.Create(delimiter);
