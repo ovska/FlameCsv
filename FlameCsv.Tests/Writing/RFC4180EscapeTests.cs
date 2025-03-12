@@ -1,4 +1,5 @@
 using FlameCsv.Writing;
+using FlameCsv.Writing.Escaping;
 
 namespace FlameCsv.Tests.Writing;
 
@@ -37,7 +38,7 @@ public static class RFC4180EscapeTests
         input.CopyTo(buffer);
 
         var escaper = _escaper;
-        Escape.Field(ref escaper, buffer[..input.Length], buffer, 0);
+        Escape.Scalar(ref escaper, buffer[..input.Length], buffer, 0);
         Assert.Equal(expected, buffer.ToString());
     }
 
@@ -62,7 +63,7 @@ public static class RFC4180EscapeTests
         input.CopyTo(sharedBuffer);
 
         var escaper = _escaper;
-        Escape.Field(ref escaper, sharedBuffer[..input.Length], sharedBuffer, quoteCount);
+        Escape.Scalar(ref escaper, sharedBuffer[..input.Length], sharedBuffer, quoteCount);
         Assert.Equal(expected, new string(sharedBuffer));
 
         // Last sanity check
@@ -88,7 +89,7 @@ public static class RFC4180EscapeTests
         var sharedBuffer = new char[expectedLength].AsSpan();
         input.CopyTo(sharedBuffer);
 
-        Escape.Field(ref escaper, sharedBuffer[..input.Length], sharedBuffer, quoteCount);
+        Escape.Scalar(ref escaper, sharedBuffer[..input.Length], sharedBuffer, quoteCount);
         Assert.Equal(expected, new string(sharedBuffer));
 
         // Last sanity check

@@ -1,7 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
-using System.Text;
 
-namespace FlameCsv.Writing;
+namespace FlameCsv.Writing.Escaping;
 
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
 internal readonly struct RFC4180Escaper<T>(T quote) : IEscaper<T> where T : unmanaged, IBinaryInteger<T>
@@ -26,10 +25,4 @@ internal readonly struct RFC4180Escaper<T>(T quote) : IEscaper<T> where T : unma
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int CountEscapable(scoped ReadOnlySpan<T> value) => value.Count(quote);
-
-    public bool SupportsVectorization
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Ascii.IsValid(byte.CreateTruncating(quote));
-    }
 }

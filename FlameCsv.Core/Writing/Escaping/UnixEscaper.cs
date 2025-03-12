@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace FlameCsv.Writing;
+namespace FlameCsv.Writing.Escaping;
 
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
 internal readonly struct UnixEscaper<T>(T quote, T escape) : IEscaper<T> where T : unmanaged, IBinaryInteger<T>

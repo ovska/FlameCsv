@@ -2,19 +2,19 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace FlameCsv.Writing;
+namespace FlameCsv.Writing.Escaping;
 
-internal static class Escape
+internal static partial class Escape
 {
     /// <summary>
     /// Escapes <paramref name="source"/> into <paramref name="destination"/> by wrapping it in quotes and escaping
-    /// possible quotes in the value.
+    /// possible escapes/quotes in the value.
     /// </summary>
     /// <param name="escaper"></param>
     /// <param name="source">Data that needs escaping</param>
     /// <param name="destination">Destination buffer. Can be the same memory region as the source</param>
     /// <param name="specialCount">Number of quotes/escapes in the source</param>
-    public static void Field<T, TEscaper>(
+    public static void Scalar<T, TEscaper>(
         ref readonly TEscaper escaper,
         scoped ReadOnlySpan<T> source,
         scoped Span<T> destination,

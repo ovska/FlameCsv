@@ -28,21 +28,21 @@ public static class VecEscapeTests
             { "|012345678901234abcdefghijklmnopqrstuvwxyz|", "||012345678901234abcdefghijklmnopqrstuvwxyz||" },
         };
 
-    private static readonly EscapeTokensRFCOne<char, Vec256Char> _cTokens = new('|', ',', '\n');
-    private static readonly EscapeTokensRFCOne<byte, Vec256Byte> _bTokens = new((byte)'|', (byte)',', (byte)'\n');
+    private static readonly SimdEscaperRFCOne<char, Vec256Char> _cTokens = new('|', ',', '\n');
+    private static readonly SimdEscaperRFCOne<byte, Vec256Byte> _bTokens = new((byte)'|', (byte)',', (byte)'\n');
 
     [Theory]
     [MemberData(nameof(Data))]
     public static void Should_Escape_Char(string input, string expected)
     {
-        Impl<char, EscapeTokensRFCOne<char, Vec256Char>, Vec256Char>(input, expected, in _cTokens);
+        Impl<char, SimdEscaperRFCOne<char, Vec256Char>, Vec256Char>(input, expected, in _cTokens);
     }
 
     [Theory]
     [MemberData(nameof(Data))]
     public static void Should_Escape_Byte(string input, string expected)
     {
-        Impl<byte, EscapeTokensRFCOne<byte, Vec256Byte>, Vec256Byte>(
+        Impl<byte, SimdEscaperRFCOne<byte, Vec256Byte>, Vec256Byte>(
             Encoding.UTF8.GetBytes(input),
             expected,
             in _bTokens);
@@ -50,14 +50,14 @@ public static class VecEscapeTests
 
     static void Impl<T, TTokens, TVector>(ReadOnlySpan<T> value, string expected, in TTokens tokens)
         where T : unmanaged, IBinaryInteger<T>
-        where TTokens : struct, IEscapeTokens<T, TVector>
+        where TTokens : struct, ISimdEscaper<T, TVector>
         where TVector : struct, ISimdVector<T, TVector>
     {
         Assert.True(TVector.IsSupported);
 
-        Span<uint> bits = EscapeHandler.GetBitBuffer(value.Length, stackalloc uint[128]);
+        Span<uint> bits = Escape.GetMaskBuffer(value.Length, stackalloc uint[128]);
 
-        bool retVal = EscapeHandler.NeedsEscaping<T, TTokens, TVector>(
+        bool retVal = Escape.IsRequired<T, TTokens, TVector>(
             value,
             bits,
             in tokens,
@@ -84,7 +84,7 @@ public static class VecEscapeTests
         T[] buffer = new T[TVector.Count + requiredLength + TVector.Count];
         Span<T> destination = buffer.AsSpan(TVector.Count, requiredLength);
 
-        EscapeHandler.Escape(value, destination, bits, T.CreateChecked('|'));
+        Escape.FromMasks(value, destination, bits, T.CreateChecked('|'));
 
         Assert.Equal(expected, ((ReadOnlySpan<T>)destination).AsPrintableString());
 

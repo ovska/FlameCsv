@@ -16,7 +16,7 @@ public enum CsvFieldQuoting
     Always = 1,
 
     /// <summary>
-    /// Never quote fields.
+    /// Never quote or escape fields.
     /// </summary>
     /// <remarks>
     /// Can result in invalid CSV being written, use with caution.
