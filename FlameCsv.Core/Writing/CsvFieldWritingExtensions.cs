@@ -1,8 +1,11 @@
-﻿namespace FlameCsv.Writing;
+﻿using JetBrains.Annotations;
+
+namespace FlameCsv.Writing;
 
 /// <summary>
 /// Extensions for formatting values into <see cref="CsvFieldWriter{T}"/>
 /// </summary>
+[PublicAPI]
 public static class CsvFieldWritingExtensions
 {
     public static void FormatValue<T>(
@@ -20,7 +23,7 @@ public static class CsvFieldWritingExtensions
             destination = writer.Writer.GetSpan(destination.Length * 2);
         }
 
-        writer.AdvanceAndHandleQuoting(destination, charsWritten);
+        writer.EscapeAndAdvanceExternal(destination, charsWritten);
     }
 
     public static void FormatValue<T>(
@@ -38,6 +41,6 @@ public static class CsvFieldWritingExtensions
             destination = writer.Writer.GetSpan(destination.Length * 2);
         }
 
-        writer.AdvanceAndHandleQuoting(destination, bytesWritten);
+        writer.EscapeAndAdvanceExternal(destination, bytesWritten);
     }
 }
