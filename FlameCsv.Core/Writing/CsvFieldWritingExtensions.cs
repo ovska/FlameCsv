@@ -8,6 +8,9 @@ namespace FlameCsv.Writing;
 [PublicAPI]
 public static class CsvFieldWritingExtensions
 {
+    /// <summary>
+    /// Formats the value to the writer.
+    /// </summary>
     public static void FormatValue<T>(
         ref readonly this CsvFieldWriter<char> writer,
         T value,
@@ -26,6 +29,9 @@ public static class CsvFieldWritingExtensions
         writer.EscapeAndAdvanceExternal(destination, charsWritten);
     }
 
+    /// <summary>
+    /// Formats the value to the writer.
+    /// </summary>
     public static void FormatValue<T>(
         ref readonly this CsvFieldWriter<byte> writer,
         T value,

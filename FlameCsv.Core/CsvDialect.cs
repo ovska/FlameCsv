@@ -130,7 +130,11 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     public SearchValues<T> NeedsQuoting
     {
         get => _lazyValues.NeedsQuoting ??= GetNeedsQuoting();
-        init => _lazyValues.NeedsQuoting = value;
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _lazyValues.NeedsQuoting = value;
+        }
     }
 
     /// <summary>
@@ -246,8 +250,8 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         list.Append(Delimiter);
         list.Append(Quote);
         if (Escape.HasValue) list.Append(Escape.Value);
-        if (!Newline.IsEmpty) list.Append(Newline); // empty newline is CRLF -> always ASCII
-        if (!Whitespace.IsEmpty) list.Append(Whitespace);
+        list.Append(Newline); // empty newline is CRLF -> always ASCII
+        list.Append(Whitespace);
 
         if (Unsafe.SizeOf<T>() == sizeof(byte))
         {

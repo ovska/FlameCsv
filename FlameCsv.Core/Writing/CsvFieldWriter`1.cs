@@ -188,7 +188,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
     public void WriteNewline()
     {
         Span<T> destination = Writer.GetSpan(_newline.Length);
-        destination[_newline.Length - 1] = _newline.Second;
+        if (_newline.Length == 2) destination[1] = _newline.Second;
         destination[0] = _newline.First;
         Writer.Advance(_newline.Length);
     }
@@ -222,6 +222,12 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
         int tokensWritten)
         where TEscaper : struct, IEscaper<T>, allows ref struct
     {
+        if (_fieldQuoting == CsvFieldQuoting.Never)
+        {
+            Writer.Advance(tokensWritten);
+            return;
+        }
+
         // empty writes don't need escaping
         if (tokensWritten == 0)
         {
@@ -238,13 +244,6 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
                 Writer.Advance(2);
             }
 
-            return;
-        }
-
-        // Value formatted, check if it needs to be wrapped in quotes
-        if (_fieldQuoting == CsvFieldQuoting.Never)
-        {
-            Writer.Advance(tokensWritten);
             return;
         }
 
