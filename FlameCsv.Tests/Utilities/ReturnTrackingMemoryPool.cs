@@ -5,7 +5,6 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using FlameCsv.Extensions;
 
-// ReSharper disable ConvertTypeCheckPatternToNullCheck
 
 namespace FlameCsv.Tests.Utilities;
 
@@ -59,7 +58,8 @@ internal abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T> where T : un
     {
         return guardedFromEnd switch
         {
-            bool b when OperatingSystem.IsWindows() => new ReturnTrackingGuardedMemoryPool<T>(b),
+            { } b when OperatingSystem.IsWindows() => new ReturnTrackingGuardedMemoryPool<T>(b),
+            not null => throw new NotSupportedException("Guarded memory is only supported on Windows."),
             _ => new ReturnTrackingArrayMemoryPool<T>(),
         };
     }

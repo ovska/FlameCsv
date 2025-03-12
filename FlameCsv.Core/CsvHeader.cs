@@ -97,9 +97,7 @@ public sealed class CsvHeader
     public CsvHeader(IEqualityComparer<string> comparer, ReadOnlySpan<string> header)
     {
         ArgumentNullException.ThrowIfNull(comparer);
-
-        if (header.Length == 0)
-            Throw.Argument("Header cannot be empty.", nameof(header));
+        ArgumentOutOfRangeException.ThrowIfZero(header.Length);
 
         _comparer = comparer;
         _header = header.ToArray();
@@ -156,7 +154,7 @@ public sealed class CsvHeader
             }
         }
 
-        value = 0;
+        value = -1;
         return false;
     }
 
