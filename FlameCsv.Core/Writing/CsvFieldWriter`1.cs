@@ -38,6 +38,9 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
     private readonly CsvFieldQuoting _fieldQuoting;
     private readonly Allocator<T> _allocator;
 
+    private readonly RFC4180Escaper<T> _rfc4180Escaper;
+    private readonly UnixEscaper<T> _unixEscaper;
+
     /// <summary>
     /// Creates a new instance.
     /// </summary>
@@ -60,6 +63,8 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
         _needsQuoting = dialect.NeedsQuoting;
         _fieldQuoting = options.FieldQuoting;
         _allocator = new MemoryPoolAllocator<T>(options.Allocator);
+        _rfc4180Escaper = new RFC4180Escaper<T>(quote: _quote);
+        _unixEscaper = new UnixEscaper<T>(quote: _quote, escape: _escape ?? _quote);
     }
 
     /// <summary>
@@ -95,11 +100,11 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
 
         if (_escape is null)
         {
-            EscapeAndAdvance(new RFC4180Escaper<T>(quote: _quote), destination, tokensWritten);
+            EscapeAndAdvance(in _rfc4180Escaper, destination, tokensWritten);
         }
         else
         {
-            EscapeAndAdvance(new UnixEscaper<T>(quote: _quote, escape: _escape.Value), destination, tokensWritten);
+            EscapeAndAdvance(in _unixEscaper, destination, tokensWritten);
         }
     }
 
@@ -133,11 +138,11 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
         {
             if (_escape is null)
             {
-                EscapeAndAdvance(new RFC4180Escaper<T>(quote: _quote), destination, value.Length);
+                EscapeAndAdvance(_rfc4180Escaper, destination, value.Length);
             }
             else
             {
-                EscapeAndAdvance(new UnixEscaper<T>(quote: _quote, escape: _escape.Value), destination, value.Length);
+                EscapeAndAdvance(_unixEscaper, destination, value.Length);
             }
         }
     }
@@ -201,11 +206,11 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
     {
         if (_escape is null)
         {
-            EscapeAndAdvance(new RFC4180Escaper<T>(quote: _quote), destination, tokensWritten);
+            EscapeAndAdvance(in _rfc4180Escaper, destination, tokensWritten);
         }
         else
         {
-            EscapeAndAdvance(new UnixEscaper<T>(quote: _quote, escape: _escape.Value), destination, tokensWritten);
+            EscapeAndAdvance(in _unixEscaper, destination, tokensWritten);
         }
     }
 
@@ -217,7 +222,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
     /// <returns>True if the writer was advanced</returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void EscapeAndAdvance<TEscaper>(
-        TEscaper escaper,
+        in TEscaper escaper,
         Span<T> destination,
         int tokensWritten)
         where TEscaper : struct, IEscaper<T>, allows ref struct
@@ -259,7 +264,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
         }
         else
         {
-            int index = written.IndexOfAny(_needsQuoting);
+            int index = written.LastIndexOfAny(_needsQuoting);
 
             if (index != -1)
             {
@@ -294,7 +299,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
             destination = Writer.GetSpan(escapedLength);
         }
 
-        Escape.Scalar(ref escaper, written, destination[..escapedLength], escapableCount);
+        Escape.Scalar(in escaper, written, destination[..escapedLength], escapableCount);
         Writer.Advance(escapedLength);
     }
 
