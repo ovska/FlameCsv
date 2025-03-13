@@ -155,7 +155,7 @@ internal sealed class CsvParserRFC4180<T>(
         // the prefetch reads one vector ahead
         const int minimumVectors = 2;
 
-        if (Unsafe.SizeOf<T>() == sizeof(char))
+        if (Unsafe.SizeOf<T>() == sizeof(char) && (Vec256Char.IsSupported || Vec128Char.IsSupported))
         {
             ReadOnlySpan<char> dataT = MemoryMarshal.Cast<T, char>(data);
             ref readonly var dialect = ref Unsafe.As<CsvDialect<T>, CsvDialect<char>>(ref Unsafe.AsRef(in _dialect));
@@ -208,7 +208,7 @@ internal sealed class CsvParserRFC4180<T>(
             }
         }
 
-        if (Unsafe.SizeOf<T>() == sizeof(byte))
+        if (Unsafe.SizeOf<T>() == sizeof(byte) && (Vec256Byte.IsSupported || Vec128Byte.IsSupported))
         {
             ReadOnlySpan<byte> dataT = MemoryMarshal.Cast<T, byte>(data);
             ref readonly var dialect = ref Unsafe.As<CsvDialect<T>, CsvDialect<byte>>(ref Unsafe.AsRef(in _dialect));
