@@ -1,8 +1,6 @@
 ﻿using BenchmarkDotNet.Configs;
-using BenchmarkDotNet.Engines;
 using BenchmarkDotNet.Exporters.Csv;
 using BenchmarkDotNet.Exporters.Json;
-using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Reports;
 using Perfolizer.Metrology;
 
@@ -15,7 +13,6 @@ IConfig config = new DebugInProcessConfig();
 //config.AddJob(Job.Default
 //    .WithStrategy(RunStrategy.Throughput)
 //    .WithId("Scalar")
-//    .WithEnvironmentVariable("DOTNET_EnableAVX2", "0")
 //    .WithEnvironmentVariable("DOTNET_EnableAVX", "0")
 //    .WithEnvironmentVariable("DOTNET_EnableAVX2", "0")
 //    .WithEnvironmentVariable("DOTNET_EnableSSE", "0")
@@ -25,10 +22,9 @@ IConfig config = new DebugInProcessConfig();
 //    .WithEnvironmentVariable("DOTNET_EnableSSE41", "0")
 //    .WithEnvironmentVariable("DOTNET_EnableSSE42", "0")
 //    .WithEnvironmentVariable("DOTNET_EnableAVX512F", "0");
-config.AddJob(Job.Default.WithStrategy(RunStrategy.Throughput).AsBaseline());
 
-config.AddExporter(JsonExporter.BriefCompressed);
-config.AddExporter(
+config = config.AddExporter(JsonExporter.BriefCompressed);
+config = config.AddExporter(
     new CsvExporter(
         CsvSeparator.CurrentCulture,
         new SummaryStyle(
