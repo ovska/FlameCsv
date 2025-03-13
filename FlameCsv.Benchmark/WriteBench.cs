@@ -279,6 +279,8 @@ public partial class WriteBench
 
         writer.Header.Add("Index", "Name", "Contact", "Count", "Latitude", "Longitude", "Height", "Location", "Category", "Popularity");
 
+        int count = 0;
+
         foreach (var obj in _data)
         {
             using var row = writer.NewRow();
@@ -292,7 +294,15 @@ public partial class WriteBench
             row[7].Set(obj.Location);
             row[8].Set(obj.Category);
             row[9].Set($"{obj.Popularity}");
+
+            if (++count == 100)
+            {
+                writer.Flush();
+                count = 0;
+            }
         }
+
+        writer.Flush();
     }
 
     [GlobalSetup]

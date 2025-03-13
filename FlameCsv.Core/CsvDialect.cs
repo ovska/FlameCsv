@@ -102,6 +102,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
             }
 
             _whitespace = list.AsSpan().ToArray();
+            _whitespace.AsSpan().Sort();
             _whitespaceLength = _whitespace.Length;
         }
     }
@@ -322,11 +323,12 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
             ? [T.CreateChecked('\r'), T.CreateChecked('\n')]
             : Newline;
 
-        if (delimiter == T.Zero) InvalidDialect.Throw([NullError("Delimiter")]);
-        if (quote == T.Zero) InvalidDialect.Throw([NullError("Quote")]);
-        if (escape.HasValue && escape.Value == T.Zero) InvalidDialect.Throw([NullError("Escape")]);
-        if (newline.Contains(T.Zero)) InvalidDialect.Throw([NullError("Newline")]);
-        // allow zero in newline
+        if (delimiter == T.Zero) errors.Append(NullError("Delimiter"));
+        if (quote == T.Zero) errors.Append(NullError("Quote"));
+        if (escape.HasValue && escape.Value == T.Zero) errors.Append(NullError("Escape"));
+        if (newline.Contains(T.Zero)) errors.Append(NullError("Newline"));
+        // allow zero in whitespace
+        if (errors.Length > 0) goto CheckErrors;
 
         if (delimiter.Equals(quote))
         {
@@ -379,6 +381,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
             errors.Append("All tokens for byte must be valid ASCII characters.");
         }
 
+    CheckErrors:
         if (errors.Length != 0)
         {
             _lazyValues.Reset(); // reset possible faulty cached value
