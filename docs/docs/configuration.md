@@ -6,18 +6,18 @@ uid: configuration
 
 ## Overview
 
-Aside from [attributes](attributes.md), the configuration mainly is done through the @"FlameCsv.CsvOptions`1" class. Similar to `System.Text.Json`, the options-instances should be configured once and reused for the application lifetime. After the options-instance is used to read or write CSV, it cannot be modified (see @"FlameCsv.CsvOptions`1.IsReadOnly"). The options-instaces are thread-safe to *use*, but not to *configure*. You can call @"FlameCsv.CsvOptions`1.MakeReadOnly?displayProperty=nameWithType" to ensure the options-instance is immutable.
+Aside from [attributes](attributes.md), configuration is mainly done through the @"FlameCsv.CsvOptions`1" class. Similar to `System.Text.Json`, options instances should be configured once and reused for the application lifetime. After an options instance is used to read or write CSV, it cannot be modified (see @"FlameCsv.CsvOptions`1.IsReadOnly"). The options instances are thread-safe to *use*, but not to *configure*. You can call @"FlameCsv.CsvOptions`1.MakeReadOnly?displayProperty=nameWithType" to ensure thread safety by making the options instance immutable.
 
 For convenience, a copy-constructor @"FlameCsv.CsvOptions`1.%23ctor(FlameCsv.CsvOptions{`0})" is available, for example if you need slightly different configuration for reading and writing. This copies over all the configurable properties, but not internal state or caches.
 
 > [!NOTE]
 > Because of the immutability of the options, automatically detected newline is per-document. The same instance can be used to read either `\n` or `\r\n`, as the detection does not mutate the configured values.
 
-## Default options instances
+## Default Options
 
-The static @"FlameCsv.CsvOptions`1.Default?displayProperty=nameWithType" property can be used if you don't need any deviation from the defaults. This is the value used when `null` options are passed to @"FlameCsv.CsvReader" or @"FlameCsv.CsvWriter". The default options are read-only and have an identical configuration to creating an options instance with `new()`.
+The static @"FlameCsv.CsvOptions`1.Default?displayProperty=nameWithType" property provides access to default configuration. This is used when `null` options are passed to @"FlameCsv.CsvReader" or @"FlameCsv.CsvWriter". The default options are read-only and have identical configuration to a new instance created with `new()`.
 
-Default options are available for @"System.Char?text=char" and @"System.Byte?text=byte" (UTF-8). Attempting to use the property with other generic types throws a runtime exception.
+Default options are only available for @"System.Char?text=char" (UTF-16) and @"System.Byte?text=byte" (UTF-8). Using the property with other generic types throws a runtime exception.
 
 ```cs
 CsvConverter<byte, int> intConverter = CsvOptions<byte>.Default.GetConverter<int>();
@@ -35,7 +35,7 @@ The string delimiter is configured with @"FlameCsv.CsvOptions`1.Quote?displayPro
 The record separator is configured with @"FlameCsv.CsvOptions`1.Newline?displayProperty=nameWithType". The default value is `null`/empty. This means the record separator is auto-detected from the first occurence to be either `\n` or `\r\n`. When writing, `\r\n` is used in this case. You can choose any newline you want explicitly, with the caveat that the length must be exactly 1 or 2 if it is not empty.
 
 ### Whitespace
-Significant whitespace  is configured with @"FlameCsv.CsvOptions`1.Whitespace?displayProperty=nameWithType", and determines how fields are trimmed when reading, or if a field needs quoting when writing. The characters present in the whitespace-string are trimmed from each field, unless they are in a quoted field (whitespace is _not_ trimmed inside strings). When writing, written values that contain leading or trailing whitespace are wrapped in quotes if [automatic field quoting](#quoting-fields-when-writing) is enabled. The default value is null/empty, which means the concept of significant whitespace does not exist.
+Significant whitespace is configured with @"FlameCsv.CsvOptions`1.Whitespace?displayProperty=nameWithType", and determines how fields are trimmed when reading, or if a field needs quoting when writing. Characters present in the whitespace string are trimmed from each field, unless they are in a quoted field (whitespace is _not_ trimmed inside strings). When writing, values containing leading or trailing whitespace are wrapped in quotes if [automatic field quoting](#quoting-fields-when-writing) is enabled. The default value is null/empty, which means whitespace is not considered significant.
 
 ### Escape
 An explicit escape character @"FlameCsv.CsvOptions`1.Escape?displayProperty=nameWithType" can be set to a non-null value to escape any character after it in a string. The default value is null, which follows the RFC 4180 spec.
@@ -200,9 +200,9 @@ converter.TryParse("10", out _); // undefined but valid number
 
 ### Custom true/false values
 
-Use @"FlameCsv.CsvOptions`1.BooleanValues?displayProperty=nameWithType" to customize what fields are parsed as booleans. At least one `true` and one `false` value must be present.
+Use @"FlameCsv.CsvOptions`1.BooleanValues?displayProperty=nameWithType" to customize which field values are parsed as booleans. You must specify at least one `true` and one `false` value.
 
-Note that custom boolean values applied globally _replaces_ the default parsing. It might be useful to configure on a per-member-basis with @"FlameCsv.Attributes.CsvBooleanValuesAttribute`1".
+Note that configuring custom boolean values globally _replaces_ the default parsing behavior. For more granular control, consider using @"FlameCsv.Attributes.CsvBooleanValuesAttribute`1" to configure values on a per-member basis.
 
 ```cs
 CsvOptions<char> options = new()
@@ -281,7 +281,7 @@ for example when writing multiple CSV documents into one output.
 
 ### AOT
 
-Since any implementation of @"FlameCsv.CsvConverterFactory`1" (including the built-in nullable and enum factories) can potentially require unreferenced types or dynamic code, the default @"FlameCsv.CsvOptions`1.GetConverter``1?displayProperty=nameWithType" method is not AOT-compatible.
+Since any implementation of @"FlameCsv.CsvConverterFactory`1" (including built-in nullable and enum factories) can potentially require unreferenced types or dynamic code, the default @"FlameCsv.CsvOptions`1.GetConverter``1?displayProperty=nameWithType" method is not AOT-compatible.
 
 Use @"FlameCsv.CsvOptions`1.Aot?displayProperty=nameWithType" to retrieve a wrapper around the configured converters, which provides convenience methods to safely retrieve converters for types known at runtime. See the documentation on methods of @"FlameCsv.CsvOptions`1.AotSafeConverters" for more info. This property is utilized by the source generator.
 

@@ -6,19 +6,18 @@ uid: architecture
 
 ## Foreword
 
-This document is a general info-dump on the inner workings and design philosophy of FlameCsv. Not one word of it is
-required (or perhaps even useful) to use the library, but should provide some insight for those interested in the
-internals.
+This document explains the inner workings and design philosophy of FlameCsv.
+While not required for using the library, it provides insights into the internals for those interested.
 
 ## Reading
 
-FlameCSV's reading is built on two goals:
+FlameCSV's reading implementation is built on two goals:
 
- - ⚖️ Feature parity and code sharing between sync and async
- - 🚀 Zero-copy and zero-allocation
+- ⚖️ Feature parity and code sharing between synchronous and asynchronous operations
+- 🚀 Zero-copy and zero-allocation processing
 
-Data is read directly from the source, whether it is a @"System.String" or an array/@"System.ReadOnlyMemory`1".
-Similarly, when reading from a pipe, the same sequence is read from as where the data was originally read from.
+Data is read directly from the source, whether it's a @"System.String" or an array/@"System.ReadOnlyMemory`1".
+When reading from a pipe, the same sequence is used as where the data was originally read from.
 Streams and pipes can fragment the data across multiple buffers when reading, so the "first class async"-philosophy
 made @"System.Buffers.ReadOnlySequence`1" a natural choice for the base data block for reading.
 As much as possible is read from @"System.Buffers.ReadOnlySequence`1.First" (or in the case of an array or a string, all of it)
@@ -42,12 +41,20 @@ you'll never see an allocation caused by unescaping.
 
 Warning: nerdy stuff ahead 🤓
 
-Read-ahead works by reading as much CSV fields as possible from the currently available data. The field data is stored
-in a [Meta-struct](https://github.com/ovska/FlameCsv/blob/main/FlameCsv.Core/Reading/Internal/Meta.cs), that contains
-the end index of the field in the data, whether the field is the last field in a record (`IsEOL`), and the amount of
-special characters in the field. The field metadata-struct also contains the offset to the next field; 1 if the field
-is followed by a delimiter, 1 or 2 if the field is followed by a newline, or 0 if the field is at the end of the data
-(in the case of no trailing newline).
+The read-ahead process works by reading as many CSV fields as possible from the currently available data.
+Each field's data is stored in a [metadata-struct](https://github.com/ovska/FlameCsv/blob/main/FlameCsv.Core/Reading/Internal/Meta.cs),
+which contains:
+
+- The end index of the field in the data
+- Whether the field is the last field in a record
+- The count of special characters in the field
+- Whether the special count refers to unix-style escapes instead of quotes
+- The offset to the next field:
+  - 1 for fields followed by a delimiter
+  - 1 or 2 for fields followed by a newline
+  - 0 for fields at the end of data (no trailing newline)
+
+The data is sliced by using the previous field's end index and offset, and the current field's end index.
 
 The metadata struct fits into 8 bytes (size of a `long`) by storing bit flags in some extra space (such
 as the sign-bit of the end index), and the expectation that no single CSV field needs over 29 bits
@@ -56,11 +63,8 @@ as the sign-bit of the end index), and the expectation that no single CSV field 
 
 ## Writing
 
-The writing routines are based on @"System.Buffers.IBufferWriter`1" which allows consumers to write directly into the
-writer's buffer. In practice, the writer returns an arbitrarily sized destination buffer, which is passed to
-a converter or other code that writes directly to the buffer.
-
-FlameCsv augments the writer type with a few extra APIs using @"FlameCsv.Writing.ICsvPipeWriter`1":
+The writing system is based on @"System.Buffers.IBufferWriter`1", allowing direct writes into the writer's buffer.
+FlameCsv extends this functionality through @"FlameCsv.Writing.ICsvPipeWriter`1" with additional features:
  - The writer keeps tracks of the written data, and contains the @"FlameCsv.Writing.ICsvPipeWriter`1.NeedsFlush" property that
    determines if the internal buffers are close to full, and the written data should be flushed. The limit of "close to full"
    is arbitrarily determined, and future performance profiling might be needed (you are free to do so, or file an issue for it).
@@ -111,14 +115,14 @@ hidden allocations.
 
 ## Dynamic code generation
 
-For performance and simplicity, runtime code generation is kept to a minimum. Whenever possible, the required code is generated
-at _compile-time_ using T4 templates. Examples of this are the types that
-[read](https://github.com/ovska/FlameCsv/blob/main/FlameCsv.Core/Runtime/Materializer.Generated.cs) and
-[write](https://github.com/ovska/FlameCsv/blob/main/FlameCsv.Core/Runtime/Dematerializer.Generated.cs)
-.NET types. This allows the JIT compiler to "see" the code it is running, and optimize it like hand-written code.
+To optimize performance and maintain simplicity, runtime code generation is minimized.
+Where possible, code is generated at _compile-time_ using T4 templates.
+For example, the types that [read](https://github.com/ovska/FlameCsv/blob/main/FlameCsv.Core/Runtime/Materializer.Generated.cs)
+and [write](https://github.com/ovska/FlameCsv/blob/main/FlameCsv.Core/Runtime/Dematerializer.Generated.cs) objects are generated this way.
+This allows the JIT compiler to optimize much of the code as if it were hand-written.
 
-When code generation is necessary, such as creating the getters needed for writing, and the object creation function when reading,
-[FastExpressionCompiler](https://github.com/dadhi/FastExpressionCompiler) is used to minimize the cost of compiling the expression
-and to improve the compiled delegate's performance.
+When runtime code generation is necessary (such as for creating getters for writing or object creation functions for reading),
+the library uses the excellent [FastExpressionCompiler](https://github.com/dadhi/FastExpressionCompiler) library to
+minimize compilation cost and improve delegate performance.
 
-When using @"source-generator", no dynamic code or reflection is used at all.
+When using the @"source-generator", the library operates without any dynamic code or reflection.
