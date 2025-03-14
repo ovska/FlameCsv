@@ -4,7 +4,7 @@ uid: attributes
 
 # Attributes
 
-Configuration attributes can be applied on a member, type, or assembly. Attributes on a type can be used to configure classes that you have no direct control over, such as on partial typed in auto-generated code. Assembly scoped attributes can be used to configure types in other namespaces or assemblies that you cannot apply attributes on otherwise.
+Configuration attributes can be applied on a member, type, or assembly. Attributes on a type can be used to configure classes that you have no direct control over, such as on partial types in auto-generated code. Assembly scoped attributes can be used to configure types in other namespaces or assemblies that you cannot directly modify.
 
 All three attributes in the example below do the same thing. For clarity, it is preferred to annotate the type directly whenever possible.
 
@@ -21,7 +21,9 @@ class User
 
 ## Header names
 
-@"FlameCsv.Attributes.CsvHeaderAttribute" is used to configure the header name used when reading and writing CSV. This defaults. Additional aliases can be provided as follow up arguments to allow matching the member to header values. The first parameter is always used when writing.
+@"FlameCsv.Attributes.CsvHeaderAttribute" is used to configure the header name used when reading and writing CSV. The first parameter specifies the primary header name. Additional aliases can be provided as follow-up arguments to allow matching the member to alternative header values. The first parameter is always used when writing.
+
+The default header value used it the member's name, e.g., `"IsAdmin"`.
 
 ```cs
 [CsvHeader("is_admin")]
@@ -36,7 +38,11 @@ public int Id { get; set; }
 
 ## Constructor
 
-@"FlameCsv.Attributes.CsvConstructorAttribute" is used to explicitly choose a constructor that is used to instantiate a type. If omitted, a public parameterless constructor is used. Otherwise, if there is exactly one public constructor, it will be used. All other configurations result in an error.
+@"FlameCsv.Attributes.CsvConstructorAttribute" is used to explicitly choose which constructor is used to instantiate a type. The selection process follows these rules:
+
+1. @"FlameCsv.Attributes.CsvConstructorAttribute" is present, that constructor is used
+2. No attribute is present and a public parameterless constructor exists, it is used
+3. If the type has exactly one public constructor, it is used
 
 ```cs
 public class User
@@ -58,13 +64,13 @@ If used on a type or assembly, specify the parameter types of the specific const
 [CsvConstructor(ParameterTypes = [typeof(int), typeof(string)])]
 partial class User;
 
-[assembly: CsvConstructor(TargetType = TargetType = typeof(User), ParameterTypes = [typeof(int), typeof(string)])]
+[assembly: CsvConstructor(TargetType = typeof(User), ParameterTypes = [typeof(int), typeof(string)])]
 ```
 
 ## Required fields
 
 To mark a property, field or parameter as required, use @"FlameCsv.Attributes.CsvRequiredAttribute".
-If a required member has no match in a CSV header, an exception is thrown.
+If a required member has no matching field in the CSV header, an exception is thrown.
 
 ```cs
 public class User
@@ -76,10 +82,12 @@ public class User
 }
 ```
 
-The `required`-keyword is not recognized by the library. Create an issue if you have a need for it.
-
 > [!NOTE]
-> `init`-only properties, and parameters without a default value are implicitly required.
+> The following are implicitly treated as required:
+> - Properties with `init` setter
+> - Constructor parameters without default values
+
+The `required`-keyword is not recognized by the library. Create an issue if you have a need for it.
 
 ## Field order
 
@@ -118,7 +126,17 @@ public class User
 
 ## Ignoring members
 
-TODO: figure out specific ignore semantics
+Use @"FlameCsv.Attributes.CsvIgnoreAttribute" to exclude a member from CSV reading and writing operations.
+
+```cs
+public class User 
+{
+    public int Id { get; set; }
+    
+    [CsvIgnore]
+    public DateTime LastModified { get; set; } // This field will be invisible to the library
+}
+```
 
 ## Ignoring indexes
 
@@ -139,7 +157,7 @@ public class User
 
 ## Reading interfaces or abstract classes
 
-To read interfaces or abstract classes (or types from other assemblies that cannot be directly constructed), use the "FlameCsv.Attributes.CsvTypeProxyAttribute" to configure a concrete type that is created in place of the actual type. The proxy type must be convertible to the interface or base type.
+Use @"FlameCsv.Attributes.CsvTypeProxyAttribute" to specify a concrete type that should be instantiated when reading an interface or abstract class. The proxy type must be assignable to the target type (interface/abstract class).
 
 ```cs
 [CsvTypeProxy(typeof(User))]
@@ -151,4 +169,5 @@ public interface IUser
 ```
 
 > [!NOTE]
-> The specifics of this feature are still worked on, and might change in the future.
+> This feature is still under development and its behavior may change in future releases.
+

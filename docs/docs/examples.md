@@ -6,9 +6,9 @@ uid: examples
 
 ## TL;DR
 
-Read CSV records or .NET objects with @"FlameCsv.CsvReader", write CSV records or .NET objects with @"FlameCsv.CsvWriter".
+Use @"FlameCsv.CsvReader" to read CSV records or .NET objects, and @"FlameCsv.CsvWriter" to write them.
 
-Most of the examples in these docs use the class below (or something very similar):
+Here's the example class used throughout this documentation:
 
 ```cs
 class User
@@ -21,9 +21,14 @@ class User
 
 ## Customizing the CSV dialect
 
-The @"FlameCsv.CsvOptions`1.Delimiter", @"FlameCsv.CsvOptions`1.Quote", @"FlameCsv.CsvOptions`1.Newline", @"FlameCsv.CsvOptions`1.Whitespace", and @"FlameCsv.CsvOptions`1.Escape" can be used to configure the dialect used.
+Configure the CSV format using these @"FlameCsv.CsvOptions`1" properties:
+- @"FlameCsv.CsvOptions`1.Delimiter"
+- @"FlameCsv.CsvOptions`1.Quote"
+- @"FlameCsv.CsvOptions`1.Newline"
+- @"FlameCsv.CsvOptions`1.Whitespace"
+- @"FlameCsv.CsvOptions`1.Escape"
 
-For example, to read CSV delimited with semicolons, using linefeed record separators, and trimming spaces and tabs from unquoted fields:
+Example for reading semicolon-delimited CSV with linefeed separators and space/tab trimming:
 
 ```cs
 CsvOptions<char> options = new()
@@ -31,7 +36,7 @@ CsvOptions<char> options = new()
     Delimiter = ';',
     Quote = '"',
     Newline = "\n",
-    Whitespace " \t",
+    Whitespace = " \t",
 };
 ```
 
@@ -41,11 +46,11 @@ For more details, see @"configuration#dialect". The configuration is identical b
 
 ### .NET types
 
-The simplest way to read CSV is to use the static @"FlameCsv.CsvReader" class. Most likely you can pass the data source as the first parameter to `Read` or `ReadAsync` and find a suitable overload. If the `options`-parameter is omitted (or `null`), @"FlameCsv.CsvOptions`1.Default?displayProperty=nameWithType" is used.
+Use the static @"FlameCsv.CsvReader" class for reading CSV data. The `Read` and `ReadAsync` methods accept various data sources and return an enumerable that works with `foreach` or LINQ. When `options` is omitted (or `null`), @"FlameCsv.CsvOptions`1.Default?displayProperty=nameWithType" is used.
 
 The `Read` and `ReadAsync` methods return an enumerable-object that can be used with `foreach` or LINQ.
 
-Thanks to the power of C# generics, all APIs can be used with data both @"System.Char?text=char" and @"System.Byte?text=byte" interchangeably. The library expects bytes to represent UTF-8 text, so it can be used with ASCII data as well.
+The library supports both @"System.Char?text=char" (UTF-16) and @"System.Byte?text=byte" (UTF-8) data through C# generics. For bytes, the library expects UTF-8 encoded text (which includes ASCII).
 
 The synchronous methods accept common .NET data types: @"System.String", @"System.ReadOnlyMemory`1". These types are converted internally to a @"System.Buffers.ReadOnlySequence`1", which can also be used directly.
 
@@ -159,11 +164,14 @@ Note that if any of the fields need to be escaped, only one field may be used at
 
 ### .NET types
 
-The `Write` and `WriteAsync` methods on @"FlameCsv.CsvWriter" provide simple
-built-in ways to write .NET objects as CSV records. Possible outputs for the data
-include files, @"System.IO.Stream", @"System.IO.TextWriter", @"System.Text.StringBuilder", and @"System.IO.Pipelines.PipeWriter".
+The @"FlameCsv.CsvWriter" class provides methods to write .NET objects as CSV records. Supported outputs include:
+- Files
+- @"System.IO.Stream"
+- @"System.IO.TextWriter"
+- @"System.Text.StringBuilder"
+- @"System.IO.Pipelines.PipeWriter"
 
-The value written can be either @"System.Collections.Generic.IEnumerable`1" or @"System.Collections.Generic.IAsyncEnumerable`1".
+You can write both @"System.Collections.Generic.IEnumerable`1" and @"System.Collections.Generic.IAsyncEnumerable`1" data.
 
 ```cs
 User[] users =
@@ -243,7 +251,10 @@ After writing, @"FlameCsv.CsvWriter`1.Complete(System.Exception)" or @"FlameCsv.
 
 ## CSV without a header
 
-To read or write CSV without a header record the types need to be annotated with @"FlameCsv.Attributes.CsvIndexAttribute", and @"FlameCsv.CsvOptions`1.HasHeader?displayProperty=nameWithType" set to `false`.
+To read or write headerless CSV:
+1. Annotate types with @"FlameCsv.Attributes.CsvIndexAttribute"
+2. Set @"FlameCsv.CsvOptions`1.HasHeader?displayProperty=nameWithType" to `false`
+
 
 ```cs
 class User

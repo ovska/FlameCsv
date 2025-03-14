@@ -5,6 +5,9 @@ _layout: landing
 # Introduction
 
 🔥 FlameCSV 🔥 is a high-performance CSV parsing and formatting library for .NET with low barrier of entry, deep customization options, and built-in support for UTF8, nativeAOT, and more.
+Read CSV at multiple gigabytes per second on consumer hardware, and write arbitrarily large amounts of CSV with near-zero allocations.
+FlameCSV leverages modern .NET patterns and libraries such as spans, SIMD hardware intrinsics, memory/string pooling, pipes and buffer writers, and
+is built from the ground up to provide an easy-to-use high performance experience.
 
 See @"getting-started", view the @"examples", or deep dive into the @"FlameCsv?text=API Reference".
 
@@ -16,7 +19,7 @@ See @"getting-started", view the @"examples", or deep dive into the @"FlameCsv?t
   - Supports both synchronous and asynchronous operations
   - Flexible; read or write almost any data source
   - Automatic newline detection
-  - UTF-8/ASCII support directly to/from bytes without additional transcoding
+  - UTF-8/ASCII support to read/write bytes directly without additional transcoding
   - Supports hot reload
 - 🚀 **[High Performance](docs/architecture.md)**
   - Optimized for speed and low memory usage
@@ -58,7 +61,7 @@ foreach (var user in CsvReader.Read<User>(data))
 
 // write users to a stream as tab-separated fields
 await CsvWriter.WriteAsync(
-    new StreamWriter(stream),
+    new StreamWriter(stream, Encoding.UTF8),
     users,
     new CsvOptions<char> { Delimiter = '\t' },
     cancellationToken);
@@ -68,13 +71,13 @@ await CsvWriter.WriteAsync(
 ```cs
 using FlameCsv;
 
-byte[] data = System.Text.Encoding.UTF8.GetBytes(
+byte[] data =
     """
     id,name,age
     1,Bob,42
     2,Alice,37
     3,"Bond, James",39
-    """);
+    """u8.ToArray();
 
 List<User> users = [];
 
@@ -96,9 +99,8 @@ await CsvWriter.WriteAsync(
 # Dependencies
 
 FlameCsv has three dependencies:
- - The excellent [FastExpressionCompiler](https://github.com/dadhi/FastExpressionCompiler) libary that is used for runtime code generation in non-sourcegen scenarios.
+ - [FastExpressionCompiler](https://github.com/dadhi/FastExpressionCompiler) libary that is used for runtime code generation in non-sourcegen scenarios.
  - [System.IO.Pipelines](https://www.nuget.org/packages/system.io.pipelines/) for the powerful abstractions and additional @"FlameCsv.CsvReader.ReadAsync``1(System.IO.Pipelines.PipeReader,FlameCsv.Binding.CsvTypeMap{System.Byte,``0},FlameCsv.CsvOptions{System.Byte})?text=reading" and @"FlameCsv.CsvWriter.WriteAsync``1(System.IO.Pipelines.PipeWriter,System.Collections.Generic.IAsyncEnumerable{``0},FlameCsv.Binding.CsvTypeMap{System.Byte,``0},FlameCsv.CsvOptions{System.Byte},System.Threading.CancellationToken)?text=writing" APIs
  - [CommunityToolkit.HighPerformance](https://github.com/CommunityToolkit/dotnet) which provides utilities for writing high-performance code, and the string pool used for header values.
 
-All three are dependency-free on .NET 9.
 It's possible in the future to split FlameCsv to separate packages to keep the core library dependency-free, but there are no hard plans for it yet.

@@ -8,18 +8,17 @@ uid: source-generator
 
 _There is nothing inherently bad about reflection and compiled expressions._
 
-For 99% of applications, they work perfectly
-and are easy to set up and require less manual fiddling, and the performance differences are negligible in FlameCsv.
-However, they are incompatible with AOT and trimming so an alternative API is provided.
+For 99% of applications, they work perfectly and are easy to set up with minimal configuration.
+However, reflection and compiled expressions are incompatible with AOT compilation and trimming, so an alternative API is provided.
+Aside from the start-up cost, performance differences between reflection and source generation in FlameCsv are not significant (see: [benchmarks](benchmarks.md)).
 
 ## Introduction
 
-FlameCsv includes a source-generator that writes the code binding .NET types to/from CSV headers. This allows you to
-write [trimmable code](https://learn.microsoft.com/en-us/dotnet/core/deploying/trimming/trim-self-contained)
-without any reflection or dynamic code generation, which is a necessity in
-[Native AOT](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot) applications.
+FlameCsv includes a source generator that creates code for binding .NET types to/from CSV headers.
+This enables writing [trimmable code](https://learn.microsoft.com/en-us/dotnet/core/deploying/trimming/trim-self-contained)
+without any reflection or dynamic code generation - a necessity for [Native AOT](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot) applications.
 
-To use the source generator, simply create a `partial class` and apply the @"FlameCsv.Attributes.CsvTypeMapAttribute`2".
+To use the source generator, create a `partial class` and apply the @"FlameCsv.Attributes.CsvTypeMapAttribute`2":
 
 # [UTF-16](#tab/utf16)
 ```cs
@@ -54,17 +53,12 @@ it still has _some_ effect on compile-times and CPU use during development.
 The source generator uses [attribute configuration](attributes.md) to determine the generated code.
 All features of the reflection-based API are supported.
 
-Additionally, you can configure the code generation with the following properties:
+The code generation can be configured with these properties on @"FlameCsv.Attributes.CsvTypeMapAttribute`2":
 
- - @"FlameCsv.Attributes.CsvTypeMapAttribute`2.IgnoreUnmatched" allows unmatched CSV headers to be ignored when reading.
-   This may be useful if you only care about a subset of the fields, e.g., reading 3rd party data that has metadata you don't need.
- - @"FlameCsv.Attributes.CsvTypeMapAttribute`2.ThrowOnDuplicate" configures the typemap to throw if the same member is matched multiple times.
-   This can happen if the CSV has duplicate headers, or you have [aliases](attributes.md#header-names) configured for the member.
- - @"FlameCsv.Attributes.CsvTypeMapAttribute`2.NoCaching" disables internal caching. Since bindings done with the same typemap- and options-instances
-   produce identical output, they are cached by default. The caching mechanism is lightweight, holds only weak references, and trims unused types
-   periodically, but should you choose to forego it anyway you can do so.
- - @"FlameCsv.Attributes.CsvTypeMapAttribute`2.SupportsAssemblyAttributes" configures the source generator to scan the assembly where
-   the typemap is for configuration attributes. By default, only attributes directly on the type and its' members are scanned.
+ - @"FlameCsv.Attributes.CsvTypeMapAttribute`2.IgnoreUnmatched": Allows unmatched CSV headers to be ignored when reading. Useful when you only need a subset of fields, e.g., reading 3rd party data with unwanted metadata.
+ - @"FlameCsv.Attributes.CsvTypeMapAttribute`2.ThrowOnDuplicate": Configures the typemap to throw if the same member is matched multiple times. This can happen with duplicate headers or when using [header aliases](attributes.md#header-names).
+ - @"FlameCsv.Attributes.CsvTypeMapAttribute`2.NoCaching": Disables internal caching. By default, bindings with the same typemap and options instances are cached since they produce identical output. The caching is lightweight, and uses weak references and periodic trimming.
+ - @"FlameCsv.Attributes.CsvTypeMapAttribute`2.SupportsAssemblyAttributes": Configures the source generator to scan the assembly for configuration attributes. By default, only attributes directly on the type and its members are scanned.
 
 # [UTF-16](#tab/utf16)
 ```cs
@@ -86,13 +80,12 @@ partial class UserTypeMap;
 
 ## Limitations
 
-Due to the nature of how generic constraints and @"FlameCsv.CsvConverterFactory`1" works,
-factories are not supported by the source generator. However, you should be able to add the needed converters ahead of time
-since the type is known beforehand.
+Due to how generic constraints and @"FlameCsv.CsvConverterFactory`1" work, converter factories are not supported by the source generator.
+However, since the type is known at compile time, you can add the required converters explicitly beforehand.
 
 ## Example
 
-Below is an example of the generated type map as of the writing of this document (some details might be different).
+Below is an example of the code generated by the source generator at the time of writing. The actual generated code may differ in later versions:
 
 # [UTF-16](#tab/utf16)
 ```cs

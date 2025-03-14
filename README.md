@@ -10,34 +10,29 @@
 
 # Features
 - **TL;DR:** Blazingly fast, trimmable and easy-to-use feature-rich CSV library
-- **Usage**
-  - Straightforward API with sensible defaults but deep configuration
-  - Support both sync and async, using either `char` or `byte` (UTF-8)
-  - Read from almost any source, including `TextReader`, `Stream`, `PipeReader`, `ReadOnlySequence`, `string`
-  - Write to almost any source, including `TextWriter`, `Stream`, `StringBuilder`, `PipeWriter`, file, etc.
-  - Options and Converter API similar to System.Text.Json for familiarity
-  - Access to raw CSV field slices for high-performance manual processing
-- **Data binding**
-  - Read classes/structs/records directly, or enumerate records and fields one-by-one
-  - Support for headerless CSV
-  - Supports complex object initialization patterns such as a mix of constructor parameters and properties
-- **Configuration**
-  - Built-in support for common .NET types, including enums and nullable value types
-  - Supports both RFC4180/Excel and Unix/escaped CSV styles
-  - Customizable field separator, quotes, and escape characters
-  - Automatic newline detection between `\n` and `\r\n`, or explicit configuration
-  - Configure converters on a per-member basis
-  - Apply configuration to any type with assembly-targeted attributes
-- **Performance**
-  - SIMD-accelerated parsing for blazing (or flaming?) fast performance
-  - Built with performance in mind from the ground up
-  - Near-zero allocations internally when reading and writing CSV
-  - Fast manual field reading and writing of whole records or individual fields
-  - Benefit from either cached reflection-based or pre-compiled sourcegenerator-based binding
-- **Source generator**
-  - No reflection or dynamic code needed even for complex type binding patterns
-  - All reading and writing APIs have a source-generator equivalent
-  - Ideal for NativeAOT and trimming scenarios
+- 💡 **Ease of Use**
+  - Simple API for reading and writing CSV
+  - Built-in support for common CLR types
+  - Supports both synchronous and asynchronous operations
+  - Flexible; read or write almost any data source
+  - Automatic newline detection
+  - UTF-8/ASCII support to read/write bytes directly without additional transcoding
+  - Supports hot reload
+- 🚀 **High Performance**
+  - Optimized for speed and low memory usage
+  - SIMD-accelerated parsing routines with hardware intrinsics
+  - Batteries-included internal caching and memory pooling for near-zero allocations
+  - Reflection code paths that rival manually written code in performance
+- 🛠️ **Deep Customization**
+  - Read or write either .NET objects, or raw CSV records and fields
+  - Attribute configuration for header names, constructors, field order, and more
+  - Support for custom converters and converter factories
+  - Read or write multiple CSV documents from/to a single data stream
+- ✍️ **Source Generator**
+  - Fully annotated and compatible with NativeAOT
+  - Supports trimming to reduce application size
+  - View and debug the code instead of opaque reflection
+  - Compile-time diagnostics instead of runtime errors
 
 # Examples
 

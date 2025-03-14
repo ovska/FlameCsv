@@ -4,79 +4,70 @@ uid: benchmarks
 
 # About performance
 
-Since the first line of code, performance was an important consideration for FlameCsv. In a nutshell, this means
-minimal data copying, minimal CPU use, and minimal allocations (which doesn't always mean maximum throughput).
-Another important factor was feature and performance parity of asynchronous operations.
+Performance has been a key consideration for FlameCsv since its inception. This means:
+- Maximum CPU utilization through SIMD hardware intrinsics
+- Minimal data copying
+- Minimal allocations
+- Performance parity between synchronous and asynchronous operations
 
-_Performance_ isn't a black and white concept about records read per second, because allocations and garbage collection
-can have a large impact depending on the workload, especially in highly parallel scenarios such as web servers.
-Similarly, streaming is an important factor when reading large files, more so in servers (along with async).
-Below are some performance metrics that FlameCsv was optimized for.
+Performance isn't just about records processed per second. Allocations and garbage collection can significantly impact workloads, especially in highly parallel scenarios like web servers. Similarly, streaming capabilities are crucial when reading large files, particularly in server environments.
 
-When writing, performance is mostly bottlenecked by data copying I/O, UTF16-UTF8 transcoding, and formatting numbers
-and other formattable types.
+When writing CSV data, performance is primarily bottlenecked by:
+- Data copying I/O
+- UTF16-UTF8 transcoding
+- Formatting numbers and other formattable types
 
 ## Throughput
 
-Obviously the simplest metric of performance is the amount of data processed per second. This also translates to less
-CPU use for the same data.
+The most basic performance metric: how quickly does the library process data.
 
-Raw reading throughput is best benchmarked with pre-allocated data (e.g. an array) to have as little code running as possible
-outside of the benchmarked code. Throughput is benchmarked with both parsing raw CSV records/fields, as well as the
-different ways of reading records as .NET types.
+Raw reading throughput benchmarks use pre-allocated data (e.g., an array) to minimize code execution outside the measured operations. We benchmark:
+- Parsing raw CSV records/fields
+- Different methods of reading records as .NET types
 
-Reading pre-allocated data asynchronously can also be revealing to expose some performance overhead that the async
-code creates. This is especially major in some CSV libraries.
+Asynchronous reading of pre-allocated data can reveal performance overhead in async implementations, which is surprisingly large in some CSV libraries.
 
-Writing to a no-op destination such as @"System.IO.Stream.Null?displayProperty=nameWithType" or
-@"System.IO.TextWriter.Null?displayProperty=nameWithType" is a good way to measure the impact of the library doing
-the writing, save for small changes in different buffer sizes when working with real world constraints (and buffer sizes
-are often configurable).
+Benchmarking writes using no-op destinations like @"System.IO.Stream.Null?displayProperty=nameWithType" or @"System.IO.TextWriter.Null?displayProperty=nameWithType" helps measure the library's overhead, though real-world performance may vary due to buffer size differences (which are typically configurable).
 
 
-## Memory usage
+## Memory Usage
 
-The less objects a library allocates, the less it taxes the garbage collector. This is especially important in
-web servers, where multiple operations can be in-flight concurrently. This can be benchmarked by simply
-reading and writing CSV as would be done usually. Memory usage is best evaluated as comparisons to other libraries; e.g.,
-when reading .NET types with lots of strings, there will always be a large number of allocations, so judging the results
-by an absolute kb/Mb may not be useful.
+Lower object allocation means less garbage collector overhead. This is particularly important in web servers handling concurrent operations.
+Memory usage is best evaluated by _comparing_ libraries, since some operations (like reading strings) inherently require allocations,
+so looking at the allocation numbers in isolation may not be useful.
 
-Another very important factor is _streaming_. While it is also important in servers, it's paramount everywhere when reading very large files.
-Some files are infeasibly big to be read into memory.
-FlameCsv supports reading and writing both sync and async streaming data (e.g., reading from a stream or writing async enumerables).
-Fortunately, most .NET CSV libraries are pretty streaming friendly thanks to the ergonomics of enumerables.
-
-All benchmarks contain the memory usage analyzer, and there are some benchmarks dedicated to reading
-buffered data (such as one would do when reading files or HTTP request bodies).
+_Streaming_ is another crucial factor. While important for servers, it's essential for handling very large files that cannot fit in memory.
 
 
 ## Cold start vs. long-running
 
-By default (and in most .NET benchmarks), BenchmarkDotNet runs the code multiple times to get rid of initial startup
-times, JITting and other confounding factors. Unless otherwise stated, all FlameCsv benchmarks are like this.
+BenchmarkDotNet typically runs code multiple times to eliminate startup overhead, JIT compilation, and other variables.
+FlameCsv benchmarks follow this approach unless specified otherwise.
 
-However, things like Azure Functions / AWS Lambda, and desktop/CLI applications might read/write files only once, or only a few times.
-In these scenarios, the cold start performance is more important than repeated runs.
+However, cold start performance matters more for:
+- Serverless applications (Azure Functions / AWS Lambda)
+- Desktop/CLI applications performing one-off operations
 
-Reflection-heavy code (such as compiled expression delegates) is usually pretty terrible in cold starts
-compared to hand-written or source generated code, but the performance differences become smaller in long running operations.
-There are a few cold start benchmarks measuring CPU and memory use.
+Reflection-based code (like compiled expression delegates) typically performs poorly on cold starts compared to hand-written or source-generated code,
+though these differences diminish in long-running operations.
 
 
 ## Why not NCsvPerf
 
-While the reading benchmarks in NCsvPerf have been used to compare different CSV libraries, it's sadly not very well suited for the task.
-Here are some problems in the reading benchmarks:
+While NCsvPerf is commonly used for CSV library comparisons, it has several limitations:
 
-- All fields are converted to strings. This is unnecessary, especially for modern libraries that
-  offer copy-free slices into the existing memory using spans. This problem alone completely pollutes the CPU and memory
-  usage of the benchmark.
-- All records are added to a list before returning. This creates unnecessary additional CPU and memory overhead,
-  and should not be needed since simple C# language syntax can be used to stream back objects from just about any
-  library that can read one record at a time.
-- The data is too homogenous. While it might be a good example of _one_ kind of data CSV libraries are used to read,
-  it lacks some nuances of real world data, such as quoted/escaped values.
+1. String Conversion: All fields are converted to strings, which:
+   - Creates unnecessary overhead
+   - Doesn't reflect modern libraries' ability to work with memory spans
+   - Significantly impacts CPU and memory measurements
 
-While NCsvPerf offers _some_ useful insight into CSV parsing performance, it is not well suited for comprehensive
-real-world performance comparisons.
+2. List Accumulation: Records are collected into a list before returning, which:
+   - Adds unnecessary CPU and memory overhead
+   - Doesn't reflect streaming capabilities which are critical in reading large files
+
+3. Data Homogeneity: The test data lacks real-world complexity like:
+   - Quoted values
+   - Escaped characters
+   - Mixed data types
+
+While NCsvPerf provides some insights into CSV parsing performance, it's not ideal for comprehensive real-world comparisons.
