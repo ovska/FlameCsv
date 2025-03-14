@@ -67,7 +67,7 @@ const string csv = "id,name\n1,Bob\n2,Alice\n";
 List<User> users = CsvReader.Read(csv, new CsvOptions<char> { HasHeader = true });
 ```
 
-## Customizing field parsing
+## Parsing and formatting fields
 
 ### Converters
 
