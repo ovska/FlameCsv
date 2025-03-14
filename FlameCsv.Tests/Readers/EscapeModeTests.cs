@@ -11,11 +11,9 @@ file static class Extensions
         in this ReadOnlySequence<char> input,
         CsvOptions<char> options)
     {
-        using var parser = CsvParser.Create(options, in input);
-
         List<List<string>> records = [];
 
-        foreach (var reader in parser)
+        foreach (var reader in CsvParser.Create(options, in input).ParseRecords())
         {
             List<string> fields = [];
 

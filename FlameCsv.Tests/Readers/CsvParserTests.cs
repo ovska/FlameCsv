@@ -83,7 +83,7 @@ public class CsvParserTests
             "Oslo, Norway",
         ];
 
-        using var parser = CsvParser.Create(
+        var parser = CsvParser.Create(
             new CsvOptions<char>
             {
                 NoReadAhead = true,
@@ -97,7 +97,7 @@ public class CsvParserTests
             },
             CsvPipeReader.Create(MemorySegment<char>.AsSequence(data.AsMemory(), 64)));
 
-        using var enumerator = parser.GetEnumerator();
+        using var enumerator = parser.ParseRecords().GetEnumerator();
 
         for (int lineIndex = 0; lineIndex < 3; lineIndex++)
         {
@@ -120,11 +120,11 @@ public class CsvParserTests
         Assert.Throws<CsvFormatException>(
             () =>
             {
-                using var parser = CsvParser.Create(
+                var parser = CsvParser.Create(
                     new CsvOptions<char> { Newline = null },
                     new ReadOnlySequence<char>(new string('x', 4096).AsMemory()));
 
-                foreach (var _ in parser)
+                foreach (var _ in parser.ParseRecords())
                 {
                 }
             });
@@ -141,11 +141,11 @@ public class CsvParserTests
 
             """;
 
-        using var parser = CsvParser.Create(
+        var parser = CsvParser.Create(
             new CsvOptions<char> { Newline = "\n" },
             new ReadOnlySequence<char>(data.AsMemory()));
 
-        using var enumerator = parser.GetEnumerator();
+        using var enumerator = parser.ParseRecords().GetEnumerator();
 
         Assert.True(enumerator.MoveNext());
         Assert.Equal("1,2,3", enumerator.Current.Record.ToString());
@@ -180,9 +180,11 @@ public class CsvParserTests
 
         Assert.Equal(Encoding.UTF8.GetString(data).ToCharArray(), result.Buffer.ToArray());
 
-        await using var parser = CsvParser.Create(CsvOptions<char>.Default, reader);
+        var parser = CsvParser.Create(CsvOptions<char>.Default, reader);
 
-        await using var enumerator = parser.GetAsyncEnumerator(TestContext.Current.CancellationToken);
+        await using var enumerator = parser
+            .ParseRecordsAsync(TestContext.Current.CancellationToken)
+            .GetAsyncEnumerator();
 
         Assert.False(parser.TryGetBuffered(out _));
 
@@ -251,7 +253,7 @@ public class CsvParserTests
         List<string> lines = [];
 
         // ReSharper disable once NotDisposedResource
-        foreach (var line in CsvParser.Create(options, CsvPipeReader.Create(data.AsMemory())))
+        foreach (var line in CsvParser.Create(options, CsvPipeReader.Create(data.AsMemory())).ParseRecords())
         {
             lines.Add(line.Record.ToString());
         }

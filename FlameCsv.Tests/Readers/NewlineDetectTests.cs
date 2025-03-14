@@ -46,9 +46,7 @@ public static class NewlineDetectTests
             CsvOptions<T> options,
             ReadOnlyMemory<T> input) where T : unmanaged, IBinaryInteger<T>
         {
-            using var parser = CsvParser.Create(options, new ReadOnlySequence<T>(input));
-
-            foreach (var reader in parser)
+            foreach (var reader in CsvParser.Create(options, new ReadOnlySequence<T>(input)).ParseRecords())
             {
                 Assert.Equal([T.CreateChecked('A')], reader[0]);
                 Assert.Equal([T.CreateChecked('B')], reader[1]);
@@ -75,9 +73,7 @@ public static class NewlineDetectTests
 
         var ex = Record.Exception(() =>
         {
-            using var parser = CsvParser.Create(new CsvOptions<char> { Newline = null }, in data);
-
-            foreach (var _ in parser)
+            foreach (var _ in CsvParser.Create(new CsvOptions<char> { Newline = null }, in data).ParseRecords())
             {
 
             }

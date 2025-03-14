@@ -36,16 +36,16 @@ namespace FlameCsv.Console
 
                 CsvWriter.Write(Stream.Null, _entries, EntryTypeMap.Default);
 
-                // foreach (var data in (byte[][])[_bytes, _bytes2])
-                // {
-                //     foreach (var reader in CsvParser.Create(_options, new ReadOnlySequence<byte>(data)))
-                //     {
-                //         for (int i = 0; i < reader.FieldCount; i++)
-                //         {
-                //             _ = reader[i];
-                //         }
-                //     }
-                // }
+                foreach (var data in (byte[][])[_bytes, _bytes2])
+                {
+                    foreach (var reader in CsvParser.Create(_options, new ReadOnlySequence<byte>(data)).ParseRecords())
+                    {
+                        for (int i = 0; i < reader.FieldCount; i++)
+                        {
+                            _ = reader[i];
+                        }
+                    }
+                }
             }
 
 #if false

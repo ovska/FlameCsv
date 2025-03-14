@@ -1,15 +1,9 @@
-﻿// ReSharper disable all
-
-using System.Buffers;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+﻿using System.Buffers;
 using System.Text;
-using FlameCsv.Extensions;
 using FlameCsv.Reading;
-using FlameCsv.Reading.Internal;
 using nietras.SeparatedValues;
+
+// ReSharper disable all
 
 namespace FlameCsv.Benchmark;
 
@@ -58,7 +52,7 @@ public class CsvEnumerateBench
     [Benchmark(Baseline = true)]
     public void Flame_byte()
     {
-        foreach (var record in CsvParser.Create(OptionsByte, in _byteSeq))
+        foreach (var record in CsvParser.Create(OptionsByte, in _byteSeq).ParseRecords())
         {
             for (int i = 0; i < record.FieldCount; i++)
             {
@@ -70,7 +64,7 @@ public class CsvEnumerateBench
     [Benchmark]
     public void Flame_char()
     {
-        foreach (var record in CsvParser.Create(OptionsChar, in _charSeq))
+        foreach (var record in CsvParser.Create(OptionsChar, in _charSeq).ParseRecords())
         {
             for (int i = 0; i < record.FieldCount; i++)
             {
@@ -82,8 +76,7 @@ public class CsvEnumerateBench
     [Benchmark]
     public void Sep_byte()
     {
-        using var reader = nietras
-            .SeparatedValues.Sep.Reader(
+        using var reader = Sep.Reader(
                 o => o with
                 {
                     Sep = new Sep(','),
@@ -105,8 +98,7 @@ public class CsvEnumerateBench
     [Benchmark]
     public void Sep_char()
     {
-        using var reader = nietras
-            .SeparatedValues.Sep.Reader(
+        using var reader = Sep.Reader(
                 o => o with
                 {
                     Sep = new Sep(','),
@@ -128,7 +120,7 @@ public class CsvEnumerateBench
     [Benchmark]
     public async Task Flame_byte_async()
     {
-        await foreach (var record in CsvParser.Create(OptionsByte, in _byteSeq))
+        await foreach (var record in CsvParser.Create(OptionsByte, in _byteSeq).ParseRecordsAsync())
         {
             for (int i = 0; i < record.FieldCount; i++)
             {
@@ -140,7 +132,7 @@ public class CsvEnumerateBench
     [Benchmark]
     public async Task Flame_char_async()
     {
-        await foreach (var record in CsvParser.Create(OptionsChar, in _charSeq))
+        await foreach (var record in CsvParser.Create(OptionsChar, in _charSeq).ParseRecordsAsync())
         {
             for (int i = 0; i < record.FieldCount; i++)
             {

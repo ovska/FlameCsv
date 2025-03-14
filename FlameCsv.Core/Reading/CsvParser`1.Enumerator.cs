@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using FlameCsv.Extensions;
 using FlameCsv.Reading.Internal;
 using JetBrains.Annotations;
 
@@ -15,7 +16,8 @@ partial class CsvParser<T>
     /// <remarks>
     /// The enumerator advances the inner reader and parser, and disposes them after use.
     /// </remarks>
-    public Enumerator GetEnumerator() => new(this);
+    [HandlesResourceDisposal]
+    public RecordEnumerable ParseRecords() => new(this);
 
     /// <summary>
     /// Returns an enumerator that asynchronously iterates through the CSV data.
@@ -23,8 +25,58 @@ partial class CsvParser<T>
     /// <remarks>
     /// The enumerator advances the inner reader and parser, and disposes them after use.
     /// </remarks>
-    public AsyncEnumerator GetAsyncEnumerator(CancellationToken cancellationToken = default)
+    [HandlesResourceDisposal]
+    public RecordAsyncEnumerable ParseRecordsAsync(CancellationToken cancellationToken = default) 
         => new(this, cancellationToken);
+
+    /// <summary>
+    /// Enumerates records from the parser.
+    /// </summary>
+    public readonly struct RecordEnumerable
+    {
+        private readonly CsvParser<T> _parser;
+
+        internal RecordEnumerable(CsvParser<T> parser)
+        {
+            _parser = parser;
+        }
+
+        /// <inheritdoc cref="CsvParser{T}.ParseRecords"/>
+        public Enumerator GetEnumerator()
+        {
+            Throw.IfDefaultStruct(_parser is null, typeof(RecordEnumerable));
+            return new(_parser);
+        }
+    }
+
+
+    /// <summary>
+    /// Enumerates records from the parser.
+    /// </summary>
+    public readonly struct RecordAsyncEnumerable : IAsyncEnumerable<CsvFieldsRef<T>>
+    {
+        private readonly CsvParser<T> _parser;
+        private readonly CancellationToken _cancellationToken;
+
+        internal RecordAsyncEnumerable(CsvParser<T> parser, CancellationToken cancellationToken)
+        {
+            _parser = parser;
+            _cancellationToken = cancellationToken;
+        }
+
+        /// <inheritdoc cref="CsvParser{T}.ParseRecordsAsync"/>
+        public AsyncEnumerator GetAsyncEnumerator()
+        {
+            Throw.IfDefaultStruct(_parser is null, typeof(RecordAsyncEnumerable));
+            return new(_parser, _cancellationToken);
+        }
+
+        IAsyncEnumerator<CsvFieldsRef<T>> IAsyncEnumerable<CsvFieldsRef<T>>.GetAsyncEnumerator(
+            CancellationToken cancellationToken)
+        {
+            return new AsyncEnumerator(_parser, cancellationToken);
+        }
+    }
 
     /// <summary>
     /// Enumerator for raw CSV record fields.
@@ -119,13 +171,15 @@ partial class CsvParser<T>
         public void Dispose()
         {
             _parser.Dispose();
-            this = default;
+            _metaLength = 0;
+            _meta = ref Unsafe.NullRef<Meta>();
+            _data = ref Unsafe.NullRef<T>();
         }
     }
 
     /// <inheritdoc cref="Enumerator"/>
     [PublicAPI]
-    public readonly struct AsyncEnumerator
+    public readonly struct AsyncEnumerator : IAsyncEnumerator<CsvFieldsRef<T>>
     {
         // the asyncenumerator struct needs to be readonly to play nice with async
         private sealed class Box
