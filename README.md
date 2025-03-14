@@ -2,8 +2,8 @@
   <img
     width="128"
     height="128"
-    title="Flames icons created by Flat Icons - Flaticon"
-    src="https://user-images.githubusercontent.com/68028366/197605525-a4a8c70f-d757-441b-a26a-adcfaca9ee03.png" />
+    title="FlameCsv logo"
+    src="docs/data/logo.png" />
   <h1 align="center">FlameCsv</h1>
   <p align="center">High-performance RFC 4180-compliant CSV library for .NET 9 with trimming/AOT support</p>
 </p>
