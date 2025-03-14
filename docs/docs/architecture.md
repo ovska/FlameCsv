@@ -35,7 +35,8 @@ A CSV field like `"John ""The Man"" Smith"` requires copying to get rid of the e
 While in theory the data could be copied in-place by unsafely converting a @"System.ReadOnlySpan`1" to @"System.Span`1"
 for example, the library chooses to respect the read-only contract of the types, and copies the unescaped field
 into a pooled buffer. Quoted fields that do not require copying are simply sliced, e.g., `"Bond, James"` only requires
-trimming the opening and closing quote.
+trimming the opening and closing quote. A stack-allocated buffer is used for fields under 256 bytes, so it's likely
+you'll never see an allocation caused by unescaping. 
 
 ### Read-ahead
 
@@ -43,16 +44,12 @@ Warning: nerdy stuff ahead 🤓
 
 Read-ahead works by reading as much CSV fields as possible from the currently available data. The field data is stored
 in a [Meta-struct](https://github.com/ovska/FlameCsv/blob/main/FlameCsv.Core/Reading/Internal/Meta.cs), that contains
-the `End` index of the field in the data, whether the field is the last field in a record (`IsEOL`), and the amount of
-special characters in the field.
+the end index of the field in the data, whether the field is the last field in a record (`IsEOL`), and the amount of
+special characters in the field. The field metadata-struct also contains the offset to the next field; 1 if the field
+is followed by a delimiter, 1 or 2 if the field is followed by a newline, or 0 if the field is at the end of the data
+(in the case of no trailing newline).
 
-In addition to the end of the _data_ in each field, each field stores the offset needed to get the start index
-of each field. These are stored in the lowest two bits of the quote/escape count (so they can be bitmasked out quickly).
-This is either 1 for the delimiter, or for end-of-line fields 1 or 2 depending on newline length. The third bit
-of special count is reserved for the info if the field contains escape characters (unix-style escaping). The meta-struct
-creation is nearly branchless.
-
-The metadata struct has been jammed into 8 bytes (size of a `long`) by using bit flags in some extra space (such
+The metadata struct fits into 8 bytes (size of a `long`) by storing bit flags in some extra space (such
 as the sign-bit of the end index), and the expectation that no single CSV field needs over 29 bits
 (536&nbsp;870&nbsp;912) to store the quote/escape count.
 
@@ -82,19 +79,13 @@ When writing, quoting and escaping is "optimistic", i.e., it's assumed most fiel
 After writing each field, the written buffer is checked for characters that require quoting and escaping.
 The written value is copied on character "forward", escaped if needed, and wrapped in quotes.
 
-In the unfortunate case that the output buffer is just large enough to fit the unescaped value, but not large enough
-to hold the escape characters as well, as much as possible of the original value is unescaped in the writer's original
-destination buffer, while the rest is unescaped to an extra stack-allocated span (or a rented buffer in some weird huge field
-edge cases). The original destionation's worth is then advanced to the buffer reader, and the extra bytes advanced right after.
-
-The justification for this slightly odd behavior is the fact that there is no way to know if a field needs to be escaped
-or not beforehand, and for performance the converters should always format their value directly to the correct place in
-the buffer so no extra copying needs to be done in the common case.
+In the unfortunate case that the output buffer is just large enough to fit the unescaped value (worse case is value length
+plus 2 for the wrapping quotes), a temporary buffer is used to copy the value, before writing the escaped value
+to a large enough buffer.
 
 Still to-do is a separate writing routine for @"FlameCsv.Writing.CsvFieldQuoting.Always?displayProperty=nameWithType"
-that leaves off extra space at the start of the output buffer since a quote will be always written there. As it stands,
-even with this option an extra copy needs to be done. Also possible is an attribute to override field-quoting
-on per-member basis, e.g. to always quote a certain property.
+that leaves off extra space at the start of the output buffer since a quote will be always written there. It has not
+been implemented yet, with the expectation that this configuration is relatively rare.
 
 ## MemoryPool vs. ArrayPool
 
@@ -114,6 +105,8 @@ heap allocated. This is a non-issue for the default array-backed pool, and even 
 native memory pools would only apply if the CSV contained records or fields over 4096 bytes long.
 You can track when this happens by collecting metrics from counter `memory.buffer_too_large` in the meter `FlameCsv`.
 The default pool is array-backed, so you never need to worry about this when not using a custom implementation.
+This behavior is possibly still subject to change, perhaps to throw an exception in this unlikely case to avoid
+hidden allocations.
 
 
 ## Dynamic code generation
