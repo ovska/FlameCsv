@@ -48,7 +48,7 @@ await CsvWriter.WriteToFileAsync("users.csv", users, cancellationToken);
 FlameCsv is highly configurable. Common options include:
 - CSV dialect (delimiters, quotes) - see @"configuration#dialect"
 - Header mapping - see @"attributes#header-names"
-- Type conversion - see @"configuration#type-conversion"
+- Type conversion - see @"configuration#customizing-parsing-and-formatting"
 
 Example of custom configuration:
 
