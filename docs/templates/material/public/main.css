@@ -200,9 +200,9 @@ nav.navbar {
 }
 
 #logo {
-  height: 40px;
-  width: 40px;
-  margin: 1rem;
+  height: 52px;
+  width: 52px;
+  margin: 0.5rem;
 }
 
 [data-bs-theme='dark'] a.link-secondary {
