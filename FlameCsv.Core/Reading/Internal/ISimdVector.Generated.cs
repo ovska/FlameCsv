@@ -99,11 +99,6 @@ internal interface ISimdVector<T, TVector>
     static abstract TVector LoadUnaligned(ref readonly T source, nuint offset);
 
     /// <summary>
-    /// Loads a vector from the specified aligned address.
-    /// </summary>
-    static abstract TVector LoadAligned(ref T source, nuint offset);
-
-    /// <summary>
     /// Returns a bitwise OR of the two input vectors.
     /// </summary>
     static abstract TVector operator |(TVector left, TVector right);
@@ -175,33 +170,6 @@ internal readonly struct Vec128Char : ISimdVector<char, Vec128Char>
     {
         var v0 = Vector128.LoadUnsafe(ref Unsafe.As<char, ushort>(ref Unsafe.AsRef(in source)), offset);
         var v1 = Vector128.LoadUnsafe(ref Unsafe.As<char, ushort>(ref Unsafe.AsRef(in source)), offset + ((nuint)Vector128<byte>.Count / sizeof(ushort)));
-        var lower = Vector128.Min(v0, Vector128.Create((ushort)127));
-        var upper = Vector128.Min(v1, Vector128.Create((ushort)127));
-
-        // prefer architecture specific intrinsic as they don't perform additional AND like Vector128.Narrow does
-        if (Sse2.IsSupported)
-        {
-            return Sse2.PackUnsignedSaturate(lower.AsInt16(), upper.AsInt16());
-        }
-        else if (AdvSimd.Arm64.IsSupported)
-        {
-            return AdvSimd.Arm64.UnzipEven(lower.AsByte(), upper.AsByte());
-        }
-        else if (PackedSimd.IsSupported)
-        {
-            return PackedSimd.ConvertNarrowingSaturateUnsigned(lower.AsInt16(), upper.AsInt16());
-        }
-        else
-        {
-            return Vector128.Narrow(lower, upper);
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    public static unsafe Vec128Char LoadAligned(ref char source, nuint offset)
-    {
-        var v0 = Vector128.LoadAlignedNonTemporal((ushort*)Unsafe.AsPointer(ref Unsafe.Add(ref source, offset)));
-        var v1 = Vector128.LoadAlignedNonTemporal((ushort*)Unsafe.AsPointer(ref Unsafe.Add(ref source, offset + ((nuint)Vector128<byte>.Count / sizeof(ushort)))));
         var lower = Vector128.Min(v0, Vector128.Create((ushort)127));
         var upper = Vector128.Min(v1, Vector128.Create((ushort)127));
 
@@ -320,29 +288,6 @@ internal readonly struct Vec256Char : ISimdVector<char, Vec256Char>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    public static unsafe Vec256Char LoadAligned(ref char source, nuint offset)
-    {
-        var v0 = Vector256.LoadAlignedNonTemporal((ushort*)Unsafe.AsPointer(ref Unsafe.Add(ref source, offset)));
-        var v1 = Vector256.LoadAlignedNonTemporal((ushort*)Unsafe.AsPointer(ref Unsafe.Add(ref source, offset + ((nuint)Vector256<byte>.Count / sizeof(ushort)))));
-        var lower = Vector256.Min(v0, Vector256.Create((ushort)127));
-        var upper = Vector256.Min(v1, Vector256.Create((ushort)127));
-
-        if (Avx2.IsSupported)
-        {
-            // Avx2.PackUnsignedSaturate(Vector256.Create((short)1), Vector256.Create((short)2)) will result in
-            // 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2
-            // We want to swap the X and Y bits
-            // 1, 1, 1, 1, 1, 1, 1, 1, X, X, X, X, X, X, X, X, Y, Y, Y, Y, Y, Y, Y, Y, 2, 2, 2, 2, 2, 2, 2, 2
-            var packed = Avx2.PackUnsignedSaturate(lower.AsInt16(), upper.AsInt16());
-            return Avx2.Permute4x64(packed.AsInt64(), 0b_11_01_10_00).AsByte();
-        }
-        else
-        {
-            return Vector256.Narrow(lower, upper);
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public nuint ExtractMostSignificantBits() => (nuint)_value.ExtractMostSignificantBits();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
@@ -418,9 +363,6 @@ internal readonly struct Vec128Byte : ISimdVector<byte, Vec128Byte>
     public static Vec128Byte LoadUnaligned(ref readonly byte source, nuint offset) => Vector128.LoadUnsafe(in source, offset);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    public static unsafe Vec128Byte LoadAligned(ref byte source, nuint offset) => Vector128.LoadAligned((byte*)Unsafe.AsPointer(ref Unsafe.AsRef(in source)) + offset);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public nuint ExtractMostSignificantBits() => (nuint)_value.ExtractMostSignificantBits();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
@@ -494,9 +436,6 @@ internal readonly struct Vec256Byte : ISimdVector<byte, Vec256Byte>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static Vec256Byte LoadUnaligned(ref readonly byte source, nuint offset) => Vector256.LoadUnsafe(in source, offset);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    public static unsafe Vec256Byte LoadAligned(ref byte source, nuint offset) => Vector256.LoadAligned((byte*)Unsafe.AsPointer(ref Unsafe.AsRef(in source)) + offset);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public nuint ExtractMostSignificantBits() => (nuint)_value.ExtractMostSignificantBits();

@@ -3,7 +3,6 @@
     const string MethodImpl = "MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough";
     const string PragmaCondition = "RELEASE";
 
-    // TODO: remove 64
     // TODO: Add support for AVX-512 etc.
     (string size, string[] moveMask)[] intrinsics = [
         ("128", ["Sse2", "Avx"]),
@@ -167,11 +166,6 @@ internal interface ISimdVector<T, TVector>
     static abstract TVector LoadUnaligned(ref readonly T source, nuint offset);
 
     /// <summary>
-    /// Loads a vector from the specified aligned address.
-    /// </summary>
-    static abstract TVector LoadAligned(ref T source, nuint offset);
-
-    /// <summary>
     /// Returns a bitwise OR of the two input vectors.
     /// </summary>
     static abstract TVector operator |(TVector left, TVector right);
@@ -199,7 +193,7 @@ internal interface ISimdVector<T, TVector>
 
 <#
     foreach (var (keyword, name) in types)
-        foreach (var (size, isa) in intrinsics)
+        foreach (var (size, _) in intrinsics)
         {
             string typeName = $"Vec{size}{name}";
 #>
@@ -245,43 +239,22 @@ internal readonly struct <#= typeName #> : ISimdVector<<#= keyword #>, <#= typeN
             Write(keyword != "byte" ? "unchecked((byte)value)" : "value");
 #>);
     }
-<#
-            foreach (var isAligned in (bool[])[false, true])
-            {
-#>
 
     [<#= MethodImpl #>]
-    public static<#= isAligned ? " unsafe" : "" #> <#= typeName #> Load<#= isAligned ? "Aligned" : "Unaligned" #>(ref<#= isAligned ? "" : " readonly" #> <#= keyword #> source, nuint offset)<#
+    public static <#= typeName #> LoadUnaligned(ref readonly <#= keyword #> source, nuint offset)<#
             if (keyword == "byte")
             {
                 Write(" => Vector");
                 Write(size);
-                Write(
-                    isAligned
-                        ? ".LoadAligned((byte*)Unsafe.AsPointer(ref Unsafe.AsRef(in source)) + offset);"
-                        : ".LoadUnsafe(in source, offset);");
+                Write(".LoadUnsafe(in source, offset);");
             }
             else if (size is "128" or "256" or "512")
             {
 #>
 
     {
-<#
-                    if (isAligned)
-                    {
-#>
-        var v0 = Vector<#= size #>.LoadAlignedNonTemporal((ushort*)Unsafe.AsPointer(ref Unsafe.Add(ref source, offset)));
-        var v1 = Vector<#= size #>.LoadAlignedNonTemporal((ushort*)Unsafe.AsPointer(ref Unsafe.Add(ref source, offset + ((nuint)Vector<#= size #><byte>.Count / sizeof(ushort)))));
-<#
-                    }
-                    else
-                    {
-#>
         var v0 = Vector<#= size #>.LoadUnsafe(ref Unsafe.As<char, ushort>(ref Unsafe.AsRef(in source)), offset);
         var v1 = Vector<#= size #>.LoadUnsafe(ref Unsafe.As<char, ushort>(ref Unsafe.AsRef(in source)), offset + ((nuint)Vector<#= size #><byte>.Count / sizeof(ushort)));
-<#
-                    }
-#>
         var lower = Vector<#= size #>.Min(v0, Vector<#= size #>.Create((ushort)127));
         var upper = Vector<#= size #>.Min(v1, Vector<#= size #>.Create((ushort)127));
 <#
@@ -295,9 +268,6 @@ internal readonly struct <#= typeName #> : ISimdVector<<#= keyword #>, <#= typeN
             }
 #>
 
-<#
-            }
-#>
 
     [<#= MethodImpl #>]
     public nuint ExtractMostSignificantBits() => (nuint)<#= size == "512" ? "(ulong)" : "" #>_value.ExtractMostSignificantBits();
