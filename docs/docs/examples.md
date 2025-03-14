@@ -121,6 +121,40 @@ foreach (var rec in CsvReader.Enumerate(csv))
 > [!WARNING]
 > A @"FlameCsv.CsvValueRecord`1" instance is only valid until `MoveNext()` is called on the enumerator. The struct is a thin wrapper around the actual data, and may use invalid or pooled memory if used after its intended lifetime. A runtime exception will be thrown if it is accessed after the enumeration has continued or ended. See @"FlameCsv.CsvRecord`1" for an alternative.
 
+### Reading raw CSV data
+
+For advanced performance critical scenarios, you can create a @"FlameCsv.Reading.CsvParser`1" (the internal type that handles parsing the data into fields)
+manually by using the static @"FlameCsv.Reading.CsvParser"-class, and using it in a `foreach` or `await foreach`-loop.
+Enumerating advances the parser, and disposes it at the end.
+
+# [UTF-16](#tab/utf16)
+```cs
+foreach (var @record in CsvParser.Create(CsvOptions<char>, textReader).ParseRecords())
+{
+    for (int i = 0; i < @record.FieldCount; i++)
+    {
+        ReadOnlySpan<char> @field = @record[i];
+        ProcessField(i, @field);
+    }
+}
+```
+
+# [UTF-8](#tab/utf8)
+```cs
+foreach (var @record in CsvParser.Create(CsvOptions<byte>, stream).ParseRecords())
+{
+    for (int i = 0; i < @record.FieldCount; i++)
+    {
+        ReadOnlySpan<char> @field = @record[i];
+        ProcessField(i, @field);
+    }
+}
+```
+
+Note that if any of the fields need to be escaped, only one field may be used at a time (e.g., fetching another one will use the same buffer).
+
+---
+
 ## Writing
 
 ### .NET types
