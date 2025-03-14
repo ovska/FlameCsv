@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Reading.Internal;
+// ReSharper disable All
 
 // ReSharper disable ConvertToAutoPropertyWhenPossible
 
