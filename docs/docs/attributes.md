@@ -41,8 +41,10 @@ public int Id { get; set; }
 @"FlameCsv.Attributes.CsvConstructorAttribute" is used to explicitly choose which constructor is used to instantiate a type. The selection process follows these rules:
 
 1. @"FlameCsv.Attributes.CsvConstructorAttribute" is present, that constructor is used
-2. No attribute is present and a public parameterless constructor exists, it is used
+2. No attribute is present, and a public parameterless constructor exists, it is used
 3. If the type has exactly one public constructor, it is used
+
+Priority for attributes is assembly > type > constructor.
 
 ```cs
 public class User

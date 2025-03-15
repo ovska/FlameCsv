@@ -71,7 +71,7 @@ List<User> users = CsvReader.Read(csv, new CsvOptions<char> { HasHeader = true }
 
 ### Converters
 
-Custom converters are added to @"FlameCsv.CsvOptions`1.Converters?displayProperty=nameWithType". Converters are checked in LIFO-order, falling back to built-in converters if no user configured converter can convert a specific type.
+Custom converters are added to @"FlameCsv.CsvOptions`1.Converters?displayProperty=nameWithType". Converters are checked in LIFO order, falling back to built-in converters if no user configured converter can convert a specific type.
 
 Built-in converters are available for common .NET types, including:
 
@@ -222,7 +222,7 @@ CsvOptions<char> options = new()
 
 ## Quoting fields when writing
 
-The @"FlameCsv.Writing.CsvFieldQuoting" enumeration and @"FlameCsv.CsvOptions`1.FieldQuoting?displayProperty=nameWithType" property are used to configure the behavior when writing CSV. The default, @"FlameCsv.CsvOptions`1.FieldQuoting.Auto?displayProperty=nameWithType" only quotes fields if they contain special characters or whitespace.
+The @"FlameCsv.Writing.CsvFieldQuoting" enumeration and @"FlameCsv.CsvOptions`1.FieldQuoting?displayProperty=nameWithType" property are used to configure the behavior when writing CSV. The default, @"FlameCsv.Writing.CsvFieldQuoting.Auto?displayProperty=nameWithType" only quotes fields if they contain special characters or whitespace.
 
 ```cs
 // quote all fields, e.g., for noncompliant 3rd party libraries
@@ -234,7 +234,7 @@ StringBuilder result = CsvWriter.WriteToString(
 // "1","Bob","true"
 ```
 
-If you are 100% sure your data does not contain any special characters, you can set it to @"FlameCsv.CsvOptions`1.FieldQuoting.Never?displayProperty=nameWithType" to squeeze out a little bit of performance by omitting the check if each written field needs to be quoted.
+If you are 100% sure your data does not contain any special characters, you can set it to @"FlameCsv.Writing.CsvFieldQuoting.Never?displayProperty=nameWithType" to squeeze out a little bit of performance by omitting the check if each written field needs to be quoted.
 
 
 ## Skipping records or resetting headers
@@ -263,7 +263,8 @@ CsvOptions<char> options = new()
 ```
 
 > [!WARNING]
-> Comments are not yet fully supported by FlameCSV. For example, even if you configure the callback to skip rows that start with `#`, the rows are still parsed and expected to be properly structured CSV (e.g., no unbalanced quotes). File an issue if you desperately need this feature.
+> Comments are not yet fully supported by FlameCSV (see [issue](https://github.com/ovska/FlameCsv/issues/20)).
+For example, even if you configure the callback to skip rows that start with `#`, the rows are still parsed and expected to be properly structured CSV (e.g., no unbalanced quotes). 
 
 
 ## Field count validation
@@ -273,8 +274,8 @@ CsvOptions<char> options = new()
 When reading @"FlameCsv.CsvValueRecord`1", setting the property to `true` ensures that all records have the same field count as the first record.
 The expected field count is reset if you [reset the headers with a callback](#skipping-records-or-resetting-headers).
 
-You can automatically ensure that all non-empty records written with @"FlameCsv.CsvWriter`1" or writing with @"FlameCsv.CsvWriter`1" have the same field count.
-Alternatively, you can use the @"FlameCsv.CsvWriter`1.ExpectedFieldCount"-property. The property can also be used to reset the expected count by setting it to `null`,
+You can automatically ensure that all non-empty records written with @"FlameCsv.CsvWriter`1" have the same field count.
+Alternatively, you can use the @"FlameCsv.CsvAsyncWriter`1.ExpectedFieldCount"-property. The property can also be used to reset the expected count by setting it to `null`,
 for example when writing multiple CSV documents into one output.
 
 ## Advanced topics
@@ -283,7 +284,7 @@ for example when writing multiple CSV documents into one output.
 
 Since any implementation of @"FlameCsv.CsvConverterFactory`1" (including built-in nullable and enum factories) can potentially require unreferenced types or dynamic code, the default @"FlameCsv.CsvOptions`1.GetConverter``1?displayProperty=nameWithType" method is not AOT-compatible.
 
-Use @"FlameCsv.CsvOptions`1.Aot?displayProperty=nameWithType" to retrieve a wrapper around the configured converters, which provides convenience methods to safely retrieve converters for types known at runtime. See the documentation on methods of @"FlameCsv.CsvOptions`1.AotSafeConverters" for more info. This property is utilized by the source generator.
+Use @"FlameCsv.CsvOptions`1.Aot?displayProperty=nameWithType" to retrieve a wrapper around the configured converters, which provides convenience methods to safely retrieve converters for types known at runtime. See the documentation on methods of @"FlameCsv.CsvOptions`1.AotSafeConverters" for more info. This property is used by the source generator.
 
 ```cs
 // aot-safe default nullable and enum converters if not configured by user
@@ -330,7 +331,7 @@ The following methods are used by the library to convert `T` values to @"System.
 
 You can configure the @"System.Buffers.MemoryPool`1" instance used internally with the @"FlameCsv.CsvOptions`1.MemoryPool?displayProperty=nameWithType" property. Pooled memory is used to handle escaping, unescaping, and records split across multiple sequence segments. The default value is @"System.Buffers.MemoryPool`1.Shared?displayProperty=nameWithType".
 
-If set to `null`, no pooled memory is used and all needed buffers are heap allocated.
+If set to `null`, no pooled memory is used and all temporary buffers are heap allocated.
 
 Further reading: @"architecture".
 
