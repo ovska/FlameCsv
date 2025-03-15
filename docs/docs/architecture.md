@@ -23,7 +23,7 @@ made @"System.Buffers.ReadOnlySequence`1" a natural choice for the base data blo
 As much as possible is read from @"System.Buffers.ReadOnlySequence`1.First" (or in the case of an array or a string, all of it)
 before falling back to working with the sequence directly.
 
-The segmented nature however also necessitates some deviation from the "zero-copy/allocation"-goal in the case of a single
+The segmented nature of the data also requires deviation from the "zero-copy/allocation"-goal in the case of a single
 CSV record being split across two or more sequences. A fragmented record is parsed using @"System.Buffers.SequenceReader`1"
 and copied to a pooled buffer. This is one of the few cases in the reading routine when an allocation and a copy has to be
 made. This is relatively rare in the grand scheme of things, as a buffer size of 4096 (a common default) can fit
@@ -64,13 +64,13 @@ as the sign-bit of the end index), and the expectation that no single CSV field 
 ## Writing
 
 The writing system is based on @"System.Buffers.IBufferWriter`1", allowing direct writes into the writer's buffer.
-FlameCsv extends this functionality through @"FlameCsv.Writing.ICsvPipeWriter`1" with additional features:
- - The writer keeps tracks of the written data, and contains the @"FlameCsv.Writing.ICsvPipeWriter`1.NeedsFlush" property that
+FlameCsv extends this functionality through @"FlameCsv.IO.ICsvPipeWriter`1" with additional features:
+ - The writer keeps tracks of the written data, and contains the @"FlameCsv.IO.ICsvPipeWriter`1.NeedsFlush" property that
    determines if the internal buffers are close to full, and the written data should be flushed. The limit of "close to full"
    is arbitrarily determined, and future performance profiling might be needed (you are free to do so, or file an issue for it).
- - @"FlameCsv.Writing.ICsvPipeWriter`1.Flush" and @"FlameCsv.Writing.ICsvPipeWriter`1.FlushAsync(System.Threading.CancellationToken)"
+ - @"FlameCsv.IO.ICsvPipeWriter`1.Flush" and @"FlameCsv.IO.ICsvPipeWriter`1.FlushAsync(System.Threading.CancellationToken)"
    flush the writer to the destination, be it a @"System.IO.Stream", @"System.IO.TextWriter" or @"System.IO.Pipelines.PipeWriter".
- - @"FlameCsv.Writing.ICsvPipeWriter`1.Complete(System.Exception)" and @"FlameCsv.Writing.ICsvPipeWriter`1.CompleteAsync(System.Exception,System.Threading.CancellationToken)"
+ - @"FlameCsv.IO.ICsvPipeWriter`1.Complete(System.Exception)" and @"FlameCsv.IO.ICsvPipeWriter`1.CompleteAsync(System.Exception,System.Threading.CancellationToken)"
    that mirrors the pipelines-API. Completion disposes the writer and returns pooled buffers,
    and flushes the leftover data unless an exception was observed while writing.
 
@@ -119,7 +119,7 @@ To optimize performance and maintain simplicity, runtime code generation is mini
 Where possible, code is generated at _compile-time_ using T4 templates.
 For example, the types that [read](https://github.com/ovska/FlameCsv/blob/main/FlameCsv.Core/Runtime/Materializer.Generated.cs)
 and [write](https://github.com/ovska/FlameCsv/blob/main/FlameCsv.Core/Runtime/Dematerializer.Generated.cs) objects are generated this way.
-This allows the JIT compiler to optimize much of the code as if it were hand-written.
+This allows the JIT compiler to optimize much of the code as if it were handwritten.
 
 When runtime code generation is necessary (such as for creating getters for writing or object creation functions for reading),
 the library uses the excellent [FastExpressionCompiler](https://github.com/dadhi/FastExpressionCompiler) library to

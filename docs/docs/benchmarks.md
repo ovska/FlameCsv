@@ -4,7 +4,7 @@ uid: benchmarks
 
 # About performance
 
-Performance has been a key consideration for FlameCsv since its inception. This means:
+Performance has been a key consideration for FlameCsv since the beginning. This means:
 - Maximum CPU utilization through SIMD hardware intrinsics
 - Minimal data copying
 - Minimal allocations
@@ -36,7 +36,9 @@ Lower object allocation means less garbage collector overhead. This is particula
 Memory usage is best evaluated by _comparing_ libraries, since some operations (like reading strings) inherently require allocations,
 so looking at the allocation numbers in isolation may not be useful.
 
-_Streaming_ is another crucial factor. While important for servers, it's essential for handling very large files that cannot fit in memory.
+Streaming is another crucial factor. While important for servers, it's essential for handling large files that cannot fit in memory.
+This includes I/O and `I(Async)Enumerable`. A well-implemented streaming library can handle workloads of any size without issues
+by reading and writing without having to buffer the entire dataset in memory.
 
 
 ## Cold start vs. long-running
@@ -48,7 +50,7 @@ However, cold start performance matters more for:
 - Serverless applications (Azure Functions / AWS Lambda)
 - Desktop/CLI applications performing one-off operations
 
-Reflection-based code (like compiled expression delegates) typically performs poorly on cold starts compared to hand-written or source-generated code,
+Reflection-based code (like compiled expression delegates) typically performs poorly on cold starts compared to handwritten or source-generated code,
 though these differences diminish in long-running operations.
 
 
