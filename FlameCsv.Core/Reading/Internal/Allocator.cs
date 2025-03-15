@@ -40,6 +40,27 @@ internal abstract class Allocator<T> : IDisposable where T : unmanaged
     protected abstract void Dispose(bool disposing);
 }
 
+internal sealed class PerColumnAllocator<T>(MemoryPool<T> pool) : IDisposable where T : unmanaged
+{
+    private readonly ConcurrentDictionary<int, MemoryPoolAllocator<T>> _allocators = new();
+
+    public MemoryPoolAllocator<T> this[int index]
+        => _allocators.GetOrAdd(
+            index,
+            static (_, pool) => new MemoryPoolAllocator<T>(pool),
+            pool);
+
+    public void Dispose()
+    {
+        foreach (MemoryPoolAllocator<T> memoryOwner in _allocators.Values)
+        {
+            memoryOwner.Dispose();
+        }
+
+        _allocators.Clear();
+    }
+}
+
 internal sealed class MemoryPoolAllocator<T>(MemoryPool<T> pool) : Allocator<T> where T : unmanaged
 {
     private IMemoryOwner<T> _memoryOwner = HeapMemoryOwner<T>.Empty;

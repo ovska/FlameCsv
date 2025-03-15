@@ -21,7 +21,7 @@ namespace FlameCsv.Enumeration;
 /// </remarks>
 [MustDisposeResource]
 public sealed class CsvRecordEnumerator<T>
-    : CsvEnumeratorBase<T>, IEnumerator<CsvValueRecord<T>>, IAsyncEnumerator<CsvValueRecord<T>>, IRecordOwner
+    : CsvEnumeratorBase<T>, IEnumerator<CsvValueRecord<T>>, IAsyncEnumerator<CsvValueRecord<T>>, IRecordOwner<T>
     where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
@@ -95,8 +95,10 @@ public sealed class CsvRecordEnumerator<T>
     private int? _expectedFieldCount;
     private CsvHeader? _header;
 
-    IDictionary<object, object> IRecordOwner.MaterializerCache
+    IDictionary<object, object> IRecordOwner<T>.MaterializerCache
         => _materializerCache ??= new(ReferenceEqualityComparer.Instance);
+
+    Allocator<T>? IRecordOwner<T>.GetAllocator(int fieldIndex) => null;
 
     /// <summary>
     /// Current header value. May be null if a header is not yet read, header is reset, or if the CSV has no header.
@@ -162,7 +164,7 @@ public sealed class CsvRecordEnumerator<T>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    void IRecordOwner.EnsureVersion(int version)
+    void IRecordOwner<T>.EnsureVersion(int version)
     {
         if (_version == -1)
             Throw.ObjectDisposed_Enumeration();

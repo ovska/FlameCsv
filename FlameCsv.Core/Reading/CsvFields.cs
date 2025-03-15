@@ -112,7 +112,10 @@ public readonly struct CsvFields<T> : ICsvFields<T> where T : unmanaged, IBinary
     /// <returns>The field value</returns>
     /// <exception cref="ArgumentOutOfRangeException">If <paramref name="index"/> is out of range</exception>
     /// <seealso cref="FieldCount"/>
-    public ReadOnlySpan<T> GetField(int index, bool raw = false, Span<T> buffer = default)
+    public ReadOnlySpan<T> GetField(
+        int index,
+        bool raw = false,
+        Span<T> buffer = default)
     {
         if ((uint)index >= (uint)(Fields.Length - 1))
             Throw.Argument_FieldIndex(index, Fields.Length - 1);
@@ -132,6 +135,25 @@ public readonly struct CsvFields<T> : ICsvFields<T> where T : unmanaged, IBinary
                 data: ref MemoryMarshal.GetReference(data),
                 buffer: buffer,
                 allocator: Parser._unescapeAllocator);
+    }
+
+    internal ReadOnlySpan<T> GetFieldForParallel(int index, Allocator<T> allocator)
+    {
+        if ((uint)index >= (uint)(Fields.Length - 1))
+            Throw.Argument_FieldIndex(index, Fields.Length - 1);
+
+        Debug.Assert(allocator is not null);
+
+        int start = Fields[index].NextStart;
+        ReadOnlySpan<T> data = Data.Span;
+
+        return Fields[index + 1]
+            .GetField(
+                dialect: in Parser._dialect,
+                start: start,
+                data: ref MemoryMarshal.GetReference(data),
+                buffer: [],
+                allocator: allocator);
     }
 
     /// <summary>

@@ -76,7 +76,7 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
 
     ReadOnlySpan<T> ICsvFields<T>.this[int index] => GetField(index);
 
-    internal readonly IRecordOwner _owner;
+    internal readonly IRecordOwner<T> _owner;
     internal readonly CsvOptions<T> _options;
     internal readonly CsvFields<T> _fields;
     private readonly int _version;
@@ -88,7 +88,7 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
         int lineIndex,
         ref readonly CsvFields<T> fields,
         CsvOptions<T> options,
-        IRecordOwner owner)
+        IRecordOwner<T> owner)
     {
         _version = version;
         Position = position;
@@ -274,12 +274,12 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
         public ReadOnlySpan<T> Current => _fields.GetField(_index - 1);
 
         private readonly int _version;
-        private readonly IRecordOwner _owner;
+        private readonly IRecordOwner<T> _owner;
         private readonly CsvFields<T> _fields;
         private int _index;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Enumerator(int version, IRecordOwner owner, scoped ref readonly CsvFields<T> fields)
+        internal Enumerator(int version, IRecordOwner<T> owner, scoped ref readonly CsvFields<T> fields)
         {
             owner.EnsureVersion(version);
 

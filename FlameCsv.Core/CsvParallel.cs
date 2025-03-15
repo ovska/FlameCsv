@@ -1,5 +1,4 @@
-﻿// #if FEATURE_PARALLEL
-
+﻿#if FEATURE_PARALLEL
 using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Reading;
@@ -14,23 +13,23 @@ namespace FlameCsv;
 [PublicAPI]
 public static class CsvParallel
 {
-    internal static IEnumerable<TResult> GetParallelQuery<T, TResult>(
+    internal static IEnumerable<CsvValueRecord<T>> GetParallelQuery<T, TResult>(
         CsvOptions<T> options,
-        ICsvPipeReader<T> reader2,
-        Func<CsvValueRecord<T>, TResult> selector)
+        ICsvPipeReader<T> reader)
         where T : unmanaged, IBinaryInteger<T>
     {
         ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(reader2);
+        ArgumentNullException.ThrowIfNull(reader);
 
-        using var allocator = new SlabAllocator<T>(options.Allocator);
+        using var multiSegmentAllocator = new SlabAllocator<T>(options.Allocator);
+        using var perColumnAllocator = new PerColumnAllocator<T>(options.Allocator);
 
         using CsvParser<T> parser = CsvParser.CreateCore(
             options,
-            reader2,
-            new CsvParserOptions<T> { UnescapeAllocator = allocator, MultiSegmentAllocator = allocator });
+            reader,
+            new CsvParserOptions<T> { UnescapeAllocator = null, MultiSegmentAllocator = multiSegmentAllocator });
 
-        using ParallelEnumerationOwner owner = new();
+        using ParallelEnumerationOwner<T> owner = new(options.Allocator);
         using CancellationTokenSource cts = new();
         using SemaphoreSlim semaphore = new(1, 1);
 
@@ -85,7 +84,7 @@ public static class CsvParallel
 
             // increment version for every read
             version = owner.NextVersion();
-            allocator.Reset();
+            multiSegmentAllocator.Reset();
         }
 
         // read the final block
@@ -227,4 +226,5 @@ public static class CsvParallel
     }
 #endif
 }
-// #endif
+
+#endif
