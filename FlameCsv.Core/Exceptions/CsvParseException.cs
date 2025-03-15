@@ -152,7 +152,18 @@ public sealed class CsvParseException(
     {
         Line ??= line;
         RecordPosition ??= position;
-        RecordValue ??= fields.Record.Span.AsPrintableString();
+
+        if (RecordValue is null)
+        {
+            try
+            {
+                RecordValue = fields.Record.Span.AsPrintableString();
+            }
+            catch (Exception e)
+            {
+                RecordValue = $"< failed to get record value ({e.GetType().Name}): {e.Message} >";
+            }
+        }
 
         if (FieldIndex is { } index && (uint)index < (uint)fields.FieldCount)
         {

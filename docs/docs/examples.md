@@ -128,9 +128,9 @@ foreach (var rec in CsvReader.Enumerate(csv))
 
 ### Reading raw CSV data
 
-For advanced performance critical scenarios, you can create a @"FlameCsv.Reading.CsvParser`1" (the internal type that handles parsing the data into fields)
+For advanced performance-critical scenarios, you can create a @"FlameCsv.Reading.CsvParser`1" (the internal type that handles parsing the data into fields)
 manually by using the static @"FlameCsv.Reading.CsvParser"-class, and using it in a `foreach` or `await foreach`-loop.
-Enumerating advances the parser, and disposes it at the end.
+Enumerating advances the parser and disposes it at the end.
 
 # [UTF-16](#tab/utf16)
 ```cs
@@ -188,7 +188,7 @@ CsvWriter.Write(TextWriter.Null, users);
 @"FlameCsv.CsvWriter" includes a `Create` method that can be used to create an
 instance of @"FlameCsv.CsvWriter`1" that allows you to write fields, records,
 or unescaped raw data directly into your output, while taking care of field
-quoting, delimiters, and escaping. The writer can be configured to flush automatically if the library detects that the internal buffers are getting saturated, or flushed manually.
+quoting, delimiters, and escaping. The writer can be configured to flush automatically if the library detects that the internal buffers are getting saturated or flushed manually.
 
 > [!NOTE]
 > As @"System.IO.Pipelines.PipeWriter" does not support synchronous flushing, the returned type @"FlameCsv.CsvAsyncWriter`1" lacks synchronous methods that can cause a flush.

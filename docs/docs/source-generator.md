@@ -8,7 +8,7 @@ uid: source-generator
 
 _There is nothing inherently bad about reflection and compiled expressions._
 
-For 99% of applications, they work perfectly and are easy to set up with minimal configuration.
+For 99% of applications, they work perfectly and are straightforward to set up with minimal configuration.
 However, reflection and compiled expressions are incompatible with AOT compilation and trimming, so an alternative API is provided.
 Aside from the start-up cost, performance differences between reflection and source generation in FlameCsv are not significant (see: [benchmarks](benchmarks.md)).
 
@@ -16,9 +16,9 @@ Aside from the start-up cost, performance differences between reflection and sou
 
 FlameCsv includes a source generator that creates code for binding .NET types to/from CSV headers.
 This enables writing [trimmable code](https://learn.microsoft.com/en-us/dotnet/core/deploying/trimming/trim-self-contained)
-without any reflection or dynamic code generation - a necessity for [Native AOT](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot) applications.
+without any reflection or dynamic code generation — a necessity for [Native AOT](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot) applications.
 
-To use the source generator, create a `partial class` and apply the @"FlameCsv.Attributes.CsvTypeMapAttribute`2":
+To use the source generator, create a `partial class` and apply @"FlameCsv.Attributes.CsvTypeMapAttribute`2":
 
 # [UTF-16](#tab/utf16)
 ```cs
@@ -43,7 +43,7 @@ IEnumerable<User> users = CsvReader.Read(csv, UserTypeMap.Default);
 The source generator implements @"FlameCsv.Binding.CsvTypeMap`2" on the target type, and generates a static
 `Default`-property that can be used to get a thread-safe singleton instance of the type map.
 
-Source generation offers numerous advantages, such as improved performance due to no reflection and improved JIT
+Source generation offers many advantages, such as improved performance due to no reflection and improved JIT
 optimization, and easier development as you can debug the code as if you wrote it yourself. On the other hand, while great care has
 been given to the performance of the incremental source generator to keep the impact as small as possible,
 it still has _some_ effect on compile-times and CPU use during development.
