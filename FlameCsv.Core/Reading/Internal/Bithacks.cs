@@ -7,24 +7,25 @@ namespace FlameCsv.Reading.Internal;
 internal static class Bithacks
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static nuint ComputeQuoteMask(nuint quoteBits)
+    internal static T ComputeQuoteMask<T>(T quoteBits) where T : unmanaged, IBinaryInteger<T>
     {
         if (Pclmulqdq.IsSupported && Sse2.X64.IsSupported && Vector128.IsHardwareAccelerated)
         {
-            return (nuint)Sse2.X64.ConvertToUInt64(
+            ulong result = Sse2.X64.ConvertToUInt64(
                 Pclmulqdq.CarrylessMultiply(
-                    Vector128.Create(quoteBits, 0UL),
+                    Vector128.Create(ulong.CreateTruncating(quoteBits), 0UL),
                     Vector128.Create((byte)0xFF).AsUInt64(),
                     0));
+
+            return T.CreateTruncating(result);
         }
 
-        nuint mask = quoteBits ^ (quoteBits << 1);
+        T mask = quoteBits ^ (quoteBits << 1);
         mask ^= (mask << 2);
         mask ^= (mask << 4);
         mask ^= (mask << 8);
         mask ^= (mask << 16);
-        // ReSharper disable once ShiftExpressionRealShiftCountIsZero
-        if (nuint.Size == 8) mask ^= (mask << 32);
+        mask ^= (mask << 32);
         return mask;
     }
 
@@ -34,15 +35,15 @@ internal static class Bithacks
     /// <param name="quoteBits">Bitmask of the quote positions</param>
     /// <param name="prevIterInsideQuote">Whether the previous iteration ended in a quote</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static nuint FindQuoteMask(nuint quoteBits, ref nuint prevIterInsideQuote)
+    internal static T FindQuoteMask<T>(T quoteBits, ref T prevIterInsideQuote) where T : unmanaged, IBinaryInteger<T>
     {
-        nuint quoteMask = ComputeQuoteMask(quoteBits);
+        T quoteMask = ComputeQuoteMask(quoteBits);
 
         // flip the bits that are inside quotes
         quoteMask ^= prevIterInsideQuote;
 
         // save if this iteration ended in a quote
-        prevIterInsideQuote = (nuint)((long)(quoteMask) >> 63);
+        prevIterInsideQuote = quoteMask >> (Unsafe.SizeOf<T>() * 8 - 1);
 
         return quoteMask;
     }
