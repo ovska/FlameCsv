@@ -6,7 +6,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
 
-        <DefineConstants>SOURCEGEN_USE_COMPILATION</DefineConstants>
+        <DefineConstants>$(DefineConstants);SOURCEGEN_USE_COMPILATION</DefineConstants>
 
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)FlameCsv.snk</AssemblyOriginatorKeyFile>

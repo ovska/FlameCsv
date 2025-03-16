@@ -1,6 +1,6 @@
 ﻿using System.Text;
 using FlameCsv.Binding;
-using FlameCsv.Enumeration;
+using FlameCsv.IO;
 using FlameCsv.Tests.TestData;
 
 namespace FlameCsv.Tests.Readers;
@@ -9,33 +9,12 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
 {
     protected override CsvTypeMap<char, Obj> TypeMap => ObjCharTypeMap.Default;
 
-    protected override CsvRecordEnumerable<char> GetRecords(
-        Stream stream,
-        CsvOptions<char> options,
-        int bufferSize)
+    protected override ICsvPipeReader<char> GetReader(Stream stream, CsvOptions<char> options, int bufferSize)
     {
-        return CsvReader.EnumerateAsync(
+        return CsvPipeReader.Create(
             new StreamReader(stream, Encoding.UTF8, bufferSize: bufferSize),
-            options);
-    }
-
-    protected override IAsyncEnumerable<Obj> GetObjects(
-        Stream stream,
-        CsvOptions<char> options,
-        int bufferSize,
-        bool sourceGen)
-    {
-        if (sourceGen)
-        {
-            return CsvReader.ReadAsync(
-                new StreamReader(stream, Encoding.UTF8, bufferSize: bufferSize),
-                TypeMap,
-                options);
-        }
-
-        return CsvReader.ReadAsync<Obj>(
-            new StreamReader(stream, Encoding.UTF8, bufferSize: bufferSize),
-            options);
+            options.Allocator,
+            new CsvReaderOptions { BufferSize = bufferSize });
     }
 
     [Fact]

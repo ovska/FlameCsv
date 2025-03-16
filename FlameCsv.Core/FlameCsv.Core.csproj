@@ -110,9 +110,6 @@
         <Compile Update="CsvConverterFactory.cs">
             <DependentUpon>CsvConverter.cs</DependentUpon>
         </Compile>
-        <Compile Update="CsvParallel.ForEach.cs">
-            <DependentUpon>CsvParallel.cs</DependentUpon>
-        </Compile>
     </ItemGroup>
 
     <ItemGroup>

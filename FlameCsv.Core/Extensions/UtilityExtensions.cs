@@ -12,36 +12,6 @@ namespace FlameCsv.Extensions;
 
 internal static class UtilityExtensions
 {
-    public readonly struct SemaphoreScope(SemaphoreSlim semaphore) : IDisposable
-    {
-        public void Dispose() => semaphore?.Release();
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static SemaphoreScope Lock(this SemaphoreSlim semaphore, CancellationToken token = default)
-    {
-        semaphore.Wait(token);
-        return new SemaphoreScope(semaphore);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ValueTask<SemaphoreScope> LockAsync(this SemaphoreSlim semaphore, CancellationToken token = default)
-    {
-        if (semaphore.Wait(millisecondsTimeout: 0, CancellationToken.None))
-        {
-            return new ValueTask<SemaphoreScope>(new SemaphoreScope(semaphore));
-        }
-
-        return AwaitLockAsync(semaphore, token);
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        static async ValueTask<SemaphoreScope> AwaitLockAsync(SemaphoreSlim semaphore, CancellationToken token)
-        {
-            await semaphore.WaitAsync(token).ConfigureAwait(false);
-            return new SemaphoreScope(semaphore);
-        }
-    }
-
     public static string JoinValues(ReadOnlySpan<string> values)
     {
         // should never happen
