@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
 using FlameCsv.Enumeration;
+using FlameCsv.IO;
 using FlameCsv.Tests.TestData;
 using FlameCsv.Tests.Utilities;
 
@@ -37,7 +38,7 @@ public abstract class CsvReaderTestsBase
                 from bufferSize in _bufferSizes
                 from emptySegmentFrequency in _emptySegmentsEvery
                 from escaping in GlobalData.Enum<Mode>()
-                from parallel in (bool[]) [false] // GlobalData.Booleans
+                from parallel in (bool[]) [false] //GlobalData.Booleans
                 from sourceGen in GlobalData.Booleans
                 from guarded in GlobalData.GuardedMemory
                 where writeHeader || !sourceGen // headerless csv not yet supported on sourcegen
@@ -82,16 +83,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
 {
     protected abstract CsvTypeMap<T, Obj> TypeMap { get; }
 
-    protected abstract CsvRecordEnumerable<T> GetRecords(
-        Stream stream,
-        CsvOptions<T> options,
-        int bufferSize);
-
-    protected abstract IAsyncEnumerable<Obj> GetObjects(
-        Stream stream,
-        CsvOptions<T> options,
-        int bufferSize,
-        bool sourceGen);
+    protected abstract ICsvPipeReader<T> GetReader(Stream stream, CsvOptions<T> options, int bufferSize);
 
     [Theory, MemberData(nameof(SyncParams))]
     public async Task Objects_Sync(
@@ -133,35 +125,23 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
         bool sourceGen,
         bool? guarded)
     {
-        if (parallel) return; // TODO
-
         using var pool = ReturnTrackingMemoryPool<T>.Create(guarded);
         await Validate(Enumerate(), escaping);
 
-        IAsyncEnumerable<Obj> Enumerate()
+        async IAsyncEnumerable<Obj> Enumerate()
         {
             CsvOptions<T> options = GetOptions(newline, header, escaping, pool);
 
             var memory = TestDataGenerator.Generate<T>(newline, header, trailingLF, escaping);
             var sequence = MemorySegment<T>.AsSequence(memory, bufferSize, emptySegmentFreq);
+            await using var reader = CsvPipeReader.Create(in sequence);
 
-            IEnumerable<CsvValueRecord<T>> GetEnumerable()
+            var items = await GetItems(reader, options, sourceGen, header, newline, parallel, isAsync: false);
+
+            foreach (var item in items)
             {
-                CancellationToken cancellationToken = TestContext.Current.CancellationToken;
-                foreach (var record in CsvReader.Enumerate(sequence, options))
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    yield return record;
-                }
+                yield return item;
             }
-
-            var items = GetItems(
-                SyncAsyncEnumerable.Create(GetEnumerable()),
-                sourceGen,
-                header,
-                newline);
-
-            return items;
         }
     }
 
@@ -186,10 +166,13 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
             var data = TestDataGenerator.Generate<byte>(newline, header, trailingLF, escaping);
 
             await using var stream = data.AsStream();
+            await using var reader = GetReader(stream, options, bufferSize);
 
-            IAsyncEnumerable<Obj> source = GetObjects(stream, options, bufferSize, sourceGen);
+            IAsyncEnumerable<Obj> source = sourceGen
+                ? new CsvTypeMapEnumerable<T, Obj>(reader, options, TypeMap)
+                : new CsvValueEnumerable<T, Obj>(reader, options);
 
-            if (parallel) source = WrapParallel(source);
+            if (parallel) source = WrapParallelAsync(source);
 
             CancellationToken cancellationToken = TestContext.Current.CancellationToken;
             await foreach (var obj in source.ConfigureAwait(false))
@@ -211,8 +194,6 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
         bool sourceGen,
         bool? guarded)
     {
-        if (parallel) return; // TODO
-
         using var pool = ReturnTrackingMemoryPool<T>.Create(guarded);
         await Validate(Enumerate(), escaping);
 
@@ -222,18 +203,11 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
 
             var data = TestDataGenerator.Generate<byte>(newline, header, trailingLF, escaping);
             await using var stream = data.AsStream();
+            await using var reader = GetReader(stream, options, bufferSize);
 
-            async IAsyncEnumerable<CsvValueRecord<T>> GetEnumerable()
-            {
-                await foreach (var record in GetRecords(stream, options, bufferSize)
-                                   .WithCancellation(TestContext.Current.CancellationToken))
-                {
-                    yield return record;
-                }
-            }
+            var items = await GetItems(reader, options, sourceGen, header, newline, parallel, isAsync: true);
 
-            var items = GetItems(GetEnumerable(), sourceGen, header, newline);
-            await foreach (var item in items.ConfigureAwait(false))
+            foreach (var item in items)
             {
                 yield return item;
             }
@@ -260,11 +234,14 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
         Assert.Equal(1_000, i);
     }
 
-    protected async IAsyncEnumerable<Obj> GetItems(
-        IAsyncEnumerable<CsvValueRecord<T>> enumerable,
+    protected async Task<List<Obj>> GetItems(
+        ICsvPipeReader<T> reader,
+        CsvOptions<T> options,
         bool sourceGen,
         bool hasHeader,
-        NewlineToken newline)
+        NewlineToken newline,
+        bool parallel,
+        bool isAsync)
     {
         int index = 0;
         long tokenPosition = 0;
@@ -280,13 +257,72 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
             tokenPosition = TestDataGenerator.Header.Length + newlineLength;
         }
 
-        await foreach (var record in enumerable.ConfigureAwait(false))
-        {
-            index++;
-            Assert.Equal(hasHeader ? index + 1 : index, record.Line);
-            Assert.Equal(tokenPosition, record.Position);
+        List<Obj> items = [];
 
-            tokenPosition += record.RawRecord.Length + newlineLength;
+        if (parallel)
+        {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(5));
+
+            if (isAsync)
+            {
+                await CsvParallel.ForEachAsync(
+                    reader,
+                    (record, _) =>
+                    {
+                        var obj = Core(record);
+                        lock (items) items.Add(obj);
+                        return default;
+                    },
+                    options,
+                    new ParallelOptions { CancellationToken = cts.Token });
+            }
+            else
+            {
+                CsvParallel.ForEach(
+                    reader,
+                    record =>
+                    {
+                        var obj = Core(record);
+                        lock (items) items.Add(obj);
+                    },
+                    options,
+                    new ParallelOptions { CancellationToken = cts.Token });
+            }
+
+            items.Sort((a, b) => a.Id.CompareTo(b.Id));
+        }
+        else
+        {
+            var enumerable = new CsvRecordEnumerable<T>(reader, options);
+
+            if (isAsync)
+            {
+                await foreach (var record in enumerable.ConfigureAwait(false))
+                {
+                    items.Add(Core(record));
+                }
+            }
+            else
+            {
+                foreach (var record in enumerable)
+                {
+                    items.Add(Core(record));
+                }
+            }
+        }
+
+        return items;
+
+        Obj Core(CsvValueRecord<T> record)
+        {
+            if (!parallel)
+            {
+                index++;
+                Assert.Equal(hasHeader ? index + 1 : index, record.Line);
+                Assert.Equal(tokenPosition, record.Position);
+                tokenPosition += record.RawRecord.Length + newlineLength;
+            }
 
             Obj obj = new()
             {
@@ -302,7 +338,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
 
             Assert.Equal(5, record.FieldCount);
 
-            yield return obj;
+            return obj;
         }
     }
 
@@ -342,7 +378,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
             .WithExecutionMode(ParallelExecutionMode.ForceParallelism)
             .WithCancellation(TestContext.Current.CancellationToken);
 
-    protected static async IAsyncEnumerable<Obj> WrapParallel(IAsyncEnumerable<Obj> asyncEnumerable)
+    protected static async IAsyncEnumerable<Obj> WrapParallelAsync(IAsyncEnumerable<Obj> asyncEnumerable)
     {
         ConcurrentQueue<Obj> bag = [];
 
