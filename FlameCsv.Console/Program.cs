@@ -19,7 +19,7 @@ namespace FlameCsv.Console
     public static class Program
     {
         private static readonly byte[] _bytes
-            = File.ReadAllBytes("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv");
+            = File.ReadAllBytes("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Benchmark/Comparisons/Data/SampleCSVFile_556kb.csv");
 
         private static readonly byte[] _bytes2 = File.ReadAllBytes(
             @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\Data\65K_Records_Data.csv");
@@ -30,22 +30,27 @@ namespace FlameCsv.Console
 
         static void Main([NotNull] string[] args)
         {
-            for (int x = 0; x < 1_000; x++)
+            for (int x = 0; x < 200; x++)
             {
-                if (x == 100) MeasureProfiler.StartCollectingData();
+                if (x == 30) MeasureProfiler.StartCollectingData();
 
-                CsvWriter.Write(Stream.Null, _entries, EntryTypeMap.Default);
-
-                foreach (var data in (byte[][])[_bytes, _bytes2])
+                foreach (var item in CsvReader.Read<Entry>(_bytes, EntryTypeMap.Default, _options))
                 {
-                    foreach (var reader in CsvParser.Create(_options, new ReadOnlySequence<byte>(data)).ParseRecords())
-                    {
-                        for (int i = 0; i < reader.FieldCount; i++)
-                        {
-                            _ = reader[i];
-                        }
-                    }
+                    _ = item;
                 }
+
+                // CsvWriter.Write(Stream.Null, _entries, EntryTypeMap.Default);
+                //
+                // foreach (var data in (byte[][])[_bytes, _bytes2])
+                // {
+                //     foreach (var reader in CsvParser.Create(_options, new ReadOnlySequence<byte>(data)).ParseRecords())
+                //     {
+                //         for (int i = 0; i < reader.FieldCount; i++)
+                //         {
+                //             _ = reader[i];
+                //         }
+                //     }
+                // }
             }
 
 #if false
