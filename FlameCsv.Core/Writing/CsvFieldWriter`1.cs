@@ -130,7 +130,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
             InvalidTokensWritten.Throw(Options, tokensWritten, destination.Length);
         }
 
-        if (skipEscaping || _fieldQuoting == CsvFieldQuoting.Never)
+        if (skipEscaping || _fieldQuoting is CsvFieldQuoting.Never)
         {
             Writer.Advance(tokensWritten);
         }
@@ -158,7 +158,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
         scoped Span<T> destination = Writer.GetSpan(value.Length);
         value.CopyTo(destination);
 
-        if (skipEscaping || _fieldQuoting == CsvFieldQuoting.Never)
+        if (skipEscaping || _fieldQuoting is CsvFieldQuoting.Never)
         {
             Writer.Advance(value.Length);
         }
@@ -227,7 +227,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
         int tokensWritten)
         where TEscaper : struct, IEscaper<T>, allows ref struct
     {
-        if (_fieldQuoting == CsvFieldQuoting.Never)
+        if (_fieldQuoting is CsvFieldQuoting.Never)
         {
             Writer.Advance(tokensWritten);
             return;
@@ -236,7 +236,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
         // empty writes don't need escaping
         if (tokensWritten == 0)
         {
-            if (_fieldQuoting == CsvFieldQuoting.Always)
+            if (_fieldQuoting is CsvFieldQuoting.Always or CsvFieldQuoting.Empty)
             {
                 // Ensure the buffer is large enough
                 if (destination.Length < 2)
@@ -257,7 +257,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
         bool shouldQuote;
         int escapableCount;
 
-        if (_fieldQuoting == CsvFieldQuoting.Always)
+        if (_fieldQuoting is CsvFieldQuoting.Always)
         {
             shouldQuote = true;
             escapableCount = escaper.CountEscapable(written);
