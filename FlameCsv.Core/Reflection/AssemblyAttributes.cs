@@ -7,15 +7,15 @@ namespace FlameCsv.Reflection;
 
 internal static class AssemblyAttributes
 {
-    private static Lazy<FrozenDictionary<Type, List<object>>>? _attributes;
+    private static Lazy<FrozenDictionary<Type, List<CsvConfigurationAttribute>>>? _attributes;
 
-    public static ReadOnlySpan<object> Get(Type type)
+    public static ReadOnlySpan<CsvConfigurationAttribute> Get(Type type)
     {
-        Lazy<FrozenDictionary<Type, List<object>>>? local = _attributes;
+        Lazy<FrozenDictionary<Type, List<CsvConfigurationAttribute>>>? local = _attributes;
 
         if (local is null)
         {
-            var newInstance = new Lazy<FrozenDictionary<Type, List<object>>>(InitializeAttributes);
+            var newInstance = new Lazy<FrozenDictionary<Type, List<CsvConfigurationAttribute>>>(InitializeAttributes);
             local = Interlocked.CompareExchange(ref _attributes, newInstance, null) ?? _attributes;
 
             // check if we actually replaced the field
@@ -33,22 +33,22 @@ internal static class AssemblyAttributes
             return CollectionsMarshal.AsSpan(list);
         }
 
-        return ReadOnlySpan<object>.Empty;
+        return ReadOnlySpan<CsvConfigurationAttribute>.Empty;
     }
 
-    private static FrozenDictionary<Type, List<object>> InitializeAttributes()
+    private static FrozenDictionary<Type, List<CsvConfigurationAttribute>> InitializeAttributes()
     {
-        var attributes = new Dictionary<Type, List<object>>();
+        var attributes = new Dictionary<Type, List<CsvConfigurationAttribute>>();
 
         foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
         {
-            foreach (var attribute in assembly.GetCustomAttributes(
+            foreach (CsvConfigurationAttribute attribute in assembly.GetCustomAttributes(
                          typeof(CsvConfigurationAttribute),
                          inherit: false))
             {
-                ref List<object>? list = ref CollectionsMarshal.GetValueRefOrAddDefault(
+                ref List<CsvConfigurationAttribute>? list = ref CollectionsMarshal.GetValueRefOrAddDefault(
                     attributes,
-                    ((CsvConfigurationAttribute)attribute).TargetType,
+                    attribute.TargetType,
                     out _);
 
                 (list ??= []).Add(attribute);

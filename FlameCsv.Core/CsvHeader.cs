@@ -15,8 +15,16 @@ public sealed class CsvHeader
 {
     static CsvHeader()
     {
-        HeaderPool = new(minimumSize: 32);
-        HotReloadService.RegisterForHotReload(HeaderPool, static state => ((StringPool)state).Reset());
+        if (Messages.CachingDisabled)
+        {
+            HeaderPool = null!;
+        }
+        else
+        {
+            HeaderPool = new(minimumSize: 32);
+        }
+
+        HotReloadService.RegisterForHotReload(HeaderPool, static state => ((StringPool)state)?.Reset());
     }
 
     internal static readonly StringPool HeaderPool;
@@ -72,7 +80,9 @@ public sealed class CsvHeader
     {
         // pool headers if we know someone hasn't overridden the default implementation,
         // so multiple different options-types don't write their own intrepretation to the same cache
-        if (!options.IsInherited && options.TryGetChars(value, buffer, out int length))
+        if (!Messages.CachingDisabled &&
+            !options.IsInherited &&
+            options.TryGetChars(value, buffer, out int length))
         {
             return HeaderPool.GetOrAdd(buffer.Slice(0, length));
         }

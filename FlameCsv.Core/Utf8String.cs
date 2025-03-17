@@ -40,6 +40,8 @@ internal sealed class Utf8String
             _ => new Utf8String(value),
         };
 
+    public ReadOnlySpan<byte> Span => _bytes.Span;
+
     public static implicit operator string?(Utf8String? value) => value?._string;
     public static implicit operator ReadOnlyMemory<byte>(Utf8String value) => value._bytes;
 }

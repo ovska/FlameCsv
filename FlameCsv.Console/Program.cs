@@ -19,10 +19,15 @@ namespace FlameCsv.Console
     public static class Program
     {
         private static readonly byte[] _bytes
-            = File.ReadAllBytes("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Benchmark/Comparisons/Data/SampleCSVFile_556kb.csv");
+            = File.ReadAllBytes(
+                "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Benchmark/Comparisons/Data/SampleCSVFile_556kb.csv");
 
-        private static readonly byte[] _bytes2 = File.ReadAllBytes(
-            @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\Data\65K_Records_Data.csv");
+        private static readonly byte[] _bytesSmall
+            = File.ReadAllBytes(
+                "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Benchmark/Comparisons/Data/SampleCSVFile_10records.csv");
+
+        // private static readonly byte[] _bytes2 = File.ReadAllBytes(
+        //     @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\Data\65K_Records_Data.csv");
 
         private static readonly ReadOnlySequence<byte> _byteSeq = new(_bytes.AsMemory());
 
@@ -30,6 +35,20 @@ namespace FlameCsv.Console
 
         static void Main([NotNull] string[] args)
         {
+            _ = _bytesSmall;
+            System.Console.ReadLine();
+
+            MeasureProfiler.StartCollectingData();
+
+            foreach (var item in CsvReader.Read<Entry>(_bytesSmall, EntryTypeMap.Default, _options))
+            {
+                _ = item;
+            }
+
+            MeasureProfiler.StopCollectingData();
+
+            return;
+
             for (int x = 0; x < 200; x++)
             {
                 if (x == 30) MeasureProfiler.StartCollectingData();
@@ -94,12 +113,12 @@ namespace FlameCsv.Console
         }
 
 #pragma warning disable IL2026
-        private static Entry[] _entries = CsvReader
+        private static Lazy<Entry[]> _entries = new(() => CsvReader
             .Read<Entry>(
                 File.ReadAllBytes(
                     "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv"),
                 new() { HasHeader = false })
-            .ToArray();
+            .ToArray());
 #pragma warning restore IL2026
     }
 

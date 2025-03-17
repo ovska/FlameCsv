@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Attributes;
 using FlameCsv.Binding;
@@ -16,7 +17,7 @@ internal static class AttributeConfiguration
 
     internal sealed class HeaderData(
         List<BindingData> candidates,
-        List<int> ignoredIndexes)
+        ImmutableArray<int> ignoredIndexes)
     {
         public ReadOnlySpan<BindingData> Value => candidates.AsSpan();
         public ReadOnlySpan<int> IgnoredIndexes => ignoredIndexes.AsSpan();
@@ -57,9 +58,9 @@ internal static class AttributeConfiguration
     private static HeaderData Create(CsvTypeInfo typeInfo, bool write)
     {
         List<BindingData> candidates = [];
-        HashSet<int> ignoredIndexes = [];
+        HashSet<int>? ignoredIndexes = null;
 
-        Dictionary<(string nameof, bool isParameter), List<CsvFieldConfigurationAttribute>> dict = [];
+        Dictionary<(string name, bool isParameter), List<CsvFieldConfigurationAttribute>> dict = [];
 
         void AddAttribute(
             CsvFieldConfigurationAttribute baseAttr,
@@ -69,20 +70,16 @@ internal static class AttributeConfiguration
             string name = knownName ?? baseAttr.MemberName;
             bool isParameter = knownParameter ?? baseAttr.IsParameter;
 
+            if (write && isParameter) return;
+
             if (string.IsNullOrEmpty(name))
             {
                 throw new CsvConfigurationException(
                     $"The {baseAttr.GetType().Name} attribute must specify a member name (on type {typeInfo.Type.FullName}).");
             }
 
-            if (write && isParameter) return;
-
-            if (!dict.TryGetValue((name, isParameter), out var list))
-            {
-                dict.Add((name, isParameter), list = []);
-            }
-
-            list.Add(baseAttr);
+            ref var list = ref CollectionsMarshal.GetValueRefOrAddDefault(dict, (name, isParameter), out _);
+            (list ??= []).Add(baseAttr);
         }
 
         foreach (var attr in AssemblyAttributes.Get(typeInfo.Type))
@@ -95,7 +92,7 @@ internal static class AttributeConfiguration
             {
                 foreach (var index in ignored.Value)
                 {
-                    ignoredIndexes.Add(index);
+                    (ignoredIndexes ??= []).Add(index);
                 }
             }
         }
@@ -110,7 +107,7 @@ internal static class AttributeConfiguration
             {
                 foreach (var index in ignored.Value)
                 {
-                    ignoredIndexes.Add(index);
+                    (ignoredIndexes ??= []).Add(index);
                 }
             }
         }
@@ -266,9 +263,9 @@ internal static class AttributeConfiguration
 
         candidates.Sort();
 
-        var ignoreList = ignoredIndexes.ToList();
-        ignoreList.Sort();
+        int[] ignoreList = ignoredIndexes?.ToArray() ?? [];
+        ignoreList.AsSpan().Sort();
 
-        return new HeaderData(candidates, ignoreList);
+        return new HeaderData(candidates, ImmutableCollectionsMarshal.AsImmutableArray(ignoreList));
     }
 }

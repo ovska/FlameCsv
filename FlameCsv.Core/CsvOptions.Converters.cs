@@ -208,7 +208,12 @@ partial class CsvOptions<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void CheckConverterCacheSize()
     {
-        if (ConverterCache.Count >= MaxConverterCacheSize) ConverterCache.Clear();
+        var max = MaxConverterCacheSize;
+
+        if (max != int.MaxValue && ConverterCache.Count >= MaxConverterCacheSize)
+        {
+            ConverterCache.Clear();
+        }
     }
 }
 

@@ -27,6 +27,7 @@ public partial class TypeMapGenerator
             writer.WriteLine();
             writer.WriteLine(
                 "global::System.Collections.Generic.IEqualityComparer<string> comparer = options.Comparer;");
+            writer.WriteLine("bool anyBound = false;");
             writer.WriteLine();
             writer.WriteLine("for (int index = 0; index < headers.Length; index++)");
 
@@ -53,7 +54,7 @@ public partial class TypeMapGenerator
 
             writer.WriteLine();
             writer.WriteLine(
-                "if (!global::System.MemoryExtensions.ContainsAnyInRange(materializer.Targets, @s__MinId, @s__MaxId))");
+                "if (!anyBound)");
 
             using (writer.WriteBlock())
             {
@@ -523,6 +524,7 @@ public partial class TypeMapGenerator
                     writer.Write("materializer.Targets[index] = ");
                     member.WriteId(writer);
                     writer.WriteLine(";");
+                    writer.WriteLine("anyBound = true;");
                     writer.WriteLine("continue;");
                 }
 

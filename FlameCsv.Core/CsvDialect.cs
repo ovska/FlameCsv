@@ -245,27 +245,13 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     [MethodImpl(MethodImplOptions.NoInlining)]
     private bool GetIsAscii()
     {
-        bool retVal = false;
-        ValueListBuilder<T> list = new(stackalloc T[8]);
+        T max = T.CreateChecked(127);
 
-        list.Append(Delimiter);
-        list.Append(Quote);
-        if (Escape.HasValue) list.Append(Escape.Value);
-        list.Append(Newline); // empty newline is CRLF -> always ASCII
-        list.Append(Whitespace);
+        if (Delimiter > max || Quote > max || (Escape > max)) return false;
+        foreach (var c in Newline) if (c > max) return false;
+        foreach (var c in Whitespace) if (c > max) return false;
 
-        if (Unsafe.SizeOf<T>() == sizeof(byte))
-        {
-            retVal = Ascii.IsValid(list.AsSpan().Cast<T, byte>());
-        }
-
-        if (Unsafe.SizeOf<T>() == sizeof(char))
-        {
-            retVal = Ascii.IsValid(list.AsSpan().Cast<T, char>());
-        }
-
-        list.Dispose();
-        return retVal;
+        return true;
     }
 
     private static SearchValues<T> ToSearchValues(ReadOnlySpan<T> tokens)
@@ -326,8 +312,17 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         if (delimiter == T.Zero) errors.Append(NullError("Delimiter"));
         if (quote == T.Zero) errors.Append(NullError("Quote"));
         if (escape.HasValue && escape.Value == T.Zero) errors.Append(NullError("Escape"));
-        if (newline.Contains(T.Zero)) errors.Append(NullError("Newline"));
+
+        foreach (var c in newline)
+        {
+            if (c == T.Zero)
+            {
+                errors.Append(NullError("Newline"));
+                break;
+            }
+        }
         // allow zero in whitespace
+
         if (errors.Length > 0) goto CheckErrors;
 
         if (delimiter.Equals(quote))
@@ -350,29 +345,31 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         }
         else
         {
-            if (newline.Contains(delimiter))
-                errors.Append("Newline must not contain Delimiter.");
-
-            if (newline.Contains(quote))
-                errors.Append("Newline must not contain Quote.");
-
-            if (escape.HasValue && newline.Contains(escape.GetValueOrDefault()))
-                errors.Append("Newline must not contain Escape.");
+            foreach (var c in newline)
+            {
+                if (c == delimiter) errors.Append("Newline must not contain Delimiter.");
+                if (c == quote) errors.Append("Newline must not contain Quote.");
+                if (c == escape) errors.Append("Newline must not contain Escape.");
+            }
         }
 
         if (!whitespace.IsEmpty)
         {
-            if (whitespace.Contains(delimiter))
-                errors.Append("Whitespace must not contain Delimiter.");
+            foreach (var c in whitespace)
+            {
+                if (c == delimiter) errors.Append("Whitespace must not contain Delimiter.");
+                if (c == quote) errors.Append("Whitespace must not contain Quote.");
+                if (c == escape) errors.Append("Whitespace must not contain Escape.");
 
-            if (whitespace.Contains(quote))
-                errors.Append("Whitespace must not contain Quote.");
-
-            if (escape.HasValue && whitespace.Contains(escape.GetValueOrDefault()))
-                errors.Append("Whitespace must not contain Escape.");
-
-            if (whitespace.IndexOfAny(newline) >= 0)
-                errors.Append("Whitespace must not contain Newline characters.");
+                foreach (var c2 in newline)
+                {
+                    if (c == c2)
+                    {
+                        errors.Append("Whitespace must not contain Newline characters.");
+                        break;
+                    }
+                }
+            }
         }
 
         // otherwise valid, but invalid tokens for utf8
