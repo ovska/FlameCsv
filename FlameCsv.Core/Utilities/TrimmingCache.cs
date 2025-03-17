@@ -41,7 +41,14 @@ internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKe
 
     public TrimmingCache(IEqualityComparer<TKey>? comparer = null)
     {
+        if (Messages.CachingDisabled)
+        {
+            _entries = null!;
+            return;
+        }
+
         _entries = new(comparer);
+
         Gen2GcCallback.Register(Trim, targetObj: this);
 
         HotReloadService.RegisterForHotReload(
@@ -56,7 +63,7 @@ internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKe
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
     {
-        if (!_disposed && _entries.TryGetValue(key, out var entry))
+        if (!Messages.CachingDisabled && !_disposed && _entries.TryGetValue(key, out var entry))
         {
             entry.LastAccess = Environment.TickCount64;
             value = entry.Value;
@@ -70,7 +77,7 @@ internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKe
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Add(TKey key, TValue value)
     {
-        if (_disposed) return;
+        if (_disposed || Messages.CachingDisabled) return;
 
         _entries.AddOrUpdate(
             key,
@@ -91,8 +98,12 @@ internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKe
         if (!_disposed)
         {
             _disposed = true;
-            _entries.Clear();
-            HotReloadService.UnregisterForHotReload(this);
+
+            if (!Messages.CachingDisabled)
+            {
+                _entries.Clear();
+                HotReloadService.UnregisterForHotReload(this);
+            }
         }
     }
 

@@ -7,6 +7,14 @@ using Sylvan.Data;
 
 namespace FlameCsv.Benchmark.Comparisons;
 
+/*
+config = config.AddJob(Job.Default.WithStrategy(RunStrategy.ColdStart)
+    .WithIterationCount(1)
+    .WithLaunchCount(1)
+    .WithWarmupCount(1)
+    .WithEnvironmentVariable("FLAMECSV_DISABLE_CACHING", "1"));
+ */
+
 [DryJob]
 [MemoryDiagnoser]
 public class ReadCold

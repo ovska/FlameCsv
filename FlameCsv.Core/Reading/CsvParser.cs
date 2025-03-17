@@ -13,15 +13,14 @@ namespace FlameCsv.Reading;
 [PublicAPI]
 public abstract class CsvParser
 {
-    // TODO: profile and adjust
-    private protected const int BufferedFields = 4096;
+    private static readonly int _fieldBufferLength = Messages.ReadAheadCount;
 
     [ThreadStatic] private static Meta[]? StaticMetaBuffer;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private protected static Meta[] GetMetaBuffer()
     {
-        Meta[] array = StaticMetaBuffer ?? new Meta[BufferedFields];
+        Meta[] array = StaticMetaBuffer ?? new Meta[_fieldBufferLength];
         StaticMetaBuffer = null;
         return array;
     }
@@ -30,7 +29,7 @@ public abstract class CsvParser
     private protected static void ReturnMetaBuffer(ref Meta[] array)
     {
         // return the buffer to the thread-static unless someone read over a thousand fields into it
-        if (array.Length == BufferedFields)
+        if (array.Length == _fieldBufferLength)
         {
             StaticMetaBuffer ??= array;
         }

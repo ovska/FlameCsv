@@ -1,4 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 
 namespace FlameCsv;
@@ -47,11 +50,26 @@ public partial class CsvOptions<T>
             Quote = T.CreateChecked(_quote),
             Escape = _escape.HasValue ? T.CreateChecked(_escape.Value) : null,
             Newline = GetSpan(this, _newline, stackalloc T[8]),
-            Whitespace = GetSpan(this, _whitespace, stackalloc T[8])
+            Whitespace = GetSpan(this, _whitespace, stackalloc T[8]),
         };
 
         static ReadOnlySpan<T> GetSpan(CsvOptions<T> @this, string? value, Span<T> buffer)
         {
+            if (string.IsNullOrEmpty(value)) return [];
+
+            if (typeof(T) == typeof(char))
+            {
+                return value.AsSpan().Cast<char, T>();
+            }
+
+            if (typeof(T) == typeof(byte))
+            {
+                if (value == Utf8String.CRLF) return Utf8String.CRLF.Span.Cast<byte, T>();
+                if (value == Utf8String.LF) return Utf8String.LF.Span.Cast<byte, T>();
+                if (value == Utf8String.Space) return Utf8String.Space.Span.Cast<byte, T>();
+                return Encoding.UTF8.GetBytes(value).AsSpan().Cast<byte, T>();
+            }
+
             return @this.TryWriteChars(value, buffer, out int written) && (uint)written <= (uint)buffer.Length
                 ? buffer.Slice(0, written)
                 : @this.GetFromString(value).Span;
