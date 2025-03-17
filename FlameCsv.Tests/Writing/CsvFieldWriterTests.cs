@@ -147,10 +147,16 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
     [Theory]
     [InlineData(CsvFieldQuoting.Auto, "", "")]
     [InlineData(CsvFieldQuoting.Auto, ",", "\",\"")]
+    [InlineData(CsvFieldQuoting.Auto, "x", "x")]
+    [InlineData(CsvFieldQuoting.Empty, "", "\"\"")]
+    [InlineData(CsvFieldQuoting.Empty, ",", "\",\"")]
+    [InlineData(CsvFieldQuoting.Empty, "x", "x")]
     [InlineData(CsvFieldQuoting.Always, "", "\"\"")]
     [InlineData(CsvFieldQuoting.Always, ",", "\",\"")]
+    [InlineData(CsvFieldQuoting.Always, "x", "\"x\"")]
     [InlineData(CsvFieldQuoting.Never, "", "")]
     [InlineData(CsvFieldQuoting.Never, ",", ",")]
+    [InlineData(CsvFieldQuoting.Never, "x", "x")]
     public async Task Should_Quote_Fields(CsvFieldQuoting quoting, string input, string expected)
     {
         Initialize(quoting);

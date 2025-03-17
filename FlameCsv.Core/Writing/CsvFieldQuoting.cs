@@ -3,7 +3,7 @@
 /// <summary>
 /// Enumeration that determines when CSV fields should be wrapped in quotes when writing.
 /// </summary>
-public enum CsvFieldQuoting
+public enum CsvFieldQuoting : byte
 {
     /// <summary>
     /// Fields are quoted only when they contain special characters (delimiters, quotes, newlines, escapes).
@@ -16,10 +16,15 @@ public enum CsvFieldQuoting
     Always = 1,
 
     /// <summary>
+    /// Same as <see cref="Auto"/>, but empty fields are quoted.
+    /// </summary>
+    Empty = 2,
+
+    /// <summary>
     /// Never quote or escape fields.
     /// </summary>
     /// <remarks>
     /// Can result in invalid CSV being written, use with caution.
     /// </remarks>
-    Never = 2,
+    Never = byte.MaxValue,
 }
