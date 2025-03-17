@@ -60,16 +60,14 @@ partial class CsvOptions<T>
                 return converter;
             }
 
-            if (typeof(T) == typeof(char) &&
-                DefaultConverters.Text.Value.TryGetValue(typeof(TResult), out var factory1))
+            if (typeof(T) == typeof(char) && DefaultConverters.GetText(typeof(TResult)) is { } factory1)
             {
                 converter = Unsafe.As<CsvConverter<T, TResult>>(factory1(Unsafe.As<CsvOptions<char>>(this._options)));
             }
 
-            if (typeof(T) == typeof(byte) &&
-                DefaultConverters.Utf8.Value.TryGetValue(typeof(TResult), out var factory))
+            if (typeof(T) == typeof(byte) && DefaultConverters.GetUtf8(typeof(TResult)) is { } factory2)
             {
-                converter = Unsafe.As<CsvConverter<T, TResult>>(factory(Unsafe.As<CsvOptions<byte>>(this._options)));
+                converter = Unsafe.As<CsvConverter<T, TResult>>(factory2(Unsafe.As<CsvOptions<byte>>(this._options)));
             }
 
             if (converter is null)

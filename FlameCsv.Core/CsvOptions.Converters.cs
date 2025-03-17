@@ -175,7 +175,7 @@ partial class CsvOptions<T>
         {
             CsvOptions<char> options = Unsafe.As<CsvOptions<char>>(this);
 
-            CsvConverter<char>? result = DefaultConverters.Text.Value.TryGetValue(type, out var factory)
+            CsvConverter<char>? result = DefaultConverters.GetText(type) is { } factory
                 ? factory(options)
                 : DefaultConverterFactories.TryCreateChar(type, options);
 
@@ -190,7 +190,7 @@ partial class CsvOptions<T>
         {
             CsvOptions<byte> options = Unsafe.As<CsvOptions<byte>>(this);
 
-            CsvConverter<byte>? result = DefaultConverters.Utf8.Value.TryGetValue(type, out var factory)
+            CsvConverter<byte>? result = DefaultConverters.GetUtf8(type) is { } factory
                 ? factory(options)
                 : DefaultConverterFactories.TryCreateByte(type, options);
 

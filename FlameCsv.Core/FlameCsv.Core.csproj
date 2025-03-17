@@ -24,10 +24,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Update="Converters\NumberConverters.Generated.tt">
-            <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>NumberConverters.Generated.cs</LastGenOutput>
-        </None>
         <None Update="Runtime\CsvReader.Generated.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>CsvReader.Generated.cs</LastGenOutput>
@@ -51,11 +47,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Compile Update="Converters\NumberConverters.Generated.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>NumberConverters.Generated.tt</DependentUpon>
-        </Compile>
         <Compile Update="Runtime\CsvReader.Generated.cs">
             <DesignTime>True</DesignTime>
             <AutoGen>True</AutoGen>
