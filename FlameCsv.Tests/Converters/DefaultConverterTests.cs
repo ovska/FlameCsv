@@ -23,8 +23,6 @@ public abstract class DefaultConverterTests<T> where T : unmanaged, IBinaryInteg
     [Fact]
     public void NotEnoughSpace()
     {
-        SpanUtf8ConverterFactory.Instance.CanConvert(typeof(DateTime));
-
         var o = new CsvOptions<T> { Null = "null" };
 
         ExecuteLocal(true);
@@ -50,6 +48,14 @@ public abstract class DefaultConverterTests<T> where T : unmanaged, IBinaryInteg
     }
 
     [Fact]
+    public void Timespans()
+    {
+        var o = new CsvOptions<T> { Formats = { { typeof(TimeSpan), "c" } } };
+        Execute("00:00:00", TimeSpan.Zero, o);
+        Execute("01:23:45", new TimeSpan(1, 23, 45), o);
+    }
+
+    [Fact]
     public void Dates()
     {
         var o = new CsvOptions<T> { Formats = { { typeof(DateTimeOffset), "O" } } };
@@ -70,6 +76,8 @@ public abstract class DefaultConverterTests<T> where T : unmanaged, IBinaryInteg
 
         Execute("true", true);
         Execute("false", false);
+
+        Execute("x", 'x');
     }
 
     [Fact]
@@ -78,14 +86,14 @@ public abstract class DefaultConverterTests<T> where T : unmanaged, IBinaryInteg
         RunFloat<float>();
         RunFloat<double>();
         RunFloat<decimal>();
-
-        if (typeof(T) != typeof(byte))
-            RunFloat<Half>();
+        RunFloat<Half>();
     }
 
     [Fact]
     public void Integers()
     {
+        RunInt<byte>();
+        RunInt<sbyte>();
         RunInt<short>();
         RunInt<int>();
         RunInt<long>();
