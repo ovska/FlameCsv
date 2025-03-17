@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
-using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using FastExpressionCompiler.LightExpression;
 using FlameCsv.Binding;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
