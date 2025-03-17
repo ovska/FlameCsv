@@ -1,7 +1,7 @@
 using System.Diagnostics;
-using System.Linq.Expressions;
 using System.Reflection;
 using CommunityToolkit.HighPerformance.Helpers;
+using FastExpressionCompiler.LightExpression;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;

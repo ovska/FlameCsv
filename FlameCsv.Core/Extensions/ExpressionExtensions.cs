@@ -1,8 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq.Expressions;
 using System.Reflection;
-using FastExpressionCompiler;
+using FastExpressionCompiler.LightExpression;
 
 namespace FlameCsv.Extensions;
 
@@ -62,19 +61,19 @@ internal static class ExpressionExtensions
         };
     }
 
-    public static MemberInfo GetMemberInfo(this LambdaExpression memberExpression)
+    public static MemberInfo GetMemberInfo(this System.Linq.Expressions.LambdaExpression memberExpression)
     {
         ArgumentNullException.ThrowIfNull(memberExpression);
 
-        if (memberExpression.Body is MemberExpression { Member: var member })
+        if (memberExpression.Body is System.Linq.Expressions.MemberExpression { Member: var member })
             return member;
 
         // Func<T, object?> turns into implicit conversion e.g. x => (object)x.Id
         if (memberExpression.ReturnType == typeof(object)
-            && memberExpression.Body is UnaryExpression
+            && memberExpression.Body is System.Linq.Expressions.UnaryExpression
             {
-                NodeType: ExpressionType.Convert,
-                Operand: MemberExpression inner,
+                NodeType: System.Linq.Expressions.ExpressionType.Convert,
+                Operand: System.Linq.Expressions.MemberExpression inner,
             })
         {
             return inner.Member;
