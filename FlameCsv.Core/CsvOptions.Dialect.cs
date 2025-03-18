@@ -49,14 +49,12 @@ public partial class CsvOptions<T>
             Delimiter = T.CreateChecked(_delimiter),
             Quote = T.CreateChecked(_quote),
             Escape = _escape.HasValue ? T.CreateChecked(_escape.Value) : null,
-            Newline = GetSpan(this, _newline, stackalloc T[8]),
-            Whitespace = GetSpan(this, _whitespace, stackalloc T[8]),
+            Newline = string.IsNullOrEmpty(_newline) ? [] : GetSpan(this, _newline, stackalloc T[8]),
+            Whitespace = string.IsNullOrEmpty(_whitespace) ? [] : GetSpan(this, _whitespace, stackalloc T[8]),
         };
 
-        static ReadOnlySpan<T> GetSpan(CsvOptions<T> @this, string? value, Span<T> buffer)
+        static ReadOnlySpan<T> GetSpan(CsvOptions<T> @this, string value, Span<T> buffer)
         {
-            if (string.IsNullOrEmpty(value)) return [];
-
             if (typeof(T) == typeof(char))
             {
                 return value.AsSpan().Cast<char, T>();
