@@ -27,7 +27,8 @@ namespace FlameCsv;
 public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
-    /// Returns read-only default options for <typeparamref name="T"/> with same configuration as <c>new()</c>.
+    /// Returns read-only default options for <typeparamref name="T"/> with the same configuration as <c>new()</c>.
+    /// The returned instance is thread-safe.
     /// </summary>
     /// <remarks>
     /// Throws <see cref="NotSupportedException"/> for token types other than <see langword="char"/> or <see langword="byte"/>.
@@ -96,6 +97,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         ConverterCache = new(other.ConverterCache, other.ConverterCache.Comparer);
 
         // check in case either of these types is a derived type with a different max size
+        // TODO: figure out how to do it more robustly on derived types
         CheckConverterCacheSize();
     }
 
