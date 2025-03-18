@@ -1,6 +1,8 @@
-﻿using System.Collections.Concurrent;
+﻿#if FEATURE_PARALLEL
+using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
+#endif
 
 namespace FlameCsv.Reading.Internal;
 
@@ -11,6 +13,7 @@ internal interface IRecordOwner
     IDictionary<object, object> MaterializerCache { get; }
 }
 
+#if FEATURE_PARALLEL
 internal sealed class ParallelEnumerationOwner : IRecordOwner, IDisposable
 {
     public int Version => Interlocked.CompareExchange(ref _version, 0, 0);
@@ -42,3 +45,4 @@ internal sealed class ParallelEnumerationOwner : IRecordOwner, IDisposable
         while (Interlocked.Exchange(ref _version, -1) != -1) ;
     }
 }
+#endif
