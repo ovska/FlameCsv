@@ -36,6 +36,8 @@ public sealed class CsvHeader
         [RequireStaticDelegate] Func<TState, ReadOnlySpan<string>, TResult> callback)
         where T : unmanaged, IBinaryInteger<T>
     {
+        if (record.FieldCount == 0) CsvFormatException.Throw("CSV header was empty");
+
         StringScratch scratch = default;
         using ValueListBuilder<string> list = new(scratch);
         Span<char> charBuffer = stackalloc char[128];
@@ -46,19 +48,6 @@ public sealed class CsvHeader
         }
 
         ReadOnlySpan<string> headers = list.AsSpan();
-
-        if (headers.IsEmpty) CsvFormatException.Throw("CSV header was empty");
-
-        for (int i = 0; i < headers.Length; i++)
-        {
-            for (int j = 0; j < headers.Length; j++)
-            {
-                if (i != j && options.Comparer.Equals(headers[i], headers[j]))
-                {
-                    ThrowExceptionForDuplicateHeaderField(i, j, headers);
-                }
-            }
-        }
 
         return callback(state, headers);
     }

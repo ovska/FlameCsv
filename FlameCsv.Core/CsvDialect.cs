@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Text;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -53,15 +52,15 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
                 return;
             }
 
-            if (value.Length == 1 && value[0] == T.CreateChecked('\n'))
+            if (value.Length == 1 && value[0] == T.CreateTruncating('\n'))
             {
-                _newline = _cachedLF ??= [T.CreateChecked('\n')];
+                _newline = _cachedLF;
                 return;
             }
 
-            if (value.Length == 2 && value[0] == T.CreateChecked('\r') && value[1] == T.CreateChecked('\n'))
+            if (value.Length == 2 && value[0] == T.CreateTruncating('\r') && value[1] == T.CreateTruncating('\n'))
             {
-                _newline = _cachedCRLF ??= [T.CreateChecked('\r'), T.CreateChecked('\n')];
+                _newline = _cachedCRLF;
                 return;
             }
 
@@ -91,17 +90,19 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
                 return;
             }
 
-            using ValueListBuilder<T> list = new(stackalloc T[8]);
-
-            foreach (var token in value)
+            using (ValueListBuilder<T> list = new(stackalloc T[8]))
             {
-                if (!list.AsSpan().Contains(token))
+                foreach (var token in value)
                 {
-                    list.Append(token);
+                    if (!list.AsSpan().Contains(token))
+                    {
+                        list.Append(token);
+                    }
                 }
+
+                _whitespace = list.AsSpan().ToArray();
             }
 
-            _whitespace = list.AsSpan().ToArray();
             _whitespace.AsSpan().Sort();
             _whitespaceLength = _whitespace.Length;
         }
@@ -248,8 +249,12 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         T max = T.CreateChecked(127);
 
         if (Delimiter > max || Quote > max || (Escape > max)) return false;
-        foreach (var c in Newline) if (c > max) return false;
-        foreach (var c in Whitespace) if (c > max) return false;
+        foreach (var c in Newline)
+            if (c > max)
+                return false;
+        foreach (var c in Whitespace)
+            if (c > max)
+                return false;
 
         return true;
     }
@@ -500,8 +505,8 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     /// <summary></summary>
     public static bool operator !=(CsvDialect<T> left, CsvDialect<T> right) => !(left == right);
 
-    private static T[]? _cachedLF;
-    private static T[]? _cachedCRLF;
+    private static readonly T[]? _cachedLF = _cachedLF = [T.CreateTruncating('\n')];
+    private static readonly T[] _cachedCRLF = _cachedCRLF = [T.CreateTruncating('\r'), T.CreateTruncating('\n')];
 }
 
 // throwhelper doesn't need to be generic
