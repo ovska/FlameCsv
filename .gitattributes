@@ -1,2 +1,4 @@
-* text eol=lf
+*.cs text eol=lf
+*.md text eol=lf
+*.csv text eol=lf
 *.Generated.* eol=crlf
