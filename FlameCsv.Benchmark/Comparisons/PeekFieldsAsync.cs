@@ -1,19 +1,16 @@
 ﻿using System.Buffers;
 using System.Globalization;
 using System.Text;
-using FlameCsv.Attributes;
 using FlameCsv.Reading;
 using nietras.SeparatedValues;
 using RecordParser.Builders.Reader;
 using RecordParser.Extensions;
 using Sylvan.Data.Csv;
 
-// ReSharper disable all
-
 namespace FlameCsv.Benchmark.Comparisons;
 
 [MemoryDiagnoser]
-public partial class PeekFields
+public class PeekFieldsAsync
 {
     private static readonly byte[] _data = File.ReadAllBytes("Comparisons/Data/65K_Records_Data.csv");
 
@@ -35,27 +32,20 @@ public partial class PeekFields
         HeaderComparer = StringComparer.OrdinalIgnoreCase,
     };
 
-    private static readonly FuncSpanT<double> _fastFloatFunc = (ReadOnlySpan<char> span) =>
-    {
-        ArgumentOutOfRangeException.ThrowIfNotEqual(
-            csFastFloat.FastDoubleParser.TryParseDouble(span, out double result),
-            true);
-        return result;
-    };
-
     [Benchmark(Baseline = true)]
-    public void _FlameCsv()
+    public async Task _FlameCsv()
     {
         ReadOnlySequence<byte> sequence = new(_data);
 
         double sum = 0;
 
-        using var enumerator = CsvParser.Create<byte>(_flameCsvOptions, in sequence).ParseRecords().GetEnumerator();
+        await using var enumerator
+            = CsvParser.Create<byte>(_flameCsvOptions, in sequence).ParseRecordsAsync().GetAsyncEnumerator();
 
         // skip first record
-        _ = enumerator.MoveNext();
+        _ = await enumerator.MoveNextAsync();
 
-        while (enumerator.MoveNext())
+        while (await enumerator.MoveNextAsync())
         {
             ArgumentOutOfRangeException.ThrowIfNotEqual(
                 csFastFloat.FastDoubleParser.TryParseDouble(enumerator.Current[11], out double result),
@@ -68,20 +58,21 @@ public partial class PeekFields
     }
 
     [Benchmark]
-    public void _Sep()
+    public async Task _Sep()
     {
-        using var reader = Sep.Reader(
-        o => o with
-        {
-            Sep = new Sep(','),
-            CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
-            HasHeader = true,
-        })
-        .From(_data);
+        using var reader = await Sep
+            .Reader(
+                o => o with
+                {
+                    Sep = new Sep(','),
+                    CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
+                    HasHeader = true,
+                })
+            .FromAsync(_data);
 
         double sum = 0;
 
-        foreach (var row in reader)
+        await foreach (var row in reader)
         {
             ArgumentOutOfRangeException.ThrowIfNotEqual(
                 csFastFloat.FastDoubleParser.TryParseDouble(row[11].Span, out double result),
@@ -94,14 +85,14 @@ public partial class PeekFields
     }
 
     [Benchmark]
-    public void _Sylvan()
+    public async Task _Sylvan()
     {
         using var reader = new StreamReader(new MemoryStream(_data), Encoding.UTF8);
-        using var csv = Sylvan.Data.Csv.CsvDataReader.Create(reader, _sylvanOptions);
+        await using var csv = await CsvDataReader.CreateAsync(reader, _sylvanOptions);
 
         double sum = 0;
 
-        while (csv.Read())
+        while (await csv.ReadAsync())
         {
             ArgumentOutOfRangeException.ThrowIfNotEqual(
                 csFastFloat.FastDoubleParser.TryParseDouble(csv.GetFieldSpan(11), out double result),
@@ -113,32 +104,9 @@ public partial class PeekFields
         _ = sum;
     }
 
-    [Benchmark]
-    public void _RecordParser()
-    {
-        using var streamReader = new StreamReader(new MemoryStream(_data), Encoding.UTF8);
-        var reader = new VariableLengthReaderSequentialBuilder<RecordEntry>()
-            .Skip(10)
-            .Map(r => r.Value, _fastFloatFunc)
-            .Build(",", CultureInfo.InvariantCulture);
-
-        var readOptions = new VariableLengthReaderOptions { HasHeader = true, ContainsQuotedFields = true };
-        var records = streamReader.ReadRecords(reader, readOptions);
-
-        double sum = 0;
-
-        foreach (var entry in records)
-        {
-            sum += entry.Value;
-        }
-
-        _ = sum;
-    }
-
-    record struct RecordEntry(double Value);
 
     [Benchmark]
-    public void _CsvHelper()
+    public async Task _CsvHelper()
     {
         using var reader = new StreamReader(new MemoryStream(_data), Encoding.UTF8);
         using var csv = new CsvHelper.CsvReader(reader, _helperConfig);
@@ -146,9 +114,9 @@ public partial class PeekFields
         double sum = 0;
 
         // skip first record
-        _ = csv.Read();
+        _ = await csv.ReadAsync();
 
-        while (csv.Read())
+        while (await csv.ReadAsync())
         {
             ArgumentOutOfRangeException.ThrowIfNotEqual(
                 csFastFloat.FastDoubleParser.TryParseDouble(csv.GetField(11), out double result),

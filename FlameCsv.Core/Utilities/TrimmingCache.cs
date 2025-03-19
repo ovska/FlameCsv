@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -110,9 +109,6 @@ internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKe
     ~TrimmingCache()
     {
         ((IDisposable)this).Dispose();
-#if DEBUG
-        throw new UnreachableException("TrimmingCache was not disposed :" + GetType().FullName);
-#endif
     }
 
     private static bool Trim(object state)

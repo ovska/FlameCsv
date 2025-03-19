@@ -22,12 +22,11 @@ The benchmarks use commonly used CSV datasets, and can be downloaded from the re
 
 ## Results
 
-> TODO: async tests
-
 ### Reading .NET objects
 
 The dataset is 5000 records of 10 fields of varied data, quoted fields, and escaped quotes.
-The data is read from a pre-loaded byte array.
+The data is read from a pre-loaded byte array to simulate real-world scenarios. FlameCSV is even faster comparatively
+when reading from a string.
 
 | Method                | Mean     |  Ratio | Allocated | Alloc Ratio |
 |----------------------:|---------:|-------:|----------:|------------:|
@@ -85,6 +84,33 @@ The objects are pre-loaded to an array.
 
 > TODO: implement cold-start benchmarks
 
+### Async
+
+Here are the reading benchmarks using async overloads (where available). The test setup is same as before (no actual IO is done),
+is meant to demonstrate the overhead of async versions.
+
+Writing benchmarks are not included as they are expected to not be significantly different from the synchronous versions
+(IO should only happen when flushing).
+
+#### Reading .NET objects
+
+| Method                | Mean     | Ratio | Allocated | Alloc Ratio |
+|----------------------:|---------:|------:|----------:|------------:|
+| FlameCsv (Reflection) | 2.307 ms |  1.00 |   1.66 MB |        1.00 |
+| FlameCsv (SourceGen)  | 2.408 ms |  1.04 |   1.66 MB |        1.00 |
+| Sylvan                | 2.891 ms |  1.25 |   2.65 MB |        1.59 |
+| CsvHelper             | 6.672 ms |  2.89 |    3.5 MB |        2.11 |
+
+#### Reading without processing all fields
+
+| Method     | Mean      | Ratio | Allocated | Alloc Ratio |
+|-----------:|----------:|------:|----------:|------------:|
+| FlameCsv   |  3.771 ms |  1.00 |     632 B |        1.00 |
+| Sep        |  4.764 ms |  1.26 |    5944 B |        9.41 |
+| Sylvan     |  6.408 ms |  1.70 |   78102 B |      123.58 |
+| CsvHelper  | 36.902 ms |  9.79 | 2935048 B |    4,644.06 |
+
+
 ## About performance
 
 Performance has been a key consideration for FlameCsv since the beginning. This means:
@@ -139,16 +165,17 @@ though these differences diminish in long-running operations.
 
 ### Why not NCsvPerf
 
-While NCsvPerf is commonly used for CSV library comparisons, it has several limitations:
+While the NCsvPerf benchmarks are commonly used for CSV library comparisons, it has several limitations:
 
 1. String Conversion: All fields are converted to strings, which:
-   - Creates unnecessary overhead
-   - Doesn't reflect modern libraries' ability to work with memory spans
+   - Creates unnecessary transcoding overhead
+   - Stresses the garbage collector needlessly
+   - Doesn't reflect modern libraries' ability to work with memory spans directly
    - Significantly impacts CPU and memory measurements
 
 2. List Accumulation: Records are collected into a list before returning, which:
    - Adds unnecessary CPU and memory overhead
-   - Doesn't reflect streaming capabilities which are critical in reading large files
+   - Doesn't reflect streaming capabilities which are critical when reading large files
 
 3. Data Homogeneity: The test data lacks real-world complexity like:
    - Quoted values
