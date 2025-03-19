@@ -13,7 +13,7 @@ namespace FlameCsv.Reading;
 [PublicAPI]
 public abstract class CsvParser
 {
-    private static readonly int _fieldBufferLength = Messages.ReadAheadCount;
+    private static readonly int _fieldBufferLength = FlameCsvGlobalOptions.ReadAheadCount;
 
     [ThreadStatic] private static Meta[]? StaticMetaBuffer;
 

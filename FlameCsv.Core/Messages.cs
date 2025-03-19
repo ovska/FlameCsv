@@ -4,26 +4,6 @@ namespace FlameCsv;
 
 internal static class Messages
 {
-    /// <summary>
-    /// Maximum number of CSV fields to read ahead. Defaults to 4096, minimum is 32.
-    /// Use <c>FLAMECSV_MAX_READ_AHEAD</c> to override.
-    /// </summary>
-    public static int ReadAheadCount { get; } =
-        Math.Max(
-            32,
-            Environment.GetEnvironmentVariable("FLAMECSV_MAX_READ_AHEAD") is { Length: > 0 } envVar &&
-            int.TryParse(envVar, out var value)
-                ? value
-                : 4096);
-
-    /// <summary>
-    /// Indicates whether the application is short-lived (<c>FLAMECSV_DISABLE_CACHING</c> environment variable is set).
-    /// </summary>
-    public static bool CachingDisabled { get; } =
-        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(ShortLivedEnvironmentVariable));
-
-    private const string ShortLivedEnvironmentVariable = "FLAMECSV_DISABLE_CACHING";
-
     public const DynamicallyAccessedMemberTypes Ctors = DynamicallyAccessedMemberTypes.PublicConstructors;
 
     public const DynamicallyAccessedMemberTypes ReflectionBound =

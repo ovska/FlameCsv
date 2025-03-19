@@ -74,8 +74,8 @@ public static partial class TypeMapBindingTests
             new ObjTypeMap_Simple().GetMaterializer(header, CsvOptions<char>.Default),
             new ObjTypeMap_Simple().GetMaterializer(header, CsvOptions<char>.Default));
 
-        // different header, we can't be sure what comparer the options instance is using
-        Assert.NotSame(
+        // we use the comparer used by the headers, so these two are equivalent
+        Assert.Same(
             ObjTypeMap_Simple.Default.GetMaterializer(["id", "name"], CsvOptions<char>.Default),
             ObjTypeMap_Simple.Default.GetMaterializer(["Id", "Name"], CsvOptions<char>.Default));
 

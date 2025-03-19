@@ -102,6 +102,9 @@
         <Compile Update="CsvConverterFactory.cs">
             <DependentUpon>CsvConverter.cs</DependentUpon>
         </Compile>
+        <Compile Update="CsvOptions.Cache.cs">
+          <DependentUpon>CsvOptions.cs</DependentUpon>
+        </Compile>
     </ItemGroup>
 
     <ItemGroup>

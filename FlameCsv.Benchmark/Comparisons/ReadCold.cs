@@ -3,6 +3,7 @@ using System.Text;
 using FlameCsv.Enumeration;
 using RecordParser.Builders.Reader;
 using RecordParser.Extensions;
+using RecordParser.Parsers;
 using Sylvan.Data;
 
 namespace FlameCsv.Benchmark.Comparisons;
@@ -16,6 +17,7 @@ config = config.AddJob(Job.Default.WithStrategy(RunStrategy.ColdStart)
  */
 
 [DryJob]
+[SimpleJob]
 [MemoryDiagnoser]
 public class ReadCold
 {
@@ -29,22 +31,40 @@ public class ReadCold
         return result;
     };
 
-    [Benchmark(Baseline = true)]
-    public void _Flame_SrcGen()
+    [Benchmark]
+    public void _CsvHelper()
     {
-        foreach (var entry in new CsvTypeMapEnumerable<byte, Entry>(
-                     _data,
-                     CsvOptions<byte>.Default,
-                     EntryTypeMapUtf8.Default))
+        using var reader = new StreamReader(new MemoryStream(_data), Encoding.UTF8);
+        using var csv = new CsvHelper.CsvReader(reader, CultureInfo.InvariantCulture);
+
+        foreach (var entry in csv.GetRecords<Entry>())
         {
             _ = entry;
         }
     }
 
     [Benchmark]
-    public void _FlameCsv()
+    public void _RecordParser()
     {
-        foreach (var entry in new CsvValueEnumerable<byte, Entry>(_data, CsvOptions<byte>.Default))
+        using var streamReader = new StreamReader(new MemoryStream(_data), Encoding.UTF8);
+
+        _recordParser ??= new VariableLengthReaderBuilder<Entry>()
+            .Map(e => e.Index, indexColumn: 0)
+            .Map(e => e.Name, indexColumn: 1)
+            .Map(e => e.Contact, indexColumn: 2)
+            .Map(e => e.Count, indexColumn: 3)
+            .Map(e => e.Latitude, indexColumn: 4, _fastFloatFunc)
+            .Map(e => e.Longitude, indexColumn: 5, _fastFloatFunc)
+            .Map(e => e.Height, indexColumn: 6, _fastFloatFunc)
+            .Map(e => e.Location, indexColumn: 7)
+            .Map(e => e.Category, indexColumn: 8)
+            .Map(e => e.Popularity, indexColumn: 9)
+            .Build(",", CultureInfo.InvariantCulture);
+
+        var readOptions = new VariableLengthReaderOptions { HasHeader = true, ContainsQuotedFields = true };
+        var records = streamReader.ReadRecords(_recordParser, readOptions);
+
+        foreach (var entry in records)
         {
             _ = entry;
         }
@@ -63,41 +83,30 @@ public class ReadCold
     }
 
     [Benchmark]
-    public void _RecordParser()
+    public void _FlameCsv()
     {
-        using var streamReader = new StreamReader(new MemoryStream(_data), Encoding.UTF8);
-
-        var reader = new VariableLengthReaderBuilder<Entry>()
-            .Map(e => e.Index, indexColumn: 0)
-            .Map(e => e.Name, indexColumn: 1)
-            .Map(e => e.Contact, indexColumn: 2)
-            .Map(e => e.Count, indexColumn: 3)
-            .Map(e => e.Latitude, indexColumn: 4, _fastFloatFunc)
-            .Map(e => e.Longitude, indexColumn: 5, _fastFloatFunc)
-            .Map(e => e.Height, indexColumn: 6, _fastFloatFunc)
-            .Map(e => e.Location, indexColumn: 7)
-            .Map(e => e.Category, indexColumn: 8)
-            .Map(e => e.Popularity, indexColumn: 9)
-            .Build(",", CultureInfo.InvariantCulture);
-
-        var readOptions = new VariableLengthReaderOptions { HasHeader = true, ContainsQuotedFields = true };
-        var records = streamReader.ReadRecords(reader, readOptions);
-
-        foreach (var entry in records)
+        foreach (var entry in new CsvValueEnumerable<byte, Entry>(
+                     _data,
+                     _flameOptions ??= new CsvOptions<byte> { Converters = { new FloatUtf8Parser() } }))
         {
             _ = entry;
         }
     }
 
-    [Benchmark]
-    public void _CsvHelper()
+    [Benchmark(Baseline = true)]
+    public void _Flame_SrcGen()
     {
-        using var reader = new StreamReader(new MemoryStream(_data), Encoding.UTF8);
-        using var csv = new CsvHelper.CsvReader(reader, CultureInfo.InvariantCulture);
-
-        foreach (var entry in csv.GetRecords<Entry>())
+        foreach (var entry in new CsvTypeMapEnumerable<byte, Entry>(
+                     _data,
+                     _flameSgOptions ??= new CsvOptions<byte> { Converters = { new FloatUtf8Parser() } },
+                     EntryTypeMapUtf8.Default))
         {
             _ = entry;
         }
     }
+
+    private static CsvOptions<byte>? _flameSgOptions;
+    private static CsvOptions<byte>? _flameOptions;
+
+    private static IVariableLengthReader<Entry>? _recordParser;
 }

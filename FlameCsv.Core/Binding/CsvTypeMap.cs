@@ -1,12 +1,9 @@
 ﻿using System.ComponentModel;
-using System.Diagnostics;
 using FlameCsv.Exceptions;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.HighPerformance.Helpers;
 using FlameCsv.Attributes;
 using FlameCsv.Extensions;
-using FlameCsv.Utilities;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Binding;
@@ -17,10 +14,6 @@ namespace FlameCsv.Binding;
 [PublicAPI]
 public abstract class CsvTypeMap
 {
-    private protected static readonly TrimmingCache<object, object> _readNoHeaderCache = new();
-    private protected static readonly TrimmingCache<object, object> _writeCache = new();
-    private protected static readonly TrimmingCache<CacheKey, object> _readHeaderCache = new();
-
     /// <summary>
     /// Returns the mapped type.
     /// </summary>
@@ -104,54 +97,5 @@ public abstract class CsvTypeMap
         throw new CsvBindingException(
             TargetType,
             $"No header fields were matched to a member or parameter: {UtilityExtensions.JoinValues(headers)}");
-    }
-
-    private protected sealed class CacheKey : IEquatable<CacheKey>
-    {
-        public static bool CanCache(int headersLength) => headersLength <= StringScratch.MaxLength;
-
-        private readonly WeakReference<object> _options;
-        private readonly WeakReference<CsvTypeMap> _typeMap;
-        private readonly Type _targetType;
-        private readonly int _length;
-        private StringScratch _headers;
-
-        public CacheKey(object options, CsvTypeMap typeMap, Type targetType, ReadOnlySpan<string> headers)
-        {
-            Debug.Assert(headers.Length <= StringScratch.MaxLength);
-
-            _options = new(options);
-            _typeMap = new(typeMap);
-            _targetType = targetType;
-            _length = headers.Length;
-            _headers = default;
-            headers.CopyTo(_headers!);
-        }
-
-        public bool Equals(CacheKey? other)
-        {
-            return
-                other is not null &&
-                _length == other._length &&
-                _targetType == other._targetType &&
-                _headers.AsSpan(_length).SequenceEqual(other._headers.AsSpan(other._length)) &&
-                _options.TryGetTarget(out object? target) &&
-                other._options.TryGetTarget(out object? otherTarget) &&
-                ReferenceEquals(target, otherTarget) &&
-                _typeMap.TryGetTarget(out CsvTypeMap? typeMap) &&
-                other._typeMap.TryGetTarget(out CsvTypeMap? otherTypeMap) &&
-                ReferenceEquals(typeMap, otherTypeMap);
-        }
-
-        public override bool Equals(object? obj) => Equals(obj as CacheKey);
-
-        // ReSharper disable once NonReadonlyMemberInGetHashCode
-        public override int GetHashCode()
-            => HashCode.Combine(
-                _targetType.GetHashCode(),
-                _options.TryGetTarget(out object? target) ? (target?.GetHashCode() ?? 0) : 0,
-                _typeMap.TryGetTarget(out CsvTypeMap? typeMap) ? (typeMap?.GetHashCode() ?? 0) : 0,
-                _length,
-                HashCode<string>.Combine(_headers.AsSpan(_length)));
     }
 }
