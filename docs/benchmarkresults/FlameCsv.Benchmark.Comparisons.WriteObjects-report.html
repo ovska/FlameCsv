@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>FlameCsv.Benchmark.Comparisons.WriteObjects-20250317-083341</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.14.0, Windows 10 (10.0.19045.5608/22H2/2022Update)
+AMD Ryzen 7 3700X, 1 CPU, 16 logical and 8 physical cores
+.NET SDK 9.0.100
+  [Host]     : .NET 9.0.0 (9.0.24.52809), X64 RyuJIT AVX2
+  DefaultJob : .NET 9.0.0 (9.0.24.52809), X64 RyuJIT AVX2
+</code></pre>
+<pre><code></code></pre>
+
+<table>
+<thead><tr><th>Method </th><th>Mean</th><th>Error</th><th>StdDev</th><th>Ratio</th><th>RatioSD</th><th>Gen0</th><th>Gen1</th><th>Gen2</th><th>Allocated</th><th>Alloc Ratio</th>
+</tr>
+</thead><tbody><tr><td>_Flame_SrcGen</td><td>3.196 ms</td><td>0.0621 ms</td><td>0.0581 ms</td><td>1.00</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>170 B</td><td>1.00</td>
+</tr><tr><td>_Flame</td><td>3.302 ms</td><td>0.0516 ms</td><td>0.0483 ms</td><td>1.03</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>174 B</td><td>1.02</td>
+</tr><tr><td>_Sep</td><td>3.561 ms</td><td>0.0490 ms</td><td>0.0458 ms</td><td>1.11</td><td>0.02</td><td>11.7188</td><td>-</td><td>-</td><td>121181 B</td><td>712.83</td>
+</tr><tr><td>_Sylvan</td><td>3.467 ms</td><td>0.0150 ms</td><td>0.0133 ms</td><td>1.08</td><td>0.02</td><td>3.9063</td><td>-</td><td>-</td><td>33605 B</td><td>197.68</td>
+</tr><tr><td>_RecordParser</td><td>9.245 ms</td><td>0.0510 ms</td><td>0.0452 ms</td><td>2.89</td><td>0.05</td><td>1187.5000</td><td>1171.8750</td><td>281.2500</td><td>8691788 B</td><td>51,128.16</td>
+</tr><tr><td>_CsvHelper</td><td>7.806 ms</td><td>0.0094 ms</td><td>0.0083 ms</td><td>2.44</td><td>0.04</td><td>234.3750</td><td>46.8750</td><td>-</td><td>2077347 B</td><td>12,219.69</td>
+</tr></tbody></table>
+</body>
+</html>
