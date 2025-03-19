@@ -39,7 +39,7 @@ internal static class MaterializerExtensions
     /// </summary>
     [RUF(Messages.Reflection)]
     [RDC(Messages.DynamicCode)]
-    public static IMaterializer<T, TResult> GetMaterializer<T, [DAM(Messages.ReflectionBound)] TResult>(
+    public static IMaterializer<T, TResult> GetMaterializerNoHeader<T, [DAM(Messages.ReflectionBound)] TResult>(
         this CsvOptions<T> options)
         where T : unmanaged, IBinaryInteger<T>
     {

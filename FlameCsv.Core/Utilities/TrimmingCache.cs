@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -11,7 +12,7 @@ internal static class TrimmingCache
 {
     public static TrimmingCache<TKey, TValue> Create<TKey, TValue>(
         params ReadOnlySpan<KeyValuePair<TKey, TValue>> values)
-        where TKey : class
+        where TKey : notnull
     {
         var cache = new TrimmingCache<TKey, TValue>();
 
@@ -29,7 +30,7 @@ internal static class TrimmingCache
 /// </summary>
 [CollectionBuilder(typeof(TrimmingCache), methodName: nameof(TrimmingCache.Create))]
 internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>, IDisposable
-    where TKey : class
+    where TKey : notnull
 {
     private sealed class Entry
     {
@@ -41,7 +42,7 @@ internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKe
 
     public TrimmingCache(IEqualityComparer<TKey>? comparer = null)
     {
-        if (Messages.CachingDisabled)
+        if (FlameCsvGlobalOptions.CachingDisabled)
         {
             _entries = null!;
             return;
@@ -63,7 +64,7 @@ internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKe
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
     {
-        if (!Messages.CachingDisabled && !_disposed && _entries.TryGetValue(key, out var entry))
+        if (!FlameCsvGlobalOptions.CachingDisabled && !_disposed && _entries.TryGetValue(key, out var entry))
         {
             entry.LastAccess = Environment.TickCount64;
             value = entry.Value;
@@ -77,7 +78,7 @@ internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKe
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Add(TKey key, TValue value)
     {
-        if (_disposed || Messages.CachingDisabled) return;
+        if (_disposed || FlameCsvGlobalOptions.CachingDisabled) return;
 
         _entries.AddOrUpdate(
             key,
@@ -95,40 +96,51 @@ internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKe
 
     void IDisposable.Dispose()
     {
+        GC.SuppressFinalize(this);
+
         if (!_disposed)
         {
             _disposed = true;
 
-            if (!Messages.CachingDisabled)
-            {
-                _entries.Clear();
-                HotReloadService.UnregisterForHotReload(this);
-            }
+            _entries?.Clear();
+            HotReloadService.UnregisterForHotReload(this);
         }
+    }
+
+    ~TrimmingCache()
+    {
+        ((IDisposable)this).Dispose();
+#if DEBUG
+        throw new UnreachableException("TrimmingCache was not disposed :" + GetType().FullName);
+#endif
     }
 
     private static bool Trim(object state)
     {
         var @this = (TrimmingCache<TKey, TValue>)state;
 
+        // return false if the callback should be removed
         if (@this._disposed) return false;
-        if (@this._entries.IsEmpty) return true;
 
-        MemoryPressure pressure = GCUtils.GetMemoryPressure();
-
-        if (pressure == MemoryPressure.Low) return true;
-
-        var threshold = pressure == MemoryPressure.High
-            ? TimeSpan.FromSeconds(10)
-            : TimeSpan.FromSeconds(60);
-
-        var now = Environment.TickCount64;
-
-        foreach ((TKey key, Entry entry) in @this._entries)
+        if (!@this._entries.IsEmpty)
         {
-            if (TimeSpan.FromMilliseconds(now - entry.LastAccess) > threshold)
+            MemoryPressure pressure = GCUtils.GetMemoryPressure();
+
+            if (pressure != MemoryPressure.Low)
             {
-                @this._entries.TryRemove(key, out _);
+                var threshold = pressure == MemoryPressure.High
+                    ? TimeSpan.FromSeconds(10)
+                    : TimeSpan.FromSeconds(60);
+
+                var now = Environment.TickCount64;
+
+                foreach ((TKey key, Entry entry) in @this._entries)
+                {
+                    if (TimeSpan.FromMilliseconds(now - entry.LastAccess) > threshold)
+                    {
+                        @this._entries.TryRemove(key, out _);
+                    }
+                }
             }
         }
 

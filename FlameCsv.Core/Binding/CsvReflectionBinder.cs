@@ -1,13 +1,11 @@
 using System.Diagnostics;
 using System.Reflection;
-using CommunityToolkit.HighPerformance.Helpers;
 using FastExpressionCompiler.LightExpression;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Reflection;
 using FlameCsv.Runtime;
-using FlameCsv.Utilities;
 using FlameCsv.Writing;
 
 namespace FlameCsv.Binding;
@@ -17,58 +15,6 @@ namespace FlameCsv.Binding;
 /// </summary>
 public abstract class CsvReflectionBinder
 {
-    private protected sealed class CacheKey : IEquatable<CacheKey>
-    {
-        public static bool CanCache(int headersLength) => headersLength <= StringScratch.MaxLength;
-
-        private readonly WeakReference<object> _options;
-        private readonly Type _targetType;
-        private readonly bool _ignoreUnmatched;
-        private readonly int _length;
-        private StringScratch _headers;
-
-        public CacheKey(object options, Type targetType, bool ignoreUnmatched, ReadOnlySpan<string> headers)
-        {
-            Debug.Assert(headers.Length <= StringScratch.MaxLength);
-
-            _options = new(options);
-            _targetType = targetType;
-            _ignoreUnmatched = ignoreUnmatched;
-            _length = headers.Length;
-            _headers = default;
-            headers.CopyTo(_headers!);
-        }
-
-        public bool Equals(CacheKey? other)
-        {
-            return
-                other is not null &&
-                _length == other._length &&
-                _ignoreUnmatched == other._ignoreUnmatched &&
-                _targetType == other._targetType &&
-                _headers.AsSpan(_length).SequenceEqual(other._headers.AsSpan(other._length)) &&
-                _options.TryGetTarget(out object? target) &&
-                other._options.TryGetTarget(out object? otherTarget) &&
-                ReferenceEquals(target, otherTarget);
-        }
-
-        public override bool Equals(object? obj) => Equals(obj as CacheKey);
-
-        // ReSharper disable once NonReadonlyMemberInGetHashCode
-        public override int GetHashCode()
-            => HashCode.Combine(
-                _targetType.GetHashCode(),
-                _options.TryGetTarget(out object? target) ? (target?.GetHashCode() ?? 0) : 0,
-                _ignoreUnmatched.GetHashCode(),
-                _length,
-                HashCode<string>.Combine(_headers.AsSpan(_length)));
-    }
-
-    private protected static readonly TrimmingCache<CacheKey, object>
-        _materializerCache = new(EqualityComparer<CacheKey>.Default);
-
-    private static readonly TrimmingCache<object, object> _dematerializerCache = [];
-
     [RDC(Messages.Reflection)]
     private protected static CsvBindingCollection<TValue> GetReadBindings<T, [DAM(Messages.ReflectionBound)] TValue>(
         CsvOptions<T> options,
@@ -121,11 +67,6 @@ public abstract class CsvReflectionBinder
         CsvOptions<T> options)
         where T : unmanaged, IBinaryInteger<T>
     {
-        if (_dematerializerCache.TryGetValue(options, out var dematerializer))
-        {
-            return (IDematerializer<T, TValue>)dematerializer;
-        }
-
         CsvBindingCollection<TValue>? bindingCollection;
 
         if (options.HasHeader)
@@ -156,9 +97,8 @@ public abstract class CsvReflectionBinder
             parameters[i + 2] = lambda.CompileLambda<Delegate>(throwIfClosure: false);
         }
 
-        IDematerializer<T, TValue> created = (IDematerializer<T, TValue>)ctor.Invoke(parameters);
-        _dematerializerCache.Add(options, created);
-        return created;
+        IDematerializer<T, TValue> dematerializer = (IDematerializer<T, TValue>)ctor.Invoke(parameters);
+        return dematerializer;
     }
 
     [RDC(Messages.Reflection)]
@@ -216,22 +156,14 @@ public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder
     public IMaterializer<T, TValue> GetMaterializer<[DAM(Messages.ReflectionBound)] TValue>(
         ReadOnlySpan<string> headers)
     {
-        if (CacheKey.CanCache(headers.Length))
-        {
-            CacheKey key = new(_options, typeof(TValue), IgnoreUnmatched, headers);
-
-            if (_materializerCache.TryGetValue(key, out var cached))
+        return _options.GetMaterializer<TValue>(
+            headers,
+            IgnoreUnmatched,
+            static (options, headers, ignoreUnmatched) =>
             {
-                return (IMaterializer<T, TValue>)cached;
-            }
-
-            var materializer
-                = _options.CreateMaterializerFrom(GetReadBindings<T, TValue>(_options, headers, IgnoreUnmatched));
-            _materializerCache.Add(key, materializer);
-            return materializer;
-        }
-
-        return _options.CreateMaterializerFrom(GetReadBindings<T, TValue>(_options, headers, IgnoreUnmatched));
+                var bindings = GetReadBindings<T, TValue>(options, headers, ignoreUnmatched);
+                return options.CreateMaterializerFrom(bindings);
+            });
     }
 
     /// <inheritdoc />
@@ -242,10 +174,13 @@ public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder
     [RDC(Messages.DynamicCode)]
     public IMaterializer<T, TValue> GetMaterializer<[DAM(Messages.ReflectionBound)] TValue>()
     {
-        return _options.GetMaterializer<T, TValue>();
+        return _options.GetMaterializer<TValue>(
+            [],
+            false,
+            static (options, _, _) => options.GetMaterializerNoHeader<T, TValue>());
     }
 
-    /// <inheritdoc />
+    /// <inheritoc />
     /// <remarks>
     /// Caches the return values based on the options.
     /// </remarks>
@@ -253,6 +188,6 @@ public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder
     [RDC(Messages.DynamicCode)]
     public IDematerializer<T, TValue> GetDematerializer<[DAM(Messages.ReflectionBound)] TValue>()
     {
-        return Create<T, TValue>(_options);
+        return _options.GetDematerializer<TValue>(static options => Create<T, TValue>(options));
     }
 }

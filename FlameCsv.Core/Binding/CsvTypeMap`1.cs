@@ -57,17 +57,11 @@ public abstract class CsvTypeMap<T, TValue> : CsvTypeMap where T : unmanaged, IB
         ArgumentOutOfRangeException.ThrowIfZero(headers.Length);
         Throw.IfInvalidArgument(!options.HasHeader, "Options is configured to read without a header.");
 
-        if (Messages.CachingDisabled || NoCaching || !CacheKey.CanCache(headers.Length))
-            return BindForReading(headers, options);
-
-        var key = new CacheKey(options, this, TargetType, headers);
-
-        if (_readHeaderCache.TryGetValue(key, out object? cached))
-            return (IMaterializer<T, TValue>)cached;
-
-        var materializer = BindForReading(headers, options);
-        _readHeaderCache.Add(key, materializer);
-        return materializer;
+        if (NoCaching) return BindForReading(headers, options);
+        return options.GetMaterializer(
+            this,
+            headers,
+            static (options, typeMap, headers) => typeMap.BindForReading(headers, options));
     }
 
     /// <summary>
@@ -81,17 +75,11 @@ public abstract class CsvTypeMap<T, TValue> : CsvTypeMap where T : unmanaged, IB
         ArgumentNullException.ThrowIfNull(options);
         Throw.IfInvalidArgument(options.HasHeader, "Options is not configured to read without a header.");
 
-        if (Messages.CachingDisabled || NoCaching)
-            return BindForReading(options);
-
-        if (_readNoHeaderCache.TryGetValue(this, out object? cached))
-        {
-            return (IMaterializer<T, TValue>)cached;
-        }
-
-        var materializer = BindForReading(options);
-        _readNoHeaderCache.Add(this, materializer);
-        return materializer;
+        if (NoCaching) return BindForReading(options);
+        return options.GetMaterializer(
+            this,
+            [],
+            static (options, typeMap, _) => typeMap.BindForReading(options));
     }
 
     /// <summary>
@@ -107,14 +95,8 @@ public abstract class CsvTypeMap<T, TValue> : CsvTypeMap where T : unmanaged, IB
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        if (Messages.CachingDisabled || NoCaching)
-            return BindForWriting(options);
+        if (NoCaching) return BindForWriting(options);
 
-        if (_writeCache.TryGetValue(this, out object? cached))
-            return (IDematerializer<T, TValue>)cached;
-
-        var dematerializer = BindForWriting(options);
-        _writeCache.Add(this, dematerializer);
-        return dematerializer;
+        return options.GetDematerializer(this, static (options, typeMap) => typeMap.BindForWriting(options));
     }
 }

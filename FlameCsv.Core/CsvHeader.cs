@@ -15,7 +15,7 @@ public sealed class CsvHeader
 {
     static CsvHeader()
     {
-        if (Messages.CachingDisabled)
+        if (FlameCsvGlobalOptions.CachingDisabled)
         {
             HeaderPool = null!;
         }
@@ -69,7 +69,7 @@ public sealed class CsvHeader
     {
         // pool headers if we know someone hasn't overridden the default implementation,
         // so multiple different options-types don't write their own intrepretation to the same cache
-        if (!Messages.CachingDisabled &&
+        if (!FlameCsvGlobalOptions.CachingDisabled &&
             !options.IsInherited &&
             options.TryGetChars(value, buffer, out int length))
         {

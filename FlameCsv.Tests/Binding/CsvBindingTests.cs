@@ -25,6 +25,22 @@ public static class CsvBindingTests
         public int Prop { get; set; }
     }
 
+    private class CacheTest
+    {
+        public int Id { get; set; }
+        public string? Name { get; set; }
+    }
+
+    [Fact]
+    public static void Should_Cache()
+    {
+        var binder = new CsvReflectionBinder<char>(CsvOptions<char>.Default, ignoreUnmatched: false);
+
+        var m1 = binder.GetMaterializer<CacheTest>(["Id", "Name"]);
+        var m2 = binder.GetMaterializer<CacheTest>(["Id", "Name"]);
+        Assert.Same(m1, m2);
+    }
+
     [Fact]
     public static void Should_Handle_Ignored()
     {
