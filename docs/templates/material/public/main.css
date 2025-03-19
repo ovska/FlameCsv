@@ -282,3 +282,15 @@ span.attrhidden {
 #github-icon.hover, #github-icon:focus {
   color: var(--bs-navbar-brand-hover-color);
 }
+
+[data-bs-theme='dark'] {
+  .chart-light {
+    display: none;
+  }
+}
+
+[data-bs-theme='light'] {
+  .chart-dark {
+    display: none;
+  }
+}
