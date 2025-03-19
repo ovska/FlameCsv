@@ -18,7 +18,8 @@ AMD Ryzen 7 3700X, 1 CPU, 16 logical and 8 physical cores
   DefaultJob : .NET 9.0.0 (9.0.24.52809), X64 RyuJIT AVX2
 ```
 
-The benchmarks use commonly used CSV datasets, and can be downloaded from the repository.
+The benchmarks use commonly used CSV datasets, and can be downloaded from the repository. You can browse the code and datasets
+[here](https://github.com/ovska/FlameCsv/tree/96e4d5b6317495f1f2c8c6e525b8e817738872a2/FlameCsv.Benchmark/Comparisons).
 
 ## Results
 
@@ -39,8 +40,6 @@ when reading from a string.
 <img src="../data/charts/read_light.svg" alt="Reading 5000 records into .NET objects" class="chart-light" />
 <img src="../data/charts/read_dark.svg" alt="Reading 5000 records into .NET objects" class="chart-dark" />
 
-> TODO: link to specific commit and dataset
-
 ### Reading without processing all fields
 
 The dataset is 65535 records of 14 fields (no quotes or escapes). The benchmark calculates the sum of a single numerical field.
@@ -56,8 +55,6 @@ The data is read from a pre-loaded byte array.
 
 <img src="../data/charts/peek_light.svg" alt="Computing sum of one field from 65535 records" class="chart-light" />
 <img src="../data/charts/peek_dark.svg" alt="Computing sum of one field from 65535 records" class="chart-dark" />
-
-> TODO: link to specific commit and dataset
 
 ### Writing .NET objects
 
@@ -76,9 +73,7 @@ The objects are pre-loaded to an array.
 <img src="../data/charts/write_light.svg" alt="Writing 5000 records" class="chart-light" />
 <img src="../data/charts/write_dark.svg" alt="Writing 5000 records" class="chart-dark"" />
 
-> Note that the Y axis doesn't start from 0 in this chart (Excel default behavior for this data)
-
-> TODO: link to specific commit and dataset
+> Note that the Y axis for "Mean" doesn't start from 0 in this chart (this is Excel's default behavior for this dataset)
 
 ### Cold-start
 
