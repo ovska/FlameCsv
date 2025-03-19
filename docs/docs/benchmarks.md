@@ -4,11 +4,12 @@ uid: benchmarks
 
 # Benchmarks
 
-Not all benchmarks test all libraries; if a library doesn't provide built-in data binding, it is
-not benchmarked for reading full records as .NET objects.
+This page contains benchmarks comparing the performance of FlameCsv with other popular CSV libraries.
+If a library doesn't provide built-in data binding, it is not benchmarked for reading full records as .NET objects.
 
-The benchmarks below are done with the following setup (sadly no AVX512 compatible CPU available),
+The benchmarks below are done with the following setup
 using the default configuration in BenchmarkDotNet v0.14.0 (unless otherwise stated).
+Sadly I do not have an AVX-512 compatible CPU to test on.
 ```
 BenchmarkDotNet v0.14.0, Windows 10 (10.0.19045.5608/22H2/2022Update)
 AMD Ryzen 7 3700X, 1 CPU, 16 logical and 8 physical cores
@@ -17,7 +18,7 @@ AMD Ryzen 7 3700X, 1 CPU, 16 logical and 8 physical cores
   DefaultJob : .NET 9.0.0 (9.0.24.52809), X64 RyuJIT AVX2
 ```
 
-The benchmarks use commonly used CSV datasets.
+The benchmarks use commonly used CSV datasets, and can be downloaded from the repository.
 
 ## Results
 
@@ -36,6 +37,9 @@ The data is read from a pre-loaded byte array.
 | RecordParser          | 4.673 ms |   2.02 |   1.93 MB |        1.16 |
 | CsvHelper             | 6.424 ms |   2.78 |   3.49 MB |        2.10 |
 
+<img src="../data/charts/read_light.svg" alt="Reading 5000 records into .NET objects" class="chart-light" />
+<img src="../data/charts/read_dark.svg" alt="Reading 5000 records into .NET objects" class="chart-dark" />
+
 > TODO: link to specific commit and dataset
 
 ### Reading without processing all fields
@@ -50,6 +54,9 @@ The data is read from a pre-loaded byte array.
 | Sylvan        |  5.014 ms |  1.52 |   42029 B |      130.52 |
 | RecordParser  |  6.358 ms |  1.93 | 2584418 B |    8,026.14 |
 | CsvHelper     | 34.877 ms | 10.60 | 2789195 B |    8,662.10 |
+
+<img src="../data/charts/peek_light.svg" alt="Computing sum of one field from 65535 records" class="chart-light" />
+<img src="../data/charts/peek_dark.svg" alt="Computing sum of one field from 65535 records" class="chart-dark" />
 
 > TODO: link to specific commit and dataset
 
@@ -67,9 +74,14 @@ The objects are pre-loaded to an array.
 | CsvHelper             | 7.806 ms |  2.44 | 2077347 B |   12,219.69 |
 | RecordParser          | 9.245 ms |  2.89 | 8691788 B |   51,128.16 |
 
+<img src="../data/charts/write_light.svg" alt="Writing 5000 records" class="chart-light" />
+<img src="../data/charts/write_dark.svg" alt="Writing 5000 records" class="chart-dark"" />
+
+> Note that the Y axis doesn't start from 0 in this chart (Excel default behavior for this data)
+
 > TODO: link to specific commit and dataset
 
-## Cold-start
+### Cold-start
 
 > TODO: implement cold-start benchmarks
 
@@ -103,7 +115,7 @@ Benchmarking writes using no-op destinations like @"System.IO.Stream.Null?displa
 
 ### Memory Usage
 
-Lower object allocation means less garbage collector overhead. This is particularly important in web servers handling concurrent operations.
+Fewer allocations result in less garbage collector overhead. This is particularly important in web servers handling concurrent operations.
 Memory usage is best evaluated by _comparing_ libraries, since some operations (like reading strings) inherently require allocations,
 so looking at the allocation numbers in isolation may not be useful.
 
