@@ -260,4 +260,33 @@ public class CsvParserTests
 
         Assert.Equal(["A,B,C", "D,E,F"], lines);
     }
+
+    [Fact]
+    public void Should_Skip_Utf8_Preamble()
+    {
+        byte[] data;
+
+        using (MemoryStream ms = new())
+        {
+            using (StreamWriter writer = new(ms, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true)))
+            {
+                writer.Write("Hello\nWorld!");
+            }
+
+            data = ms.ToArray();
+        }
+
+        Assert.Equal(data.AsSpan(0, Encoding.UTF8.Preamble.Length), Encoding.UTF8.Preamble);
+
+        var parser = CsvParser.Create(CsvOptions<byte>.Default, CsvPipeReader.Create(data.AsMemory()));
+
+        List<byte[]> results = [];
+
+        foreach (var line in parser.ParseRecords())
+        {
+            results.Add(line.Record.ToArray());
+        }
+
+        Assert.Equal(["Hello", "World!"], results.Select(Encoding.UTF8.GetString));
+    }
 }

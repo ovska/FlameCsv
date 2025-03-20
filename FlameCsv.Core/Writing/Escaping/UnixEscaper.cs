@@ -6,8 +6,17 @@ namespace FlameCsv.Writing.Escaping;
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
 internal readonly struct UnixEscaper<T>(T quote, T escape) : IEscaper<T> where T : unmanaged, IBinaryInteger<T>
 {
-    public T Quote => quote;
-    public T Escape => escape;
+    public T Quote
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => quote;
+    }
+
+    public T Escape
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => escape;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool NeedsEscaping(T value) => value == quote || value == escape;

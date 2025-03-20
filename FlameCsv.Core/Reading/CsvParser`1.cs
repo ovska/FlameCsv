@@ -80,6 +80,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     private protected ReadOnlySequence<T> _sequence;
     private readonly ICsvPipeReader<T> _reader;
     private bool _readerCompleted;
+    private bool _skipBOM;
 
     private protected CsvParser(CsvOptions<T> options, ICsvPipeReader<T> reader, in CsvParserOptions<T> parserOptions)
     {
@@ -91,6 +92,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
         _metaArray = [];
         _canUseFastPath = !options.NoReadAhead && _dialect.IsAscii;
         _reader = reader;
+        _skipBOM = typeof(T) == typeof(byte);
 
         _multisegmentAllocator = parserOptions.MultiSegmentAllocator ?? new MemoryPoolAllocator<T>(options.Allocator);
         _unescapeAllocator = parserOptions.UnescapeAllocator ?? new MemoryPoolAllocator<T>(options.Allocator);
@@ -365,6 +367,23 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
         _metaMemory = default; // don't hold on to the memory from last read
         _sequence = result.Buffer;
         _readerCompleted = result.IsCompleted;
+
+        if (typeof(T) == typeof(byte) && _skipBOM) TrySkipBOM();
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void TrySkipBOM()
+    {
+        Debug.Assert(typeof(T) == typeof(byte));
+
+        ReadOnlySpan<byte> preamble = System.Text.Encoding.UTF8.Preamble;
+
+        if (MemoryMarshal.Cast<T, byte>(_sequence.FirstSpan).StartsWith(preamble))
+        {
+            _sequence = _sequence.Slice(preamble.Length);
+        }
+
+        _skipBOM = false;
     }
 
     /// <summary>
