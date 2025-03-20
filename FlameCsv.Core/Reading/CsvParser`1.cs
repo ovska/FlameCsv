@@ -28,7 +28,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     public CsvOptions<T> Options { get; }
 
     internal readonly CsvDialect<T> _dialect;
-    internal NewlineBuffer<T> _newline;
+    internal readonly NewlineBuffer<T> _newline;
 
     private protected readonly Allocator<T> _multisegmentAllocator;
     internal readonly Allocator<T> _unescapeAllocator;
@@ -388,13 +388,15 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
             return false;
         }
 
+        ref NewlineBuffer<T> destination = ref Unsafe.AsRef(in _newline);
+
         // optimistic fast path for the first line containing no quotes or escapes
         if (_sequence.FirstSpan.IndexOf(NewlineBuffer<T>.LF.First) is var linefeedIndex and not -1)
         {
             // data starts with LF?
             if (linefeedIndex == 0)
             {
-                _newline = NewlineBuffer<T>.LF;
+                destination = NewlineBuffer<T>.LF;
                 return true;
             }
 
@@ -408,13 +410,13 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
 
                 if (firstCR == -1)
                 {
-                    _newline = NewlineBuffer<T>.LF;
+                    destination = NewlineBuffer<T>.LF;
                     return true;
                 }
 
                 if (firstCR == untilLf.Length - 1)
                 {
-                    _newline = NewlineBuffer<T>.CRLF;
+                    destination = NewlineBuffer<T>.CRLF;
                     return true;
                 }
             }
@@ -433,7 +435,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
         try
         {
             // find the first linefeed as both auto-detected newlines contain it
-            _newline = NewlineBuffer<T>.LF;
+            destination = NewlineBuffer<T>.LF;
 
             while (TryReadFromSequence(out var firstLine, false))
             {
@@ -463,7 +465,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
         finally
         {
             _sequence = copy; // reset original state
-            _newline = result; // set the detected newline, or default if not found
+            destination = result; // set the detected newline, or default if not found
         }
     }
 
