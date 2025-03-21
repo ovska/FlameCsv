@@ -113,12 +113,13 @@
 
     <!--Nuget-->
     <PropertyGroup>
+        <Authors>ovska</Authors>
         <PackageId>FlameCsv</PackageId>
         <Description>FlameCsv is a blazing fast fully-featured CSV library.</Description>
         <PackageProjectUrl>http://ovska.github.io/FlameCsv</PackageProjectUrl>
-        <PackageTags>csv, tsv, simd</PackageTags>
+        <PackageTags>performance, csv, tsv, simd, csv-parser, csv-reader, csv-writer</PackageTags>
         <Copyright>Copyright (c) Sipi Ovaska 2022-$([System.DateTime]::Now.Year)</Copyright>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <PackageIcon>icon.png</PackageIcon>
         <RepositoryUrl>https://github.com/ovska/FlameCSV</RepositoryUrl>
