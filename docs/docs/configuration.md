@@ -69,156 +69,7 @@ List<User> users = CsvReader.Read(csv, new CsvOptions<char> { HasHeader = true }
 
 ## Parsing and formatting fields
 
-### Converters
-
-Custom converters are added to @"FlameCsv.CsvOptions`1.Converters?displayProperty=nameWithType". Converters are checked in LIFO order, falling back to built-in converters if no user configured converter can convert a specific type.
-
-Built-in converters are available for common .NET types, including:
-
-- Primitives: @"System.String", @"System.Boolean", @"System.Enum", @"System.Nullable`1"
-- Numbers: @"System.Int32", @"System.Int64", @"System.Double?text=double", @"System.Single?text=float" and others implementing @"System.Numerics.INumberBase`1"
-- CLR types: @"System.DateTime", @"System.DateTimeOffset", @"System.TimeSpan", @"System.Guid"
-- For @"System.Char?text=char", any type implementing both @"System.ISpanParsable`1" and @"System.ISpanFormattable"
-- For @"System.Byte?text=byte", any type implementing @"System.IUtf8SpanFormattable" and @"System.IUtf8SpanParsable`1", or the non-UTF8 equivalents
-
-```cs
-CsvOptions<char> options = new()
-{
-    Converters = { new CustomIntConverter() }
-};
-
-// returns an instance of CustomIntConverter
-CsvConverter<char, int> converter = options.GetConverter<int>();
-
-class CustomIntConverter : CsvConverter<char, int>
-{
-    public override bool TryParse(ReadOnlySpan<char> source, out int value)
-    {
-        throw new NotImplementedException();
-    }
-
-    public override bool TryFormat(Span<char> destination, int value, out int charsWritten)
-    {
-        throw new NotImplementedException();
-    }
-}
-```
-
-If you don't want to use the library's built in converters at all, set @"FlameCsv.CsvOptions`1.UseDefaultConverters?displayProperty=nameWithType" to `false`.
-
-### Culture and IFormatProvider
-
-The format provider can be configured on per-type basis with the @"FlameCsv.CsvOptions`1.FormatProviders?displayProperty=nameWithType" dictionary. If none is configured, the @"FlameCsv.CsvOptions`1.FormatProvider?displayProperty=nameWithType" property is used. This value defaults to @"System.Globalization.CultureInfo.InvariantCulture?displayProperty=nameWithType".
-
-```cs
-CsvOptions<char> options = new()
-{
-    FormatProvider = CultureInfo.CurrentCulture,
-    FormatProviders = { [typeof(double)] = CultureInfo.InvariantCulture },
-};
-
-_ = options.GetFormatProvider(typeof(object)); // current
-_ = options.GetFormatProvider(typeof(double)); // invariant
-_ = options.GetFormatProvider(typeof(double?)); // invariant
-```
-
-> [!NOTE]
-> All the type-indexed dictionaries consider value types and their nullable counterparts [equal](https://github.com/ovska/FlameCsv/blob/main/FlameCsv.Core/Utilities/NullableTypeEqualityComparer.cs), e.g., you only need to add either `int` or `int?` to the dictionary.
-
-### Format
-
-Similarly, formats used when writing formattable types are configured on a per-type basis using @"FlameCsv.CsvOptions`1.Formats?displayProperty=nameWithType". For unconfigured types `null` is used. The exception to this is are enums, which fall back to @"FlameCsv.CsvOptions`1.EnumFormat?displayProperty=nameWithType" if a specific enum type is not configured to have a different format.
-
-```cs
-// format enums as strings and decimals as currency
-CsvOptions<char> options = new()
-{
-    EnumFormat = "G",
-    Formats = { [typeof(decimal)] = "C" },
-};
-
-// writes "Monday" instead of "1"
-options.GetConverter<DayOfWeek>().TryFormat(new char[6], DayOfWeek.Monday, out _);
-```
-
-### Number styles
-
-For numeric types, the @"System.Globalization.NumberStyles" enumeration used when reading can be configured on per-type basis with @"FlameCsv.CsvOptions`1.NumberStyles?displayProperty=nameWithType". This defaults to @"System.Globalization.NumberStyles.Integer?displayProperty=nameWithType" for integer types and @"System.Globalization.NumberStyles.Float?displayProperty=nameWithType" for floating point types.
-
-The @"FlameCsv.CsvOptions`1.GetNumberStyles(System.Type,System.Globalization.NumberStyles)"-method is used by the default converters to retrieve the configured value.
-
-```cs
-CsvOptions<char> options = new()
-{
-    NumberStyles = { [typeof(decimal)] = NumberStyles.Currency }
-};
-
-_ = options.GetNumberStyles(typeof(decimal), defaultValue: NumberStyles.Float); // returns Currency
-_ = options.GetNumberStyles(typeof(double), defaultValue: NumberStyles.Float); // returns Float
-```
-
-### Null values
-
-When reading nullable values, or writing any reference types or @"System.Nullable`1", a specific string can be configured for each type. On per-type basis, the @"FlameCsv.CsvOptions`1.NullTokens?displayProperty=nameWithType" dictionary is used. If no specific null token is configured for a type, @"FlameCsv.CsvOptions`1.Null?displayProperty=nameWithType" is used (defaults to null/empty string).
-
-Similarly, when writing any value that is null, @"FlameCsv.CsvOptions`1.GetNullToken(System.Type)?displayProperty=nameWithType" is used to get the value to write. Converters can additionally signal to the writer that they have their own null handling with the @"FlameCsv.CsvConverter`2.CanFormatNull?displayProperty=nameWithType".
-
-```cs
-CsvOptions<char> options = new()
-{
-    Null = "null",
-    NullTokens =
-    {
-        [typeof(int)] = "_",
-        [typeof(string)] = "",
-    }
-};
-
-options.GetNullToken(typeof(int?)); // returns "_"
-options.GetNullToken(typeof(string)); // returns ""
-options.GetNullToken(typeof(object)); // returns "null"
-```
-
-### Enums
-
-Aside from @"FlameCsv.CsvOptions`1.EnumFormat?displayProperty=nameWithType" and @"FlameCsv.CsvOptions`1.Formats?displayProperty=nameWithType", enum parsing can be further configured. The self-explanatory @"FlameCsv.CsvOptions`1.IgnoreEnumCase?displayProperty=nameWithType" property is passed to the enum's `TryParse` method. The @"FlameCsv.CsvOptions`1.AllowUndefinedEnumValues?displayProperty=nameWithType" property considers parsing an enum value success even if a value is not defined.
-
-```cs
-// more lenient enum parsing
-CsvOptions<char> options = new()
-{
-    IgnoreEnumCase = true,
-    AllowUndefinedEnumValues = true,
-};
-
-var converter = options.GetConverter<DayOfWeek>();
-
-// both calls succeed
-converter.TryParse("SUNDAY", out _); // ignore case
-converter.TryParse("10", out _); // undefined but valid number
-```
-
-### Custom true/false values
-
-Use @"FlameCsv.CsvOptions`1.BooleanValues?displayProperty=nameWithType" to customize which field values are parsed as booleans. You must specify at least one `true` and one `false` value.
-
-Note that configuring custom boolean values globally _replaces_ the default parsing behavior. For more granular control, consider using @"FlameCsv.Attributes.CsvBooleanValuesAttribute`1" to configure values on a per-member basis.
-
-```cs
-CsvOptions<char> options = new()
-{
-    BooleanValues =
-    {
-        ("1", true),
-        ("0", false)
-    }
-};
-```
-
-> [!WARNING]
-> The built-in custom boolean converters have the following requirements for @"FlameCsv.CsvOptions`1.Comparer":
-> - When reading @"System.Char", the comparer must implement `IAlternateEqualityComparer<ReadOnlySpan<char>, string>`.
-> - When reading @"System.Byte"/UTF8, the comparer must be either @"System.StringComparer.Ordinal?displayProperty=nameWithType" or @"System.StringComparer.OrdinalIgnoreCase?displayProperty=nameWithType".
+See @"converters" for an overview on converter configuration, implementation, and what converters are supported by default.
 
 ## Quoting fields when writing
 
@@ -228,7 +79,7 @@ The @"FlameCsv.Writing.CsvFieldQuoting" enumeration and @"FlameCsv.CsvOptions`1.
 // quote all fields, e.g., for noncompliant 3rd party libraries
 StringBuilder result = CsvWriter.WriteToString(
     [new User(1, "Bob", true)],
-    new CsvOptions() { FieldQuoting = CsvFieldQuoting.Always });
+    new CsvOptions<char>() { FieldQuoting = CsvFieldQuoting.Always });
 
 // "id","name","isadmin"
 // "1","Bob","true"
@@ -318,7 +169,7 @@ The following methods are used by the library to convert `T` values to @"System.
  - @"FlameCsv.CsvOptions`1.TryGetChars(System.ReadOnlySpan{`0},System.Span{System.Char},System.Int32@)" used to convert the header fields to strings
  - @"FlameCsv.CsvOptions`1.GetAsString(System.ReadOnlySpan{`0})" used in error messages, and to convert long header fields to strings
  - @"FlameCsv.CsvOptions`1.TryWriteChars(System.ReadOnlySpan{System.Char},System.Span{`0},System.Int32@)" used when writing text values, and initializing @"FlameCsv.CsvDialect`1.Newline" and @"FlameCsv.CsvDialect`1.Whitespace"
-- @"FlameCsv.CsvOptions`1.GetFromString(System.String)" used in some converters, and while initializing the dialect
+ - @"FlameCsv.CsvOptions`1.GetFromString(System.String)" used in some converters, and while initializing the dialect
 
 > [!NOTE]
 > The library maintains a small pool of @"System.String"-instances of previously encountered headers, so unless your data is exceptionally varied, the allocation cost is paid only once.
