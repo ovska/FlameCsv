@@ -8,6 +8,11 @@
   <p align="center">High-performance RFC 4180-compliant CSV library for .NET 9 with trimming/AOT support</p>
 </p>
 
+---
+
+- [Download on nuget](https://www.nuget.org/packages/FlameCsv/)
+- [See the documentation](https://ovska.github.io/FlameCsv/)
+
 # Features
 - **TL;DR:** Blazingly fast, trimmable and easy-to-use feature-rich CSV library
 - 💡 **Ease of Use**
