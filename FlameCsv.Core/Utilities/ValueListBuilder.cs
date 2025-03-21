@@ -163,6 +163,8 @@ internal ref struct ValueListBuilder<T>
         return false;
     }
 
+    public void Clear() => _pos = 0;
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {

@@ -8,6 +8,7 @@ using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Reading.Internal;
+using FlameCsv.Utilities;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Reading;
@@ -32,6 +33,8 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
 
     private protected readonly Allocator<T> _multisegmentAllocator;
     internal readonly Allocator<T> _unescapeAllocator;
+
+    private CsvDelimiterDetectionStrategy<T>? _delimiterDetectionStrategy;
 
     /// <summary>
     /// Whether the instance has been disposed.
@@ -91,6 +94,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
         _metaArray = [];
         _canUseFastPath = !options.NoReadAhead && _dialect.IsAscii;
         _reader = reader;
+        _delimiterDetectionStrategy = options.AutoDetectDelimiter;
 
         _multisegmentAllocator = parserOptions.MultiSegmentAllocator ?? new MemoryPoolAllocator<T>(options.Allocator);
         _unescapeAllocator = parserOptions.UnescapeAllocator ?? new MemoryPoolAllocator<T>(options.Allocator);
@@ -217,6 +221,11 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
         }
 
         Debug.Assert(_newline.Length != 0, "TryPeekNewline should have initialized newline");
+
+        if (_delimiterDetectionStrategy is not null)
+        {
+            DetectDelimiter();
+        }
 
         if (_canUseFastPath && !isFinalBlock)
         {
@@ -467,6 +476,83 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
             _sequence = copy; // reset original state
             destination = result; // set the detected newline, or default if not found
         }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    protected void DetectDelimiter()
+    {
+        Debug.Assert(_delimiterDetectionStrategy is not null);
+
+        if (_newline.Length == 0)
+        {
+            throw new UnreachableException(nameof(DetectDelimiter) + " called with empty newline length");
+        }
+
+        ReadOnlySpan<T> first = _sequence.FirstSpan;
+
+        if (first.IsEmpty)
+        {
+            throw new CsvFormatException("Could not auto-detect delimiter from empty data.");
+        }
+
+        int fieldCount = Math.Min(16, _delimiterDetectionStrategy.RecordCountHint ?? 4);
+
+        using var list = new ValueListBuilder<Range>(stackalloc Range[Math.Min(16, fieldCount)]);
+
+        int index;
+        int consumed = 0;
+
+        if (_newline.Length == 2)
+        {
+            while (
+                list.Length < fieldCount &&
+                (index = first.Slice(consumed).IndexOf([_newline.First, _newline.Second])) >= 0)
+            {
+                list.Append(new Range(consumed, index));
+                consumed += index + 2;
+            }
+        }
+        else
+        {
+            while (
+                list.Length < fieldCount &&
+                (index = first.Slice(consumed).IndexOf(_newline.First)) >= 0)
+            {
+                list.Append(new Range(consumed, index));
+                consumed += index + 1;
+            }
+        }
+
+        if (_delimiterDetectionStrategy.TryDetect(first, list.AsSpan(), out T delimiter, out int consumedRecords))
+        {
+            try
+            {
+                if (delimiter != _dialect.Delimiter)
+                {
+                    CsvDialect<T> dialect = _dialect with { Delimiter = delimiter };
+                    dialect.Validate();
+                    Unsafe.AsRef(in _dialect) = dialect;
+                }
+
+                if (consumedRecords > 0)
+                {
+                    _sequence = _sequence
+                        .Slice(Math.Min(list[consumedRecords - 1].End.Value + _newline.Length, first.Length));
+                }
+
+                _delimiterDetectionStrategy = null;
+                return;
+            }
+            catch (CsvConfigurationException cex)
+            {
+                throw new CsvFormatException(
+                    $"Auto-detected delimiter {delimiter} caused the dialect to be in an invalid state",
+                    cex);
+            }
+        }
+
+        throw new CsvFormatException(
+            $"Could not auto-detect delimiter from the first {list.Length} line(s) in the data using strategy: {_delimiterDetectionStrategy}.");
     }
 
     private protected ArraySegment<Meta> GetSegmentMeta(scoped ReadOnlySpan<Meta> fields)
