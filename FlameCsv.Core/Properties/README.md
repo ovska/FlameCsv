@@ -6,6 +6,8 @@ and write arbitrarily large amounts of CSV with near-zero allocations. FlameCSV 
 libraries such as spans, SIMD hardware intrinsics, memory/string pooling, pipes and buffer writers, and
 is built from the ground up to provide an easy-to-use high performance experience.
 
+See the [documentation](https://ovska.github.io/FlameCsv) for more information and examples.
+
 # Features
 
 - 💡 **Ease of Use**
