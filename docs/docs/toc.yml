@@ -6,6 +6,8 @@
   href: configuration.md
 - name: Attributes
   href: attributes.md
+- name: Converters
+  href: converters.md
 - name: Source Generator
   href: source-generator.md
 - name: Benchmarks
