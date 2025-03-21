@@ -123,8 +123,7 @@
         <PackageIcon>icon.png</PackageIcon>
         <RepositoryUrl>https://github.com/ovska/FlameCSV</RepositoryUrl>
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
-        <!--<PackageReadmeFile>README.md</PackageReadmeFile> TODO-->
-
+        <PackageReadmeFile>README.md</PackageReadmeFile>
         <DebugSymbols>true</DebugSymbols>
         <DebugType>portable</DebugType>
         <EmbedAllSources>true</EmbedAllSources>
@@ -142,6 +141,7 @@
               PackagePath="analyzers/dotnet/cs"
               Visible="false"/>
         <None Include="Properties/icon.png" Pack="true" PackagePath=""/>
+        <None Include="Properties/README.md" Pack="true" PackagePath=""/>
 
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
     </ItemGroup>
