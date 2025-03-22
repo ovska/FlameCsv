@@ -71,7 +71,7 @@ The objects are pre-loaded to an array.
 | RecordParser          | 9.245 ms |  2.89 | 8691788 B |   51,128.16 |
 
 <img src="../data/charts/write_light.svg" alt="Writing 5000 records" class="chart-light" />
-<img src="../data/charts/write_dark.svg" alt="Writing 5000 records" class="chart-dark"" />
+<img src="../data/charts/write_dark.svg" alt="Writing 5000 records" class="chart-dark" />
 
 > Note that the Y axis for "Mean" doesn't start from 0 in this chart (this is Excel's default behavior for this dataset)
 
