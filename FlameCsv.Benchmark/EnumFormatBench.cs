@@ -27,7 +27,7 @@ namespace FlameCsv.Benchmark;
 */
 
 [MemoryDiagnoser]
-public class EnumBench
+public class EnumFormatBench
 {
     private static readonly TypeCode[] _dof =
     [
@@ -326,7 +326,7 @@ public class EnumBench
     private static readonly string?[] _numNames;
     private static readonly byte[]?[] _numBytes;
 
-    static EnumBench()
+    static EnumFormatBench()
     {
         _numNames = new string?[19];
         _numNames[0] = "Empty";
@@ -346,7 +346,6 @@ public class EnumBench
         _numNames[14] = "Double";
         _numNames[15] = "Decimal";
         _numNames[16] = "DateTime";
-        _numNames[17] = null;
         _numNames[18] = "String";
 
         _numBytes = new byte[]?[19];
