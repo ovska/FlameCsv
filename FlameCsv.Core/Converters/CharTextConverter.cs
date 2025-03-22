@@ -6,7 +6,7 @@ internal sealed class CharTextConverter : CsvConverter<char, char>
 
     public override bool TryParse(ReadOnlySpan<char> source, out char value)
     {
-        if (!source.IsEmpty)
+        if (source.Length == 1)
         {
             value = source[0];
             return true;
