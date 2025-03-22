@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Binding;
 using FlameCsv.Extensions;
 using FlameCsv.Utilities;
@@ -78,9 +79,8 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         _styles = other._styles?.Clone();
         _comparer = other._comparer;
         _useDefaultConverters = other._useDefaultConverters;
-        _ignoreEnumCase = other._ignoreEnumCase;
+        _enumFlags = other._enumFlags;
         _enumFormat = other._enumFormat;
-        _allowUndefinedEnumValues = other._allowUndefinedEnumValues;
         _noReadAhead = other._noReadAhead;
         _stringPool = other._stringPool;
         _typeBinder = other._typeBinder;
@@ -228,9 +228,8 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     private MemoryPool<T> _memoryPool = MemoryPool<T>.Shared;
     private SealableList<(string, bool)>? _booleanValues;
     private bool _useDefaultConverters = true;
-    private bool _ignoreEnumCase = true;
     private string? _enumFormat;
-    private bool _allowUndefinedEnumValues;
+    private CsvEnumOptions _enumFlags = CsvEnumOptions.IgnoreCase;
     private bool _noReadAhead;
     private StringPool? _stringPool;
     private ICsvTypeBinder<T>? _typeBinder;
@@ -447,30 +446,20 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     }
 
     /// <summary>
-    /// Whether to ignore casing when parsing enum values. Default is <see langword="true"/>.
+    /// Configuration flags for enum conversion. Default is <see cref="CsvEnumOptions.IgnoreCase"/>.
     /// </summary>
     /// <seealso cref="UseDefaultConverters"/>
-    public bool IgnoreEnumCase
+    public CsvEnumOptions EnumOptions
     {
-        get => _ignoreEnumCase;
-        set => this.SetValue(ref _ignoreEnumCase, value);
-    }
-
-    /// <summary>
-    /// Whether to allow enum values that are not defined in the enum type.
-    /// Default is <see langword="false"/>.
-    /// </summary>
-    /// <seealso cref="UseDefaultConverters"/>
-    public bool AllowUndefinedEnumValues
-    {
-        get => _allowUndefinedEnumValues;
-        set => this.SetValue(ref _allowUndefinedEnumValues, value);
+        get => _enumFlags;
+        set => this.SetValue(ref _enumFlags, value);
     }
 
     /// <summary>
     /// The default format for enums, used if enum's format is not defined in <see cref="Formats"/>.
     /// </summary>
     /// <seealso cref="UseDefaultConverters"/>
+    [StringSyntax(StringSyntaxAttribute.EnumFormat)]
     public string? EnumFormat
     {
         get => _enumFormat;
