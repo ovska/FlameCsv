@@ -148,7 +148,7 @@ using (CsvWriter<char> writer = CsvWriter.Create(TextWriter.Null))
 | RecordParser          | 4.673 ms |   2.02 |   1.93 MB |        1.16 |
 | CsvHelper             | 6.424 ms |   2.78 |   3.49 MB |        2.10 |
 
-<img src="docs/data/charts/read_light.svg" alt="Reading 5000 records into .NET objects" class="chart-light" />
+<img src="docs/data/charts/read_light.svg" alt="Reading 5000 records into .NET objects" />
 
 ## Iterating 65535 records without processing all fields
 
@@ -160,7 +160,7 @@ using (CsvWriter<char> writer = CsvWriter.Create(TextWriter.Null))
 | RecordParser  |  6.358 ms |  1.93 | 2584418 B |    8,026.14 |
 | CsvHelper     | 34.877 ms | 10.60 | 2789195 B |    8,662.10 |
 
-<img src="docs/data/charts/peek_light.svg" alt="Computing sum of one field from 65535 records" class="chart-light" />
+<img src="docs/data/charts/peek_light.svg" alt="Computing sum of one field from 65535 records" />
 
 ## Writing 5000 records
 
@@ -173,4 +173,4 @@ using (CsvWriter<char> writer = CsvWriter.Create(TextWriter.Null))
 | CsvHelper             | 7.806 ms |  2.44 | 2077347 B |   12,219.69 |
 | RecordParser          | 9.245 ms |  2.89 | 8691788 B |   51,128.16 |
 
-<img src="docs/data/charts/read_light.svg" alt="Reading 5000 records into .NET objects" class="chart-light" />
+<img src="docs/data/charts/write_light.svg" alt="Writing 5000 records" />
