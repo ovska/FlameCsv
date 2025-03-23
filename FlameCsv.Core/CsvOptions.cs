@@ -82,7 +82,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         _ignoreEnumCase = other._ignoreEnumCase;
         _enumFormat = other._enumFormat;
         _allowUndefinedEnumValues = other._allowUndefinedEnumValues;
-        _delimiterDetection = other._delimiterDetection;
+        _delimiterDetector = other._delimiterDetector;
         _noReadAhead = other._noReadAhead;
         _stringPool = other._stringPool;
         _typeBinder = other._typeBinder;
@@ -226,7 +226,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     private bool _ignoreEnumCase = true;
     private string? _enumFormat;
     private bool _allowUndefinedEnumValues;
-    private CsvDelimiterDetectionStrategy<T>? _delimiterDetection;
+    private CsvDelimiterDetector<T>? _delimiterDetector;
     private bool _noReadAhead;
     private StringPool? _stringPool;
     private ICsvTypeBinder<T>? _typeBinder;
@@ -479,16 +479,16 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     }
 
     /// <summary>
-    /// The delimiter detection strategy to use when reading CSV data.
+    /// The delimiter detector instance to use when reading CSV data.
     /// Default is <see langword="null"/>.
     /// </summary>
     /// <remarks>
     /// If this property is non-null, <see cref="Delimiter"/> is ignored when reading.
     /// </remarks>
-    public CsvDelimiterDetectionStrategy<T>? AutoDetectDelimiter
+    public CsvDelimiterDetector<T>? AutoDetectDelimiter
     {
-        get => _delimiterDetection;
-        set => this.SetValue(ref _delimiterDetection, value);
+        get => _delimiterDetector;
+        set => this.SetValue(ref _delimiterDetector, value);
     }
 
     /// <summary>

@@ -30,8 +30,7 @@ internal ref struct ValueListBuilder<T>
         readonly get => _pos;
         set
         {
-            Debug.Assert(value >= 0);
-            Debug.Assert(value <= _span.Length);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual((uint)value, (uint)_span.Length, nameof(value));
             _pos = value;
         }
     }

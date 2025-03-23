@@ -11,6 +11,13 @@ internal static class Token<T> where T : unmanaged
                 ? "byte"
                 : typeof(T).Name;
 
+    public static string FriendlyName =>
+        typeof(T) == typeof(char)
+            ? "character"
+            : typeof(T) == typeof(byte)
+                ? "byte"
+                : typeof(T).Name;
+
     /// <summary>
     /// Returns true if <see langword="stackalloc"/> <typeparamref name="T"/>[<paramref name="length"/>] is reasonably safe.
     /// </summary>

@@ -8,16 +8,22 @@ using JetBrains.Annotations;
 namespace FlameCsv.Reading;
 
 /// <summary>
-/// Represents a strategy for detecting the delimiter of a CSV file.
+/// Class for detecting the delimiter used in a CSV file.
 /// </summary>
 [PublicAPI]
-public abstract class CsvDelimiterDetectionStrategy<T> where T : unmanaged, IBinaryInteger<T>
+public abstract class CsvDelimiterDetector<T> where T : unmanaged, IBinaryInteger<T>
 {
-    private static PrefixStrategy? _defaultPrefixStrategy;
-    private static ProbabilisticStrategy? _defaultProbabilisticStrategy;
+    private static PrefixDetector? _defaultPrefixDetector;
+    private static ProbabilisticDetector? _defaultProbabilisticOptional;
+    private static ProbabilisticDetector? _defaultProbabilisticRequired;
 
     /// <summary>
-    /// Provides a hint to the library on how many records the strategy needs to detect the delimiter.
+    /// Whether the configured delimiter should be used if the detector fails to detect one.
+    /// </summary>
+    public abstract bool IsOptional { get; }
+
+    /// <summary>
+    /// Provides a hint to the library on how many records the detector needs to detect the delimiter.
     /// </summary>
     /// <remarks>
     /// This value may be ignored by the implementation if it is too large, or otherwise impractical to use.
@@ -29,7 +35,7 @@ public abstract class CsvDelimiterDetectionStrategy<T> where T : unmanaged, IBin
     /// </summary>
     /// <param name="data">Data available to determine the delimiter</param>
     /// <param name="records">
-    ///     Ranges in the data representing records (not including trailing newline). This value is never empty
+    /// Ranges in the data representing records (not including trailing newline). This value is never empty
     /// </param>
     /// <param name="delimiter">Detected delimiter</param>
     /// <param name="consumedRecords">How many records should be skipped if the detection succeeds</param>
@@ -41,22 +47,8 @@ public abstract class CsvDelimiterDetectionStrategy<T> where T : unmanaged, IBin
         out int consumedRecords);
 
     /// <summary>
-    /// Returns a strategy that detects the delimiter by using multiple strategies.
-    /// </summary>
-    /// <param name="first">First strategy to consider</param>
-    /// <param name="second">Second strategy to consider</param>
-    /// <returns>A compound strategy</returns>
-    public static CsvDelimiterDetectionStrategy<T> Either(
-        CsvDelimiterDetectionStrategy<T> first,
-        CsvDelimiterDetectionStrategy<T> second)
-    {
-        ArgumentNullException.ThrowIfNull(first);
-        ArgumentNullException.ThrowIfNull(second);
-        return new CompoundStrategy(first, second);
-    }
-
-    /// <summary>
-    /// Returns a strategy that detects the delimiter by checking for the most probable out of specific values.
+    /// Returns a detector that evaluates the most probable out of specific values,
+    /// throwing an exception if no best-match is found among the candidates.
     /// </summary>
     /// <param name="values">
     /// Values to check for. If empty, <c>[',', ';', '\t', '|']</c> is used.
@@ -65,92 +57,86 @@ public abstract class CsvDelimiterDetectionStrategy<T> where T : unmanaged, IBin
     /// <exception cref="ArgumentOutOfRangeException">
     /// A single value is provided; at least two values are required.
     /// </exception>
-    public static CsvDelimiterDetectionStrategy<T> Values(params ReadOnlySpan<T> values)
+    public static CsvDelimiterDetector<T> Values(params ReadOnlySpan<T> values)
     {
-        if (values.IsEmpty)
-        {
-            return _defaultProbabilisticStrategy ??= new ProbabilisticStrategy(
-                (T[])
-                [
-                    T.CreateTruncating(','), T.CreateTruncating(';'), T.CreateTruncating('\t'), T.CreateTruncating('|')
-                ]);
-        }
-
-        ArgumentOutOfRangeException.ThrowIfEqual(values.Length, 1);
-        return new ProbabilisticStrategy(values);
+        return ValuesCore(values, optional: false);
     }
 
     /// <summary>
-    /// Returns a strategy that detects the delimiter by checking if the first record has a specific prefix.
+    /// Returns a detector that evaluates the most probable out of specific values,
+    /// falling back to the configured delimiter if no best-match is found among the candidates.
+    /// </summary>
+    /// <param name="values">
+    /// Values to check for. If empty, <c>[',', ';', '\t', '|']</c> is used.
+    /// </param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// A single value is provided; at least two values are required.
+    /// </exception>
+    public static CsvDelimiterDetector<T> ValuesOptional(params ReadOnlySpan<T> values)
+    {
+        return ValuesCore(values, optional: false);
+    }
+
+    private static ProbabilisticDetector ValuesCore(ReadOnlySpan<T> values, bool optional)
+    {
+        if (values.IsEmpty)
+        {
+            ref ProbabilisticDetector? dst = ref optional
+                ? ref _defaultProbabilisticOptional
+                : ref _defaultProbabilisticRequired;
+
+            return dst ??= new ProbabilisticDetector(
+                (T[])
+                [
+                    T.CreateTruncating(','), T.CreateTruncating(';'), T.CreateTruncating('\t'), T.CreateTruncating('|')
+                ],
+                optional);
+        }
+
+        ArgumentOutOfRangeException.ThrowIfEqual(values.Length, 1);
+        return new ProbabilisticDetector(values, optional);
+    }
+
+    /// <summary>
+    /// Returns a detector that checks if the first record has a specific prefix.
     /// </summary>
     /// <param name="prefix">Prefix to check for</param>
-    public static CsvDelimiterDetectionStrategy<T> Prefix(string? prefix = "sep=")
+    /// <param name="isOptional">Whether the configured delimiter should be used if </param>
+    public static CsvDelimiterDetector<T> Prefix(string? prefix = "sep=", bool isOptional = true)
     {
         if (prefix == "sep=")
         {
-            return _defaultPrefixStrategy ??= new PrefixStrategy(
+            return _defaultPrefixDetector ??= new PrefixDetector(
                 (T[])
                 [
                     T.CreateTruncating('s'), T.CreateTruncating('e'), T.CreateTruncating('p'), T.CreateTruncating('=')
-                ]);
+                ],
+                isOptional);
         }
 
         if (typeof(T) == typeof(char))
         {
             ReadOnlyMemory<char> asMemory = prefix.AsMemory();
-            return _defaultPrefixStrategy
-                ??= new PrefixStrategy(Unsafe.As<ReadOnlyMemory<char>, ReadOnlyMemory<T>>(ref asMemory));
+            return _defaultPrefixDetector
+                ??= new PrefixDetector(Unsafe.As<ReadOnlyMemory<char>, ReadOnlyMemory<T>>(ref asMemory),
+                    isOptional);
         }
 
         if (typeof(T) == typeof(byte))
         {
-            return _defaultPrefixStrategy
-                ??= new PrefixStrategy(Unsafe.As<T[]>(Encoding.UTF8.GetBytes(prefix ?? "")));
+            return _defaultPrefixDetector
+                ??= new PrefixDetector(Unsafe.As<T[]>(Encoding.UTF8.GetBytes(prefix ?? "")), isOptional);
         }
 
         throw new NotSupportedException();
     }
 
-    private sealed class CompoundStrategy(
-        CsvDelimiterDetectionStrategy<T> first,
-        CsvDelimiterDetectionStrategy<T> second)
-        : CsvDelimiterDetectionStrategy<T>
-    {
-        public override int? RecordCountHint
-        {
-            get
-            {
-                if (first.RecordCountHint is { } firstHint && second.RecordCountHint is { } secondHint)
-                {
-                    return Math.Min(firstHint, secondHint);
-                }
-
-                return null;
-            }
-        }
-
-        public override bool TryDetect(
-            ReadOnlySpan<T> data,
-            ReadOnlySpan<Range> records,
-            out T delimiter,
-            out int consumedRecords)
-        {
-            if (second.RecordCountHint < first.RecordCountHint)
-            {
-                return second.TryDetect(data, records, out delimiter, out consumedRecords) ||
-                    first.TryDetect(data, records, out delimiter, out consumedRecords);
-            }
-
-            return first.TryDetect(data, records, out delimiter, out consumedRecords) ||
-                second.TryDetect(data, records, out delimiter, out consumedRecords);
-        }
-
-        public override string ToString() => $"{first} -or- {second}";
-    }
-
-    private sealed class PrefixStrategy(ReadOnlyMemory<T> prefix) : CsvDelimiterDetectionStrategy<T>
+    private sealed class PrefixDetector(ReadOnlyMemory<T> prefix, bool isOptional) : CsvDelimiterDetector<T>
     {
         public override int? RecordCountHint => 1;
+
+        public override bool IsOptional => isOptional;
 
         /// <inheritdoc/>
         public override bool TryDetect(
@@ -190,11 +176,11 @@ public abstract class CsvDelimiterDetectionStrategy<T> where T : unmanaged, IBin
         }
     }
 
-    private sealed class ProbabilisticStrategy : CsvDelimiterDetectionStrategy<T>
+    private sealed class ProbabilisticDetector : CsvDelimiterDetector<T>
     {
         private readonly ImmutableArray<T> _values;
 
-        public ProbabilisticStrategy(ReadOnlySpan<T> values)
+        public ProbabilisticDetector(ReadOnlySpan<T> values, bool isOptional)
         {
             ArgumentOutOfRangeException.ThrowIfZero(values.Length);
 
@@ -209,7 +195,10 @@ public abstract class CsvDelimiterDetectionStrategy<T> where T : unmanaged, IBin
             }
 
             _values = [..list.AsSpan()];
+            IsOptional = isOptional;
         }
+
+        public override bool IsOptional { get; }
 
         /// <inheritdoc/>
         public override bool TryDetect(
