@@ -39,7 +39,7 @@ public static class UnescaperTests
     [MemberData(nameof(UnescapeData))]
     public static void Should_Compress_Byte16(string input, string output)
     {
-        Assert.True(ByteSsse3Unescaper.IsSupported);
+        Assert.SkipUnless(ByteSsse3Unescaper.IsSupported, "ByteSsse3Unescaper is not supported on current hardware");
 
         byte[] data = Encoding.UTF8.GetBytes(input);
 
@@ -67,7 +67,7 @@ public static class UnescaperTests
     [MemberData(nameof(UnescapeData))]
     public static void Should_Compress_Byte32(string input, string output)
     {
-        Assert.True(ByteAvx2Unescaper.IsSupported);
+        Assert.SkipUnless(ByteAvx2Unescaper.IsSupported, "ByteAvx2Unescaper is not supported on current hardware");
 
         byte[] data = Encoding.UTF8.GetBytes(input);
 
@@ -95,7 +95,7 @@ public static class UnescaperTests
     [MemberData(nameof(UnescapeData))]
     public static void Should_Compress_Char8(string data, string output)
     {
-        Assert.True(CharAvxUnescaper.IsSupported);
+        Assert.SkipUnless(CharAvxUnescaper.IsSupported, "CharSse2Unescaper is not supported on current hardware");
 
         var quoteCount = data.AsSpan().Count('"');
         Assert.NotEqual(0, quoteCount);

@@ -1,0 +1,20 @@
+﻿<RunSettings>
+    <RunConfiguration>
+        <EnvironmentVariables>
+            <!-- 128-bit vector operations -->
+<!--            <DOTNET_EnableSSE>0</DOTNET_EnableSSE>-->
+<!--            <DOTNET_EnableSSE2>0</DOTNET_EnableSSE2>-->
+<!--            <DOTNET_EnableSSE3>0</DOTNET_EnableSSE3>-->
+<!--            <DOTNET_EnableSSSE3>0</DOTNET_EnableSSSE3>-->
+<!--            <DOTNET_EnableSSE41>0</DOTNET_EnableSSE41>-->
+<!--            <DOTNET_EnableSSE42>0</DOTNET_EnableSSE42>-->
+
+            <!-- 256-bit vector operations -->
+<!--            <DOTNET_EnableAVX>0</DOTNET_EnableAVX>-->
+<!--            <DOTNET_EnableAVX2>0</DOTNET_EnableAVX2>-->
+
+            <!-- 512-bit vector operations -->
+<!--            <DOTNET_EnableAVX512F>0</DOTNET_EnableAVX512F>-->
+        </EnvironmentVariables>
+    </RunConfiguration>
+</RunSettings>

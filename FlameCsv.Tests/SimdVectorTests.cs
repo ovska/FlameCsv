@@ -32,6 +32,8 @@ public static class SimdVectorTests
 
         static void Impl2<TVector>(char token) where TVector : struct, ISimdVector<char, TVector>
         {
+            Assert.SkipUnless(TVector.IsSupported, $"CPU support not available for {typeof(TVector).Name}");
+
             var data = new string(
                 Enumerable
                     .Range(0, (1024 * 8 / TVector.Count) + TVector.Count)
@@ -64,7 +66,7 @@ public static class SimdVectorTests
         where T : unmanaged, IBinaryInteger<T>
         where TVector : struct, ISimdVector<T, TVector>
     {
-        if (!TVector.IsSupported) return;
+        Assert.SkipUnless(TVector.IsSupported, $"CPU support not available for {typeof(TVector).Name}");
 
         var abcVec = TVector.LoadUnaligned(in data[0], 0);
         var aVec = TVector.Create(data[0]);
