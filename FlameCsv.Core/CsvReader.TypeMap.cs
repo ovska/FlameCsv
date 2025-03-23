@@ -111,7 +111,7 @@ public static partial class CsvReader
     /// <param name="encoding">Encoding to initialize the <see cref="StreamWriter"/> with</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="readerOptions">Options to configure the inner reader</param>
-    public static CsvTypeMapEnumerable<char, TValue> ReadAsync<TValue>(
+    public static CsvTypeMapEnumerable<char, TValue> Read<TValue>(
         Stream stream,
         CsvTypeMap<char, TValue> typeMap,
         CsvOptions<char>? options = null,
@@ -134,7 +134,7 @@ public static partial class CsvReader
     /// <param name="typeMap">Precompiled type map</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="readerOptions">Options to configure the inner reader</param>
-    public static CsvTypeMapEnumerable<char, TValue> ReadAsync<TValue>(
+    public static CsvTypeMapEnumerable<char, TValue> Read<TValue>(
         TextReader textReader,
         CsvTypeMap<char, TValue> typeMap,
         CsvOptions<char>? options = null,
@@ -155,7 +155,7 @@ public static partial class CsvReader
     /// <param name="typeMap">Precompiled type map</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="readerOptions">Options to configure the inner reader</param>
-    public static CsvTypeMapEnumerable<byte, TValue> ReadAsync<TValue>(
+    public static CsvTypeMapEnumerable<byte, TValue> Read<TValue>(
         Stream stream,
         CsvTypeMap<byte, TValue> typeMap,
         CsvOptions<byte>? options = null,
@@ -176,7 +176,7 @@ public static partial class CsvReader
     /// <param name="reader">Pipe to read the records from</param>
     /// <param name="typeMap">Precompiled type map</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    public static ICsvValueAsyncEnumerable<byte, TValue> ReadAsync<TValue>(
+    public static ICsvValueAsyncEnumerable<byte, TValue> Read<TValue>(
         PipeReader reader,
         CsvTypeMap<byte, TValue> typeMap,
         CsvOptions<byte>? options = null)
