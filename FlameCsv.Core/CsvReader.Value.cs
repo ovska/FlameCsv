@@ -78,7 +78,7 @@ public static partial class CsvReader
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="readerOptions">Options to configure the inner reader</param>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public static CsvValueEnumerable<char, TValue> ReadAsync<[DAM(Messages.ReflectionBound)] TValue>(
+    public static CsvValueEnumerable<char, TValue> Read<[DAM(Messages.ReflectionBound)] TValue>(
         Stream stream,
         Encoding? encoding = null,
         CsvOptions<char>? options = null,
@@ -99,7 +99,7 @@ public static partial class CsvReader
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="readerOptions">Options to configure the inner reader</param>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public static CsvValueEnumerable<char, TValue> ReadAsync<[DAM(Messages.ReflectionBound)] TValue>(
+    public static CsvValueEnumerable<char, TValue> Read<[DAM(Messages.ReflectionBound)] TValue>(
         TextReader textReader,
         CsvOptions<char>? options = null,
         CsvReaderOptions readerOptions = default)
@@ -118,7 +118,7 @@ public static partial class CsvReader
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="readerOptions">Options to configure the inner reader</param>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public static CsvValueEnumerable<byte, TValue> ReadAsync<[DAM(Messages.ReflectionBound)] TValue>(
+    public static CsvValueEnumerable<byte, TValue> Read<[DAM(Messages.ReflectionBound)] TValue>(
         Stream stream,
         CsvOptions<byte>? options = null,
         CsvReaderOptions readerOptions = default)
@@ -137,7 +137,7 @@ public static partial class CsvReader
     /// <param name="reader">Pipe to read the records from</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public static ICsvValueAsyncEnumerable<byte, TValue> ReadAsync<[DAM(Messages.ReflectionBound)] TValue>(
+    public static ICsvValueAsyncEnumerable<byte, TValue> Read<[DAM(Messages.ReflectionBound)] TValue>(
         PipeReader reader,
         CsvOptions<byte>? options = null)
     {

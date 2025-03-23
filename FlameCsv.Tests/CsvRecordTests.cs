@@ -13,7 +13,7 @@ public static partial class CsvRecordTests
         CsvValueRecord<char>.Enumerator secondRecordEnumerator;
 
         await using (var enumerator = CsvReader
-                         .EnumerateAsync(new StringReader("A,B,C\r\n1,2,3\r\n4,5,6\r\n"))
+                         .Enumerate(new StringReader("A,B,C\r\n1,2,3\r\n4,5,6\r\n"))
                          .GetAsyncEnumerator(TestContext.Current.CancellationToken))
         {
             Assert.Equal(0, enumerator.Line);

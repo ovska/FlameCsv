@@ -2,6 +2,7 @@
 using System.Text;
 using FlameCsv.Extensions;
 using System.Buffers;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using FlameCsv.Enumeration;
 using FlameCsv.IO;
@@ -63,14 +64,14 @@ public static partial class CsvReader
     }
 
     /// <summary>
-    /// Reads CSV records asynchronously from the stream by creating a <see cref="StreamReader"/> using the provided options.
+    /// Reads CSV records from the stream by creating a <see cref="StreamReader"/> using the provided options.
     /// </summary>
     /// <remarks><inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)" path="/remarks"/></remarks>
     /// <param name="stream">Stream to read the records from</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="encoding">Encoding to use for the inner <see cref="StreamReader"/></param>
     /// <param name="readerOptions">Options to configure the inner reader</param>
-    public static CsvRecordEnumerable<char> EnumerateAsync(
+    public static CsvRecordEnumerable<char> Enumerate(
         Stream stream,
         CsvOptions<char>? options = null,
         Encoding? encoding = null,
@@ -86,13 +87,13 @@ public static partial class CsvReader
     }
 
     /// <summary>
-    /// Reads CSV records asynchronously from the reader.
+    /// Reads CSV records from the <see cref="TextReader"/>.
     /// </summary>
     /// <remarks><inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)" path="/remarks"/></remarks>
     /// <param name="textReader">Text reader to read the records from</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="readerOptions">Options to configure the inner reader</param>
-    public static CsvRecordEnumerable<char> EnumerateAsync(
+    public static CsvRecordEnumerable<char> Enumerate(
         TextReader textReader,
         CsvOptions<char>? options = null,
         CsvReaderOptions readerOptions = default)
@@ -106,14 +107,14 @@ public static partial class CsvReader
     }
 
     /// <summary>
-    /// Reads CSV records asynchronously from the <see cref="Stream"/>.
+    /// Reads CSV records from the <see cref="Stream"/>.
     /// </summary>
     /// <remarks><inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)" path="/remarks"/></remarks>
     /// <param name="stream">Stream to read the records from</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="readerOptions">Options to configure the inner reader</param>
     [OverloadResolutionPriority(1)] // Prefer byte to char for ambiguous streams
-    public static CsvRecordEnumerable<byte> EnumerateAsync(
+    public static CsvRecordEnumerable<byte> Enumerate(
         Stream stream,
         CsvOptions<byte>? options = null,
         CsvReaderOptions readerOptions = default)
@@ -127,12 +128,12 @@ public static partial class CsvReader
     }
 
     /// <summary>
-    /// Reads CSV records asynchronously from the <see cref="PipeReader"/>.
+    /// Reads CSV records from the <see cref="PipeReader"/>.
     /// </summary>
     /// <remarks><inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)" path="/remarks"/></remarks>
     /// <param name="pipeReader">Pipe to read the records from</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    public static CsvRecordEnumerable<byte> EnumerateAsync(
+    public static IAsyncEnumerable<CsvValueRecord<byte>> EnumerateAsync(
         PipeReader pipeReader,
         CsvOptions<byte>? options = null)
     {
@@ -144,6 +145,7 @@ public static partial class CsvReader
 
     /// <inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)"/>
     [OverloadResolutionPriority(-1)] // prefer concrete types to generic
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public static CsvRecordEnumerable<T> Enumerate<T>(
         ReadOnlyMemory<T> csv,
         CsvOptions<T>? options = null)
@@ -154,6 +156,7 @@ public static partial class CsvReader
 
     /// <inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)"/>
     [OverloadResolutionPriority(-1)] // prefer concrete types to generic
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public static CsvRecordEnumerable<T> Enumerate<T>(
         in ReadOnlySequence<T> csv,
         CsvOptions<T>? options = null)
