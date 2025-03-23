@@ -39,6 +39,8 @@ public static class VecEscapeTests
     [MemberData(nameof(Data))]
     public static void Should_Escape_Char(string input, string expected)
     {
+        Assert.SkipUnless(Vec256Char.IsSupported, "Vec256Char is not supported on current hardware");
+
         Impl<char, SimdEscaperRFC<char, Vec256Char>, Vec256Char>(input, expected, in _cTokens);
     }
 
@@ -46,6 +48,8 @@ public static class VecEscapeTests
     [MemberData(nameof(Data))]
     public static void Should_Escape_Byte(string input, string expected)
     {
+        Assert.SkipUnless(Vec256Byte.IsSupported, "Vec256Byte is not supported on current hardware");
+
         Impl<byte, SimdEscaperRFC<byte, Vec256Byte>, Vec256Byte>(
             Encoding.UTF8.GetBytes(input),
             expected,
