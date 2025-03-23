@@ -17,18 +17,20 @@
                                      // prefer architecture specific intrinsic as they don't perform additional AND like Vector128.Narrow does
                                      if (Sse2.IsSupported)
                                      {
-                                         return Sse2.PackUnsignedSaturate(lower.AsInt16(), upper.AsInt16());
+                                         return Sse2.PackUnsignedSaturate(v0.AsInt16(), v1.AsInt16());
                                      }
                                      else if (AdvSimd.Arm64.IsSupported)
                                      {
-                                         return AdvSimd.Arm64.UnzipEven(lower.AsByte(), upper.AsByte());
+                                         return AdvSimd.Arm64.UnzipEven(v0.AsByte(), v1.AsByte());
                                      }
                                      else if (PackedSimd.IsSupported)
                                      {
-                                         return PackedSimd.ConvertNarrowingSaturateUnsigned(lower.AsInt16(), upper.AsInt16());
+                                         return PackedSimd.ConvertNarrowingSaturateUnsigned(v0.AsInt16(), v1.AsInt16());
                                      }
                                      else
                                      {
+                                         var lower = Vector128.Min(v0, Vector128.Create((ushort)127));
+                                         var upper = Vector128.Min(v1, Vector128.Create((ushort)127));
                                          return Vector128.Narrow(lower, upper);
                                      }
                              """;
@@ -41,11 +43,13 @@
                                         // 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2
                                         // We want to swap the X and Y bits
                                         // 1, 1, 1, 1, 1, 1, 1, 1, X, X, X, X, X, X, X, X, Y, Y, Y, Y, Y, Y, Y, Y, 2, 2, 2, 2, 2, 2, 2, 2
-                                        var packed = Avx2.PackUnsignedSaturate(lower.AsInt16(), upper.AsInt16());
+                                        var packed = Avx2.PackUnsignedSaturate(v0.AsInt16(), v1.AsInt16());
                                         return Avx2.Permute4x64(packed.AsInt64(), 0b_11_01_10_00).AsByte();
                                     }
                                     else
                                     {
+                                        var lower = Vector256.Min(v0, Vector256.Create((ushort)127));
+                                        var upper = Vector256.Min(v1, Vector256.Create((ushort)127));
                                         return Vector256.Narrow(lower, upper);
                                     }
                             """;
@@ -255,8 +259,6 @@ internal readonly struct <#= typeName #> : ISimdVector<<#= keyword #>, <#= typeN
     {
         var v0 = Vector<#= size #>.LoadUnsafe(ref Unsafe.As<char, ushort>(ref Unsafe.AsRef(in source)), offset);
         var v1 = Vector<#= size #>.LoadUnsafe(ref Unsafe.As<char, ushort>(ref Unsafe.AsRef(in source)), offset + ((nuint)Vector<#= size #><byte>.Count / sizeof(ushort)));
-        var lower = Vector<#= size #>.Min(v0, Vector<#= size #>.Create((ushort)127));
-        var upper = Vector<#= size #>.Min(v1, Vector<#= size #>.Create((ushort)127));
 <#
                 WriteNarrowing(size);
 #>
