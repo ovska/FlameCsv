@@ -1,6 +1,11 @@
 ﻿using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp;
+using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
+using System.Numerics;
+using FlameCsv.SourceGen.Helpers;
+using FlameCsv.SourceGen.Models;
 
 namespace FlameCsv.SourceGen;
 
@@ -28,7 +33,7 @@ internal static class Extensions
     {
         return type is INamedTypeSymbol namedType
             ? namedType.InstanceConstructors
-            : [..type.GetMembers(".ctor").OfType<IMethodSymbol>()]; // should be rare
+            : [.. type.GetMembers(".ctor").OfType<IMethodSymbol>()]; // should be rare
     }
 
     public static bool IsNullable(this ITypeSymbol type, [NotNullWhen(true)] out ITypeSymbol? baseType)
@@ -41,6 +46,16 @@ internal static class Extensions
 
         baseType = null;
         return false;
+    }
+
+    public static string ToCharLiteral(this char value)
+    {
+        if (value < 128 && char.IsLetterOrDigit(value))
+            return $"'{value}'";
+
+        return SyntaxFactory
+            .LiteralExpression(SyntaxKind.CharacterLiteralExpression, SyntaxFactory.Literal(value))
+            .ToFullString();
     }
 
     public static string ToStringLiteral(this string? value)
@@ -91,4 +106,86 @@ internal static class Extensions
             };
         }
     }
+
+    public static bool IsAsciiLetter(this char c) => (c | 0x20) is >= 'a' and <= 'z';
+
+    public static bool IsAscii(this string? value)
+    {
+        if (value is null) return false;
+        if (value.Length == 0) return true;
+
+        ref char first = ref MemoryMarshal.GetReference(value.AsSpan());
+
+        nint index = 0;
+        nint remaining = value.Length;
+
+        if (Vector.IsHardwareAccelerated && remaining >= Vector<ushort>.Count)
+        {
+            var needle = new Vector<ushort>(0x80);
+
+            do
+            {
+                var mask = Unsafe.ReadUnaligned<Vector<ushort>>(
+                    ref Unsafe.As<char, byte>(ref Unsafe.Add(ref first, index)));
+
+                if (Vector.GreaterThanAny(mask, needle))
+                {
+                    return false;
+                }
+
+                index += Vector<ushort>.Count;
+                remaining -= Vector<ushort>.Count;
+            } while (remaining >= Vector<ushort>.Count);
+        }
+
+        while (remaining >= 4)
+        {
+            ulong mask = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<char, byte>(ref Unsafe.Add(ref first, index)));
+
+            // Check if any high bytes are non-zero
+            if ((mask & 0xFF80_FF80_FF80_FF80) != 0)
+            {
+                return false;
+            }
+
+            index += 4;
+            remaining -= 4;
+        }
+
+        while (remaining > 0)
+        {
+            if (Unsafe.Add(ref first, index) > 0x7F)
+            {
+                return false;
+            }
+
+            index++;
+            remaining--;
+        }
+
+        return true;
+    }
+
+    public static IEnumerable<T> DistinctBy<T, TValue>(this IEnumerable<T> values, Func<T, TValue> selector)
+        where TValue : IEquatable<TValue>
+    {
+        HashSet<TValue> set = PooledSet<TValue>.Acquire();
+
+        try
+        {
+            foreach (var value in values)
+            {
+                if (set.Add(selector(value)))
+                {
+                    yield return value;
+                }
+            }
+        }
+        finally
+        {
+            PooledSet<TValue>.Release(set);
+        }
+    }
+
+    public static bool IsByte(this TypeRef typeRef) => typeRef.SpecialType == SpecialType.System_Byte;
 }

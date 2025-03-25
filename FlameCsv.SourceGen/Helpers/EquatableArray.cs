@@ -104,6 +104,8 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnu
     {
         return Unsafe.As<T[]?, ImmutableArray<T>>(ref Unsafe.AsRef(in _array));
     }
+    
+    public T[]? UnsafeGetArray => _array;
 
     /// <summary>
     /// Creates an <see cref="EquatableArray{T}"/> instance from a given <see cref="ImmutableArray{T}"/>.
@@ -137,9 +139,9 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnu
     /// Gets an <see cref="ImmutableArray{T}.Enumerator"/> value to traverse items in the current array.
     /// </summary>
     /// <returns>An <see cref="ImmutableArray{T}.Enumerator"/> value to traverse items in the current array.</returns>
-    public ImmutableArray<T>.Enumerator GetEnumerator()
+    public Enumerator GetEnumerator()
     {
-        return AsImmutableArray().GetEnumerator();
+        return new(_array!);
     }
 
     /// <sinheritdoc/>
@@ -194,20 +196,20 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnu
         return !left.Equals(right);
     }
 
-    // public struct Enumerator(T[] array)
-    // {
-    //     private readonly T[] _array = array;
-    //     private int _index = -1;
-    //
-    //     public readonly ref readonly T Current
-    //     {
-    //         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    //         get => ref _array[_index];
-    //     }
-    //
-    //     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    //     public bool MoveNext() => ++_index < _array.Length;
-    // }
+    public struct Enumerator(T[] array)
+    {
+        private readonly T[] _array = array;
+        private int _index = -1;
+
+        public readonly ref readonly T Current
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => ref _array[_index];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool MoveNext() => ++_index < _array.Length;
+    }
 
     public override string ToString() => $"EquatableArray<{typeof(T)}>[{Length}]";
 
