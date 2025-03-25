@@ -3,10 +3,13 @@
 internal static class Descriptors
 {
     private const string CategoryDesign = "Design";
+
     private const string CategoryUsage = "Usage";
     // 1XX - Types and parameters
     // 2XX - Configuration
     // 3XX - Converters
+
+    // 5XX - Enum Generator
 
     public static readonly DiagnosticDescriptor FileScopedType = new(
         id: "FLAMESG101",
@@ -111,6 +114,31 @@ internal static class Descriptors
         id: "FLAMESG207",
         title: "CsvConverter must not be abstract",
         messageFormat: "CsvConverter {0} for {1} must not be abstract",
+        category: CategoryUsage,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor EnumUnsupportedToken = new(
+        id: "FLAMESG501",
+        title: "Token type not supported",
+        messageFormat: "{0} is not a supported token type (must be char or byte)",
+        category: CategoryUsage,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor EnumInvalidExplicitName = new(
+        id: "FLAMESG502",
+        title: "Invalid explicit enum name",
+        messageFormat:
+        "Explicit enum name \"{0}\" for {1}.{2} is not supported: value must not be empty, and must not start with a digit, plus, or minus",
+        category: CategoryUsage,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor EnumFlagsNotSupported = new(
+        id: "FLAMESG503",
+        title: "Flags-enums are not supported",
+        messageFormat: "Converter generation for flags-enum {0} is not supported",
         category: CategoryUsage,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);

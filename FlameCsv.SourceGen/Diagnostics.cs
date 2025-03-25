@@ -139,6 +139,39 @@ internal static class Diagnostics
             ]);
     }
 
+    public static Diagnostic EnumUnsupportedToken(
+        ISymbol targetType,
+        AttributeData attribute,
+        ITypeSymbol tokenType)
+    {
+        return Diagnostic.Create(
+            descriptor: Descriptors.EnumUnsupportedToken,
+            location: attribute.GetLocation() ?? GetLocation(targetType),
+            messageArgs: tokenType.ToDisplayString());
+    }
+
+    public static Diagnostic EnumInvalidExplicitName(
+        ISymbol enumSymbol,
+        IFieldSymbol fieldSymbol,
+        Location? location,
+        string explicitName)
+    {
+        return Diagnostic.Create(
+            descriptor: Descriptors.EnumInvalidExplicitName,
+            location: location ?? GetLocation(fieldSymbol, enumSymbol),
+            messageArgs: [explicitName, enumSymbol.Name, fieldSymbol.Name]);
+    }
+
+    public static Diagnostic EnumFlagsNotSupported(
+        ISymbol enumSymbol,
+        Location? location)
+    {
+        return Diagnostic.Create(
+            descriptor: Descriptors.EnumFlagsNotSupported,
+            location: location ?? GetLocation(enumSymbol),
+            messageArgs: enumSymbol.ToDisplayString());
+    }
+
     /// <summary>
     /// Returns the first valid source location from the given symbols, checked in order.
     /// </summary>
@@ -163,7 +196,7 @@ internal static class Diagnostics
     internal static void CheckIfFileScoped(
         ITypeSymbol type,
         CancellationToken cancellationToken,
-        ref AnalysisCollector collector)
+        List<Diagnostic> diagnostics)
     {
         foreach (var syntaxRef in type.DeclaringSyntaxReferences)
         {
@@ -176,7 +209,7 @@ internal static class Diagnostics
             {
                 if (modifier.IsKind(SyntaxKind.FileKeyword))
                 {
-                    collector.AddDiagnostic(FileScopedType(type));
+                    diagnostics.Add(FileScopedType(type));
                     return;
                 }
             }

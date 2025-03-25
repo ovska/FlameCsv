@@ -25,7 +25,7 @@ public partial class TypeMapGenerator
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        writer.WriteLine(_codeDomAttribute);
+        writer.WriteLine(GlobalConstants.CodeDomAttribute);
         writer.WriteLine(EditorBrowsableNever);
         writer.WriteLine(
             $"internal sealed partial class TypeMapDematerializer : global::FlameCsv.Writing.IDematerializer<{typeMap.Token.FullyQualifiedName}, {typeMap.Type.FullyQualifiedName}>");

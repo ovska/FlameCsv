@@ -48,6 +48,31 @@ public static class ExtensionTests
             new EquatableArray<(string name, string display)>([("x", "y"), ("a", "b")]));
 
         // ReSharper disable once RedundantCast
-        Assert.Equal(EquatableArray.Create(1, 2, 3), new EquatableArray<int>((ReadOnlySpan<int>) [1, 2, 3]));
+        Assert.Equal(EquatableArray.Create(1, 2, 3), new EquatableArray<int>((ReadOnlySpan<int>)[1, 2, 3]));
+    }
+
+    [Theory]
+    [InlineData(null, true)]
+    [InlineData("", true)]
+    [InlineData("abc", true)]
+    [InlineData("test\\a", true)]
+    [InlineData("test value", true)]
+    [InlineData("Hello, World!", true)]
+    [InlineData("The quick 'brown' fox, jumps over the _lazy_ d^g", true)]
+    [InlineData("Café", false)]
+    [InlineData("Non-ASCII: ñ", false)]
+    [InlineData("Another test: é", false)]
+    [InlineData("Märkä Mörkö", false)]
+    [InlineData("Unicode: 𝄞", false)]
+    [InlineData("Very long value with a lot of characters: 1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+[]{}|;':\",.<>?/~`", true)]
+    [InlineData("Very long value with a lot of characters: 1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+[]{}|;':\",.<>?/~`Café", false)]
+    [InlineData("Very long value with a lot of characters: 1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+[]{}|;':`e,.<>?/~`", false)]
+    [InlineData("Very long value with a lot of characters: Café 1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+[]{}|;':\",.<>?/~`", false)]
+    [InlineData("Another long string with special characters: ~!@#$%^&*()_+", true)]
+    [InlineData("Special characters: ©, ™, ®", false)]
+    public static void Test_IsAscii(string? value, bool expected)
+    {
+        Assert.Equal(expected, System.Text.Ascii.IsValid(value));
+        Assert.Equal(expected, value.IsAscii());
     }
 }
