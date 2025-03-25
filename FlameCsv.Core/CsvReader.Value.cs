@@ -78,6 +78,7 @@ public static partial class CsvReader
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="readerOptions">Options to configure the inner reader</param>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
+    [OverloadResolutionPriority(-1)] // prefer byte overload when providing just a stream
     public static CsvValueEnumerable<char, TValue> Read<[DAM(Messages.ReflectionBound)] TValue>(
         Stream stream,
         Encoding? encoding = null,
