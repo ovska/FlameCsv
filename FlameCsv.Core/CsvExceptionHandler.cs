@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using JetBrains.Annotations;
 
@@ -32,6 +33,7 @@ public readonly ref struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBina
         long position)
     {
         if (Unsafe.IsNullRef(in fields)) ThrowHelper.ArgumentNull(nameof(fields));
+        ArgumentNullException.ThrowIfNull(exception);
 
         _fields = ref fields;
         Header = header;
