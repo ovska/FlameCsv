@@ -10,6 +10,9 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
     private const string AggressiveInlining
         = "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]";
 
+    private const string NoInlining
+        = "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]";
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         IncrementalValuesProvider<(EnumModel model, EquatableArray<Diagnostic> diagnostics, bool result)>
@@ -117,8 +120,7 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
                     $"_provider = options.GetFormatProvider(typeof({model.EnumType.FullyQualifiedName}));");
                 writer.WriteLine(
                     $"_format = options.GetFormat(typeof({model.EnumType.FullyQualifiedName}), options.EnumFormat);");
-                writer.WriteLine(
-                    "_writeNumbers = _format is \"D\" or \"d\";");
+                writer.WriteLine("_writeNumbers = _format is \"D\" or \"d\";");
                 writer.WriteLine("_allowUndefinedValues = options.AllowUndefinedEnumValues;");
             }
 
@@ -142,6 +144,18 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
 
             writer.WriteLine();
             WriteDefinedCheck(in model, writer, context.CancellationToken);
+
+            if (model.TokenType.IsByte())
+            {
+                writer.WriteLine();
+                writer.WriteLine(NoInlining);
+                writer.WriteLine(
+                    $"private bool TryParseSlow(global::System.ReadOnlySpan<{model.TokenType.Name}> source, out {model.EnumType.FullyQualifiedName} value)");
+                using (writer.WriteBlock())
+                {
+                    WriteParseSlow(writer, context.CancellationToken);
+                }
+            }
         }
 
         foreach (ref readonly var nestedType in model.WrappingTypes)

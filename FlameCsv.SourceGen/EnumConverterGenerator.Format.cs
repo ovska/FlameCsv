@@ -59,7 +59,7 @@ public partial class EnumConverterGenerator
             WriteFormatMatch(
                 writer,
                 in model,
-                model.Values,
+                model.Values.DistinctBy(x => x.Value),
                 (innerWriter, value) => { innerWriter.Write($"{enumName}.{value.Name}"); },
                 static (writer, value) => { writer.Write((value.ExplicitName ?? value.Name).ToStringLiteral()); });
         }
