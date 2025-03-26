@@ -43,7 +43,7 @@ public class TypeMapTests
 
         GeneratorDriver driver = CSharpGeneratorDriver.Create(
             [sourceGenerator],
-            driverOptions: new GeneratorDriverOptions(default, true));
+            driverOptions: new GeneratorDriverOptions(default, trackIncrementalGeneratorSteps: true));
 
         // Run the generator once
         driver = driver.RunGenerators(compilation, TestContext.Current.CancellationToken);
@@ -84,44 +84,55 @@ public class TypeMapTests
     {
         HashSet<Type> handled = [];
         AssertEquatable(typeof(TypeMapModel), handled);
+        AssertEquatable(typeof(EnumModel), handled);
 
-        static void AssertEquatable(Type type, HashSet<Type> handled)
+        static bool AssertEquatable(Type type, HashSet<Type> handled)
         {
             if (!handled.Add(type))
             {
-                return;
+                return true;
             }
 
-            if (type.IsPrimitive || type == typeof(string))
+            if (type.IsPrimitive ||
+                type.IsEnum ||
+                type == typeof(string))
             {
-                return;
+                return true;
             }
 
-            if (type.IsAssignableTo(typeof(IEquatable<>).MakeGenericType(type)))
+            if (!type.IsAssignableTo(typeof(IEquatable<>).MakeGenericType(type)))
             {
-                return;
+                Assert.Fail($"{type.FullName} is not primitive and does not implement IEquatable<{type.FullName}>");
+                return false;
             }
 
-            if (type.GetInterfaces().Any(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IEnumerable<>)))
+            // don't check properties of IEnumerable types, we checked it implements IEquatable<> already
+            if (type.IsAssignableTo(typeof(System.Collections.IEnumerable)))
             {
-                Type elementType = type.GetElementType() ?? type.GetGenericArguments()[0];
-
-                // ReSharper disable once TailRecursiveCall
-                AssertEquatable(elementType, handled);
-                return;
+                return true;
             }
 
             foreach (MemberInfo member in type.GetMembers(BindingFlags.Public | BindingFlags.Instance))
             {
                 if (member is PropertyInfo property)
                 {
-                    AssertEquatable(property.PropertyType, handled);
+                    if (!AssertEquatable(property.PropertyType, handled))
+                    {
+                        Assert.Fail($"{type.FullName}.{member.Name} is not equatable");
+                        return false;
+                    }
                 }
                 else if (member is FieldInfo field)
                 {
-                    AssertEquatable(field.FieldType, handled);
+                    if (!AssertEquatable(field.FieldType, handled))
+                    {
+                        Assert.Fail($"{type.FullName}.{member.Name} is not equatable");
+                        return false;
+                    }
                 }
             }
+
+            return true;
         }
     }
 
