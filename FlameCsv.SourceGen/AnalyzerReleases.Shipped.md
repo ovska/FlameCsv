@@ -7,7 +7,7 @@
 
  Rule ID    | Category | Severity | Notes       
 ------------|----------|----------|-------------
- FLAMESG101 | Design   | Error    | File-scoped TypeMap
+ FLAMESG101 | Design   | Error    | File-scoped type
  FLAMESG102 | Design   | Error    | No ctor found
  FLAMESG103 | Design   | Error    | Invalid ctor param ref kind
  FLAMESG104 | Design   | Error    | Ref-like ctor param

@@ -8,9 +8,13 @@ internal static class Diagnostics
 {
     public static Diagnostic FileScopedType(ITypeSymbol type)
     {
+    public static Diagnostic FileScopedType(ITypeSymbol type, Location? location)
+    {
+        // we don't need to specify the location of the attribute targeting this type,
+        // as a file scoped type can only be defined in the same file as where the attribute is applied
         return Diagnostic.Create(
             descriptor: Descriptors.FileScopedType,
-            location: GetLocation(type),
+            location: location ?? GetLocation(type),
             messageArgs: type.ToDisplayString());
     }
 
@@ -200,16 +204,16 @@ internal static class Diagnostics
     {
         foreach (var syntaxRef in type.DeclaringSyntaxReferences)
         {
-            if (syntaxRef.GetSyntax(cancellationToken) is not TypeDeclarationSyntax classDeclaration)
+            if (syntaxRef.GetSyntax(cancellationToken) is not MemberDeclarationSyntax declarationSyntax)
             {
                 continue;
             }
 
-            foreach (var modifier in classDeclaration.Modifiers)
+            foreach (var modifier in declarationSyntax.Modifiers)
             {
                 if (modifier.IsKind(SyntaxKind.FileKeyword))
                 {
-                    diagnostics.Add(FileScopedType(type));
+                    diagnostics.Add(FileScopedType(type, modifier.GetLocation()));
                     return;
                 }
             }
