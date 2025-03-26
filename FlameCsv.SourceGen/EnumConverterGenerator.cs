@@ -106,13 +106,6 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
             using (writer.WriteBlock())
             {
                 writer.WriteLine("global::System.ArgumentNullException.ThrowIfNull(options);");
-                /*
-                 *         _allowUndefinedValues = options.AllowUndefinedEnumValues;
-                            _ignoreCase = options.IgnoreEnumCase;
-                            _formatProvider = options.GetFormatProvider(typeof(TEnum));
-                            _format = options.GetFormat(typeof(TEnum), options.EnumFormat);
-                 */
-
                 writer.WriteLine("_ignoreCase = options.IgnoreEnumCase;");
                 writer.WriteLine(
                     $"_provider = options.GetFormatProvider(typeof({model.EnumType.FullyQualifiedName}));");
