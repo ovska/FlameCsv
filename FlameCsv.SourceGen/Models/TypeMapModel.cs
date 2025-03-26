@@ -299,6 +299,7 @@ internal sealed record TypeMapModel
             collector.AddDiagnostic(Diagnostics.NoWritableMembers(targetType));
         }
 
+        Diagnostics.EnsurePartial(containingClass, cancellationToken, collector.Diagnostics);
         Diagnostics.CheckIfFileScoped(containingClass, cancellationToken, collector.Diagnostics);
         Diagnostics.CheckIfFileScoped(targetType, cancellationToken, collector.Diagnostics);
 

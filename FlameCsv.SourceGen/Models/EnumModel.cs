@@ -37,6 +37,7 @@ internal readonly record struct EnumModel
                 diagList.Add(Diagnostics.EnumFlagsNotSupported(enumType, attributeData.GetLocation()));
             }
 
+            Diagnostics.EnsurePartial(converterType, cancellationToken, diagList);
             Diagnostics.CheckIfFileScoped(converterType, cancellationToken, diagList);
             Diagnostics.CheckIfFileScoped(enumType, cancellationToken, diagList);
 

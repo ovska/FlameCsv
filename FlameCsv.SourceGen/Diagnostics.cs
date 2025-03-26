@@ -6,8 +6,14 @@ namespace FlameCsv.SourceGen;
 
 internal static class Diagnostics
 {
-    public static Diagnostic FileScopedType(ITypeSymbol type)
+    public static Diagnostic NotPartialType(ITypeSymbol type, Location? location)
     {
+        return Diagnostic.Create(
+            descriptor: Descriptors.NotPartialType,
+            location: location ?? GetLocation(type),
+            messageArgs: type.ToDisplayString());
+    }
+
     public static Diagnostic FileScopedType(ITypeSymbol type, Location? location)
     {
         // we don't need to specify the location of the attribute targeting this type,
@@ -15,7 +21,7 @@ internal static class Diagnostics
         return Diagnostic.Create(
             descriptor: Descriptors.FileScopedType,
             location: location ?? GetLocation(type),
-            messageArgs: type.ToDisplayString());
+            messageArgs: type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
     }
 
     public static Diagnostic NoValidConstructor(ITypeSymbol type, IMethodSymbol? constructor)
@@ -195,6 +201,34 @@ internal static class Diagnostics
         }
 
         return null;
+    }
+
+    internal static void EnsurePartial(
+        ITypeSymbol type,
+        CancellationToken cancellationToken,
+        List<Diagnostic> diagnostics)
+    {
+        Location? location = null;
+
+        foreach (var syntaxRef in type.DeclaringSyntaxReferences)
+        {
+            if (syntaxRef.GetSyntax(cancellationToken) is not MemberDeclarationSyntax declarationSyntax)
+            {
+                continue;
+            }
+
+            location ??= declarationSyntax.GetLocation();
+
+            foreach (var modifier in declarationSyntax.Modifiers)
+            {
+                if (modifier.IsKind(SyntaxKind.PartialKeyword))
+                {
+                    return;
+                }
+            }
+        }
+
+        diagnostics.Add(NotPartialType(type, location));
     }
 
     internal static void CheckIfFileScoped(
