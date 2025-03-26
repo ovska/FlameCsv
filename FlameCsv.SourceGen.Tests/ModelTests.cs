@@ -561,7 +561,7 @@ public static class ModelTests
                 .Single(s => s.Identifier.Text == "Target"),
             cancellationToken: TestContext.Current.CancellationToken)!;
 
-        var actual = NestedType.Parse(nestedSymbol);
+        var actual = NestedType.Parse(nestedSymbol, CancellationToken.None, []);
 
         EquatableArray<NestedType> expected =
         [

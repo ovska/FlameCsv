@@ -10,7 +10,10 @@ internal readonly record struct NestedType
     public required bool IsValueType { get; init; }
     public required string Name { get; init; }
 
-    public static EquatableArray<NestedType> Parse(ITypeSymbol containingClass)
+    public static EquatableArray<NestedType> Parse(
+        ITypeSymbol containingClass,
+        CancellationToken cancellationToken,
+        List<Diagnostic> diagnostics)
     {
         INamedTypeSymbol? type = containingClass.ContainingType;
 
@@ -20,6 +23,8 @@ internal readonly record struct NestedType
 
         while (type is not null)
         {
+            Diagnostics.EnsurePartial(type, cancellationToken, diagnostics, generationTarget: containingClass);
+
             wrappers.Add(
                 new NestedType
                 {

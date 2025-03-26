@@ -14,7 +14,7 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor NotPartialType = new(
         id: "FLAMESG100",
         title: "Not a partial type",
-        messageFormat: "Type {0} must be declared as partial to participate in source generation",
+        messageFormat: "Type {0} must be declared as partial to participate in source generation{1}",
         category: CategoryDesign,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
