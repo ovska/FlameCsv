@@ -118,7 +118,7 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
                 writer.WriteLine(
                     $"_format = options.GetFormat(typeof({model.EnumType.FullyQualifiedName}), options.EnumFormat);");
                 writer.WriteLine(
-                    "_writeNumbers = \"D\".Equals(_format, global::System.StringComparison.OrdinalIgnoreCase);");
+                    "_writeNumbers = _format is \"D\" or \"d\";");
                 writer.WriteLine("_allowUndefinedValues = options.AllowUndefinedEnumValues;");
             }
 
