@@ -570,9 +570,6 @@ public partial class EnumConverterGenerator
             }
             else
             {
-                writer.WriteLine($"// count: {entries.Count}, depth: {depth}");
-
-
                 List<Entry> innerEntries = PooledList<Entry>.Acquire();
 
                 writer.Write("switch (");
@@ -598,6 +595,8 @@ public partial class EnumConverterGenerator
                         }
                     }
                 }
+                
+                PooledList<Entry>.Release(innerEntries);
             }
         }
     }
