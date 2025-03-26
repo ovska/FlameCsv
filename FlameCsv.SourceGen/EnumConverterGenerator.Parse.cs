@@ -177,12 +177,9 @@ public partial class EnumConverterGenerator
                                     }
                                     else
                                     {
-                                        writer.WriteLine(
-                                            $"global::System.ReadOnlySpan<{model.TokenType.Name}> tail = source.Slice(1);");
-
                                         foreach (var entry in firstCharGroup)
                                         {
-                                            writer.Write($"if (tail.SequenceEqual(\"{entry.name[1..]}\"");
+                                            writer.Write($"if (source.EndsWith(\"{entry.name[1..]}\"");
                                             writer.WriteLine(model.TokenType.IsByte() ? "u8))" : "))");
                                             using (writer.WriteBlock())
                                             {
@@ -221,7 +218,11 @@ public partial class EnumConverterGenerator
 
         using (writer.WriteBlock())
         {
-            foreach (var lengthGroup in entries.GroupBy(e => e.Length))
+            IEnumerable<IGrouping<int, Entry>> lengthGroups = isByte
+                ? entries.GroupBy(e => Encoding.UTF8.GetByteCount(e.Name))
+                : entries.GroupBy(e => e.Length);
+
+            foreach (var lengthGroup in lengthGroups)
             {
                 writer.WriteLine($"case {lengthGroup.Key}:");
 
@@ -229,7 +230,7 @@ public partial class EnumConverterGenerator
                 {
                     if (isByte)
                     {
-                        if (!ignoreCase && lengthGroup.All(e => e.Name.IsAscii()))
+                        if (!ignoreCase)
                         {
                             WriteStringMatchByteAsciiOrdinal(
                                 in model,
@@ -237,9 +238,39 @@ public partial class EnumConverterGenerator
                                 lengthGroup,
                                 cancellationToken);
                         }
-                        else
+                        else if (lengthGroup.All(e => e.Name.IsAscii()))
                         {
                             WriteStringMatchByte(model, writer, ignoreCase, lengthGroup, cancellationToken);
+                        }
+                        else if (lengthGroup.All(
+                                     g => g.Name.ToLowerInvariant() == g.Name && g.Name.ToUpperInvariant() == g.Name))
+                        {
+                            WriteStringMatchByteAsciiOrdinal(
+                                in model,
+                                writer,
+                                lengthGroup,
+                                cancellationToken,
+                                forceIfChain: true);
+                        }
+                        else
+                        {
+                            writer.WriteLine(
+                                "global::System.ReadOnlySpan<char> source_chars = GetChars(source, stackalloc char[32], out char[]? toReturn);");
+                            writer.WriteLine("bool retVal = false;");
+                            writer.WriteLine("__Unsafe.SkipInit(out value);");
+                            writer.WriteLine();
+                            WriteStringMatchChar(
+                                in model,
+                                writer,
+                                ignoreCase,
+                                lengthGroup,
+                                cancellationToken);
+
+                            writer.WriteLine(
+                                "if (toReturn is not null) global::System.Buffers.ArrayPool<char>.Shared.Return(toReturn, clearArray: true);");
+
+                            writer.WriteLine("if (retVal) return true;");
+                            writer.WriteLine("break;");
                         }
                     }
                     else
@@ -270,44 +301,66 @@ public partial class EnumConverterGenerator
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (entriesByLength.Count() == 1)
+        bool isByte = model.TokenType.SpecialType == SpecialType.System_Byte;
+        string sourceName = isByte ? "source_chars" : "source";
+
+        if (entriesByLength.Count() == 1 || entriesByLength.Any(x => x.Name.ContainsSurrogates()))
         {
-            var single = entriesByLength.Single();
-
-            writer.Write("if (source.Equals(");
-            writer.Write(single.Name.ToStringLiteral());
-            writer.Write(", global::System.StringComparison.Ordinal");
-
-            if (ignoreCase)
+            foreach (var single in entriesByLength)
             {
-                writer.Write("IgnoreCase");
+                writer.Write($"if ({sourceName}.Equals(");
+                writer.Write(single.Name.ToStringLiteral());
+                writer.Write(", global::System.StringComparison.Ordinal");
+
+                if (ignoreCase)
+                {
+                    writer.Write("IgnoreCase");
+                }
+
+                writer.WriteLine("))");
+
+                using (writer.WriteBlock())
+                {
+                    writer.WriteLine($"value = {model.EnumType.FullyQualifiedName}.{single.MemberName};");
+                    writer.WriteLine(isByte ? "retVal = true;" : "return true;");
+                }
             }
 
-            writer.WriteLine("))");
-
-            using (writer.WriteBlock())
-            {
-                writer.WriteLine($"value = {model.EnumType.FullyQualifiedName}.{single.MemberName};");
-                writer.WriteLine("return true;");
-            }
-
-            writer.WriteLine("break;");
+            writer.WriteLineIf(!isByte, "break;");
             return;
         }
 
         writer.Write("switch (");
 
-        if (!ignoreCase)
+        if (isByte)
         {
-            writer.WriteLine("first)");
-        }
-        else if (entriesByLength.All(e => e.Name.IsAscii()))
-        {
-            writer.WriteLine("(char)(first | 0x20))");
+            if (!ignoreCase)
+            {
+                writer.WriteLine($"{sourceName}[0])");
+            }
+            else if (entriesByLength.All(e => e.Name.IsAscii()))
+            {
+                writer.WriteLine($"(char)({sourceName}[0] | 0x20))");
+            }
+            else
+            {
+                writer.WriteLine($"char.ToLowerInvariant({sourceName}[0]))");
+            }
         }
         else
         {
-            writer.WriteLine("char.ToLowerInvariant(first))");
+            if (!ignoreCase)
+            {
+                writer.WriteLine("first)");
+            }
+            else if (entriesByLength.All(e => e.Name.IsAscii()))
+            {
+                writer.WriteLine("(char)(first | 0x20))");
+            }
+            else
+            {
+                writer.WriteLine("char.ToLowerInvariant(first))");
+            }
         }
 
         using (writer.WriteBlock())
@@ -328,7 +381,7 @@ public partial class EnumConverterGenerator
                     {
                         if (entry.Name.Length > 1)
                         {
-                            writer.Write("if (source.EndsWith(");
+                            writer.Write($"if ({sourceName}.EndsWith(");
                             writer.Write(entry.Name[1..].ToStringLiteral());
                             writer.Write(", global::System.StringComparison.Ordinal");
 
@@ -343,7 +396,15 @@ public partial class EnumConverterGenerator
                         using (writer.WriteBlock())
                         {
                             writer.WriteLine($"value = {model.EnumType.FullyQualifiedName}.{entry.MemberName};");
-                            writer.WriteLine("return true;");
+
+                            if (isByte)
+                            {
+                                writer.WriteLine("retVal = true;");
+                            }
+                            else
+                            {
+                                writer.WriteLine("return true;");
+                            }
                         }
                     }
 
@@ -352,20 +413,29 @@ public partial class EnumConverterGenerator
             }
         }
 
-        writer.WriteLine("break;");
+        writer.WriteLineIf(!isByte, "break;");
     }
 
     private static void WriteStringMatchByteAsciiOrdinal(
         in EnumModel model,
         IndentedTextWriter writer,
         IGrouping<int, Entry> entriesByLength,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool forceIfChain = false)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        // TODO: profile and optimize this limit
-        if (entriesByLength.Count() < 3)
+        if (forceIfChain ||
+            entriesByLength.Count() < 3 ||
+            entriesByLength.Any(e => e.Name.ContainsSurrogates()))
         {
+            if (forceIfChain)
+            {
+                writer.Write("// case-agnostic value");
+                writer.WriteIf(entriesByLength.Count() > 1, "s");
+                writer.WriteLine();
+            }
+
             foreach (var single in entriesByLength)
             {
                 writer.Write("if (source.SequenceEqual(");
@@ -439,35 +509,10 @@ public partial class EnumConverterGenerator
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        bool allAscii = entriesByLength.All(e => e.Name.IsAscii());
-
-        if (allAscii)
-        {
-            List<Entry> entries = PooledList<Entry>.Acquire();
-            entries.AddRange(entriesByLength);
-            WriteNestedAsciiSwitch(0, entries);
-            PooledList<Entry>.Release(entries);
-            writer.WriteLine("break;");
-            return;
-        }
-
-        foreach (var entry in entriesByLength)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            writer.Write("if (global::System.Text.Ascii.Equals");
-            if (ignoreCase) writer.Write("IgnoreCase");
-            writer.Write("(source, ");
-            writer.Write(entry.Name.ToStringLiteral());
-            writer.WriteLine("u8))");
-
-            using (writer.WriteBlock())
-            {
-                writer.WriteLine($"value = {model.EnumType.FullyQualifiedName}.{entry.MemberName};");
-                writer.WriteLine("return true;");
-            }
-        }
-
+        List<Entry> outerEntries = PooledList<Entry>.Acquire();
+        outerEntries.AddRange(entriesByLength);
+        WriteNestedAsciiSwitch(0, outerEntries);
+        PooledList<Entry>.Release(outerEntries);
         writer.WriteLine("break;");
 
         void WriteNestedAsciiSwitch(int depth, List<Entry> entries)
@@ -634,20 +679,12 @@ public partial class EnumConverterGenerator
         cancellationToken.ThrowIfCancellationRequested();
 
         writer.WriteLine(
-            "char[] chars = global::System.Buffers.ArrayPool<char>.Shared.Rent(global::System.Text.Encoding.UTF8.GetCharCount(source));");
-
-        writer.WriteLine("try");
-        using (writer.WriteBlock())
-        {
-            writer.WriteLine("int written = global::System.Text.Encoding.UTF8.GetChars(source, chars);");
-            writer.WriteLine(
-                "return global::System.Enum.TryParse(chars[..written], _ignoreCase, out value) && (_allowUndefinedValues || IsDefined(value));");
-        }
-        writer.WriteLine("finally");
-        using (writer.WriteBlock())
-        {
-            writer.WriteLine("global::System.Buffers.ArrayPool<char>.Shared.Return(chars, clearArray: true);");
-        }
+            "global::System.ReadOnlySpan<char> chars = GetChars(source, stackalloc char[32], out char[]? toReturn);");
+        writer.WriteLine(
+            "bool retVal = global::System.Enum.TryParse(chars, _ignoreCase, out value) && (_allowUndefinedValues || IsDefined(value));");
+        writer.WriteLine(
+            "if (toReturn is not null) global::System.Buffers.ArrayPool<char>.Shared.Return(toReturn, clearArray: true);");
+        writer.WriteLine("return retVal;");
     }
 
     private readonly record struct Entry(int Length, char FirstChar, string Name, string MemberName)
@@ -679,5 +716,32 @@ public partial class EnumConverterGenerator
                 yield return new Entry(value.ExplicitName.Length, firstChar, value.ExplicitName, value.Name);
             }
         }
+    }
+
+    private static void WriteGetChars(IndentedTextWriter writer, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        writer.WriteLine("global::System.Span<char> destination;");
+        writer.WriteLine("int length = global::System.Text.Encoding.UTF8.GetMaxCharCount(source.Length);");
+        writer.WriteLine();
+        writer.WriteLine(
+            "if (length <= buffer.Length || (length = global::System.Text.Encoding.UTF8.GetCharCount(source)) <= buffer.Length)");
+        using (writer.WriteBlock())
+        {
+            writer.WriteLine("destination = buffer;");
+            writer.WriteLine("toReturn = null;");
+        }
+
+        writer.WriteLine("else");
+        using (writer.WriteBlock())
+        {
+            writer.WriteLine("toReturn = global::System.Buffers.ArrayPool<char>.Shared.Rent(length);");
+            writer.WriteLine("destination = toReturn;");
+        }
+
+        writer.WriteLine();
+        writer.WriteLine("int written = global::System.Text.Encoding.UTF8.GetChars(source, destination);");
+        writer.WriteLine("return destination.Slice(0, written);");
     }
 }
