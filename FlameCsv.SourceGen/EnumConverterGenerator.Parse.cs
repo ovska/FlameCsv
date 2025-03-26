@@ -586,7 +586,6 @@ public partial class EnumConverterGenerator
                         innerEntries.Clear();
                         innerEntries.AddRange(firstChar);
 
-
                         writer.WriteLine($"case {firstChar.Key.ToCharLiteral()}:");
                         using (writer.WriteBlock())
                         {
