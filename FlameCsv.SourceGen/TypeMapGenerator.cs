@@ -148,8 +148,12 @@ public partial class TypeMapGenerator : IIncrementalGenerator
 
         using (writer.WriteBlock())
         {
+            cancellationToken.ThrowIfCancellationRequested();
             WriteDefaultInstance(writer, typeMap);
+            cancellationToken.ThrowIfCancellationRequested();
             WriteIndexes(writer, typeMap);
+            cancellationToken.ThrowIfCancellationRequested();
+            WriteInitializers(writer, typeMap);
             GetReadCode(writer, typeMap, cancellationToken);
             GetWriteCode(writer, typeMap, cancellationToken);
         }
@@ -181,6 +185,27 @@ public partial class TypeMapGenerator : IIncrementalGenerator
 
         writer.WriteLine("private const int @s__MinId = 1;");
         writer.WriteLine($"private const int @s__MaxId = {index - 1};");
+        writer.WriteLine();
+    }
+
+    private static void WriteInitializers(IndentedTextWriter writer, TypeMapModel typeMap)
+    {
+        writer.WriteLine("#nullable enable");
+        foreach (var member in typeMap.AllMembers)
+        {
+            writer.Write("static partial void Initialize_");
+            writer.Write(member.Identifier);
+            writer.Write("(global::FlameCsv.CsvOptions<");
+            writer.Write(typeMap.Token.Name);
+            writer.Write("> options, ref global::FlameCsv.CsvConverter<");
+            writer.Write(typeMap.Token.Name);
+            writer.Write(", ");
+            writer.Write(member.Type.FullyQualifiedName);
+            writer.WriteLine(">? converter);");
+        }
+
+        writer.WriteLine("#nullable disable");
+
         writer.WriteLine();
     }
 }

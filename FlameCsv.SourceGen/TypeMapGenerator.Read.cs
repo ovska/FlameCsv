@@ -516,9 +516,12 @@ public partial class TypeMapGenerator
 
                 using (writer.WriteBlock())
                 {
+                    writer.Write($"Initialize_{member.Identifier}(options, ref materializer.");
+                    member.WriteConverterName(writer);
+                    writer.WriteLine(");");
                     writer.Write("materializer.");
                     member.WriteConverterName(writer);
-                    writer.Write(" = ");
+                    writer.Write(" ??= ");
                     WriteConverter(writer, typeMap.Token.FullyQualifiedName, member);
                     writer.WriteLine(";");
                     writer.Write("materializer.Targets[index] = ");

@@ -124,6 +124,16 @@ public partial class TypeMapGenerator
 
         using (writer.WriteBlock())
         {
+            foreach (var property in members)
+            {
+                if (!property.CanWrite) continue;
+
+                writer.WriteLine($"CsvConverter<{token}, {property.Type.FullyQualifiedName}> converter_{property.Identifier} = null;");
+                writer.WriteLine($"Initialize_{property.Identifier}(options, ref converter_{property.Identifier});");
+                writer.WriteLine();
+                writableCount++;
+            }
+
             writer.WriteLine("return new TypeMapDematerializer");
 
             writer.WriteLine("{");
@@ -135,10 +145,9 @@ public partial class TypeMapGenerator
 
                 property.WriteConverterName(writer);
                 writer.Write(" = ");
+                writer.Write($"converter_{property.Identifier} ?? ");
                 WriteConverter(writer, token, property);
                 writer.WriteLine(",");
-
-                writableCount++;
             }
 
             writer.DecreaseIndent();
