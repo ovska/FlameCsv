@@ -111,8 +111,7 @@ internal static class Extensions
 
     public static bool IsAscii(this string? value)
     {
-        if (value is null) return false;
-        if (value.Length == 0) return true;
+        if (value is null || value.Length == 0) return true;
 
         ref char first = ref MemoryMarshal.GetReference(value.AsSpan());
 

@@ -76,7 +76,7 @@ public partial class EnumConverterGenerator
 
         if (model.TokenType.SpecialType == SpecialType.System_Byte)
         {
-            writer.WriteLine("throw new NotImplementedException();");
+            writer.WriteLine("return TryParseSlow(source, out value);");
         }
         else
         {
@@ -92,7 +92,7 @@ public partial class EnumConverterGenerator
         IndentedTextWriter writer,
         CancellationToken cancellationToken)
     {
-        writer.WriteLine("// check if it's a number");
+        writer.WriteLine("// check if value starts with a digit");
         writer.Write("if ((uint)(first - '0') <= 9u");
 
         writer.WriteLine(
@@ -134,8 +134,11 @@ public partial class EnumConverterGenerator
                                     writer.Write("case ");
                                     if (model.TokenType.SpecialType is SpecialType.System_Byte) writer.Write("(byte)");
                                     writer.Write(entry.name[0].ToCharLiteral());
-                                    writer.WriteLine(
-                                        $": value = ({model.EnumType.FullyQualifiedName}){entry.value}; return true;");
+                                    writer.Write($": value = ({model.EnumType.FullyQualifiedName})");
+                                    writer.WriteIf(entry.value < 0, "(");
+                                    writer.Write(entry.value.ToString());
+                                    writer.WriteIf(entry.value < 0, ")");
+                                    writer.WriteLine("; return true;");
                                 }
                             }
 
@@ -164,8 +167,11 @@ public partial class EnumConverterGenerator
                                                 writer.Write("case ");
                                                 writer.WriteIf(model.TokenType.IsByte(), "(byte)");
                                                 writer.Write(entry.name[1].ToCharLiteral());
-                                                writer.WriteLine(
-                                                    $": value = ({model.EnumType.FullyQualifiedName}){entry.value}; return true;");
+                                                writer.Write($": value = ({model.EnumType.FullyQualifiedName})");
+                                                writer.WriteIf(entry.value < 0, "(");
+                                                writer.Write(entry.value.ToString());
+                                                writer.WriteIf(entry.value < 0, ")");
+                                                writer.WriteLine("; return true;");
                                             }
                                         }
                                     }
@@ -526,6 +532,18 @@ public partial class EnumConverterGenerator
                     {
                         string type = count == 8 ? "ulong" : "uint";
 
+                        writer.Write("__MemoryMarshal.Read<");
+                        writer.Write(type);
+                        writer.Write(">(");
+
+                        Span<char> chars = stackalloc char[count];
+                        entry.Name.AsSpan(i, count).CopyTo(chars);
+                        foreach (ref char c in chars) c = char.ToLowerInvariant(c);
+                        var littleEndian = chars.ToString().ToStringLiteral();
+
+                        writer.Write($"{littleEndian}u8)");
+                        writer.Write(" == ");
+
                         writer.WriteIf(ignoreCase, "(");
                         writer.Write($"__Unsafe.ReadUnaligned<{type}>(ref ");
 
@@ -540,31 +558,40 @@ public partial class EnumConverterGenerator
 
                         if (ignoreCase)
                         {
-                            writer.Write(" | 0x");
+                            writer.Write(" | ");
+
+                            Span<bool> bytes = stackalloc bool[count];
+                            bool allLetters = true;
 
                             for (int byteIndex = 0; byteIndex < count; byteIndex++)
                             {
-                                writer.Write(entry.Name[i + byteIndex].IsAsciiLetter() ? "20" : "00");
+                                bool isLetter = entry.Name[i + byteIndex].IsAsciiLetter();
+                                bytes[byteIndex] = isLetter;
+                                if (!isLetter) allLetters = false;
                             }
 
-                            writer.Write(count == 8 ? "UL)" : "U)");
+                            bytes.Reverse();
+
+                            if (!allLetters)
+                            {
+                                writer.Write("(__BitConverter.IsLittleEndian ? ");
+                            }
+
+                            writer.Write("0x");
+
+                            foreach (var b in bytes) writer.Write(b ? "20" : "00");
+                            writer.Write(count == 8 ? "UL" : "U");
+
+                            if (!allLetters)
+                            {
+                                writer.Write(" : 0x");
+                                bytes.Reverse();
+                                foreach (var b in bytes) writer.Write(b ? "20" : "00");
+                                writer.Write(count == 8 ? "UL)" : "U)");
+                            }
+
+                            writer.Write(")");
                         }
-
-                        writer.Write(" == ");
-
-                        writer.Write("__MemoryMarshal.Read<");
-                        writer.Write(type);
-                        writer.Write(">(");
-
-                        Span<char> chars = stackalloc char[count];
-                        entry.Name.AsSpan(i, count).CopyTo(chars);
-                        foreach (ref char c in chars) c = char.ToLowerInvariant(c);
-
-                        var bigEndian = chars.ToString().ToStringLiteral();
-                        chars.Reverse();
-                        var littleEndian = chars.ToString().ToStringLiteral();
-
-                        writer.Write($"__BitConverter.IsLittleEndian ? {littleEndian}u8 : {bigEndian}u8)");
                     }
                 }
             }
@@ -594,9 +621,32 @@ public partial class EnumConverterGenerator
                         }
                     }
                 }
-                
+
                 PooledList<Entry>.Release(innerEntries);
             }
+        }
+    }
+
+    private static void WriteParseSlow(
+        IndentedTextWriter writer,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        writer.WriteLine(
+            "char[] chars = global::System.Buffers.ArrayPool<char>.Shared.Rent(global::System.Text.Encoding.UTF8.GetCharCount(source));");
+
+        writer.WriteLine("try");
+        using (writer.WriteBlock())
+        {
+            writer.WriteLine("int written = global::System.Text.Encoding.UTF8.GetChars(source, chars);");
+            writer.WriteLine(
+                "return global::System.Enum.TryParse(chars[..written], _ignoreCase, out value) && (_allowUndefinedValues || IsDefined(value));");
+        }
+        writer.WriteLine("finally");
+        using (writer.WriteBlock())
+        {
+            writer.WriteLine("global::System.Buffers.ArrayPool<char>.Shared.Return(chars, clearArray: true);");
         }
     }
 
