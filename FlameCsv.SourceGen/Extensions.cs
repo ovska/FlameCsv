@@ -109,6 +109,43 @@ internal static class Extensions
 
     public static bool IsAsciiLetter(this char c) => (c | 0x20) is >= 'a' and <= 'z';
 
+    public static bool ContainsSurrogates(this string value)
+    {
+        if (string.IsNullOrEmpty(value)) return false;
+
+        ref char first = ref MemoryMarshal.GetReference(value.AsSpan());
+
+        nint index = 0;
+        nint remaining = value.Length;
+
+        while (remaining >= 4)
+        {
+            if (char.IsSurrogate(Unsafe.Add(ref first, index)) ||
+                char.IsSurrogate(Unsafe.Add(ref first, index + 1)) ||
+                char.IsSurrogate(Unsafe.Add(ref first, index + 2)) ||
+                char.IsSurrogate(Unsafe.Add(ref first, index + 3)))
+            {
+                return true;
+            }
+
+            index += 4;
+            remaining -= 4;
+        }
+
+        while (remaining > 0)
+        {
+            if (char.IsSurrogate(Unsafe.Add(ref first, index)))
+            {
+                return true;
+            }
+
+            index++;
+            remaining--;
+        }
+
+        return false;
+    }
+
     public static bool IsAscii(this string? value)
     {
         if (value is null || value.Length == 0) return true;
