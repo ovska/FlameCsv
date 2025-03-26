@@ -6,12 +6,24 @@ namespace FlameCsv.SourceGen;
 
 internal static class Diagnostics
 {
-    public static Diagnostic NotPartialType(ITypeSymbol type, Location? location)
+    public static Diagnostic NotPartialType(ITypeSymbol type, ITypeSymbol? generationTarget, Location? location)
     {
+        string targetMessage = "";
+
+        if (generationTarget is not null)
+        {
+            targetMessage += $" for type {type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)}";
+
+            if (!generationTarget.Locations.IsDefaultOrEmpty)
+            {
+                targetMessage += $" (line {generationTarget.Locations[0].GetLineSpan().StartLinePosition.Line + 1})";
+            }
+        }
+
         return Diagnostic.Create(
             descriptor: Descriptors.NotPartialType,
             location: location ?? GetLocation(type),
-            messageArgs: type.ToDisplayString());
+            messageArgs: [type.ToDisplayString(), targetMessage]);
     }
 
     public static Diagnostic FileScopedType(ITypeSymbol type, Location? location)
@@ -128,8 +140,7 @@ internal static class Diagnostics
             location: location ?? GetLocation(targetType),
             messageArgs:
             [
-                targetType.ToDisplayString(),
-                string.Join(", ", types.Select(t => t?.ToDisplayString() ?? "<unknown>")),
+                targetType.ToDisplayString(), string.Join(", ", types.Select(t => t?.ToDisplayString() ?? "<unknown>")),
             ]);
     }
 
@@ -183,7 +194,7 @@ internal static class Diagnostics
     }
 
     /// <summary>
-    /// Returns the first valid source location from the given symbols, checked in order.
+    /// Returns the first valid non-empty source location from the given symbols, checked in order.
     /// </summary>
     private static Location? GetLocation(params ReadOnlySpan<ISymbol?> symbols)
     {
@@ -193,7 +204,7 @@ internal static class Diagnostics
 
             foreach (var location in symbol.Locations)
             {
-                if (location.IsInSource)
+                if (location.IsInSource && !location.SourceSpan.IsEmpty)
                 {
                     return location;
                 }
@@ -206,9 +217,10 @@ internal static class Diagnostics
     internal static void EnsurePartial(
         ITypeSymbol type,
         CancellationToken cancellationToken,
-        List<Diagnostic> diagnostics)
+        List<Diagnostic> diagnostics,
+        ITypeSymbol? generationTarget = null)
     {
-        Location? location = null;
+        MemberDeclarationSyntax? firstDeclaration = null;
 
         foreach (var syntaxRef in type.DeclaringSyntaxReferences)
         {
@@ -217,7 +229,7 @@ internal static class Diagnostics
                 continue;
             }
 
-            location ??= declarationSyntax.GetLocation();
+            firstDeclaration ??= declarationSyntax;
 
             foreach (var modifier in declarationSyntax.Modifiers)
             {
@@ -228,7 +240,15 @@ internal static class Diagnostics
             }
         }
 
-        diagnostics.Add(NotPartialType(type, location));
+        Location? location = null;
+
+        // add the diagnostic to the modifiers, unless the type has none; in that case, add it to the type itself
+        if (firstDeclaration is { Modifiers.Span.IsEmpty: false })
+        {
+            location = Location.Create(firstDeclaration.SyntaxTree, firstDeclaration.Modifiers.Span);
+        }
+
+        diagnostics.Add(NotPartialType(type, generationTarget, location));
     }
 
     internal static void CheckIfFileScoped(

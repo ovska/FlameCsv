@@ -41,7 +41,12 @@ internal readonly record struct EnumModel
             Diagnostics.CheckIfFileScoped(converterType, cancellationToken, diagList);
             Diagnostics.CheckIfFileScoped(enumType, cancellationToken, diagList);
 
-            model = new(enumType: enumType, tokenType: tokenType, converterType: converterType, diagList);
+            model = new EnumModel(
+                enumType: enumType,
+                tokenType: tokenType,
+                converterType: converterType,
+                cancellationToken,
+                diagList);
 
             if (diagList.Count == 0)
             {
@@ -83,6 +88,7 @@ internal readonly record struct EnumModel
         INamedTypeSymbol enumType,
         ITypeSymbol tokenType,
         ITypeSymbol converterType,
+        CancellationToken cancellationToken,
         List<Diagnostic> diagnostics)
     {
         TokenType = new TypeRef(tokenType);
@@ -136,7 +142,7 @@ internal readonly record struct EnumModel
         ContiguousFromZero = isContiguous;
         ContiguousFromZeroCount = expected;
 
-        WrappingTypes = NestedType.Parse(converterType);
+        WrappingTypes = NestedType.Parse(converterType, cancellationToken, diagnostics);
         InGlobalNamespace = converterType.ContainingNamespace.IsGlobalNamespace;
         Namespace = converterType.ContainingNamespace.ToDisplayString();
         HasExplicitNames = Values.AsImmutableArray().Any(v => !string.IsNullOrEmpty(v.ExplicitName));
