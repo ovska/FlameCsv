@@ -10,12 +10,12 @@ uid: converters
 
 The value passed to `TryParse` is the complete unescaped/unquoted CSV field, and should represent a complete value.
 If the value is valid, the method should return `true` and the parsed value in the out parameter. If it is not valid,
-the method should return `false`. This method should not throw exceptions even with invalid data, as the library
+the method must return `false`. This method must not throw exceptions even with invalid data, as the library
 provides an informative exception if parsing fails.
 
 The `TryFormat` method should attempt to write the specified value to the provided buffer, and return the number of characters written.
-If the buffer is not large enough, the method should return `false`. If the value is invalid (e.g., it can never be written),
-the method should throw an exception instead.
+If the buffer is not large enough, the method must return `false`. If the value is invalid (e.g., it can never be written),
+the method must throw an exception instead.
 
 You can find converter examples in the [repository](https://github.com/ovska/FlameCsv/tree/main/FlameCsv.Core/Converters).
 
@@ -140,8 +140,7 @@ with @"FlameCsv.CsvOptions`1.Formats?displayProperty=nameWithType".
 
 @"FlameCsv.CsvOptions`1.IgnoreEnumCase?displayProperty=nameWithType" can be used to make the parsing case-insensitive.
 
-@"FlameCsv.CsvOptions`1.AllowUndefinedEnumValues?displayProperty=nameWithType" can be used to forego a
-@"System.Enum.IsDefined?displayProperty=nameWithType" check when parsing enums.
+@"FlameCsv.CsvOptions`1.AllowUndefinedEnumValues?displayProperty=nameWithType" can be used to forego a `IsDefined`-check when parsing enums.
 
 ```cs
 // more lenient enum parsing
@@ -166,9 +165,12 @@ When reading nullable types, @"FlameCsv.CsvOptions`1.NullTokens?displayProperty=
 tokens that represent null values for each type. Otherwise, the converters default to
 @"FlameCsv.CsvOptions`1.Null?displayProperty=nameWithType", which defaults to an empty string.
 
-When writing any value that is null (both  nullable structs or reference types), the configured null token is used.
-Converters can signal to the writer that they have their own null handling with the @"FlameCsv.CsvConverter`2.CanFormatNull?displayProperty=nameWithType,
+When writing any value that is null (both nullable structs or reference types), the configured null token is used.
+Converters can signal to the writer that they have their own null handling with the @"FlameCsv.CsvConverter`2.CanFormatNull?displayProperty=nameWithType",
 in which case a null `TValue` is passed to the converter's `TryFormat` method.
+
+For performance reasons, the built-in converter for @"System.String" implements this behavior, and writes `null` as an empty string.
+If you need to format empty and null strings differently, you can create a custom converter.
 
 ```cs
 CsvOptions<char> options = new()
