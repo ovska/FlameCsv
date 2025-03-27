@@ -11,20 +11,24 @@ const jsEngine = createJavaScriptRegexEngine();
 export default {
     start: () => {
         // add GitHub icon to the navbar
-        // wait for the navbar to be loaded
-        const interval = setInterval(() => {
-            const navbar = document.querySelector('#navbar form.icons');
-            if (navbar || document.querySelector('#github-icon')) {
-                clearInterval(interval);
+        try {
+            // wait for the navbar to be loaded
+            const interval = setInterval(() => {
+                const navbar = document.querySelector('#navbar form.icons');
+                if (navbar || document.querySelector('#github-icon')) {
+                    clearInterval(interval);
 
-                const githubIcon = document.createElement('a');
-                githubIcon.id = 'github-icon';
-                githubIcon.classList = 'bi bi-github';
-                githubIcon.target = '_blank';
-                githubIcon.href = 'https://github.com/ovska/FlameCsv';
-                navbar.insertBefore(githubIcon, navbar.firstChild);
-            }
-        }, 100);
+                    const githubIcon = document.createElement('a');
+                    githubIcon.id = 'github-icon';
+                    githubIcon.classList.add('bi', 'bi-github');
+                    githubIcon.target = '_blank';
+                    githubIcon.href = 'https://github.com/ovska/FlameCsv';
+                    navbar.insertBefore(githubIcon, navbar.firstChild);
+                }
+            }, 100);
+        } catch (error) {
+            console.error('Error adding GitHub icon:', error);
+        }
     },
     configureHljs: (hljs) => {
         const previousHighlightElement = hljs.highlightElement;
