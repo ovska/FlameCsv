@@ -32,13 +32,14 @@ The field separator is configured with @"FlameCsv.CsvOptions`1.Delimiter?display
 The string delimiter is configured with @"FlameCsv.CsvOptions`1.Quote?displayProperty=nameWithType". The default value is `"` (double-quote). CSV fields wrapped in quotes (also referred to as strings) can contain otherwise special characters such as delimiters. A quote inside a string is escaped with another quote, e.g. `"James ""007"" Bond"`.
 
 ### Newline
-The record separator is configured with @"FlameCsv.CsvOptions`1.Newline?displayProperty=nameWithType". The default value is `null`/empty. This means the record separator is auto-detected from the first occurence to be either `\n` or `\r\n`. When writing, `\r\n` is used in this case. You can choose any newline you want explicitly, with the caveat that the length must be exactly 1 or 2 if it is not empty.
+The record separator is configured with @"FlameCsv.CsvOptions`1.Newline?displayProperty=nameWithType". The default value is `null`/empty. This means the record separator is auto-detected from the first occurence to be either `\n` or `\r\n`. When writing, `\r\n` is used in this case. Custom newlines must be 1 or 2 characters long.
 
 ### Whitespace
 Significant whitespace is configured with @"FlameCsv.CsvOptions`1.Whitespace?displayProperty=nameWithType", and determines how fields are trimmed when reading, or if a field needs quoting when writing. Characters present in the whitespace string are trimmed from each field, unless they are in a quoted field (whitespace is _not_ trimmed inside strings). When writing, values containing leading or trailing whitespace are wrapped in quotes if [automatic field quoting](#quoting-fields-when-writing) is enabled. The default value is null/empty, which means whitespace is not considered significant.
 
 ### Escape
-An explicit escape character @"FlameCsv.CsvOptions`1.Escape?displayProperty=nameWithType" can be set to a non-null value to escape any character after it in a string. The default value is null, which follows the RFC 4180 spec.
+An explicit escape character @"FlameCsv.CsvOptions`1.Escape?displayProperty=nameWithType" can be set to a non-null value to escape _any_ character following the escape character. The default value is null, which follows the RFC 4180 spec and wraps values in strings, and escapes quotes with another quote.
+Any field containing the escape character **must** be wrapped in quotes. The escape character itself is escaped by doubling it, e.g., `"\\"`.
 
 ### Additional info
 
@@ -90,9 +91,11 @@ If you are 100% sure your data does not contain any special characters, you can 
 
 ## Skipping records or resetting headers
 
-The @"FlameCsv.CsvOptions`1.RecordCallback?displayProperty=nameWithType" property is used to configure a custom callback. The callback arguments provide information such as the current line number and character position, and whether a header has been read. The current record can be skipped, or the current header can be reset. This can be used to read multiple different "documents" out of the same data stream.
+The @"FlameCsv.CsvOptions`1.RecordCallback?displayProperty=nameWithType" property is used to configure a custom callback.
+The argument contains metadata about the current record, and can be used to skip records or reset the header record.
+This can be used to read multiple different "documents" out of the same data stream.
 
-The parameter @"FlameCsv.CsvRecordCallbackArgs`1" is a `ref struct` that is passed to @"FlameCsv.CsvRecordCallback`1" with `ref readonly`-modifier. The @"FlameCsv.CsvRecordCallbackArgs`1.HeaderRead" and @"FlameCsv.CsvRecordCallbackArgs`1.SkipRecord" properties contain references to booleans that are evaluated internally after the callback has finished. 
+Below is an example of a callback that resets the headers and bindings on empty lines, and skips records that start with `#`.
 
 ```cs
 CsvOptions<char> options = new()
@@ -125,13 +128,13 @@ For example, even if you configure the callback to skip rows that start with `#`
 When reading @"FlameCsv.CsvValueRecord`1", setting the property to `true` ensures that all records have the same field count as the first record.
 The expected field count is reset if you [reset the headers with a callback](#skipping-records-or-resetting-headers).
 
-You can automatically ensure that all non-empty records written with @"FlameCsv.CsvWriter`1" have the same field count.
+This property also ensures that all records written with @"FlameCsv.CsvWriter`1" have the same field count.
 Alternatively, you can use the @"FlameCsv.CsvAsyncWriter`1.ExpectedFieldCount"-property. The property can also be used to reset the expected count by setting it to `null`,
 for example when writing multiple CSV documents into one output.
 
 ## Advanced topics
 
-### AOT
+### NativeAOT
 
 Since any implementation of @"FlameCsv.CsvConverterFactory`1" (including built-in nullable and enum factories) can potentially require unreferenced types or dynamic code, the default @"FlameCsv.CsvOptions`1.GetConverter``1?displayProperty=nameWithType" method is not AOT-compatible.
 
@@ -145,19 +148,20 @@ CsvConverter<char, DayOfWeek> c2 = options.Aot.GetOrCreateEnum<DayOfWeek>();
 
 ### Parsing performance and read-ahead
 
-FlameCSV utilizes fast SIMD operations to read ahead multiple records. The performance benefits are substantial, but if you wish to turn this option off, you can do so with the @"FlameCsv.CsvOptions`1.NoReadAhead?displayProperty=nameWithType" property. One possible justification would be to halt reading when an unparsable field is present, or to avoid reading ahead large amounts of data if the CSV is broken.
+FlameCSV uses SIMD operations to read ahead multiple records. The performance benefits are substantial,
+but if you wish to turn this option off, you can do so with the @"FlameCsv.CsvOptions`1.NoReadAhead?displayProperty=nameWithType" property.
+One possible justification would be to halt reading when an unparsable field is present, or to avoid reading ahead large amounts of data if the CSV is broken.
+Flaky data with e.g., unpaired quotes can result in excessive amount of data being read before the error materializes.
+However, FlameCsv is very performant in tokenizing the CSV, and uses limited read-ahead buffers, this shouldn't be a problem.
 
-For the SIMD operations and read-ahead to work, the configured dialect must consist only of ASCII characters (value 127 or lower). You can ensure the fast path will be used with @"FlameCsv.CsvDialect`1.IsAscii?displayProperty=nameWithType".
+For SIMD operations and read-ahead to work, the configured dialect must consist only of ASCII characters (value 127 or lower).
+You can ensure the fast path will be used with @"FlameCsv.CsvDialect`1.IsAscii?displayProperty=nameWithType".
 
 ```cs
 // ensure SIMD accelerated parsing routines are used
-CsvOptions<char> options = new()
-{
-    NoReadAhead = false,
-    // configure the dialect
-};
-
+CsvOptions<byte> options = GetConfiguredOptions();
 Debug.Assert(options.Dialect.IsAscii);
+return CsvReader.Read<User>(csv, options);
 ```
 
 Further reading: @"architecture#reading".
