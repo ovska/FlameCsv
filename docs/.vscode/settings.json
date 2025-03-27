@@ -1,0 +1,6 @@
+{
+    "files.watcherExclude": {
+        "**/_site/**": true,
+        "**/api/*.yml": true,
+    }
+}
