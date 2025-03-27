@@ -1,12 +1,12 @@
-import { createHighlighter, createJavaScriptRegexEngine } from 'https://esm.sh/shiki@2.3.2'
-// https://esm.sh/@shikijs/transformers@2.3.2
+let highlighter, jsEngine;
 
-const highlighter = await createHighlighter({
-    themes: ['light-plus', 'dark-plus'],
-    langs: ['csharp'],
-})
-
-const jsEngine = createJavaScriptRegexEngine();
+try {
+    const module = await import('../data/shiki.js');
+    highlighter = module?.default?.highlighter;
+    jsEngine = module?.default?.jsEngine;
+} catch (error) {2
+    console.warn('Failed to load shiki, falling back to highlightjs', error);
+}
 
 export default {
     start: () => {
@@ -31,6 +31,10 @@ export default {
         }
     },
     configureHljs: (hljs) => {
+        if (!highlighter || !jsEngine) {
+            return;
+        }
+        
         const previousHighlightElement = hljs.highlightElement;
 
         hljs.highlightElement = function(elem) {
