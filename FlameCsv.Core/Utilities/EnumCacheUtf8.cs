@@ -89,24 +89,15 @@ internal sealed class EnumCacheUtf8<TEnum> : EnumMemberCache<byte, TEnum>
         var comparer = ignoreCase ? Utf8Comparer.OrdinalIgnoreCase : Utf8Comparer.Ordinal;
         Dictionary<StringLike, TEnum> valuesByName = new(comparer);
 
-        foreach ((TEnum value, string name, string? _) in ValuesAndNames)
+        foreach ((TEnum value, string name, string? explicitName) in ValuesAndNames)
         {
-            valuesByName.TryAdd(value.ToString("D"), value); // numbers are always ASCII
-
             valuesByName[name] = value;
             allAscii = allAscii && Ascii.IsValid(name);
-        }
 
-        // add overrides last, just in case someone does something bizarre like [EnumMember(Value = "1")]
-        if (enumMember)
-        {
-            foreach ((TEnum value, _, string? explicitName) in ValuesAndNames)
+            if (enumMember && explicitName is not null)
             {
-                if (explicitName is not null)
-                {
-                    valuesByName[explicitName] = value;
-                    allAscii = allAscii && Ascii.IsValid(explicitName);
-                }
+                valuesByName[explicitName] = value;
+                allAscii = allAscii && Ascii.IsValid(explicitName);
             }
         }
 
