@@ -95,24 +95,36 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
 
         using (writer.WriteBlock())
         {
-            writer.WriteLine("private readonly string? _format;");
-            writer.WriteLine("private readonly global::System.IFormatProvider? _provider;");
-            writer.WriteLine("private readonly bool _ignoreCase;");
-            writer.WriteLine("private readonly bool _writeNumbers;");
+            writer.WriteLine("private static WriteNumberImpl WriteNumberStrategy { get; } = new();");
+            writer.WriteLine("private static WriteStringImpl WriteStringStrategy { get; } = new();");
+            writer.WriteLine("private static ReadOrdinalImpl OrdinalStrategy { get; } = new();");
+            writer.WriteLine("private static ReadIgnoreCaseImpl IgnoreCaseStrategy { get; } = new();");
+            writer.WriteLine();
+
+            writer.WriteLine("private readonly ParseStrategy _parseStrategy;");
+            writer.WriteLine("private readonly FormatStrategy _formatStrategy;");
             writer.WriteLine("private readonly bool _allowUndefinedValues;");
+            writer.WriteLine("private readonly bool _ignoreCase;");
+            writer.WriteLine("private readonly string? _format;");
 
             writer.WriteLine();
             writer.WriteLine($"public {model.ConverterType.Name}(CsvOptions<{model.TokenType.Name}> options)");
             using (writer.WriteBlock())
             {
                 writer.WriteLine("global::System.ArgumentNullException.ThrowIfNull(options);");
-                writer.WriteLine("_ignoreCase = options.IgnoreEnumCase;");
-                writer.WriteLine(
-                    $"_provider = options.GetFormatProvider(typeof({model.EnumType.FullyQualifiedName}));");
-                writer.WriteLine(
-                    $"_format = options.GetFormat(typeof({model.EnumType.FullyQualifiedName}), options.EnumFormat);");
-                writer.WriteLine("_writeNumbers = _format is \"D\" or \"d\";");
                 writer.WriteLine("_allowUndefinedValues = options.AllowUndefinedEnumValues;");
+                writer.WriteLine("_ignoreCase = options.IgnoreEnumCase;");
+                writer.WriteLine($"_format = options.GetFormat(typeof({model.EnumType.FullyQualifiedName}), options.EnumFormat);");
+                writer.WriteLine("_parseStrategy = _ignoreCase ? IgnoreCaseStrategy : OrdinalStrategy;");
+                writer.WriteLine($"_formatStrategy = _format switch");
+                writer.WriteLine("{");
+                writer.IncreaseIndent();
+                writer.WriteLine("null or \"g\" or \"G\" => WriteStringStrategy,");
+                writer.WriteLine("\"d\" or \"D\" => WriteNumberStrategy,");
+                writer.WriteLine("\"x\" or \"X\" => throw new global::System.NotImplementedException(\"Hex format not supported\"),");
+                writer.WriteLine("{ } configuredFormat => throw new global::System.NotSupportedException(\"Invalid enum format specified: \" + configuredFormat)");
+                writer.DecreaseIndent();
+                writer.WriteLine("};");
             }
 
             writer.WriteLine();
@@ -130,11 +142,45 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
                 $"public override bool TryFormat(global::System.Span<{model.TokenType.Name}> destination, {model.EnumType.FullyQualifiedName} value, out int charsWritten)");
             using (writer.WriteBlock())
             {
-                WriteFormatMethod(model, writer, context.CancellationToken);
+                writer.WriteLine("if (destination.IsEmpty)");
+                using (writer.WriteBlock())
+                {
+                    writer.WriteLine("__Unsafe.SkipInit(out charsWritten);");
+                    writer.WriteLine("return false;");
+                }
+                writer.WriteLine();
+                writer.WriteLine("if (_formatStrategy.TryFormat(destination, value, out charsWritten))");
+                using (writer.WriteBlock()) writer.WriteLine("return true;");
+                writer.WriteLine();
+                if (model.TokenType.SpecialType is SpecialType.System_Byte)
+                {
+                    // TODO: simplify when Enum implements IUtf8Formattable
+                    writer.WriteLine(
+                        "var handler = new global::System.Text.Unicode.Utf8.TryWriteInterpolatedStringHandler(" +
+                        "0, 1, destination, out bool shouldAppend);");
+                    writer.WriteLine("if (shouldAppend)");
+                    using (writer.WriteBlock())
+                    {
+                        writer.WriteLine("handler.AppendFormatted(value, _format);");
+                        writer.WriteLine(
+                            "return global::System.Text.Unicode.Utf8.TryWrite(destination, ref handler, out charsWritten);");
+                    }
+
+                    writer.WriteLine();
+                    writer.WriteLine("charsWritten = 0;");
+                    writer.WriteLine("return false;");
+                }
+                else
+                {
+                    writer.WriteLine(
+                        "return ((global::System.ISpanFormattable)value).TryFormat(destination, out charsWritten, _format, provider: null);");
+                }
             }
 
             writer.WriteLine();
             WriteDefinedCheck(in model, writer, context.CancellationToken);
+
+            WriteTryFormatCore(in model, writer, context.CancellationToken);
 
             if (model.TokenType.IsByte())
             {
@@ -147,13 +193,65 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
                 }
 
                 writer.WriteLine();
-                writer.WriteLine("[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]");
+                writer.WriteLine(
+                    "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]");
                 writer.WriteLine(
                     $"private static global::System.ReadOnlySpan<char> GetChars(global::System.ReadOnlySpan<{model.TokenType.Name}> source, global::System.Span<char> buffer, out char[]? toReturn)");
                 using (writer.WriteBlock())
                 {
                     WriteGetChars(writer, context.CancellationToken);
                 }
+            }
+
+            writer.WriteLine();
+            writer.WriteLine(GlobalConstants.CodeDomAttribute);
+            writer.WriteLine("private abstract class ParseStrategy");
+            using (writer.WriteBlock())
+            {
+                writer.WriteLine(
+                    $"public abstract bool TryParse(global::System.ReadOnlySpan<{model.TokenType.Name}> source, out {model.EnumType.FullyQualifiedName} value);");
+            }
+
+            writer.WriteLine();
+
+            writer.WriteLine(GlobalConstants.CodeDomAttribute);
+            writer.WriteLine("private abstract class FormatStrategy");
+            using (writer.WriteBlock())
+            {
+                writer.WriteLine(
+                    $"public abstract bool TryFormat(global::System.Span<{model.TokenType.Name}> destination, {model.EnumType.FullyQualifiedName} value, out int charsWritten);");
+            }
+
+            writer.WriteLine();
+            writer.WriteLine(GlobalConstants.CodeDomAttribute);
+            writer.WriteLine("private sealed class ReadOrdinalImpl : ParseStrategy");
+            using (writer.WriteBlock())
+            {
+                WriteSwitch(in model, writer, ignoreCase: false,context.CancellationToken);
+            }
+
+            writer.WriteLine();
+            writer.WriteLine(GlobalConstants.CodeDomAttribute);
+            writer.WriteLine("private sealed class ReadIgnoreCaseImpl : ParseStrategy");
+            using (writer.WriteBlock())
+            {
+                WriteSwitch(in model, writer, ignoreCase: true, context.CancellationToken);
+            }
+
+            writer.WriteLine();
+            writer.WriteLine(GlobalConstants.CodeDomAttribute);
+            writer.WriteLine("private sealed class WriteNumberImpl : FormatStrategy");
+            using (writer.WriteBlock())
+            {
+                WriteFormatMethod(model, numbers: true, writer, context.CancellationToken);
+            }
+
+            writer.WriteLine();
+            writer.WriteLine(GlobalConstants.CodeDomAttribute);
+            writer.WriteLine("private sealed class WriteStringImpl : FormatStrategy");
+            using (writer.WriteBlock())
+            {
+                WriteFormatMethod(model, numbers: false, writer, context.CancellationToken);
             }
         }
 
@@ -203,5 +301,60 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
         writer.WriteLine("_ => false,");
         writer.DecreaseIndent();
         writer.WriteLine("};");
+    }
+
+    private static void WriteTryFormatCore(
+        in EnumModel model,
+        IndentedTextWriter writer,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        // TODO: investigate perf in unrolled assignments for short inputs
+        writer.WriteLine();
+        writer.WriteLine(AggressiveInlining);
+        writer.Write("static bool TryWriteCore(");
+        writer.Write($"global::System.Span<{model.TokenType.Name}> destination, ");
+        writer.Write($"global::System.ReadOnlySpan<{model.TokenType.Name}> value, ");
+        writer.WriteLine("out int charsWritten)");
+        using (writer.WriteBlock())
+        {
+            writer.WriteLine("if (value.Length == 1)");
+            using (writer.WriteBlock())
+            {
+                writer.WriteLine("if (destination.Length >= 1)");
+                using (writer.WriteBlock())
+                {
+                    writer.WriteLine("destination[0] = value[0];");
+                    writer.WriteLine("charsWritten = 1;");
+                    writer.WriteLine("return true;");
+                }
+            }
+
+            writer.WriteLine("else if (value.Length == 2)");
+            using (writer.WriteBlock())
+            {
+                writer.WriteLine("if (destination.Length >= 2)");
+                using (writer.WriteBlock())
+                {
+                    writer.WriteLine("destination[0] = value[0];");
+                    writer.WriteLine("destination[1] = value[1];");
+                    writer.WriteLine("charsWritten = 2;");
+                    writer.WriteLine("return true;");
+                }
+            }
+
+            writer.WriteLine("else if (destination.Length >= value.Length)");
+            using (writer.WriteBlock())
+            {
+                writer.WriteLine("value.CopyTo(destination);");
+                writer.WriteLine("charsWritten = value.Length;");
+                writer.WriteLine("return true;");
+            }
+
+            writer.WriteLine();
+            writer.WriteLine("__Unsafe.SkipInit(out charsWritten);");
+            writer.WriteLine("return false;");
+        }
     }
 }
