@@ -159,7 +159,7 @@ internal sealed class CsvParserRFC4180<T>(
         {
             ReadOnlySpan<char> dataT = MemoryMarshal.Cast<T, char>(data);
             ref readonly var dialect = ref Unsafe.As<CsvDialect<T>, CsvDialect<char>>(ref Unsafe.AsRef(in _dialect));
-            var newline = Unsafe.As<NewlineBuffer<T>, NewlineBuffer<char>>(ref _newline);
+            ref var newline = ref Unsafe.As<NewlineBuffer<T>, NewlineBuffer<char>>(ref Unsafe.AsRef(in _newline));
 
             if (Vec256Char.IsSupported && dataT.Length > Vec256Char.Count * minimumVectors)
             {
@@ -212,7 +212,7 @@ internal sealed class CsvParserRFC4180<T>(
         {
             ReadOnlySpan<byte> dataT = MemoryMarshal.Cast<T, byte>(data);
             ref readonly var dialect = ref Unsafe.As<CsvDialect<T>, CsvDialect<byte>>(ref Unsafe.AsRef(in _dialect));
-            var newline = Unsafe.As<NewlineBuffer<T>, NewlineBuffer<byte>>(ref _newline);
+            ref var newline = ref Unsafe.As<NewlineBuffer<T>, NewlineBuffer<byte>>(ref Unsafe.AsRef(in _newline));
 
             if (Vec256Byte.IsSupported && dataT.Length > Vec256Byte.Count * minimumVectors)
             {

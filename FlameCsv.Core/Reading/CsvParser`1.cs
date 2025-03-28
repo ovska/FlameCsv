@@ -4,8 +4,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using FlameCsv.Exceptions;
-using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Reading.Internal;
 using JetBrains.Annotations;
@@ -28,10 +26,12 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     public CsvOptions<T> Options { get; }
 
     internal readonly CsvDialect<T> _dialect;
-    internal NewlineBuffer<T> _newline;
+    internal readonly NewlineBuffer<T> _newline;
 
     private protected readonly Allocator<T> _multisegmentAllocator;
     internal readonly Allocator<T> _unescapeAllocator;
+
+    private CsvDelimiterDetector<T>? _delimiterDetectionStrategy;
 
     /// <summary>
     /// Whether the instance has been disposed.
@@ -91,6 +91,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
         _metaArray = [];
         _canUseFastPath = !options.NoReadAhead && _dialect.IsAscii;
         _reader = reader;
+        _delimiterDetectionStrategy = options.AutoDetectDelimiter;
 
         _multisegmentAllocator = parserOptions.MultiSegmentAllocator ?? new MemoryPoolAllocator<T>(options.Allocator);
         _unescapeAllocator = parserOptions.UnescapeAllocator ?? new MemoryPoolAllocator<T>(options.Allocator);
@@ -217,6 +218,11 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
         }
 
         Debug.Assert(_newline.Length != 0, "TryPeekNewline should have initialized newline");
+
+        if (_delimiterDetectionStrategy is not null)
+        {
+            DetectDelimiter();
+        }
 
         if (_canUseFastPath && !isFinalBlock)
         {
@@ -371,101 +377,6 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     /// Maximum amount of data to read before throwing when auto-detecting newline.
     /// </summary>
     public const int MaxNewlineDetectionLength = 1024;
-
-    /// <summary>
-    /// Attempt to auto-detect newline from the data.
-    /// </summary>
-    /// <returns>True if the current sequence contained a CRLF or LF (checked in that order)</returns>
-    protected bool TryPeekNewline()
-    {
-        if (_newline.Length != 0)
-        {
-            Throw.Unreachable($"{nameof(TryPeekNewline)} called with newline length of {_newline.Length}");
-        }
-
-        if (_sequence.IsEmpty)
-        {
-            return false;
-        }
-
-        // optimistic fast path for the first line containing no quotes or escapes
-        if (_sequence.FirstSpan.IndexOf(NewlineBuffer<T>.LF.First) is var linefeedIndex and not -1)
-        {
-            // data starts with LF?
-            if (linefeedIndex == 0)
-            {
-                _newline = NewlineBuffer<T>.LF;
-                return true;
-            }
-
-            // ensure there were no quotes or escapes between the start of the buffer and the linefeed
-            ReadOnlySpan<T> untilLf = _sequence.FirstSpan.Slice(0, linefeedIndex);
-
-            if (untilLf.IndexOfAny(_dialect.Quote, _dialect.Escape ?? _dialect.Quote) == -1)
-            {
-                // check if CR in the data
-                int firstCR = untilLf.IndexOf(NewlineBuffer<T>.CRLF.First);
-
-                if (firstCR == -1)
-                {
-                    _newline = NewlineBuffer<T>.LF;
-                    return true;
-                }
-
-                if (firstCR == untilLf.Length - 1)
-                {
-                    _newline = NewlineBuffer<T>.CRLF;
-                    return true;
-                }
-            }
-        }
-
-        ReadOnlySequence<T> copy = _sequence;
-
-        // limit the amount of data we read to avoid reading the entire CSV
-        if (_sequence.Length > MaxNewlineDetectionLength)
-        {
-            _sequence = _sequence.Slice(0, MaxNewlineDetectionLength);
-        }
-
-        NewlineBuffer<T> result = default;
-
-        try
-        {
-            // find the first linefeed as both auto-detected newlines contain it
-            _newline = NewlineBuffer<T>.LF;
-
-            while (TryReadFromSequence(out var firstLine, false))
-            {
-                // found a non-empty line?
-                if (!firstLine.Data.IsEmpty)
-                {
-                    result = firstLine.Data.Span[^1] == NewlineBuffer<T>.CRLF.First
-                        ? NewlineBuffer<T>.CRLF
-                        : NewlineBuffer<T>.LF;
-                    return true;
-                }
-            }
-
-            // no line found, reset to the original state
-            result = default;
-
-            // \n not found, throw if we've read up to our threshold already
-            if (copy.Length >= MaxNewlineDetectionLength)
-            {
-                throw new CsvFormatException(
-                    $"Could not auto-detect newline even after {copy.Length} characters (no valid CRLF or LF tokens found)");
-            }
-
-            // maybe the first segment was just too small, or contained a single line without a newline
-            return false;
-        }
-        finally
-        {
-            _sequence = copy; // reset original state
-            _newline = result; // set the detected newline, or default if not found
-        }
-    }
 
     private protected ArraySegment<Meta> GetSegmentMeta(scoped ReadOnlySpan<Meta> fields)
     {

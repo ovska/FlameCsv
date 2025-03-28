@@ -297,7 +297,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     /// <summary>
     /// Ensures that the dialect is valid, and has no problematic overlap in the tokens.
     /// </summary>
-    /// <exception cref="CsvConfigurationException"></exception>
+    /// <exception cref="CsvConfigurationException">Dialect is invalid</exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void Validate()
     {

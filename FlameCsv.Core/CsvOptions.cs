@@ -10,6 +10,7 @@ using System.Globalization;
 using JetBrains.Annotations;
 using System.Runtime.CompilerServices;
 using FlameCsv.Attributes;
+using FlameCsv.Reading;
 #if DEBUG
 using Unsafe = FlameCsv.Extensions.DebugUnsafe
 #else
@@ -81,24 +82,18 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         _ignoreEnumCase = other._ignoreEnumCase;
         _enumFormat = other._enumFormat;
         _allowUndefinedEnumValues = other._allowUndefinedEnumValues;
+        _delimiterDetector = other._delimiterDetector;
         _noReadAhead = other._noReadAhead;
         _stringPool = other._stringPool;
         _typeBinder = other._typeBinder;
         _null = other._null;
         _nullTokens = other._nullTokens?.Clone();
         _converters = other._converters?.Clone();
-
         _delimiter = other._delimiter;
         _quote = other._quote;
         _escape = other._escape;
         _newline = other._newline;
         _whitespace = other._whitespace;
-
-        ConverterCache = new(other.ConverterCache, other.ConverterCache.Comparer);
-
-        // check in case either of these types is a derived type with a different max size
-        // TODO: figure out how to do it more robustly on derived types
-        CheckConverterCacheSize();
     }
 
     /// <summary>
@@ -231,6 +226,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     private bool _ignoreEnumCase = true;
     private string? _enumFormat;
     private bool _allowUndefinedEnumValues;
+    private CsvDelimiterDetector<T>? _delimiterDetector;
     private bool _noReadAhead;
     private StringPool? _stringPool;
     private ICsvTypeBinder<T>? _typeBinder;
@@ -480,6 +476,19 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
             _ = Enum.TryFormat(default(CsvFieldQuoting), default, out _, value);
             this.SetValue(ref _enumFormat, value);
         }
+    }
+
+    /// <summary>
+    /// The delimiter detector instance to use when reading CSV data.
+    /// Default is <see langword="null"/>.
+    /// </summary>
+    /// <remarks>
+    /// If this property is non-null, <see cref="Delimiter"/> is ignored when reading.
+    /// </remarks>
+    public CsvDelimiterDetector<T>? AutoDetectDelimiter
+    {
+        get => _delimiterDetector;
+        set => this.SetValue(ref _delimiterDetector, value);
     }
 
     /// <summary>

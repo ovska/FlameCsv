@@ -90,6 +90,12 @@ internal static class Throw
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public static void InvalidOperation(ref DefaultInterpolatedStringHandler handler)
+    {
+        throw new InvalidOperationException(handler.ToStringAndClear());
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void NotSupported_CsvHasNoHeader()
     {
         throw new NotSupportedException("The CSV does not have a header record.");

@@ -30,8 +30,7 @@ internal ref struct ValueListBuilder<T>
         readonly get => _pos;
         set
         {
-            Debug.Assert(value >= 0);
-            Debug.Assert(value <= _span.Length);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual((uint)value, (uint)_span.Length, nameof(value));
             _pos = value;
         }
     }
@@ -162,6 +161,8 @@ internal ref struct ValueListBuilder<T>
         itemsWritten = 0;
         return false;
     }
+
+    public void Clear() => _pos = 0;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
