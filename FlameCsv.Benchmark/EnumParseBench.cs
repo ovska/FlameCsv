@@ -5,7 +5,7 @@ using FlameCsv.Converters;
 namespace FlameCsv.Benchmark;
 
 [MemoryDiagnoser]
-public class EnumParseBench
+public partial class EnumParseBench
 {
     private static readonly string[] _cStrings = [.. Enum.GetValues<TypeCode>().Select(t => t.ToString("G"))];
 
@@ -28,7 +28,7 @@ public class EnumParseBench
     private string[] CharData => ParseNumbers ? _cNums : _cStrings;
     private byte[][] ByteData => ParseNumbers ? _bNums : _bStrings;
 
-    [Benchmark]
+    [Benchmark(Baseline = true)]
     public void TryParse()
     {
         if (Bytes)
@@ -99,22 +99,22 @@ public class EnumParseBench
         }
     }
 
-    private const CsvEnumOptions _ignoreCase = CsvEnumOptions.IgnoreCase |CsvEnumOptions.AllowUndefinedValues;
-    private const CsvEnumOptions _ordinal = CsvEnumOptions.AllowUndefinedValues;
+    private const CsvEnumOptions IcOpts = CsvEnumOptions.IgnoreCase | CsvEnumOptions.AllowUndefinedValues;
+    private const CsvEnumOptions OrdOpts = CsvEnumOptions.AllowUndefinedValues;
 
-    private static readonly TypeCodeConverterChar _ccic = new(new CsvOptions<char> { EnumOptions = _ignoreCase });
-    private static readonly TypeCodeConverterChar _ccord = new(new CsvOptions<char> { EnumOptions = _ordinal});
-    private static readonly TypeCodeConverterByte _cbic = new(new CsvOptions<byte> { EnumOptions = _ignoreCase });
-    private static readonly TypeCodeConverterByte _cbord = new(new CsvOptions<byte> { EnumOptions = _ordinal });
+    private static readonly TypeCodeConverterChar _ccic = new(new CsvOptions<char> { EnumOptions = IcOpts });
+    private static readonly TypeCodeConverterChar _ccord = new(new CsvOptions<char> { EnumOptions = OrdOpts });
+    private static readonly TypeCodeConverterByte _cbic = new(new CsvOptions<byte> { EnumOptions = IcOpts });
+    private static readonly TypeCodeConverterByte _cbord = new(new CsvOptions<byte> { EnumOptions = OrdOpts });
 
-    private static readonly EnumTextConverter<TypeCode> _xcic = new(new CsvOptions<char> { EnumOptions = _ignoreCase });
-    private static readonly EnumTextConverter<TypeCode> _xcord = new(new CsvOptions<char> { EnumOptions = _ordinal });
-    private static readonly EnumUtf8Converter<TypeCode> _xbic = new(new CsvOptions<byte> { EnumOptions = _ignoreCase });
-    private static readonly EnumUtf8Converter<TypeCode> _xbord = new(new CsvOptions<byte> { EnumOptions = _ordinal });
+    private static readonly EnumTextConverter<TypeCode> _xcic = new(new CsvOptions<char> { EnumOptions = IcOpts });
+    private static readonly EnumTextConverter<TypeCode> _xcord = new(new CsvOptions<char> { EnumOptions = OrdOpts });
+    private static readonly EnumUtf8Converter<TypeCode> _xbic = new(new CsvOptions<byte> { EnumOptions = IcOpts });
+    private static readonly EnumUtf8Converter<TypeCode> _xbord = new(new CsvOptions<byte> { EnumOptions = OrdOpts });
+
+    [CsvEnumConverter<char, TypeCode>]
+    private partial class TypeCodeConverterChar;
+
+    [CsvEnumConverter<byte, TypeCode>]
+    private partial class TypeCodeConverterByte;
 }
-
-[CsvEnumConverter<char, TypeCode>]
-internal partial class TypeCodeConverterChar;
-
-[CsvEnumConverter<byte, TypeCode>]
-internal partial class TypeCodeConverterByte;
