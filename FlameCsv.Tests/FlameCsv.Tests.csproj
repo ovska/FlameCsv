@@ -17,7 +17,7 @@
     <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" Version="2024.3.0"/>
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0"/>
-        <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" Version="17.14.1" />
+        <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" Version="17.14.1"/>
         <PackageReference Include="xunit.v3" Version="1.1.0"/>
         <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -42,6 +42,30 @@
 
     <ItemGroup>
         <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Update="Converters\EnumCacheByteTests.cs">
+            <DependentUpon>EnumTests.cs</DependentUpon>
+        </Compile>
+        <Compile Update="Converters\EnumCacheCharTests.cs">
+            <DependentUpon>EnumTests.cs</DependentUpon>
+        </Compile>
+        <Compile Update="Converters\EnumGeneratorByteTests.cs">
+            <DependentUpon>EnumTests.cs</DependentUpon>
+        </Compile>
+        <Compile Update="Converters\EnumGeneratorCharTests.cs">
+            <DependentUpon>EnumTests.cs</DependentUpon>
+        </Compile>
+        <Compile Update="Converters\EnumNoCacheByteTests.cs">
+            <DependentUpon>EnumTests.cs</DependentUpon>
+        </Compile>
+        <Compile Update="Converters\EnumNoCacheCharTests.cs">
+            <DependentUpon>EnumTests.cs</DependentUpon>
+        </Compile>
+        <Compile Update="Converters\OldEnumTests.cs">
+            <DependentUpon>EnumTests.cs</DependentUpon>
+        </Compile>
     </ItemGroup>
 
 </Project>

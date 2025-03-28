@@ -12,7 +12,7 @@ internal static class Diagnostics
 
         if (generationTarget is not null)
         {
-            targetMessage += $" for type {type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)}";
+            targetMessage += $" of type {type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)}";
 
             if (!generationTarget.Locations.IsDefaultOrEmpty)
             {

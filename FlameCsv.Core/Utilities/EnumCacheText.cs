@@ -62,7 +62,8 @@ internal sealed class EnumCacheText<TEnum> : EnumMemberCache<char, TEnum> where 
 
         foreach (var entry in ValuesAndNames)
         {
-            dict[entry.Value] = selector(entry);
+            // if there are aliased names, use the first one, e.g., enum Animal { Dog = 1, Canine = Dog }
+            dict.TryAdd(entry.Value, selector(entry));
         }
 
         return dict.ToFrozenDictionary();

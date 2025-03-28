@@ -40,6 +40,12 @@ internal sealed class EnumUtf8Converter<TEnum> : CsvConverter<byte, TEnum> where
         }
     }
 
+    internal EnumUtf8Converter(bool ignoreCase, string? format)
+    {
+        _ignoreCase = ignoreCase;
+        _format = format;
+    }
+
     /// <inheritdoc/>
     public override bool TryParse(ReadOnlySpan<byte> source, out TEnum value)
     {
