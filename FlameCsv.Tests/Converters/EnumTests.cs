@@ -1,77 +1,35 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text;
-using CommunityToolkit.HighPerformance;
-using FlameCsv.Attributes;
 
 // ReSharper disable InconsistentNaming
 
 namespace FlameCsv.Tests.Converters;
 
-public static partial class EnumGeneratorTests
+public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
 {
-    private delegate CsvConverter<T, TEnum> Factory<T, TEnum>(bool numeric, bool ignoreCase)
-        where T : unmanaged, IBinaryInteger<T>
-        where TEnum : struct, Enum;
+    private delegate CsvConverter<T, TEnum> Factory<TEnum>(bool numeric, bool ignoreCase) where TEnum : struct, Enum;
 
-    private static CsvOptions<T> GetOpts<T>(bool numeric, bool ignoreCase) where T : unmanaged, IBinaryInteger<T>
+    protected static CsvOptions<T> GetOpts(bool numeric, bool ignoreCase)
     {
-        return new CsvOptions<T> { EnumFormat = numeric ? "D" : "G", IgnoreEnumCase = ignoreCase };
+        return new CsvOptions<T>
+        {
+            EnumFormat = numeric ? "D" : "G",
+            EnumOptions = CsvEnumOptions.UseEnumMemberAttribute | (ignoreCase ? CsvEnumOptions.IgnoreCase : 0),
+        };
     }
+
+    protected abstract CsvConverter<T, DayOfWeek> GetDayOfWeek(bool numeric, bool ignoreCase);
+    protected abstract CsvConverter<T, Animal> GetAnimal(bool numeric, bool ignoreCase);
+    protected abstract CsvConverter<T, Negatives> GetNegatives(bool numeric, bool ignoreCase);
+    protected abstract CsvConverter<T, NotAscii> GetNotAscii(bool numeric, bool ignoreCase);
 
     [Fact]
-    public static void NegativesChar()
+    public void Test_Negatives()
     {
-        Test_Negatives((numeric, ignoreCase) => new NegativeConverter_Char(GetOpts<char>(numeric, ignoreCase)));
-    }
-
-    [Fact]
-    public static void NegativesByte()
-    {
-        Test_Negatives((numeric, ignoreCase) => new NegativeConverter_Byte(GetOpts<byte>(numeric, ignoreCase)));
-    }
-
-    [Fact]
-    public static void AnimalChar()
-    {
-        Test_Animal((numeric, ignoreCase) => new AnimalConverter_Char(GetOpts<char>(numeric, ignoreCase)));
-    }
-
-    [Fact]
-    public static void AnimalByte()
-    {
-        Test_Animal((numeric, ignoreCase) => new AnimalConverter_Byte(GetOpts<byte>(numeric, ignoreCase)));
-    }
-
-    [Fact]
-    public static void DayOfWeekChar()
-    {
-        Test_DayOfWeek((numeric, ignoreCase) => new DayOfWeekConverter_Char(GetOpts<char>(numeric, ignoreCase)));
-    }
-
-    [Fact]
-    public static void DayOfWeekByte()
-    {
-        Test_DayOfWeek((numeric, ignoreCase) => new DayOfWeekConverter_Byte(GetOpts<byte>(numeric, ignoreCase)));
-    }
-
-    [Fact]
-    public static void NotAsciiChar()
-    {
-        Test_NotAscii((numeric, ignoreCase) => new NotAsciiConverter_Char(GetOpts<char>(numeric, ignoreCase)));
-    }
-
-    [Fact]
-    public static void NotAsciiByte()
-    {
-        Test_NotAscii((numeric, ignoreCase) => new NotAsciiConverter_Byte(GetOpts<byte>(numeric, ignoreCase)));
-    }
-
-    private static void Test_Negatives<T>(Factory<T, Negatives> factory) where T : unmanaged, IBinaryInteger<T>
-    {
-        CheckParse(false, factory(numeric: false, ignoreCase: false));
-        CheckParse(true, factory(numeric: false, ignoreCase: true));
-        CheckFormat("D", factory(numeric: true, ignoreCase: false));
-        CheckFormat("G", factory(numeric: false, ignoreCase: false));
+        CheckParse(false, GetNegatives(numeric: false, ignoreCase: false));
+        CheckParse(true, GetNegatives(numeric: false, ignoreCase: true));
+        CheckFormat("D", GetNegatives(numeric: true, ignoreCase: false));
+        CheckFormat("G", GetNegatives(numeric: false, ignoreCase: false));
 
         static void CheckFormat(string format, CsvConverter<T, Negatives> converter)
         {
@@ -111,12 +69,13 @@ public static partial class EnumGeneratorTests
         }
     }
 
-    private static void Test_Animal<T>(Factory<T, Animal> factory) where T : unmanaged, IBinaryInteger<T>
+    [Fact]
+    public void Test_Animal()
     {
-        CheckParse(false, factory(numeric: false, ignoreCase: false));
-        CheckParse(true, factory(numeric: false, ignoreCase: true));
-        CheckFormat("D", factory(numeric: true, ignoreCase: false));
-        CheckFormat("G", factory(numeric: false, ignoreCase: false));
+        CheckParse(false, GetAnimal(numeric: false, ignoreCase: false));
+        CheckParse(true, GetAnimal(numeric: false, ignoreCase: true));
+        CheckFormat("D", GetAnimal(numeric: true, ignoreCase: false));
+        CheckFormat("G", GetAnimal(numeric: false, ignoreCase: false));
 
         static void CheckFormat(string format, CsvConverter<T, Animal> converter)
         {
@@ -175,12 +134,13 @@ public static partial class EnumGeneratorTests
         }
     }
 
-    private static void Test_DayOfWeek<T>(Factory<T, DayOfWeek> factory) where T : unmanaged, IBinaryInteger<T>
+    [Fact]
+    public void Test_DayOfWeek()
     {
-        CheckParse(false, factory(numeric: false, ignoreCase: false));
-        CheckParse(true, factory(numeric: false, ignoreCase: true));
-        CheckFormat("D", factory(numeric: true, ignoreCase: false));
-        CheckFormat("G", factory(numeric: false, ignoreCase: false));
+        CheckParse(false, GetDayOfWeek(numeric: false, ignoreCase: false));
+        CheckParse(true, GetDayOfWeek(numeric: false, ignoreCase: true));
+        CheckFormat("D", GetDayOfWeek(numeric: true, ignoreCase: false));
+        CheckFormat("G", GetDayOfWeek(numeric: false, ignoreCase: false));
 
         static void CheckFormat(string format, CsvConverter<T, DayOfWeek> converter)
         {
@@ -219,12 +179,13 @@ public static partial class EnumGeneratorTests
         }
     }
 
-    private static void Test_NotAscii<T>(Factory<T, NotAscii> factory) where T : unmanaged, IBinaryInteger<T>
+    [Fact]
+    public void Test_NotAscii()
     {
-        CheckParse(false, factory(numeric: false, ignoreCase: false));
-        CheckParse(true, factory(numeric: false, ignoreCase: true));
-        CheckFormat("D", factory(numeric: true, ignoreCase: false));
-        CheckFormat("G", factory(numeric: false, ignoreCase: false));
+        CheckParse(false, GetNotAscii(numeric: false, ignoreCase: false));
+        CheckParse(true, GetNotAscii(numeric: false, ignoreCase: true));
+        CheckFormat("D", GetNotAscii(numeric: true, ignoreCase: false));
+        CheckFormat("G", GetNotAscii(numeric: false, ignoreCase: false));
 
         static void CheckFormat(string format, CsvConverter<T, NotAscii> converter)
         {
@@ -262,11 +223,10 @@ public static partial class EnumGeneratorTests
         }
     }
 
-    private static void ImplParse<T, TEnum>(TEnum value, string expected, CsvConverter<T, TEnum> converter)
-        where T : unmanaged, IBinaryInteger<T> // char or byte
+    private static void ImplParse<TEnum>(TEnum value, string expected, CsvConverter<T, TEnum> converter)
         where TEnum : struct, Enum
     {
-        if (!converter.TryParse(ToT<T>(expected), out var parsed))
+        if (!converter.TryParse(ToT(expected), out var parsed))
         {
             Assert.Fail($"Could not parse '{expected}' into {value}.");
         }
@@ -274,12 +234,11 @@ public static partial class EnumGeneratorTests
         Assert.Equal(value, parsed);
     }
 
-    private static void ImplFormat<T, TEnum>(
+    private static void ImplFormat<TEnum>(
         TEnum value,
         string format,
         CsvConverter<T, TEnum> converter,
         string? expected = null)
-        where T : unmanaged, IBinaryInteger<T> // char or byte
         where TEnum : struct, Enum
     {
         if (expected is null || format == "D")
@@ -292,22 +251,21 @@ public static partial class EnumGeneratorTests
         T[] buffer = new T[length + 1];
 
         Assert.True(converter.TryFormat(buffer, value, out var written));
-        Assert.Equal(length, written);
         Assert.Equal(expected, FromT(buffer.AsSpan(0, written)));
+        Assert.Equal(length, written);
         Assert.Equal(T.Zero, buffer[written]); // don't write past the end
     }
 
-    private static void ImplNotParsable<T, TEnum>(string value, CsvConverter<T, TEnum> converter)
-        where T : unmanaged, IBinaryInteger<T> // char or byte
+    private static void ImplNotParsable<TEnum>(string value, CsvConverter<T, TEnum> converter)
         where TEnum : struct, Enum
     {
-        if (converter.TryParse(ToT<T>(value), out _))
+        if (converter.TryParse(ToT(value), out _))
         {
             Assert.Fail($"Value '{value}' should not be parsable to {typeof(TEnum).Name}.");
         }
     }
 
-    private static string FromT<T>(Span<T> value) where T : unmanaged
+    private static string FromT(Span<T> value)
     {
         Assert.True(typeof(T) == typeof(byte) || typeof(T) == typeof(char));
         return typeof(T) == typeof(byte)
@@ -315,7 +273,7 @@ public static partial class EnumGeneratorTests
             : value.ToString();
     }
 
-    private static ReadOnlySpan<T> ToT<T>(string value) where T : unmanaged
+    private static ReadOnlySpan<T> ToT(string value)
     {
         Assert.True(typeof(T) == typeof(byte) || typeof(T) == typeof(char));
         return typeof(T) == typeof(byte)
@@ -323,31 +281,7 @@ public static partial class EnumGeneratorTests
             : MemoryMarshal.Cast<char, T>(value.AsSpan());
     }
 
-    [CsvEnumConverter<char, DayOfWeek>]
-    private partial class DayOfWeekConverter_Char;
-
-    [CsvEnumConverter<byte, DayOfWeek>]
-    private partial class DayOfWeekConverter_Byte;
-
-    [CsvEnumConverter<char, Animal>]
-    private partial class AnimalConverter_Char;
-
-    [CsvEnumConverter<byte, Animal>]
-    private partial class AnimalConverter_Byte;
-
-    [CsvEnumConverter<char, Negatives>]
-    private partial class NegativeConverter_Char;
-
-    [CsvEnumConverter<byte, Negatives>]
-    private partial class NegativeConverter_Byte;
-
-    [CsvEnumConverter<char, NotAscii>]
-    private partial class NotAsciiConverter_Char;
-
-    [CsvEnumConverter<byte, NotAscii>]
-    private partial class NotAsciiConverter_Byte;
-
-    private enum Animal
+    protected enum Animal
     {
         Dog = 0,
         C4t = 1,
@@ -367,7 +301,7 @@ public static partial class EnumGeneratorTests
         SuperLongEnumNameThatGoesOnAndOn = 12,
     }
 
-    private enum Negatives
+    protected enum Negatives
     {
         First = -1,
         Second = -2,
@@ -376,7 +310,7 @@ public static partial class EnumGeneratorTests
         Two = 2,
     }
 
-    private enum NotAscii
+    protected enum NotAscii
     {
         [global::System.Runtime.Serialization.EnumMember(Value = "🦄")]
         Unicorn = 0,

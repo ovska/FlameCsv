@@ -8,7 +8,7 @@ using FlameCsv.Utilities.Comparers;
 
 namespace FlameCsv.Tests.Converters;
 
-public static class EnumConverterTests
+public static class OldEnumTests
 {
     public enum CustomDayOfWeek
     {
@@ -16,7 +16,7 @@ public static class EnumConverterTests
         [EnumMember(Value = "Tuesday")] Tuesday = 1,
         [EnumMember(Value = "wednesdaY")] Wednesday = 2,
         [EnumMember(Value = "Thu, rs, day!")] Thursday = 3,
-        [EnumMember(Value = "6")] Friday = 4,
+        [EnumMember(Value = "_6")] Friday = 4,
         [EnumMember(Value = "Säturday")] Saturday = 5,
         Sunday = 6,
         Negative = -255,
@@ -140,8 +140,8 @@ public static class EnumConverterTests
         Assert.Equal(CustomDayOfWeek.Thursday, thursday);
         Assert.False(customOrdinal.TryParse(ToT<T>("THU, RS, DAY!"), out _));
 
-        Assert.True(customOrdinal.TryParse(ToT<T>("6"), out CustomDayOfWeek friday));
-        Assert.Equal(CustomDayOfWeek.Friday, friday); // the explicit name for friday is "6"
+        Assert.True(customOrdinal.TryParse(ToT<T>("_6"), out CustomDayOfWeek friday));
+        Assert.Equal(CustomDayOfWeek.Friday, friday);
 
         CsvConverter<T, CustomDayOfWeek> customIgnoreCase = getCacheCustom(true);
 
@@ -172,8 +172,8 @@ public static class EnumConverterTests
         Assert.True(customIgnoreCase.TryParse(ToT<T>("THU, RS, DAY!"), out thursday));
         Assert.Equal(CustomDayOfWeek.Thursday, thursday);
 
-        Assert.True(customIgnoreCase.TryParse(ToT<T>("6"), out friday));
-        Assert.Equal(CustomDayOfWeek.Friday, friday); // the explicit name for friday is "6"
+        Assert.True(customIgnoreCase.TryParse(ToT<T>("_6"), out friday));
+        Assert.Equal(CustomDayOfWeek.Friday, friday);
     }
 
     [Theory]
