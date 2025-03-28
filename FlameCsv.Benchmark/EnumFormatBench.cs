@@ -118,19 +118,19 @@ public partial class EnumFormatBench
 /*
 | Method     | Numeric | Bytes | Mean       | StdDev  | Ratio |
 |----------- |-------- |------ |-----------:|--------:|------:|
-| TryFormat  | False   | False |   724.9 ns | 8.40 ns |  1.00 |
-| Reflection | False   | False |   281.4 ns | 4.82 ns |  0.39 |
-| SourceGen  | False   | False |   245.8 ns | 1.76 ns |  0.34 |
+| TryFormat  | False   | False |   715.8 ns | 1.73 ns |  1.00 |
+| Reflection | False   | False |   275.2 ns | 1.63 ns |  0.38 |
+| SourceGen  | False   | False |   188.4 ns | 0.27 ns |  0.26 |
 |            |         |       |            |         |       |
-| TryFormat  | False   | True  | 1,297.4 ns | 1.50 ns |  1.00 |
-| Reflection | False   | True  |   285.7 ns | 0.20 ns |  0.22 |
-| SourceGen  | False   | True  |   255.5 ns | 2.49 ns |  0.20 |
+| TryFormat  | False   | True  | 1,296.3 ns | 1.33 ns |  1.00 |
+| Reflection | False   | True  |   285.8 ns | 0.24 ns |  0.22 |
+| SourceGen  | False   | True  |   173.6 ns | 0.14 ns |  0.13 |
 |            |         |       |            |         |       |
-| TryFormat  | True    | False |   288.4 ns | 3.31 ns |  1.00 |
-| Reflection | True    | False |   302.3 ns | 4.70 ns |  1.05 |
-| SourceGen  | True    | False |   165.4 ns | 1.76 ns |  0.57 |
+| TryFormat  | True    | False |   285.0 ns | 0.64 ns |  1.00 |
+| Reflection | True    | False |   298.5 ns | 0.24 ns |  1.05 |
+| SourceGen  | True    | False |   151.6 ns | 0.43 ns |  0.53 |
 |            |         |       |            |         |       |
-| TryFormat  | True    | True  |   863.8 ns | 0.86 ns |  1.00 |
-| Reflection | True    | True  |   300.1 ns | 0.60 ns |  0.35 |
-| SourceGen  | True    | True  |   160.9 ns | 0.24 ns |  0.19 |
+| TryFormat  | True    | True  |   861.6 ns | 0.81 ns |  1.00 |
+| Reflection | True    | True  |   298.9 ns | 0.45 ns |  0.35 |
+| SourceGen  | True    | True  |   156.2 ns | 2.35 ns |  0.18 |
 */
