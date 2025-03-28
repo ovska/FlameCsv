@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
+using FlameCsv.Exceptions;
 
 namespace FlameCsv.Utilities;
 
@@ -26,7 +27,31 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
         return !HasFlagsAttribute && !"F".Equals(format, StringComparison.OrdinalIgnoreCase);
     }
 
-    protected readonly record struct EnumMember(TEnum Value, string Name, string? ExplicitName);
+    internal readonly record struct EnumMember(TEnum Value, string Name, string? ExplicitName)
+    {
+        public static implicit operator TEnum(EnumMember member) => member.Value;
+
+        public override string ToString()
+        {
+            using var vsb = new ValueStringBuilder(stackalloc char[64]);
+
+            vsb.Append(typeof(TEnum).Name);
+            vsb.Append('.');
+            vsb.Append(Name);
+            vsb.Append(" (");
+            vsb.AppendFormatted(Value, "D");
+            vsb.Append(')');
+
+            if (!string.IsNullOrEmpty(ExplicitName))
+            {
+                vsb.Append(" = \"");
+                vsb.Append(ExplicitName);
+                vsb.Append('"');
+            }
+
+            return vsb.ToString();
+        }
+    }
 }
 
 internal abstract class EnumMemberCache<T, [DAM(DynamicallyAccessedMemberTypes.PublicFields)] TEnum>
@@ -85,7 +110,7 @@ internal abstract class EnumMemberCache<T, [DAM(DynamicallyAccessedMemberTypes.P
         throw new FormatException($"Invalid enum format string: {format}");
     }
 
-    protected static ImmutableArray<EnumMember> ValuesAndNames
+    internal static ImmutableArray<EnumMember> ValuesAndNames
     {
         get => _valuesAndNames.IsDefault ? (_valuesAndNames = GetValuesAndNames()) : _valuesAndNames;
     }
@@ -97,6 +122,9 @@ internal abstract class EnumMemberCache<T, [DAM(DynamicallyAccessedMemberTypes.P
         TEnum[] values = Enum.GetValues<TEnum>();
 
         var builder = ImmutableArray.CreateBuilder<EnumMember>(values.Length);
+
+        HashSet<string> uniqueNames = [];
+        List<EnumMember> duplicates = [];
 
         foreach (var f in typeof(TEnum).GetFields(BindingFlags.Public | BindingFlags.Static))
         {
@@ -115,11 +143,34 @@ internal abstract class EnumMemberCache<T, [DAM(DynamicallyAccessedMemberTypes.P
 
             if (index == -1) continue;
 
-            builder.Add(
-                new(
-                    value,
-                    names[index],
-                    f.GetCustomAttribute<EnumMemberAttribute>()?.Value));
+            var enumMember = new EnumMember(
+                value,
+                names[index],
+                f.GetCustomAttribute<EnumMemberAttribute>()?.Value);
+
+            if (!uniqueNames.Add(enumMember.Name) ||
+                (enumMember.ExplicitName is not null && !uniqueNames.Add(enumMember.ExplicitName)))
+            {
+                duplicates.Add(enumMember);
+            }
+
+            if (enumMember.ExplicitName is not null &&
+                (enumMember.ExplicitName.Length == 0 ||
+                char.IsAsciiDigit(enumMember.ExplicitName[0]) ||
+                enumMember.ExplicitName[0] == '-'))
+            {
+                throw new CsvConfigurationException(
+                    $"Enum member name '{enumMember.ExplicitName}' for {typeof(TEnum).FullName} cannot be empty or start with a digit or '-' character.");
+            }
+
+            builder.Add(enumMember);
+        }
+
+        if (duplicates.Count > 0)
+        {
+            duplicates.Sort((x, y) => Comparer<TEnum>.Default.Compare(x.Value, y.Value));
+            throw new CsvConfigurationException(
+                $"Duplicate enum names configured for {typeof(TEnum).FullName}: {string.Join(", ", duplicates)}");
         }
 
         return builder.ToImmutable();

@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace FlameCsv.Utilities.Comparers;
@@ -6,16 +7,22 @@ namespace FlameCsv.Utilities.Comparers;
 internal sealed class Utf8Comparer
     : IEqualityComparer<StringLike>, IAlternateEqualityComparer<ReadOnlySpan<byte>, StringLike>
 {
-    [field: AllowNull, MaybeNull] public static Utf8Comparer Ordinal => field ??= new(false);
-    [field: AllowNull, MaybeNull] public static Utf8Comparer OrdinalIgnoreCase => field ??= new(true);
+    public static Utf8Comparer Ordinal { get; } = new(ignoreCase: false);
+    public static Utf8Comparer OrdinalIgnoreCase { get; } = new(ignoreCase: true);
 
     private readonly bool _ignoreCase;
 
     private IAlternateEqualityComparer<ReadOnlySpan<char>, string?> Comparer
-        => (
-            IAlternateEqualityComparer<ReadOnlySpan<char>, string?>)(_ignoreCase
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal);
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            return (
+                IAlternateEqualityComparer<ReadOnlySpan<char>, string?>)(_ignoreCase
+                ? StringComparer.OrdinalIgnoreCase
+                : StringComparer.Ordinal);
+        }
+    }
 
     private Utf8Comparer(bool ignoreCase) => _ignoreCase = ignoreCase;
 
