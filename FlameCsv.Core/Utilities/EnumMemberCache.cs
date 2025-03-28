@@ -16,7 +16,6 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
 
     // ReSharper disable once StaticMemberInGenericType
     private protected static bool? _hasFlagsAttribute;
-    private protected static TEnum?[]? _firstTenValues;
 
     /// <summary>
     /// Returns <c>true</c> if the specified enum type and format are supported.
@@ -67,7 +66,6 @@ internal abstract class EnumMemberCache<T, [DAM(DynamicallyAccessedMemberTypes.P
             {
                 _hasFlagsAttribute = null;
                 _valuesAndNames = default;
-                _firstTenValues = null;
             });
     }
 
@@ -175,55 +173,5 @@ internal abstract class EnumMemberCache<T, [DAM(DynamicallyAccessedMemberTypes.P
         }
 
         return builder.ToImmutable();
-    }
-
-    /// <summary>
-    /// Fast path for single-digit values in the range of 0-9.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryGetFast(ReadOnlySpan<T> span, out TEnum value)
-    {
-        if (span.Length == 1)
-        {
-            var index = uint.CreateTruncating(span[0] - T.CreateTruncating('0'));
-            TEnum?[] firstTen = FirstTenValues;
-
-            if (index < firstTen.Length && firstTen[index].HasValue)
-            {
-                value = firstTen[index].GetValueOrDefault();
-                return true;
-            }
-        }
-
-        Unsafe.SkipInit(out value);
-        return false;
-    }
-
-    private static TEnum?[] FirstTenValues => _firstTenValues ??= GetFirstTenValues();
-
-    private static TEnum?[] GetFirstTenValues()
-    {
-        TEnum?[] values = new TEnum?[10];
-
-        foreach ((TEnum value, _, _) in ValuesAndNames)
-        {
-            int numeric;
-
-            if (typeof(TEnum).GetEnumUnderlyingType() == typeof(ulong))
-            {
-                numeric = int.CreateSaturating(Convert.ToUInt64(value));
-            }
-            else
-            {
-                numeric = int.CreateSaturating(Convert.ToInt64(value));
-            }
-
-            if (numeric is >= 0 and <= 9)
-            {
-                values[numeric] = value;
-            }
-        }
-
-        return values;
     }
 }

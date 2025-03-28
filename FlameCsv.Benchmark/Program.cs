@@ -34,4 +34,4 @@ config = config.AddExporter(
             timeUnit: Perfolizer.Horology.TimeUnit.Millisecond,
             sizeUnit: SizeUnit.KB)));
 
-BenchmarkRunner.Run<FlameCsv.Benchmark.Comparisons.PeekFields>(config, args);
+BenchmarkRunner.Run<FlameCsv.Benchmark.EnumParseBench>(config, args);

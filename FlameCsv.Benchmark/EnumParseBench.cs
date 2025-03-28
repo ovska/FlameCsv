@@ -21,6 +21,7 @@ public class EnumParseBench
         ..Enum.GetValues<TypeCode>().Select(t => Encoding.UTF8.GetBytes(t.ToString("D")))
     ];
 
+    [Params(true, false)] public bool Bytes { get; set; }
     [Params(true, false)] public bool IgnoreCase { get; set; }
     [Params(true, false)] public bool ParseNumbers { get; set; }
 
@@ -28,82 +29,88 @@ public class EnumParseBench
     private byte[][] ByteData => ParseNumbers ? _bNums : _bStrings;
 
     [Benchmark]
-    public void TryParse_Char()
+    public void TryParse()
     {
-        bool ignoreCase = IgnoreCase;
-
-        foreach (var s in CharData)
+        if (Bytes)
         {
-            _ = Enum.TryParse<TypeCode>(s, ignoreCase, out _);
+            bool ignoreCase = IgnoreCase;
+            Span<char> buffer = stackalloc char[64];
+
+            foreach (var s in ByteData)
+            {
+                _ = Encoding.UTF8.TryGetChars(s, buffer, out int written);
+                _ = Enum.TryParse<TypeCode>(buffer[..written], ignoreCase, out _);
+            }
+        }
+        else
+        {
+            bool ignoreCase = IgnoreCase;
+
+            foreach (var s in CharData)
+            {
+                _ = Enum.TryParse<TypeCode>(s, ignoreCase, out _);
+            }
         }
     }
 
     [Benchmark]
-    public void TryParse_Byte()
+    public void Reflection()
     {
-        bool ignoreCase = IgnoreCase;
-        Span<char> buffer = stackalloc char[64];
-
-        foreach (var s in ByteData)
+        if (Bytes)
         {
-            _ = Encoding.UTF8.TryGetChars(s, buffer, out int written);
-            _ = Enum.TryParse<TypeCode>(buffer[..written], ignoreCase, out _);
+            var converter = IgnoreCase ? _xbic : _xbord;
+
+            foreach (var s in _bStrings)
+            {
+                _ = converter.TryParse(s, out _);
+            }
+        }
+        else
+        {
+            var converter = IgnoreCase ? _xcic : _xcord;
+
+            foreach (var s in _cStrings)
+            {
+                _ = converter.TryParse(s.AsSpan(), out _);
+            }
         }
     }
 
     [Benchmark]
-    public void Char_Reflection()
+    public void SourceGen()
     {
-        var converter = IgnoreCase ? _xcic : _xcord;
-
-        foreach (var s in _cStrings)
+        if (Bytes)
         {
-            _ = converter.TryParse(s.AsSpan(), out _);
+            var converter = IgnoreCase ? _cbic : _cbord;
+
+            foreach (var s in _bStrings)
+            {
+                _ = converter.TryParse(s, out _);
+            }
+        }
+        else
+        {
+            var converter = IgnoreCase ? _ccic : _ccord;
+
+            foreach (var s in _cStrings)
+            {
+                _ = converter.TryParse(s.AsSpan(), out _);
+            }
         }
     }
 
-    [Benchmark]
-    public void Byte_Reflection()
-    {
-        var converter = IgnoreCase ? _xbic : _xbord;
+    private const CsvEnumOptions _ignoreCase = CsvEnumOptions.IgnoreCase |CsvEnumOptions.AllowUndefinedValues;
+    private const CsvEnumOptions _ordinal = CsvEnumOptions.AllowUndefinedValues;
 
-        foreach (var s in _bStrings)
-        {
-            _ = converter.TryParse(s, out _);
-        }
-    }
+    private static readonly TypeCodeConverterChar _ccic = new(new CsvOptions<char> { EnumOptions = _ignoreCase });
+    private static readonly TypeCodeConverterChar _ccord = new(new CsvOptions<char> { EnumOptions = _ordinal});
+    private static readonly TypeCodeConverterByte _cbic = new(new CsvOptions<byte> { EnumOptions = _ignoreCase });
+    private static readonly TypeCodeConverterByte _cbord = new(new CsvOptions<byte> { EnumOptions = _ordinal });
 
-    [Benchmark]
-    public void Char_SourceGen()
-    {
-        var converter = IgnoreCase ? _ccic : _ccord;
-
-        foreach (var s in _cStrings)
-        {
-            _ = converter.TryParse(s.AsSpan(), out _);
-        }
-    }
-
-    [Benchmark]
-    public void Byte_SourceGen()
-    {
-        var converter = IgnoreCase ? _cbic : _cbord;
-
-        foreach (var s in _bStrings)
-        {
-            _ = converter.TryParse(s, out _);
-        }
-    }
-
-    private static readonly TypeCodeConverterChar _ccic = new(new CsvOptions<char> { IgnoreEnumCase = true });
-    private static readonly TypeCodeConverterChar _ccord = new(new CsvOptions<char> { IgnoreEnumCase = false });
-    private static readonly TypeCodeConverterByte _cbic = new(new CsvOptions<byte> { IgnoreEnumCase = true });
-    private static readonly TypeCodeConverterByte _cbord = new(new CsvOptions<byte> { IgnoreEnumCase = false });
-
-    private static readonly EnumTextConverter<TypeCode> _xcic = new(new CsvOptions<char> { IgnoreEnumCase = true });
-    private static readonly EnumTextConverter<TypeCode> _xcord = new(new CsvOptions<char> { IgnoreEnumCase = false });
-    private static readonly EnumUtf8Converter<TypeCode> _xbic = new(new CsvOptions<byte> { IgnoreEnumCase = true });
-    private static readonly EnumUtf8Converter<TypeCode> _xbord = new(new CsvOptions<byte> { IgnoreEnumCase = false });
+    private static readonly EnumTextConverter<TypeCode> _xcic = new(new CsvOptions<char> { EnumOptions = _ignoreCase });
+    private static readonly EnumTextConverter<TypeCode> _xcord = new(new CsvOptions<char> { EnumOptions = _ordinal });
+    private static readonly EnumUtf8Converter<TypeCode> _xbic = new(new CsvOptions<byte> { EnumOptions = _ignoreCase });
+    private static readonly EnumUtf8Converter<TypeCode> _xbord = new(new CsvOptions<byte> { EnumOptions = _ordinal });
 }
 
 [CsvEnumConverter<char, TypeCode>]
