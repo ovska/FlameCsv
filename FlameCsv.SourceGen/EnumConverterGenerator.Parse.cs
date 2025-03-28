@@ -1,4 +1,6 @@
-﻿using FlameCsv.SourceGen.Helpers;
+﻿using System.Diagnostics;
+using System.Numerics;
+using FlameCsv.SourceGen.Helpers;
 using FlameCsv.SourceGen.Models;
 
 namespace FlameCsv.SourceGen;
@@ -27,12 +29,12 @@ public partial class EnumConverterGenerator
         // write the fast path if:
         // - enum is small and contiguous from 0 (implies: has no duplicate values)
         // - enum has no names or explicit names that are only 1 char
-        bool writeLabel = false;
+        bool useElseInIgnoreCase = true;
 
         if (model is { ContiguousFromZero: true, Values.Length: <= 10 } &&
             model.Values.AsImmutableArray().All(static v => v.Name.Length != 1 && v.ExplicitName is not { Length: 1 }))
         {
-            writeLabel = false;
+            useElseInIgnoreCase = false;
 
             writer.WriteLine("// Enum is small and contiguous from 0, use fast path");
             writer.WriteLine("if (source.Length == 1)");
@@ -52,6 +54,7 @@ public partial class EnumConverterGenerator
             model.TokenType.IsByte()
                 ? "// case-sensitivity is in separate paths so we can use specialized fast-path ignorecase-checks"
                 : "// case-sensitivity is in separate paths so JIT can unroll comparisons with constant StringComparison");
+        writer.WriteIf(useElseInIgnoreCase, "else ");
         writer.WriteLine("if (_ignoreCase)");
         using (writer.WriteBlock())
         {
@@ -67,14 +70,8 @@ public partial class EnumConverterGenerator
         writer.WriteLine();
 
         writer.WriteLine("// not a known value");
-        if (writeLabel)
-        {
-            writer.DecreaseIndent();
-            writer.WriteLine("Fallback:");
-            writer.IncreaseIndent();
-        }
 
-        if (model.TokenType.SpecialType == SpecialType.System_Byte)
+        if (model.TokenType.IsByte())
         {
             writer.WriteLine("return TryParseSlow(source, out value);");
         }
@@ -100,106 +97,97 @@ public partial class EnumConverterGenerator
                 ? " || first == '-')"
                 : ")");
 
-        var entries = model.UniqueValues.Select(m => (name: m.ToString(), value: m)).GroupBy(m => m.name.Length);
+        using IndentedTextWriter.Block block1 = writer.WriteBlock();
+        writer.WriteLine("switch (source.Length)");
+        using IndentedTextWriter.Block block2 = writer.WriteBlock();
 
-        using (writer.WriteBlock())
+        IEnumerable<IGrouping<int, (string name, BigInteger value)>> entries = model
+            .UniqueValues
+            .Select(m => (name: m.ToString(), value: m))
+            .GroupBy(m => m.name.Length)
+            .ToList();
+
+        int maxNumericLength = entries.Max(g => g.Key);
+
+        foreach (var group in entries)
         {
-            writer.WriteLine("switch (source.Length)");
+            cancellationToken.ThrowIfCancellationRequested();
+
+            writer.WriteLine($"case {group.Key}:");
             using (writer.WriteBlock())
             {
-                foreach (var group in entries)
+                // only positive values and all values in the 0..9 range are valid
+                if (!model.HasNegativeValues && group.Key == 1 && group.Count() == 10)
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
+                    writer.WriteLine("// all values in the 0..9 range are valid");
+                    writer.WriteLine($"value = ({model.EnumType.FullyQualifiedName})(uint)(first - '0');");
+                    writer.WriteLine("return true;");
+                    continue;
+                }
 
-                    writer.WriteLine($"case {group.Key}:");
+                // optimized alternative for 1-length integers
+                if (group.Key == 1)
+                {
+                    writer.WriteLine("switch (first)");
                     using (writer.WriteBlock())
                     {
-                        // only positive values and all values in the 0..9 range are valid
-                        if (!model.HasNegativeValues && group.Key == 1 && group.Count() == 10)
+                        foreach (var entry in group)
                         {
-                            writer.WriteLine("// all values in the 0..9 range are valid");
-                            writer.WriteLine($"value = ({model.EnumType.FullyQualifiedName})(uint)(first - '0');");
-                            writer.WriteLine("return true;");
-                            continue;
+                            writer.Write("case ");
+                            writer.WriteIf(model.TokenType.IsByte(), "(byte)");
+                            writer.Write(entry.name[0].ToCharLiteral());
+                            writer.Write($": value = ({model.EnumType.FullyQualifiedName})");
+                            writer.WriteIf(entry.value < 0, "(");
+                            writer.Write(entry.value.ToString());
+                            writer.WriteIf(entry.value < 0, ")");
+                            writer.WriteLine("; return true;");
                         }
+                    }
 
-                        // optimized alternative for 1-length integers
-                        if (group.Key == 1)
+                    writer.WriteLine("break;");
+                    continue;
+                }
+
+                if (group.Key == 2)
+                {
+                    WriteSwitchOverMask(in model, 0, writer, group, cancellationToken);
+                    writer.WriteLine("break;");
+                    continue;
+                }
+
+                writer.WriteLine("switch (first)");
+                using (writer.WriteBlock())
+                {
+                    foreach (var firstCharGroup in group.GroupBy(g => g.name[0]))
+                    {
+                        writer.Write("case ");
+                        writer.WriteIf(model.TokenType.IsByte(), "(byte)");
+                        writer.WriteLine($"{firstCharGroup.Key.ToCharLiteral()}:");
+
+                        using (writer.WriteBlock())
                         {
-                            writer.WriteLine("switch (first)");
-                            using (writer.WriteBlock())
+                            foreach (var entry in firstCharGroup)
                             {
-                                foreach (var entry in group)
+                                writer.Write($"if (source.EndsWith(\"{entry.name[1..]}\"");
+                                writer.WriteLine(model.TokenType.IsByte() ? "u8))" : "))");
+                                using (writer.WriteBlock())
                                 {
-                                    writer.Write("case ");
-                                    if (model.TokenType.SpecialType is SpecialType.System_Byte) writer.Write("(byte)");
-                                    writer.Write(entry.name[0].ToCharLiteral());
-                                    writer.Write($": value = ({model.EnumType.FullyQualifiedName})");
-                                    writer.WriteIf(entry.value < 0, "(");
-                                    writer.Write(entry.value.ToString());
-                                    writer.WriteIf(entry.value < 0, ")");
-                                    writer.WriteLine("; return true;");
+                                    writer.WriteLine(
+                                        $"value = ({model.EnumType.FullyQualifiedName}){entry.value};");
+                                    writer.WriteLine("return true;");
                                 }
                             }
 
                             writer.WriteLine("break;");
-                            continue;
                         }
-
-                        writer.WriteLine("switch (first)");
-                        using (writer.WriteBlock())
-                        {
-                            foreach (var firstCharGroup in group.GroupBy(g => g.name[0]))
-                            {
-                                writer.Write("case ");
-                                writer.WriteIf(model.TokenType.IsByte(), "(byte)");
-                                writer.WriteLine($"{firstCharGroup.Key.ToCharLiteral()}:");
-
-                                using (writer.WriteBlock())
-                                {
-                                    if (group.Key == 2)
-                                    {
-                                        writer.WriteLine("switch (source[1])");
-                                        using (writer.WriteBlock())
-                                        {
-                                            foreach (var entry in firstCharGroup)
-                                            {
-                                                writer.Write("case ");
-                                                writer.WriteIf(model.TokenType.IsByte(), "(byte)");
-                                                writer.Write(entry.name[1].ToCharLiteral());
-                                                writer.Write($": value = ({model.EnumType.FullyQualifiedName})");
-                                                writer.WriteIf(entry.value < 0, "(");
-                                                writer.Write(entry.value.ToString());
-                                                writer.WriteIf(entry.value < 0, ")");
-                                                writer.WriteLine("; return true;");
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        foreach (var entry in firstCharGroup)
-                                        {
-                                            writer.Write($"if (source.EndsWith(\"{entry.name[1..]}\"");
-                                            writer.WriteLine(model.TokenType.IsByte() ? "u8))" : "))");
-                                            using (writer.WriteBlock())
-                                            {
-                                                writer.WriteLine(
-                                                    $"value = ({model.EnumType.FullyQualifiedName}){entry.value};");
-                                                writer.WriteLine("return true;");
-                                            }
-                                        }
-                                    }
-
-                                    writer.WriteLine("break;");
-                                }
-                            }
-                        }
-
-                        writer.WriteLine("break;");
                     }
                 }
+
+                writer.WriteLine("break;");
             }
         }
+
+        writer.WriteLine("// enum names cannot start with a digit or -");
     }
 
     private static void WriteSwitch(
@@ -214,7 +202,7 @@ public partial class EnumConverterGenerator
 
         writer.WriteLine("switch (source.Length)");
 
-        bool isByte = model.TokenType.SpecialType == SpecialType.System_Byte;
+        bool isByte = model.TokenType.IsByte();
 
         using (writer.WriteBlock())
         {
@@ -301,7 +289,7 @@ public partial class EnumConverterGenerator
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        bool isByte = model.TokenType.SpecialType == SpecialType.System_Byte;
+        bool isByte = model.TokenType.IsByte();
         string sourceName = isByte ? "source_chars" : "source";
 
         if (entriesByLength.Count() == 1 || entriesByLength.Any(x => x.Name.ContainsSurrogates()))
@@ -743,5 +731,41 @@ public partial class EnumConverterGenerator
         writer.WriteLine();
         writer.WriteLine("int written = global::System.Text.Encoding.UTF8.GetChars(source, destination);");
         writer.WriteLine("return destination.Slice(0, written);");
+    }
+
+    private static void WriteSwitchOverMask(
+        in EnumModel model,
+        int offset,
+        IndentedTextWriter writer,
+        IEnumerable<(string name, BigInteger value)> values,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        string type = model.TokenType.IsByte() ? "ushort" : "uint";
+        int shift = model.TokenType.IsByte() ? 8 : 16;
+
+        writer.Write($"switch(__Unsafe.ReadUnaligned<{type}>(ref ");
+        writer.WriteIf(!model.TokenType.IsByte(), "__Unsafe.As<char, byte>(ref ");
+        if (offset == 0) writer.Write("first)");
+        else writer.Write($"__Unsafe.Add(ref first, {offset}))");
+        writer.WriteIf(!model.TokenType.IsByte(), ")");
+        writer.WriteLine(")");
+
+        using (writer.WriteBlock())
+        {
+            foreach (var entry in values)
+            {
+                writer.Write($"case (({model.TokenType.Name})");
+                writer.Write(entry.name[0].ToCharLiteral());
+                writer.Write(" | (");
+                writer.Write(entry.name[1].ToCharLiteral());
+                writer.Write($" << {shift})): value = ({model.EnumType.FullyQualifiedName})");
+                writer.WriteIf(entry.value < 0, "(");
+                writer.Write(entry.value.ToString());
+                writer.WriteIf(entry.value < 0, ")");
+                writer.WriteLine("; return true;");
+            }
+        }
     }
 }
