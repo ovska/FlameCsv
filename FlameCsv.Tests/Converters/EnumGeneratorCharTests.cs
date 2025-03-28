@@ -1,0 +1,38 @@
+﻿using FlameCsv.Attributes;
+
+namespace FlameCsv.Tests.Converters;
+
+public partial class EnumGeneratorCharTests : EnumTests<char>
+{
+    protected override CsvConverter<char, DayOfWeek> GetDayOfWeek(bool numeric, bool ignoreCase)
+    {
+        return new DayOfWeekConverter(GetOpts(numeric, ignoreCase));
+    }
+
+    protected override CsvConverter<char, Animal> GetAnimal(bool numeric, bool ignoreCase)
+    {
+        return new AnimalConverter(GetOpts(numeric, ignoreCase));
+    }
+
+    protected override CsvConverter<char, Negatives> GetNegatives(bool numeric, bool ignoreCase)
+    {
+        return new NegativeConverter(GetOpts(numeric, ignoreCase));
+    }
+
+    protected override CsvConverter<char, NotAscii> GetNotAscii(bool numeric, bool ignoreCase)
+    {
+        return new NotAsciiConverter(GetOpts(numeric, ignoreCase));
+    }
+
+    [CsvEnumConverter<char, DayOfWeek>]
+    private partial class DayOfWeekConverter;
+
+    [CsvEnumConverter<char, Animal>]
+    private partial class AnimalConverter;
+
+    [CsvEnumConverter<char, Negatives>]
+    private partial class NegativeConverter;
+
+    [CsvEnumConverter<char, NotAscii>]
+    private partial class NotAsciiConverter;
+}

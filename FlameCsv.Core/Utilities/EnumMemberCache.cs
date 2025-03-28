@@ -68,14 +68,10 @@ internal abstract class EnumMemberCache<T, [DAM(DynamicallyAccessedMemberTypes.P
                 _hasFlagsAttribute = null;
                 _valuesAndNames = default;
                 _firstTenValues = null;
-                _canUseFastPath = null;
             });
     }
 
     private static ImmutableArray<EnumMember> _valuesAndNames;
-
-    // ReSharper disable once StaticMemberInGenericType
-    private static bool? _canUseFastPath;
 
     protected static char GetFormatChar(string? format)
     {
@@ -131,9 +127,9 @@ internal abstract class EnumMemberCache<T, [DAM(DynamicallyAccessedMemberTypes.P
 
             int index = -1;
 
-            for (int i = 0; i < names.Length; i++)
+            for (int i = 0; i < values.Length; i++)
             {
-                if (EqualityComparer<TEnum>.Default.Equals(values[i], value))
+                if (names[i] == f.Name && EqualityComparer<TEnum>.Default.Equals(values[i], value))
                 {
                     index = i;
                     break;
@@ -148,15 +144,21 @@ internal abstract class EnumMemberCache<T, [DAM(DynamicallyAccessedMemberTypes.P
                 f.GetCustomAttribute<EnumMemberAttribute>()?.Value);
 
             if (!uniqueNames.Add(enumMember.Name) ||
-                (enumMember.ExplicitName is not null && !uniqueNames.Add(enumMember.ExplicitName)))
+                (
+                    enumMember.ExplicitName is not null &&
+                    enumMember.ExplicitName != enumMember.Name &&
+                    !uniqueNames.Add(enumMember.ExplicitName)
+                ))
             {
                 duplicates.Add(enumMember);
             }
 
             if (enumMember.ExplicitName is not null &&
-                (enumMember.ExplicitName.Length == 0 ||
-                char.IsAsciiDigit(enumMember.ExplicitName[0]) ||
-                enumMember.ExplicitName[0] == '-'))
+                (
+                    enumMember.ExplicitName.Length == 0 ||
+                    char.IsAsciiDigit(enumMember.ExplicitName[0]) ||
+                    enumMember.ExplicitName[0] == '-'
+                ))
             {
                 throw new CsvConfigurationException(
                     $"Enum member name '{enumMember.ExplicitName}' for {typeof(TEnum).FullName} cannot be empty or start with a digit or '-' character.");
