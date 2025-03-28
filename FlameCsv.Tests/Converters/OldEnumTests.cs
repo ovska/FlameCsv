@@ -24,38 +24,6 @@ public static class OldEnumTests
     }
 
     [Fact]
-    public static void FastPathText()
-    {
-        FastPathAssertions<char>();
-    }
-
-    [Fact]
-    public static void FastPathUtf8()
-    {
-        FastPathAssertions<byte>();
-    }
-
-    private static void FastPathAssertions<T>()
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        Assert.True(EnumMemberCache<T, DayOfWeek>.TryGetFast([T.CreateChecked('0')], out DayOfWeek value));
-        Assert.Equal(DayOfWeek.Sunday, value);
-
-        Assert.True(EnumMemberCache<T, DayOfWeek>.TryGetFast([T.CreateChecked('1')], out value));
-        Assert.Equal(DayOfWeek.Monday, value);
-
-        Assert.False(EnumMemberCache<T, DayOfWeek>.TryGetFast([T.CreateChecked('A')], out _));
-        Assert.False(EnumMemberCache<T, DayOfWeek>.TryGetFast([T.CreateChecked('9')], out _));
-
-        Assert.False(
-            EnumMemberCache<T, DayOfWeek>.TryGetFast(
-                [T.CreateChecked('2'), T.CreateChecked('5'), T.CreateChecked('6')],
-                out _));
-        Assert.False(EnumMemberCache<T, DayOfWeek>.TryGetFast([T.CreateChecked('0'), T.One], out _));
-        Assert.False(EnumMemberCache<T, DayOfWeek>.TryGetFast([T.One, T.Zero], out _));
-    }
-
-    [Fact]
     public static void Text()
     {
         Assertions(

@@ -74,21 +74,13 @@ internal sealed class EnumCacheText<TEnum> : EnumMemberCache<char, TEnum> where 
         var comparer = ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
         Dictionary<string, TEnum> valuesByName = new(comparer);
 
-        foreach ((TEnum value, string name, string? _) in ValuesAndNames)
+        foreach ((TEnum value, string name, string? explicitName) in ValuesAndNames)
         {
-            valuesByName.TryAdd(value.ToString("D"), value); // numbers are always ASCII
             valuesByName[name] = value;
-        }
 
-        // add overrides last, just in case someone does something bizarre like [EnumMember(Value = "1")]
-        if (enumMember)
-        {
-            foreach ((TEnum value, _, string? explicitName) in ValuesAndNames)
+            if (enumMember && explicitName is not null)
             {
-                if (explicitName is not null)
-                {
-                    valuesByName[explicitName] = value;
-                }
+                valuesByName[explicitName] = value;
             }
         }
 
