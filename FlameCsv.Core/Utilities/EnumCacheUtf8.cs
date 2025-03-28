@@ -7,6 +7,7 @@ using FlameCsv.Utilities.Comparers;
 
 namespace FlameCsv.Utilities;
 
+// strings cannot be directly used with other alternate comparers than ROS<char>
 internal readonly struct StringLike
 {
     public required string Value { get; init; }

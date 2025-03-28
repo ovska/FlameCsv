@@ -8,7 +8,7 @@ namespace FlameCsv.Utilities.Comparers;
 internal sealed class IgnoreCaseAsciiComparer
     : IEqualityComparer<StringLike>, IAlternateEqualityComparer<ReadOnlySpan<byte>, StringLike>
 {
-    [field: AllowNull, MaybeNull] public static IgnoreCaseAsciiComparer Instance => field ??= new();
+    public static IgnoreCaseAsciiComparer Instance { get; } = new();
 
     private IgnoreCaseAsciiComparer()
     {
@@ -88,12 +88,13 @@ internal sealed class IgnoreCaseAsciiComparer
         return value ^ mask;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static byte ConvertAsciiByteToLowercase(byte value)
     {
-        byte lowerIndicator = (byte)(value + 0x80 - 0x41);
-        byte upperIndicator = (byte)(value + 0x80 - 0x5B);
+        byte lowerIndicator = (byte)(value + 0x80u - 0x41u);
+        byte upperIndicator = (byte)(value + 0x80u - 0x5Bu);
         byte combinedIndicator = (byte)(lowerIndicator ^ upperIndicator);
-        byte mask = (byte)((combinedIndicator & 0x80) >> 2);
+        byte mask = (byte)((combinedIndicator & 0x80u) >> 2);
 
         return (byte)(value ^ mask);
     }
