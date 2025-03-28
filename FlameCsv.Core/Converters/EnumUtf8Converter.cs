@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Collections.Frozen;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Unicode;
 using FlameCsv.Utilities;
@@ -49,9 +50,27 @@ internal sealed class EnumUtf8Converter<TEnum> : CsvConverter<byte, TEnum> where
     /// <inheritdoc/>
     public override bool TryParse(ReadOnlySpan<byte> source, out TEnum value)
     {
-        if (EnumMemberCache<byte, TEnum>.TryGetFast(source, out value))
+        if (source.IsEmpty)
         {
-            return true;
+            value = default;
+            return false;
+        }
+
+        if ((source[0] - (uint)'0') <= ('9' - '0') ||
+            (
+                (
+                    typeof(TEnum).GetEnumUnderlyingType() == typeof(sbyte) ||
+                    typeof(TEnum).GetEnumUnderlyingType() == typeof(short) ||
+                    typeof(TEnum).GetEnumUnderlyingType() == typeof(int) ||
+                    typeof(TEnum).GetEnumUnderlyingType() == typeof(long)
+                ) &&
+                source[0] == '-' // JITed away for unsigned enums
+            ))
+        {
+            if (TryParseNumber(source, out value))
+            {
+                return _allowUndefinedValues || (_names?.ContainsKey(value) == true) || Enum.IsDefined(value);
+            }
         }
 
         if (_values.Dictionary is not null && _values.TryGetValue(source, out value))
@@ -123,6 +142,62 @@ internal sealed class EnumUtf8Converter<TEnum> : CsvConverter<byte, TEnum> where
         }
 
         charsWritten = 0;
+        return false;
+    }
+
+    // GetEnumUnderlyingType is intrinsic, so this method will be optimized into a single TryParse
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool TryParseNumber(ReadOnlySpan<byte> source, out TEnum value)
+    {
+        if (typeof(TEnum).GetEnumUnderlyingType() == typeof(byte) && byte.TryParse(source, out byte b))
+        {
+            value = Unsafe.As<byte, TEnum>(ref b);
+            return true;
+        }
+
+        if (typeof(TEnum).GetEnumUnderlyingType() == typeof(sbyte) && sbyte.TryParse(source, out sbyte sb))
+        {
+            value = Unsafe.As<sbyte, TEnum>(ref sb);
+            return true;
+        }
+
+        if (typeof(TEnum).GetEnumUnderlyingType() == typeof(short) && short.TryParse(source, out short sh))
+        {
+            value = Unsafe.As<short, TEnum>(ref sh);
+            return true;
+        }
+
+        if (typeof(TEnum).GetEnumUnderlyingType() == typeof(ushort) && ushort.TryParse(source, out ushort ush))
+        {
+            value = Unsafe.As<ushort, TEnum>(ref ush);
+            return true;
+        }
+
+        if (typeof(TEnum).GetEnumUnderlyingType() == typeof(int) && int.TryParse(source, out int i))
+        {
+            value = Unsafe.As<int, TEnum>(ref i);
+            return true;
+        }
+
+        if (typeof(TEnum).GetEnumUnderlyingType() == typeof(uint) && uint.TryParse(source, out uint ui))
+        {
+            value = Unsafe.As<uint, TEnum>(ref ui);
+            return true;
+        }
+
+        if (typeof(TEnum).GetEnumUnderlyingType() == typeof(long) && long.TryParse(source, out long l))
+        {
+            value = Unsafe.As<long, TEnum>(ref l);
+            return true;
+        }
+
+        if (typeof(TEnum).GetEnumUnderlyingType() == typeof(ulong) && ulong.TryParse(source, out ulong ul))
+        {
+            value = Unsafe.As<ulong, TEnum>(ref ul);
+            return true;
+        }
+
+        Unsafe.SkipInit(out value);
         return false;
     }
 }
