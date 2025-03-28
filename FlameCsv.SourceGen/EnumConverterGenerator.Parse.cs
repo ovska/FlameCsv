@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Numerics;
+﻿using System.Numerics;
 using FlameCsv.SourceGen.Helpers;
 using FlameCsv.SourceGen.Models;
 
@@ -17,7 +16,7 @@ public partial class EnumConverterGenerator
         writer.WriteLine("if (source.IsEmpty)");
         using (writer.WriteBlock())
         {
-            writer.WriteLine("value = default;");
+            writer.WriteLine("__Unsafe.SkipInit(out value);");
             writer.WriteLine("return false;");
         }
 
@@ -29,14 +28,11 @@ public partial class EnumConverterGenerator
         // write the fast path if:
         // - enum is small and contiguous from 0 (implies: has no duplicate values)
         // - enum has no names or explicit names that are only 1 char
-        bool useElseInIgnoreCase = true;
 
         if (model is { ContiguousFromZero: true, Values.Length: <= 10 } &&
             model.Values.AsImmutableArray().All(static v => v.Name.Length != 1 && v.ExplicitName is not { Length: 1 }))
         {
-            useElseInIgnoreCase = false;
-
-            writer.WriteLine("// Enum is small and contiguous from 0, use fast path");
+            writer.WriteLine("// Enum is small and contiguous from 0, try to use fast path");
             writer.WriteLine("if (source.Length == 1)");
             using (writer.WriteBlock())
             {
@@ -49,26 +45,13 @@ public partial class EnumConverterGenerator
             WriteNumberCheck(in model, writer, cancellationToken);
         }
 
-        writer.WriteLine();
-        writer.WriteLine(
-            model.TokenType.IsByte()
-                ? "// case-sensitivity is in separate paths so we can use specialized fast-path ignorecase-checks"
-                : "// case-sensitivity is in separate paths so JIT can unroll comparisons with constant StringComparison");
-        writer.WriteIf(useElseInIgnoreCase, "else ");
-        writer.WriteLine("if (_ignoreCase)");
+        writer.WriteLine("else if (_parseStrategy.TryParse(source, out value))");
         using (writer.WriteBlock())
         {
-            WriteSwitch(in model, writer, ignoreCase: true, cancellationToken);
-        }
-
-        writer.WriteLine("else // case-sensitive");
-        using (writer.WriteBlock())
-        {
-            WriteSwitch(in model, writer, ignoreCase: false, cancellationToken);
+            writer.WriteLine("return true;");
         }
 
         writer.WriteLine();
-
         writer.WriteLine("// not a known value");
 
         if (model.TokenType.IsByte())
@@ -106,8 +89,6 @@ public partial class EnumConverterGenerator
             .Select(m => (name: m.ToString(), value: m))
             .GroupBy(m => m.name.Length)
             .ToList();
-
-        int maxNumericLength = entries.Max(g => g.Key);
 
         foreach (var group in entries)
         {
@@ -186,8 +167,6 @@ public partial class EnumConverterGenerator
                 writer.WriteLine("break;");
             }
         }
-
-        writer.WriteLine("// enum names cannot start with a digit or -");
     }
 
     private static void WriteSwitch(
@@ -197,6 +176,13 @@ public partial class EnumConverterGenerator
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        writer.WriteLine(
+            $"public override bool TryParse(global::System.ReadOnlySpan<{model.TokenType.Name}> source, out {model.EnumType.FullyQualifiedName} value)");
+        using var block = writer.WriteBlock();
+
+        writer.WriteLine($"ref {model.TokenType.Name} first = ref __MemoryMarshal.GetReference(source);");
+        writer.WriteLine();
 
         var entries = GetEntries(model, ignoreCase, cancellationToken);
 
@@ -278,6 +264,10 @@ public partial class EnumConverterGenerator
             writer.WriteLine("break;");
             writer.DecreaseIndent();
         }
+
+        writer.WriteLine();
+        writer.WriteLine("__Unsafe.SkipInit(out value);");
+        writer.WriteLine("return false;");
     }
 
     private static void WriteStringMatchChar(
@@ -745,7 +735,7 @@ public partial class EnumConverterGenerator
         string type = model.TokenType.IsByte() ? "ushort" : "uint";
         int shift = model.TokenType.IsByte() ? 8 : 16;
 
-        writer.Write($"switch(__Unsafe.ReadUnaligned<{type}>(ref ");
+        writer.Write($"switch (__Unsafe.ReadUnaligned<{type}>(ref ");
         writer.WriteIf(!model.TokenType.IsByte(), "__Unsafe.As<char, byte>(ref ");
         if (offset == 0) writer.Write("first)");
         else writer.Write($"__Unsafe.Add(ref first, {offset}))");
@@ -756,7 +746,7 @@ public partial class EnumConverterGenerator
         {
             foreach (var entry in values)
             {
-                writer.Write($"case (({model.TokenType.Name})");
+                writer.Write($"case (");
                 writer.Write(entry.name[0].ToCharLiteral());
                 writer.Write(" | (");
                 writer.Write(entry.name[1].ToCharLiteral());
