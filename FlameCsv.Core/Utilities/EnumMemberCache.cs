@@ -23,7 +23,6 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
     /// </summary>
     public static bool IsSupported(string? format)
     {
-        // as of .NET9, Enum.TryFormat ignores to format provider parameter
         return !HasFlagsAttribute && !"F".Equals(format, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -182,19 +181,15 @@ internal abstract class EnumMemberCache<T, [DAM(DynamicallyAccessedMemberTypes.P
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryGetFast(ReadOnlySpan<T> span, out TEnum value)
     {
-        if (span.Length == 1 && CanUseFastPath)
+        if (span.Length == 1)
         {
             var index = uint.CreateTruncating(span[0] - T.CreateTruncating('0'));
+            TEnum?[] firstTen = FirstTenValues;
 
-            if (index <= 9)
+            if (index < firstTen.Length && firstTen[index].HasValue)
             {
-                TEnum? result = FirstTenValues[index];
-
-                if (result.HasValue)
-                {
-                    value = result.Value;
-                    return true;
-                }
+                value = firstTen[index].GetValueOrDefault();
+                return true;
             }
         }
 
@@ -202,31 +197,28 @@ internal abstract class EnumMemberCache<T, [DAM(DynamicallyAccessedMemberTypes.P
         return false;
     }
 
-    // protect against weirndess of using 0-9 numerics in enum member name
-    private static bool CanUseFastPath
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _canUseFastPath ??= GetFastPath();
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static bool GetFastPath()
-    {
-        return ValuesAndNames.All(x => x.ExplicitName is not [>= '0' and <= '9']);
-    }
-
     private static TEnum?[] FirstTenValues => _firstTenValues ??= GetFirstTenValues();
 
     private static TEnum?[] GetFirstTenValues()
     {
         TEnum?[] values = new TEnum?[10];
-        values.AsSpan().Clear(); // in case we ever add SkipInit
 
         foreach ((TEnum value, _, _) in ValuesAndNames)
         {
-            if (Convert.ToInt64(value) is var asInt64 and >= 0 and <= 9)
+            int numeric;
+
+            if (typeof(TEnum).GetEnumUnderlyingType() == typeof(ulong))
             {
-                values[asInt64] = value;
+                numeric = int.CreateSaturating(Convert.ToUInt64(value));
+            }
+            else
+            {
+                numeric = int.CreateSaturating(Convert.ToInt64(value));
+            }
+
+            if (numeric is >= 0 and <= 9)
+            {
+                values[numeric] = value;
             }
         }
 

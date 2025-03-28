@@ -14,7 +14,6 @@ internal sealed class EnumUtf8Converter<TEnum> : CsvConverter<byte, TEnum> where
     private readonly bool _allowUndefinedValues;
     private readonly bool _ignoreCase;
     private readonly string? _format;
-    private readonly IFormatProvider? _formatProvider;
     private readonly FrozenDictionary<StringLike, TEnum>.AlternateLookup<ReadOnlySpan<byte>> _values;
     private readonly FrozenDictionary<TEnum, byte[]>? _names;
 
@@ -27,7 +26,6 @@ internal sealed class EnumUtf8Converter<TEnum> : CsvConverter<byte, TEnum> where
         _allowUndefinedValues = (options.EnumOptions & CsvEnumOptions.AllowUndefinedValues) != 0;
         _ignoreCase = (options.EnumOptions & CsvEnumOptions.IgnoreCase) != 0;
         _format = options.GetFormat(typeof(TEnum), options.EnumFormat);
-        _formatProvider = options.GetFormatProvider(typeof(TEnum));
 
         bool useEnumMember = (options.EnumOptions & CsvEnumOptions.UseEnumMemberAttribute) != 0;
 
@@ -109,7 +107,6 @@ internal sealed class EnumUtf8Converter<TEnum> : CsvConverter<byte, TEnum> where
             literalLength: 0,
             formattedCount: 1,
             destination: destination,
-            provider: _formatProvider,
             shouldAppend: out bool shouldAppend);
 
         if (shouldAppend)
