@@ -180,8 +180,6 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
             writer.WriteLine();
             WriteDefinedCheck(in model, writer, context.CancellationToken);
 
-            WriteTryFormatCore(in model, writer, context.CancellationToken);
-
             if (model.TokenType.IsByte())
             {
                 writer.WriteLine();
@@ -301,60 +299,5 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
         writer.WriteLine("_ => false,");
         writer.DecreaseIndent();
         writer.WriteLine("};");
-    }
-
-    private static void WriteTryFormatCore(
-        in EnumModel model,
-        IndentedTextWriter writer,
-        CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        // TODO: investigate perf in unrolled assignments for short inputs
-        writer.WriteLine();
-        writer.WriteLine(AggressiveInlining);
-        writer.Write("static bool TryWriteCore(");
-        writer.Write($"global::System.Span<{model.TokenType.Name}> destination, ");
-        writer.Write($"global::System.ReadOnlySpan<{model.TokenType.Name}> value, ");
-        writer.WriteLine("out int charsWritten)");
-        using (writer.WriteBlock())
-        {
-            writer.WriteLine("if (value.Length == 1)");
-            using (writer.WriteBlock())
-            {
-                writer.WriteLine("if (destination.Length >= 1)");
-                using (writer.WriteBlock())
-                {
-                    writer.WriteLine("destination[0] = value[0];");
-                    writer.WriteLine("charsWritten = 1;");
-                    writer.WriteLine("return true;");
-                }
-            }
-
-            writer.WriteLine("else if (value.Length == 2)");
-            using (writer.WriteBlock())
-            {
-                writer.WriteLine("if (destination.Length >= 2)");
-                using (writer.WriteBlock())
-                {
-                    writer.WriteLine("destination[0] = value[0];");
-                    writer.WriteLine("destination[1] = value[1];");
-                    writer.WriteLine("charsWritten = 2;");
-                    writer.WriteLine("return true;");
-                }
-            }
-
-            writer.WriteLine("else if (destination.Length >= value.Length)");
-            using (writer.WriteBlock())
-            {
-                writer.WriteLine("value.CopyTo(destination);");
-                writer.WriteLine("charsWritten = value.Length;");
-                writer.WriteLine("return true;");
-            }
-
-            writer.WriteLine();
-            writer.WriteLine("__Unsafe.SkipInit(out charsWritten);");
-            writer.WriteLine("return false;");
-        }
     }
 }
