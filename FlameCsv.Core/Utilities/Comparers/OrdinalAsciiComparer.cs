@@ -7,7 +7,7 @@ namespace FlameCsv.Utilities.Comparers;
 internal sealed class OrdinalAsciiComparer
     : IEqualityComparer<StringLike>, IAlternateEqualityComparer<ReadOnlySpan<byte>, StringLike>
 {
-    [field: AllowNull, MaybeNull] public static OrdinalAsciiComparer Instance => field ??= new();
+    public static OrdinalAsciiComparer Instance { get; } = new();
 
     private OrdinalAsciiComparer()
     {
