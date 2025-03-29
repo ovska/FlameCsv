@@ -21,4 +21,14 @@ public sealed class CsvFormatException(
     {
         throw new CsvFormatException(message, innerException);
     }
+
+    /// <summary>
+    /// 1-based line index of where the invalid data was found.
+    /// </summary>
+    public int? Line { get; internal set; }
+
+    /// <summary>
+    /// Approximate 0-based index where the invalid data was found.
+    /// </summary>
+    public long? Position { get; internal set; }
 }

@@ -98,15 +98,17 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
             Current = _materializer.Parse(ref reader);
             return true;
         }
+        catch (CsvFormatException cfe) // unrecoverable
+        {
+            cfe.Line ??= Line;
+            cfe.Position ??= Position;
+            throw;
+        }
         catch (Exception ex)
         {
-            // this is treated as an unrecoverable exception
-            if (ex is CsvFormatException)
-            {
-                ThrowInvalidFormatException(ex, in fields);
-            }
+            (ex as CsvParseException)?.Enrich(Line, Position, in fields);
 
-            var handler = ExceptionHandler;
+            CsvExceptionHandler<T>? handler = ExceptionHandler;
 
             if (handler is not null)
             {
@@ -119,8 +121,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
                 }
             }
 
-            ThrowUnhandledException(ex, in fields);
-            return false; // unreachable
+            throw;
         }
     }
 
@@ -161,17 +162,5 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
             });
 
         return true;
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private void ThrowUnhandledException(Exception innerException, in CsvFields<T> fields)
-    {
-        (innerException as CsvParseException)?.Enrich(Line, Position, in fields);
-        throw new CsvUnhandledException(
-            $"Unhandled exception while reading records of type {typeof(TValue).FullName} from the CSV." +
-            $" The record was at position {Position} on line {Line} in the CSV. Record: {fields.Data.Span.AsPrintableString()}",
-            Line,
-            Position,
-            innerException);
     }
 }
