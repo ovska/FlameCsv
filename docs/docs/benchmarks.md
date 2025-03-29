@@ -106,6 +106,83 @@ Writing benchmarks are not included as they are expected to not be significantly
 | CsvHelper  | 36.902 ms |  9.79 | 2935048 B |    4,644.06 |
 
 
+### Enums
+
+FlameCsv provides a [source generator](source-generator.md#enum-converter-generator) for enum converters that generates
+highly optimized read/write operations specific to the enum. The comparisons below are performance relative to
+`Enum.TryParse` or `Enum.TryFormat`.
+
+Generating the enum converter at compile-time allows the enum to be analyzed, and specific optimizations to be made
+regarding different values and names.
+The generated converter especially excels at small enums that start from 0 without any gaps, and have only ASCII
+characters in their name. More esoteric configurations such as emojis as display names are supported as well.
+
+The benchmarks below are for handling the @"System.TypeCode"-enum, either in `byte` or `char` (the Bytes-column).
+
+#### Parsing
+
+<img src="../data/charts/parse_light.svg" alt="Enum parsing performance chart" class="chart-light" />
+<img src="../data/charts/parse_dark.svg" alt="Enum parsing performance chart" class="chart-dark" />
+
+#### Formatting
+
+<img src="../data/charts/format_light.svg" alt="Enum formatting performance chart" class="chart-light" />
+<img src="../data/charts/format_dark.svg" alt="Enum formatting performance chart" class="chart-dark" />
+
+#### Exact results
+
+| Method     | Bytes | IgnoreCase | ParseNumbers | Mean      | StdDev    | Ratio |
+|----------- |------ |----------- |------------- |----------:|----------:|------:|
+| TryParse   | False | False      | False        | 582.33 ns |  3.088 ns |  1.00 |
+| Reflection | False | False      | False        | 300.89 ns |  0.340 ns |  0.52 |
+| SourceGen  | False | False      | False        |  79.76 ns |  1.273 ns |  0.14 |
+|            |       |            |              |           |           |       |
+| TryParse   | False | False      | True         | 185.49 ns |  2.101 ns |  1.00 |
+| Reflection | False | False      | True         | 304.56 ns |  2.484 ns |  1.64 |
+| SourceGen  | False | False      | True         |  78.30 ns |  0.701 ns |  0.42 |
+|            |       |            |              |           |           |       |
+| TryParse   | False | True       | False        | 661.59 ns |  6.298 ns |  1.00 |
+| Reflection | False | True       | False        | 369.34 ns |  3.516 ns |  0.56 |
+| SourceGen  | False | True       | False        |  82.75 ns |  1.265 ns |  0.13 |
+|            |       |            |              |           |           |       |
+| TryParse   | False | True       | True         | 186.26 ns |  1.584 ns |  1.00 |
+| Reflection | False | True       | True         | 368.88 ns |  3.205 ns |  1.98 |
+| SourceGen  | False | True       | True         |  83.87 ns |  1.198 ns |  0.45 |
+|            |       |            |              |           |           |       |
+| TryParse   | True  | False      | False        | 726.99 ns | 15.936 ns |  1.00 |
+| Reflection | True  | False      | False        | 480.53 ns |  0.941 ns |  0.66 |
+| SourceGen  | True  | False      | False        |  73.65 ns |  0.433 ns |  0.10 |
+|            |       |            |              |           |           |       |
+| TryParse   | True  | False      | True         | 326.83 ns |  0.540 ns |  1.00 |
+| Reflection | True  | False      | True         | 485.12 ns |  4.999 ns |  1.48 |
+| SourceGen  | True  | False      | True         |  72.26 ns |  0.196 ns |  0.22 |
+|            |       |            |              |           |           |       |
+| TryParse   | True  | True       | False        | 785.22 ns |  1.791 ns |  1.00 |
+| Reflection | True  | True       | False        | 574.11 ns |  6.201 ns |  0.73 |
+| SourceGen  | True  | True       | False        |  72.89 ns |  0.869 ns |  0.09 |
+|            |       |            |              |           |           |       |
+| TryParse   | True  | True       | True         | 327.22 ns |  3.023 ns |  1.00 |
+| Reflection | True  | True       | True         | 560.96 ns |  5.796 ns |  1.71 |
+| SourceGen  | True  | True       | True         |  71.82 ns |  0.928 ns |  0.22 |
+
+| Method     | Numeric | Bytes | Mean       | StdDev  | Ratio |
+|----------- |-------- |------ |-----------:|--------:|------:|
+| TryFormat  | False   | False |   715.8 ns | 1.73 ns |  1.00 |
+| Reflection | False   | False |   275.2 ns | 1.63 ns |  0.38 |
+| SourceGen  | False   | False |   188.4 ns | 0.27 ns |  0.26 |
+|            |         |       |            |         |       |
+| TryFormat  | False   | True  | 1,296.3 ns | 1.33 ns |  1.00 |
+| Reflection | False   | True  |   285.8 ns | 0.24 ns |  0.22 |
+| SourceGen  | False   | True  |   173.6 ns | 0.14 ns |  0.13 |
+|            |         |       |            |         |       |
+| TryFormat  | True    | False |   285.0 ns | 0.64 ns |  1.00 |
+| Reflection | True    | False |   298.5 ns | 0.24 ns |  1.05 |
+| SourceGen  | True    | False |   151.6 ns | 0.43 ns |  0.53 |
+|            |         |       |            |         |       |
+| TryFormat  | True    | True  |   861.6 ns | 0.81 ns |  1.00 |
+| Reflection | True    | True  |   298.9 ns | 0.45 ns |  0.35 |
+| SourceGen  | True    | True  |   156.2 ns | 2.35 ns |  0.18 |
+
 ## About performance
 
 Performance has been a key consideration for FlameCsv since the beginning. This means:
