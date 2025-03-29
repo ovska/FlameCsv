@@ -62,3 +62,23 @@ await CsvWriter.WriteAsync(
     new CsvOptions<char> { Delimiter = '\t' },
     cancellationToken);
 ```
+
+# Changelog
+
+## 0.2.0
+
+- Removed `Async`-suffix from `CsvReader` methods that support synchronous enumeration
+- Added support for `EnumNameAttribute`
+- Added enum converter source generator
+- Added UTF-8 BOM skipping
+- Fixed `char` converter inconsistencies on non-ASCII inputs
+- Removed unnecessary SIMD instructions when parsing chars
+
+#### Breaking changes
+
+Methods in `CsvReader` have been renamed from `ReadAsync` to `Read`.
+The `Read` methods can be used with both `foreach` and `await foreach`.
+
+## 0.1.0
+
+Initial release.
