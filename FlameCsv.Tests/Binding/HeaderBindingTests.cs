@@ -70,9 +70,8 @@ public static class HeaderBindingTests
     {
         var ex = Record.Exception(() => CsvReader.Read<Shim>("IsEnabled,Name,_targeted\r\ntrue,name,\0\r\n").ToList());
 
-        Assert.IsType<CsvUnhandledException>(ex);
-        Assert.IsType<CsvParseException>(ex.InnerException);
-        Assert.Contains("Targeted", ex.InnerException?.Message, StringComparison.Ordinal);
+        Assert.IsType<CsvParseException>(ex);
+        Assert.Contains("Targeted", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]

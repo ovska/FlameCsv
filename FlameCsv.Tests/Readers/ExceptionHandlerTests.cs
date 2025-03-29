@@ -18,13 +18,13 @@ public class ExceptionHandlerTests
     [Fact]
     public void Should_Throw_On_Unhandled()
     {
-        Assert.Throws<CsvUnhandledException>(() => Run(null));
+        Assert.Throws<CsvParseException>(() => Run(null));
     }
 
     [Fact]
     public void Should_Throw_If_Returns_False()
     {
-        Assert.Throws<CsvUnhandledException>(() => Run((in CsvExceptionHandlerArgs<char> _) => false));
+        Assert.Throws<CsvParseException>(() => Run((in CsvExceptionHandlerArgs<char> _) => false));
     }
 
     [Fact]
@@ -77,12 +77,11 @@ public class ExceptionHandlerTests
                 }
             });
 
-        Assert.IsType<CsvUnhandledException>(ex);
-        Assert.Equal(2, ((CsvUnhandledException)ex).Line);
-        Assert.Equal("id,name\r\n".Length, ((CsvUnhandledException)ex).Position);
+        Assert.IsType<CsvParseException>(ex);
+        Assert.Equal(2, ((CsvParseException)ex).Line);
+        Assert.Equal("id,name\r\n".Length, ((CsvParseException)ex).RecordPosition);
 
-        Assert.IsType<CsvParseException>(ex.InnerException);
-        Assert.IsType<NumberTextConverter<int, IntegerStyles>>(((CsvParseException)ex.InnerException).Converter);
+        Assert.IsType<NumberTextConverter<int, IntegerStyles>>(((CsvParseException)ex).Converter);
     }
 
     [Fact]
@@ -98,11 +97,11 @@ public class ExceptionHandlerTests
                 }
             });
 
-        Assert.IsType<CsvUnhandledException>(ex);
-        Assert.Equal(2, ((CsvUnhandledException)ex).Line);
-        Assert.Equal("1,Bob\r\n".Length, ((CsvUnhandledException)ex).Position);
+        Assert.IsType<CsvParseException>(ex);
+        Assert.Equal(2, ((CsvParseException)ex).Line);
+        Assert.Equal("1,Bob\r\n".Length, ((CsvParseException)ex).RecordPosition);
 
-        Assert.IsType<CsvParseException>(ex.InnerException);
-        Assert.IsType<NumberTextConverter<int, IntegerStyles>>(((CsvParseException)ex.InnerException).Converter);
+        Assert.IsType<CsvParseException>(ex);
+        Assert.IsType<NumberTextConverter<int, IntegerStyles>>(((CsvParseException)ex).Converter);
     }
 }

@@ -56,7 +56,18 @@ internal static class UtilityExtensions
             }
         }
 
-        return $"[{string.Join(',', value.ToArray())}]";
+        var sb = new ValueStringBuilder(stackalloc char[128]);
+        sb.Append('[');
+
+        foreach (var item in value)
+        {
+            sb.AppendFormatted(item);
+            sb.Append(",");
+        }
+
+        sb.Length--;
+        sb.Append(']');
+        return sb.ToString();
     }
 
     public static bool SequenceEquals<T>(in this ReadOnlySequence<T> sequence, ReadOnlySpan<T> other)
