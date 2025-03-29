@@ -68,6 +68,12 @@ internal sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
     /// <inheritdoc/>
     public override bool TryParse(ReadOnlySpan<char> source, out TEnum value)
     {
+        if (source.IsEmpty)
+        {
+            value = default;
+            return false;
+        }
+
         if ((source[0] - (uint)'0') <= ('9' - '0') ||
             (
                 (
