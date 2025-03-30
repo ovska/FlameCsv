@@ -74,14 +74,14 @@ internal static class FieldParser<T, TNewline, TVector>
             TVector hasAny = hasQuote | hasNewlineOrDelimiter;
 
             nuint maskAny = hasAny.ExtractMostSignificantBits();
-            nuint maskDelimiter = hasDelimiter.ExtractMostSignificantBits();
-            nuint maskNewlineOrDelimiter = hasNewlineOrDelimiter.ExtractMostSignificantBits();
 
             // nothing of note in this slice
             if (maskAny == 0)
             {
                 goto ContinueRead;
             }
+
+            nuint maskDelimiter = hasDelimiter.ExtractMostSignificantBits();
 
             // only delimiters
             if (maskDelimiter == maskAny)
@@ -90,6 +90,8 @@ internal static class FieldParser<T, TNewline, TVector>
                 currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
                 goto ContinueRead;
             }
+
+            nuint maskNewlineOrDelimiter = hasNewlineOrDelimiter.ExtractMostSignificantBits();
 
             // only newlines or delimiters
             if (maskNewlineOrDelimiter == maskAny)
