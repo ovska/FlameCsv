@@ -354,24 +354,22 @@ internal readonly struct <#= typeName #> : ISimdVector<<#= keyword #>, <#= typeN
         }
 #>
 
-#if false
 /// <summary>Vector type that is not supported and does nothing.</summary>
 internal readonly struct NoOpVector<T> : ISimdVector<T, NoOpVector<T>> where T : unmanaged, IBinaryInteger<T>
 {
     public static bool IsSupported => false;
     public static int Count => 0;
-    public static NoOpVector<T> Zero => throw new NotSupportedException();
-    public static NoOpVector<T> Equals(NoOpVector<T> left, NoOpVector<T> right) => throw new NotSupportedException();
-    public static NoOpVector<T> Create(T value) => throw new NotSupportedException();
-    public static NoOpVector<T> LoadUnaligned(ref readonly T source, nuint offset) => throw new NotSupportedException();
-    public static NoOpVector<T> LoadAligned(ref T source, nuint offset) => throw new NotSupportedException();
-    public nuint ExtractMostSignificantBits() => throw new NotSupportedException();
-    public NoOpVector<T> WithZeroFirstElement() => throw new NotSupportedException();
-    public static NoOpVector<T> operator |(NoOpVector<T> left, NoOpVector<T> right) => throw new NotSupportedException();
-    public static bool operator ==(NoOpVector<T> left, NoOpVector<T> right) => throw new NotSupportedException();
-    public static bool operator !=(NoOpVector<T> left, NoOpVector<T> right) => throw new NotSupportedException();
-    public byte[] ToArray() => throw new NotSupportedException();
+    public static NoOpVector<T> Zero => default;
+    public static NoOpVector<T> Equals(NoOpVector<T> left, NoOpVector<T> right) => default;
+    public static NoOpVector<T> Create(T value) => default;
+    public static NoOpVector<T> LoadUnaligned(ref readonly T source, nuint offset) => default;
+    public static NoOpVector<T> LoadAligned(ref T source, nuint offset) => default;
+    public nuint ExtractMostSignificantBits() => 0;
+    public NoOpVector<T> WithZeroFirstElement() => default;
+    public static NoOpVector<T> operator |(NoOpVector<T> left, NoOpVector<T> right) => default;
+    public static bool operator ==(NoOpVector<T> left, NoOpVector<T> right) => false;
+    public static bool operator !=(NoOpVector<T> left, NoOpVector<T> right) => false;
+    public byte[] ToArray() => [];
     public override bool Equals(object obj) => throw new NotSupportedException();
     public override int GetHashCode() => throw new NotSupportedException();
 }
-#endif

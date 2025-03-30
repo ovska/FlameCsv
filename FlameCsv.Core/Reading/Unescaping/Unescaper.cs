@@ -102,8 +102,16 @@ internal static class Unescaper
             mask = ShiftMask32(mask);
             quotePairs = uint.CreateTruncating(TMask.PopCount(mask));
 
-            // write the result
-            TUnescaper.Compress(data, mask, ref dst, dstOffset);
+            if (mask == TMask.Zero)
+            {
+                TUnescaper.StoreVector(data, ref dst, dstOffset);
+            }
+            else
+            {
+                // write the result
+                TUnescaper.Compress(data, mask, ref dst, dstOffset);
+            }
+
             srcOffset += (nuint)TUnescaper.Count;
             dstOffset += (nuint)TUnescaper.Count - quotePairs;
             remaining -= TUnescaper.Count;
