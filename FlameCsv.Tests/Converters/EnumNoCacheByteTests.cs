@@ -4,6 +4,8 @@ namespace FlameCsv.Tests.Converters;
 
 public class EnumNoCacheByteTests : EnumTests<byte>
 {
+    protected override bool SupportsAttributeName => false;
+
     protected override CsvConverter<byte, DayOfWeek> GetDayOfWeek(bool numeric, bool ignoreCase)
     {
         return new EnumUtf8Converter<DayOfWeek>(ignoreCase, numeric ? "D" : "G");
