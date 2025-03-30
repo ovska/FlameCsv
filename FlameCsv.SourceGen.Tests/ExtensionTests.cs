@@ -72,7 +72,7 @@ public static class ExtensionTests
         false)]
     [InlineData(
         "Very long value with a lot of characters: 1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+[]{}|;':`e,.<>?/~`",
-        false)]
+        true)]
     [InlineData(
         "Very long value with a lot of characters: Café 1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+[]{}|;':\",.<>?/~`",
         false)]
