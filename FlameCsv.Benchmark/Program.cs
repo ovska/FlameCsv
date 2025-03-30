@@ -4,6 +4,8 @@ using BenchmarkDotNet.Exporters.Json;
 using BenchmarkDotNet.Reports;
 using Perfolizer.Metrology;
 
+_ = new UnescapeBench();
+
 #if RELEASE
 IConfig config = DefaultConfig.Instance;
 #else
@@ -34,4 +36,4 @@ config = config.AddExporter(
             timeUnit: Perfolizer.Horology.TimeUnit.Millisecond,
             sizeUnit: SizeUnit.KB)));
 
-BenchmarkRunner.Run<FlameCsv.Benchmark.Comparisons.PeekFields>(config, args);
+BenchmarkRunner.Run<UnescapeBench>(config, args);
