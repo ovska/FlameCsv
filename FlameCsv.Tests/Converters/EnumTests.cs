@@ -7,6 +7,8 @@ namespace FlameCsv.Tests.Converters;
 
 public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
 {
+    protected virtual bool SupportsAttributeName => true;
+
     private delegate CsvConverter<T, TEnum> Factory<TEnum>(bool numeric, bool ignoreCase) where TEnum : struct, Enum;
 
     protected static CsvOptions<T> GetOpts(bool numeric, bool ignoreCase)
@@ -77,7 +79,7 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
         CheckFormat("D", GetAnimal(numeric: true, ignoreCase: false));
         CheckFormat("G", GetAnimal(numeric: false, ignoreCase: false));
 
-        static void CheckFormat(string format, CsvConverter<T, Animal> converter)
+        void CheckFormat(string format, CsvConverter<T, Animal> converter)
         {
             ImplFormat(Animal.Dog, format, converter);
             ImplFormat(Animal.C4t, format, converter);
@@ -90,11 +92,15 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
             ImplFormat(Animal.Chameleon, format, converter);
             ImplFormat(Animal.Platypus1, format, converter);
             ImplFormat(Animal.Com0doDr4gon, format, converter);
-            ImplFormat(Animal.Zebra, format, converter, format == "G" ? "Zebra Animal!" : null);
             ImplFormat(Animal.SuperLongEnumNameThatGoesOnAndOn, format, converter);
+            ImplFormat(
+                Animal.Zebra,
+                format,
+                converter,
+                SupportsAttributeName && format == "G" ? "Zebra Animal!" : null);
         }
 
-        static void CheckParse(bool ignoreCase, CsvConverter<T, Animal> converter)
+        void CheckParse(bool ignoreCase, CsvConverter<T, Animal> converter)
         {
             foreach (var value in Enum.GetValues<Animal>())
             {
@@ -102,7 +108,14 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
                 ImplParse(value, value.ToString("D"), converter);
             }
 
-            ImplParse(Animal.Zebra, "Zebra Animal!", converter);
+            if (SupportsAttributeName)
+            {
+                ImplParse(Animal.Zebra, "Zebra Animal!", converter);
+            }
+            else
+            {
+                ImplNotParsable("Zebra Animal!", converter);
+            }
 
             ImplNotParsable("-1", converter);
             ImplNotParsable("13", converter);
@@ -116,8 +129,12 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
                 ImplParse(Animal.SuperLongEnumNameThatGoesOnAndOn, "SUPERLONGENUMNAMETHATGOESONANDON", converter);
                 ImplParse(Animal.Zebra, "zebra", converter);
                 ImplParse(Animal.Zebra, "ZEBRA", converter);
-                ImplParse(Animal.Zebra, "ZEBRA ANIMAL!", converter);
-                ImplParse(Animal.Zebra, "zebra animaL!", converter);
+
+                if (SupportsAttributeName)
+                {
+                    ImplParse(Animal.Zebra, "ZEBRA ANIMAL!", converter);
+                    ImplParse(Animal.Zebra, "zebra animaL!", converter);
+                }
             }
             else
             {
@@ -187,15 +204,25 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
         CheckFormat("D", GetNotAscii(numeric: true, ignoreCase: false));
         CheckFormat("G", GetNotAscii(numeric: false, ignoreCase: false));
 
-        static void CheckFormat(string format, CsvConverter<T, NotAscii> converter)
+        void CheckFormat(string format, CsvConverter<T, NotAscii> converter)
         {
-            ImplFormat(NotAscii.Unicorn, format, converter, "🦄");
-            ImplFormat(NotAscii.Dragon, format, converter, "🐉");
             ImplFormat(NotAscii.Café, format, converter);
-            ImplFormat(NotAscii.Meat, format, converter, "🥩🥩🥩🥩🥩🥩🥩🥩");
+
+            if (SupportsAttributeName)
+            {
+                ImplFormat(NotAscii.Unicorn, format, converter, "🦄");
+                ImplFormat(NotAscii.Dragon, format, converter, "🐉");
+                ImplFormat(NotAscii.Meat, format, converter, "🥩🥩🥩🥩🥩🥩🥩🥩");
+            }
+            else
+            {
+                ImplFormat(NotAscii.Unicorn, format, converter);
+                ImplFormat(NotAscii.Dragon, format, converter);
+                ImplFormat(NotAscii.Meat, format, converter);
+            }
         }
 
-        static void CheckParse(bool ignoreCase, CsvConverter<T, NotAscii> converter)
+        void CheckParse(bool ignoreCase, CsvConverter<T, NotAscii> converter)
         {
             foreach (var value in Enum.GetValues<NotAscii>())
             {
@@ -206,9 +233,18 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
             ImplNotParsable("-1", converter);
             ImplNotParsable("4", converter);
 
-            ImplParse(NotAscii.Unicorn, "🦄", converter);
-            ImplParse(NotAscii.Dragon, "🐉", converter);
-            ImplParse(NotAscii.Meat, "🥩🥩🥩🥩🥩🥩🥩🥩", converter);
+            if (SupportsAttributeName)
+            {
+                ImplParse(NotAscii.Unicorn, "🦄", converter);
+                ImplParse(NotAscii.Dragon, "🐉", converter);
+                ImplParse(NotAscii.Meat, "🥩🥩🥩🥩🥩🥩🥩🥩", converter);
+            }
+            else
+            {
+                ImplNotParsable("🦄", converter);
+                ImplNotParsable("🐉", converter);
+                ImplNotParsable("🥩🥩🥩🥩🥩🥩🥩🥩", converter);
+            }
 
             if (ignoreCase)
             {
