@@ -157,6 +157,12 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
         return $"{{ CsvLine<{Token<T>.Name}>[{FieldCount}]: Length: {value.Length} }}";
     }
 
+    internal ReadOnlySpan<Meta> GetMetaSpan()
+    {
+        EnsureInitialized();
+        return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _firstMeta, 1), FieldCount);
+    }
+
     private void EnsureInitialized()
     {
         if (FieldCount == 0 ||
