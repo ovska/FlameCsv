@@ -41,7 +41,6 @@ internal sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
 
     internal EnumTextConverter(bool ignoreCase, string? format)
     {
-        _allowUndefinedValues = true;
         _ignoreCase = ignoreCase;
         _format = format;
     }
