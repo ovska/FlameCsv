@@ -155,11 +155,34 @@ internal sealed class CsvParserRFC4180<T>(
         // the prefetch reads one vector ahead
         const int minimumVectors = 2;
 
-        if (Unsafe.SizeOf<T>() == sizeof(char) && (Vec256Char.IsSupported || Vec128Char.IsSupported))
+        if (Unsafe.SizeOf<T>() == sizeof(char) && (Vec512Char.IsSupported || Vec256Char.IsSupported || Vec128Char.IsSupported))
         {
             ReadOnlySpan<char> dataT = MemoryMarshal.Cast<T, char>(data);
             ref readonly var dialect = ref Unsafe.As<CsvDialect<T>, CsvDialect<char>>(ref Unsafe.AsRef(in _dialect));
             var newline = Unsafe.As<NewlineBuffer<T>, NewlineBuffer<char>>(ref _newline);
+
+            if (Vec512Char.IsSupported && dataT.Length > Vec512Char.Count * minimumVectors)
+            {
+                if (newline.Length == 1)
+                {
+                    return FieldParser<char, NewlineParserOne<char, Vec512Char>, Vec512Char>.Core(
+                        dialect.Delimiter,
+                        dialect.Quote,
+                        new(newline.First),
+                        dataT,
+                        MetaBuffer);
+                }
+
+                if (newline.Length == 2)
+                {
+                    return FieldParser<char, NewlineParserTwo<char, Vec512Char>, Vec512Char>.Core(
+                        dialect.Delimiter,
+                        dialect.Quote,
+                        new(newline.First, newline.Second),
+                        dataT,
+                        MetaBuffer);
+                }
+            }
 
             if (Vec256Char.IsSupported && dataT.Length > Vec256Char.Count * minimumVectors)
             {
@@ -208,11 +231,34 @@ internal sealed class CsvParserRFC4180<T>(
             }
         }
 
-        if (Unsafe.SizeOf<T>() == sizeof(byte) && (Vec256Byte.IsSupported || Vec128Byte.IsSupported))
+        if (Unsafe.SizeOf<T>() == sizeof(byte) && (Vec512Byte.IsSupported || Vec256Byte.IsSupported || Vec128Byte.IsSupported))
         {
             ReadOnlySpan<byte> dataT = MemoryMarshal.Cast<T, byte>(data);
             ref readonly var dialect = ref Unsafe.As<CsvDialect<T>, CsvDialect<byte>>(ref Unsafe.AsRef(in _dialect));
             var newline = Unsafe.As<NewlineBuffer<T>, NewlineBuffer<byte>>(ref _newline);
+
+            if (Vec512Byte.IsSupported && dataT.Length > Vec512Byte.Count * minimumVectors)
+            {
+                if (newline.Length == 1)
+                {
+                    return FieldParser<byte, NewlineParserOne<byte, Vec512Byte>, Vec512Byte>.Core(
+                        dialect.Delimiter,
+                        dialect.Quote,
+                        new(newline.First),
+                        dataT,
+                        MetaBuffer);
+                }
+
+                if (newline.Length == 2)
+                {
+                    return FieldParser<byte, NewlineParserTwo<byte, Vec512Byte>, Vec512Byte>.Core(
+                        dialect.Delimiter,
+                        dialect.Quote,
+                        new(newline.First, newline.Second),
+                        dataT,
+                        MetaBuffer);
+                }
+            }
 
             if (Vec256Byte.IsSupported && dataT.Length > Vec256Byte.Count * minimumVectors)
             {
