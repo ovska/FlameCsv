@@ -1,49 +1,12 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 namespace FlameCsv.Reading.Internal;
 
 internal static class Bithacks
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static T ComputeQuoteMask<T>(T quoteBits) where T : unmanaged, IBinaryInteger<T>
-    {
-        if (Unsafe.SizeOf<T>() == sizeof(uint))
-        {
-            if (Pclmulqdq.IsSupported && Sse2.IsSupported)
-            {
-                var vec = Vector128.CreateScalar(ulong.CreateTruncating(quoteBits));
-                var result = Pclmulqdq.CarrylessMultiply(vec, Vector128.Create((byte)0xFF).AsUInt64(), 0);
-                return T.CreateTruncating(result.GetElement(0));
-            }
-        }
-
-        if (Unsafe.SizeOf<T>() != sizeof(ulong))
-        {
-            throw new NotSupportedException();
-        }
-
-        if (Pclmulqdq.IsSupported && Sse2.X64.IsSupported && Vector128.IsHardwareAccelerated)
-        {
-            ulong result = Sse2.X64.ConvertToUInt64(
-                Pclmulqdq.CarrylessMultiply(
-                    Vector128.Create(ulong.CreateTruncating(quoteBits), 0UL),
-                    Vector128.Create((byte)0xFF).AsUInt64(),
-                    0));
-
-            return T.CreateTruncating(result);
-        }
-
-        T mask = quoteBits ^ (quoteBits << 1);
-        mask ^= (mask << 2);
-        mask ^= (mask << 4);
-        if (Unsafe.SizeOf<T>() >= sizeof(ushort)) mask ^= (mask << 8);
-        if (Unsafe.SizeOf<T>() >= sizeof(uint)) mask ^= (mask << 16);
-        if (Unsafe.SizeOf<T>() >= sizeof(ulong)) mask ^= (mask << 32);
-        return mask;
-    }
-
     /// <summary>
     /// Finds the quote mask for the current iteration, where bits between quotes are all 1's.
     /// </summary>
@@ -61,5 +24,34 @@ internal static class Bithacks
         prevIterInsideQuote = quoteMask >> (Unsafe.SizeOf<T>() * 8 - 1);
 
         return quoteMask;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static T ComputeQuoteMask<T>(T quoteBits) where T : unmanaged, IBinaryInteger<T>
+    {
+        if (Pclmulqdq.IsSupported && (Avx2.IsSupported || Sse2.IsSupported))
+        {
+            var vec = Vector128.CreateScalar(ulong.CreateTruncating(quoteBits));
+            var result = Pclmulqdq.CarrylessMultiply(vec, Vector128.Create((byte)0xFF).AsUInt64(), 0);
+            return T.CreateTruncating(result.GetElement(0));
+        }
+
+        // no separate PMULL path, see:
+        // https://github.com/simdjson/simdjson/blob/d84c93476894dc3230e7379cd9322360435dd0f9/include/simdjson/arm64/bitmask.h#L24
+
+        // Fallback to software implementation
+        return ComputeQuoteMaskSoftwareFallback(quoteBits);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static T ComputeQuoteMaskSoftwareFallback<T>(T quoteBits) where T : unmanaged, IBinaryInteger<T>
+    {
+        T mask = quoteBits ^ (quoteBits << 1);
+        mask ^= (mask << 2);
+        mask ^= (mask << 4);
+        if (Unsafe.SizeOf<T>() >= sizeof(ushort)) mask ^= (mask << 8);
+        if (Unsafe.SizeOf<T>() >= sizeof(uint)) mask ^= (mask << 16);
+        if (Unsafe.SizeOf<T>() >= sizeof(ulong)) mask ^= (mask << 32);
+        return mask;
     }
 }

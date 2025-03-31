@@ -39,11 +39,21 @@ public class BithackTests
             .Select(x => new TheoryDataRow<uint, uint>(checked((uint)x.Data.Item1), checked((uint)x.Data.Item2)))
             .ToArray();
 
+    public static IEnumerable<TheoryDataRow<ushort, ushort>> TestData16
+        => TestData
+            .Where(x => x.Data is { Item1: <= ushort.MaxValue, Item2: <= ushort.MaxValue })
+            .Select(x => new TheoryDataRow<ushort, ushort>(checked((ushort)x.Data.Item1), checked((ushort)x.Data.Item2)))
+            .ToArray();
+
+
     [Theory]
     [MemberData(nameof(TestData))]
     public static void QuoteMaskTests64(ulong input, ulong expected)
     {
-        var actual = Bithacks.ComputeQuoteMask((nuint)input);
+        var actual = Bithacks.ComputeQuoteMask(input);
+        Assert.Equal(expected.ToString("b64"), actual.ToString("b64"));
+
+        actual = Bithacks.ComputeQuoteMaskSoftwareFallback(input);
         Assert.Equal(expected.ToString("b64"), actual.ToString("b64"));
     }
 
@@ -51,7 +61,21 @@ public class BithackTests
     [MemberData(nameof(TestData32))]
     public static void QuoteMaskTests32(uint input, uint expected)
     {
-        var actual = Bithacks.ComputeQuoteMask((nuint)input);
+        var actual = Bithacks.ComputeQuoteMask(input);
         Assert.Equal(expected.ToString("b32"), actual.ToString("b32"));
+
+        actual = Bithacks.ComputeQuoteMaskSoftwareFallback(input);
+        Assert.Equal(expected.ToString("b32"), actual.ToString("b32"));
+    }
+
+    [Theory]
+    [MemberData(nameof(TestData16))]
+    public static void QuoteMaskTests16(ushort input, ushort expected)
+    {
+        var actual = Bithacks.ComputeQuoteMask(input);
+        Assert.Equal(expected.ToString("b16"), actual.ToString("b16"));
+
+        actual = Bithacks.ComputeQuoteMaskSoftwareFallback(input);
+        Assert.Equal(expected.ToString("b16"), actual.ToString("b16"));
     }
 }
