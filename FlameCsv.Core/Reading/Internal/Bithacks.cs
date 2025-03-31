@@ -9,6 +9,21 @@ internal static class Bithacks
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static T ComputeQuoteMask<T>(T quoteBits) where T : unmanaged, IBinaryInteger<T>
     {
+        if (Unsafe.SizeOf<T>() == sizeof(uint))
+        {
+            if (Pclmulqdq.IsSupported && Sse2.IsSupported)
+            {
+                var vec = Vector128.CreateScalar(ulong.CreateTruncating(quoteBits));
+                var result = Pclmulqdq.CarrylessMultiply(vec, Vector128.Create((byte)0xFF).AsUInt64(), 0);
+                return T.CreateTruncating(result.GetElement(0));
+            }
+        }
+
+        if (Unsafe.SizeOf<T>() != sizeof(ulong))
+        {
+            throw new NotSupportedException();
+        }
+
         if (Pclmulqdq.IsSupported && Sse2.X64.IsSupported && Vector128.IsHardwareAccelerated)
         {
             ulong result = Sse2.X64.ConvertToUInt64(
@@ -23,9 +38,9 @@ internal static class Bithacks
         T mask = quoteBits ^ (quoteBits << 1);
         mask ^= (mask << 2);
         mask ^= (mask << 4);
-        mask ^= (mask << 8);
-        mask ^= (mask << 16);
-        mask ^= (mask << 32);
+        if (Unsafe.SizeOf<T>() >= sizeof(ushort)) mask ^= (mask << 8);
+        if (Unsafe.SizeOf<T>() >= sizeof(uint)) mask ^= (mask << 16);
+        if (Unsafe.SizeOf<T>() >= sizeof(ulong)) mask ^= (mask << 32);
         return mask;
     }
 
