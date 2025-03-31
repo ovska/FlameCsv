@@ -174,8 +174,11 @@ internal static class Unescaper
     private static bool AddCarry<TMask>(TMask value1, TMask value2, out TMask result)
         where TMask : unmanaged, IBinaryInteger<TMask>, IUnsignedNumber<TMask>
     {
-        result = value1 + value2;
-        return result < value1;
+        unchecked
+        {
+            result = value1 + value2;
+            return result < value1;
+        }
     }
 
     #endregion Bithacks
