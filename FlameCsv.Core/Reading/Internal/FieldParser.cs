@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace FlameCsv.Reading.Internal;
 
 /*
- * For general purpose data with occasional quotes:
+ * For general purpose data with occasional quotes (256-bit vectors):
  * 50% of vectors had only delimiters.
  * 30% of vectors had quotes or are continuations from previous string.
  * 7% of vectors had delimiters followed by newline(s) (worthwhile optimization, thanks Sep).
@@ -20,6 +20,14 @@ namespace FlameCsv.Reading.Internal;
  * The Rest is mixed delimiters and newlines.
  *
  * The sequential parser is always slower, no matter how small the input.
+ *
+ * Failed attempts at optimization:
+ * - double-laning 256-bit vectors
+ * - using a generic mask size instead of nuint
+ * - using popcount and unrolling ParseDelimiters when possible
+ *
+ * Still to do:
+ * - BitHacks.FindQuoteMask and zero out bits between quotes (can get rid of a branch in ParseAny?)
  */
 
 [SkipLocalsInit]
