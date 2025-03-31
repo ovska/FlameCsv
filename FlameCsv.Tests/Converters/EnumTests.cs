@@ -40,6 +40,7 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
             ImplFormat(Negatives.Zero, format, converter);
             ImplFormat(Negatives.Zero2, format, converter);
             ImplFormat(Negatives.Two, format, converter);
+            CheckEmptyFormat(converter);
         }
 
         static void CheckParse(bool ignoreCase, CsvConverter<T, Negatives> converter)
@@ -68,6 +69,8 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
                 ImplNotParsable("FIRST", converter);
                 ImplNotParsable("first", converter);
             }
+
+            CheckEmptyParse(converter);
         }
     }
 
@@ -98,6 +101,7 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
                 format,
                 converter,
                 SupportsAttributeName && format == "G" ? "Zebra Animal!" : null);
+            CheckEmptyFormat(converter);
         }
 
         void CheckParse(bool ignoreCase, CsvConverter<T, Animal> converter)
@@ -148,6 +152,8 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
                 ImplNotParsable("ZEBRA ANIMAL!", converter);
                 ImplNotParsable("zebra animaL!", converter);
             }
+
+            CheckEmptyParse(converter);
         }
     }
 
@@ -168,6 +174,7 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
             ImplFormat(DayOfWeek.Friday, format, converter);
             ImplFormat(DayOfWeek.Saturday, format, converter);
             ImplFormat(DayOfWeek.Sunday, format, converter);
+            CheckEmptyFormat(converter);
         }
 
         static void CheckParse(bool ignoreCase, CsvConverter<T, DayOfWeek> converter)
@@ -193,6 +200,8 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
                 ImplNotParsable("MONDAY", converter);
                 ImplNotParsable("monday", converter);
             }
+
+            CheckEmptyParse(converter);
         }
     }
 
@@ -220,6 +229,8 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
                 ImplFormat(NotAscii.Dragon, format, converter);
                 ImplFormat(NotAscii.Meat, format, converter);
             }
+
+            CheckEmptyFormat(converter);
         }
 
         void CheckParse(bool ignoreCase, CsvConverter<T, NotAscii> converter)
@@ -256,6 +267,8 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
                 ImplNotParsable("café", converter);
                 ImplNotParsable("CAFÉ", converter);
             }
+
+            CheckEmptyParse(converter);
         }
     }
 
@@ -298,6 +311,24 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
         if (converter.TryParse(ToT(value), out _))
         {
             Assert.Fail($"Value '{value}' should not be parsable to {typeof(TEnum).Name}.");
+        }
+    }
+
+    private static void CheckEmptyParse<TEnum>(CsvConverter<T, TEnum> converter)
+        where TEnum : struct, Enum
+    {
+        Assert.False(converter.TryParse([], out _));
+    }
+
+    private static void CheckEmptyFormat<TEnum>(CsvConverter<T, TEnum> converter)
+        where TEnum : struct, Enum
+    {
+        Span<T> destination = new T[8];
+
+        foreach (var value in Enum.GetValues<TEnum>())
+        {
+            Assert.False(converter.TryFormat(destination.Slice(0, 0), value, out _));
+            Assert.Equal([T.Zero, T.Zero, T.Zero, T.Zero, T.Zero, T.Zero, T.Zero, T.Zero], destination);
         }
     }
 

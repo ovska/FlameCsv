@@ -19,6 +19,7 @@ public partial class EnumConverterGenerator
 
         writer.WriteLine("__Unsafe.SkipInit(out charsWritten);");
         writer.WriteLine();
+        writer.WriteLine("// span is ensured not to be empty");
         writer.WriteLine($"ref {model.TokenType.Name} dst = ref __MemoryMarshal.GetReference(destination);");
         writer.WriteLine();
 
@@ -29,7 +30,7 @@ public partial class EnumConverterGenerator
             if (model.ContiguousFromZeroCount > 0)
             {
                 fastPathCount = Math.Min(model.ContiguousFromZeroCount, 10);
-                writer.WriteLine($"if ((uint)value < {fastPathCount})");
+                writer.WriteLine($"if ((uint)value < {fastPathCount}u)");
                 using (writer.WriteBlock())
                 {
                     writer.WriteLine($"dst = ({model.TokenType.Name})('0' + value);");
