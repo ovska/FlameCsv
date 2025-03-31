@@ -36,4 +36,4 @@ config = config.AddExporter(
             timeUnit: Perfolizer.Horology.TimeUnit.Millisecond,
             sizeUnit: SizeUnit.KB)));
 
-BenchmarkRunner.Run<UnescapeBench>(config, args);
+BenchmarkRunner.Run<CsvEnumerateBench>(config, args);
