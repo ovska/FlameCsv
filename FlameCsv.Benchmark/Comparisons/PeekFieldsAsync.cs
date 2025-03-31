@@ -3,8 +3,6 @@ using System.Globalization;
 using System.Text;
 using FlameCsv.Reading;
 using nietras.SeparatedValues;
-using RecordParser.Builders.Reader;
-using RecordParser.Extensions;
 using Sylvan.Data.Csv;
 
 namespace FlameCsv.Benchmark.Comparisons;
