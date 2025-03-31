@@ -1,4 +1,6 @@
-﻿using FlameCsv.Reading.Internal;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Tests;
 
@@ -42,9 +44,9 @@ public class BithackTests
     public static IEnumerable<TheoryDataRow<ushort, ushort>> TestData16
         => TestData
             .Where(x => x.Data is { Item1: <= ushort.MaxValue, Item2: <= ushort.MaxValue })
-            .Select(x => new TheoryDataRow<ushort, ushort>(checked((ushort)x.Data.Item1), checked((ushort)x.Data.Item2)))
+            .Select(
+                x => new TheoryDataRow<ushort, ushort>(checked((ushort)x.Data.Item1), checked((ushort)x.Data.Item2)))
             .ToArray();
-
 
     [Theory]
     [MemberData(nameof(TestData))]
@@ -77,5 +79,82 @@ public class BithackTests
 
         actual = Bithacks.ComputeQuoteMaskSoftwareFallback(input);
         Assert.Equal(expected.ToString("b16"), actual.ToString("b16"));
+    }
+
+    [Fact]
+    public static void FindQuotes16() => FindQuotesImpl<ushort>();
+
+    [Fact]
+    public static void FindQuotes32() => FindQuotesImpl<uint>();
+
+    [Fact]
+    public static void FindQuotes64() => FindQuotesImpl<ulong>();
+
+    private static void FindQuotesImpl<TMask>() where TMask : unmanaged, IBinaryInteger<TMask>, IUnsignedNumber<TMask>
+    {
+        const string data =
+            "The quick 'brown, fox' jumps, over the dog " +
+            "The quick, brown fox 'jumps over' the dog " +
+            "The 'quick brn fox ''jumps'' over the,'lazy";
+
+        Assert.Equal(128, data.Length);
+        Assert.Equal(0, data.Length % Unsafe.SizeOf<TMask>());
+
+        int[] expectedIndexes = data.AsEnumerable().Index().Where(x => x.Item == '\'').Select(x => x.Index).ToArray();
+        const int expectedCommas = 2;
+
+        TMask carry = TMask.Zero;
+        TMask commaCount = TMask.Zero;
+
+        List<int> indexes = [];
+
+        for (int i = 0; i < data.Length; i += (8 * Unsafe.SizeOf<TMask>()))
+        {
+            TMask quoteBits = LoadBits('\'', i);
+            TMask quoteMask = Bithacks.FindQuoteMask(quoteBits, ref carry);
+
+            TMask commaBits = LoadBits(',', i);
+            commaBits &= ~quoteMask;
+            commaCount += TMask.PopCount(commaBits);
+
+            TMask current = quoteBits;
+
+            while (current != TMask.Zero)
+            {
+                int offset = int.CreateChecked(TMask.TrailingZeroCount(current));
+                indexes.Add(i + offset);
+                current &= current - TMask.One;
+            }
+
+            if (Debugger.IsAttached)
+            {
+                string fmt = $"B{8 * Unsafe.SizeOf<TMask>()}";
+                string strCurrent = data.AsSpan(i, 8 * Unsafe.SizeOf<TMask>()).ToString();
+                string strQuoteBits = quoteBits.ToString(fmt, null);
+                string strQuoteMask = quoteMask.ToString(fmt, null);
+                string strCommaBitsBefore = LoadBits(',', i).ToString(fmt, null);
+                string strCommaBitsAfter = commaBits.ToString(fmt, null);
+                _ = 1;
+            }
+        }
+
+        Assert.Equal(expectedIndexes, indexes);
+        Assert.Equal(expectedCommas, int.CreateChecked(commaCount));
+        Assert.Equal(TMask.Zero, carry);
+
+        static TMask LoadBits(char needle, int start)
+        {
+            TMask value = TMask.Zero;
+
+            for (int i = 0; i < 8 * Unsafe.SizeOf<TMask>(); i++)
+            {
+                if (data[i + start] == needle)
+                {
+                    value |= TMask.One << i;
+                }
+            }
+
+            return value;
+        }
     }
 }
