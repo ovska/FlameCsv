@@ -109,7 +109,7 @@ internal static class FieldParser<T, TNewline, TVector>
 
                 if (maskDelimiter != 0)
                 {
-#if false
+#if true
                     nuint maskNewline = maskNewlineOrDelimiter & ~maskDelimiter;
                     int indexNewline = BitOperations.TrailingZeroCount(maskNewline);
 
