@@ -25,6 +25,7 @@ namespace FlameCsv.Reading.Internal;
  * - double-laning 256-bit vectors
  * - using a generic mask size instead of nuint
  * - using popcount and unrolling ParseDelimiters when possible
+ * - creating a generic "bool" for whether the data has quotes -> slower due to having to scan the whole data first
  *
  * Still to do:
  * - BitHacks.FindQuoteMask and zero out bits between quotes (can get rid of a branch in ParseAny?)
