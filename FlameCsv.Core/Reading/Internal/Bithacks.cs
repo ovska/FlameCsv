@@ -1,6 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 namespace FlameCsv.Reading.Internal;
@@ -11,7 +10,9 @@ internal static class Bithacks
     /// Finds the quote mask for the current iteration, where bits between quotes are all 1's.
     /// </summary>
     /// <param name="quoteBits">Bitmask of the quote positions</param>
-    /// <param name="prevIterInsideQuote">Whether the previous iteration ended in a quote</param>
+    /// <param name="prevIterInsideQuote">
+    /// Whether the previous iteration ended in a quote; all bits 1 if ended in a quote; otherwise, zero
+    /// </param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static T FindQuoteMask<T>(T quoteBits, ref T prevIterInsideQuote) where T : unmanaged, IBinaryInteger<T>
     {
@@ -21,7 +22,7 @@ internal static class Bithacks
         quoteMask ^= prevIterInsideQuote;
 
         // save if this iteration ended in a quote
-        prevIterInsideQuote = quoteMask >> (Unsafe.SizeOf<T>() * 8 - 1);
+        prevIterInsideQuote = T.Zero - (quoteMask >> (Unsafe.SizeOf<T>() * 8 - 1));
 
         return quoteMask;
     }
@@ -31,9 +32,13 @@ internal static class Bithacks
     {
         if (Pclmulqdq.IsSupported && (Avx2.IsSupported || Sse2.IsSupported))
         {
-            var vec = Vector128.CreateScalar(ulong.CreateTruncating(quoteBits));
-            var result = Pclmulqdq.CarrylessMultiply(vec, Vector128.Create((byte)0xFF).AsUInt64(), 0);
-            return T.CreateTruncating(result.GetElement(0));
+            ulong quoteMask = Pclmulqdq
+                .CarrylessMultiply(
+                    Vector128.Create(ulong.CreateTruncating(quoteBits), 0UL),
+                    Vector128.Create((byte)0xFF).AsUInt64(),
+                    0)
+                .GetElement(0);
+            return T.CreateTruncating(quoteMask);
         }
 
         // no separate PMULL path, see:
