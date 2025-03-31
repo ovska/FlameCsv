@@ -3,7 +3,6 @@
     const string MethodImpl = "MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough";
     const string PragmaCondition = "RELEASE";
 
-    // TODO: Add support for AVX-512 etc.
     string[] sizes = ["128", "256", "512"];
 
     (string keyword, string name)[] types = [("char", "Char"), ("byte", "Byte")];

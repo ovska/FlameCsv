@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using System.Text.RegularExpressions;
 using FlameCsv.SourceGen.Helpers;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
