@@ -33,11 +33,25 @@ public class BithackTests
             { 0b100000000000000000000001, 0b011111111111111111111111 },
         };
 
+    public static IEnumerable<TheoryDataRow<uint, uint>> TestData32
+        => TestData
+            .Where(x => x.Data is { Item1: <= uint.MaxValue, Item2: <= uint.MaxValue })
+            .Select(x => new TheoryDataRow<uint, uint>(checked((uint)x.Data.Item1), checked((uint)x.Data.Item2)))
+            .ToArray();
+
     [Theory]
     [MemberData(nameof(TestData))]
-    public static void QuoteMaskTests(ulong input, ulong expected)
+    public static void QuoteMaskTests64(ulong input, ulong expected)
     {
         var actual = Bithacks.ComputeQuoteMask((nuint)input);
         Assert.Equal(expected.ToString("b64"), actual.ToString("b64"));
+    }
+
+    [Theory]
+    [MemberData(nameof(TestData32))]
+    public static void QuoteMaskTests32(uint input, uint expected)
+    {
+        var actual = Bithacks.ComputeQuoteMask((nuint)input);
+        Assert.Equal(expected.ToString("b32"), actual.ToString("b32"));
     }
 }
