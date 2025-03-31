@@ -26,9 +26,7 @@ namespace FlameCsv.Reading.Internal;
  * - using a generic mask size instead of nuint
  * - using popcount and unrolling ParseDelimiters when possible
  * - creating a generic "bool" for whether the data has quotes -> slower due to having to scan the whole data first
- *
- * Still to do:
- * - BitHacks.FindQuoteMask and zero out bits between quotes (can get rid of a branch in ParseAny?)
+ * - BitHacks.FindQuoteMask and zero out bits between quotes -> parsing is too fast, the extra instructions are not worth it
  */
 
 [SkipLocalsInit]
@@ -249,16 +247,19 @@ internal static class FieldParser<T, TNewline, TVector>
         scoped ref readonly TNewline newline,
         ref TVector nextVector)
     {
+        int offset;
+        bool isEOL;
+
         do
         {
-            int offset = BitOperations.TrailingZeroCount(mask);
+            offset = BitOperations.TrailingZeroCount(mask);
             mask &= (mask - 1); // clear lowest bit
 
             // this can only return false for uncommon two-token newline setups, like a CR followed by a delimiter
             if (newline.IsDelimiterOrNewline(
                     delimiter,
                     ref Unsafe.Add(ref first, runningIndex + (nuint)offset),
-                    out bool isEOL))
+                    out isEOL))
             {
                 currentMeta = Meta.Plain((int)runningIndex + offset, isEOL, TNewline.Length);
                 currentMeta = ref Unsafe.Add(ref currentMeta, 1);
@@ -267,16 +268,16 @@ internal static class FieldParser<T, TNewline, TVector>
                 {
                     // clear the next bit, or adjust the index if we crossed a vector boundary
                     mask &= (mask - 1);
-
-                    if (offset == TVector.Count - 1)
-                    {
-                        // do not reorder
-                        runningIndex += TNewline.OffsetFromEnd;
-                        nextVector = TVector.LoadUnaligned(in first, runningIndex + (nuint)TVector.Count);
-                    }
                 }
             }
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
+
+        if (TNewline.OffsetFromEnd != 0 && isEOL && offset == TVector.Count - 1)
+        {
+            // do not reorder
+            runningIndex += TNewline.OffsetFromEnd;
+            nextVector = TVector.LoadUnaligned(in first, runningIndex + (nuint)TVector.Count);
+        }
 
         return ref currentMeta;
     }
@@ -293,9 +294,12 @@ internal static class FieldParser<T, TNewline, TVector>
         scoped ref uint quotesConsumed,
         ref TVector nextVector)
     {
+        int offset;
+        bool isEOL = false;
+
         do
         {
-            int offset = BitOperations.TrailingZeroCount(mask);
+            offset = BitOperations.TrailingZeroCount(mask);
             mask &= (mask - 1); // clear lowest bit
 
             if (Unsafe.Add(ref first, runningIndex + (nuint)offset) == quote)
@@ -306,7 +310,7 @@ internal static class FieldParser<T, TNewline, TVector>
                      newline.IsDelimiterOrNewline(
                          delimiter,
                          ref Unsafe.Add(ref first, runningIndex + (nuint)offset),
-                         out bool isEOL))
+                         out isEOL))
             {
                 currentMeta = Meta.RFC((int)runningIndex + offset, quotesConsumed, isEOL, TNewline.Length);
                 currentMeta = ref Unsafe.Add(ref currentMeta, 1);
@@ -316,16 +320,16 @@ internal static class FieldParser<T, TNewline, TVector>
                 {
                     // clear the next bit, or adjust the index if we crossed a vector boundary
                     mask &= (mask - 1);
-
-                    if (offset == TVector.Count - 1)
-                    {
-                        // do not reorder
-                        runningIndex += TNewline.OffsetFromEnd;
-                        nextVector = TVector.LoadUnaligned(in first, runningIndex + (nuint)TVector.Count);
-                    }
                 }
             }
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
+
+        if (TNewline.OffsetFromEnd != 0 && isEOL && offset == TVector.Count - 1)
+        {
+            // do not reorder
+            runningIndex += TNewline.OffsetFromEnd;
+            nextVector = TVector.LoadUnaligned(in first, runningIndex + (nuint)TVector.Count);
+        }
 
         return ref currentMeta;
     }
