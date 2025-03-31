@@ -1,5 +1,4 @@
 ﻿using System.Runtime.CompilerServices;
-using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using JetBrains.Annotations;
 
