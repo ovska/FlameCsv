@@ -18,9 +18,7 @@ public class CsvEnumerateBench
     [GlobalSetup]
     public void Setup()
     {
-        string path = AltData
-            ? @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\Data\65K_Records_Data.csv"
-            : @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Tests\TestData\SampleCSVFile_556kb.csv";
+        string path = AltData ? @"Comparisons/Data/65K_Records_Data.csv" : @"Comparisons/Data/SampleCSVFile_556kb.csv";
 
         _string = File
             .ReadAllText(path, Encoding.UTF8)
@@ -117,6 +115,7 @@ public class CsvEnumerateBench
         }
     }
 
+#if BENCH_ASYNC
     [Benchmark]
     public async Task Flame_byte_async()
     {
@@ -140,6 +139,7 @@ public class CsvEnumerateBench
             }
         }
     }
+#endif
 
 #if FEATURE_PARALLEL
     [Benchmark]
