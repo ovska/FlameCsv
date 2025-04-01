@@ -198,7 +198,6 @@ internal readonly struct Meta : IEquatable<Meta>
         // - 91.42% of fields have no quotes
         // - 8,51% of fields have just the wrapping quotes
         // - 0,08% of fields have quotes embedded, i.e. "John ""The Man"" Smith"
-        // Optimizing the unescaping routine might not be worth it.
 
         // quote count must be 0 or 2
         // isEscape-bit must be 0
@@ -220,11 +219,12 @@ internal readonly struct Meta : IEquatable<Meta>
             // the CPU can do both checks in parallel, and the branch predictor can predict the outcome of both checks
             // if quotes don't wrap the value (never happens in valid csv), refer to the slower routine that throws an exception
             // special count starts at bit 3, so 2 = 0b10 -> 0b10000
-            if ((_specialCountAndOffset & ~0b11) == 0b10000 &&
-            // TODO: benchmark (_specialCountAndOffset & (~0b11 ^ 0b10000)) == 0, procudes one test instead of and+cmp
-            // TODO: benchmark T quote = dialect.Quote;
-                dialect.Quote == Unsafe.Add(ref data, start) &&
-                dialect.Quote == Unsafe.Add(ref data, start + length - 1))
+
+            T quote = dialect.Quote;
+
+            if ((_specialCountAndOffset & (~0b11 ^ 0b10000)) == 0 &&
+                quote == Unsafe.Add(ref data, start) &&
+                quote == Unsafe.Add(ref data, start + length - 1))
             {
                 return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, start + 1), length - 2);
             }
