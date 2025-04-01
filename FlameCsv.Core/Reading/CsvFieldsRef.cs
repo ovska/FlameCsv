@@ -92,14 +92,9 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
             if ((uint)index >= (uint)FieldCount)
                 Throw.Argument_FieldIndex(index, FieldCount);
 
-            return Unsafe
-                .Add(ref _firstMeta, index + 1)
-                .GetField(
-                    dialect: in _dialect,
-                    start: Unsafe.Add(ref _firstMeta, index).NextStart,
-                    data: ref _data,
-                    buffer: _unescapeBuffer,
-                    allocator: _allocator);
+            ref Meta meta = ref Unsafe.Add(ref _firstMeta, index + 1);
+            int start = Unsafe.Add(ref _firstMeta, index).NextStart;
+            return meta.GetField(in _dialect, start, ref _data, _unescapeBuffer, _allocator);
         }
     }
 

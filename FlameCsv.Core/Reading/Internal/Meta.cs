@@ -199,13 +199,9 @@ internal readonly struct Meta : IEquatable<Meta>
         // - 8,51% of fields have just the wrapping quotes
         // - 0,08% of fields have quotes embedded, i.e. "John ""The Man"" Smith"
 
-        // quote count must be 0 or 2
-        // isEscape-bit must be 0
-        // newline/delimiter can be whatever
-
         if (dialect._whitespaceLength == 0)
         {
-            // most common case
+            // most common case, no quotes or escapes
             if ((_specialCountAndOffset & SpecialCountMask) == 0)
             {
                 return MemoryMarshal.CreateReadOnlySpan(
@@ -218,7 +214,12 @@ internal readonly struct Meta : IEquatable<Meta>
             // check if the field is just wrapped in quotes; by doing both the quote count and quote checks at the same time,
             // the CPU can do both checks in parallel, and the branch predictor can predict the outcome of both checks
             // if quotes don't wrap the value (never happens in valid csv), refer to the slower routine that throws an exception
-            // special count starts at bit 3, so 2 = 0b10 -> 0b10000
+            // at this point, the field is guaranteed not to be empty so we can safely access the first and last element
+            // escape bit:    0b00x00
+            // newline bits:  0b000xx
+            // 2 in binary:   0b10
+            // therefore
+            // special count: 0b10000
 
             T quote = dialect.Quote;
 
