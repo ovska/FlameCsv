@@ -180,6 +180,8 @@ public static class MetaTests
             Assert.True(Meta.TryFindNextEOL(ref first, metas.Length, out int index));
             Assert.Equal(expected, index);
         }
+
+        Assert.False(Meta.TryFindNextEOL(ref first, 0, out _));
     }
 
     [Theory]
