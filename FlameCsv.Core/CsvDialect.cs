@@ -40,12 +40,18 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     /// 1-2 characters long newline string, or empty if newline is automatically detected
     /// (<c>CRLF</c> is used while writing in this case).
     /// </summary>
+    /// <remarks>
+    /// The value must not on
+    /// </remarks>
     public ReadOnlySpan<T> Newline
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _newline;
         init
         {
+            ArgumentOutOfRangeException.ThrowIfLessThan(value.Length, 0);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(value.Length, 2);
+
             if (value.IsEmpty)
             {
                 _newline = null;
@@ -62,11 +68,6 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
             {
                 _newline = _cachedCRLF;
                 return;
-            }
-
-            if (value.Length is not (1 or 2))
-            {
-                InvalidDialect.Throw(["Newline length must be 0, 1 or 2."]);
             }
 
             _newline = value.ToArray();
@@ -350,11 +351,18 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         }
         else
         {
-            foreach (var c in newline)
+            if (newline.Length == 2 && newline[0] == newline[1])
             {
-                if (c == delimiter) errors.Append("Newline must not contain Delimiter.");
-                if (c == quote) errors.Append("Newline must not contain Quote.");
-                if (c == escape) errors.Append("Newline must not contain Escape.");
+                errors.Append("Newline must not contain duplicate characters.");
+            }
+            else
+            {
+                foreach (var c in newline)
+                {
+                    if (c == delimiter) errors.Append("Newline must not contain Delimiter.");
+                    if (c == quote) errors.Append("Newline must not contain Quote.");
+                    if (c == escape) errors.Append("Newline must not contain Escape.");
+                }
             }
         }
 
@@ -383,7 +391,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
             errors.Append("All tokens for byte must be valid ASCII characters.");
         }
 
-    CheckErrors:
+        CheckErrors:
         if (errors.Length != 0)
         {
             _lazyValues.Reset(); // reset possible faulty cached value
