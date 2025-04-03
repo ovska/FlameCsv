@@ -46,24 +46,22 @@ namespace FlameCsv.Console
 
             System.Console.CancelKeyPress += (_, e) => stop = true;
 
-            MemoryProfiler.CollectAllocations(false);
+            // MemoryProfiler.CollectAllocations(false);
 
             // MeasureProfiler.StartCollectingData();
-
-            if (FlameCsvGlobalOptions.CachingDisabled) throw new UnreachableException();
 
             while (!stop)
             {
                 if (++iters >= 10_000)
                 {
                     System.Console.WriteLine($"Snap {0}", snapshot);
-                    MemoryProfiler.GetSnapshot($"snap{snapshot++}");
+                    // MemoryProfiler.GetSnapshot($"snap{snapshot++}");
                     iters = 0;
                 }
 
-                foreach (var entry in new CsvValueEnumerable<byte, Entry>(_bytesSmall, new CsvOptions<byte>()))
+                foreach (var _ in CsvParser.Create(CsvOptions<byte>.Default, new ReadOnlySequence<byte>(_bytes))
+                             .ParseRecords())
                 {
-                    _ = entry;
                 }
             }
 

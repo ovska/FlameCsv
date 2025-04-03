@@ -29,4 +29,10 @@ internal static class Metrics
                 new("callsite", callsite));
         }
     }
+
+    public static readonly Counter<long> parseAnyQuote = _meter.CreateCounter<long>(
+        "csv.parse_any_quote");
+
+    public static readonly Counter<long> parseAnyNewlineDelimiter = _meter.CreateCounter<long>(
+        "csv.parse_any_newline_delimiter");
 }
