@@ -77,12 +77,11 @@ public static class DialectTests
             Assert.Throws<CsvConfigurationException>(() => { action(new CsvOptions<char>().Dialect).Validate(); });
         }
 
-        // utf8 requires that all tokens be ascii (no multibyte characters)
+        // utf8 requires that all searchable tokens be ascii (no multibyte characters)
         ShouldThrow(() => new CsvOptions<byte> { Delimiter = (char)128 }.Dialect.Validate());
         ShouldThrow(() => new CsvOptions<byte> { Quote = (char)128 }.Dialect.Validate());
         ShouldThrow(() => new CsvOptions<byte> { Escape = (char)128 }.Dialect.Validate());
         ShouldThrow(() => new CsvOptions<byte> { Newline = "£€" }.Dialect.Validate());
-        ShouldThrow(() => new CsvOptions<byte> { Whitespace = "£€" }.Dialect.Validate());
 
         static void ShouldThrow(Action action) => Assert.Throws<CsvConfigurationException>(action);
     }
@@ -125,6 +124,20 @@ public static class DialectTests
         Assert.False(SimdVector.IsSupported(in inDelimiter));
         Assert.False(SimdVector.IsSupported(in inNewline));
 #endif
+    }
+
+    [Fact]
+    public static void Should_Validate_Surrogates()
+    {
+        Validate(o => o with { Delimiter = '\uD800' });
+        Validate(o => o with { Quote = '\uD800' });
+        Validate(o => o with { Escape = '\uD800' });
+        Validate(o => o with { Newline = "\uD800" });
+
+        static void Validate(Func<CsvDialect<char>, CsvDialect<char>> action)
+        {
+            Assert.Throws<CsvConfigurationException>(() => action(CsvOptions<char>.Default.Dialect).Validate());
+        }
     }
 
     [Fact]
