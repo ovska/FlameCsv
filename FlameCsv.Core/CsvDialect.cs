@@ -3,18 +3,11 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Text;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Utilities;
 using JetBrains.Annotations;
-#if DEBUG
-using Unsafe = FlameCsv.Extensions.DebugUnsafe
-#else
-using Unsafe = System.Runtime.CompilerServices.Unsafe
-#endif
-    ;
 
 namespace FlameCsv;
 
@@ -50,7 +43,6 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         get => _newline;
         init
         {
-
             if (value.IsEmpty)
             {
                 _newline = null;
@@ -304,7 +296,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         Throw.IfDefaultStruct(_lazyValues is null, typeof(CsvDialect<T>));
 
         StringScratch scratch = default;
-        using ValueListBuilder<string> errors = new(scratch);
+        ValueListBuilder<string> errors = new(scratch);
 
         T delimiter = Delimiter;
         T quote = Quote;
@@ -314,7 +306,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
             ? [T.CreateChecked('\r'), T.CreateChecked('\n')]
             : Newline;
 
-        if (delimiter == T.Zero) errors.Append(NullError("Delimiter"));
+        if (delimiter == T.Zero) errors.Append(("Delimiter"));
         if (quote == T.Zero) errors.Append(NullError("Quote"));
         if (escape == T.Zero) errors.Append(NullError("Escape"));
 
@@ -342,6 +334,24 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
                 if (c > maxAscii)
                 {
                     errors.Append(AsciiError("Newline"));
+                    break;
+                }
+            }
+        }
+
+        // char dialects must not contain surrogate characters
+        if (typeof(T) == typeof(char))
+        {
+            if (char.IsSurrogate((char)ushort.CreateTruncating(delimiter))) errors.Append(SurrogateError("Delimiter"));
+            if (char.IsSurrogate((char)ushort.CreateTruncating(quote))) errors.Append(SurrogateError("Quote"));
+            if (escape.HasValue && char.IsSurrogate((char)ushort.CreateTruncating(escape.Value)))
+                errors.Append(SurrogateError("Escape"));
+
+            foreach (var c in newline)
+            {
+                if (char.IsSurrogate((char)ushort.CreateTruncating(c)))
+                {
+                    errors.Append(SurrogateError("Newline"));
                     break;
                 }
             }
@@ -401,24 +411,27 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
             }
         }
 
-        CheckErrors:
-        if (errors.Length != 0)
+    CheckErrors:
+        using (errors)
         {
-            _lazyValues.Reset(); // reset possible faulty cached value
-
-            if (Unsafe.SizeOf<T>() is sizeof(byte) or sizeof(char))
+            if (errors.Length != 0)
             {
-                var vsb = new ValueStringBuilder(stackalloc char[64]);
-                vsb.Append("Tokens:");
-                SingleToken(ref vsb, "Delimiter", Delimiter);
-                SingleToken(ref vsb, "Quote", Quote);
-                SingleToken(ref vsb, "Escape", escape);
-                MultiToken(ref vsb, "Newline", newline);
-                MultiToken(ref vsb, "Whitespace", whitespace);
-                errors.Append(vsb.ToString());
-            }
+                _lazyValues.Reset(); // reset possible faulty cached value
 
-            InvalidDialect.Throw(errors.AsSpan());
+                if (Unsafe.SizeOf<T>() is sizeof(byte) or sizeof(char))
+                {
+                    var vsb = new ValueStringBuilder(stackalloc char[64]);
+                    vsb.Append("Tokens:");
+                    SingleToken(ref vsb, "Delimiter", Delimiter);
+                    SingleToken(ref vsb, "Quote", Quote);
+                    SingleToken(ref vsb, "Escape", escape);
+                    MultiToken(ref vsb, "Newline", newline);
+                    MultiToken(ref vsb, "Whitespace", whitespace);
+                    errors.Append(vsb.ToString());
+                }
+
+                InvalidDialect.Throw(errors.AsSpan());
+            }
         }
 
         static void SingleToken(ref ValueStringBuilder vsb, ReadOnlySpan<char> name, T? value)
@@ -484,6 +497,12 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         static string AsciiError(string name)
         {
             return $"Dialect can not contain non-ASCII characters in a searchable property ({name}).";
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static string SurrogateError(string name)
+        {
+            return $"Dialect cannot contain surrogate characters in searchable properties ({name}).";
         }
     }
 
