@@ -3,8 +3,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using System.Text;
-using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Reading.Unescaping;
 
@@ -12,12 +12,11 @@ namespace FlameCsv.Reading.Unescaping;
 internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
 {
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void Unescape<TVector>(
+    public static void Unescape(
         T quote,
         scoped Span<T> buffer,
         ReadOnlySpan<T> field,
         uint quotesConsumed)
-        where TVector : struct, ISimdVector<T, TVector>
     {
         Debug.Assert(quotesConsumed >= 2);
         Debug.Assert(quotesConsumed % 2 == 0);
@@ -28,17 +27,15 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
 
         nint srcIndex = 0;
         nint dstIndex = 0;
-        nint srcLength = field.Length;
+
+        Vector256<T> quote256 = Vector256.IsHardwareAccelerated ? Vector256.Create(quote) : default;
+        Vector128<T> quote128 = Vector128.IsHardwareAccelerated ? Vector128.Create(quote) : default;
 
         // leave 1 space for the second quote
-        nint searchSpaceEnd = field.Length - 1;
-        nint unrolledEnd = field.Length - 8 - 1;
-        nint vectorizedEnd = field.Length - 1 - TVector.Count;
+        nint remaining = field.Length;
 
         ref T src = ref MemoryMarshal.GetReference(field);
         ref T dst = ref MemoryMarshal.GetReference(buffer);
-
-        TVector quoteVector = TVector.Create(quote);
 
         goto ContinueRead;
 
@@ -46,12 +43,14 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
         Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
         srcIndex += 1;
         dstIndex += 1;
+        remaining -= 1;
         goto FoundLong;
     Found2:
         Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
         Unsafe.Add(ref dst, dstIndex + 1) = Unsafe.Add(ref src, srcIndex + 1);
         srcIndex += 2;
         dstIndex += 2;
+        remaining -= 2;
         goto FoundLong;
     Found3:
         Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
@@ -59,6 +58,7 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
         Unsafe.Add(ref dst, dstIndex + 2) = Unsafe.Add(ref src, srcIndex + 2);
         srcIndex += 3;
         dstIndex += 3;
+        remaining -= 3;
         goto FoundLong;
     Found4:
         Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
@@ -67,60 +67,95 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
         Unsafe.Add(ref dst, dstIndex + 3) = Unsafe.Add(ref src, srcIndex + 3);
         srcIndex += 4;
         dstIndex += 4;
+        remaining -= 4;
         goto FoundLong;
     Found5:
         Copy(ref src, srcIndex, ref dst, dstIndex, 5);
         srcIndex += 5;
         dstIndex += 5;
+        remaining -= 5;
         goto FoundLong;
     Found6:
         Copy(ref src, srcIndex, ref dst, dstIndex, 6);
         srcIndex += 6;
         dstIndex += 6;
+        remaining -= 6;
         goto FoundLong;
     Found7:
         Copy(ref src, srcIndex, ref dst, dstIndex, 7);
         srcIndex += 7;
         dstIndex += 7;
+        remaining -= 7;
         goto FoundLong;
     Found8:
         Copy(ref src, srcIndex, ref dst, dstIndex, 8);
         srcIndex += 8;
         dstIndex += 8;
+        remaining -= 8;
 
     FoundLong:
         if (quote != Unsafe.Add(ref src, srcIndex)) goto Fail;
 
         srcIndex++;
+        remaining--;
 
         quotesLeft -= 2;
 
         if (quotesLeft <= 0) goto NoQuotesLeft;
 
     ContinueRead:
-        while (TVector.IsSupported && srcIndex < vectorizedEnd)
+        while (
+            Vector256.IsHardwareAccelerated &&
+            remaining >= Vector256<T>.Count)
         {
-            TVector current = TVector.LoadUnaligned(ref src, (nuint)srcIndex);
-            TVector equals = TVector.Equals(current, quoteVector);
+            var current = Vector256.LoadUnsafe(ref src, (nuint)srcIndex);
+            var equals = Vector256.Equals(current, quote256);
+            current.StoreUnsafe(ref dst, (nuint)dstIndex);
 
-            if (equals == TVector.Zero)
+            if (equals == Vector256<T>.Zero)
             {
-                Copy(ref src, srcIndex, ref dst, dstIndex, (uint)TVector.Count);
-                srcIndex += TVector.Count;
-                dstIndex += TVector.Count;
+                srcIndex += Vector256<T>.Count;
+                dstIndex += Vector256<T>.Count;
+                remaining -= Vector256<T>.Count;
                 continue;
             }
 
-            nuint mask = equals.ExtractMostSignificantBits();
+            uint mask = equals.ExtractMostSignificantBits();
             int charpos = BitOperations.TrailingZeroCount(mask) + 1;
-
-            Copy(ref src, srcIndex, ref dst, dstIndex, (uint)charpos);
             srcIndex += charpos;
             dstIndex += charpos;
+            remaining -= charpos;
             goto FoundLong;
         }
 
-        while (srcIndex < unrolledEnd)
+        // 128bit vector is only 8 chars,
+        // it's slightly faster to defer to the unrolled loop
+        while (
+            Unsafe.SizeOf<T>() == sizeof(byte) &&
+            Vector128.IsHardwareAccelerated &&
+            remaining >= Vector128<T>.Count)
+        {
+            var current = Vector128.LoadUnsafe(ref src, (nuint)srcIndex);
+            var equals = Vector128.Equals(current, quote128);
+            current.StoreUnsafe(ref dst, (nuint)dstIndex);
+
+            if (equals == Vector128<T>.Zero)
+            {
+                srcIndex += Vector128<T>.Count;
+                dstIndex += Vector128<T>.Count;
+                remaining -= Vector128<T>.Count;
+                continue;
+            }
+
+            uint mask = equals.ExtractMostSignificantBits();
+            int charpos = BitOperations.TrailingZeroCount(mask) + 1;
+            srcIndex += charpos;
+            dstIndex += charpos;
+            remaining -= charpos;
+            goto FoundLong;
+        }
+
+        while (remaining >= 8)
         {
             if (quote == Unsafe.Add(ref src, srcIndex + 0)) goto Found1;
             if (quote == Unsafe.Add(ref src, srcIndex + 1)) goto Found2;
@@ -134,9 +169,10 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
             Copy(ref src, srcIndex, ref dst, dstIndex, 8);
             srcIndex += 8;
             dstIndex += 8;
+            remaining -= 8;
         }
 
-        while (srcIndex < searchSpaceEnd)
+        while (remaining >= 0)
         {
             if (quote == Unsafe.Add(ref src, srcIndex))
             {
@@ -145,6 +181,7 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
                 Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
                 srcIndex++;
                 dstIndex++;
+                remaining--;
 
                 quotesLeft -= 2;
 
@@ -155,6 +192,7 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
                 Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
                 srcIndex++;
                 dstIndex++;
+                remaining--;
             }
         }
 
@@ -162,7 +200,7 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
 
         // Copy remaining data
     NoQuotesLeft:
-        Copy(ref src, srcIndex, ref dst, dstIndex, (uint)(srcLength - srcIndex));
+        Copy(ref src, srcIndex, ref dst, dstIndex, (uint)(remaining));
 
     EOL:
         if (quotesLeft != 0)
