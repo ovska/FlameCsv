@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Text;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -315,7 +316,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
 
         if (delimiter == T.Zero) errors.Append(NullError("Delimiter"));
         if (quote == T.Zero) errors.Append(NullError("Quote"));
-        if (escape.HasValue && escape.Value == T.Zero) errors.Append(NullError("Escape"));
+        if (escape == T.Zero) errors.Append(NullError("Escape"));
 
         foreach (var c in newline)
         {
@@ -328,6 +329,23 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         // allow zero in whitespace
 
         if (errors.Length > 0) goto CheckErrors;
+
+        // byte dialects must be ASCII
+        if (typeof(T) == typeof(byte))
+        {
+            T maxAscii = T.CreateChecked(127);
+            if (delimiter > maxAscii) errors.Append(AsciiError("Delimiter"));
+            if (quote > maxAscii) errors.Append(AsciiError("Quote"));
+            if (escape > maxAscii) errors.Append(AsciiError("Escape"));
+            foreach (var c in newline)
+            {
+                if (c > maxAscii)
+                {
+                    errors.Append(AsciiError("Newline"));
+                    break;
+                }
+            }
+        }
 
         if (delimiter.Equals(quote))
         {
@@ -381,12 +399,6 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
                     }
                 }
             }
-        }
-
-        // otherwise valid, but invalid tokens for utf8
-        if (errors.Length == 0 && Unsafe.SizeOf<T>() == sizeof(byte) && !GetIsAscii())
-        {
-            errors.Append("All tokens for byte must be valid ASCII characters.");
         }
 
         CheckErrors:
@@ -466,6 +478,12 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         {
             string zeroName = typeof(T) == typeof(char) ? "'\\0'" : "0";
             return $"Dialect can not contain {zeroName} in a searchable property ({name}).";
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static string AsciiError(string name)
+        {
+            return $"Dialect can not contain non-ASCII characters in a searchable property ({name}).";
         }
     }
 
