@@ -81,8 +81,8 @@ public static class DialectTests
         ShouldThrow(() => new CsvOptions<byte> { Delimiter = (char)128 }.Dialect.Validate());
         ShouldThrow(() => new CsvOptions<byte> { Quote = (char)128 }.Dialect.Validate());
         ShouldThrow(() => new CsvOptions<byte> { Escape = (char)128 }.Dialect.Validate());
-        ShouldThrow(() => new CsvOptions<byte> { Newline = "£€$" }.Dialect.Validate());
-        ShouldThrow(() => new CsvOptions<byte> { Whitespace = "£€$" }.Dialect.Validate());
+        ShouldThrow(() => new CsvOptions<byte> { Newline = "£€" }.Dialect.Validate());
+        ShouldThrow(() => new CsvOptions<byte> { Whitespace = "£€" }.Dialect.Validate());
 
         static void ShouldThrow(Action action) => Assert.Throws<CsvConfigurationException>(action);
     }

@@ -49,8 +49,6 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         get => _newline;
         init
         {
-            ArgumentOutOfRangeException.ThrowIfLessThan(value.Length, 0);
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(value.Length, 2);
 
             if (value.IsEmpty)
             {
