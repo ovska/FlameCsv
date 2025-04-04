@@ -277,38 +277,30 @@ internal readonly struct Meta : IEquatable<Meta>
             }
             else if (!IsEscape && specialCount != 2) // already trimmed the quotes
             {
-                int length = field.Length - unchecked((int)((specialCount - 2) / 2));
-
-                if (length > buffer.Length)
+                if (field.Length > buffer.Length)
                 {
-                    buffer = allocator.GetSpan(length);
+                    buffer = allocator.GetSpan(field.Length);
                 }
 
-                // TODO: profile with different data
-                // with the current corpus, 128 bit vectors yield optimal performance
-                if (typeof(T) == typeof(byte) && Vec128Byte.IsSupported)
+                if (typeof(T) == typeof(char))
                 {
-                    RFC4180Mode<byte>.Unescape<Vec128Byte>(
-                        byte.CreateTruncating(dialect.Quote),
-                        buffer.Slice(0, length).Cast<T, byte>(),
-                        field.Cast<T, byte>(),
-                        specialCount - 2);
-                }
-                else if (typeof(T) == typeof(char) && Vec128Char.IsSupported)
-                {
-                    RFC4180Mode<char>.Unescape<Vec128Char>(
-                        (char)ushort.CreateTruncating(dialect.Quote),
-                        buffer.Slice(0, length).Cast<T, char>(),
-                        field.Cast<T, char>(),
+                    RFC4180Mode<ushort>.Unescape(
+                        ushort.CreateTruncating(dialect.Quote),
+                        buffer.Cast<T, ushort>(),
+                        field.Cast<T,  ushort>(),
                         specialCount - 2);
                 }
                 else
                 {
-                    var unescaper = new IndexOfRFC4180Unescaper<T>(dialect.Quote, specialCount - 2);
-                    IndexOfUnescaper.Field(field, unescaper, buffer);
+                    RFC4180Mode<T>.Unescape(
+                        dialect.Quote,
+                        buffer,
+                        field,
+                        specialCount - 2);
                 }
 
-                field = buffer.Slice(0, length);
+                int unescapedLength = field.Length - unchecked((int)((specialCount - 2) / 2));
+                field = buffer.Slice(0, unescapedLength);
             }
         }
 
