@@ -334,12 +334,22 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
         _metaCount = 0;
         _metaIndex = 0;
 
-        // TODO: validate this works
-        _previousEndCR =
-            _dialect.Newline.Length == 2 &&
-            lastEOL.NewlineLength == 1 &&
-            lastEOL.End < (_metaMemory.Length - 1) &&
-            _metaMemory.Span[lastEOL.End] == _dialect.Newline.First;
+        if (lastEOL.EndsInCR(_metaMemory.Span, in _dialect._newline))
+        {
+            if (_sequence.IsEmpty)
+            {
+                _previousEndCR = true;
+            }
+            else
+            {
+                ReadOnlySpan<T> first = _sequence.FirstSpan;
+
+                if (!first.IsEmpty && first[0] == _dialect.Newline.Second)
+                {
+                    _sequence = _sequence.Slice(1);
+                }
+            }
+        }
 
         _metaMemory = default; // don't hold on to the memory from last read
     }

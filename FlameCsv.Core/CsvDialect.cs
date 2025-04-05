@@ -37,7 +37,11 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     /// <remarks>
     /// If empty, the newline is <c>\r\n</c> when writing, and when validating the dialect.
     /// </remarks>
-    public NewlineBuffer<T> Newline { get; init; }
+    public NewlineBuffer<T> Newline
+    {
+        get => _newline;
+        init => _newline = value;
+    }
 
     /// <summary>
     /// Whitespace characters.
@@ -81,6 +85,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
 
     private readonly LazyValues _lazyValues = new();
 
+    internal readonly NewlineBuffer<T> _newline;
     internal readonly int _whitespaceLength;
     private readonly T[]? _whitespace;
 

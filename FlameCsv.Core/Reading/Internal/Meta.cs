@@ -325,6 +325,22 @@ internal readonly struct Meta : IEquatable<Meta>
         };
     }
 
+    public bool EndsInCR<T>(ReadOnlySpan<T> data, ref readonly NewlineBuffer<T> newline)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        if (newline.Length == 2 && IsEOL && NewlineLength == 1)
+        {
+            var last = NextStart - 1;
+
+            if ((uint)last < (uint)data.Length)
+            {
+                return data[last] == newline.First;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>
     /// Returns the index of the first EOL meta in the data.
     /// </summary>
