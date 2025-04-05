@@ -253,7 +253,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         Throw.IfDefaultStruct(_lazyValues is null, typeof(CsvDialect<T>));
 
         StringScratch scratch = default;
-        ValueListBuilder<string> errors = new(scratch);
+        using ValueListBuilder<string> errors = new(scratch);
 
         T delimiter = Delimiter;
         T quote = Quote;
@@ -325,8 +325,8 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         T f = newline.First;
         T s = newline.Second;
         if (f == delimiter || s == delimiter) errors.Append("Newline must not contain Delimiter.");
-        if (f == quote || s == delimiter) errors.Append("Newline must not contain Quote.");
-        if (f == escape || s == delimiter) errors.Append("Newline must not contain Escape.");
+        if (f == quote || s == quote) errors.Append("Newline must not contain Quote.");
+        if (f == escape || s == escape) errors.Append("Newline must not contain Escape.");
 
         if (!whitespace.IsEmpty)
         {
@@ -340,26 +340,23 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         }
 
     CheckErrors:
-        using (errors)
+        if (errors.Length != 0)
         {
-            if (errors.Length != 0)
+            _lazyValues.Reset(); // reset possible faulty cached value
+
+            if (Unsafe.SizeOf<T>() is sizeof(byte) or sizeof(char))
             {
-                _lazyValues.Reset(); // reset possible faulty cached value
-
-                if (Unsafe.SizeOf<T>() is sizeof(byte) or sizeof(char))
-                {
-                    var vsb = new ValueStringBuilder(stackalloc char[64]);
-                    vsb.Append("Tokens:");
-                    SingleToken(ref vsb, "Delimiter", Delimiter);
-                    SingleToken(ref vsb, "Quote", Quote);
-                    SingleToken(ref vsb, "Escape", escape);
-                    MultiToken(ref vsb, "Newline", MemoryMarshal.CreateReadOnlySpan(in newline.First, newline.Length));
-                    MultiToken(ref vsb, "Whitespace", whitespace);
-                    errors.Append(vsb.ToString());
-                }
-
-                InvalidDialect.Throw(errors.AsSpan());
+                var vsb = new ValueStringBuilder(stackalloc char[64]);
+                vsb.Append("Tokens:");
+                SingleToken(ref vsb, "Delimiter", Delimiter);
+                SingleToken(ref vsb, "Quote", Quote);
+                SingleToken(ref vsb, "Escape", escape);
+                MultiToken(ref vsb, "Newline", MemoryMarshal.CreateReadOnlySpan(in newline.First, newline.Length));
+                MultiToken(ref vsb, "Whitespace", whitespace);
+                errors.Append(vsb.ToString());
             }
+
+            InvalidDialect.Throw(errors.AsSpan());
         }
 
         static void SingleToken(ref ValueStringBuilder vsb, ReadOnlySpan<char> name, T? value)

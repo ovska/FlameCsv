@@ -67,7 +67,7 @@ public readonly struct NewlineBuffer<T> : IEquatable<NewlineBuffer<T>> where T :
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public NewlineBuffer(T first, T second)
     {
-        if (First == Second) Throw.Argument(nameof(second), "Newline cannot contain two of the same character");
+        if (first == second) Throw.Argument(nameof(second), "Newline cannot contain two of the same character");
         (Length, First, Second) = (2, first, second);
     }
 
