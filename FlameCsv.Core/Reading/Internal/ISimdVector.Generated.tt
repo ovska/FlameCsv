@@ -105,51 +105,6 @@ namespace FlameCsv.Reading.Internal;
 
 // this code borrows heavily from Ascii.Utility.cs in System.Text.Ascii (MIT license)
 
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-internal static class SimdVector
-{
-    /// <summary>
-    /// Returns true if T is supported by SIMD vector types, and in case of <see langword="char"/>,
-    /// all tokens are ASCII.
-    /// </summary>
-    [<#= MethodImpl #>]
-    public static bool IsSupported<T>(ref readonly CsvDialect<T> dialect) where T : unmanaged, IBinaryInteger<T>
-    {
-        return dialect.IsAscii && TryGetMaxSupportedCount<T>(out int count) && count > 0;
-    }
-
-    [<#= MethodImpl #>]
-    public static bool TryGetMaxSupportedCount<T>(out int count) where T : unmanaged
-    {
-<#
-    foreach (var (keyword, name) in types)
-    {
-#>
-        if (Unsafe.SizeOf<T>() == sizeof(<#= keyword #>))
-        {
-<#
-        for (int i = sizes.Length - 1; i >= 0; i--)
-        {
-            var size = sizes[i];
-#>
-            if (Vec<#= size #><#= name #>.IsSupported)
-            {
-                count = Vec<#= size #><#= name #>.Count;
-                return true;
-            }
-<#
-        }
-#>
-        }
-<#
-    }
-#>
-        count = 0;
-        return false;
-    }
-}
-
 /// <summary>Generic type wrapping a byte vector.</summary>
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal interface ISimdVector<T, TVector>
