@@ -37,12 +37,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     /// <remarks>
     /// If empty, the newline is <c>\r\n</c> when writing, and when validating the dialect.
     /// </remarks>
-    public NewlineBuffer<T> Newline
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _newline;
-        init => _newline = value;
-    }
+    public NewlineBuffer<T> Newline { get; init; }
 
     /// <summary>
     /// Whitespace characters.
@@ -87,7 +82,6 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     private readonly LazyValues _lazyValues = new();
 
     internal readonly int _whitespaceLength;
-    private readonly NewlineBuffer<T> _newline;
     private readonly T[]? _whitespace;
 
     /// <summary>
@@ -264,7 +258,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         T delimiter = Delimiter;
         T quote = Quote;
         T? escape = Escape;
-        NewlineBuffer<T> newline = _newline.IsEmpty ? NewlineBuffer<T>.CRLF : _newline;
+        NewlineBuffer<T> newline = Newline.IsEmpty ? NewlineBuffer<T>.CRLF : Newline;
         scoped ReadOnlySpan<T> whitespace = Whitespace;
 
         if (delimiter == T.Zero) errors.Append(("Delimiter"));
@@ -359,7 +353,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
                     SingleToken(ref vsb, "Delimiter", Delimiter);
                     SingleToken(ref vsb, "Quote", Quote);
                     SingleToken(ref vsb, "Escape", escape);
-                    MultiToken(ref vsb, "Newline", MemoryMarshal.CreateReadOnlySpan(in newline.First, _newline.Length));
+                    MultiToken(ref vsb, "Newline", MemoryMarshal.CreateReadOnlySpan(in newline.First, newline.Length));
                     MultiToken(ref vsb, "Whitespace", whitespace);
                     errors.Append(vsb.ToString());
                 }
@@ -487,6 +481,6 @@ file static class InvalidDialect
     [StackTraceHidden]
     public static void Throw(scoped ReadOnlySpan<string> errors)
     {
-        throw new CsvConfigurationException($"Invalid CsvOptions dialect: {string.Join(" ", errors.ToArray())}");
+        throw new CsvConfigurationException($"Invalid CSV dialect: {string.Join(" ", errors.ToArray())}");
     }
 }
