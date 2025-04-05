@@ -76,8 +76,20 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
 
     private protected ReadOnlySequence<T> _sequence;
     private readonly ICsvPipeReader<T> _reader;
+
+    /// <summary>
+    /// Whether the reader has completed, and no more data can be read.
+    /// </summary>
     private bool _readerCompleted;
+
+    /// <summary>
+    /// Whether the UTF-8 BOM should be skipped on the next (first) read.
+    /// </summary>
     private bool _skipBOM;
+
+    /// <summary>
+    /// Whether <see cref="NewlineBuffer{T}.Second"/> needs to be trimmed from the start of the next sequence.
+    /// </summary>
     private protected bool _previousEndCR;
 
     private protected CsvParser(CsvOptions<T> options, ICsvPipeReader<T> reader, in CsvParserOptions<T> parserOptions)
