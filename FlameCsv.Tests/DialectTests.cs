@@ -24,20 +24,18 @@ public static class DialectTests
     [Fact]
     public static void Should_Return_FindToken()
     {
-        Assertions(CsvOptions<char>.Default, ",\"", 0);
-        Assertions(CsvOptions<char>.Default, ",\"\n", 1);
-        Assertions(CsvOptions<char>.Default, ",\"\r", 2);
-        Assertions(new CsvOptions<char> { Escape = '^', }, ",\"^", 0);
-        Assertions(new CsvOptions<char> { Escape = '^', }, ",\"^\n", 1);
-        Assertions(new CsvOptions<char> { Escape = '^', }, ",\"^\r", 2);
+        Assertions(new CsvOptions<char>(), ",\"", true);
+        Assertions(new CsvOptions<char> { Newline = "\n" }, ",\"\n", false);
+        Assertions(new CsvOptions<char>(), ",\"\r\n", false);
+        Assertions(new CsvOptions<char> { Escape = '^', }, ",\"^", true);
+        Assertions(new CsvOptions<char> { Escape = '^', Newline = "\n" }, ",\"^\n", false);
+        Assertions(new CsvOptions<char> { Escape = '^', }, ",\"^\r\n", false);
 
-        Assert.Throws<UnreachableException>(() => new CsvOptions<char> { Newline = "\r\n" }.Dialect.GetFindToken(0));
-        Assert.Throws<IndexOutOfRangeException>(() => CsvOptions<char>.Default.Dialect.GetFindToken(-1));
-        Assert.Throws<IndexOutOfRangeException>(() => CsvOptions<char>.Default.Dialect.GetFindToken(3));
+        Assert.Throws<UnreachableException>(() => new CsvOptions<char> { Newline = "\r\n" }.Dialect.GetFindToken(true));
 
-        static void Assertions(CsvOptions<char> options, string expected, int newlineLength)
+        static void Assertions(CsvOptions<char> options, string expected, bool excludeNewline)
         {
-            SearchValues<char> v = options.Dialect.GetFindToken(newlineLength);
+            SearchValues<char> v = options.Dialect.GetFindToken(excludeNewline: excludeNewline);
             Assert.DoesNotContain(expected, c => !v.Contains(c));
         }
     }

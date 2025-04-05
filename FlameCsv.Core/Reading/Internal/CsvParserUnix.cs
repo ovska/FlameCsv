@@ -27,7 +27,7 @@ internal sealed class CsvParserUnix<T>(
         T delimiter = _dialect.Delimiter;
         T quote = _dialect.Quote;
         T escape = _dialect.Escape.Value;
-        SearchValues<T> nextToken = _dialect.GetFindToken(_newline.Length);
+        SearchValues<T> nextToken = _dialect.GetFindToken(excludeNewline: _newline.IsEmpty);
         NewlineBuffer<T> newline = _newline;
 
         uint quoteCount = 0;
@@ -43,7 +43,9 @@ internal sealed class CsvParserUnix<T>(
 
             if (index != -1)
             {
-                if (reader.UnreadSpan[index] == escape)
+                T match = reader.UnreadSpan[index];
+
+                if (match == escape)
                 {
                     escapeCount++;
 
@@ -60,7 +62,7 @@ internal sealed class CsvParserUnix<T>(
                     goto Seek;
                 }
 
-                if (reader.UnreadSpan[index] == quote)
+                if (match == quote)
                 {
                     reader.Advance(index + 1);
 
@@ -91,21 +93,22 @@ internal sealed class CsvParserUnix<T>(
                     goto Seek;
                 }
 
-                if (reader.UnreadSpan[index] == delimiter)
+                if (match == delimiter)
                 {
                     reader.Advance(index + 1);
                     goto FoundDelimiter;
                 }
 
                 Debug.Assert(newline.Length != 0);
-                Debug.Assert(reader.UnreadSpan[index] == newline.First);
+                Debug.Assert(match == newline.First || match == newline.Second);
 
                 // must be newline token
                 reader.Advance(index);
                 goto FoundNewline;
 
             FoundDelimiter:
-                fieldMeta.Append(Meta.Unix((int)reader.Consumed - 1, quoteCount, escapeCount, isEOL: false, _newline.Length));
+                fieldMeta.Append(
+                    Meta.Unix((int)reader.Consumed - 1, quoteCount, escapeCount, isEOL: false, _newline.Length));
                 quoteCount = 0;
                 escapeCount = 0;
                 goto Seek;
@@ -117,25 +120,29 @@ internal sealed class CsvParserUnix<T>(
                 // ...and advance past it
                 reader.Advance(1);
 
-                if (newline.Length == 1 || reader.IsNext(newline.Second, advancePast: true))
-                {
-                    fieldMeta.Append(
-                        Meta.Unix((int)reader.Consumed - newline.Length, quoteCount, escapeCount, isEOL: true, _newline.Length));
+                // at this point, the record has ended no matter if we find another newline token or not
+                bool twoTokens =
+                    newline.Length != 1 &&
+                    match == newline.First &&
+                    reader.IsNext(newline.Second, advancePast: true);
 
-                    fields = new CsvFields<T>(
-                        this,
-                        _multisegmentAllocator.AsMemory(reader.Sequence.Slice(reader.Sequence.Start, crPosition)),
-                        GetSegmentMeta(fieldMeta.AsSpan()));
+                int newlineLength = twoTokens ? 2 : 1;
 
-                    _sequence = reader.UnreadSequence;
-                    return true;
-                }
+                fieldMeta.Append(
+                    Meta.Unix(
+                        end: (int)reader.Consumed - newlineLength,
+                        quoteCount: quoteCount,
+                        escapeCount: escapeCount,
+                        isEOL: true,
+                        newlineLength: newlineLength));
 
-                if (reader.End)
-                    break;
+                fields = new CsvFields<T>(
+                    this,
+                    _multisegmentAllocator.AsMemory(reader.Sequence.Slice(reader.Sequence.Start, crPosition)),
+                    GetSegmentMeta(fieldMeta.AsSpan()));
 
-                reader.Advance(1);
-                goto Seek;
+                _sequence = reader.UnreadSequence;
+                return true;
             }
 
             // nothing in this segment
