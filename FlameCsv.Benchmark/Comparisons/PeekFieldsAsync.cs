@@ -1,6 +1,8 @@
 ﻿using System.Buffers;
 using System.Globalization;
 using System.Text;
+using csFastFloat;
+using CsvHelper.Configuration;
 using FlameCsv.Reading;
 using nietras.SeparatedValues;
 using Sylvan.Data.Csv;
@@ -14,7 +16,7 @@ public class PeekFieldsAsync
 
     private static readonly CsvOptions<byte> _flameCsvOptions = new() { HasHeader = true, Newline = "\n" };
 
-    private static readonly CsvHelper.Configuration.CsvConfiguration _helperConfig = new(CultureInfo.InvariantCulture)
+    private static readonly CsvConfiguration _helperConfig = new(CultureInfo.InvariantCulture)
     {
         NewLine = "\n",
         HasHeaderRecord = true,
@@ -38,7 +40,7 @@ public class PeekFieldsAsync
         double sum = 0;
 
         await using var enumerator
-            = CsvParser.Create<byte>(_flameCsvOptions, in sequence).ParseRecordsAsync().GetAsyncEnumerator();
+            = CsvParser.Create(_flameCsvOptions, in sequence).ParseRecordsAsync().GetAsyncEnumerator();
 
         // skip first record
         _ = await enumerator.MoveNextAsync();
@@ -46,7 +48,7 @@ public class PeekFieldsAsync
         while (await enumerator.MoveNextAsync())
         {
             ArgumentOutOfRangeException.ThrowIfNotEqual(
-                csFastFloat.FastDoubleParser.TryParseDouble(enumerator.Current[11], out double result),
+                FastDoubleParser.TryParseDouble(enumerator.Current[11], out double result),
                 true);
 
             sum += result;
@@ -63,7 +65,7 @@ public class PeekFieldsAsync
                 o => o with
                 {
                     Sep = new Sep(','),
-                    CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
+                    CultureInfo = CultureInfo.InvariantCulture,
                     HasHeader = true,
                 })
             .FromAsync(_data);
@@ -73,7 +75,7 @@ public class PeekFieldsAsync
         await foreach (var row in reader)
         {
             ArgumentOutOfRangeException.ThrowIfNotEqual(
-                csFastFloat.FastDoubleParser.TryParseDouble(row[11].Span, out double result),
+                FastDoubleParser.TryParseDouble(row[11].Span, out double result),
                 true);
 
             sum += result;
@@ -93,7 +95,7 @@ public class PeekFieldsAsync
         while (await csv.ReadAsync())
         {
             ArgumentOutOfRangeException.ThrowIfNotEqual(
-                csFastFloat.FastDoubleParser.TryParseDouble(csv.GetFieldSpan(11), out double result),
+                FastDoubleParser.TryParseDouble(csv.GetFieldSpan(11), out double result),
                 true);
 
             sum += result;
@@ -117,7 +119,7 @@ public class PeekFieldsAsync
         while (await csv.ReadAsync())
         {
             ArgumentOutOfRangeException.ThrowIfNotEqual(
-                csFastFloat.FastDoubleParser.TryParseDouble(csv.GetField(11), out double result),
+                FastDoubleParser.TryParseDouble(csv.GetField(11), out double result),
                 true);
 
             sum += result;
