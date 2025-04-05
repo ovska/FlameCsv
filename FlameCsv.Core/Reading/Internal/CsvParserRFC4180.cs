@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using FlameCsv.IO;
 using FlameCsv.Utilities;
 
@@ -156,8 +157,6 @@ internal sealed class CsvParserRFC4180<T>(
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private protected override int ReadFromSpan(ReadOnlySpan<T> data)
     {
-        return 0;
-#if false
         // the prefetch reads one vector ahead
         const int minimumVectors = 2;
 
@@ -165,7 +164,8 @@ internal sealed class CsvParserRFC4180<T>(
         {
             ReadOnlySpan<char> dataT = MemoryMarshal.Cast<T, char>(data);
             ref readonly var dialect = ref Unsafe.As<CsvDialect<T>, CsvDialect<char>>(ref Unsafe.AsRef(in _dialect));
-            var newline = Unsafe.As<NewlineBuffer<T>, NewlineBuffer<char>>(ref _newline);
+            var newlineT = _dialect.Newline;
+            var newline = Unsafe.As<NewlineBuffer<T>, NewlineBuffer<char>>(ref newlineT);
 
             if (Vec512Char.IsSupported && dataT.Length > Vec512Char.Count * minimumVectors)
             {
@@ -241,7 +241,8 @@ internal sealed class CsvParserRFC4180<T>(
         {
             ReadOnlySpan<byte> dataT = MemoryMarshal.Cast<T, byte>(data);
             ref readonly var dialect = ref Unsafe.As<CsvDialect<T>, CsvDialect<byte>>(ref Unsafe.AsRef(in _dialect));
-            var newline = Unsafe.As<NewlineBuffer<T>, NewlineBuffer<byte>>(ref _newline);
+            var newlineT = _dialect.Newline;
+            var newline = Unsafe.As<NewlineBuffer<T>, NewlineBuffer<byte>>(ref newlineT);
 
             if (Vec512Byte.IsSupported && dataT.Length > Vec512Byte.Count * minimumVectors)
             {
@@ -315,10 +316,9 @@ internal sealed class CsvParserRFC4180<T>(
 
         if (SequentialParser<T>.CanRead(data.Length))
         {
-            return SequentialParser<T>.Core(in _dialect, _newline, data, MetaBuffer);
+            return SequentialParser<T>.Core(in _dialect, data, MetaBuffer);
         }
 
         return 0;
-#endif
     }
 }
