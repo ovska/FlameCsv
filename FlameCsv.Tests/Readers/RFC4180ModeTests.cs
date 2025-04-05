@@ -72,37 +72,97 @@ public class RFC4180ModeTests
         Assert.Equal([pt1 + '"' + pt2], result[0]);
     }
 
-    [Fact]
-    public void Should_Trim_LF_From_Next_Segment()
+    public enum ReadType
     {
-        var data = MemorySegment.Create("record1\r", "\nrecord2");
-
-        using var parser = new TestParser(CsvOptions<char>.Default, CsvPipeReader.Create(data), default);
-        Assert.True(parser.TryAdvanceReader());
-
-        Assert.True(parser.TryReadLine(out var fields, false));
-        Assert.Equal("record1", fields.Record.ToString());
-
-        Assert.True(parser.TryReadLine(out fields, false));
-        Assert.Equal("record2", fields.Record.ToString());
+        Parser,
+        Enumerator,
+        AsyncEnumerator,
     }
 
-    [Fact]
-    public void Should_Trim_LF_From_Next_Read_Result()
+    [Theory, InlineData(ReadType.Parser), InlineData(ReadType.Enumerator), InlineData(ReadType.AsyncEnumerator)]
+    public async Task Should_Trim_LF_From_Next_Segment(ReadType type)
     {
-        using var parser = new TestParser(CsvOptions<char>.Default, new FakeReader(), default);
-        Assert.True(parser.TryAdvanceReader());
+        var data = MemorySegment.Create("record1\r", "\nrecord2");
+        var parser = new TestParser(CsvOptions<char>.Default, CsvPipeReader.Create(data), default);
 
-        Assert.True(parser.TryReadLine(out var fields, false));
-        Assert.Equal("record1", fields.Record.ToString());
+        List<string> result = [];
 
-        Assert.False(parser.TryReadLine(out _, false));
-        Assert.True(parser.TryAdvanceReader());
+        if (type == ReadType.Parser)
+        {
+            // ReSharper disable once UseAwaitUsing
+            using (parser)
+            {
+                // ReSharper disable once MethodHasAsyncOverload
+                Assert.True(parser.TryAdvanceReader());
 
-        Assert.True(parser.TryReadLine(out fields, false));
-        Assert.Equal("record2", fields.Record.ToString());
+                Assert.True(parser.TryReadLine(out var fields, false));
+                result.Add(fields.Record.ToString());
 
-        Assert.False(parser.TryAdvanceReader());
+                Assert.True(parser.TryReadLine(out fields, false));
+                result.Add(fields.Record.ToString());
+            }
+        }
+        else if (type == ReadType.Enumerator)
+        {
+            foreach (var r in parser.ParseRecords())
+            {
+                result.Add(r[0].ToString());
+            }
+        }
+        else
+        {
+            await foreach (var r in parser.ParseRecordsAsync(TestContext.Current.CancellationToken))
+            {
+                result.Add(r[0].ToString());
+            }
+        }
+
+        Assert.Equal(["record1", "record2"], result);
+    }
+
+    [Theory, InlineData(ReadType.Parser), InlineData(ReadType.Enumerator), InlineData(ReadType.AsyncEnumerator)]
+    public async Task Should_Trim_LF_From_Next_Read_Result(ReadType type)
+    {
+        var parser = new TestParser(CsvOptions<char>.Default, new FakeReader(), default);
+        List<string> result = [];
+
+        if (type == ReadType.Parser)
+        {
+            // ReSharper disable once UseAwaitUsing
+            using (parser)
+            {
+                // ReSharper disable MethodHasAsyncOverload
+                Assert.True(parser.TryAdvanceReader());
+
+                Assert.True(parser.TryReadLine(out var fields, false));
+                result.Add(fields.Record.ToString());
+
+                Assert.False(parser.TryReadLine(out _, false));
+                Assert.True(parser.TryAdvanceReader());
+
+                Assert.True(parser.TryReadLine(out fields, false));
+                result.Add(fields.Record.ToString());
+
+                Assert.False(parser.TryAdvanceReader());
+                // ReSharper restore MethodHasAsyncOverload
+            }
+        }
+        else if (type == ReadType.Enumerator)
+        {
+            foreach (var r in parser.ParseRecords())
+            {
+                result.Add(r[0].ToString());
+            }
+        }
+        else
+        {
+            await foreach (var r in parser.ParseRecordsAsync(TestContext.Current.CancellationToken))
+            {
+                result.Add(r[0].ToString());
+            }
+        }
+
+        Assert.Equal(["record1", "record2"], result);
     }
 
     private sealed class TestParser : CsvParser<char>
@@ -156,7 +216,7 @@ public class RFC4180ModeTests
 
         public ValueTask<CsvReadResult<char>> ReadAsync(CancellationToken cancellationToken = default)
         {
-            return ValueTask.FromException<CsvReadResult<char>>(new NotSupportedException());
+            return new(Read());
         }
 
         public void AdvanceTo(SequencePosition consumed, SequencePosition examined)
