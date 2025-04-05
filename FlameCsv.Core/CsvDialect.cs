@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -31,38 +32,16 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     public required T Quote { get; init; }
 
     /// <summary>
-    /// 1-2 characters long newline string, or empty if newline is automatically detected
-    /// (<c>CRLF</c> is used while writing in this case).
+    /// 1-2 characters long newline, or empty if newline is automatically detected.
     /// </summary>
     /// <remarks>
-    /// The value must not on
+    /// If empty, the newline is <c>\r\n</c> when writing, and when validating the dialect.
     /// </remarks>
-    public ReadOnlySpan<T> Newline
+    public NewlineBuffer<T> Newline
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _newline;
-        init
-        {
-            if (value.IsEmpty)
-            {
-                _newline = null;
-                return;
-            }
-
-            if (value.Length == 1 && value[0] == T.CreateTruncating('\n'))
-            {
-                _newline = _cachedLF;
-                return;
-            }
-
-            if (value.Length == 2 && value[0] == T.CreateTruncating('\r') && value[1] == T.CreateTruncating('\n'))
-            {
-                _newline = _cachedCRLF;
-                return;
-            }
-
-            _newline = value.ToArray();
-        }
+        init => _newline = value;
     }
 
     /// <summary>
@@ -108,7 +87,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     private readonly LazyValues _lazyValues = new();
 
     internal readonly int _whitespaceLength;
-    private readonly T[]? _newline;
+    private readonly NewlineBuffer<T> _newline;
     private readonly T[]? _whitespace;
 
     /// <summary>
@@ -155,18 +134,6 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     [EditorBrowsable(EditorBrowsableState.Advanced)]
     public bool IsAscii => _lazyValues.IsAscii ??= GetIsAscii();
 
-    /// <summary>
-    /// Returns the newline buffer for <see cref="Newline"/>. If empty, returns <see cref="NewlineBuffer{T}.CRLF"/>
-    /// if writing, and an empty buffer if reading.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal NewlineBuffer<T> GetNewlineOrDefault(bool forWriting = false)
-    {
-        return Newline.IsEmpty
-            ? forWriting ? NewlineBuffer<T>.CRLF : default
-            : new NewlineBuffer<T>(Newline);
-    }
-
     [MethodImpl(MethodImplOptions.NoInlining)]
     private SearchValues<T> GetNeedsQuoting()
     {
@@ -179,13 +146,13 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
 
         if (Newline.IsEmpty)
         {
-            // crlf is the default when writing
-            list.Append(NewlineBuffer<T>.CRLF.First);
-            list.Append(NewlineBuffer<T>.CRLF.Second);
+            list.Append(T.CreateChecked('\r'));
+            list.Append(T.CreateChecked('\n'));
         }
         else
         {
-            list.Append(Newline);
+            list.Append(Newline.First);
+            list.Append(Newline.Second); // First and Second are the same on 1-char newlines
         }
 
         if (Escape.HasValue)
@@ -213,14 +180,14 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
 
         if (length == 0)
         {
-            if (!Newline.IsEmpty)
+            if (Newline.Length != 0)
                 Throw.Unreachable("Newline length is 0, but Newline is not empty.");
         }
         else
         {
-            if (!Newline.IsEmpty)
+            if (Newline.Length != 0)
             {
-                list.Append(Newline[0]);
+                list.Append(Newline.First);
             }
             else if (length == 1)
             {
@@ -239,16 +206,12 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     private bool GetIsAscii()
     {
         T max = T.CreateChecked(127);
-
-        if (Delimiter > max || Quote > max || (Escape > max)) return false;
-        foreach (var c in Newline)
-            if (c > max)
-                return false;
-        foreach (var c in Whitespace)
-            if (c > max)
-                return false;
-
-        return true;
+        return Delimiter <= max &&
+            Quote <= max &&
+            !(Escape > max) &&
+            Newline.First <= max &&
+            Newline.Second <= max &&
+            !Whitespace.ContainsAnyExceptInRange(T.Zero, max);
     }
 
     private static SearchValues<T> ToSearchValues(ReadOnlySpan<T> tokens)
@@ -301,25 +264,16 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         T delimiter = Delimiter;
         T quote = Quote;
         T? escape = Escape;
+        NewlineBuffer<T> newline = _newline.IsEmpty ? NewlineBuffer<T>.CRLF : _newline;
         scoped ReadOnlySpan<T> whitespace = Whitespace;
-        scoped ReadOnlySpan<T> newline = Newline.IsEmpty
-            ? [T.CreateChecked('\r'), T.CreateChecked('\n')]
-            : Newline;
 
         if (delimiter == T.Zero) errors.Append(("Delimiter"));
         if (quote == T.Zero) errors.Append(NullError("Quote"));
         if (escape == T.Zero) errors.Append(NullError("Escape"));
+        if (newline.First == T.Zero || newline.Second == T.Zero) errors.Append(NullError("Newline"));
+        if (whitespace.Contains(T.Zero)) errors.Append(NullError("Whitespace"));
 
-        foreach (var c in newline)
-        {
-            if (c == T.Zero)
-            {
-                errors.Append(NullError("Newline"));
-                break;
-            }
-        }
-        // allow zero in whitespace
-
+        // early exit if we have nulls
         if (errors.Length > 0) goto CheckErrors;
 
         // byte dialects must be ASCII
@@ -329,29 +283,32 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
             if (delimiter > maxAscii) errors.Append(AsciiError("Delimiter"));
             if (quote > maxAscii) errors.Append(AsciiError("Quote"));
             if (escape > maxAscii) errors.Append(AsciiError("Escape"));
-            foreach (var c in newline)
-            {
-                if (c > maxAscii)
-                {
-                    errors.Append(AsciiError("Newline"));
-                    break;
-                }
-            }
+            if (newline.First > maxAscii || newline.Second > maxAscii) errors.Append(AsciiError("Newline"));
+            if (whitespace.ContainsAnyExceptInRange(T.Zero, maxAscii)) errors.Append(AsciiError("Whitespace"));
+            // TODO: allow non-ascii whitespace
         }
 
         // char dialects must not contain surrogate characters
         if (typeof(T) == typeof(char))
         {
             if (char.IsSurrogate((char)ushort.CreateTruncating(delimiter))) errors.Append(SurrogateError("Delimiter"));
+
             if (char.IsSurrogate((char)ushort.CreateTruncating(quote))) errors.Append(SurrogateError("Quote"));
+
             if (escape.HasValue && char.IsSurrogate((char)ushort.CreateTruncating(escape.Value)))
                 errors.Append(SurrogateError("Escape"));
 
-            foreach (var c in newline)
+            if (char.IsSurrogate((char)ushort.CreateTruncating(newline.First)) ||
+                char.IsSurrogate((char)ushort.CreateTruncating(newline.Second)))
+            {
+                errors.Append(SurrogateError("Newline"));
+            }
+
+            foreach (var c in whitespace)
             {
                 if (char.IsSurrogate((char)ushort.CreateTruncating(c)))
                 {
-                    errors.Append(SurrogateError("Newline"));
+                    errors.Append(SurrogateError("Whitespace"));
                     break;
                 }
             }
@@ -371,26 +328,11 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
                 errors.Append("Escape must not be equal to Quote.");
         }
 
-        if (newline.Length is not (1 or 2))
-        {
-            errors.Append("Newline must be empty, or 1 or 2 characters long.");
-        }
-        else
-        {
-            if (newline.Length == 2 && newline[0] == newline[1])
-            {
-                errors.Append("Newline must not contain duplicate characters.");
-            }
-            else
-            {
-                foreach (var c in newline)
-                {
-                    if (c == delimiter) errors.Append("Newline must not contain Delimiter.");
-                    if (c == quote) errors.Append("Newline must not contain Quote.");
-                    if (c == escape) errors.Append("Newline must not contain Escape.");
-                }
-            }
-        }
+        T f = newline.First;
+        T s = newline.Second;
+        if (f == delimiter || s == delimiter) errors.Append("Newline must not contain Delimiter.");
+        if (f == quote || s == delimiter) errors.Append("Newline must not contain Quote.");
+        if (f == escape || s == delimiter) errors.Append("Newline must not contain Escape.");
 
         if (!whitespace.IsEmpty)
         {
@@ -399,15 +341,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
                 if (c == delimiter) errors.Append("Whitespace must not contain Delimiter.");
                 if (c == quote) errors.Append("Whitespace must not contain Quote.");
                 if (c == escape) errors.Append("Whitespace must not contain Escape.");
-
-                foreach (var c2 in newline)
-                {
-                    if (c == c2)
-                    {
-                        errors.Append("Whitespace must not contain Newline characters.");
-                        break;
-                    }
-                }
+                if (c == f || c == s) errors.Append("Whitespace must not contain Newline characters.");
             }
         }
 
@@ -425,7 +359,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
                     SingleToken(ref vsb, "Delimiter", Delimiter);
                     SingleToken(ref vsb, "Quote", Quote);
                     SingleToken(ref vsb, "Escape", escape);
-                    MultiToken(ref vsb, "Newline", newline);
+                    MultiToken(ref vsb, "Newline", MemoryMarshal.CreateReadOnlySpan(in newline.First, _newline.Length));
                     MultiToken(ref vsb, "Whitespace", whitespace);
                     errors.Append(vsb.ToString());
                 }
@@ -520,7 +454,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
             Delimiter == other.Delimiter &&
             Quote == other.Quote &&
             Escape == other.Escape &&
-            Newline.SequenceEqual(other.Newline) &&
+            Newline.Equals(other.Newline) &&
             Whitespace.SequenceEqual(other.Whitespace);
     }
 
@@ -530,15 +464,12 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     public override int GetHashCode()
     {
         HashCode hash = new();
-
         hash.Add(Delimiter);
         hash.Add(Quote);
         hash.Add(Escape);
-        hash.Add(Newline.IsEmpty);
-        foreach (var c in Newline) hash.Add(c);
-        hash.Add(Whitespace.IsEmpty);
+        hash.Add(Newline.GetHashCode());
+        hash.Add(Whitespace.Length);
         foreach (var c in Whitespace) hash.Add(c);
-
         return hash.ToHashCode();
     }
 
@@ -547,9 +478,6 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
 
     /// <summary></summary>
     public static bool operator !=(CsvDialect<T> left, CsvDialect<T> right) => !(left == right);
-
-    private static readonly T[]? _cachedLF = _cachedLF = [T.CreateTruncating('\n')];
-    private static readonly T[] _cachedCRLF = _cachedCRLF = [T.CreateTruncating('\r'), T.CreateTruncating('\n')];
 }
 
 // throwhelper doesn't need to be generic
