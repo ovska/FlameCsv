@@ -59,7 +59,8 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
         _quote = dialect.Quote;
         _escape = dialect.Escape;
         _whitespace = dialect.GetWhitespaceArray();
-        _newline = dialect.GetNewlineOrDefault(forWriting: true);
+        _newline = dialect.Newline;
+        if (_newline.IsEmpty) _newline = NewlineBuffer<T>.CRLF;
         _needsQuoting = dialect.NeedsQuoting;
         _fieldQuoting = options.FieldQuoting;
         _allocator = new MemoryPoolAllocator<T>(options.Allocator);

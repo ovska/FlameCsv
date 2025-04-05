@@ -88,7 +88,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
 
         Options = options;
         _dialect = options.Dialect;
-        _newline = options.Dialect.GetNewlineOrDefault();
+        _newline = options.Dialect.Newline;
         _metaArray = [];
         _canUseFastPath = !options.NoReadAhead && _dialect.IsAscii;
         _reader = reader;

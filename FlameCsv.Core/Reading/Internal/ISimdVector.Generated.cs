@@ -14,64 +14,6 @@ namespace FlameCsv.Reading.Internal;
 
 // this code borrows heavily from Ascii.Utility.cs in System.Text.Ascii (MIT license)
 
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-internal static class SimdVector
-{
-    /// <summary>
-    /// Returns true if T is supported by SIMD vector types, and in case of <see langword="char"/>,
-    /// all tokens are ASCII.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    public static bool IsSupported<T>(ref readonly CsvDialect<T> dialect) where T : unmanaged, IBinaryInteger<T>
-    {
-        return dialect.IsAscii && TryGetMaxSupportedCount<T>(out int count) && count > 0;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    public static bool TryGetMaxSupportedCount<T>(out int count) where T : unmanaged
-    {
-        if (Unsafe.SizeOf<T>() == sizeof(char))
-        {
-            if (Vec512Char.IsSupported)
-            {
-                count = Vec512Char.Count;
-                return true;
-            }
-            if (Vec256Char.IsSupported)
-            {
-                count = Vec256Char.Count;
-                return true;
-            }
-            if (Vec128Char.IsSupported)
-            {
-                count = Vec128Char.Count;
-                return true;
-            }
-        }
-        if (Unsafe.SizeOf<T>() == sizeof(byte))
-        {
-            if (Vec512Byte.IsSupported)
-            {
-                count = Vec512Byte.Count;
-                return true;
-            }
-            if (Vec256Byte.IsSupported)
-            {
-                count = Vec256Byte.Count;
-                return true;
-            }
-            if (Vec128Byte.IsSupported)
-            {
-                count = Vec128Byte.Count;
-                return true;
-            }
-        }
-        count = 0;
-        return false;
-    }
-}
-
 /// <summary>Generic type wrapping a byte vector.</summary>
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal interface ISimdVector<T, TVector>

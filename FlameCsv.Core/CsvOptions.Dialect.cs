@@ -1,6 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Text;
 using CommunityToolkit.HighPerformance;
+using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 
 namespace FlameCsv;
@@ -48,8 +49,14 @@ public partial class CsvOptions<T>
             Delimiter = T.CreateChecked(_delimiter),
             Quote = T.CreateChecked(_quote),
             Escape = _escape.HasValue ? T.CreateChecked(_escape.Value) : null,
-            Newline = string.IsNullOrEmpty(_newline) ? [] : GetSpan(this, _newline, stackalloc T[8]),
             Whitespace = string.IsNullOrEmpty(_whitespace) ? [] : GetSpan(this, _whitespace, stackalloc T[8]),
+            Newline = _newline switch
+            {
+                null or "" => default,
+                [T f] => new NewlineBuffer<T>(f),
+                [T f, T s] => new NewlineBuffer<T>(f, s),
+                _ => throw new CsvConfigurationException("Newline must be 1 or 2 characters long."),
+            },
         };
 
         static ReadOnlySpan<T> GetSpan(CsvOptions<T> @this, string value, Span<T> buffer)

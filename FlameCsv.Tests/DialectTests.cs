@@ -1,9 +1,6 @@
 using System.Buffers;
 using System.Diagnostics;
 using FlameCsv.Exceptions;
-#if !RELEASE
-using FlameCsv.Reading.Internal;
-#endif
 
 namespace FlameCsv.Tests;
 
@@ -15,7 +12,8 @@ public static class DialectTests
         Impl(d => d with { Delimiter = '\0' });
         Impl(d => d with { Quote = '\0' });
         Impl(d => d with { Escape = '\0' });
-        Impl(d => d with { Newline = "x\0" });
+        Impl(d => d with { Newline = new('\0') });
+        Impl(d => d with { Newline = new('x', '\0') });
 
         void Impl(Func<CsvDialect<char>, CsvDialect<char>> action)
         {
@@ -66,10 +64,17 @@ public static class DialectTests
         Assert.Throws<InvalidOperationException>(() => default(CsvDialect<char>).Validate());
 
         AssertInvalid(o => o with { Quote = ',' });
-        AssertInvalid(o => o with { Newline = "," });
-        AssertInvalid(o => o with { Newline = "\"" });
+        AssertInvalid(o => o with { Quote = '\r' });
+        AssertInvalid(o => o with { Quote = '\n' });
+        AssertInvalid(o => o with { Newline = new(',') });
+        AssertInvalid(o => o with { Newline = new('"') });
+        AssertInvalid(o => o with { Delimiter = '"' });
         AssertInvalid(o => o with { Delimiter = '\n' });
+        AssertInvalid(o => o with { Delimiter = '\r' });
         AssertInvalid(o => o with { Escape = ',' });
+        AssertInvalid(o => o with { Escape = '"' });
+        AssertInvalid(o => o with { Escape = '\n' });
+        AssertInvalid(o => o with { Escape = '\r' });
         AssertInvalid(o => o with { Whitespace = "," });
 
         static void AssertInvalid(Func<CsvDialect<char>, CsvDialect<char>> action)
@@ -81,7 +86,8 @@ public static class DialectTests
         ShouldThrow(() => new CsvOptions<byte> { Delimiter = (char)128 }.Dialect.Validate());
         ShouldThrow(() => new CsvOptions<byte> { Quote = (char)128 }.Dialect.Validate());
         ShouldThrow(() => new CsvOptions<byte> { Escape = (char)128 }.Dialect.Validate());
-        ShouldThrow(() => new CsvOptions<byte> { Newline = "£€" }.Dialect.Validate());
+        ShouldThrow(() => new CsvOptions<byte> { Newline = "£" }.Dialect.Validate());
+        ShouldThrow(() => new CsvOptions<byte> { Whitespace = "€£" }.Dialect.Validate());
 
         static void ShouldThrow(Action action) => Assert.Throws<CsvConfigurationException>(action);
     }
@@ -116,14 +122,6 @@ public static class DialectTests
 
         Assert.False(inDelimiter.IsAscii);
         Assert.False(inNewline.IsAscii);
-
-#if !RELEASE
-        // vectorization requires ASCII
-        Assert.True(SimdVector.IsSupported(in CsvOptions<byte>.Default.Dialect));
-        Assert.True(SimdVector.IsSupported(in CsvOptions<char>.Default.Dialect));
-        Assert.False(SimdVector.IsSupported(in inDelimiter));
-        Assert.False(SimdVector.IsSupported(in inNewline));
-#endif
     }
 
     [Fact]
@@ -132,7 +130,7 @@ public static class DialectTests
         Validate(o => o with { Delimiter = '\uD800' });
         Validate(o => o with { Quote = '\uD800' });
         Validate(o => o with { Escape = '\uD800' });
-        Validate(o => o with { Newline = "\uD800" });
+        Validate(o => o with { Newline = new('\uD800') });
 
         static void Validate(Func<CsvDialect<char>, CsvDialect<char>> action)
         {
@@ -141,12 +139,9 @@ public static class DialectTests
     }
 
     [Fact]
-    public static void Should_Validate_Newline_Length()
+    public static void Should_Validate_Newline()
     {
-        _ = new NewlineBuffer<char>(['x']);
-        _ = new NewlineBuffer<char>(['x', 'x']);
-        Assert.Throws<ArgumentOutOfRangeException>(() => new NewlineBuffer<char>(Array.Empty<char>()));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new NewlineBuffer<char>(['x', 'x', 'x']));
+        Assert.Throws<ArgumentException>(() => new NewlineBuffer<char>('x', 'x')); // duplicate value
     }
 
     [Fact]
