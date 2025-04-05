@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Runtime.CompilerServices;
+using System.Text;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 
@@ -32,7 +33,7 @@ public partial class CsvOptions<T>
             return Encoding.UTF8.GetString(value.Cast<T, byte>());
         }
 
-        throw InvalidTokenTypeEx(nameof(GetAsString));
+        throw InvalidTokenTypeEx();
     }
 
     /// <summary>
@@ -58,7 +59,7 @@ public partial class CsvOptions<T>
             return Encoding.UTF8.TryGetChars(value.Cast<T, byte>(), destination, out charsWritten);
         }
 
-        throw InvalidTokenTypeEx(nameof(TryGetChars));
+        throw InvalidTokenTypeEx();
     }
 
     /// <summary>
@@ -86,7 +87,7 @@ public partial class CsvOptions<T>
             return Unsafe.As<T[]>(Encoding.UTF8.GetBytes(value));
         }
 
-        throw InvalidTokenTypeEx(nameof(GetFromString));
+        throw InvalidTokenTypeEx();
     }
 
     /// <summary>
@@ -112,10 +113,10 @@ public partial class CsvOptions<T>
             return Encoding.UTF8.TryGetBytes(value, destination.Cast<T, byte>(), out charsWritten);
         }
 
-        throw InvalidTokenTypeEx(nameof(TryWriteChars));
+        throw InvalidTokenTypeEx();
     }
 
-    private static NotSupportedException InvalidTokenTypeEx(string? memberName)
+    private static NotSupportedException InvalidTokenTypeEx([CallerMemberName] string memberName = "")
     {
         return new NotSupportedException(
             $"{typeof(CsvOptions<T>).Name}.{memberName} is not supported by default for token {typeof(T)}, inherit the class and override the member.");
