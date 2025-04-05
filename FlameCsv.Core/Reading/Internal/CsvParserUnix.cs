@@ -27,8 +27,8 @@ internal sealed class CsvParserUnix<T>(
         T delimiter = _dialect.Delimiter;
         T quote = _dialect.Quote;
         T escape = _dialect.Escape.Value;
-        SearchValues<T> nextToken = _dialect.GetFindToken(excludeNewline: _newline.IsEmpty);
-        NewlineBuffer<T> newline = _newline;
+        SearchValues<T> nextToken = _dialect.GetFindToken();
+        NewlineBuffer<T> newline = _dialect.Newline;
 
         uint quoteCount = 0;
         uint escapeCount = 0;
@@ -69,15 +69,15 @@ internal sealed class CsvParserUnix<T>(
                     // quotes are commonly followed by delimiters, newlines or other quotes
                     if ((++quoteCount & 1) == 0)
                     {
-                        if (reader.TryPeek(out T next))
+                        if (reader.TryPeek(out match))
                         {
-                            if (next == delimiter)
+                            if (match == delimiter)
                             {
                                 reader.Advance(1);
                                 goto FoundDelimiter;
                             }
 
-                            if (next == newline.First)
+                            if (match == newline.First)
                             {
                                 // don't advance here so the first position of a CRLF is preserved
                                 goto FoundNewline;
@@ -108,7 +108,7 @@ internal sealed class CsvParserUnix<T>(
 
             FoundDelimiter:
                 fieldMeta.Append(
-                    Meta.Unix((int)reader.Consumed - 1, quoteCount, escapeCount, isEOL: false, _newline.Length));
+                    Meta.Unix((int)reader.Consumed - 1, quoteCount, escapeCount, isEOL: false, newline.Length));
                 quoteCount = 0;
                 escapeCount = 0;
                 goto Seek;
@@ -142,6 +142,7 @@ internal sealed class CsvParserUnix<T>(
                     GetSegmentMeta(fieldMeta.AsSpan()));
 
                 _sequence = reader.UnreadSequence;
+                _previousEndCR = newline.Length == 2 && match == newline.First && !twoTokens && _sequence.IsEmpty;
                 return true;
             }
 

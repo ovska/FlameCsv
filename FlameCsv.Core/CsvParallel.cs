@@ -311,6 +311,7 @@ internal sealed class RecordTracker : IDisposable
     public void Dispose() => _allCompleted.Dispose();
 }
 #else
+// ReSharper disable All
 internal static class CsvParallel
 {
     private static ParallelOptions DefaultParallelOptions { get; } = new();

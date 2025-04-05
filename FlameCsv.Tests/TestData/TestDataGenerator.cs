@@ -9,8 +9,11 @@ using U8 = Utf8StringInterpolation.Utf8String;
 
 namespace FlameCsv.Tests.TestData;
 
-[CsvTypeMap<char, Obj>] public partial class ObjCharTypeMap;
-[CsvTypeMap<byte, Obj>] public partial class ObjByteTypeMap;
+[CsvTypeMap<char, Obj>]
+public partial class ObjCharTypeMap;
+
+[CsvTypeMap<byte, Obj>]
+public partial class ObjByteTypeMap;
 
 public class Obj : IEquatable<Obj>
 {
@@ -22,18 +25,20 @@ public class Obj : IEquatable<Obj>
 
     public bool Equals(Obj? other)
     {
-        return other is not null
-            && Id.Equals(other.Id)
-            && StringComparer.Ordinal.Equals(Name, other.Name)
-            && IsEnabled.Equals(other.IsEnabled)
-            && LastLogin.Equals(other.LastLogin)
-            && Token.Equals(other.Token);
+        return other is not null &&
+            Id.Equals(other.Id) &&
+            StringComparer.Ordinal.Equals(Name, other.Name) &&
+            IsEnabled.Equals(other.IsEnabled) &&
+            LastLogin.Equals(other.LastLogin) &&
+            Token.Equals(other.Token);
     }
 }
 
 public enum Mode
 {
-    None = 0, RFC = 1, Escape = 2,
+    None = 0,
+    RFC = 1,
+    Escape = 2,
 }
 
 internal static class TestDataGenerator
@@ -77,87 +82,84 @@ internal static class TestDataGenerator
         bool writeTrailingNewline,
         Mode escaping)
     {
-        string newLine = newLineToken switch
-        {
-            NewlineToken.LF or NewlineToken.AutoLF => "\n",
-            _ => "\r\n",
-        };
+        string newLine = newLineToken == NewlineToken.LF ? "\n" : "\r\n";
         var key = new Key(newLine, writeHeader, writeTrailingNewline, escaping);
         var chars = _chars.GetOrAdd(
             key,
-            static key => new Lazy<ReadOnlyMemory<char>>(() =>
-            {
-                (string newLine, bool writeHeader, bool writeTrailingNewline, Mode escaping) = key;
-
-                var writer = new StringBuilder(capacity: RequiredCapacity);
-
-                if (writeHeader)
+            static key => new Lazy<ReadOnlyMemory<char>>(
+                () =>
                 {
-                    writer.Append(Header);
-                    writer.Append(newLine);
-                }
+                    (string newLine, bool writeHeader, bool writeTrailingNewline, Mode escaping) = key;
 
-                CancellationToken token = TestContext.Current.CancellationToken;
+                    var writer = new StringBuilder(capacity: RequiredCapacity);
 
-                for (int i = 0; i < 1_000; i++)
-                {
-                    token.ThrowIfCancellationRequested();
+                    if (writeHeader)
+                    {
+                        writer.Append(Header);
+                        writer.Append(newLine);
+                    }
 
-                    if (i != 0)
+                    CancellationToken token = TestContext.Current.CancellationToken;
+
+                    for (int i = 0; i < 1_000; i++)
+                    {
+                        token.ThrowIfCancellationRequested();
+
+                        if (i != 0)
+                            writer.Append(newLine);
+
+                        if (escaping != Mode.None)
+                        {
+                            writer.Append($"\"{i}\"");
+                        }
+                        else
+                        {
+                            writer.Append(i);
+                        }
+
+                        writer.Append(',');
+
+                        if (escaping == Mode.Escape)
+                        {
+                            writer.Append($"\"Name^\"{i}\"");
+                        }
+                        else if (escaping == Mode.RFC)
+                        {
+                            writer.Append($"\"Name\"\"{i}\"");
+                        }
+                        else
+                        {
+                            writer.Append($"Name-{i}");
+                        }
+
+                        writer.Append(',');
+                        writer.Append(i % 2 == 0 ? "true" : "false");
+                        writer.Append(',');
+                        writer.Append($"{DateTimeOffset.UnixEpoch.AddDays(i):O}");
+                        writer.Append(',');
+                        writer.Append($"{new Guid(i, 0, 0, GuidBytes)}");
+                    }
+
+                    if (writeTrailingNewline)
                         writer.Append(newLine);
 
-                    if (escaping != Mode.None)
-                    {
-                        writer.Append($"\"{i}\"");
-                    }
-                    else
-                    {
-                        writer.Append(i);
-                    }
+                    if (writer.Capacity != RequiredCapacity)
+                        throw new UnreachableException(writer.Capacity.ToString());
 
-                    writer.Append(',');
+                    var enumerator = writer.GetChunks();
 
-                    if (escaping == Mode.Escape)
+                    if (enumerator.MoveNext())
                     {
-                        writer.Append($"\"Name^\"{i}\"");
-                    }
-                    else if (escaping == Mode.RFC)
-                    {
-                        writer.Append($"\"Name\"\"{i}\"");
-                    }
-                    else
-                    {
-                        writer.Append($"Name-{i}");
+                        var result = enumerator.Current;
+
+                        if (!enumerator.MoveNext())
+                        {
+                            return result;
+                        }
                     }
 
-                    writer.Append(',');
-                    writer.Append(i % 2 == 0 ? "true" : "false");
-                    writer.Append(',');
-                    writer.Append($"{DateTimeOffset.UnixEpoch.AddDays(i):O}");
-                    writer.Append(',');
-                    writer.Append($"{new Guid(i, 0, 0, GuidBytes)}");
-                }
-
-                if (writeTrailingNewline)
-                    writer.Append(newLine);
-
-                if (writer.Capacity != RequiredCapacity)
-                    throw new UnreachableException(writer.Capacity.ToString());
-
-                var enumerator = writer.GetChunks();
-
-                if (enumerator.MoveNext())
-                {
-                    var result = enumerator.Current;
-
-                    if (!enumerator.MoveNext())
-                    {
-                        return result;
-                    }
-                }
-
-                throw new UnreachableException();
-            }));
+                    throw new UnreachableException();
+                }));
 
         return chars.Value;
     }
@@ -168,97 +170,97 @@ internal static class TestDataGenerator
         bool writeTrailingNewline,
         Mode escaping)
     {
-        string newLine = newLineToken switch
-        {
-            NewlineToken.LF or NewlineToken.AutoLF => "\n",
-            _ => "\r\n",
-        };
+        string newLine = newLineToken == NewlineToken.LF ? "\n" : "\r\n";
         var key = new Key(newLine, writeHeader, writeTrailingNewline, escaping);
         var chars = _bytes.GetOrAdd(
             key,
-            static key => new Lazy<ReadOnlyMemory<byte>>(() =>
-            {
-                (string newLine, bool writeHeader, bool writeTrailingNewline, Mode escaping) = key;
-
-                var innerWriter = new ArrayBufferWriter<byte>(initialCapacity: RequiredCapacity);
-                var writer = U8.CreateWriter(innerWriter);
-
-                if (writeHeader)
+            static key => new Lazy<ReadOnlyMemory<byte>>(
+                () =>
                 {
-                    writer.Append(Header);
-                    writer.Append(newLine);
-                }
+                    (string newLine, bool writeHeader, bool writeTrailingNewline, Mode escaping) = key;
 
-                CancellationToken token = TestContext.Current.CancellationToken;
+                    var innerWriter = new ArrayBufferWriter<byte>(initialCapacity: RequiredCapacity);
+                    var writer = U8.CreateWriter(innerWriter);
 
-                for (int i = 0; i < 1_000; i++)
-                {
-                    token.ThrowIfCancellationRequested();
+                    if (writeHeader)
+                    {
+                        writer.Append(Header);
+                        writer.Append(newLine);
+                    }
 
-                    if (i != 0)
+                    CancellationToken token = TestContext.Current.CancellationToken;
+
+                    for (int i = 0; i < 1_000; i++)
+                    {
+                        token.ThrowIfCancellationRequested();
+
+                        if (i != 0)
+                            writer.Append(newLine);
+
+                        if (escaping != Mode.None)
+                        {
+                            writer.AppendFormat($"\"{i}\"");
+                        }
+                        else
+                        {
+                            writer.AppendFormatted(i);
+                        }
+
+                        writer.Append(',');
+
+                        if (escaping == Mode.Escape)
+                        {
+                            writer.AppendFormat($"\"Name^\"{i}\"");
+                        }
+                        else if (escaping == Mode.RFC)
+                        {
+                            writer.AppendFormat($"\"Name\"\"{i}\"");
+                        }
+                        else
+                        {
+                            writer.AppendFormat($"Name-{i}");
+                        }
+
+                        writer.Append(',');
+                        writer.Append(i % 2 == 0 ? "true" : "false");
+                        writer.Append(',');
+                        writer.AppendFormatted(DateTimeOffset.UnixEpoch.AddDays(i), format: "O");
+                        writer.Append(',');
+                        writer.AppendFormatted(new Guid(i, 0, 0, GuidBytes));
+                    }
+
+                    if (writeTrailingNewline)
                         writer.Append(newLine);
 
-                    if (escaping != Mode.None)
-                    {
-                        writer.AppendFormat($"\"{i}\"");
-                    }
-                    else
-                    {
-                        writer.AppendFormatted(i);
-                    }
+                    if (innerWriter.Capacity != RequiredCapacity)
+                        throw new UnreachableException(innerWriter.Capacity.ToString());
 
-                    writer.Append(',');
-
-                    if (escaping == Mode.Escape)
-                    {
-                        writer.AppendFormat($"\"Name^\"{i}\"");
-                    }
-                    else if (escaping == Mode.RFC)
-                    {
-                        writer.AppendFormat($"\"Name\"\"{i}\"");
-                    }
-                    else
-                    {
-                        writer.AppendFormat($"Name-{i}");
-                    }
-
-                    writer.Append(',');
-                    writer.Append(i % 2 == 0 ? "true" : "false");
-                    writer.Append(',');
-                    writer.AppendFormatted(DateTimeOffset.UnixEpoch.AddDays(i), format: "O");
-                    writer.Append(',');
-                    writer.AppendFormatted(new Guid(i, 0, 0, GuidBytes));
-                }
-
-                if (writeTrailingNewline)
-                    writer.Append(newLine);
-
-                if (innerWriter.Capacity != RequiredCapacity)
-                    throw new UnreachableException(innerWriter.Capacity.ToString());
-
-                writer.Dispose();
-                return innerWriter.WrittenMemory;
-            }));
+                    writer.Dispose();
+                    return innerWriter.WrittenMemory;
+                }));
 
         return chars.Value;
     }
 
-    public static readonly Lazy<List<Obj>> Objects = new(() =>
-    {
-        var list = new List<Obj>(1000);
-
-        for (int i = 0; i < 1000; i++)
+    public static readonly Lazy<List<Obj>> Objects = new(
+        () =>
         {
-            list.Add(new Obj
-            {
-                Id = i,
-                IsEnabled = i % 2 == 0,
-                LastLogin = DateTimeOffset.UnixEpoch,
-                Token = new Guid(i, 0, 0, GuidBytes),
-                Name = $" Name'{i}",
-            });
-        }
+            var list = new List<Obj>(1000);
 
-        return list;
-    }, LazyThreadSafetyMode.ExecutionAndPublication);
+            for (int i = 0; i < 1000; i++)
+            {
+                list.Add(
+                    new Obj
+                    {
+                        Id = i,
+                        IsEnabled = i % 2 == 0,
+                        LastLogin = DateTimeOffset.UnixEpoch,
+                        Token = new Guid(i, 0, 0, GuidBytes),
+                        Name = $" Name'{i}",
+                    });
+            }
+
+            return list;
+        },
+        LazyThreadSafetyMode.ExecutionAndPublication);
 }

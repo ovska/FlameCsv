@@ -1,7 +1,6 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using FlameCsv.IO;
 using FlameCsv.Utilities;
 
@@ -26,8 +25,8 @@ internal sealed class CsvParserRFC4180<T>(
         // load into locals for faster access
         T delimiter = _dialect.Delimiter;
         T quote = _dialect.Quote;
-        SearchValues<T> nextToken = _dialect.GetFindToken(excludeNewline: _newline.IsEmpty);
-        NewlineBuffer<T> newline = _newline;
+        SearchValues<T> nextToken = _dialect.GetFindToken();
+        NewlineBuffer<T> newline = _dialect.Newline;
 
         while (!reader.End)
         {
@@ -47,22 +46,22 @@ internal sealed class CsvParserRFC4180<T>(
                     // quotes are commonly followed by delimiters, newlines or other quotes
                     if ((++quoteCount & 1) == 0)
                     {
-                        if (reader.TryPeek(out T next))
+                        if (reader.TryPeek(out match))
                         {
-                            if (next == quote)
+                            if (match == quote)
                             {
                                 quoteCount++;
                                 reader.Advance(1);
                                 goto Seek;
                             }
 
-                            if (next == delimiter)
+                            if (match == delimiter)
                             {
                                 reader.Advance(1);
                                 goto FoundDelimiter;
                             }
 
-                            if (next == newline.First || next == newline.Second)
+                            if (match == newline.First || match == newline.Second)
                             {
                                 // don't advance here so the first position of a CRLF is preserved
                                 goto FoundNewline;
@@ -92,7 +91,7 @@ internal sealed class CsvParserRFC4180<T>(
                 goto FoundNewline;
 
             FoundDelimiter:
-                fieldMeta.Append(Meta.RFC((int)reader.Consumed - 1, quoteCount, isEOL: false, _newline.Length));
+                fieldMeta.Append(Meta.RFC((int)reader.Consumed - 1, quoteCount, isEOL: false, newline.Length));
                 quoteCount = 0;
                 goto Seek;
 
@@ -124,6 +123,7 @@ internal sealed class CsvParserRFC4180<T>(
                     GetSegmentMeta(fieldMeta.AsSpan()));
 
                 _sequence = reader.UnreadSequence;
+                _previousEndCR = newline.Length == 2 && match == newline.First && !twoTokens && _sequence.IsEmpty;
                 return true;
             }
 
@@ -156,8 +156,8 @@ internal sealed class CsvParserRFC4180<T>(
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private protected override int ReadFromSpan(ReadOnlySpan<T> data)
     {
-        Debug.Assert(_newline.Length != 0);
-
+        return 0;
+#if false
         // the prefetch reads one vector ahead
         const int minimumVectors = 2;
 
@@ -319,5 +319,6 @@ internal sealed class CsvParserRFC4180<T>(
         }
 
         return 0;
+#endif
     }
 }

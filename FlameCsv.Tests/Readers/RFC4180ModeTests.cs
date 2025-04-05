@@ -47,17 +47,14 @@ public class RFC4180ModeTests
         Assert.Equal([["field1", "field2", expected]], result);
     }
 
-    [Theory]
-    [InlineData("\n", "here\r\r\r\r")]
-    [InlineData("\r\n", "here\r\r\r")]
-    [InlineData(null, "here\r\r\r")]
-    public void Should_Handle_Segment_With_Only_CarriageReturn(string? newline, string last)
+    [Fact]
+    public void Should_Handle_Segment_With_Only_CarriageReturn()
     {
-        var data = MemorySegment.Create("some,line,here\r", "\r\r", "\r", "\n");
-        var result = data.Read(new CsvOptions<char> { Newline = newline });
+        var data = MemorySegment.Create("some,line,here", "\r", "\n");
+        var result = data.Read(CsvOptions<char>.Default);
 
         Assert.Single(result);
-        Assert.Equal(["some", "line", last], result[0]);
+        Assert.Equal(["some", "line", "here"], result[0]);
     }
 
     [Fact]

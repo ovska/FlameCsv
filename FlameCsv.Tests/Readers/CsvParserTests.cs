@@ -2,7 +2,6 @@
 using System.IO.Compression;
 using System.IO.Pipelines;
 using System.Text;
-using FlameCsv.Exceptions;
 using FlameCsv.IO;
 using FlameCsv.Reading;
 using FlameCsv.Tests.TestData;
@@ -40,13 +39,8 @@ public class CsvParserTests
     [MemberData(nameof(ReadLineData))]
     public void Should_Read_Lines(NewlineToken newline, Mode mode, bool trailingNewline)
     {
-        string nlt = newline switch
-        {
-            NewlineToken.LF or NewlineToken.AutoLF => "\n",
-            _ => "\r\n",
-        };
-
-        string data = Data.Replace("\n", nlt);
+        string nlt = newline == NewlineToken.LF ? "\n" : "\r\n";
+        string data = Data.ReplaceLineEndings(nlt);
 
         if (!trailingNewline)
         {
@@ -87,12 +81,7 @@ public class CsvParserTests
             new CsvOptions<char>
             {
                 NoReadAhead = true,
-                Newline = newline switch
-                {
-                    NewlineToken.CRLF => "\r\n",
-                    NewlineToken.LF => "\n",
-                    _ => null,
-                },
+                Newline = newline == NewlineToken.LF ? "\n" : "\r\n",
                 Escape = mode == Mode.Escape ? '^' : null,
             },
             CsvPipeReader.Create(MemorySegment<char>.AsSequence(data.AsMemory(), 64)));
@@ -112,22 +101,6 @@ public class CsvParserTests
                 Assert.Equal(expected[index + (lineIndex * 5)], reader[index].ToString());
             }
         }
-    }
-
-    [Fact]
-    public void Should_Fail_If_Autodetected_Newline_Not_Found()
-    {
-        Assert.Throws<CsvFormatException>(
-            () =>
-            {
-                var parser = CsvParser.Create(
-                    new CsvOptions<char> { Newline = null },
-                    new ReadOnlySequence<char>(new string('x', 4096).AsMemory()));
-
-                foreach (var _ in parser.ParseRecords())
-                {
-                }
-            });
     }
 
     [Fact]

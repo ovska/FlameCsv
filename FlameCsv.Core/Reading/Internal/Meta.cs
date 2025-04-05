@@ -183,6 +183,12 @@ internal readonly struct Meta : IEquatable<Meta>
         get => (_specialCountAndOffset & NeedsUnescapingMask) != 0;
     }
 
+    public int NewlineLength
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _specialCountAndOffset & EndOffsetMask;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> GetField<T>(
         scoped ref readonly CsvDialect<T> dialect,

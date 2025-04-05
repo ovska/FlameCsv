@@ -108,16 +108,10 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     /// Returns a <see cref="SearchValues{T}"/> instance used to find the next token in CSV.
     /// This includes the delimiter, quote, escape (if applicable), and the newline tokens.
     /// </summary>
-    /// <param name="excludeNewline">
-    /// Whether newline should be excluded from the values.
-    /// This should only be <c>trgue</c> when auto-detecting a newline has failed.
-    /// </param>
     /// <returns>Cached instance that can be used to seek the CSV.</returns>
-    internal SearchValues<T> GetFindToken(bool excludeNewline = false)
+    internal SearchValues<T> GetFindToken()
     {
-        ref SearchValues<T>? findToken
-            = ref (excludeNewline ? ref _lazyValues.FindTokensNoNewline : ref _lazyValues.FindTokens);
-        return findToken ??= InitializeFindToken(excludeNewline);
+        return _lazyValues.FindTokens ??= InitializeFindToken();
     }
 
     /// <summary>
@@ -158,7 +152,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private SearchValues<T> InitializeFindToken(bool excludeNewline)
+    private SearchValues<T> InitializeFindToken()
     {
         Throw.IfDefaultStruct(_lazyValues is null, typeof(CsvDialect<T>));
 
@@ -172,17 +166,8 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
             list.Append(Escape.Value);
         }
 
-        if (excludeNewline)
-        {
-            if (Newline.Length != 0)
-                Throw.Unreachable("Newline length is 0, but Newline is not empty.");
-        }
-        else
-        {
-            var nlb = Newline.IsEmpty ? NewlineBuffer<T>.CRLF : Newline;
-            list.Append(nlb.First);
-            list.Append(nlb.Second);
-        }
+        list.Append(Newline.First);
+        list.Append(Newline.Second);
 
         return ToSearchValues(list.AsSpan());
     }
@@ -216,17 +201,15 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
 
     private sealed class LazyValues
     {
+        public bool? IsAscii;
         public SearchValues<T>? NeedsQuoting;
         public SearchValues<T>? FindTokens;
-        public SearchValues<T>? FindTokensNoNewline;
-        public bool? IsAscii;
 
         public void Reset()
         {
-            NeedsQuoting = null;
             IsAscii = null;
+            NeedsQuoting = null;
             FindTokens = null;
-            FindTokensNoNewline = null;
         }
     }
 
