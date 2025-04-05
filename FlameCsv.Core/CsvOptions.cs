@@ -41,8 +41,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         {
             if (typeof(T) == typeof(char)) return Unsafe.As<CsvOptions<T>>(CsvOptionsCharSealed.Instance);
             if (typeof(T) == typeof(byte)) return Unsafe.As<CsvOptions<T>>(CsvOptionsByteSealed.Instance);
-            InvalidTokenTypeEx(nameof(Default));
-            return null!; // unreachable
+            throw InvalidTokenTypeEx();
         }
     }
 
@@ -146,16 +145,19 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// Returns the <see langword="null"/> value for parsing and formatting for the parameter type.
     /// Returns <see cref="Null"/> if none is configured in <see cref="NullTokens"/>.
     /// </summary>
-    public virtual ReadOnlyMemory<T> GetNullToken(Type resultType)
+    /// <param name="resultType">
+    /// Type to return the configured value for. If null, the default null value is returned
+    /// </param>
+    public virtual ReadOnlyMemory<T> GetNullToken(Type? resultType)
     {
         if (typeof(T) != typeof(char) && typeof(T) != typeof(byte))
         {
-            InvalidTokenTypeEx(nameof(GetNullToken));
+            InvalidTokenTypeEx();
         }
 
         TypeDictionary<string?, Utf8String>? nullTokens = _nullTokens;
 
-        if (nullTokens is not null)
+        if (resultType is not null && nullTokens is not null)
         {
             if (typeof(T) == typeof(char))
             {
@@ -263,7 +265,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
                 return (Utf8String?)_null;
             }
 
-            InvalidTokenTypeEx(nameof(Null));
+            InvalidTokenTypeEx();
             return null;
         }
         set
@@ -282,7 +284,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
                 return;
             }
 
-            InvalidTokenTypeEx(nameof(Null));
+            InvalidTokenTypeEx();
         }
     }
 
