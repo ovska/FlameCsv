@@ -128,6 +128,7 @@ public class BithackTests
 
             if (Debugger.IsAttached)
             {
+                // ReSharper disable UnusedVariable
                 string fmt = $"B{8 * Unsafe.SizeOf<TMask>()}";
                 string strCurrent = data.AsSpan(i, 8 * Unsafe.SizeOf<TMask>()).ToString();
                 string strQuoteBits = quoteBits.ToString(fmt, null);
@@ -135,6 +136,7 @@ public class BithackTests
                 string strCommaBitsBefore = LoadBits(',', i).ToString(fmt, null);
                 string strCommaBitsAfter = commaBits.ToString(fmt, null);
                 _ = 1;
+                // ReSharper restore UnusedVariable
             }
         }
 

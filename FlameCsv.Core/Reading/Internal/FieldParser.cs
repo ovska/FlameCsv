@@ -46,7 +46,7 @@ internal static class FieldParser<T, TNewline, TVector>
     {
         // search space of T is set to 1 vector less, possibly leaving space for a newline token so we don't need
         // to do bounds checks in the loops
-        ref T first = ref MemoryMarshal.GetReference(data);
+        scoped ref T first = ref MemoryMarshal.GetReference(data);
         nuint runningIndex = 0;
         nuint searchSpaceEnd = (nuint)data.Length - (nuint)(TVector.Count * 2) - TNewline.OffsetFromEnd;
 
@@ -59,7 +59,6 @@ internal static class FieldParser<T, TNewline, TVector>
             metaBuffer.Length - (TVector.Count * 2)); // the worst case: data ends in Vector.Count delimiters
 
         // load the constants into registers
-        T delimiter = delimiterArg;
         T quote = quoteArg;
         TNewline newline = newlineArg;
         TVector delimiterVec = TVector.Create(delimiterArg);
@@ -128,7 +127,6 @@ internal static class FieldParser<T, TNewline, TVector>
                             ref first,
                             ref runningIndex,
                             ref currentMeta,
-                            delimiter,
                             in newline,
                             ref nextVector);
                         goto ContinueRead;
@@ -151,7 +149,6 @@ internal static class FieldParser<T, TNewline, TVector>
                 ref first,
                 ref runningIndex,
                 ref currentMeta,
-                delimiter,
                 quote,
                 in newline,
                 ref quotesConsumed,
@@ -177,7 +174,6 @@ internal static class FieldParser<T, TNewline, TVector>
                 ref first,
                 ref runningIndex,
                 ref currentMeta,
-                delimiter,
                 in newline,
                 ref quotesConsumed,
                 ref nextVector);
@@ -223,15 +219,15 @@ internal static class FieldParser<T, TNewline, TVector>
 
             // exceedlingly rare case where a \r is not followed by a \n
             // use an inverse condition so the branch predictor is happy on the first call
-            if (!newline.IsNewline(ref Unsafe.Add(ref first, runningIndex + (nuint)offset)))
+            if (!newline.IsNewline(ref Unsafe.Add(ref first, runningIndex + (nuint)offset), out bool isMultitoken))
             {
                 continue;
             }
 
-            currentMeta = Meta.Plain((int)runningIndex + offset, isEOL: true, TNewline.Length);
+            currentMeta = Meta.Plain((int)runningIndex + offset, isEOL: true, TNewline.GetLength(isMultitoken));
             currentMeta = ref Unsafe.Add(ref currentMeta, 1);
 
-            if (TNewline.OffsetFromEnd != 0) // runtime constant
+            if (TNewline.OffsetFromEnd != 0 && isMultitoken) // runtime constant
             {
                 // clear the next bit, or adjust the index if we crossed a vector boundary
                 mask &= (mask - 1);
@@ -256,7 +252,6 @@ internal static class FieldParser<T, TNewline, TVector>
         scoped ref T first,
         scoped ref nuint runningIndex,
         ref Meta currentMeta,
-        T delimiter,
         scoped ref readonly TNewline newline,
         ref TVector nextVector)
     {
@@ -270,19 +265,13 @@ internal static class FieldParser<T, TNewline, TVector>
 
             // this can only return false for pathological data, e.g. \r followed by \r or comma
             // use an inverse condition so the branch predictor is happy on the first call
-            if (!newline.IsDelimiterOrNewline(
-                    delimiter,
-                    ref Unsafe.Add(ref first, runningIndex + (nuint)offset),
-                    out isEOL))
-            {
-                continue;
-            }
+            isEOL = newline.IsNewline(ref Unsafe.Add(ref first, runningIndex + (nuint)offset), out bool isMultitoken);
 
-            currentMeta = Meta.Plain((int)runningIndex + offset, isEOL, TNewline.Length);
+            currentMeta = Meta.Plain((int)runningIndex + offset, isEOL, TNewline.GetLength(isMultitoken));
             currentMeta = ref Unsafe.Add(ref currentMeta, 1);
 
             // assume EOL is rarer than delimiters. OffsetFromEnd is a runtime constant
-            if (TNewline.OffsetFromEnd != 0 && isEOL)
+            if (TNewline.OffsetFromEnd != 0 && isEOL && isMultitoken)
             {
                 // clear the next bit, or adjust the index if we crossed a vector boundary
                 mask &= (mask - 1);
@@ -307,7 +296,6 @@ internal static class FieldParser<T, TNewline, TVector>
         ref T first,
         scoped ref nuint runningIndex,
         ref Meta currentMeta,
-        T delimiter,
         T quote,
         scoped ref readonly TNewline newline,
         scoped ref uint quotesConsumed,
@@ -321,29 +309,33 @@ internal static class FieldParser<T, TNewline, TVector>
             if (Unsafe.Add(ref first, runningIndex + (nuint)offset) == quote)
             {
                 ++quotesConsumed;
+                continue;
             }
-            else if ((quotesConsumed & 1) == 0 &&
-                     newline.IsDelimiterOrNewline(
-                         delimiter,
-                         ref Unsafe.Add(ref first, runningIndex + (nuint)offset),
-                         out bool isEOL))
+
+            if (quotesConsumed % 2 == 1)
             {
-                currentMeta = Meta.RFC((int)runningIndex + offset, quotesConsumed, isEOL, TNewline.Length);
-                currentMeta = ref Unsafe.Add(ref currentMeta, 1);
-                quotesConsumed = 0;
+                continue;
+            }
 
-                // assume EOL is rarer than delimiters. OffsetFromEnd is a runtime constant
-                if (TNewline.OffsetFromEnd != 0 && isEOL)
+            bool isEOL = newline.IsNewline(
+                ref Unsafe.Add(ref first, runningIndex + (nuint)offset),
+                out bool isMultitoken);
+
+            currentMeta = Meta.RFC((int)runningIndex + offset, quotesConsumed, isEOL, TNewline.GetLength(isMultitoken));
+            currentMeta = ref Unsafe.Add(ref currentMeta, 1);
+            quotesConsumed = 0;
+
+            // assume EOL is rarer than delimiters. OffsetFromEnd is a runtime constant
+            if (TNewline.OffsetFromEnd != 0 && isEOL && isMultitoken)
+            {
+                // clear the next bit, or adjust the index if we crossed a vector boundary
+                mask &= (mask - 1);
+
+                if (offset == TVector.Count - 1)
                 {
-                    // clear the next bit, or adjust the index if we crossed a vector boundary
-                    mask &= (mask - 1);
-
-                    if (offset == TVector.Count - 1)
-                    {
-                        // do not reorder
-                        runningIndex += TNewline.OffsetFromEnd;
-                        nextVector = TVector.LoadUnaligned(in first, runningIndex + (nuint)TVector.Count);
-                    }
+                    // do not reorder
+                    runningIndex += TNewline.OffsetFromEnd;
+                    nextVector = TVector.LoadUnaligned(in first, runningIndex + (nuint)TVector.Count);
                 }
             }
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
@@ -357,7 +349,6 @@ internal static class FieldParser<T, TNewline, TVector>
         ref T first,
         scoped ref nuint runningIndex,
         ref Meta currentMeta,
-        T delimiter,
         scoped ref readonly TNewline newline,
         scoped ref uint quotesConsumed,
         ref TVector nextVector)
@@ -367,20 +358,16 @@ internal static class FieldParser<T, TNewline, TVector>
             int offset = BitOperations.TrailingZeroCount(mask);
             mask &= (mask - 1); // clear lowest bit
 
-            if (!newline.IsDelimiterOrNewline(
-                    delimiter,
-                    ref Unsafe.Add(ref first, runningIndex + (nuint)offset),
-                    out bool isEOL))
-            {
-                continue;
-            }
+            bool isEOL = newline.IsNewline(
+                ref Unsafe.Add(ref first, runningIndex + (nuint)offset),
+                out bool isMultitoken);
 
-            currentMeta = Meta.RFC((int)runningIndex + offset, quotesConsumed, isEOL, TNewline.Length);
+            currentMeta = Meta.RFC((int)runningIndex + offset, quotesConsumed, isEOL, TNewline.GetLength(isMultitoken));
             currentMeta = ref Unsafe.Add(ref currentMeta, 1);
             quotesConsumed = 0;
 
             // assume EOL is rarer than delimiters. OffsetFromEnd is a runtime constant
-            if (TNewline.OffsetFromEnd != 0 && isEOL)
+            if (TNewline.OffsetFromEnd != 0 && isEOL && isMultitoken)
             {
                 // clear the next bit, or adjust the index if we crossed a vector boundary
                 mask &= (mask - 1);

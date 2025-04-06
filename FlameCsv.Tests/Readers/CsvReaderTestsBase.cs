@@ -15,7 +15,6 @@ public enum NewlineToken
 {
     CRLF,
     LF,
-    AutoLF
 }
 
 public abstract class CsvReaderTestsBase
@@ -246,11 +245,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
         int index = 0;
         long tokenPosition = 0;
 
-        int newlineLength = newline switch
-        {
-            NewlineToken.LF or NewlineToken.AutoLF => 1,
-            _ => 2,
-        };
+        int newlineLength = newline == NewlineToken.LF ? 1 : 2;
 
         if (hasHeader)
         {
@@ -321,7 +316,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
                 index++;
                 Assert.Equal(hasHeader ? index + 1 : index, record.Line);
                 Assert.Equal(tokenPosition, record.Position);
-                tokenPosition += record.RawRecord.Length + newlineLength;
+                tokenPosition += record._fields.GetRecordLength(includeTrailingNewline: true);
             }
 
             Obj obj = new()
@@ -348,12 +343,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
         {
             Formats = { [typeof(DateTime)] = "O" },
             Escape = escaping == Mode.Escape ? '^' : null,
-            Newline = newline switch
-            {
-                NewlineToken.LF => "\n",
-                NewlineToken.CRLF => "\r\n",
-                _ => null,
-            },
+            Newline = newline == NewlineToken.LF ? "\n" : "\r\n",
             HasHeader = header,
             MemoryPool = pool,
 #if false

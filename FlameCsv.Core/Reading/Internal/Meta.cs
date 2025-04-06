@@ -183,6 +183,12 @@ internal readonly struct Meta : IEquatable<Meta>
         get => (_specialCountAndOffset & NeedsUnescapingMask) != 0;
     }
 
+    public int NewlineLength
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _specialCountAndOffset & EndOffsetMask;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> GetField<T>(
         scoped ref readonly CsvDialect<T> dialect,
@@ -317,6 +323,22 @@ internal readonly struct Meta : IEquatable<Meta>
             2 => Trimmer.Trim(new DoubleTrimmer<T>(dialect.Whitespace[0], dialect.Whitespace[1]), field),
             _ => Trimmer.Trim(new AnyTrimmer<T>(dialect.Whitespace), field),
         };
+    }
+
+    public bool EndsInCR<T>(ReadOnlySpan<T> data, ref readonly NewlineBuffer<T> newline)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        if (newline.Length == 2 && IsEOL && NewlineLength == 1)
+        {
+            var last = NextStart - 1;
+
+            if ((uint)last < (uint)data.Length)
+            {
+                return data[last] == newline.First;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
