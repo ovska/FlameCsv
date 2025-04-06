@@ -4,8 +4,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using FlameCsv.Exceptions;
-using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Reading.Internal;
 using JetBrains.Annotations;
@@ -28,7 +26,6 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     public CsvOptions<T> Options { get; }
 
     internal readonly CsvDialect<T> _dialect;
-    internal NewlineBuffer<T> _newline;
 
     private protected readonly Allocator<T> _multisegmentAllocator;
     internal readonly Allocator<T> _unescapeAllocator;
@@ -79,8 +76,21 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
 
     private protected ReadOnlySequence<T> _sequence;
     private readonly ICsvPipeReader<T> _reader;
+
+    /// <summary>
+    /// Whether the reader has completed, and no more data can be read.
+    /// </summary>
     private bool _readerCompleted;
+
+    /// <summary>
+    /// Whether the UTF-8 BOM should be skipped on the next (first) read.
+    /// </summary>
     private bool _skipBOM;
+
+    /// <summary>
+    /// Whether <see cref="NewlineBuffer{T}.Second"/> needs to be trimmed from the start of the next sequence.
+    /// </summary>
+    private protected bool _previousEndCR;
 
     private protected CsvParser(CsvOptions<T> options, ICsvPipeReader<T> reader, in CsvParserOptions<T> parserOptions)
     {
@@ -88,7 +98,6 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
 
         Options = options;
         _dialect = options.Dialect;
-        _newline = options.Dialect.Newline;
         _metaArray = [];
         _canUseFastPath = !options.NoReadAhead && _dialect.IsAscii;
         _reader = reader;
@@ -208,17 +217,11 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     public bool TryReadUnbuffered(out CsvFields<T> fields, bool isFinalBlock)
     {
         if (_sequence.IsEmpty)
-            goto Fail;
-
-        if (_newline.Length == 0 && !TryPeekNewline())
         {
-            if (isFinalBlock)
-                goto ReadFromSequence;
-
-            goto Fail;
+            Debug.Assert(_metaCount == 0);
+            fields = default;
+            return false;
         }
-
-        Debug.Assert(_newline.Length != 0, "TryPeekNewline should have initialized newline");
 
         if (_canUseFastPath && !isFinalBlock)
         {
@@ -250,13 +253,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
             }
         }
 
-    ReadFromSequence:
         return TryReadFromSequence(out fields, isFinalBlock);
-
-    Fail:
-        Debug.Assert(_metaCount == 0);
-        Unsafe.SkipInit(out fields);
-        return false;
     }
 
     /// <summary>
@@ -324,10 +321,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     private void ResetMetaBuffer()
     {
         Debug.Assert(_canUseFastPath && _metaIndex != 0);
-        Debug.Assert(_newline.Length != 0);
         Debug.Assert(_metaCount >= _metaIndex);
-
-        _metaMemory = default; // don't hold on to the memory from last read
 
         var lastEOL = _metaArray[_metaIndex];
 
@@ -339,6 +333,25 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
         _sequence = _sequence.Slice(lastEOL.NextStart);
         _metaCount = 0;
         _metaIndex = 0;
+
+        if (lastEOL.EndsInCR(_metaMemory.Span, in _dialect._newline))
+        {
+            if (_sequence.IsEmpty)
+            {
+                _previousEndCR = true;
+            }
+            else
+            {
+                ReadOnlySpan<T> first = _sequence.FirstSpan;
+
+                if (!first.IsEmpty && first[0] == _dialect.Newline.Second)
+                {
+                    _sequence = _sequence.Slice(1);
+                }
+            }
+        }
+
+        _metaMemory = default; // don't hold on to the memory from last read
     }
 
     /// <summary>
@@ -369,6 +382,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
         _readerCompleted = result.IsCompleted;
 
         if (typeof(T) == typeof(byte) && _skipBOM) TrySkipBOM();
+        if (_previousEndCR) TrySkipLF();
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -386,104 +400,20 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
         _skipBOM = false;
     }
 
-    /// <summary>
-    /// Maximum amount of data to read before throwing when auto-detecting newline.
-    /// </summary>
-    public const int MaxNewlineDetectionLength = 1024;
-
-    /// <summary>
-    /// Attempt to auto-detect newline from the data.
-    /// </summary>
-    /// <returns>True if the current sequence contained a CRLF or LF (checked in that order)</returns>
-    protected bool TryPeekNewline()
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void TrySkipLF()
     {
-        if (_newline.Length != 0)
+        Debug.Assert(_previousEndCR);
+        Debug.Assert(_dialect.Newline.Length == 2);
+
+        ReadOnlySpan<T> first = _sequence.FirstSpan;
+
+        if (!first.IsEmpty && first[0] == _dialect.Newline.Second)
         {
-            Throw.Unreachable($"{nameof(TryPeekNewline)} called with newline length of {_newline.Length}");
+            _sequence = _sequence.Slice(1);
         }
 
-        if (_sequence.IsEmpty)
-        {
-            return false;
-        }
-
-        // optimistic fast path for the first line containing no quotes or escapes
-        if (_sequence.FirstSpan.IndexOf(NewlineBuffer<T>.LF.First) is var linefeedIndex and not -1)
-        {
-            // data starts with LF?
-            if (linefeedIndex == 0)
-            {
-                _newline = NewlineBuffer<T>.LF;
-                return true;
-            }
-
-            // ensure there were no quotes or escapes between the start of the buffer and the linefeed
-            ReadOnlySpan<T> untilLf = _sequence.FirstSpan.Slice(0, linefeedIndex);
-
-            if (untilLf.IndexOfAny(_dialect.Quote, _dialect.Escape ?? _dialect.Quote) == -1)
-            {
-                // check if CR in the data
-                int firstCR = untilLf.IndexOf(NewlineBuffer<T>.CRLF.First);
-
-                if (firstCR == -1)
-                {
-                    _newline = NewlineBuffer<T>.LF;
-                    return true;
-                }
-
-                if (firstCR == untilLf.Length - 1)
-                {
-                    _newline = NewlineBuffer<T>.CRLF;
-                    return true;
-                }
-            }
-        }
-
-        ReadOnlySequence<T> copy = _sequence;
-
-        // limit the amount of data we read to avoid reading the entire CSV
-        if (_sequence.Length > MaxNewlineDetectionLength)
-        {
-            _sequence = _sequence.Slice(0, MaxNewlineDetectionLength);
-        }
-
-        NewlineBuffer<T> result = default;
-
-        try
-        {
-            // find the first linefeed as both auto-detected newlines contain it
-            _newline = NewlineBuffer<T>.LF;
-
-            while (TryReadFromSequence(out var firstLine, false))
-            {
-                // found a non-empty line?
-                if (!firstLine.Data.IsEmpty)
-                {
-                    result = firstLine.Data.Span[^1] == NewlineBuffer<T>.CRLF.First
-                        ? NewlineBuffer<T>.CRLF
-                        : NewlineBuffer<T>.LF;
-                    return true;
-                }
-            }
-
-            // no line found, reset to the original state
-            result = default;
-
-            // \n not found, throw if we've read up to our threshold already
-            if (copy.Length >= MaxNewlineDetectionLength)
-            {
-                throw new CsvFormatException(
-                    $"Could not auto-detect newline even after {copy.Length} characters (no valid CRLF or LF tokens found)");
-            }
-
-            // maybe the first segment was just too small, or contained a single line without a newline
-            return false;
-        }
-        finally
-        {
-            _sequence = copy; // reset original state
-            _newline = result; // set the detected newline, or default if not found
-        }
+        _previousEndCR = false;
     }
 
     private protected ArraySegment<Meta> GetSegmentMeta(scoped ReadOnlySpan<Meta> fields)

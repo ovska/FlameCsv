@@ -11,7 +11,6 @@ namespace FlameCsv.Benchmark.Utils;
 
 internal readonly ref struct RawFieldReader<T> : ICsvFields<T> where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly int _newlineLength;
     private readonly ReadOnlySpan<T> _data;
     private readonly ref Meta _firstMeta;
     private readonly int _fieldCount;
@@ -20,7 +19,6 @@ internal readonly ref struct RawFieldReader<T> : ICsvFields<T> where T : unmanag
     public RawFieldReader(scoped ref readonly CsvFields<T> fields)
     {
         Options = fields.Parser.Options;
-        _newlineLength = fields.Parser._newline.Length;
         _data = fields.Data.Span;
         _firstMeta = ref MemoryMarshal.GetReference(fields.Fields);
         _fieldCount = fields.Fields.Length - 1;

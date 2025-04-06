@@ -10,20 +10,17 @@ internal static class SequentialParser<T> where T : unmanaged, IBinaryInteger<T>
 
     public static int Core(
         ref readonly CsvDialect<T> dialect,
-        NewlineBuffer<T> newlineArg,
         scoped ReadOnlySpan<T> data,
         scoped Span<Meta> metaBuffer)
     {
-        newlineArg.AssertInitialized();
-        Debug.Assert(newlineArg.Length != 0);
         Debug.Assert(!metaBuffer.IsEmpty);
         Debug.Assert(CanRead(data.Length));
 
         T quote = dialect.Quote;
         T delimiter = dialect.Delimiter;
-        T newlineFirst = newlineArg.First;
-        T newlineSecond = newlineArg.Second;
-        int newlineLength = newlineArg.Length;
+        T newlineFirst = dialect.Newline.First;
+        T newlineSecond = dialect.Newline.Second;
+        int newlineLength = dialect.Newline.Length;
 
         ref T first = ref MemoryMarshal.GetReference(data);
         nuint runningIndex = 0;

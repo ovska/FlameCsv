@@ -37,7 +37,11 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     /// <remarks>
     /// If empty, the newline is <c>\r\n</c> when writing, and when validating the dialect.
     /// </remarks>
-    public NewlineBuffer<T> Newline { get; init; }
+    public NewlineBuffer<T> Newline
+    {
+        get => _newline;
+        init => _newline = value;
+    }
 
     /// <summary>
     /// Whitespace characters.
@@ -81,6 +85,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
 
     private readonly LazyValues _lazyValues = new();
 
+    internal readonly NewlineBuffer<T> _newline;
     internal readonly int _whitespaceLength;
     private readonly T[]? _whitespace;
 
@@ -106,18 +111,12 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
 
     /// <summary>
     /// Returns a <see cref="SearchValues{T}"/> instance used to find the next token in CSV.
-    /// This includes the delimiter, quote, escape (if applicable), and the first newline token if
-    /// <paramref name="length"/> is not 0.
+    /// This includes the delimiter, quote, escape (if applicable), and the newline tokens.
     /// </summary>
-    /// <param name="length">
-    /// Newline length of the current read operation.
-    /// Must be either the same as <see cref="Newline"/> length,
-    /// or 0 if reading the final block without a detected newline.
-    /// </param>
     /// <returns>Cached instance that can be used to seek the CSV.</returns>
-    internal SearchValues<T> GetFindToken(int length)
+    internal SearchValues<T> GetFindToken()
     {
-        return _lazyValues.FindArray[length] ??= InitializeFindToken(length);
+        return _lazyValues.FindTokens ??= InitializeFindToken();
     }
 
     /// <summary>
@@ -158,7 +157,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private SearchValues<T> InitializeFindToken(int length)
+    private SearchValues<T> InitializeFindToken()
     {
         Throw.IfDefaultStruct(_lazyValues is null, typeof(CsvDialect<T>));
 
@@ -172,26 +171,8 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
             list.Append(Escape.Value);
         }
 
-        if (length == 0)
-        {
-            if (Newline.Length != 0)
-                Throw.Unreachable("Newline length is 0, but Newline is not empty.");
-        }
-        else
-        {
-            if (Newline.Length != 0)
-            {
-                list.Append(Newline.First);
-            }
-            else if (length == 1)
-            {
-                list.Append(NewlineBuffer<T>.LF.First);
-            }
-            else if (length == 2)
-            {
-                list.Append(NewlineBuffer<T>.CRLF.First);
-            }
-        }
+        list.Append(Newline.First);
+        list.Append(Newline.Second);
 
         return ToSearchValues(list.AsSpan());
     }
@@ -225,21 +206,15 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
 
     private sealed class LazyValues
     {
-        public SearchValues<T>? NeedsQuoting;
-        public FindTokens FindArray;
         public bool? IsAscii;
+        public SearchValues<T>? NeedsQuoting;
+        public SearchValues<T>? FindTokens;
 
         public void Reset()
         {
-            NeedsQuoting = null;
             IsAscii = null;
-            FindArray = default;
-        }
-
-        [InlineArray(3)]
-        public struct FindTokens
-        {
-            public SearchValues<T>? elem0;
+            NeedsQuoting = null;
+            FindTokens = null;
         }
     }
 
