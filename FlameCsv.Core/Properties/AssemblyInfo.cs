@@ -2,12 +2,11 @@ global using DAM = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAtt
 global using RUF = System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute;
 global using RDC = System.Diagnostics.CodeAnalysis.RequiresDynamicCodeAttribute;
 global using System.Numerics;
-using System.Diagnostics.CodeAnalysis;
 
 [assembly: System.Reflection.Metadata.MetadataUpdateHandlerAttribute(typeof(FlameCsv.Utilities.HotReloadService))]
 
 [assembly:
-    UnconditionalSuppressMessage(
+    System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(
         "ReflectionAnalysis",
         "IL3050",
         Scope = "namespaceanddescendants",
