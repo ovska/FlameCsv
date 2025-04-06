@@ -1,7 +1,7 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using CommunityToolkit.HighPerformance;
-using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 
 namespace FlameCsv;
@@ -52,10 +52,9 @@ public partial class CsvOptions<T>
             Whitespace = string.IsNullOrEmpty(_whitespace) ? [] : GetSpan(this, _whitespace, stackalloc T[8]),
             Newline = _newline switch
             {
-                null or "" => default,
-                [T f] => new NewlineBuffer<T>(f),
-                [T f, T s] => new NewlineBuffer<T>(f, s),
-                _ => throw new CsvConfigurationException("Newline must be 1 or 2 characters long."),
+                [var f] => new NewlineBuffer<T>(T.CreateChecked(f)),
+                [var f, var s] => new NewlineBuffer<T>(T.CreateChecked(f), T.CreateChecked(s)),
+                _ => throw new UnreachableException("Invalid newline: " + _newline),
             },
         };
 
@@ -68,9 +67,6 @@ public partial class CsvOptions<T>
 
             if (typeof(T) == typeof(byte))
             {
-                if (value == Utf8String.CRLF) return Utf8String.CRLF.Span.Cast<byte, T>();
-                if (value == Utf8String.LF) return Utf8String.LF.Span.Cast<byte, T>();
-                if (value == Utf8String.Space) return Utf8String.Space.Span.Cast<byte, T>();
                 return Encoding.UTF8.GetBytes(value).AsSpan().Cast<byte, T>();
             }
 
@@ -82,7 +78,7 @@ public partial class CsvOptions<T>
 
     private char _delimiter = ',';
     private char _quote = '"';
-    private string? _newline;
+    private string _newline = "\r\n";
     private string? _whitespace;
     private char? _escape;
 
@@ -115,13 +111,21 @@ public partial class CsvOptions<T>
     }
 
     /// <summary>
-    /// 1-2 characters long newline string. If null or empty (the default), newline is automatically detected
-    /// between <c>CRLF</c> and <c>LF</c> when reading and <c>CRLF</c> is used while writing.
+    /// 1-2 characters long newline string. The default is <c>CRLF</c>.
     /// </summary>
-    public string? Newline
+    /// <remarks>
+    /// If the newline is 2 characters long, either of the characters is allowed as a record delimiter,
+    /// e.g. the default value can read CSV with only <c>LF</c> newlines.
+    /// </remarks>
+    public string Newline
     {
         get => _newline;
-        set => this.SetValue(ref _newline, value);
+        set
+        {
+            ArgumentException.ThrowIfNullOrEmpty(value);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(value.Length, 2);
+            this.SetValue(ref _newline, value);
+        }
     }
 
     /// <summary>

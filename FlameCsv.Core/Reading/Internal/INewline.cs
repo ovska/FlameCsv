@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Reading.Internal;
@@ -10,10 +9,9 @@ namespace FlameCsv.Reading.Internal;
 internal interface INewline<T, TVector> where T : unmanaged, IBinaryInteger<T> where TVector : struct
 {
     /// <summary>
-    /// Returns a mask for the length of the newline contained in the two highest bits.<br/>
-    /// This is always <c>1</c> or <c>2</c>.
+    /// Returns the length of the newline sequence.
     /// </summary>
-    static abstract int Length { get; }
+    static abstract int GetLength(bool isMultitoken);
 
     /// <summary>
     /// Returns the offset required in the search space to be able to read the whole newline value.<br/>
@@ -22,26 +20,14 @@ internal interface INewline<T, TVector> where T : unmanaged, IBinaryInteger<T> w
     static abstract nuint OffsetFromEnd { get; }
 
     /// <summary>
-    /// Determines if the specified value represents a newline.
-    /// </summary>
-    /// <param name="value">The value to check.</param>
-    /// <remarks>
-    /// Possibly reads the next value in the sequence, see <see cref="OffsetFromEnd"/>.
-    /// </remarks>
-    /// <returns>True if the value represents a newline; otherwise, false.</returns>
-    [Pure]
-    bool IsNewline(ref T value);
-
-    /// <summary>
     /// Determines if the specified value represents a delimiter or a newline.
     /// </summary>
-    /// <param name="delimiter">Delimiter</param>
     /// <param name="value">The value to check against</param>
-    /// <param name="isEOL">When true, whether the value was a newline instead of delimiter</param>
-    /// <returns>True if the value represents a delimiter or a newline; otherwise, false.</returns>
+    /// <param name="isMultitoken">When true, whether the next token was part of the newline as well.</param>
+    /// <returns>True if the value represents a newline instead of a delimiter.</returns>
     /// <remarks>For single token newlines, always returns true</remarks>
     [Pure]
-    bool IsDelimiterOrNewline(T delimiter, ref T value, out bool isEOL);
+    bool IsNewline(ref T value, out bool isMultitoken);
 
     /// <summary>
     /// Determines if the input vector contains any token of the newline.
@@ -57,11 +43,8 @@ internal readonly struct NewlineParserOne<T, TVector>(T first) : INewline<T, TVe
     where T : unmanaged, IBinaryInteger<T>
     where TVector : struct, ISimdVector<T, TVector>
 {
-    public static int Length
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => 1;
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int GetLength(bool isMultitoken) => 1;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TVector HasNewline(TVector input) => TVector.Equals(input, _firstVec);
@@ -75,19 +58,11 @@ internal readonly struct NewlineParserOne<T, TVector>(T first) : INewline<T, TVe
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool IsNewline(ref T value)
+    public bool IsNewline(ref T value, out bool isMultitoken)
     {
         // the HasNewline vector only contains the correct values, e.g., \n, so this check should always succeed
-        Debug.Assert(value == first);
-        return true;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool IsDelimiterOrNewline(T delimiter, ref T value, out bool isEOL)
-    {
-        Debug.Assert(value == delimiter || value == first);
-        isEOL = value != delimiter;
-        return true;
+        isMultitoken = false;
+        return value == first;
     }
 }
 
@@ -96,11 +71,8 @@ internal readonly struct NewlineParserTwo<T, TVector>(T first, T second) : INewl
     where T : unmanaged, IBinaryInteger<T>
     where TVector : struct, ISimdVector<T, TVector>
 {
-    public static int Length
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => 2;
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int GetLength(bool isMultitoken) => isMultitoken ? 2 : 1; // 1 + isMultitoken.ToByte(); ?
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TVector HasNewline(TVector input) => TVector.Equals(input, _firstVec) | TVector.Equals(input, _secondVec);
@@ -114,20 +86,16 @@ internal readonly struct NewlineParserTwo<T, TVector>(T first, T second) : INewl
         get => 1;
     }
 
-    // profiled: this is faster than comparing to a combined uint/ushort value
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool IsNewline(ref T value) => value == first && Unsafe.Add(ref value, 1) == second;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool IsDelimiterOrNewline(T delimiter, ref T value, out bool isEOL)
+    public bool IsNewline(ref T value, out bool isMultitoken)
     {
-        if (delimiter == value)
+        if (value == first || value == second)
         {
-            isEOL = false;
+            isMultitoken = value == first && Unsafe.Add(ref value, 1) == second;
             return true;
         }
 
-        isEOL = true;
-        return value == first && Unsafe.Add(ref value, 1) == second;
+        isMultitoken = false;
+        return false;
     }
 }

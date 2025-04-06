@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.Diagnostics;
 using FlameCsv.Exceptions;
 
 namespace FlameCsv.Tests;
@@ -24,20 +23,15 @@ public static class DialectTests
     [Fact]
     public static void Should_Return_FindToken()
     {
-        Assertions(CsvOptions<char>.Default, ",\"", 0);
-        Assertions(CsvOptions<char>.Default, ",\"\n", 1);
-        Assertions(CsvOptions<char>.Default, ",\"\r", 2);
-        Assertions(new CsvOptions<char> { Escape = '^', }, ",\"^", 0);
-        Assertions(new CsvOptions<char> { Escape = '^', }, ",\"^\n", 1);
-        Assertions(new CsvOptions<char> { Escape = '^', }, ",\"^\r", 2);
+        Assertions(new CsvOptions<char> { Newline = "\n" }, ",\"\n");
+        Assertions(new CsvOptions<char>(), ",\"\r\n");
+        Assertions(new CsvOptions<char> { Escape = '^', Newline = "_" }, ",\"^_");
+        Assertions(new CsvOptions<char> { Escape = '^', Newline = "\n" }, ",\"^\n");
+        Assertions(new CsvOptions<char> { Escape = '^' }, ",\"^\r\n");
 
-        Assert.Throws<UnreachableException>(() => new CsvOptions<char> { Newline = "\r\n" }.Dialect.GetFindToken(0));
-        Assert.Throws<IndexOutOfRangeException>(() => CsvOptions<char>.Default.Dialect.GetFindToken(-1));
-        Assert.Throws<IndexOutOfRangeException>(() => CsvOptions<char>.Default.Dialect.GetFindToken(3));
-
-        static void Assertions(CsvOptions<char> options, string expected, int newlineLength)
+        static void Assertions(CsvOptions<char> options, string expected)
         {
-            SearchValues<char> v = options.Dialect.GetFindToken(newlineLength);
+            SearchValues<char> v = options.Dialect.GetFindToken();
             Assert.DoesNotContain(expected, c => !v.Contains(c));
         }
     }
@@ -48,13 +42,13 @@ public static class DialectTests
         Assert.Equal(',', CsvOptions<char>.Default.Dialect.Delimiter);
         Assert.Equal('"', CsvOptions<char>.Default.Dialect.Quote);
         Assert.Null(CsvOptions<char>.Default.Dialect.Escape);
-        Assert.Empty(CsvOptions<char>.Default.Dialect.Newline.ToArray());
+        Assert.Equal("\r\n", CsvOptions<char>.Default.Dialect.Newline.ToArray());
         Assert.Empty(CsvOptions<char>.Default.Dialect.Whitespace.ToArray());
 
         Assert.Equal((byte)',', CsvOptions<byte>.Default.Dialect.Delimiter);
         Assert.Equal((byte)'"', CsvOptions<byte>.Default.Dialect.Quote);
         Assert.Null(CsvOptions<byte>.Default.Dialect.Escape);
-        Assert.Empty(CsvOptions<byte>.Default.Dialect.Newline.ToArray());
+        Assert.Equal("\r\n"u8, CsvOptions<byte>.Default.Dialect.Newline.ToArray());
         Assert.Empty(CsvOptions<byte>.Default.Dialect.Whitespace.ToArray());
     }
 

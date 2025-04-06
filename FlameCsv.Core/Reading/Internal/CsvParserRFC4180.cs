@@ -26,8 +26,8 @@ internal sealed class CsvParserRFC4180<T>(
         // load into locals for faster access
         T delimiter = _dialect.Delimiter;
         T quote = _dialect.Quote;
-        SearchValues<T> nextToken = _dialect.GetFindToken(_newline.Length);
-        NewlineBuffer<T> newline = _newline;
+        SearchValues<T> nextToken = _dialect.GetFindToken();
+        NewlineBuffer<T> newline = _dialect.Newline;
 
         while (!reader.End)
         {
@@ -38,29 +38,31 @@ internal sealed class CsvParserRFC4180<T>(
 
             if (index != -1)
             {
-                if (reader.UnreadSpan[index] == quote)
+                T match = reader.UnreadSpan[index];
+
+                if (match == quote)
                 {
                     reader.Advance(index + 1);
 
                     // quotes are commonly followed by delimiters, newlines or other quotes
                     if ((++quoteCount & 1) == 0)
                     {
-                        if (reader.TryPeek(out T next))
+                        if (reader.TryPeek(out match))
                         {
-                            if (next == quote)
+                            if (match == quote)
                             {
                                 quoteCount++;
                                 reader.Advance(1);
                                 goto Seek;
                             }
 
-                            if (next == delimiter)
+                            if (match == delimiter)
                             {
                                 reader.Advance(1);
                                 goto FoundDelimiter;
                             }
 
-                            if (next == newline.First)
+                            if (match == newline.First || match == newline.Second)
                             {
                                 // don't advance here so the first position of a CRLF is preserved
                                 goto FoundNewline;
@@ -76,21 +78,21 @@ internal sealed class CsvParserRFC4180<T>(
                     goto Seek;
                 }
 
-                if (reader.UnreadSpan[index] == delimiter)
+                if (match == delimiter)
                 {
                     reader.Advance(index + 1);
                     goto FoundDelimiter;
                 }
 
                 Debug.Assert(newline.Length != 0);
-                Debug.Assert(reader.UnreadSpan[index] == newline.First);
+                Debug.Assert(match == newline.First || match == newline.Second);
 
                 // must be newline token
                 reader.Advance(index);
                 goto FoundNewline;
 
             FoundDelimiter:
-                fieldMeta.Append(Meta.RFC((int)reader.Consumed - 1, quoteCount, isEOL: false, _newline.Length));
+                fieldMeta.Append(Meta.RFC((int)reader.Consumed - 1, quoteCount, isEOL: false, newline.Length));
                 quoteCount = 0;
                 goto Seek;
 
@@ -101,24 +103,29 @@ internal sealed class CsvParserRFC4180<T>(
                 // ...and advance past it
                 reader.Advance(1);
 
-                if (newline.Length == 1 || reader.IsNext(newline.Second, advancePast: true))
-                {
-                    fieldMeta.Append(
-                        Meta.RFC((int)reader.Consumed - newline.Length, quoteCount, isEOL: true, _newline.Length));
+                // at this point, the record has ended no matter if we find another newline token or not
+                bool twoTokens =
+                    newline.Length != 1 &&
+                    match == newline.First &&
+                    reader.IsNext(newline.Second, advancePast: true);
 
-                    fields = new CsvFields<T>(
-                        this,
-                        _multisegmentAllocator.AsMemory(reader.Sequence.Slice(reader.Sequence.Start, crPosition)),
-                        GetSegmentMeta(fieldMeta.AsSpan()));
+                int newlineLength = twoTokens ? 2 : 1;
 
-                    _sequence = reader.UnreadSequence;
-                    return true;
-                }
+                fieldMeta.Append(
+                    Meta.RFC(
+                        end: (int)reader.Consumed - newlineLength,
+                        quoteCount: quoteCount,
+                        isEOL: true,
+                        newlineLength: newlineLength));
 
-                if (reader.End)
-                    break;
+                fields = new CsvFields<T>(
+                    this,
+                    _multisegmentAllocator.AsMemory(reader.Sequence.Slice(reader.Sequence.Start, crPosition)),
+                    GetSegmentMeta(fieldMeta.AsSpan()));
 
-                goto Seek;
+                _sequence = reader.UnreadSequence;
+                _previousEndCR = newline.Length == 2 && match == newline.First && !twoTokens && _sequence.IsEmpty;
+                return true;
             }
 
             // nothing in this segment
@@ -150,8 +157,6 @@ internal sealed class CsvParserRFC4180<T>(
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private protected override int ReadFromSpan(ReadOnlySpan<T> data)
     {
-        Debug.Assert(_newline.Length != 0);
-
         // the prefetch reads one vector ahead
         const int minimumVectors = 2;
 
@@ -159,16 +164,16 @@ internal sealed class CsvParserRFC4180<T>(
         {
             ReadOnlySpan<char> dataT = MemoryMarshal.Cast<T, char>(data);
             ref readonly var dialect = ref Unsafe.As<CsvDialect<T>, CsvDialect<char>>(ref Unsafe.AsRef(in _dialect));
-            var newline = Unsafe.As<NewlineBuffer<T>, NewlineBuffer<char>>(ref _newline);
+            var newline = dialect._newline;
 
             if (Vec512Char.IsSupported && dataT.Length > Vec512Char.Count * minimumVectors)
             {
-                if (newline.Length == 1)
+                if (dialect._newline.Length == 1)
                 {
                     return FieldParser<char, NewlineParserOne<char, Vec512Char>, Vec512Char>.Core(
                         dialect.Delimiter,
                         dialect.Quote,
-                        new(newline.First),
+                        new(dialect._newline.First),
                         dataT,
                         MetaBuffer);
                 }
@@ -178,7 +183,7 @@ internal sealed class CsvParserRFC4180<T>(
                     return FieldParser<char, NewlineParserTwo<char, Vec512Char>, Vec512Char>.Core(
                         dialect.Delimiter,
                         dialect.Quote,
-                        new(newline.First, newline.Second),
+                        new(dialect._newline.First, newline.Second),
                         dataT,
                         MetaBuffer);
                 }
@@ -235,7 +240,8 @@ internal sealed class CsvParserRFC4180<T>(
         {
             ReadOnlySpan<byte> dataT = MemoryMarshal.Cast<T, byte>(data);
             ref readonly var dialect = ref Unsafe.As<CsvDialect<T>, CsvDialect<byte>>(ref Unsafe.AsRef(in _dialect));
-            var newline = Unsafe.As<NewlineBuffer<T>, NewlineBuffer<byte>>(ref _newline);
+            var newlineT = _dialect.Newline;
+            var newline = Unsafe.As<NewlineBuffer<T>, NewlineBuffer<byte>>(ref newlineT);
 
             if (Vec512Byte.IsSupported && dataT.Length > Vec512Byte.Count * minimumVectors)
             {
@@ -309,7 +315,7 @@ internal sealed class CsvParserRFC4180<T>(
 
         if (SequentialParser<T>.CanRead(data.Length))
         {
-            return SequentialParser<T>.Core(in _dialect, _newline, data, MetaBuffer);
+            return SequentialParser<T>.Core(in _dialect, data, MetaBuffer);
         }
 
         return 0;
