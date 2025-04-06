@@ -44,16 +44,16 @@ public partial class CsvReadBench
     public bool Header { get; set; } = true;
 
     private static readonly CsvOptions<char> _withHeader
-        = new() { HasHeader = true, Newline = _newline, Converters = { new FloatTextParser() } };
+        = new() { HasHeader = true, Newline = _newline!, Converters = { new FloatTextParser() } };
 
     private static readonly CsvOptions<char> _withoutHeader
-        = new() { HasHeader = false, Newline = _newline, Converters = { new FloatTextParser() } };
+        = new() { HasHeader = false, Newline = _newline!, Converters = { new FloatTextParser() } };
 
     private static readonly CsvOptions<byte> _bwithHeader
-        = new() { HasHeader = true, Newline = _newline, Converters = { new FloatUtf8Parser() } };
+        = new() { HasHeader = true, Newline = _newline!, Converters = { new FloatUtf8Parser() } };
 
     private static readonly CsvOptions<byte> _bwithoutHeader
-        = new() { HasHeader = false, Newline = _newline, Converters = { new FloatUtf8Parser() } };
+        = new() { HasHeader = false, Newline = _newline!, Converters = { new FloatUtf8Parser() } };
 
     private CsvOptions<char> OptionsInstance => Header ? _withHeader : _withoutHeader;
     private CsvOptions<byte> OptionsInstanceB => Header ? _bwithHeader : _bwithoutHeader;

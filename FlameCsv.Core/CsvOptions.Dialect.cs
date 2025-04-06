@@ -115,7 +115,7 @@ public partial class CsvOptions<T>
     /// </summary>
     /// <remarks>
     /// If the newline is 2 characters long, either of the characters is allowed as a record delimiter,
-    /// e.g. the default value can read CSV with only <c>LF</c> newlines.
+    /// e.g., the default value can read CSV with only <c>LF</c> newlines.
     /// </remarks>
     public string Newline
     {
