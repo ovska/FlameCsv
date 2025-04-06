@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using CommunityToolkit.HighPerformance;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Reading.Internal;
@@ -72,7 +73,7 @@ internal readonly struct NewlineParserTwo<T, TVector>(T first, T second) : INewl
     where TVector : struct, ISimdVector<T, TVector>
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetLength(bool isMultitoken) => isMultitoken ? 2 : 1; // 1 + isMultitoken.ToByte(); ?
+    public static int GetLength(bool isMultitoken) => 1 + isMultitoken.ToByte();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TVector HasNewline(TVector input) => TVector.Equals(input, _firstVec) | TVector.Equals(input, _secondVec);
