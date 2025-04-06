@@ -147,7 +147,7 @@ internal readonly struct Meta : IEquatable<Meta>
     public uint SpecialCount
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (uint)(_specialCountAndOffset & ~0b111) >> 3;
+        get => (uint)(_specialCountAndOffset & SpecialCountMask) >> 3;
     }
 
     /// <summary>
