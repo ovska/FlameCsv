@@ -29,11 +29,6 @@ internal readonly struct Meta : IEquatable<Meta>
     public const int IsEscapeMask = 0b100;
 
     /// <summary>
-    /// Bitwise AND mask for escape bit, or special count (quotes) over 2.
-    /// </summary>
-    private const int NeedsUnescapingMask = ~0b10011;
-
-    /// <summary>
     /// Mask on <see cref="_specialCountAndOffset"/> to extract the special count.
     /// </summary>
     public const int SpecialCountMask = ~0b111;
@@ -171,16 +166,6 @@ internal readonly struct Meta : IEquatable<Meta>
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => (_endAndEol & ~EOLMask) + (_specialCountAndOffset & EndOffsetMask);
-    }
-
-    /// <summary>
-    /// Whether the field needs to be unescaped into an external buffer.
-    /// Returns <see langword="true"/> if the field has any escapes, or over 2 quotes.
-    /// </summary>
-    public bool NeedsUnescaping
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (_specialCountAndOffset & NeedsUnescapingMask) != 0;
     }
 
     public int NewlineLength
@@ -476,7 +461,7 @@ internal readonly struct Meta : IEquatable<Meta>
 #if DEBUG
     static Meta()
     {
-        if (Unsafe.SizeOf<Meta>() != 8)
+        if (Unsafe.SizeOf<Meta>() != sizeof(ulong))
             throw new UnreachableException("Meta must be 8 bytes in size");
     }
 #endif
