@@ -229,6 +229,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     private SealableList<(string, bool)>? _booleanValues;
     private bool _useDefaultConverters = true;
     private string? _enumFormat;
+    private char _enumFlagsSeparator = ',';
     private CsvEnumOptions _enumFlags = CsvEnumOptions.IgnoreCase;
     private bool _noReadAhead;
     private StringPool? _stringPool;

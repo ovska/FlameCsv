@@ -1,10 +1,11 @@
 ﻿using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Utilities;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-internal sealed class EnumCacheText<TEnum> : EnumMemberCache<char, TEnum> where TEnum : struct, Enum
+internal sealed class EnumCacheText<TEnum> : EnumMemberCache<TEnum> where TEnum : struct, Enum
 {
     [ExcludeFromCodeCoverage]
     static EnumCacheText()
@@ -13,46 +14,35 @@ internal sealed class EnumCacheText<TEnum> : EnumMemberCache<char, TEnum> where 
             typeof(TEnum),
             static _ =>
             {
-                _valuesNormalOrdinal = null;
-                _valuesExplicitOrdinal = null;
-                _valuesNormalIgnoreCase = null;
-                _valuesExplicitIgnoreCase = null;
+                _valuesOrdinal = null;
+                _valuesIgnoreCase = null;
                 _namesNumeric = null;
                 _namesString = null;
-                _namesExplicit = null;
             });
     }
 
-    private static FrozenDictionary<string, TEnum>? _valuesNormalOrdinal;
-    private static FrozenDictionary<string, TEnum>? _valuesExplicitOrdinal;
-    private static FrozenDictionary<string, TEnum>? _valuesNormalIgnoreCase;
-    private static FrozenDictionary<string, TEnum>? _valuesExplicitIgnoreCase;
+    private static FrozenDictionary<string, TEnum>? _valuesOrdinal;
+    private static FrozenDictionary<string, TEnum>? _valuesIgnoreCase;
 
     private static FrozenDictionary<TEnum, string>? _namesNumeric;
     private static FrozenDictionary<TEnum, string>? _namesString;
-    private static FrozenDictionary<TEnum, string>? _namesExplicit;
 
-    public static FrozenDictionary<TEnum, string>? GetWriteValues(string? format, bool useEnumMember)
+    public static FrozenDictionary<TEnum, string>? GetWriteValues(string? format)
     {
-        return (GetFormatChar(format), useEnumMember) switch
+        return (GetFormatChar(format)) switch
         {
-            ('g', false) => _namesString ??= InitNames(ToString),
-            ('g', true) => _namesExplicit ??= InitNames(ToExplicit),
-            ('d', _) => _namesNumeric ??= InitNames(ToNumber),
+            'g' or 'f' => _namesString ??= InitNames(ToString),
+            'd' => _namesNumeric ??= InitNames(ToNumber),
             _ => null,
         };
     }
 
-    public static FrozenDictionary<string, TEnum>.AlternateLookup<ReadOnlySpan<char>> GetReadValues(
-        bool ignoreCase,
-        bool useEnumMember)
+    public static FrozenDictionary<string, TEnum>.AlternateLookup<ReadOnlySpan<char>> GetReadValues(bool ignoreCase)
     {
-        return ((ignoreCase, useEnumMember) switch
+        return (ignoreCase switch
         {
-            (false, false) => _valuesNormalOrdinal ??= InitValues(false, false),
-            (false, true) => _valuesExplicitOrdinal ??= InitValues(false, true),
-            (true, false) => _valuesNormalIgnoreCase ??= InitValues(true, false),
-            (true, true) => _valuesExplicitIgnoreCase ??= InitValues(true, true),
+            false => _valuesOrdinal ??= InitValues(false),
+            true => _valuesIgnoreCase ??= InitValues(true),
         }).GetAlternateLookup<ReadOnlySpan<char>>();
     }
 
@@ -69,7 +59,7 @@ internal sealed class EnumCacheText<TEnum> : EnumMemberCache<char, TEnum> where 
         return dict.ToFrozenDictionary();
     }
 
-    private static FrozenDictionary<string, TEnum> InitValues(bool ignoreCase, bool enumMember)
+    private static FrozenDictionary<string, TEnum> InitValues(bool ignoreCase)
     {
         var comparer = ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
         Dictionary<string, TEnum> valuesByName = new(comparer);
@@ -78,7 +68,7 @@ internal sealed class EnumCacheText<TEnum> : EnumMemberCache<char, TEnum> where 
         {
             valuesByName[name] = value;
 
-            if (enumMember && explicitName is not null)
+            if (explicitName is not null)
             {
                 valuesByName[explicitName] = value;
             }
@@ -88,6 +78,15 @@ internal sealed class EnumCacheText<TEnum> : EnumMemberCache<char, TEnum> where 
     }
 
     private static string ToNumber(EnumMember member) => member.Value.ToString("D");
-    private static string ToString(EnumMember member) => member.Name;
-    private static string ToExplicit(EnumMember member) => member.ExplicitName ?? member.Name;
+    private static string ToString(EnumMember member) => member.ExplicitName ?? member.Name;
+
+    public static bool IsDefinedCore(TEnum value)
+    {
+        if (HasFlagsAttribute)
+        {
+            return (value.ToBitmask() & ~AllFlags.ToBitmask()) == 0;
+        }
+
+        return GetWriteValues("D")?.ContainsKey(value) ?? Enum.IsDefined(value);
+    }
 }
