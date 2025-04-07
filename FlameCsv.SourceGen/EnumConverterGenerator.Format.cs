@@ -76,7 +76,7 @@ public partial class EnumConverterGenerator
                 writer,
                 in model,
                 model.Values.DistinctBy(x => x.Value),
-                static value => value.ExplicitName ?? value.Name);
+                static value => value.DisplayName);
         }
     }
 
@@ -213,7 +213,7 @@ public partial class EnumConverterGenerator
 
         if (!model.HasFlagsAttribute) return;
 
-        writer.Write("private sealed class FlagsFormatStrategy : global::FlameCsv.Converters.CsvEnumFlagsFormatStrategy");
+        writer.Write("private sealed class FlagsFormatStrategy : global::FlameCsv.Converters.Enums.CsvEnumFlagsFormatStrategy");
         writer.WriteLine($"<{model.TokenType.Name}, {model.EnumType.FullyQualifiedName}>");
         using var block = writer.WriteBlock();
 
@@ -225,7 +225,7 @@ public partial class EnumConverterGenerator
         writer.WriteLine(";");
 
         writer.WriteLine();
-        writer.WriteLine($"public FlagsFormatStrategy(global::FlameCsv.CsvOptions<{model.TokenType.Name}> options, global::FlameCsv.Converters.EnumFormatStrategy<{model.TokenType.Name}, {model.EnumType.FullyQualifiedName}> inner) : base(options, inner) {{ }}");
+        writer.WriteLine($"public FlagsFormatStrategy(global::FlameCsv.CsvOptions<{model.TokenType.Name}> options, global::FlameCsv.Converters.Enums.EnumFormatStrategy<{model.TokenType.Name}, {model.EnumType.FullyQualifiedName}> inner) : base(options, inner) {{ }}");
     }
 
     private static void WriteFlagsFormat(

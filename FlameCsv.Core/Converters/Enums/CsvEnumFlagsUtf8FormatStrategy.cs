@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using FlameCsv.Utilities;
 
-namespace FlameCsv.Converters;
+namespace FlameCsv.Converters.Enums;
 
 /// <summary>
 /// Internal implementation detail, used by the source generator.

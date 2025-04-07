@@ -3,7 +3,7 @@ using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 using FlameCsv.Utilities;
 
-namespace FlameCsv.Converters;
+namespace FlameCsv.Converters.Enums;
 
 /// <summary>
 /// Provides a wrapper for parsing flags-enums using an inner strategy.<br/>
