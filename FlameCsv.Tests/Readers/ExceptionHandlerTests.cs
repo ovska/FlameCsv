@@ -56,7 +56,7 @@ public class ExceptionHandlerTests
             list.Select(o => (o.Id, o.Name)));
 
         Assert.Single(exceptions);
-        Assert.IsType<NumberTextConverter<int, IntegerStyles>>(exceptions[0].Converter);
+        Assert.IsType<NumberTextConverter<int>>(exceptions[0].Converter);
     }
 
     [Fact]
@@ -81,7 +81,7 @@ public class ExceptionHandlerTests
         Assert.Equal(2, ((CsvParseException)ex).Line);
         Assert.Equal("id,name\r\n".Length, ((CsvParseException)ex).RecordPosition);
 
-        Assert.IsType<NumberTextConverter<int, IntegerStyles>>(((CsvParseException)ex).Converter);
+        Assert.IsType<NumberTextConverter<int>>(((CsvParseException)ex).Converter);
     }
 
     [Fact]
@@ -102,6 +102,6 @@ public class ExceptionHandlerTests
         Assert.Equal("1,Bob\r\n".Length, ((CsvParseException)ex).RecordPosition);
 
         Assert.IsType<CsvParseException>(ex);
-        Assert.IsType<NumberTextConverter<int, IntegerStyles>>(((CsvParseException)ex).Converter);
+        Assert.IsType<NumberTextConverter<int>>(((CsvParseException)ex).Converter);
     }
 }
