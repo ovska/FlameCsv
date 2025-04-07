@@ -3,7 +3,7 @@ using System.Diagnostics;
 using FlameCsv.Extensions;
 using FlameCsv.Utilities;
 
-namespace FlameCsv.Converters;
+namespace FlameCsv.Converters.Enums;
 
 /// <summary>
 /// Provides a wrapper for formatting flags-enums using an inner strategy.<br/>

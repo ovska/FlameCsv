@@ -1,7 +1,7 @@
 ﻿using System.Buffers;
 using JetBrains.Annotations;
 
-namespace FlameCsv.Converters;
+namespace FlameCsv.Converters.Enums;
 
 /// <summary>
 /// Provides a base class for parsing enum values.

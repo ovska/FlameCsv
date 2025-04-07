@@ -1,4 +1,5 @@
 ﻿using FlameCsv.Converters;
+using FlameCsv.Converters.Enums;
 
 namespace FlameCsv.Tests.Converters;
 

@@ -101,10 +101,10 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
             writer.WriteLine("private static ReadIgnoreCaseImpl IgnoreCaseStrategy { get; } = new();");
             writer.WriteLine();
 
-            writer.Write("private readonly global::FlameCsv.Converters.EnumParseStrategy");
+            writer.Write("private readonly global::FlameCsv.Converters.Enums.EnumParseStrategy");
             WriteStrategyGenerics(in model, writer, context.CancellationToken);
             writer.WriteLine(" _parseStrategy;");
-            writer.Write("private readonly global::FlameCsv.Converters.EnumFormatStrategy");
+            writer.Write("private readonly global::FlameCsv.Converters.Enums.EnumFormatStrategy");
             WriteStrategyGenerics(in model, writer, context.CancellationToken);
             writer.WriteLine(" _formatStrategy;");
             writer.WriteLine("private readonly bool _allowUndefinedValues;");
@@ -124,7 +124,7 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
                 writer.Write("_parseStrategy = ");
                 writer.WriteIf(
                     model.HasFlagsAttribute,
-                    $"new global::FlameCsv.Converters.CsvEnumFlagsParseStrategy<{model.TokenType.Name}, {model.EnumType.FullyQualifiedName}>(options, ");
+                    $"new global::FlameCsv.Converters.Enums.CsvEnumFlagsParseStrategy<{model.TokenType.Name}, {model.EnumType.FullyQualifiedName}>(options, ");
                 writer.Write("_ignoreCase ? IgnoreCaseStrategy : OrdinalStrategy");
                 writer.WriteIf(model.HasFlagsAttribute, ")");
                 writer.WriteLine(";");
@@ -134,7 +134,7 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
                 writer.IncreaseIndent();
                 writer.WriteLine("null or \"g\" or \"G\" => WriteStringStrategy,");
                 writer.WriteLine("\"d\" or \"D\" => WriteNumberStrategy,");
-                writer.Write("\"x\" or \"X\" => global::FlameCsv.Converters.EnumFormatStrategy");
+                writer.Write("\"x\" or \"X\" => global::FlameCsv.Converters.Enums.EnumFormatStrategy");
                 WriteStrategyGenerics(in model, writer, context.CancellationToken);
                 writer.WriteLine(".None, // always defer to Enum.TryFormat");
 
@@ -143,7 +143,7 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
                 {
                     string specifier = model.TokenType.IsByte() ? "Utf8" : "Text";
                     writer.WriteLine(
-                        $"new global::FlameCsv.Converters.CsvEnumFlags{specifier}FormatStrategy<{model.EnumType.FullyQualifiedName}>(options, WriteStringStrategy),");
+                        $"new global::FlameCsv.Converters.Enums.CsvEnumFlags{specifier}FormatStrategy<{model.EnumType.FullyQualifiedName}>(options, WriteStringStrategy),");
                 }
                 else
                 {
@@ -238,7 +238,7 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
 
             writer.WriteLine();
             writer.WriteLine(GlobalConstants.CodeDomAttribute);
-            writer.Write("private sealed class ReadOrdinalImpl : global::FlameCsv.Converters.EnumParseStrategy");
+            writer.Write("private sealed class ReadOrdinalImpl : global::FlameCsv.Converters.Enums.EnumParseStrategy");
             WriteStrategyGenerics(in model, writer, context.CancellationToken);
             writer.WriteLine();
             using (writer.WriteBlock())
@@ -248,7 +248,7 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
 
             writer.WriteLine();
             writer.WriteLine(GlobalConstants.CodeDomAttribute);
-            writer.Write("private sealed class ReadIgnoreCaseImpl : global::FlameCsv.Converters.EnumParseStrategy");
+            writer.Write("private sealed class ReadIgnoreCaseImpl : global::FlameCsv.Converters.Enums.EnumParseStrategy");
             WriteStrategyGenerics(in model, writer, context.CancellationToken);
             writer.WriteLine();
             using (writer.WriteBlock())
@@ -258,7 +258,7 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
 
             writer.WriteLine();
             writer.WriteLine(GlobalConstants.CodeDomAttribute);
-            writer.Write("private sealed class WriteNumberImpl : global::FlameCsv.Converters.EnumFormatStrategy");
+            writer.Write("private sealed class WriteNumberImpl : global::FlameCsv.Converters.Enums.EnumFormatStrategy");
             WriteStrategyGenerics(in model, writer, context.CancellationToken);
             writer.WriteLine();
             using (writer.WriteBlock())
@@ -275,7 +275,7 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
 
             writer.WriteLine();
             writer.WriteLine(GlobalConstants.CodeDomAttribute);
-            writer.Write("private sealed class WriteStringImpl : global::FlameCsv.Converters.EnumFormatStrategy");
+            writer.Write("private sealed class WriteStringImpl : global::FlameCsv.Converters.Enums.EnumFormatStrategy");
             WriteStrategyGenerics(in model, writer, context.CancellationToken);
             writer.WriteLine();
             using (writer.WriteBlock())

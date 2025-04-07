@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 
-namespace FlameCsv.Converters;
+namespace FlameCsv.Converters.Enums;
 
 [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class EnumUtf8ConverterFactory : CsvConverterFactory<byte>

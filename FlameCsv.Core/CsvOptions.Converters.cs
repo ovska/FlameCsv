@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
+using FlameCsv.Converters.Enums;
 using FlameCsv.Extensions;
 #if DEBUG
 using Unsafe = FlameCsv.Extensions.DebugUnsafe

@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Converters;
+using FlameCsv.Converters.Enums;
 using FlameCsv.Exceptions;
 using JetBrains.Annotations;
 #if DEBUG
