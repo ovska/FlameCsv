@@ -2,7 +2,7 @@
 
 namespace FlameCsv.Tests.Converters;
 
-public class EnumCacheCharTests : EnumTests<char>
+public class EnumReflectionCharTests : EnumTests<char>
 {
     protected override CsvConverter<char, DayOfWeek> GetDayOfWeek(bool numeric, bool ignoreCase)
     {

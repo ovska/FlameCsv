@@ -45,10 +45,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Compile Update="Converters\EnumCacheByteTests.cs">
+        <Compile Update="Converters\EnumReflectionByteTests.cs">
             <DependentUpon>EnumTests.cs</DependentUpon>
         </Compile>
-        <Compile Update="Converters\EnumCacheCharTests.cs">
+        <Compile Update="Converters\EnumReflectionCharTests.cs">
             <DependentUpon>EnumTests.cs</DependentUpon>
         </Compile>
         <Compile Update="Converters\EnumGeneratorByteTests.cs">
