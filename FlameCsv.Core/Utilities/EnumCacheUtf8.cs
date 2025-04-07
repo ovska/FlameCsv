@@ -1,6 +1,7 @@
 ﻿using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using FlameCsv.Extensions;
 using FlameCsv.Utilities.Comparers;
 
 // ReSharper disable StaticMemberInGenericType
@@ -17,7 +18,7 @@ internal readonly struct StringLike
 }
 
 // ReSharper disable once ClassNeverInstantiated.Global
-internal sealed class EnumCacheUtf8<TEnum> : EnumMemberCache<byte, TEnum>
+internal sealed class EnumCacheUtf8<TEnum> : EnumMemberCache<TEnum>
     where TEnum : struct, Enum
 {
     [ExcludeFromCodeCoverage]
@@ -27,46 +28,36 @@ internal sealed class EnumCacheUtf8<TEnum> : EnumMemberCache<byte, TEnum>
             typeof(TEnum),
             static _ =>
             {
-                _valuesNormalOrdinal = null;
-                _valuesExplicitOrdinal = null;
-                _valuesNormalIgnoreCase = null;
-                _valuesExplicitIgnoreCase = null;
+                _valuesOrdinal = null;
+                _valuesIgnoreCase = null;
                 _namesNumeric = null;
                 _namesString = null;
-                _namesExplicit = null;
             });
     }
 
-    private static FrozenDictionary<StringLike, TEnum>? _valuesNormalOrdinal;
-    private static FrozenDictionary<StringLike, TEnum>? _valuesExplicitOrdinal;
-    private static FrozenDictionary<StringLike, TEnum>? _valuesNormalIgnoreCase;
-    private static FrozenDictionary<StringLike, TEnum>? _valuesExplicitIgnoreCase;
+    private static FrozenDictionary<StringLike, TEnum>? _valuesOrdinal;
+    private static FrozenDictionary<StringLike, TEnum>? _valuesIgnoreCase;
 
     private static FrozenDictionary<TEnum, byte[]>? _namesNumeric;
     private static FrozenDictionary<TEnum, byte[]>? _namesString;
-    private static FrozenDictionary<TEnum, byte[]>? _namesExplicit;
 
-    public static FrozenDictionary<TEnum, byte[]>? GetWriteValues(string? format, bool useEnumMember)
+    public static FrozenDictionary<TEnum, byte[]>? GetWriteValues(
+        [StringSyntax(StringSyntaxAttribute.EnumFormat)] string? format)
     {
-        return (GetFormatChar(format), useEnumMember) switch
+        return (GetFormatChar(format)) switch
         {
-            ('g', false) => _namesString ??= InitNames(ToString),
-            ('g', true) => _namesExplicit ??= InitNames(ToExplicit),
-            ('d', _) => _namesNumeric ??= InitNames(ToNumber),
+            'g' or 'f' => _namesString ??= InitNames(ToString),
+            'd' => _namesNumeric ??= InitNames(ToNumber),
             _ => null,
         };
     }
 
-    public static FrozenDictionary<StringLike, TEnum>.AlternateLookup<ReadOnlySpan<byte>> GetReadValues(
-        bool ignoreCase,
-        bool useEnumMember)
+    public static FrozenDictionary<StringLike, TEnum>.AlternateLookup<ReadOnlySpan<byte>> GetReadValues(bool ignoreCase)
     {
-        return ((ignoreCase, useEnumMember) switch
+        return (ignoreCase switch
         {
-            (false, false) => _valuesNormalOrdinal ??= InitValues(false, false),
-            (false, true) => _valuesExplicitOrdinal ??= InitValues(false, true),
-            (true, false) => _valuesNormalIgnoreCase ??= InitValues(true, false),
-            (true, true) => _valuesExplicitIgnoreCase ??= InitValues(true, true),
+            false => _valuesOrdinal ??= InitValues(false),
+            true => _valuesIgnoreCase ??= InitValues(true),
         }).GetAlternateLookup<ReadOnlySpan<byte>>();
     }
 
@@ -83,7 +74,7 @@ internal sealed class EnumCacheUtf8<TEnum> : EnumMemberCache<byte, TEnum>
         return dict.ToFrozenDictionary();
     }
 
-    private static FrozenDictionary<StringLike, TEnum> InitValues(bool ignoreCase, bool enumMember)
+    private static FrozenDictionary<StringLike, TEnum> InitValues(bool ignoreCase)
     {
         bool allAscii = true;
         var comparer = ignoreCase ? Utf8Comparer.OrdinalIgnoreCase : Utf8Comparer.Ordinal;
@@ -94,7 +85,7 @@ internal sealed class EnumCacheUtf8<TEnum> : EnumMemberCache<byte, TEnum>
             valuesByName[name] = value;
             allAscii = allAscii && Ascii.IsValid(name);
 
-            if (enumMember && explicitName is not null)
+            if (explicitName is not null)
             {
                 valuesByName[explicitName] = value;
                 allAscii = allAscii && Ascii.IsValid(explicitName);
@@ -113,6 +104,15 @@ internal sealed class EnumCacheUtf8<TEnum> : EnumMemberCache<byte, TEnum>
     }
 
     private static byte[] ToNumber(EnumMember member) => Encoding.UTF8.GetBytes(member.Value.ToString("D"));
-    private static byte[] ToString(EnumMember member) => Encoding.UTF8.GetBytes(member.Name);
-    private static byte[] ToExplicit(EnumMember member) => Encoding.UTF8.GetBytes(member.ExplicitName ?? member.Name);
+    private static byte[] ToString(EnumMember member) => Encoding.UTF8.GetBytes(member.ExplicitName ?? member.Name);
+
+    public static bool IsDefinedCore(TEnum value)
+    {
+        if (HasFlagsAttribute)
+        {
+            return (value.ToBitmask() & ~AllFlags.ToBitmask()) == 0;
+        }
+
+        return GetWriteValues("D")?.ContainsKey(value) ?? Enum.IsDefined(value);
+    }
 }
