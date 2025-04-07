@@ -1,5 +1,6 @@
+using System.Buffers;
 using System.Collections.Frozen;
-using System.Runtime.CompilerServices;
+using FlameCsv.Extensions;
 using FlameCsv.Utilities;
 
 namespace FlameCsv.Converters;
@@ -13,8 +14,8 @@ internal sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
     private readonly bool _allowUndefinedValues;
     private readonly bool _ignoreCase;
     private readonly string? _format;
-    private readonly FrozenDictionary<string, TEnum>.AlternateLookup<ReadOnlySpan<char>> _values;
-    private readonly FrozenDictionary<TEnum, string>? _names;
+    private readonly EnumParseStrategy<char, TEnum> _parseStrategy;
+    private readonly EnumFormatStrategy<char, TEnum> _formatStrategy;
 
     /// <summary>
     /// Creates a new enum converter.
@@ -26,40 +27,31 @@ internal sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
         _ignoreCase = (options.EnumOptions & CsvEnumOptions.IgnoreCase) != 0;
         _format = options.GetFormat(typeof(TEnum), options.EnumFormat);
 
-        bool useEnumMember = (options.EnumOptions & CsvEnumOptions.UseEnumMemberAttribute) != 0;
+        var formatStrategy = new FormatStrategy(_format);
 
-        if (!EnumMemberCache<TEnum>.HasFlagsAttribute)
+        if (EnumMemberCache<TEnum>.IsFlagsFormat(_format))
         {
-            _values = EnumCacheText<TEnum>.GetReadValues(_ignoreCase, useEnumMember);
-
-            if (EnumMemberCache<TEnum>.IsSupported(_format))
-            {
-                _names = EnumCacheText<TEnum>.GetWriteValues(_format, useEnumMember);
-            }
+            EnumMemberCache<TEnum>.EnsureFlagsAttribute();
+            _formatStrategy = new CsvEnumFlagsTextFormatStrategy<TEnum>(options, formatStrategy);
         }
-    }
+        else
+        {
+            _formatStrategy = formatStrategy;
+        }
 
-    internal EnumTextConverter(bool ignoreCase, string? format)
-    {
-        _ignoreCase = ignoreCase;
-        _format = format;
+        var parseStrategy = new ParseStrategy(_allowUndefinedValues, _ignoreCase);
+        _parseStrategy = EnumMemberCache<TEnum>.HasFlagsAttribute
+            ? new CsvEnumFlagsParseStrategy<char, TEnum>(options, parseStrategy)
+            : parseStrategy;
     }
 
     /// <inheritdoc/>
     public override bool TryFormat(Span<char> destination, TEnum value, out int charsWritten)
     {
-        if (_names is not null && _names.TryGetValue(value, out string? name))
-        {
-            if (destination.Length >= name.Length)
-            {
-                name.CopyTo(destination);
-                charsWritten = name.Length;
-                return true;
-            }
+        OperationStatus status = _formatStrategy.TryFormat(destination, value, out charsWritten);
 
-            charsWritten = 0;
-            return false;
-        }
+        if (status is OperationStatus.Done) return true;
+        if (status is OperationStatus.DestinationTooSmall) return false;
 
         return Enum.TryFormat(value, destination, out charsWritten, _format);
     }
@@ -67,96 +59,71 @@ internal sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
     /// <inheritdoc/>
     public override bool TryParse(ReadOnlySpan<char> source, out TEnum value)
     {
-        if (source.IsEmpty)
+        if (_parseStrategy.TryParse(source, out value))
         {
-            value = default;
-            return false;
-        }
-
-        if ((source[0] - (uint)'0') <= ('9' - '0') ||
-            (
-                (
-                    typeof(TEnum).GetEnumUnderlyingType() == typeof(sbyte) ||
-                    typeof(TEnum).GetEnumUnderlyingType() == typeof(short) ||
-                    typeof(TEnum).GetEnumUnderlyingType() == typeof(int) ||
-                    typeof(TEnum).GetEnumUnderlyingType() == typeof(long)
-                ) &&
-                source[0] == '-' // JITed away for unsigned enums
-            ))
-        {
-            if (TryParseNumber(source, out value))
-            {
-                return _allowUndefinedValues || (_names?.ContainsKey(value) == true) || Enum.IsDefined(value);
-            }
-        }
-
-        if (_values.Dictionary is not null && _values.TryGetValue(source, out value))
-        {
-            // the cache never contains undefined values
             return true;
         }
 
         return Enum.TryParse(source, _ignoreCase, out value) &&
-        (
-            _allowUndefinedValues ||
-            (_names?.ContainsKey(value) == true) ||
-            Enum.IsDefined(value)
-        );
+            (_allowUndefinedValues || EnumCacheText<TEnum>.IsDefinedCore(value));
     }
 
-    // GetEnumUnderlyingType is intrinsic, so this method will be optimized into a single TryParse
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool TryParseNumber(ReadOnlySpan<char> source, out TEnum value)
+    private sealed class ParseStrategy : EnumParseStrategy<char, TEnum>
     {
-        if (typeof(TEnum).GetEnumUnderlyingType() == typeof(byte) && byte.TryParse(source, out byte b))
+        private readonly bool _allowUndefinedValues;
+
+        private readonly FrozenDictionary<string, TEnum>.AlternateLookup<ReadOnlySpan<char>> _values;
+
+        public ParseStrategy(bool allowUndefinedValues, bool ignoreCase)
         {
-            value = Unsafe.As<byte, TEnum>(ref b);
-            return true;
+            _allowUndefinedValues = allowUndefinedValues;
+            _values = EnumCacheText<TEnum>.GetReadValues(ignoreCase);
         }
 
-        if (typeof(TEnum).GetEnumUnderlyingType() == typeof(sbyte) && sbyte.TryParse(source, out sbyte sb))
+        public override bool TryParse(ReadOnlySpan<char> source, out TEnum value)
         {
-            value = Unsafe.As<sbyte, TEnum>(ref sb);
-            return true;
-        }
+            if (source.IsEmpty)
+            {
+                value = default;
+                return false;
+            }
 
-        if (typeof(TEnum).GetEnumUnderlyingType() == typeof(short) && short.TryParse(source, out short sh))
+            if (EnumExtensions.CanParseNumber<char, TEnum>(source) && EnumExtensions.TryParseNumber(source, out value))
+            {
+                return _allowUndefinedValues || EnumCacheText<TEnum>.IsDefinedCore(value);
+            }
+
+            if (_values.Dictionary is not null && _values.TryGetValue(source, out value))
+            {
+                return true;
+            }
+
+            value = default;
+            return false;
+        }
+    }
+
+    private sealed class FormatStrategy(string? format) : EnumFormatStrategy<char, TEnum>
+    {
+        private readonly FrozenDictionary<TEnum, string>? _names = EnumCacheText<TEnum>.GetWriteValues(format);
+
+        public override OperationStatus TryFormat(Span<char> destination, TEnum value, out int charsWritten)
         {
-            value = Unsafe.As<short, TEnum>(ref sh);
-            return true;
-        }
+            if (_names is not null && _names.TryGetValue(value, out string? name))
+            {
+                if (destination.Length >= name.Length)
+                {
+                    name.CopyTo(destination);
+                    charsWritten = name.Length;
+                    return OperationStatus.Done;
+                }
 
-        if (typeof(TEnum).GetEnumUnderlyingType() == typeof(ushort) && ushort.TryParse(source, out ushort ush))
-        {
-            value = Unsafe.As<ushort, TEnum>(ref ush);
-            return true;
-        }
+                charsWritten = 0;
+                return OperationStatus.DestinationTooSmall;
+            }
 
-        if (typeof(TEnum).GetEnumUnderlyingType() == typeof(int) && int.TryParse(source, out int i))
-        {
-            value = Unsafe.As<int, TEnum>(ref i);
-            return true;
+            charsWritten = 0;
+            return OperationStatus.InvalidData;
         }
-
-        if (typeof(TEnum).GetEnumUnderlyingType() == typeof(uint) && uint.TryParse(source, out uint ui))
-        {
-            value = Unsafe.As<uint, TEnum>(ref ui);
-            return true;
-        }
-
-        if (typeof(TEnum).GetEnumUnderlyingType() == typeof(long) && long.TryParse(source, out long l))
-        {
-            value = Unsafe.As<long, TEnum>(ref l);
-            return true;
-        }
-
-        if (typeof(TEnum).GetEnumUnderlyingType() == typeof(ulong) && ulong.TryParse(source, out ulong ul))
-        {
-            value = Unsafe.As<ulong, TEnum>(ref ul);
-            return true;
-        }
-
-        Unsafe.SkipInit(out value);
-        return false;
     }
 }

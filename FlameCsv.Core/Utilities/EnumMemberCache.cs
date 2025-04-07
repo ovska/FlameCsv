@@ -5,14 +5,27 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using FlameCsv.Exceptions;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Utilities;
 
 internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.PublicFields)] TEnum>
     where TEnum : struct, Enum
 {
+    public static bool IsFlagsFormat(string? format) => "f".Equals(format, StringComparison.OrdinalIgnoreCase);
+
+    public static void EnsureFlagsAttribute()
+    {
+        if (!HasFlagsAttribute)
+        {
+            throw new NotSupportedException($"Flags-format 'f' is not supported on non-flags enum {typeof(TEnum)}");
+        }
+    }
+
     public static bool HasFlagsAttribute
         => _hasFlagsAttribute ??= typeof(TEnum).GetCustomAttribute<FlagsAttribute>() is not null;
+
+    public static TEnum AllFlags => _allFlags ??= InitFlags();
 
     // ReSharper disable once StaticMemberInGenericType
     private protected static bool? _hasFlagsAttribute;
@@ -50,57 +63,26 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
             return vsb.ToString();
         }
     }
-}
 
-internal abstract class EnumMemberCache<T, [DAM(DynamicallyAccessedMemberTypes.PublicFields)] TEnum>
-    : EnumMemberCache<TEnum>
-    where T : unmanaged, IBinaryInteger<T>
-    where TEnum : struct, Enum
-{
-    [ExcludeFromCodeCoverage]
-    static EnumMemberCache()
+    private protected static TEnum? _allFlags;
+    private protected static ImmutableArray<EnumMember> _valuesAndNames;
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static TEnum InitFlags()
     {
-        HotReloadService.RegisterForHotReload(
-            typeof(TEnum),
-            static _ =>
-            {
-                _hasFlagsAttribute = null;
-                _valuesAndNames = default;
-            });
-    }
-
-    private static ImmutableArray<EnumMember> _valuesAndNames;
-
-    protected static char GetFormatChar(string? format)
-    {
-        if (HasFlagsAttribute)
+        if (!HasFlagsAttribute)
         {
-            throw new UnreachableException($"{nameof(GetFormatChar)} called on flags-enum {typeof(TEnum)}.");
+            throw new NotSupportedException($"{typeof(TEnum).FullName} is not a flags enum.");
         }
 
-        if (string.IsNullOrEmpty(format))
+        var allFlags = default(TEnum);
+
+        foreach (var value in Enum.GetValues<TEnum>())
         {
-            return 'g';
+            allFlags.AddFlag(value);
         }
 
-        ReadOnlySpan<char> fmt = format.AsSpan();
-
-        if (fmt.Length == 1)
-        {
-            char c = (char)(fmt[0] | 0x20);
-
-            if (c is 'g' or 'd' or 'x')
-            {
-                return c;
-            }
-
-            if (c is 'f')
-            {
-                throw new NotSupportedException("Flags-format is not supported for non-flags enums.");
-            }
-        }
-
-        throw new FormatException($"Invalid enum format string: {format}");
+        return allFlags;
     }
 
     internal static ImmutableArray<EnumMember> ValuesAndNames
@@ -173,5 +155,59 @@ internal abstract class EnumMemberCache<T, [DAM(DynamicallyAccessedMemberTypes.P
         }
 
         return builder.ToImmutable();
+    }
+
+    [ExcludeFromCodeCoverage]
+    static EnumMemberCache()
+    {
+        HotReloadService.RegisterForHotReload(
+            typeof(TEnum),
+            static _ =>
+            {
+                _hasFlagsAttribute = null;
+                _valuesAndNames = default;
+                _allFlags = null;
+            });
+    }
+
+    protected static char GetFormatChar(string? format)
+    {
+        if (string.IsNullOrEmpty(format))
+        {
+            return 'g';
+        }
+
+        ReadOnlySpan<char> fmt = format.AsSpan();
+
+        if (fmt.Length == 1)
+        {
+            char c = (char)(fmt[0] | 0x20);
+
+            if (c is 'g' or 'd' or 'x' or 'f')
+            {
+                return c;
+            }
+        }
+
+        throw new FormatException($"Invalid enum format string: {format}");
+    }
+
+    public static void EnsureValidFlagsSeparator(char flagsSeparator)
+    {
+        if (!HasFlagsAttribute) throw new UnreachableException();
+
+        Debug.Assert(!char.IsAsciiDigit(flagsSeparator));
+        Debug.Assert(!char.IsAsciiLetter(flagsSeparator));
+        Debug.Assert(flagsSeparator != '-');
+
+        foreach (var member in ValuesAndNames)
+        {
+            if (member.Name.Contains(flagsSeparator) ||
+                (member.ExplicitName is not null && member.ExplicitName.Contains(flagsSeparator)))
+            {
+                throw new CsvConfigurationException(
+                    $"Enum {typeof(TEnum).FullName}.{member.Name} name contains the flags-separator character '{flagsSeparator}'.");
+            }
+        }
     }
 }
