@@ -28,7 +28,6 @@ public partial class EnumConverterGenerator
         // write the fast path if:
         // - enum is small and contiguous from 0 (implies: has no duplicate values)
         // - enum has no names or explicit names that are only 1 char
-
         if (model is { ContiguousFromZero: true, Values.Length: <= 10 } &&
             model.Values.AsImmutableArray().All(static v => v.Name.Length != 1 && v.ExplicitName is not { Length: 1 }))
         {
@@ -45,14 +44,18 @@ public partial class EnumConverterGenerator
             WriteNumberCheck(in model, writer, cancellationToken);
         }
 
-        writer.WriteLine("else if (_parseStrategy.TryParse(source, out value))");
+
+        // flags enums can be valid even though the value is not defined, e.g. 1 | 2
+        writer.WriteLineIf(!model.HasFlagsAttribute);
+        writer.WriteIf(!model.HasFlagsAttribute, "else ");
+        writer.WriteLine("if (_parseStrategy.TryParse(source, out value))");
         using (writer.WriteBlock())
         {
             writer.WriteLine("return true;");
         }
 
         writer.WriteLine();
-        writer.WriteLine("// not a known value");
+        writer.WriteLine("// unknown value, defer to Enum.TryParse");
 
         if (model.TokenType.IsByte())
         {
@@ -153,8 +156,7 @@ public partial class EnumConverterGenerator
                                 writer.WriteLine(model.TokenType.IsByte() ? "u8))" : "))");
                                 using (writer.WriteBlock())
                                 {
-                                    writer.WriteLine(
-                                        $"value = ({model.EnumType.FullyQualifiedName}){entry.value};");
+                                    writer.WriteLine($"value = ({model.EnumType.FullyQualifiedName}){entry.value};");
                                     writer.WriteLine("return true;");
                                 }
                             }
@@ -746,7 +748,8 @@ public partial class EnumConverterGenerator
         {
             foreach (var entry in values)
             {
-                writer.Write($"case (");
+                // TODO: endianness?
+                writer.Write("case (");
                 writer.Write(entry.name[0].ToCharLiteral());
                 writer.Write(" | (");
                 writer.Write(entry.name[1].ToCharLiteral());

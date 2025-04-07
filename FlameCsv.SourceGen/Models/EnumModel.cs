@@ -30,12 +30,6 @@ internal readonly record struct EnumModel
                 diagList.Add(Diagnostics.EnumUnsupportedToken(converterSymbol, attributeData, tokenType));
             }
 
-            // [Flags] not (yet) supported
-            if (enumType.GetAttributes().Any(a => a.AttributeClass?.Name == "FlagsAttribute"))
-            {
-                diagList.Add(Diagnostics.EnumFlagsNotSupported(enumType, attributeData.GetLocation()));
-            }
-
             Diagnostics.EnsurePartial(converterType, cancellationToken, diagList);
             Diagnostics.CheckIfFileScoped(converterType, cancellationToken, diagList);
             Diagnostics.CheckIfFileScoped(enumType, cancellationToken, diagList);
@@ -95,9 +89,7 @@ internal readonly record struct EnumModel
         EnumType = new TypeRef(enumType);
         UnderlyingType = new TypeRef(enumType.EnumUnderlyingType!);
 
-        HasFlagsAttribute = enumType
-            .GetAttributes()
-            .Any(a => a.AttributeClass is { MetadataName: "System.FlagsAttribute" });
+        HasFlagsAttribute = enumType.GetAttributes().Any(a => a.AttributeClass?.Name == "FlagsAttribute");
 
         List<EnumValueModel> values = PooledList<EnumValueModel>.Acquire();
         HashSet<BigInteger> uniqueValues = PooledSet<BigInteger>.Acquire();
@@ -154,6 +146,7 @@ internal readonly record struct EnumValueModel : IComparable<EnumValueModel>
     public string Name { get; }
     public string? ExplicitName { get; }
     public BigInteger Value { get; }
+    public string DisplayName => ExplicitName ?? Name;
 
     public EnumValueModel(IFieldSymbol enumValue, bool isUnsigned, List<Diagnostic> diagnostics)
     {

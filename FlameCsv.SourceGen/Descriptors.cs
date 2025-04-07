@@ -143,11 +143,5 @@ internal static class Descriptors
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    public static readonly DiagnosticDescriptor EnumFlagsNotSupported = new(
-        id: "FLAMESG503",
-        title: "Flags-enums are not supported",
-        messageFormat: "Converter generation for flags-enum {0} is not supported",
-        category: CategoryUsage,
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+    // DEPRECATED: FLAMESG503 EnumFlagsNotSupported
 }

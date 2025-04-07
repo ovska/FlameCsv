@@ -14,7 +14,7 @@ public partial class EnumConverterGenerator
         string enumName = model.EnumType.FullyQualifiedName;
 
         writer.WriteLine(
-            $"public override bool TryFormat(global::System.Span<{model.TokenType.Name}> destination, {enumName} value, out int charsWritten)");
+            $"public override global::System.Buffers.OperationStatus TryFormat(global::System.Span<{model.TokenType.Name}> destination, {enumName} value, out int charsWritten)");
         using var block = writer.WriteBlock();
 
         writer.WriteLine("__Unsafe.SkipInit(out charsWritten);");
@@ -34,7 +34,7 @@ public partial class EnumConverterGenerator
                 {
                     writer.WriteLine($"dst = ({model.TokenType.Name})('0' + value);");
                     writer.WriteLine("charsWritten = 1;");
-                    writer.WriteLine("return true;");
+                    writer.WriteLine("return global::System.Buffers.OperationStatus.Done;");
                 }
 
                 writer.WriteLine();
@@ -65,7 +65,7 @@ public partial class EnumConverterGenerator
             }
             else
             {
-                writer.WriteLine("return false;");
+                writer.WriteLine("return global::System.Buffers.OperationStatus.InvalidData;");
             }
         }
         else
@@ -112,10 +112,10 @@ public partial class EnumConverterGenerator
                         (model.TokenType.IsByte() ? Encoding.UTF8.GetByteCount(formattedValue) : formattedValue.Length)
                         .ToString());
                     writer.WriteLine(";");
-                    writer.WriteLine("return true;");
+                    writer.WriteLine("return global::System.Buffers.OperationStatus.Done;");
                 }
 
-                writer.WriteLine("break;");
+                writer.WriteLine("return global::System.Buffers.OperationStatus.DestinationTooSmall;");
             }
         }
 
@@ -123,7 +123,7 @@ public partial class EnumConverterGenerator
         block.Dispose();
 
         writer.WriteLine();
-        writer.WriteLine("return false;");
+        writer.WriteLine("return global::System.Buffers.OperationStatus.InvalidData;");
     }
 
     private static bool TryWriteDirectFormat(IndentedTextWriter writer, in EnumModel model, string value)
@@ -139,7 +139,7 @@ public partial class EnumConverterGenerator
             writer.WriteIf(model.TokenType.IsByte(), "(byte)");
             writer.WriteLine($"{value[0].ToCharLiteral()};");
             writer.WriteLine("charsWritten = 1;");
-            writer.WriteLine("return true;");
+            writer.WriteLine("return global::System.Buffers.OperationStatus.Done;");
             return true;
         }
 
@@ -197,10 +197,52 @@ public partial class EnumConverterGenerator
             }
 
             writer.WriteLine($"charsWritten = {value.Length};");
-            writer.WriteLine("return true;");
+            writer.WriteLine("return global::System.Buffers.OperationStatus.Done;");
         }
 
-        writer.WriteLine("break;");
+        writer.WriteLine("return global::System.Buffers.OperationStatus.DestinationTooSmall;");
         return true;
+    }
+
+    private static void WriteFlagsImplementation(
+        in EnumModel model,
+        IndentedTextWriter writer,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!model.HasFlagsAttribute) return;
+
+        writer.Write("private sealed class FlagsFormatStrategy : global::FlameCsv.Converters.CsvEnumFlagsFormatStrategy");
+        writer.WriteLine($"<{model.TokenType.Name}, {model.EnumType.FullyQualifiedName}>");
+        using var block = writer.WriteBlock();
+
+        writer.Write($"protected override ReadOnlySpan<{model.TokenType.Name}> Zero => ");
+
+        string zeroName = model.Values.AsImmutableArray().FirstOrDefault(v => v.Value == 0).DisplayName ?? "0";
+        writer.Write(zeroName.ToStringLiteral());
+        writer.WriteIf(model.TokenType.IsByte(), "u8");
+        writer.WriteLine(";");
+
+        writer.WriteLine();
+        writer.WriteLine($"public FlagsFormatStrategy(global::FlameCsv.CsvOptions<{model.TokenType.Name}> options, global::FlameCsv.Converters.EnumFormatStrategy<{model.TokenType.Name}, {model.EnumType.FullyQualifiedName}> inner) : base(options, inner) {{ }}");
+    }
+
+    private static void WriteFlagsFormat(
+        in EnumModel model,
+        IndentedTextWriter writer,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        string enumName = model.EnumType.FullyQualifiedName;
+
+        writer.WriteLine(
+            $"public override global::System.Buffers.OperationStatus TryFormat(global::System.Span<{model.TokenType.Name}> destination, {enumName} value, out int charsWritten)");
+        using var block = writer.WriteBlock();
+        writer.WriteLine($"return (({model.UnderlyingType.FullyQualifiedName})value).TryFormat(destination, out charsWritten)");
+        writer.IncreaseIndent();
+        writer.WriteLine(" ? global::System.Buffers.OperationStatus.Done");
+        writer.WriteLine(" : global::System.Buffers.OperationStatus.DestinationTooSmall;");
+        writer.DecreaseIndent();
     }
 }
