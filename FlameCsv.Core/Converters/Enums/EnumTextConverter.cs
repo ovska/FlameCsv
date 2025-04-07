@@ -3,7 +3,7 @@ using System.Collections.Frozen;
 using FlameCsv.Extensions;
 using FlameCsv.Utilities;
 
-namespace FlameCsv.Converters;
+namespace FlameCsv.Converters.Enums;
 
 /// <summary>
 /// The default converter for non-flags enums.
