@@ -228,9 +228,11 @@ public class CsvOptionsTests
         Run(o => o.Converters.RemoveAt(0));
         Run(o => o.Converters.Clear());
         Run(o => o.StringPool = null);
-        Run(o => o.EnumOptions = (CsvEnumOptions)1);
         Run(o => o.UseDefaultConverters = false);
         Run(o => o.EnumFormat = "");
+        Run(o => o.EnumFlagsSeparator = '^');
+        Run(o => o.AllowUndefinedEnumValues = false);
+        Run(o => o.IgnoreEnumCase = false);
         Run(o => o.FieldQuoting = default);
         Run(o => o.FormatProvider = null);
         Run(o => o.FormatProviders.Add(typeof(int), null));

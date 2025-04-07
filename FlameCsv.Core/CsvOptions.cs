@@ -79,8 +79,12 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         _styles = other._styles?.Clone();
         _comparer = other._comparer;
         _useDefaultConverters = other._useDefaultConverters;
-        _enumFlags = other._enumFlags;
+
         _enumFormat = other._enumFormat;
+        _enumFlagsSeparator = other._enumFlagsSeparator;
+        _ignoreEnumCase = other._ignoreEnumCase;
+        _allowUndefinedEnumValues = other._allowUndefinedEnumValues;
+
         _noReadAhead = other._noReadAhead;
         _stringPool = other._stringPool;
         _typeBinder = other._typeBinder;
@@ -230,7 +234,8 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     private bool _useDefaultConverters = true;
     private string? _enumFormat;
     private char _enumFlagsSeparator = ',';
-    private CsvEnumOptions _enumFlags = CsvEnumOptions.IgnoreCase;
+    private bool _ignoreEnumCase = true;
+    private bool _allowUndefinedEnumValues;
     private bool _noReadAhead;
     private StringPool? _stringPool;
     private ICsvTypeBinder<T>? _typeBinder;
@@ -444,16 +449,6 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     {
         get => _useDefaultConverters;
         set => this.SetValue(ref _useDefaultConverters, value);
-    }
-
-    /// <summary>
-    /// Configuration flags for enum conversion. Default is <see cref="CsvEnumOptions.IgnoreCase"/>.
-    /// </summary>
-    /// <seealso cref="UseDefaultConverters"/>
-    public CsvEnumOptions EnumOptions
-    {
-        get => _enumFlags;
-        set => this.SetValue(ref _enumFlags, value);
     }
 
     /// <summary>

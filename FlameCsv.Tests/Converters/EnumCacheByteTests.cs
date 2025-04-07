@@ -23,4 +23,12 @@ public class EnumCacheByteTests : EnumTests<byte>
     {
         return new EnumUtf8Converter<NotAscii>(GetOpts(numeric, ignoreCase));
     }
+
+    protected override CsvConverter<byte, FlagsEnum> GetFlagsEnum(bool numeric, bool ignoreCase, bool allowUndefined)
+    {
+        var opts = GetOpts(numeric, ignoreCase);
+        opts.AllowUndefinedEnumValues = allowUndefined;
+        opts.EnumFormat = numeric ? "D" : "F";
+        return new EnumUtf8Converter<FlagsEnum>(opts);
+    }
 }

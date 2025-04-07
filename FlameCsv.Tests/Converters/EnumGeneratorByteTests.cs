@@ -24,6 +24,14 @@ public partial class EnumGeneratorByteTests : EnumTests<byte>
         return new NotAsciiConverter(GetOpts(numeric, ignoreCase));
     }
 
+    protected override CsvConverter<byte, FlagsEnum> GetFlagsEnum(bool numeric, bool ignoreCase, bool allowUndefined)
+    {
+        var opts = GetOpts(numeric, ignoreCase);
+        opts.AllowUndefinedEnumValues = allowUndefined;
+        opts.EnumFormat = numeric ? "D" : "F";
+        return new FlagsEnumConverter(opts);
+    }
+
     [CsvEnumConverter<byte, DayOfWeek>]
     private partial class DayOfWeekConverter;
 
@@ -35,4 +43,7 @@ public partial class EnumGeneratorByteTests : EnumTests<byte>
 
     [CsvEnumConverter<byte, NotAscii>]
     private partial class NotAsciiConverter;
+
+    [CsvEnumConverter<byte, FlagsEnum>]
+    private partial class FlagsEnumConverter;
 }

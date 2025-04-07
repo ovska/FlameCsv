@@ -28,9 +28,9 @@ public static class OldEnumTests
     {
         Assertions(
             ignoreCase => new EnumTextConverter<DayOfWeek>(
-                new CsvOptions<char> { EnumOptions = GetOptions(ignoreCase) }),
+                new CsvOptions<char> { IgnoreEnumCase = ignoreCase}),
             ignoreCase => new EnumTextConverter<CustomDayOfWeek>(
-                new CsvOptions<char> { EnumOptions = GetOptions(ignoreCase) }));
+                new CsvOptions<char> { IgnoreEnumCase = ignoreCase }));
     }
 
     [Fact]
@@ -38,13 +38,10 @@ public static class OldEnumTests
     {
         Assertions(
             ignoreCase => new EnumUtf8Converter<DayOfWeek>(
-                new CsvOptions<byte> { EnumOptions = GetOptions(ignoreCase) }),
+                new CsvOptions<byte> { IgnoreEnumCase = ignoreCase }),
             ignoreCase => new EnumUtf8Converter<CustomDayOfWeek>(
-                new CsvOptions<byte> { EnumOptions = GetOptions(ignoreCase) }));
+                new CsvOptions<byte> { IgnoreEnumCase = ignoreCase }));
     }
-
-    private static CsvEnumOptions GetOptions(bool ignoreCase)
-        => CsvEnumOptions.UseEnumMemberAttribute | (ignoreCase ? CsvEnumOptions.IgnoreCase : CsvEnumOptions.None);
 
     private static void Assertions<T>(
         Func<bool, CsvConverter<T, DayOfWeek>> getCache,
@@ -204,17 +201,13 @@ public static class OldEnumTests
     [Fact]
     public static void WriteText()
     {
-        WriteImpl(
-            f => new EnumTextConverter<CustomDayOfWeek>(
-                new CsvOptions<char> { EnumFormat = f, EnumOptions = CsvEnumOptions.UseEnumMemberAttribute }));
+        WriteImpl(f => new EnumTextConverter<CustomDayOfWeek>(new CsvOptions<char> { EnumFormat = f }));
     }
 
     [Fact]
     public static void WriteUtf8()
     {
-        WriteImpl(
-            f => new EnumUtf8Converter<CustomDayOfWeek>(
-                new CsvOptions<byte> { EnumFormat = f, EnumOptions = CsvEnumOptions.UseEnumMemberAttribute }));
+        WriteImpl(f => new EnumUtf8Converter<CustomDayOfWeek>(new CsvOptions<byte> { EnumFormat = f }));
     }
 
     private static void WriteImpl<T>(Func<string, CsvConverter<T, CustomDayOfWeek>> getCache)

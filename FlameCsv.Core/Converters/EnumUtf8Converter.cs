@@ -25,8 +25,8 @@ internal sealed class EnumUtf8Converter<TEnum> : CsvConverter<byte, TEnum> where
     public EnumUtf8Converter(CsvOptions<byte> options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        _allowUndefinedValues = (options.EnumOptions & CsvEnumOptions.AllowUndefinedValues) != 0;
-        _ignoreCase = (options.EnumOptions & CsvEnumOptions.IgnoreCase) != 0;
+        _allowUndefinedValues = options.AllowUndefinedEnumValues;
+        _ignoreCase = options.IgnoreEnumCase;
         _format = options.GetFormat(typeof(TEnum), options.EnumFormat);
 
         var formatStrategy = new FormatStrategy(_format);
