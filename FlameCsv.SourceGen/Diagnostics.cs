@@ -183,16 +183,6 @@ internal static class Diagnostics
             messageArgs: [explicitName, enumSymbol.Name, fieldSymbol.Name]);
     }
 
-    public static Diagnostic EnumFlagsNotSupported(
-        ISymbol enumSymbol,
-        Location? location)
-    {
-        return Diagnostic.Create(
-            descriptor: Descriptors.EnumFlagsNotSupported,
-            location: location ?? GetLocation(enumSymbol),
-            messageArgs: enumSymbol.ToDisplayString());
-    }
-
     /// <summary>
     /// Returns the first valid non-empty source location from the given symbols, checked in order.
     /// </summary>

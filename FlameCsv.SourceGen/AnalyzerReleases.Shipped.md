@@ -20,3 +20,14 @@
  FLAMESG205 | Usage    | Error    | Multiple type proxies
  FLAMESG206 | Usage    | Error    | No CsvConverterFactory ctor
  FLAMESG207 | Usage    | Error    | Abstract CsvConverter
+
+## Release 0.2.0
+
+### New Rules
+
+ Rule ID    | Category | Severity | Notes       
+------------|----------|----------|-------------
+ FLAMESG100 | Design   | Error    | Not a partial type
+ FLAMESG501 | Usage    | Error    | Invalid converter token for enum generator
+ FLAMESG502 | Usage    | Error    | Invalid EnumMemberAttribute
+ FLAMESG503 | Usage    | Error    | Enum had Flags-attribute
