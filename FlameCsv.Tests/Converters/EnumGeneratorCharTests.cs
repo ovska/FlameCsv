@@ -24,6 +24,14 @@ public partial class EnumGeneratorCharTests : EnumTests<char>
         return new NotAsciiConverter(GetOpts(numeric, ignoreCase));
     }
 
+    protected override CsvConverter<char, FlagsEnum> GetFlagsEnum(bool numeric, bool ignoreCase, bool allowUndefined)
+    {
+        var opts = GetOpts(numeric, ignoreCase);
+        opts.AllowUndefinedEnumValues = allowUndefined;
+        opts.EnumFormat = numeric ? "D" : "F";
+        return new FlagsEnumConverter(opts);
+    }
+
     [CsvEnumConverter<char, DayOfWeek>]
     private partial class DayOfWeekConverter;
 
@@ -35,4 +43,7 @@ public partial class EnumGeneratorCharTests : EnumTests<char>
 
     [CsvEnumConverter<char, NotAscii>]
     private partial class NotAsciiConverter;
+
+    [CsvEnumConverter<char, FlagsEnum>]
+    private partial class FlagsEnumConverter;
 }

@@ -3,58 +3,35 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv;
 
-// TODO: figure out if these should be obsoleted, or left for convenience
-
 public partial class CsvOptions<T>
 {
     /// <summary>
     /// Whether to allow enum values that are not defined in the enum type.
     /// Default is <see langword="false"/>.
     /// </summary>
-    /// <seealso cref="EnumOptions"/>
     public bool AllowUndefinedEnumValues
     {
-        get => (_enumFlags & CsvEnumOptions.AllowUndefinedValues) != 0;
-        set
-        {
-            this.ThrowIfReadOnly();
-
-            if (value)
-            {
-                _enumFlags |= CsvEnumOptions.AllowUndefinedValues;
-            }
-            else
-            {
-                _enumFlags &= ~CsvEnumOptions.AllowUndefinedValues;
-            }
-        }
+        get => _allowUndefinedEnumValues;
+        set => this.SetValue(ref _allowUndefinedEnumValues, value);
     }
 
     /// <summary>
     /// Whether to ignore casing when parsing enum values. Default is <see langword="true"/>.
     /// </summary>
-    /// <seealso cref="EnumOptions"/>
     public bool IgnoreEnumCase
     {
-        get => (_enumFlags & CsvEnumOptions.IgnoreCase) != 0;
-        set
-        {
-            this.ThrowIfReadOnly();
-
-            if (value)
-            {
-                _enumFlags |= CsvEnumOptions.IgnoreCase;
-            }
-            else
-            {
-                _enumFlags &= ~CsvEnumOptions.IgnoreCase;
-            }
-        }
+        get => _ignoreEnumCase;
+        set => this.SetValue(ref _ignoreEnumCase, value);
     }
 
     /// <summary>
-    /// Separator character used when parsing and formatting flags-enums as strings.
+    /// Separator character used when parsing and formatting flags-enums as strings.<br/>
+    /// Default is <c>','</c> (comma).
     /// </summary>
+    /// <remarks>
+    /// The separator character must not be a surrogate char, an ASCII digit, letter, or the '-' character.<br/>
+    /// If an enum name contains the separator character, a runtime exception will be thrown.
+    /// </remarks>
     public char EnumFlagsSeparator
     {
         get => _enumFlagsSeparator;

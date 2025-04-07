@@ -99,18 +99,15 @@ public partial class EnumParseBench
         }
     }
 
-    private const CsvEnumOptions IcOpts = CsvEnumOptions.IgnoreCase | CsvEnumOptions.AllowUndefinedValues;
-    private const CsvEnumOptions OrdOpts = CsvEnumOptions.AllowUndefinedValues;
+    private static readonly TypeCodeConverterChar _ccic = new(CsvOptions<char>.Default);
+    private static readonly TypeCodeConverterChar _ccord = new(new CsvOptions<char> { IgnoreEnumCase = false });
+    private static readonly TypeCodeConverterByte _cbic = new(CsvOptions<byte>.Default);
+    private static readonly TypeCodeConverterByte _cbord = new(new CsvOptions<byte> { IgnoreEnumCase = false });
 
-    private static readonly TypeCodeConverterChar _ccic = new(new CsvOptions<char> { EnumOptions = IcOpts });
-    private static readonly TypeCodeConverterChar _ccord = new(new CsvOptions<char> { EnumOptions = OrdOpts });
-    private static readonly TypeCodeConverterByte _cbic = new(new CsvOptions<byte> { EnumOptions = IcOpts });
-    private static readonly TypeCodeConverterByte _cbord = new(new CsvOptions<byte> { EnumOptions = OrdOpts });
-
-    private static readonly EnumTextConverter<TypeCode> _xcic = new(new CsvOptions<char> { EnumOptions = IcOpts });
-    private static readonly EnumTextConverter<TypeCode> _xcord = new(new CsvOptions<char> { EnumOptions = OrdOpts });
-    private static readonly EnumUtf8Converter<TypeCode> _xbic = new(new CsvOptions<byte> { EnumOptions = IcOpts });
-    private static readonly EnumUtf8Converter<TypeCode> _xbord = new(new CsvOptions<byte> { EnumOptions = OrdOpts });
+    private static readonly EnumTextConverter<TypeCode> _xcic = new(CsvOptions<char>.Default);
+    private static readonly EnumTextConverter<TypeCode> _xcord = new(new CsvOptions<char> { IgnoreEnumCase = false });
+    private static readonly EnumUtf8Converter<TypeCode> _xbic = new(CsvOptions<byte>.Default);
+    private static readonly EnumUtf8Converter<TypeCode> _xbord = new(new CsvOptions<byte> { IgnoreEnumCase = false });
 
     [CsvEnumConverter<char, TypeCode>]
     private partial class TypeCodeConverterChar;

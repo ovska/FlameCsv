@@ -105,7 +105,7 @@
         <Compile Update="CsvOptions.Cache.cs">
           <DependentUpon>CsvOptions.cs</DependentUpon>
         </Compile>
-        <Compile Update="CsvOptions.Obsolete.cs">
+        <Compile Update="CsvOptions.Enum.cs">
           <DependentUpon>CsvOptions.cs</DependentUpon>
         </Compile>
     </ItemGroup>

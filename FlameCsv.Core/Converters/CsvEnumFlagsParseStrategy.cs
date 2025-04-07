@@ -32,7 +32,7 @@ public sealed class CsvEnumFlagsParseStrategy<T, TEnum> : EnumParseStrategy<T, T
 
         _separator = T.CreateChecked(options.EnumFlagsSeparator);
         _inner = inner;
-        _allowUndefinedValues = (options.EnumOptions & CsvEnumOptions.AllowUndefinedValues) != 0;
+        _allowUndefinedValues = options.AllowUndefinedEnumValues;
         _whitespace = options.Dialect.GetWhitespaceArray();
     }
 

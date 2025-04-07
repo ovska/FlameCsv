@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text;
 
 // ReSharper disable InconsistentNaming
@@ -7,8 +8,6 @@ namespace FlameCsv.Tests.Converters;
 
 public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
 {
-    protected virtual bool SupportsAttributeName => true;
-
     private delegate CsvConverter<T, TEnum> Factory<TEnum>(bool numeric, bool ignoreCase) where TEnum : struct, Enum;
 
     protected static CsvOptions<T> GetOpts(bool numeric, bool ignoreCase)
@@ -16,7 +15,9 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
         return new CsvOptions<T>
         {
             EnumFormat = numeric ? "D" : "G",
-            EnumOptions = CsvEnumOptions.UseEnumMemberAttribute | (ignoreCase ? CsvEnumOptions.IgnoreCase : 0),
+            IgnoreEnumCase = ignoreCase,
+            EnumFlagsSeparator = '|',
+            Whitespace = " ",
         };
     }
 
@@ -24,6 +25,7 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
     protected abstract CsvConverter<T, Animal> GetAnimal(bool numeric, bool ignoreCase);
     protected abstract CsvConverter<T, Negatives> GetNegatives(bool numeric, bool ignoreCase);
     protected abstract CsvConverter<T, NotAscii> GetNotAscii(bool numeric, bool ignoreCase);
+    protected abstract CsvConverter<T, FlagsEnum> GetFlagsEnum(bool numeric, bool ignoreCase, bool allowUndefined);
 
     [Fact]
     public void Test_Negatives()
@@ -93,11 +95,7 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
             ImplFormat(Animal.Platypus1, format, converter);
             ImplFormat(Animal.Com0doDr4gon, format, converter);
             ImplFormat(Animal.SuperLongEnumNameThatGoesOnAndOn, format, converter);
-            ImplFormat(
-                Animal.Zebra,
-                format,
-                converter,
-                SupportsAttributeName && format == "G" ? "Zebra Animal!" : null);
+            ImplFormat(Animal.Zebra, format, converter, format == "G" ? "Zebra Animal!" : null);
         }
 
         void CheckParse(bool ignoreCase, CsvConverter<T, Animal> converter)
@@ -108,14 +106,7 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
                 ImplParse(value, value.ToString("D"), converter);
             }
 
-            if (SupportsAttributeName)
-            {
-                ImplParse(Animal.Zebra, "Zebra Animal!", converter);
-            }
-            else
-            {
-                ImplNotParsable("Zebra Animal!", converter);
-            }
+            ImplParse(Animal.Zebra, "Zebra Animal!", converter);
 
             ImplNotParsable("-1", converter);
             ImplNotParsable("13", converter);
@@ -129,12 +120,8 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
                 ImplParse(Animal.SuperLongEnumNameThatGoesOnAndOn, "SUPERLONGENUMNAMETHATGOESONANDON", converter);
                 ImplParse(Animal.Zebra, "zebra", converter);
                 ImplParse(Animal.Zebra, "ZEBRA", converter);
-
-                if (SupportsAttributeName)
-                {
-                    ImplParse(Animal.Zebra, "ZEBRA ANIMAL!", converter);
-                    ImplParse(Animal.Zebra, "zebra animaL!", converter);
-                }
+                ImplParse(Animal.Zebra, "ZEBRA ANIMAL!", converter);
+                ImplParse(Animal.Zebra, "zebra animaL!", converter);
             }
             else
             {
@@ -207,19 +194,9 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
         void CheckFormat(string format, CsvConverter<T, NotAscii> converter)
         {
             ImplFormat(NotAscii.Café, format, converter);
-
-            if (SupportsAttributeName)
-            {
-                ImplFormat(NotAscii.Unicorn, format, converter, "🦄");
-                ImplFormat(NotAscii.Dragon, format, converter, "🐉");
-                ImplFormat(NotAscii.Meat, format, converter, "🥩🥩🥩🥩🥩🥩🥩🥩");
-            }
-            else
-            {
-                ImplFormat(NotAscii.Unicorn, format, converter);
-                ImplFormat(NotAscii.Dragon, format, converter);
-                ImplFormat(NotAscii.Meat, format, converter);
-            }
+            ImplFormat(NotAscii.Unicorn, format, converter, "🦄");
+            ImplFormat(NotAscii.Dragon, format, converter, "🐉");
+            ImplFormat(NotAscii.Meat, format, converter, "🥩🥩🥩🥩🥩🥩🥩🥩");
         }
 
         void CheckParse(bool ignoreCase, CsvConverter<T, NotAscii> converter)
@@ -232,19 +209,9 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
 
             ImplNotParsable("-1", converter);
             ImplNotParsable("4", converter);
-
-            if (SupportsAttributeName)
-            {
-                ImplParse(NotAscii.Unicorn, "🦄", converter);
-                ImplParse(NotAscii.Dragon, "🐉", converter);
-                ImplParse(NotAscii.Meat, "🥩🥩🥩🥩🥩🥩🥩🥩", converter);
-            }
-            else
-            {
-                ImplNotParsable("🦄", converter);
-                ImplNotParsable("🐉", converter);
-                ImplNotParsable("🥩🥩🥩🥩🥩🥩🥩🥩", converter);
-            }
+            ImplParse(NotAscii.Unicorn, "🦄", converter);
+            ImplParse(NotAscii.Dragon, "🐉", converter);
+            ImplParse(NotAscii.Meat, "🥩🥩🥩🥩🥩🥩🥩🥩", converter);
 
             if (ignoreCase)
             {
@@ -259,6 +226,104 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
         }
     }
 
+    [Fact]
+    public void Test_Flags()
+    {
+        CheckParse(false, GetFlagsEnum(numeric: false, ignoreCase: false, allowUndefined: false));
+        CheckParse(true, GetFlagsEnum(numeric: false, ignoreCase: true, allowUndefined: false));
+        CheckFormat("D", GetFlagsEnum(numeric: true, ignoreCase: false, allowUndefined: false));
+        CheckFormat("G", GetFlagsEnum(numeric: false, ignoreCase: false, allowUndefined: false));
+        CheckFlags(numeric: false, ignoreCase: false);
+        CheckFlags(numeric: false, ignoreCase: true);
+        CheckFlags(numeric: true, ignoreCase: false);
+
+        void CheckFormat(string format, CsvConverter<T, FlagsEnum> converter)
+        {
+            ImplFormat(FlagsEnum.None, format, converter);
+            ImplFormat(FlagsEnum.First, format, converter);
+            ImplFormat(FlagsEnum.Second, format, converter);
+            ImplFormat(FlagsEnum.SecondAndThird, format, converter);
+            ImplFormat(FlagsEnum.CustomName, format, converter, "Custom Name");
+        }
+
+        void CheckParse(bool ignoreCase, CsvConverter<T, FlagsEnum> converter)
+        {
+            ImplParse(FlagsEnum.None, "None", converter);
+            ImplParse(FlagsEnum.First, "First", converter);
+            ImplParse(FlagsEnum.Second, "Second", converter);
+            ImplParse(FlagsEnum.Third, "Third", converter);
+            ImplParse(FlagsEnum.SecondAndThird, "SecondAndThird", converter);
+            ImplParse(FlagsEnum.CustomName, "CustomName", converter);
+
+            ImplParse(FlagsEnum.CustomName, "Custom Name", converter);
+            if (ignoreCase) ImplParse(FlagsEnum.CustomName, "cuSToM NaME", converter);
+            else ImplNotParsable("cuSToM NaME", converter);
+
+            if (ignoreCase)
+            {
+                ImplParse(FlagsEnum.None, "NONE", converter);
+                ImplParse(FlagsEnum.First, "FIRST", converter);
+                ImplParse(FlagsEnum.Second, "SECOND", converter);
+                ImplParse(FlagsEnum.Third, "THIRD", converter);
+                ImplParse(FlagsEnum.SecondAndThird, "SECONDANDTHIRD", converter);
+                ImplParse(FlagsEnum.CustomName, "CUSTOMNAME", converter);
+            }
+            else
+            {
+                ImplNotParsable("NONE", converter);
+                ImplNotParsable("FIRST", converter);
+                ImplNotParsable("SECOND", converter);
+                ImplNotParsable("THIRD", converter);
+                ImplNotParsable("SECONDANDTHIRD", converter);
+                ImplNotParsable("CUSTOMNAME", converter);
+            }
+        }
+
+        void CheckFlags(bool numeric, bool ignoreCase)
+        {
+            var converter = GetFlagsEnum(numeric: numeric, ignoreCase: ignoreCase, allowUndefined: false);
+            ImplParse(FlagsEnum.None, "0", converter);
+            ImplParse(FlagsEnum.First, "1", converter);
+            ImplParse(FlagsEnum.Second, "2", converter);
+            ImplParse(FlagsEnum.First | FlagsEnum.Second, "3", converter);
+            ImplParse(FlagsEnum.Third, "4", converter);
+            ImplParse(FlagsEnum.SecondAndThird, "6", converter);
+            ImplParse(FlagsEnum.CustomName, "8", converter);
+            ImplNotParsable("16", converter); // not defined
+
+            ImplParse(FlagsEnum.None, "None", converter);
+            ImplParse(FlagsEnum.First, "First", converter);
+            ImplParse(FlagsEnum.First | FlagsEnum.Second, "First|Second", converter);
+            ImplParse(FlagsEnum.Third, "Third", converter);
+            ImplParse(FlagsEnum.SecondAndThird, "SecondAndThird", converter);
+            ImplParse(FlagsEnum.SecondAndThird, "Second|Third", converter);
+            ImplParse(FlagsEnum.CustomName, "CustomName", converter);
+            ImplParse(FlagsEnum.CustomName, "Custom Name", converter);
+            ImplParse(FlagsEnum.First | FlagsEnum.CustomName, "First|Custom Name", converter);
+            ImplParse(FlagsEnum.First, "None|First|First", converter);
+
+            converter = GetFlagsEnum(numeric: numeric, ignoreCase: ignoreCase, allowUndefined: true);
+            ImplParse((FlagsEnum)16, "16", converter);
+
+            string format = numeric ? "D" : "F";
+            ImplFormat(FlagsEnum.None, format, converter);
+            ImplFormat(FlagsEnum.First, format, converter);
+            ImplFormat(FlagsEnum.Second, format, converter);
+            ImplFormat(FlagsEnum.First | FlagsEnum.Second, format, converter, "First|Second");
+            ImplFormat(FlagsEnum.Third, format, converter);
+            ImplFormat(FlagsEnum.SecondAndThird, format, converter, "SecondAndThird");
+            ImplFormat(FlagsEnum.CustomName, format, converter, "Custom Name");
+            ImplFormat(FlagsEnum.First | FlagsEnum.CustomName, format, converter, "First|Custom Name");
+            ImplFormat(
+                FlagsEnum.First | FlagsEnum.Second | FlagsEnum.Third,
+                format,
+                converter,
+                "First|SecondAndThird");
+            ImplFormat((FlagsEnum)16, format, converter);
+        }
+    }
+
+    [StackTraceHidden]
     private static void ImplParse<TEnum>(TEnum value, string expected, CsvConverter<T, TEnum> converter)
         where TEnum : struct, Enum
     {
@@ -358,5 +423,18 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
 
         [global::System.Runtime.Serialization.EnumMember(Value = "🥩🥩🥩🥩🥩🥩🥩🥩")]
         Meat = 0xBEEF,
+    }
+
+    [Flags]
+    protected enum FlagsEnum
+    {
+        None = 0,
+        First = 1 << 0,
+        Second = 1 << 1,
+        Third = 1 << 2,
+        SecondAndThird = Second | Third,
+
+        [global::System.Runtime.Serialization.EnumMember(Value = "Custom Name")]
+        CustomName = 1 << 3,
     }
 }

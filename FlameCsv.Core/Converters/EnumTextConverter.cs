@@ -23,8 +23,8 @@ internal sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
     public EnumTextConverter(CsvOptions<char> options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        _allowUndefinedValues = (options.EnumOptions & CsvEnumOptions.AllowUndefinedValues) != 0;
-        _ignoreCase = (options.EnumOptions & CsvEnumOptions.IgnoreCase) != 0;
+        _allowUndefinedValues = options.AllowUndefinedEnumValues;
+        _ignoreCase = options.IgnoreEnumCase;
         _format = options.GetFormat(typeof(TEnum), options.EnumFormat);
 
         var formatStrategy = new FormatStrategy(_format);
