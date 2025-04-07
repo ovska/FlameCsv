@@ -210,9 +210,9 @@ public partial class WriteBench
     {
         using var writer = CsvFieldWriter.Create(TextWriter.Null, CsvOptions<char>.Default, -1, false);
 
-        var c1 = new NumberTextConverter<int, IntegerStyles>(CsvOptions<char>.Default);
+        var c1 = new NumberTextConverter<int>(CsvOptions<char>.Default, NumberStyles.Integer);
         var c2 = StringTextConverter.Instance;
-        var c5 = new NumberTextConverter<double, FloatStyles>(CsvOptions<char>.Default);
+        var c5 = new NumberTextConverter<double>(CsvOptions<char>.Default, NumberStyles.Float);
         var c6 = new OptimizedNullEmptyConverter<char, double>(c5);
 
         writer.WriteText("Index");

@@ -3,20 +3,19 @@ using System.Globalization;
 
 namespace FlameCsv.Converters;
 
-internal sealed class NumberTextConverter<TValue, TStyles> : CsvConverter<char, TValue>
+internal sealed class NumberTextConverter<TValue> : CsvConverter<char, TValue>
     where TValue : INumberBase<TValue>
-    where TStyles : INumberStylesDefaultValue
 {
     private readonly string? _format;
     private readonly IFormatProvider? _provider;
     private readonly NumberStyles _styles;
 
-    public NumberTextConverter(CsvOptions<char> options)
+    public NumberTextConverter(CsvOptions<char> options, NumberStyles defaultStyles)
     {
         ArgumentNullException.ThrowIfNull(options);
         _format = options.GetFormat(typeof(TValue));
         _provider = options.GetFormatProvider(typeof(TValue));
-        _styles = options.GetNumberStyles(typeof(TValue), TStyles.Default);
+        _styles = options.GetNumberStyles(typeof(TValue), defaultStyles);
     }
 
     public override bool TryFormat(Span<char> destination, TValue value, out int charsWritten)
