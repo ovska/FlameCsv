@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.ComponentModel;
 using FlameCsv.Extensions;
 using JetBrains.Annotations;
 
@@ -56,6 +57,13 @@ public readonly struct CsvReaderOptions
     /// Gets or sets a value indicating whether the inner stream/reader should be left open after reading.
     /// </summary>
     public bool LeaveOpen { get; init; }
+
+    /// <summary>
+    /// Disable direct buffer reading optimization when reading <see cref="MemoryStream"/> or
+    /// <see cref="StringReader"/> with an exposable buffer.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public bool NoDirectBufferAccess { get; init; }
 
     /// <summary>
     /// Ensures the configured buffer sizes are valid for the specified memory pool.

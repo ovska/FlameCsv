@@ -1,0 +1,8 @@
+﻿# Ignore crash files in the current directory
+crash-*
+
+# Ignore all files in Testcases directory except .csv files
+Testcases/*
+!Testcases/*.csv
+
+libfuzzer-dotnet-windows.exe

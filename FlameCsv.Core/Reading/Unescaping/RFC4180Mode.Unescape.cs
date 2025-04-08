@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Text;
+using FlameCsv.Exceptions;
 
 namespace FlameCsv.Reading.Unescaping;
 
@@ -257,6 +258,6 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
 
         error.Append(']');
 
-        throw new UnreachableException($"Internal error, failed to unescape (token: {typeof(T).FullName}): {error}");
+        throw new CsvFormatException($"Failed to unescape invalid data: {error}");
     }
 }
