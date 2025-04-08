@@ -1,0 +1,9 @@
+header1,header2,header3
+simple,123,true
+"quoted value","with,comma",456.789
+empty,,field
+"multiline
+text","another
+row","last"
+escaped quote,"contains ""quotes""",normal
+trailing space ,  leading space,mixed  spaces  

@@ -1,5 +1,5 @@
-﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
+using FlameCsv.Exceptions;
 using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Reading.Unescaping;
@@ -58,6 +58,7 @@ internal static class IndexOfUnescaper
             str = "Failed to convert field to string: " + e.Message;
         }
 
-        throw new UnreachableException($"Cannot escape invalid field with meta {meta}: {str}");
+        // TODO: LENIENCY
+        throw new CsvFormatException($"Cannot unescape invalid field {meta}: {str}");
     }
 }

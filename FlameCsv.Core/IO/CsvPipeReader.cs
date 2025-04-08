@@ -74,7 +74,9 @@ public static class CsvPipeReader
         ArgumentNullException.ThrowIfNull(stream);
         Guard.CanRead(stream);
 
-        if (stream is MemoryStream memoryStream && memoryStream.TryGetBuffer(out ArraySegment<byte> buffer))
+        if (!options.NoDirectBufferAccess &&
+            stream is MemoryStream memoryStream &&
+            memoryStream.TryGetBuffer(out ArraySegment<byte> buffer))
         {
             return new ConstantPipeReader<byte>(
                 new ReadOnlySequence<byte>(buffer.AsMemory()),
@@ -104,7 +106,7 @@ public static class CsvPipeReader
         ArgumentNullException.ThrowIfNull(reader);
 
         // zero-copy reads if the reader is a StringReader and hasn't been fully read yet
-        if (reader.GetType() == typeof(StringReader))
+        if (!options.NoDirectBufferAccess && reader.GetType() == typeof(StringReader))
         {
             var stringReader = (StringReader)reader;
             string? content = GetString(stringReader);
