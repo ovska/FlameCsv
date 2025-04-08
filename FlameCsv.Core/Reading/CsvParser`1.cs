@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Reading.Internal;
 using JetBrains.Annotations;
@@ -328,6 +329,22 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
         if (!lastEOL.IsEOL)
         {
             InvalidState.Throw(GetType(), _metaArray, _metaIndex, _metaCount);
+        }
+
+        // TODO delete
+        if (lastEOL.NextStart > _sequence.Length)
+        {
+            System.Text.StringBuilder sb = new();
+            sb.Append(lastEOL);
+            sb.Append(" vs ");
+            sb.Append(_sequence.Length);
+            sb.Append(" - ");
+            sb.Append($"Meta length: {_metaArray}");
+            sb.Append(" - all metas: ");
+            sb.AppendJoin(", ", _metaArray[.._metaIndex]);
+            sb.AppendLine();
+            sb.Append(((ReadOnlySpan<T>)_sequence.ToArray()).AsPrintableString());
+            throw new UnreachableException(sb.ToString());
         }
 
         _sequence = _sequence.Slice(lastEOL.NextStart);

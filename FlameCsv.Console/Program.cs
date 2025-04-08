@@ -40,6 +40,15 @@ namespace FlameCsv.Console
 
         static void Main([NotNull] string[] args)
         {
+            ReadOnlySequence<byte> __data = new(
+                File.ReadAllBytes(
+                    @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Fuzzing\crash-1b91d2e7a164067db08ebc01857959fc850ccb20"));
+            foreach (var _ in CsvParser.Create(CsvOptions<byte>.Default, __data).ParseRecords())
+            {
+            }
+
+            Debugger.Break();
+
             bool stop = false;
             int iters = 0;
             int snapshot = 0;

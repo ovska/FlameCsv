@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
+using FlameCsv.Exceptions;
 
 namespace FlameCsv.Reading.Unescaping;
 
@@ -75,6 +76,7 @@ internal struct IndexOfRFC4180Unescaper<T>(T quote, uint quoteCount) : IIndexOfU
 
         error.Append(']');
 
-        throw new UnreachableException($"Internal error, failed to unescape (token: {typeof(T).FullName}): {error}");
+        // TODO: LENIENCY
+        throw new CsvFormatException($"Cannot unescape invalid field: {error}");
     }
 }
