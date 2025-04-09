@@ -313,10 +313,7 @@ internal sealed class CsvParserRFC4180<T>(
             }
         }
 
-        if (SequentialParser<T>.CanRead(data.Length))
-        {
-            return SequentialParser<T>.Core(in _dialect, data, MetaBuffer);
-        }
+        // TODO: fix SequentialParser to support partial newlines
 
         return 0;
     }
