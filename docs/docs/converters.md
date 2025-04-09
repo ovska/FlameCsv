@@ -158,6 +158,9 @@ converter.TryParse("10", out _); // OK - undefined but valid number
 converter.TryFormat(new char[64], DayOfWeek.Monday, out int charsWritten); // writes "Monday"  instead of "0"
 ```
 
+> [!TIP]
+> For extremely performant NativeAOT and trimming compatible enum converters, see the [source generator](docs/source-generator.md#enum-converter-generator).
+
 ### Nullable types
 
 @"System.Nullable`1" is supported by default as long as the underlying type can be converted.

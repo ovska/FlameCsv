@@ -9,7 +9,7 @@ If a library doesn't provide built-in data binding, it is not benchmarked for re
 
 The benchmarks below are done with the following setup
 using the default configuration in BenchmarkDotNet v0.14.0 (unless otherwise stated).
-Sadly I do not have an AVX-512 compatible CPU to test on.
+Benchmarks for 0.3.0 with AVX-512 support are coming soon.
 ```
 BenchmarkDotNet v0.14.0, Windows 10 (10.0.19045.5608/22H2/2022Update)
 AMD Ryzen 7 3700X, 1 CPU, 16 logical and 8 physical cores

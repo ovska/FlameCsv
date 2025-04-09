@@ -641,7 +641,6 @@ partial class DayOfWeekConverter;
 
 ### Limitations
 
-- Flags-enum support is planned in a future release
 - Hex-formatted values are not supported
 - Custom enum names must not start with a digit or a minus
 - Custom names cannot be empty, or the same as another enum's name or custom name
