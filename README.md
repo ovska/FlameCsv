@@ -6,6 +6,11 @@
     src="docs/data/logo.png" />
   <h1 align="center">FlameCsv</h1>
   <p align="center">High-performance RFC 4180-compliant CSV library for .NET 9 with trimming/AOT support</p>
+  <p align="center" style="text-decoration:none">
+    <a href="https://www.nuget.org/packages/FlameCsv/" target="_blank" style="text-decoration:none">
+      <img src="https://img.shields.io/nuget/v/FlameCsv" alt="NuGet version" style="text-decoration:none"/>
+    </a>
+  </p>
 </p>
 
 ---
