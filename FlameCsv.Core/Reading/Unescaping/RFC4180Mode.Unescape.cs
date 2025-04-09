@@ -183,8 +183,7 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
                 Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
                 srcIndex++;
                 dstIndex++;
-                remaining--;
-
+                remaining -= 2;
                 quotesLeft -= 2;
 
                 if (quotesLeft <= 0) goto NoQuotesLeft;
