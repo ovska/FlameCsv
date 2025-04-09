@@ -32,14 +32,20 @@ The field separator is configured with @"FlameCsv.CsvOptions`1.Delimiter?display
 The string delimiter is configured with @"FlameCsv.CsvOptions`1.Quote?displayProperty=nameWithType". The default value is `"` (double-quote). CSV fields wrapped in quotes (also referred to as strings) can contain otherwise special characters such as delimiters. A quote inside a string is escaped with another quote, e.g. `"James ""007"" Bond"`.
 
 ### Newline
-The record separator is configured with @"FlameCsv.CsvOptions`1.Newline?displayProperty=nameWithType". The default value is `null`/empty. This means the record separator is auto-detected from the first occurence to be either `\n` or `\r\n`. When writing, `\r\n` is used in this case. Custom newlines must be 1 or 2 characters long.
+The record separator is configured with @"FlameCsv.CsvOptions`1.Newline?displayProperty=nameWithType". The default value is `\r\n`. FlameCSV is lenient when parsing newlines, and a `\r\n`-configured reader can read only `\n` or `\r`. The value is used as-is when writing. If you know the data is always in a specific format, you can set the value to `\n` or `\r` to squeeze out an extra 1-2% of performance. You can use any custom newline as well, as long as it is 1 or 2 characters long, and does not contain two of the same character (such as `\r\r` or `\n\n`).
 
 ### Whitespace
 Significant whitespace is configured with @"FlameCsv.CsvOptions`1.Whitespace?displayProperty=nameWithType", and determines how fields are trimmed when reading, or if a field needs quoting when writing. Characters present in the whitespace string are trimmed from each field, unless they are in a quoted field (whitespace is _not_ trimmed inside strings). When writing, values containing leading or trailing whitespace are wrapped in quotes if [automatic field quoting](#quoting-fields-when-writing) is enabled. The default value is null/empty, which means whitespace is not considered significant.
 
+> [!IMPORTANT]
+> The concept of fully configurable whitespace is likely being removed in 0.4.0 for confirmity with other widely used CSV libraries, and only ` `  (space) will be considered whitespace. This change aims to simplify the configuration and improve compatibility with existing CSV libraries.
+
 ### Escape
 An explicit escape character @"FlameCsv.CsvOptions`1.Escape?displayProperty=nameWithType" can be set to a non-null value to escape _any_ character following the escape character. The default value is null, which follows the RFC 4180 spec and wraps values in strings, and escapes quotes with another quote.
 Any field containing the escape character **must** be wrapped in quotes. The escape character itself is escaped by doubling it, e.g., `"\\"`.
+
+> [!TIP]
+> Due to the rarity of this non-standard format, SIMD accelerated parsing is not supported when using an escape character.
 
 ### Additional info
 

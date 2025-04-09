@@ -5,9 +5,14 @@ _layout: landing
 # Introduction
 
 🔥 FlameCSV 🔥 is a fully-featured high performance CSV library for .NET with a simple API, deep customization options, and built-in support for UTF8, nativeAOT, and more.
+
+FlameCsv is consistently the fastest .NET CSV library in the available benchmarks.
+
 Read CSV at multiple [gigabytes per second](docs/benchmarks.md#reading-without-processing-all-fields) on consumer hardware, and write arbitrarily large amounts of CSV with [near-zero allocations](docs/benchmarks.md#writing-net-objects).
 FlameCSV leverages modern .NET patterns and libraries such as spans, SIMD hardware intrinsics, memory/string pooling, pipes and buffer writers, and
 is built from the ground up to provide an easy-to-use high performance experience.
+
+The library has thousands of tests, and critical paths have been fuzz-tested with SharpFuzz.
 
 See @"getting-started", view the @"examples", or deep dive into the @"FlameCsv?text=API Reference".
 
