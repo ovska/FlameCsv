@@ -23,6 +23,7 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
         Debug.Assert(quotesConsumed % 2 == 0);
         Debug.Assert(field.Length >= 2);
         Debug.Assert(field.Length >= quotesConsumed);
+        Debug.Assert(buffer.Length >= field.Length);
 
         int quotesLeft = (int)quotesConsumed;
 

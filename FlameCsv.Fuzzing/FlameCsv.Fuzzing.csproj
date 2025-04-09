@@ -9,11 +9,15 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="SharpFuzz" Version="2.2.0" />
+        <PackageReference Include="SharpFuzz" Version="2.2.0"/>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\FlameCsv.Core\FlameCsv.Core.csproj" />
+        <ProjectReference Include="..\FlameCsv.Core\FlameCsv.Core.csproj"/>
+        <ProjectReference Include="..\FlameCsv.SourceGen\FlameCsv.SourceGen.csproj"
+                          ReferenceOutputAssembly="false"
+                          OutputItemType="Analyzer"
+                          PrivateAssets="all"/>
     </ItemGroup>
 
 </Project>

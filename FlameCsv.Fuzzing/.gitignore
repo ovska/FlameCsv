@@ -1,5 +1,6 @@
 ﻿# Ignore crash files in the current directory
 crash-*
+timeout-*
 
 # Ignore all files in Testcases directory except .csv files
 Testcases/*
