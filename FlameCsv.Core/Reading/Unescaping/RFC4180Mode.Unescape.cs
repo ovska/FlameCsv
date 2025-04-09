@@ -19,8 +19,8 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
         ReadOnlySpan<T> field,
         uint quotesConsumed)
     {
-        Debug.Assert(quotesConsumed >= 2);
-        Debug.Assert(quotesConsumed % 2 == 0);
+        // Debug.Assert(quotesConsumed >= 2);
+        // Debug.Assert(quotesConsumed % 2 == 0);
         Debug.Assert(field.Length >= 2);
         Debug.Assert(field.Length >= quotesConsumed);
         Debug.Assert(buffer.Length >= field.Length);
@@ -96,7 +96,11 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
         remaining -= 8;
 
     FoundLong:
-        if (quote != Unsafe.Add(ref src, srcIndex)) goto Fail;
+        // check if the next is a quote, or dangling quote at the end
+        if (remaining <= 0 || quote != Unsafe.Add(ref src, srcIndex))
+        {
+            goto Fail;
+        }
 
         srcIndex++;
         remaining--;
@@ -174,7 +178,7 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
             remaining -= 8;
         }
 
-        while (remaining >= 0)
+        while (remaining >= 2) // leave space so we can check for the second quote
         {
             if (quote == Unsafe.Add(ref src, srcIndex))
             {
@@ -196,6 +200,9 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
                 remaining--;
             }
         }
+
+        if (quote == Unsafe.Add(ref src, srcIndex)) goto Fail;
+        Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
 
         goto EOL;
 
