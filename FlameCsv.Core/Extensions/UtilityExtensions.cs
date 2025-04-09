@@ -36,6 +36,9 @@ internal static class UtilityExtensions
         return sb.ToString();
     }
 
+    public static string AsPrintableString<T>(this Span<T> value) where T : unmanaged, IBinaryInteger<T>
+        => AsPrintableString((ReadOnlySpan<T>)value);
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static string AsPrintableString<T>(this ReadOnlySpan<T> value)
         where T : unmanaged, IBinaryInteger<T>

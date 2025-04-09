@@ -134,19 +134,19 @@ public static class UnescaperTests
         Assert.Equal(0, quoteCount % 2);
 
         int unescapedLength = data.Length - (quoteCount / 2);
-        T[] buffer = new T[64 + unescapedLength + 64];
+        T[] buffer = new T[64 + data.Length + 64];
 
         if (typeof(T) == typeof(char))
         {
             RFC4180Mode<ushort>.Unescape(
                 '"',
-                MemoryMarshal.Cast<T, ushort>(buffer.AsSpan(start: 64, length: unescapedLength)),
+                MemoryMarshal.Cast<T, ushort>(buffer.AsSpan(start: 64, length: data.Length)),
                 MemoryMarshal.Cast<T, ushort>(data),
                 (uint)quoteCount);
         }
         else
         {
-            RFC4180Mode<T>.Unescape(T.CreateChecked('"'), buffer.AsSpan(start: 64, length: unescapedLength), data, (uint)quoteCount);
+            RFC4180Mode<T>.Unescape(T.CreateChecked('"'), buffer.AsSpan(start: 64, length: data.Length), data, (uint)quoteCount);
         }
 
         Assert.Equal(output, ((ReadOnlySpan<T>)buffer).Slice(64, unescapedLength).AsPrintableString());
