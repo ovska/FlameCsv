@@ -8,10 +8,7 @@ uid: configuration
 
 Aside from [attributes](attributes.md), configuration is mainly done through the @"FlameCsv.CsvOptions`1" class. Similar to `System.Text.Json`, options instances should be configured once and reused for the application lifetime. After an options instance is used to read or write CSV, it cannot be modified (see @"FlameCsv.CsvOptions`1.IsReadOnly"). The options instances are thread-safe to *use*, but not to *configure*. You can call @"FlameCsv.CsvOptions`1.MakeReadOnly?displayProperty=nameWithType" to ensure thread safety by making the options instance immutable.
 
-For convenience, a copy-constructor @"FlameCsv.CsvOptions`1.%23ctor(FlameCsv.CsvOptions{`0})" is available, for example if you need slightly different configuration for reading and writing. This copies over all the configurable properties, but not internal state or caches.
-
-> [!NOTE]
-> Because of the immutability of the options, automatically detected newline is per-document. The same instance can be used to read either `\n` or `\r\n`, as the detection does not mutate the configured values.
+For convenience, a copy-constructor @"FlameCsv.CsvOptions`1.%23ctor(FlameCsv.CsvOptions{`0})" is available, for example if you need slightly different configuration for reading and writing. This copies over all the configurable properties.
 
 ## Default Options
 
