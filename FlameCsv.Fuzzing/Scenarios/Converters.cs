@@ -8,7 +8,7 @@ using System.Runtime.Serialization;
 
 namespace FlameCsv.Fuzzing.Scenarios;
 
-public partial class Converters : IScenario
+public class Converters : IScenario
 {
     public static bool SupportsUtf16 => true;
     public static void Run(ReadOnlyMemory<byte> data, PoisonPagePlacement placement) => TestAll(data.Span);
@@ -17,7 +17,6 @@ public partial class Converters : IScenario
     private static void TestAll<T>(ReadOnlySpan<T> data) where T : unmanaged, IBinaryInteger<T>
     {
         var options = CsvOptions<T>.Default;
-
         Test<bool>.Run(options, data);
         Test<int>.Run(options, data);
         Test<char>.Run(options, data);
@@ -38,7 +37,6 @@ public partial class Converters : IScenario
         Test<DayOfWeek>.Run(options, data);
         Test<MethodImplOptions>.Run(options, data);
         Test<NonAscii>.Run(options, data);
-
         Test<bool?>.Run(options, data);
         Test<int?>.Run(options, data);
         Test<char?>.Run(options, data);
@@ -59,7 +57,6 @@ public partial class Converters : IScenario
         Test<DayOfWeek?>.Run(options, data);
         Test<MethodImplOptions?>.Run(options, data);
         Test<NonAscii?>.Run(options, data);
-
         Test<string>.Run(options, data);
     }
 
@@ -79,14 +76,6 @@ public partial class Converters : IScenario
             }
         }
     }
-
-
-    // [CsvEnumConverter<byte, DayOfWeek>] partial class EnumByteDOF;
-    // [CsvEnumConverter<char, DayOfWeek>] partial class EnumCharDOF;
-    // [CsvEnumConverter<byte, MethodImplOptions>] partial class EnumByteMIO;
-    // [CsvEnumConverter<char, MethodImplOptions>] partial class EnumCharMIO;
-    // [CsvEnumConverter<byte, NonAscii>] partial class EnumByteNA;
-    // [CsvEnumConverter<char, NonAscii>] partial class EnumCharNA;
 
     enum NonAscii
     {

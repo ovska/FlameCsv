@@ -1,5 +1,5 @@
 ﻿#if true
-Fuzzer.LibFuzzer.Run(ScenarioRunner.Run<Unescape>);
+Fuzzer.LibFuzzer.Run(ScenarioRunner.Run<Converters>);
 #else
 DirectoryInfo dir = new(@"..\..\..\");
 
