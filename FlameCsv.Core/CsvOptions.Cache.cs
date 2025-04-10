@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Immutable;
+using System.Diagnostics;
 using FlameCsv.Binding;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
@@ -10,43 +11,46 @@ namespace FlameCsv;
 
 public partial class CsvOptions<T>
 {
-    private TrimmingCache<CacheKey, object> BindingCache
-    {
-        get
-        {
-            if (FlameCsvGlobalOptions.CachingDisabled) Throw.Unreachable("Caching is disabled.");
-
-            var local = _bindingCache;
-
-            if (local is not null) return local;
-
-            return Interlocked.CompareExchange(
-                    ref _bindingCache,
-                    new TrimmingCache<CacheKey, object>(),
-                    null) ??
-                _bindingCache;
-        }
-    }
-
     private TrimmingCache<CacheKey, object>? _bindingCache;
 
+    private TrimmingCache<CacheKey, object> GetBindingCache()
+    {
+        if (FlameCsvGlobalOptions.CachingDisabled) Throw.Unreachable("Caching is disabled.");
+
+        var local = _bindingCache;
+
+        if (local is not null) return local;
+
+        TrimmingCache<CacheKey, object> instance = new();
+
+        if (Interlocked.CompareExchange(ref _bindingCache, instance, null) is not null)
+        {
+            // Another thread already initialized the cache.
+            // Dispose of the new instance.
+            ((IDisposable)instance).Dispose();
+        }
+
+        return _bindingCache = instance;
+    }
+
     internal IMaterializer<T, TValue> GetMaterializer<TValue>(
-        ReadOnlySpan<string> headers,
+        ImmutableArray<string> headers,
         bool ignoreUnmatched,
-        [RequireStaticDelegate] Func<CsvOptions<T>, ReadOnlySpan<string>, bool, IMaterializer<T, TValue>> valueFactory)
+        [RequireStaticDelegate] Func<CsvOptions<T>, ImmutableArray<string>, bool, IMaterializer<T, TValue>> valueFactory)
     {
         MakeReadOnly();
 
-        if (FlameCsvGlobalOptions.CachingDisabled || !CacheKey.CanCache(headers.Length))
+        if (FlameCsvGlobalOptions.CachingDisabled)
         {
             return valueFactory(this, headers, ignoreUnmatched);
         }
 
+        TrimmingCache<CacheKey, object> cache = GetBindingCache();
         CacheKey key = CacheKey.ForMaterializer(this, typeof(TValue), ignoreUnmatched, headers);
 
-        if (!BindingCache.TryGetValue(key, out object? materializer))
+        if (!cache.TryGetValue(key, out object? materializer))
         {
-            BindingCache.Add(key, materializer = valueFactory(this, headers, ignoreUnmatched));
+            cache.Add(key, materializer = valueFactory(this, headers, ignoreUnmatched));
         }
 
         return (IMaterializer<T, TValue>)materializer;
@@ -54,22 +58,23 @@ public partial class CsvOptions<T>
 
     internal IMaterializer<T, TValue> GetMaterializer<TValue>(
         CsvTypeMap<T, TValue> typeMap,
-        ReadOnlySpan<string> headers,
+        ImmutableArray<string> headers,
         [RequireStaticDelegate]
-        Func<CsvOptions<T>, CsvTypeMap<T, TValue>, ReadOnlySpan<string>, IMaterializer<T, TValue>> valueFactory)
+        Func<CsvOptions<T>, CsvTypeMap<T, TValue>, ImmutableArray<string>, IMaterializer<T, TValue>> valueFactory)
     {
         MakeReadOnly();
 
-        if (FlameCsvGlobalOptions.CachingDisabled || !CacheKey.CanCache(headers.Length))
+        if (FlameCsvGlobalOptions.CachingDisabled)
         {
             return valueFactory(this, typeMap, headers);
         }
 
+        TrimmingCache<CacheKey, object> cache = GetBindingCache();
         CacheKey key = CacheKey.ForMaterializer(this, typeMap, false, headers);
 
-        if (!BindingCache.TryGetValue(key, out object? materializer))
+        if (!cache.TryGetValue(key, out object? materializer))
         {
-            BindingCache.Add(key, materializer = valueFactory(this, typeMap, headers));
+            cache.Add(key, materializer = valueFactory(this, typeMap, headers));
         }
 
         return (IMaterializer<T, TValue>)materializer;
@@ -85,11 +90,12 @@ public partial class CsvOptions<T>
             return valueFactory(this);
         }
 
+        TrimmingCache<CacheKey, object> cache = GetBindingCache();
         CacheKey key = CacheKey.ForDematerializer(this, typeof(TValue));
 
-        if (!BindingCache.TryGetValue(key, out object? dematerializer))
+        if (!cache.TryGetValue(key, out object? dematerializer))
         {
-            BindingCache.Add(key, dematerializer = valueFactory(this));
+            cache.Add(key, dematerializer = valueFactory(this));
         }
 
         return (IDematerializer<T, TValue>)dematerializer;
@@ -106,11 +112,12 @@ public partial class CsvOptions<T>
             return valueFactory(this, typeMap);
         }
 
+        TrimmingCache<CacheKey, object> cache = GetBindingCache();
         CacheKey key = CacheKey.ForDematerializer(this, typeMap);
 
-        if (!BindingCache.TryGetValue(key, out object? dematerializer))
+        if (!cache.TryGetValue(key, out object? dematerializer))
         {
-            BindingCache.Add(key, dematerializer = valueFactory(this, typeMap));
+            cache.Add(key, dematerializer = valueFactory(this, typeMap));
         }
 
         return (IDematerializer<T, TValue>)dematerializer;
@@ -122,9 +129,8 @@ public partial class CsvOptions<T>
             CsvOptions<T> options,
             Type target,
             bool ignoreUnmatched,
-            ReadOnlySpan<string> headers)
+            ImmutableArray<string> headers)
         {
-            Debug.Assert(CanCache(headers.Length));
             return new(options, false, target, ignoreUnmatched, headers);
         }
 
@@ -132,9 +138,8 @@ public partial class CsvOptions<T>
             CsvOptions<T> options,
             CsvTypeMap target,
             bool ignoreUnmatched,
-            ReadOnlySpan<string> headers)
+            ImmutableArray<string> headers)
         {
-            Debug.Assert(CanCache(headers.Length));
             return new(options, false, target, ignoreUnmatched, headers);
         }
 
@@ -148,12 +153,11 @@ public partial class CsvOptions<T>
             return new(options, true, target, false, []);
         }
 
-        public static bool CanCache(int headersLength) => (uint)headersLength <= StringScratch.MaxLength;
-
         private readonly bool _write;
         private readonly object _target;
         private readonly bool _ignoreUnmatched;
-        private readonly StackHeaders _headers;
+        private readonly IEqualityComparer<string> _comparer;
+        private readonly ImmutableArray<string> _headers;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CacheKey"/> class.
@@ -168,15 +172,15 @@ public partial class CsvOptions<T>
             bool write,
             object target,
             bool ignoreUnmatched,
-            ReadOnlySpan<string> headers)
+            ImmutableArray<string> headers)
         {
             Debug.Assert(target is CsvTypeMap or Type);
-            Debug.Assert(headers.Length <= StringScratch.MaxLength);
 
             _write = write;
             _target = target;
             _ignoreUnmatched = ignoreUnmatched;
-            _headers = new StackHeaders(options.Comparer, headers);
+            _comparer = options.Comparer;
+            _headers = headers;
         }
 
         public bool Equals(CacheKey other)
@@ -185,7 +189,8 @@ public partial class CsvOptions<T>
                 _write == other._write &&
                 _ignoreUnmatched == other._ignoreUnmatched &&
                 ReferenceEquals(_target, other._target) &&
-                _headers.Equals(other._headers);
+                ReferenceEquals(_comparer, other._comparer) &&
+                _headers.AsSpan().SequenceEqual(other._headers.AsSpan(), _comparer);
         }
 
         public override bool Equals(object? obj) => obj is CacheKey ck && Equals(ck);
@@ -193,10 +198,12 @@ public partial class CsvOptions<T>
         public override int GetHashCode()
         {
             HashCode hash = new();
-            hash.Add(_write.GetHashCode());
-            hash.Add(_target.GetHashCode());
-            hash.Add(_ignoreUnmatched.GetHashCode());
-            hash.Add(_headers.GetHashCode());
+            hash.Add(_write);
+            hash.Add(_target);
+            hash.Add(_ignoreUnmatched);
+            hash.Add(_comparer);
+            hash.Add(_headers.Length);
+            foreach (var header in _headers) hash.Add(header, _comparer);
             return hash.ToHashCode();
         }
     }

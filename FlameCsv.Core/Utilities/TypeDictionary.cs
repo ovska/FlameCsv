@@ -1,51 +1,90 @@
 ﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Extensions;
-using JetBrains.Annotations;
 
 namespace FlameCsv.Utilities;
 
-internal sealed class TypeDictionary<TValue, TAlternate> : IDictionary<Type, TValue>
+internal class TypeStringDictionary : TypeDictionary<Utf8String?>, IDictionary<Type, string?>
 {
-    public TypeDictionary<TValue, TAlternate> Clone()
+    public TypeStringDictionary(ICanBeReadOnly owner, TypeDictionary<Utf8String?>? source = null) : base(owner, source)
     {
-        return new TypeDictionary<TValue, TAlternate>(
-            _owner,
-            _convert,
-            this);
     }
 
-    private readonly ICanBeReadOnly _owner;
-    private readonly Dictionary<Type, TValue> _dictionary;
-    private readonly Dictionary<Type, TAlternate>? _alternate;
-    private readonly Func<TValue, TAlternate>? _convert;
+    IEnumerator<KeyValuePair<Type, string?>> IEnumerable<KeyValuePair<Type, string?>>.GetEnumerator()
+    {
+        return _dictionary.Select(kvp => new KeyValuePair<Type, string?>(kvp.Key, kvp.Value?.String)).GetEnumerator();
+    }
 
-    [MemberNotNullWhen(true, nameof(_alternate))]
-    [MemberNotNullWhen(true, nameof(_convert))]
-    public bool HasAlternate => _alternate is not null && _convert is not null;
+    void ICollection<KeyValuePair<Type, string?>>.Add(KeyValuePair<Type, string?> item)
+    {
+        ((ICollection<KeyValuePair<Type, Utf8String?>>)this).Add(new(item.Key, item.Value));
+    }
 
-    public TypeDictionary(
-        ICanBeReadOnly owner,
-        Func<TValue, TAlternate>? convert = null,
-        [RequireStaticDelegate] TypeDictionary<TValue, TAlternate>? source = null)
+    bool ICollection<KeyValuePair<Type, string?>>.Contains(KeyValuePair<Type, string?> item)
+    {
+        return ((ICollection<KeyValuePair<Type, Utf8String?>>)this).Contains(new(item.Key, item.Value));
+    }
+
+    void ICollection<KeyValuePair<Type, string?>>.CopyTo(KeyValuePair<Type, string?>[] array, int arrayIndex)
+    {
+        ArgumentNullException.ThrowIfNull(array);
+        ArgumentOutOfRangeException.ThrowIfNegative(arrayIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(Count + arrayIndex, array.Length);
+
+        foreach (var kvp in _dictionary)
+        {
+            array[arrayIndex++] = new KeyValuePair<Type, string?>(kvp.Key, kvp.Value);
+        }
+    }
+
+    bool ICollection<KeyValuePair<Type, string?>>.Remove(KeyValuePair<Type, string?> item)
+    {
+        return ((ICollection<KeyValuePair<Type, Utf8String?>>)this).Remove(new(item.Key, item.Value));
+    }
+
+    void IDictionary<Type, string?>.Add(Type key, string? value)
+    {
+        base.Add(key, value);
+    }
+
+    bool IDictionary<Type, string?>.TryGetValue(Type key, out string? value)
+    {
+        if (base.TryGetValue(key, out var utf8Value))
+        {
+            value = utf8Value?.String;
+            return true;
+        }
+
+        value = null;
+        return false;
+    }
+
+    string? IDictionary<Type, string?>.this[Type key]
+    {
+        get => base[key];
+        set => base[key] = value;
+    }
+
+    ICollection<Type> IDictionary<Type, string?>.Keys => ((IDictionary<Type, Utf8String?>)this).Keys;
+    ICollection<string?> IDictionary<Type, string?>.Values => _dictionary.Values.Select(x => x?.String).ToList();
+}
+
+internal class TypeDictionary<TValue> : IDictionary<Type, TValue>
+{
+    public TypeDictionary<TValue> Clone()
+    {
+        return new TypeDictionary<TValue>(_owner, this);
+    }
+
+    private protected readonly ICanBeReadOnly _owner;
+    private protected readonly Dictionary<Type, TValue> _dictionary;
+
+    public TypeDictionary(ICanBeReadOnly owner, TypeDictionary<TValue>? source = null)
     {
         _owner = owner;
         _dictionary = source is null
             ? new(NullableTypeEqualityComparer.Instance)
             : new(source._dictionary, NullableTypeEqualityComparer.Instance);
-
-        if (typeof(TAlternate) == typeof(object))
-        {
-            _convert = null;
-            _alternate = null;
-        }
-        else
-        {
-            _convert = convert ?? throw new InvalidOperationException($"Alternate missing for {typeof(TAlternate)}");
-            _alternate = source?._alternate is null
-                ? new Dictionary<Type, TAlternate>(NullableTypeEqualityComparer.Instance)
-                : new Dictionary<Type, TAlternate>(source._alternate, NullableTypeEqualityComparer.Instance);
-        }
     }
 
     public TValue this[Type key]
@@ -56,9 +95,6 @@ internal sealed class TypeDictionary<TValue, TAlternate> : IDictionary<Type, TVa
             ValidateKey(key);
             _owner.ThrowIfReadOnly();
             _dictionary[key] = value;
-
-            if (HasAlternate)
-                _alternate[key] = _convert(value);
         }
     }
 
@@ -73,16 +109,12 @@ internal sealed class TypeDictionary<TValue, TAlternate> : IDictionary<Type, TVa
         ValidateKey(key);
         _owner.ThrowIfReadOnly();
         _dictionary[key] = value;
-
-        if (HasAlternate)
-            _alternate[key] = _convert(value);
     }
 
     public void Clear()
     {
         _owner.ThrowIfReadOnly();
         _dictionary.Clear();
-        _alternate?.Clear();
     }
 
     public bool ContainsKey(Type key)
@@ -94,7 +126,6 @@ internal sealed class TypeDictionary<TValue, TAlternate> : IDictionary<Type, TVa
     {
         ValidateKey(key);
         _owner.ThrowIfReadOnly();
-        _alternate?.Remove(key);
         return _dictionary.Remove(key);
     }
 
@@ -104,14 +135,7 @@ internal sealed class TypeDictionary<TValue, TAlternate> : IDictionary<Type, TVa
         return _dictionary.TryGetValue(key, out value);
     }
 
-    public bool TryGetAlternate(Type key, [MaybeNullWhen(false)] out TAlternate value)
-    {
-        ArgumentNullException.ThrowIfNull(key);
-        value = default;
-        return _alternate?.TryGetValue(key, out value) ?? false;
-    }
-
-    private static void ValidateKey(Type key)
+    protected static void ValidateKey(Type key)
     {
         ArgumentNullException.ThrowIfNull(key);
 

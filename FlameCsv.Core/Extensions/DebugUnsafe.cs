@@ -6,11 +6,6 @@ namespace FlameCsv.Extensions;
 /// </summary>
 internal static class DebugUnsafe
 {
-    public static int SizeOf<T>() where T : allows ref struct
-    {
-        return System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
-    }
-
     public static T As<T>(object value)
     {
         return (T)value;

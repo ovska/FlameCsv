@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Exceptions;
@@ -46,7 +47,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     /// <summary>
     /// Returns the header record's fields, or empty if none is read.
     /// </summary>
-    protected abstract ReadOnlySpan<string> GetHeader();
+    protected abstract ImmutableArray<string> GetHeader();
 
     /// <summary>
     /// Resets the header. No-op if the header is not read.
@@ -68,6 +69,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
         _callback = options.RecordCallback;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool CallMoveNextAndIncrementPosition(ref readonly CsvFields<T> fields)
     {
         Line++;
@@ -82,11 +84,12 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
         return result;
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private bool TrySkipRecord(in CsvFields<T> fields)
     {
         Debug.Assert(_callback is not null);
 
-        ReadOnlySpan<string> header = GetHeader();
+        ReadOnlySpan<string> header = GetHeader().AsSpan();
         bool skip = false;
         bool headerRead = !header.IsEmpty;
 
@@ -202,23 +205,23 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     /// <inheritdoc />
     public void Dispose()
     {
+        GC.SuppressFinalize(this);
+
         using (_reader)
         {
             Dispose(true);
         }
-
-        GC.SuppressFinalize(this);
     }
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        await using (_reader)
+        GC.SuppressFinalize(this);
+
+        await using (_reader.ConfigureAwait(false))
         {
             await DisposeAsyncCore().ConfigureAwait(false);
         }
-
-        GC.SuppressFinalize(this);
     }
 
     /// <summary>

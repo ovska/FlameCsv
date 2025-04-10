@@ -1,4 +1,5 @@
-﻿using FlameCsv.Attributes;
+﻿using System.Collections.Immutable;
+using FlameCsv.Attributes;
 using FlameCsv.Exceptions;
 
 // ReSharper disable InconsistentNaming
@@ -58,7 +59,7 @@ public static partial class TypeMapBindingTests
     [Fact]
     public static void Should_Cache()
     {
-        string[] header = ["id", "name", "isenabled"];
+        ImmutableArray<string> header = ["id", "name", "isenabled"];
 
         Assert.Same(
             ObjTypeMap_Simple.Default.GetMaterializer(header, CsvOptions<char>.Default),
@@ -88,14 +89,6 @@ public static partial class TypeMapBindingTests
         Assert.NotSame(
             ObjTypeMap_NoCache.Default.GetMaterializer(header, CsvOptions<char>.Default),
             ObjTypeMap_NoCache.Default.GetMaterializer(header, CsvOptions<char>.Default));
-
-        var tooManyToCache = new string[32];
-        tooManyToCache.AsSpan().Fill("");
-        tooManyToCache[0] = "id";
-        tooManyToCache[1] = "name";
-        Assert.NotSame(
-            ObjTypeMap_Simple.Default.GetMaterializer(tooManyToCache, CsvOptions<char>.Default),
-            ObjTypeMap_Simple.Default.GetMaterializer(tooManyToCache, CsvOptions<char>.Default));
     }
 
     private static void AssertItems(List<Obj> items)

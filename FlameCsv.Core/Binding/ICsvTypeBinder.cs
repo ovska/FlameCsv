@@ -1,4 +1,5 @@
-﻿using FlameCsv.Exceptions;
+﻿using System.Collections.Immutable;
+using FlameCsv.Exceptions;
 using FlameCsv.Reading;
 using FlameCsv.Writing;
 
@@ -14,7 +15,7 @@ public interface ICsvTypeBinder<T> where T : unmanaged, IBinaryInteger<T>
     /// Returns a materializer for <typeparamref name="TValue"/> bound to a CSV header.
     /// </summary>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    IMaterializer<T, TValue> GetMaterializer<[DAM(Messages.ReflectionBound)] TValue>(ReadOnlySpan<string> headers);
+    IMaterializer<T, TValue> GetMaterializer<[DAM(Messages.ReflectionBound)] TValue>(ImmutableArray<string> headers);
 
     /// <summary>
     /// Returns a materializer for <typeparamref name="TValue"/> bound to column indexes.

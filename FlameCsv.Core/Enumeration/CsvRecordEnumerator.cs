@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Collections;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
@@ -126,7 +127,7 @@ public sealed class CsvRecordEnumerator<T>
     }
 
     /// <inheritdoc/>
-    protected override ReadOnlySpan<string> GetHeader() => Header is { } header ? header.Values : default;
+    protected override ImmutableArray<string> GetHeader() => Header?.Values ?? default;
 
     /// <inheritdoc/>
     protected override void ResetHeader() => Header = null;
@@ -196,12 +197,8 @@ public sealed class CsvRecordEnumerator<T>
     private void CreateHeader(ref readonly CsvFields<T> headerRecord)
     {
         CsvFieldsRef<T> reader = new(in headerRecord, stackalloc T[Token<T>.StackLength]);
-
-        Header = CsvHeader.Parse(
-            Reader.Options,
-            ref reader,
-            this,
-            static (@this, header) => new CsvHeader(@this.Reader.Options.Comparer, header));
+        ImmutableArray<string> values = CsvHeader.Parse(Options, ref reader);
+        Header = new CsvHeader(Options.Comparer, values);
     }
 
     [DoesNotReturn]

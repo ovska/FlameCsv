@@ -1,5 +1,7 @@
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using FastExpressionCompiler.LightExpression;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -18,7 +20,7 @@ public abstract class CsvReflectionBinder
     [RDC(Messages.Reflection)]
     private protected static CsvBindingCollection<TValue> GetReadBindings<T, [DAM(Messages.ReflectionBound)] TValue>(
         CsvOptions<T> options,
-        ReadOnlySpan<string> headerFields,
+        ImmutableArray<string> headerFields,
         bool ignoreUnmatched)
         where T : unmanaged, IBinaryInteger<T>
     {
@@ -154,8 +156,10 @@ public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder
     [RUF(Messages.Reflection)]
     [RDC(Messages.DynamicCode)]
     public IMaterializer<T, TValue> GetMaterializer<[DAM(Messages.ReflectionBound)] TValue>(
-        ReadOnlySpan<string> headers)
+        ImmutableArray<string> headers)
     {
+        Throw.IfDefaultOrEmpty(headers);
+
         return _options.GetMaterializer<TValue>(
             headers,
             IgnoreUnmatched,

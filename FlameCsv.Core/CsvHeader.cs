@@ -1,4 +1,6 @@
-﻿using CommunityToolkit.HighPerformance.Buffers;
+﻿using System.Collections.Immutable;
+using System.Runtime.InteropServices;
+using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
@@ -29,11 +31,9 @@ public sealed class CsvHeader
 
     internal static readonly StringPool HeaderPool;
 
-    internal static TResult Parse<T, TState, TResult>(
+    internal static ImmutableArray<string> Parse<T>(
         CsvOptions<T> options,
-        ref CsvFieldsRef<T> record,
-        TState state,
-        [RequireStaticDelegate] Func<TState, ReadOnlySpan<string>, TResult> callback)
+        ref CsvFieldsRef<T> record)
         where T : unmanaged, IBinaryInteger<T>
     {
         if (record.FieldCount == 0) CsvFormatException.Throw("CSV header was empty");
@@ -47,9 +47,7 @@ public sealed class CsvHeader
             list.Append(Get(options, record[field], charBuffer));
         }
 
-        ReadOnlySpan<string> headers = list.AsSpan();
-
-        return callback(state, headers);
+        return [..list.AsSpan()];
     }
 
     /// <summary>
@@ -82,10 +80,9 @@ public sealed class CsvHeader
     /// <summary>
     /// Returns the header values.
     /// </summary>
-    public ReadOnlySpan<string> Values => _header;
+    public ImmutableArray<string> Values { get; }
 
     private readonly IEqualityComparer<string> _comparer;
-    private readonly string[] _header;
     private readonly int[] _hashCodes;
 
     /// <summary>
@@ -93,25 +90,26 @@ public sealed class CsvHeader
     /// </summary>
     /// <param name="comparer">Comparer to use</param>
     /// <param name="header">Header values</param>
-    public CsvHeader(IEqualityComparer<string> comparer, ReadOnlySpan<string> header)
+    public CsvHeader(IEqualityComparer<string> comparer, ImmutableArray<string> header)
     {
         ArgumentNullException.ThrowIfNull(comparer);
+        ArgumentNullException.ThrowIfNull(ImmutableCollectionsMarshal.AsArray(header), nameof(header));
         ArgumentOutOfRangeException.ThrowIfZero(header.Length);
 
         _comparer = comparer;
-        _header = header.ToArray();
-        _hashCodes = new int[_header.Length];
+        Values = header;
+        _hashCodes = new int[header.Length];
 
-        for (int i = 0; i < _header.Length; i++)
+        for (int i = 0; i < header.Length; i++)
         {
-            _hashCodes[i] = comparer.GetHashCode(_header[i]);
+            _hashCodes[i] = comparer.GetHashCode(header[i]);
         }
     }
 
     /// <summary>
     /// Returns the number of header values.
     /// </summary>
-    public int Count => _header.Length;
+    public int Count => Values.Length;
 
     /// <summary>
     /// Returns <see langword="true"/> if the specified header is present.
@@ -142,7 +140,7 @@ public sealed class CsvHeader
         ArgumentNullException.ThrowIfNull(key);
 
         int hash = _comparer.GetHashCode(key);
-        ReadOnlySpan<string> values = Values;
+        ReadOnlySpan<string> values = Values.AsSpan();
 
         for (int index = 0; index < values.Length; index++)
         {
@@ -155,33 +153,5 @@ public sealed class CsvHeader
 
         value = -1;
         return false;
-    }
-
-    /// <summary>
-    /// Returns the index of the specified header.
-    /// </summary>
-    /// <exception cref="ArgumentException">The header is not found.</exception>
-    public int this[string key] => TryGetValue(key, out int value) ? value : Throw.Argument_FieldName(key);
-
-    /// <summary>
-    /// Returns the header names as an enumerable.
-    /// </summary>
-    /// <seealso cref="Values"/>
-    public IEnumerable<string> HeaderNames
-    {
-        get
-        {
-            // intentionally iterate to avoid exposing the array as an IEnumerable
-            foreach (var header in _header) yield return header;
-        }
-    }
-
-    private static void ThrowExceptionForDuplicateHeaderField(
-        int index1,
-        int index2,
-        ReadOnlySpan<string> headers)
-    {
-        throw new CsvFormatException(
-            $"Duplicate header field \"{headers[index1]}\" in at indexes {index1} and {index2}: [{UtilityExtensions.JoinValues(headers)}]");
     }
 }
