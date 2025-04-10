@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -8,6 +9,17 @@ namespace FlameCsv.Extensions;
 
 internal static class Throw
 {
+    [StackTraceHidden]
+    public static void IfDefaultOrEmpty(
+        ImmutableArray<string> array,
+        [CallerArgumentExpression(nameof(array))] string paramName = "")
+    {
+        if (array.IsDefaultOrEmpty)
+            return;
+
+        Argument(paramName, "The array is not default or empty.");
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void IfDefaultStruct([DoesNotReturnIf(true)] bool signal, Type type)
     {
@@ -63,12 +75,6 @@ internal static class Throw
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void Unreachable(ref DefaultInterpolatedStringHandler handler)
-    {
-        throw new UnreachableException(handler.ToStringAndClear());
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void InvalidOperation_HeaderNotRead()
     {
         throw new InvalidOperationException("The CSV header has not been read.");
@@ -84,12 +90,6 @@ internal static class Throw
     public static void NotSupported_CsvHasNoHeader()
     {
         throw new NotSupportedException("The CSV does not have a header record.");
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void NotSupported(string message)
-    {
-        throw new NotSupportedException(message);
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -162,11 +162,5 @@ internal static class Throw
         throw new CsvConfigurationException(
             $"If {nameof(CsvOptions<byte>.BooleanValues)} it not empty, it must contain at least one value " +
             $"for both true and false ({which.ToString().ToLowerInvariant()} was missing).");
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static int Argument_FieldName(string name)
-    {
-        throw new KeyNotFoundException($"Header field '{name}' was not found.");
     }
 }

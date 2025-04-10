@@ -214,6 +214,7 @@ public static class ModelTests
                     {
                         public int this[int index] => index;
                         public int Id { get; set; }
+                        public required int Required { get; set; }
                         public ref int RefProperty { get => ref StaticField; set { } }
                         public bool GetOnly { get; }
                         public bool SetOnly { set { } }
@@ -248,9 +249,10 @@ public static class ModelTests
         Assert.Equal(models, GetProperties(in flameSymbols, ref collector));
 
         // @formatter:off
-        (string name, bool canRead, bool canWrite, bool isRequired, bool isExplicit, bool isProperty)[] expected=
+        (string name, bool canRead, bool canWrite, bool isRequired, bool isExplicit, bool isProperty)[] expected =
         [
             (name: "Id", canRead: true, canWrite: true, isRequired: false, isExplicit: false, isProperty: true),
+            (name: "Required", canRead: true, canWrite: true, isRequired: true, isExplicit: false, isProperty: true),
             (name: "GetOnly", canRead: false, canWrite: true, isRequired: false, isExplicit: false, isProperty: true),
             (name: "SetOnly", canRead: true, canWrite: false, isRequired: false, isExplicit: false, isProperty: true),
             (name: "InitOnly", canRead: true, canWrite: true, isRequired: true, isExplicit: false, isProperty: true),

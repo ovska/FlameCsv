@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -17,8 +18,7 @@ namespace FlameCsv;
 /// <typeparam name="T">Token type</typeparam>
 [PublicAPI]
 [DebuggerTypeProxy(typeof(CsvValueRecord<>.CsvRecordDebugView))]
-public readonly struct CsvValueRecord<T> : ICsvFields<T>
-    where T : unmanaged, IBinaryInteger<T>
+public readonly struct CsvValueRecord<T> : ICsvFields<T> where T : unmanaged, IBinaryInteger<T>
 {
     /// <inheritdoc cref="CsvRecord{T}.Position"/>
     public long Position { get; }
@@ -40,7 +40,7 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
     public bool HasHeader => _owner.Header is not null;
 
     /// <inheritdoc cref="CsvRecord{T}.Header"/>
-    public ReadOnlySpan<string> Header
+    public ImmutableArray<string> Header
     {
         get
         {
@@ -125,7 +125,7 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
 
             if (!_owner.Header.TryGetValue(name, out index))
             {
-                Throw.Argument_HeaderNameNotFound(name, _owner.Header!.HeaderNames);
+                Throw.Argument_HeaderNameNotFound(name, _owner.Header.Values);
             }
         }
 

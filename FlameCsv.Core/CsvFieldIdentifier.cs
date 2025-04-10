@@ -111,5 +111,6 @@ public readonly struct CsvFieldIdentifier
         return vsb.ToString();
     }
 
+    [ExcludeFromCodeCoverage]
     private string DebuggerDisplay => ToString();
 }

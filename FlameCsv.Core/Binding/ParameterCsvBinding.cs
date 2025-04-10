@@ -13,19 +13,20 @@ internal sealed class ParameterCsvBinding<T> : CsvBinding<T>
     public override Type Type => Parameter.ParameterType;
     protected override object Sentinel => Parameter;
 
-    protected override ReadOnlySpan<object> Attributes => _parameterData is not null ? _parameterData.Attributes : default;
+    protected override ReadOnlySpan<object> Attributes => _data.Attributes;
 
-    private readonly ParameterData? _parameterData;
+    private readonly ReflectionData _data;
 
     public ParameterCsvBinding(int index, ParameterInfo parameter) : base(index, parameter.Name)
     {
         Parameter = parameter;
+        _data = ReflectionData.Empty;
     }
 
     public ParameterCsvBinding(int index, ParameterData parameter) : base(index, parameter.Value.Name)
     {
         Parameter = parameter.Value;
-        _parameterData = parameter;
+        _data = parameter;
     }
 
     protected override void PrintDetails(StringBuilder sb)
@@ -37,7 +38,5 @@ internal sealed class ParameterCsvBinding<T> : CsvBinding<T>
     }
 
     // ReSharper disable once StringLiteralTypo
-    protected internal override string DisplayName => _displayName ??= $"{Parameter.Name} (Parameter)";
-
-    private string? _displayName;
+    protected internal override string DisplayName => $"{Parameter.Name} (Parameter)";
 }

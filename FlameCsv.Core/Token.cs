@@ -1,9 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace FlameCsv;
 
 internal static class Token<T> where T : unmanaged
 {
+    [ExcludeFromCodeCoverage]
     public static string Name
         => typeof(T) == typeof(char)
             ? "char"

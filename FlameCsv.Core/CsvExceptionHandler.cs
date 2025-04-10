@@ -52,6 +52,9 @@ public readonly ref struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBina
     /// <summary>
     /// Exception thrown.
     /// </summary>
+    /// <remarks>
+    /// <see cref="Exceptions.CsvFormatException"/> is unrecoverable, and not handled by the callback.
+    /// </remarks>
     public Exception Exception { get; }
 
     /// <summary>
