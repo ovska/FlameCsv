@@ -3,13 +3,13 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
 
-internal sealed class SpanUtf8FormattableConverter<TValue> : CsvConverter<byte, TValue>
-    where TValue : IUtf8SpanFormattable, ISpanParsable<TValue>
+internal sealed class SpanUtf8TranscodingConverter<TValue> : CsvConverter<byte, TValue>
+    where TValue : ISpanFormattable, ISpanParsable<TValue>
 {
     private readonly string? _format;
     private readonly IFormatProvider? _provider;
 
-    public SpanUtf8FormattableConverter(CsvOptions<byte> options)
+    public SpanUtf8TranscodingConverter(CsvOptions<byte> options)
     {
         ArgumentNullException.ThrowIfNull(options);
         _format = options.GetFormat(typeof(TValue));
@@ -18,7 +18,7 @@ internal sealed class SpanUtf8FormattableConverter<TValue> : CsvConverter<byte, 
 
     public override bool TryFormat(Span<byte> destination, TValue value, out int charsWritten)
     {
-        return value.TryFormat(destination, out charsWritten, _format, _provider);
+        return ReadExtensions.TryFormatToUtf8(destination, value, _format, _provider, out charsWritten);
     }
 
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out TValue value)
