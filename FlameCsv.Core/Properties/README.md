@@ -6,6 +6,9 @@ and write arbitrarily large amounts of CSV with near-zero allocations. FlameCSV 
 libraries such as spans, SIMD hardware intrinsics, memory/string pooling, pipes and buffer writers, and
 is built from the ground up to provide an easy-to-use high performance experience.
 
+FlameCsv is consistently the fastest .NET CSV library in the available benchmarks.
+The library has thousands of tests, and critical paths have been fuzz-tested with SharpFuzz.
+
 See the [documentation](https://ovska.github.io/FlameCsv) for more information and examples.
 
 # Features
@@ -64,6 +67,15 @@ await CsvWriter.WriteAsync(
 ```
 
 # Changelog
+
+## 0.3.0
+
+- *Breaking:* Newline parsing is more lenient (e.g. `\r\n` can parse `\n` and `\r` as well), newline no longer nullable
+- *Breaking:* Surrogate `char`s not supported in dialect
+- Added support for flags enums in both reflection and source generated converters
+- Added AVX-512 support for parsing
+- Improved unescaping performance by up to 50%
+- Added fuzz testing projects
 
 ## 0.2.0
 
