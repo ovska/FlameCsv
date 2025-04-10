@@ -37,6 +37,9 @@ internal interface IMemberModel : IEquatable<IMemberModel?>
     /// <inheritdoc cref="PropertyModel.Type"/>
     TypeRef Type { get; }
 
+    /// <inheritdoc cref="PropertyModel.Convertability"/>
+    BuiltinConvertable Convertability { get; }
+
     void WriteId(IndentedTextWriter writer);
     void WriteConverterName(IndentedTextWriter writer);
 }

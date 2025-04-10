@@ -24,6 +24,7 @@ internal sealed class SpanUtf8ConverterFactory : CsvConverterFactory<byte>
             Implements.Both => typeof(SpanUtf8Converter<>),
             Implements.Formattable => typeof(SpanUtf8FormattableConverter<>),
             Implements.Parsable => typeof(SpanUtf8ParsableConverter<>),
+            Implements.Transcoding => typeof(SpanUtf8TranscodingConverter<>),
             _ => throw new ArgumentException("Invalid type", nameof(type)),
         };
 
@@ -74,6 +75,7 @@ internal sealed class SpanUtf8ConverterFactory : CsvConverterFactory<byte>
             (formattable: InterfaceType.Byte, parsable: InterfaceType.Byte) => Implements.Both,
             (formattable: InterfaceType.Byte, parsable: InterfaceType.Char) => Implements.Formattable,
             (formattable: InterfaceType.Char, parsable: InterfaceType.Byte) => Implements.Parsable,
+            (formattable: InterfaceType.Char, parsable: InterfaceType.Char) => Implements.Transcoding,
             _ => Implements.None,
         };
     }
@@ -87,6 +89,7 @@ internal sealed class SpanUtf8ConverterFactory : CsvConverterFactory<byte>
     private enum Implements : byte
     {
         None,
+        Transcoding,
         Formattable,
         Parsable,
         Both

@@ -610,14 +610,107 @@ public static class ModelTests
         Assert.Equal(expected, actual);
     }
 
+    [Theory, InlineData(true), InlineData(false)]
+    public static void Test_Convertability(bool charToken)
+    {
+        var compilation = CSharpCompilation.Create(
+            nameof(Test_NestedType),
+            [
+                CSharpSyntaxTree.ParseText(
+                    """
+                    using System;
+
+                    class Target
+                    {
+                        public Guid Native1 { get; set; }
+                        public TimeSpan Native2 { get; set; }
+                        public DateTimeOffset Native3 { get; set; }
+                        public int Native4 { get; set; }
+                        public object None1 { get; set; }
+                        public Neither None2 { get; set; }
+                        public Utf8Both Both8 { get; set; }
+                        public Utf8Format Format8 { get; set; }
+                        public Utf8Parse Parse8 { get; set; }
+                        public Utf16Both Both16 { get; set; }
+                    }
+
+                    abstract class Neither;
+                    abstract class Utf8Both : IUtf8SpanFormattable, IUtf8SpanParsable<Utf8Both>;
+                    abstract class Utf8Format : IUtf8SpanFormattable, ISpanParsable<Utf8Format>;
+                    abstract class Utf8Parse : IUtf8SpanParsable<Utf8Parse>, ISpanFormattable;
+                    abstract class Utf16Both : ISpanParsable<Utf16Both>, ISpanFormattable;
+                    """,
+                    cancellationToken: TestContext.Current.CancellationToken)
+            ],
+            [CoreAssembly, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+        var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
+
+        var classSymbol = semanticModel.GetDeclaredSymbol(
+            semanticModel
+                .SyntaxTree
+                .GetRoot(TestContext.Current.CancellationToken)
+                .DescendantNodes()
+                .OfType<TypeDeclarationSyntax>()
+                .Single(s => s.Identifier.Text == "Target"),
+            cancellationToken: TestContext.Current.CancellationToken)!;
+
+        var symbols = GetFlameSymbols(compilation, classSymbol, isChar: charToken);
+        AnalysisCollector collector = new(classSymbol);
+        List<PropertyModel> models = [];
+
+        foreach (var property in classSymbol.GetMembers().OfType<IPropertySymbol>())
+        {
+            var model = PropertyModel.TryCreate(symbols.TokenType, property, in symbols, ref collector);
+            Assert.NotNull(model);
+            models.Add(model);
+        }
+
+        IEnumerable<(string nameof, BuiltinConvertable status)> expected =
+        [
+            ("Native1", BuiltinConvertable.Native),
+            ("Native2", BuiltinConvertable.Native),
+            ("Native3", BuiltinConvertable.Native),
+            ("Native4", BuiltinConvertable.Native),
+            ("None1", BuiltinConvertable.None),
+            ("None2", BuiltinConvertable.None),
+        ];
+
+        if (charToken)
+        {
+            expected =
+            [
+                ..expected,
+                ("Both8", BuiltinConvertable.None),
+                ("Format8", BuiltinConvertable.Parsable),
+                ("Parse8", BuiltinConvertable.Formattable),
+                ("Both16", BuiltinConvertable.Both)
+            ];
+        }
+        else
+        {
+            expected =
+            [
+                ..expected,
+                ("Both8", BuiltinConvertable.Utf8Both),
+                ("Format8", BuiltinConvertable.Utf8Formattable | BuiltinConvertable.Parsable),
+                ("Parse8", BuiltinConvertable.Utf8Parsable | BuiltinConvertable.Formattable),
+                ("Both16", BuiltinConvertable.Both)
+            ];
+        }
+
+        Assert.Equal(expected, models.Select(m => (m.Identifier, m.Convertability)));
+    }
+
     // ReSharper disable once UnusedParameter.Local
-    private static FlameSymbols GetFlameSymbols(Compilation compilation, ITypeSymbol arg)
+    private static FlameSymbols GetFlameSymbols(Compilation compilation, ITypeSymbol arg, bool isChar = true)
     {
         return new FlameSymbols(
 #if SOURCEGEN_USE_COMPILATION
             compilation,
 #endif
-            tokenType: compilation.GetTypeByMetadataName("System.Char")!,
+            tokenType: compilation.GetTypeByMetadataName(isChar ? "System.Char" : "System.Byte")!,
             arg);
     }
 }

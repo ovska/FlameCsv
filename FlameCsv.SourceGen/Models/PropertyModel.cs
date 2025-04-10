@@ -70,6 +70,11 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
     /// </summary>
     public required ConverterModel? OverriddenConverter { get; init; }
 
+    /// <summary>
+    /// Whether the type has interfaces that support builtin conversion.
+    /// </summary>
+    public required BuiltinConvertable Convertability { get; init; }
+
     public int CompareTo(PropertyModel other)
         => (other.Order ?? 0).CompareTo(Order ?? 0); // reverse sort so higher order is first
 
@@ -145,6 +150,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
                 = ConverterModel.Create(token, propertySymbol, propertySymbol.Type, in symbols, ref collector),
             ExplicitInterfaceOriginalDefinitionName
                 = explicitInterface?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            Convertability = propertySymbol.Type.GetBuiltinConvertability(in symbols),
         };
     }
 
@@ -176,6 +182,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
             CanRead = !fieldSymbol.IsReadOnly && !meta.IsIgnored,
             CanWrite = meta.IsIgnored is not true,
             ExplicitInterfaceOriginalDefinitionName = null,
+            Convertability = fieldSymbol.Type.GetBuiltinConvertability(in symbols),
             OverriddenConverter = ConverterModel.Create(
                 token,
                 fieldSymbol,

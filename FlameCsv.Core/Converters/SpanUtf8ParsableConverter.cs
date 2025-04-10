@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using System.Text.Unicode;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
 
@@ -18,22 +18,7 @@ internal sealed class SpanUtf8ParsableConverter<TValue> : CsvConverter<byte, TVa
 
     public override bool TryFormat(Span<byte> destination, TValue value, out int charsWritten)
     {
-        Utf8.TryWriteInterpolatedStringHandler handler = new(
-            literalLength: 0,
-            formattedCount: 1,
-            destination: destination,
-            provider: _provider,
-            shouldAppend: out bool shouldAppend);
-
-        if (shouldAppend)
-        {
-            // the handler needs to be constructed by hand so we can pass in the dynamic format
-            handler.AppendFormatted(value, _format);
-            return Utf8.TryWrite(destination, ref handler, out charsWritten);
-        }
-
-        charsWritten = 0;
-        return false;
+        return ReadExtensions.TryFormatToUtf8(destination, value, _format, _provider, out charsWritten);
     }
 
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out TValue value)

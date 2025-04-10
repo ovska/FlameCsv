@@ -1,5 +1,6 @@
 ﻿namespace FlameCsv.SourceGen;
 
+// ReSharper disable InconsistentNaming
 using NNW = NotNullWhenAttribute;
 
 // ref struct to avoid accidental storage
@@ -22,6 +23,14 @@ internal readonly ref struct FlameSymbols
     private readonly INamedTypeSymbol _typeProxyAttribute;
     private readonly INamedTypeSymbol _ignoredIndexesAttribute;
 
+    private readonly INamedTypeSymbol _systemDateTimeOffset;
+    private readonly INamedTypeSymbol _systemTimeSpan;
+    private readonly INamedTypeSymbol _systemGuid;
+    private readonly INamedTypeSymbol _systemISpanParsable;
+    private readonly INamedTypeSymbol _systemIUtf8SpanParsable;
+    private readonly INamedTypeSymbol _systemISpanFormattable;
+    private readonly INamedTypeSymbol _systemIUtf8SpanFormattable;
+
     public FlameSymbols(Compilation compilation, ITypeSymbol tokenType, ITypeSymbol targetType)
     {
         TokenType = tokenType;
@@ -39,6 +48,14 @@ internal readonly ref struct FlameSymbols
         _requiredAttribute = Get(compilation, "FlameCsv.Attributes.CsvRequiredAttribute");
         _typeProxyAttribute = Get(compilation, "FlameCsv.Attributes.CsvTypeProxyAttribute");
         _ignoredIndexesAttribute = Get(compilation, "FlameCsv.Attributes.CsvIgnoredIndexesAttribute");
+
+        _systemDateTimeOffset = Get(compilation, "System.DateTimeOffset");
+        _systemTimeSpan = Get(compilation, "System.TimeSpan");
+        _systemGuid = Get(compilation, "System.Guid");
+        _systemISpanParsable = GetUnbound(compilation, "System.ISpanParsable`1");
+        _systemIUtf8SpanParsable = GetUnbound(compilation, "System.IUtf8SpanParsable`1");
+        _systemISpanFormattable = Get(compilation, "System.ISpanFormattable");
+        _systemIUtf8SpanFormattable = Get(compilation, "System.IUtf8SpanFormattable");
     }
 
 #else
@@ -65,6 +82,14 @@ internal readonly ref struct FlameSymbols
     public bool IsTypeProxyAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_typeProxyAttribute, symbol);
     public bool IsIgnoredIndexesAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_ignoredIndexesAttribute, symbol);
 
+    public bool IsDateTimeOffset([NNW(true)] ISymbol? symbol) => _seq.Equals(_systemDateTimeOffset, symbol);
+    public bool IsTimeSpan([NNW(true)] ISymbol? symbol) => _seq.Equals(_systemTimeSpan, symbol);
+    public bool IsGuid([NNW(true)] ISymbol? symbol) => _seq.Equals(_systemGuid, symbol);
+    public bool IsISpanParsable([NNW(true)] ISymbol? symbol) => _seq.Equals(_systemISpanParsable, symbol);
+    public bool IsIUtf8SpanParsable([NNW(true)] ISymbol? symbol) => _seq.Equals(_systemIUtf8SpanParsable, symbol);
+    public bool IsISpanFormattable([NNW(true)] ISymbol? symbol) => _seq.Equals(_systemISpanFormattable, symbol);
+    public bool IsIUtf8SpanFormattable([NNW(true)] ISymbol? symbol) => _seq.Equals(_systemIUtf8SpanFormattable, symbol);
+
     private static INamedTypeSymbol Get(Compilation compilation, string name)
     {
         return compilation.GetTypeByMetadataName(name) ??
@@ -88,6 +113,14 @@ internal readonly ref struct FlameSymbols
     public bool IsTypeProxyAttribute([NNW(true)] ISymbol? symbol) => _typeProxyAttribute.IsEqual(symbol);
     public bool IsIgnoredIndexesAttribute([NNW(true)] ISymbol? symbol) => _ignoredIndexesAttribute.IsEqual(symbol);
 
+    public bool IsDateTimeOffset([NNW(true)] ISymbol? symbol) => _systemDateTimeOffset.IsEqual(symbol);
+    public bool IsTimeSpan([NNW(true)] ISymbol? symbol) => _systemTimeSpan.IsEqual(symbol);
+    public bool IsGuid([NNW(true)] ISymbol? symbol) => _systemGuid.IsEqual(symbol);
+    public bool IsISpanParsable([NNW(true)] ISymbol? symbol) => _systemISpanParsable.IsEqual(symbol);
+    public bool IsIUtf8SpanParsable([NNW(true)] ISymbol? symbol) => _systemIUtf8SpanParsable.IsEqual(symbol);
+    public bool IsISpanFormattable([NNW(true)] ISymbol? symbol) => _systemISpanFormattable.IsEqual(symbol);
+    public bool IsIUtf8SpanFormattable([NNW(true)] ISymbol? symbol) => _systemIUtf8SpanFormattable.IsEqual(symbol);
+
     private static readonly TypeData _converterTTValue = new("FlameCsv.CsvConverter", 2);
     private static readonly TypeData _converterOfTAttribute = new("FlameCsv.Attributes.CsvConverterAttribute", 2);
     private static readonly TypeData _headerAttribute = new("FlameCsv.Attributes.CsvHeaderAttribute");
@@ -98,6 +131,14 @@ internal readonly ref struct FlameSymbols
     private static readonly TypeData _requiredAttribute = new("FlameCsv.Attributes.CsvRequiredAttribute");
     private static readonly TypeData _typeProxyAttribute = new("FlameCsv.Attributes.CsvTypeProxyAttribute");
     private static readonly TypeData _ignoredIndexesAttribute = new("FlameCsv.Attributes.CsvIgnoredIndexesAttribute");
+
+    private static readonly TypeData _systemDateTimeOffset = new("System.DateTimeOffset");
+    private static readonly TypeData _systemTimeSpan = new("System.TimeSpan");
+    private static readonly TypeData _systemGuid = new("System.Guid");
+    private static readonly TypeData _systemISpanParsable = new("System.ISpanParsable", 1);
+    private static readonly TypeData _systemIUtf8SpanParsable = new("System.IUtf8SpanParsable", 1);
+    private static readonly TypeData _systemISpanFormattable = new("System.ISpanFormattable");
+    private static readonly TypeData _systemIUtf8SpanFormattable = new("System.IUtf8SpanFormattable");
 
     public bool IsCsvOptionsOfT(ITypeSymbol symbol)
     {

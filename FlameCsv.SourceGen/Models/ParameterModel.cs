@@ -83,6 +83,11 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
     bool IMemberModel.CanWrite => false;
     TypeRef IMemberModel.Type => ParameterType;
 
+    /// <summary>
+    /// Whether the type has interfaces that support builtin conversion.
+    /// </summary>
+    public required BuiltinConvertable Convertability { get; init; }
+
     public void WriteId(IndentedTextWriter writer)
     {
         writer.Write("@s__p_Id_");
@@ -125,6 +130,7 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
                 HasDefaultValue = parameter.HasExplicitDefaultValue,
                 DefaultValue = parameter.HasExplicitDefaultValue ? parameter.ExplicitDefaultValue : null,
                 RefKind = parameter.RefKind,
+                Convertability = parameter.Type.GetBuiltinConvertability(in symbols),
                 OverriddenConverter = ConverterModel.Create(
                     token,
                     parameter,
