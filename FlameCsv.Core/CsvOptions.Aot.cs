@@ -34,7 +34,7 @@ partial class CsvOptions<T>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public readonly struct AotSafeConverters
     {
-        private readonly CsvOptions<T> _options;
+        internal readonly CsvOptions<T> _options;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal AotSafeConverters(CsvOptions<T> options)
@@ -94,7 +94,7 @@ partial class CsvOptions<T>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public CsvConverter<T, TValue> GetOrCreate<TValue>(
             [RequireStaticDelegate] Func<CsvOptions<T>, CsvConverter<T, TValue>> factory,
-            bool canCache = false)
+            bool canCache)
         {
             ArgumentNullException.ThrowIfNull(factory);
 
@@ -105,7 +105,7 @@ partial class CsvOptions<T>
 
             converter = factory(_options);
 
-            if (converter is null) InvalidConverter.Throw(factory, typeof(TValue));
+            if (converter is null) InvalidFactoryDelegate.Throw(typeof(TValue));
 
             if (canCache && _options.ConverterCache.TryAdd(typeof(TValue), converter))
             {
@@ -126,7 +126,7 @@ partial class CsvOptions<T>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public CsvConverter<T, TValue?> GetOrCreateNullable<TValue>(
             [RequireStaticDelegate] Func<CsvOptions<T>, CsvConverter<T, TValue>> factory,
-            bool canCache = false)
+            bool canCache)
             where TValue : struct
         {
             if (canCache && TryGetExistingOrCustomConverter(out CsvConverter<T, TValue?>? converter))
@@ -136,8 +136,7 @@ partial class CsvOptions<T>
 
             if (canCache && !_options.UseDefaultConverters) CsvConverterMissingException.Throw(typeof(TValue?));
 
-            CsvConverter<T, TValue> inner = GetOrCreate(factory);
-            if (inner is null) InvalidConverter.Throw(factory, typeof(TValue));
+            CsvConverter<T, TValue> inner = GetOrCreate(factory, canCache); // can this be cached?
 
             var result = NullableConverterFactory<T>.Create(inner, _options.GetNullToken(typeof(TValue)));
 
@@ -228,12 +227,12 @@ partial class CsvOptions<T>
     }
 }
 
-file static class InvalidConverter
+file static class InvalidFactoryDelegate
 {
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void Throw(object factory, Type toConvert)
+    public static void Throw(Type toConvert, [CallerMemberName] string method = "")
     {
         throw new CsvConfigurationException(
-            $"{factory.GetType().FullName} returned an invalid converter for {toConvert.FullName}");
+            $"The factory delegate passed to {method} for {toConvert.FullName} returned null.");
     }
 }

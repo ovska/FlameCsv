@@ -17,6 +17,8 @@ public partial class TypeMapGenerator
             member.OverriddenConverter?.WrapInNullable ??
             member.Type.SpecialType == SpecialType.System_Nullable_T;
 
+        bool builtinConversion = false;
+
         if (wrapInNullable)
         {
             writer.Write("options.Aot.GetOrCreateNullable<");
@@ -26,13 +28,25 @@ public partial class TypeMapGenerator
 
         if (member.OverriddenConverter is not { } converter)
         {
-            writer.Write(
-                member.Type.IsEnumOrNullableEnum ? "options.Aot.GetOrCreateEnum<" : "options.Aot.GetConverter<");
+            builtinConversion = TryGetBuiltinConversion(token, member, out string? builtinMethodName);
 
-            Range range = member.Type.SpecialType == SpecialType.System_Nullable_T ? (..^1) : (..);
-            writer.Write(member.Type.FullyQualifiedName.AsSpan()[range]);
+            if (builtinConversion)
+            {
+                writer.Write($"options.Aot.GetOrCreate<{member.Type.FullyQualifiedName}>(static options => ");
+                writer.Write($"global::FlameCsv.Converters.ConverterCreationExtensions.{builtinMethodName}<");
+                writer.Write(member.Type.FullyQualifiedName);
+                writer.Write(">(options)");
+            }
+            else
+            {
+                writer.Write(
+                    member.Type.IsEnumOrNullableEnum ? "options.Aot.GetOrCreateEnum<" : "options.Aot.GetConverter<");
 
-            writer.Write(">()");
+                Range range = member.Type.SpecialType == SpecialType.System_Nullable_T ? (..^1) : (..);
+                writer.Write(member.Type.FullyQualifiedName.AsSpan()[range]);
+
+                writer.Write(">()");
+            }
         }
         else
         {
@@ -53,12 +67,16 @@ public partial class TypeMapGenerator
             }
         }
 
-        if (wrapInNullable)
+        if (wrapInNullable || builtinConversion)
         {
             if (member.OverriddenConverter?.WrapInNullable ?? false)
             {
                 // explicit converter override, don't cache this one
                 writer.Write(", canCache: false");
+            }
+            else if (member.Type.SpecialType == SpecialType.System_Nullable_T)
+            {
+                writer.Write(", canCache: true");
             }
 
             writer.Write(")");
@@ -162,5 +180,44 @@ public partial class TypeMapGenerator
         writer.DecreaseIndent();
         writer.WriteLine("};");
         writer.WriteLine();
+    }
+
+    private static bool TryGetBuiltinConversion(
+        string token,
+        IMemberModel member,
+        [NotNullWhen(true)] out string? methodName)
+    {
+        var status = member.Convertability;
+
+        if (token == "char")
+        {
+            if ((status & BuiltinConvertable.Both) == BuiltinConvertable.Both)
+            {
+                methodName = "CreateUtf16";
+                return true;
+            }
+
+            methodName = null;
+            return false;
+        }
+
+        if (token != "byte" || (status & BuiltinConvertable.Utf8Any) == 0)
+        {
+            methodName = null;
+            return false;
+        }
+
+        bool nativeParse = (status & BuiltinConvertable.Utf8Parsable) == BuiltinConvertable.Utf8Parsable;
+        bool nativeFormat = (status & BuiltinConvertable.Utf8Formattable) == BuiltinConvertable.Utf8Formattable;
+
+        methodName = (nativeParse, nativeFormat) switch
+        {
+            (true, true) => "CreateUtf8",
+            (true, false) => "CreateUtf8Parsable",
+            (false, true) => "CreateUtf8Formattable",
+            (false, false) => "CreateUtf8Transcoded",
+        };
+
+        return true;
     }
 }
