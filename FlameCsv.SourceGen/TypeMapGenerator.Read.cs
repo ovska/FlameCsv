@@ -17,23 +17,24 @@ public partial class TypeMapGenerator
         writer.Write(", ");
         writer.Write(typeMap.Type.FullyQualifiedName);
         writer.Write(
-            "> BindForReading(scoped global::System.ReadOnlySpan<string> headers, global::FlameCsv.CsvOptions<");
+            "> BindForReading(global::System.Collections.Immutable.ImmutableArray<string> headers, global::FlameCsv.CsvOptions<");
         writer.Write(typeMap.Token.FullyQualifiedName);
         writer.WriteLine("> options)");
 
         using (writer.WriteBlock())
         {
-            writer.WriteLine("TypeMapMaterializer materializer = new TypeMapMaterializer(headers.Length);");
+            writer.WriteLine("scoped global::System.ReadOnlySpan<string> headerSpan = headers.AsSpan();");
+            writer.WriteLine("TypeMapMaterializer materializer = new TypeMapMaterializer(headerSpan.Length);");
             writer.WriteLine();
             writer.WriteLine(
                 "global::System.Collections.Generic.IEqualityComparer<string> comparer = options.Comparer;");
             writer.WriteLine("bool anyBound = false;");
             writer.WriteLine();
-            writer.WriteLine("for (int index = 0; index < headers.Length; index++)");
+            writer.WriteLine("for (int index = 0; index < headerSpan.Length; index++)");
 
             using (writer.WriteBlock())
             {
-                writer.WriteLine("string name = headers[index];");
+                writer.WriteLine("string name = headerSpan[index];");
                 writer.WriteLine();
 
                 WriteMatchers(writer, typeMap, cancellationToken);

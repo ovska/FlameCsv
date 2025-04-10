@@ -9,6 +9,7 @@ using CommunityToolkit.HighPerformance.Buffers;
 using System.Globalization;
 using JetBrains.Annotations;
 using System.Runtime.CompilerServices;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Attributes;
 #if DEBUG
 using Unsafe = FlameCsv.Extensions.DebugUnsafe
@@ -24,8 +25,24 @@ namespace FlameCsv;
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 [PublicAPI]
-public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinaryInteger<T>
+public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinaryInteger<T>
 {
+    private static readonly CsvOptions<T> _default;
+
+    static CsvOptions()
+    {
+        if (typeof(T) == typeof(char) || typeof(T) == typeof(byte))
+        {
+            _default = new CsvOptions<T>();
+            _default.MakeReadOnly();
+        }
+        else
+        {
+            _default = null!;
+        }
+
+    }
+
     /// <summary>
     /// Returns read-only default options for <typeparamref name="T"/> with the same configuration as <c>new()</c>.
     /// The returned instance is thread-safe.
@@ -38,10 +55,8 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            if (typeof(T) == typeof(char)) return Unsafe.As<CsvOptions<T>>(CsvOptionsCharSealed.Instance);
-            if (typeof(T) == typeof(byte)) return Unsafe.As<CsvOptions<T>>(CsvOptionsByteSealed.Instance);
-            InvalidTokenTypeEx(nameof(Default));
-            return null!; // unreachable
+            if (typeof(T) == typeof(char) || typeof(T) == typeof(byte)) return _default;
+            throw InvalidTokenTypeEx();
         }
     }
 
@@ -87,7 +102,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         _stringPool = other._stringPool;
         _typeBinder = other._typeBinder;
         _null = other._null;
-        _nullTokens = other._nullTokens?.Clone();
+        _nullTokens = other._nullTokens is null ? null : new(this, other._nullTokens);
         _converters = other._converters?.Clone();
 
         _delimiter = other._delimiter;
@@ -134,7 +149,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// </summary>
     /// <seealso cref="CsvTypeMap{T,TValue}"/>
     /// <seealso cref="CsvTypeMapAttribute{T,TValue}"/>
-    public virtual ICsvTypeBinder<T> TypeBinder
+    public ICsvTypeBinder<T> TypeBinder
     {
         get => _typeBinder ??= new CsvReflectionBinder<T>(this, ignoreUnmatched: false); // lazy initialization
         set
@@ -148,68 +163,59 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// Returns the <see langword="null"/> value for parsing and formatting for the parameter type.
     /// Returns <see cref="Null"/> if none is configured in <see cref="NullTokens"/>.
     /// </summary>
-    public virtual ReadOnlyMemory<T> GetNullToken(Type resultType)
+    public ReadOnlyMemory<T> GetNullToken(Type resultType)
     {
-        if (typeof(T) != typeof(char) && typeof(T) != typeof(byte))
-        {
-            InvalidTokenTypeEx(nameof(GetNullToken));
-        }
+        Utf8String? value = GetNullCore(resultType);
 
-        TypeDictionary<string?, Utf8String>? nullTokens = _nullTokens;
-
-        if (nullTokens is not null)
-        {
-            if (typeof(T) == typeof(char))
-            {
-                if (nullTokens.TryGetValue(resultType, out string? value))
-                {
-                    var result = value.AsMemory();
-                    return Unsafe.As<ReadOnlyMemory<char>, ReadOnlyMemory<T>>(ref result);
-                }
-            }
-
-            if (typeof(T) == typeof(byte))
-            {
-                if (nullTokens.TryGetAlternate(resultType, out Utf8String? value))
-                {
-                    ReadOnlyMemory<byte> result = value;
-                    return Unsafe.As<ReadOnlyMemory<byte>, ReadOnlyMemory<T>>(ref result);
-                }
-            }
-        }
-
-        if (_null is null)
-            return ReadOnlyMemory<T>.Empty;
+        if (value is null) return ReadOnlyMemory<T>.Empty;
 
         if (typeof(T) == typeof(char))
         {
-            Debug.Assert(_null is string, $"Invalid null type for {typeof(T)}: {_null.GetType()}");
-            var value = Unsafe.As<string>(_null).AsMemory();
-            return Unsafe.As<ReadOnlyMemory<char>, ReadOnlyMemory<T>>(ref value);
+            ReadOnlyMemory<char> chars = value.String.AsMemory();
+            return Unsafe.As<ReadOnlyMemory<char>, ReadOnlyMemory<T>>(ref chars);
         }
 
         if (typeof(T) == typeof(byte))
         {
-            Debug.Assert(_null is Utf8String, $"Invalid null type for {typeof(T)}: {_null.GetType()}");
-            var value = (ReadOnlyMemory<byte>)Unsafe.As<Utf8String>(_null);
-            return Unsafe.As<ReadOnlyMemory<byte>, ReadOnlyMemory<T>>(ref value);
+            return Unsafe.As<T[]>(value.GetBytes());
         }
 
-        throw new UnreachableException();
+        throw InvalidTokenTypeEx();
     }
+
+    internal ReadOnlySpan<T> GetNullSpan(Type resultType)
+    {
+        Utf8String? value = GetNullCore(resultType);
+
+        if (value is null) return ReadOnlySpan<T>.Empty;
+
+        if (typeof(T) == typeof(char))
+        {
+            return value.String.AsSpan().Cast<char, T>();
+        }
+
+        if (typeof(T) == typeof(byte))
+        {
+            return Unsafe.As<T[]>(value.GetBytes());
+        }
+
+        throw InvalidTokenTypeEx();
+    }
+
+    private Utf8String? GetNullCore(Type resultType) => _nullTokens.TryGetExt(resultType, null);
 
     /// <summary>
     /// Returns the custom format configured for <paramref name="resultType"/>,
     /// or <paramref name="defaultValue"/> by default.
     /// </summary>
-    public virtual string? GetFormat(Type resultType, string? defaultValue = null)
+    public string? GetFormat(Type resultType, string? defaultValue = null)
         => _formats.TryGetExt(resultType, defaultValue);
 
     /// <summary>
     /// Returns the custom format provider configured for <paramref name="resultType"/>,
     /// or <see cref="FormatProvider"/> by default.
     /// </summary>
-    public virtual IFormatProvider? GetFormatProvider(Type resultType)
+    public IFormatProvider? GetFormatProvider(Type resultType)
         => _providers.TryGetExt(resultType, _formatProvider);
 
     /// <summary>
@@ -220,7 +226,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// Defaults are <see cref="NumberStyles.Integer"/> for <see cref="IBinaryInteger{TSelf}"/> and
     /// <see cref="NumberStyles.Float"/> for <see cref="IFloatingPoint{TSelf}"/>.
     /// </remarks>
-    public virtual NumberStyles GetNumberStyles(Type resultType, NumberStyles defaultValue)
+    public NumberStyles GetNumberStyles(Type resultType, NumberStyles defaultValue)
         => _styles.TryGetExt(resultType, defaultValue);
 
     private CsvRecordCallback<T>? _recordCallback;
@@ -239,53 +245,26 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
 
     private IEqualityComparer<string> _comparer = StringComparer.OrdinalIgnoreCase;
 
-    private object? _null;
-    private TypeDictionary<string?, Utf8String>? _nullTokens;
-    private TypeDictionary<string?, object>? _formats;
-    private TypeDictionary<NumberStyles, object>? _styles;
+    private Utf8String? _null;
+    private TypeStringDictionary? _nullTokens;
+    private TypeDictionary<string?>? _formats;
+    private TypeDictionary<NumberStyles>? _styles;
 
     private IFormatProvider? _formatProvider = CultureInfo.InvariantCulture;
-    private TypeDictionary<IFormatProvider?, object>? _providers;
+    private TypeDictionary<IFormatProvider?>? _providers;
 
     /// <summary>
     /// Default null token to use when writing null values or reading nullable structs.
     /// Default is <see langword="null"/> (empty field in CSV).
     /// </summary>
     /// <seealso cref="NullTokens"/>
-    public virtual string? Null
+    public string? Null
     {
-        get
-        {
-            if (typeof(T) == typeof(char))
-            {
-                return (string?)_null;
-            }
-
-            if (typeof(T) == typeof(byte))
-            {
-                return (Utf8String?)_null;
-            }
-
-            InvalidTokenTypeEx(nameof(Null));
-            return null;
-        }
+        get => _null;
         set
         {
             this.ThrowIfReadOnly();
-
-            if (value is null || typeof(T) == typeof(char))
-            {
-                _null = value;
-                return;
-            }
-
-            if (typeof(T) == typeof(byte))
-            {
-                _null = (Utf8String?)value;
-                return;
-            }
-
-            InvalidTokenTypeEx(nameof(Null));
+            _null = value is null ? null : new Utf8String(value);
         }
     }
 
@@ -308,21 +287,21 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// <seealso cref="FormatProvider"/>
     /// <seealso cref="GetFormatProvider(Type)"/>
     public IDictionary<Type, IFormatProvider?> FormatProviders
-        => _providers ??= new TypeDictionary<IFormatProvider?, object>(this);
+        => _providers ??= new TypeDictionary<IFormatProvider?>(this);
 
     /// <summary>
     /// Format used per type.
     /// </summary>
     /// <remarks>Structs and their <see cref="Nullable{T}"/> counterparts are treated as equal.</remarks>
     /// <seealso cref="GetFormat(Type, string?)"/>
-    public IDictionary<Type, string?> Formats => _formats ??= new TypeDictionary<string?, object>(this);
+    public IDictionary<Type, string?> Formats => _formats ??= new TypeDictionary<string?>(this);
 
     /// <summary>
     /// Styles used when parsing <see cref="IBinaryNumber{TSelf}"/> and <see cref="IFloatingPoint{TSelf}"/>.
     /// </summary>
     /// <remarks>Structs and their <see cref="Nullable{T}"/> counterparts are treated as equal.</remarks>
     /// <seealso cref="GetNumberStyles(Type, System.Globalization.NumberStyles)"/>.
-    public IDictionary<Type, NumberStyles> NumberStyles => _styles ??= new TypeDictionary<NumberStyles, object>(this);
+    public IDictionary<Type, NumberStyles> NumberStyles => _styles ??= new TypeDictionary<NumberStyles>(this);
 
     /// <summary>
     /// String comparer used to match CSV header to members and parameters.
@@ -464,7 +443,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// Returns tokens used to parse and format <see langword="null"/> values. See <see cref="GetNullToken(Type)"/>.
     /// </summary>
     /// <seealso cref="CsvConverter{T,TValue}.CanFormatNull"/>
-    public IDictionary<Type, string?> NullTokens => _nullTokens ??= new(this, static Utf8String (str) => str);
+    public IDictionary<Type, string?> NullTokens => _nullTokens ??= new(this);
 
     /// <summary>
     /// Optional custom boolean value mapping. If not empty, must contain at least one value for both
@@ -475,12 +454,6 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     public IList<(string text, bool value)> BooleanValues
         => _booleanValues ??= (IsReadOnly ? SealableList<(string, bool)>.Empty : new(this, null));
 
-    /// <summary>
-    /// Returns <see langword="true"/> if this instance's type is inherited by user code.
-    /// </summary>
-    // TODO: figure out a more elegant way to do this
-    internal virtual bool IsInherited => GetType() != typeof(CsvOptions<T>);
-
     internal bool HasBooleanValues => _booleanValues is { Count: > 0 };
     internal MemoryPool<T> Allocator => _memoryPool;
 }
@@ -489,7 +462,7 @@ file static class TypeDictExtensions
 {
     [StackTraceHidden]
     public static T TryGetExt<T>(
-        this TypeDictionary<T, object>? dict,
+        this TypeDictionary<T>? dict,
         Type key,
         T defaultValue,
         [CallerArgumentExpression(nameof(key))]
@@ -498,30 +471,4 @@ file static class TypeDictExtensions
         ArgumentNullException.ThrowIfNull(key, parameterName);
         return dict is not null && dict.TryGetValue(key, out T? value) ? value : defaultValue;
     }
-}
-
-file sealed class CsvOptionsCharSealed : CsvOptions<char>
-{
-    public static readonly CsvOptionsCharSealed Instance;
-
-    static CsvOptionsCharSealed()
-    {
-        Instance = new();
-        Instance.MakeReadOnly();
-    }
-
-    internal override bool IsInherited => false;
-}
-
-file sealed class CsvOptionsByteSealed : CsvOptions<byte>
-{
-    public static readonly CsvOptionsByteSealed Instance;
-
-    static CsvOptionsByteSealed()
-    {
-        Instance = new();
-        Instance.MakeReadOnly();
-    }
-
-    internal override bool IsInherited => false;
 }

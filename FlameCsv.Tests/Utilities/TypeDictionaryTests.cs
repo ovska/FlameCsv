@@ -8,7 +8,7 @@ public class TypeDictionaryTests
     public void Should_Equate_Nullable_And_Underlying(Type type)
     {
         var options = new CsvOptions<char>();
-        var dict = new TypeDictionary<int, string>(options, i => i.ToString());
+        var dict = new TypeDictionary<int>(options);
 
         Assert.DoesNotContain(typeof(bool), dict);
         Assert.DoesNotContain(typeof(bool?), dict);
@@ -17,10 +17,5 @@ public class TypeDictionaryTests
 
         Assert.Equal(5, dict[typeof(bool)]);
         Assert.Equal(5, dict[typeof(bool?)]);
-
-        Assert.True(dict.TryGetAlternate(typeof(bool), out string? alternate));
-        Assert.Equal("5", alternate);
-        Assert.True(dict.TryGetAlternate(typeof(bool?), out alternate));
-        Assert.Equal("5", alternate);
     }
 }

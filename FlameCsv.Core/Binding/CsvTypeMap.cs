@@ -1,9 +1,9 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.Immutable;
+using System.ComponentModel;
 using FlameCsv.Exceptions;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Attributes;
-using FlameCsv.Extensions;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Binding;
@@ -37,7 +37,7 @@ public abstract class CsvTypeMap
     /// Caching is enabled by default.
     /// The cache is used on calls to public methods on the base class <see cref="CsvTypeMap"/>.
     /// </remarks>
-    /// <seealso cref="CsvTypeMap{T,TValue}.GetMaterializer(ReadOnlySpan{string},CsvOptions{T})"/>
+    /// <seealso cref="CsvTypeMap{T,TValue}.GetMaterializer(System.Collections.Immutable.ImmutableArray{string},CsvOptions{T})"/>
     /// <seealso cref="CsvTypeMap{T,TValue}.GetMaterializer(FlameCsv.CsvOptions{T})"/>
     /// <seealso cref="CsvTypeMap{T,TValue}.GetDematerializer"/>
     public bool NoCaching { get; init; }
@@ -52,11 +52,11 @@ public abstract class CsvTypeMap
     protected void ThrowDuplicate(
         string member,
         string field,
-        ReadOnlySpan<string> headers)
+        ImmutableArray<string> headers)
     {
         throw new CsvBindingException(
             TargetType,
-            $"\"{member}\" matched to multiple headers, including '{field}' in {UtilityExtensions.JoinValues(headers)}.");
+            $"\"{member}\" matched to multiple headers, including '{field}' in {JoinValues(headers)}.");
     }
 
     /// <summary>
@@ -77,12 +77,12 @@ public abstract class CsvTypeMap
     /// <exception cref="CsvBindingException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    protected void ThrowRequiredNotRead(IEnumerable<string> members, ReadOnlySpan<string> headers)
+    protected void ThrowRequiredNotRead(IEnumerable<string> members, ImmutableArray<string> headers)
     {
         string missingMembers = string.Join(", ", members.Select(x => $"\"{x}\""));
         throw new CsvBindingException(
             TargetType,
-            $"Required members/parameters [{missingMembers}] were not matched to any header field: [{UtilityExtensions.JoinValues(headers)}]");
+            $"Required members/parameters [{missingMembers}] were not matched to any header field: [{JoinValues(headers)}]");
     }
 
     /// <summary>
@@ -92,10 +92,13 @@ public abstract class CsvTypeMap
     /// <exception cref="CsvBindingException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    protected void ThrowNoFieldsBound(ReadOnlySpan<string> headers)
+    protected void ThrowNoFieldsBound(ImmutableArray<string> headers)
     {
         throw new CsvBindingException(
             TargetType,
-            $"No header fields were matched to a member or parameter: {UtilityExtensions.JoinValues(headers)}");
+            $"No header fields were matched to a member or parameter: {JoinValues(headers)}");
     }
+
+    private static string JoinValues(ImmutableArray<string> values)
+        => values.IsDefaultOrEmpty ? "" : string.Join(", ", values.Select(x => $"\"{x}\""));
 }

@@ -1,4 +1,5 @@
-﻿using FlameCsv.Binding;
+﻿using System.Collections.Immutable;
+using FlameCsv.Binding;
 using FlameCsv.IO;
 using FlameCsv.Reading;
 using JetBrains.Annotations;
@@ -31,7 +32,7 @@ public sealed class CsvTypeMapEnumerator<T, TValue> : CsvValueEnumeratorBase<T, 
     }
 
     /// <inheritdoc/>
-    protected override IMaterializer<T, TValue> BindToHeaders(ReadOnlySpan<string> headers)
+    protected override IMaterializer<T, TValue> BindToHeaders(ImmutableArray<string> headers)
     {
         return _typeMap.GetMaterializer(headers, Options);
     }

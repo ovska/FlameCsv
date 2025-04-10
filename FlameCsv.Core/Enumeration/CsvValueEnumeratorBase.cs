@@ -1,6 +1,8 @@
 ﻿using System.Collections;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Exceptions;
+using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Reading;
 using FlameCsv.Utilities;
@@ -38,11 +40,35 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     /// </remarks>
     public CsvExceptionHandler<T>? ExceptionHandler { get; init; }
 
-    private readonly bool _hasHeader;
-    private readonly bool _hasCallback;
-
     private IMaterializer<T, TValue>? _materializer;
-    private string[]? _headersArray;
+
+    /// <summary>
+    /// Returns the headers in the CSV. If headers have not been read, or <see cref="CsvOptions{T}.HasHeader"/>
+    /// is <c>false</c>, returns <see langword="default"/>.
+    /// </summary>
+    /// <exception cref="NotSupportedException">
+    /// Value is set when <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
+    /// </exception>
+    protected ImmutableArray<string> Headers
+    {
+        get => field;
+        set
+        {
+            if (!Options.HasHeader) Throw.NotSupported_CsvHasNoHeader();
+
+            if (value.IsDefaultOrEmpty || !Headers.AsSpan().SequenceEqual(value.AsSpan(), Options.Comparer))
+            {
+                field = value;
+                _materializer = null;
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    protected override ImmutableArray<string> GetHeader() => Headers;
+
+    /// <inheritdoc />
+    protected override void ResetHeader() => Headers = default;
 
     /// <summary>
     /// Initializes a new instance of <see cref="CsvValueEnumeratorBase{T, TValue}"/>.
@@ -57,30 +83,18 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         : base(options, reader, cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(options);
-        _hasCallback = options.RecordCallback is not null;
-        _hasHeader = options.HasHeader;
         Current = default!;
     }
 
     /// <summary>
     /// Returns a materializer bound to <paramref name="headers"/>.
     /// </summary>
-    protected abstract IMaterializer<T, TValue> BindToHeaders(ReadOnlySpan<string> headers);
+    protected abstract IMaterializer<T, TValue> BindToHeaders(ImmutableArray<string> headers);
 
     /// <summary>
     /// Returns a materializer bound to field indexes.
     /// </summary>
     protected abstract IMaterializer<T, TValue> BindToHeaderless();
-
-    /// <inheritdoc/>
-    protected override ReadOnlySpan<string> GetHeader() => _headersArray;
-
-    /// <inheritdoc/>
-    protected override void ResetHeader()
-    {
-        _materializer = null;
-        _headersArray = null;
-    }
 
     /// <inheritdoc/>
     protected override bool MoveNextCore(ref readonly CsvFields<T> fields)
@@ -110,7 +124,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
 
             if (handler is not null)
             {
-                CsvExceptionHandlerArgs<T> args = new(in fields, _headersArray, ex, Line, Position);
+                CsvExceptionHandlerArgs<T> args = new(in fields, Headers.AsSpan(), ex, Line, Position);
 
                 if (handler(in args))
                 {
@@ -132,7 +146,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     [MemberNotNull(nameof(_materializer))]
     private bool TryReadHeader(ref readonly CsvFields<T> record)
     {
-        if (!_hasHeader)
+        if (!Options.HasHeader)
         {
             _materializer = BindToHeaderless();
             return false;
@@ -143,22 +157,8 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
 
         CsvFieldsRef<T> reader = new(in record, stackalloc T[Token<T>.StackLength]);
 
-        _materializer = CsvHeader.Parse(
-            Reader.Options,
-            ref reader,
-            this,
-            static (@this, headers) =>
-            {
-                IMaterializer<T, TValue> materializer = @this.BindToHeaders(headers);
-
-                if (@this._hasCallback || @this.ExceptionHandler is not null)
-                {
-                    @this._headersArray = headers.ToArray();
-                }
-
-                return materializer;
-            });
-
+        Headers = CsvHeader.Parse(Options, ref reader);
+        _materializer = BindToHeaders(Headers);
         return true;
     }
 }

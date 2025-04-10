@@ -7,16 +7,17 @@ namespace FlameCsv;
 /// </summary>
 internal sealed class Utf8String
 {
-    private readonly string _string;
-    private readonly ReadOnlyMemory<byte> _bytes;
+    public string String { get; }
 
-    private Utf8String(string? value)
+    public byte[] GetBytes() => _bytes ??= Encoding.UTF8.GetBytes(String);
+
+    private byte[]? _bytes;
+
+    public Utf8String(string? value)
     {
-        _string = value ?? "";
-        _bytes = Encoding.UTF8.GetBytes(_string);
+        String = value ?? "";
     }
 
     public static implicit operator Utf8String(string? value) => new(value);
-    public static implicit operator string?(Utf8String? value) => value?._string;
-    public static implicit operator ReadOnlyMemory<byte>(Utf8String value) => value._bytes;
+    public static implicit operator string?(Utf8String? value) => value?.String;
 }

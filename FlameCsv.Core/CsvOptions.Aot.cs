@@ -105,7 +105,11 @@ partial class CsvOptions<T>
 
             converter = factory(_options);
 
-            if (converter is null) InvalidFactoryDelegate.Throw(typeof(TValue));
+            if (converter is null)
+            {
+                throw new CsvConfigurationException(
+                    $"The factory delegate passed to GetOrCreate for {typeof(TValue).FullName} returned null.");
+            }
 
             if (canCache && _options.ConverterCache.TryAdd(typeof(TValue), converter))
             {
@@ -185,7 +189,7 @@ partial class CsvOptions<T>
                         canCache: true);
             }
 
-            throw new NotSupportedException("Enum converters are only supported for char and byte");
+            throw InvalidTokenTypeEx();
         }
 
         private bool TryGetExistingOrCustomConverter<TValue>(
@@ -224,15 +228,5 @@ partial class CsvOptions<T>
             converter = null;
             return false;
         }
-    }
-}
-
-file static class InvalidFactoryDelegate
-{
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void Throw(Type toConvert, [CallerMemberName] string method = "")
-    {
-        throw new CsvConfigurationException(
-            $"The factory delegate passed to {method} for {toConvert.FullName} returned null.");
     }
 }

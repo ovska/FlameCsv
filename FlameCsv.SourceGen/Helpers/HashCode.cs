@@ -14,6 +14,7 @@ namespace FlameCsv.SourceGen.Helpers;
 /// <summary>
 /// A polyfill type that mirrors some methods from <see cref="HashCode"/> on .NET 6.
 /// </summary>
+[ExcludeFromCodeCoverage]
 internal struct HashCode
 {
     private const uint Prime1 = 2654435761U;

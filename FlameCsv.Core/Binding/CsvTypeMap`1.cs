@@ -1,4 +1,5 @@
-﻿using FlameCsv.Exceptions;
+﻿using System.Collections.Immutable;
+using FlameCsv.Exceptions;
 using FlameCsv.Attributes;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
@@ -22,9 +23,9 @@ public abstract class CsvTypeMap<T, TValue> : CsvTypeMap where T : unmanaged, IB
     /// <inheritdoc/>
     protected sealed override Type TargetType => typeof(TValue);
 
-    /// <inheritdoc cref="GetMaterializer(ReadOnlySpan{string},CsvOptions{T})"/>
+    /// <inheritdoc cref="GetMaterializer(ImmutableArray{string},CsvOptions{T})"/>
     protected virtual IMaterializer<T, TValue> BindForReading(
-        scoped ReadOnlySpan<string> headers,
+        ImmutableArray<string> headers,
         CsvOptions<T> options)
     {
         throw new CsvBindingException(
@@ -51,7 +52,7 @@ public abstract class CsvTypeMap<T, TValue> : CsvTypeMap where T : unmanaged, IB
     /// <remarks>
     /// Caches the materializer based on the type, headers, and options. This can be overridden per type map.
     /// </remarks>
-    public IMaterializer<T, TValue> GetMaterializer(scoped ReadOnlySpan<string> headers, CsvOptions<T> options)
+    public IMaterializer<T, TValue> GetMaterializer(ImmutableArray<string> headers, CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentOutOfRangeException.ThrowIfZero(headers.Length);

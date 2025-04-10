@@ -15,6 +15,6 @@ public static class Utf8StringTests
     {
         Utf8String utf8 = value;
         Assert.Equal(value ?? "", utf8);
-        Assert.Equal((ReadOnlyMemory<byte>)utf8, Encoding.UTF8.GetBytes(value ?? ""));
+        Assert.Equal(utf8.GetBytes(), Encoding.UTF8.GetBytes(value ?? ""));
     }
 }

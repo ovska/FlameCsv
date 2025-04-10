@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
@@ -70,7 +71,7 @@ public class CsvRecord<T>
     /// </summary>
     /// <seealso cref="HasHeader"/>
     /// <exception cref="NotSupportedException">Options is configured not to have a header</exception>
-    public ReadOnlySpan<string> Header
+    public ImmutableArray<string> Header
     {
         get
         {
@@ -156,7 +157,7 @@ public class CsvRecord<T>
 
             if (!_header.TryGetValue(name, out index))
             {
-                Throw.Argument_HeaderNameNotFound(name, _header.HeaderNames);
+                Throw.Argument_HeaderNameNotFound(name, _header.Values.AsEnumerable());
             }
         }
 

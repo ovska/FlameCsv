@@ -83,7 +83,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
         }
         else
         {
-            ReadOnlySpan<T> nullValue = Options.GetNullToken(typeof(TValue)).Span;
+            ReadOnlySpan<T> nullValue = Options.GetNullSpan(typeof(TValue));
             destination = Writer.GetSpan(nullValue.Length);
             nullValue.CopyTo(destination);
             tokensWritten = nullValue.Length;
