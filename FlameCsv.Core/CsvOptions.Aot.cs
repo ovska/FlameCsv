@@ -44,7 +44,7 @@ partial class CsvOptions<T>
         }
 
         /// <summary>
-        /// Returns a converter for <typeparamref name="TResult"/>.
+        /// Attempts to return a converter for <typeparamref name="TResult"/>.
         /// </summary>
         /// <typeparam name="TResult">Type to convert</typeparam>
         /// <exception cref="CsvConverterMissingException"/>
@@ -54,11 +54,11 @@ partial class CsvOptions<T>
         /// <see cref="CsvConverterFactory{T}"/> added to <see cref="Converters"/> are not supported.
         /// </remarks>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public CsvConverter<T, TResult> GetConverter<TResult>()
+        public bool TryGetConverter<TResult>([NotNullWhen(true)] out CsvConverter<T, TResult>? converter)
         {
-            if (TryGetExistingOrCustomConverter<TResult>(out CsvConverter<T, TResult>? converter))
+            if (TryGetExistingOrCustomConverter(out converter))
             {
-                return converter;
+                return true;
             }
 
             if (typeof(T) == typeof(char) && DefaultConverters.GetText(typeof(TResult)) is { } factory1)
@@ -73,12 +73,33 @@ partial class CsvOptions<T>
 
             if (converter is null)
             {
-                CsvConverterMissingException.Throw(typeof(TResult));
+                return false;
             }
 
             if (_options.ConverterCache.TryAdd(typeof(TResult), converter))
             {
                 _options.CheckConverterCacheSize();
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Returns a converter for <typeparamref name="TResult"/>.
+        /// </summary>
+        /// <typeparam name="TResult">Type to convert</typeparam>
+        /// <exception cref="CsvConverterMissingException"/>
+        /// <remarks>
+        /// This API is meant to be used by the source generator to produce trimming/AOT safe code.<br/>
+        /// If a non-factory user defined converter is found, it is returned directly.<br/>
+        /// <see cref="CsvConverterFactory{T}"/> added to <see cref="Converters"/> are not supported.
+        /// </remarks>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public CsvConverter<T, TResult> GetConverter<TResult>()
+        {
+            if (!TryGetConverter(out CsvConverter<T, TResult>? converter))
+            {
+                CsvConverterMissingException.Throw(typeof(TResult));
             }
 
             return converter;

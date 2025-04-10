@@ -20,7 +20,7 @@ namespace FlameCsv.Enumeration;
 /// The enumerator should always be disposed after use, either explicitly or using <c>foreach</c>.
 /// </remarks>
 [MustDisposeResource]
-public sealed class CsvRecordEnumerator<T>
+public sealed partial class CsvRecordEnumerator<T>
     : CsvEnumeratorBase<T>, IEnumerator<CsvValueRecord<T>>, IAsyncEnumerator<CsvValueRecord<T>>, IRecordOwner
     where T : unmanaged, IBinaryInteger<T>
 {

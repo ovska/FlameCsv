@@ -34,6 +34,7 @@ internal static class DefaultConverters
         if (type == typeof(TimeSpan)) return o => new SpanTextConverter<TimeSpan>(o);
         if (type == typeof(Guid)) return o => new SpanTextConverter<Guid>(o);
         if (type == typeof(Char)) return _ => CharTextConverter.Instance;
+        if (type == typeof(Memory<byte>)) return _ => Base64TextConverter.Instance;
         return null;
     }
 
@@ -64,6 +65,7 @@ internal static class DefaultConverters
         if (type == typeof(TimeSpan)) return o => new SpanUtf8FormattableConverter<TimeSpan>(o);
         if (type == typeof(Guid)) return o => new SpanUtf8FormattableConverter<Guid>(o);
         if (type == typeof(Char)) return _ => CharUtf8Converter.Instance;
+        if (type == typeof(Memory<byte>)) return _ => Base64Utf8Converter.Instance;
         return null;
     }
 }
