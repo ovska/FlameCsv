@@ -1,4 +1,5 @@
-﻿using FlameCsv.Extensions;
+﻿using System.Globalization;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Converters;
 
@@ -19,25 +20,42 @@ internal sealed class SpanUtf8ConverterFactory : CsvConverterFactory<byte>
     [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
     public override CsvConverter<byte> Create(Type type, CsvOptions<byte> options)
     {
-        Type toCreate = CheckInterfaces(type) switch
+        var implements = CheckInterfaces(type);
+
+        Type toCreate = implements switch
         {
             Implements.Both => typeof(SpanUtf8Converter<>),
             Implements.Formattable => typeof(SpanUtf8FormattableConverter<>),
             Implements.Parsable => typeof(SpanUtf8ParsableConverter<>),
             Implements.Transcoding => typeof(SpanUtf8TranscodingConverter<>),
+            Implements.Integer or Implements.Float => typeof(NumberUtf8Converter<>),
             _ => throw new ArgumentException("Invalid type", nameof(type)),
         };
 
-        return toCreate.MakeGenericType(type).CreateInstance<CsvConverter<byte>>(options);
+        object?[] parameters = implements switch
+        {
+            Implements.Integer => [options, NumberStyles.Integer],
+            Implements.Float => [options, NumberStyles.Float],
+            _ => [options],
+        };
+
+        return toCreate.MakeGenericType(type).CreateInstance<CsvConverter<byte>>(parameters);
     }
 
     private static Implements CheckInterfaces(Type type)
     {
+        // hack, we don't want to treat char as a number
+        if (type == typeof(char)) return Implements.Both;
+
         InterfaceType? formattable = null;
         InterfaceType? parsable = null;
 
+        bool? isFloatingPoint = null;
+
         foreach (var iface in type.GetInterfaces())
         {
+            if (iface.Module != typeof(int).Module) continue;
+
             if (iface.IsGenericType)
             {
                 var def = iface.GetGenericTypeDefinition();
@@ -56,6 +74,14 @@ internal sealed class SpanUtf8ConverterFactory : CsvConverterFactory<byte>
                         parsable ??= InterfaceType.Char;
                     }
                 }
+                else if (def == typeof(IBinaryInteger<>))
+                {
+                    isFloatingPoint = false;
+                }
+                else if (def == typeof(IFloatingPoint<>))
+                {
+                    isFloatingPoint = true;
+                }
             }
             else
             {
@@ -68,6 +94,13 @@ internal sealed class SpanUtf8ConverterFactory : CsvConverterFactory<byte>
                     formattable ??= InterfaceType.Char;
                 }
             }
+        }
+
+        // ReSharper disable once ConvertSwitchStatementToSwitchExpression
+        switch (isFloatingPoint)
+        {
+            case true: return Implements.Float;
+            case false: return Implements.Integer;
         }
 
         return (formattable, parsable) switch
@@ -92,6 +125,8 @@ internal sealed class SpanUtf8ConverterFactory : CsvConverterFactory<byte>
         Transcoding,
         Formattable,
         Parsable,
-        Both
+        Both,
+        Integer,
+        Float,
     }
 }
