@@ -57,10 +57,7 @@ public abstract class CsvConverterAttribute<T> : Attribute where T : unmanaged, 
 
                 if (converter is not null)
                 {
-                    instanceOrFactory = NullableConverterFactory<T>.CreateCore(
-                        underlying,
-                        converter,
-                        options.GetNullToken(underlying));
+                    instanceOrFactory = NullableConverterFactory<T>.CreateCore(underlying, converter, options);
                     goto Success;
                 }
             }
