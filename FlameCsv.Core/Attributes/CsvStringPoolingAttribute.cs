@@ -1,11 +1,7 @@
-﻿using CommunityToolkit.HighPerformance.Buffers;
+﻿using System.Diagnostics.CodeAnalysis;
+using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Converters;
-#if DEBUG
-using Unsafe = FlameCsv.Extensions.DebugUnsafe
-#else
-using Unsafe = System.Runtime.CompilerServices.Unsafe
-#endif
-    ;
+using FlameCsv.Exceptions;
 
 namespace FlameCsv.Attributes;
 
@@ -14,35 +10,45 @@ namespace FlameCsv.Attributes;
 /// </summary>
 /// <seealso cref="CsvOptions{T}.StringPool"/>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
-public sealed class CsvStringPoolingAttribute<T> : CsvConverterAttribute<T> where T : unmanaged, IBinaryInteger<T>
+public sealed class CsvStringPoolingAttribute : CsvConverterAttribute
 {
     /// <inheritdoc />
-    protected override CsvConverter<T> CreateConverterOrFactory(Type targetType, CsvOptions<T> options)
+    protected override bool TryCreateConverterOrFactory<T>(
+        Type targetType,
+        CsvOptions<T> options,
+        [NotNullWhen(true)] out CsvConverter<T>? converter)
     {
         if (targetType != typeof(string))
         {
-            throw new InvalidOperationException(
-                $"{GetType().FullName} must be applied on string, was: {targetType.FullName}");
+            throw new CsvConfigurationException(
+                $"{nameof(CsvStringPoolingAttribute)} can only be used to convert strings.");
         }
 
         StringPool? configured = options.StringPool;
 
+        object? result = null;
+
         if (typeof(T) == typeof(char))
         {
-            CsvConverter<char> converter = configured is not null && configured != StringPool.Shared
+            result = configured is not null && configured != StringPool.Shared
                 ? new PoolingStringTextConverter(configured)
                 : PoolingStringTextConverter.SharedInstance;
-            return Unsafe.As<CsvConverter<T>>(converter);
         }
 
         if (typeof(T) == typeof(byte))
         {
-            CsvConverter<byte> converter = configured is not null && configured != StringPool.Shared
+            result = configured is not null && configured != StringPool.Shared
                 ? new PoolingStringUtf8Converter(configured)
                 : PoolingStringUtf8Converter.SharedInstance;
-            return Unsafe.As<CsvConverter<T>>(converter);
         }
 
-        throw new NotSupportedException($"{GetType().FullName} does not support token type {typeof(T).FullName}");
+        if (result is not null)
+        {
+            converter = (CsvConverter<T>)result;
+            return true;
+        }
+
+        converter = null;
+        return false;
     }
 }

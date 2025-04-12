@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Converters;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -10,64 +11,72 @@ namespace FlameCsv.Attributes;
 /// <remarks>
 /// The resulting converter is cast to <see cref="CsvConverter{T,TValue}"/>.<br/>
 /// This attribute is not recognized by the source generator,
-/// use <see cref="CsvConverterAttribute{T,TConverter}"/> instead.
+/// use <see cref="CsvConverterAttribute{TConverter}"/> instead.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
-public abstract class CsvConverterAttribute<T> : Attribute where T : unmanaged, IBinaryInteger<T>
+public abstract class CsvConverterAttribute : Attribute
 {
     /// <summary>
-    /// Gets or creates a converter instance for the binding's member.
+    /// Attempts to create a converter for the target member or parameter.<br/>
+    /// If the configured converter is not for token type <typeparamref name="T"/>, this method should return <c>false</c>.<br/>
+    /// If the converter is not for the target type, this method should throw a <see cref="CsvConfigurationException"/>.
     /// </summary>
     /// <param name="targetType">Type to convert</param>
     /// <param name="options">Current configuration instance</param>
+    /// <param name="converter"></param>
     /// <returns>Converter instance</returns>
     /// <exception cref="CsvConfigurationException">Thrown if <paramref name="targetType"/> is not valid for the member,
     /// or is not present in the configuration and has no parameterless constructor.</exception>
-    protected abstract CsvConverter<T> CreateConverterOrFactory(Type targetType, CsvOptions<T> options);
+    protected abstract bool TryCreateConverterOrFactory<T>(
+        Type targetType,
+        CsvOptions<T> options,
+        [NotNullWhen(true)] out CsvConverter<T>? converter)
+        where T : unmanaged, IBinaryInteger<T>;
 
     /// <summary>
     /// Creates the configured converter.
     /// </summary>
     [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
-    public CsvConverter<T> CreateConverter(Type targetType, CsvOptions<T> options)
+    public bool TryCreateConverter<T>(
+        Type targetType,
+        CsvOptions<T> options,
+        [NotNullWhen(true)] out CsvConverter<T>? converter)
+        where T : unmanaged, IBinaryInteger<T>
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(targetType);
 
-        CsvConverter<T> instanceOrFactory = CreateConverterOrFactory(targetType, options) ??
-            throw new InvalidOperationException($"{GetType()}.{nameof(CreateConverterOrFactory)} returned null");
+        if (!TryCreateConverterOrFactory(targetType, options, out converter))
+        {
+            return false;
+        }
 
-        if (!instanceOrFactory.CanConvert(targetType))
+        if (!converter.CanConvert(targetType))
         {
             Type? underlying = Nullable.GetUnderlyingType(targetType);
 
             if (underlying is not null)
             {
-                CsvConverter<T>? converter = null;
-
-                if (instanceOrFactory is CsvConverterFactory<T> factory)
+                if (converter.CanConvert(underlying))
                 {
-                    if (factory.CanConvert(underlying))
-                        converter = factory.Create(underlying, options);
-                }
-                else if (instanceOrFactory.CanConvert(underlying))
-                {
-                    converter = instanceOrFactory;
+                    converter = NullableConverterFactory<T>.CreateCore(underlying, converter, options);
+                    goto Success;
                 }
 
-                if (converter is not null)
+                if (converter is CsvConverterFactory<T> factory && factory.CanConvert(underlying))
                 {
-                    instanceOrFactory = NullableConverterFactory<T>.CreateCore(underlying, converter, options);
+                    converter = factory.Create(underlying, options);
                     goto Success;
                 }
             }
 
             throw new CsvConfigurationException(
-                $"Overridden converter {instanceOrFactory.GetType().FullName} " +
+                $"Overridden converter {converter.GetType().FullName} " +
                 $"can not parse the member type: {targetType.FullName} (attribute: {this.GetType().FullName})");
         }
 
     Success:
-        return instanceOrFactory.GetOrCreateConverter(targetType, options);
+        converter = converter.GetOrCreateConverter(targetType, options);
+        return true;
     }
 }
