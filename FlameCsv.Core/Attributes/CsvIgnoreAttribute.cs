@@ -16,6 +16,6 @@ namespace FlameCsv.Attributes;
     AttributeTargets.Struct |
     AttributeTargets.Interface |
     AttributeTargets.Assembly,
-    AllowMultiple = true)]
+    AllowMultiple = true)] // type and assembly need AllMultiple = true
 [PublicAPI]
 public sealed class CsvIgnoreAttribute : CsvFieldConfigurationAttribute;
