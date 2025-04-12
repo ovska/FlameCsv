@@ -39,7 +39,7 @@ internal readonly ref struct FlameSymbols
         _converter = GetUnbound(compilation, "FlameCsv.CsvConverter`2");
         _converterFactory = GetUnbound(compilation, "FlameCsv.CsvConverterFactory`1")
             .OriginalDefinition.Construct(tokenType);
-        _converterOfTAttribute = GetUnbound(compilation, "FlameCsv.Attributes.CsvConverterAttribute`2");
+        _converterOfTAttribute = GetUnbound(compilation, "FlameCsv.Attributes.CsvConverterAttribute`1");
         _headerAttribute = Get(compilation, "FlameCsv.Attributes.CsvHeaderAttribute");
         _ignoreAttribute = Get(compilation, "FlameCsv.Attributes.CsvIgnoreAttribute");
         _indexAttribute = Get(compilation, "FlameCsv.Attributes.CsvIndexAttribute");
@@ -78,7 +78,7 @@ internal readonly ref struct FlameSymbols
     public bool IsCsvOrderAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_orderAttribute, symbol);
     public bool IsCsvRequiredAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_requiredAttribute, symbol);
     public bool IsCsvOptionsOfT([NNW(true)] ISymbol? symbol) => _seq.Equals(_options, symbol);
-    public bool IsGetCsvConverterFactoryOfT([NNW(true)] ISymbol? symbol) => _seq.Equals(_converterFactory, symbol);
+    public bool IsCsvConverterFactoryOfT([NNW(true)] ISymbol? symbol) => _seq.Equals(_converterFactory, symbol);
     public bool IsTypeProxyAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_typeProxyAttribute, symbol);
     public bool IsIgnoredIndexesAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_ignoredIndexesAttribute, symbol);
 
@@ -122,7 +122,7 @@ internal readonly ref struct FlameSymbols
     public bool IsIUtf8SpanFormattable([NNW(true)] ISymbol? symbol) => _systemIUtf8SpanFormattable.IsEqual(symbol);
 
     private static readonly TypeData _converterTTValue = new("FlameCsv.CsvConverter", 2);
-    private static readonly TypeData _converterOfTAttribute = new("FlameCsv.Attributes.CsvConverterAttribute", 2);
+    private static readonly TypeData _converterOfTAttribute = new("FlameCsv.Attributes.CsvConverterAttribute", 1);
     private static readonly TypeData _headerAttribute = new("FlameCsv.Attributes.CsvHeaderAttribute");
     private static readonly TypeData _ignoreAttribute = new("FlameCsv.Attributes.CsvIgnoreAttribute");
     private static readonly TypeData _indexAttribute = new("FlameCsv.Attributes.CsvIndexAttribute");
@@ -145,7 +145,7 @@ internal readonly ref struct FlameSymbols
         return IsGenericTypeOfT(TokenType, symbol, "FlameCsv.CsvOptions<");
     }
 
-    public bool IsGetCsvConverterFactoryOfT(ITypeSymbol symbol)
+    public bool IsCsvConverterFactoryOfT(ITypeSymbol symbol)
     {
         return IsGenericTypeOfT(TokenType, symbol, "FlameCsv.CsvConverterFactory<");
     }
@@ -167,36 +167,35 @@ internal readonly ref struct FlameSymbols
             symbolString[prefix.Length + tokenString.Length] == '>';
     }
     // ReSharper restore MemberCanBeMadeStatic.Global
-#endif
-}
 
-#if !SOURCEGEN_USE_COMPILATION
-internal readonly struct TypeData
-{
-    private int Arity { get; }
-    private string Name { get; }
-    private string Namespace { get; }
-
-    public TypeData(string fullName, int genericParameterCount = 0)
+    internal readonly struct TypeData
     {
-        int namespaceIndex = fullName.LastIndexOf('.');
+        private int Arity { get; }
+        private string Name { get; }
+        private string Namespace { get; }
 
-        Arity = genericParameterCount;
-        Name = fullName[(namespaceIndex + 1)..];
-        Namespace = namespaceIndex == -1 ? "" : fullName[..namespaceIndex];
-    }
-
-    public bool IsEqual([NNW(true)] ISymbol? symbol)
-    {
-        if (symbol is not null)
+        public TypeData(string fullName, int genericParameterCount = 0)
         {
-            if (symbol.Name == Name && (Arity == 0 || symbol is INamedTypeSymbol namedType && namedType.Arity == Arity))
-            {
-                return symbol.ContainingNamespace.ToDisplayString() == Namespace;
-            }
+            int namespaceIndex = fullName.LastIndexOf('.');
+
+            Arity = genericParameterCount;
+            Name = fullName[(namespaceIndex + 1)..];
+            Namespace = namespaceIndex == -1 ? "" : fullName[..namespaceIndex];
         }
 
-        return false;
+        public bool IsEqual([NNW(true)] ISymbol? symbol)
+        {
+            if (symbol is not null)
+            {
+                if (symbol.Name == Name && (Arity == 0 || symbol is INamedTypeSymbol namedType && namedType.Arity == Arity))
+                {
+                    return symbol.ContainingNamespace.ToDisplayString() == Namespace;
+                }
+            }
+
+            return false;
+        }
     }
-}
 #endif
+}
+

@@ -39,6 +39,6 @@ internal abstract class Dematerializer<T, TValue> : Dematerializer<T> where T : 
             return CsvIgnored.Converter<T, TConverted>();
         }
 
-        return binding.ResolveConverter<T, TConverted>(options, write: true) ?? options.GetConverter<TConverted>();
+        return binding.ResolveConverter<T, TConverted>(options) ?? options.GetConverter<TConverted>();
     }
 }

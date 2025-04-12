@@ -16,11 +16,11 @@ internal sealed record ConverterModel
 
         foreach (var attributeData in propertyOrParameter.GetAttributes())
         {
-            if (attributeData.AttributeClass is { IsGenericType: true, Arity: 2 } attribute &&
-                SymbolEqualityComparer.Default.Equals(token, attribute.TypeArguments[0]) &&
-                symbols.IsCsvConverterOfTAttribute(attribute.ConstructUnboundGenericType()))
+            if (attributeData.AttributeClass is { IsGenericType: true, Arity: 1 } attribute &&
+                symbols.IsCsvConverterOfTAttribute(attribute.ConstructUnboundGenericType()) &&
+                IsConverterOrFactory(attribute.TypeArguments[0], token, in symbols))
             {
-                converter = attribute.TypeArguments[1];
+                converter = attribute.TypeArguments[0];
                 break;
             }
         }
@@ -107,9 +107,41 @@ internal sealed record ConverterModel
     {
         while (type is not null)
         {
-            if (symbols.IsGetCsvConverterFactoryOfT(type))
+            if (symbols.IsCsvConverterFactoryOfT(type))
             {
                 return true;
+            }
+
+            type = type.BaseType;
+        }
+
+        return false;
+    }
+
+    public static bool IsConverterOrFactory(
+        ITypeSymbol? type,
+        ITypeSymbol tokenType,
+        ref readonly FlameSymbols symbols)
+    {
+        while (type is not null)
+        {
+            if (type is INamedTypeSymbol genericType)
+            {
+                if (genericType.Arity == 2)
+                {
+                    if (symbols.IsCsvConverterTTValue(genericType.ConstructUnboundGenericType()) &&
+                        SymbolEqualityComparer.Default.Equals(genericType.TypeArguments[0], tokenType))
+                    {
+                        return true;
+                    }
+                }
+                else if (genericType.Arity == 1)
+                {
+                    if (symbols.IsCsvConverterFactoryOfT(genericType))
+                    {
+                        return true;
+                    }
+                }
             }
 
             type = type.BaseType;

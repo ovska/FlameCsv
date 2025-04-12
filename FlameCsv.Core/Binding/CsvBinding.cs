@@ -27,6 +27,18 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     public string? Header { get; }
 
     /// <summary>
+    /// Returns the type of the binding's target (property/field/parameter type).
+    /// For ignored fields, returns <c>typeof(object)</c>.
+    /// </summary>
+    /// <exception cref="InvalidOperationException"/>
+    public abstract Type Type { get; }
+
+    /// <summary>
+    /// Returns the declaring type of the target.
+    /// </summary>
+    public abstract Type? DeclaringType { get; }
+
+    /// <summary>
     /// Returns whether the binding is on an ignored field.
     /// </summary>
     public bool IsIgnored => ReferenceEquals(Sentinel, typeof(CsvIgnored));

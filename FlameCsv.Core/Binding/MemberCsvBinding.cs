@@ -13,6 +13,7 @@ internal sealed class MemberCsvBinding<T>(int index, MemberData member, string h
     public MemberInfo Member => member.Value;
 
     public override Type Type => member.MemberType;
+    public override Type? DeclaringType => member.Value.DeclaringType;
 
     protected override object Sentinel => member.Value;
     protected override ReadOnlySpan<object> Attributes => member.Attributes;

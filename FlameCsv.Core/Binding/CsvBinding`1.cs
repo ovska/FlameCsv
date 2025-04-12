@@ -20,12 +20,8 @@ public abstract class CsvBinding<T> : CsvBinding, IEquatable<CsvBinding>, IEquat
     {
     }
 
-    /// <summary>
-    /// Returns the type of the binding's target (property/field/parameter type).
-    /// For ignored fields, returns <c>typeof(object)</c>.
-    /// </summary>
-    /// <exception cref="InvalidOperationException"/>
-    public abstract Type Type { get; }
+    /// <inheritdoc />
+    public override Type Type => typeof(T);
 
     /// <summary>
     /// Returns the custom attributes on the binding, or empty if not applicable (e.g., ignored field).
@@ -70,16 +66,15 @@ public abstract class CsvBinding<T> : CsvBinding, IEquatable<CsvBinding>, IEquat
     protected internal abstract string DisplayName { get; }
 
     [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
-    internal CsvConverter<TToken, TResult> ResolveConverter<TToken, TResult>(
-        CsvOptions<TToken> options,
-        bool write)
+    internal CsvConverter<TToken, TResult> ResolveConverter<TToken, TResult>(CsvOptions<TToken> options)
         where TToken : unmanaged, IBinaryInteger<TToken>
     {
         foreach (var attribute in Attributes)
         {
-            if (attribute is CsvConverterAttribute<TToken> @override)
+            if (attribute is CsvConverterAttribute @override &&
+                @override.TryCreateConverter(Type, options, out var converter))
             {
-                return (CsvConverter<TToken, TResult>)@override.CreateConverter(Type, options);
+                return (CsvConverter<TToken, TResult>)converter;
             }
         }
 

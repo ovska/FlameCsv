@@ -24,9 +24,9 @@ public static partial class ConverterResolutionTests
 
     private class ShimOR
     {
-        [CsvConverter<char, IdConverter>] public int Id { get; set; }
-        [CsvConverter<char, PoolingStringTextConverter>] public string? Name { get; set; }
-        [CsvConverter<char, IdConverter>] public int? Age { get; set; }
+        [CsvConverter<IdConverter>] public int Id { get; set; }
+        [CsvConverter<PoolingStringTextConverter>] public string? Name { get; set; }
+        [CsvConverter<IdConverter>] public int? Age { get; set; }
     }
 
     private class IdConverter : CsvConverter<char, int>

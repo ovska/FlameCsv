@@ -56,7 +56,6 @@ internal sealed class CustomBooleanUtf8Converter : CsvConverter<byte, bool>
     }
 
     internal CustomBooleanUtf8Converter(
-        CsvOptions<byte> options,
         string[] trueValues,
         string[] falseValues,
         bool ignoreCase)
@@ -74,7 +73,7 @@ internal sealed class CustomBooleanUtf8Converter : CsvConverter<byte, bool>
             uniqueValues.TryAdd(falseValue ?? "", false);
         }
 
-        _values = [..uniqueValues.Select(v => (v.Value, options.GetFromString(v.Key).ToArray()))];
+        _values = [..uniqueValues.Select(v => (v.Value, Encoding.UTF8.GetBytes(v.Key)))];
         _ignoreCase = ignoreCase;
         InitializeTrueAndFalse(_values, out _firstTrue, out _firstFalse, out _allAscii);
     }

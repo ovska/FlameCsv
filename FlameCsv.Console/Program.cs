@@ -162,7 +162,7 @@ namespace FlameCsv.Console
         public string? Name { get; set; }
         [CsvHeader("Enabled")] public bool IsEnabled { get; set; }
 
-        [CsvConverter<char, SpanTextConverter<long>>]
+        [CsvConverter<SpanTextConverter<long>>]
         public long? Age { get; set; }
     }
 

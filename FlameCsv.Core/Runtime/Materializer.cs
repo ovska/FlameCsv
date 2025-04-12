@@ -22,7 +22,7 @@ internal abstract class Materializer<T, TValue>
             return CsvIgnored.Converter<T, TConverted>();
         }
 
-        return binding.ResolveConverter<T, TConverted>(options, write: false) ?? options.GetConverter<TConverted>();
+        return binding.ResolveConverter<T, TConverted>(options) ?? options.GetConverter<TConverted>();
     }
 
     protected string GetName(int index) => _bindings.Bindings[index].DisplayName;

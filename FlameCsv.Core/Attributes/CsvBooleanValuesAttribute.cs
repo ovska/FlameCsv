@@ -1,4 +1,5 @@
-﻿using FlameCsv.Converters;
+﻿using System.Diagnostics.CodeAnalysis;
+using FlameCsv.Converters;
 using FlameCsv.Exceptions;
 
 namespace FlameCsv.Attributes;
@@ -8,7 +9,7 @@ namespace FlameCsv.Attributes;
 /// For nullable booleans, attempts to fetch user defined null token from the options via
 /// <see cref="CsvOptions{T}.NullTokens"/>.
 /// </summary>
-public sealed class CsvBooleanValuesAttribute<T> : CsvConverterAttribute<T> where T : unmanaged, IBinaryInteger<T>
+public sealed class CsvBooleanValuesAttribute : CsvConverterAttribute
 {
     /// <summary>
     /// Values that represent <see langword="true"/>.
@@ -27,13 +28,13 @@ public sealed class CsvBooleanValuesAttribute<T> : CsvConverterAttribute<T> wher
     public bool IgnoreCase { get; set; } = true;
 
     /// <inheritdoc/>
-    protected override CsvConverter<T> CreateConverterOrFactory(Type targetType, CsvOptions<T> options)
+    protected override bool TryCreateConverterOrFactory<T>(Type targetType, CsvOptions<T> options, [NotNullWhen(true)] out CsvConverter<T>? converter)
     {
-        object? converter = null;
+        CsvConverter<T, bool>? boolConverter = null;
 
         if (typeof(T) == typeof(char))
         {
-            converter = new CustomBooleanTextConverter(
+            boolConverter = (CsvConverter<T, bool>)(object)new CustomBooleanTextConverter(
                 trueValues: TrueValues,
                 falseValues: FalseValues,
                 ignoreCase: IgnoreCase);
@@ -41,28 +42,28 @@ public sealed class CsvBooleanValuesAttribute<T> : CsvConverterAttribute<T> wher
 
         if (typeof(T) == typeof(byte))
         {
-            converter = new CustomBooleanUtf8Converter(
-                options: (CsvOptions<byte>)(object)options,
+            boolConverter = (CsvConverter<T, bool>)(object)new CustomBooleanUtf8Converter(
                 trueValues: TrueValues,
                 falseValues: FalseValues,
                 ignoreCase: IgnoreCase);
         }
 
-        if (converter is null)
+        if (boolConverter is null)
         {
-            throw new NotSupportedException($"{GetType().FullName} does not support token type {Token<T>.Name}");
+            converter = null;
+            return false;
         }
 
         if (targetType == typeof(bool))
         {
-            return (CsvConverter<T>)converter;
+            converter = boolConverter;
+            return true;
         }
 
         if (targetType == typeof(bool?))
         {
-            return new NullableConverter<T, bool>(
-                (CsvConverter<T, bool>)converter,
-                options.GetNullToken(typeof(bool?)));
+            converter = new NullableConverter<T, bool>(boolConverter, options.GetNullToken(typeof(bool?)));
+            return true;
         }
 
         throw new CsvConfigurationException(
