@@ -10,7 +10,7 @@ namespace FlameCsv.Attributes;
 [PublicAPI]
 [AttributeUsage(
     AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface | AttributeTargets.Assembly,
-    AllowMultiple = true,
+    AllowMultiple = true, // type and assembly need AllMultiple = true
     Inherited = false)]
 public sealed class CsvIgnoredIndexesAttribute : CsvConfigurationAttribute
 {

@@ -12,7 +12,7 @@ namespace FlameCsv.Attributes;
 /// This attribute is not recognized by the source generator,
 /// use <see cref="CsvConverterAttribute{T,TConverter}"/> instead.
 /// </remarks>
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter, AllowMultiple = true)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
 public abstract class CsvConverterAttribute<T> : Attribute where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>

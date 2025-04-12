@@ -8,6 +8,7 @@ namespace FlameCsv.Attributes;
 [PublicAPI]
 [AttributeUsage(
     AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface | AttributeTargets.Assembly,
+    AllowMultiple = true, // type and assembly need AllMultiple = true
     Inherited = false)]
 public sealed class CsvTypeProxyAttribute : CsvConfigurationAttribute
 {
