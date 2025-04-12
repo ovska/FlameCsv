@@ -1,16 +1,23 @@
 ﻿using System.Globalization;
 using System.Text;
+using FlameCsv.Converters;
 
 namespace FlameCsv.Tests.Converters;
 
 public class DefaultTextConverterTests : DefaultConverterTests<char>
 {
     protected override ReadOnlySpan<char> AsSpan(string? value) => value.AsSpan();
+    protected override CsvConverterFactory<char> SpanFactory => SpanTextConverterFactory.Instance;
+    protected override Type SpanConverterType => typeof(SpanTextConverter<>);
+    protected override Type NumberConverterType => typeof(NumberTextConverter<>);
 }
 
 public class DefaultUtf8ConverterTests : DefaultConverterTests<byte>
 {
     protected override ReadOnlySpan<byte> AsSpan(string? value) => Encoding.UTF8.GetBytes(value ?? "");
+    protected override CsvConverterFactory<byte> SpanFactory => SpanUtf8ConverterFactory.Instance;
+    protected override Type SpanConverterType => typeof(SpanUtf8Converter<>);
+    protected override Type NumberConverterType => typeof(NumberUtf8Converter<>);
 }
 
 public abstract class DefaultConverterTests<T> where T : unmanaged, IBinaryInteger<T>
@@ -18,6 +25,30 @@ public abstract class DefaultConverterTests<T> where T : unmanaged, IBinaryInteg
     private readonly T[] _buffer = new T[128];
 
     protected abstract ReadOnlySpan<T> AsSpan(string? value);
+    protected abstract CsvConverterFactory<T> SpanFactory { get; }
+    protected abstract Type SpanConverterType { get; }
+    protected abstract Type NumberConverterType { get; }
+
+    [Fact]
+    public void SpanFormattableParsable()
+    {
+        Assert.True(SpanFactory.CanConvert(typeof(int)));
+        var c = SpanFactory.Create(typeof(int), CsvOptions<T>.Default);
+        Assert.IsType<CsvConverter<T, int>>(c, exactMatch: false);
+        Assert.True(c.GetType().GetGenericTypeDefinition() == NumberConverterType);
+
+        Assert.True(SpanFactory.CanConvert(typeof(float)));
+        c = SpanFactory.Create(typeof(float), CsvOptions<T>.Default);
+        Assert.IsType<CsvConverter<T, float>>(c, exactMatch: false);
+        Assert.True(c.GetType().GetGenericTypeDefinition() == NumberConverterType);
+
+        Assert.True(SpanFactory.CanConvert(typeof(char)));
+        c = SpanFactory.Create(typeof(char), CsvOptions<T>.Default);
+        Assert.IsType<CsvConverter<T, char>>(c, exactMatch: false);
+        Assert.True(c.GetType().GetGenericTypeDefinition() == SpanConverterType);
+
+        Assert.False(SpanFactory.CanConvert(typeof(void)));
+    }
 
     [Fact]
     public void NotEnoughSpace()
@@ -103,7 +134,8 @@ public abstract class DefaultConverterTests<T> where T : unmanaged, IBinaryInteg
         RunInt<nuint>();
     }
 
-    private void RunFloat<TNumber>() where TNumber : IFloatingPointConstants<TNumber>, IFloatingPoint<TNumber>, IMinMaxValue<TNumber>
+    private void RunFloat<TNumber>()
+        where TNumber : IFloatingPointConstants<TNumber>, IFloatingPoint<TNumber>, IMinMaxValue<TNumber>
     {
         Execute("0", TNumber.Zero);
         Execute("1", TNumber.One);
