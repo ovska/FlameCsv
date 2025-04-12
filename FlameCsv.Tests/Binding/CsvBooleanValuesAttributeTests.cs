@@ -40,20 +40,16 @@ public static class CsvBooleanValuesAttributeTests
 
     private class Shim
     {
-        [CsvBooleanValues<char>(TrueValues = ["1", "Y", "Kyllä"], FalseValues = ["0", "N"])]
-        [CsvBooleanValues<byte>(TrueValues = ["1", "Y", "Kyllä"], FalseValues = ["0", "N"])]
+        [CsvBooleanValues(TrueValues = ["1", "Y", "Kyllä"], FalseValues = ["0", "N"])]
         public bool IsEnabled { get; set; }
 
-        [CsvBooleanValues<char>(TrueValues = ["1", "Y", "Kyllä"], FalseValues = ["0", "N"], IgnoreCase = false)]
-        [CsvBooleanValues<byte>(TrueValues = ["1", "Y", "Kyllä"], FalseValues = ["0", "N"], IgnoreCase = false)]
+        [CsvBooleanValues(TrueValues = ["1", "Y", "Kyllä"], FalseValues = ["0", "N"], IgnoreCase = false)]
         public bool? IsEnabledN { get; set; }
 
-        [CsvBooleanValues<char>(TrueValues = ["1"])]
-        [CsvBooleanValues<byte>(TrueValues = ["1"])]
+        [CsvBooleanValues(TrueValues = ["1"])]
         public int InvalidType { get; set; }
 
-        [CsvBooleanValues<char>]
-        [CsvBooleanValues<byte>]
+        [CsvBooleanValues]
         public bool NoValues { get; set; }
     }
 
@@ -63,8 +59,8 @@ public static class CsvBooleanValuesAttributeTests
         Assert.Throws<CsvConfigurationException>(
             () =>
             {
-                var @override = typeof(Shim).GetProperty(property)!.GetCustomAttribute<CsvConverterAttribute<char>>()!;
-                _ = @override.CreateConverter(typeof(bool), CsvOptions<char>.Default);
+                var @override = typeof(Shim).GetProperty(property)!.GetCustomAttribute<CsvConverterAttribute>()!;
+                _ = @override.TryCreateConverter(typeof(bool), CsvOptions<char>.Default, out _);
             });
     }
 
@@ -78,9 +74,10 @@ public static class CsvBooleanValuesAttributeTests
         {
             var options = CsvOptions<T>.Default;
 
-            var @override = typeof(Shim).GetProperty("IsEnabled")!.GetCustomAttribute<CsvConverterAttribute<T>>()!;
+            var @override = typeof(Shim).GetProperty("IsEnabled")!.GetCustomAttribute<CsvConverterAttribute>()!;
 
-            var parser = (CsvConverter<T, bool>)@override.CreateConverter(typeof(bool), options);
+            Assert.True(@override.TryCreateConverter(typeof(bool), options, out var converter));
+            var parser = (CsvConverter<T, bool>)converter;
             var inputSpan = options.GetFromString(input).Span;
 
             if (success)
@@ -109,9 +106,10 @@ public static class CsvBooleanValuesAttributeTests
         {
             var options = new CsvOptions<T> { Null = nullToken };
 
-            var @override = typeof(Shim).GetProperty("IsEnabledN")!.GetCustomAttribute<CsvConverterAttribute<T>>()!;
+            var @override = typeof(Shim).GetProperty("IsEnabledN")!.GetCustomAttribute<CsvConverterAttribute>()!;
 
-            var parser = (CsvConverter<T, bool?>)@override.CreateConverter(typeof(bool?), options);
+            Assert.True(@override.TryCreateConverter(typeof(bool?), options, out var converter));
+            var parser = (CsvConverter<T, bool?>)converter;
             var inputSpan = options.GetFromString(input).Span;
 
             if (success)
@@ -134,9 +132,10 @@ public static class CsvBooleanValuesAttributeTests
 
         static void Impl<T>() where T : unmanaged, IBinaryInteger<T>
         {
-            var @override = typeof(Shim).GetProperty("IsEnabledN")!.GetCustomAttribute<CsvConverterAttribute<T>>()!;
+            var @override = typeof(Shim).GetProperty("IsEnabledN")!.GetCustomAttribute<CsvConverterAttribute>()!;
 
-            var parser = (CsvConverter<T, bool?>)@override.CreateConverter(typeof(bool?), CsvOptions<T>.Default);
+            Assert.True(@override.TryCreateConverter(typeof(bool?), CsvOptions<T>.Default, out var converter));
+            var parser = (CsvConverter<T, bool?>)converter;
 
             Assert.False(parser.TryParse(CsvOptions<T>.Default.GetFromString("y").Span, out _));
             Assert.True(
@@ -150,9 +149,10 @@ public static class CsvBooleanValuesAttributeTests
     {
         var options = CsvOptions<char>.Default;
 
-        var @override = typeof(Shim).GetProperty("IsEnabledN")!.GetCustomAttribute<CsvConverterAttribute<char>>()!;
+        var @override = typeof(Shim).GetProperty("IsEnabledN")!.GetCustomAttribute<CsvConverterAttribute>()!;
 
-        var parser = (NullableConverter<char, bool>)@override.CreateConverter(typeof(bool?), options);
+        Assert.True(@override.TryCreateConverter(typeof(bool?), options, out var converter));
+        var parser = (NullableConverter<char, bool>)converter;
         Assert.True(parser.TryParse("", out bool? parsed));
         Assert.False(parsed.HasValue);
     }

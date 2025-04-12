@@ -7,7 +7,7 @@ public static class ConverterOverrideTests
 {
     private class TestObj
     {
-        [CsvConverter<char, CurrencyConverter>]
+        [CsvConverter<CurrencyConverter>]
         public double Dollars { get; set; }
     }
 

@@ -321,12 +321,12 @@ public static class ModelTests
 
                     class TestClass
                     {
-                        [CsvConverterAttribute<char, EmptyCtor>] public object Empty { get; set; }
-                        [CsvConverterAttribute<char, OptionsCtor>] public object Options { get; set; }
-                        [CsvConverterAttribute<char, InvalidCtor>] public object Invalid { get; set; }
-                        [CsvConverterAttribute<char, Factory>] public object Factory { get; set; }
-                        [CsvConverterAttribute<char, NotConstructible>] public object IsAbstract { get; set; }
-                        [CsvConverterAttribute<char, IntConverter>] public int? Wrappable { get; set; }
+                        [CsvConverterAttribute<EmptyCtor>] public object Empty { get; set; }
+                        [CsvConverterAttribute<OptionsCtor>] public object Options { get; set; }
+                        [CsvConverterAttribute<InvalidCtor>] public object Invalid { get; set; }
+                        [CsvConverterAttribute<Factory>] public object Factory { get; set; }
+                        [CsvConverterAttribute<NotConstructible>] public object IsAbstract { get; set; }
+                        [CsvConverterAttribute<IntConverter>] public int? Wrappable { get; set; }
                         public object None { get; set; }
                     }
 

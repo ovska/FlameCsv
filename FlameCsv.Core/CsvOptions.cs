@@ -384,7 +384,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// <remarks>
     /// Pooling reduces raw throughput, but can have a profound impact on allocations if the data has repeating strings.
     /// </remarks>
-    /// <seealso cref="CsvStringPoolingAttribute{T}"/>
+    /// <seealso cref="CsvStringPoolingAttribute"/>
     public StringPool? StringPool
     {
         get => _stringPool;
@@ -492,7 +492,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// <see langword="true"/> and <see langword="false"/>. Default is empty.
     /// </summary>
     /// <seealso cref="UseDefaultConverters"/>
-    /// <seealso cref="CsvBooleanValuesAttribute{T}"/>
+    /// <seealso cref="CsvBooleanValuesAttribute"/>
     public IList<(string text, bool value)> BooleanValues
         => _booleanValues ??= (IsReadOnly ? SealableList<(string, bool)>.Empty : new(this, null));
 
