@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Globalization;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Converters;
@@ -63,5 +64,31 @@ public static class ConverterCreationExtensions
     {
         ArgumentNullException.ThrowIfNull(options);
         return new SpanTextConverter<TValue>(options);
+    }
+
+    /// <summary>
+    /// Creates a UTF-16 converter for a type that implements <see cref="INumberBase{T}"/>.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static CsvConverter<char, TValue> CreateNumber<TValue>(
+        CsvOptions<char> options,
+        NumberStyles defaultNumberStyles)
+        where TValue : INumberBase<TValue>
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        return new NumberTextConverter<TValue>(options, defaultNumberStyles);
+    }
+
+    /// <summary>
+    /// Creates a UTF-8 converter for a type that implements <see cref="INumberBase{T}"/>.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static CsvConverter<byte, TValue> CreateNumber<TValue>(
+        CsvOptions<byte> options,
+        NumberStyles defaultNumberStyles)
+        where TValue : INumberBase<TValue>
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        return new NumberUtf8Converter<TValue>(options, defaultNumberStyles);
     }
 }
