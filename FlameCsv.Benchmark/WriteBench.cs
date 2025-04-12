@@ -213,7 +213,7 @@ public partial class WriteBench
         var c1 = new NumberTextConverter<int>(CsvOptions<char>.Default, NumberStyles.Integer);
         var c2 = StringTextConverter.Instance;
         var c5 = new NumberTextConverter<double>(CsvOptions<char>.Default, NumberStyles.Float);
-        var c6 = new OptimizedNullEmptyConverter<char, double>(c5);
+        var c6 = new NullableConverter<char, double>(c5, "".AsMemory());
 
         writer.WriteText("Index");
         writer.WriteDelimiter();

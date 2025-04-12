@@ -138,7 +138,7 @@ partial class CsvOptions<T>
 
             CsvConverter<T, TValue> inner = GetOrCreate(factory, canCache); // can this be cached?
 
-            var result = NullableConverterFactory<T>.Create(inner, _options.GetNullToken(typeof(TValue)));
+            var result = new NullableConverter<T, TValue>(inner, _options.GetNullToken(typeof(TValue)));
 
             if (canCache)
             {
