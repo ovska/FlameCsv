@@ -14,7 +14,7 @@ For convenience, a copy-constructor @"FlameCsv.CsvOptions`1.%23ctor(FlameCsv.Csv
 
 The static @"FlameCsv.CsvOptions`1.Default?displayProperty=nameWithType" property provides access to default configuration. This is used when `null` options are passed to @"FlameCsv.CsvReader" or @"FlameCsv.CsvWriter". The default options are read-only and have identical configuration to a new instance created with `new()`.
 
-Default options are only available for @"System.Char?text=char" (UTF-16) and @"System.Byte?text=byte" (UTF-8). Using the property with other generic types throws a runtime exception.
+Default options are only available for @"System.Char?text=char" (UTF-16) and @"System.Byte?text=byte" (UTF-8).
 
 ```cs
 CsvConverter<byte, int> intConverter = CsvOptions<byte>.Default.GetConverter<int>();

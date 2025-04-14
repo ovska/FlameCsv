@@ -157,6 +157,23 @@ public class User
 }
 ```
 
+## Overriding converters
+
+Converters can be overridden on a per-member basis by using the @"FlameCsv.Attributes.CsvConverterAttribute".
+
+```cs
+class Transaction
+{
+    [CsvConverter<UnixTimestampConverter>]
+    public DateTime Timestamp { get; set; }
+
+    [CsvConverter<MoneyConverter>]
+    public decimal Amount { get; set; }
+}
+```
+
+The type must implement @"FlameCsv.CsvConverter`1" of the member type. The type can be either a converter or a factory.
+
 ## Reading interfaces or abstract classes
 
 Use @"FlameCsv.Attributes.CsvTypeProxyAttribute" to specify a concrete type that should be instantiated when reading an interface or abstract class. The proxy type must be assignable to the target type (interface/abstract class).
