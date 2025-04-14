@@ -23,7 +23,6 @@ See @"getting-started", view the @"examples", or deep dive into the @"FlameCsv?t
   - Built-in support for common CLR types
   - Supports both synchronous and asynchronous operations
   - Flexible; read or write almost any data source
-  - Automatic newline detection
   - UTF-8/ASCII support to read/write bytes directly without additional transcoding
   - Supports hot reload
 - 🚀 **[High Performance](docs/benchmarks.md)**
@@ -105,7 +104,7 @@ await CsvWriter.WriteAsync(
 # Dependencies
 
 FlameCsv has two dependencies:
- - [System.IO.Pipelines](https://www.nuget.org/packages/system.io.pipelines/) for the powerful abstractions and additional @"FlameCsv.CsvReader.ReadAsync``1(System.IO.Pipelines.PipeReader,FlameCsv.Binding.CsvTypeMap{System.Byte,``0},FlameCsv.CsvOptions{System.Byte})?text=reading" and @"FlameCsv.CsvWriter.WriteAsync``1(System.IO.Pipelines.PipeWriter,System.Collections.Generic.IAsyncEnumerable{``0},FlameCsv.Binding.CsvTypeMap{System.Byte,``0},FlameCsv.CsvOptions{System.Byte},System.Threading.CancellationToken)?text=writing" APIs
+ - [System.IO.Pipelines](https://www.nuget.org/packages/system.io.pipelines/) for the powerful abstractions and additional reading and writing APIs.
  - [CommunityToolkit.HighPerformance](https://github.com/CommunityToolkit/dotnet) which provides utilities for writing high-performance code, and the string pool used for header values.
 
 A development-time dependency to [FastExpressionCompiler](https://github.com/dadhi/FastExpressionCompiler) is used for extremely performant runtime code-generation in reflection-based code paths.
