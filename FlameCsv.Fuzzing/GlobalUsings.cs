@@ -1,4 +1,5 @@
-﻿global using SharpFuzz;
+﻿// ReSharper disable RedundantUsingDirective.Global
+global using SharpFuzz;
 global using FlameCsv;
 global using FlameCsv.Exceptions;
 global using FlameCsv.Fuzzing.Utilities;

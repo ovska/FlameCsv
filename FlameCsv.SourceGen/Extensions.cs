@@ -16,19 +16,6 @@ internal static class Extensions
         return attribute.ApplicationSyntaxReference?.SyntaxTree.GetLocation(attribute.ApplicationSyntaxReference.Span);
     }
 
-    public static object? GetNamedArgument(this AttributeData attribute, string argumentName)
-    {
-        foreach (var kvp in attribute.NamedArguments)
-        {
-            if (kvp.Key == argumentName)
-            {
-                return kvp.Value.Value;
-            }
-        }
-
-        return null;
-    }
-
     public static ImmutableArray<IMethodSymbol> GetInstanceConstructors(this ITypeSymbol type)
     {
         return type is INamedTypeSymbol namedType
@@ -83,25 +70,25 @@ internal static class Extensions
 
         static LiteralExpressionSyntax? GetLiteral(object value)
         {
-            const SyntaxKind CharacterLiteral = SyntaxKind.CharacterLiteralExpression;
-            const SyntaxKind StringLiteral = SyntaxKind.StringLiteralExpression;
-            const SyntaxKind NumericLiteral = SyntaxKind.NumericLiteralExpression;
+            const SyntaxKind characterLiteral = SyntaxKind.CharacterLiteralExpression;
+            const SyntaxKind stringLiteral = SyntaxKind.StringLiteralExpression;
+            const SyntaxKind numericLiteral = SyntaxKind.NumericLiteralExpression;
 
             return value switch
             {
-                char c => SyntaxFactory.LiteralExpression(CharacterLiteral, SyntaxFactory.Literal(c)),
-                string s => SyntaxFactory.LiteralExpression(StringLiteral, SyntaxFactory.Literal(s)),
-                int i => SyntaxFactory.LiteralExpression(NumericLiteral, SyntaxFactory.Literal(i)),
-                long l => SyntaxFactory.LiteralExpression(NumericLiteral, SyntaxFactory.Literal(l)),
-                float f => SyntaxFactory.LiteralExpression(NumericLiteral, SyntaxFactory.Literal(f)),
-                double d => SyntaxFactory.LiteralExpression(NumericLiteral, SyntaxFactory.Literal(d)),
-                decimal d => SyntaxFactory.LiteralExpression(NumericLiteral, SyntaxFactory.Literal(d)),
-                uint ui => SyntaxFactory.LiteralExpression(NumericLiteral, SyntaxFactory.Literal(ui)),
-                ulong ul => SyntaxFactory.LiteralExpression(NumericLiteral, SyntaxFactory.Literal(ul)),
-                short s => SyntaxFactory.LiteralExpression(NumericLiteral, SyntaxFactory.Literal(s)),
-                ushort us => SyntaxFactory.LiteralExpression(NumericLiteral, SyntaxFactory.Literal(us)),
-                byte b => SyntaxFactory.LiteralExpression(NumericLiteral, SyntaxFactory.Literal(b)),
-                sbyte sb => SyntaxFactory.LiteralExpression(NumericLiteral, SyntaxFactory.Literal(sb)),
+                char c => SyntaxFactory.LiteralExpression(characterLiteral, SyntaxFactory.Literal(c)),
+                string s => SyntaxFactory.LiteralExpression(stringLiteral, SyntaxFactory.Literal(s)),
+                int i => SyntaxFactory.LiteralExpression(numericLiteral, SyntaxFactory.Literal(i)),
+                long l => SyntaxFactory.LiteralExpression(numericLiteral, SyntaxFactory.Literal(l)),
+                float f => SyntaxFactory.LiteralExpression(numericLiteral, SyntaxFactory.Literal(f)),
+                double d => SyntaxFactory.LiteralExpression(numericLiteral, SyntaxFactory.Literal(d)),
+                decimal d => SyntaxFactory.LiteralExpression(numericLiteral, SyntaxFactory.Literal(d)),
+                uint ui => SyntaxFactory.LiteralExpression(numericLiteral, SyntaxFactory.Literal(ui)),
+                ulong ul => SyntaxFactory.LiteralExpression(numericLiteral, SyntaxFactory.Literal(ul)),
+                short s => SyntaxFactory.LiteralExpression(numericLiteral, SyntaxFactory.Literal(s)),
+                ushort us => SyntaxFactory.LiteralExpression(numericLiteral, SyntaxFactory.Literal(us)),
+                byte b => SyntaxFactory.LiteralExpression(numericLiteral, SyntaxFactory.Literal(b)),
+                sbyte sb => SyntaxFactory.LiteralExpression(numericLiteral, SyntaxFactory.Literal(sb)),
                 _ => null,
             };
         }
