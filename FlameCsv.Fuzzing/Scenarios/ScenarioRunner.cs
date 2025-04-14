@@ -13,11 +13,12 @@ public static class ScenarioRunner
     {
         foreach (var placement in _placements)
         {
-            using var byteMemory = PooledBoundedMemory<byte>.Rent(data.Length, placement);
-            data.CopyTo(byteMemory.Span);
-            ReadOnlyMemory<byte> bytes = byteMemory.Memory.Slice(0, data.Length);
-
-            TScenario.Run(bytes, placement);
+            using (var byteMemory = PooledBoundedMemory<byte>.Rent(data.Length, placement))
+            {
+                data.CopyTo(byteMemory.Span);
+                ReadOnlyMemory<byte> bytes = byteMemory.Memory.Slice(0, data.Length);
+                TScenario.Run(bytes, placement);
+            }
 
             if (TScenario.SupportsUtf16)
             {
@@ -26,7 +27,7 @@ public static class ScenarioRunner
 
                 try
                 {
-                    written = Encoding.UTF8.GetChars(bytes.Span, charMemory.Span);
+                    written = Encoding.UTF8.GetChars(data, charMemory.Span);
                 }
                 catch (ArgumentException e) when (e.ParamName == "chars")
                 {
