@@ -1,6 +1,5 @@
 ﻿using System.Text.Unicode;
 using FlameCsv.Attributes;
-using FlameCsv.Converters;
 using FlameCsv.Converters.Enums;
 
 namespace FlameCsv.Benchmark;
