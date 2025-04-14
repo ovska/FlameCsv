@@ -1,6 +1,5 @@
 ﻿using System.Runtime.Serialization;
 using System.Text;
-using FlameCsv.Converters;
 using FlameCsv.Converters.Enums;
 using FlameCsv.Utilities;
 using FlameCsv.Utilities.Comparers;
