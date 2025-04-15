@@ -1,7 +1,9 @@
 ﻿using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Unicode;
+using FlameCsv.Reading;
 
 namespace FlameCsv.Extensions;
 
@@ -66,5 +68,18 @@ internal static class ReadExtensions
 
         charsWritten = 0;
         return false;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ReadOnlySpan<T> Trim<T>(this ReadOnlySpan<T> value, CsvFieldTrimming trimming)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        return (trimming & CsvFieldTrimming.Both) switch
+        {
+            CsvFieldTrimming.Leading => value.TrimStart(T.CreateTruncating(' ')),
+            CsvFieldTrimming.Trailing => value.TrimEnd(T.CreateTruncating(' ')),
+            CsvFieldTrimming.Both => value.Trim(T.CreateTruncating(' ')),
+            _ => value,
+        };
     }
 }

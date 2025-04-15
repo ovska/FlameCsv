@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
+using FlameCsv.Reading;
 using FlameCsv.Utilities;
 
 namespace FlameCsv.Converters.Enums;
@@ -15,7 +16,7 @@ public sealed class CsvEnumFlagsParseStrategy<T, TEnum> : EnumParseStrategy<T, T
 {
     private readonly T _separator;
     private readonly EnumParseStrategy<T, TEnum> _inner;
-    private readonly T[]? _whitespace;
+    private readonly CsvFieldTrimming _trimming;
     private readonly bool _allowUndefinedValues;
 
     /// <summary>
@@ -30,10 +31,11 @@ public sealed class CsvEnumFlagsParseStrategy<T, TEnum> : EnumParseStrategy<T, T
 
         EnumMemberCache<TEnum>.EnsureValidFlagsSeparator(options.EnumFlagsSeparator);
 
+        options.MakeReadOnly();
         _separator = T.CreateChecked(options.EnumFlagsSeparator);
         _inner = inner;
         _allowUndefinedValues = options.AllowUndefinedEnumValues;
-        _whitespace = options.Dialect.GetWhitespaceArray();
+        _trimming = options.Trimming;
     }
 
     /// <inheritdoc/>
@@ -73,9 +75,9 @@ public sealed class CsvEnumFlagsParseStrategy<T, TEnum> : EnumParseStrategy<T, T
         {
             ReadOnlySpan<T> slice = source[part];
 
-            if (_whitespace is not null)
+            if (_trimming != CsvFieldTrimming.None)
             {
-                slice = slice.Trim(_whitespace);
+                slice = slice.Trim(_trimming);
             }
 
             if (slice.IsEmpty)

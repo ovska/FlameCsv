@@ -2,6 +2,7 @@ using System.Globalization;
 using FlameCsv.Binding;
 using FlameCsv.Converters;
 using FlameCsv.Exceptions;
+using FlameCsv.Reading;
 
 namespace FlameCsv.Tests;
 
@@ -216,7 +217,7 @@ public class CsvOptionsTests
         Run(o => o.Quote = '\0');
         Run(o => o.Escape = null);
         Run(o => o.Newline = "\r");
-        Run(o => o.Whitespace = "");
+        Run(o => o.Trimming = CsvFieldTrimming.Leading);
         Run(o => o.RecordCallback = null);
         Run(o => o.NullTokens[typeof(int)] = "");
         Run(o => o.HasHeader = false);

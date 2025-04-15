@@ -96,7 +96,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         _quote = other._quote;
         _escape = other._escape;
         _newline = other._newline;
-        _whitespace = other._whitespace;
+        _trimming = other._trimming;
 
         ConverterCache = new(other.ConverterCache, other.ConverterCache.Comparer);
 

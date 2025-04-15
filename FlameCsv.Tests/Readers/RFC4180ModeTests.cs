@@ -36,7 +36,7 @@ public class RFC4180ModeTests
     [InlineData("\" test \"", " test ")]
     public void Should_Trim_Fields(string input, string expected)
     {
-        var result = input.Read(new CsvOptions<char> { Whitespace = " " });
+        var result = input.Read(new CsvOptions<char> { Trimming = CsvFieldTrimming.Both });
         Assert.Single(result);
         Assert.Equal([expected], result[0]);
     }

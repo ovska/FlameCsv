@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
+using FlameCsv.Reading;
 using FlameCsv.Utilities;
 using JetBrains.Annotations;
 
@@ -44,39 +45,9 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     }
 
     /// <summary>
-    /// Whitespace characters.
-    /// When reading, they are trimmed out of each field before processing them.
-    /// When writing, fields with the preceding or trailing whitespace are quoted if fields are automatically quoted.
+    /// Wheter to trim trailing or leading spaces from unquoted fields.
     /// </summary>
-    public ReadOnlySpan<T> Whitespace
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _whitespace;
-        init
-        {
-            if (value.IsEmpty)
-            {
-                _whitespace = null;
-                return;
-            }
-
-            using (ValueListBuilder<T> list = new(stackalloc T[8]))
-            {
-                foreach (var token in value)
-                {
-                    if (!list.AsSpan().Contains(token))
-                    {
-                        list.Append(token);
-                    }
-                }
-
-                _whitespace = list.AsSpan().ToArray();
-            }
-
-            _whitespace.AsSpan().Sort();
-            _whitespaceLength = _whitespace.Length;
-        }
-    }
+    public CsvFieldTrimming Trimming { get; init; }
 
     /// <summary>
     /// Optional character used for escaping special characters.
@@ -86,14 +57,6 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     private readonly LazyValues _lazyValues = new();
 
     internal readonly NewlineBuffer<T> _newline;
-    internal readonly int _whitespaceLength;
-    private readonly T[]? _whitespace;
-
-    /// <summary>
-    /// Returns the underlying storage for <see cref="Whitespace"/>.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal T[]? GetWhitespaceArray() => _whitespace;
 
     /// <summary>
     /// Returns a <see cref="SearchValues{T}"/> instance
@@ -185,8 +148,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
             Quote <= max &&
             !(Escape > max) &&
             Newline.First <= max &&
-            Newline.Second <= max &&
-            !Whitespace.ContainsAnyExceptInRange(T.Zero, max);
+            Newline.Second <= max;
     }
 
     private static SearchValues<T> ToSearchValues(ReadOnlySpan<T> tokens)
@@ -234,13 +196,11 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         T quote = Quote;
         T? escape = Escape;
         NewlineBuffer<T> newline = Newline.IsEmpty ? NewlineBuffer<T>.CRLF : Newline;
-        scoped ReadOnlySpan<T> whitespace = Whitespace;
 
         if (delimiter == T.Zero) errors.Append(("Delimiter"));
         if (quote == T.Zero) errors.Append(NullError("Quote"));
         if (escape == T.Zero) errors.Append(NullError("Escape"));
         if (newline.First == T.Zero || newline.Second == T.Zero) errors.Append(NullError("Newline"));
-        if (whitespace.Contains(T.Zero)) errors.Append(NullError("Whitespace"));
 
         // early exit if we have nulls
         if (errors.Length > 0) goto CheckErrors;
@@ -253,8 +213,6 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
             if (quote > maxAscii) errors.Append(AsciiError("Quote"));
             if (escape > maxAscii) errors.Append(AsciiError("Escape"));
             if (newline.First > maxAscii || newline.Second > maxAscii) errors.Append(AsciiError("Newline"));
-            if (whitespace.ContainsAnyExceptInRange(T.Zero, maxAscii)) errors.Append(AsciiError("Whitespace"));
-            // TODO: allow non-ascii whitespace
         }
 
         // char dialects must not contain surrogate characters
@@ -271,15 +229,6 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
                 char.IsSurrogate((char)ushort.CreateTruncating(newline.Second)))
             {
                 errors.Append(SurrogateError("Newline"));
-            }
-
-            foreach (var c in whitespace)
-            {
-                if (char.IsSurrogate((char)ushort.CreateTruncating(c)))
-                {
-                    errors.Append(SurrogateError("Whitespace"));
-                    break;
-                }
             }
         }
 
@@ -303,15 +252,13 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         if (f == quote || s == quote) errors.Append("Newline must not contain Quote.");
         if (f == escape || s == escape) errors.Append("Newline must not contain Escape.");
 
-        if (!whitespace.IsEmpty)
+        if (Trimming != CsvFieldTrimming.None)
         {
-            foreach (var c in whitespace)
-            {
-                if (c == delimiter) errors.Append("Whitespace must not contain Delimiter.");
-                if (c == quote) errors.Append("Whitespace must not contain Quote.");
-                if (c == escape) errors.Append("Whitespace must not contain Escape.");
-                if (c == f || c == s) errors.Append("Whitespace must not contain Newline characters.");
-            }
+            T space = T.CreateChecked(' ');
+            if (space == delimiter) errors.Append("Delimiter must not be a space if trimming is enabled.");
+            if (space == quote) errors.Append("Quote must not be a space if trimming is enabled.");
+            if (space == escape) errors.Append("Escape must not be a space if trimming is enabled.");
+            if (space == f || space == s) errors.Append("Newline must not contain a space if trimming is enabled.");
         }
 
     CheckErrors:
@@ -327,7 +274,8 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
                 SingleToken(ref vsb, "Quote", Quote);
                 SingleToken(ref vsb, "Escape", escape);
                 MultiToken(ref vsb, "Newline", MemoryMarshal.CreateReadOnlySpan(in newline.First, newline.Length));
-                MultiToken(ref vsb, "Whitespace", whitespace);
+                vsb.Append("Trimming: ");
+                vsb.AppendFormatted(Trimming);
                 errors.Append(vsb.ToString());
             }
 
@@ -421,7 +369,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
             Quote == other.Quote &&
             Escape == other.Escape &&
             Newline.Equals(other.Newline) &&
-            Whitespace.SequenceEqual(other.Whitespace);
+            Trimming == other.Trimming;
     }
 
     /// <summary>
@@ -434,8 +382,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         hash.Add(Quote);
         hash.Add(Escape);
         hash.Add(Newline.GetHashCode());
-        hash.Add(Whitespace.Length);
-        foreach (var c in Whitespace) hash.Add(c);
+        hash.Add(Trimming);
         return hash.ToHashCode();
     }
 

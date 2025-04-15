@@ -21,6 +21,11 @@ public enum CsvFieldQuoting : byte
     Empty = 2,
 
     /// <summary>
+    /// Same as <see cref="Empty"/>, but also quotes fields that contain leading or trailing spaces.
+    /// </summary>
+    LeadingOrTrailingSpaces = 3,
+
+    /// <summary>
     /// Never quote or escape fields.
     /// </summary>
     /// <remarks>

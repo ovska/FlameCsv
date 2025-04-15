@@ -156,7 +156,7 @@ internal sealed class CsvParserUnix<T>(
             _sequence = default;
 
             // check if the last line was only whitespace
-            if (_dialect.Whitespace.IsEmpty || !(lastLine = lastLine.Trim(_dialect.Whitespace)).IsEmpty)
+            if (_dialect.Trimming is CsvFieldTrimming.None || lastLine.Span.ContainsAnyExcept(T.CreateTruncating(' ')))
             {
                 // the remaining data is either after a delimiter if fields is non-empty, or
                 // some trailing data after the last newline.

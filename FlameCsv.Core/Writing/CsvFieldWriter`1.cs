@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using FlameCsv.IO;
+using FlameCsv.Reading;
 using FlameCsv.Reading.Internal;
 using FlameCsv.Writing.Escaping;
 using JetBrains.Annotations;
@@ -33,7 +34,6 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
     private readonly T _quote;
     private readonly NewlineBuffer<T> _newline;
     private readonly T? _escape;
-    private readonly T[]? _whitespace;
     private readonly SearchValues<T> _needsQuoting;
     private readonly CsvFieldQuoting _fieldQuoting;
     private readonly Allocator<T> _allocator;
@@ -58,7 +58,6 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
         _delimiter = dialect.Delimiter;
         _quote = dialect.Quote;
         _escape = dialect.Escape;
-        _whitespace = dialect.GetWhitespaceArray();
         _newline = dialect.Newline;
         if (_newline.IsEmpty) _newline = NewlineBuffer<T>.CRLF;
         _needsQuoting = dialect.NeedsQuoting;
@@ -274,7 +273,17 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
             }
             else
             {
-                shouldQuote = HasLeadingOrTrailingWhitespace(written);
+                if (_fieldQuoting == CsvFieldQuoting.LeadingOrTrailingSpaces)
+                {
+                    shouldQuote =
+                        written[0] == T.CreateTruncating(' ') ||
+                        written[^1] == T.CreateTruncating(' ');
+                }
+                else
+                {
+                    shouldQuote = false;
+                }
+
                 escapableCount = 0;
             }
         }
@@ -302,28 +311,6 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
 
         Escape.Scalar(in escaper, written, destination[..escapedLength], escapableCount);
         Writer.Advance(escapedLength);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool HasLeadingOrTrailingWhitespace(ReadOnlySpan<T> value)
-    {
-        Debug.Assert(value.Length > 0);
-
-        if (_whitespace is not null)
-        {
-            ref T first = ref MemoryMarshal.GetReference(value);
-            ref T last = ref Unsafe.Add(ref first, value.Length - 1);
-
-            foreach (T token in _whitespace)
-            {
-                if (first == token || last == token)
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 
     /// <inheritdoc />

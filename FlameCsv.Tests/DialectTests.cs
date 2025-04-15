@@ -1,5 +1,6 @@
 using System.Buffers;
 using FlameCsv.Exceptions;
+using FlameCsv.Reading;
 
 namespace FlameCsv.Tests;
 
@@ -43,13 +44,23 @@ public static class DialectTests
         Assert.Equal('"', CsvOptions<char>.Default.Dialect.Quote);
         Assert.Null(CsvOptions<char>.Default.Dialect.Escape);
         Assert.Equal("\r\n", CsvOptions<char>.Default.Dialect.Newline.ToArray());
-        Assert.Empty(CsvOptions<char>.Default.Dialect.Whitespace.ToArray());
+        Assert.Equal(CsvFieldTrimming.None, CsvOptions<char>.Default.Dialect.Trimming);
 
         Assert.Equal((byte)',', CsvOptions<byte>.Default.Dialect.Delimiter);
         Assert.Equal((byte)'"', CsvOptions<byte>.Default.Dialect.Quote);
         Assert.Null(CsvOptions<byte>.Default.Dialect.Escape);
         Assert.Equal("\r\n"u8, CsvOptions<byte>.Default.Dialect.Newline.ToArray());
-        Assert.Empty(CsvOptions<byte>.Default.Dialect.Whitespace.ToArray());
+        Assert.Equal(CsvFieldTrimming.None, CsvOptions<byte>.Default.Dialect.Trimming);
+    }
+
+    [Fact]
+    public static void Should_Ensure_No_Spaces_If_Trimmed()
+    {
+        GetDialect().Validate();
+        Assert.Throws<CsvConfigurationException>(
+            () => (GetDialect() with { Trimming = CsvFieldTrimming.Both }).Validate());
+
+        static CsvDialect<char> GetDialect() => new() { Delimiter = ' ', Quote = '"', };
     }
 
     [Fact]
@@ -69,7 +80,6 @@ public static class DialectTests
         AssertInvalid(o => o with { Escape = '"' });
         AssertInvalid(o => o with { Escape = '\n' });
         AssertInvalid(o => o with { Escape = '\r' });
-        AssertInvalid(o => o with { Whitespace = "," });
 
         static void AssertInvalid(Func<CsvDialect<char>, CsvDialect<char>> action)
         {
@@ -81,7 +91,6 @@ public static class DialectTests
         ShouldThrow(() => new CsvOptions<byte> { Quote = (char)128 }.Dialect.Validate());
         ShouldThrow(() => new CsvOptions<byte> { Escape = (char)128 }.Dialect.Validate());
         ShouldThrow(() => new CsvOptions<byte> { Newline = "£" }.Dialect.Validate());
-        ShouldThrow(() => new CsvOptions<byte> { Whitespace = "€£" }.Dialect.Validate());
 
         static void ShouldThrow(Action action) => Assert.Throws<CsvConfigurationException>(action);
     }
@@ -156,12 +165,12 @@ public static class DialectTests
         var def2 = CsvOptions<char>.Default.Dialect;
         var withEscape = new CsvOptions<char> { Escape = '\\' }.Dialect;
         var withNewline = new CsvOptions<char> { Newline = "\n" }.Dialect;
-        var withWhitespace = new CsvOptions<char> { Whitespace = " " }.Dialect;
+        var withTrimming = new CsvOptions<char> { Trimming = CsvFieldTrimming.Both }.Dialect;
 
         Assert.Equal(def, def2);
         Assert.NotEqual(def, withEscape);
         Assert.NotEqual(def, withNewline);
-        Assert.NotEqual(def, withWhitespace);
+        Assert.NotEqual(def, withTrimming);
 
         // ReSharper disable once RedundantWithExpression
         Assert.Equal(def, def with { });
@@ -169,7 +178,7 @@ public static class DialectTests
         Assert.Equal(def.GetHashCode(), def2.GetHashCode());
         Assert.NotEqual(def.GetHashCode(), withEscape.GetHashCode());
         Assert.NotEqual(def.GetHashCode(), withNewline.GetHashCode());
-        Assert.NotEqual(def.GetHashCode(), withWhitespace.GetHashCode());
+        Assert.NotEqual(def.GetHashCode(), withTrimming.GetHashCode());
 
         Assert.True(def.Equals((object)def2));
         Assert.False(def.Equals(new object()));

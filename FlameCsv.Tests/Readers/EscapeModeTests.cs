@@ -47,7 +47,7 @@ public static class EscapeModeTests
     [InlineData("\" test \"", " test ")]
     public static void Should_Trim_Fields(string input, string expected)
     {
-        var fields = input.Read(new CsvOptions<char> { Escape = '^', Quote = '"', Whitespace = " " });
+        var fields = input.Read(new CsvOptions<char> { Escape = '^', Quote = '"', Trimming = CsvFieldTrimming.Both });
         Assert.Single(fields.SelectMany(x => x));
         Assert.Equal(expected, fields[0][0]);
     }
@@ -166,10 +166,7 @@ public static class EscapeModeTests
     {
         using MemoryPool<char> pool = ReturnTrackingMemoryPool<char>.Create(guardedMemory);
 
-        var options = new CsvOptions<char>
-        {
-            Escape = '^', Quote = '\'', MemoryPool = pool
-        };
+        var options = new CsvOptions<char> { Escape = '^', Quote = '\'', MemoryPool = pool };
 
         var fullMem = fullLine.AsMemory();
         var noNewlineMem = noNewline.AsMemory();
