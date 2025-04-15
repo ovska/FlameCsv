@@ -138,7 +138,7 @@ internal sealed class CsvParserRFC4180<T>(
             _sequence = default;
 
             // check if the last line was only whitespace
-            if (_dialect.Whitespace.IsEmpty || !(lastLine = lastLine.Trim(_dialect.Whitespace)).IsEmpty)
+            if (_dialect.Trimming is CsvFieldTrimming.None || lastLine.Span.ContainsAnyExcept(T.CreateTruncating(' ')))
             {
                 // the last field ended in a delimiter, so there must be at least one field after it
                 // this should be an EOL with newline length 0

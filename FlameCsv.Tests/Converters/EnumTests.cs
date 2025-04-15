@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using FlameCsv.Reading;
 
 // ReSharper disable InconsistentNaming
 
@@ -17,7 +18,7 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
             EnumFormat = numeric ? "D" : "G",
             IgnoreEnumCase = ignoreCase,
             EnumFlagsSeparator = '|',
-            Whitespace = " ",
+            Trimming = CsvFieldTrimming.Both,
         };
     }
 

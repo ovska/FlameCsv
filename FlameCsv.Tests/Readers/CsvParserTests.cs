@@ -216,11 +216,11 @@ public class CsvParserTests
     [Theory, InlineData(true), InlineData(false)]
     public void Should_Skip_Whitespace_Last_Line(bool unix)
     {
-        const string data = "A,B,C\nD,E,F\n\t \t";
+        const string data = "A,B,C\nD,E,F\n   ";
 
         CsvOptions<char> options = new()
         {
-            Whitespace = " \t", Newline = "\n", Escape = unix ? '\\' : null,
+            Trimming = CsvFieldTrimming.Both, Newline = "\n", Escape = unix ? '\\' : null,
         };
 
         List<string> lines = [];

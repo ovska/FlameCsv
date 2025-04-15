@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
+using FlameCsv.Reading;
 
 namespace FlameCsv;
 
@@ -49,7 +50,7 @@ public partial class CsvOptions<T>
             Delimiter = T.CreateChecked(_delimiter),
             Quote = T.CreateChecked(_quote),
             Escape = _escape.HasValue ? T.CreateChecked(_escape.Value) : null,
-            Whitespace = string.IsNullOrEmpty(_whitespace) ? [] : GetSpan(this, _whitespace, stackalloc T[8]),
+            Trimming = _trimming,
             Newline = _newline switch
             {
                 [var f] => new NewlineBuffer<T>(T.CreateChecked(f)),
@@ -79,8 +80,8 @@ public partial class CsvOptions<T>
     private char _delimiter = ',';
     private char _quote = '"';
     private string _newline = "\r\n";
-    private string? _whitespace;
     private char? _escape;
+    private CsvFieldTrimming _trimming;
 
     /// <summary>
     /// The separator character between CSV fields. Default value is <c>,</c>.
@@ -129,14 +130,15 @@ public partial class CsvOptions<T>
     }
 
     /// <summary>
-    /// Optional whitespace characters that are trimmed out of each field before processing them, and fields
-    /// written with the preceding or trailing whitespace are quoted.
-    /// The default is null/empty.
+    /// Whether to trim leading and/or trailing spaces from fields.<br/>
+    /// The default value is <see cref="CsvFieldTrimming.None"/>.
     /// </summary>
     /// <seealso cref="FieldQuoting"/>
-    public string? Whitespace
+    public CsvFieldTrimming Trimming
     {
-        get => _whitespace;
-        set => this.SetValue(ref _whitespace, value);
+        get => _trimming;
+        set => this.SetValue(ref _trimming, value);
     }
 }
+
+
