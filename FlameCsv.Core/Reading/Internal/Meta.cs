@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
+using FlameCsv.Extensions;
 using FlameCsv.Reading.Unescaping;
 
 namespace FlameCsv.Reading.Internal;
@@ -190,7 +191,7 @@ internal readonly struct Meta : IEquatable<Meta>
         // - 8,51% of fields have just the wrapping quotes
         // - 0,08% of fields have quotes embedded, i.e. "John ""The Man"" Smith"
 
-        if (dialect._whitespaceLength == 0)
+        if (dialect.Trimming == CsvFieldTrimming.None)
         {
             // most common case, no quotes or escapes
             if ((_specialCountAndOffset & SpecialCountMask) == 0)
@@ -236,11 +237,8 @@ internal readonly struct Meta : IEquatable<Meta>
     {
         ReadOnlySpan<T> field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, start), End - start);
 
-        // trim before unquoting to preserve whitespace in strings
-        if (!dialect.Whitespace.IsEmpty)
-        {
-            field = TrimCore(field, in dialect);
-        }
+        // trim before unquoting to preserve spaces in strings
+        field = field.Trim(dialect.Trimming);
 
         if ((_specialCountAndOffset & (IsEscapeMask | SpecialCountMask)) != 0)
         {
@@ -296,18 +294,6 @@ internal readonly struct Meta : IEquatable<Meta>
         }
 
         return field;
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static ReadOnlySpan<T> TrimCore<T>(ReadOnlySpan<T> field, scoped ref readonly CsvDialect<T> dialect)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        return dialect._whitespaceLength switch
-        {
-            1 => Trimmer.Trim(new SingleTrimmer<T>(dialect.Whitespace[0]), field),
-            2 => Trimmer.Trim(new DoubleTrimmer<T>(dialect.Whitespace[0], dialect.Whitespace[1]), field),
-            _ => Trimmer.Trim(new AnyTrimmer<T>(dialect.Whitespace), field),
-        };
     }
 
     public bool EndsInCR<T>(ReadOnlySpan<T> data, ref readonly NewlineBuffer<T> newline)

@@ -6,7 +6,7 @@ file static class EscapeExt
 {
     public static readonly CsvOptions<char> Options = new()
     {
-        Delimiter = ',', Quote = '|', Whitespace = null, Escape = '^',
+        Delimiter = ',', Quote = '|', Escape = '^',
     };
 
     public static bool MustBeQuoted(this UnixEscaper<char> escaper, ReadOnlySpan<char> field, out int specialCount)
