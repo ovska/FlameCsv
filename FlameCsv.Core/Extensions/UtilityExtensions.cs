@@ -73,16 +73,23 @@ internal static class UtilityExtensions
         return sb.ToString();
     }
 
+    public static ReadOnlySpan<T> AsSpanUnsafe<T>(this ArraySegment<T> segment)
+    {
+        return MemoryMarshal.CreateReadOnlySpan(
+            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(segment.Array!), segment.Offset),
+            segment.Count);
+    }
+
     public static bool SequenceEquals<T>(in this ReadOnlySequence<T> sequence, ReadOnlySpan<T> other)
         where T : unmanaged, IBinaryInteger<T>
     {
-        if (sequence.Length != other.Length)
-            return false;
-
         if (sequence.IsSingleSegment)
         {
             return sequence.FirstSpan.SequenceEqual(other);
         }
+
+        if (sequence.Length != other.Length)
+            return false;
 
         foreach (var memory in sequence)
         {

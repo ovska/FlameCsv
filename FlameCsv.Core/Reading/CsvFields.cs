@@ -40,7 +40,7 @@ public readonly struct CsvFields<T> : ICsvFields<T> where T : unmanaged, IBinary
     internal ReadOnlySpan<Meta> Fields
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _fieldMeta.AsSpan();
+        get => _fieldMeta.AsSpanUnsafe();
     }
 
     internal CsvParser<T> Parser { get; }
@@ -51,8 +51,9 @@ public readonly struct CsvFields<T> : ICsvFields<T> where T : unmanaged, IBinary
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int GetRecordLength(bool includeTrailingNewline = false)
     {
-        int start = Fields[0].NextStart;
-        int end = includeTrailingNewline ? Fields[^1].NextStart : Fields[^1].End;
+        ReadOnlySpan<Meta> fields = Fields;
+        int start = fields[0].NextStart;
+        int end = includeTrailingNewline ? fields[^1].NextStart : fields[^1].End;
         return end - start;
     }
 
@@ -62,7 +63,11 @@ public readonly struct CsvFields<T> : ICsvFields<T> where T : unmanaged, IBinary
     public ReadOnlyMemory<T> Record
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Data[Fields[0].NextStart..Fields[^1].End];
+        get
+        {
+            ReadOnlySpan<Meta> fields = Fields;
+            return Data[fields[0].NextStart..fields[^1].End];
+        }
     }
 
     /// <inheritdoc />
@@ -114,18 +119,20 @@ public readonly struct CsvFields<T> : ICsvFields<T> where T : unmanaged, IBinary
     /// <seealso cref="FieldCount"/>
     public ReadOnlySpan<T> GetField(int index, bool raw = false, Span<T> buffer = default)
     {
-        if ((uint)index >= (uint)(Fields.Length - 1))
-            Throw.Argument_FieldIndex(index, Fields.Length - 1);
+        ReadOnlySpan<Meta> fields = Fields;
 
-        int start = Fields[index].NextStart;
+        if ((uint)index >= (uint)(fields.Length - 1))
+            Throw.Argument_FieldIndex(index, fields.Length - 1);
+
+        int start = fields[index].NextStart;
         ReadOnlySpan<T> data = Data.Span;
 
         if (raw)
         {
-            return data[start..Fields[index + 1].End];
+            return data[start..fields[index + 1].End];
         }
 
-        return Fields[index + 1]
+        return fields[index + 1]
             .GetField(
                 dialect: in Parser._dialect,
                 start: start,
