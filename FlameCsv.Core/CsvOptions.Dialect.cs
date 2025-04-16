@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
@@ -10,7 +11,11 @@ public partial class CsvOptions<T>
     /// <summary>
     /// Gets or creates the dialect using the configured options.
     /// </summary>
-    protected internal ref readonly CsvDialect<T> Dialect
+    /// <remarks>
+    /// Accessing this property makes the options immutable.
+    /// </remarks>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public ref readonly CsvDialect<T> Dialect
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
@@ -29,21 +34,7 @@ public partial class CsvOptions<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private ref readonly CsvDialect<T> InitializeDialectCore()
     {
-        CsvDialect<T> result = InitializeDialect();
-        result.Validate();
-        _dialect = result;
-        return ref Nullable.GetValueRefOrDefaultRef(in _dialect);
-    }
-
-    /// <summary>
-    /// Initializes the dialect.
-    /// </summary>
-    /// <remarks>
-    /// If overridden, the dialect must be valid (see <see cref="CsvDialect{T}.Validate"/>).
-    /// </remarks>
-    protected virtual CsvDialect<T> InitializeDialect()
-    {
-        return new CsvDialect<T>
+        CsvDialect<T> result = new()
         {
             Delimiter = T.CreateChecked(_delimiter),
             Quote = T.CreateChecked(_quote),
@@ -56,6 +47,10 @@ public partial class CsvOptions<T>
                 _ => throw new UnreachableException("Invalid newline: " + _newline),
             },
         };
+
+        result.Validate();
+        _dialect = result;
+        return ref Nullable.GetValueRefOrDefaultRef(in _dialect);
     }
 
     private char _delimiter = ',';
@@ -70,7 +65,12 @@ public partial class CsvOptions<T>
     public char Delimiter
     {
         get => _delimiter;
-        set => this.SetValue(ref _delimiter, value);
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfZero(value);
+            ArgumentOutOfRangeException.ThrowIfEqual(value, ' ');
+            this.SetValue(ref _delimiter, value);
+        }
     }
 
     /// <summary>
@@ -79,7 +79,12 @@ public partial class CsvOptions<T>
     public char Quote
     {
         get => _quote;
-        set => this.SetValue(ref _quote, value);
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfZero(value);
+            ArgumentOutOfRangeException.ThrowIfEqual(value, ' ');
+            this.SetValue(ref _quote, value);
+        }
     }
 
     /// <summary>
@@ -89,7 +94,16 @@ public partial class CsvOptions<T>
     public char? Escape
     {
         get => _escape;
-        set => this.SetValue(ref _escape, value);
+        set
+        {
+            if (value.HasValue)
+            {
+                ArgumentOutOfRangeException.ThrowIfZero(value.Value, nameof(value));
+                ArgumentOutOfRangeException.ThrowIfEqual(value.Value, ' ', nameof(value));
+            }
+
+            this.SetValue(ref _escape, value);
+        }
     }
 
     /// <summary>
@@ -121,5 +135,3 @@ public partial class CsvOptions<T>
         set => this.SetValue(ref _trimming, value);
     }
 }
-
-

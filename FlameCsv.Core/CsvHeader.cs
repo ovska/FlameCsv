@@ -2,7 +2,6 @@
 using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Exceptions;
-using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Utilities;
 using JetBrains.Annotations;
@@ -65,11 +64,7 @@ public sealed class CsvHeader
     public static string Get<T>(CsvOptions<T> options, scoped ReadOnlySpan<T> value, scoped Span<char> buffer)
         where T : unmanaged, IBinaryInteger<T>
     {
-        // pool headers if we know someone hasn't overridden the default implementation,
-        // so multiple different options-types don't write their own intrepretation to the same cache
-        if (!FlameCsvGlobalOptions.CachingDisabled &&
-            !options.IsInherited &&
-            options.TryGetChars(value, buffer, out int length))
+        if (!FlameCsvGlobalOptions.CachingDisabled && options.TryGetChars(value, buffer, out int length))
         {
             return HeaderPool.GetOrAdd(buffer.Slice(0, length));
         }

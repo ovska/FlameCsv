@@ -40,7 +40,6 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, 
         {
             _default = null!;
         }
-
     }
 
     /// <summary>
@@ -112,10 +111,6 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, 
         _trimming = other._trimming;
 
         ConverterCache = new(other.ConverterCache, other.ConverterCache.Comparer);
-
-        // check in case either of these types is a derived type with a different max size
-        // TODO: figure out how to do it more robustly on derived types
-        CheckConverterCacheSize();
     }
 
     /// <summary>
@@ -202,7 +197,10 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, 
         throw InvalidTokenTypeEx();
     }
 
-    private Utf8String? GetNullCore(Type resultType) => _nullTokens.TryGetExt(resultType, null);
+    private Utf8String? GetNullCore(Type resultType)
+    {
+        return _nullTokens.TryGetExt(resultType, defaultValue: _null);
+    }
 
     /// <summary>
     /// Returns the custom format configured for <paramref name="resultType"/>,

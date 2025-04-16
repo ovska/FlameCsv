@@ -86,16 +86,8 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         list.Append(Delimiter);
         list.Append(Quote);
 
-        if (Newline.IsEmpty)
-        {
-            list.Append(T.CreateChecked('\r'));
-            list.Append(T.CreateChecked('\n'));
-        }
-        else
-        {
-            list.Append(Newline.First);
-            list.Append(Newline.Second); // First and Second are the same on 1-char newlines
-        }
+        list.Append(Newline.First);
+        list.Append(Newline.Second); // First and Second are the same on 1-char newlines
 
         if (Escape.HasValue)
         {
