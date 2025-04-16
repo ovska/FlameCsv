@@ -14,10 +14,10 @@ internal static class Throw
         ImmutableArray<string> array,
         [CallerArgumentExpression(nameof(array))] string paramName = "")
     {
-        if (array.IsDefaultOrEmpty)
+        if (!array.IsDefaultOrEmpty)
             return;
 
-        Argument(paramName, "The array is not default or empty.");
+        Argument(paramName, "The array is default or empty.");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

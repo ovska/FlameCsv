@@ -123,7 +123,7 @@ public partial class CsvOptions<T>
         return (IDematerializer<T, TValue>)dematerializer;
     }
 
-    private protected readonly struct CacheKey : IEquatable<CacheKey>
+    private readonly struct CacheKey : IEquatable<CacheKey>
     {
         public static CacheKey ForMaterializer(
             CsvOptions<T> options,

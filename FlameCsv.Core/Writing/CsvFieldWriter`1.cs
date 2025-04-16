@@ -56,7 +56,6 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
         _quote = dialect.Quote;
         _escape = dialect.Escape;
         _newline = dialect.Newline;
-        if (_newline.IsEmpty) _newline = NewlineBuffer<T>.CRLF;
         _needsQuoting = dialect.NeedsQuoting;
         _fieldQuoting = options.FieldQuoting;
         _allocator = new MemoryPoolAllocator<T>(options.Allocator);
@@ -121,11 +120,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
             destination = Writer.GetSpan(destination.Length * 2);
         }
 
-        // validate negative or too large tokensWritten in case of broken user-defined options
-        if ((uint)tokensWritten > (uint)destination.Length)
-        {
-            InvalidTokensWritten.Throw(Options, tokensWritten, destination.Length);
-        }
+        Debug.Assert((uint)tokensWritten <= (uint)destination.Length);
 
         if (skipEscaping || _fieldQuoting is CsvFieldQuoting.Never)
         {
@@ -287,9 +282,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
             {
                 if (_fieldQuoting == CsvFieldQuoting.LeadingOrTrailingSpaces)
                 {
-                    shouldQuote =
-                        written[0] == T.CreateTruncating(' ') ||
-                        written[^1] == T.CreateTruncating(' ');
+                    shouldQuote = written[0] == T.CreateTruncating(' ') || written[^1] == T.CreateTruncating(' ');
                 }
                 else
                 {

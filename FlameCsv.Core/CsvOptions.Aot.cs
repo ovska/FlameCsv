@@ -76,11 +76,7 @@ partial class CsvOptions<T>
                 CsvConverterMissingException.Throw(typeof(TResult));
             }
 
-            if (_options.ConverterCache.TryAdd(typeof(TResult), converter))
-            {
-                _options.CheckConverterCacheSize();
-            }
-
+            _options.ConverterCache.TryAdd(typeof(TResult), converter);
             return converter;
         }
 
@@ -111,9 +107,9 @@ partial class CsvOptions<T>
                     $"The factory delegate passed to GetOrCreate for {typeof(TValue).FullName} returned null.");
             }
 
-            if (canCache && _options.ConverterCache.TryAdd(typeof(TValue), converter))
+            if (canCache)
             {
-                _options.CheckConverterCacheSize();
+                _options.ConverterCache.TryAdd(typeof(TValue), converter);
             }
 
             return converter;
@@ -146,7 +142,6 @@ partial class CsvOptions<T>
 
             if (canCache)
             {
-                _options.CheckConverterCacheSize();
                 _options.ConverterCache.TryAdd(typeof(TValue?), result);
             }
 
@@ -215,11 +210,7 @@ partial class CsvOptions<T>
                 {
                     if (converters[i] is CsvConverter<T, TValue> converterOfT)
                     {
-                        if (_options.ConverterCache.TryAdd(typeof(TValue), converter = converterOfT))
-                        {
-                            _options.CheckConverterCacheSize();
-                        }
-
+                        _options.ConverterCache.TryAdd(typeof(TValue), converter = converterOfT);
                         return true;
                     }
                 }

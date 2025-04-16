@@ -213,8 +213,8 @@ public class CsvOptionsTests
         var options = new CsvOptions<char>();
         options.MakeReadOnly();
 
-        Run(o => o.Delimiter = '\0');
-        Run(o => o.Quote = '\0');
+        Run(o => o.Delimiter = ',');
+        Run(o => o.Quote = '"');
         Run(o => o.Escape = null);
         Run(o => o.Newline = "\r");
         Run(o => o.Trimming = CsvFieldTrimming.Leading);

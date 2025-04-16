@@ -51,27 +51,8 @@ partial class CsvOptions<T>
     /// <summary>
     /// Contains cached converters for types that have been requested with <see cref="GetConverter(Type)"/>.
     /// </summary>
-    /// <seealso cref="MaxConverterCacheSize"/>
-    protected internal ConcurrentDictionary<Type, CsvConverter<T>> ConverterCache { get; }
+    internal ConcurrentDictionary<Type, CsvConverter<T>> ConverterCache { get; }
         = new(ReferenceEqualityComparer.Instance);
-
-    /// <summary>
-    /// Maximum number of converters cached internally by the options instance before the cache is cleared.
-    /// For converters by type, for example, with <see cref="GetConverter(Type)"/>.
-    /// Default is <see cref="int.MaxValue"/>.
-    /// </summary>
-    protected int MaxConverterCacheSize
-    {
-        get => _maxConverterCacheSize;
-        set
-        {
-            ArgumentOutOfRangeException.ThrowIfLessThan(value, 0);
-            _maxConverterCacheSize = value;
-            CheckConverterCacheSize();
-        }
-    }
-
-    private int _maxConverterCacheSize = int.MaxValue;
 
     /// <summary>
     /// Returns a converter for <typeparamref name="TResult"/>.
@@ -119,8 +100,6 @@ partial class CsvOptions<T>
 
         if (created)
         {
-            CheckConverterCacheSize();
-
             // ensure we return the same instance that was cached
             return ConverterCache.GetOrAdd(resultType, converter);
         }
@@ -204,17 +183,6 @@ partial class CsvOptions<T>
 
         converter = null;
         return false;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void CheckConverterCacheSize()
-    {
-        var max = MaxConverterCacheSize;
-
-        if (max != int.MaxValue && ConverterCache.Count >= MaxConverterCacheSize)
-        {
-            ConverterCache.Clear();
-        }
     }
 }
 
