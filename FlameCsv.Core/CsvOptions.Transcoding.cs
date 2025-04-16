@@ -2,7 +2,6 @@
 using System.Text;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
-
 #if DEBUG
 using Unsafe = FlameCsv.Extensions.DebugUnsafe
 #else
@@ -21,7 +20,7 @@ public partial class CsvOptions<T>
     /// Used interchangeably with <see cref="TryGetChars"/>, and should return the exact same
     /// value for the same input.
     /// </remarks>
-    public virtual string GetAsString(ReadOnlySpan<T> value)
+    public string GetAsString(ReadOnlySpan<T> value)
     {
         if (typeof(T) == typeof(char))
         {
@@ -47,7 +46,7 @@ public partial class CsvOptions<T>
     /// <param name="destination">Buffer to write the value as chars to</param>
     /// <param name="charsWritten">If successful, how many chars were written to the destination</param>
     /// <returns>True if the destination buffer was large enough and the value was written</returns>
-    public virtual bool TryGetChars(ReadOnlySpan<T> value, Span<char> destination, out int charsWritten)
+    public bool TryGetChars(ReadOnlySpan<T> value, Span<char> destination, out int charsWritten)
     {
         if (typeof(T) == typeof(char))
         {
@@ -65,11 +64,8 @@ public partial class CsvOptions<T>
     /// <summary>
     /// Returns the <typeparamref name="T"/> representation of the string.
     /// </summary>
-    /// <remarks>
-    /// Used interchangeably with <see cref="TryWriteChars"/>, and should return the exact same
-    /// value for the same input.
-    /// </remarks>
-    public virtual ReadOnlyMemory<T> GetFromString(string? value)
+    /// <seealso cref="TryWriteChars"/>
+    public ReadOnlyMemory<T> GetFromString(string? value)
     {
         if (string.IsNullOrEmpty(value))
         {
@@ -93,15 +89,12 @@ public partial class CsvOptions<T>
     /// <summary>
     /// Writes <paramref name="value"/> as <typeparamref name="T"/> to <paramref name="destination"/>.
     /// </summary>
-    /// <remarks>
-    /// Used interchangeably with <see cref="GetFromString"/>, and should return the exact same
-    /// value for the same input.
-    /// </remarks>
     /// <param name="value">Value to write</param>
     /// <param name="destination">Buffer to write the chars to</param>
     /// <param name="charsWritten">If successful, how many chars were written to the destination</param>
     /// <returns>True if the destination buffer was large enough and the value was written</returns>
-    public virtual bool TryWriteChars(ReadOnlySpan<char> value, Span<T> destination, out int charsWritten)
+    /// <seealso cref="GetFromString"/>
+    public bool TryWriteChars(ReadOnlySpan<char> value, Span<T> destination, out int charsWritten)
     {
         if (typeof(T) == typeof(char))
         {

@@ -39,7 +39,7 @@ public partial class CsvOptions<T>
         {
             ArgumentOutOfRangeException.ThrowIfZero(value);
 
-            if (char.IsSurrogate(value))
+            if (typeof(T) == typeof(char) && char.IsSurrogate(value))
             {
                 Throw.Argument(nameof(value), "Surrogate characters are not allowed as enum separators.");
             }
@@ -49,15 +49,15 @@ public partial class CsvOptions<T>
                 Throw.Argument(nameof(value), "Only ASCII characters are allowed as enum separators for UTF8.");
             }
 
-            if (char.IsAsciiDigit(value) || char.IsAsciiLetter(value) || value == '-')
+            if (value is ' ' or '-' || char.IsAsciiDigit(value) || char.IsAsciiLetter(value))
             {
                 Throw.Argument(
                     nameof(value),
-                    "Enum flags separator cannot be an ASCII digit, letter, or the '-' character.");
+                    "To avoid ambiguity with numeric values, enum names, and whitespace, " +
+                    "the enum flags separator cannot be an ASCII digit, letter, space, or the '-' character.");
             }
 
-            this.ThrowIfReadOnly();
-            _enumFlagsSeparator = value;
+            this.SetValue(ref _enumFlagsSeparator, value);
         }
     }
 }

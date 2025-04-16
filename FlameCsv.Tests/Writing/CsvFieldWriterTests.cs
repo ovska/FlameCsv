@@ -125,23 +125,6 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
         Assert.Throws<InvalidOperationException>(() => _writer.WriteField(formatter, ""));
     }
 
-    [Theory, InlineData(-1), InlineData((int)short.MaxValue)]
-    public void Should_Guard_Against_Broken_Options(int tokensWritten)
-    {
-        using var writer = CsvFieldWriter.Create(
-            TextWriter.Null,
-            new BrokenOptions
-            {
-                Delimiter = ',',
-                Quote = '"',
-                Newline = "\n",
-                Write = tokensWritten
-            });
-        // ReSharper disable once AccessToDisposedClosure
-        Assert.Throws<InvalidOperationException>(() => writer.WriteText("test"));
-        writer.Writer.Complete(null);
-    }
-
     [Theory]
     [InlineData(CsvFieldQuoting.Auto, "", "")]
     [InlineData(CsvFieldQuoting.Auto, ",", "\",\"")]
@@ -208,16 +191,5 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
         {
             throw new NotSupportedException();
         }
-    }
-
-    private class BrokenOptions : CsvOptions<char>
-    {
-        public override bool TryWriteChars(ReadOnlySpan<char> value, Span<char> destination, out int charsWritten)
-        {
-            charsWritten = Write;
-            return true;
-        }
-
-        public int Write { get; set; }
     }
 }
