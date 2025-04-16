@@ -10,7 +10,12 @@ _There is nothing inherently bad about reflection and compiled expressions._
 
 For 99% of applications, they work perfectly and are straightforward to set up with minimal configuration.
 However, reflection and compiled expressions are incompatible with AOT compilation and trimming, so an alternative API is provided.
-Aside from the start-up cost, performance differences between reflection and source generation in FlameCsv are not significant (see: [benchmarks](benchmarks.md)).
+
+Aside from the start-up cost, performance differences between reflection and source generation in FlameCsv are
+relatively small.
+
+The source-generated enum converter is significantly faster than `Enum.TryParse` and `TryFormat`.
+For more details, see the [benchmarks](benchmarks.md).
 
 ## Type Map Generator
 
