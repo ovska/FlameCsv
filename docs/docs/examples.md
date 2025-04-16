@@ -154,12 +154,11 @@ foreach (var @record in new CsvReader<byte>(CsvOptions<byte>, stream).ParseRecor
     }
 }
 ```
-
 ---
 
 Only one field may be read at a time, as unescaping the fields uses a shared buffer.
-You should process fields one by one before reading the next one.
-
+You should process fields one by one before reading the next one. In actuality, if the field
+isn't unescaped, multiple fields can be read at once, but this is an implementation detail and not guaranteed.
 
 ## Writing
 
