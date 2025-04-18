@@ -327,17 +327,14 @@ internal readonly struct Meta : IEquatable<Meta>
         return field;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool EndsInCR<T>(ReadOnlySpan<T> data, ref readonly NewlineBuffer<T> newline)
         where T : unmanaged, IBinaryInteger<T>
     {
-        if (newline.Length == 2 && IsEOL && NewlineLength == 1)
+        if (IsEOL && NewlineLength == 1 && newline.Length == 2)
         {
             var last = NextStart - 1;
-
-            if ((uint)last < (uint)data.Length)
-            {
-                return data[last] == newline.First;
-            }
+            return (uint)last < (uint)data.Length && data[last] == newline.First;
         }
 
         return false;
