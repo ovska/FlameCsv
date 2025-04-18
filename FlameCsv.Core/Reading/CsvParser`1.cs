@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Reading.Internal;
 using JetBrains.Annotations;
@@ -52,17 +51,20 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     private Meta[] _metaArray;
 
     /// <summary>
-    /// Number of fields read by <see cref="ReadFromSpan"/>.
+    /// Number of fields read ahead by <see cref="ReadFromSpan"/>.
     /// </summary>
     /// <remarks>
-    /// Does not include the start-of-data meta.
+    /// Does not include the start-of-data meta, e.g. this points to <see cref="MetaBuffer"/>, not the underlying array.
     /// </remarks>
     /// <seealso cref="_metaArray"/>
     private int _metaCount;
 
     /// <summary>
-    /// How many read fields have been consumed.
+    /// How many read ahead fields have been consumed.
     /// </summary>
+    /// <remarks>
+    /// Does not include the start-of-data meta, e.g. this points to <see cref="MetaBuffer"/>, not the underlying array.
+    /// </remarks>
     private int _metaIndex;
 
     /// <summary>
@@ -331,22 +333,6 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
             InvalidState.Throw(GetType(), _metaArray, _metaIndex, _metaCount);
         }
 
-        // TODO delete
-        if (lastEOL.NextStart > _sequence.Length)
-        {
-            System.Text.StringBuilder sb = new();
-            sb.Append(lastEOL);
-            sb.Append(" vs ");
-            sb.Append(_sequence.Length);
-            sb.Append(" - ");
-            sb.Append($"Meta length: {_metaArray}");
-            sb.Append(" - all metas: ");
-            sb.AppendJoin(", ", _metaArray[.._metaIndex]);
-            sb.AppendLine();
-            sb.Append(((ReadOnlySpan<T>)_sequence.ToArray()).AsPrintableString());
-            throw new UnreachableException(sb.ToString());
-        }
-
         _sequence = _sequence.Slice(lastEOL.NextStart);
         _metaCount = 0;
         _metaIndex = 0;
@@ -407,11 +393,9 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     {
         Debug.Assert(typeof(T) == typeof(byte));
 
-        ReadOnlySpan<byte> preamble = System.Text.Encoding.UTF8.Preamble;
-
-        if (MemoryMarshal.Cast<T, byte>(_sequence.FirstSpan).StartsWith(preamble))
+        if (_sequence.FirstSpan is [(byte)0xEF, (byte)0xBB, (byte)0xBF, ..])
         {
-            _sequence = _sequence.Slice(preamble.Length);
+            _sequence = _sequence.Slice(3);
         }
 
         _skipBOM = false;
@@ -450,7 +434,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
         }
 
         _metaArray[0] = Meta.StartOfData;
-        fields.CopyTo(_metaArray.AsSpan(start: 1));
+        fields.CopyTo(MetaBuffer);
         return new ArraySegment<Meta>(_metaArray, 0, fields.Length + 1);
     }
 
