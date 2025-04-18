@@ -3,8 +3,6 @@ using System.Globalization;
 using System.Text;
 using FlameCsv.Reading;
 using nietras.SeparatedValues;
-using RecordParser.Builders.Reader;
-using RecordParser.Extensions;
 using Sylvan.Data.Csv;
 
 // ReSharper disable all
@@ -32,14 +30,6 @@ public partial class PeekFields
         Delimiter = ',',
         Quote = '"',
         HeaderComparer = StringComparer.OrdinalIgnoreCase,
-    };
-
-    private static readonly FuncSpanT<double> _fastFloatFunc = (ReadOnlySpan<char> span) =>
-    {
-        ArgumentOutOfRangeException.ThrowIfNotEqual(
-            csFastFloat.FastDoubleParser.TryParseDouble(span, out double result),
-            true);
-        return result;
     };
 
     [Benchmark(Baseline = true)]
@@ -111,30 +101,6 @@ public partial class PeekFields
 
         _ = sum;
     }
-
-    [Benchmark]
-    public void _RecordParser()
-    {
-        using var streamReader = new StreamReader(new MemoryStream(_data), Encoding.UTF8);
-        var reader = new VariableLengthReaderSequentialBuilder<RecordEntry>()
-            .Skip(10)
-            .Map(r => r.Value, _fastFloatFunc)
-            .Build(",", CultureInfo.InvariantCulture);
-
-        var readOptions = new VariableLengthReaderOptions { HasHeader = true, ContainsQuotedFields = true };
-        var records = streamReader.ReadRecords(reader, readOptions);
-
-        double sum = 0;
-
-        foreach (var entry in records)
-        {
-            sum += entry.Value;
-        }
-
-        _ = sum;
-    }
-
-    record struct RecordEntry(double Value);
 
     [Benchmark]
     public void _CsvHelper()

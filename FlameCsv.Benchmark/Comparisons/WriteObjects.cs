@@ -1,38 +1,60 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Text;
 using nietras.SeparatedValues;
-using RecordParser.Builders.Writer;
-using RecordParser.Extensions;
 using Sylvan.Data;
+
+// ReSharper disable all
 
 namespace FlameCsv.Benchmark.Comparisons;
 
 [MemoryDiagnoser]
 public class WriteObjects
 {
-    private static Entry[] _data = null!;
+    [Params(100, 5000, 20_000)] public int Records { get; set; } = 5000;
+    [Params(false, true)] public bool Async { get; set; }
+
+    private static readonly TextWriter _destination = new NullTextWriter();
+
+    private IEnumerable<Entry> Data
+        => Records switch
+        {
+            100 => _data5000.Take(100),
+            5000 => _data5000,
+            20_000 => _data20000,
+            _ => throw new ArgumentOutOfRangeException(nameof(Records)),
+        };
 
     [Benchmark(Baseline = true)]
-    public void _Flame_SrcGen()
+    public Task _Flame_SrcGen()
     {
-        CsvWriter.Write(TextWriter.Null, _data, EntryTypeMap.Default);
+        if (Async)
+        {
+            return CsvWriter.WriteAsync(_destination, Data, EntryTypeMap.Default);
+        }
+
+        CsvWriter.Write(_destination, Data, EntryTypeMap.Default);
+        return Task.CompletedTask;
     }
 
     [Benchmark]
-    public void _Flame()
+    public Task _Flame()
     {
-        CsvWriter.Write(TextWriter.Null, _data);
+        if (Async)
+        {
+            return CsvWriter.WriteAsync(_destination, Data);
+        }
+
+        CsvWriter.Write(_destination, Data);
+        return Task.CompletedTask;
     }
 
     [Benchmark]
-    public void _Sep()
+    public async Task _Sep()
     {
         using var writer = Sep
-            .Writer(
-                c => c with
-                {
-                    Sep = new(','), Escape = true, WriteHeader = true,
-                })
-            .To(TextWriter.Null);
+            .Writer(c => c with { Sep = new(','), Escape = true, WriteHeader = true, })
+            .To(_destination);
 
         writer.Header.Add(
             "Index",
@@ -48,7 +70,7 @@ public class WriteObjects
 
         int count = 0;
 
-        foreach (var entry in _data)
+        foreach (var entry in Data)
         {
             using (var row = writer.NewRow())
             {
@@ -66,50 +88,288 @@ public class WriteObjects
 
             if (++count == 100)
             {
-                writer.Flush();
+                if (Async)
+                {
+                    await writer.FlushAsync();
+                }
+                else
+                {
+                    writer.Flush();
+                }
+
                 count = 0;
             }
         }
 
-        writer.Flush();
+        if (Async)
+        {
+            await writer.FlushAsync();
+        }
+        else
+        {
+            writer.Flush();
+        }
     }
 
     [Benchmark]
-    public void _Sylvan()
+    public async Task _Sylvan()
     {
-        using var writer = Sylvan.Data.Csv.CsvDataWriter.Create(TextWriter.Null);
-        writer.Write(_data.AsDataReader());
+        if (Async)
+        {
+            await using var writer = Sylvan.Data.Csv.CsvDataWriter.Create(_destination);
+            await writer.WriteAsync(Data.AsDataReader());
+        }
+        else
+        {
+            using var writer = Sylvan.Data.Csv.CsvDataWriter.Create(_destination);
+            writer.Write(Data.AsDataReader());
+        }
     }
 
     [Benchmark]
-    public void _RecordParser()
+    public async Task _CsvHelper()
     {
-        var writer = new VariableLengthWriterBuilder<Entry>()
-            .Map(e => e.Index, indexColumn: 0)
-            .Map(e => e.Name, indexColumn: 1)
-            .Map(e => e.Contact, indexColumn: 2)
-            .Map(e => e.Count, indexColumn: 3)
-            .Map(e => e.Latitude, indexColumn: 4)
-            .Map(e => e.Longitude, indexColumn: 5)
-            .Map(e => e.Height, indexColumn: 6)
-            .Map(e => e.Location, indexColumn: 7)
-            .Map(e => e.Category, indexColumn: 8)
-            .Map(e => e.Popularity, indexColumn: 9)
-            .Build(",", CultureInfo.InvariantCulture);
-
-        TextWriter.Null.WriteRecords(_data, writer.TryFormat);
-    }
-
-    [Benchmark]
-    public void _CsvHelper()
-    {
-        using CsvHelper.CsvWriter writer = new(TextWriter.Null, CultureInfo.InvariantCulture);
-        writer.WriteRecords(_data);
+        if (Async)
+        {
+            await using CsvHelper.CsvWriter writer = new(_destination, CultureInfo.InvariantCulture);
+            await writer.WriteRecordsAsync(Data);
+        }
+        else
+        {
+            using CsvHelper.CsvWriter writer = new(_destination, CultureInfo.InvariantCulture);
+            writer.WriteRecords(Data);
+        }
     }
 
     [GlobalSetup]
     public void Setup()
     {
-        _data = CsvReader.Read<Entry>(File.ReadAllBytes("Comparisons/Data/SampleCSVFile_556kb.csv")).ToArray();
+        _data5000 = CsvReader.Read<Entry>(File.OpenRead("Comparisons/Data/SampleCSVFile_556kb.csv")).ToArray();
+        _data20000 = CsvReader.Read<Entry>(File.OpenRead("Comparisons/Data/SampleCSVFile_556kb_4x.csv")).ToArray();
     }
+
+    private Entry[] _data5000 = null!;
+    private Entry[] _data20000 = null!;
+}
+
+// TextWriter.Null equivalent with forced async yielding
+file sealed class NullTextWriter : TextWriter
+{
+    public override IFormatProvider FormatProvider => CultureInfo.InvariantCulture;
+    public override Encoding Encoding => Encoding.UTF8;
+
+    [AllowNull]
+    public override string NewLine
+    {
+        get => base.NewLine;
+        set { }
+    }
+
+    // To avoid all unnecessary overhead in the base, override all Flush/Write methods as pure nops.
+
+    public override void Flush()
+    {
+    }
+
+    public override async Task FlushAsync() => await Task.Yield();
+    public override async Task FlushAsync(CancellationToken cancellationToken) => await Task.Yield();
+
+    public override void Write(char value)
+    {
+    }
+
+    public override void Write(char[]? buffer)
+    {
+    }
+
+    public override void Write(char[] buffer, int index, int count)
+    {
+    }
+
+    public override void Write(ReadOnlySpan<char> buffer)
+    {
+    }
+
+    public override void Write(bool value)
+    {
+    }
+
+    public override void Write(int value)
+    {
+    }
+
+    public override void Write(uint value)
+    {
+    }
+
+    public override void Write(long value)
+    {
+    }
+
+    public override void Write(ulong value)
+    {
+    }
+
+    public override void Write(float value)
+    {
+    }
+
+    public override void Write(double value)
+    {
+    }
+
+    public override void Write(decimal value)
+    {
+    }
+
+    public override void Write(string? value)
+    {
+    }
+
+    public override void Write(object? value)
+    {
+    }
+
+    public override void Write(StringBuilder? value)
+    {
+    }
+
+    public override void Write([StringSyntax(StringSyntaxAttribute.CompositeFormat)] string format, object? arg0)
+    {
+    }
+
+    public override void Write(
+        [StringSyntax(StringSyntaxAttribute.CompositeFormat)] string format,
+        object? arg0,
+        object? arg1)
+    {
+    }
+
+    public override void Write(
+        [StringSyntax(StringSyntaxAttribute.CompositeFormat)] string format,
+        object? arg0,
+        object? arg1,
+        object? arg2)
+    {
+    }
+
+    public override void Write(
+        [StringSyntax(StringSyntaxAttribute.CompositeFormat)] string format,
+        params object?[] arg)
+    {
+    }
+
+    public override void Write(
+        [StringSyntax(StringSyntaxAttribute.CompositeFormat)] string format,
+        params ReadOnlySpan<object?> arg)
+    {
+    }
+
+    public override async Task WriteAsync(char value) => await Task.Yield();
+    public override async Task WriteAsync(string? value) => await Task.Yield();
+    public override async Task WriteAsync(StringBuilder? value, CancellationToken cancellationToken = default) => await Task.Yield();
+    public override async Task WriteAsync(char[] buffer, int index, int count) => await Task.Yield();
+    public override async Task WriteAsync(ReadOnlyMemory<char> buffer, CancellationToken cancellationToken = default) => await Task.Yield();
+
+    public override void WriteLine()
+    {
+    }
+
+    public override void WriteLine(char value)
+    {
+    }
+
+    public override void WriteLine(char[]? buffer)
+    {
+    }
+
+    public override void WriteLine(char[] buffer, int index, int count)
+    {
+    }
+
+    public override void WriteLine(ReadOnlySpan<char> buffer)
+    {
+    }
+
+    public override void WriteLine(bool value)
+    {
+    }
+
+    public override void WriteLine(int value)
+    {
+    }
+
+    public override void WriteLine(uint value)
+    {
+    }
+
+    public override void WriteLine(long value)
+    {
+    }
+
+    public override void WriteLine(ulong value)
+    {
+    }
+
+    public override void WriteLine(float value)
+    {
+    }
+
+    public override void WriteLine(double value)
+    {
+    }
+
+    public override void WriteLine(decimal value)
+    {
+    }
+
+    public override void WriteLine(string? value)
+    {
+    }
+
+    public override void WriteLine(StringBuilder? value)
+    {
+    }
+
+    public override void WriteLine(object? value)
+    {
+    }
+
+    public override void WriteLine([StringSyntax(StringSyntaxAttribute.CompositeFormat)] string format, object? arg0)
+    {
+    }
+
+    public override void WriteLine(
+        [StringSyntax(StringSyntaxAttribute.CompositeFormat)] string format,
+        object? arg0,
+        object? arg1)
+    {
+    }
+
+    public override void WriteLine(
+        [StringSyntax(StringSyntaxAttribute.CompositeFormat)] string format,
+        object? arg0,
+        object? arg1,
+        object? arg2)
+    {
+    }
+
+    public override void WriteLine(
+        [StringSyntax(StringSyntaxAttribute.CompositeFormat)] string format,
+        params object?[] arg)
+    {
+    }
+
+    public override void WriteLine(
+        [StringSyntax(StringSyntaxAttribute.CompositeFormat)] string format,
+        params ReadOnlySpan<object?> arg)
+    {
+    }
+
+    public override async Task WriteLineAsync(char value) => await Task.Yield();
+    public override async Task WriteLineAsync(string? value) => await Task.Yield();
+    public override async Task WriteLineAsync(StringBuilder? value, CancellationToken cancellationToken = default) => await Task.Yield();
+    public override async Task WriteLineAsync(char[] buffer, int index, int count) => await Task.Yield();
+    public override async Task WriteLineAsync(ReadOnlyMemory<char> buffer, CancellationToken cancellationToken = default) => await Task.Yield();
+    public override async Task WriteLineAsync() => await Task.Yield();
 }
