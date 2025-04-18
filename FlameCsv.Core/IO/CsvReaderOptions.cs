@@ -15,7 +15,7 @@ public readonly struct CsvReaderOptions
     /// <summary>
     /// The default buffer size in bytes.
     /// </summary>
-    public const int DefaultBufferSize = 4096;
+    public const int DefaultBufferSize = 1024 * 16;
 
     /// <summary>
     /// The default minimum read size in bytes.
