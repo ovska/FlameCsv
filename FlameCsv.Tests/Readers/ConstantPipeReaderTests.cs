@@ -17,7 +17,7 @@ public static class ConstantPipeReaderTests
         static void Impl(Stream stream)
         {
             using (stream)
-            using (var pipe = CsvPipeReader.Create(
+            using (var pipe = CsvBufferReader.Create(
                        stream,
                        HeapMemoryPool<byte>.Instance,
                        new() { LeaveOpen = true }))
@@ -44,7 +44,7 @@ public static class ConstantPipeReaderTests
         static void Impl(TextReader reader)
         {
             using (reader)
-            using (var pipe = CsvPipeReader.Create(reader, HeapMemoryPool<char>.Instance, new() { BufferSize = 4096 }))
+            using (var pipe = CsvBufferReader.Create(reader, HeapMemoryPool<char>.Instance, new() { BufferSize = 4096 }))
             {
                 Assert.IsNotType<ConstantPipeReader<char>>(pipe);
             }
@@ -60,7 +60,7 @@ public static class ConstantPipeReaderTests
         stream.Write("Hello, World!"u8);
         stream.Position = 0;
 
-        await using (var reader = CsvPipeReader.Create(stream, pool, new() { LeaveOpen = true }))
+        await using (var reader = CsvBufferReader.Create(stream, pool, new() { LeaveOpen = true }))
         {
             Assert.IsType<ConstantPipeReader<byte>>(reader);
 
@@ -93,7 +93,7 @@ public static class ConstantPipeReaderTests
         using var reader = new StringReader("Hello, World!");
         Assert.Equal(pos, reader.Read(new char[pos]));
 
-        await using var pipeReader = CsvPipeReader.Create(reader, pool, new() { LeaveOpen = true });
+        await using var pipeReader = CsvBufferReader.Create(reader, pool, new() { LeaveOpen = true });
 
         Assert.IsType<ConstantPipeReader<char>>(pipeReader);
 

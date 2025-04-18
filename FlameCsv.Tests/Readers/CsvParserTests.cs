@@ -84,7 +84,7 @@ public class CsvParserTests
                 Newline = newline == NewlineToken.LF ? "\n" : "\r\n",
                 Escape = mode == Mode.Escape ? '^' : null,
             },
-            CsvPipeReader.Create(MemorySegment<char>.AsSequence(data.AsMemory(), 64)));
+            CsvBufferReader.Create(MemorySegment<char>.AsSequence(data.AsMemory(), 64)));
 
         using var enumerator = parser.ParseRecords().GetEnumerator();
 
@@ -143,7 +143,7 @@ public class CsvParserTests
                 7,8,9
                 """u8.ToArray();
 
-        await using var reader = CsvPipeReader.Create(
+        await using var reader = CsvBufferReader.Create(
             new StreamReader(
                 new MemoryStream(data),
                 Encoding.UTF8,
@@ -182,31 +182,31 @@ public class CsvParserTests
     [Fact]
     public void Should_Reset()
     {
-        (ICsvPipeReader<char> reader, bool resetable)[] charData =
+        (ICsvBufferReader<char> reader, bool resetable)[] charData =
         [
-            (CsvPipeReader.Create(ReadOnlySequence<char>.Empty), true),
-            (CsvPipeReader.Create(new StringBuilder("test")), true),
-            (CsvPipeReader.Create(new StringReader("wrapped in constant")), true),
-            (CsvPipeReader.Create(new StreamReader(new MemoryStream())), false),
-            (CsvPipeReader.Create(new MemoryStream(), Encoding.UTF8), false),
+            (CsvBufferReader.Create(ReadOnlySequence<char>.Empty), true),
+            (CsvBufferReader.Create(new StringBuilder("test")), true),
+            (CsvBufferReader.Create(new StringReader("wrapped in constant")), true),
+            (CsvBufferReader.Create(new StreamReader(new MemoryStream())), false),
+            (CsvBufferReader.Create(new MemoryStream(), Encoding.UTF8), false),
         ];
 
-        foreach ((ICsvPipeReader<char> reader, bool resetable) in charData)
+        foreach ((ICsvBufferReader<char> reader, bool resetable) in charData)
         {
             using var parser = CsvParser.Create(CsvOptions<char>.Default, reader);
             Assert.Equal(resetable, parser.TryReset());
         }
 
-        (ICsvPipeReader<byte> reader, bool resetable)[] byteData =
+        (ICsvBufferReader<byte> reader, bool resetable)[] byteData =
         [
-            (CsvPipeReader.Create(ReadOnlySequence<byte>.Empty), true),
-            (CsvPipeReader.Create(new MemoryStream()), true),
-            (CsvPipeReader.Create(new MemoryStream([1, 2, 3])), true),
-            (CsvPipeReader.Create(new GZipStream(Stream.Null, CompressionMode.Decompress)), false),
+            (CsvBufferReader.Create(ReadOnlySequence<byte>.Empty), true),
+            (CsvBufferReader.Create(new MemoryStream()), true),
+            (CsvBufferReader.Create(new MemoryStream([1, 2, 3])), true),
+            (CsvBufferReader.Create(new GZipStream(Stream.Null, CompressionMode.Decompress)), false),
             (new PipeReaderWrapper(PipeReader.Create(new MemoryStream())), false), // pipereader is not resetable
         ];
 
-        foreach ((ICsvPipeReader<byte> reader, bool resetable) in byteData)
+        foreach ((ICsvBufferReader<byte> reader, bool resetable) in byteData)
         {
             using var parser = CsvParser.Create(CsvOptions<byte>.Default, reader);
             Assert.Equal(resetable, parser.TryReset());
@@ -226,7 +226,7 @@ public class CsvParserTests
         List<string> lines = [];
 
         // ReSharper disable once NotDisposedResource
-        foreach (var line in CsvParser.Create(options, CsvPipeReader.Create(data.AsMemory())).ParseRecords())
+        foreach (var line in CsvParser.Create(options, CsvBufferReader.Create(data.AsMemory())).ParseRecords())
         {
             lines.Add(line.Record.ToString());
         }
@@ -251,7 +251,7 @@ public class CsvParserTests
 
         Assert.Equal(data.AsSpan(0, Encoding.UTF8.Preamble.Length), Encoding.UTF8.Preamble);
 
-        var parser = CsvParser.Create(CsvOptions<byte>.Default, CsvPipeReader.Create(data.AsMemory()));
+        var parser = CsvParser.Create(CsvOptions<byte>.Default, CsvBufferReader.Create(data.AsMemory()));
 
         List<byte[]> results = [];
 

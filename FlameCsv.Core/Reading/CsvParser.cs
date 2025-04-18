@@ -41,7 +41,7 @@ public abstract class CsvParser
     /// <param name="options">Options-instance that determines the dialect and memory pool to use</param>
     /// <param name="reader">Reader for the CSV data</param>
     [MustDisposeResource]
-    public static CsvParser<T> Create<T>(CsvOptions<T> options, ICsvPipeReader<T> reader)
+    public static CsvParser<T> Create<T>(CsvOptions<T> options, ICsvBufferReader<T> reader)
         where T : unmanaged, IBinaryInteger<T>
     {
         return CreateCore(options, reader);
@@ -56,13 +56,13 @@ public abstract class CsvParser
     public static CsvParser<T> Create<T>(CsvOptions<T> options, in ReadOnlySequence<T> csv)
         where T : unmanaged, IBinaryInteger<T>
     {
-        return CreateCore(options, CsvPipeReader.Create(in csv));
+        return CreateCore(options, CsvBufferReader.Create(in csv));
     }
 
     [MustDisposeResource]
     internal static CsvParser<T> CreateCore<T>(
         CsvOptions<T> options,
-        ICsvPipeReader<T> reader,
+        ICsvBufferReader<T> reader,
         CsvParserOptions<T> parserOptions = default)
         where T : unmanaged, IBinaryInteger<T>
     {

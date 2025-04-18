@@ -9,7 +9,7 @@ namespace FlameCsv.Reading.Internal;
 
 internal sealed class CsvParserRFC4180<T>(
     CsvOptions<T> options,
-    ICsvPipeReader<T> reader,
+    ICsvBufferReader<T> reader,
     in CsvParserOptions<T> parserOptions)
     : CsvParser<T>(options, reader, in parserOptions)
     where T : unmanaged, IBinaryInteger<T>
@@ -28,6 +28,67 @@ internal sealed class CsvParserRFC4180<T>(
         T quote = _dialect.Quote;
         SearchValues<T> nextToken = _dialect.GetFindToken();
         NewlineBuffer<T> newline = _dialect.Newline;
+
+        // loop over the segments
+        int consumed = 0;
+        SequencePosition next = _sequence.Start;
+
+        while (_sequence.TryGet(ref next, out ReadOnlyMemory<T> current))
+        {
+            ReadOnlySpan<T> span = current.Span;
+            int index = 0;
+
+        Begin:
+            if (quoteCount % 2 != 0)
+            {
+                while (index < span.Length)
+                {
+                    if (span[index++] == quote)
+                    {
+                        quoteCount++;
+                        goto Read;
+                    }
+                }
+
+                goto Next;
+            }
+
+        Read:
+            while (index < span.Length)
+            {
+                T token = span[index];
+
+                if (token == quote)
+                {
+                    quoteCount++;
+                    index++;
+                    goto Begin;
+                }
+
+                if (token == delimiter)
+                {
+                    fieldMeta.Append(Meta.RFC(consumed + index, quoteCount));
+                    quoteCount = 0;
+                    index++; // should we increment by two?
+                    goto Read;
+                }
+
+                if (token == newline.First || token == newline.Second)
+                {
+
+                }
+
+                throw new NotImplementedException();
+            }
+
+        Next:
+            consumed += span.Length;
+
+            if (next.GetObject() == null)
+            {
+                break;
+            }
+        }
 
         while (!reader.End)
         {
@@ -160,7 +221,8 @@ internal sealed class CsvParserRFC4180<T>(
         // the prefetch reads one vector ahead
         const int minimumVectors = 2;
 
-        if (Unsafe.SizeOf<T>() == sizeof(char) && (Vec512Char.IsSupported || Vec256Char.IsSupported || Vec128Char.IsSupported))
+        if (Unsafe.SizeOf<T>() == sizeof(char) &&
+            (Vec512Char.IsSupported || Vec256Char.IsSupported || Vec128Char.IsSupported))
         {
             ReadOnlySpan<char> dataT = MemoryMarshal.Cast<T, char>(data);
             ref readonly var dialect = ref Unsafe.As<CsvDialect<T>, CsvDialect<char>>(ref Unsafe.AsRef(in _dialect));
@@ -236,7 +298,8 @@ internal sealed class CsvParserRFC4180<T>(
             }
         }
 
-        if (Unsafe.SizeOf<T>() == sizeof(byte) && (Vec512Byte.IsSupported || Vec256Byte.IsSupported || Vec128Byte.IsSupported))
+        if (Unsafe.SizeOf<T>() == sizeof(byte) &&
+            (Vec512Byte.IsSupported || Vec256Byte.IsSupported || Vec128Byte.IsSupported))
         {
             ReadOnlySpan<byte> dataT = MemoryMarshal.Cast<T, byte>(data);
             ref readonly var dialect = ref Unsafe.As<CsvDialect<T>, CsvDialect<byte>>(ref Unsafe.AsRef(in _dialect));

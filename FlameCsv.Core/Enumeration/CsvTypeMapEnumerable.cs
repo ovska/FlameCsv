@@ -10,11 +10,10 @@ namespace FlameCsv.Enumeration;
 /// Enumerable that can be used to read <typeparamref name="TValue"/> using reflection.
 /// </summary>
 [PublicAPI]
-public sealed class CsvTypeMapEnumerable<T, TValue>
-    : IEnumerable<TValue>, ICsvValueAsyncEnumerable<T, TValue>
+public sealed class CsvTypeMapEnumerable<T, TValue> : IEnumerable<TValue>, IAsyncEnumerable<TValue>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly ICsvPipeReader<T> _reader;
+    private readonly ICsvBufferReader<T> _reader;
     private readonly CsvOptions<T> _options;
     private readonly CsvTypeMap<T, TValue> _typeMap;
     private CsvExceptionHandler<T>? _exceptionHandler;
@@ -23,7 +22,7 @@ public sealed class CsvTypeMapEnumerable<T, TValue>
     /// Creates a new instance that can be used to read CSV records.
     /// </summary>
     public CsvTypeMapEnumerable(ReadOnlyMemory<T> csv, CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
-        : this(new ReadOnlySequence<T>(csv), options, typeMap)
+        : this(CsvBufferReader.Create(csv), options, typeMap)
     {
     }
 
@@ -31,7 +30,7 @@ public sealed class CsvTypeMapEnumerable<T, TValue>
     /// Creates a new instance that can be used to read CSV records.
     /// </summary>
     public CsvTypeMapEnumerable(in ReadOnlySequence<T> csv, CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
-        : this(new ConstantPipeReader<T>(in csv), options, typeMap)
+        : this(CsvBufferReader.Create(in csv), options, typeMap)
     {
     }
 
@@ -39,7 +38,7 @@ public sealed class CsvTypeMapEnumerable<T, TValue>
     /// Creates a new instance that can be used to read CSV records.
     /// </summary>
     public CsvTypeMapEnumerable(
-        ICsvPipeReader<T> reader,
+        ICsvBufferReader<T> reader,
         CsvOptions<T> options,
         CsvTypeMap<T, TValue> typeMap)
     {
@@ -90,11 +89,5 @@ public sealed class CsvTypeMapEnumerable<T, TValue>
     IAsyncEnumerator<TValue> IAsyncEnumerable<TValue>.GetAsyncEnumerator(CancellationToken cancellationToken)
     {
         return GetAsyncEnumerator(cancellationToken);
-    }
-
-    ICsvValueAsyncEnumerable<T, TValue> ICsvValueAsyncEnumerable<T, TValue>.WithExceptionHandler(
-        CsvExceptionHandler<T>? handler)
-    {
-        return WithExceptionHandler(handler);
     }
 }

@@ -59,7 +59,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     /// <param name="options">Options to use for reading</param>
     /// <param name="reader">Data source</param>
     /// <param name="cancellationToken">Token to cancel asynchronous enumeration</param>
-    protected CsvEnumeratorBase(CsvOptions<T> options, ICsvPipeReader<T> reader, CancellationToken cancellationToken)
+    protected CsvEnumeratorBase(CsvOptions<T> options, ICsvBufferReader<T> reader, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(reader);

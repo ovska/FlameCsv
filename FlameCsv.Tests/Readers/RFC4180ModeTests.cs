@@ -100,7 +100,7 @@ public class RFC4180ModeTests
     public async Task Should_Trim_LF_From_Next_Segment(ReadType type)
     {
         var data = MemorySegment.Create("record1\r", "\nrecord2");
-        var parser = new TestParser(CsvOptions<char>.Default, CsvPipeReader.Create(data), default);
+        var parser = new TestParser(CsvOptions<char>.Default, CsvBufferReader.Create(data), default);
 
         List<string> result = [];
 
@@ -186,7 +186,7 @@ public class RFC4180ModeTests
     {
         internal TestParser(
             CsvOptions<char> options,
-            ICsvPipeReader<char> reader,
+            ICsvBufferReader<char> reader,
             in CsvParserOptions<char> parserOptions)
             : base(options, reader, in parserOptions)
         {
@@ -214,7 +214,7 @@ public class RFC4180ModeTests
         }
     }
 
-    private sealed class FakeReader : ICsvPipeReader<char>
+    private sealed class FakeReader : ICsvBufferReader<char>
     {
         public void Dispose()
         {

@@ -82,7 +82,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
 {
     protected abstract CsvTypeMap<T, Obj> TypeMap { get; }
 
-    protected abstract ICsvPipeReader<T> GetReader(Stream stream, CsvOptions<T> options, int bufferSize);
+    protected abstract ICsvBufferReader<T> GetReader(Stream stream, CsvOptions<T> options, int bufferSize);
 
     [Theory, MemberData(nameof(SyncParams))]
     public async Task Objects_Sync(
@@ -133,7 +133,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
 
             var memory = TestDataGenerator.Generate<T>(newline, header, trailingLF, escaping);
             var sequence = MemorySegment<T>.AsSequence(memory, bufferSize, emptySegmentFreq);
-            await using var reader = CsvPipeReader.Create(in sequence);
+            await using var reader = CsvBufferReader.Create(in sequence);
 
             var items = await GetItems(reader, options, sourceGen, header, newline, parallel, isAsync: false);
 
@@ -234,7 +234,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
     }
 
     protected async Task<List<Obj>> GetItems(
-        ICsvPipeReader<T> reader,
+        ICsvBufferReader<T> reader,
         CsvOptions<T> options,
         bool sourceGen,
         bool hasHeader,

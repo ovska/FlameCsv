@@ -54,12 +54,12 @@ public sealed class CsvRecordEnumerator<T>
     void IEnumerator.Reset() => ResetCore();
 
     internal CsvRecordEnumerator(ReadOnlyMemory<T> csv, CsvOptions<T> options)
-        : this(new ReadOnlySequence<T>(csv), options)
+        : this(options, CsvBufferReader.Create(csv))
     {
     }
 
     internal CsvRecordEnumerator(in ReadOnlySequence<T> csv, CsvOptions<T> options)
-        : this(options, new ConstantPipeReader<T>(in csv))
+        : this(options, CsvBufferReader.Create(in csv))
     {
     }
 
@@ -71,7 +71,7 @@ public sealed class CsvRecordEnumerator<T>
     /// <param name="cancellationToken">Cancellation token used for asynchronous enumeration</param>
     public CsvRecordEnumerator(
         CsvOptions<T> options,
-        ICsvPipeReader<T> reader,
+        ICsvBufferReader<T> reader,
         CancellationToken cancellationToken = default)
         : base(options, reader, cancellationToken)
     {

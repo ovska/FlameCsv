@@ -51,7 +51,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     private Meta[] _metaArray;
 
     /// <summary>
-    /// Number of fields read ahead by <see cref="ReadFromSpan"/>.
+    /// Index of the last EOL read from <see cref="ReadFromSpan"/>.
     /// </summary>
     /// <remarks>
     /// Does not include the start-of-data meta, e.g. this points to <see cref="MetaBuffer"/>, not the underlying array.
@@ -68,17 +68,13 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     private int _metaIndex;
 
     /// <summary>
-    /// The memory that the meta fields are based on.
-    /// </summary>
-    private ReadOnlyMemory<T> _metaMemory;
-
-    /// <summary>
     /// Whether we have an ASCII dialect, and buffering isn't disabled.
     /// </summary>
     private readonly bool _canUseFastPath;
 
-    private protected ReadOnlySequence<T> _sequence;
-    private readonly ICsvPipeReader<T> _reader;
+    private readonly ICsvBufferReader<T> _reader;
+    private ReadOnlyMemory<T> _buffer;
+    private int _bufferConsumed;
 
     /// <summary>
     /// Whether the reader has completed, and no more data can be read.
@@ -95,7 +91,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     /// </summary>
     private protected bool _previousEndCR;
 
-    private protected CsvParser(CsvOptions<T> options, ICsvPipeReader<T> reader, in CsvParserOptions<T> parserOptions)
+    private protected CsvParser(CsvOptions<T> options, ICsvBufferReader<T> reader, in CsvParserOptions<T> parserOptions)
     {
         Debug.Assert(options.IsReadOnly);
 
@@ -151,7 +147,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
                 MetaSegment fieldMeta = new() { array = _metaArray, count = fieldCount + 1, offset = _metaIndex };
                 fields = new CsvFields<T>(
                     parser: this,
-                    data: _metaMemory,
+                    data: _buffer,
                     fieldMeta: Unsafe.As<MetaSegment, ArraySegment<Meta>>(ref fieldMeta));
 
                 _metaIndex += fieldCount;
@@ -192,7 +188,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
                 MetaSegment fieldMeta = new() { array = _metaArray, count = fieldCount + 1, offset = _metaIndex };
                 fields = new CsvFields<T>(
                     parser: this,
-                    data: _metaMemory,
+                    data: _buffer,
                     fieldMeta: Unsafe.As<MetaSegment, ArraySegment<Meta>>(ref fieldMeta));
 
                 _metaIndex += fieldCount;
@@ -219,7 +215,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     [MethodImpl(MethodImplOptions.NoInlining)]
     public bool TryReadUnbuffered(out CsvFields<T> fields, bool isFinalBlock)
     {
-        if (_sequence.IsEmpty)
+        if (_buffer.IsEmpty)
         {
             Debug.Assert(_metaCount == 0);
             fields = default;
@@ -240,16 +236,14 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
                 _metaArray[0] = Meta.StartOfData; // the first meta should be one delimiter "behind"
             }
 
-            ReadOnlyMemory<T> metaMemory = _sequence.First;
-
-            int fieldCount = ReadFromSpan(metaMemory.Span);
+            int fieldCount = ReadFromSpan(_buffer.Span);
 
             // see if we read at least one fully formed line
             if (fieldCount != 0 && Meta.HasEOL(MetaBuffer[..fieldCount], out int lastIndex))
             {
                 _metaIndex = 0;
                 _metaCount = lastIndex + 1;
-                _metaMemory = metaMemory; // cache to avoid calling GetFirstBuffer on every record
+                _bufferConsumed = 0;
                 bool result = TryGetBuffered(out fields);
                 Debug.Assert(result, "At least one record should have been read");
                 return result;
@@ -304,7 +298,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     }
 
     /// <inheritdoc cref="TryAdvanceReader"/>
-    public async ValueTask<bool> TryAdvanceReaderAsync(CancellationToken cancellationToken = default)
+    public ValueTask<bool> TryAdvanceReaderAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         cancellationToken.ThrowIfCancellationRequested();
@@ -312,12 +306,26 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
         if (!_readerCompleted)
         {
             AdvanceReader();
-            CsvReadResult<T> result = await _reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-            SetReadResult(in result);
-            return true;
+            ValueTask<CsvReadResult<T>> task = _reader.ReadAsync(cancellationToken);
+
+            if (task.IsCompletedSuccessfully)
+            {
+                CsvReadResult<T> result = task.GetAwaiter().GetResult();
+                SetReadResult(in result);
+                return new(true);
+            }
+
+            return Core(this, task);
         }
 
-        return false;
+        return new(false);
+
+        static async ValueTask<bool> Core(CsvParser<T> parser, ValueTask<CsvReadResult<T>> task)
+        {
+            CsvReadResult<T> result = await task.ConfigureAwait(false);
+            parser.SetReadResult(in result);
+            return true;
+        }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -333,28 +341,10 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
             InvalidState.Throw(GetType(), _metaArray, _metaIndex, _metaCount);
         }
 
-        _sequence = _sequence.Slice(lastEOL.NextStart);
+        _previousEndCR = lastEOL.EndsInCR(_buffer.Span, in _dialect._newline);
+        _buffer = _buffer.Slice(lastEOL.NextStart);
         _metaCount = 0;
         _metaIndex = 0;
-
-        if (lastEOL.EndsInCR(_metaMemory.Span, in _dialect._newline))
-        {
-            if (_sequence.IsEmpty)
-            {
-                _previousEndCR = true;
-            }
-            else
-            {
-                ReadOnlySpan<T> first = _sequence.FirstSpan;
-
-                if (!first.IsEmpty && first[0] == _dialect.Newline.Second)
-                {
-                    _sequence = _sequence.Slice(1);
-                }
-            }
-        }
-
-        _metaMemory = default; // don't hold on to the memory from last read
     }
 
     /// <summary>
@@ -368,20 +358,20 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
             ResetMetaBuffer();
         }
 
-        _reader.AdvanceTo(consumed: _sequence.Start, examined: _sequence.End);
+        _reader.Advance(_bufferConsumed);
+        _bufferConsumed = 0;
     }
 
     /// <summary>
     /// Sets the result of a read operation.
     /// </summary>
-    /// <param name="result">Result of the previous read to <see cref="ICsvPipeReader{T}"/></param>
+    /// <param name="result">Result of the previous read to <see cref="ICsvBufferReader{T}"/></param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void SetReadResult(ref readonly CsvReadResult<T> result)
     {
         _metaCount = 0;
         _metaIndex = 0;
-        _metaMemory = default; // don't hold on to the memory from last read
-        _sequence = result.Buffer;
+        _buffer = result.Buffer;
         _readerCompleted = result.IsCompleted;
 
         if (typeof(T) == typeof(byte) && _skipBOM) TrySkipBOM();
@@ -393,9 +383,9 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     {
         Debug.Assert(typeof(T) == typeof(byte));
 
-        if (_sequence.FirstSpan is [(byte)0xEF, (byte)0xBB, (byte)0xBF, ..])
+        if (_buffer.Span is [(byte)0xEF, (byte)0xBB, (byte)0xBF, ..])
         {
-            _sequence = _sequence.Slice(3);
+            _buffer = _buffer.Slice(3);
         }
 
         _skipBOM = false;
@@ -407,11 +397,9 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
         Debug.Assert(_previousEndCR);
         Debug.Assert(_dialect.Newline.Length == 2);
 
-        ReadOnlySpan<T> first = _sequence.FirstSpan;
-
-        if (!first.IsEmpty && first[0] == _dialect.Newline.Second)
+        if (_buffer.Span is [var first, ..] && first == _dialect.Newline.Second)
         {
-            _sequence = _sequence.Slice(1);
+            _buffer = _buffer.Slice(1);
         }
 
         _previousEndCR = false;
@@ -475,8 +463,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
                 _metaIndex = 0;
 
                 // don't hold on to any references to the data after disposing
-                _sequence = default;
-                _metaMemory = default;
+                _buffer = ReadOnlyMemory<T>.Empty;
 
                 ReturnMetaBuffer(ref _metaArray);
                 _metaArray = [];

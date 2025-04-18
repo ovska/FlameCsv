@@ -11,18 +11,18 @@ namespace FlameCsv.Enumeration;
 [PublicAPI]
 [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
 public sealed class CsvValueEnumerable<T, [DAM(Messages.ReflectionBound)] TValue>
-    : IEnumerable<TValue>, ICsvValueAsyncEnumerable<T, TValue>
+    : IEnumerable<TValue>, IAsyncEnumerable<TValue>
     where T : unmanaged, IBinaryInteger<T>
 {
     private readonly CsvOptions<T> _options;
-    private readonly ICsvPipeReader<T> _reader;
+    private readonly ICsvBufferReader<T> _reader;
     private CsvExceptionHandler<T>? _exceptionHandler;
 
     /// <summary>
     /// Creates a new instance that can be used to read CSV records.
     /// </summary>
     public CsvValueEnumerable(ReadOnlyMemory<T> csv, CsvOptions<T> options)
-        : this(new ReadOnlySequence<T>(csv), options)
+        : this(CsvBufferReader.Create(csv), options)
     {
     }
 
@@ -30,14 +30,14 @@ public sealed class CsvValueEnumerable<T, [DAM(Messages.ReflectionBound)] TValue
     /// Creates a new instance that can be used to read CSV records.
     /// </summary>
     public CsvValueEnumerable(in ReadOnlySequence<T> csv, CsvOptions<T> options)
-        : this(new ConstantPipeReader<T>(in csv), options)
+        : this(CsvBufferReader.Create(in csv), options)
     {
     }
 
     /// <summary>
     /// Creates a new instance that can be used to read CSV records.
     /// </summary>
-    public CsvValueEnumerable(ICsvPipeReader<T> reader, CsvOptions<T> options)
+    public CsvValueEnumerable(ICsvBufferReader<T> reader, CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(options);
@@ -86,11 +86,5 @@ public sealed class CsvValueEnumerable<T, [DAM(Messages.ReflectionBound)] TValue
     IAsyncEnumerator<TValue> IAsyncEnumerable<TValue>.GetAsyncEnumerator(CancellationToken cancellationToken)
     {
         return GetAsyncEnumerator(cancellationToken);
-    }
-
-    ICsvValueAsyncEnumerable<T, TValue> ICsvValueAsyncEnumerable<T, TValue>.WithExceptionHandler(
-        CsvExceptionHandler<T>? handler)
-    {
-        return WithExceptionHandler(handler);
     }
 }

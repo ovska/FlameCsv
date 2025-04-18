@@ -9,7 +9,7 @@ namespace FlameCsv.Reading.Internal;
 
 internal sealed class CsvParserUnix<T>(
     CsvOptions<T> options,
-    ICsvPipeReader<T> reader,
+    ICsvBufferReader<T> reader,
     in CsvParserOptions<T> parserOptions)
     : CsvParser<T>(options, reader, in parserOptions)
     where T : unmanaged, IBinaryInteger<T>

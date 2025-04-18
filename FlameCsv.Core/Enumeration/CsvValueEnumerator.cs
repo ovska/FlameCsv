@@ -18,7 +18,7 @@ public sealed class CsvValueEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TV
     /// <param name="cancellationToken">Token to cancel asynchronous enumeration</param>
     public CsvValueEnumerator(
         CsvOptions<T> options,
-        ICsvPipeReader<T> reader,
+        ICsvBufferReader<T> reader,
         CancellationToken cancellationToken = default)
         : base(options, reader, cancellationToken)
     {
