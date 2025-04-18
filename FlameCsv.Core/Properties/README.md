@@ -68,6 +68,10 @@ await CsvWriter.WriteAsync(
 
 # Changelog
 
+## 0.3.1
+
+- Fixed streaming readers allocating memory too often
+
 ## 0.3.0
 
 - *Breaking:* Newline parsing is more lenient (e.g. `\r\n` can parse `\n` and `\r` as well), newline no longer nullable
