@@ -66,6 +66,37 @@ internal readonly struct Meta : IEquatable<Meta>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Meta RFC(int end, uint quoteCount)
+    {
+        // ensure quote count is even and not too large
+        if ((quoteCount & (1 | ~MaxSpecialCount)) != 0)
+        {
+            ThrowInvalidRFC(quoteCount, false);
+        }
+
+        return Unsafe.BitCast<long, Meta>(
+            (uint)end | // end position
+            ((long)quoteCount << 35) | // quote count
+            (1L << 32)); // delimiter
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Meta EOL(int end, uint quoteCount, int newlineLength)
+    {
+        // ensure quote count is even and not too large
+        if ((quoteCount & (1 | ~MaxSpecialCount)) != 0)
+        {
+            ThrowInvalidRFC(quoteCount, false);
+        }
+
+        return Unsafe.BitCast<long, Meta>(
+            (uint)end | // end position
+            unchecked((uint)EOLMask) |
+            (((long)(uint)newlineLength) << 32) |
+            ((long)quoteCount << 35));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Meta RFC(int end, uint quoteCount, bool isEOL, int newlineLength)
     {
         // ensure quote count is even and not too large
@@ -276,7 +307,7 @@ internal readonly struct Meta : IEquatable<Meta>
                     RFC4180Mode<ushort>.Unescape(
                         ushort.CreateTruncating(dialect.Quote),
                         buffer.Cast<T, ushort>(),
-                        field.Cast<T,  ushort>(),
+                        field.Cast<T, ushort>(),
                         specialCount - 2);
                 }
                 else
