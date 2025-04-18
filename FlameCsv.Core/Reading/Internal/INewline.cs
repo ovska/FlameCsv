@@ -7,7 +7,7 @@ namespace FlameCsv.Reading.Internal;
 /// <summary>
 /// Interface to provide high-performance generic handling for variable length newlines.
 /// </summary>
-internal interface INewline<T, TVector> where T : unmanaged, IBinaryInteger<T> where TVector : struct
+internal interface INewline<T> where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Returns the length of the newline sequence.
@@ -29,7 +29,13 @@ internal interface INewline<T, TVector> where T : unmanaged, IBinaryInteger<T> w
     /// <remarks>For single token newlines, always returns true</remarks>
     [Pure]
     bool IsNewline(ref T value, out bool isMultitoken);
+}
 
+/// <inheritdoc/>
+internal interface INewline<T, TVector> : INewline<T>
+    where T : unmanaged, IBinaryInteger<T>
+    where TVector : struct
+{
     /// <summary>
     /// Determines if the input vector contains any token of the newline.
     /// </summary>

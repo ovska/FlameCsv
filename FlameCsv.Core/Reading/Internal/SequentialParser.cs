@@ -1,35 +1,39 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace FlameCsv.Reading.Internal;
 
-internal static class SequentialParser<T> where T : unmanaged, IBinaryInteger<T>
+[SkipLocalsInit]
+[SuppressMessage("ReSharper", "InlineTemporaryVariable")]
+internal static class SequentialParser<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
-    public static bool CanRead(int dataLength) => dataLength >= 2;
-
-    public static int Core(
-        ref readonly CsvDialect<T> dialect,
+    public static int Core<TNewline>(
+        T delimiterArg,
+        T quoteArg,
+        TNewline newlineArg,
         scoped ReadOnlySpan<T> data,
         scoped Span<Meta> metaBuffer)
+        where TNewline : INewline<T>
     {
-        Debug.Assert(!metaBuffer.IsEmpty);
-        Debug.Assert(CanRead(data.Length));
+        if ((uint)data.Length < (1 + TNewline.OffsetFromEnd))
+        {
+            return 0;
+        }
 
-        T quote = dialect.Quote;
-        T delimiter = dialect.Delimiter;
-        T newlineFirst = dialect.Newline.First;
-        T newlineSecond = dialect.Newline.Second;
-        int newlineLength = dialect.Newline.Length;
+        T quote = quoteArg;
+        T delimiter = delimiterArg;
+        TNewline newline = newlineArg;
 
         ref T first = ref MemoryMarshal.GetReference(data);
         nuint runningIndex = 0;
         uint quotesConsumed = 0;
+        bool isMultitoken = false;
 
-        // leave 1 space extra to the end so we can check 2-token newlines and double quotes inside a string
-        // ensure the unrolled end doesn't overflow for length <= 8
-        nuint searchSpaceEnd = (nuint)data.Length - 1 - 1;
-        nuint unrolledEnd = (nuint)Math.Max(0, (nint)searchSpaceEnd - 8);
+        nuint searchSpaceEnd = (nuint)data.Length - 1 - TNewline.OffsetFromEnd;
+        nuint unrolledEnd = (nuint)Math.Max(0, (nint)searchSpaceEnd - 8); // ensure no underflow
 
         ref Meta currentMeta = ref MemoryMarshal.GetReference(metaBuffer);
         ref readonly Meta metaEnd = ref Unsafe.Add(ref MemoryMarshal.GetReference(metaBuffer), metaBuffer.Length);
@@ -40,56 +44,56 @@ internal static class SequentialParser<T> where T : unmanaged, IBinaryInteger<T>
             {
                 if (Unsafe.Add(ref first, runningIndex + 0) == quote ||
                     Unsafe.Add(ref first, runningIndex + 0) == delimiter ||
-                    Unsafe.Add(ref first, runningIndex + 0) == newlineFirst)
+                    newline.IsNewline(ref Unsafe.Add(ref first, runningIndex + 0), out isMultitoken))
                 {
                     goto Found;
                 }
 
                 if (Unsafe.Add(ref first, runningIndex + 1) == quote ||
                     Unsafe.Add(ref first, runningIndex + 1) == delimiter ||
-                    Unsafe.Add(ref first, runningIndex + 1) == newlineFirst)
+                    newline.IsNewline(ref Unsafe.Add(ref first, runningIndex + 1), out isMultitoken))
                 {
                     goto Found1;
                 }
 
                 if (Unsafe.Add(ref first, runningIndex + 2) == quote ||
                     Unsafe.Add(ref first, runningIndex + 2) == delimiter ||
-                    Unsafe.Add(ref first, runningIndex + 2) == newlineFirst)
+                    newline.IsNewline(ref Unsafe.Add(ref first, runningIndex + 2), out isMultitoken))
                 {
                     goto Found2;
                 }
 
                 if (Unsafe.Add(ref first, runningIndex + 3) == quote ||
                     Unsafe.Add(ref first, runningIndex + 3) == delimiter ||
-                    Unsafe.Add(ref first, runningIndex + 3) == newlineFirst)
+                    newline.IsNewline(ref Unsafe.Add(ref first, runningIndex + 3), out isMultitoken))
                 {
                     goto Found3;
                 }
 
                 if (Unsafe.Add(ref first, runningIndex + 4) == quote ||
                     Unsafe.Add(ref first, runningIndex + 4) == delimiter ||
-                    Unsafe.Add(ref first, runningIndex + 4) == newlineFirst)
+                    newline.IsNewline(ref Unsafe.Add(ref first, runningIndex + 4), out isMultitoken))
                 {
                     goto Found4;
                 }
 
                 if (Unsafe.Add(ref first, runningIndex + 5) == quote ||
                     Unsafe.Add(ref first, runningIndex + 5) == delimiter ||
-                    Unsafe.Add(ref first, runningIndex + 5) == newlineFirst)
+                    newline.IsNewline(ref Unsafe.Add(ref first, runningIndex + 5), out isMultitoken))
                 {
                     goto Found5;
                 }
 
                 if (Unsafe.Add(ref first, runningIndex + 6) == quote ||
                     Unsafe.Add(ref first, runningIndex + 6) == delimiter ||
-                    Unsafe.Add(ref first, runningIndex + 6) == newlineFirst)
+                    newline.IsNewline(ref Unsafe.Add(ref first, runningIndex + 6), out isMultitoken))
                 {
                     goto Found6;
                 }
 
                 if (Unsafe.Add(ref first, runningIndex + 7) == quote ||
                     Unsafe.Add(ref first, runningIndex + 7) == delimiter ||
-                    Unsafe.Add(ref first, runningIndex + 7) == newlineFirst)
+                    newline.IsNewline(ref Unsafe.Add(ref first, runningIndex + 7), out isMultitoken))
                 {
                     goto Found7;
                 }
@@ -101,7 +105,7 @@ internal static class SequentialParser<T> where T : unmanaged, IBinaryInteger<T>
             {
                 if (Unsafe.Add(ref first, runningIndex) == quote ||
                     Unsafe.Add(ref first, runningIndex) == delimiter ||
-                    Unsafe.Add(ref first, runningIndex) == newlineFirst)
+                    newline.IsNewline(ref Unsafe.Add(ref first, runningIndex), out isMultitoken))
                 {
                     goto Found;
                 }
@@ -135,14 +139,13 @@ internal static class SequentialParser<T> where T : unmanaged, IBinaryInteger<T>
         Found:
             if (Unsafe.Add(ref first, runningIndex) == delimiter)
             {
-                currentMeta = Meta.RFC((int)runningIndex, quotesConsumed, isEOL: false, newlineLength);
+                currentMeta = Meta.RFC((int)runningIndex, quotesConsumed);
                 currentMeta = ref Unsafe.Add(ref currentMeta, 1);
                 runningIndex++;
                 quotesConsumed = 0;
                 continue;
             }
 
-            //todo: check newline first
             if (Unsafe.Add(ref first, runningIndex) == quote)
             {
                 quotesConsumed++;
@@ -150,18 +153,11 @@ internal static class SequentialParser<T> where T : unmanaged, IBinaryInteger<T>
                 goto ReadString;
             }
 
-            Debug.Assert(Unsafe.Add(ref first, runningIndex) == newlineFirst);
-
-            // found CR but not LF
-            if (newlineLength != 1 && Unsafe.Add(ref first, runningIndex + 1) != newlineSecond)
-            {
-                runningIndex++;
-                continue;
-            }
-
-            currentMeta = Meta.RFC((int)runningIndex, quotesConsumed, isEOL: true, newlineLength);
+            Debug.Assert(newline.IsNewline(ref Unsafe.Add(ref first, runningIndex), out _));
+            int newlineLength = TNewline.GetLength(isMultitoken);
+            currentMeta = Meta.EOL((int)runningIndex, quotesConsumed, newlineLength);
             currentMeta = ref Unsafe.Add(ref currentMeta, 1);
-            runningIndex++;
+            runningIndex += (uint)newlineLength;
             quotesConsumed = 0;
             continue;
 
@@ -194,7 +190,7 @@ internal static class SequentialParser<T> where T : unmanaged, IBinaryInteger<T>
 
                 // quotes should be followed by delimiters or newlines
                 if (Unsafe.Add(ref first, runningIndex) == delimiter ||
-                    Unsafe.Add(ref first, runningIndex) == newlineFirst)
+                    newline.IsNewline(ref Unsafe.Add(ref first, runningIndex), out isMultitoken))
                 {
                     goto Found;
                 }
