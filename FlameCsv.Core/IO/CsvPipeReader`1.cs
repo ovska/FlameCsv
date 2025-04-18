@@ -1,6 +1,5 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 
@@ -13,7 +12,7 @@ namespace FlameCsv.IO;
 [DebuggerDisplay(@"\{ CsvPipeReader, Buffered: {_bufferedBytes}, Completed: {_innerCompleted} \}")]
 public abstract class CsvPipeReader<T> : ICsvPipeReader<T> where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly MemoryPool<T> _memoryPool;
+    private readonly MemoryPool<T>? _memoryPool;
 
     private CsvBufferSegment<T>? _readHead;
     private int _readIndex;
@@ -48,7 +47,7 @@ public abstract class CsvPipeReader<T> : ICsvPipeReader<T> where T : unmanaged, 
     {
         options.EnsureValid(memoryPool);
 
-        _memoryPool = memoryPool;
+        _memoryPool = memoryPool == MemoryPool<T>.Shared ? null : memoryPool;
         _segmentPool = new BufferSegmentStack<T>(4);
         _bufferSize = options.BufferSize;
         _minimumReadSize = options.MinimumReadSize;
@@ -201,7 +200,16 @@ public abstract class CsvPipeReader<T> : ICsvPipeReader<T> where T : unmanaged, 
     private CsvBufferSegment<T> AllocateSegment()
     {
         CsvBufferSegment<T> nextSegment = CreateSegmentUnsynchronized();
-        nextSegment.SetOwnedMemory(_bufferSize);
+
+        if (_memoryPool is null)
+        {
+            nextSegment.SetOwnedMemory(ArrayPool<T>.Shared.Rent(_bufferSize));
+        }
+        else
+        {
+            nextSegment.SetOwnedMemory(_memoryPool.Rent(_bufferSize));
+        }
+
         return nextSegment;
     }
 
@@ -264,7 +272,6 @@ public abstract class CsvPipeReader<T> : ICsvPipeReader<T> where T : unmanaged, 
         while (returnStart != returnEnd)
         {
             CsvBufferSegment<T> next = returnStart.NextSegment!;
-            returnStart.ResetMemory();
             ReturnSegmentUnsynchronized(returnStart);
             returnStart = next;
         }
@@ -297,7 +304,7 @@ public abstract class CsvPipeReader<T> : ICsvPipeReader<T> where T : unmanaged, 
         {
             CsvBufferSegment<T> returnSegment = segment;
             segment = segment.NextSegment;
-            returnSegment.ResetMemory();
+            returnSegment.Reset();
         }
     }
 
@@ -308,13 +315,14 @@ public abstract class CsvPipeReader<T> : ICsvPipeReader<T> where T : unmanaged, 
             return segment;
         }
 
-        return new CsvBufferSegment<T>(_memoryPool);
+        return new CsvBufferSegment<T>();
     }
 
     private void ReturnSegmentUnsynchronized(CsvBufferSegment<T> segment)
     {
         Debug.Assert(segment != _readHead, "Returning _readHead segment that's in use!");
         Debug.Assert(segment != _readTail, "Returning _readTail segment that's in use!");
+        segment.Reset();
         _segmentPool.Push(segment);
     }
 
@@ -322,160 +330,5 @@ public abstract class CsvPipeReader<T> : ICsvPipeReader<T> where T : unmanaged, 
     private ValueTask<CsvReadResult<T>> ThrowObjectDisposedException()
     {
         return ValueTask.FromException<CsvReadResult<T>>(new ObjectDisposedException(GetType().Name));
-    }
-}
-
-[DebuggerDisplay(
-    @"\{ Segment, Memory Length: {AvailableMemory.Length}, Index: {RunningIndex}, IsLast: {_next == null} \}")]
-internal sealed class CsvBufferSegment<T>(MemoryPool<T> allocator) : ReadOnlySequenceSegment<T>
-{
-    internal IMemoryOwner<T>? _memory;
-    private CsvBufferSegment<T>? _next;
-    private int _end;
-
-    public int End
-    {
-        get => _end;
-        set
-        {
-            Debug.Assert(value <= AvailableMemory.Length);
-
-            _end = value;
-            Memory = AvailableMemory.Slice(0, value);
-        }
-    }
-
-    public CsvBufferSegment<T>? NextSegment
-    {
-        get => _next;
-        set
-        {
-            Next = value;
-            _next = value;
-        }
-    }
-
-    public void SetOwnedMemory(int bufferSize)
-    {
-        AvailableMemory = (_memory = allocator.Rent(bufferSize)).Memory;
-    }
-
-    public void ResetMemory()
-    {
-        AvailableMemory = default;
-        _memory?.Dispose();
-        _memory = null!;
-
-        Next = null;
-        RunningIndex = 0;
-        Memory = default;
-        _next = null;
-        _end = 0;
-    }
-
-    public Memory<T> AvailableMemory { get; private set; }
-
-    public int Length => End;
-
-    public int WritableBytes
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => AvailableMemory.Length - End;
-    }
-
-    public void SetNext(CsvBufferSegment<T> segment)
-    {
-        Debug.Assert(segment is not null);
-        Debug.Assert(Next is null);
-
-        NextSegment = segment;
-
-        segment = this;
-
-        while (segment.Next != null)
-        {
-            Debug.Assert(segment.NextSegment is not null);
-            segment.NextSegment.RunningIndex = segment.RunningIndex + segment.Length;
-            segment = segment.NextSegment;
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static long GetLength(
-        CsvBufferSegment<T> startSegment,
-        int startIndex,
-        CsvBufferSegment<T> endSegment,
-        int endIndex)
-    {
-        return endSegment.RunningIndex + (uint)endIndex - (startSegment.RunningIndex + (uint)startIndex);
-    }
-}
-
-internal struct BufferSegmentStack<T> where T : unmanaged, IBinaryInteger<T>
-{
-    private SegmentAsValueType[] _array;
-    private int _size;
-
-    public BufferSegmentStack(int size)
-    {
-        _array = new SegmentAsValueType[size];
-        _size = 0;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryPop([NotNullWhen(true)] out CsvBufferSegment<T>? result)
-    {
-        int size = _size - 1;
-        SegmentAsValueType[] array = _array;
-
-        if ((uint)size >= (uint)array.Length)
-        {
-            result = null;
-            return false;
-        }
-
-        _size = size;
-        result = array[size];
-        array[size] = default;
-        return true;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Push(CsvBufferSegment<T> item)
-    {
-        int size = _size;
-        SegmentAsValueType[] array = _array;
-
-        if ((uint)size < (uint)array.Length)
-        {
-            array[size] = item;
-            _size = size + 1;
-        }
-        else
-        {
-            PushWithResize(item);
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private void PushWithResize(CsvBufferSegment<T> item)
-    {
-        Array.Resize(ref _array, 2 * _array.Length);
-        _array[_size] = item;
-        _size++;
-    }
-
-    private readonly struct SegmentAsValueType
-    {
-        private readonly CsvBufferSegment<T> _value;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private SegmentAsValueType(CsvBufferSegment<T> value) => _value = value;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator SegmentAsValueType(CsvBufferSegment<T> s) => new(s);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static implicit operator CsvBufferSegment<T>(SegmentAsValueType s) => s._value;
     }
 }
