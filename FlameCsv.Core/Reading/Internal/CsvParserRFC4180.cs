@@ -313,8 +313,28 @@ internal sealed class CsvParserRFC4180<T>(
             }
         }
 
-        // TODO: fix SequentialParser to support partial newlines
+        if (_dialect._newline.Length == 1)
+        {
+            return SequentialParser<T>.Core(
+                _dialect.Delimiter,
+                _dialect.Quote,
+                new NewlineParserOne<T, NoOpVector<T>>(_dialect._newline.First),
+                data,
+                MetaBuffer);
+        }
 
+        if (_dialect._newline.Length == 2)
+        {
+            return SequentialParser<T>.Core(
+                _dialect.Delimiter,
+                _dialect.Quote,
+                new NewlineParserTwo<T, NoOpVector<T>>(_dialect._newline.First, _dialect._newline.Second),
+                data,
+                MetaBuffer);
+        }
+
+        // should never happen
+        Debug.Fail("Uninitialized newline");
         return 0;
     }
 }
