@@ -51,7 +51,7 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     private Meta[] _metaArray;
 
     /// <summary>
-    /// Index of the last EOL read from <see cref="ReadFromSpan"/>.
+    /// Index of the last EOL read from <see cref="ParseFromBuffer"/>.
     /// </summary>
     /// <remarks>
     /// Does not include the start-of-data meta, e.g. this points to <see cref="MetaBuffer"/>, not the underlying array.
@@ -67,14 +67,19 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     /// </remarks>
     private int _metaIndex;
 
-    /// <summary>
-    /// Whether we have an ASCII dialect, and buffering isn't disabled.
-    /// </summary>
-    private readonly bool _canUseFastPath;
-
     private readonly ICsvBufferReader<T> _reader;
     private ReadOnlyMemory<T> _buffer;
     private int _bufferConsumed;
+
+    /// <summary>
+    /// Current buffer available for the parser.
+    /// </summary>
+    protected ReadOnlySpan<T> Buffer => _buffer.Span;
+
+    /// <summary>
+    /// Whether any more data can be read.
+    /// </summary>
+    protected bool IsReaderCompleted => _readerCompleted;
 
     /// <summary>
     /// Whether the reader has completed, and no more data can be read.
@@ -98,7 +103,6 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
         Options = options;
         _dialect = options.Dialect;
         _metaArray = [];
-        _canUseFastPath = !options.NoReadAhead && _dialect.IsAscii;
         _reader = reader;
         _skipBOM = typeof(T) == typeof(byte);
 
@@ -107,20 +111,12 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     }
 
     /// <summary>
-    /// Attempts to read a complete well-formed CSV record.
-    /// </summary>
-    /// <param name="fields">CSV record fields</param>
-    /// <param name="isFinalBlock">Whether more data can be expected after this read</param>
-    /// <returns>Number of fields parsed</returns>
-    /// <seealso cref="_metaArray"/>
-    private protected abstract bool TryReadFromSequence(out CsvFields<T> fields, bool isFinalBlock);
-
-    /// <summary>
-    /// Read metas from the first segment.
+    /// Parses fields from <see cref="Buffer"/> into <see cref="MetaBuffer"/>.<br/>
+    /// This method should <see cref="IsReaderCompleted"/> into account.
     /// </summary>
     /// <returns>Number of fields parsed</returns>
     /// <seealso cref="_metaArray"/>
-    private protected abstract int ReadFromSpan(ReadOnlySpan<T> data);
+    private protected abstract int ParseFromBuffer();
 
     /// <summary>
     /// Attempts to return a complete CSV record from the read-ahead buffer.
@@ -160,97 +156,66 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     }
 
     /// <summary>
-    /// Attempts to read a complete CSV record from the read-ahead buffer,
-    /// or from the data buffered from the inner reader.
+    /// Attempts to read the next CSV record from the buffered data.
     /// </summary>
-    /// <param name="fields">Fields of the CSV record up to the newline</param>
-    /// <param name="isFinalBlock">
-    /// Determines whether any more data can be expected after this read.
-    /// When <see langword="true"/>, the parser will return leftover data even without a trailing newline.
-    /// </param>
-    /// <returns>
-    /// <see langword="true"/> if a record was read,
-    /// <see langword="false"/> if no record can be read from the underlying data or the read-ahead buffer.
-    /// </returns>
-    [SkipLocalsInit]
+    /// <param name="fields"></param>
+    /// <returns></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryReadLine(out CsvFields<T> fields, bool isFinalBlock)
+    public bool TryReadLine(out CsvFields<T> fields)
     {
-        if (_metaIndex < _metaCount)
-        {
-            ref Meta metaRef = ref MemoryMarshal.GetArrayDataReference(_metaArray);
-
-            if (Meta.TryFindNextEOL(
-                    first: ref Unsafe.Add(ref metaRef, 1 + _metaIndex),
-                    end: _metaCount - _metaIndex + 1,
-                    index: out int fieldCount))
-            {
-                MetaSegment fieldMeta = new() { array = _metaArray, count = fieldCount + 1, offset = _metaIndex };
-                fields = new CsvFields<T>(
-                    parser: this,
-                    data: _buffer,
-                    fieldMeta: Unsafe.As<MetaSegment, ArraySegment<Meta>>(ref fieldMeta));
-
-                _metaIndex += fieldCount;
-                return true;
-            }
-        }
-
-        return TryReadUnbuffered(out fields, isFinalBlock);
+        return TryGetBuffered(out fields) || TryFillBuffer(out fields);
     }
 
-    /// <summary>
-    /// Attempts to read a complete CSV record from the underlying data source.
-    /// If newline is empty, the first call to this method will auto-detect the newline.
-    /// </summary>
-    /// <param name="fields">Fields of the CSV record up to the newline</param>
-    /// <param name="isFinalBlock">
-    /// Determines whether any more data can be expected after this read.
-    /// When <see langword="true"/>, the parser will return leftover data even without a trailing newline.
-    /// </param>
-    /// <returns>
-    /// <see langword="true"/> if a record was read,
-    /// <see langword="false"/> if no record can be read from the underlying data.
-    /// </returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public bool TryReadUnbuffered(out CsvFields<T> fields, bool isFinalBlock)
+    private bool TryFillBuffer(out CsvFields<T> fields)
     {
         if (_buffer.IsEmpty)
         {
-            Debug.Assert(_metaCount == 0);
-            fields = default;
-            return false;
+            goto End;
         }
 
-        if (_canUseFastPath && !isFinalBlock)
+        // this should be called only when the previous metas have been exhausted
+        if (_metaIndex != 0)
         {
-            if (_metaIndex != 0)
-            {
-                ResetMetaBuffer();
-            }
-
-            // delay the rent until first read
-            if (_metaArray.Length == 0)
-            {
-                _metaArray = GetMetaBuffer();
-                _metaArray[0] = Meta.StartOfData; // the first meta should be one delimiter "behind"
-            }
-
-            int fieldCount = ReadFromSpan(_buffer.Span);
-
-            // see if we read at least one fully formed line
-            if (fieldCount != 0 && Meta.HasEOL(MetaBuffer[..fieldCount], out int lastIndex))
-            {
-                _metaIndex = 0;
-                _metaCount = lastIndex + 1;
-                _bufferConsumed = 0;
-                bool result = TryGetBuffered(out fields);
-                Debug.Assert(result, "At least one record should have been read");
-                return result;
-            }
+            ResetMetaBuffer();
         }
 
-        return TryReadFromSequence(out fields, isFinalBlock);
+        // delay the rent until first read
+        if (_metaArray.Length == 0)
+        {
+            _metaArray = GetMetaBuffer();
+            _metaArray[0] = Meta.StartOfData; // the first meta should be one delimiter "behind"
+        }
+
+        int fieldCount = ParseFromBuffer();
+
+        if (fieldCount == 0)
+        {
+            goto End;
+        }
+
+        // see if we read at least one fully formed line
+        if (Meta.HasEOL(MetaBuffer[..fieldCount], out int lastIndex))
+        {
+            _metaIndex = 0;
+            _metaCount = lastIndex + 1;
+            _bufferConsumed = 0;
+            bool retVal = TryGetBuffered(out fields);
+            Debug.Assert(retVal, "Should have been able to get the buffered fields");
+            return true;
+        }
+
+        // we have some data but no trailing newline. consume the final record
+        if (_readerCompleted)
+        {
+            fields = new(this, _buffer, new ArraySegment<Meta>(_metaArray, 0, fieldCount + 1));
+            _buffer = ReadOnlyMemory<T>.Empty;
+            return true;
+        }
+
+    End:
+        Unsafe.SkipInit(out fields);
+        return false;
     }
 
     /// <summary>
@@ -298,7 +263,8 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     }
 
     /// <inheritdoc cref="TryAdvanceReader"/>
-    public ValueTask<bool> TryAdvanceReaderAsync(CancellationToken cancellationToken = default)
+    // TODO: profile pooling task builder
+    public async ValueTask<bool> TryAdvanceReaderAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         cancellationToken.ThrowIfCancellationRequested();
@@ -306,32 +272,18 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
         if (!_readerCompleted)
         {
             AdvanceReader();
-            ValueTask<CsvReadResult<T>> task = _reader.ReadAsync(cancellationToken);
-
-            if (task.IsCompletedSuccessfully)
-            {
-                CsvReadResult<T> result = task.GetAwaiter().GetResult();
-                SetReadResult(in result);
-                return new(true);
-            }
-
-            return Core(this, task);
-        }
-
-        return new(false);
-
-        static async ValueTask<bool> Core(CsvParser<T> parser, ValueTask<CsvReadResult<T>> task)
-        {
-            CsvReadResult<T> result = await task.ConfigureAwait(false);
-            parser.SetReadResult(in result);
+            CsvReadResult<T> result = await _reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            SetReadResult(in result);
             return true;
         }
+
+        return false;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void ResetMetaBuffer()
     {
-        Debug.Assert(_canUseFastPath && _metaIndex != 0);
+        Debug.Assert(_metaIndex != 0);
         Debug.Assert(_metaCount >= _metaIndex);
 
         var lastEOL = _metaArray[_metaIndex];
@@ -430,16 +382,24 @@ public abstract partial class CsvParser<T> : CsvParser, IDisposable, IAsyncDispo
     public void Dispose()
     {
         if (IsDisposed) return;
-        using (_reader) Dispose(disposing: true);
         GC.SuppressFinalize(this);
+
+        using (_reader)
+        {
+            Dispose(disposing: true);
+        }
     }
 
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
         if (IsDisposed) return;
-        await using (_reader.ConfigureAwait(false)) Dispose(true);
         GC.SuppressFinalize(this);
+
+        await using (_reader.ConfigureAwait(false))
+        {
+            Dispose(true);
+        }
     }
 
     /// <summary>

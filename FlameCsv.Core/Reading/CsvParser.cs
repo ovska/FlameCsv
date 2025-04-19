@@ -105,4 +105,12 @@ public abstract class CsvParser
 #endif
     }
     // ReSharper restore NotAccessedField.Global
+
+    [SkipLocalsInit]
+    [InlineArray(Length)]
+    internal struct EnumeratorStack
+    {
+        public const int Length = 256;
+        public byte elem0;
+    }
 }

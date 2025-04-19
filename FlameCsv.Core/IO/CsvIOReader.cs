@@ -195,7 +195,7 @@ internal sealed class StreamBufferReader : CsvBufferReader<byte>
             return true;
         }
 
-        return false;
+        return ReferenceEquals(_stream, Stream.Null);
     }
 
     protected override int ReadCore(int minimumRead, Memory<byte> buffer)
@@ -242,7 +242,7 @@ internal sealed class TextBufferReader : CsvBufferReader<char>
     public override bool TryReset()
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
-        return false;
+        return ReferenceEquals(_reader, TextReader.Null);
     }
 
     protected override int ReadCore(int minimumRead, Memory<char> buffer)

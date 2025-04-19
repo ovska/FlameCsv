@@ -80,9 +80,7 @@ public class CsvParserTests
         var parser = CsvParser.Create(
             new CsvOptions<char>
             {
-                NoReadAhead = true,
-                Newline = newline == NewlineToken.LF ? "\n" : "\r\n",
-                Escape = mode == Mode.Escape ? '^' : null,
+                Newline = newline == NewlineToken.LF ? "\n" : "\r\n", Escape = mode == Mode.Escape ? '^' : null,
             },
             CsvBufferReader.Create(MemorySegment<char>.AsSequence(data.AsMemory(), 64)));
 
@@ -173,9 +171,7 @@ public class CsvParserTests
 
         // no trailing newline
         Assert.False(parser.TryGetBuffered(out _));
-        Assert.False(parser.TryReadLine(out _, isFinalBlock: false));
-
-        Assert.True(parser.TryReadLine(out var line, isFinalBlock: true));
+        Assert.True(parser.TryReadLine(out var line));
         Assert.Equal("7,8,9", line.Record.ToString());
     }
 
@@ -203,7 +199,6 @@ public class CsvParserTests
             (CsvBufferReader.Create(new MemoryStream()), true),
             (CsvBufferReader.Create(new MemoryStream([1, 2, 3])), true),
             (CsvBufferReader.Create(new GZipStream(Stream.Null, CompressionMode.Decompress)), false),
-            (new PipeReaderWrapper(PipeReader.Create(new MemoryStream())), false), // pipereader is not resetable
         ];
 
         foreach ((ICsvBufferReader<byte> reader, bool resetable) in byteData)

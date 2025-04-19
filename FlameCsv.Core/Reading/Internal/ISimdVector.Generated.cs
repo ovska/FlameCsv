@@ -14,6 +14,19 @@ namespace FlameCsv.Reading.Internal;
 
 // this code borrows heavily from Ascii.Utility.cs in System.Text.Ascii (MIT license)
 
+internal static class SimdVector
+{
+    /// <summary>
+    /// Returns <c>true</c> if any of the vector types are hardware accelerated.
+    /// </summary>
+    public static bool SupportsAny =>
+#if RELEASE
+        Vector128.IsHardwareAccelerated || Vector256.IsHardwareAccelerated || Vector512.IsHardwareAccelerated;
+#else
+        true;
+#endif
+}
+
 /// <summary>Generic type wrapping a byte vector.</summary>
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal interface ISimdVector<T, TVector>

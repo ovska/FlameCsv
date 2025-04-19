@@ -73,7 +73,7 @@ public static class ConstantPipeReaderTests
             Assert.Equal(13, stream.Position);
 
             // read again
-            reader.AdvanceTo(result.Buffer.End, result.Buffer.End);
+            reader.Advance(result.Buffer.Length);
             result = await reader.ReadAsync(TestContext.Current.CancellationToken);
 
             Assert.True(result.IsCompleted);
@@ -104,7 +104,7 @@ public static class ConstantPipeReaderTests
         Assert.Equal("Hello, World!"[pos..], new string(result.Buffer.ToArray()));
 
         // read again
-        pipeReader.AdvanceTo(result.Buffer.End, result.Buffer.End);
+        pipeReader.Advance(result.Buffer.Length);
         result = await pipeReader.ReadAsync(TestContext.Current.CancellationToken);
 
         Assert.True(result.IsCompleted);

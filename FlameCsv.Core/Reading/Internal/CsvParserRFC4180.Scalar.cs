@@ -7,24 +7,21 @@ namespace FlameCsv.Reading.Internal;
 
 [SkipLocalsInit]
 [SuppressMessage("ReSharper", "InlineTemporaryVariable")]
-internal static class SequentialParser<T>
-    where T : unmanaged, IBinaryInteger<T>
+partial class CsvParserRFC4180<T>
 {
-    public static int Core<TNewline>(
-        T delimiterArg,
-        T quoteArg,
-        TNewline newlineArg,
-        scoped ReadOnlySpan<T> data,
-        scoped Span<Meta> metaBuffer)
+    private int ParseScalar<TNewline>(TNewline newlineArg)
         where TNewline : INewline<T>
     {
+        ReadOnlySpan<T> data = Buffer;
+        ReadOnlySpan<Meta> metaBuffer = MetaBuffer;
+
         if ((uint)data.Length < (1 + TNewline.OffsetFromEnd))
         {
             return 0;
         }
 
-        T quote = quoteArg;
-        T delimiter = delimiterArg;
+        T quote = _dialect.Quote;
+        T delimiter = _dialect.Delimiter;
         TNewline newline = newlineArg;
 
         ref T first = ref MemoryMarshal.GetReference(data);
@@ -205,7 +202,7 @@ internal static class SequentialParser<T>
 
         ReadString:
             Debug.Assert(quotesConsumed % 2 != 0);
-            while (runningIndex <= unrolledEnd)
+            while (runningIndex < unrolledEnd)
             {
                 if (Unsafe.Add(ref first, runningIndex + 0) == quote) goto FoundQuote;
                 if (Unsafe.Add(ref first, runningIndex + 1) == quote) goto FoundQuote1;
@@ -226,6 +223,14 @@ internal static class SequentialParser<T>
 
             // ran out of data
             break;
+        }
+
+        // if we are here, we might have the final record without a trailing newline
+        // this method is never called with empty data
+        if (IsReaderCompleted && Unsafe.IsAddressLessThan(in currentMeta, in metaEnd))
+        {
+            currentMeta = Meta.RFC(data.Length, quotesConsumed, isEOL: true, newlineLength: 0);
+            currentMeta = ref Unsafe.Add(ref currentMeta, 1);
         }
 
         return (int)Unsafe.ByteOffset(in MemoryMarshal.GetReference(metaBuffer), in currentMeta) /
