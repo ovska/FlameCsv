@@ -25,11 +25,11 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvFieldsRef(scoped ref readonly CsvFields<T> fields, Span<T> unescapeBuffer)
     {
-        CsvParser<T> parser = fields.Parser;
+        CsvReader<T> reader = fields.Reader;
         ReadOnlySpan<Meta> fieldMeta = fields.Fields;
 
-        _dialect = ref parser._dialect;
-        _allocator = parser._unescapeAllocator;
+        _dialect = ref reader._dialect;
+        _allocator = reader._unescapeAllocator;
         _data = ref MemoryMarshal.GetReference(fields.Data.Span);
         _firstMeta = ref MemoryMarshal.GetReference(fieldMeta);
         FieldCount = fieldMeta.Length - 1;
@@ -38,14 +38,14 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvFieldsRef(
-        CsvParser<T> parser,
+        CsvReader<T> reader,
         ref T data,
         ref Meta fieldsRef,
         int fieldsLength,
         Span<T> unescapeBuffer)
     {
-        _dialect = ref parser._dialect;
-        _allocator = parser._unescapeAllocator;
+        _dialect = ref reader._dialect;
+        _allocator = reader._unescapeAllocator;
         _data = ref data;
         _firstMeta = ref fieldsRef;
         FieldCount = fieldsLength - 1;
@@ -60,13 +60,13 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvFieldsRef(scoped ref readonly CsvFields<T> fields, Allocator<T> allocator)
     {
-        if (fields.Parser is null) Throw.InvalidOp_DefaultStruct(typeof(CsvFields<T>));
+        if (fields.Reader is null) Throw.InvalidOp_DefaultStruct(typeof(CsvFields<T>));
         ArgumentNullException.ThrowIfNull(allocator);
 
-        CsvParser<T> parser = fields.Parser;
+        CsvReader<T> reader = fields.Reader;
         ReadOnlySpan<Meta> fieldMeta = fields.Fields;
 
-        _dialect = ref parser._dialect;
+        _dialect = ref reader._dialect;
         _allocator = allocator;
         _data = ref MemoryMarshal.GetReference(fields.Data.Span);
         _firstMeta = ref Unsafe.AsRef(in fieldMeta[0]);

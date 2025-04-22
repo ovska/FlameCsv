@@ -11,8 +11,11 @@ public sealed class CsvReaderTestsUtf8 : CsvReaderTestsBase<byte>
 {
     protected override CsvTypeMap<byte, Obj> TypeMap => ObjByteTypeMap.Default;
 
-    protected override ICsvPipeReader<byte> GetReader(Stream stream, CsvOptions<byte> options, int bufferSize)
+    protected override ICsvBufferReader<byte> GetReader(Stream stream, CsvOptions<byte> options, int bufferSize)
     {
-        return CsvPipeReader.Create(stream, options.Allocator, new() { BufferSize = bufferSize });
+        return CsvBufferReader.Create(
+            stream,
+            options.Allocator,
+            new() { BufferSize = bufferSize, MinimumReadSize = bufferSize == -1 ? -1 : bufferSize / 2 });
     }
 }

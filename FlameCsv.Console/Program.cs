@@ -1,9 +1,13 @@
 ﻿// ReSharper disable all
 
+#pragma warning disable CS0162 // Unreachable code detected
+
 using System.Buffers;
 using System.Buffers.Text;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO.MemoryMappedFiles;
+using System.IO.Pipelines;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -12,6 +16,7 @@ using FlameCsv.Attributes;
 using FlameCsv.Binding;
 using FlameCsv.Converters;
 using FlameCsv.Enumeration;
+using FlameCsv.IO;
 using FlameCsv.Reading;
 using FlameCsv.Reading.Internal;
 using JetBrains.Profiler.Api;
@@ -20,135 +25,52 @@ namespace FlameCsv.Console
 {
     public static class Program
     {
-        private static readonly byte[] _bytes
-            = File.ReadAllBytes(
-                "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Benchmark/Comparisons/Data/SampleCSVFile_556kb.csv");
-
-        private static readonly byte[] _bytesSmall
-            = File.ReadAllBytes(
-                "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Benchmark/Comparisons/Data/SampleCSVFile_10records.csv");
-
-        private static readonly string _charsSmall = Encoding.UTF8.GetString(_bytesSmall);
-
-        // private static readonly byte[] _bytes2 = File.ReadAllBytes(
-        //     @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\Data\65K_Records_Data.csv");
-
-        private static readonly ReadOnlySequence<byte> _byteSeq = new(_bytes.AsMemory());
-
         private static readonly CsvOptions<byte> _options = new() { Newline = "\n" };
         private static readonly CsvOptions<char> _optionsC = new() { Newline = "\n" };
 
-        static void Main([NotNull] string[] args)
+        static async Task Main([NotNull] string[] args)
         {
-            ReadOnlySequence<byte> __data = new(
-                File.ReadAllBytes(
-                    @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Fuzzing\crash-1b91d2e7a164067db08ebc01857959fc850ccb20"));
-            foreach (var _ in CsvParser.Create(CsvOptions<byte>.Default, __data).ParseRecords())
-            {
-            }
+            FileInfo file = new(
+                @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\Comparisons\Data\65K_Records_Data.csv");
 
-            Debugger.Break();
+            using var mmf = MemoryMappedFile.CreateFromFile(file.FullName, FileMode.Open);
 
-            bool stop = false;
-            int iters = 0;
-            int snapshot = 0;
-
-            System.Console.CancelKeyPress += (_, e) => stop = true;
-
-            // MemoryProfiler.CollectAllocations(false);
-
+            // MemoryProfiler.CollectAllocations(true);
             // MeasureProfiler.StartCollectingData();
 
-            while (!stop)
+            for (int i = 0; i < 100; i++)
             {
-                if (++iters >= 10_000)
+                using var stream = mmf.CreateViewStream(0, size: file.Length, MemoryMappedFileAccess.Read);
+
+                if (i == 10)
                 {
-                    System.Console.WriteLine($"Snap {0}", snapshot);
-                    // MemoryProfiler.GetSnapshot($"snap{snapshot++}");
-                    iters = 0;
+                    MeasureProfiler.StartCollectingData();
                 }
 
-                foreach (var _ in CsvParser.Create(CsvOptions<byte>.Default, new ReadOnlySequence<byte>(_bytes))
-                             .ParseRecords())
+                var parser = CsvParser.Create(
+                    _options,
+                    CsvPipeReader.Create(
+                        stream,
+                        MemoryPool<byte>.Shared));
+                // var parser = CsvParser.Create(_options, new PipeReaderWrapper(PipeReader.Create(stream, new(bufferSize: 1024*16))));
+
+                await foreach (var r in parser.ParseRecordsAsync())
                 {
+                    _ = r;
                 }
             }
 
-            // MeasureProfiler.StopCollectingData();
-
-            return;
-
-            for (int x = 0; x < 200; x++)
-            {
-                if (x == 30) MeasureProfiler.StartCollectingData();
-
-                foreach (var item in CsvReader.Read<Entry>(_bytes, EntryTypeMap.Default, _options))
-                {
-                    _ = item;
-                }
-
-                // CsvWriter.Write(Stream.Null, _entries, EntryTypeMap.Default);
-                //
-                // foreach (var data in (byte[][])[_bytes, _bytes2])
-                // {
-                //     foreach (var reader in CsvParser.Create(_options, new ReadOnlySequence<byte>(data)).ParseRecords())
-                //     {
-                //         for (int i = 0; i < reader.FieldCount; i++)
-                //         {
-                //             _ = reader[i];
-                //         }
-                //     }
-                // }
-            }
-
-#if false
-            CsvOptions<char> options = new()
-            {
-                RecordCallback = (ref readonly CsvRecordCallbackArgs<char> args) =>
-                {
-                    if (args.IsEmpty)
-                    {
-                        args.HeaderRead = false;
-                    }
-                    else if (args.Record[0] == '#')
-                    {
-                        args.SkipRecord = true;
-                    }
-                }
-            };
-
-            Span<byte> unescapeBuffer = stackalloc byte[256];
-            using var parser = CsvParser.Create(_options);
-
-            for (int x = 0; x < 1_000; x++)
-            {
-                parser.SetData(in _byteSeq);
-
-                if (x == 100) MeasureProfiler.StartCollectingData();
-
-                while (parser.TryReadLine(out var line, isFinalBlock: false))
-                {
-                    var reader = new MetaFieldReader<byte>(in line, unescapeBuffer);
-                    for (int i = 0; i < reader.FieldCount; i++)
-                    {
-                        _ = reader[i];
-                    }
-                }
-            }
-
-#endif
-
+            // MemoryProfiler.CollectAllocations(false);
             MeasureProfiler.StopCollectingData();
         }
 
 #pragma warning disable IL2026
-        private static Lazy<Entry[]> _entries = new(
-            () => CsvReader
-                .Read<Entry>(
-                    File.ReadAllBytes(
-                        "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv"),
-                    new() { HasHeader = false })
-                .ToArray());
+        private static Lazy<Entry[]> _entries = new(() => CsvReader
+            .Read<Entry>(
+                File.ReadAllBytes(
+                    "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv"),
+                new() { HasHeader = false })
+            .ToArray());
 #pragma warning restore IL2026
     }
 

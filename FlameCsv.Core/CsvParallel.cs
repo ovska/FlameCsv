@@ -317,7 +317,7 @@ internal static class CsvParallel
     private static ParallelOptions DefaultParallelOptions { get; } = new();
 
     public static ParallelLoopResult ForEach<T>(
-        ICsvPipeReader<T> reader,
+        ICsvBufferReader<T> reader,
         Action<CsvValueRecord<T>> action,
         CsvOptions<T>? options = null,
         ParallelOptions? parallelOptions = null)
@@ -328,7 +328,7 @@ internal static class CsvParallel
     }
 
     public static Task ForEachAsync<T>(
-        ICsvPipeReader<T> reader,
+        ICsvBufferReader<T> reader,
         Func<CsvValueRecord<T>, CancellationToken, ValueTask> action,
         CsvOptions<T>? options = null,
         ParallelOptions? parallelOptions = null)

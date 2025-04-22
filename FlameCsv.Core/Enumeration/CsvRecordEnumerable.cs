@@ -18,15 +18,17 @@ public sealed class CsvRecordEnumerable<T>
     : IEnumerable<CsvValueRecord<T>>, IAsyncEnumerable<CsvValueRecord<T>>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly ICsvPipeReader<T> _reader;
+    private readonly ICsvBufferReader<T> _reader;
     private readonly CsvOptions<T> _options;
 
     /// <summary>
     /// Creates a new instance that can be used to read CSV records.
     /// </summary>
     public CsvRecordEnumerable(ReadOnlyMemory<T> csv, CsvOptions<T> options)
-        : this(new ReadOnlySequence<T>(csv), options)
     {
+        ArgumentNullException.ThrowIfNull(options);
+        _reader = CsvBufferReader.Create(csv);
+        _options = options;
     }
 
     /// <summary>
@@ -35,14 +37,14 @@ public sealed class CsvRecordEnumerable<T>
     public CsvRecordEnumerable(in ReadOnlySequence<T> csv, CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        _reader = new ConstantPipeReader<T>(in csv);
+        _reader = CsvBufferReader.Create(in csv);
         _options = options;
     }
 
     /// <summary>
     /// Creates a new instance that can be used to read CSV records.
     /// </summary>
-    public CsvRecordEnumerable(ICsvPipeReader<T> reader, CsvOptions<T> options)
+    public CsvRecordEnumerable(ICsvBufferReader<T> reader, CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(options);
