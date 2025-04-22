@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Binding;
@@ -85,7 +84,6 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
         _ignoreEnumCase = other._ignoreEnumCase;
         _allowUndefinedEnumValues = other._allowUndefinedEnumValues;
 
-        _noReadAhead = other._noReadAhead;
         _stringPool = other._stringPool;
         _typeBinder = other._typeBinder;
         _null = other._null;
@@ -236,7 +234,6 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     private char _enumFlagsSeparator = ',';
     private bool _ignoreEnumCase = true;
     private bool _allowUndefinedEnumValues;
-    private bool _noReadAhead;
     private StringPool? _stringPool;
     private ICsvTypeBinder<T>? _typeBinder;
 
@@ -326,24 +323,6 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// <remarks>Structs and their <see cref="Nullable{T}"/> counterparts are treated as equal.</remarks>
     /// <seealso cref="GetNumberStyles(Type, System.Globalization.NumberStyles)"/>.
     public IDictionary<Type, NumberStyles> NumberStyles => _styles ??= new TypeDictionary<NumberStyles, object>(this);
-
-    /// <summary>
-    /// Disables buffering CSV fields to memory when reading.
-    /// The default is <see langword="true"/>, which will enable the library to use high performance SIMD operations
-    /// to read multiple record's worth of fields before yielding them,
-    /// which is significantly faster than reading records one-at-a-time.
-    /// Unless you have a specific reason to disable read-ahead, it is recommended to keep it enabled.
-    /// </summary>
-    /// <remarks>
-    /// A pre-requisite for read-ahead to work is that the <see cref="CsvDialect{T}"/> has only ASCII tokens.
-    /// </remarks>
-    /// <seealso cref="CsvDialect{T}.IsAscii"/>
-    [EditorBrowsable(EditorBrowsableState.Advanced)]
-    public bool NoReadAhead
-    {
-        get => _noReadAhead;
-        set => this.SetValue(ref _noReadAhead, value);
-    }
 
     /// <summary>
     /// String comparer used to match CSV header to members and parameters.

@@ -1,7 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Text;
-using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 
@@ -58,23 +56,6 @@ public partial class CsvOptions<T>
                 _ => throw new UnreachableException("Invalid newline: " + _newline),
             },
         };
-
-        static ReadOnlySpan<T> GetSpan(CsvOptions<T> @this, string value, Span<T> buffer)
-        {
-            if (typeof(T) == typeof(char))
-            {
-                return value.AsSpan().Cast<char, T>();
-            }
-
-            if (typeof(T) == typeof(byte))
-            {
-                return Encoding.UTF8.GetBytes(value).AsSpan().Cast<byte, T>();
-            }
-
-            return @this.TryWriteChars(value, buffer, out int written) && (uint)written <= (uint)buffer.Length
-                ? buffer.Slice(0, written)
-                : @this.GetFromString(value).Span;
-        }
     }
 
     private char _delimiter = ',';
