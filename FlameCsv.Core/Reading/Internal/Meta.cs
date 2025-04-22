@@ -200,7 +200,10 @@ internal readonly struct Meta : IEquatable<Meta>
         get => (_endAndEol & ~EOLMask) + (_specialCountAndOffset & EndOffsetMask);
     }
 
-    public int NewlineLength
+    /// <summary>
+    /// Offset to the next field.
+    /// </summary>
+    public int EndOffset
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _specialCountAndOffset & EndOffsetMask;
@@ -215,6 +218,13 @@ internal readonly struct Meta : IEquatable<Meta>
         Allocator<T> allocator)
         where T : unmanaged, IBinaryInteger<T>
     {
+#if DEBUG
+        if (Invalid == this)
+        {
+            throw new InvalidOperationException("Invalid meta");
+        }
+#endif
+
         // don't touch this method without thorough benchmarking
 
         // Preliminary testing with a small amount of real world data:
@@ -327,19 +337,6 @@ internal readonly struct Meta : IEquatable<Meta>
         return field;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool EndsInCR<T>(ReadOnlySpan<T> data, ref readonly NewlineBuffer<T> newline)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        if (IsEOL && NewlineLength == 1 && newline.Length == 2)
-        {
-            var last = NextStart - 1;
-            return (uint)last < (uint)data.Length && data[last] == newline.First;
-        }
-
-        return false;
-    }
-
     /// <summary>
     /// Returns the index of the first EOL meta in the data.
     /// </summary>
@@ -354,6 +351,8 @@ internal readonly struct Meta : IEquatable<Meta>
     {
         index = 0;
         int unrolledEnd = end - 8;
+
+        // jit optimizes the checks to (ulong)meta & (1UL << 31) != 0
 
         while (index < unrolledEnd)
         {
@@ -423,53 +422,65 @@ internal readonly struct Meta : IEquatable<Meta>
     /// Checks if the span has an EOL field in it, and returns the last index if one is found.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool HasEOL(scoped ReadOnlySpan<Meta> meta, out int lastIndex)
+    public static bool HasEOL(scoped ReadOnlySpan<Meta> meta)
     {
         nint index = meta.Length - 1;
         ref Meta first = ref MemoryMarshal.GetReference(meta);
 
-        while (index >= 3)
+        while (index >= 8)
         {
-            if ((Unsafe.Add(ref first, index)._endAndEol & EOLMask) != 0)
+            if (((Unsafe.Add(ref first, index - 0)._endAndEol & EOLMask) != 0) ||
+                ((Unsafe.Add(ref first, index - 1)._endAndEol & EOLMask) != 0) ||
+                ((Unsafe.Add(ref first, index - 2)._endAndEol & EOLMask) != 0) ||
+                ((Unsafe.Add(ref first, index - 3)._endAndEol & EOLMask) != 0) ||
+                ((Unsafe.Add(ref first, index - 4)._endAndEol & EOLMask) != 0) ||
+                ((Unsafe.Add(ref first, index - 5)._endAndEol & EOLMask) != 0) ||
+                ((Unsafe.Add(ref first, index - 6)._endAndEol & EOLMask) != 0) ||
+                ((Unsafe.Add(ref first, index - 7)._endAndEol & EOLMask) != 0))
             {
-                lastIndex = (int)index;
                 return true;
             }
 
-            if ((Unsafe.Add(ref first, index - 1)._endAndEol & EOLMask) != 0)
-            {
-                lastIndex = (int)(index - 1);
-                return true;
-            }
-
-            if ((Unsafe.Add(ref first, index - 2)._endAndEol & EOLMask) != 0)
-            {
-                lastIndex = (int)(index - 2);
-                return true;
-            }
-
-            if ((Unsafe.Add(ref first, index - 3)._endAndEol & EOLMask) != 0)
-            {
-                lastIndex = (int)(index - 3);
-                return true;
-            }
-
-            index -= 4;
+            index -= 8;
         }
 
         while (index >= 0)
         {
             if ((Unsafe.Add(ref first, index)._endAndEol & EOLMask) != 0)
             {
-                lastIndex = (int)index;
                 return true;
             }
 
             index--;
         }
 
-        Unsafe.SkipInit(out lastIndex);
         return false;
+    }
+
+    /// <summary>
+    /// Shifts the end of the fields in the span by the given offset.
+    /// </summary>
+    /// <param name="meta"></param>
+    /// <param name="offset"></param>
+    public static void Shift(scoped Span<Meta> meta, int offset)
+    {
+        foreach (ref var m in meta)
+        {
+#if DEBUG
+            Debug.Assert(m != StartOfData);
+            Debug.Assert(m != Invalid);
+            Meta orig = m;
+#endif
+
+            // Preserve the EOL flag while shifting only the end position
+            int eolFlag = m._endAndEol & EOLMask;
+            Unsafe.AsRef(in m._endAndEol) = (m._endAndEol & ~EOLMask) - offset | eolFlag;
+
+#if DEBUG
+            Debug.Assert(orig.End == (offset + m.End));
+            Debug.Assert(orig.IsEOL == m.IsEOL);
+#endif
+        }
     }
 
 #if DEBUG
@@ -486,10 +497,15 @@ internal readonly struct Meta : IEquatable<Meta>
     {
         get
         {
+#if DEBUG
+            if (this.Equals(Invalid))
+                return "{ Invalid }";
+#endif
+
             if (this.Equals(default))
-                return $"Start: 0";
+                return "{ Start: 0 }";
             return
-                $"End: {End}, IsEOL: {IsEOL}, SpecialCount: {SpecialCount}, IsEscape: {IsEscape}, Offset: {NextStart - End}, Next: {NextStart}";
+                $"{{ End: {End}, IsEOL: {IsEOL}, SpecialCount: {SpecialCount}, IsEscape: {IsEscape}, Offset: {NextStart - End}, Next: {NextStart} }}";
         }
     }
 
@@ -528,4 +544,8 @@ internal readonly struct Meta : IEquatable<Meta>
     public override int GetHashCode() => Unsafe.BitCast<Meta, long>(this).GetHashCode();
     public static bool operator ==(Meta left, Meta right) => left.Equals(right);
     public static bool operator !=(Meta left, Meta right) => !(left == right);
+
+#if DEBUG
+    internal static Meta Invalid => Unsafe.BitCast<ulong, Meta>(0b100);
+#endif
 }
