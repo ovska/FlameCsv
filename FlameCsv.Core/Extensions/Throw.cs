@@ -38,15 +38,6 @@ internal static class Throw
         throw new InvalidOperationException("The CSV enumeration state has been modified.");
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void IfSyncReadingNotSupported([DoesNotReturnIf(true)] bool isSupported, Type type)
-    {
-        if (isSupported)
-            return;
-
-        NotSupported_SyncRead(type);
-    }
-
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void NotSupported_SyncRead(object reader)
     {

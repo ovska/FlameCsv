@@ -44,7 +44,7 @@ public static class HotReloadTests
         // writer
         using var writer = CsvWriter.Create(TextWriter.Null);
         writer.WriteRecord(new Obj());
-        (ICollection? writeCache, object? writeKey, object? writeValue) = GetWriterCache(writer);
+        (ICollection writeCache, object? writeKey, object? writeValue) = GetWriterCache(writer);
         Assert.NotEmpty(writeCache);
         Assert.NotNull(writeKey);
         Assert.NotNull(writeValue);
