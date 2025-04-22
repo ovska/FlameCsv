@@ -172,15 +172,12 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         // early exit if we have nulls
         if (errors.Length > 0) goto CheckErrors;
 
-        // byte dialects must be ASCII
-        if (typeof(T) == typeof(byte))
-        {
-            T maxAscii = T.CreateChecked(127);
-            if (delimiter > maxAscii) errors.Append(AsciiError("Delimiter"));
-            if (quote > maxAscii) errors.Append(AsciiError("Quote"));
-            if (escape > maxAscii) errors.Append(AsciiError("Escape"));
-            if (newline.First > maxAscii || newline.Second > maxAscii) errors.Append(AsciiError("Newline"));
-        }
+        // dialects must be ASCII
+        T maxAscii = T.CreateChecked(127);
+        if (delimiter > maxAscii) errors.Append(AsciiError("Delimiter"));
+        if (quote > maxAscii) errors.Append(AsciiError("Quote"));
+        if (escape > maxAscii) errors.Append(AsciiError("Escape"));
+        if (newline.First > maxAscii || newline.Second > maxAscii) errors.Append(AsciiError("Newline"));
 
         // char dialects must not contain surrogate characters
         if (typeof(T) == typeof(char))
