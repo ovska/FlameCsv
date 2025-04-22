@@ -8,8 +8,8 @@ namespace FlameCsv.Reading.Internal;
 /*
  * For general purpose data with occasional quotes (256-bit vectors):
  * 50% of vectors had only delimiters.
- * 30% of vectors had quotes or are continuations from previous string.
- * 7% of vectors had delimiters followed by newline(s) (worthwhile optimization, thanks Sep).
+ * 30% of vectors had quotes (forced ParseAny)
+ * 7% of vectors had delimiters followed by newline(s)
  * 5% of vectors were in the middle of a string and had no quotes (can be skipped).
  * 4% of vectors had nothing in them.
  * 2% of vectors had delimiters and newlines mixed in order (surprising).
@@ -27,28 +27,33 @@ namespace FlameCsv.Reading.Internal;
  * - using popcount and unrolling ParseDelimiters when possible
  * - creating a generic "bool" for whether the data has quotes -> slower due to having to scan the whole data first
  * - BitHacks.FindQuoteMask and zero out bits between quotes -> parsing is too fast, the extra instructions are not worth it
+ *
+ * Still to do:
+ * - Loading comparisons from the vector instead of original data
  */
 
 [SkipLocalsInit]
 [SuppressMessage("ReSharper", "InlineTemporaryVariable")]
-internal static class FieldParser<T, TNewline, TVector>
+internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect, TNewline newlineImpl) : CsvTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
-    where TNewline : struct, INewline<T, TVector>, allows ref struct
+    where TNewline : struct, INewline<T, TVector>
     where TVector : struct, ISimdVector<T, TVector>
 {
+    private static int EndOffset => (TVector.Count * 2) + (int)TNewline.OffsetFromEnd;
+
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static int Core(
-        T delimiterArg,
-        T quoteArg,
-        scoped TNewline newlineArg,
-        scoped ReadOnlySpan<T> data,
-        scoped Span<Meta> metaBuffer)
+    public override int Tokenize(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex)
     {
+        if ((data.Length - startIndex) < EndOffset)
+        {
+            return 0;
+        }
+
         // search space of T is set to 1 vector less, possibly leaving space for a newline token so we don't need
         // to do bounds checks in the loops
         scoped ref T first = ref MemoryMarshal.GetReference(data);
-        nuint runningIndex = 0;
-        nuint searchSpaceEnd = (nuint)data.Length - (nuint)(TVector.Count * 2) - TNewline.OffsetFromEnd;
+        nuint runningIndex = (uint)startIndex;
+        nuint searchSpaceEnd = (nuint)data.Length - (nuint)EndOffset;
 
         Debug.Assert(searchSpaceEnd < (nuint)data.Length);
 
@@ -59,11 +64,13 @@ internal static class FieldParser<T, TNewline, TVector>
             metaBuffer.Length - (TVector.Count * 2)); // the worst case: data ends in Vector.Count delimiters
 
         // load the constants into registers
-        T quote = quoteArg;
-        TNewline newline = newlineArg;
-        TVector delimiterVec = TVector.Create(delimiterArg);
-        TVector quoteVec = TVector.Create(quoteArg);
+        T quote = dialect.Quote;
+        TNewline newline = newlineImpl;
+        TVector delimiterVec = TVector.Create(dialect.Delimiter);
+        TVector quoteVec = TVector.Create(dialect.Quote);
         uint quotesConsumed = 0;
+
+        // TODO PERF: profile loading the vectors in constructor
 
         TVector nextVector = TVector.LoadUnaligned(in first, runningIndex);
 
@@ -217,8 +224,8 @@ internal static class FieldParser<T, TNewline, TVector>
             int offset = BitOperations.TrailingZeroCount(mask);
             mask &= (mask - 1); // clear lowest bit
 
-            // exceedlingly rare case where a \r is not followed by a \n
-            // use an inverse condition so the branch predictor is happy on the first call
+            // this should always be true
+            // TODO PERF: get rid of it?
             if (!newline.IsNewline(ref Unsafe.Add(ref first, runningIndex + (nuint)offset), out bool isMultitoken))
             {
                 continue;
