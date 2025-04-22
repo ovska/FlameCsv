@@ -22,22 +22,6 @@ public static class DialectTests
     }
 
     [Fact]
-    public static void Should_Return_FindToken()
-    {
-        Assertions(new CsvOptions<char> { Newline = "\n" }, ",\"\n");
-        Assertions(new CsvOptions<char>(), ",\"\r\n");
-        Assertions(new CsvOptions<char> { Escape = '^', Newline = "_" }, ",\"^_");
-        Assertions(new CsvOptions<char> { Escape = '^', Newline = "\n" }, ",\"^\n");
-        Assertions(new CsvOptions<char> { Escape = '^' }, ",\"^\r\n");
-
-        static void Assertions(CsvOptions<char> options, string expected)
-        {
-            SearchValues<char> v = options.Dialect.GetFindToken();
-            Assert.DoesNotContain(expected, c => !v.Contains(c));
-        }
-    }
-
-    [Fact]
     public static void Should_Return_Default_Options()
     {
         Assert.Equal(',', CsvOptions<char>.Default.Dialect.Delimiter);
@@ -112,19 +96,6 @@ public static class DialectTests
         var withSingleTokenNewline = new CsvOptions<char> { Newline = "\n" }.Dialect;
         Assert.True(withSingleTokenNewline.NeedsQuoting.Contains('\n'));
         Assert.False(withSingleTokenNewline.NeedsQuoting.Contains('\r'));
-    }
-
-    [Fact]
-    public static void Should_Report_If_Ascii()
-    {
-        Assert.True(CsvOptions<byte>.Default.Dialect.IsAscii);
-        Assert.True(CsvOptions<char>.Default.Dialect.IsAscii);
-
-        var inDelimiter = new CsvOptions<char> { Delimiter = '€' }.Dialect;
-        var inNewline = new CsvOptions<char> { Newline = "€" }.Dialect;
-
-        Assert.False(inDelimiter.IsAscii);
-        Assert.False(inNewline.IsAscii);
     }
 
     [Fact]

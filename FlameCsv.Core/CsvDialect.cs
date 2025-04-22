@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -54,7 +53,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     /// </summary>
     public T? Escape { get; init; }
 
-    private readonly LazyValues _lazyValues = new();
+    private readonly StrongBox<SearchValues<T>?> _lazyValues = new();
 
     internal readonly NewlineBuffer<T> _newline;
 
@@ -64,31 +63,13 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     /// </summary>
     public SearchValues<T> NeedsQuoting
     {
-        get => _lazyValues.NeedsQuoting ??= GetNeedsQuoting();
+        get => _lazyValues.Value ??= GetNeedsQuoting();
         init
         {
             ArgumentNullException.ThrowIfNull(value);
-            _lazyValues.NeedsQuoting = value;
+            _lazyValues.Value = value;
         }
     }
-
-    /// <summary>
-    /// Returns a <see cref="SearchValues{T}"/> instance used to find the next token in CSV.
-    /// This includes the delimiter, quote, escape (if applicable), and the newline tokens.
-    /// </summary>
-    /// <returns>Cached instance that can be used to seek the CSV.</returns>
-    internal SearchValues<T> GetFindToken()
-    {
-        return _lazyValues.FindTokens ??= InitializeFindToken();
-    }
-
-    /// <summary>
-    /// Determines if all tokens in the dialect are within ASCII range.
-    /// This is a requirement for high performance SIMD vectorization.
-    /// If false, this will have the same effect as setting <see cref="CsvOptions{T}.NoReadAhead"/> to false.
-    /// </summary>
-    [EditorBrowsable(EditorBrowsableState.Advanced)]
-    public bool IsAscii => _lazyValues.IsAscii ??= GetIsAscii();
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private SearchValues<T> GetNeedsQuoting()
@@ -164,20 +145,6 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         }
 
         throw new NotSupportedException($"SearchValues cannot be created for token {typeof(T).FullName}");
-    }
-
-    private sealed class LazyValues
-    {
-        public bool? IsAscii;
-        public SearchValues<T>? NeedsQuoting;
-        public SearchValues<T>? FindTokens;
-
-        public void Reset()
-        {
-            IsAscii = null;
-            NeedsQuoting = null;
-            FindTokens = null;
-        }
     }
 
     /// <summary>
@@ -264,7 +231,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     CheckErrors:
         if (errors.Length != 0)
         {
-            _lazyValues.Reset(); // reset possible faulty cached value
+            _lazyValues.Value = null; // reset possible faulty cached value
 
             if (Unsafe.SizeOf<T>() is sizeof(byte) or sizeof(char))
             {
