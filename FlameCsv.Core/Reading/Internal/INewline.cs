@@ -29,6 +29,12 @@ internal interface INewline<T> where T : unmanaged, IBinaryInteger<T>
     /// <remarks>For single token newlines, always returns true</remarks>
     [Pure]
     bool IsNewline(ref T value, out bool isMultitoken);
+
+    /// <summary>The first token in the newline, or the only one if length is 1.</summary>
+    T First { [Pure] get; }
+
+    /// <summary>The second token in the newline, or the only one if length is 1.</summary>
+    T Second { [Pure] get; }
 }
 
 /// <inheritdoc/>
@@ -71,6 +77,9 @@ internal readonly struct NewlineParserOne<T, TVector>(T first) : INewline<T, TVe
         isMultitoken = false;
         return value == first;
     }
+
+    public T First => first;
+    public T Second => first;
 }
 
 [SkipLocalsInit]
@@ -105,4 +114,7 @@ internal readonly struct NewlineParserTwo<T, TVector>(T first, T second) : INewl
         isMultitoken = false;
         return false;
     }
+
+    public T First => first;
+    public T Second => second;
 }

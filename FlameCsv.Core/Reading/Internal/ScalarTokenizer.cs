@@ -7,33 +7,41 @@ namespace FlameCsv.Reading.Internal;
 
 [SkipLocalsInit]
 [SuppressMessage("ReSharper", "InlineTemporaryVariable")]
-internal static class SequentialParser<T>
+internal sealed class ScalarTokenizer<T, TNewline>(CsvDialect<T> dialect, TNewline newlineImpl) : CsvTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
+    where TNewline : INewline<T>
 {
-    public static int Core<TNewline>(
-        T delimiterArg,
-        T quoteArg,
-        TNewline newlineArg,
-        scoped ReadOnlySpan<T> data,
-        scoped Span<Meta> metaBuffer)
-        where TNewline : INewline<T>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public override int Tokenize(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex)
     {
-        if ((uint)data.Length < (1 + TNewline.OffsetFromEnd))
+        return TokenizeCore(metaBuffer, data, startIndex, false);
+    }
+
+    public override int TokenizeToEnd(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex)
+    {
+        return TokenizeCore(metaBuffer, data, startIndex, true);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private int TokenizeCore(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex, bool readToEnd)
+    {
+        if (data.IsEmpty || data.Length <= startIndex)
         {
             return 0;
         }
 
-        T quote = quoteArg;
-        T delimiter = delimiterArg;
-        TNewline newline = newlineArg;
+        T quote = dialect.Quote;
+        T delimiter = dialect.Delimiter;
+        TNewline newline = newlineImpl;
 
         ref T first = ref MemoryMarshal.GetReference(data);
-        nuint runningIndex = 0;
+        nuint runningIndex = (uint)startIndex;
         uint quotesConsumed = 0;
         bool isMultitoken = false;
 
-        nuint searchSpaceEnd = (nuint)data.Length - 1 - TNewline.OffsetFromEnd;
-        nuint unrolledEnd = (nuint)Math.Max(0, (nint)searchSpaceEnd - 8); // ensure no underflow
+        // ensure no underflow
+        nuint searchSpaceEnd = (nuint)Math.Max(0, data.Length - 1 - (nint)TNewline.OffsetFromEnd);
+        nuint unrolledEnd = (nuint)Math.Max(0, (nint)searchSpaceEnd - 8);
 
         ref Meta currentMeta = ref MemoryMarshal.GetReference(metaBuffer);
         ref readonly Meta metaEnd = ref Unsafe.Add(ref MemoryMarshal.GetReference(metaBuffer), metaBuffer.Length);
@@ -114,7 +122,7 @@ internal static class SequentialParser<T>
             }
 
             // ran out of data
-            break;
+            goto EndOfData;
 
         Found7:
             runningIndex += 7;
@@ -205,7 +213,7 @@ internal static class SequentialParser<T>
 
         ReadString:
             Debug.Assert(quotesConsumed % 2 != 0);
-            while (runningIndex <= unrolledEnd)
+            while (runningIndex < unrolledEnd)
             {
                 if (Unsafe.Add(ref first, runningIndex + 0) == quote) goto FoundQuote;
                 if (Unsafe.Add(ref first, runningIndex + 1) == quote) goto FoundQuote1;
@@ -225,6 +233,47 @@ internal static class SequentialParser<T>
             }
 
             // ran out of data
+        EndOfData:
+            if (!readToEnd)
+            {
+                break;
+            }
+
+            // data ended in a trailing newline
+            if (!Unsafe.AreSame(in MemoryMarshal.GetReference(metaBuffer), in currentMeta) &&
+                Unsafe.Add(ref currentMeta, -1).IsEOL &&
+                Unsafe.Add(ref currentMeta, -1).NextStart == data.Length)
+            {
+                break;
+            }
+
+            // two-token newline, need to process the final token (unless it was skipped with CRLF)
+            if (TNewline.OffsetFromEnd != 0 && ((nint)runningIndex == (data.Length - 1)))
+            {
+                T final = Unsafe.Add(ref first, runningIndex);
+
+                if (final == newline.First || final == newline.Second)
+                {
+                    // this can only be a 1-token newline
+                    currentMeta = Meta.EOL((int)runningIndex, quotesConsumed, newlineLength: 1);
+                    currentMeta = ref Unsafe.Add(ref currentMeta, 1);
+                    break;
+                }
+
+                if (final == delimiter)
+                {
+                    currentMeta = Meta.RFC((int)runningIndex, quotesConsumed);
+                    currentMeta = ref Unsafe.Add(ref currentMeta, 1);
+                }
+                else if (final == quote)
+                {
+                    quotesConsumed++;
+                }
+            }
+
+            // TODO: ensure this works with trailing LF
+            currentMeta = Meta.EOL((int)(runningIndex + TNewline.OffsetFromEnd), quotesConsumed, newlineLength: 0);
+            currentMeta = ref Unsafe.Add(ref currentMeta, 1);
             break;
         }
 
