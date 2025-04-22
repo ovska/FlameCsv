@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Runtime.ExceptionServices;
 using System.Text;
 using FlameCsv.Extensions;
 
@@ -60,6 +61,11 @@ internal sealed class StringBuilderPipeWriter : ICsvPipeWriter<char>
 
         _memory = Memory<char>.Empty;
         _memoryOwner.Dispose();
+
+        if (exception is not null)
+        {
+            ExceptionDispatchInfo.Capture(exception).Throw();
+        }
     }
 
     public ValueTask FlushAsync(CancellationToken cancellationToken = default)
@@ -71,14 +77,19 @@ internal sealed class StringBuilderPipeWriter : ICsvPipeWriter<char>
 
     public ValueTask CompleteAsync(Exception? exception, CancellationToken cancellationToken = default)
     {
-        if (_disposed) return ValueTask.CompletedTask;
-        _disposed = true;
+        if (cancellationToken.IsCancellationRequested)
+        {
+            exception ??= new OperationCanceledException(cancellationToken);
+        }
 
-        _memory = Memory<char>.Empty;
-        _memoryOwner.Dispose();
-
-        if (exception is not null) return ValueTask.FromException(exception);
-        if (cancellationToken.IsCancellationRequested) return ValueTask.FromCanceled(cancellationToken);
-        return ValueTask.CompletedTask;
+        try
+        {
+            Complete(exception);
+            return default;
+        }
+        catch (Exception e)
+        {
+            return ValueTask.FromException(e);
+        }
     }
 }
