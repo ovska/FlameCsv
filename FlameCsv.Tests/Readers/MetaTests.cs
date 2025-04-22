@@ -50,10 +50,20 @@ public static class MetaTests
         if (isEOL)
         {
             Assert.Equal(meta.End + 2, meta.NextStart);
+
+            if (escapeCount == 0)
+            {
+                Assert.Equal(meta, Meta.EOL(end, quoteCount, newlineLength: 2));
+            }
         }
         else
         {
             Assert.Equal(meta.End + 1, meta.NextStart);
+
+            if (escapeCount == 0)
+            {
+                Assert.Equal(meta, Meta.RFC(end, quoteCount));
+            }
         }
     }
 
@@ -74,18 +84,31 @@ public static class MetaTests
     [MemberData(nameof(InvalidMetaData))]
     public static void Should_Validate_Args(uint quoteCount, uint escapeCount)
     {
-        Assert.Throws<CsvFormatException>(
-            () =>
+        if (escapeCount == 0)
+        {
+            Func<object?>[] funcs =
+            [
+                () => Meta.RFC(0, quoteCount, isEOL: false, newlineLength: 2),
+                () => Meta.RFC(0, quoteCount, isEOL: true, newlineLength: 2),
+                () => Meta.EOL(0, quoteCount, newlineLength: 2),
+                () => Meta.RFC(0, quoteCount),
+            ];
+
+            foreach (var func in funcs)
             {
-                _ = escapeCount == 0
-                    ? Meta.RFC(0, quoteCount, isEOL: false, newlineLength: 2)
-                    : Meta.Unix(0, quoteCount, escapeCount, false, newlineLength: 2);
-            });
+                Assert.Throws<CsvFormatException>(func);
+            }
+        }
+        else
+        {
+            Assert.Throws<CsvFormatException>(() => Meta.Unix(0, quoteCount, escapeCount, false, newlineLength: 2));
+        }
     }
 
     [Fact]
     public static void Should_Handle_Start_of_Data()
     {
+        Assert.Equal(default, Meta.StartOfData);
         Assert.Equal(0u, Meta.StartOfData.SpecialCount);
         Assert.False(Meta.StartOfData.IsEscape);
         Assert.False(Meta.StartOfData.IsEOL);
@@ -192,15 +215,14 @@ public static class MetaTests
 
         if (expected == -1)
         {
-            Assert.False(Meta.HasEOL(metas, out _));
+            Assert.False(Meta.HasEOL(metas));
         }
         else
         {
-            Assert.True(Meta.HasEOL(metas, out int index));
-            Assert.Equal(Array.FindLastIndex(metas, m => m.IsEOL), index);
+            Assert.True(Meta.HasEOL(metas));
         }
 
-        Assert.False(Meta.HasEOL([], out _));
+        Assert.False(Meta.HasEOL([]));
     }
 
     public static TheoryData<bool[], int> NewlineData
