@@ -6,19 +6,19 @@ using JetBrains.Annotations;
 namespace FlameCsv.IO;
 
 /// <summary>
-/// Represents options for configuring <see cref="ICsvPipeReader{T}"/>.
+/// Represents options for configuring <see cref="ICsvBufferReader{T}"/>.
 /// </summary>
-/// <seealso cref="CsvPipeReader"/>
+/// <seealso cref="CsvBufferReader"/>
 [PublicAPI]
 public readonly struct CsvReaderOptions
 {
     /// <summary>
-    /// The default buffer size in T.
+    /// The default buffer size in bytes.
     /// </summary>
     public const int DefaultBufferSize = 4096;
 
     /// <summary>
-    /// The default minimum read size in T.
+    /// The default minimum read size in bytes.
     /// </summary>
     public const int DefaultMinimumReadSize = 1024;
 
@@ -26,30 +26,36 @@ public readonly struct CsvReaderOptions
     private readonly int? _minimumReadSize;
 
     /// <summary>
-    /// Gets or sets the buffer size in T. If set to -1, the default buffer size is used.
+    /// Gets or sets the buffer size in bytes. If set to -1, the default buffer size is used.<br/>
+    /// This value will be clamped to be at minimum <see cref="MinimumReadSize"/>.
     /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown if the value is less than 1 and not equal to -1.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown if the value is less than 1 and not equal to -1.</exception>
     public int BufferSize
     {
         get => Math.Max(_bufferSize ?? DefaultBufferSize, MinimumReadSize);
         init
         {
-            if (value != -1) ArgumentOutOfRangeException.ThrowIfLessThan(value, 1);
-            _bufferSize = value == -1 ? DefaultBufferSize : value;
+            if (value == -1) return;
+            ArgumentOutOfRangeException.ThrowIfLessThan(value, 1);
+            _bufferSize = value;
         }
     }
 
     /// <summary>
-    /// Gets or sets the minimum read size in T. If set to -1, the default minimum read size is used.
+    /// Gets or sets the minimum read size in bytes. If unset or set to -1, the default minimum read size is used.
     /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown if the value is less than 1 and not equal to -1.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown if the value is less than 1 and not equal to -1.
+    /// </exception>
     public int MinimumReadSize
     {
         get => _minimumReadSize ?? DefaultMinimumReadSize;
         init
         {
-            if (value != -1) ArgumentOutOfRangeException.ThrowIfLessThan(value, 1);
-            _minimumReadSize = value == -1 ? DefaultMinimumReadSize : value;
+            if (value == -1) return;
+            ArgumentOutOfRangeException.ThrowIfLessThan(value, 1);
+            _minimumReadSize = value;
         }
     }
 

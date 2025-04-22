@@ -1,45 +1,36 @@
-﻿using System.Buffers;
-using JetBrains.Annotations;
+﻿using JetBrains.Annotations;
 
 namespace FlameCsv.IO;
 
 /// <summary>
 /// Performance optimization for reading from a constant data source to avoid unnecessary copying.
 /// </summary>
-internal sealed class ConstantPipeReader<T> : ICsvPipeReader<T> where T : unmanaged, IBinaryInteger<T>
+internal sealed class ConstantBufferReader<T> : ICsvBufferReader<T> where T : unmanaged
 {
-    private ReadOnlySequence<T> _data;
-    private readonly ReadOnlySequence<T> _originalData;
+    private ReadOnlyMemory<T> _data;
+    private ReadOnlyMemory<T> _originalData;
     private readonly IDisposable? _state;
     private readonly bool _leaveOpen;
-    private readonly Action<IDisposable?, long>? _onRead;
+    private readonly Action<IDisposable?, int>? _onRead;
     private bool _disposed;
 
     /// <summary>
-    /// Initializes a new instance of <see cref="ConstantPipeReader{T}"/>.
+    /// Initializes a new instance of <see cref="ConstantBufferReader{T}"/>.
     /// </summary>
     /// <param name="data">Data retrieved from the source</param>
-    /// <param name="state">Data source, e.g., a stream or a text reader</param>
     /// <param name="leaveOpen">Whether not to dispose the state</param>
+    /// <param name="state">Data source, e.g., a stream or a text reader</param>
     /// <param name="onRead">Delegate to advance the data source when reading</param>
-    public ConstantPipeReader(
-        in ReadOnlySequence<T> data,
-        IDisposable? state,
-        bool leaveOpen,
-        [RequireStaticDelegate] Action<IDisposable?, long>? onRead)
+    public ConstantBufferReader(
+        ReadOnlyMemory<T> data,
+        bool leaveOpen = false,
+        IDisposable? state = null,
+        [RequireStaticDelegate] Action<IDisposable?, int>? onRead = null)
     {
         _state = state;
         _data = _originalData = data;
         _leaveOpen = leaveOpen;
         _onRead = onRead;
-    }
-
-    /// <summary>
-    /// Initializes a new instance of <see cref="ConstantPipeReader{T}"/>.
-    /// </summary>
-    /// <param name="data">CSV data</param>
-    public ConstantPipeReader(in ReadOnlySequence<T> data) : this(in data, null, true, null)
-    {
     }
 
     public CsvReadResult<T> Read()
@@ -49,17 +40,11 @@ internal sealed class ConstantPipeReader<T> : ICsvPipeReader<T> where T : unmana
         // simulate reading; advance the data source to keep this perf optimization transparent to the caller
         _onRead?.Invoke(_state, _data.Length);
 
-        return new CsvReadResult<T>(in _data, isCompleted: true);
+        return new CsvReadResult<T>(_data, isCompleted: true);
     }
 
     public ValueTask<CsvReadResult<T>> ReadAsync(CancellationToken cancellationToken = default)
     {
-        if (_disposed)
-        {
-            return ValueTask.FromException<CsvReadResult<T>>(
-                new ObjectDisposedException(typeof(ConstantPipeReader<T>).FullName));
-        }
-
         if (cancellationToken.IsCancellationRequested)
         {
             return ValueTask.FromCanceled<CsvReadResult<T>>(cancellationToken);
@@ -68,10 +53,11 @@ internal sealed class ConstantPipeReader<T> : ICsvPipeReader<T> where T : unmana
         return new ValueTask<CsvReadResult<T>>(Read());
     }
 
-    public void AdvanceTo(SequencePosition consumed, SequencePosition examined)
+    public void Advance(int count)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        _data = _data.Slice(consumed);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan((uint)count, (uint)_data.Length, nameof(count));
+        _data = _data.Slice(count);
     }
 
     public bool TryReset()
@@ -89,6 +75,7 @@ internal sealed class ConstantPipeReader<T> : ICsvPipeReader<T> where T : unmana
 
         // don't hold on to data after disposing
         _data = default;
+        _originalData = default;
 
         if (!_leaveOpen)
         {
@@ -104,6 +91,7 @@ internal sealed class ConstantPipeReader<T> : ICsvPipeReader<T> where T : unmana
 
         // don't hold on to data after disposing
         _data = default;
+        _originalData = default;
 
         if (!_leaveOpen)
         {
