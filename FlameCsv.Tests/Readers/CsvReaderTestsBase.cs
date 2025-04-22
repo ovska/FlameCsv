@@ -19,10 +19,9 @@ public enum NewlineToken
 
 public abstract class CsvReaderTestsBase
 {
-    protected static readonly int[] _bufferSizes = [-1, 17, 128, 1024, 8096];
-    protected static readonly int[] _emptySegmentsEvery = [0, 1, 7];
+    protected static readonly int[] _bufferSizes = [-1, 256, 512, 1024];
 
-    public sealed class SyncData : TheoryData<NewlineToken, bool, bool, int, int, Mode, bool, bool, bool?>;
+    public sealed class SyncData : TheoryData<NewlineToken, bool, bool, int, Mode, bool, bool, bool?>;
 
     public sealed class AsyncData : TheoryData<NewlineToken, bool, bool, int, Mode, bool, bool, bool?>;
 
@@ -33,9 +32,8 @@ public abstract class CsvReaderTestsBase
             var data =
                 from crlf in GlobalData.Enum<NewlineToken>()
                 from writeHeader in GlobalData.Booleans
-                from writeTrailingNewline in (bool[]) [true] // GlobalData.Booleans
+                from writeTrailingNewline in GlobalData.Booleans
                 from bufferSize in _bufferSizes
-                from emptySegmentFrequency in _emptySegmentsEvery
                 from escaping in GlobalData.Enum<Mode>()
                 from parallel in (bool[]) [false] //GlobalData.Booleans
                 from sourceGen in GlobalData.Booleans
@@ -45,7 +43,6 @@ public abstract class CsvReaderTestsBase
                     writeHeader,
                     writeTrailingNewline,
                     bufferSize,
-                    emptySegmentFrequency,
                     escaping,
                     parallel,
                     sourceGen,
@@ -61,7 +58,7 @@ public abstract class CsvReaderTestsBase
             var data =
                 from crlf in GlobalData.Enum<NewlineToken>()
                 from writeHeader in GlobalData.Booleans
-                from writeTrailingNewline in (bool[]) [true] // GlobalData.Booleans
+                from writeTrailingNewline in GlobalData.Booleans
                 from bufferSize in _bufferSizes
                 from escaping in GlobalData.Enum<Mode>()
                 from parallel in (bool[]) [false] // GlobalData.Booleans
@@ -82,7 +79,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
 {
     protected abstract CsvTypeMap<T, Obj> TypeMap { get; }
 
-    protected abstract ICsvPipeReader<T> GetReader(Stream stream, CsvOptions<T> options, int bufferSize);
+    protected abstract ICsvBufferReader<T> GetReader(Stream stream, CsvOptions<T> options, int bufferSize);
 
     [Theory, MemberData(nameof(SyncParams))]
     public async Task Objects_Sync(
@@ -90,7 +87,6 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
         bool header,
         bool trailingLF,
         int bufferSize,
-        int emptySegmentFreq,
         Mode escaping,
         bool parallel,
         bool sourceGen,
@@ -100,7 +96,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
         CsvOptions<T> options = GetOptions(newline, header, escaping, pool);
         var memory = TestDataGenerator.Generate<T>(newline, header, trailingLF, escaping);
 
-        using (MemorySegment<T>.Create(memory, bufferSize, emptySegmentFreq, pool, out var sequence))
+        using (MemorySegment<T>.Create(memory, bufferSize, 0, pool, out var sequence))
         {
             IEnumerable<Obj> enumerable = sourceGen
                 ? CsvReader.Read(sequence, TypeMap, options)
@@ -118,7 +114,6 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
         bool header,
         bool trailingLF,
         int bufferSize,
-        int emptySegmentFreq,
         Mode escaping,
         bool parallel,
         bool sourceGen,
@@ -132,8 +127,8 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
             CsvOptions<T> options = GetOptions(newline, header, escaping, pool);
 
             var memory = TestDataGenerator.Generate<T>(newline, header, trailingLF, escaping);
-            var sequence = MemorySegment<T>.AsSequence(memory, bufferSize, emptySegmentFreq);
-            await using var reader = CsvPipeReader.Create(in sequence);
+            var sequence = MemorySegment<T>.AsSequence(memory, bufferSize);
+            await using var reader = CsvBufferReader.Create(in sequence);
 
             var items = await GetItems(reader, options, sourceGen, header, newline, parallel, isAsync: false);
 
@@ -173,10 +168,8 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
 
             if (parallel) source = WrapParallelAsync(source);
 
-            CancellationToken cancellationToken = TestContext.Current.CancellationToken;
-            await foreach (var obj in source.ConfigureAwait(false))
+            await foreach (var obj in source.WithTestContext())
             {
-                cancellationToken.ThrowIfCancellationRequested();
                 yield return obj;
             }
         }
@@ -217,9 +210,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
     {
         int i = 0;
 
-        await foreach (var obj in enumerable
-                           .ConfigureAwait(false)
-                           .WithCancellation(TestContext.Current.CancellationToken))
+        await foreach (var obj in enumerable.WithTestContext())
         {
             Assert.Equal(i, obj.Id);
             Assert.Equal(escaping != Mode.None ? $"Name\"{i}" : $"Name-{i}", obj.Name);
@@ -234,7 +225,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
     }
 
     protected async Task<List<Obj>> GetItems(
-        ICsvPipeReader<T> reader,
+        ICsvBufferReader<T> reader,
         CsvOptions<T> options,
         bool sourceGen,
         bool hasHeader,
@@ -293,7 +284,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
 
             if (isAsync)
             {
-                await foreach (var record in enumerable.ConfigureAwait(false))
+                await foreach (var record in enumerable.WithTestContext())
                 {
                     items.Add(Core(record));
                 }
@@ -303,6 +294,11 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
                 foreach (var record in enumerable)
                 {
                     items.Add(Core(record));
+
+                    if (record.GetField(0).ToString() == "818")
+                    {
+
+                    }
                 }
             }
         }

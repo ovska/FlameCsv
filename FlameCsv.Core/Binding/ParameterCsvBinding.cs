@@ -9,7 +9,7 @@ internal sealed class ParameterCsvBinding<T> : CsvBinding<T>
     public ConstructorInfo Constructor => (ConstructorInfo)Parameter.Member;
     public ParameterInfo Parameter { get; }
 
-    public override Type? DeclaringType => Constructor.DeclaringType!;
+    public override Type? DeclaringType => Constructor.DeclaringType;
     public override Type Type => Parameter.ParameterType;
     protected override object Sentinel => Parameter;
 

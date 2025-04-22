@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Text;
 using FlameCsv.Attributes;
 using FlameCsv.Tests.Readers;
+using FlameCsv.Utilities;
 using Utf8StringInterpolation;
 using U8 = Utf8StringInterpolation.Utf8String;
 
@@ -31,6 +32,33 @@ public class Obj : IEquatable<Obj>
             IsEnabled.Equals(other.IsEnabled) &&
             LastLogin.Equals(other.LastLogin) &&
             Token.Equals(other.Token);
+    }
+
+    public override string ToString()
+    {
+        using ValueStringBuilder vsb = new(stackalloc char[256]);
+        vsb.Append("Obj { ");
+        vsb.Append(nameof(Id));
+        vsb.Append(" = ");
+        vsb.AppendFormatted(Id);
+        vsb.Append(", ");
+        vsb.Append(nameof(Name));
+        vsb.Append(" = ");
+        vsb.Append(Name);
+        vsb.Append(", ");
+        vsb.Append(nameof(IsEnabled));
+        vsb.Append(" = ");
+        vsb.Append(IsEnabled ? "true" : "false");
+        vsb.Append(", ");
+        vsb.Append(nameof(LastLogin));
+        vsb.Append(" = ");
+        vsb.AppendFormatted(LastLogin, format: "O");
+        vsb.Append(", ");
+        vsb.Append(nameof(Token));
+        vsb.Append(" = ");
+        vsb.AppendFormatted(Token);
+        vsb.Append(" }");
+        return vsb.ToString();
     }
 }
 

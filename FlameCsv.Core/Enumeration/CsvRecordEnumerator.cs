@@ -54,12 +54,12 @@ public sealed class CsvRecordEnumerator<T>
     void IEnumerator.Reset() => ResetCore();
 
     internal CsvRecordEnumerator(ReadOnlyMemory<T> csv, CsvOptions<T> options)
-        : this(new ReadOnlySequence<T>(csv), options)
+        : this(options, CsvBufferReader.Create(csv))
     {
     }
 
     internal CsvRecordEnumerator(in ReadOnlySequence<T> csv, CsvOptions<T> options)
-        : this(options, new ConstantPipeReader<T>(in csv))
+        : this(options, CsvBufferReader.Create(in csv))
     {
     }
 
@@ -71,7 +71,7 @@ public sealed class CsvRecordEnumerator<T>
     /// <param name="cancellationToken">Cancellation token used for asynchronous enumeration</param>
     public CsvRecordEnumerator(
         CsvOptions<T> options,
-        ICsvPipeReader<T> reader,
+        ICsvBufferReader<T> reader,
         CancellationToken cancellationToken = default)
         : base(options, reader, cancellationToken)
     {
@@ -157,7 +157,7 @@ public sealed class CsvRecordEnumerator<T>
             }
         }
 
-        _current = new CsvValueRecord<T>(_version, Position, Line, in fields, Parser.Options, this);
+        _current = new CsvValueRecord<T>(_version, Position, Line, in fields, Reader.Options, this);
         return true;
     }
 
@@ -198,10 +198,10 @@ public sealed class CsvRecordEnumerator<T>
         CsvFieldsRef<T> reader = new(in headerRecord, stackalloc T[Token<T>.StackLength]);
 
         Header = CsvHeader.Parse(
-            Parser.Options,
+            Reader.Options,
             ref reader,
             this,
-            static (@this, header) => new CsvHeader(@this.Parser.Options.Comparer, header));
+            static (@this, header) => new CsvHeader(@this.Reader.Options.Comparer, header));
     }
 
     [DoesNotReturn]

@@ -22,7 +22,7 @@ public sealed class CsvTypeMapEnumerator<T, TValue> : CsvValueEnumeratorBase<T, 
     public CsvTypeMapEnumerator(
         CsvOptions<T> options,
         CsvTypeMap<T, TValue> typeMap,
-        ICsvPipeReader<T> reader,
+        ICsvBufferReader<T> reader,
         CancellationToken cancellationToken = default)
         : base(options, reader, cancellationToken)
     {

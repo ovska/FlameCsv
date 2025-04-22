@@ -13,22 +13,6 @@ internal abstract class Allocator<T> : IDisposable where T : unmanaged
     public abstract Memory<T> GetMemory(int length);
     public Span<T> GetSpan(int length) => GetMemory(length).Span;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ReadOnlyMemory<T> AsMemory(in ReadOnlySequence<T> sequence)
-    {
-        return sequence.IsSingleSegment ? sequence.First : GetAsMemoryMultiSegment(sequence);
-    }
-
-    private ReadOnlyMemory<T> GetAsMemoryMultiSegment(in ReadOnlySequence<T> sequence)
-    {
-        ObjectDisposedException.ThrowIf(IsDisposed, this);
-
-        int length = checked((int)sequence.Length);
-        Memory<T> memory = GetMemory(length);
-        sequence.CopyTo(memory.Span);
-        return memory;
-    }
-
     public void Dispose()
     {
         if (IsDisposed) return;

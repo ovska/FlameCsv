@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.Binding;
@@ -123,7 +122,7 @@ public static partial class CsvReader
         Guard.CanRead(stream);
 
         options ??= CsvOptions<char>.Default;
-        var reader = CsvPipeReader.Create(stream, encoding, options.Allocator, readerOptions);
+        var reader = CsvBufferReader.Create(stream, encoding, options.Allocator, readerOptions);
         return new CsvTypeMapEnumerable<char, TValue>(reader, options, typeMap);
     }
 
@@ -144,7 +143,7 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(typeMap);
 
         options ??= CsvOptions<char>.Default;
-        ICsvPipeReader<char> reader = CsvPipeReader.Create(textReader, options.Allocator, readerOptions);
+        ICsvBufferReader<char> reader = CsvBufferReader.Create(textReader, options.Allocator, readerOptions);
         return new CsvTypeMapEnumerable<char, TValue>(reader, options, typeMap);
     }
 
@@ -166,27 +165,7 @@ public static partial class CsvReader
         Guard.CanRead(stream);
 
         options ??= CsvOptions<byte>.Default;
-        var reader = CsvPipeReader.Create(stream, options.Allocator, readerOptions);
+        var reader = CsvBufferReader.Create(stream, options.Allocator, readerOptions);
         return new CsvTypeMapEnumerable<byte, TValue>(reader, options, typeMap);
-    }
-
-    /// <summary>
-    /// Parses instances of <typeparamref name="TValue"/> from the pipe using a precompiled type map.
-    /// </summary>
-    /// <param name="reader">Pipe to read the records from</param>
-    /// <param name="typeMap">Precompiled type map</param>
-    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    public static ICsvValueAsyncEnumerable<byte, TValue> Read<TValue>(
-        PipeReader reader,
-        CsvTypeMap<byte, TValue> typeMap,
-        CsvOptions<byte>? options = null)
-    {
-        ArgumentNullException.ThrowIfNull(reader);
-        ArgumentNullException.ThrowIfNull(typeMap);
-
-        return new CsvTypeMapEnumerable<byte, TValue>(
-            new PipeReaderWrapper(reader),
-            options ?? CsvOptions<byte>.Default,
-            typeMap);
     }
 }

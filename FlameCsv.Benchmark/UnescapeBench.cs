@@ -208,12 +208,12 @@ public class UnescapeBench
     {
         List<Field> byteFields = [];
 
-        using var byteParser = CsvParser.Create(CsvOptions<T>.Default, new ReadOnlySequence<T>(data));
+        using var byteParser = new CsvReader<T>(CsvOptions<T>.Default, new ReadOnlySequence<T>(data));
         ref T startOfData = ref MemoryMarshal.GetReference(data.Span);
 
         byteParser.TryAdvanceReader();
 
-        while (byteParser.TryReadLine(out CsvFields<T> fields, false))
+        while (byteParser.TryReadLine(out CsvFields<T> fields))
         {
             for (int i = 0; i < fields.FieldCount; i++)
             {

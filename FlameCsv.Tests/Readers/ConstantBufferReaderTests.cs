@@ -1,11 +1,10 @@
-﻿using System.Buffers;
-using FlameCsv.Extensions;
+﻿using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Tests.Utilities;
 
 namespace FlameCsv.Tests.Readers;
 
-public static class ConstantPipeReaderTests
+public static class ConstantBufferReaderTests
 {
     [Fact]
     public static void Should_Only_Use_MemorySteam()
@@ -17,12 +16,12 @@ public static class ConstantPipeReaderTests
         static void Impl(Stream stream)
         {
             using (stream)
-            using (var pipe = CsvPipeReader.Create(
+            using (var pipe = CsvBufferReader.Create(
                        stream,
                        HeapMemoryPool<byte>.Instance,
                        new() { LeaveOpen = true }))
             {
-                Assert.IsNotType<ConstantPipeReader<byte>>(pipe);
+                Assert.IsNotType<ConstantBufferReader<byte>>(pipe);
             }
         }
     }
@@ -44,9 +43,9 @@ public static class ConstantPipeReaderTests
         static void Impl(TextReader reader)
         {
             using (reader)
-            using (var pipe = CsvPipeReader.Create(reader, HeapMemoryPool<char>.Instance, new() { BufferSize = 4096 }))
+            using (var pipe = CsvBufferReader.Create(reader, HeapMemoryPool<char>.Instance, new() { BufferSize = 4096 }))
             {
-                Assert.IsNotType<ConstantPipeReader<char>>(pipe);
+                Assert.IsNotType<ConstantBufferReader<char>>(pipe);
             }
         }
     }
@@ -60,9 +59,9 @@ public static class ConstantPipeReaderTests
         stream.Write("Hello, World!"u8);
         stream.Position = 0;
 
-        await using (var reader = CsvPipeReader.Create(stream, pool, new() { LeaveOpen = true }))
+        await using (var reader = CsvBufferReader.Create(stream, pool, new() { LeaveOpen = true }))
         {
-            Assert.IsType<ConstantPipeReader<byte>>(reader);
+            Assert.IsType<ConstantBufferReader<byte>>(reader);
 
             Assert.Equal(0, stream.Position);
 
@@ -73,7 +72,7 @@ public static class ConstantPipeReaderTests
             Assert.Equal(13, stream.Position);
 
             // read again
-            reader.AdvanceTo(result.Buffer.End, result.Buffer.End);
+            reader.Advance(result.Buffer.Length);
             result = await reader.ReadAsync(TestContext.Current.CancellationToken);
 
             Assert.True(result.IsCompleted);
@@ -93,9 +92,9 @@ public static class ConstantPipeReaderTests
         using var reader = new StringReader("Hello, World!");
         Assert.Equal(pos, reader.Read(new char[pos]));
 
-        await using var pipeReader = CsvPipeReader.Create(reader, pool, new() { LeaveOpen = true });
+        await using var pipeReader = CsvBufferReader.Create(reader, pool, new() { LeaveOpen = true });
 
-        Assert.IsType<ConstantPipeReader<char>>(pipeReader);
+        Assert.IsType<ConstantBufferReader<char>>(pipeReader);
 
         var result = await pipeReader.ReadAsync(TestContext.Current.CancellationToken);
 
@@ -104,7 +103,7 @@ public static class ConstantPipeReaderTests
         Assert.Equal("Hello, World!"[pos..], new string(result.Buffer.ToArray()));
 
         // read again
-        pipeReader.AdvanceTo(result.Buffer.End, result.Buffer.End);
+        pipeReader.Advance(result.Buffer.Length);
         result = await pipeReader.ReadAsync(TestContext.Current.CancellationToken);
 
         Assert.True(result.IsCompleted);

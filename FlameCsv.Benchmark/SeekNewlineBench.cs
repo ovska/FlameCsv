@@ -47,7 +47,7 @@ public class SeekNewlineBench
     [Benchmark(Baseline = true)]
     public void Utf8()
     {
-        foreach (var _ in CsvParser.Create(OptionsByte, in _byteSeq).ParseRecords())
+        foreach (var _ in new CsvReader<byte>(OptionsByte, in _byteSeq).ParseRecords())
         {
         }
     }
@@ -55,7 +55,7 @@ public class SeekNewlineBench
     [Benchmark]
     public void Utf16()
     {
-        foreach (var _ in CsvParser.Create(OptionsChar, in _charSeq).ParseRecords())
+        foreach (var _ in new CsvReader<char>(OptionsChar, in _charSeq).ParseRecords())
         {
         }
     }

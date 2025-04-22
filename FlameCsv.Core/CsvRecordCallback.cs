@@ -47,7 +47,7 @@ public readonly ref struct CsvRecordCallbackArgs<T> where T : unmanaged, IBinary
     /// <summary>
     /// Options instance.
     /// </summary>
-    public CsvOptions<T> Options => _fields.Parser.Options;
+    public CsvOptions<T> Options => _fields.Reader.Options;
 
     /// <summary>
     /// 1-based line number.

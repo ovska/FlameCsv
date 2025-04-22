@@ -1,5 +1,4 @@
-﻿using System.IO.Pipelines;
-using System.Text;
+﻿using System.Text;
 using FlameCsv.Extensions;
 using System.Buffers;
 using System.ComponentModel;
@@ -82,7 +81,7 @@ public static partial class CsvReader
 
         options ??= CsvOptions<char>.Default;
         return new CsvRecordEnumerable<char>(
-            CsvPipeReader.Create(stream, encoding, options.Allocator, readerOptions),
+            CsvBufferReader.Create(stream, encoding, options.Allocator, readerOptions),
             options);
     }
 
@@ -102,7 +101,7 @@ public static partial class CsvReader
 
         options ??= CsvOptions<char>.Default;
         return new CsvRecordEnumerable<char>(
-            CsvPipeReader.Create(textReader, options.Allocator, readerOptions),
+            CsvBufferReader.Create(textReader, options.Allocator, readerOptions),
             options);
     }
 
@@ -123,24 +122,8 @@ public static partial class CsvReader
 
         options ??= CsvOptions<byte>.Default;
         return new CsvRecordEnumerable<byte>(
-            CsvPipeReader.Create(stream, options.Allocator, readerOptions),
+            CsvBufferReader.Create(stream, options.Allocator, readerOptions),
             options);
-    }
-
-    /// <summary>
-    /// Reads CSV records from the <see cref="PipeReader"/>.
-    /// </summary>
-    /// <remarks><inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)" path="/remarks"/></remarks>
-    /// <param name="pipeReader">Pipe to read the records from</param>
-    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    public static IAsyncEnumerable<CsvValueRecord<byte>> EnumerateAsync(
-        PipeReader pipeReader,
-        CsvOptions<byte>? options = null)
-    {
-        ArgumentNullException.ThrowIfNull(pipeReader);
-        return new CsvRecordEnumerable<byte>(
-            new PipeReaderWrapper(pipeReader),
-            options ?? CsvOptions<byte>.Default);
     }
 
     /// <inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)"/>

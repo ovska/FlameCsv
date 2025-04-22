@@ -8,7 +8,7 @@ using JetBrains.Annotations;
 
 namespace FlameCsv.Reading;
 
-partial class CsvParser<T>
+partial class CsvReader<T>
 {
     /// <summary>
     /// Returns an enumerator that iterates through the CSV data.
@@ -26,7 +26,7 @@ partial class CsvParser<T>
     /// The enumerator advances the inner reader and parser, and disposes them after use.
     /// </remarks>
     [HandlesResourceDisposal]
-    public RecordAsyncEnumerable ParseRecordsAsync(CancellationToken cancellationToken = default) 
+    public RecordAsyncEnumerable ParseRecordsAsync(CancellationToken cancellationToken = default)
         => new(this, cancellationToken);
 
     /// <summary>
@@ -34,18 +34,18 @@ partial class CsvParser<T>
     /// </summary>
     public readonly struct RecordEnumerable
     {
-        private readonly CsvParser<T> _parser;
+        private readonly CsvReader<T> _reader;
 
-        internal RecordEnumerable(CsvParser<T> parser)
+        internal RecordEnumerable(CsvReader<T> reader)
         {
-            _parser = parser;
+            _reader = reader;
         }
 
-        /// <inheritdoc cref="CsvParser{T}.ParseRecords"/>
+        /// <inheritdoc cref="CsvReader{T}.ParseRecords"/>
         public Enumerator GetEnumerator()
         {
-            Throw.IfDefaultStruct(_parser is null, typeof(RecordEnumerable));
-            return new(_parser);
+            Throw.IfDefaultStruct(_reader is null, typeof(RecordEnumerable));
+            return new(_reader);
         }
     }
 
@@ -55,26 +55,26 @@ partial class CsvParser<T>
     /// </summary>
     public readonly struct RecordAsyncEnumerable : IAsyncEnumerable<CsvFieldsRef<T>>
     {
-        private readonly CsvParser<T> _parser;
+        private readonly CsvReader<T> _reader;
         private readonly CancellationToken _cancellationToken;
 
-        internal RecordAsyncEnumerable(CsvParser<T> parser, CancellationToken cancellationToken)
+        internal RecordAsyncEnumerable(CsvReader<T> reader, CancellationToken cancellationToken)
         {
-            _parser = parser;
+            _reader = reader;
             _cancellationToken = cancellationToken;
         }
 
-        /// <inheritdoc cref="CsvParser{T}.ParseRecordsAsync"/>
+        /// <inheritdoc cref="CsvReader{T}.ParseRecordsAsync"/>
         public AsyncEnumerator GetAsyncEnumerator()
         {
-            Throw.IfDefaultStruct(_parser is null, typeof(RecordAsyncEnumerable));
-            return new(_parser, _cancellationToken);
+            Throw.IfDefaultStruct(_reader is null, typeof(RecordAsyncEnumerable));
+            return new(_reader, _cancellationToken);
         }
 
         IAsyncEnumerator<CsvFieldsRef<T>> IAsyncEnumerable<CsvFieldsRef<T>>.GetAsyncEnumerator(
             CancellationToken cancellationToken)
         {
-            return new AsyncEnumerator(_parser, cancellationToken);
+            return new AsyncEnumerator(_reader, cancellationToken);
         }
     }
 
@@ -85,7 +85,7 @@ partial class CsvParser<T>
     [SkipLocalsInit]
     public ref struct Enumerator : IDisposable
     {
-        [HandlesResourceDisposal] private readonly CsvParser<T> _parser;
+        [HandlesResourceDisposal] private readonly CsvReader<T> _reader;
         private EnumeratorStack _stackMemory;
 
         private ref Meta _meta;
@@ -93,16 +93,16 @@ partial class CsvParser<T>
 
         private ref T _data;
 
-        internal Enumerator(CsvParser<T> parser)
+        internal Enumerator(CsvReader<T> reader)
         {
-            _parser = parser;
+            _reader = reader;
         }
 
         /// <summary>
         /// Current record.
         /// </summary>
         [UnscopedRef]
-        public CsvFieldsRef<T> Current => new(_parser, ref _data, ref _meta, _metaLength, _stackMemory.AsSpan());
+        public CsvFieldsRef<T> Current => new(_reader, ref _data, ref _meta, _metaLength, _stackMemory.AsSpan<T>());
 
         /// <summary>
         /// Attempts to read the next record.
@@ -113,22 +113,13 @@ partial class CsvParser<T>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool MoveNext()
         {
-            CsvParser<T> parser = _parser;
+            CsvReader<T> reader = _reader;
 
-            if (parser._metaIndex < parser._metaCount)
+            if (reader._metaBuffer.TryPop(out ArraySegment<Meta> meta))
             {
-                ref Meta metaRef = ref MemoryMarshal.GetArrayDataReference(parser._metaArray);
-
-                if (Meta.TryFindNextEOL(
-                        first: ref Unsafe.Add(ref metaRef, 1 + parser._metaIndex),
-                        end: parser._metaCount - parser._metaIndex + 1,
-                        index: out int fieldCount))
-                {
-                    _meta = ref Unsafe.Add(ref metaRef, parser._metaIndex);
-                    _metaLength = fieldCount + 1;
-                    parser._metaIndex += fieldCount;
-                    return true;
-                }
+                _meta = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(meta.Array!), meta.Offset);
+                _metaLength = meta.Count;
+                return true;
             }
 
             return MoveNextSlow();
@@ -137,20 +128,20 @@ partial class CsvParser<T>
         [MethodImpl(MethodImplOptions.NoInlining)]
         private bool MoveNextSlow()
         {
-            if (_parser.TryReadUnbuffered(out CsvFields<T> fields, isFinalBlock: false))
+            if (_reader.TryFillBuffer(out CsvFields<T> fields))
             {
                 goto ConstructValue;
             }
 
-            while (_parser.TryAdvanceReader())
+            while (_reader.TryAdvanceReader())
             {
-                if (_parser.TryReadLine(out fields, isFinalBlock: false))
+                if (_reader.TryReadLine(out fields))
                 {
                     goto ConstructValue;
                 }
             }
 
-            if (!_parser.TryReadUnbuffered(out fields, isFinalBlock: true))
+            if (!_reader.TryReadLine(out fields))
             {
                 _data = ref Unsafe.NullRef<T>();
                 _meta = ref Unsafe.NullRef<Meta>();
@@ -170,7 +161,7 @@ partial class CsvParser<T>
         /// </summary>
         public void Dispose()
         {
-            _parser.Dispose();
+            _reader.Dispose();
             _metaLength = 0;
             _meta = ref Unsafe.NullRef<Meta>();
             _data = ref Unsafe.NullRef<T>();
@@ -184,34 +175,36 @@ partial class CsvParser<T>
         // the asyncenumerator struct needs to be readonly to play nice with async
         private sealed class Box
         {
-            public CsvFields<T> Value;
+            public CsvFields<T> Fields;
 
             // ReSharper disable once UnassignedField.Local
-            public EnumeratorStack Stack;
+#pragma warning disable CS0649
+            public EnumeratorStack Memory;
+#pragma warning restore CS0649
         }
 
-        private readonly CsvParser<T> _parser;
+        private readonly CsvReader<T> _reader;
         private readonly CancellationToken _cancellationToken;
-        private readonly Box _field;
+        private readonly Box _box;
 
-        internal AsyncEnumerator(CsvParser<T> parser, CancellationToken cancellationToken)
+        internal AsyncEnumerator(CsvReader<T> reader, CancellationToken cancellationToken)
         {
-            _parser = parser;
+            _reader = reader;
             _cancellationToken = cancellationToken;
-            _field = new();
+            _box = new();
         }
 
         /// <summary>
         /// Returns a read-only reference to the field value that <see cref="Current"/> is constructed from.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public ref readonly CsvFields<T> UnsafeGetFields() => ref _field.Value;
+        public ref readonly CsvFields<T> UnsafeGetFields() => ref _box.Fields;
 
         /// <inheritdoc cref="Enumerator.Current"/>
         public CsvFieldsRef<T> Current
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => new(in _field.Value, Unsafe.AsRef(in _field.Stack).AsSpan());
+            get => new(in _box.Fields, Unsafe.AsRef(in _box.Memory).AsSpan<T>());
         }
 
         /// <inheritdoc cref="Enumerator.MoveNext"/>
@@ -223,7 +216,7 @@ partial class CsvParser<T>
                 return ValueTask.FromCanceled<bool>(_cancellationToken);
             }
 
-            if (_parser.TryGetBuffered(out _field.Value))
+            if (_reader.TryGetBuffered(out _box.Fields))
             {
                 return new ValueTask<bool>(true);
             }
@@ -234,46 +227,46 @@ partial class CsvParser<T>
         [MethodImpl(MethodImplOptions.NoInlining)]
         private async ValueTask<bool> MoveNextSlowAsync()
         {
-            if (_parser.TryReadUnbuffered(out _field.Value, isFinalBlock: false))
+            if (_reader.TryFillBuffer(out _box.Fields))
             {
                 return true;
             }
 
-            while (await _parser.TryAdvanceReaderAsync(_cancellationToken).ConfigureAwait(false))
+            while (await _reader.TryAdvanceReaderAsync(_cancellationToken).ConfigureAwait(false))
             {
-                if (_parser.TryReadLine(out _field.Value, isFinalBlock: false))
+                if (_reader.TryReadLine(out _box.Fields))
                 {
                     return true;
                 }
             }
 
-            return _parser.TryReadUnbuffered(out _field.Value, isFinalBlock: true);
+            return _reader.TryReadLine(out _box.Fields);
         }
 
         /// <inheritdoc cref="Enumerator.Dispose"/>
         public ValueTask DisposeAsync()
         {
-            _field.Value = default; // don't hold on to data
-            return _parser.DisposeAsync();
+            _box.Fields = default; // don't hold on to data
+            return _reader.DisposeAsync();
         }
     }
+}
 
-    [SkipLocalsInit]
-    [InlineArray(Length)]
-    internal struct EnumeratorStack
-    {
-        public const int Length = 256;
-        public byte elem0;
-    }
+[SkipLocalsInit]
+[InlineArray(Length)]
+internal struct EnumeratorStack
+{
+    public const int Length = 256;
+    public byte elem0;
 }
 
 [SkipLocalsInit]
 file static class LocalExtensions
 {
-    private const int Length = CsvParser<byte>.EnumeratorStack.Length;
+    private const int Length = EnumeratorStack.Length;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Span<T> AsSpan<T>(ref this CsvParser<T>.EnumeratorStack memory)
+    public static Span<T> AsSpan<T>(ref this EnumeratorStack memory)
         where T : unmanaged, IBinaryInteger<T>
     {
         if (typeof(T) == typeof(byte))

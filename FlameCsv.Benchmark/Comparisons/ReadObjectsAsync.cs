@@ -37,7 +37,7 @@ public class ReadObjectsAsync
     public async Task _FlameCsv()
     {
         using var reader = new StreamReader(new MemoryStream(_data), Encoding.UTF8);
-        await using var pipe = CsvPipeReader.Create(reader);
+        await using var pipe = CsvBufferReader.Create(reader);
         await foreach (var entry in new CsvValueEnumerable<char, Entry>(pipe, _flameCsvOptions).ConfigureAwait(false))
         {
             _ = entry;
@@ -48,7 +48,7 @@ public class ReadObjectsAsync
     public async Task _Flame_SrcGen()
     {
         using var reader = new StreamReader(new MemoryStream(_data), Encoding.UTF8);
-        await using var pipe = CsvPipeReader.Create(reader);
+        await using var pipe = CsvBufferReader.Create(reader);
         await foreach (var entry in new CsvTypeMapEnumerable<char, Entry>(pipe, _flameCsvOptions, EntryTypeMap.Default)
                            .ConfigureAwait(false))
         {

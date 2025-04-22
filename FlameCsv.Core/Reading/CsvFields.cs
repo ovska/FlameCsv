@@ -17,9 +17,9 @@ namespace FlameCsv.Reading;
 public readonly struct CsvFields<T> : ICsvFields<T> where T : unmanaged, IBinaryInteger<T>
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal CsvFields(CsvParser<T> parser, ReadOnlyMemory<T> data, ArraySegment<Meta> fieldMeta)
+    internal CsvFields(CsvReader<T> reader, ReadOnlyMemory<T> data, ArraySegment<Meta> fieldMeta)
     {
-        Parser = parser;
+        Reader = reader;
         Data = data;
         _fieldMeta = fieldMeta;
     }
@@ -43,7 +43,7 @@ public readonly struct CsvFields<T> : ICsvFields<T> where T : unmanaged, IBinary
         get => _fieldMeta.AsSpanUnsafe();
     }
 
-    internal CsvParser<T> Parser { get; }
+    internal CsvReader<T> Reader { get; }
 
     /// <summary>
     /// Returns length of the raw record.
@@ -78,7 +78,7 @@ public readonly struct CsvFields<T> : ICsvFields<T> where T : unmanaged, IBinary
             return $"{{ CsvFields<{Token<T>.Name}>: Empty }}";
         }
 
-        return $"{{ CsvFields<{Token<T>.Name}>[{Fields.Length - 1}]: \"{Parser.Options.GetAsString(Record.Span)}\" }}";
+        return $"{{ CsvFields<{Token<T>.Name}>[{Fields.Length - 1}]: \"{Reader.Options.GetAsString(Record.Span)}\" }}";
     }
 
     private class CsvLineDebugView
@@ -134,11 +134,11 @@ public readonly struct CsvFields<T> : ICsvFields<T> where T : unmanaged, IBinary
 
         return fields[index + 1]
             .GetField(
-                dialect: in Parser._dialect,
+                dialect: in Reader._dialect,
                 start: start,
                 data: ref MemoryMarshal.GetReference(data),
                 buffer: buffer,
-                allocator: Parser._unescapeAllocator);
+                allocator: Reader._unescapeAllocator);
     }
 
     /// <summary>
@@ -146,8 +146,8 @@ public readonly struct CsvFields<T> : ICsvFields<T> where T : unmanaged, IBinary
     /// </summary>
     public Enumerator GetEnumerator()
     {
-        Throw.IfDefaultStruct(Parser is null, typeof(CsvFields<T>));
-        var reader = new CsvFieldsRef<T>(in this, Parser._unescapeAllocator);
+        Throw.IfDefaultStruct(Reader is null, typeof(CsvFields<T>));
+        var reader = new CsvFieldsRef<T>(in this, Reader._unescapeAllocator);
         return new Enumerator(reader);
     }
 

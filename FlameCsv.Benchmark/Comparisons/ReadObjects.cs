@@ -50,7 +50,7 @@ public partial class ReadObjects
     public void _Flame_SrcGen()
     {
         using var reader = new StreamReader(new MemoryStream(_data), Encoding.UTF8);
-        using var pipe = CsvPipeReader.Create(reader);
+        using var pipe = CsvBufferReader.Create(reader);
         foreach (var entry in new CsvTypeMapEnumerable<char, Entry>(pipe, _flameCsvOptions, EntryTypeMap.Default))
         {
             _ = entry;
@@ -61,7 +61,7 @@ public partial class ReadObjects
     public void _FlameCsv()
     {
         using var reader = new StreamReader(new MemoryStream(_data), Encoding.UTF8);
-        using var pipe = CsvPipeReader.Create(reader);
+        using var pipe = CsvBufferReader.Create(reader);
         foreach (var entry in new CsvValueEnumerable<char, Entry>(pipe, _flameCsvOptions))
         {
             _ = entry;

@@ -52,7 +52,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     /// <param name="cancellationToken">Token to cancel asynchronous enumeration</param>
     protected CsvValueEnumeratorBase(
         CsvOptions<T> options,
-        ICsvPipeReader<T> reader,
+        ICsvBufferReader<T> reader,
         CancellationToken cancellationToken)
         : base(options, reader, cancellationToken)
     {
@@ -144,7 +144,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         CsvFieldsRef<T> reader = new(in record, stackalloc T[Token<T>.StackLength]);
 
         _materializer = CsvHeader.Parse(
-            Parser.Options,
+            Reader.Options,
             ref reader,
             this,
             static (@this, headers) =>

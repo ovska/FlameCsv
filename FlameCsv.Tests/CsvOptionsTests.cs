@@ -238,7 +238,6 @@ public class CsvOptionsTests
         Run(o => o.FormatProvider = null);
         Run(o => o.FormatProviders.Add(typeof(int), null));
         Run(o => o.Formats.Add(typeof(int), null));
-        Run(o => o.NoReadAhead = true);
         Run(o => o.MemoryPool = null);
         Run(o => o.Null = "null");
         Run(o => o.NumberStyles.Add(typeof(int), NumberStyles.None));

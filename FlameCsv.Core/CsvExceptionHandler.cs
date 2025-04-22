@@ -62,7 +62,7 @@ public readonly ref struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBina
     /// <summary>
     /// Options instance.
     /// </summary>
-    public CsvOptions<T> Options => _fields.Parser.Options;
+    public CsvOptions<T> Options => _fields.Reader.Options;
 
     /// <summary>
     /// 1-based line number.

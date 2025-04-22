@@ -40,7 +40,7 @@ public class PeekFieldsAsync
         double sum = 0;
 
         await using var enumerator
-            = CsvParser.Create(_flameCsvOptions, in sequence).ParseRecordsAsync().GetAsyncEnumerator();
+            = new CsvReader<byte>(_flameCsvOptions, in sequence).ParseRecordsAsync().GetAsyncEnumerator();
 
         // skip first record
         _ = await enumerator.MoveNextAsync();

@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.Enumeration;
@@ -89,7 +88,7 @@ public static partial class CsvReader
         Guard.CanRead(stream);
 
         options ??= CsvOptions<char>.Default;
-        var reader = CsvPipeReader.Create(stream, encoding, options.Allocator, readerOptions);
+        var reader = CsvBufferReader.Create(stream, encoding, options.Allocator, readerOptions);
         return new CsvValueEnumerable<char, TValue>(reader, options);
     }
 
@@ -108,7 +107,7 @@ public static partial class CsvReader
         ArgumentNullException.ThrowIfNull(textReader);
 
         options ??= CsvOptions<char>.Default;
-        var reader = CsvPipeReader.Create(textReader, options.Allocator, readerOptions);
+        var reader = CsvBufferReader.Create(textReader, options.Allocator, readerOptions);
         return new CsvValueEnumerable<char, TValue>(reader, options);
     }
 
@@ -128,24 +127,7 @@ public static partial class CsvReader
         Guard.CanRead(stream);
 
         options ??= CsvOptions<byte>.Default;
-        var reader = CsvPipeReader.Create(stream, options.Allocator, readerOptions);
+        var reader = CsvBufferReader.Create(stream, options.Allocator, readerOptions);
         return new CsvValueEnumerable<byte, TValue>(reader, options);
-    }
-
-    /// <summary>
-    /// Parses instances of <typeparamref name="TValue"/> from the pipe using reflection.
-    /// </summary>
-    /// <param name="reader">Pipe to read the records from</param>
-    /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public static ICsvValueAsyncEnumerable<byte, TValue> Read<[DAM(Messages.ReflectionBound)] TValue>(
-        PipeReader reader,
-        CsvOptions<byte>? options = null)
-    {
-        ArgumentNullException.ThrowIfNull(reader);
-
-        return new CsvValueEnumerable<byte, TValue>(
-            new PipeReaderWrapper(reader),
-            options ?? CsvOptions<byte>.Default);
     }
 }
