@@ -4,8 +4,6 @@ using BenchmarkDotNet.Exporters.Json;
 using BenchmarkDotNet.Reports;
 using Perfolizer.Metrology;
 
-_ = new UnescapeBench();
-
 #if RELEASE
 IConfig config = DefaultConfig.Instance;
 #else

@@ -18,7 +18,7 @@ internal readonly ref struct RawFieldReader<T> : ICsvFields<T> where T : unmanag
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public RawFieldReader(scoped ref readonly CsvFields<T> fields)
     {
-        Options = fields.Parser.Options;
+        Options = fields.Reader.Options;
         _data = fields.Data.Span;
         _firstMeta = ref MemoryMarshal.GetReference(fields.Fields);
         _fieldCount = fields.Fields.Length - 1;

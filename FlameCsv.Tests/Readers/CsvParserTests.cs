@@ -1,6 +1,5 @@
 ﻿using System.Buffers;
 using System.IO.Compression;
-using System.IO.Pipelines;
 using System.Text;
 using FlameCsv.IO;
 using FlameCsv.Reading;
@@ -9,7 +8,7 @@ using FlameCsv.Tests.Utilities;
 
 namespace FlameCsv.Tests.Readers;
 
-public class CsvParserTests
+public class CsvReaderTests
 {
     private const string Data =
         """"
@@ -77,14 +76,18 @@ public class CsvParserTests
             "Oslo, Norway",
         ];
 
-        var parser = CsvParser.Create(
+        var parser = new CsvReader<char>(
             new CsvOptions<char>
             {
-                NoReadAhead = true,
-                Newline = newline == NewlineToken.LF ? "\n" : "\r\n",
+                Newline = newline switch
+                {
+                    NewlineToken.LF => "\n",
+                    NewlineToken.CRLF => "\r\n",
+                    _ => null!,
+                },
                 Escape = mode == Mode.Escape ? '^' : null,
             },
-            CsvPipeReader.Create(MemorySegment<char>.AsSequence(data.AsMemory(), 64)));
+            CsvBufferReader.Create(MemorySegment<char>.AsSequence(data.AsMemory(), 64)));
 
         using var enumerator = parser.ParseRecords().GetEnumerator();
 
@@ -103,8 +106,8 @@ public class CsvParserTests
         }
     }
 
-    [Fact]
-    public void Should_Handle_Empty_Lines()
+    [Theory, InlineData(true), InlineData(false)]
+    public void Should_Handle_Empty_Lines(bool crlf)
     {
         const string data =
             """
@@ -114,9 +117,10 @@ public class CsvParserTests
 
             """;
 
-        var parser = CsvParser.Create(
-            new CsvOptions<char> { Newline = "\n" },
-            new ReadOnlySequence<char>(data.AsMemory()));
+        string newline = crlf ? "\r\n" : "\n";
+        var parser = new CsvReader<char>(
+            new CsvOptions<char> { Newline = newline },
+            new ReadOnlySequence<char>(data.ReplaceLineEndings(newline).AsMemory()));
 
         using var enumerator = parser.ParseRecords().GetEnumerator();
 
@@ -143,7 +147,7 @@ public class CsvParserTests
                 7,8,9
                 """u8.ToArray();
 
-        await using var reader = CsvPipeReader.Create(
+        await using var reader = CsvBufferReader.Create(
             new StreamReader(
                 new MemoryStream(data),
                 Encoding.UTF8,
@@ -153,85 +157,56 @@ public class CsvParserTests
 
         Assert.Equal(Encoding.UTF8.GetString(data).ToCharArray(), result.Buffer.ToArray());
 
-        var parser = CsvParser.Create(CsvOptions<char>.Default, reader);
+        var parser = new CsvReader<char>(CsvOptions<char>.Default, reader);
 
         await using var enumerator = parser
             .ParseRecordsAsync(TestContext.Current.CancellationToken)
             .GetAsyncEnumerator();
 
-        Assert.False(parser.TryGetBuffered(out _));
-
         Assert.True(await enumerator.MoveNextAsync());
         Assert.Equal("1,2,3", enumerator.Current.Record.ToString());
 
-        // buffer is cleared on Advance
-        Assert.True(await parser.TryAdvanceReaderAsync(TestContext.Current.CancellationToken));
-
-        Assert.False(parser.TryGetBuffered(out _)); // buffer is cleared on Advance
         Assert.True(await enumerator.MoveNextAsync());
         Assert.Equal("4,5,6", enumerator.Current.Record.ToString());
 
         // no trailing newline
-        Assert.False(parser.TryGetBuffered(out _));
-        Assert.False(parser.TryReadLine(out _, isFinalBlock: false));
+        Assert.True(await enumerator.MoveNextAsync());
+        Assert.Equal("7,8,9", enumerator.Current.Record.ToString());
 
-        Assert.True(parser.TryReadLine(out var line, isFinalBlock: true));
-        Assert.Equal("7,8,9", line.Record.ToString());
+        Assert.False(await enumerator.MoveNextAsync());
     }
 
     [Fact]
     public void Should_Reset()
     {
-        (ICsvPipeReader<char> reader, bool resetable)[] charData =
+        (ICsvBufferReader<char> reader, bool resetable)[] charData =
         [
-            (CsvPipeReader.Create(ReadOnlySequence<char>.Empty), true),
-            (CsvPipeReader.Create(new StringBuilder("test")), true),
-            (CsvPipeReader.Create(new StringReader("wrapped in constant")), true),
-            (CsvPipeReader.Create(new StreamReader(new MemoryStream())), false),
-            (CsvPipeReader.Create(new MemoryStream(), Encoding.UTF8), false),
+            (CsvBufferReader.Create(ReadOnlySequence<char>.Empty), true),
+            (CsvBufferReader.Create(new StringBuilder("test")), true),
+            (CsvBufferReader.Create(new StringReader("wrapped in constant")), true),
+            (CsvBufferReader.Create(new StreamReader(new MemoryStream())), false),
+            (CsvBufferReader.Create(new MemoryStream(), Encoding.UTF8), false),
         ];
 
-        foreach ((ICsvPipeReader<char> reader, bool resetable) in charData)
+        foreach ((ICsvBufferReader<char> reader, bool resetable) in charData)
         {
-            using var parser = CsvParser.Create(CsvOptions<char>.Default, reader);
+            using var parser = new CsvReader<char>(CsvOptions<char>.Default, reader);
             Assert.Equal(resetable, parser.TryReset());
         }
 
-        (ICsvPipeReader<byte> reader, bool resetable)[] byteData =
+        (ICsvBufferReader<byte> reader, bool resetable)[] byteData =
         [
-            (CsvPipeReader.Create(ReadOnlySequence<byte>.Empty), true),
-            (CsvPipeReader.Create(new MemoryStream()), true),
-            (CsvPipeReader.Create(new MemoryStream([1, 2, 3])), true),
-            (CsvPipeReader.Create(new GZipStream(Stream.Null, CompressionMode.Decompress)), false),
-            (new PipeReaderWrapper(PipeReader.Create(new MemoryStream())), false), // pipereader is not resetable
+            (CsvBufferReader.Create(ReadOnlySequence<byte>.Empty), true),
+            (CsvBufferReader.Create(new MemoryStream()), true),
+            (CsvBufferReader.Create(new MemoryStream([1, 2, 3])), true),
+            (CsvBufferReader.Create(new GZipStream(Stream.Null, CompressionMode.Decompress)), false),
         ];
 
-        foreach ((ICsvPipeReader<byte> reader, bool resetable) in byteData)
+        foreach ((ICsvBufferReader<byte> reader, bool resetable) in byteData)
         {
-            using var parser = CsvParser.Create(CsvOptions<byte>.Default, reader);
+            using var parser = new CsvReader<byte>(CsvOptions<byte>.Default, reader);
             Assert.Equal(resetable, parser.TryReset());
         }
-    }
-
-    [Theory, InlineData(true), InlineData(false)]
-    public void Should_Skip_Whitespace_Last_Line(bool unix)
-    {
-        const string data = "A,B,C\nD,E,F\n   ";
-
-        CsvOptions<char> options = new()
-        {
-            Trimming = CsvFieldTrimming.Both, Newline = "\n", Escape = unix ? '\\' : null,
-        };
-
-        List<string> lines = [];
-
-        // ReSharper disable once NotDisposedResource
-        foreach (var line in CsvParser.Create(options, CsvPipeReader.Create(data.AsMemory())).ParseRecords())
-        {
-            lines.Add(line.Record.ToString());
-        }
-
-        Assert.Equal(["A,B,C", "D,E,F"], lines);
     }
 
     [Fact]
@@ -251,11 +226,11 @@ public class CsvParserTests
 
         Assert.Equal(data.AsSpan(0, Encoding.UTF8.Preamble.Length), Encoding.UTF8.Preamble);
 
-        var parser = CsvParser.Create(CsvOptions<byte>.Default, CsvPipeReader.Create(data.AsMemory()));
+        var reader = new CsvReader<byte>(CsvOptions<byte>.Default, CsvBufferReader.Create(data.AsMemory()));
 
         List<byte[]> results = [];
 
-        foreach (var line in parser.ParseRecords())
+        foreach (var line in reader.ParseRecords())
         {
             results.Add(line.Record.ToArray());
         }

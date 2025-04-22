@@ -49,7 +49,7 @@ public partial class PeekFields
 
         double sum = 0;
 
-        using var enumerator = CsvParser.Create<byte>(_flameCsvOptions, in sequence).ParseRecords().GetEnumerator();
+        using var enumerator = new CsvReader<byte>(_flameCsvOptions, in sequence).ParseRecords().GetEnumerator();
 
         // skip first record
         _ = enumerator.MoveNext();

@@ -18,7 +18,7 @@ public sealed class CsvValueEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TV
     /// <param name="cancellationToken">Token to cancel asynchronous enumeration</param>
     public CsvValueEnumerator(
         CsvOptions<T> options,
-        ICsvPipeReader<T> reader,
+        ICsvBufferReader<T> reader,
         CancellationToken cancellationToken = default)
         : base(options, reader, cancellationToken)
     {
@@ -27,12 +27,12 @@ public sealed class CsvValueEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TV
     /// <inheritdoc/>
     protected override IMaterializer<T, TValue> BindToHeaders(ReadOnlySpan<string> headers)
     {
-        return Parser.Options.TypeBinder.GetMaterializer<TValue>(headers);
+        return Reader.Options.TypeBinder.GetMaterializer<TValue>(headers);
     }
 
     /// <inheritdoc/>
     protected override IMaterializer<T, TValue> BindToHeaderless()
     {
-        return Parser.Options.TypeBinder.GetMaterializer<TValue>();
+        return Reader.Options.TypeBinder.GetMaterializer<TValue>();
     }
 }

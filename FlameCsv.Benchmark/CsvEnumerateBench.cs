@@ -50,7 +50,7 @@ public class CsvEnumerateBench
     [Benchmark(Baseline = true)]
     public void Flame_byte()
     {
-        foreach (var record in CsvParser.Create(OptionsByte, in _byteSeq).ParseRecords())
+        foreach (var record in new CsvReader<byte>(OptionsByte, in _byteSeq).ParseRecords())
         {
             for (int i = 0; i < record.FieldCount; i++)
             {
@@ -62,7 +62,7 @@ public class CsvEnumerateBench
     [Benchmark]
     public void Flame_char()
     {
-        foreach (var record in CsvParser.Create(OptionsChar, in _charSeq).ParseRecords())
+        foreach (var record in new CsvReader<char>(OptionsChar, in _charSeq).ParseRecords())
         {
             for (int i = 0; i < record.FieldCount; i++)
             {

@@ -28,18 +28,18 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     /// </summary>
     public long Position { get; private set; }
 
-    [HandlesResourceDisposal] private readonly CsvParser<T> _parser;
+    [HandlesResourceDisposal] private readonly CsvReader<T> _reader;
     private readonly CancellationToken _cancellationToken;
 
     /// <summary>
     /// The CSV parser.
     /// </summary>
-    protected CsvParser<T> Parser => _parser;
+    protected CsvReader<T> Reader => _reader;
 
     /// <summary>
     /// The options used.
     /// </summary>
-    public CsvOptions<T> Options => _parser.Options;
+    public CsvOptions<T> Options => _reader.Options;
 
     private readonly CsvRecordCallback<T>? _callback;
 
@@ -59,11 +59,11 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     /// <param name="options">Options to use for reading</param>
     /// <param name="reader">Data source</param>
     /// <param name="cancellationToken">Token to cancel asynchronous enumeration</param>
-    protected CsvEnumeratorBase(CsvOptions<T> options, ICsvPipeReader<T> reader, CancellationToken cancellationToken)
+    protected CsvEnumeratorBase(CsvOptions<T> options, ICsvBufferReader<T> reader, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(reader);
-        _parser = CsvParser.Create(options, reader);
+        _reader = new CsvReader<T>(options, reader);
         _cancellationToken = cancellationToken;
         _callback = options.RecordCallback;
     }
@@ -111,7 +111,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     /// <inheritdoc cref="System.Collections.IEnumerator.MoveNext"/>
     public bool MoveNext()
     {
-        while (_parser.TryReadLine(out CsvFields<T> line, isFinalBlock: false))
+        while (_reader.TryReadLine(out CsvFields<T> line))
         {
             if (CallMoveNextAndIncrementPosition(in line))
             {
@@ -130,7 +130,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
             return ValueTask.FromCanceled<bool>(_cancellationToken);
         }
 
-        while (_parser.TryReadLine(out CsvFields<T> line, isFinalBlock: false))
+        while (_reader.TryReadLine(out CsvFields<T> line))
         {
             if (CallMoveNextAndIncrementPosition(in line))
             {
@@ -159,15 +159,15 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     {
         CsvFields<T> fields;
 
-        while (_parser.TryAdvanceReader())
+        while (_reader.TryAdvanceReader())
         {
-            while (_parser.TryReadLine(out fields, isFinalBlock: false))
+            while (_reader.TryReadLine(out fields))
             {
                 if (CallMoveNextAndIncrementPosition(in fields)) return true;
             }
         }
 
-        return _parser.TryReadLine(out fields, isFinalBlock: true) && CallMoveNextAndIncrementPosition(in fields);
+        return _reader.TryReadLine(out fields) && CallMoveNextAndIncrementPosition(in fields);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -176,15 +176,15 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     {
         CsvFields<T> fields;
 
-        while (await _parser.TryAdvanceReaderAsync(_cancellationToken).ConfigureAwait(false))
+        while (await _reader.TryAdvanceReaderAsync(_cancellationToken).ConfigureAwait(false))
         {
-            while (_parser.TryReadLine(out fields, isFinalBlock: false))
+            while (_reader.TryReadLine(out fields))
             {
                 if (CallMoveNextAndIncrementPosition(in fields)) return true;
             }
         }
 
-        return _parser.TryReadLine(out fields, isFinalBlock: true) && CallMoveNextAndIncrementPosition(in fields);
+        return _reader.TryReadLine(out fields) && CallMoveNextAndIncrementPosition(in fields);
     }
 
     /// <summary>
@@ -193,7 +193,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     /// <exception cref="NotSupportedException">The internal reader does not support rewinding</exception>
     protected void ResetCore()
     {
-        if (!_parser.TryReset())
+        if (!_reader.TryReset())
         {
             throw new NotSupportedException("The inner data source does not support rewinding");
         }
@@ -202,7 +202,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     /// <inheritdoc />
     public void Dispose()
     {
-        using (_parser)
+        using (_reader)
         {
             Dispose(true);
         }
@@ -213,7 +213,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        await using (_parser)
+        await using (_reader)
         {
             await DisposeAsyncCore().ConfigureAwait(false);
         }

@@ -13,7 +13,7 @@ file static class Extensions
     {
         List<List<string>> records = [];
 
-        foreach (var reader in CsvParser.Create(options, in input).ParseRecords())
+        foreach (var reader in new CsvReader<char>(options, in input).ParseRecords())
         {
             List<string> fields = [];
 
@@ -99,10 +99,8 @@ public static class EscapeModeTests
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
 
         var result = seq.Read(new CsvOptions<char> { Newline = "\r\n", Escape = '^' });
-        Assert.Equal(2, result.Count);
-        Assert.Equal(2, result.Sum(row => row.Count));
-        Assert.Equal("xyz", result[0][0]);
-        Assert.Equal("abc", result[1][0]);
+        // Assert.Equal(2, result.Count);
+        Assert.Equal([["xyz"], ["abc"]], result);
     }
 
     [Fact]
