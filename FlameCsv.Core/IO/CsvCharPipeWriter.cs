@@ -10,7 +10,7 @@ namespace FlameCsv.IO;
 [DebuggerDisplay("[CsvCharBufferWriter] Written: {_unflushed} / {_buffer.Length})")]
 internal sealed class CsvCharPipeWriter : ICsvPipeWriter<char>
 {
-    private static readonly int _defaultBufferSize = 8 * Environment.SystemPageSize / sizeof(char);
+    private static readonly int _defaultBufferSize = 4 * Environment.SystemPageSize / sizeof(char);
 
     private readonly TextWriter _writer;
     private readonly MemoryPool<char> _allocator;
