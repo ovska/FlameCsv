@@ -204,7 +204,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
         if (_reader.TryReset())
         {
             SetReadResult(in CsvReadResult<T>.Empty);
-            _metaBuffer.HardReset();
+            _metaBuffer.Initialize();
             _state = State.Initialized;
             return true;
         }

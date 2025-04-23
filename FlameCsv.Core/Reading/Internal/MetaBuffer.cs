@@ -1,6 +1,8 @@
-﻿using System.Diagnostics;
+﻿using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using CommunityToolkit.HighPerformance;
 
 namespace FlameCsv.Reading.Internal;
 
@@ -11,7 +13,7 @@ internal sealed class MetaBuffer : IDisposable
     /// <summary>
     /// Storage for the field metadata.
     /// </summary>
-    private Meta[] _array = [];
+    private Meta[] _array;
 
     /// <summary>
     /// Number of fields that have been consumed from the buffer.
@@ -23,15 +25,10 @@ internal sealed class MetaBuffer : IDisposable
     /// </summary>
     private int _count;
 
-    public Span<Meta> GetBuffer()
+    public MetaBuffer()
     {
-        if (_array.Length == 0)
-        {
-            _array = GetMetaBuffer();
-            _array[0] = Meta.StartOfData;
-        }
-
-        return _array.AsSpan(start: 1);
+        _array = ArrayPool<Meta>.Shared.Rent(FlameCsvGlobalOptions.ReadAheadCount);
+        _array[0] = Meta.StartOfData;
     }
 
     /// <summary>
@@ -41,12 +38,7 @@ internal sealed class MetaBuffer : IDisposable
     /// <param name="startIndex">Start index in the data after the first free field, or 0 if there are none</param>
     public Span<Meta> GetUnreadBuffer(out int startIndex)
     {
-        if (_array.Length == 0)
-        {
-            _array = GetMetaBuffer();
-            _array[0] = Meta.StartOfData;
-        }
-
+        ObjectDisposedException.ThrowIf(_array.Length == 0, this);
         startIndex = _array[_count].NextStart;
         return _array.AsSpan(start: _count + 1);
     }
@@ -61,7 +53,7 @@ internal sealed class MetaBuffer : IDisposable
 
         if (_count >= (_array.Length * 15 / 16))
         {
-            Array.Resize(ref _array, _array.Length * 2);
+            ArrayPool<Meta>.Shared.Resize(ref _array, _array.Length * 2);
         }
 
         return _array[_count].NextStart;
@@ -73,8 +65,8 @@ internal sealed class MetaBuffer : IDisposable
     /// <returns></returns>
     public int Reset()
     {
-        // nothing yet, or no fully formed record
-        if (_index == 0 || _count == 0 || _array.Length == 0)
+        // nothing yet
+        if (_index == 0 || _count == 0)
         {
             return 0;
         }
@@ -89,6 +81,7 @@ internal sealed class MetaBuffer : IDisposable
         _count -= _index;
         _index = 0;
 
+        Debug.Assert(_array[0] == Meta.StartOfData);
         Debug.Assert(lastRead.IsEOL);
         Debug.Assert(_count >= 0);
 
@@ -126,46 +119,25 @@ internal sealed class MetaBuffer : IDisposable
         return false;
     }
 
-    public void HardReset()
+    public void Initialize()
     {
         _index = 0;
         _count = 0;
-
-        Span<Meta> span = _array.AsSpan();
-
-        if (span.IsEmpty) return;
-
-        span.Clear();
+        ArrayPool<Meta>.Shared.EnsureCapacity(ref _array, FlameCsvGlobalOptions.ReadAheadCount);
+        _array[0] = Meta.StartOfData;
     }
 
     public void Dispose()
     {
         _index = 0;
         _count = 0;
-        ReturnMetaBuffer(ref _array);
-    }
+        Meta[] local = _array;
+        _array = [];
 
-    private static readonly int _fieldBufferLength = FlameCsvGlobalOptions.ReadAheadCount;
-
-    [ThreadStatic] private static Meta[]? _staticMetaBuffer;
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static Meta[] GetMetaBuffer()
-    {
-        Meta[] array = _staticMetaBuffer ?? new Meta[_fieldBufferLength];
-        _staticMetaBuffer = null;
-        return array;
-    }
-
-    private static void ReturnMetaBuffer(ref Meta[] array)
-    {
-        // return the buffer to the thread-static unless someone read too many fields into it
-        if (array.Length == _fieldBufferLength)
+        if (local.Length > 0)
         {
-            _staticMetaBuffer ??= array;
+            ArrayPool<Meta>.Shared.Return(local);
         }
-
-        array = [];
     }
 
     // ReSharper disable NotAccessedField.Local

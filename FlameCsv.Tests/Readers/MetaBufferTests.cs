@@ -11,7 +11,6 @@ public class MetaBufferTests
         var array = new Meta[4];
         array[0] = Meta.StartOfData;
         buffer.UnsafeGetArrayRef() = array;
-        Assert.Equal(3, buffer.GetBuffer().Length);
 
         Assert.Equal(3, buffer.GetUnreadBuffer(out int startIndex).Length);
         Assert.Equal(0, startIndex);
@@ -46,8 +45,6 @@ public class MetaBufferTests
 
         Assert.True(buffer.TryPop(out var fields));
         Assert.Equal(array[..5].AsSpan(), fields.AsSpan());
-
-        Assert.Equal(array.Length - 1, buffer.GetBuffer().Length);
 
         // first 8 (+ startofdata) were read
         Assert.Equal(3, buffer.GetUnreadBuffer(out int startIndex).Length);
