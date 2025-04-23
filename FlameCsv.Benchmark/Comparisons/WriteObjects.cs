@@ -14,7 +14,7 @@ public class WriteObjects
     [Params(100, 5000, 20_000)] public int Records { get; set; } = 5000;
     [Params(false, true)] public bool Async { get; set; }
 
-    private static readonly TextWriter _destination = new NullTextWriter();
+    private static readonly TextWriter _destination = new YieldingNullTextWriter();
 
     private IEnumerable<Entry> Data
         => Records switch
@@ -153,7 +153,7 @@ public class WriteObjects
 }
 
 // TextWriter.Null equivalent with forced async yielding
-file sealed class NullTextWriter : TextWriter
+file sealed class YieldingNullTextWriter : TextWriter
 {
     public override IFormatProvider FormatProvider => CultureInfo.InvariantCulture;
     public override Encoding Encoding => Encoding.UTF8;
