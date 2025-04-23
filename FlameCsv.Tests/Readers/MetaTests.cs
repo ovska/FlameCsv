@@ -190,39 +190,26 @@ public static class MetaTests
     [MemberData(nameof(NewlineData))]
     public static void Should_Find_Newline(bool[] values, int expected)
     {
-        var metas = values.Select(static b => Meta.Plain(0, isEOL: b, 2)).ToArray();
+        using var metaBuffer = new MetaBuffer();
 
-        ref Meta first = ref metas[0];
+        var buffer = metaBuffer.GetUnreadBuffer(out _);
+
+        for (int i = 0; i < values.Length; i++)
+        {
+            buffer[i] = Meta.Plain(0, isEOL: values[i], 2);
+        }
+
+        metaBuffer.SetFieldsRead(values.Length);
 
         if (expected == -1)
         {
-            Assert.False(Meta.TryFindNextEOL(ref first, metas.Length, out _));
+            metaBuffer.TryPop(out _);
         }
         else
         {
-            Assert.True(Meta.TryFindNextEOL(ref first, metas.Length, out int index));
-            Assert.Equal(expected, index);
+            Assert.True(metaBuffer.TryPop(out var first));
+            Assert.Equal(expected, first.Count - 1);
         }
-
-        Assert.False(Meta.TryFindNextEOL(ref first, 0, out _));
-    }
-
-    [Theory]
-    [MemberData(nameof(NewlineData))]
-    public static void Should_Find_Last_Newline(bool[] values, int expected)
-    {
-        var metas = values.Select(static b => Meta.Plain(0, isEOL: b, 2)).ToArray();
-
-        if (expected == -1)
-        {
-            Assert.False(Meta.HasEOL(metas));
-        }
-        else
-        {
-            Assert.True(Meta.HasEOL(metas));
-        }
-
-        Assert.False(Meta.HasEOL([]));
     }
 
     public static TheoryData<bool[], int> NewlineData

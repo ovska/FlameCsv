@@ -120,13 +120,7 @@ internal abstract class CsvBufferReader<T> : ICsvBufferReader<T> where T : unman
         // otherwise, just move the unread data to the front
         if ((_buffer.Length - _startOffset) < _minimumReadSize)
         {
-            IMemoryOwner<T> newOwner = _pool.Rent(_buffer.Length * 2);
-            _buffer = newOwner.Memory;
-            _unread.CopyTo(_buffer);
-
-            _owner.Dispose();
-            _owner = newOwner;
-            _unread = _buffer.Slice(0, _startOffset);
+            ResizeBuffer();
         }
         else
         {
@@ -134,6 +128,18 @@ internal abstract class CsvBufferReader<T> : ICsvBufferReader<T> where T : unman
         }
 
         _unread = ReadOnlyMemory<T>.Empty;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void ResizeBuffer()
+    {
+        IMemoryOwner<T> newOwner = _pool.Rent(_buffer.Length * 2);
+        _buffer = newOwner.Memory;
+        _unread.CopyTo(_buffer);
+
+        _owner.Dispose();
+        _owner = newOwner;
+        _unread = _buffer.Slice(0, _startOffset);
     }
 
     /// <summary>

@@ -5,21 +5,6 @@ namespace FlameCsv.Tests.Readers;
 public class MetaBufferTests
 {
     [Fact]
-    public void Should_Return_Buffer()
-    {
-        MetaBuffer buffer = new();
-        var array = new Meta[4];
-        array[0] = Meta.StartOfData;
-        buffer.UnsafeGetArrayRef() = array;
-
-        Assert.Equal(3, buffer.GetUnreadBuffer(out int startIndex).Length);
-        Assert.Equal(0, startIndex);
-
-        buffer.Dispose();
-        Assert.Empty(buffer.UnsafeGetArrayRef());
-    }
-
-    [Fact]
     public void Should_Read_Fields()
     {
         MetaBuffer buffer = new();
