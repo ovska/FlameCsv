@@ -74,11 +74,13 @@ internal static class ReadExtensions
     public static ReadOnlySpan<T> Trim<T>(this ReadOnlySpan<T> value, CsvFieldTrimming trimming)
         where T : unmanaged, IBinaryInteger<T>
     {
+        T space = T.CreateTruncating(' ');
+
         return (trimming & CsvFieldTrimming.Both) switch
         {
-            CsvFieldTrimming.Leading => value.TrimStart(T.CreateTruncating(' ')),
-            CsvFieldTrimming.Trailing => value.TrimEnd(T.CreateTruncating(' ')),
-            CsvFieldTrimming.Both => value.Trim(T.CreateTruncating(' ')),
+            CsvFieldTrimming.Leading => value.TrimStart(space),
+            CsvFieldTrimming.Trailing => value.TrimEnd(space),
+            CsvFieldTrimming.Both => value.Trim(space),
             _ => value,
         };
     }
