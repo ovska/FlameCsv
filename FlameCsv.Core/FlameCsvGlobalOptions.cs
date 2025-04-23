@@ -13,9 +13,19 @@ namespace FlameCsv;
 public static class FlameCsvGlobalOptions
 {
     /// <summary>
-    /// Maximum number of CSV fields to read ahead. Defaults to 4096, minimum is 32.
-    /// Use <c>FLAMECSV_MAX_READAHEAD</c> to override.
+    /// Default size for the field read ahead buffer.
     /// </summary>
+    /// <seealso cref="ReadAheadCount"/>
+    public const int DefaultReadAheadCount = 4096;
+
+    /// <summary>
+    /// Default number of CSV fields to read ahead. Defaults to <see cref="DefaultReadAheadCount"/>, minimum is 32.
+    /// <br/>Environment variable <c>FLAMECSV_MAX_READAHEAD</c> can be used to override.
+    /// </summary>
+    /// <remarks>
+    /// This is only the initial value.
+    /// If a record has more fields than the read ahead buffer, the buffer will be resized to accommodate
+    /// </remarks>
     /// <exception cref="NotSupportedException">
     /// The property is modified after using the library or using the getter.
     /// </exception>
@@ -31,7 +41,8 @@ public static class FlameCsvGlobalOptions
     }
 
     /// <summary>
-    /// Indicates whether the application is short-lived (<c>FLAMECSV_DISABLE_CACHING</c> environment variable is set).
+    /// Indicates whether the application is short-lived.
+    /// <br/>Environment variable <c>FLAMECSV_DISABLE_CACHING</c> can be set to disable caching.
     /// </summary>
     /// <exception cref="NotSupportedException">
     /// The property is modified after using the library or using the getter.
@@ -65,7 +76,7 @@ public static class FlameCsvGlobalOptions
             return Math.Max(32, value);
         }
 
-        return 4096;
+        return DefaultReadAheadCount;
     }
 
     [DoesNotReturn]
