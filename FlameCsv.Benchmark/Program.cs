@@ -15,7 +15,7 @@ using Perfolizer.Horology;
 //     new Config(),
 //     args);
 
-BenchmarkRunner.Run<HasEOLBench>(new Config(), args);
+BenchmarkRunner.Run<EnumerateBench>(new Config(), args);
 
 file class Config : ManualConfig
 {

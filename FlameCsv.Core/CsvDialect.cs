@@ -46,7 +46,11 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     /// <summary>
     /// Wheter to trim trailing or leading spaces from unquoted fields.
     /// </summary>
-    public CsvFieldTrimming Trimming { get; init; }
+    public CsvFieldTrimming Trimming
+    {
+        get => _trimming;
+        init => _trimming = value;
+    }
 
     /// <summary>
     /// Optional character used for escaping special characters.
@@ -56,6 +60,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     private readonly StrongBox<SearchValues<T>?> _lazyValues = new();
 
     internal readonly NewlineBuffer<T> _newline;
+    internal readonly CsvFieldTrimming _trimming;
 
     /// <summary>
     /// Returns a <see cref="SearchValues{T}"/> instance
