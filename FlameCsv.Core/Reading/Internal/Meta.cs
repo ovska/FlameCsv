@@ -2,7 +2,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -40,8 +39,8 @@ internal readonly struct Meta : IEquatable<Meta>
     /// </summary>
     public const uint MaxSpecialCount = unchecked(((uint)SpecialCountMask >> 3));
 
-    [FieldOffset(0)] private readonly int _endAndEol;
-    [FieldOffset(4)] private readonly int _specialCountAndOffset;
+    [FieldOffset(0)] internal readonly int _endAndEol;
+    [FieldOffset(4)] internal readonly int _specialCountAndOffset;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Meta(int end, uint specialCount, bool isEscape, bool isEOL, int newlineLength)
@@ -226,7 +225,7 @@ internal readonly struct Meta : IEquatable<Meta>
         // - 8,51% of fields have just the wrapping quotes
         // - 0,08% of fields have quotes embedded, i.e. "John ""The Man"" Smith"
 
-        if (dialect.Trimming == CsvFieldTrimming.None)
+        if (dialect._trimming == CsvFieldTrimming.None)
         {
             // most common case, no quotes or escapes
             if ((_specialCountAndOffset & SpecialCountMask) == 0)
@@ -329,152 +328,6 @@ internal readonly struct Meta : IEquatable<Meta>
         }
 
         return field;
-    }
-
-    /// <summary>
-    /// Returns the index of the first EOL meta in the data.
-    /// </summary>
-    /// <param name="first">Reference to the first item in the search space</param>
-    /// <param name="end">Number of items in the search space</param>
-    /// <param name="index">Index of the first EOL</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryFindNextEOL(
-        scoped ref Meta first,
-        int end,
-        out int index)
-    {
-        index = 0;
-
-        // jit optimizes the checks to (ulong)meta & (1UL << 31) != 0
-
-        int unrolledEnd = end - 8;
-
-        while (index < unrolledEnd)
-        {
-            if ((Unsafe.Add(ref first, index)._endAndEol & EOLMask) != 0)
-            {
-                index += 1;
-                return true;
-            }
-
-            if ((Unsafe.Add(ref first, index + 1)._endAndEol & EOLMask) != 0)
-            {
-                index += 2;
-                return true;
-            }
-
-            if ((Unsafe.Add(ref first, index + 2)._endAndEol & EOLMask) != 0)
-            {
-                index += 3;
-                return true;
-            }
-
-            if ((Unsafe.Add(ref first, index + 3)._endAndEol & EOLMask) != 0)
-            {
-                index += 4;
-                return true;
-            }
-
-            if ((Unsafe.Add(ref first, index + 4)._endAndEol & EOLMask) != 0)
-            {
-                index += 5;
-                return true;
-            }
-
-            if ((Unsafe.Add(ref first, index + 5)._endAndEol & EOLMask) != 0)
-            {
-                index += 6;
-                return true;
-            }
-
-            if ((Unsafe.Add(ref first, index + 6)._endAndEol & EOLMask) != 0)
-            {
-                index += 7;
-                return true;
-            }
-
-            if ((Unsafe.Add(ref first, index + 7)._endAndEol & EOLMask) != 0)
-            {
-                index += 8;
-                return true;
-            }
-
-            index += 8;
-        }
-
-        while (index < end)
-        {
-            if ((Unsafe.Add(ref first, index++)._endAndEol & EOLMask) != 0)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Checks if the span has an EOL field in it, and returns the last index if one is found.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool HasEOL(scoped ReadOnlySpan<Meta> meta)
-    {
-        nint index = meta.Length - 1;
-        ref Meta first = ref MemoryMarshal.GetReference(meta);
-
-        while (index >= 8)
-        {
-            if (((Unsafe.Add(ref first, index - 0)._endAndEol & EOLMask) != 0) ||
-                ((Unsafe.Add(ref first, index - 1)._endAndEol & EOLMask) != 0) ||
-                ((Unsafe.Add(ref first, index - 2)._endAndEol & EOLMask) != 0) ||
-                ((Unsafe.Add(ref first, index - 3)._endAndEol & EOLMask) != 0) ||
-                ((Unsafe.Add(ref first, index - 4)._endAndEol & EOLMask) != 0) ||
-                ((Unsafe.Add(ref first, index - 5)._endAndEol & EOLMask) != 0) ||
-                ((Unsafe.Add(ref first, index - 6)._endAndEol & EOLMask) != 0) ||
-                ((Unsafe.Add(ref first, index - 7)._endAndEol & EOLMask) != 0))
-            {
-                return true;
-            }
-
-            index -= 8;
-        }
-
-        while (index >= 0)
-        {
-            if ((Unsafe.Add(ref first, index)._endAndEol & EOLMask) != 0)
-            {
-                return true;
-            }
-
-            index--;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Shifts the end of the fields in the span by the given offset.
-    /// </summary>
-    /// <param name="meta"></param>
-    /// <param name="offset"></param>
-    public static void Shift(scoped Span<Meta> meta, int offset)
-    {
-        foreach (ref var m in meta)
-        {
-#if DEBUG
-            Debug.Assert(m != StartOfData);
-            Meta orig = m;
-#endif
-
-            // Preserve the EOL flag while shifting only the end position
-            int eolFlag = m._endAndEol & EOLMask;
-            Unsafe.AsRef(in m._endAndEol) = (m._endAndEol & ~EOLMask) - offset | eolFlag;
-
-#if DEBUG
-            Debug.Assert(orig.End == (offset + m.End));
-            Debug.Assert(orig.IsEOL == m.IsEOL);
-#endif
-        }
     }
 
 #if DEBUG

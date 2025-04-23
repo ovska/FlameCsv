@@ -90,7 +90,24 @@ internal sealed class MetaBuffer : IDisposable
         int offset = lastRead.NextStart;
 
         Span<Meta> buffer = _array.AsSpan(start: 1 + _index, length: _count - _index);
-        Meta.Shift(buffer, offset);
+
+        foreach (ref var meta in buffer)
+        {
+#if DEBUG
+            Meta orig = meta;
+#endif
+
+            // Preserve the EOL flag while shifting only the end position
+            int eolFlag = meta._endAndEol & Meta.EOLMask;
+            Unsafe.AsRef(in meta._endAndEol) = (meta._endAndEol & ~Meta.EOLMask) - offset | eolFlag;
+
+#if DEBUG
+            Debug.Assert(meta != Meta.StartOfData);
+            Debug.Assert(orig.End == (offset + meta.End));
+            Debug.Assert(orig.IsEOL == meta.IsEOL);
+#endif
+        }
+
         buffer.CopyTo(_array.AsSpan(1));
 
         _count -= _index;
@@ -110,33 +127,90 @@ internal sealed class MetaBuffer : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryPop(out ArraySegment<Meta> fields)
     {
-        // TODO PERF: cache previous field count and fall back to TryFindNextEOL?
-        // still need to ensure no newlines in the record though
+        const ulong mask = 1UL << 31;
 
-        if (_index < _count)
+        ref ulong meta = ref Unsafe.Add(
+            ref Unsafe.As<Meta, ulong>(ref MemoryMarshal.GetArrayDataReference(_array)),
+            _index + 1);
+
+        int end = _count - _index;
+        int unrolledEnd = end - 8;
+        int f = 0;
+
+        while (f < unrolledEnd)
         {
-            ref Meta metaRef = ref MemoryMarshal.GetArrayDataReference(_array);
-
-            if (Meta.TryFindNextEOL(
-                    first: ref Unsafe.Add(ref metaRef, _index + 1),
-                    end: _count - _index,
-                    index: out int fieldCount))
+            if ((Unsafe.Add(ref meta, f) & mask) != 0)
             {
-                MetaSegment fieldMeta = new()
-                {
-                    array = _array,
-                    count = fieldCount + 1,
-                    offset = _index,
-                };
-                fields = Unsafe.As<MetaSegment, ArraySegment<Meta>>(ref fieldMeta);
+                f += 1;
+                goto Found;
+            }
 
-                _index += fieldCount;
-                return true;
+            if ((Unsafe.Add(ref meta, f + 1) & mask) != 0)
+            {
+                f += 2;
+                goto Found;
+            }
+
+            if ((Unsafe.Add(ref meta, f + 2) & mask) != 0)
+            {
+                f += 3;
+                goto Found;
+            }
+
+            if ((Unsafe.Add(ref meta, f + 3) & mask) != 0)
+            {
+                f += 4;
+                goto Found;
+            }
+
+            if ((Unsafe.Add(ref meta, f + 4) & mask) != 0)
+            {
+                f += 5;
+                goto Found;
+            }
+
+            if ((Unsafe.Add(ref meta, f + 5) & mask) != 0)
+            {
+                f += 6;
+                goto Found;
+            }
+
+            if ((Unsafe.Add(ref meta, f + 6) & mask) != 0)
+            {
+                f += 7;
+                goto Found;
+            }
+
+            if ((Unsafe.Add(ref meta, f + 7) & mask) != 0)
+            {
+                f += 8;
+                goto Found;
+            }
+
+            f += 8;
+        }
+
+        while (f < end)
+        {
+            if ((Unsafe.Add(ref meta, f++) & mask) != 0)
+            {
+                goto Found;
             }
         }
 
+        // ran out of data
         Unsafe.SkipInit(out fields);
         return false;
+
+    Found:
+        MetaSegment fieldMeta = new()
+        {
+            array = _array, count = f + 1, offset = _index,
+        };
+        fields = Unsafe.As<MetaSegment, ArraySegment<Meta>>(ref fieldMeta);
+
+        _index += f;
+        return true;
     }
 
     public void Initialize()
