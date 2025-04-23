@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.IO.MemoryMappedFiles;
 using System.Text;
 using FlameCsv.Enumeration;
 using FlameCsv.IO;
@@ -130,64 +129,22 @@ public partial class ReadObjects
     private Stream GetStream()
         => Records switch
         {
-            100 => _mmf0.CreateViewStream(0, _size0, MemoryMappedFileAccess.Read),
-            5000 => _mmf1.CreateViewStream(0, _size1, MemoryMappedFileAccess.Read),
-            20_000 => _mmf2.CreateViewStream(0, _size2, MemoryMappedFileAccess.Read),
+            100 =>  new MemoryStream(_data0),
+            5000 =>  new MemoryStream(_data1),
+            20_000 =>  new MemoryStream(_data2),
             _ => throw new ArgumentOutOfRangeException(nameof(Records), Records, null)
         };
 
     private TextReader GetReader() => new StreamReader(GetStream(), Encoding.UTF8);
 
-    private readonly MemoryMappedFile _mmf0;
-    private readonly MemoryMappedFile _mmf1;
-    private readonly MemoryMappedFile _mmf2;
-    private readonly int _size0;
-    private readonly int _size1;
-    private readonly int _size2;
+    private readonly byte[] _data0;
+    private readonly byte[] _data1;
+    private readonly byte[] _data2;
 
     public ReadObjects()
     {
-        string path0 = Path.GetFullPath("Comparisons/Data/SampleCSVFile_100records.csv");
-        string path1 = Path.GetFullPath("Comparisons/Data/SampleCSVFile_556kb.csv");
-        string path2 = Path.GetFullPath("Comparisons/Data/SampleCSVFile_556kb_4x.csv");
-
-        foreach (var p in (string[]) [path0, path1, path2])
-        {
-            using var fs = new FileStream(p, FileMode.Open, FileAccess.Read, FileShare.Read);
-            fs.CopyTo(Stream.Null); // touch files to load into O/S cache
-        }
-
-        _size0 = (int)new FileInfo(path0).Length;
-        _size1 = (int)new FileInfo(path1).Length;
-        _size2 = (int)new FileInfo(path2).Length;
-
-        _mmf0 = MemoryMappedFile.CreateFromFile(
-            path: path0,
-            FileMode.Open,
-            mapName: null,
-            capacity: 0,
-            access: MemoryMappedFileAccess.Read);
-
-        _mmf1 = MemoryMappedFile.CreateFromFile(
-            path: path1,
-            FileMode.Open,
-            mapName: null,
-            capacity: 0,
-            access: MemoryMappedFileAccess.Read);
-
-        _mmf2 = MemoryMappedFile.CreateFromFile(
-            path: path2,
-            FileMode.Open,
-            mapName: null,
-            capacity: 0,
-            access: MemoryMappedFileAccess.Read);
-    }
-
-    [GlobalCleanup]
-    public void Dispose()
-    {
-        _mmf0?.Dispose();
-        _mmf1?.Dispose();
-        _mmf2?.Dispose();
+        _data0 = File.ReadAllBytes("Comparisons/Data/SampleCSVFile_100records.csv");
+        _data1 = File.ReadAllBytes("Comparisons/Data/SampleCSVFile_556kb.csv");
+        _data2 = File.ReadAllBytes("Comparisons/Data/SampleCSVFile_556kb_4x.csv");
     }
 }

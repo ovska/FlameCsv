@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.IO.MemoryMappedFiles;
 using System.Text;
 using FlameCsv.IO;
 using FlameCsv.Reading;
@@ -21,12 +20,18 @@ public class EnumerateBench
 
     private static readonly CsvHelper.Configuration.CsvConfiguration _helperConfig = new(CultureInfo.InvariantCulture)
     {
-        NewLine = "\n", HasHeaderRecord = false, Delimiter = ",", Quote = '"',
+        NewLine = "\n",
+        HasHeaderRecord = false,
+        Delimiter = ",",
+        Quote = '"',
     };
 
     private static readonly CsvDataReaderOptions _sylvanOptions = new()
     {
-        CsvStyle = CsvStyle.Standard, Delimiter = ',', Quote = '"', HeaderComparer = StringComparer.OrdinalIgnoreCase,
+        CsvStyle = CsvStyle.Standard,
+        Delimiter = ',',
+        Quote = '"',
+        HeaderComparer = StringComparer.OrdinalIgnoreCase,
     };
 
     [Benchmark(Baseline = true)]
@@ -34,9 +39,10 @@ public class EnumerateBench
     {
         bool readFields = ReadFields;
 
+        // don't cheat by peeking at the array directly
         var parser = new CsvReader<byte>(
             _flameCsvOptions,
-            CsvBufferReader.Create(GetStream()));
+            CsvBufferReader.Create(GetStream(), options: new() { NoDirectBufferAccess = true }));
 
         if (Async)
         {
@@ -46,7 +52,7 @@ public class EnumerateBench
                 {
                     for (int i = 0; i < r.FieldCount; i++)
                     {
-                        _ = r[i];
+                        _ = r.GetRawSpan(i);
                     }
                 }
             }
@@ -59,7 +65,7 @@ public class EnumerateBench
                 {
                     for (int i = 0; i < r.FieldCount; i++)
                     {
-                        _ = r[i];
+                        _ = r.GetRawSpan(i);
                     }
                 }
             }
@@ -69,13 +75,14 @@ public class EnumerateBench
     [Benchmark]
     public async Task _Sep()
     {
-        using var reader = Sep.Reader(
-                o => o with
-                {
-                    Sep = new Sep(','),
-                    CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
-                    HasHeader = true,
-                })
+        using var reader = Sep
+            .Reader(o => o with
+            {
+                Sep = new Sep(','),
+                CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
+                HasHeader = true,
+                Unescape = false,
+            })
             .From(GetReader());
 
         bool readFields = ReadFields;
@@ -180,34 +187,13 @@ public class EnumerateBench
         }
     }
 
-    private Stream GetStream() => _mmf0.CreateViewStream(0, _size0, MemoryMappedFileAccess.Read);
+    private Stream GetStream() => new MemoryStream(_data);
     private TextReader GetReader() => new StreamReader(GetStream(), Encoding.UTF8);
 
-    private readonly MemoryMappedFile _mmf0;
-    private readonly int _size0;
+    private readonly byte[] _data;
 
     public EnumerateBench()
     {
-        string path = Path.GetFullPath("Comparisons/Data/65K_Records_Data.csv");
-
-        using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
-        {
-            fs.CopyTo(Stream.Null); // touch file to load into O/S cache
-        }
-
-        _size0 = (int)new FileInfo(path).Length;
-
-        _mmf0 = MemoryMappedFile.CreateFromFile(
-            path: path,
-            FileMode.Open,
-            mapName: null,
-            capacity: 0,
-            access: MemoryMappedFileAccess.Read);
-    }
-
-    [GlobalCleanup]
-    public void Dispose()
-    {
-        _mmf0?.Dispose();
+        _data = File.ReadAllBytes("Comparisons/Data/65K_Records_Data.csv");
     }
 }
