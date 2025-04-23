@@ -41,7 +41,8 @@ public class MetaBufferTests
         ];
         buffer.UnsafeGetArrayRef() = array;
 
-        buffer.SetFieldsRead(8);
+        int consumed = buffer.SetFieldsRead(8);
+        Assert.Equal(41, consumed);
 
         Assert.True(buffer.TryPop(out var fields));
         Assert.Equal(array[..5].AsSpan(), fields.AsSpan());
@@ -61,7 +62,8 @@ public class MetaBufferTests
             buffer.UnsafeGetArrayRef().AsSpan(0, 5));
 
         buffer.GetUnreadBuffer(out startIndex)[0] = Meta.Plain(41, isEOL: true, 2);
-        Assert.True(buffer.SetFieldsRead(1)); // found EOL
+        consumed = buffer.SetFieldsRead(1);
+        Assert.Equal(43, consumed); // 41+2
         Assert.True(buffer.TryPop(out fields));
         Assert.Equal(array[..6].AsSpan(), fields.AsSpan());
     }

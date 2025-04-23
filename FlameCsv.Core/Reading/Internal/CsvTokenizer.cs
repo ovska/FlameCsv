@@ -3,8 +3,13 @@ using System.Runtime.CompilerServices;
 
 namespace FlameCsv.Reading.Internal;
 
-internal abstract class CsvTokenizer<T> where T : unmanaged, IBinaryInteger<T>
+internal abstract class CsvPartialTokenizer<T> where T : unmanaged, IBinaryInteger<T>
 {
+    /// <summary>
+    /// Number of characters deemed
+    /// </summary>
+    public abstract int PreferredLength { get; }
+
     /// <summary>
     /// Reads fields from the data into <paramref name="metaBuffer"/>.
     /// </summary>
@@ -12,31 +17,39 @@ internal abstract class CsvTokenizer<T> where T : unmanaged, IBinaryInteger<T>
     /// <param name="data">Data to read from</param>
     /// <param name="startIndex">Start index in the data</param>
     /// <returns>Number of fields parsed to <paramref name="metaBuffer"/></returns>
-    /// <returns>Number of fields parsed</returns>
     public abstract int Tokenize(
         Span<Meta> metaBuffer,
         ReadOnlySpan<T> data,
         int startIndex);
+}
 
+internal abstract class CsvTokenizer<T> where T : unmanaged, IBinaryInteger<T>
+{
     /// <summary>
     /// Reads fields from the data into <paramref name="metaBuffer"/> until the end of the data is reached.
     /// </summary>
     /// <param name="metaBuffer">Buffer to parse the fields to</param>
     /// <param name="data">Data to read from</param>
     /// <param name="startIndex">Start index in the data</param>
+    /// <param name="readToEnd">Whether to read to end even if data has no trailing newline</param>
     /// <returns>Number of fields parsed to <paramref name="metaBuffer"/></returns>
     /// <exception cref="NotSupportedException">
     /// Thrown if the implementation does not support reading to the end of the data.
     /// </exception>
-    public virtual int TokenizeToEnd(
+    public virtual int Tokenize(
         Span<Meta> metaBuffer,
         ReadOnlySpan<T> data,
-        int startIndex)
+        int startIndex,
+        bool readToEnd)
     {
         throw new NotSupportedException();
     }
+}
 
-    public static CsvTokenizer<T>? CreateSimd(ref readonly CsvDialect<T> dialect)
+internal static class CsvTokenizer
+{
+    public static CsvPartialTokenizer<T>? CreateSimd<T>(ref readonly CsvDialect<T> dialect)
+        where T : unmanaged, IBinaryInteger<T>
     {
         if (dialect.Escape.HasValue)
         {
@@ -57,10 +70,11 @@ internal abstract class CsvTokenizer<T> where T : unmanaged, IBinaryInteger<T>
             result = ForChar.CreateSimd(in dialectChar);
         }
 
-        return result as CsvTokenizer<T>;
+        return result as CsvPartialTokenizer<T>;
     }
 
-    public static CsvTokenizer<T> Create(ref readonly CsvDialect<T> dialect)
+    public static CsvTokenizer<T> Create<T>(ref readonly CsvDialect<T> dialect)
+        where T : unmanaged, IBinaryInteger<T>
     {
         if (dialect.Escape.HasValue)
         {
@@ -80,7 +94,7 @@ internal abstract class CsvTokenizer<T> where T : unmanaged, IBinaryInteger<T>
 
 file static class ForChar
 {
-    public static CsvTokenizer<char>? CreateSimd(ref readonly CsvDialect<char> dialect)
+    public static CsvPartialTokenizer<char>? CreateSimd(ref readonly CsvDialect<char> dialect)
     {
         if (Vec512Char.IsSupported)
         {
@@ -139,7 +153,7 @@ file static class ForChar
 
 file static class ForByte
 {
-    public static CsvTokenizer<byte>? CreateSimd(ref readonly CsvDialect<byte> dialect)
+    public static CsvPartialTokenizer<byte>? CreateSimd(ref readonly CsvDialect<byte> dialect)
     {
         if (Vec512Byte.IsSupported)
         {

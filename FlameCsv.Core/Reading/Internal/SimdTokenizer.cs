@@ -34,12 +34,15 @@ namespace FlameCsv.Reading.Internal;
 
 [SkipLocalsInit]
 [SuppressMessage("ReSharper", "InlineTemporaryVariable")]
-internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect, TNewline newlineImpl) : CsvTokenizer<T>
+internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect, TNewline newlineImpl)
+    : CsvPartialTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
     where TNewline : struct, INewline<T, TVector>
     where TVector : struct, ISimdVector<T, TVector>
 {
     private static int EndOffset => (TVector.Count * 2) + (int)TNewline.OffsetFromEnd;
+
+    public override int PreferredLength => TVector.Count * 4;
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     public override int Tokenize(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex)
