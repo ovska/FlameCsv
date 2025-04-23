@@ -34,9 +34,9 @@ public class EnumerateBench
     {
         bool readFields = ReadFields;
 
-        var parser = CsvParser.Create<byte>(
+        var parser = new CsvReader<byte>(
             _flameCsvOptions,
-            CsvPipeReader.Create(GetStream()));
+            CsvBufferReader.Create(GetStream()));
 
         if (Async)
         {
