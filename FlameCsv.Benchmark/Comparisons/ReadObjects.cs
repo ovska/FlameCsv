@@ -38,7 +38,7 @@ public partial class ReadObjects
     {
         if (Async)
         {
-            await using var pipe = CsvPipeReader.Create(GetReader());
+            await using var pipe = CsvBufferReader.Create(GetReader());
             await foreach (var entry in new CsvValueEnumerable<char, Entry>(
                                pipe,
                                _flameCsvOptions))
@@ -48,7 +48,7 @@ public partial class ReadObjects
         }
         else
         {
-            using var pipe = CsvPipeReader.Create(GetReader());
+            using var pipe = CsvBufferReader.Create(GetReader());
             foreach (var entry in new CsvValueEnumerable<char, Entry>(
                          pipe,
                          _flameCsvOptions))
@@ -64,7 +64,7 @@ public partial class ReadObjects
     {
         if (Async)
         {
-            await using var pipe = CsvPipeReader.Create(GetReader());
+            await using var pipe = CsvBufferReader.Create(GetReader());
             await foreach (var entry in new CsvTypeMapEnumerable<char, Entry>(
                                pipe,
                                _flameCsvOptions,
@@ -75,7 +75,7 @@ public partial class ReadObjects
         }
         else
         {
-            using var pipe = CsvPipeReader.Create(GetReader());
+            using var pipe = CsvBufferReader.Create(GetReader());
             foreach (var entry in new CsvTypeMapEnumerable<char, Entry>(pipe, _flameCsvOptions, EntryTypeMap.Default))
             {
                 _ = entry;
