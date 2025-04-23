@@ -11,19 +11,8 @@ internal sealed class ScalarTokenizer<T, TNewline>(CsvDialect<T> dialect, TNewli
     where T : unmanaged, IBinaryInteger<T>
     where TNewline : INewline<T>
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override int Tokenize(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex)
-    {
-        return TokenizeCore(metaBuffer, data, startIndex, false);
-    }
-
-    public override int TokenizeToEnd(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex)
-    {
-        return TokenizeCore(metaBuffer, data, startIndex, true);
-    }
-
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private int TokenizeCore(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex, bool readToEnd)
+    public override int Tokenize(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex, bool readToEnd)
     {
         if (data.IsEmpty || data.Length <= startIndex)
         {

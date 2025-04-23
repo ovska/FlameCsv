@@ -29,11 +29,6 @@ internal sealed class MetaBuffer : IDisposable
         {
             _array = GetMetaBuffer();
             _array[0] = Meta.StartOfData;
-
-#if DEBUG
-            // fill with bogus data
-            _array.AsSpan(1).Fill(Meta.Invalid);
-#endif
         }
 
         return _array.AsSpan(start: 1);
@@ -50,11 +45,6 @@ internal sealed class MetaBuffer : IDisposable
         {
             _array = GetMetaBuffer();
             _array[0] = Meta.StartOfData;
-
-#if DEBUG
-            // fill with bogus data
-            _array.AsSpan(1).Fill(Meta.Invalid);
-#endif
         }
 
         startIndex = _array[_count].NextStart;
@@ -62,34 +52,19 @@ internal sealed class MetaBuffer : IDisposable
     }
 
     /// <summary>
-    /// Marks fields as read, and returns whether any fully formed record was formed.
+    /// Marks fields as read, and returns the end position of the last field.
     /// </summary>
     /// <param name="count"></param>
-    public bool SetFieldsRead(int count)
+    public int SetFieldsRead(int count)
     {
         _count += count;
 
-#if DEBUG
-        Debug.Assert(_array.Length > count);
-        Debug.Assert(_array[0] == Meta.StartOfData);
-
-        // assert all fields have actually been filled
-        Debug.Assert(
-            !_array.AsSpan(start: 1, length: count).Contains(Meta.Invalid),
-            "MetaBuffer was not filled completely");
-#endif
-
-        if (!Meta.HasEOL(_array.AsSpan(0, length: _count + 1)))
+        if (_count >= (_array.Length * 15 / 16))
         {
-            if (_count >= (_array.Length * 15 / 16))
-            {
-                Array.Resize(ref _array, _array.Length * 2);
-            }
-
-            return false;
+            Array.Resize(ref _array, _array.Length * 2);
         }
 
-        return true;
+        return _array[_count].NextStart;
     }
 
     /// <summary>
@@ -114,13 +89,8 @@ internal sealed class MetaBuffer : IDisposable
         _count -= _index;
         _index = 0;
 
-#if DEBUG
         Debug.Assert(lastRead.IsEOL);
         Debug.Assert(_count >= 0);
-
-        // fill with bogus data for debugging
-        _array.AsSpan(_count + 1).Fill(Meta.Invalid);
-#endif
 
         return offset;
     }
@@ -138,7 +108,7 @@ internal sealed class MetaBuffer : IDisposable
 
             if (Meta.TryFindNextEOL(
                     first: ref Unsafe.Add(ref metaRef, _index + 1),
-                    end: _count - _index + 1,
+                    end: _count - _index,
                     index: out int fieldCount))
             {
                 MetaSegment fieldMeta = new()
@@ -166,20 +136,10 @@ internal sealed class MetaBuffer : IDisposable
         if (span.IsEmpty) return;
 
         span.Clear();
-
-#if DEBUG
-        // fill with bogus data for debugging
-        span.Slice(1).Fill(Meta.Invalid);
-#endif
     }
 
     public void Dispose()
     {
-#if DEBUG
-        // fill with bogus data for debugging
-        _array.AsSpan().Fill(Meta.Invalid);
-#endif
-
         _index = 0;
         _count = 0;
         ReturnMetaBuffer(ref _array);

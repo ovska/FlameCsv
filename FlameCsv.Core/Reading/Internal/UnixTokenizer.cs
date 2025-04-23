@@ -10,17 +10,7 @@ internal class UnixTokenizer<T>(ref readonly CsvDialect<T> dialect) : CsvTokeniz
     private readonly T _escape = dialect.Escape!.Value;
     private readonly NewlineBuffer<T> _newline = dialect.Newline;
 
-    public override int TokenizeToEnd(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex)
-    {
-        return TokenizeCore(metaBuffer, data, startIndex, true);
-    }
-
-    public override int Tokenize(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex)
-    {
-        return TokenizeCore(metaBuffer, data, startIndex, false);
-    }
-
-    private int TokenizeCore(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex, bool readToEnd)
+    public override int Tokenize(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex, bool readToEnd)
     {
         int metaIndex = 0;
         int index = startIndex;
