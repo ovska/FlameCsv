@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -343,61 +344,88 @@ internal readonly struct Meta : IEquatable<Meta>
         out int index)
     {
         index = 0;
-        int unrolledEnd = end - 8;
 
-        // jit optimizes the checks to (ulong)meta & (1UL << 31) != 0
-
-        while (index < unrolledEnd)
+        if (false && Vector512.IsHardwareAccelerated)
         {
-            if ((Unsafe.Add(ref first, index)._endAndEol & EOLMask) != 0)
-            {
-                index += 1;
-                return true;
-            }
+            int vectorizedEnd = end - Vector512<ulong>.Count;
 
-            if ((Unsafe.Add(ref first, index + 1)._endAndEol & EOLMask) != 0)
-            {
-                index += 2;
-                return true;
-            }
+            ref ulong f = ref Unsafe.As<Meta, ulong>(ref first);
+            Vector512<ulong> eolMask = Vector512.Create(1UL << 31);
 
-            if ((Unsafe.Add(ref first, index + 2)._endAndEol & EOLMask) != 0)
+            while (index < vectorizedEnd)
             {
-                index += 3;
-                return true;
-            }
+                Vector512<ulong> vector = Vector512.LoadUnsafe(in f, (uint)index);
+                Vector512<ulong> result = vector & eolMask;
 
-            if ((Unsafe.Add(ref first, index + 3)._endAndEol & EOLMask) != 0)
-            {
-                index += 4;
-                return true;
-            }
+                if (result != Vector512<ulong>.Zero)
+                {
+                    ulong mask = result.AsByte().ExtractMostSignificantBits();
+                    index += 1 + BitOperations.TrailingZeroCount(mask) / sizeof(ulong);
+                    return true;
+                }
 
-            if ((Unsafe.Add(ref first, index + 4)._endAndEol & EOLMask) != 0)
-            {
-                index += 5;
-                return true;
-            }
+                index += Vector512<ulong>.Count;
 
-            if ((Unsafe.Add(ref first, index + 5)._endAndEol & EOLMask) != 0)
-            {
-                index += 6;
-                return true;
             }
+        }
+        else
+        {
+            // jit optimizes the checks to (ulong)meta & (1UL << 31) != 0
 
-            if ((Unsafe.Add(ref first, index + 6)._endAndEol & EOLMask) != 0)
-            {
-                index += 7;
-                return true;
-            }
+            int unrolledEnd = end - 8;
 
-            if ((Unsafe.Add(ref first, index + 7)._endAndEol & EOLMask) != 0)
+            while (index < unrolledEnd)
             {
+                if ((Unsafe.Add(ref first, index)._endAndEol & EOLMask) != 0)
+                {
+                    index += 1;
+                    return true;
+                }
+
+                if ((Unsafe.Add(ref first, index + 1)._endAndEol & EOLMask) != 0)
+                {
+                    index += 2;
+                    return true;
+                }
+
+                if ((Unsafe.Add(ref first, index + 2)._endAndEol & EOLMask) != 0)
+                {
+                    index += 3;
+                    return true;
+                }
+
+                if ((Unsafe.Add(ref first, index + 3)._endAndEol & EOLMask) != 0)
+                {
+                    index += 4;
+                    return true;
+                }
+
+                if ((Unsafe.Add(ref first, index + 4)._endAndEol & EOLMask) != 0)
+                {
+                    index += 5;
+                    return true;
+                }
+
+                if ((Unsafe.Add(ref first, index + 5)._endAndEol & EOLMask) != 0)
+                {
+                    index += 6;
+                    return true;
+                }
+
+                if ((Unsafe.Add(ref first, index + 6)._endAndEol & EOLMask) != 0)
+                {
+                    index += 7;
+                    return true;
+                }
+
+                if ((Unsafe.Add(ref first, index + 7)._endAndEol & EOLMask) != 0)
+                {
+                    index += 8;
+                    return true;
+                }
+
                 index += 8;
-                return true;
             }
-
-            index += 8;
         }
 
         while (index < end)
