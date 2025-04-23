@@ -49,20 +49,29 @@ internal sealed class MetaBuffer : IDisposable
     /// <param name="count"></param>
     public int SetFieldsRead(int count)
     {
+        Debug.Assert(count >= 0);
+        Debug.Assert((_count + count) < _array.Length);
         _count += count;
+        return _array[_count].NextStart;
+    }
 
+    /// <summary>
+    /// This should be called to ensure massive records without a newline can fit in the buffer.
+    /// </summary>
+    /// <returns></returns>
+    public void EnsureCapacity()
+    {
         if (_count >= (_array.Length * 15 / 16))
         {
             ArrayPool<Meta>.Shared.Resize(ref _array, _array.Length * 2);
         }
-
-        return _array[_count].NextStart;
     }
 
     /// <summary>
     /// Resets the buffer, returning the number of characters consumed since the last reset.
     /// </summary>
     /// <returns></returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Reset()
     {
         // nothing yet
@@ -71,6 +80,12 @@ internal sealed class MetaBuffer : IDisposable
             return 0;
         }
 
+        return ResetCore();
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private int ResetCore()
+    {
         Meta lastRead = _array[_index];
         int offset = lastRead.NextStart;
 
@@ -95,6 +110,9 @@ internal sealed class MetaBuffer : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryPop(out ArraySegment<Meta> fields)
     {
+        // TODO PERF: cache previous field count and fall back to TryFindNextEOL?
+        // still need to ensure no newlines in the record though
+
         if (_index < _count)
         {
             ref Meta metaRef = ref MemoryMarshal.GetArrayDataReference(_array);
@@ -106,7 +124,9 @@ internal sealed class MetaBuffer : IDisposable
             {
                 MetaSegment fieldMeta = new()
                 {
-                    array = _array, count = fieldCount + 1, offset = _index,
+                    array = _array,
+                    count = fieldCount + 1,
+                    offset = _index,
                 };
                 fields = Unsafe.As<MetaSegment, ArraySegment<Meta>>(ref fieldMeta);
 

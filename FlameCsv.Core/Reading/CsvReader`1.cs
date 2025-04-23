@@ -175,15 +175,21 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
         {
             int charactersConsumed = _metaBuffer.SetFieldsRead(read);
 
-            if (_state == State.Reading)
+            // request more data if the next tokenizing would not be large enough to be productive
+            // TODO PERF: benchmark the limit
+            if (_state == State.Reading &&
+                (data.Length - charactersConsumed) < _simdTokenizer?.PreferredLength)
             {
-                if ((data.Length - charactersConsumed) < _simdTokenizer?.PreferredLength)
-                {
-                    _state = State.DataExhausted;
-                }
+                _state = State.DataExhausted;
             }
 
-            return _metaBuffer.TryPop(out meta);
+            if (_metaBuffer.TryPop(out meta))
+            {
+                return true;
+            }
+
+            // ensure we aren't dealing with a huge record that can't fit in our buffer (thousands of fields)
+            _metaBuffer.EnsureCapacity();
         }
 
         Unsafe.SkipInit(out meta);
