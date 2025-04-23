@@ -29,7 +29,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     /// <summary>
     /// If available, SIMD tokenizer than can be used to parse the CSV data.
     /// </summary>
-    private readonly CsvTokenizer<T>? _simdTokenizer;
+    private readonly CsvPartialTokenizer<T>? _simdTokenizer;
 
     /// <summary>
     /// Scalar tokenizer that is used to parse the tail end of the data, or as a fallback if SIMD is not available.
@@ -89,8 +89,8 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
 
         _unescapeAllocator = new MemoryPoolAllocator<T>(options.Allocator);
 
-        _simdTokenizer = CsvTokenizer<T>.CreateSimd(ref _dialect);
-        _scalarTokenizer = CsvTokenizer<T>.Create(in _dialect);
+        _simdTokenizer = CsvTokenizer.CreateSimd(ref _dialect);
+        _scalarTokenizer = CsvTokenizer.Create(in _dialect);
     }
 
     /// <summary>
@@ -142,7 +142,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
         }
 
         if (TryFillCore(out ArraySegment<Meta> meta) ||
-            (_state == State.ReaderCompleted && TryFillCore(out meta, forceScalar: true)))
+            (_state == State.ReaderCompleted && TryFillCore(out meta, readToEnd: true)))
         {
             fields = new CsvFields<T>(this, _buffer, meta);
             return true;
@@ -162,21 +162,27 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
         return false;
     }
 
-    private bool TryFillCore(out ArraySegment<Meta> meta, bool forceScalar = false)
+    private bool TryFillCore(out ArraySegment<Meta> meta, bool readToEnd = false)
     {
-        // ResetBufferAndAdvanceReader();
-
         Span<Meta> metaBuffer = _metaBuffer.GetUnreadBuffer(out int startIndex);
         ReadOnlySpan<T> data = _buffer.Span;
 
-        int read = forceScalar
-            ? _scalarTokenizer.TokenizeToEnd(metaBuffer, data, startIndex)
-            : (_simdTokenizer ?? _scalarTokenizer).Tokenize(metaBuffer, data, startIndex);
+        int read = readToEnd || _simdTokenizer is null
+            ? _scalarTokenizer.Tokenize(metaBuffer, data, startIndex, readToEnd)
+            : _simdTokenizer.Tokenize(metaBuffer, data, startIndex);
 
         if (read > 0)
         {
-            // TODO: optimize and return whether the whole buffer was tokenized so we can skip a round trip
-            _ = _metaBuffer.SetFieldsRead(read);
+            int charactersConsumed = _metaBuffer.SetFieldsRead(read);
+
+            if (_state == State.Reading)
+            {
+                if ((data.Length - charactersConsumed) < _simdTokenizer?.PreferredLength)
+                {
+                    _state = State.DataExhausted;
+                }
+            }
+
             return _metaBuffer.TryPop(out meta);
         }
 

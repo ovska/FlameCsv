@@ -218,13 +218,6 @@ internal readonly struct Meta : IEquatable<Meta>
         Allocator<T> allocator)
         where T : unmanaged, IBinaryInteger<T>
     {
-#if DEBUG
-        if (Invalid == this)
-        {
-            throw new InvalidOperationException("Invalid meta");
-        }
-#endif
-
         // don't touch this method without thorough benchmarking
 
         // Preliminary testing with a small amount of real world data:
@@ -468,7 +461,6 @@ internal readonly struct Meta : IEquatable<Meta>
         {
 #if DEBUG
             Debug.Assert(m != StartOfData);
-            Debug.Assert(m != Invalid);
             Meta orig = m;
 #endif
 
@@ -497,11 +489,6 @@ internal readonly struct Meta : IEquatable<Meta>
     {
         get
         {
-#if DEBUG
-            if (this.Equals(Invalid))
-                return "{ Invalid }";
-#endif
-
             if (this.Equals(default))
                 return "{ Start: 0 }";
             return
@@ -544,8 +531,4 @@ internal readonly struct Meta : IEquatable<Meta>
     public override int GetHashCode() => Unsafe.BitCast<Meta, long>(this).GetHashCode();
     public static bool operator ==(Meta left, Meta right) => left.Equals(right);
     public static bool operator !=(Meta left, Meta right) => !(left == right);
-
-#if DEBUG
-    internal static Meta Invalid => Unsafe.BitCast<ulong, Meta>(0b100);
-#endif
 }
