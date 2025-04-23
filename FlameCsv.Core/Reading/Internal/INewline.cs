@@ -43,12 +43,15 @@ internal interface INewline<T, TVector> : INewline<T>
     where TVector : struct
 {
     /// <summary>
-    /// Determines if the input vector contains any token of the newline.
+    /// Loads the newline vectors.
     /// </summary>
-    /// <param name="input">The input vector to check.</param>
-    /// <returns>A vector indicating the positions of newline sequences.</returns>
     [Pure]
-    TVector HasNewline(TVector input);
+    void Load(out TVector v0, out TVector v1);
+
+    /// <summary>
+    /// Checks if the input vector contains a newline.
+    /// </summary>
+    static abstract TVector HasNewline(TVector input, TVector v0, TVector v1);
 }
 
 [SkipLocalsInit]
@@ -58,11 +61,6 @@ internal readonly struct NewlineParserOne<T, TVector>(T first) : INewline<T, TVe
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetLength(bool isMultitoken) => 1;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TVector HasNewline(TVector input) => TVector.Equals(input, _firstVec);
-
-    private readonly TVector _firstVec = TVector.Create(first);
 
     public static nuint OffsetFromEnd
     {
@@ -80,6 +78,19 @@ internal readonly struct NewlineParserOne<T, TVector>(T first) : INewline<T, TVe
 
     public T First => first;
     public T Second => first;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Load(out TVector v0, out TVector v1)
+    {
+        v0 = TVector.Create(first);
+        Unsafe.SkipInit(out v1);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TVector HasNewline(TVector input, TVector v0, TVector v1)
+    {
+        return TVector.Equals(input, v0);
+    }
 }
 
 [SkipLocalsInit]
@@ -89,12 +100,6 @@ internal readonly struct NewlineParserTwo<T, TVector>(T first, T second) : INewl
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetLength(bool isMultitoken) => 1 + isMultitoken.ToByte();
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TVector HasNewline(TVector input) => TVector.Equals(input, _firstVec) | TVector.Equals(input, _secondVec);
-
-    private readonly TVector _firstVec = TVector.Create(first);
-    private readonly TVector _secondVec = TVector.Create(second);
 
     public static nuint OffsetFromEnd
     {
@@ -117,4 +122,15 @@ internal readonly struct NewlineParserTwo<T, TVector>(T first, T second) : INewl
 
     public T First => first;
     public T Second => second;
+
+    public void Load(out TVector v0, out TVector v1)
+    {
+        v0 = TVector.Create(first);
+        v1 = TVector.Create(second);
+    }
+
+    public static TVector HasNewline(TVector input, TVector v0, TVector v1)
+    {
+        return TVector.Equals(input, v0) | TVector.Equals(input, v1);
+    }
 }

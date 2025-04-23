@@ -71,9 +71,8 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect,
         TNewline newline = newlineImpl;
         TVector delimiterVec = TVector.Create(dialect.Delimiter);
         TVector quoteVec = TVector.Create(dialect.Quote);
+        newline.Load(out TVector newline1, out TVector newline2);
         uint quotesConsumed = 0;
-
-        // TODO PERF: profile loading the vectors in constructor
 
         TVector nextVector = TVector.LoadUnaligned(in first, runningIndex);
 
@@ -85,7 +84,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect,
 
             TVector hasDelimiter = TVector.Equals(vector, delimiterVec);
             TVector hasQuote = TVector.Equals(vector, quoteVec);
-            TVector hasNewline = newline.HasNewline(vector);
+            TVector hasNewline = TNewline.HasNewline(vector, newline1, newline2);
             TVector hasAny = hasNewline | hasDelimiter | hasQuote;
 
             nuint maskAny = hasAny.ExtractMostSignificantBits();
