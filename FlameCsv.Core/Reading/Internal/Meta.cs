@@ -224,18 +224,16 @@ internal readonly struct Meta : IEquatable<Meta>
         // - 91.42% of fields have no quotes
         // - 8,51% of fields have just the wrapping quotes
         // - 0,08% of fields have quotes embedded, i.e. "John ""The Man"" Smith"
+        int length = (_endAndEol & ~EOLMask) - start;
+        ref T first = ref Unsafe.Add(ref data, start);
 
         if (dialect._trimming == CsvFieldTrimming.None)
         {
             // most common case, no quotes or escapes
             if ((_specialCountAndOffset & SpecialCountMask) == 0)
             {
-                return MemoryMarshal.CreateReadOnlySpan(
-                    ref Unsafe.Add(ref data, start),
-                    (_endAndEol & ~EOLMask) - start);
+                return MemoryMarshal.CreateReadOnlySpan(ref first, length);
             }
-
-            int length = (_endAndEol & ~EOLMask) - start;
 
             // check if the field is just wrapped in quotes; by doing both the quote count and quote checks at the same time,
             // the CPU can do both checks in parallel, and the branch predictor can predict the outcome of both checks
@@ -250,10 +248,10 @@ internal readonly struct Meta : IEquatable<Meta>
             T quote = dialect.Quote;
 
             if ((_specialCountAndOffset & (~0b11 ^ 0b10000)) == 0 &&
-                quote == Unsafe.Add(ref data, start) &&
-                quote == Unsafe.Add(ref data, start + length - 1))
+                quote == first &&
+                quote == Unsafe.Add(ref first, length - 1))
             {
-                return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, start + 1), length - 2);
+                return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref first, 1), length - 2);
             }
         }
 
@@ -269,21 +267,28 @@ internal readonly struct Meta : IEquatable<Meta>
         Allocator<T> allocator)
         where T : unmanaged, IBinaryInteger<T>
     {
+        int fieldLength = End - start;
         ReadOnlySpan<T> field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, start), End - start);
 
         // trim before unquoting to preserve spaces in strings
-        field = field.Trim(dialect.Trimming);
+        if (dialect._trimming != CsvFieldTrimming.None)
+        {
+            field = field.Trim(dialect._trimming);
+        }
 
         if ((_specialCountAndOffset & (IsEscapeMask | SpecialCountMask)) != 0)
         {
+            T quote = dialect.Quote;
             uint specialCount = SpecialCount;
 
-            if (field.Length <= 1 || field[0] != dialect.Quote || field[^1] != dialect.Quote)
+            if (fieldLength <= 1 ||
+                Unsafe.Add(ref data, start) != quote ||
+                Unsafe.Add(ref data, start + fieldLength - 1) != quote)
             {
                 IndexOfUnescaper.Invalid(field, in this);
             }
 
-            field = field[1..^1];
+            field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, start + 1), fieldLength - 2);
 
             if (IsEscape && specialCount != 0)
             {
