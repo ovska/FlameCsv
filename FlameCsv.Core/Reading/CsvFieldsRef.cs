@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using FlameCsv.Extensions;
 using FlameCsv.Reading.Internal;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Reading;
 
@@ -87,7 +88,7 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            Debug.Assert(!Unsafe.IsNullRef(ref _firstMeta), "MetaFieldReader was uninitialized");
+            Debug.Assert(!Unsafe.IsNullRef(ref _firstMeta), "The struct was uninitialized");
 
             if ((uint)index >= (uint)FieldCount)
                 Throw.Argument_FieldIndex(index, FieldCount);
@@ -96,6 +97,26 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
             int start = Unsafe.Add(ref _firstMeta, index).NextStart;
             return meta.GetField(in _dialect, start, ref _data, _unescapeBuffer, _allocator);
         }
+    }
+
+    /// <summary>
+    /// Returns the raw unescaped span of the field at the specified index.
+    /// </summary>
+    /// <param name="index"></param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [PublicAPI]
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public ReadOnlySpan<T> GetRawSpan(int index)
+    {
+        Debug.Assert(!Unsafe.IsNullRef(ref _firstMeta), "The struct was uninitialized");
+
+        if ((uint)index >= (uint)FieldCount)
+            Throw.Argument_FieldIndex(index, FieldCount);
+
+        ref Meta meta = ref Unsafe.Add(ref _firstMeta, index + 1);
+        int start = Unsafe.Add(ref _firstMeta, index).NextStart;
+
+        return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), meta.End - start);
     }
 
     /// <inheritdoc cref="CsvFields{T}.Record"/>
