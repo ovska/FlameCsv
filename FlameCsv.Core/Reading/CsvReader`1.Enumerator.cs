@@ -113,9 +113,7 @@ partial class CsvReader<T>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool MoveNext()
         {
-            CsvReader<T> reader = _reader;
-
-            if (reader._metaBuffer.TryPop(out ArraySegment<Meta> meta))
+            if (_reader._metaBuffer.TryPop(out ArraySegment<Meta> meta))
             {
                 _meta = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(meta.Array!), meta.Offset);
                 _metaLength = meta.Count;
@@ -170,15 +168,17 @@ partial class CsvReader<T>
 
     /// <inheritdoc cref="Enumerator"/>
     [PublicAPI]
+    [SkipLocalsInit]
     public readonly struct AsyncEnumerator : IAsyncEnumerator<CsvFieldsRef<T>>
     {
         // the asyncenumerator struct needs to be readonly to play nice with async
+        [SkipLocalsInit]
         private sealed class Box
         {
             public CsvFields<T> Fields;
 
-            // ReSharper disable once UnassignedField.Local
 #pragma warning disable CS0649
+            // ReSharper disable once UnassignedField.Local
             public EnumeratorStack Memory;
 #pragma warning restore CS0649
         }
@@ -216,12 +216,12 @@ partial class CsvReader<T>
                 return ValueTask.FromCanceled<bool>(_cancellationToken);
             }
 
-            if (_reader.TryGetBuffered(out _box.Fields))
+            if (!_reader.TryGetBuffered(out _box.Fields))
             {
-                return new ValueTask<bool>(true);
+                return MoveNextSlowAsync();
             }
 
-            return MoveNextSlowAsync();
+            return new ValueTask<bool>(true);
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]

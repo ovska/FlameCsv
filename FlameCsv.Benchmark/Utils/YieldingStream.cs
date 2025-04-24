@@ -52,7 +52,7 @@ internal sealed class YieldingStream(
         return await inner.ReadAsync(buffer, offset, count, cancellationToken);
     }
 
-    public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+    public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
     {
         await Task.Delay(ioDelay, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
         return await inner.ReadAsync(buffer, cancellationToken);
@@ -64,7 +64,7 @@ internal sealed class YieldingStream(
         await inner.WriteAsync(buffer, offset, count, cancellationToken);
     }
 
-    public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = new CancellationToken())
+    public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
     {
         await Task.Delay(ioDelay, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
         await inner.WriteAsync(buffer, cancellationToken);
