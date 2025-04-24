@@ -8,6 +8,7 @@ namespace FlameCsv.Reading.Internal;
 
 [DebuggerTypeProxy(typeof(MetaBufferDebugView))]
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
+[SkipLocalsInit]
 internal sealed class MetaBuffer : IDisposable
 {
     /// <summary>
@@ -29,6 +30,8 @@ internal sealed class MetaBuffer : IDisposable
     {
         _array = ArrayPool<Meta>.Shared.Rent(FlameCsvGlobalOptions.ReadAheadCount);
         _array[0] = Meta.StartOfData;
+        _index = 0;
+        _count = 0;
     }
 
     /// <summary>
@@ -127,6 +130,8 @@ internal sealed class MetaBuffer : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryPop(out ArraySegment<Meta> fields)
     {
+        Unsafe.SkipInit(out fields);
+
         const ulong mask = 1UL << 31;
 
         ref ulong meta = ref Unsafe.Add(
@@ -135,81 +140,79 @@ internal sealed class MetaBuffer : IDisposable
 
         int end = _count - _index;
         int unrolledEnd = end - 8;
-        int f = 0;
+        int pos = 0;
 
-        while (f < unrolledEnd)
+        while (pos < unrolledEnd)
         {
-            if ((Unsafe.Add(ref meta, f) & mask) != 0)
+            if ((Unsafe.Add(ref meta, pos) & mask) != 0)
             {
-                f += 1;
+                pos += 1;
                 goto Found;
             }
 
-            if ((Unsafe.Add(ref meta, f + 1) & mask) != 0)
+            if ((Unsafe.Add(ref meta, pos + 1) & mask) != 0)
             {
-                f += 2;
+                pos += 2;
                 goto Found;
             }
 
-            if ((Unsafe.Add(ref meta, f + 2) & mask) != 0)
+            if ((Unsafe.Add(ref meta, pos + 2) & mask) != 0)
             {
-                f += 3;
+                pos += 3;
                 goto Found;
             }
 
-            if ((Unsafe.Add(ref meta, f + 3) & mask) != 0)
+            if ((Unsafe.Add(ref meta, pos + 3) & mask) != 0)
             {
-                f += 4;
+                pos += 4;
                 goto Found;
             }
 
-            if ((Unsafe.Add(ref meta, f + 4) & mask) != 0)
+            if ((Unsafe.Add(ref meta, pos + 4) & mask) != 0)
             {
-                f += 5;
+                pos += 5;
                 goto Found;
             }
 
-            if ((Unsafe.Add(ref meta, f + 5) & mask) != 0)
+            if ((Unsafe.Add(ref meta, pos + 5) & mask) != 0)
             {
-                f += 6;
+                pos += 6;
                 goto Found;
             }
 
-            if ((Unsafe.Add(ref meta, f + 6) & mask) != 0)
+            if ((Unsafe.Add(ref meta, pos + 6) & mask) != 0)
             {
-                f += 7;
+                pos += 7;
                 goto Found;
             }
 
-            if ((Unsafe.Add(ref meta, f + 7) & mask) != 0)
+            if ((Unsafe.Add(ref meta, pos + 7) & mask) != 0)
             {
-                f += 8;
+                pos += 8;
                 goto Found;
             }
 
-            f += 8;
+            pos += 8;
         }
 
-        while (f < end)
+        while (pos < end)
         {
-            if ((Unsafe.Add(ref meta, f++) & mask) != 0)
+            if ((Unsafe.Add(ref meta, pos++) & mask) != 0)
             {
                 goto Found;
             }
         }
 
         // ran out of data
-        Unsafe.SkipInit(out fields);
         return false;
 
     Found:
-        MetaSegment fieldMeta = new()
+        Unsafe.As<ArraySegment<Meta>, MetaSegment>(ref Unsafe.AsRef(in fields)) = new()
         {
-            array = _array, count = f + 1, offset = _index,
+            array = _array, count = pos + 1, offset = _index,
         };
-        fields = Unsafe.As<MetaSegment, ArraySegment<Meta>>(ref fieldMeta);
 
-        _index += f;
+        _index += pos;
         return true;
     }
 
@@ -225,6 +228,7 @@ internal sealed class MetaBuffer : IDisposable
     {
         _index = 0;
         _count = 0;
+
         Meta[] local = _array;
         _array = [];
 
