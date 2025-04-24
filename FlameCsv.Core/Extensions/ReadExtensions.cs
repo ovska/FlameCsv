@@ -75,13 +75,25 @@ internal static class ReadExtensions
         where T : unmanaged, IBinaryInteger<T>
     {
         T space = T.CreateTruncating(' ');
+        int start = 0;
+        int end = value.Length - 1;
 
-        return (trimming & CsvFieldTrimming.Both) switch
+        if ((trimming & CsvFieldTrimming.Leading) != 0)
         {
-            CsvFieldTrimming.Leading => value.TrimStart(space),
-            CsvFieldTrimming.Trailing => value.TrimEnd(space),
-            CsvFieldTrimming.Both => value.Trim(space),
-            _ => value,
-        };
+            for (; start < value.Length; start++)
+            {
+                if (value[start] != space) break;
+            }
+        }
+
+        if ((trimming & CsvFieldTrimming.Trailing) != 0)
+        {
+            for (; end >= start; end--)
+            {
+                if (value[end] != space) break;
+            }
+        }
+
+        return value[start..(end + 1)];
     }
 }
