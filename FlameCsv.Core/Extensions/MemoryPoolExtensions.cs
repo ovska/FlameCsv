@@ -15,18 +15,18 @@ internal static class MemoryPoolExtensions
     {
         ArgumentOutOfRangeException.ThrowIfNegative(minimumLength);
 
-        if (minimumLength == 0)
-            return Memory<T>.Empty;
+        if (minimumLength == 0) return Memory<T>.Empty;
 
-        if (memoryOwner is not null && memoryOwner.Memory.Length >= minimumLength)
+        Memory<T> currentMemory = memoryOwner?.Memory ?? Memory<T>.Empty;
+
+        if (currentMemory.Length >= minimumLength)
         {
-            return memoryOwner.Memory;
+            return currentMemory;
         }
 
         if (minimumLength > pool.MaxBufferSize)
         {
-            Metrics.TooLargeRent(minimumLength, pool);
-            return GC.AllocateUninitializedArray<T>(minimumLength);
+            pool = MemoryPool<T>.Shared;
         }
 
         if (memoryOwner is null)
@@ -38,7 +38,7 @@ internal static class MemoryPoolExtensions
 
         if (copyOnResize)
         {
-            memoryOwner.Memory.CopyTo(newMemory.Memory);
+            currentMemory.CopyTo(newMemory.Memory);
         }
 
         memoryOwner.Dispose();
@@ -81,7 +81,7 @@ internal class HeapMemoryPool<T> : MemoryPool<T>
     public static HeapMemoryPool<T> Instance { get; } = new();
 
     // ReSharper disable once UnusedMember.Global
-    [Obsolete("Use Instance instead, this returns MemoryPool<T>.Shared", true)]
+    [Obsolete("Use HeapMemoryPool<T>.Instance instead", true)]
     public new static MemoryPool<T> Shared => throw new NotSupportedException();
 
     public override int MaxBufferSize => Array.MaxLength;
@@ -89,12 +89,17 @@ internal class HeapMemoryPool<T> : MemoryPool<T>
     public override IMemoryOwner<T> Rent(int minBufferSize = -1)
     {
         if (minBufferSize == 0)
+        {
             return HeapMemoryOwner<T>.Empty;
+        }
 
         if (minBufferSize == -1)
+        {
             minBufferSize = Environment.SystemPageSize;
+        }
 
         ArgumentOutOfRangeException.ThrowIfNegative(minBufferSize);
+
         T[] array = GC.AllocateUninitializedArray<T>((int)BitOperations.RoundUpToPowerOf2((uint)minBufferSize));
         return new HeapMemoryOwner<T>(array);
     }
