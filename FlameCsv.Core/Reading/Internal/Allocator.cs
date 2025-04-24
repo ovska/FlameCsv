@@ -10,7 +10,7 @@ internal abstract class Allocator<T> : IDisposable where T : unmanaged
 {
     protected bool IsDisposed { get; private set; }
 
-    public abstract Memory<T> GetMemory(int length);
+    protected abstract Memory<T> GetMemory(int length);
     public Span<T> GetSpan(int length) => GetMemory(length).Span;
 
     public void Dispose()
@@ -24,32 +24,11 @@ internal abstract class Allocator<T> : IDisposable where T : unmanaged
     protected abstract void Dispose(bool disposing);
 }
 
-internal sealed class PerColumnAllocator<T>(MemoryPool<T> pool) : IDisposable where T : unmanaged
-{
-    private readonly ConcurrentDictionary<int, MemoryPoolAllocator<T>> _allocators = new();
-
-    public MemoryPoolAllocator<T> this[int index]
-        => _allocators.GetOrAdd(
-            index,
-            static (_, pool) => new MemoryPoolAllocator<T>(pool),
-            pool);
-
-    public void Dispose()
-    {
-        foreach (MemoryPoolAllocator<T> memoryOwner in _allocators.Values)
-        {
-            memoryOwner.Dispose();
-        }
-
-        _allocators.Clear();
-    }
-}
-
 internal sealed class MemoryPoolAllocator<T>(MemoryPool<T> pool) : Allocator<T> where T : unmanaged
 {
     private IMemoryOwner<T> _memoryOwner = HeapMemoryOwner<T>.Empty;
 
-    public override Memory<T> GetMemory(int length)
+    protected override Memory<T> GetMemory(int length)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
 
@@ -57,7 +36,7 @@ internal sealed class MemoryPoolAllocator<T>(MemoryPool<T> pool) : Allocator<T> 
 
         if (memory.Length < length)
         {
-            memory = EnsureCapacity(ref _memoryOwner, length, copyOnResize: false);
+            memory = EnsureCapacity(length);
         }
 
         return memory.Slice(0, length);
@@ -73,40 +52,25 @@ internal sealed class MemoryPoolAllocator<T>(MemoryPool<T> pool) : Allocator<T> 
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private Memory<T> EnsureCapacity(ref IMemoryOwner<T> memoryOwner, int minimumLength, bool copyOnResize)
+    private Memory<T> EnsureCapacity(int minimumLength)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         ArgumentOutOfRangeException.ThrowIfNegative(minimumLength);
 
-        Memory<T> oldMemory = memoryOwner.Memory;
+        // fall back to the array-backed shared pool if the requested size is larger than the max buffer size
+        var newOwner = minimumLength <= pool.MaxBufferSize
+            ? pool.Rent(minimumLength)
+            : MemoryPool<T>.Shared.Rent(minimumLength);
 
-        if (oldMemory.Length >= minimumLength)
-        {
-            return oldMemory;
-        }
+        Memory<T> newMemory = newOwner.Memory;
 
-        if (minimumLength > pool.MaxBufferSize)
-        {
-            Metrics.TooLargeRent(minimumLength, pool);
-            memoryOwner = HeapMemoryPool<T>.Instance.Rent(minimumLength);
-            return memoryOwner.Memory;
-        }
-
-        IMemoryOwner<T> newMemoryOwner = pool.Rent(minimumLength);
-        Memory<T> newMemory = newMemoryOwner.Memory;
-
-        if (copyOnResize && !oldMemory.IsEmpty)
-        {
-            oldMemory.CopyTo(newMemory);
-        }
-
-        memoryOwner.Dispose();
-        memoryOwner = newMemoryOwner;
+        _memoryOwner.Dispose();
+        _memoryOwner = newOwner;
         return newMemory;
     }
 }
 
-internal sealed class SlabAllocator<T>(MemoryPool<T> pool) : Allocator<T> where T : unmanaged
+internal sealed class StackedAllocator<T>(MemoryPool<T> pool) : Allocator<T> where T : unmanaged
 {
     public void Reset()
     {
@@ -121,7 +85,7 @@ internal sealed class SlabAllocator<T>(MemoryPool<T> pool) : Allocator<T> where 
 
     private readonly ConcurrentQueue<Entry> _queue = [];
 
-    public override Memory<T> GetMemory(int length)
+    protected override Memory<T> GetMemory(int length)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         if (length == 0) return Memory<T>.Empty;
@@ -166,8 +130,7 @@ internal sealed class SlabAllocator<T>(MemoryPool<T> pool) : Allocator<T> where 
 
         if (requiredLength > pool.MaxBufferSize)
         {
-            Metrics.TooLargeRent(requiredLength, pool);
-            owner = HeapMemoryPool<T>.Instance.Rent(requiredLength);
+            owner = MemoryPool<T>.Shared.Rent(requiredLength);
         }
         else
         {
