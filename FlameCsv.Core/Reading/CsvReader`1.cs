@@ -16,6 +16,7 @@ namespace FlameCsv.Reading;
 /// </remarks>
 [MustDisposeResource]
 [PublicAPI]
+[SkipLocalsInit]
 public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     where T : unmanaged, IBinaryInteger<T>
 {
@@ -89,7 +90,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
 
         _unescapeAllocator = new MemoryPoolAllocator<T>(options.Allocator);
 
-        _simdTokenizer = CsvTokenizer.CreateSimd(ref _dialect);
+        _simdTokenizer = CsvTokenizer.CreateSimd(in _dialect);
         _scalarTokenizer = CsvTokenizer.Create(in _dialect);
     }
 
@@ -109,7 +110,6 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
         if (_metaBuffer.TryPop(out ArraySegment<Meta> meta))
         {
             fields = new CsvFields<T>(reader: this, data: _buffer, fieldMeta: meta);
-
             return true;
         }
 
@@ -118,7 +118,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     }
 
     /// <summary>
-    /// Attempts to read the next CSV record from the buffered data.
+    /// Attempts to read the next CSV record from the buffered data or read-ahead buffer.
     /// </summary>
     /// <param name="fields"></param>
     /// <returns></returns>
@@ -135,29 +135,28 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
 
         ResetBufferAndAdvanceReader();
 
-        if (_buffer.IsEmpty ||
-            _state is State.Initialized or State.DataExhausted or State.ReadToEnd)
+        // skip if the buffer is empty, the reader has completed, or we need to read more data
+        if (_state is State.Reading or State.ReaderCompleted && !_buffer.IsEmpty)
         {
-            goto Fail;
+            if (TryFillCore(out ArraySegment<Meta> meta) ||
+                (_state == State.ReaderCompleted && TryFillCore(out meta, readToEnd: true)))
+            {
+                fields = new CsvFields<T>(this, _buffer, meta);
+                return true;
+            }
+
+            if (_state is State.Reading)
+            {
+                // could not read anything from the current buffer
+                _state = State.DataExhausted;
+            }
+            else if (_state == State.ReaderCompleted)
+            {
+                // reader completed, but no more data to read
+                _state = State.ReadToEnd;
+            }
         }
 
-        if (TryFillCore(out ArraySegment<Meta> meta) ||
-            (_state == State.ReaderCompleted && TryFillCore(out meta, readToEnd: true)))
-        {
-            fields = new CsvFields<T>(this, _buffer, meta);
-            return true;
-        }
-
-        _state = _state switch
-        {
-            State.Reading => State.DataExhausted,
-            State.ReaderCompleted => State.ReadToEnd,
-            _ => _state,
-        };
-
-        Debug.Assert(_state is State.DataExhausted or State.ReadToEnd, $"Invalid state: {_state}.");
-
-    Fail:
         Unsafe.SkipInit(out fields);
         return false;
     }
@@ -176,7 +175,6 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
             int charactersConsumed = _metaBuffer.SetFieldsRead(read);
 
             // request more data if the next tokenizing would not be large enough to be productive
-            // TODO PERF: benchmark the limit
             if (_state == State.Reading &&
                 (data.Length - charactersConsumed) < _simdTokenizer?.PreferredLength)
             {
@@ -188,6 +186,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
                 return true;
             }
 
+            // read something, but no fully formed record.
             // ensure we aren't dealing with a huge record that can't fit in our buffer (thousands of fields)
             _metaBuffer.EnsureCapacity();
         }
