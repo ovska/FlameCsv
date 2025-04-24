@@ -93,7 +93,8 @@ public static class CsvBufferReader
     /// <param name="options">Options to configure the reader</param>
     /// <returns></returns>
     /// <remarks>
-    /// If the stream is a <see cref="MemoryStream"/>, the buffer is accessed directly for zero-copy reads if possible.
+    /// If the stream is a <see cref="MemoryStream"/>, the buffer is accessed directly for zero-copy reads if possible;
+    /// see <see cref="CsvReaderOptions.NoDirectBufferAccess"/>.
     /// </remarks>
     public static ICsvBufferReader<byte> Create(
         Stream stream,
@@ -125,7 +126,8 @@ public static class CsvBufferReader
     /// <param name="options">Options to configure the reader</param>
     /// <returns></returns>
     /// <remarks>
-    /// If the stream is a <see cref="StringReader"/>, the internal string is accessed directly for zero-copy reads.
+    /// If the stream is a <see cref="StringReader"/>, the internal string is accessed directly for zero-copy reads;
+    /// see <see cref="CsvReaderOptions.NoDirectBufferAccess"/>.
     /// </remarks>
     public static ICsvBufferReader<char> Create(
         TextReader reader,
