@@ -23,7 +23,14 @@ public static class CsvBufferReader
     /// </remarks>
     /// <param name="csv">String builder containing the CSV</param>
     public static ICsvBufferReader<char> Create(StringBuilder? csv)
-        => Create(csv is null ? ReadOnlySequence<char>.Empty : StringBuilderSegment.Create(csv));
+    {
+        if (csv is null)
+        {
+            return EmptyBufferReader<char>.Instance;
+        }
+
+        return Create(StringBuilderSegment.Create(csv));
+    }
 
     /// <summary>
     /// Creates a new pipe reader over the CSV data.
@@ -31,12 +38,22 @@ public static class CsvBufferReader
     /// <param name="csv">CSV data</param>
     public static ICsvBufferReader<char> Create(string? csv)
     {
+        if (string.IsNullOrEmpty(csv))
+        {
+            return EmptyBufferReader<char>.Instance;
+        }
+
         return Create(csv.AsMemory());
     }
 
     /// <inheritdoc cref="Create(string?)"/>
     public static ICsvBufferReader<char> Create(ReadOnlyMemory<char> csv)
     {
+        if (csv.IsEmpty)
+        {
+            return EmptyBufferReader<char>.Instance;
+        }
+
         return new ConstantBufferReader<char>(csv);
     }
 
@@ -44,6 +61,11 @@ public static class CsvBufferReader
     [OverloadResolutionPriority(-1)]
     public static ICsvBufferReader<T> Create<T>(ReadOnlyMemory<T> csv) where T : unmanaged
     {
+        if (csv.IsEmpty)
+        {
+            return EmptyBufferReader<T>.Instance;
+        }
+
         return new ConstantBufferReader<T>(csv);
     }
 
@@ -53,13 +75,22 @@ public static class CsvBufferReader
         MemoryPool<char>? memoryPool = null,
         CsvReaderOptions options = default)
     {
-        if (csv.IsSingleSegment) return Create(csv.First);
+        if (csv.IsSingleSegment || csv.IsEmpty)
+        {
+            return Create(csv.First);
+        }
+
         return new ConstantSequenceReader<char>(in csv, memoryPool ?? MemoryPool<char>.Shared, in options);
     }
 
     /// <inheritdoc cref="Create(string?)"/>
     public static ICsvBufferReader<byte> Create(ReadOnlyMemory<byte> csv)
     {
+        if (csv.IsEmpty)
+        {
+            return EmptyBufferReader<byte>.Instance;
+        }
+
         return new ConstantBufferReader<byte>(csv);
     }
 
@@ -69,7 +100,11 @@ public static class CsvBufferReader
         MemoryPool<byte>? memoryPool = null,
         CsvReaderOptions options = default)
     {
-        if (csv.IsSingleSegment) return Create(csv.First);
+        if (csv.IsSingleSegment || csv.IsEmpty)
+        {
+            return Create(csv.First);
+        }
+
         return new ConstantSequenceReader<byte>(in csv, memoryPool ?? MemoryPool<byte>.Shared, in options);
     }
 
@@ -78,10 +113,13 @@ public static class CsvBufferReader
     public static ICsvBufferReader<T> Create<T>(
         in ReadOnlySequence<T> csv,
         MemoryPool<T>? memoryPool = null,
-        CsvReaderOptions options = default)
-        where T : unmanaged
+        CsvReaderOptions options = default) where T : unmanaged
     {
-        if (csv.IsSingleSegment) return new ConstantBufferReader<T>(csv.First);
+        if (csv.IsSingleSegment || csv.IsEmpty)
+        {
+            return new ConstantBufferReader<T>(csv.First);
+        }
+
         return new ConstantSequenceReader<T>(in csv, memoryPool ?? MemoryPool<T>.Shared, in options);
     }
 

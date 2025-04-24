@@ -323,11 +323,11 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
 
     private void DisposeCore()
     {
-        using (_metaBuffer)
         using (_unescapeAllocator)
         {
             // don't hold on to data after disposing
             _buffer = ReadOnlyMemory<T>.Empty;
+            _metaBuffer.Dispose();
         }
     }
 

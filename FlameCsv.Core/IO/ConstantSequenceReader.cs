@@ -23,8 +23,6 @@ internal sealed class ConstantSequenceReader<T> : CsvBufferReader<T> where T : u
 
     protected override int ReadCore(Memory<T> buffer)
     {
-        ObjectDisposedException.ThrowIf(IsDisposed, this);
-
         int dataLength = (int)long.Min(int.MaxValue, _data.Length);
 
         if (dataLength == 0) return 0;
@@ -39,8 +37,6 @@ internal sealed class ConstantSequenceReader<T> : CsvBufferReader<T> where T : u
         Memory<T> buffer,
         CancellationToken cancellationToken)
     {
-        if (IsDisposed) return ValueTask.FromException<int>(new ObjectDisposedException(GetType().Name));
-        if (cancellationToken.IsCancellationRequested) return ValueTask.FromCanceled<int>(cancellationToken);
         return new ValueTask<int>(ReadCore(buffer));
     }
 

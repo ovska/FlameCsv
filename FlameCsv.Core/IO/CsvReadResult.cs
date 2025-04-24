@@ -26,9 +26,14 @@ public readonly struct CsvReadResult<T> where T : unmanaged
     }
 
     /// <summary>
-    /// A read result with an empty buffer and <see cref="IsCompleted"/> set to <see langword="false"/>.
+    /// Returns a read result with an empty buffer and <see cref="IsCompleted"/> set to <see langword="false"/>.
     /// </summary>
     public static readonly CsvReadResult<T> Empty;
+
+    /// <summary>
+    /// Returns a read result with an empty buffer and <see cref="IsCompleted"/> set to <see langword="true"/>.
+    /// </summary>
+    public static CsvReadResult<T> Completed => new(default, true);
 
     /// <summary>
     /// Unprocessed data read from the data source.
