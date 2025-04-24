@@ -15,7 +15,7 @@ using Perfolizer.Horology;
 //     new Config(),
 //     args);
 
-BenchmarkRunner.Run<EnumerateBench>(new Config(), args);
+BenchmarkRunner.Run<Utf8StreamBench>(new Config(), args);
 
 file class Config : ManualConfig
 {
