@@ -12,11 +12,11 @@ namespace FlameCsv;
 public static partial class CsvWriter
 {
     /// <summary>
-    /// Default buffer size for writing CSV data.
+    /// Default buffer size for writing CSV data (32 KiB).
     /// </summary>
-    public const int DefaultBufferSize = 4096;
+    public const int DefaultFileStreamBufferSize = 32 * 1024;
 
-    private static FileStream GetFileStream(string path, bool isAsync, int bufferSize = DefaultBufferSize)
+    private static FileStream GetFileStream(string path, bool isAsync, int bufferSize = DefaultFileStreamBufferSize)
     {
         return new FileStream(
             path,
@@ -29,12 +29,10 @@ public static partial class CsvWriter
 
     private static void WriteCore<T, TValue>(
         IEnumerable<TValue> values,
-        [HandlesResourceDisposal] CsvFieldWriter<T> writerArg,
-        IDematerializer<T, TValue> dematerializerArg)
+        CsvFieldWriter<T> writer,
+        IDematerializer<T, TValue> dematerializer)
         where T : unmanaged, IBinaryInteger<T>
     {
-        using CsvFieldWriter<T> writer = writerArg;
-        IDematerializer<T, TValue> dematerializer = dematerializerArg;
         Exception? exception = null;
 
         try
@@ -68,13 +66,11 @@ public static partial class CsvWriter
 
     private static async Task WriteAsyncCore<T, TValue>(
         IEnumerable<TValue> values,
-        [HandlesResourceDisposal] CsvFieldWriter<T> writerArg,
-        IDematerializer<T, TValue> dematerializerArg,
+        CsvFieldWriter<T> writer,
+        IDematerializer<T, TValue> dematerializer,
         CancellationToken cancellationToken)
         where T : unmanaged, IBinaryInteger<T>
     {
-        using CsvFieldWriter<T> writer = writerArg;
-        IDematerializer<T, TValue> dematerializer = dematerializerArg;
         Exception? exception = null;
 
         try
@@ -103,9 +99,6 @@ public static partial class CsvWriter
         }
         finally
         {
-            if (cancellationToken.IsCancellationRequested)
-                exception ??= new OperationCanceledException(cancellationToken);
-
             // re-throws exceptions
             await writer.Writer.CompleteAsync(exception, cancellationToken).ConfigureAwait(false);
         }
@@ -113,13 +106,11 @@ public static partial class CsvWriter
 
     private static async Task WriteAsyncCore<T, TValue>(
         IAsyncEnumerable<TValue> values,
-        [HandlesResourceDisposal] CsvFieldWriter<T> writerArg,
-        IDematerializer<T, TValue> dematerializerArg,
+        CsvFieldWriter<T> writer,
+        IDematerializer<T, TValue> dematerializer,
         CancellationToken cancellationToken)
         where T : unmanaged, IBinaryInteger<T>
     {
-        using CsvFieldWriter<T> writer = writerArg;
-        IDematerializer<T, TValue> dematerializer = dematerializerArg;
         Exception? exception = null;
 
         try
@@ -148,9 +139,6 @@ public static partial class CsvWriter
         }
         finally
         {
-            if (cancellationToken.IsCancellationRequested)
-                exception ??= new OperationCanceledException(cancellationToken);
-
             // re-throws exceptions
             await writer.Writer.CompleteAsync(exception, cancellationToken).ConfigureAwait(false);
         }

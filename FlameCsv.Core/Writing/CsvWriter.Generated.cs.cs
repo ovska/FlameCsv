@@ -35,10 +35,8 @@ static partial class CsvWriter
         IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
         builder ??= new();
-        WriteCore(
-            values,
-            CsvFieldWriter.Create(new StringWriter(builder), options, bufferSize: DefaultBufferSize, leaveOpen: false),
-            dematerializer);
+        using var writer = CsvFieldWriter.Create(new StringWriter(builder), options, bufferSize: -1, leaveOpen: false);
+        WriteCore(values, writer, dematerializer);
         return builder;
     }
 
@@ -66,10 +64,8 @@ static partial class CsvWriter
 
         using FileStream stream = GetFileStream(path, isAsync: false);
 
-        WriteCore(
-            values,
-            CsvFieldWriter.Create(stream, options),
-            dematerializer);
+        using var writer = CsvFieldWriter.Create(stream, options);
+        WriteCore(values, writer, dematerializer);
     }
 
     /// <summary>
@@ -99,12 +95,12 @@ static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        using FileStream stream = GetFileStream(path, isAsync: false, bufferSize);
+        if (bufferSize == -1) bufferSize = DefaultFileStreamBufferSize;
 
-        WriteCore(
-            values,
-            CsvFieldWriter.Create(new StreamWriter(stream, encoding, bufferSize, false), options, bufferSize, leaveOpen: false),
-            dematerializer);
+        using FileStream stream = GetFileStream(path, isAsync: false, bufferSize);
+        using var writer = CsvFieldWriter.Create(new StreamWriter(stream, encoding, bufferSize, false), options, bufferSize, leaveOpen: false);
+
+        WriteCore(values, writer, dematerializer);
     }
 
     /// <summary>
@@ -133,10 +129,8 @@ static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        WriteCore(
-            values,
-            CsvFieldWriter.Create(textWriter, options, bufferSize, leaveOpen),
-            dematerializer);
+        using var writer = CsvFieldWriter.Create(textWriter, options, bufferSize, leaveOpen);
+        WriteCore(values, writer, dematerializer);
     }
 
     /// <summary>
@@ -159,17 +153,14 @@ static partial class CsvWriter
         int bufferSize = -1,
         bool leaveOpen = false)
     {
-        ArgumentNullException.ThrowIfNull(stream);
-        ArgumentNullException.ThrowIfNull(values);
         FlameCsv.Extensions.Guard.CanWrite(stream);
+        ArgumentNullException.ThrowIfNull(values);
 
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        WriteCore(
-            values,
-            CsvFieldWriter.Create(stream, options, bufferSize, leaveOpen),
-            dematerializer);
+        using var writer = CsvFieldWriter.Create(stream, options, bufferSize, leaveOpen);
+        WriteCore(values, writer, dematerializer);
     }
 
     /// <summary>
@@ -205,11 +196,14 @@ static partial class CsvWriter
             options ??= CsvOptions<char>.Default;
             IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
+            using var writer = CsvFieldWriter.Create(textWriter, options, bufferSize, leaveOpen);
+
             await WriteAsyncCore(
                 values,
-                CsvFieldWriter.Create(textWriter, options, bufferSize, leaveOpen),
+                writer,
                 dematerializer,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken)
+                .ConfigureAwait(false);
         }
     }
 
@@ -236,9 +230,8 @@ static partial class CsvWriter
         bool leaveOpen = false,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(stream);
-        ArgumentNullException.ThrowIfNull(values);
         FlameCsv.Extensions.Guard.CanWrite(stream);
+        ArgumentNullException.ThrowIfNull(values);
 
         try
         {
@@ -246,11 +239,14 @@ static partial class CsvWriter
             options ??= CsvOptions<byte>.Default;
             IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
+            using var writer = CsvFieldWriter.Create(stream, options, bufferSize, leaveOpen);
+
             await WriteAsyncCore(
                 values,
-                CsvFieldWriter.Create(stream, options, bufferSize, leaveOpen),
+                writer,
                 dematerializer,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken)
+                .ConfigureAwait(false);
         }
         finally
         {
@@ -290,11 +286,14 @@ static partial class CsvWriter
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
+        using var writer = CsvFieldWriter.Create(pipe, options);
+
         await WriteAsyncCore(
             values,
-            CsvFieldWriter.Create(pipe, options),
+            writer,
             dematerializer,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -327,11 +326,14 @@ static partial class CsvWriter
         FileStream stream = GetFileStream(path, isAsync: true);
         await using (stream.ConfigureAwait(false))
         {
+            using var writer = CsvFieldWriter.Create(stream, options);
+
             await WriteAsyncCore(
                 values,
-                CsvFieldWriter.Create(stream, options),
+                writer,
                 dematerializer,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken)
+                .ConfigureAwait(false);
         }
     }
 
@@ -367,14 +369,19 @@ static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        FileStream stream = GetFileStream(path, isAsync: true);
+        if (bufferSize == -1) bufferSize = DefaultFileStreamBufferSize;
+
+        FileStream stream = GetFileStream(path, isAsync: true, bufferSize);
         await using (stream.ConfigureAwait(false))
         {
+            using var writer = CsvFieldWriter.Create(new StreamWriter(stream, encoding, bufferSize, false), options, bufferSize, leaveOpen: false);
+
             await WriteAsyncCore(
                 values,
-                CsvFieldWriter.Create(new StreamWriter(stream, encoding, bufferSize, false), options, bufferSize, leaveOpen: false),
+                writer,
                 dematerializer,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken)
+                .ConfigureAwait(false);
         }
     }
 
@@ -411,11 +418,14 @@ static partial class CsvWriter
             options ??= CsvOptions<char>.Default;
             IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
+            using var writer = CsvFieldWriter.Create(textWriter, options, bufferSize, leaveOpen);
+
             await WriteAsyncCore(
                 values,
-                CsvFieldWriter.Create(textWriter, options, bufferSize, leaveOpen),
+                writer,
                 dematerializer,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken)
+                .ConfigureAwait(false);
         }
     }
 
@@ -442,9 +452,8 @@ static partial class CsvWriter
         bool leaveOpen = false,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(stream);
-        ArgumentNullException.ThrowIfNull(values);
         FlameCsv.Extensions.Guard.CanWrite(stream);
+        ArgumentNullException.ThrowIfNull(values);
 
         try
         {
@@ -452,11 +461,14 @@ static partial class CsvWriter
             options ??= CsvOptions<byte>.Default;
             IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
+            using var writer = CsvFieldWriter.Create(stream, options, bufferSize, leaveOpen);
+
             await WriteAsyncCore(
                 values,
-                CsvFieldWriter.Create(stream, options, bufferSize, leaveOpen),
+                writer,
                 dematerializer,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken)
+                .ConfigureAwait(false);
         }
         finally
         {
@@ -496,11 +508,14 @@ static partial class CsvWriter
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
+        using var writer = CsvFieldWriter.Create(pipe, options);
+
         await WriteAsyncCore(
             values,
-            CsvFieldWriter.Create(pipe, options),
+            writer,
             dematerializer,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -533,11 +548,14 @@ static partial class CsvWriter
         FileStream stream = GetFileStream(path, isAsync: true);
         await using (stream.ConfigureAwait(false))
         {
+            using var writer = CsvFieldWriter.Create(stream, options);
+
             await WriteAsyncCore(
                 values,
-                CsvFieldWriter.Create(stream, options),
+                writer,
                 dematerializer,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken)
+                .ConfigureAwait(false);
         }
     }
 
@@ -573,14 +591,19 @@ static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        FileStream stream = GetFileStream(path, isAsync: true);
+        if (bufferSize == -1) bufferSize = DefaultFileStreamBufferSize;
+
+        FileStream stream = GetFileStream(path, isAsync: true, bufferSize);
         await using (stream.ConfigureAwait(false))
         {
+            using var writer = CsvFieldWriter.Create(new StreamWriter(stream, encoding, bufferSize, false), options, bufferSize, leaveOpen: false);
+
             await WriteAsyncCore(
                 values,
-                CsvFieldWriter.Create(new StreamWriter(stream, encoding, bufferSize, false), options, bufferSize, leaveOpen: false),
+                writer,
                 dematerializer,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken)
+                .ConfigureAwait(false);
         }
     }
 
@@ -610,10 +633,8 @@ static partial class CsvWriter
         IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
 
         builder ??= new();
-        WriteCore(
-            values,
-            CsvFieldWriter.Create(new StringWriter(builder), options, bufferSize: DefaultBufferSize, leaveOpen: false),
-            dematerializer);
+        using var writer = CsvFieldWriter.Create(new StringWriter(builder), options, bufferSize: -1, leaveOpen: false);
+        WriteCore(values, writer, dematerializer);
         return builder;
     }
 
@@ -642,10 +663,8 @@ static partial class CsvWriter
 
         using FileStream stream = GetFileStream(path, isAsync: false);
 
-        WriteCore(
-            values,
-            CsvFieldWriter.Create(stream, options),
-            dematerializer);
+        using var writer = CsvFieldWriter.Create(stream, options);
+        WriteCore(values, writer, dematerializer);
     }
 
     /// <summary>
@@ -676,12 +695,12 @@ static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        using FileStream stream = GetFileStream(path, isAsync: false, bufferSize);
+        if (bufferSize == -1) bufferSize = DefaultFileStreamBufferSize;
 
-        WriteCore(
-            values,
-            CsvFieldWriter.Create(new StreamWriter(stream, encoding, bufferSize, false), options, bufferSize, leaveOpen: false),
-            dematerializer);
+        using FileStream stream = GetFileStream(path, isAsync: false, bufferSize);
+        using var writer = CsvFieldWriter.Create(new StreamWriter(stream, encoding, bufferSize, false), options, bufferSize, leaveOpen: false);
+
+        WriteCore(values, writer, dematerializer);
     }
 
     /// <summary>
@@ -711,10 +730,8 @@ static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        WriteCore(
-            values,
-            CsvFieldWriter.Create(textWriter, options, bufferSize, leaveOpen),
-            dematerializer);
+        using var writer = CsvFieldWriter.Create(textWriter, options, bufferSize, leaveOpen);
+        WriteCore(values, writer, dematerializer);
     }
 
     /// <summary>
@@ -738,17 +755,14 @@ static partial class CsvWriter
         int bufferSize = -1,
         bool leaveOpen = false)
     {
-        ArgumentNullException.ThrowIfNull(stream);
-        ArgumentNullException.ThrowIfNull(values);
         FlameCsv.Extensions.Guard.CanWrite(stream);
+        ArgumentNullException.ThrowIfNull(values);
 
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        WriteCore(
-            values,
-            CsvFieldWriter.Create(stream, options, bufferSize, leaveOpen),
-            dematerializer);
+        using var writer = CsvFieldWriter.Create(stream, options, bufferSize, leaveOpen);
+        WriteCore(values, writer, dematerializer);
     }
 
     /// <summary>
@@ -785,11 +799,14 @@ static partial class CsvWriter
             options ??= CsvOptions<char>.Default;
             IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
 
+            using var writer = CsvFieldWriter.Create(textWriter, options, bufferSize, leaveOpen);
+
             await WriteAsyncCore(
                 values,
-                CsvFieldWriter.Create(textWriter, options, bufferSize, leaveOpen),
+                writer,
                 dematerializer,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken)
+                .ConfigureAwait(false);
         }
     }
 
@@ -817,9 +834,8 @@ static partial class CsvWriter
         bool leaveOpen = false,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(stream);
-        ArgumentNullException.ThrowIfNull(values);
         FlameCsv.Extensions.Guard.CanWrite(stream);
+        ArgumentNullException.ThrowIfNull(values);
 
         try
         {
@@ -827,11 +843,14 @@ static partial class CsvWriter
             options ??= CsvOptions<byte>.Default;
             IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
+            using var writer = CsvFieldWriter.Create(stream, options, bufferSize, leaveOpen);
+
             await WriteAsyncCore(
                 values,
-                CsvFieldWriter.Create(stream, options, bufferSize, leaveOpen),
+                writer,
                 dematerializer,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken)
+                .ConfigureAwait(false);
         }
         finally
         {
@@ -872,11 +891,14 @@ static partial class CsvWriter
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
+        using var writer = CsvFieldWriter.Create(pipe, options);
+
         await WriteAsyncCore(
             values,
-            CsvFieldWriter.Create(pipe, options),
+            writer,
             dematerializer,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -910,11 +932,14 @@ static partial class CsvWriter
         FileStream stream = GetFileStream(path, isAsync: true);
         await using (stream.ConfigureAwait(false))
         {
+            using var writer = CsvFieldWriter.Create(stream, options);
+
             await WriteAsyncCore(
                 values,
-                CsvFieldWriter.Create(stream, options),
+                writer,
                 dematerializer,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken)
+                .ConfigureAwait(false);
         }
     }
 
@@ -951,14 +976,19 @@ static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        FileStream stream = GetFileStream(path, isAsync: true);
+        if (bufferSize == -1) bufferSize = DefaultFileStreamBufferSize;
+
+        FileStream stream = GetFileStream(path, isAsync: true, bufferSize);
         await using (stream.ConfigureAwait(false))
         {
+            using var writer = CsvFieldWriter.Create(new StreamWriter(stream, encoding, bufferSize, false), options, bufferSize, leaveOpen: false);
+
             await WriteAsyncCore(
                 values,
-                CsvFieldWriter.Create(new StreamWriter(stream, encoding, bufferSize, false), options, bufferSize, leaveOpen: false),
+                writer,
                 dematerializer,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken)
+                .ConfigureAwait(false);
         }
     }
 
@@ -996,11 +1026,14 @@ static partial class CsvWriter
             options ??= CsvOptions<char>.Default;
             IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
 
+            using var writer = CsvFieldWriter.Create(textWriter, options, bufferSize, leaveOpen);
+
             await WriteAsyncCore(
                 values,
-                CsvFieldWriter.Create(textWriter, options, bufferSize, leaveOpen),
+                writer,
                 dematerializer,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken)
+                .ConfigureAwait(false);
         }
     }
 
@@ -1028,9 +1061,8 @@ static partial class CsvWriter
         bool leaveOpen = false,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(stream);
-        ArgumentNullException.ThrowIfNull(values);
         FlameCsv.Extensions.Guard.CanWrite(stream);
+        ArgumentNullException.ThrowIfNull(values);
 
         try
         {
@@ -1038,11 +1070,14 @@ static partial class CsvWriter
             options ??= CsvOptions<byte>.Default;
             IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
+            using var writer = CsvFieldWriter.Create(stream, options, bufferSize, leaveOpen);
+
             await WriteAsyncCore(
                 values,
-                CsvFieldWriter.Create(stream, options, bufferSize, leaveOpen),
+                writer,
                 dematerializer,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken)
+                .ConfigureAwait(false);
         }
         finally
         {
@@ -1083,11 +1118,14 @@ static partial class CsvWriter
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
+        using var writer = CsvFieldWriter.Create(pipe, options);
+
         await WriteAsyncCore(
             values,
-            CsvFieldWriter.Create(pipe, options),
+            writer,
             dematerializer,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -1121,11 +1159,14 @@ static partial class CsvWriter
         FileStream stream = GetFileStream(path, isAsync: true);
         await using (stream.ConfigureAwait(false))
         {
+            using var writer = CsvFieldWriter.Create(stream, options);
+
             await WriteAsyncCore(
                 values,
-                CsvFieldWriter.Create(stream, options),
+                writer,
                 dematerializer,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken)
+                .ConfigureAwait(false);
         }
     }
 
@@ -1162,14 +1203,19 @@ static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        FileStream stream = GetFileStream(path, isAsync: true);
+        if (bufferSize == -1) bufferSize = DefaultFileStreamBufferSize;
+
+        FileStream stream = GetFileStream(path, isAsync: true, bufferSize);
         await using (stream.ConfigureAwait(false))
         {
+            using var writer = CsvFieldWriter.Create(new StreamWriter(stream, encoding, bufferSize, false), options, bufferSize, leaveOpen: false);
+
             await WriteAsyncCore(
                 values,
-                CsvFieldWriter.Create(new StreamWriter(stream, encoding, bufferSize, false), options, bufferSize, leaveOpen: false),
+                writer,
                 dematerializer,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken)
+                .ConfigureAwait(false);
         }
     }
 

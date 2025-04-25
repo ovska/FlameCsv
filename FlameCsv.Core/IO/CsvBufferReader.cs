@@ -211,6 +211,10 @@ public static class CsvBufferReader
     /// <param name="memoryPool">Memory pool used; defaults to <see cref="MemoryPool{T}.Shared"/>.</param>
     /// <param name="options">Options to configure the reader</param>
     /// <returns></returns>
+    /// <remarks>
+    /// If encoding is null, ASCII, or UTF8, a custom reader implementation is used for more performant reading.
+    /// Use the overload with <see cref="TextReader"/> if this behavior is not desired.
+    /// </remarks>
     [OverloadResolutionPriority(-1)] // prever byte overload
     public static ICsvBufferReader<char> Create(
         Stream stream,
@@ -220,6 +224,11 @@ public static class CsvBufferReader
     {
         ArgumentNullException.ThrowIfNull(stream);
         Guard.CanRead(stream);
+
+        if (encoding is null || Equals(encoding, Encoding.ASCII) || Equals(encoding, Encoding.UTF8))
+        {
+            return new Utf8StreamReader(stream, memoryPool ?? MemoryPool<char>.Shared, in options);
+        }
 
         return new TextBufferReader(
             new StreamReader(stream, encoding, bufferSize: options.BufferSize, leaveOpen: options.LeaveOpen),

@@ -24,7 +24,7 @@ static partial class CsvWriter
         ArgumentNullException.ThrowIfNull(textWriter);
         options ??= CsvOptions<char>.Default;
         return new CsvWriter<char>(
-            CsvFieldWriter.Create(textWriter, options, DefaultBufferSize, false),
+            CsvFieldWriter.Create(textWriter, options, DefaultFileStreamBufferSize, false),
             autoFlush);
     }
 
