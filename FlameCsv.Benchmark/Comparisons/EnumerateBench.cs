@@ -39,7 +39,6 @@ public class EnumerateBench
     {
         bool readFields = ReadFields;
 
-        // don't cheat by peeking at the array directly
         var parser = new CsvReader<byte>(
             _flameCsvOptions,
             CsvBufferReader.Create(GetStream(), options: new() { NoDirectBufferAccess = true }));
@@ -187,7 +186,7 @@ public class EnumerateBench
         }
     }
 
-    private Stream GetStream() => new MemoryStream(_data);
+    private Stream GetStream() => new MemoryStream(_data, 0, _data.Length, writable: false, publiclyVisible: false);
     private TextReader GetReader() => new StreamReader(GetStream(), Encoding.UTF8);
 
     private readonly byte[] _data;
