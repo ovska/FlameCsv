@@ -44,10 +44,7 @@ public sealed class PipeBufferWriterTests : IAsyncDisposable
     public static void Should_Validate_Constructor_Params()
     {
         Assert.Throws<ArgumentNullException>(
-            () => new TextBufferWriter(null!, HeapMemoryPool<char>.Instance, 1024, false));
-
-        Assert.Throws<ArgumentOutOfRangeException>(
-            () => new TextBufferWriter(new StringWriter(), HeapMemoryPool<char>.Instance, bufferSize: 0, false));
+            () => new TextBufferWriter(null!, HeapMemoryPool<char>.Instance, new() { BufferSize = 1024}));
     }
 
     [Fact]

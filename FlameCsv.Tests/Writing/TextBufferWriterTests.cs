@@ -33,7 +33,7 @@ public sealed class TextBufferWriterTests : IAsyncDisposable
         Initialize(bufferSize: 1024);
         _ = _writer.GetSpan(written);
         _writer.Advance(written);
-        Assert.Equal(_writer.NeedsFlush, expected);
+        Assert.Equal(expected, _writer.NeedsFlush);
     }
 
     [Fact]
