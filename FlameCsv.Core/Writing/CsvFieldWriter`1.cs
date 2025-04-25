@@ -173,6 +173,21 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
     }
 
     /// <summary>
+    /// Writes the null token for the given type to the writer.
+    /// </summary>
+    public void WriteNull<TValue>()
+    {
+        ReadOnlyMemory<T> nullToken = Options.GetNullToken(typeof(TValue));
+
+        if (nullToken.IsEmpty)
+        {
+            return;
+        }
+
+        WriteRaw(nullToken.Span);
+    }
+
+    /// <summary>
     /// Writes <see cref="CsvOptions{T}.Delimiter"/> to the writer.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
