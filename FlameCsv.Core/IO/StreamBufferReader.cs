@@ -26,7 +26,7 @@ internal sealed class StreamBufferReader : CsvBufferReader<byte>
             return true;
         }
 
-        return ReferenceEquals(_stream, Stream.Null);
+        return false;
     }
 
     protected override int ReadCore(Memory<byte> buffer)
