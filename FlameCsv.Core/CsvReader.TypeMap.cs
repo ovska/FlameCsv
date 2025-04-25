@@ -107,7 +107,7 @@ public static partial class CsvReader
     /// </summary>
     /// <param name="stream">Stream to read the records from</param>
     /// <param name="typeMap">Precompiled type map</param>
-    /// <param name="encoding">Encoding to initialize the <see cref="StreamWriter"/> with</param>
+    /// <param name="encoding">Encoding, defaulting to UTF8</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="readerOptions">Options to configure the inner reader</param>
     public static CsvTypeMapEnumerable<char, TValue> Read<TValue>(
