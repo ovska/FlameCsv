@@ -195,9 +195,9 @@ internal ref partial struct ValueStringBuilder
         }
 
         int pos = _pos;
-        if (s.Length == 1
-            && (uint)pos
-            < (uint)_chars
+        if (s.Length == 1 &&
+            (uint)pos <
+            (uint)_chars
                 .Length) // very common case, e.g. appending strings from NumberFormatInfo like separators, percent symbols, etc.
         {
             _chars[pos] = s[0];
@@ -262,8 +262,14 @@ internal ref partial struct ValueStringBuilder
         return _chars.Slice(origPos, length);
     }
 
-    public void AppendFormatted<T>(T value, ReadOnlySpan<char> format = default) where T : ISpanFormattable
+    public void AppendFormatted<T>(
+        T value,
+        ReadOnlySpan<char> format = default,
+        IFormatProvider? provider = null)
+        where T : ISpanFormattable
     {
+        if (value is null) return;
+
         int charsWritten;
 
         while (!value.TryFormat(_chars.Slice(_pos), out charsWritten, format, null))
