@@ -40,7 +40,13 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
             ReadOnlySpan<byte> byteSpan = new(_buffer, _offset, _count - _offset);
             Span<char> charSpan = bufferSpan.Slice(totalCharsWritten);
 
-            OperationStatus status = Utf8.ToUtf16(byteSpan, charSpan, out int bytesConsumed, out int charsWritten);
+            OperationStatus status = Utf8.ToUtf16(
+                byteSpan,
+                charSpan,
+                out int bytesConsumed,
+                out int charsWritten,
+                replaceInvalidSequences: true,
+                isFinalBlock: _endOfStream);
 
             _offset += bytesConsumed;
             totalCharsWritten += charsWritten;
@@ -120,7 +126,13 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
             ReadOnlySpan<byte> byteSpan = new(_buffer, _offset, _count - _offset);
             Span<char> charSpan = buffer.Span.Slice(totalCharsWritten);
 
-            OperationStatus status = Utf8.ToUtf16(byteSpan, charSpan, out int bytesConsumed, out int charsWritten);
+            OperationStatus status = Utf8.ToUtf16(
+                byteSpan,
+                charSpan,
+                out int bytesConsumed,
+                out int charsWritten,
+                replaceInvalidSequences: true,
+                isFinalBlock: _endOfStream);
 
             _offset += bytesConsumed;
             totalCharsWritten += charsWritten;
