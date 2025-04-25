@@ -9,7 +9,7 @@ namespace FlameCsv.IO;
 /// </summary>
 [PublicAPI]
 [EditorBrowsable(EditorBrowsableState.Advanced)]
-public interface ICsvPipeWriter<T> : IBufferWriter<T> where T : unmanaged
+public interface ICsvBufferWriter<T> : IBufferWriter<T> where T : unmanaged
 {
     /// <summary>
     /// Whether the possible internal buffer is nearly full and should be flushed.

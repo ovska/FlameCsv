@@ -18,9 +18,9 @@ namespace FlameCsv.Writing;
 public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
-    /// The <see cref="ICsvPipeWriter{T}"/> this instance writes to.
+    /// The <see cref="ICsvBufferWriter{T}"/> this instance writes to.
     /// </summary>
-    public ICsvPipeWriter<T> Writer { get; }
+    public ICsvBufferWriter<T> Writer { get; }
 
     /// <summary>
     /// The options-instance for this writer.
@@ -41,7 +41,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
     /// <summary>
     /// Creates a new instance.
     /// </summary>
-    public CsvFieldWriter(ICsvPipeWriter<T> writer, CsvOptions<T> options)
+    public CsvFieldWriter(ICsvBufferWriter<T> writer, CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(writer);
         ArgumentNullException.ThrowIfNull(options);
