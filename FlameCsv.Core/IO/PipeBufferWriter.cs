@@ -45,7 +45,6 @@ internal sealed class PipeBufferWriter : ICsvBufferWriter<byte>
         _unflushed += length;
     }
 
-    [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
     public async ValueTask FlushAsync(CancellationToken cancellationToken = default)
     {
         if (_unflushed > 0)

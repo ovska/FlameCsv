@@ -25,12 +25,6 @@ internal sealed class TextBufferWriter : ICsvBufferWriter<char>
         get => _buffer.Length - _unflushed;
     }
 
-    public bool HasUnflushedData
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _unflushed > 0;
-    }
-
     public bool NeedsFlush
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -94,22 +88,22 @@ internal sealed class TextBufferWriter : ICsvBufferWriter<char>
         _unflushed += length;
     }
 
-    [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
-    public async ValueTask FlushAsync(CancellationToken cancellationToken = default)
+    public ValueTask FlushAsync(CancellationToken cancellationToken = default)
     {
-        if (HasUnflushedData)
-        {
-            await _writer.WriteAsync(_buffer.Slice(0, _unflushed), cancellationToken).ConfigureAwait(false);
-            _unflushed = 0;
-        }
+        var memory = _buffer.Slice(0, _unflushed);
+        _unflushed = 0;
+
+        return memory.IsEmpty ? default : new(_writer.WriteAsync(memory, cancellationToken));
     }
 
     public void Flush()
     {
-        if (HasUnflushedData)
+        var memory = _buffer.Slice(0, _unflushed);
+        _unflushed = 0;
+
+        if (!memory.IsEmpty)
         {
-            _writer.Write(_buffer.Slice(0, _unflushed).Span);
-            _unflushed = 0;
+            _writer.Write(memory.Span);
         }
     }
 
