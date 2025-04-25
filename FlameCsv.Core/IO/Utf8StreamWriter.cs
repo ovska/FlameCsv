@@ -1,98 +1,47 @@
 ﻿using System.Buffers;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.ExceptionServices;
 using System.Text.Unicode;
-using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.IO;
 
-internal sealed class Utf8StreamWriter : ICsvBufferWriter<char>
+internal sealed class Utf8StreamWriter : CsvBufferWriter<char>
 {
     private readonly Stream _stream;
-    private readonly MemoryPool<char> _allocator;
-    private readonly int _bufferSize;
-    private readonly int _flushThreshold;
     private readonly bool _leaveOpen;
-    private int _unflushed;
-    private Memory<char> _buffer;
-    private IMemoryOwner<char> _memoryOwner;
-
     private byte[] _byteBuffer;
 
-    public int Remaining
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _buffer.Length - _unflushed;
-    }
-
-    public bool NeedsFlush
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _unflushed >= _flushThreshold;
-    }
-
     public Utf8StreamWriter(Stream stream, MemoryPool<char> allocator, in CsvIOOptions options)
+        : base(allocator, in options)
     {
         Guard.CanWrite(stream);
         _stream = stream;
-        _allocator = allocator;
         _leaveOpen = options.LeaveOpen;
-        _bufferSize = options.BufferSize;
-        _flushThreshold = Math.Max(128, (int)(_bufferSize * (31.0 / 32.0)));
-        _memoryOwner = allocator.Rent(_bufferSize);
-        _buffer = _memoryOwner.Memory;
-
-        // assume most data is ASCII, with a few multi-byte characters here and there
-        _byteBuffer = ArrayPool<byte>.Shared.Rent(_bufferSize * 2);
+        _byteBuffer = ArrayPool<byte>.Shared.Rent(options.BufferSize * 2);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Span<char> GetSpan(int sizeHint = 0) => GetMemory(sizeHint).Span;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Memory<char> GetMemory(int sizeHint = 0)
+    protected override void FlushCore(ReadOnlyMemory<char> memory)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(sizeHint);
+        bool moreData;
 
-        int remaining = Remaining;
-
-        if (remaining < sizeHint || remaining == 0)
+        do
         {
-            ResizeBuffer(sizeHint);
-        }
+            var bytes = Transcode(ref memory, out moreData);
 
-        Debug.Assert(Remaining >= sizeHint);
-        return _buffer.Slice(_unflushed);
+            if (bytes.IsEmpty)
+            {
+                break;
+            }
+
+            _stream.Write(bytes.Span);
+        } while (moreData);
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private void ResizeBuffer(int sizeHint)
+    protected override ValueTask FlushAsyncCore(ReadOnlyMemory<char> memory, CancellationToken cancellationToken)
     {
-        _allocator.EnsureCapacity(
-            ref _memoryOwner,
-            minimumLength: _unflushed + Math.Max(sizeHint, _bufferSize),
-            copyOnResize: true);
-        _buffer = _memoryOwner.Memory;
-    }
+        var bytes = Transcode(ref memory, out bool moreData);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Advance(int length)
-    {
-        if ((uint)length > (uint)Remaining)
-            Throw.Argument_OutOfRange(nameof(length));
-
-        _unflushed += length;
-    }
-
-    public ValueTask FlushAsync(CancellationToken cancellationToken = default)
-    {
-        if (_unflushed == -1) return default;
-
-        var memory = Transcode(out bool moreData);
-
-        if (memory.IsEmpty)
+        if (bytes.IsEmpty)
         {
             return default;
         }
@@ -100,65 +49,42 @@ internal sealed class Utf8StreamWriter : ICsvBufferWriter<char>
         // if this is the only chunk, write it directly
         if (!moreData)
         {
-            Debug.Assert(_unflushed == 0, $"Unflushed bytes should be 0: {_unflushed}");
-            return _stream.WriteAsync(memory, cancellationToken);
+            return _stream.WriteAsync(bytes, cancellationToken);
         }
 
-        return FlushAsyncCore(memory, cancellationToken);
+        return FlushAsyncAwaited(bytes, memory, cancellationToken);
     }
 
-    private async ValueTask FlushAsyncCore(
-        ReadOnlyMemory<byte> memory,
+    [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
+    private async ValueTask FlushAsyncAwaited(
+        ReadOnlyMemory<byte> bytes,
+        ReadOnlyMemory<char> chars,
         CancellationToken cancellationToken = default)
     {
-        await _stream.WriteAsync(memory, cancellationToken).ConfigureAwait(false);
+        await _stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
 
         bool moreData;
 
         do
         {
-            memory = Transcode(out moreData);
+            bytes = Transcode(ref chars, out moreData);
 
-            if (memory.IsEmpty)
+            if (bytes.IsEmpty)
             {
                 break;
             }
 
-            await _stream.WriteAsync(memory, cancellationToken).ConfigureAwait(false);
+            await _stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
         } while (moreData);
-
-        Debug.Assert(_unflushed == 0, $"Unflushed bytes should be 0: {_unflushed}");
     }
 
-    public void Flush()
-    {
-        if (_unflushed == -1) return;
-
-        bool moreData;
-
-        do
-        {
-            var memory = Transcode(out moreData);
-
-            if (memory.IsEmpty)
-            {
-                break;
-            }
-
-            _stream.Write(memory.Span);
-        } while (moreData);
-
-        Debug.Assert(_unflushed == 0, $"Unflushed bytes should be 0: {_unflushed}");
-    }
-
-    private ReadOnlyMemory<byte> Transcode(out bool moreData)
+    private ReadOnlyMemory<byte> Transcode(ref ReadOnlyMemory<char> memory, out bool moreData)
     {
         moreData = false;
-        ReadOnlySpan<char> chars = _buffer.Span.Slice(0, _unflushed);
+        ReadOnlySpan<char> chars = memory.Span;
 
         if (chars.IsEmpty)
         {
-            _unflushed = 0;
             return ReadOnlyMemory<byte>.Empty;
         }
 
@@ -191,76 +117,21 @@ internal sealed class Utf8StreamWriter : ICsvBufferWriter<char>
             }
         }
 
-        _unflushed -= totalRead;
+        memory = memory.Slice(totalRead);
         return _byteBuffer.AsMemory(0, totalWritten);
     }
 
-    public async ValueTask CompleteAsync(
-        Exception? exception,
-        CancellationToken cancellationToken = default)
+    protected override void DisposeCore()
     {
-        if (cancellationToken.IsCancellationRequested)
-            exception ??= new OperationCanceledException(cancellationToken);
-
-        using (_memoryOwner)
-        {
-            try
-            {
-                if (exception is null)
-                {
-                    await FlushAsync(cancellationToken).ConfigureAwait(false);
-                }
-            }
-            catch (Exception e)
-            {
-                exception = CsvWriteException.OnComplete(e);
-            }
-            finally
-            {
-                _unflushed = -1;
-                _memoryOwner = HeapMemoryOwner<char>.Empty;
-                _buffer = default;
-                ArrayPool<byte>.Shared.Return(_byteBuffer);
-                _byteBuffer = [];
-                if (!_leaveOpen) await _stream.DisposeAsync().ConfigureAwait(false);
-            }
-        }
-
-        if (exception is not null)
-        {
-            ExceptionDispatchInfo.Capture(exception).Throw();
-        }
+        ArrayPool<byte>.Shared.Return(_byteBuffer);
+        _byteBuffer = [];
+        if (!_leaveOpen) _stream.Dispose();
     }
 
-    public void Complete(Exception? exception)
+    protected override ValueTask DisposeCoreAsync()
     {
-        using (_memoryOwner)
-        {
-            try
-            {
-                if (exception is null)
-                {
-                    Flush();
-                }
-            }
-            catch (Exception e)
-            {
-                exception = CsvWriteException.OnComplete(e);
-            }
-            finally
-            {
-                _unflushed = -1;
-                _memoryOwner = HeapMemoryOwner<char>.Empty;
-                _buffer = default;
-                ArrayPool<byte>.Shared.Return(_byteBuffer);
-                _byteBuffer = [];
-                if (!_leaveOpen) _stream.Dispose();
-            }
-        }
-
-        if (exception is not null)
-        {
-            ExceptionDispatchInfo.Capture(exception).Throw();
-        }
+        ArrayPool<byte>.Shared.Return(_byteBuffer);
+        _byteBuffer = [];
+        return _leaveOpen ? default : _stream.DisposeAsync();
     }
 }

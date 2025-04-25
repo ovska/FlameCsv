@@ -105,6 +105,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
         return totalCharsWritten;
     }
 
+    // [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))] TODO PERF: profile
     protected override async ValueTask<int> ReadAsyncCore(Memory<char> buffer, CancellationToken cancellationToken)
     {
         int totalCharsWritten = 0;
@@ -197,7 +198,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
 
-        if (_stream.CanSeek || ReferenceEquals(_stream, Stream.Null))
+        if (_stream.CanSeek)
         {
             _stream.Position = 0;
             _offset = 0;
