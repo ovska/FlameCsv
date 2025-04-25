@@ -49,7 +49,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                 TestDataGenerator.Objects.Value,
                 ObjByteTypeMap.Default,
                 options,
-                bufferSize: bufferSize);
+                new() { BufferSize = bufferSize });
         }
         else
         {
@@ -58,7 +58,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                 output,
                 TestDataGenerator.Objects.Value,
                 options,
-                bufferSize: bufferSize);
+                new() { BufferSize = bufferSize });
         }
 
         Assert.True(output.TryGetBuffer(out var buffer));
@@ -109,7 +109,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                     TestDataGenerator.Objects.Value,
                     ObjByteTypeMap.Default,
                     options,
-                    bufferSize: bufferSize,
+                    new() { BufferSize = bufferSize },
                     cancellationToken: TestContext.Current.CancellationToken);
             }
         }
@@ -129,7 +129,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                     output,
                     TestDataGenerator.Objects.Value,
                     options,
-                    bufferSize: bufferSize,
+                    new() { BufferSize = bufferSize },
                     cancellationToken: TestContext.Current.CancellationToken);
             }
         }

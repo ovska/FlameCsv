@@ -136,9 +136,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
                 Quote = '"',
                 Newline = "\n",
                 Write = tokensWritten
-            },
-            bufferSize: 4096,
-            false);
+            });
         // ReSharper disable once AccessToDisposedClosure
         Assert.Throws<InvalidOperationException>(() => writer.WriteText("test"));
         writer.Writer.Complete(null);
@@ -175,7 +173,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
     {
         _textWriter = new StringWriter();
         _writer = new CsvFieldWriter<char>(
-            new TextBufferWriter(_textWriter, HeapMemoryPool<char>.Instance, bufferSize, false),
+            new TextBufferWriter(_textWriter, HeapMemoryPool<char>.Instance, new() { BufferSize = bufferSize }),
             new CsvOptions<char> { FieldQuoting = quoting, Null = "null", Escape = escape });
     }
 

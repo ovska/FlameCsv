@@ -44,7 +44,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
                     TestDataGenerator.Objects.Value,
                     ObjCharTypeMap.Default,
                     options,
-                    bufferSize: bufferSize);
+                    new() { BufferSize = bufferSize });
             }
             else
             {
@@ -63,7 +63,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
                     new StringWriter(output),
                     TestDataGenerator.Objects.Value,
                     options,
-                    bufferSize: bufferSize);
+                    new() { BufferSize = bufferSize });
             }
             else
             {
@@ -111,7 +111,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
                 TestDataGenerator.Objects.Value,
                 ObjCharTypeMap.Default,
                 options,
-                bufferSize: bufferSize,
+                new() { BufferSize = bufferSize },
                 cancellationToken: TestContext.Current.CancellationToken);
         }
         else
@@ -120,7 +120,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
                 new StringWriter(output),
                 TestDataGenerator.Objects.Value,
                 options,
-                bufferSize: bufferSize,
+                new() { BufferSize = bufferSize },
                 cancellationToken: TestContext.Current.CancellationToken);
         }
 

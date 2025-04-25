@@ -185,7 +185,7 @@ public class CsvReaderTests
             (CsvBufferReader.Create(new StringBuilder("test")), true),
             (CsvBufferReader.Create(new StringReader("wrapped in constant")), true),
             (CsvBufferReader.Create(new StreamReader(new MemoryStream())), false),
-            (CsvBufferReader.Create(new MemoryStream(), Encoding.UTF8), false),
+            (CsvBufferReader.Create(new MemoryStream(), Encoding.Unicode), false),
         ];
 
         foreach ((ICsvBufferReader<char> reader, bool resetable) in charData)
