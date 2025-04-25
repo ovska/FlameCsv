@@ -13,6 +13,7 @@ internal sealed class PipeBufferWriter : ICsvBufferWriter<byte>
 
     private readonly PipeWriter _pipeWriter;
     private int _unflushed;
+    private bool _completed;
 
     public bool NeedsFlush
     {
@@ -49,8 +50,13 @@ internal sealed class PipeBufferWriter : ICsvBufferWriter<byte>
     {
         if (_unflushed > 0)
         {
-            await _pipeWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
             _unflushed = 0;
+
+            if (!_completed)
+            {
+                var result = await _pipeWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+                _completed = result.IsCompleted;
+            }
         }
     }
 
