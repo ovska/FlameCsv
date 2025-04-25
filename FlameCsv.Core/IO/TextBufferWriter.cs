@@ -44,39 +44,32 @@ internal sealed class TextBufferWriter : ICsvBufferWriter<char>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Span<char> GetSpan(int sizeHint = 0)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegative(sizeHint);
-
-        if (Remaining < sizeHint || Remaining == 0)
-        {
-            _allocator.EnsureCapacity(
-                ref _memoryOwner,
-                minimumLength: _unflushed + Math.Max(sizeHint, _bufferSize),
-                copyOnResize: true);
-            _buffer = _memoryOwner.Memory;
-        }
-
-        Debug.Assert(Remaining >= sizeHint);
-        return _buffer.Slice(_unflushed).Span;
-    }
+    public Span<char> GetSpan(int sizeHint = 0) => GetMemory(sizeHint).Span;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Memory<char> GetMemory(int sizeHint = 0)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(sizeHint);
 
-        if (Remaining < sizeHint || Remaining == 0)
+        int remaining = Remaining;
+
+        if (remaining < sizeHint || remaining == 0)
         {
-            _allocator.EnsureCapacity(
-                ref _memoryOwner,
-                minimumLength: _unflushed + Math.Max(sizeHint, _bufferSize),
-                copyOnResize: true);
-            _buffer = _memoryOwner.Memory;
+            ResizeBuffer(sizeHint);
         }
 
         Debug.Assert(Remaining >= sizeHint);
         return _buffer.Slice(_unflushed);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void ResizeBuffer(int sizeHint)
+    {
+        _allocator.EnsureCapacity(
+            ref _memoryOwner,
+            minimumLength: _unflushed + Math.Max(sizeHint, _bufferSize),
+            copyOnResize: true);
+        _buffer = _memoryOwner.Memory;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
