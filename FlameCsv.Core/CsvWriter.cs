@@ -14,7 +14,7 @@ namespace FlameCsv;
 public static partial class CsvWriter
 {
     /// <summary>
-    /// Default buffer size for writing CSV data (32 KiB).
+    /// Default buffer size for writing CSV data to a file (32 KiB).
     /// </summary>
     public const int DefaultFileStreamBufferSize = 32 * 1024;
 
@@ -28,10 +28,8 @@ public static partial class CsvWriter
             ? ioOptions.BufferSize
             : DefaultFileStreamBufferSize;
 
-        // OBS! file streams ignore LeaveOpen
         return new StreamWriter(GetFileStream(path, isAsync, in ioOptions), encoding, bufferSize, leaveOpen: false);
     }
-
 
     private static FileStream GetFileStream(string path, bool isAsync, in CsvIOOptions ioOptions = default)
     {

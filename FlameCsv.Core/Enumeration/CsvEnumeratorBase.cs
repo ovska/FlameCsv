@@ -171,7 +171,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))]
+    [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))] // TODO PERF: profile
     private protected async ValueTask<bool> AdvanceReaderAndMoveNextAsync()
     {
         CsvFields<T> fields;
