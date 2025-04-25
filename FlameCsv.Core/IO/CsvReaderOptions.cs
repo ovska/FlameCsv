@@ -1,6 +1,4 @@
-﻿using System.Buffers;
-using FlameCsv.Extensions;
-using JetBrains.Annotations;
+﻿using JetBrains.Annotations;
 
 namespace FlameCsv.IO;
 
@@ -33,6 +31,9 @@ public readonly struct CsvReaderOptions
     /// Gets or sets the buffer size. If set to -1, the default buffer size is used.<br/>
     /// This value will be clamped to be at minimum <see cref="MinimumReadSize"/> and <see cref="MinimumBufferSize"/>.
     /// </summary>
+    /// <remarks>
+    /// This is only the initial value; the buffer may be resized during reading if needed.
+    /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown if the value is negative and not -1.
     /// </exception>
@@ -77,23 +78,4 @@ public readonly struct CsvReaderOptions
     /// The default is <c>false</c>.
     /// </summary>
     public bool NoDirectBufferAccess { get; init; }
-
-    /// <summary>
-    /// Ensures the configured buffer sizes are valid for the specified memory pool.
-    /// </summary>
-    /// <param name="memoryPool">Pool instance</param>
-    public void EnsureValid<T>(MemoryPool<T> memoryPool)
-    {
-        ArgumentNullException.ThrowIfNull(memoryPool);
-
-        Throw.IfInvalidArgument(
-            BufferSize > memoryPool.MaxBufferSize,
-            "The default buffer size is too large for the memory pool",
-            nameof(MinimumReadSize));
-
-        Throw.IfInvalidArgument(
-            MinimumReadSize > memoryPool.MaxBufferSize,
-            "The minimum read size is too large for the memory pool",
-            nameof(MinimumReadSize));
-    }
 }
