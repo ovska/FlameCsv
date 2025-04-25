@@ -90,6 +90,8 @@ internal sealed class TextBufferWriter : ICsvBufferWriter<char>
 
     public ValueTask FlushAsync(CancellationToken cancellationToken = default)
     {
+        if (_unflushed == -1) return default;
+
         var memory = _buffer.Slice(0, _unflushed);
         _unflushed = 0;
 
@@ -98,6 +100,8 @@ internal sealed class TextBufferWriter : ICsvBufferWriter<char>
 
     public void Flush()
     {
+        if (_unflushed == -1) return;
+
         var memory = _buffer.Slice(0, _unflushed);
         _unflushed = 0;
 
