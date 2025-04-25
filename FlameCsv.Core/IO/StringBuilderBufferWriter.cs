@@ -5,7 +5,7 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.IO;
 
-internal sealed class StringBuilderPipeWriter : ICsvPipeWriter<char>
+internal sealed class StringBuilderBufferWriter : ICsvBufferWriter<char>
 {
     private IMemoryOwner<char> _memoryOwner;
     private Memory<char> _memory;
@@ -13,11 +13,11 @@ internal sealed class StringBuilderPipeWriter : ICsvPipeWriter<char>
     private readonly StringBuilder _builder;
     private bool _disposed;
 
-    public StringBuilderPipeWriter(StringBuilder builder, MemoryPool<char> allocator)
+    public StringBuilderBufferWriter(StringBuilder builder, MemoryPool<char> allocator)
     {
         _builder = builder;
         _pool = allocator;
-        _memoryOwner = allocator.Rent(4096 / 2);
+        _memoryOwner = allocator.Rent(Environment.SystemPageSize / 2);
         _memory = _memoryOwner.Memory;
     }
 

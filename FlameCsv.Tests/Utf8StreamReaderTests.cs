@@ -12,7 +12,7 @@ public class Utf8StreamReaderTests
         int bufferSize = 1024)
     {
         var stream = new MemoryStream(Encoding.UTF8.GetBytes(content));
-        var options = new CsvReaderOptions { BufferSize = bufferSize };
+        var options = new CsvIOOptions { BufferSize = bufferSize };
         return new Utf8StreamReader(stream, MemoryPool<char>.Shared, options);
     }
 
@@ -120,7 +120,7 @@ public class Utf8StreamReaderTests
             .ToArray();
 
         var stream = new MemoryStream(invalidBytes);
-        var options = new CsvReaderOptions { BufferSize = 1024 };
+        var options = new CsvIOOptions { BufferSize = 1024 };
         using var reader = new Utf8StreamReader(stream, MemoryPool<char>.Shared, options);
 
         var charBuffer = new char[20]; // Ample space
@@ -153,7 +153,7 @@ public class Utf8StreamReaderTests
 
         var stream = new MemoryStream(invalidBytes);
         // Buffer size forces the invalid byte FF to be read in the next chunk
-        var options = new CsvReaderOptions { BufferSize = 6 }; // Reads "Test" + E2 82
+        var options = new CsvIOOptions { BufferSize = 6 }; // Reads "Test" + E2 82
         using var reader = new Utf8StreamReader(stream, MemoryPool<char>.Shared, options);
 
         var charBuffer = new char[20]; // Ample space
@@ -344,7 +344,7 @@ public class Utf8StreamReaderTests
             .ToArray();
 
         var stream = new MemoryStream(invalidBytes);
-        var options = new CsvReaderOptions { BufferSize = 1024 };
+        var options = new CsvIOOptions { BufferSize = 1024 };
         await using var reader = new Utf8StreamReader(stream, MemoryPool<char>.Shared, options);
 
         var charBuffer = new char[20]; // Ample space
@@ -377,7 +377,7 @@ public class Utf8StreamReaderTests
 
         var stream = new MemoryStream(invalidBytes);
         // Buffer size forces the invalid byte FF to be read in the next chunk
-        var options = new CsvReaderOptions { BufferSize = 6 }; // Reads "Test" + E2 82
+        var options = new CsvIOOptions { BufferSize = 6 }; // Reads "Test" + E2 82
         await using var reader = new Utf8StreamReader(stream, MemoryPool<char>.Shared, options);
 
         var charBuffer = new char[20]; // Ample space

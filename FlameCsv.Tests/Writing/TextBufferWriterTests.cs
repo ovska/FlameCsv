@@ -5,9 +5,9 @@ using FlameCsv.IO;
 
 namespace FlameCsv.Tests.Writing;
 
-public sealed class CsvCharPipeWriterTests : IAsyncDisposable
+public sealed class TextBufferWriterTests : IAsyncDisposable
 {
-    private CsvCharPipeWriter? _writer;
+    private TextBufferWriter? _writer;
     private StringWriter? _textWriter;
 
     private string Written => _textWriter?.ToString() ?? string.Empty;
@@ -39,15 +39,7 @@ public sealed class CsvCharPipeWriterTests : IAsyncDisposable
     [Fact]
     public static void Should_Validate_Constructor_Params()
     {
-        Assert.Throws<ArgumentNullException>(
-            () => new CsvCharPipeWriter(null!, HeapMemoryPool<char>.Instance, 1024, false));
-
-        Assert.Throws<ArgumentOutOfRangeException>(
-            () => new CsvCharPipeWriter(
-                new StringWriter(),
-                HeapMemoryPool<char>.Instance,
-                bufferSize: int.MinValue,
-                false));
+        Assert.Throws<ArgumentNullException>(() => new TextBufferWriter(null!, HeapMemoryPool<char>.Instance, default));
     }
 
     [Fact]
@@ -143,8 +135,10 @@ public sealed class CsvCharPipeWriterTests : IAsyncDisposable
     {
         Initialize();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(
-            async () => { await _writer.CompleteAsync(null, new CancellationToken(canceled: true)); });
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+        {
+            await _writer.CompleteAsync(null, new CancellationToken(canceled: true));
+        });
     }
 
     [Fact]
@@ -152,20 +146,18 @@ public sealed class CsvCharPipeWriterTests : IAsyncDisposable
     {
         Initialize();
 
-        await Assert.ThrowsAsync<UnreachableException>(
-            async () =>
-            {
-                await _writer.CompleteAsync(new UnreachableException(), new CancellationToken(canceled: true));
-            });
+        await Assert.ThrowsAsync<UnreachableException>(async () =>
+        {
+            await _writer.CompleteAsync(new UnreachableException(), new CancellationToken(canceled: true));
+        });
     }
 
     [MemberNotNull(nameof(_writer))]
     private void Initialize(int bufferSize = 1024)
     {
-        _writer = new CsvCharPipeWriter(
+        _writer = new TextBufferWriter(
             _textWriter = new StringWriter(),
             HeapMemoryPool<char>.Instance,
-            bufferSize,
-            false);
+            new() { BufferSize = bufferSize });
     }
 }

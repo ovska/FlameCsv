@@ -10,7 +10,7 @@ internal sealed class StreamBufferReader : CsvBufferReader<byte>
     public StreamBufferReader(
         Stream stream,
         MemoryPool<byte> pool,
-        in CsvReaderOptions options) : base(pool, in options)
+        in CsvIOOptions options) : base(pool, in options)
     {
         _stream = stream;
         _leaveOpen = options.LeaveOpen;

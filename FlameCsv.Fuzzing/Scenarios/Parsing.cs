@@ -13,7 +13,7 @@ public class Parsing : IScenario
             using var stream = data.AsStream();
 
             var options = new CsvOptions<byte> { MemoryPool = pool };
-            var readOptions = new CsvReaderOptions { NoDirectBufferAccess = true };
+            var readOptions = new CsvIOOptions { NoDirectBufferAccess = true };
 
             foreach (var r in new CsvReader<byte>(options, CsvBufferReader.Create(stream, pool, readOptions)).ParseRecords())
             {

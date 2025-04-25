@@ -44,10 +44,10 @@ public sealed class PipeBufferWriterTests : IAsyncDisposable
     public static void Should_Validate_Constructor_Params()
     {
         Assert.Throws<ArgumentNullException>(
-            () => new CsvCharPipeWriter(null!, HeapMemoryPool<char>.Instance, 1024, false));
+            () => new TextBufferWriter(null!, HeapMemoryPool<char>.Instance, 1024, false));
 
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => new CsvCharPipeWriter(new StringWriter(), HeapMemoryPool<char>.Instance, bufferSize: 0, false));
+            () => new TextBufferWriter(new StringWriter(), HeapMemoryPool<char>.Instance, bufferSize: 0, false));
     }
 
     [Fact]

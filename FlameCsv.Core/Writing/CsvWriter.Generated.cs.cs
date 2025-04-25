@@ -4,6 +4,7 @@ using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.Binding;
+using FlameCsv.IO;
 using FlameCsv.Writing;
 
 namespace FlameCsv;
@@ -35,7 +36,7 @@ static partial class CsvWriter
         IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
         builder ??= new();
-        using var writer = CsvFieldWriter.Create(new StringWriter(builder), options, bufferSize: -1, leaveOpen: false);
+        using var writer = CsvFieldWriter.Create(new StringWriter(builder), options);
         WriteCore(values, writer, dematerializer);
         return builder;
     }
@@ -46,6 +47,7 @@ static partial class CsvWriter
     /// <param name="path">Path of the destination file. Existing files are overwritten</param>
     /// <param name="values">Values to write</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
@@ -54,7 +56,8 @@ static partial class CsvWriter
     public static void WriteToFile<[DAM(Messages.ReflectionBound)] TValue>(
         string path,
         IEnumerable<TValue> values,
-        CsvOptions<byte>? options = null)
+        CsvOptions<byte>? options = null,
+        CsvIOOptions ioOptions = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(values);
@@ -62,7 +65,8 @@ static partial class CsvWriter
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        using FileStream stream = GetFileStream(path, isAsync: false);
+        // ensure the file stream is always disposed
+        using FileStream stream = GetFileStream(path, isAsync: false, in ioOptions);
 
         using var writer = CsvFieldWriter.Create(stream, options);
         WriteCore(values, writer, dematerializer);
@@ -75,7 +79,7 @@ static partial class CsvWriter
     /// <param name="values">Values to write</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="encoding">Encoding to pass to the inner <see cref="StreamWriter"/></param>
-    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
@@ -87,7 +91,7 @@ static partial class CsvWriter
         IEnumerable<TValue> values,
         CsvOptions<char>? options = null,
         Encoding? encoding = null,
-        int bufferSize = -1)
+        CsvIOOptions ioOptions = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(values);
@@ -95,10 +99,9 @@ static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        if (bufferSize == -1) bufferSize = DefaultFileStreamBufferSize;
-
-        using FileStream stream = GetFileStream(path, isAsync: false, bufferSize);
-        using var writer = CsvFieldWriter.Create(new StreamWriter(stream, encoding, bufferSize, false), options, bufferSize, leaveOpen: false);
+        // ensure the file stream is always disposed
+        using StreamWriter streamWriter = GetFileStreamWriter(path, encoding, isAsync: false, in ioOptions);
+        using var writer = CsvFieldWriter.Create(streamWriter, options, in ioOptions);
 
         WriteCore(values, writer, dematerializer);
     }
@@ -109,8 +112,7 @@ static partial class CsvWriter
     /// <param name="textWriter">Writer to write the CSV to</param>
     /// <param name="values">Values to write</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    /// <param name="bufferSize">Buffer size to use for writing</param>
-    /// <param name="leaveOpen">Whether to leave the writer open after writing</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
@@ -120,8 +122,7 @@ static partial class CsvWriter
         TextWriter textWriter,
         IEnumerable<TValue> values,
         CsvOptions<char>? options = null,
-        int bufferSize = -1,
-        bool leaveOpen = false)
+        CsvIOOptions ioOptions = default)
     {
         ArgumentNullException.ThrowIfNull(textWriter);
         ArgumentNullException.ThrowIfNull(values);
@@ -129,7 +130,7 @@ static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        using var writer = CsvFieldWriter.Create(textWriter, options, bufferSize, leaveOpen);
+        using var writer = CsvFieldWriter.Create(textWriter, options, in ioOptions);
         WriteCore(values, writer, dematerializer);
     }
 
@@ -139,8 +140,7 @@ static partial class CsvWriter
     /// <param name="stream">Stream to write the CSV to</param>
     /// <param name="values">Values to write</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    /// <param name="bufferSize">Buffer size to use for writing</param>
-    /// <param name="leaveOpen">Whether to leave the stream open after writing</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
@@ -150,8 +150,7 @@ static partial class CsvWriter
         Stream stream,
         IEnumerable<TValue> values,
         CsvOptions<byte>? options = null,
-        int bufferSize = -1,
-        bool leaveOpen = false)
+        CsvIOOptions ioOptions = default)
     {
         FlameCsv.Extensions.Guard.CanWrite(stream);
         ArgumentNullException.ThrowIfNull(values);
@@ -159,7 +158,7 @@ static partial class CsvWriter
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        using var writer = CsvFieldWriter.Create(stream, options, bufferSize, leaveOpen);
+        using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
         WriteCore(values, writer, dematerializer);
     }
 
@@ -169,8 +168,7 @@ static partial class CsvWriter
     /// <param name="textWriter">Writer to write the CSV to</param>
     /// <param name="values">Values to write</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    /// <param name="bufferSize">Buffer size to use for writing</param>
-    /// <param name="leaveOpen">Whether to leave the writer open after writing</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
@@ -182,8 +180,7 @@ static partial class CsvWriter
         TextWriter textWriter,
         IEnumerable<TValue> values,
         CsvOptions<char>? options = null,
-        int bufferSize = -1,
-        bool leaveOpen = false,
+        CsvIOOptions ioOptions = default,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(textWriter);
@@ -196,7 +193,7 @@ static partial class CsvWriter
             options ??= CsvOptions<char>.Default;
             IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-            using var writer = CsvFieldWriter.Create(textWriter, options, bufferSize, leaveOpen);
+            using var writer = CsvFieldWriter.Create(textWriter, options, in ioOptions);
 
             await WriteAsyncCore(
                 values,
@@ -213,8 +210,7 @@ static partial class CsvWriter
     /// <param name="stream">Stream to write the CSV to</param>
     /// <param name="values">Values to write</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    /// <param name="bufferSize">Buffer size to use for writing</param>
-    /// <param name="leaveOpen">Whether to leave the stream open after writing</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
@@ -226,32 +222,23 @@ static partial class CsvWriter
         Stream stream,
         IEnumerable<TValue> values,
         CsvOptions<byte>? options = null,
-        int bufferSize = -1,
-        bool leaveOpen = false,
+        CsvIOOptions ioOptions = default,
         CancellationToken cancellationToken = default)
     {
         FlameCsv.Extensions.Guard.CanWrite(stream);
         ArgumentNullException.ThrowIfNull(values);
 
-        try
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            options ??= CsvOptions<byte>.Default;
-            IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
+        options ??= CsvOptions<byte>.Default;
+        IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-            using var writer = CsvFieldWriter.Create(stream, options, bufferSize, leaveOpen);
+        using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
 
-            await WriteAsyncCore(
-                values,
-                writer,
-                dematerializer,
-                cancellationToken)
-                .ConfigureAwait(false);
-        }
-        finally
-        {
-            if (!leaveOpen) await stream.DisposeAsync().ConfigureAwait(false);
-        }
+        await WriteAsyncCore(
+            values,
+            writer,
+            dematerializer,
+            cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -276,13 +263,6 @@ static partial class CsvWriter
         ArgumentNullException.ThrowIfNull(pipe);
         ArgumentNullException.ThrowIfNull(values);
 
-        if (cancellationToken.IsCancellationRequested)
-        {
-            OperationCanceledException exception = new(cancellationToken);
-            await pipe.CompleteAsync(exception).ConfigureAwait(false);
-            throw exception;
-        }
-
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
@@ -302,6 +282,7 @@ static partial class CsvWriter
     /// <param name="path">Path of the destination file. Existing files are overwritten</param>
     /// <param name="values">Values to write</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
@@ -313,6 +294,7 @@ static partial class CsvWriter
         string path,
         IEnumerable<TValue> values,
         CsvOptions<byte>? options = null,
+        CsvIOOptions ioOptions = default,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -323,10 +305,12 @@ static partial class CsvWriter
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        FileStream stream = GetFileStream(path, isAsync: true);
+        FileStream stream = GetFileStream(path, isAsync: true, in ioOptions);
+
+        // ensure the file stream is always disposed
         await using (stream.ConfigureAwait(false))
         {
-            using var writer = CsvFieldWriter.Create(stream, options);
+            using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
 
             await WriteAsyncCore(
                 values,
@@ -344,7 +328,7 @@ static partial class CsvWriter
     /// <param name="values">Values to write</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="encoding">Encoding to pass to the inner <see cref="StreamWriter"/></param>
-    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
@@ -358,7 +342,7 @@ static partial class CsvWriter
         IEnumerable<TValue> values,
         CsvOptions<char>? options = null,
         Encoding? encoding = null,
-        int bufferSize = -1,
+        CsvIOOptions ioOptions = default,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -369,12 +353,12 @@ static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        if (bufferSize == -1) bufferSize = DefaultFileStreamBufferSize;
+        StreamWriter stream = GetFileStreamWriter(path, encoding, isAsync: true, in ioOptions);
 
-        FileStream stream = GetFileStream(path, isAsync: true, bufferSize);
+        // ensure the file stream is always disposed
         await using (stream.ConfigureAwait(false))
         {
-            using var writer = CsvFieldWriter.Create(new StreamWriter(stream, encoding, bufferSize, false), options, bufferSize, leaveOpen: false);
+            using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
 
             await WriteAsyncCore(
                 values,
@@ -384,15 +368,13 @@ static partial class CsvWriter
                 .ConfigureAwait(false);
         }
     }
-
     /// <summary>
     /// Asynchronously writes the values as CSV records to the <see cref="TextWriter"/> using <see cref="CsvOptions{T}.TypeBinder"/>.
     /// </summary>
     /// <param name="textWriter">Writer to write the CSV to</param>
     /// <param name="values">Values to write</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    /// <param name="bufferSize">Buffer size to use for writing</param>
-    /// <param name="leaveOpen">Whether to leave the writer open after writing</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
@@ -404,8 +386,7 @@ static partial class CsvWriter
         TextWriter textWriter,
         IAsyncEnumerable<TValue> values,
         CsvOptions<char>? options = null,
-        int bufferSize = -1,
-        bool leaveOpen = false,
+        CsvIOOptions ioOptions = default,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(textWriter);
@@ -418,7 +399,7 @@ static partial class CsvWriter
             options ??= CsvOptions<char>.Default;
             IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-            using var writer = CsvFieldWriter.Create(textWriter, options, bufferSize, leaveOpen);
+            using var writer = CsvFieldWriter.Create(textWriter, options, in ioOptions);
 
             await WriteAsyncCore(
                 values,
@@ -435,8 +416,7 @@ static partial class CsvWriter
     /// <param name="stream">Stream to write the CSV to</param>
     /// <param name="values">Values to write</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    /// <param name="bufferSize">Buffer size to use for writing</param>
-    /// <param name="leaveOpen">Whether to leave the stream open after writing</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
@@ -448,32 +428,23 @@ static partial class CsvWriter
         Stream stream,
         IAsyncEnumerable<TValue> values,
         CsvOptions<byte>? options = null,
-        int bufferSize = -1,
-        bool leaveOpen = false,
+        CsvIOOptions ioOptions = default,
         CancellationToken cancellationToken = default)
     {
         FlameCsv.Extensions.Guard.CanWrite(stream);
         ArgumentNullException.ThrowIfNull(values);
 
-        try
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            options ??= CsvOptions<byte>.Default;
-            IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
+        options ??= CsvOptions<byte>.Default;
+        IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-            using var writer = CsvFieldWriter.Create(stream, options, bufferSize, leaveOpen);
+        using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
 
-            await WriteAsyncCore(
-                values,
-                writer,
-                dematerializer,
-                cancellationToken)
-                .ConfigureAwait(false);
-        }
-        finally
-        {
-            if (!leaveOpen) await stream.DisposeAsync().ConfigureAwait(false);
-        }
+        await WriteAsyncCore(
+            values,
+            writer,
+            dematerializer,
+            cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -498,13 +469,6 @@ static partial class CsvWriter
         ArgumentNullException.ThrowIfNull(pipe);
         ArgumentNullException.ThrowIfNull(values);
 
-        if (cancellationToken.IsCancellationRequested)
-        {
-            OperationCanceledException exception = new(cancellationToken);
-            await pipe.CompleteAsync(exception).ConfigureAwait(false);
-            throw exception;
-        }
-
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
@@ -524,6 +488,7 @@ static partial class CsvWriter
     /// <param name="path">Path of the destination file. Existing files are overwritten</param>
     /// <param name="values">Values to write</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
@@ -535,6 +500,7 @@ static partial class CsvWriter
         string path,
         IAsyncEnumerable<TValue> values,
         CsvOptions<byte>? options = null,
+        CsvIOOptions ioOptions = default,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -545,10 +511,12 @@ static partial class CsvWriter
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        FileStream stream = GetFileStream(path, isAsync: true);
+        FileStream stream = GetFileStream(path, isAsync: true, in ioOptions);
+
+        // ensure the file stream is always disposed
         await using (stream.ConfigureAwait(false))
         {
-            using var writer = CsvFieldWriter.Create(stream, options);
+            using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
 
             await WriteAsyncCore(
                 values,
@@ -566,7 +534,7 @@ static partial class CsvWriter
     /// <param name="values">Values to write</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="encoding">Encoding to pass to the inner <see cref="StreamWriter"/></param>
-    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
@@ -580,7 +548,7 @@ static partial class CsvWriter
         IAsyncEnumerable<TValue> values,
         CsvOptions<char>? options = null,
         Encoding? encoding = null,
-        int bufferSize = -1,
+        CsvIOOptions ioOptions = default,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -591,12 +559,12 @@ static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        if (bufferSize == -1) bufferSize = DefaultFileStreamBufferSize;
+        StreamWriter stream = GetFileStreamWriter(path, encoding, isAsync: true, in ioOptions);
 
-        FileStream stream = GetFileStream(path, isAsync: true, bufferSize);
+        // ensure the file stream is always disposed
         await using (stream.ConfigureAwait(false))
         {
-            using var writer = CsvFieldWriter.Create(new StreamWriter(stream, encoding, bufferSize, false), options, bufferSize, leaveOpen: false);
+            using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
 
             await WriteAsyncCore(
                 values,
@@ -606,7 +574,6 @@ static partial class CsvWriter
                 .ConfigureAwait(false);
         }
     }
-
     /// <summary>
     /// Writes the values as CSV records to a string using the type map.
     /// </summary>
@@ -633,7 +600,7 @@ static partial class CsvWriter
         IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
 
         builder ??= new();
-        using var writer = CsvFieldWriter.Create(new StringWriter(builder), options, bufferSize: -1, leaveOpen: false);
+        using var writer = CsvFieldWriter.Create(new StringWriter(builder), options);
         WriteCore(values, writer, dematerializer);
         return builder;
     }
@@ -645,6 +612,7 @@ static partial class CsvWriter
     /// <param name="values">Values to write</param>
     /// <param name="typeMap">Type map to use for writing</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
@@ -653,7 +621,8 @@ static partial class CsvWriter
         string path,
         IEnumerable<TValue> values,
         CsvTypeMap<byte, TValue> typeMap,
-        CsvOptions<byte>? options = null)
+        CsvOptions<byte>? options = null,
+        CsvIOOptions ioOptions = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(values);
@@ -661,7 +630,8 @@ static partial class CsvWriter
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        using FileStream stream = GetFileStream(path, isAsync: false);
+        // ensure the file stream is always disposed
+        using FileStream stream = GetFileStream(path, isAsync: false, in ioOptions);
 
         using var writer = CsvFieldWriter.Create(stream, options);
         WriteCore(values, writer, dematerializer);
@@ -675,7 +645,7 @@ static partial class CsvWriter
     /// <param name="typeMap">Type map to use for writing</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="encoding">Encoding to pass to the inner <see cref="StreamWriter"/></param>
-    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
@@ -687,7 +657,7 @@ static partial class CsvWriter
         CsvTypeMap<char, TValue> typeMap,
         CsvOptions<char>? options = null,
         Encoding? encoding = null,
-        int bufferSize = -1)
+        CsvIOOptions ioOptions = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(values);
@@ -695,10 +665,9 @@ static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        if (bufferSize == -1) bufferSize = DefaultFileStreamBufferSize;
-
-        using FileStream stream = GetFileStream(path, isAsync: false, bufferSize);
-        using var writer = CsvFieldWriter.Create(new StreamWriter(stream, encoding, bufferSize, false), options, bufferSize, leaveOpen: false);
+        // ensure the file stream is always disposed
+        using StreamWriter streamWriter = GetFileStreamWriter(path, encoding, isAsync: false, in ioOptions);
+        using var writer = CsvFieldWriter.Create(streamWriter, options, in ioOptions);
 
         WriteCore(values, writer, dematerializer);
     }
@@ -710,8 +679,7 @@ static partial class CsvWriter
     /// <param name="values">Values to write</param>
     /// <param name="typeMap">Type map to use for writing</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    /// <param name="bufferSize">Buffer size to use for writing</param>
-    /// <param name="leaveOpen">Whether to leave the writer open after writing</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
@@ -721,8 +689,7 @@ static partial class CsvWriter
         IEnumerable<TValue> values,
         CsvTypeMap<char, TValue> typeMap,
         CsvOptions<char>? options = null,
-        int bufferSize = -1,
-        bool leaveOpen = false)
+        CsvIOOptions ioOptions = default)
     {
         ArgumentNullException.ThrowIfNull(textWriter);
         ArgumentNullException.ThrowIfNull(values);
@@ -730,7 +697,7 @@ static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        using var writer = CsvFieldWriter.Create(textWriter, options, bufferSize, leaveOpen);
+        using var writer = CsvFieldWriter.Create(textWriter, options, in ioOptions);
         WriteCore(values, writer, dematerializer);
     }
 
@@ -741,8 +708,7 @@ static partial class CsvWriter
     /// <param name="values">Values to write</param>
     /// <param name="typeMap">Type map to use for writing</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    /// <param name="bufferSize">Buffer size to use for writing</param>
-    /// <param name="leaveOpen">Whether to leave the stream open after writing</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
@@ -752,8 +718,7 @@ static partial class CsvWriter
         IEnumerable<TValue> values,
         CsvTypeMap<byte, TValue> typeMap,
         CsvOptions<byte>? options = null,
-        int bufferSize = -1,
-        bool leaveOpen = false)
+        CsvIOOptions ioOptions = default)
     {
         FlameCsv.Extensions.Guard.CanWrite(stream);
         ArgumentNullException.ThrowIfNull(values);
@@ -761,7 +726,7 @@ static partial class CsvWriter
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        using var writer = CsvFieldWriter.Create(stream, options, bufferSize, leaveOpen);
+        using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
         WriteCore(values, writer, dematerializer);
     }
 
@@ -772,8 +737,7 @@ static partial class CsvWriter
     /// <param name="values">Values to write</param>
     /// <param name="typeMap">Type map to use for writing</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    /// <param name="bufferSize">Buffer size to use for writing</param>
-    /// <param name="leaveOpen">Whether to leave the writer open after writing</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
@@ -785,8 +749,7 @@ static partial class CsvWriter
         IEnumerable<TValue> values,
         CsvTypeMap<char, TValue> typeMap,
         CsvOptions<char>? options = null,
-        int bufferSize = -1,
-        bool leaveOpen = false,
+        CsvIOOptions ioOptions = default,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(textWriter);
@@ -799,7 +762,7 @@ static partial class CsvWriter
             options ??= CsvOptions<char>.Default;
             IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-            using var writer = CsvFieldWriter.Create(textWriter, options, bufferSize, leaveOpen);
+            using var writer = CsvFieldWriter.Create(textWriter, options, in ioOptions);
 
             await WriteAsyncCore(
                 values,
@@ -817,8 +780,7 @@ static partial class CsvWriter
     /// <param name="values">Values to write</param>
     /// <param name="typeMap">Type map to use for writing</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    /// <param name="bufferSize">Buffer size to use for writing</param>
-    /// <param name="leaveOpen">Whether to leave the stream open after writing</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
@@ -830,32 +792,23 @@ static partial class CsvWriter
         IEnumerable<TValue> values,
         CsvTypeMap<byte, TValue> typeMap,
         CsvOptions<byte>? options = null,
-        int bufferSize = -1,
-        bool leaveOpen = false,
+        CsvIOOptions ioOptions = default,
         CancellationToken cancellationToken = default)
     {
         FlameCsv.Extensions.Guard.CanWrite(stream);
         ArgumentNullException.ThrowIfNull(values);
 
-        try
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            options ??= CsvOptions<byte>.Default;
-            IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
+        options ??= CsvOptions<byte>.Default;
+        IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-            using var writer = CsvFieldWriter.Create(stream, options, bufferSize, leaveOpen);
+        using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
 
-            await WriteAsyncCore(
-                values,
-                writer,
-                dematerializer,
-                cancellationToken)
-                .ConfigureAwait(false);
-        }
-        finally
-        {
-            if (!leaveOpen) await stream.DisposeAsync().ConfigureAwait(false);
-        }
+        await WriteAsyncCore(
+            values,
+            writer,
+            dematerializer,
+            cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -881,13 +834,6 @@ static partial class CsvWriter
         ArgumentNullException.ThrowIfNull(pipe);
         ArgumentNullException.ThrowIfNull(values);
 
-        if (cancellationToken.IsCancellationRequested)
-        {
-            OperationCanceledException exception = new(cancellationToken);
-            await pipe.CompleteAsync(exception).ConfigureAwait(false);
-            throw exception;
-        }
-
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
@@ -908,6 +854,7 @@ static partial class CsvWriter
     /// <param name="values">Values to write</param>
     /// <param name="typeMap">Type map to use for writing</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
@@ -919,6 +866,7 @@ static partial class CsvWriter
         IEnumerable<TValue> values,
         CsvTypeMap<byte, TValue> typeMap,
         CsvOptions<byte>? options = null,
+        CsvIOOptions ioOptions = default,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -929,10 +877,12 @@ static partial class CsvWriter
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        FileStream stream = GetFileStream(path, isAsync: true);
+        FileStream stream = GetFileStream(path, isAsync: true, in ioOptions);
+
+        // ensure the file stream is always disposed
         await using (stream.ConfigureAwait(false))
         {
-            using var writer = CsvFieldWriter.Create(stream, options);
+            using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
 
             await WriteAsyncCore(
                 values,
@@ -951,7 +901,7 @@ static partial class CsvWriter
     /// <param name="typeMap">Type map to use for writing</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="encoding">Encoding to pass to the inner <see cref="StreamWriter"/></param>
-    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
@@ -965,7 +915,7 @@ static partial class CsvWriter
         CsvTypeMap<char, TValue> typeMap,
         CsvOptions<char>? options = null,
         Encoding? encoding = null,
-        int bufferSize = -1,
+        CsvIOOptions ioOptions = default,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -976,12 +926,12 @@ static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        if (bufferSize == -1) bufferSize = DefaultFileStreamBufferSize;
+        StreamWriter stream = GetFileStreamWriter(path, encoding, isAsync: true, in ioOptions);
 
-        FileStream stream = GetFileStream(path, isAsync: true, bufferSize);
+        // ensure the file stream is always disposed
         await using (stream.ConfigureAwait(false))
         {
-            using var writer = CsvFieldWriter.Create(new StreamWriter(stream, encoding, bufferSize, false), options, bufferSize, leaveOpen: false);
+            using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
 
             await WriteAsyncCore(
                 values,
@@ -991,7 +941,6 @@ static partial class CsvWriter
                 .ConfigureAwait(false);
         }
     }
-
     /// <summary>
     /// Asynchronously writes the values as CSV records to the <see cref="TextWriter"/> using the type map.
     /// </summary>
@@ -999,8 +948,7 @@ static partial class CsvWriter
     /// <param name="values">Values to write</param>
     /// <param name="typeMap">Type map to use for writing</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    /// <param name="bufferSize">Buffer size to use for writing</param>
-    /// <param name="leaveOpen">Whether to leave the writer open after writing</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
@@ -1012,8 +960,7 @@ static partial class CsvWriter
         IAsyncEnumerable<TValue> values,
         CsvTypeMap<char, TValue> typeMap,
         CsvOptions<char>? options = null,
-        int bufferSize = -1,
-        bool leaveOpen = false,
+        CsvIOOptions ioOptions = default,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(textWriter);
@@ -1026,7 +973,7 @@ static partial class CsvWriter
             options ??= CsvOptions<char>.Default;
             IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-            using var writer = CsvFieldWriter.Create(textWriter, options, bufferSize, leaveOpen);
+            using var writer = CsvFieldWriter.Create(textWriter, options, in ioOptions);
 
             await WriteAsyncCore(
                 values,
@@ -1044,8 +991,7 @@ static partial class CsvWriter
     /// <param name="values">Values to write</param>
     /// <param name="typeMap">Type map to use for writing</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    /// <param name="bufferSize">Buffer size to use for writing</param>
-    /// <param name="leaveOpen">Whether to leave the stream open after writing</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
@@ -1057,32 +1003,23 @@ static partial class CsvWriter
         IAsyncEnumerable<TValue> values,
         CsvTypeMap<byte, TValue> typeMap,
         CsvOptions<byte>? options = null,
-        int bufferSize = -1,
-        bool leaveOpen = false,
+        CsvIOOptions ioOptions = default,
         CancellationToken cancellationToken = default)
     {
         FlameCsv.Extensions.Guard.CanWrite(stream);
         ArgumentNullException.ThrowIfNull(values);
 
-        try
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            options ??= CsvOptions<byte>.Default;
-            IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
+        options ??= CsvOptions<byte>.Default;
+        IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-            using var writer = CsvFieldWriter.Create(stream, options, bufferSize, leaveOpen);
+        using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
 
-            await WriteAsyncCore(
-                values,
-                writer,
-                dematerializer,
-                cancellationToken)
-                .ConfigureAwait(false);
-        }
-        finally
-        {
-            if (!leaveOpen) await stream.DisposeAsync().ConfigureAwait(false);
-        }
+        await WriteAsyncCore(
+            values,
+            writer,
+            dematerializer,
+            cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -1108,13 +1045,6 @@ static partial class CsvWriter
         ArgumentNullException.ThrowIfNull(pipe);
         ArgumentNullException.ThrowIfNull(values);
 
-        if (cancellationToken.IsCancellationRequested)
-        {
-            OperationCanceledException exception = new(cancellationToken);
-            await pipe.CompleteAsync(exception).ConfigureAwait(false);
-            throw exception;
-        }
-
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
@@ -1135,6 +1065,7 @@ static partial class CsvWriter
     /// <param name="values">Values to write</param>
     /// <param name="typeMap">Type map to use for writing</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
@@ -1146,6 +1077,7 @@ static partial class CsvWriter
         IAsyncEnumerable<TValue> values,
         CsvTypeMap<byte, TValue> typeMap,
         CsvOptions<byte>? options = null,
+        CsvIOOptions ioOptions = default,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -1156,10 +1088,12 @@ static partial class CsvWriter
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        FileStream stream = GetFileStream(path, isAsync: true);
+        FileStream stream = GetFileStream(path, isAsync: true, in ioOptions);
+
+        // ensure the file stream is always disposed
         await using (stream.ConfigureAwait(false))
         {
-            using var writer = CsvFieldWriter.Create(stream, options);
+            using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
 
             await WriteAsyncCore(
                 values,
@@ -1178,7 +1112,7 @@ static partial class CsvWriter
     /// <param name="typeMap">Type map to use for writing</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="encoding">Encoding to pass to the inner <see cref="StreamWriter"/></param>
-    /// <param name="bufferSize">Buffer size to use for writing</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
@@ -1192,7 +1126,7 @@ static partial class CsvWriter
         CsvTypeMap<char, TValue> typeMap,
         CsvOptions<char>? options = null,
         Encoding? encoding = null,
-        int bufferSize = -1,
+        CsvIOOptions ioOptions = default,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -1203,12 +1137,12 @@ static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        if (bufferSize == -1) bufferSize = DefaultFileStreamBufferSize;
+        StreamWriter stream = GetFileStreamWriter(path, encoding, isAsync: true, in ioOptions);
 
-        FileStream stream = GetFileStream(path, isAsync: true, bufferSize);
+        // ensure the file stream is always disposed
         await using (stream.ConfigureAwait(false))
         {
-            using var writer = CsvFieldWriter.Create(new StreamWriter(stream, encoding, bufferSize, false), options, bufferSize, leaveOpen: false);
+            using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
 
             await WriteAsyncCore(
                 values,
@@ -1218,5 +1152,4 @@ static partial class CsvWriter
                 .ConfigureAwait(false);
         }
     }
-
 }

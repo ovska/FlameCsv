@@ -69,19 +69,19 @@ public static partial class CsvReader
     /// <param name="stream">Stream to read the records from</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="encoding">Encoding, defaulting to UTF8</param>
-    /// <param name="readerOptions">Options to configure the inner reader</param>
+    /// <param name="ioOptions">Options to configure the inner reader</param>
     public static CsvRecordEnumerable<char> Enumerate(
         Stream stream,
         CsvOptions<char>? options = null,
         Encoding? encoding = null,
-        CsvReaderOptions readerOptions = default)
+        CsvIOOptions ioOptions = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
         Guard.CanRead(stream);
 
         options ??= CsvOptions<char>.Default;
         return new CsvRecordEnumerable<char>(
-            CsvBufferReader.Create(stream, encoding, options.Allocator, readerOptions),
+            CsvBufferReader.Create(stream, encoding, options.Allocator, ioOptions),
             options);
     }
 
@@ -91,17 +91,17 @@ public static partial class CsvReader
     /// <remarks><inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)" path="/remarks"/></remarks>
     /// <param name="textReader">Text reader to read the records from</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    /// <param name="readerOptions">Options to configure the inner reader</param>
+    /// <param name="ioOptions">Options to configure the inner reader</param>
     public static CsvRecordEnumerable<char> Enumerate(
         TextReader textReader,
         CsvOptions<char>? options = null,
-        CsvReaderOptions readerOptions = default)
+        CsvIOOptions ioOptions = default)
     {
         ArgumentNullException.ThrowIfNull(textReader);
 
         options ??= CsvOptions<char>.Default;
         return new CsvRecordEnumerable<char>(
-            CsvBufferReader.Create(textReader, options.Allocator, readerOptions),
+            CsvBufferReader.Create(textReader, options.Allocator, ioOptions),
             options);
     }
 
@@ -111,18 +111,18 @@ public static partial class CsvReader
     /// <remarks><inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)" path="/remarks"/></remarks>
     /// <param name="stream">Stream to read the records from</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    /// <param name="readerOptions">Options to configure the inner reader</param>
+    /// <param name="ioOptions">Options to configure the inner reader</param>
     [OverloadResolutionPriority(1)] // Prefer byte to char for ambiguous streams
     public static CsvRecordEnumerable<byte> Enumerate(
         Stream stream,
         CsvOptions<byte>? options = null,
-        CsvReaderOptions readerOptions = default)
+        CsvIOOptions ioOptions = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
 
         options ??= CsvOptions<byte>.Default;
         return new CsvRecordEnumerable<byte>(
-            CsvBufferReader.Create(stream, options.Allocator, readerOptions),
+            CsvBufferReader.Create(stream, options.Allocator, ioOptions),
             options);
     }
 

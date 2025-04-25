@@ -11,7 +11,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
     private int _offset;
     private bool _endOfStream;
 
-    public Utf8StreamReader(Stream stream, MemoryPool<char> memoryPool, in CsvReaderOptions options)
+    public Utf8StreamReader(Stream stream, MemoryPool<char> memoryPool, in CsvIOOptions options)
         : base(memoryPool, in options)
     {
         _stream = stream;

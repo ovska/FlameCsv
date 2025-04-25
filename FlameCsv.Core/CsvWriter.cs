@@ -1,4 +1,6 @@
-﻿using FlameCsv.Writing;
+﻿using System.Text;
+using FlameCsv.IO;
+using FlameCsv.Writing;
 using JetBrains.Annotations;
 
 // ReSharper disable InlineTemporaryVariable
@@ -16,8 +18,27 @@ public static partial class CsvWriter
     /// </summary>
     public const int DefaultFileStreamBufferSize = 32 * 1024;
 
-    private static FileStream GetFileStream(string path, bool isAsync, int bufferSize = DefaultFileStreamBufferSize)
+    private static StreamWriter GetFileStreamWriter(
+        string path,
+        Encoding? encoding,
+        bool isAsync,
+        in CsvIOOptions ioOptions = default)
     {
+        int bufferSize = ioOptions.HasCustomBufferSize
+            ? ioOptions.BufferSize
+            : DefaultFileStreamBufferSize;
+
+        // OBS! file streams ignore LeaveOpen
+        return new StreamWriter(GetFileStream(path, isAsync, in ioOptions), encoding, bufferSize, leaveOpen: false);
+    }
+
+
+    private static FileStream GetFileStream(string path, bool isAsync, in CsvIOOptions ioOptions = default)
+    {
+        int bufferSize = ioOptions.HasCustomBufferSize
+            ? ioOptions.BufferSize
+            : DefaultFileStreamBufferSize;
+
         return new FileStream(
             path,
             FileMode.Create,

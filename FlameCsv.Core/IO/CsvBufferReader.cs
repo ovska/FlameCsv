@@ -73,7 +73,7 @@ public static class CsvBufferReader
     public static ICsvBufferReader<char> Create(
         in ReadOnlySequence<char> csv,
         MemoryPool<char>? memoryPool = null,
-        CsvReaderOptions options = default)
+        CsvIOOptions options = default)
     {
         if (csv.IsSingleSegment || csv.IsEmpty)
         {
@@ -98,7 +98,7 @@ public static class CsvBufferReader
     public static ICsvBufferReader<byte> Create(
         in ReadOnlySequence<byte> csv,
         MemoryPool<byte>? memoryPool = null,
-        CsvReaderOptions options = default)
+        CsvIOOptions options = default)
     {
         if (csv.IsSingleSegment || csv.IsEmpty)
         {
@@ -113,7 +113,7 @@ public static class CsvBufferReader
     public static ICsvBufferReader<T> Create<T>(
         in ReadOnlySequence<T> csv,
         MemoryPool<T>? memoryPool = null,
-        CsvReaderOptions options = default) where T : unmanaged
+        CsvIOOptions options = default) where T : unmanaged
     {
         if (csv.IsSingleSegment || csv.IsEmpty)
         {
@@ -132,12 +132,12 @@ public static class CsvBufferReader
     /// <returns></returns>
     /// <remarks>
     /// If the stream is a <see cref="MemoryStream"/>, the buffer is accessed directly for zero-copy reads if possible;
-    /// see <see cref="CsvReaderOptions.NoDirectBufferAccess"/>.
+    /// see <see cref="CsvIOOptions.NoDirectBufferAccess"/>.
     /// </remarks>
     public static ICsvBufferReader<byte> Create(
         Stream stream,
         MemoryPool<byte>? memoryPool = null,
-        CsvReaderOptions options = default)
+        CsvIOOptions options = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
         Guard.CanRead(stream);
@@ -165,12 +165,12 @@ public static class CsvBufferReader
     /// <returns></returns>
     /// <remarks>
     /// If the stream is a <see cref="StringReader"/>, the internal string is accessed directly for zero-copy reads;
-    /// see <see cref="CsvReaderOptions.NoDirectBufferAccess"/>.
+    /// see <see cref="CsvIOOptions.NoDirectBufferAccess"/>.
     /// </remarks>
     public static ICsvBufferReader<char> Create(
         TextReader reader,
         MemoryPool<char>? memoryPool = null,
-        CsvReaderOptions options = default)
+        CsvIOOptions options = default)
     {
         ArgumentNullException.ThrowIfNull(reader);
 
@@ -220,7 +220,7 @@ public static class CsvBufferReader
         Stream stream,
         Encoding? encoding = null,
         MemoryPool<char>? memoryPool = null,
-        CsvReaderOptions options = default)
+        CsvIOOptions options = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
         Guard.CanRead(stream);

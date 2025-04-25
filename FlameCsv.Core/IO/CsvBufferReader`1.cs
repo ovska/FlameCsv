@@ -43,7 +43,7 @@ internal abstract class CsvBufferReader<T> : ICsvBufferReader<T> where T : unman
     /// <summary>Whether the previous call to Read returned 0 characters</summary>
     private bool _completed;
 
-    protected CsvBufferReader(MemoryPool<T> pool, in CsvReaderOptions options)
+    protected CsvBufferReader(MemoryPool<T> pool, in CsvIOOptions options)
     {
         _pool = pool;
         _owner = pool.Rent(options.BufferSize);

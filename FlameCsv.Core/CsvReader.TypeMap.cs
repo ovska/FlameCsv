@@ -109,20 +109,20 @@ public static partial class CsvReader
     /// <param name="typeMap">Precompiled type map</param>
     /// <param name="encoding">Encoding, defaulting to UTF8</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    /// <param name="readerOptions">Options to configure the inner reader</param>
+    /// <param name="ioOptions">Options to configure the inner reader</param>
     public static CsvTypeMapEnumerable<char, TValue> Read<TValue>(
         Stream stream,
         CsvTypeMap<char, TValue> typeMap,
         CsvOptions<char>? options = null,
         Encoding? encoding = null,
-        CsvReaderOptions readerOptions = default)
+        CsvIOOptions ioOptions = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(typeMap);
         Guard.CanRead(stream);
 
         options ??= CsvOptions<char>.Default;
-        var reader = CsvBufferReader.Create(stream, encoding, options.Allocator, readerOptions);
+        var reader = CsvBufferReader.Create(stream, encoding, options.Allocator, ioOptions);
         return new CsvTypeMapEnumerable<char, TValue>(reader, options, typeMap);
     }
 
@@ -132,18 +132,18 @@ public static partial class CsvReader
     /// <param name="textReader">Text reader to read the records from</param>
     /// <param name="typeMap">Precompiled type map</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    /// <param name="readerOptions">Options to configure the inner reader</param>
+    /// <param name="ioOptions">Options to configure the inner reader</param>
     public static CsvTypeMapEnumerable<char, TValue> Read<TValue>(
         TextReader textReader,
         CsvTypeMap<char, TValue> typeMap,
         CsvOptions<char>? options = null,
-        CsvReaderOptions readerOptions = default)
+        CsvIOOptions ioOptions = default)
     {
         ArgumentNullException.ThrowIfNull(textReader);
         ArgumentNullException.ThrowIfNull(typeMap);
 
         options ??= CsvOptions<char>.Default;
-        ICsvBufferReader<char> reader = CsvBufferReader.Create(textReader, options.Allocator, readerOptions);
+        ICsvBufferReader<char> reader = CsvBufferReader.Create(textReader, options.Allocator, ioOptions);
         return new CsvTypeMapEnumerable<char, TValue>(reader, options, typeMap);
     }
 
@@ -153,19 +153,19 @@ public static partial class CsvReader
     /// <param name="stream">Stream to read the records from</param>
     /// <param name="typeMap">Precompiled type map</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    /// <param name="readerOptions">Options to configure the inner reader</param>
+    /// <param name="ioOptions">Options to configure the inner reader</param>
     public static CsvTypeMapEnumerable<byte, TValue> Read<TValue>(
         Stream stream,
         CsvTypeMap<byte, TValue> typeMap,
         CsvOptions<byte>? options = null,
-        CsvReaderOptions readerOptions = default)
+        CsvIOOptions ioOptions = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(typeMap);
         Guard.CanRead(stream);
 
         options ??= CsvOptions<byte>.Default;
-        var reader = CsvBufferReader.Create(stream, options.Allocator, readerOptions);
+        var reader = CsvBufferReader.Create(stream, options.Allocator, ioOptions);
         return new CsvTypeMapEnumerable<byte, TValue>(reader, options, typeMap);
     }
 }
