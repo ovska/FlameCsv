@@ -95,6 +95,8 @@ internal sealed class Utf8StreamWriter : ICsvBufferWriter<char>
 
     public ValueTask FlushAsync(CancellationToken cancellationToken = default)
     {
+        if (_unflushed == -1) return default;
+
         var memory = Transcode(out bool moreData);
 
         if (memory.IsEmpty)
@@ -137,6 +139,8 @@ internal sealed class Utf8StreamWriter : ICsvBufferWriter<char>
 
     public void Flush()
     {
+        if (_unflushed == -1) return;
+
         bool moreData;
 
         do
