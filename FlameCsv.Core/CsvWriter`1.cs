@@ -24,7 +24,7 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     /// <summary>
     /// Whether to automatically check if the writer needs to be flushed after each record.
     /// </summary>
-    /// <seealso cref="ICsvPipeWriter{T}.NeedsFlush"/>
+    /// <seealso cref="ICsvBufferWriter{T}.NeedsFlush"/>
     public bool AutoFlush { get; set; }
 
     /// <summary>
@@ -288,7 +288,7 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     /// Multiple completions are no-ops.
     /// </summary>
     /// <param name="exception">
-    /// Observed exception when writing the data, passed to the inner <see cref="ICsvPipeWriter{T}"/>.
+    /// Observed exception when writing the data, passed to the inner <see cref="ICsvBufferWriter{T}"/>.
     /// If not null, the final buffer is not flushed and the exception is rethrown.
     /// </param>
     /// <param name="cancellationToken">Token to cancel the operation</param>

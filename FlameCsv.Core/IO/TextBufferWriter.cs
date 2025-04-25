@@ -1,4 +1,4 @@
-﻿using System.Buffers;
+using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
@@ -7,19 +7,17 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.IO;
 
-[DebuggerDisplay("[CsvStreamBufferWriter] Written: {_unflushed} / {_buffer.Length})")]
-internal sealed class CsvStreamPipeWriter : ICsvPipeWriter<byte>
+[DebuggerDisplay("[CsvCharBufferWriter] Written: {_unflushed} / {_buffer.Length})")]
+internal sealed class TextBufferWriter : ICsvBufferWriter<char>
 {
-    private static readonly int _defaultBufferSize = 4 * Environment.SystemPageSize;
-
-    private readonly Stream _stream;
-    private readonly MemoryPool<byte> _allocator;
+    private readonly TextWriter _writer;
+    private readonly MemoryPool<char> _allocator;
     private readonly int _bufferSize;
     private readonly int _flushThreshold;
     private readonly bool _leaveOpen;
     private int _unflushed;
-    private Memory<byte> _buffer;
-    private IMemoryOwner<byte> _memoryOwner;
+    private Memory<char> _buffer;
+    private IMemoryOwner<char> _memoryOwner;
 
     public int Remaining
     {
@@ -39,26 +37,20 @@ internal sealed class CsvStreamPipeWriter : ICsvPipeWriter<byte>
         get => _unflushed >= _flushThreshold;
     }
 
-    public CsvStreamPipeWriter(Stream stream, MemoryPool<byte> allocator, int bufferSize, bool leaveOpen)
+    public TextBufferWriter(TextWriter writer, MemoryPool<char> allocator, in CsvIOOptions options)
     {
-        ArgumentNullException.ThrowIfNull(stream);
-
-        if (bufferSize == -1)
-            bufferSize = _defaultBufferSize;
-
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bufferSize);
-
-        _stream = stream;
+        ArgumentNullException.ThrowIfNull(writer);
+        _writer = writer;
         _allocator = allocator;
-        _leaveOpen = leaveOpen;
-        _bufferSize = Math.Max(128, bufferSize);
-        _flushThreshold = (int)(_bufferSize * 0.875);
+        _leaveOpen = options.LeaveOpen;
+        _bufferSize = options.BufferSize;
+        _flushThreshold = Math.Max(128, (int)(_bufferSize * (31.0 / 32.0)));
         _memoryOwner = allocator.Rent(_bufferSize);
         _buffer = _memoryOwner.Memory;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Span<byte> GetSpan(int sizeHint = 0)
+    public Span<char> GetSpan(int sizeHint = 0)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(sizeHint);
 
@@ -76,7 +68,7 @@ internal sealed class CsvStreamPipeWriter : ICsvPipeWriter<byte>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Memory<byte> GetMemory(int sizeHint = 0)
+    public Memory<char> GetMemory(int sizeHint = 0)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(sizeHint);
 
@@ -107,7 +99,7 @@ internal sealed class CsvStreamPipeWriter : ICsvPipeWriter<byte>
     {
         if (HasUnflushedData)
         {
-            await _stream.WriteAsync(_buffer.Slice(0, _unflushed), cancellationToken).ConfigureAwait(false);
+            await _writer.WriteAsync(_buffer.Slice(0, _unflushed), cancellationToken).ConfigureAwait(false);
             _unflushed = 0;
         }
     }
@@ -116,7 +108,7 @@ internal sealed class CsvStreamPipeWriter : ICsvPipeWriter<byte>
     {
         if (HasUnflushedData)
         {
-            _stream.Write(_buffer.Slice(0, _unflushed).Span);
+            _writer.Write(_buffer.Slice(0, _unflushed).Span);
             _unflushed = 0;
         }
     }
@@ -144,9 +136,9 @@ internal sealed class CsvStreamPipeWriter : ICsvPipeWriter<byte>
             finally
             {
                 _unflushed = -1;
-                _memoryOwner = HeapMemoryOwner<byte>.Empty;
+                _memoryOwner = HeapMemoryOwner<char>.Empty;
                 _buffer = default;
-                if (!_leaveOpen) await _stream.DisposeAsync().ConfigureAwait(false);
+                if (!_leaveOpen) await _writer.DisposeAsync().ConfigureAwait(false);
             }
         }
 
@@ -174,9 +166,9 @@ internal sealed class CsvStreamPipeWriter : ICsvPipeWriter<byte>
             finally
             {
                 _unflushed = -1;
-                _memoryOwner = HeapMemoryOwner<byte>.Empty;
+                _memoryOwner = HeapMemoryOwner<char>.Empty;
                 _buffer = default;
-                if (!_leaveOpen) _stream.Dispose();
+                if (!_leaveOpen) _writer.Dispose();
             }
         }
 

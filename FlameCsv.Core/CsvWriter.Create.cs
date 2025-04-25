@@ -1,6 +1,7 @@
 ﻿using System.IO.Pipelines;
 using FlameCsv.Writing;
 using FlameCsv.Extensions;
+using FlameCsv.IO;
 
 namespace FlameCsv;
 
@@ -15,39 +16,43 @@ static partial class CsvWriter
     /// <param name="textWriter">Writer to write the CSV to</param>
     /// <param name="options">Options instance. If null, <see cref="CsvOptions{T}.Default"/> is used</param>
     /// <param name="autoFlush">Whether to automatically flush after </param>
+    /// <param name="ioOptions">Options to configure the buffer size whether to dispose the text writer</param>
     /// <returns>Writer instance</returns>
     public static CsvWriter<char> Create(
         TextWriter textWriter,
         CsvOptions<char>? options = null,
-        bool autoFlush = false)
+        bool autoFlush = false,
+        in CsvIOOptions ioOptions = default)
     {
         ArgumentNullException.ThrowIfNull(textWriter);
         options ??= CsvOptions<char>.Default;
         return new CsvWriter<char>(
-            CsvFieldWriter.Create(textWriter, options, DefaultFileStreamBufferSize, false),
+            CsvFieldWriter.Create(textWriter, options, in ioOptions),
             autoFlush);
     }
 
-    /// <summary><inheritdoc cref="Create(TextWriter, CsvOptions{char}?, bool)" path="/summary"/></summary>
+    /// <summary><inheritdoc cref="Create(TextWriter, CsvOptions{char}?, bool, in CsvIOOptions)" path="/summary"/></summary>
     /// <param name="stream">Stream to write the CSV to</param>
     /// <param name="options">Options instance. If null, <see cref="CsvOptions{T}.Default"/> is used</param>
     /// <param name="autoFlush">Whether to automatically flush after </param>
+    /// <param name="ioOptions">Options to configure the buffer size whether to dispose the text writer</param>
     /// <returns>Writer instance</returns>
     public static CsvWriter<byte> Create(
         Stream stream,
         CsvOptions<byte>? options = null,
-        bool autoFlush = false)
+        bool autoFlush = false,
+        in CsvIOOptions ioOptions = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
         Guard.CanWrite(stream);
 
         options ??= CsvOptions<byte>.Default;
         return new CsvWriter<byte>(
-            CsvFieldWriter.Create(stream, options),
+            CsvFieldWriter.Create(stream, options, in ioOptions),
             autoFlush);
     }
 
-    /// <summary><inheritdoc cref="Create(TextWriter, CsvOptions{char}?, bool)" path="/summary"/></summary>
+    /// <summary><inheritdoc cref="Create(TextWriter, CsvOptions{char}?, bool, in CsvIOOptions)" path="/summary"/></summary>
     /// <remarks>
     /// Writing to a pipe does not support synchronous flushing.
     /// </remarks>

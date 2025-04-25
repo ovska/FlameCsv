@@ -10,18 +10,17 @@ internal static class CsvFieldWriter
     public static CsvFieldWriter<char> Create(
         TextWriter textWriter,
         CsvOptions<char> options,
-        int bufferSize,
-        bool leaveOpen)
+        in CsvIOOptions ioOptions = default)
     {
         try
         {
             return new CsvFieldWriter<char>(
-                new CsvCharPipeWriter(textWriter, options.Allocator, bufferSize, leaveOpen),
+                new TextBufferWriter(textWriter, options.Allocator, in ioOptions),
                 options);
         }
         catch
         {
-            if (!leaveOpen) textWriter.Dispose();
+            if (!ioOptions.LeaveOpen) textWriter.Dispose();
             throw;
         }
     }
@@ -48,18 +47,17 @@ internal static class CsvFieldWriter
     public static CsvFieldWriter<byte> Create(
         Stream stream,
         CsvOptions<byte> options,
-        int bufferSize = -1,
-        bool leaveOpen = false)
+        in CsvIOOptions ioOptions = default)
     {
         try
         {
             return new CsvFieldWriter<byte>(
-                new CsvStreamPipeWriter(stream, options.Allocator, bufferSize, leaveOpen),
+                new StreamBufferWriter(stream, options.Allocator, in ioOptions),
                 options);
         }
         catch
         {
-            if (!leaveOpen) stream.Dispose();
+            if (!ioOptions.LeaveOpen) stream.Dispose();
             throw;
         }
     }

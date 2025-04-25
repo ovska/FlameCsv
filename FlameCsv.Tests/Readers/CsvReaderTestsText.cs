@@ -14,7 +14,7 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
         return CsvBufferReader.Create(
             new StreamReader(stream, Encoding.UTF8, bufferSize: bufferSize),
             options.Allocator,
-            new CsvReaderOptions {
+            new CsvIOOptions {
                 BufferSize = bufferSize, MinimumReadSize = bufferSize == -1 ? -1 : bufferSize / 2
 
             });

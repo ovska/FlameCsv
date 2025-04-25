@@ -3,11 +3,11 @@
 namespace FlameCsv.IO;
 
 /// <summary>
-/// Represents options for configuring <see cref="ICsvBufferReader{T}"/>.
+/// Represents options for configuring <see cref="ICsvBufferReader{T}"/> and <see cref="ICsvBufferWriter{T}"/>.
 /// </summary>
 /// <seealso cref="CsvBufferReader"/>
 [PublicAPI]
-public readonly struct CsvReaderOptions
+public readonly record struct CsvIOOptions
 {
     /// <summary>
     /// The default buffer size.
@@ -29,7 +29,7 @@ public readonly struct CsvReaderOptions
 
     /// <summary>
     /// Gets or sets the buffer size. If set to -1, the default buffer size is used.<br/>
-    /// This value will be clamped to be at minimum <see cref="MinimumReadSize"/> and <see cref="MinimumBufferSize"/>.
+    /// This value will be clamped to be at minimum 256 or <see cref="MinimumBufferSize"/>, whichever is larger.
     /// </summary>
     /// <remarks>
     /// This is only the initial value; the buffer may be resized during reading if needed.
@@ -49,7 +49,8 @@ public readonly struct CsvReaderOptions
     }
 
     /// <summary>
-    /// Gets or sets the minimum read size. If unset or set to -1, the default minimum read size is used.<br/>
+    /// Gets or sets the minimum buffer size when reading.
+    /// If unset or set to -1, the default will be used (<see cref="MinimumBufferSize"/> / 2).<br/>
     /// This value will be clamped to be at minimum <see cref="MinimumBufferSize"/> / 2.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">
@@ -67,9 +68,13 @@ public readonly struct CsvReaderOptions
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the inner stream/reader should be left open after reading.<br/>
+    /// Gets or sets a value indicating whether the inner stream/reader should be left open after use.<br/>
     /// The default is <c>false</c>.
     /// </summary>
+    /// <remarks>
+    /// This parameter is not used if the data source or destination is not user provided, e.g.
+    /// <see cref="CsvWriter.WriteToFile{TValue}(string,IEnumerable{TValue},CsvOptions{byte}?,CsvIOOptions)"/>
+    /// </remarks>
     public bool LeaveOpen { get; init; }
 
     /// <summary>
@@ -78,4 +83,6 @@ public readonly struct CsvReaderOptions
     /// The default is <c>false</c>.
     /// </summary>
     public bool NoDirectBufferAccess { get; init; }
+
+    internal bool HasCustomBufferSize => _bufferSize.HasValue && _bufferSize != DefaultBufferSize;
 }
