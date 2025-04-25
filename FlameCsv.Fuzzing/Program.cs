@@ -1,5 +1,5 @@
 ﻿#if true
-Fuzzer.LibFuzzer.Run(ScenarioRunner.Run<Parsing>);
+Fuzzer.LibFuzzer.Run(ScenarioRunner.Run<Utf8StreamReaderScenario>);
 #else
 DirectoryInfo dir = new(@"..\..\..\");
 

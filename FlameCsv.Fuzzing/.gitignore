@@ -4,6 +4,6 @@ timeout-*
 
 # Ignore all files in Testcases directory except .csv files
 Testcases/*
-!Testcases/*.csv
+!Testcases/*.*
 
 libfuzzer-dotnet-windows.exe

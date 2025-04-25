@@ -1,8 +1,8 @@
-﻿using System.Buffers;
-using CommunityToolkit.HighPerformance;
+﻿using CommunityToolkit.HighPerformance;
 
 namespace FlameCsv.Fuzzing.Scenarios;
 
+// ReSharper disable once ClassNeverInstantiated.Global
 public class Parsing : IScenario
 {
     public static void Run(ReadOnlyMemory<byte> data, PoisonPagePlacement placement)
@@ -15,7 +15,7 @@ public class Parsing : IScenario
             var options = new CsvOptions<byte> { MemoryPool = pool };
             var readOptions = new CsvReaderOptions { NoDirectBufferAccess = true };
 
-            foreach (var r in CsvParser.Create(options, CsvPipeReader.Create(stream, pool, readOptions)).ParseRecords())
+            foreach (var r in new CsvReader<byte>(options, CsvBufferReader.Create(stream, pool, readOptions)).ParseRecords())
             {
                 for (int i = 0; i < r.FieldCount; i++)
                 {
@@ -38,8 +38,7 @@ public class Parsing : IScenario
             using var pool = new BoundedMemoryPool<char>();
             var options = new CsvOptions<char> { MemoryPool = pool };
 
-            foreach (var r in CsvParser
-                         .Create(options, CsvPipeReader.Create(new ReadOnlySequence<char>(data)))
+            foreach (var r in new CsvReader<char>(options, CsvBufferReader.Create(data))
                          .ParseRecords())
             {
                 for (int i = 0; i < r.FieldCount; i++)
