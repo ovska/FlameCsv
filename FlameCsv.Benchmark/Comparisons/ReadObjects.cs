@@ -37,20 +37,16 @@ public partial class ReadObjects
     {
         if (Async)
         {
-            await using var pipe = CsvBufferReader.Create(GetReader());
-            await foreach (var entry in new CsvValueEnumerable<char, Entry>(
-                               pipe,
-                               _flameCsvOptions))
+            await using var reader = CsvBufferReader.Create(GetStream(), encoding: Encoding.UTF8);
+            await foreach (var entry in new CsvValueEnumerable<char, Entry>(reader, _flameCsvOptions))
             {
                 _ = entry;
             }
         }
         else
         {
-            using var pipe = CsvBufferReader.Create(GetReader());
-            foreach (var entry in new CsvValueEnumerable<char, Entry>(
-                         pipe,
-                         _flameCsvOptions))
+            using var reader = CsvBufferReader.Create(GetStream(), encoding: Encoding.UTF8);
+            foreach (var entry in new CsvValueEnumerable<char, Entry>(reader, _flameCsvOptions))
             {
                 _ = entry;
             }
@@ -63,9 +59,9 @@ public partial class ReadObjects
     {
         if (Async)
         {
-            await using var pipe = CsvBufferReader.Create(GetReader());
+            await using var reader = CsvBufferReader.Create(GetStream(), encoding: Encoding.UTF8);
             await foreach (var entry in new CsvTypeMapEnumerable<char, Entry>(
-                               pipe,
+                               reader,
                                _flameCsvOptions,
                                EntryTypeMap.Default))
             {
@@ -74,8 +70,8 @@ public partial class ReadObjects
         }
         else
         {
-            using var pipe = CsvBufferReader.Create(GetReader());
-            foreach (var entry in new CsvTypeMapEnumerable<char, Entry>(pipe, _flameCsvOptions, EntryTypeMap.Default))
+            using var reader = CsvBufferReader.Create(GetStream(), encoding: Encoding.UTF8);
+            foreach (var entry in new CsvTypeMapEnumerable<char, Entry>(reader, _flameCsvOptions, EntryTypeMap.Default))
             {
                 _ = entry;
             }
@@ -129,9 +125,9 @@ public partial class ReadObjects
     private Stream GetStream()
         => Records switch
         {
-            100 =>  new MemoryStream(_data0),
-            5000 =>  new MemoryStream(_data1),
-            20_000 =>  new MemoryStream(_data2),
+            100 =>  new MemoryStream(_data0, 0, _data0.Length, writable: false, publiclyVisible: false),
+            5000 =>  new MemoryStream(_data1, 0, _data1.Length, writable: false, publiclyVisible: false),
+            20_000 =>  new MemoryStream(_data2, 0, _data2.Length, writable: false, publiclyVisible: false),
             _ => throw new ArgumentOutOfRangeException(nameof(Records), Records, null)
         };
 
