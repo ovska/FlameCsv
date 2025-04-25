@@ -211,9 +211,10 @@ public static class CsvBufferReader
     /// <param name="memoryPool">Memory pool used; defaults to <see cref="MemoryPool{T}.Shared"/>.</param>
     /// <param name="options">Options to configure the reader</param>
     /// <returns></returns>
+    [OverloadResolutionPriority(-1)] // prever byte overload
     public static ICsvBufferReader<char> Create(
         Stream stream,
-        Encoding? encoding,
+        Encoding? encoding = null,
         MemoryPool<char>? memoryPool = null,
         CsvReaderOptions options = default)
     {

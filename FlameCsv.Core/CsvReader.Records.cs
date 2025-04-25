@@ -68,7 +68,7 @@ public static partial class CsvReader
     /// <remarks><inheritdoc cref="Enumerate(string?,FlameCsv.CsvOptions{char}?)" path="/remarks"/></remarks>
     /// <param name="stream">Stream to read the records from</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-    /// <param name="encoding">Encoding to use for the inner <see cref="StreamReader"/></param>
+    /// <param name="encoding">Encoding, defaulting to UTF8</param>
     /// <param name="readerOptions">Options to configure the inner reader</param>
     public static CsvRecordEnumerable<char> Enumerate(
         Stream stream,

@@ -452,7 +452,7 @@ public partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinary
     /// Set to <see langword="null"/> to disable pooling and always heap allocate.
     /// </summary>
     /// <remarks>
-    /// Buffers that are larger than <see cref="MemoryPool{T}.MaxBufferSize"/> size are heap allocated.
+    /// Buffers that are larger than <see cref="MemoryPool{T}.MaxBufferSize"/> size are rented from the shared array pool.
     /// </remarks>
     public MemoryPool<T>? MemoryPool
     {

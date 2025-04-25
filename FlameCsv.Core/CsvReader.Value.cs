@@ -73,7 +73,7 @@ public static partial class CsvReader
     /// Parses instances of <typeparamref name="TValue"/> from the stream using reflection.
     /// </summary>
     /// <param name="stream">Stream to read the records from</param>
-    /// <param name="encoding">Encoding to initialize the <see cref="StreamWriter"/> with</param>
+    /// <param name="encoding">Encoding, defaulting to UTF8</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="readerOptions">Options to configure the inner reader</param>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
