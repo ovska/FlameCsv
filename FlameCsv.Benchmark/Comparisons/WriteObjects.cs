@@ -26,33 +26,33 @@ public class WriteObjects
         };
 
     [Benchmark(Baseline = true)]
-    public Task _Flame_SrcGen()
+    public async Task _Flame_SrcGen()
     {
         if (Async)
         {
-            return CsvWriter.WriteAsync(_destination, Data, EntryTypeMap.Default);
+            await CsvWriter.WriteAsync(_destination, Data, EntryTypeMap.Default);
+            return;
         }
 
         CsvWriter.Write(_destination, Data, EntryTypeMap.Default);
-        return Task.CompletedTask;
     }
 
     [Benchmark]
-    public Task _Flame()
+    public async Task _Flame()
     {
         if (Async)
         {
-            return CsvWriter.WriteAsync(_destination, Data);
+            await CsvWriter.WriteAsync(_destination, Data);
+            return;
         }
 
         CsvWriter.Write(_destination, Data);
-        return Task.CompletedTask;
     }
 
     [Benchmark]
     public async Task _Sep()
     {
-        using var writer = Sep
+        var writer = Sep
             .Writer(c => c with { Sep = new(','), Escape = true, WriteHeader = true, })
             .To(_destination);
 
@@ -72,25 +72,32 @@ public class WriteObjects
 
         foreach (var entry in Data)
         {
-            using (var row = writer.NewRow())
+            SepWriter.Row row = writer.NewRow();
+            row[0].Format(entry.Index);
+            row[1].Set(entry.Name);
+            row[2].Set(entry.Contact);
+            row[3].Format(entry.Count);
+            row[4].Format(entry.Latitude);
+            row[5].Format(entry.Longitude);
+            row[6].Format(entry.Height);
+            row[7].Set(entry.Location);
+            row[8].Set(entry.Category);
+            row[9].Set($"{entry.Popularity}");
+
+            if (Async)
             {
-                row[0].Format(entry.Index);
-                row[1].Set(entry.Name);
-                row[2].Set(entry.Contact);
-                row[3].Format(entry.Count);
-                row[4].Format(entry.Latitude);
-                row[5].Format(entry.Longitude);
-                row[6].Format(entry.Height);
-                row[7].Set(entry.Location);
-                row[8].Set(entry.Category);
-                row[9].Set($"{entry.Popularity}");
+                await row.DisposeAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                row.Dispose();
             }
 
             if (++count == 100)
             {
                 if (Async)
                 {
-                    await writer.FlushAsync();
+                    await writer.FlushAsync().ConfigureAwait(false);
                 }
                 else
                 {
@@ -103,11 +110,13 @@ public class WriteObjects
 
         if (Async)
         {
-            await writer.FlushAsync();
+            await writer.FlushAsync().ConfigureAwait(false);
+            await writer.DisposeAsync().ConfigureAwait(false);
         }
         else
         {
             writer.Flush();
+            writer.Dispose();
         }
     }
 
@@ -117,7 +126,7 @@ public class WriteObjects
         if (Async)
         {
             await using var writer = Sylvan.Data.Csv.CsvDataWriter.Create(_destination);
-            await writer.WriteAsync(Data.AsDataReader());
+            await writer.WriteAsync(Data.AsDataReader()).ConfigureAwait(false);
         }
         else
         {
@@ -132,7 +141,7 @@ public class WriteObjects
         if (Async)
         {
             await using CsvHelper.CsvWriter writer = new(_destination, CultureInfo.InvariantCulture);
-            await writer.WriteRecordsAsync(Data);
+            await writer.WriteRecordsAsync(Data).ConfigureAwait(false);
         }
         else
         {
