@@ -1,5 +1,6 @@
 // ReSharper disable all
 
+using System.Runtime.Intrinsics;
 using System.Text;
 using FlameCsv.Reading.Internal;
 
@@ -22,12 +23,16 @@ public class TokenizationBench
 
     private static readonly CsvDialect<char> _dialectChar = new CsvDialect<char>
     {
-        Delimiter = ',', Quote = '"', Newline = NewlineBuffer<char>.LF,
+        Delimiter = ',',
+        Quote = '"',
+        Newline = NewlineBuffer<char>.LF,
     };
 
     private static readonly CsvDialect<byte> _dialectByte = new CsvDialect<byte>
     {
-        Delimiter = (byte)',', Quote = (byte)'"', Newline = NewlineBuffer<byte>.LF,
+        Delimiter = (byte)',',
+        Quote = (byte)'"',
+        Newline = NewlineBuffer<byte>.LF,
     };
 
     private readonly SimdTokenizer<char, NewlineParserOne<char, Vec128Char>, Vec128Char> _t128 = new(
@@ -57,6 +62,8 @@ public class TokenizationBench
     [Benchmark(Baseline = true)]
     public int V128()
     {
+        if (!Vector128.IsHardwareAccelerated) throw new NotSupportedException();
+
         return Chars
             ? _t128.Tokenize(_metaBuffer, CharData, 0)
             : _t128b.Tokenize(_metaBuffer, ByteData, 0);
@@ -65,6 +72,8 @@ public class TokenizationBench
     [Benchmark]
     public int V256()
     {
+        if (!Vector256.IsHardwareAccelerated) throw new NotSupportedException();
+
         return Chars
             ? _t256.Tokenize(_metaBuffer, CharData, 0)
             : _t256b.Tokenize(_metaBuffer, ByteData, 0);
@@ -73,6 +82,8 @@ public class TokenizationBench
     [Benchmark]
     public int V512()
     {
+        if (!Vector512.IsHardwareAccelerated) throw new NotSupportedException();
+
         return Chars
             ? _t512.Tokenize(_metaBuffer, CharData, 0)
             : _t512b.Tokenize(_metaBuffer, ByteData, 0);
