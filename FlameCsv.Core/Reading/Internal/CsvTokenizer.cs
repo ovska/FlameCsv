@@ -97,8 +97,10 @@ file static class ForChar
 {
     public static CsvPartialTokenizer<char>? CreateSimd(ref readonly CsvDialect<char> dialect)
     {
-        // TODO PERF: profile AVX512BW vs generic Vector512
-        if (Avx512BW.IsSupported || (!Vec512Char.IsSupported && Vec256Char.IsSupported))
+        // TODO: benchmark 256 vs 512 on non-x86 platforms; RuntimeInformation.ProcessArchitecture is X86 or X64.. etc
+        // on x86 with AVX512, 256 is faster in all cases except 3% slower on dense non-quoted data
+        // and up to 6% slower on dense or quoted data
+        if (Vec256Char.IsSupported)
         {
             if (dialect.Newline.Length == 1)
             {
@@ -211,3 +213,23 @@ file static class ForByte
         return null;
     }
 }
+
+/*
+| Method | Alt   | Chars | Mean       | StdDev  | Ratio |
+|------- |------ |------ |-----------:|--------:|------:|
+| V128   | False | False | 1,539.0 us | 2.98 us |  1.00 |
+| V256   | False | False | 1,149.3 us | 9.75 us |  0.75 |
+| V512   | False | False | 1,238.2 us | 1.63 us |  0.80 |
+|        |       |       |            |         |       |
+| V128   | False | True  | 1,674.6 us | 6.86 us |  1.00 |
+| V256   | False | True  | 1,239.4 us | 7.83 us |  0.74 |
+| V512   | False | True  | 1,340.8 us | 6.36 us |  0.80 |
+|        |       |       |            |         |       |
+| V128   | True  | False |   582.8 us | 2.02 us |  1.00 |
+| V256   | True  | False |   440.5 us | 1.43 us |  0.76 |
+| V512   | True  | False |   423.7 us | 3.08 us |  0.73 |
+|        |       |       |            |         |       |
+| V128   | True  | True  |   631.8 us | 2.17 us |  1.00 |
+| V256   | True  | True  |   470.9 us | 3.43 us |  0.75 |
+| V512   | True  | True  |   479.1 us | 1.02 us |  0.76 |
+*/
