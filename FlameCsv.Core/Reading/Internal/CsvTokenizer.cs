@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.X86;
 
 namespace FlameCsv.Reading.Internal;
 
@@ -96,6 +97,24 @@ file static class ForChar
 {
     public static CsvPartialTokenizer<char>? CreateSimd(ref readonly CsvDialect<char> dialect)
     {
+        // TODO PERF: profile AVX512BW vs generic Vector512
+        if (Avx512BW.IsSupported || (!Vec512Char.IsSupported && Vec256Char.IsSupported))
+        {
+            if (dialect.Newline.Length == 1)
+            {
+                return new SimdTokenizer<char, NewlineParserOne<char, Vec256Char>, Vec256Char>(
+                    dialect,
+                    new(dialect.Newline.First));
+            }
+
+            if (dialect.Newline.Length == 2)
+            {
+                return new SimdTokenizer<char, NewlineParserTwo<char, Vec256Char>, Vec256Char>(
+                    dialect,
+                    new(dialect.Newline.First, dialect.Newline.Second));
+            }
+        }
+
         if (Vec512Char.IsSupported)
         {
             if (dialect.Newline.Length == 1)
@@ -108,23 +127,6 @@ file static class ForChar
             if (dialect.Newline.Length == 2)
             {
                 return new SimdTokenizer<char, NewlineParserTwo<char, Vec512Char>, Vec512Char>(
-                    dialect,
-                    new(dialect.Newline.First, dialect.Newline.Second));
-            }
-        }
-
-        if (Vec256Char.IsSupported)
-        {
-            if (dialect.Newline.Length == 1)
-            {
-                return new SimdTokenizer<char, NewlineParserOne<char, Vec256Char>, Vec256Char>(
-                    dialect,
-                    new(dialect.Newline.First));
-            }
-
-            if (dialect.Newline.Length == 2)
-            {
-                return new SimdTokenizer<char, NewlineParserTwo<char, Vec256Char>, Vec256Char>(
                     dialect,
                     new(dialect.Newline.First, dialect.Newline.Second));
             }
