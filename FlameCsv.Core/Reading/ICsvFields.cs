@@ -17,5 +17,8 @@ public interface ICsvFields<T> where T : unmanaged, IBinaryInteger<T>
     /// <remarks>
     /// The span is only valid until another field or the next record is read.
     /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown if <paramref name="index"/> is less than 0 or greater than or equal to <see cref="FieldCount"/>
+    /// </exception>
     ReadOnlySpan<T> this[int index] { get; }
 }

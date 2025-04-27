@@ -2,10 +2,7 @@
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#
-    const string MethodImpl = "MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough";
-    const string PragmaCondition = "RELEASE";
-
-    string[] sizes = ["128", "256", "512"];
+    const string MethodAttribute = "[MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]";
 
     IEnumerable<ISA> Types =
         from type in (string[])["Char", "Byte"]
@@ -147,29 +144,6 @@ using System.Text;
 
 namespace FlameCsv.Reading.Internal;
 
-// this code borrows heavily from Ascii.Utility.cs in System.Text.Ascii (MIT license)
-
-internal static class SimdVector
-{
-    /// <summary>
-    /// Returns <c>true</c> if any of the vector types are hardware accelerated.
-    /// </summary>
-    public static bool SupportsAny =>
-#if <#= PragmaCondition #>
-        <#
-    for (int i = 0; i < sizes.Length; i++)
-    {
-        if (i != 0) Write(" || ");
-        Write("Vector");
-        Write(sizes[i]);
-        Write(".IsHardwareAccelerated");
-    }
-#>;
-#else
-        true;
-#endif
-}
-
 /// <summary>Generic type wrapping a byte vector.</summary>
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal interface ISimdVector<T, TVector>
@@ -250,31 +224,26 @@ internal readonly struct <#= typeName #> : ISimdVector<<#= keyword #>, <#= typeN
 
     public static bool IsSupported
     {
-        [<#= MethodImpl #>]
-        get
-            => Vector<#= size #><byte>.IsSupported
-#if <#= PragmaCondition #>
-            && Vector<#= size #>.IsHardwareAccelerated
-#endif
-        ;
+        <#= MethodAttribute #>
+        get => Vector<#= size #>.IsHardwareAccelerated;
     }
 
     public static int Count
     {
-        [<#= MethodImpl #>]
+        <#= MethodAttribute #>
         get => Vector<#= size #><byte>.Count;
     }
 
     public static <#= typeName #> Zero
     {
-        [<#= MethodImpl #>]
+        <#= MethodAttribute #>
         get => Vector<#= size #><byte>.Zero;
     }
 
-    [<#= MethodImpl #>]
+    <#= MethodAttribute #>
     public static <#= typeName #> Equals(<#= typeName #> left, <#= typeName #> right) => Vector<#= size #>.Equals(left._value, right._value);
 
-    [<#= MethodImpl #>]
+    <#= MethodAttribute #>
     public static <#= typeName #> Create(<#= keyword #> value)
     {
         Debug.Assert(value < 128);
@@ -283,7 +252,7 @@ internal readonly struct <#= typeName #> : ISimdVector<<#= keyword #>, <#= typeN
 #>);
     }
 
-    [<#= MethodImpl #>]
+    <#= MethodAttribute #>
     public static <#= typeName #> LoadUnaligned(ref readonly <#= keyword #> source, nuint offset)<#
         if (keyword == "byte")
         {
@@ -308,25 +277,25 @@ internal readonly struct <#= typeName #> : ISimdVector<<#= keyword #>, <#= typeN
 #>
 
 
-    [<#= MethodImpl #>]
+    <#= MethodAttribute #>
     public nuint ExtractMostSignificantBits() => (nuint)<#= size == "512" ? "(ulong)" : "(uint)" #>_value.ExtractMostSignificantBits();
 
-    [<#= MethodImpl #>]
+    <#= MethodAttribute #>
     public static <#= typeName #> operator |(<#= typeName #> left, <#= typeName #> right) => left._value | right._value;
 
-    [<#= MethodImpl #>]
+    <#= MethodAttribute #>
     public static bool operator ==(<#= typeName #> left, <#= typeName #> right) => left._value == right._value;
 
-    [<#= MethodImpl #>]
+    <#= MethodAttribute #>
     public static bool operator !=(<#= typeName #> left, <#= typeName #> right) => left._value != right._value;
 
-    [<#= MethodImpl #>]
+    <#= MethodAttribute #>
     public static implicit operator <#= typeName #>(Vector<#= size #><byte> value) => Unsafe.As<Vector<#= size #><byte>, <#= typeName #>>(ref value);
 
-    [<#= MethodImpl #>]
+    <#= MethodAttribute #>
     public static explicit operator Vector<#= size #><byte>(<#= typeName #> value) => Unsafe.As<<#= typeName #>, Vector<#= size #><byte>>(ref value);
 
-    [<#= MethodImpl #>]
+    <#= MethodAttribute #>
     public byte[] ToArray()
     {
         byte[] values = new byte[Count];
@@ -363,8 +332,13 @@ internal readonly struct NoOpVector<T> : ISimdVector<T, NoOpVector<T>> where T :
     public override int GetHashCode() => throw new NotSupportedException();
 }
 
+// some of the char -> byte narrowing code is from .NET Runtime's Ascii.Utility.cs, MIT license:
+
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
 <#+
-    class ISA
+    private class ISA
     {
         public int Size { get; set; }
         public string Type { get; set; }
