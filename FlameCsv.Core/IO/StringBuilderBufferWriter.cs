@@ -28,7 +28,7 @@ internal sealed class StringBuilderBufferWriter : ICsvBufferWriter<char>
 
     public Memory<char> GetMemory(int sizeHint = 0)
     {
-        if (sizeHint > _memory.Length)
+        if (sizeHint > _memory.Length || _memory.IsEmpty)
         {
             _pool.EnsureCapacity(ref _memoryOwner, sizeHint);
             _memory = _memoryOwner.Memory;
@@ -39,7 +39,7 @@ internal sealed class StringBuilderBufferWriter : ICsvBufferWriter<char>
 
     public Span<char> GetSpan(int sizeHint = 0)
     {
-        if (sizeHint > _memory.Length)
+        if (sizeHint > _memory.Length || _memory.IsEmpty)
         {
             _pool.EnsureCapacity(ref _memoryOwner, sizeHint);
             _memory = _memoryOwner.Memory;
@@ -70,9 +70,7 @@ internal sealed class StringBuilderBufferWriter : ICsvBufferWriter<char>
 
     public ValueTask FlushAsync(CancellationToken cancellationToken = default)
     {
-        return cancellationToken.IsCancellationRequested
-            ? new ValueTask(Task.FromCanceled(cancellationToken))
-            : default;
+        return cancellationToken.IsCancellationRequested ? ValueTask.FromCanceled(cancellationToken) : default;
     }
 
     public ValueTask CompleteAsync(Exception? exception, CancellationToken cancellationToken = default)
