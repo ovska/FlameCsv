@@ -37,10 +37,10 @@ internal interface INewline<T> where T : unmanaged, IBinaryInteger<T>
     [Pure]
     bool IsNewline(ref T value, out bool isMultitoken);
 
-    /// <summary>The first token in the newline, or the only one if length is 1.</summary>
+    /// <summary>The first token in the newline.</summary>
     T First { [Pure] get; }
 
-    /// <summary>The second token in the newline, or the only one if length is 1.</summary>
+    /// <summary>The second token in the newline, or <see cref="First"/> if length is 1.</summary>
     T Second { [Pure] get; }
 }
 
@@ -78,8 +78,8 @@ internal readonly struct NewlineParserOne<T, TVector>(T first) : INewline<T, TVe
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsMultitoken(ref T value)
     {
-        // the HasNewline vector only contains the correct values, e.g., \n, so this check should always succeed
-        return value == first;
+        // single token newlines are never multitoken
+        return false;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
