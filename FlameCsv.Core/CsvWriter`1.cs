@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.Concurrent;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -9,12 +10,20 @@ using FlameCsv.IO;
 using FlameCsv.Utilities;
 using FlameCsv.Writing;
 using JetBrains.Annotations;
+#if DEBUG
+using Unsafe = FlameCsv.Extensions.DebugUnsafe
+#else
+using Unsafe = System.Runtime.CompilerServices.Unsafe
+#endif
+    ;
 
 namespace FlameCsv;
 
-/// <inheritdoc cref="CsvWriter{T}"/>
+/// <summary>
+/// Provides convenience methods for writing CSV records.
+/// </summary>
 [PublicAPI]
-public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryInteger<T>
+public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Options instance of this writer.
@@ -22,10 +31,21 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     public CsvOptions<T> Options => _inner.Options;
 
     /// <summary>
-    /// Whether to automatically check if the writer needs to be flushed after each record.
+    /// Whether to automatically check if the writer needs to be flushed after each record.<br/>
+    /// The default value is <c>true</c>.
     /// </summary>
     /// <seealso cref="ICsvBufferWriter{T}.NeedsFlush"/>
     public bool AutoFlush { get; set; }
+
+    /// <summary>
+    /// Whether to automatically ensure a trailing newline is written if not already present
+    /// when the writer completes without an error.<br/>
+    /// The default value is <c>true</c>.
+    /// </summary>
+    /// <remarks>
+    /// The trailing newline check does not validate the field count.
+    /// </remarks>
+    public bool EnsureTrailingNewline { get; set; }
 
     /// <summary>
     /// Field count required for each record, if set.
@@ -37,20 +57,9 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     public int? ExpectedFieldCount { get; set; }
 
     /// <summary>
-    /// Inner field writer instance.
-    /// </summary>
-    [EditorBrowsable(EditorBrowsableState.Advanced)]
-    protected CsvFieldWriter<T> Inner => _inner;
-
-    /// <summary>
-    /// Lock for the dematerializer cache, not null if hot reload is active.
-    /// </summary>
-    private protected readonly ReaderWriterLockSlim? _cacheLock;
-
-    /// <summary>
     /// Dematerializers indexed either by the type (reflection), or the typemap instance (sourcegen).
     /// </summary>
-    private readonly Dictionary<object, object> _dematerializerCache = new(ReferenceEqualityComparer.Instance);
+    private readonly IDictionary<object, object> _dematerializerCache;
 
     /// <summary>
     /// Previous cache key and value used to avoid re-reading the cache.
@@ -63,9 +72,9 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     private object? _previousValue;
 
     /// <summary>
-    /// 0-based index of the current column/field. Reset after each newline.
+    /// 0-based index of the current field. Reset to 0 at the start of each record.
     /// </summary>
-    public int ColumnIndex { get; protected set; }
+    public int FieldIndex { get; private set; }
 
     /// <summary>
     /// 1-based index of the current line/record. Incremented after each newline.
@@ -73,55 +82,52 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     /// <remarks>
     /// Newlines in quoted fields/strings are not counted, this property represents the logical CSV record index.
     /// </remarks>
-    public int LineIndex { get; protected set; }
+    public int LineIndex { get; private set; }
 
     /// <summary>
     /// Whether the writer has completed (disposed).
     /// </summary>
-    public bool IsCompleted { get; private protected set; }
+    public bool IsCompleted { get; private set; }
 
-    private protected readonly CsvFieldWriter<T> _inner;
+    private readonly CsvFieldWriter<T> _inner;
     private readonly bool _validateFieldCount;
 
     /// <summary>
     /// Initializes a new writer instance.
     /// </summary>
     /// <param name="inner">Field writer instance to write to</param>
-    /// <param name="autoFlush">
-    /// Whether to automatically flush after each record if the writer's buffer pressure is high enough.
-    /// Automatic flushing is performed in <see cref="CsvWriter{T}.NextRecord"/> and <see cref="NextRecordAsync"/>.
-    /// </param>
-    public CsvAsyncWriter([HandlesResourceDisposal] CsvFieldWriter<T> inner, bool autoFlush)
+    public CsvWriter([HandlesResourceDisposal] CsvFieldWriter<T> inner)
     {
         Throw.IfDefaultStruct(inner.Writer is null, typeof(CsvFieldWriter<T>));
 
         _inner = inner;
         _validateFieldCount = inner.Options.ValidateFieldCount;
-        AutoFlush = autoFlush;
         LineIndex = 1;
 
-        // omit the overhead of the lock if hot reload is not active
-        if (HotReloadService.IsActive)
+        AutoFlush = true;
+        EnsureTrailingNewline = true;
+
+        // omit the overhead of the concurrent dict if hot reload is not active
+        if (!HotReloadService.IsActive)
         {
-            _cacheLock = new(LockRecursionPolicy.NoRecursion);
+            _dematerializerCache = new Dictionary<object, object>(ReferenceEqualityComparer.Instance);
         }
+        else
+        {
+            _dematerializerCache = new ConcurrentDictionary<object, object>(ReferenceEqualityComparer.Instance);
 
-        HotReloadService.RegisterForHotReload(
-            this,
-            static state =>
-            {
-                var @this = (CsvWriter<T>)state;
-
-                // completion disposes the readwrite lock
-                if (@this.IsCompleted) return;
-
-                using (@this.EnterWrite())
+            HotReloadService.RegisterForHotReload(
+                this,
+                static state =>
                 {
-                    @this._previousKey = null;
-                    @this._previousValue = null;
-                    @this._dematerializerCache.Clear();
-                }
-            });
+                    if (state is CsvWriter<T> { IsCompleted: false } @this)
+                    {
+                        @this._previousKey = null;
+                        @this._previousValue = null;
+                        @this._dematerializerCache.Clear();
+                    }
+                });
+        }
     }
 
     /// <summary>
@@ -135,7 +141,7 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     {
         WriteDelimiterIfNeeded();
         _inner.WriteField(Options.GetConverter<TField?>(), value);
-        ColumnIndex++;
+        FieldIndex++;
     }
 
     /// <summary>
@@ -149,7 +155,7 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
         ArgumentNullException.ThrowIfNull(converter);
         WriteDelimiterIfNeeded();
         _inner.WriteField(converter, value);
-        ColumnIndex++;
+        FieldIndex++;
     }
 
     /// <summary>
@@ -162,7 +168,7 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     {
         WriteDelimiterIfNeeded();
         _inner.WriteRaw(text, skipEscaping);
-        ColumnIndex++;
+        FieldIndex++;
     }
 
     /// <inheritdoc cref="WriteField(ReadOnlySpan{T},bool)"/>
@@ -171,20 +177,21 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     {
         WriteDelimiterIfNeeded();
         _inner.WriteText(text, skipEscaping);
-        ColumnIndex++;
+        FieldIndex++;
     }
 
     /// <summary>
     /// Writes a sequence of raw characters to the writer.
-    /// <see cref="ColumnIndex"/> and <see cref="LineIndex"/> are not tracked automatically, and no escaping is performed.
+    /// <see cref="FieldIndex"/> and <see cref="LineIndex"/> are not tracked automatically, and no escaping is performed.<br/>
+    /// This is equivalent to writing the value directly to the inner buffer writer.
     /// </summary>
     /// <param name="value">Value to write</param>
-    /// <param name="columnsWritten">How many columns the value spans</param>
+    /// <param name="fieldsWritten">How many fields the value spans</param>
     /// <param name="linesWritten">How many new lines the value spans</param>
     [EditorBrowsable(EditorBrowsableState.Advanced)]
-    public void WriteRaw(ReadOnlySpan<T> value, int columnsWritten = 0, int linesWritten = 0)
+    public void WriteRaw(ReadOnlySpan<T> value, int fieldsWritten = 0, int linesWritten = 0)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(columnsWritten);
+        ArgumentOutOfRangeException.ThrowIfNegative(fieldsWritten);
         ArgumentOutOfRangeException.ThrowIfNegative(linesWritten);
 
         if (!value.IsEmpty)
@@ -194,8 +201,26 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
             _inner.Writer.Advance(value.Length);
         }
 
-        ColumnIndex += columnsWritten;
+        FieldIndex += fieldsWritten;
         LineIndex += linesWritten;
+    }
+
+    /// <summary>
+    /// Writes a newline and flushes the buffer if needed when <see cref="AutoFlush"/> is true.
+    /// </summary>
+    /// <exception cref="ObjectDisposedException">The writer has completed</exception>
+    public void NextRecord()
+    {
+        ObjectDisposedException.ThrowIf(IsCompleted, this);
+
+        ValidateFieldCount();
+
+        _inner.WriteNewline();
+        FieldIndex = 0;
+        LineIndex++;
+
+        if (AutoFlush && _inner.Writer.NeedsFlush)
+            _inner.Writer.Flush();
     }
 
     /// <summary>
@@ -206,7 +231,7 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     public ValueTask NextRecordAsync(CancellationToken cancellationToken = default)
     {
         if (IsCompleted)
-            return ValueTask.FromException(new ObjectDisposedException(GetType().Name));
+            return ObjectDisposedValueTask();
 
         if (cancellationToken.IsCancellationRequested)
             return ValueTask.FromCanceled(cancellationToken);
@@ -214,7 +239,7 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
         ValidateFieldCount();
 
         _inner.WriteNewline();
-        ColumnIndex = 0;
+        FieldIndex = 0;
         LineIndex++;
 
         if (AutoFlush && _inner.Writer.NeedsFlush)
@@ -228,31 +253,60 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     /// </summary>
     /// <remarks>
     /// Does not write a trailing newline,
-    /// see <see cref="CsvWriter{T}.NextRecord"/> and <see cref="NextRecordAsync"/>.
+    /// see <see cref="NextRecord"/> and <see cref="NextRecordAsync"/>.
     /// </remarks>
     /// <param name="value">Value to write</param>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public void WriteRecord<[DAM(Messages.ReflectionBound)] TRecord>(TRecord value)
+    public int WriteRecord<[DAM(Messages.ReflectionBound)] TRecord>(TRecord value)
     {
         ArgumentNullException.ThrowIfNull(value);
         WriteDelimiterIfNeeded();
-        GetDematerializerAndIncrementFieldCount<TRecord>().Write(in _inner, value);
+
+        var dematerializer = GetDematerializerAndIncrementFieldCount<TRecord>();
+        dematerializer.Write(in _inner, value);
+
+        return dematerializer.FieldCount;
     }
 
     /// <summary>
     /// Writes the value to the current line using the type map.
     /// </summary>
     /// <remarks>
-    /// Does not write a trailing newline, see <see cref="CsvWriter{T}.NextRecord"/> and <see cref="NextRecordAsync"/>.
+    /// Does not write a trailing newline, see <see cref="NextRecord"/> and <see cref="NextRecordAsync"/>.
     /// </remarks>
     /// <param name="typeMap">Type map to use for writing</param>
     /// <param name="value">Value to write</param>
-    public void WriteRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap, TRecord value)
+    /// <returns>Number of fields written</returns>
+    public int WriteRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap, TRecord value)
     {
         ArgumentNullException.ThrowIfNull(typeMap);
         ArgumentNullException.ThrowIfNull(value);
         WriteDelimiterIfNeeded();
-        GetDematerializerAndIncrementFieldCount(typeMap).Write(in _inner, value);
+
+        var dematerializer = GetDematerializerAndIncrementFieldCount(typeMap);
+        dematerializer.Write(in _inner, value);
+
+        return dematerializer.FieldCount;
+    }
+
+    /// <summary>
+    /// Writes the provided header values.
+    /// </summary>
+    /// <param name="values">Header values</param>
+    /// <remarks>
+    /// Does not write a trailing newline, see <see cref="NextRecord"/> and <see cref="NextRecordAsync"/>.
+    /// </remarks>
+    /// <returns>Number of fields written</returns>
+    public int WriteHeader(scoped ReadOnlySpan<string> values)
+    {
+        foreach (var value in values)
+        {
+            WriteDelimiterIfNeeded();
+            _inner.WriteText(value);
+        }
+
+        FieldIndex += values.Length;
+        return values.Length;
     }
 
     /// <summary>
@@ -260,27 +314,56 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     /// to the current line using <see cref="CsvOptions{T}.TypeBinder"/>.
     /// </summary>
     /// <remarks>
-    /// Does not write a trailing newline, see <see cref="CsvWriter{T}.NextRecord"/> and <see cref="NextRecordAsync"/>.
+    /// Does not write a trailing newline, see <see cref="NextRecord"/> and <see cref="NextRecordAsync"/>.
     /// </remarks>
+    /// <returns>Number of fields written</returns>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public void WriteHeader<[DAM(Messages.ReflectionBound)] TRecord>()
+    public int WriteHeader<[DAM(Messages.ReflectionBound)] TRecord>()
     {
         WriteDelimiterIfNeeded();
-        GetDematerializerAndIncrementFieldCount<TRecord>().WriteHeader(in _inner);
+
+        var dematerializer = GetDematerializerAndIncrementFieldCount<TRecord>();
+        dematerializer.WriteHeader(in _inner);
+
+        return dematerializer.FieldCount;
     }
 
     /// <summary>
     /// Writes the header for <typeparamref name="TRecord"/> to the current line using the type map.
     /// </summary>
     /// <remarks>
-    /// Does not write a trailing newline, see <see cref="CsvWriter{T}.NextRecord"/> and <see cref="NextRecordAsync"/>.
+    /// Does not write a trailing newline, see <see cref="NextRecord"/> and <see cref="NextRecordAsync"/>.
     /// </remarks>
     /// <param name="typeMap">Type map to use for writing</param>
-    public void WriteHeader<TRecord>(CsvTypeMap<T, TRecord> typeMap)
+    /// <returns>Number of fields written</returns>
+    public int WriteHeader<TRecord>(CsvTypeMap<T, TRecord> typeMap)
     {
         ArgumentNullException.ThrowIfNull(typeMap);
         WriteDelimiterIfNeeded();
-        GetDematerializerAndIncrementFieldCount(typeMap).WriteHeader(in _inner);
+
+        var dematerializer = GetDematerializerAndIncrementFieldCount(typeMap);
+        dematerializer.WriteHeader(in _inner);
+
+        return dematerializer.FieldCount;
+    }
+
+    /// <summary>
+    /// Completes the writer, flushing any remaining data if <paramref name="exception"/> is null.<br/>
+    /// Multiple completions are no-ops.
+    /// </summary>
+    /// <param name="exception">
+    /// Observed exception when writing the data.
+    /// If not null, the final buffer is not flushed and the exception is rethrown.
+    /// </param>
+    public void Complete(Exception? exception = null)
+    {
+        if (!IsCompleted)
+        {
+            IsCompleted = true;
+            HotReloadService.UnregisterForHotReload(this);
+            WriteTrailingNewlineIfNeeded(exception, CancellationToken.None);
+            _inner.Writer.Complete(exception);
+        }
     }
 
     /// <summary>
@@ -297,13 +380,36 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
         if (!IsCompleted)
         {
             IsCompleted = true;
-
-            using (_cacheLock)
-            {
-                HotReloadService.UnregisterForHotReload(this);
-                await _inner.Writer.CompleteAsync(exception, cancellationToken).ConfigureAwait(false);
-            }
+            HotReloadService.UnregisterForHotReload(this);
+            WriteTrailingNewlineIfNeeded(exception, cancellationToken);
+            await _inner.Writer.CompleteAsync(exception, cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    private void WriteTrailingNewlineIfNeeded(Exception? exception, CancellationToken cancellationToken)
+    {
+        if (exception is null &&
+            EnsureTrailingNewline &&
+            FieldIndex != 0 &&
+            !cancellationToken.IsCancellationRequested)
+        {
+            // don't call NextRecord as it can trigger an unnecessary auto-flush
+            _inner.WriteNewline();
+            FieldIndex = 0;
+            LineIndex++;
+        }
+    }
+
+    /// <summary>
+    /// Flushes the writer.
+    /// </summary>
+    /// <exception cref="ObjectDisposedException">
+    /// Thrown if the writer has completed (see <see cref="Complete"/>).
+    /// </exception>
+    public void Flush()
+    {
+        ObjectDisposedException.ThrowIf(IsCompleted, this);
+        _inner.Writer.Flush();
     }
 
     /// <summary>
@@ -315,23 +421,18 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     /// </exception>
     public ValueTask FlushAsync(CancellationToken cancellationToken = default)
     {
-        if (IsCompleted)
-            return ValueTask.FromException(new ObjectDisposedException(GetType().Name));
-
-        if (cancellationToken.IsCancellationRequested)
-            return ValueTask.FromCanceled(cancellationToken);
-
-        return _inner.Writer.FlushAsync(cancellationToken);
+        return IsCompleted
+            ? ObjectDisposedValueTask()
+            : _inner.Writer.FlushAsync(cancellationToken);
     }
 
     /// <summary>
     /// Returns or creates a cached dematerializer using the type map,
-    /// and pre-increments <see cref="ColumnIndex"/> by <see cref="IDematerializer{T,TValue}.FieldCount"/>.
+    /// and pre-increments <see cref="FieldIndex"/> by <see cref="IDematerializer{T,TValue}.FieldCount"/>.
     /// </summary>
     /// <param name="typeMap">Type map instance</param>
     /// <typeparam name="TRecord">Type to write</typeparam>
-    protected IDematerializer<T, TRecord> GetDematerializerAndIncrementFieldCount<TRecord>(
-        CsvTypeMap<T, TRecord> typeMap)
+    private IDematerializer<T, TRecord> GetDematerializerAndIncrementFieldCount<TRecord>(CsvTypeMap<T, TRecord> typeMap)
     {
         return GetDematerializerAndIncrementFieldCountCore(
             cacheKey: typeMap,
@@ -341,12 +442,12 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
 
     /// <summary>
     /// Returns or creates a cached dematerializer using <see cref="CsvOptions{T}.TypeBinder"/>,
-    /// and pre-increments <see cref="ColumnIndex"/> by <see cref="IDematerializer{T,TValue}.FieldCount"/>.
+    /// and pre-increments <see cref="FieldIndex"/> by <see cref="IDematerializer{T,TValue}.FieldCount"/>.
     /// </summary>
     /// <typeparam name="TRecord">Type to write</typeparam>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    protected IDematerializer<T, TRecord> GetDematerializerAndIncrementFieldCount<
-        [DAM(Messages.ReflectionBound)] TRecord>()
+    private IDematerializer<T, TRecord>
+        GetDematerializerAndIncrementFieldCount<[DAM(Messages.ReflectionBound)] TRecord>()
     {
         return GetDematerializerAndIncrementFieldCountCore(
             cacheKey: typeof(TRecord),
@@ -369,46 +470,40 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
         Debug.Assert(cacheKey is Type or CsvTypeMap<T, TRecord>);
 
         IDematerializer<T, TRecord> dematerializer;
-        bool created = false;
 
-        using (EnterRead())
+        // optimize for consecutive calls with the same type
+        if (ReferenceEquals(_previousKey, cacheKey))
         {
-            if (ReferenceEquals(_previousKey, cacheKey))
-                return (IDematerializer<T, TRecord>)_previousValue!;
-
+            Debug.Assert(_previousValue is IDematerializer<T, TRecord>);
+            dematerializer = Unsafe.As<IDematerializer<T, TRecord>>(_previousValue!);
+        }
+        else
+        {
             if (_dematerializerCache.TryGetValue(cacheKey, out object? cached))
             {
-                dematerializer = (IDematerializer<T, TRecord>)cached;
+                Debug.Assert(cached is IDematerializer<T, TRecord>);
+                dematerializer = Unsafe.As<IDematerializer<T, TRecord>>(cached);
             }
             else
             {
-                dematerializer = factory(Options, state);
-                created = true;
-            }
-        }
-
-        using (EnterWrite())
-        {
-            if (created)
-            {
-                _dematerializerCache[cacheKey] = dematerializer;
+                _dematerializerCache[cacheKey] = dematerializer = factory(Options, state);
             }
 
             _previousKey = cacheKey;
             _previousValue = dematerializer;
         }
 
-        ColumnIndex += dematerializer.FieldCount;
+        FieldIndex += dematerializer.FieldCount;
         return dematerializer;
     }
 
     /// <summary>
-    /// Writes a delimiter if the current column index is not 0.
+    /// Writes a delimiter if the current field index is not 0.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void WriteDelimiterIfNeeded()
+    private void WriteDelimiterIfNeeded()
     {
-        if (ColumnIndex > 0) _inner.WriteDelimiter();
+        if (FieldIndex > 0) _inner.WriteDelimiter();
     }
 
     /// <summary>
@@ -416,147 +511,37 @@ public class CsvAsyncWriter<T> : IAsyncDisposable where T : unmanaged, IBinaryIn
     /// is <see langword="true"/>. Called when moving to the next record.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void ValidateFieldCount()
+    private void ValidateFieldCount()
     {
-        if (ColumnIndex > 0 && (_validateFieldCount || ExpectedFieldCount.HasValue))
+        if (FieldIndex > 0 && (_validateFieldCount || ExpectedFieldCount.HasValue))
         {
             if (ExpectedFieldCount is null)
             {
-                ExpectedFieldCount = ColumnIndex;
+                ExpectedFieldCount = FieldIndex;
             }
-            else if (ExpectedFieldCount.GetValueOrDefault() != ColumnIndex)
+            else if (ExpectedFieldCount.GetValueOrDefault() != FieldIndex)
             {
-                ThrowHelper.InvalidFieldCount(LineIndex, ExpectedFieldCount.GetValueOrDefault(), ColumnIndex);
+                ThrowHelper.InvalidFieldCount(LineIndex, ExpectedFieldCount.GetValueOrDefault(), FieldIndex);
             }
         }
     }
 
-    /// <summary>
-    /// Calls <see cref="CompleteAsync"/>.
-    /// </summary>
-    /// <remarks>
-    /// Calling <see cref="CompleteAsync"/> directly is preferable, but multiple completions/disposes are harmless.
-    /// </remarks>
+    /// <inheritdoc/>
+    void IDisposable.Dispose()
+    {
+        Complete();
+    }
+
+    /// <inheritdoc/>
     ValueTask IAsyncDisposable.DisposeAsync()
     {
-        GC.SuppressFinalize(this);
         return CompleteAsync();
     }
 
-    /// <summary>Enters the writer lock of <see cref="_cacheLock"/></summary>
-    private WriteScope EnterWrite() => new(_cacheLock);
-
-    /// <summary>Enters the reader lock of <see cref="_cacheLock"/></summary>
-    private ReadScope EnterRead() => new(_cacheLock);
-
-    private readonly ref struct WriteScope
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static ValueTask ObjectDisposedValueTask()
     {
-        private readonly ReaderWriterLockSlim? _rwl;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public WriteScope(ReaderWriterLockSlim? rwl)
-        {
-            (_rwl = rwl)?.EnterWriteLock();
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dispose() => _rwl?.ExitWriteLock();
-    }
-
-    private readonly ref struct ReadScope
-    {
-        private readonly ReaderWriterLockSlim? _rwl;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ReadScope(ReaderWriterLockSlim? rwl)
-        {
-            (_rwl = rwl)?.EnterReadLock();
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dispose() => _rwl?.ExitReadLock();
-    }
-}
-
-/// <summary>
-/// Instance that provides convenience methods around <see cref="CsvFieldWriter{T}"/>.
-/// </summary>
-/// <typeparam name="T">Token type</typeparam>
-[PublicAPI]
-public class CsvWriter<T> : CsvAsyncWriter<T>, IDisposable where T : unmanaged, IBinaryInteger<T>
-{
-    /// <summary>
-    /// Initializes a new writer instance.
-    /// </summary>
-    /// <param name="inner"></param>
-    /// <param name="autoFlush"></param>
-    public CsvWriter([HandlesResourceDisposal] CsvFieldWriter<T> inner, bool autoFlush) : base(inner, autoFlush)
-    {
-        Debug.Assert(inner.Writer is not PipeBufferWriter);
-    }
-
-    /// <summary>
-    /// Writes a newline and flushes the buffer if needed when <see cref="CsvAsyncWriter{T}.AutoFlush"/> is true.
-    /// </summary>
-    /// <exception cref="ObjectDisposedException">The writer has completed</exception>
-    public void NextRecord()
-    {
-        ObjectDisposedException.ThrowIf(IsCompleted, this);
-
-        ValidateFieldCount();
-
-        _inner.WriteNewline();
-        ColumnIndex = 0;
-        LineIndex++;
-
-        if (AutoFlush && _inner.Writer.NeedsFlush)
-            _inner.Writer.Flush();
-    }
-
-    /// <summary>
-    /// Completes the writer, flushing any remaining data if <paramref name="exception"/> is null.<br/>
-    /// Multiple completions are no-ops.
-    /// </summary>
-    /// <param name="exception">
-    /// Observed exception when writing the data.
-    /// If not null, the final buffer is not flushed and the exception is rethrown.
-    /// </param>
-    public void Complete(Exception? exception = null)
-    {
-        if (!IsCompleted)
-        {
-            IsCompleted = true;
-
-            using (_cacheLock)
-            {
-                HotReloadService.UnregisterForHotReload(this);
-                _inner.Writer.Complete(exception);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Flushes the writer.
-    /// </summary>
-    /// <exception cref="ObjectDisposedException">
-    /// Thrown if the writer has completed (see <see cref="Complete"/>).
-    /// </exception>
-    public void Flush()
-    {
-        ObjectDisposedException.ThrowIf(IsCompleted, this);
-        _inner.Writer.Flush();
-    }
-
-    /// <summary>
-    /// Calls <see cref="Complete"/>.
-    /// </summary>
-    /// <remarks>
-    /// Calling <see cref="Complete"/> directly is preferable, but multiple completions/disposes are harmless.
-    /// </remarks>
-    void IDisposable.Dispose()
-    {
-        GC.SuppressFinalize(this);
-        Complete();
+        return ValueTask.FromException(new ObjectDisposedException(typeof(CsvWriter<T>).Name));
     }
 }
 
@@ -564,6 +549,7 @@ file static class ThrowHelper
 {
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
+    [StackTraceHidden]
     public static void InvalidFieldCount(int lineIndex, int expected, int actual)
     {
         throw new CsvWriteException($"Invalid field count at line {lineIndex}. Expected {expected}, got {actual}.");
