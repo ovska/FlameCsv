@@ -66,7 +66,7 @@ public abstract class CsvTypeMap<T, TValue> : CsvTypeMap where T : unmanaged, IB
     }
 
     /// <summary>
-    /// Returns a materializer for <typeparamref name="TValue"/> bound to column indexes.
+    /// Returns a materializer for <typeparamref name="TValue"/> bound to field indexes.
     /// </summary>
     /// <remarks>
     /// Caches the materializer based on the type and options. This can be overridden per type map.

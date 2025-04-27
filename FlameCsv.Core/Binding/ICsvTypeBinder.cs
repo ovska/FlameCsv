@@ -18,7 +18,7 @@ public interface ICsvTypeBinder<T> where T : unmanaged, IBinaryInteger<T>
     IMaterializer<T, TValue> GetMaterializer<[DAM(Messages.ReflectionBound)] TValue>(ImmutableArray<string> headers);
 
     /// <summary>
-    /// Returns a materializer for <typeparamref name="TValue"/> bound to column indexes.
+    /// Returns a materializer for <typeparamref name="TValue"/> bound to field indexes.
     /// </summary>
     /// <exception cref="CsvBindingException">
     /// Options is configured not to write a header, but <typeparamref name="TValue"/> has no index binding.

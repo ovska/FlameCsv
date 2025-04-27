@@ -3,7 +3,7 @@
 namespace FlameCsv.Binding;
 
 /// <summary>
-/// Sentinel type for ignored column when reading/writing CSV.
+/// Sentinel type for ignored field when reading/writing CSV.
 /// </summary>
 /// <remarks>
 /// For example, when reading/writing tuples or value-tuples, you can use this type

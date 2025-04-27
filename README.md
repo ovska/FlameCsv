@@ -84,7 +84,7 @@ CsvOptions<char> options = new()
 
 foreach (CsvValueRecord<char> record in CsvReader.Enumerate(data, options))
 {
-    // get fields by column index or header name
+    // get fields by index or header name
     var u1 = new User(
         Id:        record.GetField<int>("Id"),
         Name:      record.GetField<string>("Name"),
