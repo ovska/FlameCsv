@@ -18,7 +18,6 @@ See the [documentation](https://ovska.github.io/FlameCsv) for more information a
     - Built-in support for common CLR types
     - Supports both synchronous and asynchronous operations
     - Flexible; read or write almost any data source
-    - Automatic newline detection
     - UTF-8/ASCII support to read/write bytes directly without additional transcoding
     - Supports hot reload
 - 🚀 **High Performance**
@@ -36,6 +35,7 @@ See the [documentation](https://ovska.github.io/FlameCsv) for more information a
     - Supports trimming to reduce application size
     - Debuggable source code instead of compiled expressions
     - Compile-time diagnostics instead of runtime errors
+    - Enum converter generator for up to 10x faster enum parsing and 7x faster formatting
 
 # Example
 
@@ -67,6 +67,15 @@ await CsvWriter.WriteAsync(
 ```
 
 # Changelog
+
+## 0.4.0
+- *Breaking:* Refactored the internal streaming I/O for performance improvements in real-world scenarios.
+- *Breaking:* Replaced `Whitespace` with `Trimming` for simplicity and consistency with other libraries.
+- Parsing performance improvements
+- Added support for `ISpanParsable<T>` and `ISpanFormattable` to the source generator
+- Added explicit UTF8 reader and writer types for up to 2x faster I/O compared to TextReader/TextWriter when using ASCII or UTF8 encoding
+- Removed explicit dependency to `System.IO.Pipelines`
+- Fixed potential parsing error when reading broken data on ARM64 platforms
 
 ## 0.3.1
 
