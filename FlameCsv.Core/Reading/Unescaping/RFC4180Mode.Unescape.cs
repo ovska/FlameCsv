@@ -134,10 +134,10 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
             goto FoundLong;
         }
 
-        // 128bit vector is only 8 chars,
-        // it's slightly faster to defer to the unrolled loop
+        // it's slightly faster to defer to the unrolled loop on x86 for char
+        // TODO PERF: profile on ARM64 and WASM
         while (
-            Unsafe.SizeOf<T>() == sizeof(byte) &&
+            Unsafe.SizeOf<T>() == sizeof(byte) && // || !Vector256.IsHardwareAccelerated ?
             Vector128.IsHardwareAccelerated &&
             remaining >= Vector128<T>.Count)
         {

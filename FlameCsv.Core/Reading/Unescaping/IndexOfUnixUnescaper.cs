@@ -13,7 +13,7 @@ internal struct IndexOfUnixUnescaper<T>(T escape, uint escapeCount) : IIndexOfUn
         return unchecked((int)((uint)fieldLength - specialCount));
     }
 
-    public bool AllSpecialConsumed => _escapeCount == 0;
+    public readonly bool AllSpecialConsumed => _escapeCount == 0;
 
     private uint _escapeCount = escapeCount;
 
