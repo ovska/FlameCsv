@@ -13,7 +13,7 @@ internal struct IndexOfRFC4180Unescaper<T>(T quote, uint quoteCount) : IIndexOfU
         return fieldLength - unchecked((int)(specialCount / 2));
     }
 
-    public bool AllSpecialConsumed => _quoteCount == 0;
+    public readonly bool AllSpecialConsumed => _quoteCount == 0;
 
     private uint _quoteCount = quoteCount;
 
