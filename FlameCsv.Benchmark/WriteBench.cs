@@ -132,7 +132,7 @@ public partial class WriteBench
     [Benchmark]
     public void WriterObj()
     {
-        using var writer = CsvWriter.Create(TextWriter.Null, autoFlush: true);
+        using var writer = CsvWriter.Create(TextWriter.Null);
 
         writer.WriteHeader<Obj>();
 
@@ -143,7 +143,7 @@ public partial class WriteBench
     [Benchmark]
     public void WriterObjTM()
     {
-        using var writer = CsvWriter.Create(TextWriter.Null, autoFlush: true);
+        using var writer = CsvWriter.Create(TextWriter.Null);
 
         writer.WriteHeader(ObjTypeMap.Default);
 
@@ -154,7 +154,7 @@ public partial class WriteBench
     [Benchmark]
     public async Task Async_WriterObj()
     {
-        await using var writer = CsvWriter.Create(TextWriter.Null, autoFlush: true);
+        await using var writer = CsvWriter.Create(TextWriter.Null);
 
         writer.WriteHeader<Obj>();
         await writer.NextRecordAsync();
@@ -169,7 +169,7 @@ public partial class WriteBench
     [Benchmark]
     public async Task Async_WriterObjTM()
     {
-        await using var writer = CsvWriter.Create(TextWriter.Null, autoFlush: true);
+        await using var writer = CsvWriter.Create(TextWriter.Null);
 
         writer.WriteHeader(ObjTypeMap.Default);
         await writer.NextRecordAsync();
@@ -273,7 +273,9 @@ public partial class WriteBench
             .Writer(
                 c => c with
                 {
-                    Sep = new(','), Escape = true, WriteHeader = true,
+                    Sep = new(','),
+                    Escape = true,
+                    WriteHeader = true,
                 })
             .To(TextWriter.Null);
 
@@ -309,7 +311,7 @@ public partial class WriteBench
     public void Setup()
     {
         _data = CsvReader.Read<Obj>(File.ReadAllBytes(
-            "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv"), new(){HasHeader = false}).ToArray();
+            "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv"), new() { HasHeader = false }).ToArray();
     }
 
     private Obj[] _data = null!;

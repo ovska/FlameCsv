@@ -47,25 +47,26 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T> where T : unman
     {
         ArgumentOutOfRangeException.ThrowIfNegative(sizeHint);
 
-        int remaining = Remaining;
+        Memory<T> memory = _buffer.Slice(_unflushed);
 
-        if (remaining < sizeHint || remaining == 0)
+        if (memory.Length < sizeHint || memory.Length == 0)
         {
-            ResizeBuffer(sizeHint);
+            return ResizeBuffer(sizeHint);
         }
 
-        Debug.Assert(Remaining >= sizeHint);
-        return _buffer.Slice(_unflushed);
+        Debug.Assert(memory.Length >= sizeHint);
+        return memory;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void ResizeBuffer(int sizeHint)
+    private Memory<T> ResizeBuffer(int sizeHint)
     {
         _allocator.EnsureCapacity(
             ref _memoryOwner,
             minimumLength: _unflushed + Math.Max(sizeHint, _bufferSize),
             copyOnResize: true);
         _buffer = _memoryOwner.Memory;
+        return _buffer.Slice(_unflushed);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
