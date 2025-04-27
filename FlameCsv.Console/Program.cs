@@ -47,9 +47,9 @@ namespace FlameCsv.Console
                     MeasureProfiler.StartCollectingData();
                 }
 
-                var parser = CsvParser.Create(
+                var parser = new CsvReader<byte>(
                     _options,
-                    CsvPipeReader.Create(
+                    CsvBufferReader.Create(
                         stream,
                         MemoryPool<byte>.Shared));
                 // var parser = CsvParser.Create(_options, new PipeReaderWrapper(PipeReader.Create(stream, new(bufferSize: 1024*16))));
