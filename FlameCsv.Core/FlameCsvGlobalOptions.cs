@@ -34,6 +34,7 @@ public static class FlameCsvGlobalOptions
         get => _readAheadCount ??= GetReadAheadFromEnvironment();
         set
         {
+            if (value == _readAheadCount) return;
             if (_readAheadCount.HasValue && _readAheadCount != value) ThrowMutation();
             ArgumentOutOfRangeException.ThrowIfLessThan(value, 32);
             _readAheadCount = value;
@@ -52,6 +53,7 @@ public static class FlameCsvGlobalOptions
         get => _cachingDisabled ??= GetCachingFromEnvironment();
         set
         {
+            if (value == _cachingDisabled) return;
             if (_cachingDisabled.HasValue && _cachingDisabled != value) ThrowMutation();
             _cachingDisabled = value;
         }
