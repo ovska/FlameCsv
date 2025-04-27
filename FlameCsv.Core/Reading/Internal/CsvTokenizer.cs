@@ -100,6 +100,8 @@ file static class ForChar
         // TODO: benchmark 256 vs 512 on non-x86 platforms; RuntimeInformation.ProcessArchitecture is X86 or X64.. etc
         // on x86 with AVX512, 256 is faster in all cases except 3% slower on dense non-quoted data
         // and up to 6% slower on dense or quoted data
+
+        // use if-else to reduce JITted code size if multiple SIMD types are supported
         if (Vec256Char.IsSupported)
         {
             if (dialect.Newline.Length == 1)
@@ -116,8 +118,7 @@ file static class ForChar
                     new(dialect.Newline.First, dialect.Newline.Second));
             }
         }
-
-        if (Vec512Char.IsSupported)
+        else if (Vec512Char.IsSupported)
         {
             if (dialect.Newline.Length == 1)
             {
@@ -133,8 +134,7 @@ file static class ForChar
                     new(dialect.Newline.First, dialect.Newline.Second));
             }
         }
-
-        if (Vec128Char.IsSupported)
+        else if (Vec128Char.IsSupported)
         {
             if (dialect.Newline.Length == 1)
             {
@@ -159,23 +159,9 @@ file static class ForByte
 {
     public static CsvPartialTokenizer<byte>? CreateSimd(ref readonly CsvDialect<byte> dialect)
     {
-        if (Vec512Byte.IsSupported)
-        {
-            if (dialect.Newline.Length == 1)
-            {
-                return new SimdTokenizer<byte, NewlineParserOne<byte, Vec512Byte>, Vec512Byte>(
-                    dialect,
-                    new(dialect.Newline.First));
-            }
+        // TODO: benchmark 256 vs 512 on non-x86 platforms
 
-            if (dialect.Newline.Length == 2)
-            {
-                return new SimdTokenizer<byte, NewlineParserTwo<byte, Vec512Byte>, Vec512Byte>(
-                    dialect,
-                    new(dialect.Newline.First, dialect.Newline.Second));
-            }
-        }
-
+        // use if-else to reduce JITted code size if multiple SIMD types are supported
         if (Vec256Byte.IsSupported)
         {
             if (dialect.Newline.Length == 1)
@@ -192,8 +178,23 @@ file static class ForByte
                     new(dialect.Newline.First, dialect.Newline.Second));
             }
         }
+        else if (Vec512Byte.IsSupported)
+        {
+            if (dialect.Newline.Length == 1)
+            {
+                return new SimdTokenizer<byte, NewlineParserOne<byte, Vec512Byte>, Vec512Byte>(
+                    dialect,
+                    new(dialect.Newline.First));
+            }
 
-        if (Vec128Byte.IsSupported)
+            if (dialect.Newline.Length == 2)
+            {
+                return new SimdTokenizer<byte, NewlineParserTwo<byte, Vec512Byte>, Vec512Byte>(
+                    dialect,
+                    new(dialect.Newline.First, dialect.Newline.Second));
+            }
+        }
+        else if (Vec128Byte.IsSupported)
         {
             if (dialect.Newline.Length == 1)
             {
