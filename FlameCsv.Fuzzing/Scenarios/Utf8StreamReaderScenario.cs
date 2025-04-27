@@ -49,13 +49,15 @@ public class Utf8StreamReaderScenario : IScenario
     public static async Task<string> RunAsync(ReadOnlyMemory<byte> data, PoisonPagePlacement placement)
     {
         using var pool = new BoundedMemoryPool<char>(placement);
-        await using var reader = new Utf8StreamReader(data.AsStream(), pool, new());
+        var reader = new Utf8StreamReader(data.AsStream(), pool, new());
+
+        await using var _ = reader.ConfigureAwait(false);
 
         var sb = new StringBuilder();
 
         while (true)
         {
-            var result = await reader.ReadAsync();
+            var result = await reader.ReadAsync().ConfigureAwait(false);
 
             sb.Append(result.Buffer.Span);
             reader.Advance(result.Buffer.Length);
