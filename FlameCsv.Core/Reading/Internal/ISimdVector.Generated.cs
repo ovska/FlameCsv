@@ -147,9 +147,11 @@ internal readonly struct Vec128Char : ISimdVector<char, Vec128Char>
         {
             return Sse2.PackUnsignedSaturate(v0.AsInt16(), v1.AsInt16());
         }
-        else if (AdvSimd.Arm64.IsSupported)
+        else if (AdvSimd.IsSupported)
         {
-            return AdvSimd.Arm64.UnzipEven(v0.AsByte(), v1.AsByte());
+            var lower = AdvSimd.ExtractNarrowingSaturateUnsignedLower(v0.AsInt16());
+            var upper = AdvSimd.ExtractNarrowingSaturateUnsignedLower(v1.AsInt16());
+            return Vector128.Create(lower, upper);
         }
         else if (PackedSimd.IsSupported)
         {
@@ -247,21 +249,21 @@ internal readonly struct Vec256Char : ISimdVector<char, Vec256Char>
         var v0 = Vector256.LoadUnsafe(ref Unsafe.As<char, ushort>(ref Unsafe.AsRef(in source)), offset);
         var v1 = Vector256.LoadUnsafe(ref Unsafe.As<char, ushort>(ref Unsafe.AsRef(in source)), offset + ((nuint)Vector256<byte>.Count / sizeof(ushort)));
 
-         if (Avx2.IsSupported)
-         {
-             // Avx2.PackUnsignedSaturate(Vector256.Create((short)1), Vector256.Create((short)2)) will result in
-             // 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2
-             // We want to swap the X and Y bits
-             // 1, 1, 1, 1, 1, 1, 1, 1, X, X, X, X, X, X, X, X, Y, Y, Y, Y, Y, Y, Y, Y, 2, 2, 2, 2, 2, 2, 2, 2
-             var packed = Avx2.PackUnsignedSaturate(v0.AsInt16(), v1.AsInt16());
-             return Avx2.Permute4x64(packed.AsInt64(), 0b_11_01_10_00).AsByte();
-         }
-         else
-         {
-             var lower = Vector256.Min(v0, Vector256.Create((ushort)127));
-             var upper = Vector256.Min(v1, Vector256.Create((ushort)127));
-             return Vector256.Narrow(lower, upper);
-         }
+        if (Avx2.IsSupported)
+        {
+            // Avx2.PackUnsignedSaturate(Vector256.Create((short)1), Vector256.Create((short)2)) will result in
+            // 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2
+            // We want to swap the X and Y bits
+            // 1, 1, 1, 1, 1, 1, 1, 1, X, X, X, X, X, X, X, X, Y, Y, Y, Y, Y, Y, Y, Y, 2, 2, 2, 2, 2, 2, 2, 2
+            var packed = Avx2.PackUnsignedSaturate(v0.AsInt16(), v1.AsInt16());
+            return Avx2.Permute4x64(packed.AsInt64(), 0b_11_01_10_00).AsByte();
+        }
+        else
+        {
+            var lower = Vector256.Min(v0, Vector256.Create((ushort)127));
+            var upper = Vector256.Min(v1, Vector256.Create((ushort)127));
+            return Vector256.Narrow(lower, upper);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
@@ -342,20 +344,20 @@ internal readonly struct Vec512Char : ISimdVector<char, Vec512Char>
         var v0 = Vector512.LoadUnsafe(ref Unsafe.As<char, ushort>(ref Unsafe.AsRef(in source)), offset);
         var v1 = Vector512.LoadUnsafe(ref Unsafe.As<char, ushort>(ref Unsafe.AsRef(in source)), offset + ((nuint)Vector512<byte>.Count / sizeof(ushort)));
 
-        if (Avx512BW.IsSupported && Avx512F.IsSupported)
-        {
-           var packed = Avx512BW.PackUnsignedSaturate(v0.AsInt16(), v1.AsInt16());
+       if (Avx512BW.IsSupported && Avx512F.IsSupported)
+       {
+          var packed = Avx512BW.PackUnsignedSaturate(v0.AsInt16(), v1.AsInt16());
 
-           // Avx512BW.PackUnsignedSaturate will interleave the inputs in 8-byte blocks.
-           // We want to preserve the order of the two input vectors, so we deinterleave the packed value.
-           return Avx512F.PermuteVar8x64(packed.AsInt64(), Vector512.Create(0, 2, 4, 6, 1, 3, 5, 7)).AsByte();
-        }
-        else
-        {
-            var lower = Vector512.Min(v0, Vector512.Create((ushort)127));
-            var upper = Vector512.Min(v1, Vector512.Create((ushort)127));
-            return Vector512.Narrow(lower, upper);
-        }
+          // Avx512BW.PackUnsignedSaturate will interleave the inputs in 8-byte blocks.
+          // We want to preserve the order of the two input vectors, so we deinterleave the packed value.
+          return Avx512F.PermuteVar8x64(packed.AsInt64(), Vector512.Create(0, 2, 4, 6, 1, 3, 5, 7)).AsByte();
+       }
+       else
+       {
+           var lower = Vector512.Min(v0, Vector512.Create((ushort)127));
+           var upper = Vector512.Min(v1, Vector512.Create((ushort)127));
+           return Vector512.Narrow(lower, upper);
+       }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
