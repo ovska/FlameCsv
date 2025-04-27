@@ -29,15 +29,14 @@ public class ListConverterFactory : CsvConverterFactory<char>
 {
     public override bool CanConvert(Type type)
     {
-        // don't allow nested collections
-        return !type.IsAssignableTo(typeof(IEnumerable));
+        return type.IsAssignableTo(typeof(IList<>));
     }
     
     public override CsvConverter<char> CreateConverter(Type type, CsvOptions<char> options)
     {
         return (CsvConverter<char>)Activator.CreateInstance(
             typeof(MyListConverter<>).MakeGenericType(type),
-            options);
+            args: new object[] { options })!;
     }
 }
 
@@ -48,7 +47,7 @@ CsvOptions<char> options = new()
 ```
 
 > [!WARNING]
-> Due to the dynamic code generation and reflection requirements of factories, they are not supported by the source generator.
+> Due to the dynamic code generation and reflection requirements of factories, they are not supported in NativeAOT applications.
 
 ## Custom
 
@@ -89,13 +88,14 @@ _ = options.GetFormatProvider(typeof(double?)); // invariant
 ### Primitives
 
 The following primitive types are supported by default:
+- Numeric types (see below)
 - @"System.String?text=string"
 - @"System.Boolean?text=bool"
 - @"System.DateTime"
 - @"System.DateTimeOffset"
 - @"System.TimeSpan"
 - @"System.Guid"
-- @"System.Char?text=char"
+- @"System.Char?text=char" (not considered a numeric type in FlameCSV)
 - Any type implementing both @"System.ISpanParsable`1" and @"System.ISpanFormattable",
   or @"System.IUtf8SpanFormattable" and/r @"System.IUtf8SpanParsable`1" when converting to/from @"System.Byte?text=byte".
 
@@ -209,6 +209,6 @@ CsvOptions<char> options = new()
 ```
 
 > [!WARNING]
-> The built-in custom boolean converters have the following requirements for @"FlameCsv.CsvOptions`1.Comparer":
+> The built-in custom boolean converters have the following limitations for @"FlameCsv.CsvOptions`1.Comparer":
 > - When reading @"System.Char", the comparer must implement `IAlternateEqualityComparer<ReadOnlySpan<char>, string>`.
 > - When reading @"System.Byte"/UTF8, the comparer **must** be either @"System.StringComparer.Ordinal?displayProperty=nameWithType" or @"System.StringComparer.OrdinalIgnoreCase?displayProperty=nameWithType".

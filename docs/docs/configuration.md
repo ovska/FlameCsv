@@ -31,11 +31,9 @@ The string delimiter is configured with @"FlameCsv.CsvOptions`1.Quote?displayPro
 ### Newline
 The record separator is configured with @"FlameCsv.CsvOptions`1.Newline?displayProperty=nameWithType". The default value is `\r\n`. FlameCSV is lenient when parsing newlines, and a `\r\n`-configured reader can read only `\n` or `\r`. The value is used as-is when writing. If you know the data is always in a specific format, you can set the value to `\n` or `\r` to squeeze out an extra 1-2% of performance. You can use any custom newline as well, as long as it is 1 or 2 characters long, and does not contain two of the same character (such as `\r\r` or `\n\n`).
 
-### Whitespace
-Significant whitespace is configured with @"FlameCsv.CsvOptions`1.Whitespace?displayProperty=nameWithType", and determines how fields are trimmed when reading, or if a field needs quoting when writing. Characters present in the whitespace string are trimmed from each field, unless they are in a quoted field (whitespace is _not_ trimmed inside strings). When writing, values containing leading or trailing whitespace are wrapped in quotes if [automatic field quoting](#quoting-fields-when-writing) is enabled. The default value is null/empty, which means whitespace is not considered significant.
-
-> [!IMPORTANT]
-> The concept of fully configurable whitespace is likely being removed in 0.4.0 for confirmity with other widely used CSV libraries, and only ` `  (space) will be considered whitespace. This change aims to simplify the configuration and improve compatibility with existing CSV libraries.
+### Trimming
+The @"FlameCsv.CsvOptions`1.Trimming?displayProperty=nameWithType" property is used to configure whether spaces are trimmed from fields when reading. The default value is @"FlameCsv.Writing.CsvFieldTrimming.None?displayProperty=nameWithType". The flags-enum supports trimming leading and trailing spaces, or both.
+This property is only used when reading CSV, and has no effect when writing, see @"FlameCsv.CsvOptions`1.FieldQuoting?displayProperty=nameWithType" for writing.
 
 ### Escape
 An explicit escape character @"FlameCsv.CsvOptions`1.Escape?displayProperty=nameWithType" can be set to a non-null value to escape _any_ character following the escape character. The default value is null, which follows the RFC 4180 spec and wraps values in strings, and escapes quotes with another quote.
@@ -44,9 +42,12 @@ Any field containing the escape character **must** be wrapped in quotes. The esc
 > [!TIP]
 > Due to the rarity of this non-standard format, SIMD accelerated parsing is not supported when using an escape character.
 
+> [!WARNING]
+> For performance reasons, all the dialect characters must be ASCII (value 127 or lower). A runtime exception is thrown if the configured dialect contains non-ASCII characters.
+
 ### Additional info
 
-Internally, FlameCsv uses the @"FlameCsv.CsvDialect`1" struct to handle the configured dialect. It is constructed from the options when they are used (this makes the options immutable), and contains the configured values and other things related to parsing, such as @"System.Buffers.SearchValues`1" used internally in parsing. The @"FlameCsv.CsvDialect`1.IsAscii?displayProperty=nameWithType" property can be used to ensure that SIMD-accelerated parsing is used.
+Internally, FlameCsv uses the @"FlameCsv.CsvDialect`1" struct to handle the configured dialect. It is constructed from the options when they are used (this makes the options immutable), and contains the configured values and other things related to parsing, such as @"System.Buffers.SearchValues`1" used internally in parsing.
 
 ```cs
 CsvOptions<byte> options = new()
@@ -54,7 +55,7 @@ CsvOptions<byte> options = new()
     Delimiter = '\t',
     Quote = '"',
     Newline = "\r\n",
-    Whitespace = " ",
+    Trimming = CsvFieldTrimming.Both,
     Escape = '\\',
 };
 ```
@@ -148,26 +149,6 @@ Use @"FlameCsv.CsvOptions`1.Aot?displayProperty=nameWithType" to retrieve a wrap
 CsvConverter<char, int?> c1 = options.Aot.GetOrCreateNullable(static o => o.Aot.GetConverter<int>());
 CsvConverter<char, DayOfWeek> c2 = options.Aot.GetOrCreateEnum<DayOfWeek>();
 ```
-
-### Parsing performance and read-ahead
-
-FlameCSV uses SIMD operations to read ahead multiple records. The performance benefits are substantial,
-but if you wish to turn this option off, you can do so with the @"FlameCsv.CsvOptions`1.NoReadAhead?displayProperty=nameWithType" property.
-One possible justification would be to halt reading when an unparsable field is present, or to avoid reading ahead large amounts of data if the CSV is broken.
-Flaky data with e.g., unpaired quotes can result in excessive amount of data being read before the error materializes.
-However, FlameCsv is very performant in tokenizing the CSV, and uses limited read-ahead buffers, this shouldn't be a problem.
-
-For SIMD operations and read-ahead to work, the configured dialect must consist only of ASCII characters (value 127 or lower).
-You can ensure the fast path will be used with @"FlameCsv.CsvDialect`1.IsAscii?displayProperty=nameWithType".
-
-```cs
-// ensure SIMD accelerated parsing routines are used
-CsvOptions<byte> options = GetConfiguredOptions();
-Debug.Assert(options.Dialect.IsAscii);
-return CsvReader.Read<User>(csv, options);
-```
-
-Further reading: @"architecture#reading".
 
 ### Transcoding
 

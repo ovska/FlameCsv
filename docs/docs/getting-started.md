@@ -55,14 +55,14 @@ Example of custom configuration:
 ```cs
 var options = new CsvOptions<char>
 {
-    Delimiter = ';',    // Use semicolon as separator
-    Quote = '"',        // Use double quotes
-    Whitespace = " \t", // Trim spaces and tabs
-    HasHeader = true,   // First line contains the header
+    Delimiter = ';',
+    Quote = '"',
+    Trimming = CsvFieldTrimming.Leading,
+    HasHeader = true,
 };
-
-var users = CsvReader.Read<User>(csv, options);
 ```
+
+The configuration object is identical for `char` and `byte`, and UTF16 <-> UTF8 conversion is handled automatically.
 
 ## Next Steps
 

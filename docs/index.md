@@ -41,6 +41,7 @@ See @"getting-started", view the @"examples", or deep dive into the @"FlameCsv?t
   - Debuggable source code instead of compiled expressions
   - Compile-time diagnostics instead of runtime errors
   - Feature parity with reflection-based code paths (soon)
+  - Enum converter generator for up to 10x faster enum parsing and 7x faster formatting
 
 # Example
 
@@ -104,9 +105,5 @@ await CsvWriter.WriteAsync(
 # Dependencies
 
 FlameCsv has two dependencies:
- - [System.IO.Pipelines](https://www.nuget.org/packages/system.io.pipelines/) for the powerful abstractions and additional reading and writing APIs.
  - [CommunityToolkit.HighPerformance](https://github.com/CommunityToolkit/dotnet) which provides utilities for writing high-performance code, and the string pool used for header values.
-
-A development-time dependency to [FastExpressionCompiler](https://github.com/dadhi/FastExpressionCompiler) is used for extremely performant runtime code-generation in reflection-based code paths.
-
-It's possible in the future to split FlameCsv into separate packages to keep the core library dependency-free, but there are no hard plans for it yet.
+- A development-time dependency to [FastExpressionCompiler](https://github.com/dadhi/FastExpressionCompiler) is used for extremely performant runtime code-generation in reflection-based code paths.

@@ -11,7 +11,7 @@ _There is nothing inherently bad about reflection and compiled expressions._
 For 99% of applications, they work perfectly and are straightforward to set up with minimal configuration.
 However, reflection and compiled expressions are incompatible with AOT compilation and trimming, so an alternative API is provided.
 Aside from the start-up cost, performance differences between reflection and source generation in FlameCsv are not significant (see: [benchmarks](benchmarks.md)).
-1
+
 ## Type Map Generator
 
 FlameCsv includes a source generator that creates code for binding .NET types to/from CSV headers.

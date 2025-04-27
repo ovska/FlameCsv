@@ -25,7 +25,7 @@ Configure the CSV format using these @"FlameCsv.CsvOptions`1" properties:
 - @"FlameCsv.CsvOptions`1.Delimiter"
 - @"FlameCsv.CsvOptions`1.Quote"
 - @"FlameCsv.CsvOptions`1.Newline"
-- @"FlameCsv.CsvOptions`1.Whitespace"
+- @"FlameCsv.CsvOptions`1.Trimming"
 - @"FlameCsv.CsvOptions`1.Escape"
 
 Example for reading semicolon-delimited CSV with linefeed separators and space/tab trimming:
@@ -36,7 +36,7 @@ CsvOptions<char> options = new()
     Delimiter = ';',
     Quote = '"',
     Newline = "\n",
-    Whitespace = " \t",
+    Trimming = CsvFieldTrimming.Both,
 };
 ```
 
@@ -52,11 +52,11 @@ The `Read` and `ReadAsync` methods return an enumerable-object that can be used 
 
 The library supports both @"System.Char?text=char" (UTF-16) and @"System.Byte?text=byte" (UTF-8) data through C# generics. For bytes, the library expects UTF-8 encoded text (which includes ASCII).
 
-The synchronous methods accept common .NET data types: @"System.String", @"System.ReadOnlyMemory`1". These types are converted internally to a @"System.Buffers.ReadOnlySequence`1", which can also be used directly.
+CSV can be read from numerous data sources: @"System.String", @"System.ReadOnlyMemory`1", and @"System.Buffers.ReadOnlySequence`1".
 
-Records can be asynchronously read in a streaming manner from @"System.IO.TextReader", @"System.IO.Stream", and @"System.IO.Pipelines.PipeReader".
-
-The data is read in chunks, and records are yielded by the enumerator on line-by-line basis. Internally, the library uses SIMD operations to read up to N fields ahead in the data for significantly improved performance. More info: @"configuration#parsing-performance-and-read-ahead".
+CSV can also be streamed synchronously or asynchronously from @"System.IO.TextReader" and @"System.IO.Stream".
+When streaming, individual fields are tokenized from the input stream. Individual records and fields (including escaping)
+are not materialized until accessed, and the library will not buffer the entire CSV data in memory.
 
 # [UTF-16](#tab/utf16)
 ```cs
@@ -128,13 +128,12 @@ foreach (var rec in CsvReader.Enumerate(csv))
 
 ### Reading raw CSV data
 
-For advanced performance-critical scenarios, you can create a @"FlameCsv.Reading.CsvParser`1" (the internal type that handles parsing the data into fields)
-manually by using the static @"FlameCsv.Reading.CsvParser"-class, and using it in a `foreach` or `await foreach`-loop.
-Enumerating advances the parser and disposes it at the end.
+For advanced performance-critical scenarios, you can create a @"FlameCsv.Reading.CsvReader`1".
+This is the type that is used internally to tokenize the CSV data.
 
 # [UTF-16](#tab/utf16)
 ```cs
-foreach (var @record in CsvParser.Create(CsvOptions<char>, textReader).ParseRecords())
+foreach (var @record in new CsvReader<char>(CsvOptions<char>, textReader).ParseRecords())
 {
     for (int i = 0; i < @record.FieldCount; i++)
     {
@@ -146,19 +145,21 @@ foreach (var @record in CsvParser.Create(CsvOptions<char>, textReader).ParseReco
 
 # [UTF-8](#tab/utf8)
 ```cs
-foreach (var @record in CsvParser.Create(CsvOptions<byte>, stream).ParseRecords())
+foreach (var @record in new CsvReader<byte>(CsvOptions<byte>, stream).ParseRecords())
 {
     for (int i = 0; i < @record.FieldCount; i++)
     {
-        ReadOnlySpan<char> @field = @record[i];
+        ReadOnlySpan<byte> @field = @record[i];
         ProcessField(i, @field);
     }
 }
 ```
 
-Note that if any of the fields need to be escaped, only one field may be used at a time (e.g., fetching another one will use the same buffer).
-
 ---
+
+Only one field may be read at a time, as unescaping the fields uses a shared buffer.
+You should process fields one by one before reading the next one.
+
 
 ## Writing
 
@@ -188,10 +189,8 @@ CsvWriter.Write(TextWriter.Null, users);
 @"FlameCsv.CsvWriter" includes a `Create` method that can be used to create an
 instance of @"FlameCsv.CsvWriter`1" that allows you to write fields, records,
 or unescaped raw data directly into your output, while taking care of field
-quoting, delimiters, and escaping. The writer can be configured to flush automatically if the library detects that the internal buffers are getting saturated or flushed manually.
-
-> [!NOTE]
-> As @"System.IO.Pipelines.PipeWriter" does not support synchronous flushing, the returned type @"FlameCsv.CsvAsyncWriter`1" lacks synchronous methods that can cause a flush.
+quoting, delimiters, and escaping. The writer can be flushed manually, or
+be configured to flush automatically if the library detects that the internal buffers are getting saturated.
 
 # [UTF-16](#tab/utf16)
 ```cs
@@ -280,7 +279,7 @@ The converters in FlameCsv follow the common .NET pattern TryParse/TryFormat.
 
 When reading CSV, @"FlameCsv.CsvConverter`2.TryParse(System.ReadOnlySpan{`0},`1@)" is used to convert the CSV field into a .NET type instance. If parsing fails the converter returns `false` and the library throws an appropriate exception.
 
-When writing, @"FlameCsv.CsvConverter`2.TryFormat(System.Span{`0},`1,System.Int32@)" should attempt to write the value to the destination buffer. If the value was successfully written, the method returns `true` and sets the amount of written characters (or bytes). If the destination buffer is too small, the method returns `false`. In this case, the value of `charsWritten` and any data possibly written to the buffer are ignored.
+When writing, @"FlameCsv.CsvConverter`2.TryFormat(System.Span{`0},`1,System.Int32@)" should attempt to write the value to the destination buffer. If the value was successfully written, the method returns `true` and sets the amount of written characters (or bytes). If the destination buffer is too small, the method returns `false`. In this case, the value of `charsWritten` and any data possibly already written to the buffer are ignored.
 
 ### Custom converter
 
@@ -312,18 +311,8 @@ class YesNoConverter : CsvConverter<char, bool>
     public override bool TryFormat(Span<char> destination, bool value, out int charsWritten)
     {
         string toWrite = value ? "yes" : "no";
-
-        if (destination.Length >= toWrite.Length)
-        {
-            toWrite.AsSpan().CopyTo(destination);
-            charsWritten = toWrite.Length;
-            return true;
-        }
-        else
-        {
-            charsWritten = 0;
-            return false;
-        }
+        charsWritten = toWrite.Length; // charsWritten is ignored if the method returns false
+        return toWrite.TryCopyTo(destination);
     }
 }
 ```
@@ -354,18 +343,8 @@ class YesNoConverter : CsvConverter<byte, bool>
     public override bool TryFormat(Span<byte> destination, bool value, out int charsWritten)
     {
         ReadOnlySpan<byte> toWrite = value ? "yes"u8 : "no"u8;
-
-        if (destination.Length >= toWrite.Length)
-        {
-            toWrite.CopyTo(destination);
-            charsWritten = toWrite.Length;
-            return true;
-        }
-        else
-        {
-            charsWritten = 0;
-            return false;
-        }
+        charsWritten = toWrite.Length; // charsWritten is ignored if the method returns false
+        return toWrite.TryCopyTo(destination);
     }
 }
 ```
@@ -404,7 +383,7 @@ class EnumerableConverterFactory : CsvConverterFactory<char>
 
     private static bool IsIEnumerable(Type type)
         => type.IsInterface &&
-           type.IsGenericTypeDefinition &&
+           type.IsGenericType &&
            type.GetGenericTypeDefinition() == typeof(IEnumerable<>);
 }
 ```
@@ -433,7 +412,7 @@ class EnumerableConverterFactory : CsvConverterFactory<byte>
 
     private static bool IsIEnumerable(Type type)
         => type.IsInterface &&
-           type.IsGenericTypeDefinition &&
+           type.IsGenericType &&
            type.GetGenericTypeDefinition() == typeof(IEnumerable<>);
 }
 ```
@@ -453,7 +432,7 @@ class EnumerableConverterFactory<T, TElement>(CsvOptions<T> options)
     {
         List<TElement> result = [];
 
-        foreach (Range range in source.Split(T.CreateChecked(';')))
+        foreach (Range range in source.Split(T.CreateTruncating(';')))
         {
             if (!_elementConverter.TryParse(source[range], out var element))
             {
@@ -478,13 +457,6 @@ class EnumerableConverterFactory<T, TElement>(CsvOptions<T> options)
 
         foreach (var element in value)
         {
-            if (!_elementConverter.TryFormat(destination.Slice(charsWritten), element, out int written))
-            {
-                return false;
-            }
-
-            charsWritten += written;
-
             if (first)
             {
                 first = false;
@@ -496,11 +468,21 @@ class EnumerableConverterFactory<T, TElement>(CsvOptions<T> options)
                     return false;
                 }
 
-                destination[charsWritten++] = T.CreateChecked(';');
+                destination[charsWritten++] = T.CreateTruncating(';');
             }
+            
+            if (!_elementConverter.TryFormat(destination.Slice(charsWritten), element, out int written))
+            {
+                return false;
+            }
+
+            charsWritten += written;
         }
 
         return true;
     }
 }
 ```
+---
+
+Note how the `System.Numerics.IBinaryInteger`1` constraint allows us to use the same character for both UTF16 and UTF8.
