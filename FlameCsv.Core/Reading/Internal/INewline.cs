@@ -21,6 +21,13 @@ internal interface INewline<T> where T : unmanaged, IBinaryInteger<T>
     static abstract nuint OffsetFromEnd { get; }
 
     /// <summary>
+    /// Determines if the specified value is part of a two-token newline sequence.
+    /// </summary>
+    /// <remarks>For single token newlines, always returns false</remarks>
+    [Pure]
+    bool IsMultitoken(ref T value);
+
+    /// <summary>
     /// Determines if the specified value represents a delimiter or a newline.
     /// </summary>
     /// <param name="value">The value to check against</param>
@@ -69,6 +76,13 @@ internal readonly struct NewlineParserOne<T, TVector>(T first) : INewline<T, TVe
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool IsMultitoken(ref T value)
+    {
+        // the HasNewline vector only contains the correct values, e.g., \n, so this check should always succeed
+        return value == first;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsNewline(ref T value, out bool isMultitoken)
     {
         // the HasNewline vector only contains the correct values, e.g., \n, so this check should always succeed
@@ -105,6 +119,13 @@ internal readonly struct NewlineParserTwo<T, TVector>(T first, T second) : INewl
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => 1;
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool IsMultitoken(ref T value)
+    {
+        // only \r\n is considered a multitoken newline, other combinations e.g. \n\n are two distinct newlines
+        return value == first && Unsafe.Add(ref value, 1) == second;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
