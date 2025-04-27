@@ -191,7 +191,7 @@ internal readonly struct Vec128Char : ISimdVector<char, Vec128Char>
         return values;
     }
 
-    public override string ToString() => _value.ToString() + " " + System.Text.Encoding.ASCII.GetString(ToArray());
+    public override string ToString() => $"{_value} - \"{System.Text.Encoding.ASCII.GetString(ToArray())}\"";
 
     public override bool Equals(object obj) => throw new NotSupportedException();
     public override int GetHashCode() => throw new NotSupportedException();
@@ -292,7 +292,7 @@ internal readonly struct Vec256Char : ISimdVector<char, Vec256Char>
         return values;
     }
 
-    public override string ToString() => _value.ToString() + " " + System.Text.Encoding.ASCII.GetString(ToArray());
+    public override string ToString() => $"{_value} - \"{System.Text.Encoding.ASCII.GetString(ToArray())}\"";
 
     public override bool Equals(object obj) => throw new NotSupportedException();
     public override int GetHashCode() => throw new NotSupportedException();
@@ -386,7 +386,7 @@ internal readonly struct Vec512Char : ISimdVector<char, Vec512Char>
         return values;
     }
 
-    public override string ToString() => _value.ToString() + " " + System.Text.Encoding.ASCII.GetString(ToArray());
+    public override string ToString() => $"{_value} - \"{System.Text.Encoding.ASCII.GetString(ToArray())}\"";
 
     public override bool Equals(object obj) => throw new NotSupportedException();
     public override int GetHashCode() => throw new NotSupportedException();
@@ -461,7 +461,7 @@ internal readonly struct Vec128Byte : ISimdVector<byte, Vec128Byte>
         return values;
     }
 
-    public override string ToString() => _value.ToString() + " " + System.Text.Encoding.ASCII.GetString(ToArray());
+    public override string ToString() => $"{_value} - \"{System.Text.Encoding.ASCII.GetString(ToArray())}\"";
 
     public override bool Equals(object obj) => throw new NotSupportedException();
     public override int GetHashCode() => throw new NotSupportedException();
@@ -536,7 +536,7 @@ internal readonly struct Vec256Byte : ISimdVector<byte, Vec256Byte>
         return values;
     }
 
-    public override string ToString() => _value.ToString() + " " + System.Text.Encoding.ASCII.GetString(ToArray());
+    public override string ToString() => $"{_value} - \"{System.Text.Encoding.ASCII.GetString(ToArray())}\"";
 
     public override bool Equals(object obj) => throw new NotSupportedException();
     public override int GetHashCode() => throw new NotSupportedException();
@@ -611,7 +611,7 @@ internal readonly struct Vec512Byte : ISimdVector<byte, Vec512Byte>
         return values;
     }
 
-    public override string ToString() => _value.ToString() + " " + System.Text.Encoding.ASCII.GetString(ToArray());
+    public override string ToString() => $"{_value} - \"{System.Text.Encoding.ASCII.GetString(ToArray())}\"";
 
     public override bool Equals(object obj) => throw new NotSupportedException();
     public override int GetHashCode() => throw new NotSupportedException();

@@ -334,7 +334,7 @@ internal readonly struct <#= typeName #> : ISimdVector<<#= keyword #>, <#= typeN
         return values;
     }
 
-    public override string ToString() => _value.ToString() + " " + System.Text.Encoding.ASCII.GetString(ToArray());
+    public override string ToString() => $"{_value} - \"{System.Text.Encoding.ASCII.GetString(ToArray())}\"";
 
     public override bool Equals(object obj) => throw new NotSupportedException();
     public override int GetHashCode() => throw new NotSupportedException();

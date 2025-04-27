@@ -53,8 +53,6 @@ public static class SimdVectorTests
         Assert.False(abcVec == aVec);
         Assert.Equal(ByteData.Slice(0, TVector.Count), abcVec.ToArray());
         Assert.Equal(Enumerable.Repeat(byte.CreateChecked(data[0]), TVector.Count).ToArray(), aVec.ToArray());
-
-
     }
 
     /// <summary>
@@ -64,7 +62,9 @@ public static class SimdVectorTests
     {
         Assert.SkipUnless(TVector.IsSupported, $"CPU support not available for {typeof(TVector).Name}");
 
-        foreach (var token in (char[]) [',', '"', '\n', '\r', '\0', '\t', '\\'])
+        ReadOnlySpan<char> tokens = [',', '"', '\n', '\r', '\0', '\t', '\\'];
+
+        foreach (var token in tokens)
         {
             Assert.True(char.IsAscii(token));
 
@@ -93,6 +93,17 @@ public static class SimdVectorTests
                         $"Vec: {vec}");
                 }
             }
+        }
+
+        // ensure narrowing saturates or zeroes out, instead of just discarding high bits
+        {
+            const char weirdComma = (char)(',' | ',' << 8);
+            Span<char> span = stackalloc char[TVector.Count];
+            span.Fill(weirdComma);
+            TVector vec = TVector.LoadUnaligned(in span[0], 0);
+            var commaCheck = TVector.Create(',');
+            var eq = TVector.Equals(vec, commaCheck);
+            Assert.True(eq == TVector.Zero, $"Matched: {vec} to {commaCheck}");
         }
     }
 }
