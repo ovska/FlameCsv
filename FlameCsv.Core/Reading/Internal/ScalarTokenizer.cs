@@ -28,8 +28,9 @@ internal sealed class ScalarTokenizer<T, TNewline>(CsvDialect<T> dialect, TNewli
         uint quotesConsumed = 0;
         bool isMultitoken = false;
 
+        // offset ends -2 so we can check for \r\n and "" without bounds checks
         // ensure no underflow
-        nuint searchSpaceEnd = (nuint)Math.Max(0, data.Length - 1 - (nint)TNewline.OffsetFromEnd);
+        nuint searchSpaceEnd = (nuint)Math.Max(0, data.Length - 2);
         nuint unrolledEnd = (nuint)Math.Max(0, (nint)searchSpaceEnd - 8);
 
         ref Meta currentMeta = ref MemoryMarshal.GetReference(metaBuffer);
@@ -236,8 +237,8 @@ internal sealed class ScalarTokenizer<T, TNewline>(CsvDialect<T> dialect, TNewli
                 break;
             }
 
-            // two-token newline, need to process the final token (unless it was skipped with CRLF)
-            if (TNewline.OffsetFromEnd != 0 && ((nint)runningIndex == (data.Length - 1)))
+            // need to process the final token (unless it was skipped with CRLF)
+            if (((nint)runningIndex == (data.Length - 1)))
             {
                 T final = Unsafe.Add(ref first, runningIndex);
 
@@ -253,6 +254,7 @@ internal sealed class ScalarTokenizer<T, TNewline>(CsvDialect<T> dialect, TNewli
                 {
                     currentMeta = Meta.RFC((int)runningIndex, quotesConsumed);
                     currentMeta = ref Unsafe.Add(ref currentMeta, 1);
+                    quotesConsumed = 0;
                 }
                 else if (final == quote)
                 {
@@ -261,7 +263,7 @@ internal sealed class ScalarTokenizer<T, TNewline>(CsvDialect<T> dialect, TNewli
             }
 
             // TODO: ensure this works with trailing LF
-            currentMeta = Meta.EOL((int)(runningIndex + TNewline.OffsetFromEnd), quotesConsumed, newlineLength: 0);
+            currentMeta = Meta.EOL((int)runningIndex + 1, quotesConsumed, newlineLength: 0);
             currentMeta = ref Unsafe.Add(ref currentMeta, 1);
             break;
         }
