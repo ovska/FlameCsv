@@ -215,7 +215,7 @@ internal readonly struct Meta : IEquatable<Meta>
         int start,
         scoped ref T data,
         Span<T> buffer,
-        Allocator<T> allocator)
+        Allocator<T>? allocator)
         where T : unmanaged, IBinaryInteger<T>
     {
         // don't touch this method without thorough benchmarking
@@ -264,7 +264,7 @@ internal readonly struct Meta : IEquatable<Meta>
         int start,
         scoped ref T data,
         Span<T> buffer,
-        Allocator<T> allocator)
+        Allocator<T>? allocator)
         where T : unmanaged, IBinaryInteger<T>
     {
         int fieldLength = End - start;
@@ -290,13 +290,17 @@ internal readonly struct Meta : IEquatable<Meta>
 
             field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, start + 1), fieldLength - 2);
 
+            // for escapes, special count refers to the number of escape characters
+            // for RFC, special count refers to the _total_ number of quotes, including wrapping
             if (IsEscape && specialCount != 0)
             {
+                Debug.Assert(dialect.Escape.HasValue, "Escape character is not set");
                 var unescaper = new IndexOfUnixUnescaper<T>(dialect.Escape.GetValueOrDefault(), specialCount);
                 int length = IndexOfUnixUnescaper<T>.UnescapedLength(field.Length, specialCount);
 
                 if (length > buffer.Length)
                 {
+                    if (allocator is null) ThrowIfAllocatorNull(buffer.Length);
                     buffer = allocator.GetSpan(length);
                 }
 
@@ -307,6 +311,7 @@ internal readonly struct Meta : IEquatable<Meta>
             {
                 if (field.Length > buffer.Length)
                 {
+                    if (allocator is null) ThrowIfAllocatorNull(buffer.Length);
                     buffer = allocator.GetSpan(field.Length);
                 }
 
@@ -333,6 +338,18 @@ internal readonly struct Meta : IEquatable<Meta>
         }
 
         return field;
+    }
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [StackTraceHidden]
+    private void ThrowIfAllocatorNull(int bufferLength)
+    {
+#pragma warning disable CA2208 // Instantiate argument exceptions correctly
+        throw new ArgumentNullException(
+            paramName: "buffer",
+            $"Unescape buffer ({bufferLength}) is shorter than the field length ({End - NextStart}).");
+#pragma warning restore CA2208 // Instantiate argument exceptions correctly
     }
 
 #if DEBUG
