@@ -13,29 +13,19 @@ While not required for using the library, it provides insights into the internal
 
 FlameCSV's reading implementation is built on two goals:
 
-- ⚖️ Feature parity and code sharing between synchronous and asynchronous operations
-- 🚀 Zero-copy and zero-allocation processing
+- ⚖️ Feature and performance parity with synchronous and asynchronous processing
+- 🚀 Zero-allocation processing
+- ✂️ Minimal copying of data, instead exposing slices as spans
 
 Data is read directly from the source, whether it's a @"System.String" or an array/@"System.ReadOnlyMemory`1".
-When reading from a pipe, the same sequence is used as where the data was originally read from.
-Streams and pipes can fragment the data across multiple buffers when reading, so the "first class async"-philosophy
-made @"System.Buffers.ReadOnlySequence`1" a natural choice for the base data block for reading.
-As much as possible is read from @"System.Buffers.ReadOnlySequence`1.First" (or in the case of an array or a string, all of it)
-before falling back to working with the sequence directly.
+When reading from a streaming source such as a @"System.IO.Stream" or @"System.IO.TextReader", the data is read into a
+buffer and processed in chunks. After the current chunk has been processed, the tail of the data is copied to the start
+and the next chunk is read. This process is repeated until the end of the stream is reached, when a scalar fallback
+path handles the final tail. All other records are parsed with SIMD for maximum performance.
 
-The segmented nature of the data also requires deviation from the "zero-copy/allocation"-goal in the case of a single
-CSV record being split across two or more sequences. A fragmented record is parsed using @"System.Buffers.SequenceReader`1"
-and copied to a pooled buffer. This is one of the few cases in the reading routine when an allocation and a copy has to be
-made. This is relatively rare in the grand scheme of things, as a buffer size of 4096 (a common default) can fit
-quite many records before a buffer boundary. Likewise, reading from sequential data like an array avoids this altogether.
-
-Another case when copying and a @"System.Buffers.IMemoryOwner`1" allocation must be done is when data needs to be unescaped.
-A CSV field like `"John ""The Man"" Smith"` requires copying to get rid of the extra characters in the middle of it.
-While in theory the data could be copied in-place by unsafely converting a @"System.ReadOnlySpan`1" to @"System.Span`1"
-for example, the library chooses to respect the read-only contract of the types, and copies the unescaped field
-into a pooled buffer. Quoted fields that do not require copying are simply sliced, e.g., `"Bond, James"` only requires
-trimming the opening and closing quote. A stack-allocated buffer is used for fields under 256 bytes, so it's likely
-you'll never see an allocation caused by unescaping. 
+Unescaped fields must be done to a separate buffer to not mess with the original buffer. This is done either to
+a stack-allocated buffer (up to 256 bytes/128 chars), or to a rented buffer from the configured memory pool.
+Unescaping and buffer rewinding when reading are the only times when the library copies data when reading.
 
 ### Read-ahead
 
@@ -64,13 +54,13 @@ as the sign-bit of the end index), and the expectation that no single CSV field 
 ## Writing
 
 The writing system is based on @"System.Buffers.IBufferWriter`1", allowing direct writes into the writer's buffer.
-FlameCsv extends this functionality through @"FlameCsv.IO.ICsvPipeWriter`1" with additional features:
- - The writer keeps tracks of the written data, and contains the @"FlameCsv.IO.ICsvPipeWriter`1.NeedsFlush" property that
+FlameCsv extends this functionality through @"FlameCsv.IO.ICsvBufferWriter`1" with additional features:
+ - The writer keeps track of the written data, and contains the @"FlameCsv.IO.ICsvBufferWriter`1.NeedsFlush" property that
    determines if the internal buffers are close to full, and the written data should be flushed. The limit of "close to full"
    is arbitrarily determined, and future performance profiling might be needed (you are free to do so, or file an issue for it).
- - @"FlameCsv.IO.ICsvPipeWriter`1.Flush" and @"FlameCsv.IO.ICsvPipeWriter`1.FlushAsync(System.Threading.CancellationToken)"
+ - @"FlameCsv.IO.ICsvBufferWriter`1.Flush" and @"FlameCsv.IO.ICsvBufferWriter`1.FlushAsync(System.Threading.CancellationToken)"
    flush the writer to the destination, be it a @"System.IO.Stream", @"System.IO.TextWriter" or @"System.IO.Pipelines.PipeWriter".
- - @"FlameCsv.IO.ICsvPipeWriter`1.Complete(System.Exception)" and @"FlameCsv.IO.ICsvPipeWriter`1.CompleteAsync(System.Exception,System.Threading.CancellationToken)"
+ - @"FlameCsv.IO.ICsvBufferWriter`1.Complete(System.Exception)" and @"FlameCsv.IO.ICsvBufferWriter`1.CompleteAsync(System.Exception,System.Threading.CancellationToken)"
    that mirrors the pipelines-API. Completion disposes the writer and returns pooled buffers,
    and flushes the leftover data unless an exception was observed while writing.
 
@@ -96,7 +86,7 @@ been implemented yet, with the expectation that this configuration is relatively
 While arrays offer slightly better raw performance and avoid allocating a @"System.Buffers.IMemoryOwner`1",
 they don't offer the flexibility of a memory pool. All pooling memory allocations of `T` are done with
 @"FlameCsv.CsvOptions`1.MemoryPool?displayProperty=nameWithType", which gives the user a lot of control over
-which memory to use. The pooled memory instances used for multisegment records and unescaping are also reused
+which memory to use. The pooled memory instances used for unescaping are reused
 across the whole read-operation lifetime, so the allocations are minimal in the grand scheme of things.
 
 This benefit extends to tests as well. As the reading code makes extensive use of @"System.Runtime.CompilerServices.Unsafe"
@@ -105,12 +95,8 @@ a [custom memory pool](https://github.com/ovska/FlameCsv/blob/main/FlameCsv.Test
 that allocates native memory with read-protected blocks before and after to ensure no out-of-bounds reads are done.
 
 Note that buffers larger than @"System.Buffers.MemoryPool`1.MaxBufferSize?displayProperty=nameWithType" will be
-heap allocated. This is a non-issue for the default array-backed pool, and even for e.g., pagesize-limited
-native memory pools would only apply if the CSV contained records or fields over 4096 bytes long.
-You can track when this happens by collecting metrics from counter `memory.buffer_too_large` in the meter `FlameCsv`.
-The default pool is array-backed, so you never need to worry about this when not using a custom implementation.
-This behavior is possibly still subject to change, perhaps to throw an exception in this unlikely case to avoid
-hidden allocations.
+rented from the shared array pool. This is unlikely unless your memory pool only supports tiny buffers,
+or your fields are thousands of characters long.
 
 
 ## Dynamic code generation
@@ -120,6 +106,8 @@ Where possible, code is generated at _compile-time_ using T4 templates.
 For example, the types that [read](https://github.com/ovska/FlameCsv/blob/main/FlameCsv.Core/Runtime/Materializer.Generated.cs)
 and [write](https://github.com/ovska/FlameCsv/blob/main/FlameCsv.Core/Runtime/Dematerializer.Generated.cs) objects are generated this way.
 This allows the JIT compiler to optimize much of the code as if it were handwritten.
+Thanks to the JIT optimizations possible, if the reflection-based types are in cache, they are actually more performant
+than the source generated version.
 
 When runtime code generation is necessary (such as for creating getters for writing or object creation functions for reading),
 the library uses the excellent [FastExpressionCompiler](https://github.com/dadhi/FastExpressionCompiler) library to
