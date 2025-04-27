@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using FlameCsv.Extensions;
@@ -9,6 +10,7 @@ namespace FlameCsv;
 /// Internal implementation detail.
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
+[EditorBrowsable(EditorBrowsableState.Never)]
 public readonly struct NewlineBuffer<T> : IEquatable<NewlineBuffer<T>> where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
