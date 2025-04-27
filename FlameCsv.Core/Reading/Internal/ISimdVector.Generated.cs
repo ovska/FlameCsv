@@ -12,21 +12,6 @@ using System.Text;
 
 namespace FlameCsv.Reading.Internal;
 
-// this code borrows heavily from Ascii.Utility.cs in System.Text.Ascii (MIT license)
-
-internal static class SimdVector
-{
-    /// <summary>
-    /// Returns <c>true</c> if any of the vector types are hardware accelerated.
-    /// </summary>
-    public static bool SupportsAny =>
-#if RELEASE
-        Vector128.IsHardwareAccelerated || Vector256.IsHardwareAccelerated || Vector512.IsHardwareAccelerated;
-#else
-        true;
-#endif
-}
-
 /// <summary>Generic type wrapping a byte vector.</summary>
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 internal interface ISimdVector<T, TVector>
@@ -100,12 +85,7 @@ internal readonly struct Vec128Char : ISimdVector<char, Vec128Char>
     public static bool IsSupported
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-        get
-            => Vector128<byte>.IsSupported
-#if RELEASE
-            && Vector128.IsHardwareAccelerated
-#endif
-        ;
+        get => Vector128.IsHardwareAccelerated;
     }
 
     public static int Count
@@ -207,12 +187,7 @@ internal readonly struct Vec256Char : ISimdVector<char, Vec256Char>
     public static bool IsSupported
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-        get
-            => Vector256<byte>.IsSupported
-#if RELEASE
-            && Vector256.IsHardwareAccelerated
-#endif
-        ;
+        get => Vector256.IsHardwareAccelerated;
     }
 
     public static int Count
@@ -308,12 +283,7 @@ internal readonly struct Vec512Char : ISimdVector<char, Vec512Char>
     public static bool IsSupported
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-        get
-            => Vector512<byte>.IsSupported
-#if RELEASE
-            && Vector512.IsHardwareAccelerated
-#endif
-        ;
+        get => Vector512.IsHardwareAccelerated;
     }
 
     public static int Count
@@ -402,12 +372,7 @@ internal readonly struct Vec128Byte : ISimdVector<byte, Vec128Byte>
     public static bool IsSupported
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-        get
-            => Vector128<byte>.IsSupported
-#if RELEASE
-            && Vector128.IsHardwareAccelerated
-#endif
-        ;
+        get => Vector128.IsHardwareAccelerated;
     }
 
     public static int Count
@@ -477,12 +442,7 @@ internal readonly struct Vec256Byte : ISimdVector<byte, Vec256Byte>
     public static bool IsSupported
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-        get
-            => Vector256<byte>.IsSupported
-#if RELEASE
-            && Vector256.IsHardwareAccelerated
-#endif
-        ;
+        get => Vector256.IsHardwareAccelerated;
     }
 
     public static int Count
@@ -552,12 +512,7 @@ internal readonly struct Vec512Byte : ISimdVector<byte, Vec512Byte>
     public static bool IsSupported
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-        get
-            => Vector512<byte>.IsSupported
-#if RELEASE
-            && Vector512.IsHardwareAccelerated
-#endif
-        ;
+        get => Vector512.IsHardwareAccelerated;
     }
 
     public static int Count
@@ -636,4 +591,9 @@ internal readonly struct NoOpVector<T> : ISimdVector<T, NoOpVector<T>> where T :
     public override bool Equals(object obj) => throw new NotSupportedException();
     public override int GetHashCode() => throw new NotSupportedException();
 }
+
+// some of the char -> byte narrowing code is from .NET Runtime's Ascii.Utility.cs, MIT license:
+
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 

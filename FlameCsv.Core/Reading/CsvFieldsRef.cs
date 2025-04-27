@@ -15,6 +15,7 @@ namespace FlameCsv.Reading;
 /// </summary>
 [SkipLocalsInit]
 [EditorBrowsable(EditorBrowsableState.Never)]
+[PublicAPI]
 public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, IBinaryInteger<T>
 {
     private readonly ref readonly CsvDialect<T> _dialect;
@@ -88,10 +89,11 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            Debug.Assert(!Unsafe.IsNullRef(ref _firstMeta), "The struct was uninitialized");
-
             if ((uint)index >= (uint)FieldCount)
+            {
+                Debug.Assert(!Unsafe.IsNullRef(ref _firstMeta), "The struct was uninitialized");
                 Throw.Argument_FieldIndex(index, FieldCount);
+            }
 
             ref Meta meta = ref Unsafe.Add(ref _firstMeta, index + 1);
             int start = Unsafe.Add(ref _firstMeta, index).NextStart;
@@ -102,21 +104,53 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
     /// <summary>
     /// Returns the raw unescaped span of the field at the specified index.
     /// </summary>
-    /// <param name="index"></param>
+    /// <param name="index">0-based field index</param>
+    /// <seealso cref="GetSpan(int, Span{T})"/>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown if <paramref name="index"/> is less than 0 or greater than or equal to <see cref="FieldCount"/>
+    /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [PublicAPI]
-    [EditorBrowsable(EditorBrowsableState.Never)]
     public ReadOnlySpan<T> GetRawSpan(int index)
     {
-        Debug.Assert(!Unsafe.IsNullRef(ref _firstMeta), "The struct was uninitialized");
-
         if ((uint)index >= (uint)FieldCount)
+        {
+            Debug.Assert(!Unsafe.IsNullRef(ref _firstMeta), "The struct was uninitialized");
             Throw.Argument_FieldIndex(index, FieldCount);
+        }
 
         ref Meta meta = ref Unsafe.Add(ref _firstMeta, index + 1);
         int start = Unsafe.Add(ref _firstMeta, index).NextStart;
 
         return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), meta.End - start);
+    }
+
+    /// <summary>
+    /// Returns the field span at the specified index.
+    /// </summary>
+    /// <param name="index">0-based field index</param>
+    /// <param name="unescapeBuffer">Buffer to unescape the value to if needed</param>
+    /// <remarks>
+    /// The field is escaped to <paramref name="unescapeBuffer"/> if needed.
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown if <paramref name="index"/> is less than 0 or greater than or equal to <see cref="FieldCount"/>
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown if <paramref name="unescapeBuffer"/> is not large enough to hold the unescaped field.
+    /// </exception>
+    /// <seealso cref="GetRawSpan(int)"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ReadOnlySpan<T> GetSpan(int index, Span<T> unescapeBuffer)
+    {
+        if ((uint)index >= (uint)FieldCount)
+        {
+            Debug.Assert(!Unsafe.IsNullRef(ref _firstMeta), "The struct was uninitialized");
+            Throw.Argument_FieldIndex(index, FieldCount);
+        }
+
+        ref Meta meta = ref Unsafe.Add(ref _firstMeta, index + 1);
+        int start = Unsafe.Add(ref _firstMeta, index).NextStart;
+        return meta.GetField(in _dialect, start, ref _data, _unescapeBuffer, allocator: null);
     }
 
     /// <inheritdoc cref="CsvFields{T}.Record"/>
@@ -154,23 +188,21 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
     {
         if (FieldCount == 0)
         {
-            return $"{{ CsvFieldsRef<{Token<T>.Name}>: Uninitialized }}";
+            return $"{{ CsvFieldsRef<{Token<T>.Name}>[{FieldCount}]: Uninitialized }}";
         }
-
-        ReadOnlySpan<T> value = Record;
 
         if (typeof(T) == typeof(char))
         {
-            return $"{{ CsvLine<{Token<T>.Name}>[{FieldCount}]: \"{MemoryMarshal.Cast<T, char>(Record)}\" }}";
+            return $"{{ CsvFieldsRef<{Token<T>.Name}>[{FieldCount}]: \"{MemoryMarshal.Cast<T, char>(Record)}\" }}";
         }
 
         if (typeof(T) == typeof(byte))
         {
             return
-                $"{{ CsvLine<{Token<T>.Name}>[{FieldCount}]: \"{Encoding.UTF8.GetString(MemoryMarshal.Cast<T, byte>(Record))}\" }}";
+                $"{{ CsvFieldsRef<{Token<T>.Name}>[{FieldCount}]: \"{Encoding.UTF8.GetString(MemoryMarshal.AsBytes(Record))}\" }}";
         }
 
-        return $"{{ CsvLine<{Token<T>.Name}>[{FieldCount}]: Length: {value.Length} }}";
+        return $"{{ CsvFieldsRef<{Token<T>.Name}>[{FieldCount}]: Length: {Record.Length} }}";
     }
 
     internal ReadOnlySpan<Meta> GetMetaSpan()
