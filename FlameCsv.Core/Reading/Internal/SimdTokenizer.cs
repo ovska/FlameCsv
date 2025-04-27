@@ -226,12 +226,9 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect,
             int offset = BitOperations.TrailingZeroCount(mask);
             mask &= (mask - 1); // clear lowest bit
 
-            // this should always be true
-            // TODO PERF: get rid of it?
-            if (!newline.IsNewline(ref Unsafe.Add(ref first, runningIndex + (nuint)offset), out bool isMultitoken))
-            {
-                continue;
-            }
+            // no need to call IsNewline(), the mask contains only newlines
+            // this whole method should be exceedingly rare anyways
+            bool isMultitoken = newline.IsMultitoken(ref Unsafe.Add(ref first, runningIndex + (nuint)offset));
 
             currentMeta = Meta.Plain((int)runningIndex + offset, isEOL: true, TNewline.GetLength(isMultitoken));
             currentMeta = ref Unsafe.Add(ref currentMeta, 1);
