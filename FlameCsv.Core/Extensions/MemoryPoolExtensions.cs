@@ -95,7 +95,7 @@ internal class HeapMemoryPool<T> : MemoryPool<T>
 
         if (minBufferSize == -1)
         {
-            minBufferSize = Environment.SystemPageSize;
+            minBufferSize = 4096;
         }
 
         ArgumentOutOfRangeException.ThrowIfNegative(minBufferSize);
