@@ -9,6 +9,7 @@
 using System.Collections;
 using System.Collections.Immutable;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using FlameCsv.SourceGen.Helpers;
@@ -129,6 +130,20 @@ internal sealed class IndentedTextWriter : IDisposable
     }
 
     /// <summary>
+    /// Writes a block to the underlying buffer.
+    /// </summary>
+    /// <returns>A <see cref="Block"/> value to close the open block with.</returns>
+    public Block WriteBlockIf(bool condition)
+    {
+        if (!condition) return default;
+
+        WriteLine("{");
+        IncreaseIndent();
+
+        return new(this);
+    }
+
+    /// <summary>
     /// Writes content to the underlying buffer.
     /// </summary>
     /// <param name="content">The content to write.</param>
@@ -136,6 +151,17 @@ internal sealed class IndentedTextWriter : IDisposable
     public void Write(string content, bool isMultiline = false)
     {
         Write(content.AsSpan(), isMultiline);
+    }
+
+    /// <summary>
+    /// Writes content to the underlying buffer.
+    /// </summary>
+    /// <param name="content">The content to write.</param>
+    public void Write(char content)
+    {
+        Span<char> span = stackalloc char[1];
+        span[0] = content;
+        Write(span, false);
     }
 
     /// <summary>
@@ -224,6 +250,18 @@ internal sealed class IndentedTextWriter : IDisposable
     public void WriteIf(bool condition, [InterpolatedStringHandlerArgument("", nameof(condition))] ref WriteIfInterpolatedStringHandler handler)
     {
         _ = this;
+    }
+
+    /// <summary>
+    /// Writes content to the underlying buffer.
+    /// </summary>
+    /// <param name="content">The content to write.</param>
+    public void WriteIf(bool condition, char content)
+    {
+        if (condition)
+        {
+            Write(content);
+        }
     }
 
     /// <summary>
@@ -355,6 +393,12 @@ internal sealed class IndentedTextWriter : IDisposable
 
         this.builder.AddRange(content);
     }
+
+    [Conditional("WRITER_DEBUG")]
+    public void DebugLine(string value) => WriteLine($"/* {value} */");
+
+    [Conditional("WRITER_DEBUG")]
+    public void DebugLineIf(bool condition, string value) => WriteLineIf(condition, $"/* {value} */");
 
     /// <summary>
     /// A delegate representing a callback to write data into an <see cref="IndentedTextWriter"/> instance.

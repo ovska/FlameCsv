@@ -11,6 +11,9 @@ public partial class EnumConverterGenerator
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        writer.DebugLine($"{nameof(WriteFormatMethod)}, numbers: {numbers}");
+
         string enumName = model.EnumType.FullyQualifiedName;
 
         writer.WriteLine(
@@ -28,6 +31,8 @@ public partial class EnumConverterGenerator
 
             if (model.ContiguousFromZeroCount > 0)
             {
+                writer.DebugLine($"Fast path, has values contiguous from zero");
+
                 fastPathCount = Math.Min(model.ContiguousFromZeroCount, 10);
                 writer.WriteLine($"if ((uint)value < {fastPathCount})");
                 using (writer.WriteBlock())
@@ -42,6 +47,8 @@ public partial class EnumConverterGenerator
 
             if (fastPathCount != model.UniqueValues.Length)
             {
+                writer.DebugLine($"Not all values are contiguous from zero");
+
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var numericValues = model
@@ -60,11 +67,13 @@ public partial class EnumConverterGenerator
                 WriteFormatMatch(
                     writer,
                     in model,
+                    cancellationToken,
                     numericValues,
                     static value => value.Value.ToString());
             }
             else
             {
+                writer.DebugLine("All values are contiguous from zero");
                 writer.WriteLine("return global::System.Buffers.OperationStatus.InvalidData;");
             }
         }
@@ -75,6 +84,7 @@ public partial class EnumConverterGenerator
             WriteFormatMatch(
                 writer,
                 in model,
+                cancellationToken,
                 model.Values.DistinctBy(x => x.Value),
                 static value => value.DisplayName);
         }
@@ -83,9 +93,14 @@ public partial class EnumConverterGenerator
     private static void WriteFormatMatch(
         IndentedTextWriter writer,
         in EnumModel model,
+        CancellationToken cancellationToken,
         IEnumerable<EnumValueModel> values,
         Func<EnumValueModel, string> getValue)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        writer.DebugLine(nameof(WriteFormatMatch));
+
         writer.WriteLine("switch (value)");
 
         using var block = writer.WriteBlock();
@@ -130,11 +145,13 @@ public partial class EnumConverterGenerator
     {
         if (!value.IsAscii())
         {
+            writer.DebugLine("Cannot unroll formatting; value is not ASCII");
             return false;
         }
 
         if (value.Length == 1)
         {
+            writer.DebugLine("Formatting directly; value is 1 char");
             writer.Write("dst = ");
             writer.WriteIf(model.TokenType.IsByte(), "(byte)");
             writer.WriteLine($"{value[0].ToCharLiteral()};");
@@ -146,9 +163,11 @@ public partial class EnumConverterGenerator
         int max = model.TokenType.IsByte() ? (sizeof(long)) + 1 : (sizeof(long) / 2) + 1;
         if (value.Length > max)
         {
+            writer.DebugLine("Cannot unroll formatting; value is too long");
             return false;
         }
 
+        writer.DebugLine("Unrolling direct format");
         writer.WriteLine($"if (destination.Length >= {value.Length})");
 
         int remaining = value.Length;
@@ -213,6 +232,8 @@ public partial class EnumConverterGenerator
 
         if (!model.HasFlagsAttribute) return;
 
+        writer.DebugLine(nameof(WriteFlagsImplementation));
+
         writer.Write("private sealed class FlagsFormatStrategy : global::FlameCsv.Converters.Enums.CsvEnumFlagsFormatStrategy");
         writer.WriteLine($"<{model.TokenType.Name}, {model.EnumType.FullyQualifiedName}>");
         using var block = writer.WriteBlock();
@@ -234,6 +255,9 @@ public partial class EnumConverterGenerator
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        writer.DebugLine(nameof(WriteFlagsFormat));
+
         string enumName = model.EnumType.FullyQualifiedName;
 
         writer.WriteLine(
