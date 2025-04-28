@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Converters;
 using FlameCsv.Exceptions;
@@ -8,10 +10,21 @@ namespace FlameCsv.Attributes;
 /// <summary>
 /// Configures the member to use pooled strings.
 /// </summary>
-/// <seealso cref="CsvOptions{T}.StringPool"/>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
 public sealed class CsvStringPoolingAttribute : CsvConverterAttribute
 {
+    /// <summary>
+    /// Type name of the provider to use for string pooling. The class should have a public static property or a
+    /// parameterless method named <see cref="ProviderName"/> that returns a <see cref="StringPool"/> instance.
+    /// </summary>
+    [DAM(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicMethods)]
+    public Type? ProviderType { get; init; }
+
+    /// <summary>
+    /// Property or method name of the provider to use for string pooling.
+    /// </summary>
+    public string? ProviderName { get; init; }
+
     /// <inheritdoc />
     protected override bool TryCreateConverterOrFactory<T>(
         Type targetType,
@@ -24,22 +37,40 @@ public sealed class CsvStringPoolingAttribute : CsvConverterAttribute
                 $"{nameof(CsvStringPoolingAttribute)} can only be used to convert strings.");
         }
 
-        StringPool? configured = options.StringPool;
+        StringPool? configured = null;
+
+        if (ProviderType is not null && ProviderName is not null)
+        {
+            const BindingFlags flags = BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy;
+
+            MethodInfo provider =
+                ProviderType.GetProperty(ProviderName, flags)?.GetMethod ??
+                ProviderType.GetMethod(ProviderName, flags) ??
+                throw new CsvConfigurationException($"The provider type {ProviderType} does not have a property or method named {ProviderName}.");
+
+            if (provider.ReturnType != typeof(StringPool))
+            {
+                throw new CsvConfigurationException(
+                    $"The provider {ProviderType}.{ProviderName} must return a {nameof(StringPool)}.");
+            }
+
+            configured = (StringPool?)provider.Invoke(null, null);
+        }
 
         object? result = null;
 
         if (typeof(T) == typeof(char))
         {
-            result = configured is not null && configured != StringPool.Shared
-                ? new PoolingStringTextConverter(configured)
-                : PoolingStringTextConverter.SharedInstance;
+            result = configured is null || configured == StringPool.Shared
+                ? PoolingStringTextConverter.SharedInstance
+                : new PoolingStringTextConverter(configured);
         }
 
         if (typeof(T) == typeof(byte))
         {
-            result = configured is not null && configured != StringPool.Shared
-                ? new PoolingStringUtf8Converter(configured)
-                : PoolingStringUtf8Converter.SharedInstance;
+            result = configured is null || configured == StringPool.Shared
+                ? PoolingStringUtf8Converter.SharedInstance
+                : new PoolingStringUtf8Converter(configured);
         }
 
         if (result is not null)

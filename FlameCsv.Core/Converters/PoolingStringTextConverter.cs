@@ -6,12 +6,13 @@ namespace FlameCsv.Converters;
 
 internal sealed class PoolingStringTextConverter : CsvConverter<char, string>
 {
-    public static PoolingStringTextConverter SharedInstance { get; } = new(CsvOptions<char>.Default);
+    public static PoolingStringTextConverter SharedInstance { get; } = new();
 
     private readonly StringPool _stringPool;
 
-    public PoolingStringTextConverter(CsvOptions<char> options) : this(options?.StringPool)
+    public PoolingStringTextConverter()
     {
+        _stringPool = StringPool.Shared;
     }
 
     public PoolingStringTextConverter(StringPool? pool)
