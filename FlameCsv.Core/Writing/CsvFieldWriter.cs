@@ -14,9 +14,7 @@ internal static class CsvFieldWriter
     {
         try
         {
-            return new CsvFieldWriter<char>(
-                new TextBufferWriter(textWriter, options.Allocator, in ioOptions),
-                options);
+            return new CsvFieldWriter<char>(new TextBufferWriter(textWriter, options.Allocator, in ioOptions), options);
         }
         catch
         {
@@ -26,15 +24,11 @@ internal static class CsvFieldWriter
     }
 
     [MustDisposeResource]
-    public static CsvFieldWriter<byte> Create(
-        PipeWriter pipeWriter,
-        CsvOptions<byte> options)
+    public static CsvFieldWriter<byte> Create(PipeWriter pipeWriter, CsvOptions<byte> options)
     {
         try
         {
-            return new CsvFieldWriter<byte>(
-                new PipeBufferWriter(pipeWriter),
-                options);
+            return new CsvFieldWriter<byte>(new PipeBufferWriter(pipeWriter), options);
         }
         catch (Exception e)
         {
@@ -51,13 +45,59 @@ internal static class CsvFieldWriter
     {
         try
         {
-            return new CsvFieldWriter<byte>(
-                new StreamBufferWriter(stream, options.Allocator, in ioOptions),
-                options);
+            return new CsvFieldWriter<byte>(new StreamBufferWriter(stream, options.Allocator, in ioOptions), options);
         }
         catch
         {
             if (!ioOptions.LeaveOpen) stream.Dispose();
+            throw;
+        }
+    }
+
+    [MustDisposeResource]
+    public static async ValueTask<CsvFieldWriter<char>> CreateAsync(
+        TextWriter textWriter,
+        CsvOptions<char> options,
+        CsvIOOptions ioOptions = default)
+    {
+        try
+        {
+            return new CsvFieldWriter<char>(new TextBufferWriter(textWriter, options.Allocator, in ioOptions), options);
+        }
+        catch
+        {
+            if (!ioOptions.LeaveOpen) await textWriter.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    [MustDisposeResource]
+    public static async ValueTask<CsvFieldWriter<byte>> CreateAsync(
+        Stream stream,
+        CsvOptions<byte> options,
+        CsvIOOptions ioOptions = default)
+    {
+        try
+        {
+            return new CsvFieldWriter<byte>(new StreamBufferWriter(stream, options.Allocator, in ioOptions), options);
+        }
+        catch
+        {
+            if (!ioOptions.LeaveOpen) await stream.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    [MustDisposeResource]
+    public static async ValueTask<CsvFieldWriter<byte>> CreateAsync(PipeWriter pipeWriter, CsvOptions<byte> options)
+    {
+        try
+        {
+            return new CsvFieldWriter<byte>(new PipeBufferWriter(pipeWriter), options);
+        }
+        catch (Exception e)
+        {
+            await pipeWriter.CompleteAsync(e).ConfigureAwait(false);
             throw;
         }
     }
