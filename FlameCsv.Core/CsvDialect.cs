@@ -102,7 +102,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
     {
         Throw.IfDefaultStruct(_lazyValues is null, typeof(CsvDialect<T>));
 
-        using ValueListBuilder<T> list = new(stackalloc T[8]);
+        using ValueListBuilder<T> list = new(stackalloc T[5]);
 
         list.Append(Delimiter);
         list.Append(Quote);
@@ -116,17 +116,6 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         list.Append(Newline.Second);
 
         return ToSearchValues(list.AsSpan());
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private bool GetIsAscii()
-    {
-        T max = T.CreateChecked(127);
-        return Delimiter <= max &&
-            Quote <= max &&
-            !(Escape > max) &&
-            Newline.First <= max &&
-            Newline.Second <= max;
     }
 
     private static SearchValues<T> ToSearchValues(ReadOnlySpan<T> tokens)
@@ -175,23 +164,6 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         if (quote > maxAscii) errors.Append(AsciiError("Quote"));
         if (escape > maxAscii) errors.Append(AsciiError("Escape"));
         if (newline.First > maxAscii || newline.Second > maxAscii) errors.Append(AsciiError("Newline"));
-
-        // char dialects must not contain surrogate characters
-        if (typeof(T) == typeof(char))
-        {
-            if (char.IsSurrogate((char)ushort.CreateTruncating(delimiter))) errors.Append(SurrogateError("Delimiter"));
-
-            if (char.IsSurrogate((char)ushort.CreateTruncating(quote))) errors.Append(SurrogateError("Quote"));
-
-            if (escape.HasValue && char.IsSurrogate((char)ushort.CreateTruncating(escape.Value)))
-                errors.Append(SurrogateError("Escape"));
-
-            if (char.IsSurrogate((char)ushort.CreateTruncating(newline.First)) ||
-                char.IsSurrogate((char)ushort.CreateTruncating(newline.Second)))
-            {
-                errors.Append(SurrogateError("Newline"));
-            }
-        }
 
         if (delimiter.Equals(quote))
         {
@@ -305,13 +277,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
         [MethodImpl(MethodImplOptions.NoInlining)]
         static string AsciiError(string name)
         {
-            return $"Dialect can not contain non-ASCII characters in a searchable property ({name}).";
-        }
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        static string SurrogateError(string name)
-        {
-            return $"Dialect cannot contain surrogate characters in searchable properties ({name}).";
+            return $"Dialect can not contain non-ASCII characters ({name}).";
         }
     }
 

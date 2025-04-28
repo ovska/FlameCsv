@@ -2,6 +2,8 @@
 using System.Text;
 using FlameCsv.IO;
 
+#pragma warning disable CA1859 // Use concrete types when possible for improved performance
+
 namespace FlameCsv.Benchmark;
 
 public class Utf8StreamBench

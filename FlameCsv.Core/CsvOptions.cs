@@ -11,6 +11,7 @@ using JetBrains.Annotations;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Attributes;
+
 #if DEBUG
 using Unsafe = FlameCsv.Extensions.DebugUnsafe
 #else
@@ -162,7 +163,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, 
     {
         Utf8String? value = GetNullCore(resultType);
 
-        if (value is null) return ReadOnlyMemory<T>.Empty;
+        if (value is null || value.String.Length == 0) return default;
 
         if (typeof(T) == typeof(char))
         {
@@ -182,7 +183,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, 
     {
         Utf8String? value = GetNullCore(resultType);
 
-        if (value is null) return ReadOnlySpan<T>.Empty;
+        if (value is null || value.String.Length == 0) return [];
 
         if (typeof(T) == typeof(char))
         {

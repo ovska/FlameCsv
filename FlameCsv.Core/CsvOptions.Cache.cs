@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
@@ -13,15 +14,18 @@ public partial class CsvOptions<T>
 {
     private TrimmingCache<CacheKey, object>? _bindingCache;
 
-    private TrimmingCache<CacheKey, object> GetBindingCache()
+    private TrimmingCache<CacheKey, object> BindingCache
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _bindingCache ?? InitializeBindingCache();
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private TrimmingCache<CacheKey, object> InitializeBindingCache()
     {
         if (FlameCsvGlobalOptions.CachingDisabled) Throw.Unreachable("Caching is disabled.");
 
-        var local = _bindingCache;
-
-        if (local is not null) return local;
-
-        TrimmingCache<CacheKey, object> instance = new();
+        TrimmingCache<CacheKey, object> instance = [];
 
         if (Interlocked.CompareExchange(ref _bindingCache, instance, null) is not null)
         {
@@ -45,7 +49,7 @@ public partial class CsvOptions<T>
             return valueFactory(this, headers, ignoreUnmatched);
         }
 
-        TrimmingCache<CacheKey, object> cache = GetBindingCache();
+        TrimmingCache<CacheKey, object> cache = BindingCache;
         CacheKey key = CacheKey.ForMaterializer(this, typeof(TValue), ignoreUnmatched, headers);
 
         if (!cache.TryGetValue(key, out object? materializer))
@@ -69,7 +73,7 @@ public partial class CsvOptions<T>
             return valueFactory(this, typeMap, headers);
         }
 
-        TrimmingCache<CacheKey, object> cache = GetBindingCache();
+        TrimmingCache<CacheKey, object> cache = BindingCache;
         CacheKey key = CacheKey.ForMaterializer(this, typeMap, false, headers);
 
         if (!cache.TryGetValue(key, out object? materializer))
@@ -90,7 +94,7 @@ public partial class CsvOptions<T>
             return valueFactory(this);
         }
 
-        TrimmingCache<CacheKey, object> cache = GetBindingCache();
+        TrimmingCache<CacheKey, object> cache = BindingCache;
         CacheKey key = CacheKey.ForDematerializer(this, typeof(TValue));
 
         if (!cache.TryGetValue(key, out object? dematerializer))
@@ -112,7 +116,7 @@ public partial class CsvOptions<T>
             return valueFactory(this, typeMap);
         }
 
-        TrimmingCache<CacheKey, object> cache = GetBindingCache();
+        TrimmingCache<CacheKey, object> cache = BindingCache;
         CacheKey key = CacheKey.ForDematerializer(this, typeMap);
 
         if (!cache.TryGetValue(key, out object? dematerializer))
@@ -202,8 +206,17 @@ public partial class CsvOptions<T>
             hash.Add(_target);
             hash.Add(_ignoreUnmatched);
             hash.Add(_comparer);
-            hash.Add(_headers.Length);
-            foreach (var header in _headers) hash.Add(header, _comparer);
+
+            if (!_headers.IsDefault)
+            {
+                hash.Add(_headers.Length);
+
+                foreach (var header in _headers)
+                {
+                    hash.Add(header, _comparer);
+                }
+            }
+
             return hash.ToHashCode();
         }
     }
