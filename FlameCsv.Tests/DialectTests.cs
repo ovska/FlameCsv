@@ -81,7 +81,7 @@ public static class DialectTests
         ShouldThrow(() => new CsvOptions<byte> { Escape = (char)128 }.Dialect.Validate());
         ShouldThrow(() => new CsvOptions<byte> { Newline = "£" }.Dialect.Validate());
 
-        static void ShouldThrow(Action action) => Assert.Throws<CsvConfigurationException>(action);
+        static void ShouldThrow(Action action) => Assert.ThrowsAny<ArgumentException>(action);
     }
 
     [Fact]
