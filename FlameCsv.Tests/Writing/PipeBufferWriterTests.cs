@@ -25,15 +25,14 @@ public sealed class PipeBufferWriterTests : IAsyncDisposable
         }
     }
 
-    private const int WindowsFlushThreshold = (int)(4096 * 15d / 16d);
-
     [Theory]
-    [InlineData(0, false)]
-    [InlineData(WindowsFlushThreshold - 1, false)]
-    [InlineData(WindowsFlushThreshold, true)]
-    [InlineData(WindowsFlushThreshold + 100, true)]
+    [InlineData(int.MinValue, false)]
+    [InlineData(-1, false)]
+    [InlineData(0, true)]
+    [InlineData(100, true)]
     public void Should_Return_If_Needs_Flush(int written, bool expected)
     {
+        written = Math.Max(0, written + (int)(Environment.SystemPageSize * 15d / 16d));
         Initialize();
         _ = _writer.GetSpan(written);
         _writer.Advance(written);
@@ -44,7 +43,7 @@ public sealed class PipeBufferWriterTests : IAsyncDisposable
     public static void Should_Validate_Constructor_Params()
     {
         Assert.Throws<ArgumentNullException>(
-            () => new TextBufferWriter(null!, HeapMemoryPool<char>.Instance, new() { BufferSize = 1024}));
+            () => new TextBufferWriter(null!, HeapMemoryPool<char>.Instance, new() { BufferSize = 1024 }));
     }
 
     [Fact]
