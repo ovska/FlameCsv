@@ -223,32 +223,6 @@ public partial class EnumConverterGenerator
         return true;
     }
 
-    private static void WriteFlagsImplementation(
-        in EnumModel model,
-        IndentedTextWriter writer,
-        CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (!model.HasFlagsAttribute) return;
-
-        writer.DebugLine(nameof(WriteFlagsImplementation));
-
-        writer.Write("private sealed class FlagsFormatStrategy : global::FlameCsv.Converters.Enums.CsvEnumFlagsFormatStrategy");
-        writer.WriteLine($"<{model.TokenType.Name}, {model.EnumType.FullyQualifiedName}>");
-        using var block = writer.WriteBlock();
-
-        writer.Write($"protected override ReadOnlySpan<{model.TokenType.Name}> Zero => ");
-
-        string zeroName = model.Values.AsImmutableArray().FirstOrDefault(v => v.Value == 0).DisplayName ?? "0";
-        writer.Write(zeroName.ToStringLiteral());
-        writer.WriteIf(model.TokenType.IsByte(), "u8");
-        writer.WriteLine(";");
-
-        writer.WriteLine();
-        writer.WriteLine($"public FlagsFormatStrategy(global::FlameCsv.CsvOptions<{model.TokenType.Name}> options, global::FlameCsv.Converters.Enums.EnumFormatStrategy<{model.TokenType.Name}, {model.EnumType.FullyQualifiedName}> inner) : base(options, inner) {{ }}");
-    }
-
     private static void WriteFlagsFormat(
         in EnumModel model,
         IndentedTextWriter writer,
