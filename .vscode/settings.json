@@ -1,4 +1,7 @@
 {
+    "[**/*.Generated.*]": {
+        "files.eol": "\r\n"
+    },
     "[csharp]": {
         "files.eol": "\n",
         "files.insertFinalNewline": true,
