@@ -24,7 +24,7 @@ public class ExceptionHandlerTests
     [Fact]
     public void Should_Throw_If_Returns_False()
     {
-        Assert.Throws<CsvParseException>(() => Run((in CsvExceptionHandlerArgs<char> _) => false));
+        Assert.Throws<CsvParseException>(() => Run(_ => false));
     }
 
     [Fact]
@@ -33,7 +33,7 @@ public class ExceptionHandlerTests
         var exceptions = new List<CsvParseException>();
 
         var list = Run(
-            (in CsvExceptionHandlerArgs<char> args) =>
+            args =>
             {
                 Assert.Equal(["Id", "Name"], args.Header);
                 Assert.Equal(2, args.FieldCount);
@@ -63,7 +63,7 @@ public class ExceptionHandlerTests
     public void Should_Throw_Inner()
     {
         Assert.Throws<AggregateException>(
-            () => Run((in CsvExceptionHandlerArgs<char> args) => throw new AggregateException(args.Exception)));
+            () => Run(args => throw new AggregateException(args.Exception)));
     }
 
     [Fact]

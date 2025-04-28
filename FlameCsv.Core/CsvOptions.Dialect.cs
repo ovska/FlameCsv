@@ -11,9 +11,6 @@ public partial class CsvOptions<T>
     /// <summary>
     /// Gets or creates the dialect using the configured options.
     /// </summary>
-    /// <remarks>
-    /// Accessing this property makes the options immutable.
-    /// </remarks>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public ref readonly CsvDialect<T> Dialect
     {
@@ -42,15 +39,21 @@ public partial class CsvOptions<T>
             Trimming = _trimming,
             Newline = _newline switch
             {
-                [var f] => new NewlineBuffer<T>(T.CreateChecked(f)),
-                [var f, var s] => new NewlineBuffer<T>(T.CreateChecked(f), T.CreateChecked(s)),
-                _ => throw new UnreachableException("Invalid newline: " + _newline),
+                [char f] => new NewlineBuffer<T>(T.CreateChecked(f)),
+                [char f, char s] => new NewlineBuffer<T>(T.CreateChecked(f), T.CreateChecked(s)),
+                _ => InvalidNewline(),
             },
         };
 
         result.Validate();
         _dialect = result;
         return ref Nullable.GetValueRefOrDefaultRef(in _dialect);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        NewlineBuffer<T> InvalidNewline()
+        {
+            throw new UnreachableException("Invalid newline: " + _newline);
+        }
     }
 
     private char _delimiter = ',';
@@ -69,6 +72,7 @@ public partial class CsvOptions<T>
         {
             ArgumentOutOfRangeException.ThrowIfZero(value);
             ArgumentOutOfRangeException.ThrowIfEqual(value, ' ');
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(value, 127);
             this.SetValue(ref _delimiter, value);
         }
     }
@@ -83,6 +87,7 @@ public partial class CsvOptions<T>
         {
             ArgumentOutOfRangeException.ThrowIfZero(value);
             ArgumentOutOfRangeException.ThrowIfEqual(value, ' ');
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(value, 127);
             this.SetValue(ref _quote, value);
         }
     }
@@ -100,6 +105,7 @@ public partial class CsvOptions<T>
             {
                 ArgumentOutOfRangeException.ThrowIfZero(value.Value, nameof(value));
                 ArgumentOutOfRangeException.ThrowIfEqual(value.Value, ' ', nameof(value));
+                ArgumentOutOfRangeException.ThrowIfGreaterThan(value.Value, 127, nameof(value));
             }
 
             this.SetValue(ref _escape, value);
@@ -120,6 +126,18 @@ public partial class CsvOptions<T>
         {
             ArgumentException.ThrowIfNullOrEmpty(value);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(value.Length, 2);
+
+            ArgumentOutOfRangeException.ThrowIfZero(value[0]);
+            ArgumentOutOfRangeException.ThrowIfEqual(value[0], ' ');
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(value[0], 127);
+
+            if (value.Length == 2)
+            {
+                ArgumentOutOfRangeException.ThrowIfZero(value[1]);
+                ArgumentOutOfRangeException.ThrowIfEqual(value[1], ' ');
+                ArgumentOutOfRangeException.ThrowIfGreaterThan(value[1], 127);
+            }
+
             this.SetValue(ref _newline, value);
         }
     }
@@ -132,6 +150,10 @@ public partial class CsvOptions<T>
     public CsvFieldTrimming Trimming
     {
         get => _trimming;
-        set => this.SetValue(ref _trimming, value);
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfGreaterThan((byte)value, (byte)CsvFieldTrimming.Both, nameof(value));
+            this.SetValue(ref _trimming, value);
+        }
     }
 }

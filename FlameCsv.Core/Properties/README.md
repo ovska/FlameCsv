@@ -72,6 +72,7 @@ await CsvWriter.WriteAsync(
 - *Breaking:* Only ASCII tokens are now supported in the dialect (delimiter, quote, newline, etc.)
 - *Breaking:* Refactored the internal streaming I/O for performance improvements in real-world scenarios.
 - *Breaking:* Replaced `Whitespace` with `Trimming` for simplicity and consistency with other libraries.
+- *Breaking:* Argument to the exception handler no longer a `ref struct` or has `in`-modifier
 - Parsing performance improvements
 - Added support for `ISpanParsable<T>` and `ISpanFormattable` to the source generator
 - Added explicit UTF8 reader and writer types for up to 2x faster I/O compared to TextReader/TextWriter when using ASCII or UTF8 encoding
