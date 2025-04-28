@@ -6,11 +6,10 @@ using FlameCsv.Converters.Enums;
 using FlameCsv.Exceptions;
 using JetBrains.Annotations;
 #if DEBUG
-using Unsafe = FlameCsv.Extensions.DebugUnsafe
+using Unsafe = FlameCsv.Extensions.DebugUnsafe;
 #else
-using Unsafe = System.Runtime.CompilerServices.Unsafe
+using Unsafe = System.Runtime.CompilerServices.Unsafe;
 #endif
-    ;
 
 namespace FlameCsv;
 
