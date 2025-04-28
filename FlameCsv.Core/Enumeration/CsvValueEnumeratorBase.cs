@@ -112,8 +112,13 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         }
         catch (CsvFormatException cfe) // unrecoverable
         {
-            cfe.Line ??= Line;
-            cfe.Position ??= Position;
+            try
+            {
+                cfe.Line ??= Line;
+                cfe.Position ??= Position;
+                cfe.Record = fields.Record.Span.AsPrintableString();
+            }
+            catch { /* ignore */ }
             throw;
         }
         catch (Exception ex)
@@ -122,15 +127,11 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
 
             CsvExceptionHandler<T>? handler = ExceptionHandler;
 
-            if (handler is not null)
+            if (handler is not null &&
+                handler(new CsvExceptionHandlerArgs<T>(in fields, Headers, ex, Line, Position)))
             {
-                CsvExceptionHandlerArgs<T> args = new(in fields, Headers.AsSpan(), ex, Line, Position);
-
-                if (handler(in args))
-                {
-                    // try again
-                    return false;
-                }
+                // try again
+                return false;
             }
 
             throw;

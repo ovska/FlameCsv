@@ -23,12 +23,17 @@ public sealed class CsvFormatException(
     }
 
     /// <summary>
-    /// 1-based line index of where the invalid data was found.
+    /// 1-based line index of where the invalid data was found, if available.
     /// </summary>
     public int? Line { get; internal set; }
 
     /// <summary>
-    /// Approximate 0-based index where the invalid data was found.
+    /// Approximate 0-based index where the invalid data was found, if available.
     /// </summary>
     public long? Position { get; internal set; }
+
+    /// <summary>
+    /// The CSV record that caused the exception, if available.
+    /// </summary>
+    public string? Record { get; internal set; }
 }

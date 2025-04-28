@@ -1,4 +1,6 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
+using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using JetBrains.Annotations;
 
@@ -10,31 +12,34 @@ namespace FlameCsv;
 /// <typeparam name="T">Token type</typeparam>
 /// <returns><see langword="true"/> if the exception can be ignored.</returns>
 [PublicAPI]
-public delegate bool CsvExceptionHandler<T>(in CsvExceptionHandlerArgs<T> args) where T : unmanaged, IBinaryInteger<T>;
+public delegate bool CsvExceptionHandler<T>(CsvExceptionHandlerArgs<T> args) where T : unmanaged, IBinaryInteger<T>;
 
 /// <summary>
 /// Arguments for <see cref="CsvExceptionHandler{T}"/>.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 [PublicAPI]
-public readonly ref struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBinaryInteger<T>
+public readonly struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly ref readonly CsvFields<T> _fields;
+    private readonly CsvFields<T> _fields;
 
     /// <summary>
     /// Initializes a new instance of <see cref="CsvExceptionHandlerArgs{T}"/>.
     /// </summary>
     public CsvExceptionHandlerArgs(
-        ref readonly CsvFields<T> fields,
-        ReadOnlySpan<string> header,
+        in CsvFields<T> fields,
+        ImmutableArray<string> header,
         Exception exception,
         int lineIndex,
         long position)
     {
-        if (Unsafe.IsNullRef(in fields)) ThrowHelper.ArgumentNull(nameof(fields));
+        if (Unsafe.IsNullRef(in fields)) Throw.ArgumentNull(nameof(fields));
+        Throw.IfDefaultStruct(header.IsDefault, typeof(ImmutableArray<string>));
         ArgumentNullException.ThrowIfNull(exception);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(lineIndex);
+        ArgumentOutOfRangeException.ThrowIfNegative(position);
 
-        _fields = ref fields;
+        _fields = fields;
         Header = header;
         Line = lineIndex;
         Position = position;
@@ -42,9 +47,17 @@ public readonly ref struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBina
     }
 
     /// <summary>
+    /// Returns the <see cref="CsvFields{T}"/> instance.
+    /// </summary>
+    /// <remarks>
+    /// The instance is only valid until the handler returns, and should not be stored for further use.
+    /// </remarks>
+    public readonly CsvFields<T> Fields => _fields;
+
+    /// <summary>
     /// Returns the header record, or empty if no headers in CSV.
     /// </summary>
-    public ReadOnlySpan<string> Header { get; }
+    public ImmutableArray<string> Header { get; }
 
     /// <inheritdoc cref="ICsvFields{T}.FieldCount"/>
     public int FieldCount => _fields.FieldCount;
@@ -73,7 +86,7 @@ public readonly ref struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBina
     public int Line { get; }
 
     /// <summary>
-    /// 0-based character position in the data, measured from the start of the unescaped record.
+    /// 0-based character position in the data, measured from the start of the record.
     /// </summary>
     public long Position { get; }
 
@@ -84,9 +97,4 @@ public readonly ref struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBina
     /// <param name="raw">Don't unescape the value</param>
     /// <returns>Value of the field</returns>
     public ReadOnlySpan<T> GetField(int index, bool raw = false) => _fields.GetField(index, raw);
-}
-
-file static class ThrowHelper
-{
-    public static void ArgumentNull(string paramName) => throw new ArgumentNullException(paramName);
 }
