@@ -14,21 +14,10 @@ namespace FlameCsv;
 [PublicAPI]
 public sealed class CsvHeader
 {
-    static CsvHeader()
-    {
-        if (FlameCsvGlobalOptions.CachingDisabled)
-        {
-            HeaderPool = null!;
-        }
-        else
-        {
-            HeaderPool = new(minimumSize: 32);
-        }
-
-        HotReloadService.RegisterForHotReload(HeaderPool, static state => ((StringPool)state)?.Reset());
-    }
-
-    internal static readonly StringPool HeaderPool;
+    // does not need to be cleared on hot-reload, headers are always transcoded the same way
+    internal static readonly StringPool? HeaderPool = FlameCsvGlobalOptions.CachingDisabled
+        ? null
+        : new StringPool(minimumSize: 32);
 
     internal static ImmutableArray<string> Parse<T>(
         CsvOptions<T> options,
@@ -46,7 +35,7 @@ public sealed class CsvHeader
             list.Append(Get(options, record[field], charBuffer));
         }
 
-        return [..list.AsSpan()];
+        return [.. list.AsSpan()];
     }
 
     /// <summary>
@@ -64,7 +53,7 @@ public sealed class CsvHeader
     public static string Get<T>(CsvOptions<T> options, scoped ReadOnlySpan<T> value, scoped Span<char> buffer)
         where T : unmanaged, IBinaryInteger<T>
     {
-        if (!FlameCsvGlobalOptions.CachingDisabled && options.TryGetChars(value, buffer, out int length))
+        if (HeaderPool is not null && options.TryGetChars(value, buffer, out int length))
         {
             return HeaderPool.GetOrAdd(buffer.Slice(0, length));
         }

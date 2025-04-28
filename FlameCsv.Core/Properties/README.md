@@ -69,6 +69,7 @@ await CsvWriter.WriteAsync(
 # Changelog
 
 ## 0.4.0
+- *Breaking:* Only ASCII tokens are now supported in the dialect (delimiter, quote, newline, etc.)
 - *Breaking:* Refactored the internal streaming I/O for performance improvements in real-world scenarios.
 - *Breaking:* Replaced `Whitespace` with `Trimming` for simplicity and consistency with other libraries.
 - Parsing performance improvements
