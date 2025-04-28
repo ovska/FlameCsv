@@ -1,5 +1,4 @@
 ﻿using System.Text;
-using System.Threading.Channels;
 using FlameCsv.IO;
 using FlameCsv.Writing;
 using JetBrains.Annotations;
