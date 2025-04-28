@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics.X86;
 
 namespace FlameCsv.Reading.Internal;
 

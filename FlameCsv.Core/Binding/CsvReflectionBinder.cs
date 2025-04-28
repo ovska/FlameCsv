@@ -1,7 +1,6 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using FastExpressionCompiler.LightExpression;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;

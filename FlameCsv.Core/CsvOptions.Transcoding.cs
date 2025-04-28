@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using System.Text;
+﻿using System.Text;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 #if DEBUG
@@ -16,8 +15,7 @@ public partial class CsvOptions<T>
     /// Returns a <see langword="string"/> representation of the value.
     /// </summary>
     /// <remarks>
-    /// Used interchangeably with <see cref="TryGetChars"/>, and should return the exact same
-    /// value for the same input.
+    /// Can be used interchangeably with <see cref="TryGetChars"/>.
     /// </remarks>
     public string GetAsString(ReadOnlySpan<T> value)
     {
@@ -38,8 +36,7 @@ public partial class CsvOptions<T>
     /// Writes <paramref name="value"/> as chars to <paramref name="destination"/>.
     /// </summary>
     /// <remarks>
-    /// Used interchangeably with <see cref="GetAsString(ReadOnlySpan{T})"/>, and should return the exact same
-    /// value for the same input.
+    /// Can be used interchangeably with <see cref="GetAsString"/>.
     /// </remarks>
     /// <param name="value">Value to write</param>
     /// <param name="destination">Buffer to write the value as chars to</param>
@@ -108,9 +105,8 @@ public partial class CsvOptions<T>
         throw InvalidTokenTypeEx();
     }
 
-    private static NotSupportedException InvalidTokenTypeEx([CallerMemberName] string? memberName = null)
+    private static NotSupportedException InvalidTokenTypeEx()
     {
-        return new NotSupportedException(
-            $"{typeof(CsvOptions<T>).Name}.{memberName} is not supported by default for token {typeof(T)}, inherit the class and override the member.");
+        return new NotSupportedException("CsvOptions supports only char and byte as token types.");
     }
 }
