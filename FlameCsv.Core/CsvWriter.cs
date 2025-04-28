@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Threading.Channels;
 using FlameCsv.IO;
 using FlameCsv.Writing;
 using JetBrains.Annotations;
@@ -24,6 +25,7 @@ public static partial class CsvWriter
         bool isAsync,
         in CsvIOOptions ioOptions = default)
     {
+        // we use a bigger default buffer size for file I/O
         int bufferSize = ioOptions.HasCustomBufferSize
             ? ioOptions.BufferSize
             : DefaultFileStreamBufferSize;
@@ -33,6 +35,7 @@ public static partial class CsvWriter
 
     private static FileStream GetFileStream(string path, bool isAsync, in CsvIOOptions ioOptions = default)
     {
+        // we use a bigger default buffer size for file I/O
         int bufferSize = ioOptions.HasCustomBufferSize
             ? ioOptions.BufferSize
             : DefaultFileStreamBufferSize;
@@ -65,7 +68,9 @@ public static partial class CsvWriter
             foreach (var value in values)
             {
                 if (writer.Writer.NeedsFlush)
+                {
                     writer.Writer.Flush();
+                }
 
                 dematerializer.Write(in writer, value);
                 writer.WriteNewline();
@@ -105,7 +110,9 @@ public static partial class CsvWriter
             foreach (var value in values)
             {
                 if (writer.Writer.NeedsFlush)
+                {
                     await writer.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                }
 
                 dematerializer.Write(in writer, value);
                 writer.WriteNewline();
@@ -145,7 +152,9 @@ public static partial class CsvWriter
             await foreach (var value in values.WithCancellation(cancellationToken).ConfigureAwait(false))
             {
                 if (writer.Writer.NeedsFlush)
+                {
                     await writer.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                }
 
                 dematerializer.Write(in writer, value);
                 writer.WriteNewline();
