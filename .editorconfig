@@ -51,7 +51,7 @@ csharp_style_prefer_method_group_conversion = true:silent
 csharp_style_prefer_top_level_statements = true:silent
 csharp_style_expression_bodied_methods = false:silent
 csharp_style_expression_bodied_constructors = false:silent
-csharp_style_expression_bodied_operators = false:silent
+csharp_style_expression_bodied_operators = false:none
 csharp_style_expression_bodied_properties = true:silent
 csharp_style_expression_bodied_indexers = true:silent
 csharp_style_expression_bodied_accessors = true:silent
@@ -101,6 +101,12 @@ dotnet_diagnostic.CA1032.severity = none
 csharp_style_prefer_primary_constructors = true:silent
 csharp_style_allow_blank_line_after_token_in_conditional_expression_experimental = true:silent
 csharp_style_allow_blank_line_after_token_in_arrow_expression_clause_experimental = true:silent
+dotnet_diagnostic.CA1019.severity = none # CA1019: Define accessors for attribute arguments
+csharp_style_prefer_unbound_generic_type_in_nameof = false # IDE0340: Use unbound generic type
+dotnet_diagnostic.CA1036.severity = none # CA1036: Override methods on comparable types
+dotnet_diagnostic.IDE0023.severity = none # IDE0023: Use block body for conversion operator
+dotnet_diagnostic.CA1000.severity = none # CA1000: Do not declare static members on generic types
+dotnet_diagnostic.CA1710.severity = none # CA1710: Identifiers should have correct suffix
 
 [*.{cs,vb}]
 #### Naming styles ####

@@ -4,6 +4,8 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.Exceptions;
 
+#pragma warning disable CA1305 // Specify IFormatProvider
+
 namespace FlameCsv.Reading;
 
 [ExcludeFromCodeCoverage]
@@ -48,7 +50,7 @@ internal static class UnixMode<T> where T : unmanaged, IBinaryInteger<T>
             }
         }
 
-    Invalid:
+        Invalid:
         ThrowInvalidUnescape(source, null, escape, 0, escapeCount);
     }
 

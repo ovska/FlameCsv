@@ -181,6 +181,8 @@ public sealed class CsvRecordEnumerator<T>
             _current = default;
             _materializerCache = null;
         }
+        
+        base.Dispose(disposing);
     }
 
     /// <inheritdoc/>
@@ -189,7 +191,7 @@ public sealed class CsvRecordEnumerator<T>
         _version = -1;
         _current = default;
         _materializerCache = null;
-        return default;
+        return base.DisposeAsyncCore();
     }
 
     [MemberNotNull(nameof(Header))]
