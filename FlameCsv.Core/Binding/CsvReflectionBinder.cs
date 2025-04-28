@@ -159,7 +159,7 @@ public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder
     {
         Throw.IfDefaultOrEmpty(headers);
 
-        return _options.GetMaterializer<TValue>(
+        return _options.GetMaterializer(
             headers,
             IgnoreUnmatched,
             static (options, headers, ignoreUnmatched) =>
@@ -177,7 +177,7 @@ public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder
     [RDC(Messages.DynamicCode)]
     public IMaterializer<T, TValue> GetMaterializer<[DAM(Messages.ReflectionBound)] TValue>()
     {
-        return _options.GetMaterializer<TValue>(
+        return _options.GetMaterializer(
             [],
             false,
             static (options, _, _) => options.GetMaterializerNoHeader<T, TValue>());
@@ -191,6 +191,6 @@ public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder
     [RDC(Messages.DynamicCode)]
     public IDematerializer<T, TValue> GetDematerializer<[DAM(Messages.ReflectionBound)] TValue>()
     {
-        return _options.GetDematerializer<TValue>(static options => Create<T, TValue>(options));
+        return _options.GetDematerializer(static options => Create<T, TValue>(options));
     }
 }

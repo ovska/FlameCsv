@@ -151,7 +151,7 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T> where T : unmanaged, IB
         }
     }
 
-    /// <inheritdoc cref="CsvRecord{T}.TryParseField{TValue}(FlameCsv.CsvFieldIdentifier,out TValue)"/>
+    /// <inheritdoc cref="CsvRecord{T}.TryParseField{TValue}(CsvFieldIdentifier,out TValue)"/>
     [RUF(Messages.ConverterOverload), RDC(Messages.ConverterOverload)]
     public bool TryParseField<TValue>(CsvFieldIdentifier id, [MaybeNullWhen(false)] out TValue value)
     {
@@ -159,7 +159,7 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T> where T : unmanaged, IB
         return _options.GetConverter<TValue>().TryParse(field, out value);
     }
 
-    /// <inheritdoc cref="CsvRecord{T}.TryParseField{TValue}(FlameCsv.CsvConverter{T,TValue},FlameCsv.CsvFieldIdentifier,out TValue)"/>
+    /// <inheritdoc cref="CsvRecord{T}.TryParseField{TValue}(CsvConverter{T,TValue},CsvFieldIdentifier,out TValue)"/>
     public bool TryParseField<TValue>(
         CsvConverter<T, TValue> converter,
         CsvFieldIdentifier id,
@@ -170,7 +170,7 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T> where T : unmanaged, IB
         return converter.TryParse(field, out value);
     }
 
-    /// <inheritdoc cref="CsvRecord{T}.ParseField{TValue}(FlameCsv.CsvFieldIdentifier)"/>
+    /// <inheritdoc cref="CsvRecord{T}.ParseField{TValue}(CsvFieldIdentifier)"/>
     [RUF(Messages.ConverterOverload), RDC(Messages.ConverterOverload)]
     public TValue ParseField<TValue>(CsvFieldIdentifier id)
     {
@@ -186,7 +186,7 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T> where T : unmanaged, IB
         return value;
     }
 
-    /// <inheritdoc cref="CsvRecord{T}.ParseField{TValue}(FlameCsv.CsvConverter{T,TValue},FlameCsv.CsvFieldIdentifier)"/>
+    /// <inheritdoc cref="CsvRecord{T}.ParseField{TValue}(CsvConverter{T,TValue},CsvFieldIdentifier)"/>
     public TValue ParseField<TValue>(CsvConverter<T, TValue> converter, CsvFieldIdentifier id)
     {
         ArgumentNullException.ThrowIfNull(converter);
@@ -233,7 +233,7 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T> where T : unmanaged, IB
         return materializer.Parse(ref reader);
     }
 
-    /// <inheritdoc cref="CsvRecord{T}.ParseRecord{TRecord}(FlameCsv.Binding.CsvTypeMap{T,TRecord})"/>
+    /// <inheritdoc cref="CsvRecord{T}.ParseRecord{TRecord}(CsvTypeMap{T,TRecord})"/>
     public TRecord ParseRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap)
     {
         ArgumentNullException.ThrowIfNull(typeMap);
