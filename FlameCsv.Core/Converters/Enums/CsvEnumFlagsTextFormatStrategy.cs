@@ -1,4 +1,5 @@
-﻿using FlameCsv.Utilities;
+﻿using System.Runtime.CompilerServices;
+using FlameCsv.Utilities;
 
 namespace FlameCsv.Converters.Enums;
 
@@ -9,30 +10,35 @@ public sealed class CsvEnumFlagsTextFormatStrategy<TEnum> : CsvEnumFlagsFormatSt
     where TEnum : struct, Enum
 {
     // ReSharper disable once StaticMemberInGenericType
-    private static readonly string _zero;
+    private static string? _zero;
 
     static CsvEnumFlagsTextFormatStrategy()
+    {
+        HotReloadService.RegisterForHotReload(
+            typeof(TEnum),
+            static _ => _zero = null);
+    }
+
+    /// <inheritdoc />
+    public CsvEnumFlagsTextFormatStrategy(CsvOptions<char> options, EnumFormatStrategy<char, TEnum> inner)
+        : base(options, inner)
+    {
+    }
+
+    /// <inheritdoc />
+    protected override ReadOnlySpan<char> Zero => _zero ?? InitSharedZero();
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static string InitSharedZero()
     {
         foreach (var member in EnumMemberCache<TEnum>.ValuesAndNames)
         {
             if (EqualityComparer<TEnum>.Default.Equals(member.Value, default))
             {
-                _zero ??= member.ExplicitName ?? member.Name;
-                break;
+                return _zero = member.ExplicitName ?? member.Name;
             }
         }
 
-        _zero ??= "0";
-        // TODO: hot reload support?
+        return _zero ??= "0";
     }
-
-    /// <inheritdoc />
-    public CsvEnumFlagsTextFormatStrategy(CsvOptions<char> options, EnumFormatStrategy<char, TEnum> inner) : base(
-        options,
-        inner)
-    {
-    }
-
-    /// <inheritdoc />
-    protected override ReadOnlySpan<char> Zero => _zero;
 }
