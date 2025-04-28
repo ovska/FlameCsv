@@ -22,6 +22,9 @@ jobs:
     runs-on: ${{ matrix.arch == 'arm64' && fromJSON('["ubuntu-latest-arm64"]') || matrix.os }}
 
     steps:
+    - name: Display runner context
+      run: echo '${{ toJSON(runner) }}'
+
     - name: Checkout code
       uses: actions/checkout@v4
 
