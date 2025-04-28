@@ -59,13 +59,13 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     /// </summary>
     private State _state;
 
-    /// <inheritdoc cref="CsvReader{T}(FlameCsv.CsvOptions{T},FlameCsv.IO.ICsvBufferReader{T})"/>
+    /// <inheritdoc cref="CsvReader{T}(CsvOptions{T},ICsvBufferReader{T})"/>
     public CsvReader(CsvOptions<T> options, ReadOnlyMemory<T> csv)
         : this(options, CsvBufferReader.Create(csv))
     {
     }
 
-    /// <inheritdoc cref="CsvReader{T}(FlameCsv.CsvOptions{T},FlameCsv.IO.ICsvBufferReader{T})"/>
+    /// <inheritdoc cref="CsvReader{T}(CsvOptions{T},ICsvBufferReader{T})"/>
     public CsvReader(CsvOptions<T> options, in ReadOnlySequence<T> csv)
         : this(options, CsvBufferReader.Create(in csv))
     {

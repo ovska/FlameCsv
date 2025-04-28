@@ -37,8 +37,8 @@ public abstract class CsvTypeMap
     /// Caching is enabled by default.
     /// The cache is used on calls to public methods on the base class <see cref="CsvTypeMap"/>.
     /// </remarks>
-    /// <seealso cref="CsvTypeMap{T,TValue}.GetMaterializer(System.Collections.Immutable.ImmutableArray{string},CsvOptions{T})"/>
-    /// <seealso cref="CsvTypeMap{T,TValue}.GetMaterializer(FlameCsv.CsvOptions{T})"/>
+    /// <seealso cref="CsvTypeMap{T,TValue}.GetMaterializer(ImmutableArray{string},CsvOptions{T})"/>
+    /// <seealso cref="CsvTypeMap{T,TValue}.GetMaterializer(CsvOptions{T})"/>
     /// <seealso cref="CsvTypeMap{T,TValue}.GetDematerializer"/>
     public bool NoCaching { get; init; }
 
