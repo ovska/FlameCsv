@@ -3,11 +3,10 @@ using System.Text;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 #if DEBUG
-using Unsafe = FlameCsv.Extensions.DebugUnsafe
+using Unsafe = FlameCsv.Extensions.DebugUnsafe;
 #else
-using System.Runtime.CompilerServices
+using Unsafe = System.Runtime.CompilerServices.Unsafe;
 #endif
-    ;
 
 namespace FlameCsv;
 

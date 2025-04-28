@@ -9,6 +9,6 @@ namespace FlameCsv.Attributes;
 /// <typeparam name="TEnum">Enum type</typeparam>
 [AttributeUsage(AttributeTargets.Class)]
 [PublicAPI]
-public class CsvEnumConverterAttribute<T, TEnum> : Attribute
+public sealed class CsvEnumConverterAttribute<T, TEnum> : Attribute
     where T : unmanaged, IBinaryInteger<T>
     where TEnum : struct, Enum;

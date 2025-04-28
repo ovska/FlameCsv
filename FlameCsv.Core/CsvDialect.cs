@@ -210,6 +210,7 @@ public readonly struct CsvDialect<T>() : IEquatable<CsvDialect<T>> where T : unm
                 vsb.Append("Trimming: ");
                 vsb.AppendFormatted(Trimming);
                 errors.Append(vsb.ToString());
+                vsb.Dispose();
             }
 
             InvalidDialect.Throw(errors.AsSpan());

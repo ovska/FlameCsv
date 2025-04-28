@@ -49,7 +49,9 @@ public abstract class CsvBinding<T> : CsvBinding, IEquatable<CsvBinding>, IEquat
         PrintDetails(sb);
 
         if (!string.IsNullOrEmpty(Header))
-            sb.Append($", Header: \"{Header}\"");
+        {
+            sb.Append(CultureInfo.InvariantCulture, $", Header: \"{Header}\"");
+        }
 
         sb.Append(" }");
         return sb.ToString();

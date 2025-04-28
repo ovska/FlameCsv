@@ -14,8 +14,7 @@ namespace FlameCsv.Attributes;
 /// The resulting converter is cast to <see cref="CsvConverter{T,TValue}"/>.
 /// </remarks>
 /// <typeparam name="TConverter">Converter or factory type</typeparam>
-// TODO: seal once obsolete type removed
-public class CsvConverterAttribute<[DAM(Messages.Ctors)] TConverter> : CsvConverterAttribute
+public sealed class CsvConverterAttribute<[DAM(Messages.Ctors)] TConverter> : CsvConverterAttribute
     where TConverter : class
 {
     /// <inheritdoc/>
@@ -67,9 +66,3 @@ public class CsvConverterAttribute<[DAM(Messages.Ctors)] TConverter> : CsvConver
             });
     }
 }
-
-/// <inheritdoc />
-[Obsolete("Use CsvConverterAttribute<TConverter> instead. This class will be removed in a future version.")]
-public sealed class CsvConverterAttribute<T, [DAM(Messages.Ctors)] TConverter> : CsvConverterAttribute<TConverter>
-    where T : unmanaged, IBinaryInteger<T>
-    where TConverter : CsvConverter<T>;

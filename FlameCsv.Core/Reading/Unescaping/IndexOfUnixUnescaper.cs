@@ -3,6 +3,8 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.Exceptions;
 
+#pragma warning disable CA1305 // Specify IFormatProvider
+
 namespace FlameCsv.Reading.Unescaping;
 
 internal struct IndexOfUnixUnescaper<T>(T escape, uint escapeCount) : IIndexOfUnescaper<T>
