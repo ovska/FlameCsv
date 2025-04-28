@@ -301,7 +301,6 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
         if (IsDisposed) return;
         _state = State.Disposed;
 
-        using (_metaBuffer)
         using (_reader)
         {
             DisposeCore();

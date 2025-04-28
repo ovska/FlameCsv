@@ -8,12 +8,6 @@ using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Converters.Enums;
 using FlameCsv.Extensions;
-#if DEBUG
-using Unsafe = FlameCsv.Extensions.DebugUnsafe
-#else
-using Unsafe = System.Runtime.CompilerServices.Unsafe
-#endif
-    ;
 
 namespace FlameCsv;
 

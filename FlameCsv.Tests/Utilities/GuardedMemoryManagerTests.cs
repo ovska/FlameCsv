@@ -15,7 +15,10 @@ public abstract class GuardedMemoryManagerTestsBase<T> where T : unmanaged
     public void Should_Allocate_Guarded_Memory(bool fromEnd, int size)
     {
         Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows is supported.");
-        
+        Assert.SkipUnless(
+            Environment.GetEnvironmentVariable("COMPlus_legacyCorruptedStateExceptionsPolicy") == "1",
+            "COMPlus_legacyCorruptedStateExceptionsPolicy must be set to 1.");
+
         Assert.Equal(4096, Environment.SystemPageSize);
 
         // $env:COMPlus_legacyCorruptedStateExceptionsPolicy=1
@@ -52,12 +55,12 @@ public abstract class GuardedMemoryManagerTestsBase<T> where T : unmanaged
         get
         {
             var data = new TheoryData<bool, int>();
-    
+
             foreach (var fromEnd in GlobalData.Booleans)
-            foreach (var size in (int[]) [32, 64, 1024, 4096, 4096 * 2])
-            {
-                data.Add(fromEnd, size);
-            }
+                foreach (var size in (int[])[32, 64, 1024, 4096, 4096 * 2])
+                {
+                    data.Add(fromEnd, size);
+                }
 
             return data;
         }
