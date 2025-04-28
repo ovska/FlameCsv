@@ -228,7 +228,6 @@ public class CsvOptionsTests
         Run(o => o.Converters.Remove(new BooleanTextConverter()));
         Run(o => o.Converters.RemoveAt(0));
         Run(o => o.Converters.Clear());
-        Run(o => o.StringPool = null);
         Run(o => o.UseDefaultConverters = false);
         Run(o => o.EnumFormat = "");
         Run(o => o.EnumFlagsSeparator = '^');

@@ -5,7 +5,6 @@ using FlameCsv.Binding;
 using FlameCsv.Extensions;
 using FlameCsv.Utilities;
 using FlameCsv.Writing;
-using CommunityToolkit.HighPerformance.Buffers;
 using System.Globalization;
 using JetBrains.Annotations;
 using System.Runtime.CompilerServices;
@@ -92,7 +91,6 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, 
         _ignoreEnumCase = other._ignoreEnumCase;
         _allowUndefinedEnumValues = other._allowUndefinedEnumValues;
 
-        _stringPool = other._stringPool;
         _typeBinder = other._typeBinder;
         _null = other._null;
         _nullTokens = other._nullTokens is null ? null : new(this, other._nullTokens);
@@ -232,7 +230,6 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, 
     private char _enumFlagsSeparator = ',';
     private bool _ignoreEnumCase = true;
     private bool _allowUndefinedEnumValues;
-    private StringPool? _stringPool;
     private ICsvTypeBinder<T>? _typeBinder;
 
     private IEqualityComparer<string> _comparer = StringComparer.OrdinalIgnoreCase;
@@ -326,19 +323,6 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, 
     {
         get => _recordCallback;
         set => this.SetValue(ref _recordCallback, value);
-    }
-
-    /// <summary>
-    /// String pool to use when parsing strings. Default is <see langword="null"/>, which results in no pooling.
-    /// </summary>
-    /// <remarks>
-    /// Pooling reduces raw throughput, but can have a profound impact on allocations if the data has repeating strings.
-    /// </remarks>
-    /// <seealso cref="CsvStringPoolingAttribute"/>
-    public StringPool? StringPool
-    {
-        get => _stringPool;
-        set => this.SetValue(ref _stringPool, value);
     }
 
     /// <summary>
