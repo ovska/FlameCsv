@@ -16,12 +16,12 @@ namespace FlameCsv.Binding;
 public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue>>
 {
     /// <summary>
-    /// Returns <see langword="true"/> if the bindings are for writing CSV.
+    /// Returns <c>true</c> if the bindings are for writing CSV.
     /// </summary>
     public bool ForWriting { get; }
 
     /// <summary>
-    /// Returns <see langword="true"/> if the bindings are for reading CSV.
+    /// Returns <c>true</c> if the bindings are for reading CSV.
     /// </summary>
     public bool ForReading => !ForWriting;
 
@@ -43,15 +43,15 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
         => _ctorParameters.AsSpan();
 
     /// <summary>
-    /// Returns <see langword="true"/> if the bindings will use a specific constructor.
+    /// Returns <c>true</c> if the bindings will use a specific constructor.
     /// </summary>
-    /// <remarks>This is always <see langword="false"/> if <see cref="ForWriting"/> is <see langword="true"/>.</remarks>
+    /// <remarks>This is always <c>false</c> if <see cref="ForWriting"/> is <c>true</c>.</remarks>
     public bool HasConstructorParameters => _ctorParameters?.Count > 0;
 
     /// <summary>
-    /// Return <see langword="true"/> is <see cref="MemberBindings"/> is not empty.
+    /// Return <c>true</c> is <see cref="MemberBindings"/> is not empty.
     /// </summary>
-    /// <remarks>This is always <see langword="true"/> if <see cref="ForWriting"/> is <see langword="true"/>.</remarks>
+    /// <remarks>This is always <c>true</c> if <see cref="ForWriting"/> is <c>true</c>.</remarks>
     public bool HasMemberInitializers => _memberBindings.Count > 0;
 
     /// <summary>

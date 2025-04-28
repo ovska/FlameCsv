@@ -99,8 +99,8 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     /// </summary>
     /// <param name="fields">Fields of the CSV record up to the newline</param>
     /// <returns>
-    /// <see langword="true"/> if a record was read,
-    /// <see langword="false"/> if the read-ahead buffer is empty or the record is incomplete.
+    /// <c>true</c> if a record was read,
+    /// <c>false</c> if the read-ahead buffer is empty or the record is incomplete.
     /// </returns>
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -199,8 +199,8 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     /// Attempts to reset the parser to the beginning of the data source.
     /// </summary>
     /// <returns>
-    /// <see langword="true"/> if the inner data source supports resetion and was successfully reset;
-    /// otherwise <see langword="false"/>.
+    /// <c>true</c> if the inner data source supports resetion and was successfully reset;
+    /// otherwise <c>false</c>.
     /// </returns>
     public bool TryReset()
     {
@@ -221,10 +221,10 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     /// Attempt to read more data from the underlying data.
     /// </summary>
     /// <returns>
-    /// <see langword="true"/> if more data was read; otherwise <see langword="false"/>.
+    /// <c>true</c> if more data was read; otherwise <c>false</c>.
     /// </returns>
     /// <remarks>
-    /// All further reads after returning <see langword="false"/> will also return <see langword="false"/>.
+    /// All further reads after returning <c>false</c> will also return <c>false</c>.
     /// </remarks>
     public bool TryAdvanceReader()
     {

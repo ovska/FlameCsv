@@ -20,12 +20,12 @@ public abstract class CsvTypeMap
     protected abstract Type TargetType { get; }
 
     /// <summary>
-    /// If <see langword="true"/>, headers that cannot be matched to a member are ignored instead of throwing.
+    /// If <c>true</c>, headers that cannot be matched to a member are ignored instead of throwing.
     /// </summary>
     public bool IgnoreUnmatched { get; init; }
 
     /// <summary>
-    /// If <see langword="true"/>, multiple header field matches to a single member throw an exception.
+    /// If <c>true</c>, multiple header field matches to a single member throw an exception.
     /// The default behavior does not attempt to match already matched members.
     /// </summary>
     public bool ThrowOnDuplicate { get; init; }

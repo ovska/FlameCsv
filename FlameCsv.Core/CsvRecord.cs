@@ -54,7 +54,7 @@ public class CsvRecord<T>
     public bool HasHeader => _header is not null;
 
     /// <summary>
-    /// Returns <see langword="true"/> if the record contains the specified field.
+    /// Returns <c>true</c> if the record contains the specified field.
     /// </summary>
     /// <remarks>
     /// This method does not throw even if the identifier is for a header name, but the record's CSV has no header.
@@ -67,7 +67,7 @@ public class CsvRecord<T>
     }
 
     /// <summary>
-    /// Returns the header record for the current CSV. Throws if <see cref="HasHeader"/> is <see langword="false"/>.
+    /// Returns the header record for the current CSV. Throws if <see cref="HasHeader"/> is <c>false</c>.
     /// </summary>
     /// <seealso cref="HasHeader"/>
     /// <exception cref="NotSupportedException">Options is configured not to have a header</exception>
@@ -230,7 +230,7 @@ public class CsvRecord<T>
     /// <typeparam name="TValue">Value parsed</typeparam>
     /// <param name="id">Field index of name</param>
     /// <param name="value">Parsed value, if successful</param>
-    /// <returns><see langword="true"/> if the value was successfully parsed</returns>
+    /// <returns><c>true</c> if the value was successfully parsed</returns>
     /// <exception cref="ArgumentException">The ID points to a field that does not exist</exception>
     /// <exception cref="CsvConverterMissingException">Converter not found for <typeparamref name="TValue"/></exception>
     [RUF(Messages.ConverterOverload), RDC(Messages.ConverterOverload)]
@@ -247,7 +247,7 @@ public class CsvRecord<T>
     /// <param name="converter">Converter to parse the field with</param>
     /// <param name="id">Field index of name</param>
     /// <param name="value">Parsed value, if successful</param>
-    /// <returns><see langword="true"/> if the value was successfully parsed</returns>
+    /// <returns><c>true</c> if the value was successfully parsed</returns>
     /// <exception cref="ArgumentException">The ID points to a field that does not exist</exception>
     /// <exception cref="CsvConverterMissingException">Converter not found for <typeparamref name="TValue"/></exception>
     public bool TryParseField<TValue>(

@@ -96,7 +96,7 @@ public sealed class CsvHeader
     public int Count => Values.Length;
 
     /// <summary>
-    /// Returns <see langword="true"/> if the specified header is present.
+    /// Returns <c>true</c> if the specified header is present.
     /// </summary>
     /// <param name="key">Header name</param>
     public bool ContainsKey(string key)
