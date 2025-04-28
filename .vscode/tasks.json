@@ -1,0 +1,34 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Regenerate All T4 Templates",
+            "type": "shell",
+            "command": "${workspaceFolder}/transform_t4_templates.bat",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true
+            },
+            "detail": "Regenerates all .tt template files in the solution"
+        },
+        {
+            "label": "Regenerate Current T4 Template",
+            "type": "shell",
+            "command": "${workspaceFolder}/transform_t4_templates.bat \"${file}\"",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true
+            },
+            "group": "build",
+            "detail": "Regenerates the currently open T4 template file"
+        }
+    ]
+}

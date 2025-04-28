@@ -1,0 +1,14 @@
+{
+    "recommendations": [
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.csdevkit",
+        "redhat.vscode-xml",
+        "redhat.vscode-yaml",
+        "zbecknell.t4-support",
+        "mechatroner.rainbow-csv",
+        "github.vscode-github-actions",
+    ],
+    "unwantedRecommendations": [
+        "csharpier.csharpier-vscode",
+    ]
+}
