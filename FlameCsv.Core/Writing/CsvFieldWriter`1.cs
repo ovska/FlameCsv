@@ -173,14 +173,12 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
     /// </summary>
     public void WriteNull<TValue>()
     {
-        ReadOnlyMemory<T> nullToken = Options.GetNullToken(typeof(TValue));
+        ReadOnlySpan<T> nullSpan = Options.GetNullSpan(typeof(TValue));
 
-        if (nullToken.IsEmpty)
+        if (!nullSpan.IsEmpty)
         {
-            return;
+            WriteRaw(nullSpan);
         }
-
-        WriteRaw(nullToken.Span);
     }
 
     /// <summary>

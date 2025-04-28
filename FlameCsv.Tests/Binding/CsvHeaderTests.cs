@@ -15,7 +15,7 @@ public static class CsvHeaderTests
 
         void Impl<T>() where T : unmanaged, IBinaryInteger<T>
         {
-            CsvHeader.HeaderPool.Reset();
+            CsvHeader.HeaderPool?.Reset();
             var buffer = new char[32];
             var tokens = CsvOptions<T>.Default.GetFromString(value).Span;
             var header1 = CsvHeader.Get(CsvOptions<T>.Default, tokens, buffer);

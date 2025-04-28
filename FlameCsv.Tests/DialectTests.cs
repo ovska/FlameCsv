@@ -70,7 +70,12 @@ public static class DialectTests
             Assert.Throws<CsvConfigurationException>(() => { action(new CsvOptions<char>().Dialect).Validate(); });
         }
 
-        // utf8 requires that all searchable tokens be ascii (no multibyte characters)
+        // that all searchable tokens must be ascii (no multibyte characters)
+        ShouldThrow(() => new CsvOptions<char> { Delimiter = (char)128 }.Dialect.Validate());
+        ShouldThrow(() => new CsvOptions<char> { Quote = (char)128 }.Dialect.Validate());
+        ShouldThrow(() => new CsvOptions<char> { Escape = (char)128 }.Dialect.Validate());
+        ShouldThrow(() => new CsvOptions<char> { Newline = "£" }.Dialect.Validate());
+
         ShouldThrow(() => new CsvOptions<byte> { Delimiter = (char)128 }.Dialect.Validate());
         ShouldThrow(() => new CsvOptions<byte> { Quote = (char)128 }.Dialect.Validate());
         ShouldThrow(() => new CsvOptions<byte> { Escape = (char)128 }.Dialect.Validate());

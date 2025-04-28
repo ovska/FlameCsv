@@ -9,6 +9,9 @@ namespace FlameCsv.Extensions;
 
 internal static class Throw
 {
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+    public static void ArgumentNull(string paramName) => throw new ArgumentNullException(paramName);
+
     [StackTraceHidden]
     public static void IfDefaultOrEmpty(
         ImmutableArray<string> array,
@@ -160,7 +163,7 @@ internal static class Throw
     public static void Config_TrueOrFalseBooleanValues(bool which)
     {
         throw new CsvConfigurationException(
-            $"If {nameof(CsvOptions<byte>.BooleanValues)} it not empty, it must contain at least one value " +
+            "If custom boolean values are not empty, they must contain at least one value " +
             $"for both true and false ({which.ToString().ToLowerInvariant()} was missing).");
     }
 }
