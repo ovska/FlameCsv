@@ -66,9 +66,9 @@ public abstract class CsvTypeMap
     /// <exception cref="CsvBindingException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    protected void ThrowUnmatched(string field, int index)
+    protected void ThrowUnmatched(string field, int index, ImmutableArray<string> headers)
     {
-        throw new CsvBindingException(TargetType, $"Unmatched header field '{field}' at index {index}.");
+        throw new CsvBindingException(TargetType, $"Unmatched header field '{field}' at index {index}: [{JoinValues(headers)}]");
     }
 
     /// <summary>
