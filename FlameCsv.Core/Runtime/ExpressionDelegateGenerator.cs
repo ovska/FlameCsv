@@ -31,7 +31,9 @@ internal sealed class ExpressionDelegateGenerator<T> : DelegateGenerator<T> wher
                         Expression.ArrayAccess(objArrParam, Expression.Constant(i)),
                         p.ParameterType)));
         var lambda = Expression.Lambda<Func<object[], IMaterializer<T, TResult>>>(
+#pragma warning disable CA2263 // Prefer generic overload when type is known
             Expression.Convert(ctorInvoke, typeof(IMaterializer<T, TResult>)),
+#pragma warning restore CA2263 // Prefer generic overload when type is known
             objArrParam);
         return lambda.CompileLambda<Func<object[], IMaterializer<T, TResult>>>(throwIfClosure: true);
     }

@@ -11,6 +11,8 @@
     <PropertyGroup Condition="false">
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
+        <EnablePlatformAnalyzer>true</EnablePlatformAnalyzer>
+        <EnableMSBuildAssemblyResolveUsage>true</EnableMSBuildAssemblyResolveUsage>
         <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
         <AnalysisLevel>latest</AnalysisLevel>
         <AnalysisMode>All</AnalysisMode>
