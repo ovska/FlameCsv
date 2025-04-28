@@ -49,7 +49,7 @@ public partial class TypeMapGenerator
                 writer.WriteLine("else");
                 using (writer.WriteBlock())
                 {
-                    writer.WriteLine("base.ThrowUnmatched(name, index);");
+                    writer.WriteLine("base.ThrowUnmatched(name, index, headers);");
                 }
             }
 
