@@ -29,7 +29,7 @@ internal static class OptionsExtensions
     }
 
     /// <summary>
-    /// Throws if <see cref="ICanBeReadOnly.IsReadOnly"/> is <see langword="true"/>.
+    /// Throws if <see cref="ICanBeReadOnly.IsReadOnly"/> is <c>true</c>.
     /// </summary>
     /// <param name="obj"></param>
     /// <param name="memberName">Name of the calling property or method used in exception messages</param>

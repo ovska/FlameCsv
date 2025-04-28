@@ -183,7 +183,7 @@ internal readonly struct Meta : IEquatable<Meta>
     }
 
     /// <summary>
-    /// If <see langword="true"/>, <see cref="SpecialCount"/> refers to escape characters.
+    /// If <c>true</c>, <see cref="SpecialCount"/> refers to escape characters.
     /// </summary>
     public bool IsEscape
     {

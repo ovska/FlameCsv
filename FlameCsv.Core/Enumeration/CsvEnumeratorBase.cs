@@ -149,8 +149,8 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     /// </summary>
     /// <param name="fields">Current CSV record</param>
     /// <returns>
-    /// <see langword="true"/> if the enumerator produced the next value,
-    /// <see langword="false"/> if the record was a header record, or was skipped.
+    /// <c>true</c> if the enumerator produced the next value,
+    /// <c>false</c> if the record was a header record, or was skipped.
     /// </returns>
     /// <remarks>
     /// When this method is called, <see cref="Position"/> points to the start of the record.

@@ -24,7 +24,7 @@ static partial class CsvWriter
         """
         <remarks>
             /// Data is written even if <paramref name="values"/> empty,
-            /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+            /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
             /// </remarks>
         """;
 

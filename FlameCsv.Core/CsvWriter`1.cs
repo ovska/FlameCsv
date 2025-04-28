@@ -52,7 +52,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unman
     /// </summary>
     /// <remarks>
     /// Set automatically after the first non-empty record if <see cref="CsvOptions{T}.ValidateFieldCount"/>
-    /// is <see langword="true"/>.
+    /// is <c>true</c>.
     /// </remarks>
     public int? ExpectedFieldCount { get; set; }
 
@@ -508,7 +508,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unman
 
     /// <summary>
     /// Validates the current record's field count if <see cref="CsvOptions{T}.ValidateFieldCount"/>
-    /// is <see langword="true"/>. Called when moving to the next record.
+    /// is <c>true</c>. Called when moving to the next record.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ValidateFieldCount()

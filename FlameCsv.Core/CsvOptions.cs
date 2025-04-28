@@ -349,7 +349,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, 
     }
 
     /// <summary>
-    /// Whether to read/write a header record. The default is <see langword="true"/>.
+    /// Whether to read/write a header record. The default is <c>true</c>.
     /// </summary>
     public bool HasHeader
     {
@@ -373,9 +373,9 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, 
     }
 
     /// <summary>
-    /// If <see langword="true"/>, validates that all records have the same number of fields
+    /// If <c>true</c>, validates that all records have the same number of fields
     /// when reading <see cref="CsvValueRecord{T}"/> or writing with <see cref="CsvWriter{T}"/>.
-    /// Default is <see langword="false"/>.
+    /// Default is <c>false</c>.
     /// </summary>
     public bool ValidateFieldCount
     {
@@ -384,7 +384,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, 
     }
 
     /// <summary>
-    /// Whether to use the library's built-in converters. Default is <see langword="true"/>. The converters can be configured
+    /// Whether to use the library's built-in converters. Default is <c>true</c>. The converters can be configured
     /// using properties of <see cref="CsvOptions{T}"/>.
     /// </summary>
     /// <remarks>
@@ -446,7 +446,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, 
 
     /// <summary>
     /// Optional custom boolean value mapping. If not empty, must contain at least one value for both
-    /// <see langword="true"/> and <see langword="false"/>. Default is empty.
+    /// <c>true</c> and <c>false</c>. Default is empty.
     /// </summary>
     /// <seealso cref="UseDefaultConverters"/>
     /// <seealso cref="CsvBooleanValuesAttribute"/>

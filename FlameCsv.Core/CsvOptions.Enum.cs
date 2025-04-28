@@ -7,8 +7,12 @@ public partial class CsvOptions<T>
 {
     /// <summary>
     /// Whether to allow enum values that are not defined in the enum type.
-    /// Default is <see langword="false"/>.
+    /// Default is <c>false</c>.
     /// </summary>
+    /// <remarks>
+    /// Unlike <see cref="Enum.IsDefined"/>, flags-enums are considered valid if an undefined value is a
+    /// combination of defined flags.
+    /// </remarks>
     public bool AllowUndefinedEnumValues
     {
         get => _allowUndefinedEnumValues;
@@ -16,7 +20,7 @@ public partial class CsvOptions<T>
     }
 
     /// <summary>
-    /// Whether to ignore casing when parsing enum values. Default is <see langword="true"/>.
+    /// Whether to ignore casing when parsing enum values. Default is <c>true</c>.
     /// </summary>
     public bool IgnoreEnumCase
     {
