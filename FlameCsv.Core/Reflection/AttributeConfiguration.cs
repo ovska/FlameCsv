@@ -190,7 +190,7 @@ internal static class AttributeConfiguration
                     if (value is null)
                     {
                         value = headerAttr.Value;
-                        aliases = headerAttr.Aliases;
+                        aliases = ImmutableCollectionsMarshal.AsImmutableArray(headerAttr.Aliases);
                     }
                     else
                     {
