@@ -11,15 +11,8 @@ jobs:
   build-and-test:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        include:
-          # Add ARM64 explicitly for Ubuntu
-          - os: ubuntu-latest
-            arch: arm64
-          # Note: macos-latest might already run on ARM64 (Apple Silicon)
-          # If specific macOS ARM64 runners are needed and available, add them here.
-    # Use the matrix os and arch (arch defaults if not specified in include)
-    runs-on: ${{ matrix.arch == 'arm64' && fromJSON('["ubuntu-latest-arm64"]') || matrix.os }}
+        os: [macos-latest, ubuntu-latest] # windows-latest if needed
+    runs-on: ${{ matrix.os }}
 
     steps:
     - name: Display runner context
@@ -65,6 +58,6 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         # Make artifact name unique per job
-        name: coverage-results-${{ matrix.os }}-${{ matrix.arch || 'x64' }}
+        name: coverage-results-${{ matrix.os }}
         path: "**/TestResults/**/coverage.cobertura.xml"
         if-no-files-found: ignore
