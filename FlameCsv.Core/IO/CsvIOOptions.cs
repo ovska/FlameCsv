@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Diagnostics;
+using JetBrains.Annotations;
 
 namespace FlameCsv.IO;
 
@@ -39,7 +40,7 @@ public readonly record struct CsvIOOptions
     /// </exception>
     public int BufferSize
     {
-        get => Math.Max(_bufferSize ?? DefaultBufferSize, MinimumReadSize);
+        get => _bufferSize ?? DefaultBufferSize;
         init
         {
             if (value == -1) return;
@@ -58,7 +59,7 @@ public readonly record struct CsvIOOptions
     /// </exception>
     public int MinimumReadSize
     {
-        get => _minimumReadSize ?? DefaultMinimumReadSize;
+        get => Math.Min(_minimumReadSize ?? DefaultMinimumReadSize, (_bufferSize ?? DefaultBufferSize) / 2);
         init
         {
             if (value == -1) return;
