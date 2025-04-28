@@ -1,5 +1,6 @@
 ﻿// ReSharper disable all
 
+#pragma warning disable CA2007 // Consider calling ConfigureAwait on the awaited task
 #pragma warning disable CS0162 // Unreachable code detected
 
 using System.Buffers;

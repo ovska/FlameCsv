@@ -20,6 +20,7 @@ public abstract class EnumParseStrategy<T, TEnum> where T : unmanaged, IBinaryIn
     /// Status of the parsing operation. <see cref="OperationStatus.Done"/> if the parsing was successful;
     /// <see cref="OperationStatus.InvalidData"/> if the value cannot be parsed by the strategy.
     /// </returns>
+    /// <remarks>The source buffer is never empty.</remarks>
     public abstract bool TryParse(ReadOnlySpan<T> source, out TEnum value);
 
     private sealed class NoneImpl : EnumParseStrategy<T, TEnum>

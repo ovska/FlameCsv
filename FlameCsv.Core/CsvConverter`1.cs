@@ -13,7 +13,7 @@ public abstract class CsvConverter<T, TValue> : CsvConverter<T> where T : unmana
     /// Returns whether the type can be handled by this converter.
     /// </summary>
     /// <param name="type">Type to check</param>
-    /// <returns><see langword="true"/> if the converter is suitable for <paramref name="type"/></returns>
+    /// <returns><c>true</c> if the converter is suitable for <paramref name="type"/></returns>
     public override bool CanConvert(Type type) => type == typeof(TValue);
 
     /// <summary>
@@ -21,7 +21,7 @@ public abstract class CsvConverter<T, TValue> : CsvConverter<T> where T : unmana
     /// </summary>
     /// <param name="source">CSV field</param>
     /// <param name="value">Parsed value</param>
-    /// <returns><see langword="true"/> if the value was successfully parsed.</returns>
+    /// <returns><c>true</c> if the value was successfully parsed.</returns>
     public abstract bool TryParse(ReadOnlySpan<T> source, [MaybeNullWhen(false)] out TValue value);
 
     /// <summary>
@@ -30,11 +30,11 @@ public abstract class CsvConverter<T, TValue> : CsvConverter<T> where T : unmana
     /// <param name="destination">Buffer to format the value to</param>
     /// <param name="value">Value to format</param>
     /// <param name="charsWritten">If successful, how many characters were written to <paramref name="destination"/></param>
-    /// <returns><see langword="true"/> if the value was successfully formatted.</returns>
+    /// <returns><c>true</c> if the value was successfully formatted.</returns>
     public abstract bool TryFormat(Span<T> destination, TValue value, out int charsWritten);
 
     /// <summary>
-    /// Whether the converter formats null values. When <see langword="false"/> (the default),
+    /// Whether the converter formats null values. When <c>false</c> (the default),
     /// <see cref="CsvOptions{T}.GetNullToken(Type)"/> is used to write nulls.
     /// </summary>
     protected internal virtual bool CanFormatNull => false;

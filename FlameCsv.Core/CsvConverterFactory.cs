@@ -11,7 +11,7 @@ public abstract class CsvConverterFactory<T> : CsvConverter<T> where T : unmanag
     /// Creates an instance capable of converting values of the specified type.
     /// </summary>
     /// <remarks>
-    /// This method should only be called after <see cref="CsvConverter{T}.CanConvert(Type)"/> has returned <see langword="true"/>.
+    /// This method should only be called after <see cref="CsvConverter{T}.CanConvert(Type)"/> has returned <c>true</c>.
     /// </remarks>
     /// <param name="type"><c>TValue</c> of the returned <see cref="CsvConverter{T,TValue}"/></param>
     /// <param name="options">Current options instance</param>

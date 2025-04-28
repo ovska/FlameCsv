@@ -16,7 +16,7 @@ public abstract class CsvConverter<T> where T : unmanaged, IBinaryInteger<T>
     /// created from this factory instance.
     /// </summary>
     /// <param name="type">Type to check</param>
-    /// <returns><see langword="true"/> if the converter is suitable for <paramref name="type"/></returns>
+    /// <returns><c>true</c> if the converter is suitable for <paramref name="type"/></returns>
     public abstract bool CanConvert(Type type);
 
     /// <summary>

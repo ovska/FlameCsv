@@ -24,7 +24,7 @@ partial class CsvOptions<T>
     /// (see <see cref="UseDefaultConverters"/>).
     /// </summary>
     /// <remarks>
-    /// Modifying the collection after the options-instance is used (<see cref="IsReadOnly"/> is <see langword="true"/>)
+    /// Modifying the collection after the options-instance is used (<see cref="IsReadOnly"/> is <c>true</c>)
     /// results in an exception.
     /// </remarks>
     public IList<CsvConverter<T>> Converters

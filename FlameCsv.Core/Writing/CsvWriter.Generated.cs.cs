@@ -22,7 +22,7 @@ static partial class CsvWriter
     /// </returns>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static StringBuilder WriteToString<[DAM(Messages.ReflectionBound)] TValue>(
@@ -50,7 +50,7 @@ static partial class CsvWriter
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static void WriteToFile<[DAM(Messages.ReflectionBound)] TValue>(
@@ -82,7 +82,7 @@ static partial class CsvWriter
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [OverloadResolutionPriority(-1)] // prefer byte to char when writing to file
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
@@ -115,7 +115,7 @@ static partial class CsvWriter
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static void Write<[DAM(Messages.ReflectionBound)] TValue>(
@@ -143,7 +143,7 @@ static partial class CsvWriter
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static void Write<[DAM(Messages.ReflectionBound)] TValue>(
@@ -173,7 +173,7 @@ static partial class CsvWriter
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
@@ -215,7 +215,7 @@ static partial class CsvWriter
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
@@ -251,7 +251,7 @@ static partial class CsvWriter
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
@@ -287,7 +287,7 @@ static partial class CsvWriter
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static async Task WriteToFileAsync<[DAM(Messages.ReflectionBound)] TValue>(
@@ -333,7 +333,7 @@ static partial class CsvWriter
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [OverloadResolutionPriority(-1)] // prefer byte to char when writing to file
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
@@ -379,7 +379,7 @@ static partial class CsvWriter
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
@@ -421,7 +421,7 @@ static partial class CsvWriter
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
@@ -457,7 +457,7 @@ static partial class CsvWriter
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
@@ -493,7 +493,7 @@ static partial class CsvWriter
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public static async Task WriteToFileAsync<[DAM(Messages.ReflectionBound)] TValue>(
@@ -539,7 +539,7 @@ static partial class CsvWriter
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [OverloadResolutionPriority(-1)] // prefer byte to char when writing to file
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
@@ -586,7 +586,7 @@ static partial class CsvWriter
     /// </returns>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     public static StringBuilder WriteToString<TValue>(
         IEnumerable<TValue> values,
@@ -615,7 +615,7 @@ static partial class CsvWriter
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     public static void WriteToFile<TValue>(
         string path,
@@ -648,7 +648,7 @@ static partial class CsvWriter
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [OverloadResolutionPriority(-1)] // prefer byte to char when writing to file
     public static void WriteToFile<TValue>(
@@ -682,7 +682,7 @@ static partial class CsvWriter
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     public static void Write<TValue>(
         TextWriter textWriter,
@@ -711,7 +711,7 @@ static partial class CsvWriter
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     public static void Write<TValue>(
         Stream stream,
@@ -742,7 +742,7 @@ static partial class CsvWriter
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     public static async Task WriteAsync<TValue>(
         TextWriter textWriter,
@@ -785,7 +785,7 @@ static partial class CsvWriter
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     public static async Task WriteAsync<TValue>(
         Stream stream,
@@ -822,7 +822,7 @@ static partial class CsvWriter
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     public static async Task WriteAsync<TValue>(
         PipeWriter pipe,
@@ -859,7 +859,7 @@ static partial class CsvWriter
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     public static async Task WriteToFileAsync<TValue>(
         string path,
@@ -906,7 +906,7 @@ static partial class CsvWriter
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [OverloadResolutionPriority(-1)] // prefer byte to char when writing to file
     public static async Task WriteToFileAsync<TValue>(
@@ -953,7 +953,7 @@ static partial class CsvWriter
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     public static async Task WriteAsync<TValue>(
         TextWriter textWriter,
@@ -996,7 +996,7 @@ static partial class CsvWriter
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     public static async Task WriteAsync<TValue>(
         Stream stream,
@@ -1033,7 +1033,7 @@ static partial class CsvWriter
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     public static async Task WriteAsync<TValue>(
         PipeWriter pipe,
@@ -1070,7 +1070,7 @@ static partial class CsvWriter
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     public static async Task WriteToFileAsync<TValue>(
         string path,
@@ -1117,7 +1117,7 @@ static partial class CsvWriter
     /// <returns>Task representing the asynchronous writing operation</returns>
     /// <remarks>
     /// Data is written even if <paramref name="values"/> empty,
-    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <see langword="false"/>.
+    /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [OverloadResolutionPriority(-1)] // prefer byte to char when writing to file
     public static async Task WriteToFileAsync<TValue>(

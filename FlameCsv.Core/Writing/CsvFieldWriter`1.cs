@@ -222,7 +222,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
 
     /// <summary>
     /// Attempts to escape the value written in the first <paramref name="tokensWritten"/> characters
-    /// of <paramref name="destination"/>. Returns <see langword="false"/> if no escaping is needed
+    /// of <paramref name="destination"/>. Returns <c>false</c> if no escaping is needed
     /// and the writer was not advanced.
     /// </summary>
     /// <returns>True if the writer was advanced</returns>

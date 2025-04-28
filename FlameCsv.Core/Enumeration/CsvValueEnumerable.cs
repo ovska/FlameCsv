@@ -69,7 +69,7 @@ public sealed class CsvValueEnumerable<T, [DAM(Messages.ReflectionBound)] TValue
 
     /// <summary>
     /// Sets the exception handler for the enumerator.
-    /// If the handler returns <see langword="true"/>, the exception is considered handled and the record is skipped.
+    /// If the handler returns <c>true</c>, the exception is considered handled and the record is skipped.
     /// </summary>
     /// <param name="handler">Exception handler. Set to null to remove an existing handler</param>
     /// <returns>The same enumerable instance</returns>

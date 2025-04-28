@@ -16,7 +16,7 @@ public readonly struct CsvIgnored
     /// Returns a no-op converter instance of <typeparamref name="T"/>.
     /// </summary>
     /// <remarks>
-    /// This converter will always return <see langword="true"/> without writing or reading anything.
+    /// This converter will always return <c>true</c> without writing or reading anything.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static CsvConverter<T, TResult> Converter<T, TResult>()
@@ -28,7 +28,7 @@ public readonly struct CsvIgnored
         public static readonly IgnoredConverter<T, TResult> Instance = new();
 
         /// <summary>
-        /// Always returns <see langword="true"/> without writing anything.
+        /// Always returns <c>true</c> without writing anything.
         /// </summary>
         public override bool TryFormat(Span<T> destination, TResult value, out int charsWritten)
         {
@@ -37,7 +37,7 @@ public readonly struct CsvIgnored
         }
 
         /// <summary>
-        /// Always returns <see langword="true"/>.
+        /// Always returns <c>true</c>.
         /// </summary>
         public override bool TryParse(ReadOnlySpan<T> source, out TResult value)
         {

@@ -108,7 +108,7 @@ partial class CsvReader<T>
         /// Attempts to read the next record.
         /// </summary>
         /// <returns>
-        /// <see langword="true"/> if a record was read; otherwise, <see langword="false"/>.
+        /// <c>true</c> if a record was read; otherwise, <c>false</c>.
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool MoveNext()

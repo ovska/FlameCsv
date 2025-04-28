@@ -33,7 +33,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
 
     /// <summary>
     /// Delegate that is called when an exception is thrown while parsing class records.
-    /// If the delegate returns <see langword="true"/>, the faulty record is skipped.
+    /// If the delegate returns <c>true</c>, the faulty record is skipped.
     /// </summary>
     /// <remarks>
     /// <see cref="CsvFormatException"/> is not handled as it represents structurally invalid CSV.
@@ -142,7 +142,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     /// Initializes the materializer.
     /// </summary>
     /// <returns>
-    /// <see langword="true"/> if the record was consumed, <see langword="false"/> otherwise.
+    /// <c>true</c> if the record was consumed, <c>false</c> otherwise.
     /// </returns>
     [MemberNotNull(nameof(_materializer))]
     private bool TryReadHeader(ref readonly CsvFields<T> record)

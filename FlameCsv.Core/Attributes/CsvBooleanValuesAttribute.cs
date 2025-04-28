@@ -12,12 +12,12 @@ namespace FlameCsv.Attributes;
 public sealed class CsvBooleanValuesAttribute : CsvConverterAttribute
 {
     /// <summary>
-    /// Values that represent <see langword="true"/>.
+    /// Values that represent <c>true</c>.
     /// </summary>
     public string[] TrueValues { get; set; } = [];
 
     /// <summary>
-    /// Values that represent <see langword="false"/>.
+    /// Values that represent <c>false</c>.
     /// </summary>
     public string[] FalseValues { get; set; } = [];
 

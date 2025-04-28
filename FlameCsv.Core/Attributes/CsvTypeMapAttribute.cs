@@ -27,7 +27,7 @@ public sealed class CsvTypeMapAttribute<T, TValue> : Attribute where T : unmanag
     public bool NoCaching { get; set; }
 
     /// <summary>
-    /// If <see langword="true"/>, the source generator will scan for attributes applied to the containing assembly.
+    /// If <c>true</c>, the source generator will scan for attributes applied to the containing assembly.
     /// </summary>
     public bool SupportsAssemblyAttributes { get; set; }
 }

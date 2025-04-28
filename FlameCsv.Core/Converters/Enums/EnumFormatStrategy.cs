@@ -22,6 +22,7 @@ public abstract class EnumFormatStrategy<T, TEnum> where T : unmanaged, IBinaryI
     /// <see cref="OperationStatus.DestinationTooSmall"/> if the destination buffer is too small, and
     /// formatting should be retried with a larger buffer.
     /// </returns>
+    /// <remarks>The destination buffer is never empty.</remarks>
     public abstract OperationStatus TryFormat(Span<T> destination, TEnum value, out int charsWritten);
 
     private sealed class NoneImpl : EnumFormatStrategy<T, TEnum>

@@ -10,8 +10,8 @@ internal static class GlobalData
     /// <summary>
     /// Guarded memory allocation data.
     /// <see langword="null"/> means non-guarded date,
-    /// <see langword="true"/> means data is guarded right after the memory region,
-    /// <see langword="false"/> means the guarded data is right before.
+    /// <c>true</c> means data is guarded right after the memory region,
+    /// <c>false</c> means the guarded data is right before.
     /// </summary>
     public static bool?[] GuardedMemory { get; } =
         OperatingSystem.IsWindows() &&

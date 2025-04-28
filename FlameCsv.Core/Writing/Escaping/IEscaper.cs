@@ -36,10 +36,10 @@ internal interface IEscaper<T> where T : unmanaged, IBinaryInteger<T>
     int CountEscapable(scoped ReadOnlySpan<T> field);
 
     /// <summary>
-    /// Returns <see langword="true"/> if the value needs escaping.
+    /// Returns <c>true</c> if the value needs escaping.
     /// </summary>
     /// <param name="value">The value to check for escaping.</param>
-    /// <returns><see langword="true"/> if the value needs escaping; otherwise, <see langword="false"/>.</returns>
+    /// <returns><c>true</c> if the value needs escaping; otherwise, <c>false</c>.</returns>
     [Pure]
     bool NeedsEscaping(T value);
 }

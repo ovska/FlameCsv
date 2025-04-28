@@ -10,7 +10,7 @@ namespace FlameCsv;
 /// Callback for custom handling of parsing errors.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-/// <returns><see langword="true"/> if the exception can be ignored.</returns>
+/// <returns><c>true</c> if the exception can be ignored.</returns>
 [PublicAPI]
 public delegate bool CsvExceptionHandler<T>(CsvExceptionHandlerArgs<T> args) where T : unmanaged, IBinaryInteger<T>;
 
