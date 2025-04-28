@@ -33,14 +33,14 @@ jobs:
       with:
         dotnet-version: 9.x
 
-    - name: Restore dependencies
-      run: dotnet restore
+    - name: Restore test dependencies
+      run: dotnet restore **/*Tests*.csproj
 
-    - name: Build solution
-      run: dotnet build --configuration Release --no-restore
+    - name: Build test projects
+      run: dotnet build --configuration Release --no-restore **/*Tests*.csproj
 
     - name: Run tests
-      run: dotnet test --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
+      run: dotnet test --configuration Release --no-build --verbosity minimal --logger "console;verbosity=minimal" --nologo **/*Tests*.csproj --collect:"XPlat Code Coverage"
 
     - name: Upload coverage reports
       uses: actions/upload-artifact@v4
