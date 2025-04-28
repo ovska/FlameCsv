@@ -216,10 +216,9 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
         _stream.Dispose();
     }
 
-    protected override async ValueTask DisposeAsyncCore()
+    protected override ValueTask DisposeAsyncCore()
     {
         ArrayPool<byte>.Shared.Return(_buffer);
-        await _stream.DisposeAsync().ConfigureAwait(false);
-        await base.DisposeAsyncCore().ConfigureAwait(false);
+        return _stream.DisposeAsync();
     }
 }

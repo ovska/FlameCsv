@@ -12,13 +12,6 @@ using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Attributes;
 
-#if DEBUG
-using Unsafe = FlameCsv.Extensions.DebugUnsafe
-#else
-using Unsafe = System.Runtime.CompilerServices.Unsafe
-#endif
-    ;
-
 namespace FlameCsv;
 
 /// <summary>
