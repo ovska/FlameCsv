@@ -1,4 +1,5 @@
-﻿using FlameCsv.SourceGen.Helpers;
+﻿using System.Numerics;
+using FlameCsv.SourceGen.Helpers;
 using FlameCsv.SourceGen.Models;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -218,14 +219,20 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
             if (model.TokenType.IsByte())
             {
                 writer.WriteLine();
+                writer.WriteLine("/// <summary>");
+                writer.WriteLine("/// Transcodes the input value to chars and calls Enum.TryParse.");
+                writer.WriteLine("/// </summary>");
                 writer.WriteLine(
-                    $"private bool TryParseSlow(global::System.ReadOnlySpan<{model.TokenType.Name}> source, out {model.EnumType.FullyQualifiedName} value)");
+                    $"private bool TryParseFromUtf16(global::System.ReadOnlySpan<{model.TokenType.Name}> source, out {model.EnumType.FullyQualifiedName} value)");
                 using (writer.WriteBlock())
                 {
                     WriteParseSlow(writer, context.CancellationToken);
                 }
 
                 writer.WriteLine();
+                writer.WriteLine("/// <summary>");
+                writer.WriteLine("/// Transcodes the input value to chars.");
+                writer.WriteLine("/// </summary>");
                 writer.WriteLine(
                     "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]");
                 writer.WriteLine(
@@ -237,6 +244,9 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
             }
 
             writer.WriteLine();
+            writer.WriteLine("/// <summary>");
+            writer.WriteLine("/// Case-sensitive parsing strategy.");
+            writer.WriteLine("/// </summary>");
             writer.WriteLine(GlobalConstants.CodeDomAttribute);
             writer.Write("private sealed class ReadOrdinalImpl : global::FlameCsv.Converters.Enums.EnumParseStrategy");
             WriteStrategyGenerics(in model, writer, context.CancellationToken);
@@ -247,6 +257,9 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
             }
 
             writer.WriteLine();
+            writer.WriteLine("/// <summary>");
+            writer.WriteLine("/// Case-insensitive parsing strategy.");
+            writer.WriteLine("/// </summary>");
             writer.WriteLine(GlobalConstants.CodeDomAttribute);
             writer.Write("private sealed class ReadIgnoreCaseImpl : global::FlameCsv.Converters.Enums.EnumParseStrategy");
             WriteStrategyGenerics(in model, writer, context.CancellationToken);
@@ -257,6 +270,9 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
             }
 
             writer.WriteLine();
+            writer.WriteLine("/// <summary>");
+            writer.WriteLine("/// Formatting strategy for writing numeric values.");
+            writer.WriteLine("/// </summary>");
             writer.WriteLine(GlobalConstants.CodeDomAttribute);
             writer.Write("private sealed class WriteNumberImpl : global::FlameCsv.Converters.Enums.EnumFormatStrategy");
             WriteStrategyGenerics(in model, writer, context.CancellationToken);
@@ -274,6 +290,9 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
             }
 
             writer.WriteLine();
+            writer.WriteLine("/// <summary>");
+            writer.WriteLine("/// Formatting strategy for writing enum names.");
+            writer.WriteLine("/// </summary>");
             writer.WriteLine(GlobalConstants.CodeDomAttribute);
             writer.Write("private sealed class WriteStringImpl : global::FlameCsv.Converters.Enums.EnumFormatStrategy");
             WriteStrategyGenerics(in model, writer, context.CancellationToken);
@@ -281,13 +300,6 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
             using (writer.WriteBlock())
             {
                 WriteFormatMethod(model, numbers: false, writer, context.CancellationToken);
-            }
-
-            if (model.HasFlagsAttribute)
-            {
-                writer.WriteLine();
-                writer.WriteLine(GlobalConstants.CodeDomAttribute);
-                WriteFlagsImplementation(in model, writer, context.CancellationToken);
             }
         }
 
@@ -314,9 +326,20 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
         writer.WriteLine("/// <summary>");
         writer.WriteLine("/// Determines whether a specified value is defined for the enumeration.");
         writer.WriteLine("/// </summary>");
+        writer.WriteLine("/// <remarks>");
+        writer.WriteLine("/// Unlike Enum.IsDefined, this method returns <c>true</c> for flags-enums that are not");
+        writer.WriteLine("/// explicitly defined, but are a combination of defined values.");
+        writer.WriteLine("/// </remarks>");
         writer.WriteLineIf(model.ContiguousFromZero, AggressiveInlining);
         writer.WriteLine($"public static bool IsDefined({model.EnumType.FullyQualifiedName} value)");
         using var _ = writer.WriteBlock();
+
+        if (model.HasFlagsAttribute)
+        {
+            var composite = model.Values.Aggregate((BigInteger)0, (a, b) => a | b.Value);
+            writer.WriteLine($"return ((({model.EnumType.FullyQualifiedName}){composite}) & value) != 0;");
+            return;
+        }
 
         if (model.ContiguousFromZero)
         {

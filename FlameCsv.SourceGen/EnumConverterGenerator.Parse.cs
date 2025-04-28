@@ -65,7 +65,7 @@ public partial class EnumConverterGenerator
 
         if (model.TokenType.IsByte())
         {
-            writer.WriteLine("return TryParseSlow(source, out value);");
+            writer.WriteLine("return TryParseFromUtf16(source, out value);");
         }
         else
         {
@@ -246,9 +246,12 @@ public partial class EnumConverterGenerator
                         }
                         else
                         {
+                            int len = Math.Min(32, lengthGroup.Max(e => e.Name.Length));
+                            len = (int)Math.Pow(2, Math.Ceiling(Math.Log(len) / Math.Log(2)));
+                            
                             writer.DebugLine("Slow path: not ascii and not case-agnostic");
                             writer.WriteLine(
-                                "global::System.ReadOnlySpan<char> source_chars = GetChars(source, stackalloc char[32], out char[]? toReturn);");
+                                $"global::System.ReadOnlySpan<char> source_chars = GetChars(source, stackalloc char[{len}], out char[]? toReturn);");
                             writer.WriteLine("bool retVal = false;");
                             writer.WriteLine("__Unsafe.SkipInit(out value);");
                             writer.WriteLine();

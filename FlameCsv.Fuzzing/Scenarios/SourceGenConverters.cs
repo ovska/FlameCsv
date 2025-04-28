@@ -98,7 +98,7 @@ public partial class SourceGenConverters : IScenario
         public static readonly Action<CsvOptions<T>>[] Configure = (
             from ignoreCase in (bool[]) [true, false]
             from allowUndefinedEnumValues in (bool[]) [true, false]
-            from enumFormat in (string[]) [null, "G", "D", "X", "F"]
+            from enumFormat in (string?[]) [null, "G", "D", "X", "F"]
             select (Action<CsvOptions<T>>)(o =>
             {
                 o.IgnoreEnumCase = ignoreCase;
