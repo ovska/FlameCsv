@@ -4,22 +4,18 @@
 
 namespace FlameCsv.Tests.Utilities;
 
-public class GuardedMemoryManagerCharTests : GuardedMemoryManagerTestsBase<char>
-{
-    public static bool IsNotWindows => !OperatingSystem.IsWindows();
-}
+public class GuardedMemoryManagerCharTests : GuardedMemoryManagerTestsBase<char>;
 
-public class GuardedMemoryManagerByteTests : GuardedMemoryManagerTestsBase<byte>
-{
-    public static bool IsNotWindows => !OperatingSystem.IsWindows();
-}
+public class GuardedMemoryManagerByteTests : GuardedMemoryManagerTestsBase<byte>;
 
 [SupportedOSPlatform("windows")]
 public abstract class GuardedMemoryManagerTestsBase<T> where T : unmanaged
 {
-    [Theory(Skip = "GMM is windows only", SkipWhen = "IsNotWindows"), MemberData(nameof(AllocationData))]
+    [Theory, MemberData(nameof(AllocationData))]
     public void Should_Allocate_Guarded_Memory(bool fromEnd, int size)
     {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows is supported.");
+        
         Assert.Equal(4096, Environment.SystemPageSize);
 
         // $env:COMPlus_legacyCorruptedStateExceptionsPolicy=1
@@ -56,7 +52,7 @@ public abstract class GuardedMemoryManagerTestsBase<T> where T : unmanaged
         get
         {
             var data = new TheoryData<bool, int>();
-
+    
             foreach (var fromEnd in GlobalData.Booleans)
             foreach (var size in (int[]) [32, 64, 1024, 4096, 4096 * 2])
             {
