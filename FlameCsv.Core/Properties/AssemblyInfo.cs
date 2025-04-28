@@ -3,7 +3,7 @@ global using RUF = System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttri
 global using RDC = System.Diagnostics.CodeAnalysis.RequiresDynamicCodeAttribute;
 global using System.Numerics;
 
-[assembly: System.Reflection.Metadata.MetadataUpdateHandlerAttribute(typeof(FlameCsv.Utilities.HotReloadService))]
+[assembly: System.Reflection.Metadata.MetadataUpdateHandler(typeof(FlameCsv.Utilities.HotReloadService))]
 
 [assembly:
     System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(

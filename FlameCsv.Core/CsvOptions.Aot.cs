@@ -50,7 +50,7 @@ partial class CsvOptions<T>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public CsvConverter<T, TResult> GetConverter<TResult>()
         {
-            if (TryGetExistingOrCustomConverter<TResult>(out CsvConverter<T, TResult>? converter))
+            if (TryGetExistingOrCustomConverter(out CsvConverter<T, TResult>? converter))
             {
                 return converter;
             }
@@ -88,7 +88,7 @@ partial class CsvOptions<T>
         {
             ArgumentNullException.ThrowIfNull(factory);
 
-            if (TryGetExistingOrCustomConverter<TValue>(out CsvConverter<T, TValue>? converter))
+            if (TryGetExistingOrCustomConverter(out CsvConverter<T, TValue>? converter))
             {
                 return converter;
             }

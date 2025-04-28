@@ -45,7 +45,7 @@ public static class CsvFieldWritingExtensions
         writer.EscapeAndAdvanceExternal(destination, charsWritten);
     }
 
-    /// <inheritdoc cref="FormatValue{T}(ref readonly FlameCsv.Writing.CsvFieldWriter{char},T,System.ReadOnlySpan{char},System.IFormatProvider?)"/>
+    /// <inheritdoc cref="FormatValue{T}(ref readonly CsvFieldWriter{char},T,ReadOnlySpan{char},System.IFormatProvider?)"/>
     public static void FormatValue<T>(
         ref readonly this CsvFieldWriter<byte> writer,
         T value,
@@ -85,7 +85,7 @@ public static class CsvFieldWritingExtensions
         writer.EscapeAndAdvanceExternal(destination, bytesWritten);
     }
 
-    /// <inheritdoc cref="FormatValue{T}(ref readonly FlameCsv.Writing.CsvFieldWriter{char},T,System.ReadOnlySpan{char},System.IFormatProvider?)"/>
+    /// <inheritdoc cref="FormatValue{T}(ref readonly CsvFieldWriter{char},T,ReadOnlySpan{char},System.IFormatProvider?)"/>
     public static void FormatValue<T>(
         ref readonly this CsvFieldWriter<char> writer,
         T? value,
@@ -99,7 +99,7 @@ public static class CsvFieldWritingExtensions
         }
     }
 
-    /// <inheritdoc cref="FormatValue{T}(ref readonly FlameCsv.Writing.CsvFieldWriter{char},T,System.ReadOnlySpan{char},System.IFormatProvider?)"/>
+    /// <inheritdoc cref="FormatValue{T}(ref readonly CsvFieldWriter{char},T,ReadOnlySpan{char},System.IFormatProvider?)"/>
     public static void FormatValue<T>(
         ref readonly this CsvFieldWriter<byte> writer,
         T? value,
