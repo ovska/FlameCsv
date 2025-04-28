@@ -33,14 +33,33 @@ jobs:
       with:
         dotnet-version: 9.x
 
+    - name: Find test projects
+      shell: bash
+      run: echo "TEST_PROJECTS=$(find . -name "*Tests*.csproj" | tr '\n' ' ')" >> $GITHUB_ENV
+
     - name: Restore test dependencies
-      run: dotnet restore **/*Tests*.csproj
+      shell: bash
+      run: |
+        for project in $TEST_PROJECTS; do
+          echo "Restoring $project"
+          dotnet restore "$project"
+        done
 
     - name: Build test projects
-      run: dotnet build --configuration Release --no-restore **/*Tests*.csproj
+      shell: bash
+      run: |
+        for project in $TEST_PROJECTS; do
+          echo "Building $project"
+          dotnet build --configuration Release --no-restore "$project"
+        done
 
     - name: Run tests
-      run: dotnet test --configuration Release --no-build --verbosity minimal --logger "console;verbosity=minimal" --nologo **/*Tests*.csproj --collect:"XPlat Code Coverage"
+      shell: bash
+      run: |
+        for project in $TEST_PROJECTS; do
+          echo "Testing $project"
+          dotnet test --configuration Release --no-build --verbosity minimal --logger "console;verbosity=minimal" --nologo "$project" --collect:"XPlat Code Coverage"
+        done
 
     - name: Upload coverage reports
       uses: actions/upload-artifact@v4
