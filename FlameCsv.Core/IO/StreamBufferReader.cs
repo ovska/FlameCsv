@@ -49,13 +49,8 @@ internal sealed class StreamBufferReader : CsvBufferReader<byte>
         }
     }
 
-    protected override async ValueTask DisposeAsyncCore()
+    protected override ValueTask DisposeAsyncCore()
     {
-        if (!_leaveOpen)
-        {
-            await _stream.DisposeAsync().ConfigureAwait(false);
-        }
-        
-        await base.DisposeAsyncCore().ConfigureAwait(false);
+        return _leaveOpen ? default : _stream.DisposeAsync();
     }
 }
