@@ -17,7 +17,7 @@ internal sealed class StringBuilderBufferWriter : ICsvBufferWriter<char>
     {
         _builder = builder;
         _pool = allocator;
-        _memoryOwner = allocator.Rent(Environment.SystemPageSize / 2);
+        _memoryOwner = allocator.Rent(4096);
         _memory = _memoryOwner.Memory;
     }
 

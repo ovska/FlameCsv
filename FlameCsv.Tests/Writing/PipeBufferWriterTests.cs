@@ -26,13 +26,12 @@ public sealed class PipeBufferWriterTests : IAsyncDisposable
     }
 
     [Theory]
-    [InlineData(int.MinValue, false)]
-    [InlineData(-1, false)]
-    [InlineData(0, true)]
-    [InlineData(100, true)]
+    [InlineData(0, false)]
+    [InlineData((int)(4096 * 15d / 16) - 1, false)]
+    [InlineData((int)(4096 * 15d / 16), true)]
+    [InlineData((int)(4096 * 15d / 16) + 100, true)]
     public void Should_Return_If_Needs_Flush(int written, bool expected)
     {
-        written = Math.Max(0, written + (int)(Environment.SystemPageSize * 15d / 16d));
         Initialize();
         _ = _writer.GetSpan(written);
         _writer.Advance(written);
