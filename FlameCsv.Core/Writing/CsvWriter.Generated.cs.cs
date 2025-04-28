@@ -6,6 +6,7 @@ using System.Text;
 using FlameCsv.Binding;
 using FlameCsv.IO;
 using FlameCsv.Writing;
+using FlameCsv.Extensions;
 
 namespace FlameCsv;
 
@@ -152,7 +153,7 @@ static partial class CsvWriter
         CsvOptions<byte>? options = null,
         CsvIOOptions ioOptions = default)
     {
-        FlameCsv.Extensions.Guard.CanWrite(stream);
+        Guard.CanWrite(stream);
         ArgumentNullException.ThrowIfNull(values);
 
         options ??= CsvOptions<byte>.Default;
@@ -193,7 +194,7 @@ static partial class CsvWriter
             options ??= CsvOptions<char>.Default;
             IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-            using var writer = CsvFieldWriter.Create(textWriter, options, in ioOptions);
+            using var writer = await CsvFieldWriter.CreateAsync(textWriter, options, ioOptions).ConfigureAwait(false);
 
             await WriteAsyncCore(
                 values,
@@ -225,13 +226,13 @@ static partial class CsvWriter
         CsvIOOptions ioOptions = default,
         CancellationToken cancellationToken = default)
     {
-        FlameCsv.Extensions.Guard.CanWrite(stream);
+        Guard.CanWrite(stream);
         ArgumentNullException.ThrowIfNull(values);
 
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
+        using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
 
         await WriteAsyncCore(
             values,
@@ -266,7 +267,7 @@ static partial class CsvWriter
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        using var writer = CsvFieldWriter.Create(pipe, options);
+        using var writer = await CsvFieldWriter.CreateAsync(pipe, options).ConfigureAwait(false);
 
         await WriteAsyncCore(
             values,
@@ -310,7 +311,7 @@ static partial class CsvWriter
         // ensure the file stream is always disposed
         await using (stream.ConfigureAwait(false))
         {
-            using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
+            using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
 
             await WriteAsyncCore(
                 values,
@@ -358,7 +359,7 @@ static partial class CsvWriter
         // ensure the file stream is always disposed
         await using (stream.ConfigureAwait(false))
         {
-            using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
+            using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
 
             await WriteAsyncCore(
                 values,
@@ -399,7 +400,7 @@ static partial class CsvWriter
             options ??= CsvOptions<char>.Default;
             IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-            using var writer = CsvFieldWriter.Create(textWriter, options, in ioOptions);
+            using var writer = await CsvFieldWriter.CreateAsync(textWriter, options, ioOptions).ConfigureAwait(false);
 
             await WriteAsyncCore(
                 values,
@@ -431,13 +432,13 @@ static partial class CsvWriter
         CsvIOOptions ioOptions = default,
         CancellationToken cancellationToken = default)
     {
-        FlameCsv.Extensions.Guard.CanWrite(stream);
+        Guard.CanWrite(stream);
         ArgumentNullException.ThrowIfNull(values);
 
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
+        using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
 
         await WriteAsyncCore(
             values,
@@ -472,7 +473,7 @@ static partial class CsvWriter
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        using var writer = CsvFieldWriter.Create(pipe, options);
+        using var writer = await CsvFieldWriter.CreateAsync(pipe, options).ConfigureAwait(false);
 
         await WriteAsyncCore(
             values,
@@ -516,7 +517,7 @@ static partial class CsvWriter
         // ensure the file stream is always disposed
         await using (stream.ConfigureAwait(false))
         {
-            using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
+            using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
 
             await WriteAsyncCore(
                 values,
@@ -564,7 +565,7 @@ static partial class CsvWriter
         // ensure the file stream is always disposed
         await using (stream.ConfigureAwait(false))
         {
-            using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
+            using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
 
             await WriteAsyncCore(
                 values,
@@ -720,7 +721,7 @@ static partial class CsvWriter
         CsvOptions<byte>? options = null,
         CsvIOOptions ioOptions = default)
     {
-        FlameCsv.Extensions.Guard.CanWrite(stream);
+        Guard.CanWrite(stream);
         ArgumentNullException.ThrowIfNull(values);
 
         options ??= CsvOptions<byte>.Default;
@@ -762,7 +763,7 @@ static partial class CsvWriter
             options ??= CsvOptions<char>.Default;
             IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-            using var writer = CsvFieldWriter.Create(textWriter, options, in ioOptions);
+            using var writer = await CsvFieldWriter.CreateAsync(textWriter, options, ioOptions).ConfigureAwait(false);
 
             await WriteAsyncCore(
                 values,
@@ -795,13 +796,13 @@ static partial class CsvWriter
         CsvIOOptions ioOptions = default,
         CancellationToken cancellationToken = default)
     {
-        FlameCsv.Extensions.Guard.CanWrite(stream);
+        Guard.CanWrite(stream);
         ArgumentNullException.ThrowIfNull(values);
 
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
+        using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
 
         await WriteAsyncCore(
             values,
@@ -837,7 +838,7 @@ static partial class CsvWriter
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        using var writer = CsvFieldWriter.Create(pipe, options);
+        using var writer = await CsvFieldWriter.CreateAsync(pipe, options).ConfigureAwait(false);
 
         await WriteAsyncCore(
             values,
@@ -882,7 +883,7 @@ static partial class CsvWriter
         // ensure the file stream is always disposed
         await using (stream.ConfigureAwait(false))
         {
-            using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
+            using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
 
             await WriteAsyncCore(
                 values,
@@ -931,7 +932,7 @@ static partial class CsvWriter
         // ensure the file stream is always disposed
         await using (stream.ConfigureAwait(false))
         {
-            using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
+            using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
 
             await WriteAsyncCore(
                 values,
@@ -973,7 +974,7 @@ static partial class CsvWriter
             options ??= CsvOptions<char>.Default;
             IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-            using var writer = CsvFieldWriter.Create(textWriter, options, in ioOptions);
+            using var writer = await CsvFieldWriter.CreateAsync(textWriter, options, ioOptions).ConfigureAwait(false);
 
             await WriteAsyncCore(
                 values,
@@ -1006,13 +1007,13 @@ static partial class CsvWriter
         CsvIOOptions ioOptions = default,
         CancellationToken cancellationToken = default)
     {
-        FlameCsv.Extensions.Guard.CanWrite(stream);
+        Guard.CanWrite(stream);
         ArgumentNullException.ThrowIfNull(values);
 
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
+        using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
 
         await WriteAsyncCore(
             values,
@@ -1048,7 +1049,7 @@ static partial class CsvWriter
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        using var writer = CsvFieldWriter.Create(pipe, options);
+        using var writer = await CsvFieldWriter.CreateAsync(pipe, options).ConfigureAwait(false);
 
         await WriteAsyncCore(
             values,
@@ -1093,7 +1094,7 @@ static partial class CsvWriter
         // ensure the file stream is always disposed
         await using (stream.ConfigureAwait(false))
         {
-            using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
+            using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
 
             await WriteAsyncCore(
                 values,
@@ -1142,7 +1143,7 @@ static partial class CsvWriter
         // ensure the file stream is always disposed
         await using (stream.ConfigureAwait(false))
         {
-            using var writer = CsvFieldWriter.Create(stream, options, in ioOptions);
+            using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
 
             await WriteAsyncCore(
                 values,
