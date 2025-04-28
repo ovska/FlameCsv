@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Runtime.CompilerServices;
+using System.Text;
 using FlameCsv.Utilities;
 
 namespace FlameCsv.Converters.Enums;
@@ -10,30 +11,41 @@ public sealed class CsvEnumFlagsUtf8FormatStrategy<TEnum> : CsvEnumFlagsFormatSt
     where TEnum : struct, Enum
 {
     // ReSharper disable once StaticMemberInGenericType
-    private static readonly byte[] _zero;
+    private static byte[]? _zero;
 
     static CsvEnumFlagsUtf8FormatStrategy()
+    {
+        HotReloadService.RegisterForHotReload(
+            typeof(TEnum),
+            static _ => _zero = null);
+    }
+
+    /// <inheritdoc />
+    public CsvEnumFlagsUtf8FormatStrategy(CsvOptions<byte> options, EnumFormatStrategy<byte, TEnum> inner)
+        : base(options, inner)
+    {
+    }
+
+    /// <inheritdoc />
+    protected override ReadOnlySpan<byte> Zero => _zero ?? InitSharedZero();
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static byte[] InitSharedZero()
     {
         foreach (var member in EnumMemberCache<TEnum>.ValuesAndNames)
         {
             if (EqualityComparer<TEnum>.Default.Equals(member.Value, default))
             {
-                _zero ??= Encoding.UTF8.GetBytes(member.ExplicitName ?? member.Name);
-                return;
+                return _zero = Encoding.UTF8.GetBytes(member.ExplicitName ?? member.Name);
             }
         }
 
-        _zero = [(byte)'\0'];
-        // TODO: hot reload support?
+        return _zero ??= SharedZero.Value;
     }
+}
 
-    /// <inheritdoc />
-    public CsvEnumFlagsUtf8FormatStrategy(CsvOptions<byte> options, EnumFormatStrategy<byte, TEnum> inner) : base(
-        options,
-        inner)
-    {
-    }
-
-    /// <inheritdoc />
-    protected override ReadOnlySpan<byte> Zero => _zero;
+// move out of generic class
+file static class SharedZero
+{
+    public static readonly byte[] Value = [(byte)'0'];
 }
