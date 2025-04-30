@@ -11,6 +11,21 @@ namespace FlameCsv.SourceGen;
 
 internal static class Extensions
 {
+    public static bool TryGetNamedArgument(this AttributeData attribute, string name, out TypedConstant value)
+    {
+        foreach (var argument in attribute.NamedArguments)
+        {
+            if (argument.Key == name)
+            {
+                value = argument.Value;
+                return true;
+            }
+        }
+
+        value = default;
+        return false;
+    }
+    
     public static Location? GetLocation(this AttributeData attribute)
     {
         return attribute.ApplicationSyntaxReference?.SyntaxTree.GetLocation(attribute.ApplicationSyntaxReference.Span);

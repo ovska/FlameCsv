@@ -453,7 +453,7 @@ public static class ModelTests
                     [assembly: CsvHeaderAttribute("_prop", "prop_", MemberName = "Prop", TargetType = typeof(AssemblyTest.Target))]
                     [assembly: CsvIgnoredIndexesAttribute(new int[] { 1 }, TargetType = typeof(AssemblyTest.Target))]
                     [assembly: CsvTypeProxyAttribute(typeof(object), TargetType = typeof(AssemblyTest.Target))]
-                    [assembly: CsvIgnoredIndexesAttribute(IgnoredIndexes = new int[] { 1 }, TargetType = typeof(object))]
+                    [assembly: CsvIgnoredIndexesAttribute(Value = new int[] { 2 }, TargetType = typeof(object))]
 
                     namespace AssemblyTest
                     {
@@ -513,8 +513,7 @@ public static class ModelTests
         Assert.Equal(["prop_"], collector.TargetAttributes.WrittenSpan[0].Aliases.Select(x => x.Value?.ToString()));
         Assert.NotNull(collector.TargetAttributes.WrittenSpan[0].Attribute.GetLocation());
 
-        Assert.Single(collector.IgnoredIndexes);
-        Assert.Equal(1, collector.IgnoredIndexes.Single());
+        Assert.Equal([1], collector.IgnoredIndexes);
 
         Assert.Single(collector.Proxies);
         Assert.Equal(SpecialType.System_Object, collector.Proxies[0].SpecialType);
