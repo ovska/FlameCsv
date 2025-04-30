@@ -1,5 +1,4 @@
-﻿using FlameCsv.Attributes;
-using FlameCsv.SourceGen.Helpers;
+﻿using FlameCsv.SourceGen.Helpers;
 using FlameCsv.SourceGen.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -7,13 +6,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace FlameCsv.SourceGen.Tests;
 
-public static class ModelTests
+[Collection(typeof(MetadataCollection))]
+public class ModelTests(MetadataFixture fixture)
 {
-    private static MetadataReference CoreAssembly { get; } =
-        MetadataReference.CreateFromFile(typeof(CsvTypeMapAttribute<,>).Assembly.Location);
-
     [Fact]
-    public static void Test_AnalysisCollector()
+    public void Test_AnalysisCollector()
     {
         var compilation = CSharpCompilation.Create(
             nameof(Test_AnalysisCollector),
@@ -25,7 +22,7 @@ public static class ModelTests
                     """,
                     cancellationToken: TestContext.Current.CancellationToken)
             ],
-            [CoreAssembly, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+            [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
         var first = compilation.GetTypeByMetadataName("First")!;
@@ -45,7 +42,7 @@ public static class ModelTests
     }
 
     [Fact]
-    public static void Test_TypeRef()
+    public void Test_TypeRef()
     {
         var compilation = CSharpCompilation.Create(
             nameof(Test_TypeRef),
@@ -64,7 +61,7 @@ public static class ModelTests
                     """,
                     cancellationToken: TestContext.Current.CancellationToken)
             ],
-            [CoreAssembly, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+            [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
         var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
@@ -117,7 +114,7 @@ public static class ModelTests
     }
 
     [Fact]
-    public static void Test_ParameterModel()
+    public void Test_ParameterModel()
     {
         var compilation = CSharpCompilation.Create(
             nameof(Test_ParameterModel),
@@ -135,7 +132,7 @@ public static class ModelTests
                     """,
                     cancellationToken: TestContext.Current.CancellationToken)
             ],
-            [CoreAssembly, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+            [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
         var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
@@ -198,7 +195,7 @@ public static class ModelTests
     }
 
     [Fact]
-    public static void Test_PropertyModel()
+    public void Test_PropertyModel()
     {
         var compilation = CSharpCompilation.Create(
             nameof(Test_ParameterModel),
@@ -227,7 +224,7 @@ public static class ModelTests
                     """,
                     cancellationToken: TestContext.Current.CancellationToken)
             ],
-            [CoreAssembly, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+            [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
         var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
@@ -310,7 +307,7 @@ public static class ModelTests
     }
 
     [Fact]
-    public static void Test_ConverterModel()
+    public void Test_ConverterModel()
     {
         var compilation = CSharpCompilation.Create(
             nameof(Test_TypeRef),
@@ -368,7 +365,7 @@ public static class ModelTests
                     """,
                     cancellationToken: TestContext.Current.CancellationToken)
             ],
-            [CoreAssembly, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+            [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
         var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
@@ -438,7 +435,7 @@ public static class ModelTests
     }
 
     [Fact]
-    public static void Test_AssemblyModel()
+    public void Test_AssemblyModel()
     {
         var compilation = CSharpCompilation.Create(
             nameof(Test_AssemblyModel),
@@ -465,7 +462,7 @@ public static class ModelTests
                     """,
                     cancellationToken: TestContext.Current.CancellationToken)
             ],
-            [CoreAssembly, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+            [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
         var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
@@ -522,7 +519,7 @@ public static class ModelTests
     }
 
     [Fact]
-    public static void Test_NestedType()
+    public void Test_NestedType()
     {
         var compilation = CSharpCompilation.Create(
             nameof(Test_NestedType),
@@ -548,7 +545,7 @@ public static class ModelTests
                     """,
                     cancellationToken: TestContext.Current.CancellationToken)
             ],
-            [CoreAssembly, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+            [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
         var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
@@ -612,7 +609,7 @@ public static class ModelTests
     }
 
     [Theory, InlineData(true), InlineData(false)]
-    public static void Test_Convertability(bool charToken)
+    public void Test_Convertability(bool charToken)
     {
         var compilation = CSharpCompilation.Create(
             nameof(Test_NestedType),
@@ -643,7 +640,7 @@ public static class ModelTests
                     """,
                     cancellationToken: TestContext.Current.CancellationToken)
             ],
-            [CoreAssembly, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+            [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
         var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
