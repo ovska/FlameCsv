@@ -50,31 +50,33 @@ internal readonly struct AttributeConfiguration(AttributeData attribute)
 
         if (symbols.IsCsvHeaderAttribute(attrSymbol))
         {
-            if ((memberName = ParseMemberName()) is null) return null;
+            if (!TryGetMemberName(ref collector, out memberName)) return null;
             ParseHeader(attribute, out headerName, out aliases);
         }
         else if (symbols.IsCsvRequiredAttribute(attrSymbol))
         {
-            if ((memberName = ParseMemberName()) is null) return null;
+            if (!TryGetMemberName(ref collector, out memberName)) return null;
             isRequired = true;
         }
         else if (symbols.IsCsvOrderAttribute(attrSymbol))
         {
-            if ((memberName = ParseMemberName()) is null) return null;
+            if (!TryGetMemberName(ref collector, out memberName)) return null;
             ParseOrder(attribute, out order);
         }
         else if (symbols.IsCsvIndexAttribute(attrSymbol))
         {
-            if ((memberName = ParseMemberName()) is null) return null;
+            if (!TryGetMemberName(ref collector, out memberName)) return null;
             ParseIndex(attribute, out index);
         }
         else if (symbols.IsCsvIgnoreAttribute(attrSymbol))
         {
-            if ((memberName = ParseMemberName()) is null) return null;
+            if (!TryGetMemberName(ref collector, out memberName)) return null;
             isIgnored = true;
         }
         else if (symbols.IsIgnoredIndexesAttribute(attrSymbol))
         {
+            if (!TryEnsureType(ref collector)) return null;
+
             ImmutableArray<TypedConstant> indexes = [];
 
             if (attribute.ConstructorArguments.Length > 0)
@@ -98,6 +100,8 @@ internal readonly struct AttributeConfiguration(AttributeData attribute)
         }
         else if (symbols.IsTypeProxyAttribute(attrSymbol))
         {
+            if (!TryEnsureType(ref collector)) return null;
+
             if (attribute.ConstructorArguments[0] is { Kind: TypedConstantKind.Type, Value: ITypeSymbol proxy })
             {
                 collector.AddProxy(proxy, attribute.ApplicationSyntaxReference?.GetSyntax().GetLocation());
@@ -122,10 +126,37 @@ internal readonly struct AttributeConfiguration(AttributeData attribute)
             Aliases = aliases.IsDefault ? [] : aliases,
         };
 
-        string? ParseMemberName()
+        bool TryEnsureType(ref AnalysisCollector collector)
         {
-            string? result = null;
-            bool needType = isOnAssembly;
+            if (!isOnAssembly)
+            {
+                return true;
+            }
+
+            if (!attribute.TryGetNamedArgument("TargetType", out TypedConstant targetTypeArg))
+            {
+                collector.AddDiagnostic(Diagnostics.NoTargetTypeOnAssembly(attribute, attrSymbol));
+                return false;
+            }
+
+            if (!SymbolEqualityComparer.Default.Equals(targetType, targetTypeArg.Value as ISymbol))
+            {
+                // for another type
+                return false;
+            }
+
+            return true;
+        }
+
+        bool TryGetMemberName(ref AnalysisCollector collector, [NotNullWhen(true)] out string? result)
+        {
+            if (!TryEnsureType(ref collector))
+            {
+                result = null;
+                return false;
+            }
+
+            result = null;
 
             foreach (var arg in attribute.NamedArguments)
             {
@@ -137,28 +168,15 @@ internal readonly struct AttributeConfiguration(AttributeData attribute)
                 {
                     isParameter = arg.Value.Value is true;
                 }
-                else if (needType && arg.Key == "TargetType")
-                {
-                    if (arg.Value.Kind == TypedConstantKind.Type &&
-                        SymbolEqualityComparer.Default.Equals(targetType, arg.Value.Value as ITypeSymbol))
-                    {
-                        needType = false;
-                    }
-                    else
-                    {
-                        // wrong type
-                        return null;
-                    }
-                }
             }
 
-            if (needType)
+            if (result is null)
             {
-                // TODO: diagnostic
-                return null;
+                collector.AddDiagnostic(Diagnostics.NoMemberNameOnAttribute(attribute, isOnAssembly));
+                return false;
             }
 
-            return result;
+            return true;
         }
     }
 
