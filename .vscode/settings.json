@@ -36,6 +36,7 @@
         "suppressJITOptimizations": true,
         "type": "coreclr"
     },
+    "csharpier.diagnosticsLevel": "2",
     "dotnet.autoInsert.enableAutoInsert": true,
     "dotnet.backgroundAnalysis.analyzerDiagnosticsScope": "fullSolution",
     "dotnet.backgroundAnalysis.compilerDiagnosticsScope": "fullSolution",
