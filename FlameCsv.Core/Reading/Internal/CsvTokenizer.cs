@@ -77,8 +77,8 @@ internal static class CsvTokenizer
         }
 
         return dialect.Newline.IsCRLF()
-            ? new ScalarTokenizer<T, NewlineParserTwo<T, NoOpVector<T>>>(dialect)
-            : new ScalarTokenizer<T, NewlineParserOne<T, NoOpVector<T>>>(dialect);
+            ? new ScalarTokenizer<T, NewlineCRLF<T, NoOpVector<T>>>(dialect)
+            : new ScalarTokenizer<T, NewlineLF<T, NoOpVector<T>>>(dialect);
     }
 }
 
@@ -94,20 +94,20 @@ file static class ForChar
         if (Vec256Char.IsSupported)
         {
             return dialect.Newline.IsCRLF()
-                ? new SimdTokenizer<char, NewlineParserTwo<char, Vec256Char>, Vec256Char>(dialect)
-                : new SimdTokenizer<char, NewlineParserOne<char, Vec256Char>, Vec256Char>(dialect);
+                ? new SimdTokenizer<char, NewlineCRLF<char, Vec256Char>, Vec256Char>(dialect)
+                : new SimdTokenizer<char, NewlineLF<char, Vec256Char>, Vec256Char>(dialect);
         }
         else if (Vec512Char.IsSupported)
         {
             return dialect.Newline.IsCRLF()
-                ? new SimdTokenizer<char, NewlineParserTwo<char, Vec512Char>, Vec512Char>(dialect)
-                : new SimdTokenizer<char, NewlineParserOne<char, Vec512Char>, Vec512Char>(dialect);
+                ? new SimdTokenizer<char, NewlineCRLF<char, Vec512Char>, Vec512Char>(dialect)
+                : new SimdTokenizer<char, NewlineLF<char, Vec512Char>, Vec512Char>(dialect);
         }
         else if (Vec128Char.IsSupported)
         {
             return dialect.Newline.IsCRLF()
-                ? new SimdTokenizer<char, NewlineParserTwo<char, Vec128Char>, Vec128Char>(dialect)
-                : new SimdTokenizer<char, NewlineParserOne<char, Vec128Char>, Vec128Char>(dialect);
+                ? new SimdTokenizer<char, NewlineCRLF<char, Vec128Char>, Vec128Char>(dialect)
+                : new SimdTokenizer<char, NewlineLF<char, Vec128Char>, Vec128Char>(dialect);
         }
 
         return null;
@@ -124,20 +124,20 @@ file static class ForByte
         if (Vec256Byte.IsSupported)
         {
             return dialect.Newline.IsCRLF()
-                ? new SimdTokenizer<byte, NewlineParserTwo<byte, Vec256Byte>, Vec256Byte>(dialect)
-                : new SimdTokenizer<byte, NewlineParserOne<byte, Vec256Byte>, Vec256Byte>(dialect);
+                ? new SimdTokenizer<byte, NewlineCRLF<byte, Vec256Byte>, Vec256Byte>(dialect)
+                : new SimdTokenizer<byte, NewlineLF<byte, Vec256Byte>, Vec256Byte>(dialect);
         }
         else if (Vec512Byte.IsSupported)
         {
             return dialect.Newline.IsCRLF()
-                ? new SimdTokenizer<byte, NewlineParserTwo<byte, Vec512Byte>, Vec512Byte>(dialect)
-                : new SimdTokenizer<byte, NewlineParserOne<byte, Vec512Byte>, Vec512Byte>(dialect);
+                ? new SimdTokenizer<byte, NewlineCRLF<byte, Vec512Byte>, Vec512Byte>(dialect)
+                : new SimdTokenizer<byte, NewlineLF<byte, Vec512Byte>, Vec512Byte>(dialect);
         }
         else if (Vec128Byte.IsSupported)
         {
             return dialect.Newline.IsCRLF()
-                ? new SimdTokenizer<byte, NewlineParserTwo<byte, Vec128Byte>, Vec128Byte>(dialect)
-                : new SimdTokenizer<byte, NewlineParserOne<byte, Vec128Byte>, Vec128Byte>(dialect);
+                ? new SimdTokenizer<byte, NewlineCRLF<byte, Vec128Byte>, Vec128Byte>(dialect)
+                : new SimdTokenizer<byte, NewlineLF<byte, Vec128Byte>, Vec128Byte>(dialect);
         }
 
         return null;
