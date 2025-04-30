@@ -34,7 +34,7 @@ namespace FlameCsv.Reading.Internal;
 
 [SkipLocalsInit]
 [SuppressMessage("ReSharper", "InlineTemporaryVariable")]
-internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect) : CsvPartialTokenizer<T>
+internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options) : CsvPartialTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
     where TNewline : struct, INewline<T, TVector>
     where TVector : struct, ISimdVector<T, TVector>
@@ -42,6 +42,9 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect)
     private static int EndOffset => (TVector.Count * 2) + (int)TNewline.OffsetFromEnd;
 
     public override int PreferredLength => TVector.Count * 4;
+
+    private readonly T _quote = T.CreateTruncating(options.Quote);
+    private readonly T _delimiter = T.CreateTruncating(options.Delimiter);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     public override int Tokenize(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex)
@@ -70,9 +73,9 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect)
         );
 
         // load the constants into registers
-        T quote = dialect.Quote;
-        TVector delimiterVec = TVector.Create(dialect.Delimiter);
-        TVector quoteVec = TVector.Create(dialect.Quote);
+        T quote = _quote;
+        TVector delimiterVec = TVector.Create(_delimiter);
+        TVector quoteVec = TVector.Create(_quote);
         TNewline.Load(out TVector newline1, out TVector newline2);
         uint quotesConsumed = 0;
 

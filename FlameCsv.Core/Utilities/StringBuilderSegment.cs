@@ -12,12 +12,14 @@ internal sealed class StringBuilderSegment : ReadOnlySequenceSegment<char>
 
         var enumerator = builder.GetChunks();
 
-        if (!enumerator.MoveNext()) return default;
+        if (!enumerator.MoveNext())
+            return default;
 
         ReadOnlyMemory<char> firstMemory = enumerator.Current;
 
         // optimization: use the memory directly for single-segment strings
-        if (!enumerator.MoveNext()) return new ReadOnlySequence<char>(firstMemory);
+        if (!enumerator.MoveNext())
+            return new ReadOnlySequence<char>(firstMemory);
 
         StringBuilderSegment first = new(firstMemory);
         StringBuilderSegment last = first;

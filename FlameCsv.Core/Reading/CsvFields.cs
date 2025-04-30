@@ -14,7 +14,8 @@ namespace FlameCsv.Reading;
 [PublicAPI]
 [DebuggerDisplay("{ToString(),nq}")]
 [DebuggerTypeProxy(typeof(CsvFields<>.CsvLineDebugView))]
-public readonly struct CsvFields<T> : ICsvFields<T> where T : unmanaged, IBinaryInteger<T>
+public readonly struct CsvFields<T> : ICsvFields<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvFields(CsvReader<T> reader, ReadOnlyMemory<T> data, ArraySegment<Meta> fieldMeta)
@@ -134,11 +135,12 @@ public readonly struct CsvFields<T> : ICsvFields<T> where T : unmanaged, IBinary
 
         return fields[index + 1]
             .GetField(
-                dialect: in Reader._dialect,
+                dialect: new Dialect<T>(Reader.Options),
                 start: start,
                 data: ref MemoryMarshal.GetReference(data),
                 buffer: buffer,
-                allocator: Reader._unescapeAllocator);
+                allocator: Reader._unescapeAllocator
+            );
     }
 
     /// <summary>
@@ -198,7 +200,8 @@ public readonly struct CsvFields<T> : ICsvFields<T> where T : unmanaged, IBinary
         {
             foreach (var meta in Fields)
             {
-                if (meta.SpecialCount > 2) return true;
+                if (meta.SpecialCount > 2)
+                    return true;
             }
 
             return false;

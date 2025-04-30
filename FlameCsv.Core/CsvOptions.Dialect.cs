@@ -1,49 +1,49 @@
-﻿using System.ComponentModel;
+﻿using System.Buffers;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
+using FlameCsv.Utilities;
 
 namespace FlameCsv;
 
+internal readonly struct Dialect<T>
+    where T : unmanaged, IBinaryInteger<T>
+{
+    public readonly T Quote;
+    public readonly T Escape;
+    public readonly CsvFieldTrimming Trimming;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Dialect(CsvOptions<T> options)
+    {
+        if (typeof(T) == typeof(byte))
+        {
+            unchecked
+            {
+                Quote = Unsafe.BitCast<byte, T>((byte)options.Quote);
+                Escape = Unsafe.BitCast<byte, T>((byte)options.Escape.GetValueOrDefault());
+            }
+        }
+        else if (typeof(T) == typeof(char))
+        {
+            Quote = Unsafe.BitCast<char, T>(options.Quote);
+            Escape = Unsafe.BitCast<char, T>(options.Escape.GetValueOrDefault());
+        }
+        else
+        {
+            throw new NotSupportedException();
+        }
+
+        Trimming = options.Trimming;
+    }
+}
+
 public partial class CsvOptions<T>
 {
-    /// <summary>
-    /// Gets or creates the dialect using the configured options.
-    /// </summary>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public ref readonly CsvDialect<T> Dialect
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            if (_dialect.HasValue)
-            {
-                return ref Nullable.GetValueRefOrDefaultRef(in _dialect);
-            }
-
-            return ref InitializeDialectCore();
-        }
-    }
-
-    private CsvDialect<T>? _dialect;
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private ref readonly CsvDialect<T> InitializeDialectCore()
-    {
-        CsvDialect<T> result = new()
-        {
-            Delimiter = T.CreateChecked(_delimiter),
-            Quote = T.CreateChecked(_quote),
-            Escape = _escape.HasValue ? T.CreateChecked(_escape.Value) : null,
-            Trimming = _trimming,
-            Newline = _newline,
-        };
-
-        result.Validate();
-        _dialect = result;
-        return ref Nullable.GetValueRefOrDefaultRef(in _dialect);
-    }
-
     private char _delimiter = ',';
     private char _quote = '"';
     private CsvNewline _newline = CsvNewline.CRLF;
@@ -58,9 +58,7 @@ public partial class CsvOptions<T>
         get => _delimiter;
         set
         {
-            ArgumentOutOfRangeException.ThrowIfZero(value);
-            ArgumentOutOfRangeException.ThrowIfEqual(value, ' ');
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(value, 127);
+            DialectHelper.ValidateToken(value);
             this.SetValue(ref _delimiter, value);
         }
     }
@@ -73,9 +71,7 @@ public partial class CsvOptions<T>
         get => _quote;
         set
         {
-            ArgumentOutOfRangeException.ThrowIfZero(value);
-            ArgumentOutOfRangeException.ThrowIfEqual(value, ' ');
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(value, 127);
+            DialectHelper.ValidateToken(value);
             this.SetValue(ref _quote, value);
         }
     }
@@ -91,9 +87,7 @@ public partial class CsvOptions<T>
         {
             if (value.HasValue)
             {
-                ArgumentOutOfRangeException.ThrowIfZero(value.Value, nameof(value));
-                ArgumentOutOfRangeException.ThrowIfEqual(value.Value, ' ', nameof(value));
-                ArgumentOutOfRangeException.ThrowIfGreaterThan(value.Value, 127, nameof(value));
+                DialectHelper.ValidateToken(value.Value, nameof(value));
             }
 
             this.SetValue(ref _escape, value);
@@ -130,5 +124,125 @@ public partial class CsvOptions<T>
             ArgumentOutOfRangeException.ThrowIfGreaterThan((byte)value, (byte)CsvFieldTrimming.Both, nameof(value));
             this.SetValue(ref _trimming, value);
         }
+    }
+
+    /// <summary>
+    /// Ensures <see cref="Delimiter"/>, <see cref="Quote"/>, and <see cref="Escape"/> are valid.
+    /// </summary>
+    /// <exception cref="CsvConfigurationException"/>
+    public void Validate()
+    {
+        StringScratch scratch = default;
+        using ValueListBuilder<string> errors = new(scratch);
+
+        if (_delimiter.Equals(_quote))
+        {
+            errors.Append("Delimiter and Quote must not be equal.");
+        }
+
+        if (_escape.HasValue)
+        {
+            if (_escape.GetValueOrDefault().Equals(_delimiter))
+                errors.Append("Escape must not be equal to Delimiter.");
+
+            if (_escape.GetValueOrDefault().Equals(_quote))
+                errors.Append("Escape must not be equal to Quote.");
+        }
+
+        if (errors.Length != 0)
+        {
+            // reset faulty cached value
+            _needsQuoting = null;
+            DialectHelper.ThrowException(errors.AsSpan(), _delimiter, _quote, _escape);
+        }
+    }
+
+    private SearchValues<T>? _needsQuoting;
+
+    /// <summary>
+    /// Returns search values that determine if a field needs to be quoted.
+    /// </summary>
+    internal SearchValues<T> NeedsQuoting => _needsQuoting ??= InitNeedsQuoting();
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private SearchValues<T> InitNeedsQuoting()
+    {
+        ReadOnlySpan<T> values =
+        [
+            T.CreateTruncating(_delimiter),
+            T.CreateTruncating(_quote),
+            T.CreateTruncating('\r'),
+            T.CreateTruncating('\n'),
+            T.CreateSaturating(_escape.GetValueOrDefault()),
+        ];
+
+        if (!Escape.HasValue)
+        {
+            values = values.Slice(0, 4);
+        }
+
+        if (typeof(T) == typeof(byte))
+        {
+            return (SearchValues<T>)(object)SearchValues.Create(MemoryMarshal.Cast<T, byte>(values));
+        }
+
+        if (typeof(T) == typeof(char))
+        {
+            return (SearchValues<T>)(object)SearchValues.Create(MemoryMarshal.Cast<T, char>(values));
+        }
+
+        throw new NotSupportedException();
+    }
+}
+
+// throwhelper doesn't need to be generic
+file static class DialectHelper
+{
+    [StackTraceHidden]
+    public static void ValidateToken(char value, [CallerArgumentExpression(nameof(value))] string name = "")
+    {
+        if (value is '\0')
+        {
+            Throw.Argument(name, "Dialect cannot contain 0 (null character).");
+        }
+
+        if (value is '\r' or '\n')
+        {
+            Throw.Argument(name, "Dialect cannot contain CR or LF due to newline ambiguity.");
+        }
+
+        if (value is ' ')
+        {
+            Throw.Argument(name, "Dialect cannot contain a space due to whitespace ambiguity.");
+        }
+
+        if (value > 127)
+        {
+            Throw.Argument(name, "Dialect cannot contain non-ASCII characters.");
+        }
+    }
+
+    [DoesNotReturn]
+    [StackTraceHidden]
+    public static void ThrowException(scoped ReadOnlySpan<string> errors, char delimiter, char quote, char? escape)
+    {
+        throw new CsvConfigurationException(
+            $"Invalid dialect configuration: {string.Join(" ", errors.ToArray())}. "
+                + $"Delimiter: {GetToken(delimiter)}, Quote: {GetToken(quote)}, Escape: {GetToken(escape.GetValueOrDefault())}"
+        );
+    }
+
+    private static string GetToken(char? v)
+    {
+        return v switch
+        {
+            null => "<null>",
+            '\0' => @"\0",
+            '\\' => @"\\",
+            '\r' => @"\r",
+            '\n' => @"\n",
+            '\t' => @"\t",
+            _ => v.Value.ToString(),
+        };
     }
 }

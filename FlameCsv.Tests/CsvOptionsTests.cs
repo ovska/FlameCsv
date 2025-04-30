@@ -18,11 +18,74 @@ public class CsvOptionsTests
     }
 
     [Fact]
+    public static void Should_Validate_Args()
+    {
+        // null
+        Run(o => o.Delimiter = '\0');
+        Run(o => o.Quote = '\0');
+        Run(o => o.Escape = '\0');
+
+        // space
+        Run(o => o.Delimiter = ' ');
+        Run(o => o.Quote = ' ');
+        Run(o => o.Escape = ' ');
+
+        // CR
+        Run(o => o.Delimiter = '\r');
+        Run(o => o.Quote = '\r');
+        Run(o => o.Escape = '\r');
+
+        // LF
+        Run(o => o.Delimiter = '\n');
+        Run(o => o.Quote = '\n');
+        Run(o => o.Escape = '\n');
+
+        // not ascii
+        Run(o => o.Delimiter = (char)128);
+        Run(o => o.Quote = (char)128);
+        Run(o => o.Escape = (char)128);
+
+        // invalid enum
+        Run(o => o.Newline = (CsvNewline)byte.MaxValue);
+        Run(o => o.Trimming = (CsvFieldTrimming)byte.MaxValue);
+
+        Assert.Throws<CsvConfigurationException>(() => new CsvOptions<char> { Delimiter = '"' }.Validate());
+        Assert.Throws<CsvConfigurationException>(() => new CsvOptions<char> { Quote = ',' }.Validate());
+        Assert.Throws<CsvConfigurationException>(() => new CsvOptions<char> { Escape = '"' }.Validate());
+        Assert.Throws<CsvConfigurationException>(() => new CsvOptions<char> { Escape = ',' }.Validate());
+
+        static void Run(Action<CsvOptions<char>> action)
+        {
+            Assert.ThrowsAny<ArgumentException>(() => action(new CsvOptions<char>()));
+        }
+    }
+
+    [Fact]
+    public static void Should_Initialize_EscapeValues()
+    {
+        var def = CsvOptions<char>.Default;
+        Assert.True(def.NeedsQuoting.Contains(def.Delimiter));
+        Assert.True(def.NeedsQuoting.Contains(def.Quote));
+        Assert.True(def.NeedsQuoting.Contains('\r'));
+        Assert.True(def.NeedsQuoting.Contains('\n'));
+        Assert.False(def.NeedsQuoting.Contains('a'));
+        Assert.False(def.NeedsQuoting.Contains('\\'));
+
+        var withEscape = new CsvOptions<char> { Escape = '\\' };
+        Assert.True(withEscape.NeedsQuoting.Contains('\\'));
+
+        var withSingleTokenNewline = new CsvOptions<char> { Newline = CsvNewline.LF };
+        Assert.True(withSingleTokenNewline.NeedsQuoting.Contains('\n'));
+        Assert.True(withSingleTokenNewline.NeedsQuoting.Contains('\r')); // both always added
+    }
+
+    [Fact]
     public static void Should_Return_Null_Token()
     {
         var to = new CsvOptions<char>
         {
-            NullTokens = { [typeof(long)] = "long", [typeof(short?)] = "short", }, Null = "null",
+            NullTokens = { [typeof(long)] = "long", [typeof(short?)] = "short" },
+            Null = "null",
         };
 
         Assert.Equal("long", to.GetNullToken(typeof(long)).ToString());
@@ -39,7 +102,8 @@ public class CsvOptionsTests
 
         var bo = new CsvOptions<byte>
         {
-            NullTokens = { [typeof(long)] = "long", [typeof(short?)] = "short", }, Null = "null",
+            NullTokens = { [typeof(long)] = "long", [typeof(short?)] = "short" },
+            Null = "null",
         };
 
         Assert.Equal("long"u8, bo.GetNullToken(typeof(long)).Span);
@@ -60,7 +124,8 @@ public class CsvOptionsTests
     {
         var to = new CsvOptions<char>
         {
-            EnumFormat = "x", Formats = { [typeof(DayOfWeek)] = "d", [typeof(float)] = "0.0" },
+            EnumFormat = "x",
+            Formats = { [typeof(DayOfWeek)] = "d", [typeof(float)] = "0.0" },
         };
 
         Assert.Equal("1", Format(to, (DayOfWeek)1));
@@ -69,7 +134,8 @@ public class CsvOptionsTests
 
         var bo = new CsvOptions<byte>
         {
-            EnumFormat = "x", Formats = { [typeof(DayOfWeek)] = "d", [typeof(float)] = "0.0" },
+            EnumFormat = "x",
+            Formats = { [typeof(DayOfWeek)] = "d", [typeof(float)] = "0.0" },
         };
 
         Assert.Equal("1"u8, Format(bo, (DayOfWeek)1));
@@ -114,7 +180,7 @@ public class CsvOptionsTests
             {
                 [typeof(int)] = NumberStyles.AllowTrailingWhite,
                 [typeof(long)] = NumberStyles.AllowLeadingWhite,
-            }
+            },
         };
 
         Assert.True(to.GetConverter<int>().TryParse("1  ", out _));
@@ -128,7 +194,7 @@ public class CsvOptionsTests
             {
                 [typeof(int)] = NumberStyles.AllowTrailingWhite,
                 [typeof(long)] = NumberStyles.AllowLeadingWhite,
-            }
+            },
         };
 
         Assert.True(bo.GetConverter<int>().TryParse("1  "u8, out _));
@@ -137,8 +203,7 @@ public class CsvOptionsTests
         Assert.True(bo.GetConverter<long>().TryParse("  1"u8, out _));
     }
 
-    [Theory, InlineData(typeof(int*)), InlineData(typeof(List<>)), InlineData(typeof(Span<int>)),
-     InlineData(null)]
+    [Theory, InlineData(typeof(int*)), InlineData(typeof(List<>)), InlineData(typeof(Span<int>)), InlineData(null)]
     public static void Should_Validate_TypeDictionary_Argument(Type? type)
     {
         var to = new CsvOptions<char>();
@@ -162,7 +227,6 @@ public class CsvOptionsTests
         Assert.True(options.IsReadOnly);
 
         Assert.Equal(CsvNewline.CRLF, options.Newline);
-        Assert.Equal(CsvNewline.CRLF, options.Dialect.Newline);
 
         var boolParser = options.GetConverter<bool>();
         Assert.True(boolParser.TryParse("true", out var bValue));
@@ -188,7 +252,6 @@ public class CsvOptionsTests
         Assert.True(options.IsReadOnly);
 
         Assert.Equal(CsvNewline.CRLF, options.Newline);
-        Assert.Equal(CsvNewline.CRLF, options.Dialect.Newline);
 
         var boolParser = options.GetConverter<bool>();
         Assert.True(boolParser.TryParse("true"u8, out var bValue));
@@ -252,8 +315,7 @@ public class CsvOptionsTests
     [Fact]
     public void Should_ReRead_Header()
     {
-        const string data =
-            """
+        const string data = """
             A,B,C
             1,2,3
 
@@ -284,7 +346,7 @@ public class CsvOptionsTests
             }
         }
 
-        CsvOptions<char> options = new() { HasHeader = true, RecordCallback = Callback, };
+        CsvOptions<char> options = new() { HasHeader = true, RecordCallback = Callback };
 
         using (var enumerator = CsvReader.Enumerate(data, options).GetEnumerator())
         {
@@ -314,12 +376,7 @@ public class CsvOptionsTests
     [Fact]
     public void Should_Skip_Rows()
     {
-        const string data =
-            "sep=,\r\n" +
-            "A,B,C\r\n" +
-            "1,2,3\r\n" +
-            "#4,5,6\r\n" +
-            "7,8,9\r\n";
+        const string data = "sep=,\r\n" + "A,B,C\r\n" + "1,2,3\r\n" + "#4,5,6\r\n" + "7,8,9\r\n";
 
         static void Callback(ref readonly CsvRecordCallbackArgs<char> args)
         {
@@ -355,14 +412,9 @@ public class CsvOptionsTests
     [Fact]
     public void Should_Return_Correct_HeaderRead_in_Skip()
     {
-        foreach (var _ in CsvReader.Enumerate("A,B,C\n1,2,3", GetOpts(true)))
-        {
-        }
+        foreach (var _ in CsvReader.Enumerate("A,B,C\n1,2,3", GetOpts(true))) { }
 
-        foreach (var _ in CsvReader.Enumerate("X,y,z\nX,y,z", GetOpts(false)))
-        {
-        }
-
+        foreach (var _ in CsvReader.Enumerate("X,y,z\nX,y,z", GetOpts(false))) { }
 
         CsvOptions<char> GetOpts(bool hasHeader)
         {
@@ -388,7 +440,7 @@ public class CsvOptionsTests
                         Assert.InRange(args.Line, 1, 2);
                         Assert.False(args.HeaderRead);
                     }
-                }
+                },
             };
         }
     }

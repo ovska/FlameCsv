@@ -31,7 +31,7 @@ internal interface IEscaper<T> where T : unmanaged, IBinaryInteger<T>
     /// </summary>
     /// <param name="field">The span to search for special characters.</param>
     /// <returns>The number of special characters found.</returns>
-    /// <remarks>Called after <see cref="CsvDialect{T}.NeedsQuoting"/> matches a token.</remarks>
+    /// <remarks>Called after <see cref="CsvOptions{T}.NeedsQuoting"/> matches a token.</remarks>
     [Pure]
     int CountEscapable(scoped ReadOnlySpan<T> field);
 

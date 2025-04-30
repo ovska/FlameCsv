@@ -16,9 +16,10 @@ namespace FlameCsv.Reading;
 [SkipLocalsInit]
 [EditorBrowsable(EditorBrowsableState.Never)]
 [PublicAPI]
-public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, IBinaryInteger<T>
+public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly ref readonly CsvDialect<T> _dialect;
+    private readonly Dialect<T> _dialect;
     private readonly ref T _data;
     private readonly Span<T> _unescapeBuffer;
     private readonly Allocator<T> _allocator;
@@ -30,7 +31,7 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
         CsvReader<T> reader = fields.Reader;
         ReadOnlySpan<Meta> fieldMeta = fields.Fields;
 
-        _dialect = ref reader._dialect;
+        _dialect = new Dialect<T>(reader.Options);
         _allocator = reader._unescapeAllocator;
         _data = ref MemoryMarshal.GetReference(fields.Data.Span);
         _firstMeta = ref MemoryMarshal.GetReference(fieldMeta);
@@ -40,14 +41,16 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvFieldsRef(
-        CsvReader<T> reader,
+        Dialect<T> dialect,
+        Allocator<T> allocator,
         ref T data,
         ref Meta fieldsRef,
         int fieldsLength,
-        Span<T> unescapeBuffer)
+        Span<T> unescapeBuffer
+    )
     {
-        _dialect = ref reader._dialect;
-        _allocator = reader._unescapeAllocator;
+        _dialect = dialect;
+        _allocator = allocator;
         _data = ref data;
         _firstMeta = ref fieldsRef;
         FieldCount = fieldsLength - 1;
@@ -62,13 +65,14 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvFieldsRef(scoped ref readonly CsvFields<T> fields, Allocator<T> allocator)
     {
-        if (fields.Reader is null) Throw.InvalidOp_DefaultStruct(typeof(CsvFields<T>));
+        if (fields.Reader is null)
+            Throw.InvalidOp_DefaultStruct(typeof(CsvFields<T>));
         ArgumentNullException.ThrowIfNull(allocator);
 
         CsvReader<T> reader = fields.Reader;
         ReadOnlySpan<Meta> fieldMeta = fields.Fields;
 
-        _dialect = ref reader._dialect;
+        _dialect = new Dialect<T>(reader.Options);
         _allocator = allocator;
         _data = ref MemoryMarshal.GetReference(fields.Data.Span);
         _firstMeta = ref Unsafe.AsRef(in fieldMeta[0]);
@@ -97,7 +101,7 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
 
             ref Meta meta = ref Unsafe.Add(ref _firstMeta, index + 1);
             int start = Unsafe.Add(ref _firstMeta, index).NextStart;
-            return meta.GetField(in _dialect, start, ref _data, _unescapeBuffer, _allocator);
+            return meta.GetField(_dialect, start, ref _data, _unescapeBuffer, _allocator);
         }
     }
 
@@ -150,7 +154,7 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
 
         ref Meta meta = ref Unsafe.Add(ref _firstMeta, index + 1);
         int start = Unsafe.Add(ref _firstMeta, index).NextStart;
-        return meta.GetField(in _dialect, start, ref _data, _unescapeBuffer, allocator: null);
+        return meta.GetField(_dialect, start, ref _data, _unescapeBuffer, allocator: null);
     }
 
     /// <inheritdoc cref="CsvFields{T}.Record"/>
@@ -198,8 +202,7 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
 
         if (typeof(T) == typeof(byte))
         {
-            return
-                $"{{ CsvFieldsRef<{Token<T>.Name}>[{FieldCount}]: \"{Encoding.UTF8.GetString(MemoryMarshal.AsBytes(Record))}\" }}";
+            return $"{{ CsvFieldsRef<{Token<T>.Name}>[{FieldCount}]: \"{Encoding.UTF8.GetString(MemoryMarshal.AsBytes(Record))}\" }}";
         }
 
         return $"{{ CsvFieldsRef<{Token<T>.Name}>[{FieldCount}]: Length: {Record.Length} }}";
@@ -213,10 +216,12 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T> where T : unmanaged, 
 
     private void EnsureInitialized()
     {
-        if (FieldCount == 0 ||
-            Unsafe.IsNullRef(in _dialect) ||
-            Unsafe.IsNullRef(in _data) ||
-            Unsafe.IsNullRef(in _firstMeta))
+        if (
+            FieldCount == 0
+            || Unsafe.IsNullRef(in _dialect)
+            || Unsafe.IsNullRef(in _data)
+            || Unsafe.IsNullRef(in _firstMeta)
+        )
         {
             Throw.InvalidOp_DefaultStruct(typeof(CsvFieldsRef<T>));
         }

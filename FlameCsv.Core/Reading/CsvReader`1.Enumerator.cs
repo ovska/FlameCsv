@@ -26,8 +26,8 @@ partial class CsvReader<T>
     /// The enumerator advances the inner reader and parser, and disposes them after use.
     /// </remarks>
     [HandlesResourceDisposal]
-    public RecordAsyncEnumerable ParseRecordsAsync(CancellationToken cancellationToken = default)
-        => new(this, cancellationToken);
+    public RecordAsyncEnumerable ParseRecordsAsync(CancellationToken cancellationToken = default) =>
+        new(this, cancellationToken);
 
     /// <summary>
     /// Enumerates records from the parser.
@@ -48,7 +48,6 @@ partial class CsvReader<T>
             return new(_reader);
         }
     }
-
 
     /// <summary>
     /// Enumerates records from the parser.
@@ -72,7 +71,8 @@ partial class CsvReader<T>
         }
 
         IAsyncEnumerator<CsvFieldsRef<T>> IAsyncEnumerable<CsvFieldsRef<T>>.GetAsyncEnumerator(
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken
+        )
         {
             return new AsyncEnumerator(_reader, cancellationToken);
         }
@@ -85,7 +85,8 @@ partial class CsvReader<T>
     [SkipLocalsInit]
     public ref struct Enumerator : IDisposable
     {
-        [HandlesResourceDisposal] private readonly CsvReader<T> _reader;
+        [HandlesResourceDisposal]
+        private readonly CsvReader<T> _reader;
         private EnumeratorStack _stackMemory;
 
         private ref Meta _meta;
@@ -93,16 +94,22 @@ partial class CsvReader<T>
 
         private ref T _data;
 
+        private readonly Dialect<T> _dialect;
+        private readonly Allocator<T> _allocator;
+
         internal Enumerator(CsvReader<T> reader)
         {
             _reader = reader;
+            _allocator = reader._unescapeAllocator;
+            _dialect = new Dialect<T>(reader.Options);
         }
 
         /// <summary>
         /// Current record.
         /// </summary>
         [UnscopedRef]
-        public CsvFieldsRef<T> Current => new(_reader, ref _data, ref _meta, _metaLength, _stackMemory.AsSpan<T>());
+        public CsvFieldsRef<T> Current =>
+            new(_dialect, _allocator, ref _data, ref _meta, _metaLength, _stackMemory.AsSpan<T>());
 
         /// <summary>
         /// Attempts to read the next record.
@@ -147,7 +154,7 @@ partial class CsvReader<T>
                 return false;
             }
 
-        ConstructValue:
+            ConstructValue:
             _data = ref MemoryMarshal.GetReference(fields.Data.Span);
             _meta = ref MemoryMarshal.GetReference(fields.Fields);
             _metaLength = fields.Fields.Length;
@@ -176,11 +183,7 @@ partial class CsvReader<T>
         private sealed class Box
         {
             public CsvFields<T> Fields;
-
-#pragma warning disable CS0649
-            // ReSharper disable once UnassignedField.Local
             public EnumeratorStack Memory;
-#pragma warning restore CS0649
         }
 
         private readonly CsvReader<T> _reader;
@@ -192,6 +195,7 @@ partial class CsvReader<T>
             _reader = reader;
             _cancellationToken = cancellationToken;
             _box = new();
+            Unsafe.SkipInit(out _box.Memory);
         }
 
         /// <summary>

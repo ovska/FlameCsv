@@ -39,8 +39,11 @@ internal readonly struct Meta : IEquatable<Meta>
     /// </summary>
     public const uint MaxSpecialCount = unchecked(((uint)SpecialCountMask >> 3));
 
-    [FieldOffset(0)] internal readonly int _endAndEol;
-    [FieldOffset(4)] internal readonly int _specialCountAndOffset;
+    [FieldOffset(0)]
+    internal readonly int _endAndEol;
+
+    [FieldOffset(4)]
+    internal readonly int _specialCountAndOffset;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Meta(int end, uint specialCount, bool isEscape, bool isEOL, int newlineLength)
@@ -75,9 +78,12 @@ internal readonly struct Meta : IEquatable<Meta>
         }
 
         return Unsafe.BitCast<long, Meta>(
-            (uint)end | // end position
-            ((long)quoteCount << 35) | // quote count
-            (1L << 32)); // delimiter
+            (uint)end
+                | // end position
+                ((long)quoteCount << 35)
+                | // quote count
+                (1L << 32)
+        ); // delimiter
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -90,10 +96,12 @@ internal readonly struct Meta : IEquatable<Meta>
         }
 
         return Unsafe.BitCast<long, Meta>(
-            (uint)end | // end position
-            unchecked((uint)EOLMask) |
-            (((long)(uint)newlineLength) << 32) |
-            ((long)quoteCount << 35));
+            (uint)end
+                | // end position
+                unchecked((uint)EOLMask)
+                | (((long)(uint)newlineLength) << 32)
+                | ((long)quoteCount << 35)
+        );
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -108,10 +116,14 @@ internal readonly struct Meta : IEquatable<Meta>
         long mask = unchecked((uint)EOLMask) | (((long)(uint)newlineLength) << 32);
         long isEolMask = isEOL.ToBitwiseMask64();
         return Unsafe.BitCast<long, Meta>(
-            (uint)end | // end position
-            ((long)quoteCount << 35) | // quote count
-            ((1L << 32) & ~isEolMask) | // delimiter, zero if EOL
-            (mask & isEolMask)); // newline length + EOLMask, or zero if not EOL
+            (uint)end
+                | // end position
+                ((long)quoteCount << 35)
+                | // quote count
+                ((1L << 32) & ~isEolMask)
+                | // delimiter, zero if EOL
+                (mask & isEolMask)
+        ); // newline length + EOLMask, or zero if not EOL
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -127,17 +139,16 @@ internal readonly struct Meta : IEquatable<Meta>
         // splitting into variable is 3 bytes more code size, but better perf
         long isEolMask = isEOL.ToBitwiseMask64();
         return Unsafe.BitCast<long, Meta>(
-            (uint)end |
-            ((1L << 32) & ~isEolMask) |
-            ((unchecked((uint)EOLMask) | (((long)(uint)newlineLength) << 32)) & isEolMask));
+            (uint)end
+                | ((1L << 32) & ~isEolMask)
+                | ((unchecked((uint)EOLMask) | (((long)(uint)newlineLength) << 32)) & isEolMask)
+        );
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Meta Unix(int end, uint quoteCount, uint escapeCount, bool isEOL, int newlineLength)
     {
-        if ((quoteCount % 2 != 0) ||
-            (escapeCount > 0 && quoteCount != 2) ||
-            escapeCount > MaxSpecialCount)
+        if ((quoteCount % 2 != 0) || (escapeCount > 0 && quoteCount != 2) || escapeCount > MaxSpecialCount)
         {
             ThrowInvalidUnix(quoteCount, escapeCount, isEOL);
         }
@@ -211,11 +222,12 @@ internal readonly struct Meta : IEquatable<Meta>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> GetField<T>(
-        scoped ref readonly CsvDialect<T> dialect,
+        Dialect<T> dialect,
         int start,
         scoped ref T data,
         Span<T> buffer,
-        Allocator<T>? allocator)
+        Allocator<T>? allocator
+    )
         where T : unmanaged, IBinaryInteger<T>
     {
         // don't touch this method without thorough benchmarking
@@ -227,7 +239,7 @@ internal readonly struct Meta : IEquatable<Meta>
         int length = (_endAndEol & ~EOLMask) - start;
         ref T first = ref Unsafe.Add(ref data, start);
 
-        if (dialect._trimming == CsvFieldTrimming.None)
+        if (dialect.Trimming == CsvFieldTrimming.None)
         {
             // most common case, no quotes or escapes
             if ((_specialCountAndOffset & SpecialCountMask) == 0)
@@ -247,33 +259,36 @@ internal readonly struct Meta : IEquatable<Meta>
 
             T quote = dialect.Quote;
 
-            if ((_specialCountAndOffset & (~0b11 ^ 0b10000)) == 0 &&
-                quote == first &&
-                quote == Unsafe.Add(ref first, length - 1))
+            if (
+                (_specialCountAndOffset & (~0b11 ^ 0b10000)) == 0
+                && quote == first
+                && quote == Unsafe.Add(ref first, length - 1)
+            )
             {
                 return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref first, 1), length - 2);
             }
         }
 
-        return GetFieldSlow(in dialect, start, ref data, buffer, allocator);
+        return GetFieldSlow(dialect, start, ref data, buffer, allocator);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private ReadOnlySpan<T> GetFieldSlow<T>(
-        scoped ref readonly CsvDialect<T> dialect,
+        Dialect<T> dialect,
         int start,
         scoped ref T data,
         Span<T> buffer,
-        Allocator<T>? allocator)
+        Allocator<T>? allocator
+    )
         where T : unmanaged, IBinaryInteger<T>
     {
         int fieldLength = End - start;
         ReadOnlySpan<T> field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, start), End - start);
 
         // trim before unquoting to preserve spaces in strings
-        if ((dialect._trimming & CsvFieldTrimming.Both) != CsvFieldTrimming.None)
+        if ((dialect.Trimming & CsvFieldTrimming.Both) != CsvFieldTrimming.None)
         {
-            field = field.Trim(dialect._trimming);
+            field = field.Trim(dialect.Trimming);
         }
 
         if ((_specialCountAndOffset & (IsEscapeMask | SpecialCountMask)) != 0)
@@ -281,9 +296,11 @@ internal readonly struct Meta : IEquatable<Meta>
             T quote = dialect.Quote;
             uint specialCount = SpecialCount;
 
-            if (fieldLength <= 1 ||
-                Unsafe.Add(ref data, start) != quote ||
-                Unsafe.Add(ref data, start + fieldLength - 1) != quote)
+            if (
+                fieldLength <= 1
+                || Unsafe.Add(ref data, start) != quote
+                || Unsafe.Add(ref data, start + fieldLength - 1) != quote
+            )
             {
                 IndexOfUnescaper.Invalid(field, in this);
             }
@@ -294,13 +311,14 @@ internal readonly struct Meta : IEquatable<Meta>
             // for RFC, special count refers to the _total_ number of quotes, including wrapping
             if (IsEscape && specialCount != 0)
             {
-                Debug.Assert(dialect.Escape.HasValue, "Escape character is not set");
-                var unescaper = new IndexOfUnixUnescaper<T>(dialect.Escape.GetValueOrDefault(), specialCount);
+                Debug.Assert(dialect.Escape != default, "Escape character is not set");
+                var unescaper = new IndexOfUnixUnescaper<T>(dialect.Escape, specialCount);
                 int length = IndexOfUnixUnescaper<T>.UnescapedLength(field.Length, specialCount);
 
                 if (length > buffer.Length)
                 {
-                    if (allocator is null) ThrowIfAllocatorNull(buffer.Length);
+                    if (allocator is null)
+                        ThrowIfAllocatorNull(buffer.Length);
                     buffer = allocator.GetSpan(length);
                 }
 
@@ -311,25 +329,24 @@ internal readonly struct Meta : IEquatable<Meta>
             {
                 if (field.Length > buffer.Length)
                 {
-                    if (allocator is null) ThrowIfAllocatorNull(buffer.Length);
+                    if (allocator is null)
+                        ThrowIfAllocatorNull(buffer.Length);
                     buffer = allocator.GetSpan(field.Length);
                 }
 
-                if (typeof(T) == typeof(char))
+                // Vector<char> is not supported
+                if (Unsafe.SizeOf<T>() is sizeof(char))
                 {
                     RFC4180Mode<ushort>.Unescape(
                         ushort.CreateTruncating(dialect.Quote),
                         buffer.Cast<T, ushort>(),
                         field.Cast<T, ushort>(),
-                        specialCount - 2);
+                        specialCount - 2
+                    );
                 }
                 else
                 {
-                    RFC4180Mode<T>.Unescape(
-                        dialect.Quote,
-                        buffer,
-                        field,
-                        specialCount - 2);
+                    RFC4180Mode<T>.Unescape(dialect.Quote, buffer, field, specialCount - 2);
                 }
 
                 int unescapedLength = field.Length - unchecked((int)((specialCount - 2) / 2));
@@ -348,7 +365,8 @@ internal readonly struct Meta : IEquatable<Meta>
 #pragma warning disable CA2208 // Instantiate argument exceptions correctly
         throw new ArgumentNullException(
             paramName: "buffer",
-            $"Unescape buffer ({bufferLength}) is shorter than the field length ({End - NextStart}).");
+            $"Unescape buffer ({bufferLength}) is shorter than the field length ({End - NextStart})."
+        );
 #pragma warning restore CA2208 // Instantiate argument exceptions correctly
     }
 
@@ -368,8 +386,7 @@ internal readonly struct Meta : IEquatable<Meta>
         {
             if (this.Equals(default))
                 return "{ Start: 0 }";
-            return
-                $"{{ End: {End}, IsEOL: {IsEOL}, SpecialCount: {SpecialCount}, IsEscape: {IsEscape}, Offset: {NextStart - End}, Next: {NextStart} }}";
+            return $"{{ End: {End}, IsEOL: {IsEOL}, SpecialCount: {SpecialCount}, IsEscape: {IsEscape}, Offset: {NextStart - End}, Next: {NextStart} }}";
         }
     }
 
@@ -382,7 +399,8 @@ internal readonly struct Meta : IEquatable<Meta>
         if (quoteCount > MaxSpecialCount)
         {
             throw new NotSupportedException(
-                $"Csv field had too many quotes ({quoteCount}){info}, up to {SpecialCountMask} supported.");
+                $"Csv field had too many quotes ({quoteCount}){info}, up to {SpecialCountMask} supported."
+            );
         }
 
         throw new CsvFormatException($"Invalid CSV field{info}, unbalanced quotes ({quoteCount}).");
@@ -397,15 +415,20 @@ internal readonly struct Meta : IEquatable<Meta>
         if (escapeCount > MaxSpecialCount)
         {
             throw new NotSupportedException(
-                $"Csv field had too many escapes ({escapeCount}){info}, up to {SpecialCountMask} supported.");
+                $"Csv field had too many escapes ({escapeCount}){info}, up to {SpecialCountMask} supported."
+            );
         }
 
         throw new CsvFormatException($"Invalid CSV field{info}, unbalanced quotes ({quoteCount}).");
     }
 
     public bool Equals(Meta other) => Unsafe.BitCast<Meta, long>(this) == Unsafe.BitCast<Meta, long>(other);
+
     public override bool Equals(object? obj) => obj is Meta other && Equals(other);
+
     public override int GetHashCode() => Unsafe.BitCast<Meta, long>(this).GetHashCode();
+
     public static bool operator ==(Meta left, Meta right) => left.Equals(right);
+
     public static bool operator !=(Meta left, Meta right) => !(left == right);
 }

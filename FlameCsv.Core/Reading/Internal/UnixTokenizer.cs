@@ -13,12 +13,12 @@ internal class UnixTokenizer<T> : CsvTokenizer<T>
     private readonly T _newlineSecond;
     private readonly int _newlineLength;
 
-    public UnixTokenizer(ref readonly CsvDialect<T> dialect)
+    public UnixTokenizer(CsvOptions<T> options)
     {
-        _delimiter = dialect.Delimiter;
-        _quote = dialect.Quote;
-        _escape = dialect.Escape!.Value;
-        _newlineLength = dialect.Newline.GetTokens(out _newlineFirst, out _newlineSecond);
+        _delimiter = T.CreateTruncating(options.Delimiter);
+        _quote = T.CreateTruncating(options.Quote);
+        _escape = T.CreateTruncating(options.Escape!.Value);
+        _newlineLength = options.Newline.GetTokens(out _newlineFirst, out _newlineSecond);
     }
 
     public override int Tokenize(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex, bool readToEnd)
