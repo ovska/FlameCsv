@@ -150,12 +150,17 @@ internal static class Extensions
 
     public static bool IsAscii(this string? value)
     {
-        if (value is null || value.Length == 0) return true;
+        ReadOnlySpan<char> span = value.AsSpan();
+
+        if (span.IsEmpty)
+        {
+            return true;
+        }
 
         ref char first = ref MemoryMarshal.GetReference(value.AsSpan());
 
         nint index = 0;
-        nint remaining = value.Length;
+        nint remaining = span.Length;
 
         if (Vector.IsHardwareAccelerated && remaining >= Vector<ushort>.Count)
         {
@@ -166,7 +171,7 @@ internal static class Extensions
                 var mask = Unsafe.ReadUnaligned<Vector<ushort>>(
                     ref Unsafe.As<char, byte>(ref Unsafe.Add(ref first, index)));
 
-                if (Vector.GreaterThanAny(mask, needle))
+                if (Vector.GreaterThanOrEqualAny(mask, needle))
                 {
                     return false;
                 }

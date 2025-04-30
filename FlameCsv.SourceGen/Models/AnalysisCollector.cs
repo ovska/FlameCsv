@@ -5,7 +5,7 @@ namespace FlameCsv.SourceGen.Models;
 
 internal ref struct AnalysisCollector
 {
-    public override string ToString()
+    public override readonly string ToString()
         => $"AnalysisCollector: {Diagnostics?.Count} diagnostics, {TargetAttributes.Count} targetAttributes, " +
             $"{IgnoredIndexes?.Count} ignoredIndexes, {Proxies?.Count} proxies";
 
@@ -28,12 +28,12 @@ internal ref struct AnalysisCollector
         ProxyLocations = PooledList<Location?>.Acquire();
     }
 
-    public void AddDiagnostic(Diagnostic diagnostic)
+    public readonly void AddDiagnostic(Diagnostic diagnostic)
     {
         Diagnostics.Add(diagnostic);
     }
 
-    public void AddProxy(ITypeSymbol proxy, Location? location)
+    public readonly void AddProxy(ITypeSymbol proxy, Location? location)
     {
         Proxies.Add(proxy);
         ProxyLocations.Add(location);
@@ -80,7 +80,6 @@ internal ref struct AnalysisCollector
         finally
         {
             TargetAttributes.Dispose();
-            TargetAttributes = default;
             PooledList<Diagnostic>.Release(Diagnostics);
             PooledSet<int>.Release(IgnoredIndexes);
             PooledList<ITypeSymbol>.Release(Proxies);

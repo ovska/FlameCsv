@@ -77,6 +77,26 @@ internal static class Diagnostics
             messageArgs: targetType.ToDisplayString());
     }
 
+    public static Diagnostic NoTargetTypeOnAssembly(AttributeData attribute, ITypeSymbol attributeClass)
+    {
+        return Diagnostic.Create(
+            descriptor: Descriptors.NoTargetTypeOnAssembly,
+            location: attribute.GetLocation() ?? GetLocation(attributeClass),
+            messageArgs: [attributeClass.ToDisplayString()]);
+    }
+
+    public static Diagnostic NoMemberNameOnAttribute(AttributeData attribute, bool isOnAssembly)
+    {
+        return Diagnostic.Create(
+            descriptor: Descriptors.NoMemberNameOnAttribute,
+            location: attribute.GetLocation() ?? GetLocation(attribute.AttributeClass),
+            messageArgs:
+            [
+                attribute.AttributeClass?.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat) ?? "<unknown>",
+                isOnAssembly ? "assembly" : "type",
+            ]);
+    }
+
     public static Diagnostic ConflictingConfiguration(
         ITypeSymbol targetType,
         string memberType,
