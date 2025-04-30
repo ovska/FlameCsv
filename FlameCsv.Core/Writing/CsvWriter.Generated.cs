@@ -66,7 +66,7 @@ static partial class CsvWriter
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        // ensure the file stream is always disposed
+        ioOptions = ioOptions.ForFileIO();
         using FileStream stream = GetFileStream(path, isAsync: false, in ioOptions);
 
         using var writer = CsvFieldWriter.Create(stream, options);
@@ -100,9 +100,9 @@ static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        // ensure the file stream is always disposed
-        using StreamWriter streamWriter = GetFileStreamWriter(path, encoding, isAsync: false, in ioOptions);
-        using var writer = CsvFieldWriter.Create(streamWriter, options, in ioOptions);
+        ioOptions = ioOptions.ForFileIO();
+        ICsvBufferWriter<char> fileWriter = GetFileBufferWriter(path, encoding, isAsync: false, options.Allocator, ioOptions);
+        using var writer = CsvFieldWriter.Create(fileWriter, options);
 
         WriteCore(values, writer, dematerializer);
     }
@@ -306,9 +306,9 @@ static partial class CsvWriter
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
+        ioOptions = ioOptions.ForFileIO();
         FileStream stream = GetFileStream(path, isAsync: true, in ioOptions);
 
-        // ensure the file stream is always disposed
         await using (stream.ConfigureAwait(false))
         {
             using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
@@ -354,20 +354,17 @@ static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        StreamWriter stream = GetFileStreamWriter(path, encoding, isAsync: true, in ioOptions);
+        ioOptions = ioOptions.ForFileIO();
+        ICsvBufferWriter<char> fileWriter = GetFileBufferWriter(path, encoding, isAsync: true, options.Allocator, ioOptions);
 
-        // ensure the file stream is always disposed
-        await using (stream.ConfigureAwait(false))
-        {
-            using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
+        using var writer = await CsvFieldWriter.CreateAsync(fileWriter, options).ConfigureAwait(false);
 
-            await WriteAsyncCore(
-                values,
-                writer,
-                dematerializer,
-                cancellationToken)
-                .ConfigureAwait(false);
-        }
+        await WriteAsyncCore(
+            values,
+            writer,
+            dematerializer,
+            cancellationToken)
+            .ConfigureAwait(false);
     }
     /// <summary>
     /// Asynchronously writes the values as CSV records to the <see cref="TextWriter"/> using <see cref="CsvOptions{T}.TypeBinder"/>.
@@ -512,9 +509,9 @@ static partial class CsvWriter
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
+        ioOptions = ioOptions.ForFileIO();
         FileStream stream = GetFileStream(path, isAsync: true, in ioOptions);
 
-        // ensure the file stream is always disposed
         await using (stream.ConfigureAwait(false))
         {
             using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
@@ -560,20 +557,17 @@ static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        StreamWriter stream = GetFileStreamWriter(path, encoding, isAsync: true, in ioOptions);
+        ioOptions = ioOptions.ForFileIO();
+        ICsvBufferWriter<char> fileWriter = GetFileBufferWriter(path, encoding, isAsync: true, options.Allocator, ioOptions);
 
-        // ensure the file stream is always disposed
-        await using (stream.ConfigureAwait(false))
-        {
-            using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
+        using var writer = await CsvFieldWriter.CreateAsync(fileWriter, options).ConfigureAwait(false);
 
-            await WriteAsyncCore(
-                values,
-                writer,
-                dematerializer,
-                cancellationToken)
-                .ConfigureAwait(false);
-        }
+        await WriteAsyncCore(
+            values,
+            writer,
+            dematerializer,
+            cancellationToken)
+            .ConfigureAwait(false);
     }
     /// <summary>
     /// Writes the values as CSV records to a string using the type map.
@@ -631,7 +625,7 @@ static partial class CsvWriter
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        // ensure the file stream is always disposed
+        ioOptions = ioOptions.ForFileIO();
         using FileStream stream = GetFileStream(path, isAsync: false, in ioOptions);
 
         using var writer = CsvFieldWriter.Create(stream, options);
@@ -666,9 +660,9 @@ static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        // ensure the file stream is always disposed
-        using StreamWriter streamWriter = GetFileStreamWriter(path, encoding, isAsync: false, in ioOptions);
-        using var writer = CsvFieldWriter.Create(streamWriter, options, in ioOptions);
+        ioOptions = ioOptions.ForFileIO();
+        ICsvBufferWriter<char> fileWriter = GetFileBufferWriter(path, encoding, isAsync: false, options.Allocator, ioOptions);
+        using var writer = CsvFieldWriter.Create(fileWriter, options);
 
         WriteCore(values, writer, dematerializer);
     }
@@ -878,9 +872,9 @@ static partial class CsvWriter
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
+        ioOptions = ioOptions.ForFileIO();
         FileStream stream = GetFileStream(path, isAsync: true, in ioOptions);
 
-        // ensure the file stream is always disposed
         await using (stream.ConfigureAwait(false))
         {
             using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
@@ -927,20 +921,17 @@ static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        StreamWriter stream = GetFileStreamWriter(path, encoding, isAsync: true, in ioOptions);
+        ioOptions = ioOptions.ForFileIO();
+        ICsvBufferWriter<char> fileWriter = GetFileBufferWriter(path, encoding, isAsync: true, options.Allocator, ioOptions);
 
-        // ensure the file stream is always disposed
-        await using (stream.ConfigureAwait(false))
-        {
-            using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
+        using var writer = await CsvFieldWriter.CreateAsync(fileWriter, options).ConfigureAwait(false);
 
-            await WriteAsyncCore(
-                values,
-                writer,
-                dematerializer,
-                cancellationToken)
-                .ConfigureAwait(false);
-        }
+        await WriteAsyncCore(
+            values,
+            writer,
+            dematerializer,
+            cancellationToken)
+            .ConfigureAwait(false);
     }
     /// <summary>
     /// Asynchronously writes the values as CSV records to the <see cref="TextWriter"/> using the type map.
@@ -1089,9 +1080,9 @@ static partial class CsvWriter
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
+        ioOptions = ioOptions.ForFileIO();
         FileStream stream = GetFileStream(path, isAsync: true, in ioOptions);
 
-        // ensure the file stream is always disposed
         await using (stream.ConfigureAwait(false))
         {
             using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
@@ -1138,19 +1129,16 @@ static partial class CsvWriter
         options ??= CsvOptions<char>.Default;
         IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        StreamWriter stream = GetFileStreamWriter(path, encoding, isAsync: true, in ioOptions);
+        ioOptions = ioOptions.ForFileIO();
+        ICsvBufferWriter<char> fileWriter = GetFileBufferWriter(path, encoding, isAsync: true, options.Allocator, ioOptions);
 
-        // ensure the file stream is always disposed
-        await using (stream.ConfigureAwait(false))
-        {
-            using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
+        using var writer = await CsvFieldWriter.CreateAsync(fileWriter, options).ConfigureAwait(false);
 
-            await WriteAsyncCore(
-                values,
-                writer,
-                dematerializer,
-                cancellationToken)
-                .ConfigureAwait(false);
-        }
+        await WriteAsyncCore(
+            values,
+            writer,
+            dematerializer,
+            cancellationToken)
+            .ConfigureAwait(false);
     }
 }

@@ -7,10 +7,26 @@ namespace FlameCsv.Writing;
 internal static class CsvFieldWriter
 {
     [MustDisposeResource]
+    public static CsvFieldWriter<T> Create<T>(ICsvBufferWriter<T> writer, CsvOptions<T> options)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        try
+        {
+            return new CsvFieldWriter<T>(writer, options);
+        }
+        catch (Exception ex)
+        {
+            writer.Complete(ex);
+            throw;
+        }
+    }
+
+    [MustDisposeResource]
     public static CsvFieldWriter<char> Create(
         TextWriter textWriter,
         CsvOptions<char> options,
-        in CsvIOOptions ioOptions = default)
+        in CsvIOOptions ioOptions = default
+    )
     {
         try
         {
@@ -18,7 +34,8 @@ internal static class CsvFieldWriter
         }
         catch
         {
-            if (!ioOptions.LeaveOpen) textWriter.Dispose();
+            if (!ioOptions.LeaveOpen)
+                textWriter.Dispose();
             throw;
         }
     }
@@ -41,7 +58,8 @@ internal static class CsvFieldWriter
     public static CsvFieldWriter<byte> Create(
         Stream stream,
         CsvOptions<byte> options,
-        in CsvIOOptions ioOptions = default)
+        in CsvIOOptions ioOptions = default
+    )
     {
         try
         {
@@ -49,7 +67,23 @@ internal static class CsvFieldWriter
         }
         catch
         {
-            if (!ioOptions.LeaveOpen) stream.Dispose();
+            if (!ioOptions.LeaveOpen)
+                stream.Dispose();
+            throw;
+        }
+    }
+
+    [MustDisposeResource]
+    public static async ValueTask<CsvFieldWriter<T>> CreateAsync<T>(ICsvBufferWriter<T> writer, CsvOptions<T> options)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        try
+        {
+            return new CsvFieldWriter<T>(writer, options);
+        }
+        catch (Exception ex)
+        {
+            await writer.CompleteAsync(ex).ConfigureAwait(false);
             throw;
         }
     }
@@ -58,7 +92,8 @@ internal static class CsvFieldWriter
     public static async ValueTask<CsvFieldWriter<char>> CreateAsync(
         TextWriter textWriter,
         CsvOptions<char> options,
-        CsvIOOptions ioOptions = default)
+        CsvIOOptions ioOptions = default
+    )
     {
         try
         {
@@ -66,7 +101,8 @@ internal static class CsvFieldWriter
         }
         catch
         {
-            if (!ioOptions.LeaveOpen) await textWriter.DisposeAsync().ConfigureAwait(false);
+            if (!ioOptions.LeaveOpen)
+                await textWriter.DisposeAsync().ConfigureAwait(false);
             throw;
         }
     }
@@ -75,7 +111,8 @@ internal static class CsvFieldWriter
     public static async ValueTask<CsvFieldWriter<byte>> CreateAsync(
         Stream stream,
         CsvOptions<byte> options,
-        CsvIOOptions ioOptions = default)
+        CsvIOOptions ioOptions = default
+    )
     {
         try
         {
@@ -83,7 +120,8 @@ internal static class CsvFieldWriter
         }
         catch
         {
-            if (!ioOptions.LeaveOpen) await stream.DisposeAsync().ConfigureAwait(false);
+            if (!ioOptions.LeaveOpen)
+                await stream.DisposeAsync().ConfigureAwait(false);
             throw;
         }
     }
