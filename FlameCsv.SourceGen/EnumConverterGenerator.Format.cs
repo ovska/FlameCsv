@@ -5,7 +5,7 @@ namespace FlameCsv.SourceGen;
 public partial class EnumConverterGenerator
 {
     private static void WriteFormatMethod(
-        EnumModel model,
+        ref readonly EnumModel model,
         bool numbers,
         IndentedTextWriter writer,
         CancellationToken cancellationToken)
@@ -92,7 +92,7 @@ public partial class EnumConverterGenerator
 
     private static void WriteFormatMatch(
         IndentedTextWriter writer,
-        in EnumModel model,
+        ref readonly EnumModel model,
         CancellationToken cancellationToken,
         IEnumerable<EnumValueModel> values,
         Func<EnumValueModel, string> getValue)
@@ -141,7 +141,7 @@ public partial class EnumConverterGenerator
         writer.WriteLine("return global::System.Buffers.OperationStatus.InvalidData;");
     }
 
-    private static bool TryWriteDirectFormat(IndentedTextWriter writer, in EnumModel model, string value)
+    private static bool TryWriteDirectFormat(IndentedTextWriter writer, ref readonly EnumModel model, string value)
     {
         if (!value.IsAscii())
         {
@@ -224,7 +224,7 @@ public partial class EnumConverterGenerator
     }
 
     private static void WriteFlagsFormat(
-        in EnumModel model,
+        ref readonly EnumModel model,
         IndentedTextWriter writer,
         CancellationToken cancellationToken)
     {
