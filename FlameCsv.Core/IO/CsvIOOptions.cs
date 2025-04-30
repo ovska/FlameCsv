@@ -15,6 +15,11 @@ public readonly record struct CsvIOOptions
     public const int DefaultBufferSize = 1024 * 16;
 
     /// <summary>
+    /// The default buffer size when doing file I/O.
+    /// </summary>
+    public const int DefaultFileBufferSize = 1024 * 64;
+
+    /// <summary>
     /// The default minimum read size.
     /// </summary>
     public const int DefaultMinimumReadSize = 1024;
@@ -42,7 +47,8 @@ public readonly record struct CsvIOOptions
         get => _bufferSize ?? DefaultBufferSize;
         init
         {
-            if (value == -1) return;
+            if (value == -1)
+                return;
             ArgumentOutOfRangeException.ThrowIfLessThan(value, 1);
             _bufferSize = Math.Max(value, MinimumBufferSize);
         }
@@ -61,7 +67,8 @@ public readonly record struct CsvIOOptions
         get => Math.Min(_minimumReadSize ?? DefaultMinimumReadSize, (_bufferSize ?? DefaultBufferSize) / 2);
         init
         {
-            if (value == -1) return;
+            if (value == -1)
+                return;
             ArgumentOutOfRangeException.ThrowIfLessThan(value, 1);
             _minimumReadSize = Math.Max(value, MinimumBufferSize / 2);
         }
@@ -85,4 +92,18 @@ public readonly record struct CsvIOOptions
     public bool NoDirectBufferAccess { get; init; }
 
     internal bool HasCustomBufferSize => _bufferSize.HasValue && _bufferSize != DefaultBufferSize;
+}
+
+internal static class IOExtensions
+{
+    public static CsvIOOptions ForFileIO(in this CsvIOOptions options)
+    {
+        // never leave library-created file streams open
+        // use large buffer size for file I/O if no user overridden buffer size
+        return options with
+        {
+            LeaveOpen = false,
+            BufferSize = options.HasCustomBufferSize ? options.BufferSize : CsvIOOptions.DefaultFileBufferSize,
+        };
+    }
 }
